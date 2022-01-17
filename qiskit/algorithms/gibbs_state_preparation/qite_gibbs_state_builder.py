@@ -61,6 +61,7 @@ class QiteGibbsStateBuilder(GibbsStateBuilder):
         maximally_entangled_states = self._ansatz.assign_parameters(self._ansatz_init_params_dict)
         return Statevector(maximally_entangled_states)
 
+    # TODO add hamiltonian param dict here as an arg?
     def build(self, problem_hamiltonian: OperatorBase, temperature: float) -> GibbsState:
         """
         Creates a Gibbs state from given parameters.
@@ -75,6 +76,8 @@ class QiteGibbsStateBuilder(GibbsStateBuilder):
             self._set_default_ansatz(problem_hamiltonian)
 
         time = 1 / (self.BOLTZMANN_CONSTANT * temperature)
+
+        # TODO extend to include hamiltonian param_dict?
         gibbs_state_function = self._qite_algorithm.evolve(
             hamiltonian=problem_hamiltonian,
             time=time,

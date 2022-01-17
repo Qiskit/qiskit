@@ -77,6 +77,11 @@ class GibbsState:
         return self._gibbs_state_function
 
     @property
+    def gibbs_state_function_bound_ansatz(self):
+        """Returns a Gibbs state function."""
+        return self._gibbs_state_function.assign_parameters(self._ansatz_params_dict)
+
+    @property
     def ansatz(self):
         """Returns an ansatz that gave rise to a Gibbs state."""
         return self._ansatz
@@ -114,7 +119,7 @@ class GibbsState:
                         ansatz that gave rise to a Gibbs state.
         """
         self._validate_arguments(gradient_params)
-        op = ~StateFn(measurement_op) @ CircuitStateFn(self._ansatz)
+        op = ~StateFn(measurement_op) @ CircuitStateFn(self._ansatz)  # how is p_v_qbm calc?
 
         state_grad = Gradient(grad_method=gradient_method).convert(
             operator=op, params=gradient_params
@@ -141,8 +146,7 @@ class GibbsState:
             gradient_method: A desired gradient method chosen from the Qiskit Gradient Framework.
         Returns:
             Calculated gradients of the visible part of a Gibbs state w.r.t. parameters of a
-            Hamiltonian that gave rise to the Gibbs state,
-            with bound parameter values.
+            Hamiltonian that gave rise to the Gibbs state, gradient parameter values are not bound.
         Raises:
             ValueError: If gradient_params not set or if ansatz and ansatz_params_dict are not both
                         provided or if any of the provided gradient parameters is not present in an
