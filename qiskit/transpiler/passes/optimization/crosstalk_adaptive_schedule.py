@@ -45,6 +45,7 @@ TWOQ_XTALK_THRESH = 3
 ONEQ_XTALK_THRESH = 2
 
 
+@_optionals.HAS_Z3.require_in_instance
 class CrosstalkAdaptiveSchedule(TransformationPass):
     """Crosstalk mitigation through adaptive instruction scheduling."""
 
@@ -90,7 +91,6 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
             ImportError: if unable to import z3 solver
 
         """
-        _optionals.HAS_Z3.require_now("CrosstalkAdaptiveSchedule")
         import z3
 
         super().__init__()

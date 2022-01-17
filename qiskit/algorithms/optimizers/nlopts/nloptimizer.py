@@ -34,6 +34,7 @@ class NLoptOptimizerType(Enum):
     GN_ISRES = 5
 
 
+@_optionals.HAS_NLOPT.require_in_instance
 class NLoptOptimizer(Optimizer):
     """
     NLopt global optimizer base class
@@ -51,7 +52,6 @@ class NLoptOptimizer(Optimizer):
         Raises:
             MissingOptionalLibraryError: NLopt library not installed.
         """
-        _optionals.HAS_NLOPT.require_now("NLoptOptimizer")
         import nlopt
 
         super().__init__()

@@ -52,6 +52,8 @@ PORDER_GRAY = 3
 PORDER_TEXT = 6
 
 
+@_optionals.HAS_MATPLOTLIB.require_in_instance
+@_optionals.HAS_PYLATEX.require_in_instance
 class MatplotlibDrawer:
     """Matplotlib drawer class called from circuit_drawer"""
 
@@ -76,13 +78,10 @@ class MatplotlibDrawer:
         cregs=None,
         calibrations=None,
     ):
-        _optionals.HAS_MATPLOTLIB.require_now("matplotlib drawer")
-        _optionals.HAS_PYLATEX.require_now("matplotlib drawer")
         from matplotlib import patches
-
-        self._patches_mod = patches
         from matplotlib import pyplot as plt
 
+        self._patches_mod = patches
         self._plt_mod = plt
 
         # First load register and index info for the cregs and qregs,

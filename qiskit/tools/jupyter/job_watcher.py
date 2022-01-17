@@ -21,13 +21,13 @@ from .job_widgets import build_job_viewer, make_clear_button, make_labels, creat
 from .watcher_monitor import _job_monitor
 
 
+@_optionals.HAS_IBMQ.require_in_instance
 class JobWatcher(Subscriber):
     """An IBM Q job watcher."""
 
     # pylint: disable=import-error
 
     def __init__(self):
-        _optionals.HAS_IBMQ.require_now("the job watcher")
         super().__init__()
         self.jobs = []
         self._init_subscriber()

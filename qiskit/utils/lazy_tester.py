@@ -18,9 +18,25 @@ import functools
 import importlib
 import subprocess
 import typing
-from typing import Union, Iterable, Dict, Optional, Callable
+from typing import Union, Iterable, Dict, Optional, Callable, Type
 
 from qiskit.exceptions import MissingOptionalLibraryError
+from .classtools import wrap_method
+
+
+class _RequireNow:
+    """Helper callable that accepts all function signatures and simply calls
+    :meth:`.LazyDependencyManager.require_now`.  This helpful when used with :func:`.wrap_method`,
+    as the callable needs to be compatible with all signatures and be picklable."""
+
+    __slots__ = ("_tester", "_feature")
+
+    def __init__(self, tester, feature):
+        self._tester = tester
+        self._feature = feature
+
+    def __call__(self, *_args, **_kwargs):
+        self._tester.require_now(self._feature)
 
 
 class LazyDependencyManager(abc.ABC):
@@ -138,9 +154,9 @@ class LazyDependencyManager(abc.ABC):
 
         function = feature_or_callable
         feature = (
-            getattr(feature_or_callable, "__qualname__", None)
-            or getattr(feature_or_callable, "__name__", None)
-            or str(feature_or_callable)
+            getattr(function, "__qualname__", None)
+            or getattr(function, "__name__", None)
+            or str(function)
         )
 
         @functools.wraps(function)
@@ -149,6 +165,48 @@ class LazyDependencyManager(abc.ABC):
             return function(*args, **kwargs)
 
         return out
+
+    @typing.overload
+    def require_in_instance(self, feature_or_class: Type) -> Type:
+        ...
+
+    @typing.overload
+    def require_in_instance(self, feature_or_class: str) -> Callable[[Type], Type]:
+        ...
+
+    def require_in_instance(self, feature_or_class):
+        """A class decorator that requires the dependency is available when the class is
+        initialised.  This decorator can be used even if the class does not define an ``__init__``
+        method.
+
+        Args:
+            feature_or_class (str or Type): the name of the feature that requires these
+                dependencies.  If this function is called directly as a decorator (for example
+                ``@HAS_X.require_in_instance`` as opposed to
+                ``@HAS_X.require_in_instance("my feature")``), then the feature name will be taken
+                as the name of the class.
+
+        Returns:
+            Callable: a class decorator that ensures that the wrapped feature is present if the
+            class is initialised.
+        """
+        if isinstance(feature_or_class, str):
+            feature = feature_or_class
+
+            def decorator(class_):
+                wrap_method(class_, "__init__", before=_RequireNow(self, feature))
+                return class_
+
+            return decorator
+
+        class_ = feature_or_class
+        feature = (
+            getattr(class_, "__qualname__", None)
+            or getattr(class_, "__name__", None)
+            or str(class_)
+        )
+        wrap_method(class_, "__init__", before=_RequireNow(self, feature))
+        return class_
 
     def require_now(self, feature: str):
         """Eagerly attempt to import the dependencies in this object, and raise an exception if they

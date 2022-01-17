@@ -21,6 +21,7 @@ from qiskit.circuit.library.standard_gates import CZGate, CU1Gate, MCU1Gate
 from qiskit.utils import optionals as _optionals
 
 
+@_optionals.HAS_Z3.require_in_instance
 class HoareOptimizer(TransformationPass):
     """This is a transpiler pass using Hoare logic circuit optimization.
     The inner workings of this are detailed in:
@@ -36,7 +37,6 @@ class HoareOptimizer(TransformationPass):
         Raises:
             TranspilerError: if unable to import z3 solver
         """
-        _optionals.HAS_Z3.require_now("HoareOptimizer")
         # This module is just a script that adds several post conditions onto existing classes.
         from . import _gate_extension  # pylint: disable=unused-import
 

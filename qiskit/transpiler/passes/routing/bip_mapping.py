@@ -26,6 +26,8 @@ from qiskit.transpiler.passes.routing.algorithms.bip_model import BIPMappingMode
 logger = logging.getLogger(__name__)
 
 
+@_optionals.HAS_CPLEX.require_in_instance("BIP-based mapping pass")
+@_optionals.HAS_DOCPLEX.require_in_instance("BIP-based mapping pass")
 class BIPMapping(TransformationPass):
     r"""Map a DAGCircuit onto a given ``coupling_map``, allocating qubits and adding swap gates.
 
@@ -109,8 +111,6 @@ class BIPMapping(TransformationPass):
             MissingOptionalLibraryError: if cplex or docplex are not installed.
             TranspilerError: if invalid options are specified.
         """
-        _optionals.HAS_CPLEX.require_now("BIP-based mapping pass")
-        _optionals.HAS_DOCPLEX.require_now("BIP-based mapping pass")
         super().__init__()
         self.coupling_map = coupling_map
         self.qubit_subset = qubit_subset

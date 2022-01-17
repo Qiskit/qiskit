@@ -30,6 +30,7 @@ from qiskit.utils import optionals as _optionals
 logger = logging.getLogger(__name__)
 
 
+@_optionals.HAS_DOCPLEX.require_in_instance
 class BIPMappingModel:
     """Internal model to create and solve a BIP problem for mapping.
 
@@ -55,7 +56,6 @@ class BIPMappingModel:
             TranspilerError: If size of virtual qubits and physical qubits differ, or
                 if coupling_map is not symmetric (bidirectional).
         """
-        _optionals.HAS_DOCPLEX.require_now("BIP Mapping")
 
         self._dag = dag
         self._coupling = copy.deepcopy(coupling_map)  # reduced coupling map

@@ -51,13 +51,13 @@ from qiskit.tools.events.progressbar import BaseProgressBar
 from qiskit.utils import optionals as _optionals
 
 
+@_optionals.HAS_IPYWIDGETS.require_in_instance
 class HTMLProgressBar(BaseProgressBar):
     """
     A simple HTML progress bar for using in IPython notebooks.
     """
 
     def __init__(self):
-        _optionals.HAS_IPYWIDGETS.require_now("progress bar")
         super().__init__()
         self.progress_bar = None
         self.label = None

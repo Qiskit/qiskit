@@ -19,6 +19,8 @@ from qiskit.utils import optionals as _optionals
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
 
+@_optionals.HAS_SKQUANT.require_in_instance
+@_optionals.HAS_SQSNOBFIT.require_in_instance
 class SNOBFIT(Optimizer):
     """Stable Noisy Optimization by Branch and FIT algorithm.
 
@@ -49,8 +51,6 @@ class SNOBFIT(Optimizer):
         Raises:
             MissingOptionalLibraryError: scikit-quant or SQSnobFit not installed
         """
-        _optionals.HAS_SKQUANT.require_now("SNOBFIT")
-        _optionals.HAS_SQSNOBFIT.require_now("SNOBFIT")
         super().__init__()
         self._maxiter = maxiter
         self._maxfail = maxfail

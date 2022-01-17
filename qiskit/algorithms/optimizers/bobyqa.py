@@ -19,6 +19,7 @@ from qiskit.utils import optionals as _optionals
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
 
+@_optionals.HAS_SKQUANT.require_in_instance
 class BOBYQA(Optimizer):
     """Bound Optimization BY Quadratic Approximation algorithm.
 
@@ -41,7 +42,6 @@ class BOBYQA(Optimizer):
         Raises:
             MissingOptionalLibraryError: scikit-quant not installed
         """
-        _optionals.HAS_SKQUANT.require_now("BOBYQA")
         super().__init__()
         self._maxiter = maxiter
 

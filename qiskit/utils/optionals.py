@@ -206,13 +206,13 @@ HAS_IGNIS = LazyImportTester(
 HAS_CPLEX = LazyImportTester(
     "cplex",
     install="pip install 'qiskit-terra[bip-mapper]'",
-    msg="This may not be possible for all Python versions and OSes.",
+    msg="This may not be possible for all Python versions and OSes",
 )
 HAS_CVXPY = LazyImportTester("cvxpy", install="pip install cvxpy")
 HAS_DOCPLEX = LazyImportTester(
     {"docplex": (), "docplex.mp.model": ("Model",)},
     install="pip install 'qiskit-terra[bip-mapper]'",
-    msg="This may not be possible for all Python versions and OSes.",
+    msg="This may not be possible for all Python versions and OSes",
 )
 HAS_FIXTURES = LazyImportTester("fixtures", install="pip install fixtures")
 HAS_IPYTHON = LazyImportTester("IPython", install="pip install ipython")
@@ -247,7 +247,7 @@ HAS_NLOPT = LazyImportTester(
     "nlopt",
     name="NLopt Optimizer",
     callback=_nlopt_callback,
-    msg="See the documentation of 'qiskit.algorithms.optimizer.nlopts' for installation help.",
+    msg="See the documentation of 'qiskit.algorithms.optimizer.nlopts' for installation help",
 )
 HAS_PIL = LazyImportTester({"PIL": ("Image",)}, name="pillow", install="pip install pillow")
 HAS_PYDOT = LazyImportTester("pydot", install="pip install pydot")

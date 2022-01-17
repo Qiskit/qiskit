@@ -369,6 +369,7 @@ class WaveformDrawer:
         return figure
 
 
+@_optionals.HAS_MATPLOTLIB.require_in_instance
 class ScheduleDrawer:
     """A class to create figure for schedule and channel."""
 
@@ -380,13 +381,10 @@ class ScheduleDrawer:
         Raises:
             MissingOptionalLibraryError: If matplotlib is not installed
         """
-        _optionals.HAS_MATPLOTLIB.require_now("ScheduleDrawer")
-
         from matplotlib import pyplot as plt
-
-        self.plt_mod = plt
         from matplotlib import gridspec
 
+        self.plt_mod = plt
         self.gridspec_mod = gridspec
         self.style = style or SchedStyle()
 

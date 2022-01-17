@@ -27,6 +27,7 @@ Utilities (:mod:`qiskit.utils`)
    is_main_process
    apply_prefix
    detach_prefix
+   wrap_method
 
 Algorithm Utilities
 ===================
@@ -68,7 +69,10 @@ from .deprecation import deprecate_function
 from .multiprocessing import local_hardware_info
 from .multiprocessing import is_main_process
 from .units import apply_prefix, detach_prefix
+from .classtools import wrap_method
 from .lazy_tester import LazyDependencyManager, LazyImportTester, LazySubprocessTester
+
+from . import optionals
 
 from .circuit_utils import summarize_circuits
 from .entangler_map import get_entangler_map, validate_entangler_map
