@@ -499,7 +499,7 @@ class ParameterExpression:
             return len(self.parameters) == 0 and complex(self._symbol_expr) == other
         return False
 
-    def __lt__(self, other):
+    def __lt__(self, other: ParameterValueType) -> bool:
         """Check if this parameter expression is less than another parameter expression
            or a fixed value (only if this is a bound expression).
         Args:
@@ -516,10 +516,17 @@ class ParameterExpression:
             else:
                 return self._symbol_expr.__lt__(other._symbol_expr)
         elif isinstance(other, numbers.Number):
-            return len(self.parameters) == 0 and float(self._symbol_expr) < other
-        return False
+            if len(self.parameters) == 0:
+                return float(self._symbol_expr) < other
+            else: 
+                raise TypeError(
+                    "'<' not supported between instances of {type(self)} "
+                    "with unbound parameters {self.parameters} and {type(other)}."
+                )
+        else:
+            raise TypeError("'<' not supported between instances of {type(self)} and {type(other)}")
 
-    def __gt__(self, other):
+    def __gt__(self, other: ParameterValueType) -> bool:
         """Check if this parameter expression is greater than another parameter expression
            or a fixed value (only if this is a bound expression).
         Args:
@@ -536,13 +543,20 @@ class ParameterExpression:
             else:
                 return self._symbol_expr.__gt__(other._symbol_expr)
         elif isinstance(other, numbers.Number):
-            return len(self.parameters) == 0 and float(self._symbol_expr) > other
-        return False
+            if len(self.parameters) == 0:
+                return float(self._symbol_expr) > other
+            else:
+                raise TypeError(
+                    "'>' not supported between instances of {type(self)} "
+                    "with unbound parameters {self.parameters} and {type(other)}."
+                )
+        else:
+            raise TypeError("'>' not supported between instances of {type(self)} and {type(other)}")
 
-    def __ge__(self, other):
+    def __ge__(self, other: ParameterValueType) -> bool:
         return not self.__lt__(other)
 
-    def __le__(self, other):
+    def __le__(self, other: ParameterValueType) -> bool:
         return not self.__gt__(other)
 
     def __getstate__(self):
