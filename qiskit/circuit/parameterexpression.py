@@ -518,7 +518,7 @@ class ParameterExpression:
         elif isinstance(other, numbers.Number):
             if len(self.parameters) == 0:
                 return float(self._symbol_expr) < other
-            else: 
+            else:
                 raise TypeError(
                     "'<' not supported between instances of {type(self)} "
                     "with unbound parameters {self.parameters} and {type(other)}."
