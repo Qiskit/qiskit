@@ -97,6 +97,7 @@ class TestVarQite(QiskitAlgorithmsTestCase):
             )
         )
         parameter_values = evolution_result.data[0][0].params
+        print(parameter_values)
         for i, parameter_value in enumerate(parameter_values):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=3)
 
@@ -160,6 +161,7 @@ class TestVarQite(QiskitAlgorithmsTestCase):
             )
         )
         parameter_values = evolution_result.data[0][0].params
+        print(parameter_values)
         for i, parameter_value in enumerate(parameter_values):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=2)
 
@@ -227,6 +229,7 @@ class TestVarQite(QiskitAlgorithmsTestCase):
             )
         )
         parameter_values = evolution_result.data[0][0].params
+        print(parameter_values)
         for i, parameter_value in enumerate(parameter_values):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=4)
 

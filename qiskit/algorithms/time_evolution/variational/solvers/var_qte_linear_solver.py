@@ -37,9 +37,9 @@ class VarQteLinearSolver:
 
     def __init__(
         self,
-        grad_circ_sampler: CircuitSampler,
-        metric_circ_sampler: CircuitSampler,
-        energy_sampler: CircuitSampler,
+        grad_circ_sampler: Optional[CircuitSampler] = None,
+        metric_circ_sampler: Optional[CircuitSampler] = None,
+        energy_sampler: Optional[CircuitSampler] = None,
         regularization: Optional[str] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
     ):

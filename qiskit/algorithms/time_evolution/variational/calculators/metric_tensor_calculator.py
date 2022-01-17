@@ -54,7 +54,7 @@ def calculate(
 def eval_metric_result(
     metric: OperatorBase,
     param_dict: Dict[Parameter, Union[float, complex]],
-    metric_circ_sampler: CircuitSampler,
+    metric_circ_sampler: Optional[CircuitSampler] = None,
 ) -> OperatorBase:
     """
     Binds a parametrized metric tensor object to parameters values provided. Uses a circuit
@@ -66,7 +66,7 @@ def eval_metric_result(
     Returns:
         Metric tensor with all parameters bound.
     """
-    if metric_circ_sampler:
+    if metric_circ_sampler is not None:
         metric_result = metric_circ_sampler.convert(metric, params=param_dict).eval()
     else:
         metric_result = metric.assign_parameters(param_dict).eval()

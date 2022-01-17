@@ -12,7 +12,7 @@
 
 """Class for a Real McLachlan's Variational Principle."""
 
-from typing import Union, Dict, List, Callable
+from typing import Union, Dict, List, Callable, Optional
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.time_evolution.variational.calculators import (
@@ -75,7 +75,8 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
         """
 
         def raw_evolution_grad_imag(
-            param_dict: Dict[Parameter, Union[float, complex]], energy_sampler: CircuitSampler
+            param_dict: Dict[Parameter, Union[float, complex]],
+            energy_sampler: Optional[CircuitSampler] = None,
         ) -> OperatorBase:
             """
             Args:
@@ -88,7 +89,7 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
             energy = ~StateFn(hamiltonian) @ StateFn(ansatz)
             energy = PauliExpectation().convert(energy)
 
-            if energy_sampler:
+            if energy_sampler is not None:
                 energy = energy_sampler.convert(energy, param_dict).eval()
             else:
                 energy = energy.assign_parameters(param_dict).eval()

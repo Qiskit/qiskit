@@ -38,7 +38,7 @@ from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 
 
-class VarQite(VarQte, Qite):
+class VarQite(Qite, VarQte):
     """Variational Quantum Imaginary Time Evolution algorithm."""
 
     def __init__(

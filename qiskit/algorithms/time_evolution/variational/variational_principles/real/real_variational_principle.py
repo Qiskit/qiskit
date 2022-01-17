@@ -15,8 +15,7 @@
 from abc import ABC
 from typing import Union
 
-from qiskit.algorithms.time_evolution.variational.variational_principles.variational_principle \
-    import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.variational_principle import (
     VariationalPrinciple,
 )
 from qiskit.opflow import (
@@ -24,7 +23,7 @@ from qiskit.opflow import (
 )
 
 
-class RealVariationalPrinciple(ABC, VariationalPrinciple):
+class RealVariationalPrinciple(VariationalPrinciple, ABC):
     """Class for a Real Variational Principle."""
 
     def __init__(
@@ -41,4 +40,3 @@ class RealVariationalPrinciple(ABC, VariationalPrinciple):
             qfi_method,
             grad_method,
         )
-

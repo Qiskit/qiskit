@@ -14,12 +14,10 @@
 
 from abc import ABC
 
-from qiskit.algorithms.time_evolution.variational.variational_principles.variational_principle \
-    import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.variational_principle import (
     VariationalPrinciple,
 )
 
 
-class ImaginaryVariationalPrinciple(ABC, VariationalPrinciple):
+class ImaginaryVariationalPrinciple(VariationalPrinciple, ABC):
     """Abstract class for an Imaginary Variational Principle."""
-

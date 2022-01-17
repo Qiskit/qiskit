@@ -12,7 +12,7 @@
 
 """Abstract class for calculating gradient errors for Variational Quantum Time Evolution."""
 
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from typing import Union, List, Tuple, Any, Dict, Optional, Iterable
 
 import numpy as np
@@ -23,15 +23,15 @@ from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 
 
-class ErrorCalculator:
+class ErrorCalculator(ABC):
     """Abstract class for calculating gradient errors for Variational Quantum Time Evolution."""
 
     def __init__(
         self,
         h_squared: OperatorBase,
         operator: OperatorBase,
-        h_squared_sampler: CircuitSampler,
-        operator_sampler: CircuitSampler,
+        h_squared_sampler: Optional[CircuitSampler] = None,
+        operator_sampler: Optional[CircuitSampler] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
     ):
         """
@@ -51,40 +51,41 @@ class ErrorCalculator:
     def _bind_or_sample_operator(
         self,
         operator: OperatorBase,
-        operator_circuit_sampler: CircuitSampler,
         param_dict: Dict[Parameter, Union[float, complex]],
-    ) -> OperatorBase:
+        operator_circuit_sampler: Optional[CircuitSampler] = None,
+    ) -> Union[np.ndarray, int, float, complex]:
         """
         Args:
             operator: Operator to be bound with parameter values.
             operator_circuit_sampler: CircuitSampler for the operator.
             param_dict: Dictionary which relates parameter values to the parameters in the operator.
         Returns:
-            Operator with all parameters bound.
+            Real part of an operator after binding parameters and executing associated quantum
+            circuits.
         """
-        # ⟨ψ(ω)|H^2|ψ(ω)〉
         if operator_circuit_sampler is not None:
             operator = operator_circuit_sampler.convert(operator, params=param_dict)
         else:
             operator = operator.assign_parameters(param_dict)
-        operator = np.real(operator.eval())
-        return operator
+
+        return np.real(operator.eval())
 
     @abstractmethod
     def _calc_single_step_error(
         self,
-        ng_res: Union[List, np.ndarray],
+        nat_grad_res: Union[List, np.ndarray],
         grad_res: Union[List, np.ndarray],
         metric: Union[List, np.ndarray],
         param_dict: Dict[Parameter, Union[float, complex]],
     ) -> Tuple[int, Union[np.ndarray, complex, float], Union[Union[complex, float], Any],]:
 
         """
-        Evaluate the l2 norm of the error for a single time step of VarQITE.
+        Evaluate the l2 norm of the error for a single time step of VarQTE.
         Args:
-            ng_res: dω/dt.
+            nat_grad_res: dω/dt.
             grad_res: 2Re⟨dψ(ω)/dω|H|ψ(ω)〉.
             metric: Fubini-Study Metric.
+            param_dict: Dictionary of parameters to be bound.
         Returns:
             Square root of the l2 norm of the error.
         """
@@ -93,31 +94,20 @@ class ErrorCalculator:
     @abstractmethod
     def _calc_single_step_error_gradient(
         self,
-        ng_res: Union[List, np.ndarray],
+        nat_grad_res: Union[List, np.ndarray],
         grad_res: Union[List, np.ndarray],
         metric: Union[List, np.ndarray],
     ) -> float:
         """
         Evaluate the gradient of the l2 norm for a single time step of VarQRTE.
         Args:
-            ng_res: dω/dt.
+            nat_grad_res: dω/dt.
             grad_res: -2Im⟨dψ(ω)/dω|H|ψ(ω)〉.
             metric: Fubini-Study Metric.
         Returns:
             Square root of the l2 norm of the error.
         """
         pass
-
-    def _inner_prod(self, x: Iterable, y: Iterable) -> Union[np.ndarray, np.complex, np.float]:
-        """
-        Compute the inner product of two vectors.
-        Args:
-            x: vector.
-            y: vector.
-        Returns:
-            Inner product of x and y.
-        """
-        return np.matmul(np.conj(np.transpose(x)), y)
 
     def _validate_epsilon_squared(self, eps_squared: float) -> float:
         """

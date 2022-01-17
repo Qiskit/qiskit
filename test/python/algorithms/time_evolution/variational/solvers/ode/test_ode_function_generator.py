@@ -95,10 +95,10 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
 
     def test_var_qte_ode_function_time_param(self):
         """Test ODE function generator with time param."""
-        time = Parameter("t")
+        t_param = Parameter("t")
         observable = SummedOp(
             [
-                0.2252 * time * (I ^ I),
+                0.2252 * t_param * (I ^ I),
                 0.5716 * (Z ^ Z),
                 0.3435 * (I ^ Z),
                 -0.4347 * (Z ^ I),
@@ -127,7 +127,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
             CircuitSampler(backend),
             CircuitSampler(backend),
             CircuitSampler(backend),
-            t_param=time,
+            t_param=t_param,
         )
 
         qte_ode_function = ode_function_generator.var_qte_ode_function(time, param_dict.values())

@@ -144,21 +144,21 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
             hamiltonian_value_dict=param_dict,
         )
 
-        # values from the prototype
         thetas_expected = [
-            0.281316385345389,
-            0.986871118474767,
-            1.35534959612472,
-            0.691840609009987,
-            0.57358725779109,
-            1.03073602828349,
-            1.47364740090864,
-            1.24473065474471,
-            1.26862435890771,
-            1.05396303596684,
-            0.844504836078978,
-            0.558976984077953,
+            0.348407744196573,
+            0.919404626262464,
+            1.18189219371626,
+            0.771011177789998,
+            0.734384256533924,
+            0.965289520781899,
+            1.14441687204195,
+            1.17231927568571,
+            1.03014771379412,
+            0.867266309056347,
+            0.699606368428206,
+            0.610788576398685,
         ]
+
         print(
             state_fidelity(
                 Statevector(evolution_result),
@@ -168,6 +168,7 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
             )
         )
         parameter_values = evolution_result.data[0][0].params
+
         for i, parameter_value in enumerate(parameter_values):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=4)
 
@@ -208,16 +209,15 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
             hamiltonian_value_dict=param_dict,
         )
 
-        # values from the prototype
         thetas_expected = [
-            0.63886479,
-            1.56391727,
-            0.96591303,
-            1.57332808,
-            1.15739773,
-            0.96590066,
-            1.15161309,
-            -0.3293391,
+            0.786375454622673,
+            0.804937305358425,
+            0.761665661438113,
+            0.778186095742013,
+            0.772144156895339,
+            0.760968727936418,
+            0.796310620813093,
+            0.771127803805238,
         ]
 
         parameter_values = evolution_result.data[0][0].params
@@ -229,6 +229,7 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
                 ),
             )
         )
+
         for i, parameter_value in enumerate(parameter_values):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=3)
 
@@ -269,16 +270,15 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
             hamiltonian_value_dict=param_dict,
         )
 
-        # values from the prototype
         thetas_expected = [
-            0.650027700129024,
-            1.56194984853426,
-            0.926353536023022,
-            1.57053579386368,
-            1.15169824084686,
-            0.924784887323687,
-            1.14070867127809,
-            -0.316445310366042,
+            0.786456906200498,
+            0.797872720168642,
+            0.773226603015659,
+            0.779454661903583,
+            0.776903078181533,
+            0.768915102073136,
+            0.790069607759744,
+            0.777629466133638,
         ]
 
         parameter_values = evolution_result.data[0][0].params
@@ -290,6 +290,7 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
                 ),
             )
         )
+
         for i, parameter_value in enumerate(parameter_values):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=3)
 

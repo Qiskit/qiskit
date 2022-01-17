@@ -41,12 +41,12 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
         error_calculator: ErrorCalculator,
         param_dict: Dict[Parameter, Union[float, complex]],
         variational_principle: VariationalPrinciple,
-        grad_circ_sampler: CircuitSampler,
-        metric_circ_sampler: CircuitSampler,
-        energy_sampler: CircuitSampler,
+        grad_circ_sampler: Optional[CircuitSampler] = None,
+        metric_circ_sampler: Optional[CircuitSampler] = None,
+        energy_sampler: Optional[CircuitSampler] = None,
         regularization: Optional[str] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
-        t_param: Parameter = None,
+        t_param: Optional[Parameter] = None,
         optimizer: str = "COBYLA",
     ):
         """

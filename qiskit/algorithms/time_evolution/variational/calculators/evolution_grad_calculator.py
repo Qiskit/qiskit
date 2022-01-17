@@ -77,7 +77,7 @@ def eval_grad_result(
     else:
         grad_result = grad(param_dict, energy_sampler)
 
-    if grad_circ_sampler:
+    if grad_circ_sampler is not None:
         grad_result = grad_circ_sampler.convert(grad_result, param_dict)
     else:
         grad_result = grad_result.assign_parameters(param_dict)

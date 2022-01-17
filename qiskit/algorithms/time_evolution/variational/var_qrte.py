@@ -17,6 +17,7 @@ from typing import Optional, Union, Dict
 from scipy.integrate import OdeSolver
 
 from qiskit.algorithms.time_evolution.evolution_base import EvolutionBase
+from qiskit.algorithms.time_evolution.real.qrte import Qrte
 from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors.real_error_calculator import (
     RealErrorCalculator,
 )
@@ -37,7 +38,7 @@ from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 
 
-class VarQrte(VarQte, EvolutionBase):
+class VarQrte(VarQte, Qrte):
     """Variational Quantum Real Time Evolution algorithm."""
 
     def __init__(
@@ -162,4 +163,4 @@ class VarQrte(VarQte, EvolutionBase):
         gradient_params=None,
     ):
         """Performs Variational Quantum Real Time Evolution of gradient expressions."""
-        raise NotImplementedError()
+        pass

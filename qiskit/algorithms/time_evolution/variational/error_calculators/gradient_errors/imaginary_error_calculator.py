@@ -27,7 +27,7 @@ class ImaginaryErrorCalculator(ErrorCalculator):
 
     def _calc_single_step_error(
         self,
-        ng_res: Union[List, np.ndarray],
+        nat_grad_res: Union[List, np.ndarray],
         grad_res: Union[List, np.ndarray],
         metric: Union[List, np.ndarray],
         param_dict: Dict[Parameter, Union[float, complex]],
@@ -35,28 +35,29 @@ class ImaginaryErrorCalculator(ErrorCalculator):
         """
         Evaluate the l2 norm of the error for a single time step of VarQITE.
         Args:
-            ng_res: dω/dt.
+            nat_grad_res: dω/dt.
             grad_res: 2Re⟨dψ(ω)/dω|H|ψ(ω).
             metric: Fubini-Study Metric.
+            param_dict: Dictionary of parameters to be bound.
         Returns:
             Square root of the l2 norm of the error.
         """
         eps_squared = 0
         h_squared_bound = self._bind_or_sample_operator(
-            self._h_squared, self._h_squared_sampler, param_dict
+            self._h_squared, param_dict, self._h_squared_sampler
         )
         exp_operator_bound = self._bind_or_sample_operator(
-            self._operator, self._operator_sampler, param_dict
+            self._operator, param_dict, self._operator_sampler
         )
         eps_squared += np.real(h_squared_bound)
         eps_squared -= np.real(exp_operator_bound ** 2)
 
         # ⟨dtψ(ω)|dtψ(ω)〉= dtωdtω⟨dωψ(ω)|dωψ(ω)〉
-        dtdt_state = self._inner_prod(ng_res, np.dot(metric, ng_res))
+        dtdt_state = np.conj(nat_grad_res).T.dot(np.dot(metric, nat_grad_res))
         eps_squared += dtdt_state
 
         # 2Re⟨dtψ(ω)| H | ψ(ω)〉= 2Re dtω⟨dωψ(ω)|H | ψ(ω)〉
-        regrad2 = self._inner_prod(grad_res, ng_res)
+        regrad2 = np.conj(grad_res).T.dot(nat_grad_res)
         eps_squared += regrad2
 
         eps_squared = self._validate_epsilon_squared(eps_squared)
@@ -65,14 +66,14 @@ class ImaginaryErrorCalculator(ErrorCalculator):
 
     def _calc_single_step_error_gradient(
         self,
-        ng_res: Union[List, np.ndarray],
+        nat_grad_res: Union[List, np.ndarray],
         grad_res: Union[List, np.ndarray],
         metric: Union[List, np.ndarray],
     ) -> float:
         """
         Evaluate the gradient of the l2 norm for a single time step of VarQITE.
         Args:
-            ng_res: dω/dt.
+            nat_grad_res: dω/dt.
             grad_res: 2Re⟨dψ(ω)/dω|H|ψ(ω).
             metric: Fubini-Study Metric.
         Returns:
@@ -80,8 +81,8 @@ class ImaginaryErrorCalculator(ErrorCalculator):
         """
         grad_eps_squared = 0
         # dω_jF_ij^Q
-        grad_eps_squared += np.dot(metric, ng_res) + np.dot(
-            np.diag(np.diag(metric)), np.power(ng_res, 2)
+        grad_eps_squared += np.dot(metric, nat_grad_res) + np.dot(
+            np.diag(np.diag(metric)), np.power(nat_grad_res, 2)
         )
         # 2Re⟨dωψ(ω)|H | ψ(ω)〉
         grad_eps_squared += grad_res

@@ -19,6 +19,7 @@ import numpy as np
 from scipy.integrate import RK45, OdeSolver
 
 from qiskit import QuantumCircuit
+from qiskit.algorithms.time_evolution.evolution_base import EvolutionBase
 
 from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
     ErrorCalculator,
@@ -48,11 +49,10 @@ from qiskit.opflow import (
     PauliExpectation,
     OperatorBase,
     CircuitStateFn,
-    Gradient, EvolutionBase,
 )
 
 
-class VarQte(ABC, EvolutionBase):
+class VarQte(EvolutionBase, ABC):
     """Variational Quantum Time Evolution.
        https://doi.org/10.22331/q-2019-10-07-191
     Algorithms that use variational variational_principles to compute a time evolution for a given
@@ -99,42 +99,6 @@ class VarQte(ABC, EvolutionBase):
 
         self._operator = None
         self._initial_state = None
-
-    @abstractmethod
-    def evolve(
-        self,
-        hamiltonian: OperatorBase,
-        time: float,
-        initial_state: OperatorBase = None,
-        observable: OperatorBase = None,
-        t_param: Parameter = None,
-        hamiltonian_value_dict: Dict[Parameter, Union[float, complex]] = None,
-    ) -> StateFn:
-        """
-        Apply Variational Quantum Imaginary Time Evolution (VarQITE) w.r.t. the given
-        operator
-        Args:
-            hamiltonian:
-                ⟨ψ(ω)|H(t, theta)|ψ(ω)〉
-                Operator used vor Variational Quantum Imaginary Time Evolution (VarQITE)
-                The coefficient of the operator (operator.coeff) determines the evolution
-                time.
-                The operator may be given either as a composed op consisting of a Hermitian
-                observable and a CircuitStateFn or a ListOp of a CircuitStateFn with a
-                ComboFn.
-                The latter case enables the evaluation of a Quantum Natural Gradient.
-            time: Total time of evolution.
-            initial_state: Quantum state to be evolved.
-            observable: Observable to be evolved. Not supported by VarQite.
-            t_param: Time parameter in case of a time-dependent Hamiltonian.
-            hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
-                                    certain values, including the t_param.
-        Returns:
-            StateFn (parameters are bound) which represents an approximation to the
-            respective
-            time evolution.
-        """
-        pass
 
     def _evolve_helper(
         self,
@@ -203,21 +167,6 @@ class VarQte(ABC, EvolutionBase):
         # if self._state_circ_sampler:
         #     return self._state_circ_sampler.convert(initial_state, param_dict_from_ode)
         return initial_state.assign_parameters(param_dict_from_ode)
-
-    @abstractmethod
-    def gradient(
-        self,
-        hamiltonian: OperatorBase,
-        time: float,
-        initial_state: StateFn,
-        gradient_object: Gradient,
-        observable: OperatorBase = None,
-        t_param: Parameter = None,
-        hamiltonian_value_dict: Dict[Parameter, Union[float, complex]] = None,
-        gradient_params=None,
-    ):
-        """Performs Variational Quantum Time Evolution of gradient expressions."""
-        pass
 
     def bind_initial_state(
         self,
