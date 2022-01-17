@@ -20,3 +20,4 @@ from .diagonal import DiagonalGate
 from .uc import UCGate
 from .isometry import Isometry
 from .initializer import Initialize
+from .state_preparation import StatePreparation
