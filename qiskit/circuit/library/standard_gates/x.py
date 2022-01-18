@@ -834,14 +834,13 @@ class C4XGate(ControlledGate):
         )
         return gate
 
-    # pylint: disable=unused-argument
-    def __init__(
-        self,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-    ):
-        """Dummy (required for tests that inspect signature)"""
-        pass
+    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+        """Create a new 4-qubit controlled X gate."""
+
+        # This is unused, but still required for tests that create C4XGate and inspect signature.
+        super().__init__(
+            "mcx", 5, [], num_ctrl_qubits=4, label=label, ctrl_state=ctrl_state, base_gate=XGate()
+        )
 
 
 class C3XGate(ControlledGate):
@@ -877,8 +876,12 @@ class C3XGate(ControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
     ):
-        """Dummy (required for tests that inspect signature)"""
-        pass
+        """Create a new 3-qubit controlled X gate."""
+
+        # This is unused, but still required for tests that create C3XGate and inspect signature.
+        super().__init__(
+            "mcx", 4, [], num_ctrl_qubits=3, label=label, ctrl_state=ctrl_state, base_gate=XGate()
+        )
 
 
 class MCXGrayCode(MCXGate):
