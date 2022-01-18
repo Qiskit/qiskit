@@ -1540,21 +1540,21 @@ def load(file_obj, custom_gate_dict=None):
     :class:`~qiskit.circuit.QuantumCircuit` objects from the file.
 
     With custom gate definitions containing overidden methods such as :
+
     .. code-block:: python
+
         from qiskit.circuit import Gate as QiskitGate
 
         class Gate1(QiskitGate):
             def validate_parameter(self, single_param):
-                if not isinstance(
-                    single_param,
-                    (int, float, str, bool, dict, qiskit.circuit.ParameterExpression),
-                ):
+                if not isinstance(single_param,(int, float, str, bool, dict, qiskit.circuit.ParameterExpression)):
                     raise Exception(f"parameter of type {type(single_param)} not supported")
                 return single_param
 
     use custom_dict parameter to pass this definition to the load method :
 
     .. code-block:: python
+
         from qiskit.circuit import qpy_serialization
         #let the circuit with the custom gate be saved in a file circ
 
