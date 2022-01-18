@@ -81,14 +81,6 @@ class TestParser(QiskitTestCase):
             QasmError, "Perhaps there is a missing", parse, file_path=self.qasm_file_path_fail
         )
 
-    def assert_invalid_version_failure(self, file):
-        """Helper method for ensuring invalid QASM versions throw an exception."""
-        self.assertRaisesRegex(
-            QasmError,
-            parse,
-            file_path=file,
-        )
-
     @ddt.data("example_version_fail.qasm", "example_minor_ver_fail.qasm")
     def test_parser_version_fail(self, filename):
         """Ensure versions other than 2.0 or 2 fail."""
