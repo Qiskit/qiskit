@@ -713,7 +713,7 @@ class TestControlledGate(QiskitTestCase):
         """Test creating an mcx gate calls MCXGrayCode and yeilds explicit definition."""
         qc = QuantumCircuit(num_ctrl_qubits + 1)
         qc.mcx(list(range(num_ctrl_qubits)), [num_ctrl_qubits])
-        explicit = {1: CXGate, 2: CCXGate, 3: C3XGate, 4: C4XGate}
+        explicit = {1: CXGate, 2: CCXGate}
         self.assertEqual(type(qc[0][0]), explicit[num_ctrl_qubits])
 
     @data(3, 4, 5, 8)
