@@ -1547,7 +1547,7 @@ def load(file_obj, custom_gate_dict=None):
 
         class Gate1(QiskitGate):
             def validate_parameter(self, single_param):
-                if not isinstance(single_param,(int, float, str, bool, dict, qiskit.circuit.ParameterExpression)):
+                if not isinstance(single_param,(int, float, str, bool, dict)):
                     raise Exception(f"parameter of type {type(single_param)} not supported")
                 return single_param
 
