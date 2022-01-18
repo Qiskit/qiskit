@@ -505,6 +505,10 @@ class ParameterExpression:
         Args:
             other (ParameterExpression or a number):
                 Parameter expression or numeric constant used for comparison
+        Raises:
+            TypeError:
+                - If comparison to number with unbound parameters.
+                - If comparison to type of other object unsupported.
         Returns:
             bool: result of the comparison
         """
@@ -532,6 +536,10 @@ class ParameterExpression:
         Args:
             other (ParameterExpression or a number):
                 Parameter expression or numeric constant used for comparison
+        Raises:
+            TypeError:
+                - If comparison to number with unbound parameters.
+                - If comparison to type of other object unsupported.
         Returns:
             bool: result of the comparison
         """
