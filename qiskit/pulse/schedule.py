@@ -37,7 +37,6 @@ import functools
 import itertools
 import multiprocessing as mp
 import sys
-import warnings
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Any
 
 import numpy as np
