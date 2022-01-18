@@ -577,84 +577,6 @@ class C3SXGate(ControlledGate):
         return C3SXGate(angle=angle, ctrl_state=self.ctrl_state)
 
 
-class C3XGate(ControlledGate):
-    r"""The X gate controlled on 3 qubits.
-
-    This implementation uses :math:`\sqrt{T}` and 14 CNOT gates.
-    """
-
-    def __new__(
-        cls,
-        angle: Optional[ParameterValueType] = None,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-    ):
-        if angle is not None:
-            return C3SXGate(label, ctrl_state, angle=angle)
-
-        instance = super().__new__(cls)
-        instance.__init__(None, label, ctrl_state)
-        return instance
-
-    # pylint: disable=unused-argument
-    def __init__(
-        self,
-        angle: Optional[ParameterValueType] = None,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-    ):
-        """Create a new 3-qubit controlled X gate."""
-        super().__init__(
-            "mcx", 4, [], num_ctrl_qubits=3, label=label, ctrl_state=ctrl_state, base_gate=XGate()
-        )
-
-    # seems like open controls not hapening?
-    def _define(self):
-        """
-        Implementation for X controlled by 3 qubits.
-        """
-        # pylint: disable=cyclic-import
-        from qiskit.synthesis.mcx_synthesis import MCXSynthesisAlgorithms
-
-        self.definition = MCXSynthesisAlgorithms.noancilla_3qubits(self.name)
-
-    def control(
-        self,
-        num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-    ):
-        """Controlled version of this gate.
-
-        Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
-
-        Returns:
-            ControlledGate: controlled version of this gate.
-        """
-        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
-        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 3, label=label, ctrl_state=new_ctrl_state)
-        gate.base_gate.label = self.label
-        return gate
-
-    def inverse(self):
-        """Invert this gate. The C4X is its own inverse."""
-        return C3XGate(ctrl_state=self.ctrl_state)
-
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the C4X gate."""
-        mat = _compute_control_matrix(
-            self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
-        )
-        if dtype:
-            return numpy.asarray(mat, dtype=dtype)
-        return mat
-
-
 class RC3XGate(Gate):
     """The simplified 3-controlled Toffoli gate.
 
@@ -746,75 +668,6 @@ class RC3XGate(Gate):
             ],
             dtype=dtype,
         )
-
-
-class C4XGate(ControlledGate):
-    """The 4-qubit controlled X gate.
-
-    This implementation is based on Page 21, Lemma 7.5, of [1], with the use
-    of the relative phase version of c3x, the rc3x [2].
-
-    References:
-        [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
-        [2] Maslov, 2015. https://arxiv.org/abs/1508.03273
-    """
-
-    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
-        """Create a new 4-qubit controlled X gate."""
-        super().__init__(
-            "mcx", 5, [], num_ctrl_qubits=4, label=label, ctrl_state=ctrl_state, base_gate=XGate()
-        )
-
-    # seems like open controls not hapening?
-    def _define(self):
-        """
-        This implementation is based on Page 21, Lemma 7.5, of [1], with the use
-        of the relative phase version of c3x, the rc3x [2].
-
-        References:
-            [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
-            [2] Maslov, 2015. https://arxiv.org/abs/1508.03273
-        """
-        # pylint: disable=cyclic-import
-        from qiskit.synthesis.mcx_synthesis import MCXSynthesisAlgorithms
-
-        self.definition = MCXSynthesisAlgorithms.noancilla_4qubits(self.name)
-
-    def control(
-        self,
-        num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-    ):
-        """Controlled version of this gate.
-
-        Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
-
-        Returns:
-            ControlledGate: controlled version of this gate.
-        """
-        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
-        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 4, label=label, ctrl_state=new_ctrl_state)
-        gate.base_gate.label = self.label
-        return gate
-
-    def inverse(self):
-        """Invert this gate. The C4X is its own inverse."""
-        return C4XGate(ctrl_state=self.ctrl_state)
-
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the C4X gate."""
-        mat = _compute_control_matrix(
-            self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
-        )
-        if dtype:
-            return numpy.asarray(mat, dtype=dtype)
-        return mat
 
 
 class MCXGate(ControlledGate):
@@ -911,17 +764,17 @@ class MCXGate(ControlledGate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            gate = MCXGate(
-                self.num_ctrl_qubits + num_ctrl_qubits,
-                label=label,
-                ctrl_state=ctrl_state,
-                synthesis=self.synthesis,
-                _name=self.name,
-            )
-            gate.base_gate.label = self.label
-            return gate
-        return super().control(num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+        gate = MCXGate(
+            num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits,
+            label=label,
+            ctrl_state=new_ctrl_state,
+            synthesis=self.synthesis,
+            _name=self.name,
+        )
+        gate.base_gate.label = self.label
+        return gate
 
     @staticmethod
     def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str = "noancilla") -> int:
@@ -935,11 +788,72 @@ class MCXGate(ControlledGate):
 
         return mcx_mode_to_num_ancilla_qubits(num_ctrl_qubits, mode)
 
+    def __array__(self, dtype=None):
+        """Return a numpy.array for the MCX gate."""
+        mat = _compute_control_matrix(
+            self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
+        )
+        if dtype:
+            return numpy.asarray(mat, dtype=dtype)
+        return mat
+
 
 # The following explicit classes remain for backward compatibility.
 # The __new__ method is modified to return the MCX gate with the matching synthesis algorithm
 # (or, as previously, an explicit few-qubit gate).
 # These classes still inherit from MCXGate and in particular from ControlledGate.
+
+
+class C4XGate(ControlledGate):
+    """The 3-qubit controlled X gate.
+    The default MCXSynthesisGrayCode algorithm implements the optimized method for 4 control qubits.
+    """
+
+    # pylint: disable=signature-differs
+    def __new__(
+        cls,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
+        """Create a new MCX instance"""
+        # pylint: disable=cyclic-import
+        from qiskit.synthesis.mcx_synthesis import MCXSynthesisGrayCode
+
+        gate = MCXGate(
+            num_ctrl_qubits=4,
+            label=label,
+            ctrl_state=ctrl_state,
+            synthesis=MCXSynthesisGrayCode(),
+            _name="mcx",
+        )
+        return gate
+
+
+class C3XGate(ControlledGate):
+    """The 3-qubit controlled X gate.
+    The default MCXSynthesisGrayCode algorithm implements the optimized method for 3 control qubits.
+    """
+
+    # pylint: disable=signature-differs
+    def __new__(
+        cls,
+        angle: Optional[ParameterValueType] = None,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
+        if angle is not None:
+            return C3SXGate(label, ctrl_state, angle=angle)
+
+        from qiskit.synthesis.mcx_synthesis import MCXSynthesisGrayCode
+
+        gate = MCXGate(
+            num_ctrl_qubits=3,
+            label=label,
+            ctrl_state=ctrl_state,
+            synthesis=MCXSynthesisGrayCode(),
+            _name="mcx",
+        )
+        return gate
 
 
 class MCXGrayCode(MCXGate):
