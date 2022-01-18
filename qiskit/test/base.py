@@ -41,7 +41,9 @@ except ImportError:
 from .decorators import enforce_subclasses_call
 from .utils import Path, setup_test_logging
 
+
 __unittest = True  # Allows shorter stack trace for .assertDictAlmostEqual
+
 
 # If testtools is installed use that as a (mostly) drop in replacement for
 # unittest's TestCase. This will enable the fixtures used for capturing stdout
@@ -61,6 +63,7 @@ if HAS_FIXTURES:
         assertEqual = unittest.TestCase.assertEqual
 
 else:
+
     class BaseTestCase(unittest.TestCase):
         """Base test class."""
 
