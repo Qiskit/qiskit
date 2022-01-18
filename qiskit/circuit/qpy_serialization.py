@@ -875,7 +875,9 @@ def _read_parameter_expression(file_obj):
     return ParameterExpression(symbol_map, expr)
 
 
-def _read_instruction(file_obj, circuit, registers, custom_instructions, version, vectors):
+def _read_instruction(
+    file_obj, circuit, registers, custom_instructions, version, vectors, custom_gate_dict=None
+):
     instruction_raw = file_obj.read(INSTRUCTION_SIZE)
     instruction = struct.unpack(INSTRUCTION_PACK, instruction_raw)
     name_size = instruction[0]
@@ -960,14 +962,18 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions, version
     # Load Gate object
     gate_class = None
     if gate_name in ("Gate", "Instruction"):
-        inst_obj = _parse_custom_instruction(custom_instructions, gate_name, params)
+        inst_obj = _parse_custom_instruction(
+            custom_instructions, gate_name, params, custom_gate_dict
+        )
         inst_obj.condition = condition_tuple
         if label_size > 0:
             inst_obj.label = label
         circuit._append(inst_obj, qargs, cargs)
         return
     elif gate_name in custom_instructions:
-        inst_obj = _parse_custom_instruction(custom_instructions, gate_name, params)
+        inst_obj = _parse_custom_instruction(
+            custom_instructions, gate_name, params, custom_gate_dict
+        )
         inst_obj.condition = condition_tuple
         if label_size > 0:
             inst_obj.label = label
@@ -998,14 +1004,17 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions, version
         circuit._append(gate, qargs, cargs)
 
 
-def _parse_custom_instruction(custom_instructions, gate_name, params):
+def _parse_custom_instruction(custom_instructions, gate_name, params, custom_gate_dict=None):
     (type_str, num_qubits, num_clbits, definition) = custom_instructions[gate_name]
     if type_str == "i":
         inst_obj = Instruction(gate_name, num_qubits, num_clbits, params)
         if definition is not None:
             inst_obj.definition = definition
     elif type_str == "g":
-        inst_obj = Gate(gate_name, num_qubits, params)
+        if custom_gate_dict is None:
+            inst_obj = Gate(gate_name, num_qubits, params)
+        else:
+            inst_obj = custom_gate_dict[gate_name](gate_name, num_qubits, params)
         inst_obj.definition = definition
     elif type_str == "p":
         inst_obj = definition
@@ -1503,7 +1512,7 @@ def _write_circuit(file_obj, circuit):
     instruction_buffer.close()
 
 
-def load(file_obj):
+def load(file_obj, custom_gate_dict=None):
     """Load a QPY binary file
 
     This function is used to load a serialized QPY circuit file and create
@@ -1530,9 +1539,33 @@ def load(file_obj):
     which will read the contents of the qpy and return a list of
     :class:`~qiskit.circuit.QuantumCircuit` objects from the file.
 
+    With custom gate definitions containing overidden methods such as :
+    .. code-block:: python
+        from qiskit.circuit import Gate as QiskitGate
+
+        class Gate1(QiskitGate):
+            def validate_parameter(self, single_param):
+                if not isinstance(
+                    single_param,
+                    (int, float, str, bool, dict, qiskit.circuit.ParameterExpression),
+                ):
+                    raise Exception(f"parameter of type {type(single_param)} not supported")
+                return single_param
+
+    use custom_dict parameter to pass this definition to the load method :
+
+    .. code-block:: python
+        from qiskit.circuit import qpy_serialization
+        #let the circuit with the custom gate be saved in a file circ
+
+        with gzip.open('circ.qpy.gz', 'rb') as fd:
+            circuit = qpy_serialization.load(fd, custom_gate_dict={"wait": Gate1})
+
     Args:
         file_obj (File): A file like object that contains the QPY binary
             data for a circuit
+        custom_gate_dict (dict) : A dict representing Custom gates defined in the
+            circuit with overridden class methods.
     Returns:
         list: List of ``QuantumCircuit``
             The list of :class:`~qiskit.circuit.QuantumCircuit` objects
@@ -1569,11 +1602,11 @@ def load(file_obj):
         )
     circuits = []
     for _ in range(file_header[5]):
-        circuits.append(_read_circuit(file_obj, qpy_version))
+        circuits.append(_read_circuit(file_obj, qpy_version, custom_gate_dict))
     return circuits
 
 
-def _read_circuit(file_obj, version):
+def _read_circuit(file_obj, version, custom_gate_dict=None):
     vectors = {}
     if version < 2:
         header, name, metadata = _read_header(file_obj)
@@ -1679,7 +1712,15 @@ def _read_circuit(file_obj, version):
         )
     custom_instructions = _read_custom_instructions(file_obj, version, vectors)
     for _instruction in range(num_instructions):
-        _read_instruction(file_obj, circ, out_registers, custom_instructions, version, vectors)
+        _read_instruction(
+            file_obj,
+            circ,
+            out_registers,
+            custom_instructions,
+            version,
+            vectors,
+            custom_gate_dict,
+        )
     for vec_name, (vector, initialized_params) in vectors.items():
         if len(initialized_params) != len(vector):
             warnings.warn(

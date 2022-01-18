@@ -473,6 +473,35 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertIsInstance(new_circ.data[0][0].definition, QuantumCircuit)
         self.assertIs(new_circ.data[1][0].definition, None)
 
+    def test_custom_gate_with_custom_params(self):
+        """Test that a custom gate with overloaded parameter definitions is serialized with
+        proper definitions. Custom instructions have no validation, thus not required for testing"""
+
+        class CustomGate(Gate):
+            """Generate a custom gate"""
+
+            def validate_parameter(self, parameter):
+                if not isinstance(parameter, (int, float, str, bool, dict)):
+                    raise Exception(f"parameter of type {type(parameter)} not supported")
+                return parameter
+
+        custom_gates = {"wait": CustomGate}
+
+        qc = QuantumCircuit(2, 2)
+        qc.rx(np.pi / 2, 0)
+        gate1 = CustomGate(name="wait", num_qubits=1, params=[10, "special"])
+        qc.append(gate1, [0])
+        qc.rx(np.pi / 2, 0)
+
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file, custom_gates)[0]
+
+        self.assertEqual(qc, new_circ)
+        self.assertEqual(qc.decompose(), new_circ.decompose())
+        self.assertIsInstance(new_circ.data[0][0].definition, QuantumCircuit)
+
     def test_custom_instruction_with_noop_definition(self):
         """Test that a custom instruction whose definition contains no elements is serialized with a
         proper definition.
