@@ -28,9 +28,9 @@ from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
 def assemble_schedules(
     schedules: List[
         Union[
-            "schedule.ScheduleBlock",
-            "schedule.ScheduleComponent",
-            Tuple[int, "schedule.ScheduleComponent"],
+            schedule.ScheduleBlock,
+            schedule.ScheduleComponent,
+            Tuple[int, schedule.ScheduleComponent],
         ]
     ],
     qobj_id: int,
@@ -68,7 +68,7 @@ def assemble_schedules(
 
 
 def _assemble_experiments(
-    schedules: List[Union["schedule.ScheduleComponent", Tuple[int, "schedule.ScheduleComponent"]]],
+    schedules: List[Union[schedule.ScheduleComponent, Tuple[int, schedule.ScheduleComponent]]],
     lo_converter: converters.LoConfigConverter,
     run_config: RunConfig,
 ) -> Tuple[List[qobj.PulseQobjExperiment], Dict[str, Any]]:
