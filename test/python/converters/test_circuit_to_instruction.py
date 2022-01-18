@@ -16,6 +16,7 @@ import unittest
 
 from qiskit.converters import circuit_to_instruction
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit import Qubit, Clbit, Instruction
 from qiskit.circuit import Parameter
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
@@ -66,6 +67,54 @@ class TestCircuitToInstruction(QiskitTestCase):
         self.assertEqual(inst.definition[0][0].condition, (c[1], True))
         self.assertEqual(inst.definition[1][0].condition, (c[3], False))
         self.assertEqual(inst.definition[2][0].condition, (c[5], True))
+
+    def test_flatten_circuit_registerless(self):
+        """Test that the conversion works when the given circuit has bits that are not contained in
+        any register."""
+        qr1 = QuantumRegister(2)
+        qubits = [Qubit(), Qubit(), Qubit()]
+        qr2 = QuantumRegister(3)
+        cr1 = ClassicalRegister(2)
+        clbits = [Clbit(), Clbit(), Clbit()]
+        cr2 = ClassicalRegister(3)
+        circ = QuantumCircuit(qr1, qubits, qr2, cr1, clbits, cr2)
+        circ.cx(3, 5)
+        circ.measure(4, 4)
+
+        inst = circuit_to_instruction(circ)
+        self.assertEqual(inst.num_qubits, len(qr1) + len(qubits) + len(qr2))
+        self.assertEqual(inst.num_clbits, len(cr1) + len(clbits) + len(cr2))
+        inst_definition = inst.definition
+        _, cx_qargs, cx_cargs = inst_definition.data[0]
+        _, measure_qargs, measure_cargs = inst_definition.data[1]
+        self.assertEqual(cx_qargs, [inst_definition.qubits[3], inst_definition.qubits[5]])
+        self.assertEqual(cx_cargs, [])
+        self.assertEqual(measure_qargs, [inst_definition.qubits[4]])
+        self.assertEqual(measure_cargs, [inst_definition.clbits[4]])
+
+    def test_flatten_circuit_overlapping_registers(self):
+        """Test that the conversion works when the given circuit has bits that are contained in more
+        than one register."""
+        qubits = [Qubit() for _ in [None] * 10]
+        qr1 = QuantumRegister(bits=qubits[:6])
+        qr2 = QuantumRegister(bits=qubits[4:])
+        clbits = [Clbit() for _ in [None] * 10]
+        cr1 = ClassicalRegister(bits=clbits[:6])
+        cr2 = ClassicalRegister(bits=clbits[4:])
+        circ = QuantumCircuit(qubits, clbits, qr1, qr2, cr1, cr2)
+        circ.cx(3, 5)
+        circ.measure(4, 4)
+
+        inst = circuit_to_instruction(circ)
+        self.assertEqual(inst.num_qubits, len(qubits))
+        self.assertEqual(inst.num_clbits, len(clbits))
+        inst_definition = inst.definition
+        _, cx_qargs, cx_cargs = inst_definition.data[0]
+        _, measure_qargs, measure_cargs = inst_definition.data[1]
+        self.assertEqual(cx_qargs, [inst_definition.qubits[3], inst_definition.qubits[5]])
+        self.assertEqual(cx_cargs, [])
+        self.assertEqual(measure_qargs, [inst_definition.qubits[4]])
+        self.assertEqual(measure_cargs, [inst_definition.clbits[4]])
 
     def test_flatten_parameters(self):
         """Verify parameters from circuit are moved to instruction.params"""
@@ -136,6 +185,23 @@ class TestCircuitToInstruction(QiskitTestCase):
         self.assertEqual(inst.definition[1][0].params, [phi])
         self.assertEqual(inst.definition[2][0].params, [gamma, phi, 0])
         self.assertEqual(str(inst.definition[3][0].params[0]), "gamma + phi")
+
+    def test_registerless_classical_bits(self):
+        """Test that conditions on registerless classical bits can be handled during the conversion.
+
+        Regression test of gh-7394."""
+        expected = QuantumCircuit([Qubit(), Clbit()])
+        expected.h(0).c_if(expected.clbits[0], 0)
+        test = circuit_to_instruction(expected)
+
+        self.assertIsInstance(test, Instruction)
+        self.assertIsInstance(test.definition, QuantumCircuit)
+
+        self.assertEqual(len(test.definition.data), 1)
+        test_instruction, _, _ = test.definition.data[0]
+        expected_instruction, _, _ = expected.data[0]
+        self.assertIs(type(test_instruction), type(expected_instruction))
+        self.assertEqual(test_instruction.condition, (test.definition.clbits[0], 0))
 
 
 if __name__ == "__main__":

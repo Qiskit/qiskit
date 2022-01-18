@@ -87,6 +87,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
         self.num_state_qubits = num_state_qubits
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """Check if the current configuration is valid."""
         valid = True
 
         if self._f_x is None:
@@ -312,36 +313,26 @@ class PiecewiseChebyshev(BlueprintCircuit):
             self._reset_registers(num_state_qubits)
 
     def _reset_registers(self, num_state_qubits: Optional[int]) -> None:
+        """Reset the registers."""
+        self.qregs = []
+
         if num_state_qubits is not None:
             qr_state = QuantumRegister(num_state_qubits, "state")
             qr_target = QuantumRegister(1, "target")
             self.qregs = [qr_state, qr_target]
-            self._ancillas = []
-            self._qubits = qr_state[:] + qr_target[:]
-            self._qubit_set = set(self._qubits)
 
             num_ancillas = num_state_qubits
             if num_ancillas > 0:
                 qr_ancilla = AncillaRegister(num_ancillas)
                 self.add_register(qr_ancilla)
 
-        else:
-            self.qregs = []
-            self._qubits = []
-            self._qubit_set = set()
-            self._ancillas = []
-
     def _build(self):
-        """Build the circuit. The operation is considered successful when q_objective is
-        :math:`|1>`"""
-        # do not build the circuit if _data is already populated
-        if self._data is not None:
+        """Build the circuit if not already build. The operation is considered successful
+        when q_objective is :math:`|1>`"""
+        if self._is_built:
             return
 
-        self._data = []
-
-        # check whether the configuration is valid
-        self._check_configuration()
+        super()._build()
 
         poly_r = PiecewisePolynomialPauliRotations(
             self.num_state_qubits, self.breakpoints, self.polynomials, name=self.name

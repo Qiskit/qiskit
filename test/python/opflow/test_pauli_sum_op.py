@@ -36,6 +36,7 @@ from qiskit.opflow import (
     Y,
     Z,
     Zero,
+    OpflowError,
 )
 from qiskit.quantum_info import Pauli, PauliTable, SparsePauliOp
 
@@ -168,6 +169,16 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         expected = PauliSumOp(SparsePauliOp((X ^ I ^ Y ^ Z ^ I).primitive))
 
         self.assertEqual(pauli_sum.permute([1, 2, 4]), expected)
+
+        pauli_sum = PauliSumOp(SparsePauliOp((X ^ Y ^ Z).primitive))
+        expected = PauliSumOp(SparsePauliOp((Z ^ Y ^ X).primitive))
+        self.assertEqual(pauli_sum.permute([2, 1, 0]), expected)
+
+        with self.assertRaises(OpflowError):
+            pauli_sum.permute([1, 2, 1])
+
+        with self.assertRaises(OpflowError):
+            pauli_sum.permute([1, 2, -1])
 
     def test_compose(self):
         """compose test"""
@@ -305,6 +316,32 @@ class TestPauliSumOp(QiskitOpflowTestCase):
             self.assertTrue(
                 np.array_equal(i.toarray(), coeff * coeffs[idx] * Pauli(labels[idx]).to_matrix())
             )
+
+    def test_is_hermitian(self):
+        """Test is_hermitian method"""
+        with self.subTest("True test"):
+            target = PauliSumOp.from_list(
+                [
+                    ("II", -1.052373245772859),
+                    ("IZ", 0.39793742484318045),
+                    ("ZI", -0.39793742484318045),
+                    ("ZZ", -0.01128010425623538),
+                    ("XX", 0.18093119978423156),
+                ]
+            )
+            self.assertTrue(target.is_hermitian())
+
+        with self.subTest("False test"):
+            target = PauliSumOp.from_list(
+                [
+                    ("II", -1.052373245772859),
+                    ("IZ", 0.39793742484318045j),
+                    ("ZI", -0.39793742484318045),
+                    ("ZZ", -0.01128010425623538),
+                    ("XX", 0.18093119978423156),
+                ]
+            )
+            self.assertFalse(target.is_hermitian())
 
 
 if __name__ == "__main__":

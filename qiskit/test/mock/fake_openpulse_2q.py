@@ -280,11 +280,15 @@ class FakeOpenPulse2Q(FakeBackend):
             qubits=[
                 [
                     Nduv(date=mock_time, name="T1", unit="µs", value=71.9500421005539),
+                    Nduv(date=mock_time, name="T2", unit="µs", value=69.4240447362455),
                     Nduv(date=mock_time, name="frequency", unit="MHz", value=4919.96800692),
+                    Nduv(date=mock_time, name="readout_error", unit="", value=0.02),
                 ],
                 [
                     Nduv(date=mock_time, name="T1", unit="µs", value=81.9500421005539),
+                    Nduv(date=mock_time, name="T2", unit="µs", value=75.5598482446578),
                     Nduv(date=mock_time, name="frequency", unit="GHz", value=5.01996800692),
+                    Nduv(date=mock_time, name="readout_error", unit="", value=0.02),
                 ],
             ],
             gates=[

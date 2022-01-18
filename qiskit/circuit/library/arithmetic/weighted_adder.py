@@ -159,25 +159,21 @@ class WeightedAdder(BlueprintCircuit):
             self._reset_registers()
 
     def _reset_registers(self):
+        """Reset the registers."""
+        self.qregs = []
+
         if self.num_state_qubits:
             qr_state = QuantumRegister(self.num_state_qubits, name="state")
             qr_sum = QuantumRegister(self.num_sum_qubits, name="sum")
             self.qregs = [qr_state, qr_sum]
-            self._ancillas = []
 
             if self.num_carry_qubits > 0:
                 qr_carry = AncillaRegister(self.num_carry_qubits, name="carry")
-                self.qregs += [qr_carry]
-                self._ancillas += qr_carry[:]
+                self.add_register(qr_carry)
 
             if self.num_control_qubits > 0:
                 qr_control = AncillaRegister(self.num_control_qubits, name="control")
-                self.qregs += [qr_control]
-                self._ancillas += qr_control[:]
-
-        else:
-            self.qregs = []
-            self._ancillas = []
+                self.add_register(qr_control)
 
     @property
     def num_carry_qubits(self) -> int:
@@ -217,6 +213,7 @@ class WeightedAdder(BlueprintCircuit):
         # return self.num_ancillas
 
     def _check_configuration(self, raise_on_failure=True):
+        """Check if the current configuration is valid."""
         valid = True
         if self._num_state_qubits is None:
             valid = False
@@ -231,6 +228,10 @@ class WeightedAdder(BlueprintCircuit):
         return valid
 
     def _build(self):
+        """If not already built, build the circuit."""
+        if self._is_built:
+            return
+
         super()._build()
 
         num_result_qubits = self.num_state_qubits + self.num_sum_qubits

@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 # pylint: disable=invalid-name
-# pylint: disable=inconsistent-return-statements
 # pylint: disable=missing-param-doc,missing-type-doc,unused-argument
 
 """
@@ -271,10 +270,10 @@ def plot_bloch_multivector(
 
             qc = QuantumCircuit(2)
             qc.h(0)
-            qc.cx(0, 1)
+            qc.x(1)
 
             state = Statevector.from_instruction(qc)
-            plot_bloch_multivector(state, title="New Bloch Multivector", reverse_bits=False)
+            plot_bloch_multivector(state)
     """
     if not HAS_MATPLOTLIB:
         raise MissingOptionalLibraryError(
@@ -474,13 +473,11 @@ def plot_state_city(
             else:
                 ax1.axes.set_zlim3d(auto=True)
         ax1.get_autoscalez_on()
-        ax1.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45, ha="right", va="top")
-        ax1.w_yaxis.set_ticklabels(
-            column_names, fontsize=14, rotation=-22.5, ha="left", va="center"
-        )
+        ax1.xaxis.set_ticklabels(row_names, fontsize=14, rotation=45, ha="right", va="top")
+        ax1.yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5, ha="left", va="center")
         ax1.set_zlabel("Re[$\\rho$]", fontsize=14)
         for tick in ax1.zaxis.get_major_ticks():
-            tick.label.set_fontsize(14)
+            tick.label1.set_fontsize(14)
 
     if ax2 is not None:
         fc2 = generate_facecolors(xpos, ypos, zpos, dx, dy, dzi, color[1])
@@ -524,13 +521,11 @@ def plot_state_city(
             else:
                 ax2.axes.set_zlim3d(auto=True)
 
-        ax2.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45, ha="right", va="top")
-        ax2.w_yaxis.set_ticklabels(
-            column_names, fontsize=14, rotation=-22.5, ha="left", va="center"
-        )
+        ax2.xaxis.set_ticklabels(row_names, fontsize=14, rotation=45, ha="right", va="top")
+        ax2.yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5, ha="left", va="center")
         ax2.set_zlabel("Im[$\\rho$]", fontsize=14)
         for tick in ax2.zaxis.get_major_ticks():
-            tick.label.set_fontsize(14)
+            tick.label1.set_fontsize(14)
         ax2.get_autoscalez_on()
 
     fig.suptitle(title, fontsize=16)
@@ -621,7 +616,7 @@ def plot_state_paulivec(
     ax.set_ylim([-1, 1])
     ax.set_facecolor("#eeeeee")
     for tick in ax.xaxis.get_major_ticks() + ax.yaxis.get_major_ticks():
-        tick.label.set_fontsize(14)
+        tick.label1.set_fontsize(14)
     ax.set_title(title, fontsize=16)
     if return_fig:
         matplotlib_close_if_inline(fig)
@@ -750,7 +745,7 @@ def plot_state_qsphere(
             pip_install="pip install matplotlib",
         )
 
-    import matplotlib.gridspec as gridspec
+    from matplotlib import gridspec
     from matplotlib import pyplot as plt
     from matplotlib.patches import Circle
     from qiskit.visualization.bloch import Arrow3D
@@ -806,14 +801,14 @@ def plot_state_qsphere(
     )
 
     # Get rid of the panes
-    ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-    ax.w_yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-    ax.w_zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
 
     # Get rid of the spines
-    ax.w_xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
-    ax.w_yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
-    ax.w_zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+    ax.xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+    ax.yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+    ax.zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
 
     # Get rid of the ticks
     ax.set_xticks([])
@@ -1421,8 +1416,10 @@ def state_drawer(state, output=None, **drawer_args):
             raise MissingOptionalLibraryError(
                 libname="IPython",
                 name="state_drawer",
-                pip_install="\"pip install ipython\", or set output='latex_source' "
-                "instead for an ASCII string.",
+                pip_install=(
+                    "\"pip install ipython\", or set output='latex_source' "
+                    "instead for an ASCII string."
+                ),
             ) from err
         else:
             draw_func = drawers["latex_source"]

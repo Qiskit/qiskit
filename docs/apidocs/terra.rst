@@ -21,6 +21,7 @@ Qiskit Terra API Reference
    providers_models
    pulse
    scheduler
+   synthesis
    qasm
    qobj
    qpy
@@ -31,6 +32,9 @@ Qiskit Terra API Reference
    transpiler
    transpiler_passes
    transpiler_preset
+   transpiler_plugins
+   transpiler_builtin_plugins
    utils
+   utils_mitigation
    opflow
    algorithms

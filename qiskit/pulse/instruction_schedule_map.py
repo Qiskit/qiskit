@@ -278,7 +278,7 @@ class InstructionScheduleMap:
                     )
                 ordered_names = arguments
 
-            parameters = list()
+            parameters = []
             for argname in ordered_names:
                 param_signature = inspect.Parameter(
                     name=argname,

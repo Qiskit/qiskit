@@ -202,6 +202,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         return y
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """Check if the current configuration is valid."""
         valid = True
 
         if self.num_state_qubits is None:
@@ -225,22 +226,25 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         return valid
 
     def _reset_registers(self, num_state_qubits: Optional[int]) -> None:
+        """Reset the registers."""
+        self.qregs = []
+
         if num_state_qubits is not None:
             qr_state = QuantumRegister(num_state_qubits)
             qr_target = QuantumRegister(1)
             self.qregs = [qr_state, qr_target]
-            self._ancillas = []
 
             # add ancillas if required
             if len(self.breakpoints) > 1:
                 num_ancillas = num_state_qubits
                 qr_ancilla = AncillaRegister(num_ancillas)
                 self.add_register(qr_ancilla)
-        else:
-            self.qregs = []
-            self._ancillas = []
 
     def _build(self):
+        """If not already built, build the circuit."""
+        if self._is_built:
+            return
+
         super()._build()
 
         circuit = QuantumCircuit(*self.qregs, name=self.name)

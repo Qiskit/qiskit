@@ -223,6 +223,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         return y
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """Check if the current configuration is valid."""
         valid = True
 
         if self.num_state_qubits is None:
@@ -246,6 +247,9 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         return valid
 
     def _reset_registers(self, num_state_qubits: Optional[int]) -> None:
+        """Reset the registers."""
+        self.qregs = []
+
         if num_state_qubits:
             qr_state = QuantumRegister(num_state_qubits)
             qr_target = QuantumRegister(1)
@@ -258,27 +262,13 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
             if num_ancillas > 0:
                 qr_ancilla = AncillaRegister(num_ancillas)
                 self.add_register(qr_ancilla)
-            else:
-                qr_ancilla = []
-
-            self._qubits = qr_state[:] + qr_target[:] + qr_ancilla[:]
-            self._qubit_set = set(self._qubits)
-            self._ancillas = qr_ancilla[:]
-        else:
-            self.qregs = []
-            self._qubits = []
-            self._qubit_set = set()
-            self._ancillas = []
 
     def _build(self):
-        # do not build the circuit if _data is already populated
-        if self._data is not None:
+        """If not already built, build the circuit."""
+        if self._is_built:
             return
 
-        self._data = []
-
-        # check whether the configuration is valid
-        self._check_configuration()
+        super()._build()
 
         circuit = QuantumCircuit(*self.qregs, name=self.name)
         qr_state = circuit.qubits[: self.num_state_qubits]
