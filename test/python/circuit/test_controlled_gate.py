@@ -708,7 +708,7 @@ class TestControlledGate(QiskitTestCase):
         explicit = {1: CXGate, 2: CCXGate}
         self.assertEqual(cls, explicit[num_ctrl_qubits])
 
-    @data(1, 2, 3, 4)
+    @data(1, 2)
     def test_mcxgraycode_gates_yield_explicit_gates(self, num_ctrl_qubits):
         """Test creating an mcx gate calls MCXGrayCode and yeilds explicit definition."""
         qc = QuantumCircuit(num_ctrl_qubits + 1)
