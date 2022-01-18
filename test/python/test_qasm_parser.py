@@ -81,7 +81,7 @@ class TestParser(QiskitTestCase):
             QasmError, "Perhaps there is a missing", parse, file_path=self.qasm_file_path_fail
         )
 
-    @ddt.data("example_version_fail.qasm", "example_minor_ver_fail.qasm")
+    @ddt.data("example_version_fail.qasm", "example_minor_version_fail.qasm")
     def test_parser_version_fail(self, filename):
         """Ensure versions other than 2.0 or 2 fail."""
         filename = os.path.join(self.qasm_dir, filename)
