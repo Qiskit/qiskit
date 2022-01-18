@@ -28,6 +28,9 @@ from qiskit.circuit.library import (
     MCU1Gate,
     MCXGate,
     PhaseGate,
+    RC3XGate,
+    C3SXGate,
+    CU1Gate,
 )
 
 
@@ -78,12 +81,20 @@ class MCXSynthesisGrayCode(MCXSynthesis):
         from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
 
         num_ctrl_qubits = gate.num_ctrl_qubits
-        num_qubits = num_ctrl_qubits + self.get_num_ancilla_qubits(num_ctrl_qubits) + 1
-        q = QuantumRegister(num_qubits, name="q")
-        qc = QuantumCircuit(q, name=self.name)
-        qc._append(HGate(), [q[-1]], [])
-        qc._append(MCU1Gate(numpy.pi, num_ctrl_qubits=num_ctrl_qubits), q[:], [])
-        qc._append(HGate(), [q[-1]], [])
+
+        if num_ctrl_qubits == 3:
+            # special algorithm for 3 qubits
+            qc = MCXSynthesisAlgorithms.noancilla_3qubits(self.name)
+        elif num_ctrl_qubits == 4:
+            # special algorithm for 4 qubits
+            qc = MCXSynthesisAlgorithms.noancilla_4qubits(self.name)
+        else:
+            num_qubits = num_ctrl_qubits + self.get_num_ancilla_qubits(num_ctrl_qubits) + 1
+            q = QuantumRegister(num_qubits, name="q")
+            qc = QuantumCircuit(q, name=self.name)
+            qc._append(HGate(), [q[-1]], [])
+            qc._append(MCU1Gate(numpy.pi, num_ctrl_qubits=num_ctrl_qubits), q[:], [])
+            qc._append(HGate(), [q[-1]], [])
 
         return qc
 
@@ -247,6 +258,144 @@ class MCXSynthesisVChain(MCXSynthesis):
         return qc
 
 
+class MCXSynthesisAlgorithms:
+    """Implements various synthesis algorithms."""
+
+    @staticmethod
+    def noancilla_3qubits(circuit_name):
+        """
+        Explicit implementation for the X gate controlled on 3 qubits.
+
+        gate c3x a,b,c,d
+        {
+            h d;
+            p(pi/8) a;
+            p(pi/8) b;
+            p(pi/8) c;
+            p(pi/8) d;
+            cx a, b;
+            p(-pi/8) b;
+            cx a, b;
+            cx b, c;
+            p(-pi/8) c;
+            cx a, c;
+            p(pi/8) c;
+            cx b, c;
+            p(-pi/8) c;
+            cx a, c;
+            cx c, d;
+            p(-pi/8) d;
+            cx b, d;
+            p(pi/8) d;
+            cx c, d;
+            p(-pi/8) d;
+            cx a, d;
+            p(pi/8) d;
+            cx c, d;
+            p(-pi/8) d;
+            cx b, d;
+            p(pi/8) d;
+            cx c, d;
+            p(-pi/8) d;
+            cx a, d;
+            h d;
+        }
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
+
+        q = QuantumRegister(4, name="q")
+        qc = QuantumCircuit(q, name=circuit_name)
+        qc.h(3)
+        qc.p(numpy.pi / 8, [0, 1, 2, 3])
+        qc.cx(0, 1)
+        qc.p(-numpy.pi / 8, 1)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.p(-numpy.pi / 8, 2)
+        qc.cx(0, 2)
+        qc.p(numpy.pi / 8, 2)
+        qc.cx(1, 2)
+        qc.p(-numpy.pi / 8, 2)
+        qc.cx(0, 2)
+        qc.cx(2, 3)
+        qc.p(-numpy.pi / 8, 3)
+        qc.cx(1, 3)
+        qc.p(numpy.pi / 8, 3)
+        qc.cx(2, 3)
+        qc.p(-numpy.pi / 8, 3)
+        qc.cx(0, 3)
+        qc.p(numpy.pi / 8, 3)
+        qc.cx(2, 3)
+        qc.p(-numpy.pi / 8, 3)
+        qc.cx(1, 3)
+        qc.p(numpy.pi / 8, 3)
+        qc.cx(2, 3)
+        qc.p(-numpy.pi / 8, 3)
+        qc.cx(0, 3)
+        qc.h(3)
+        return qc
+
+    @staticmethod
+    def noancilla_4qubits(circuit_name):
+        """
+        Explicit implementation for the X gate controlled on 4 qubits.
+
+        This implementation is based on Page 21, Lemma 7.5, of [1], with the use
+        of the relative phase version of c3x, the rc3x [2].
+
+        References:
+            [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
+            [2] Maslov, 2015. https://arxiv.org/abs/1508.03273
+
+        gate c3sqrtx a,b,c,d
+        {
+            h d; cu1(pi/8) a,d; h d;
+            cx a,b;
+            h d; cu1(-pi/8) b,d; h d;
+            cx a,b;
+            h d; cu1(pi/8) b,d; h d;
+            cx b,c;
+            h d; cu1(-pi/8) c,d; h d;
+            cx a,c;
+            h d; cu1(pi/8) c,d; h d;
+            cx b,c;
+            h d; cu1(-pi/8) c,d; h d;
+            cx a,c;
+            h d; cu1(pi/8) c,d; h d;
+        }
+        gate c4x a,b,c,d,e
+        {
+            h e; cu1(pi/2) d,e; h e;
+            rc3x a,b,c,d;
+            h e; cu1(-pi/2) d,e; h e;
+            rc3x a,b,c,d;
+            c3sqrtx a,b,c,e;
+        }
+        """
+
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
+
+        q = QuantumRegister(5, name="q")
+        qc = QuantumCircuit(q, name=circuit_name)
+        rules = [
+            (HGate(), [q[4]], []),
+            (CU1Gate(numpy.pi / 2), [q[3], q[4]], []),
+            (HGate(), [q[4]], []),
+            (RC3XGate(), [q[0], q[1], q[2], q[3]], []),
+            (HGate(), [q[4]], []),
+            (CU1Gate(-numpy.pi / 2), [q[3], q[4]], []),
+            (HGate(), [q[4]], []),
+            (RC3XGate().inverse(), [q[0], q[1], q[2], q[3]], []),
+            (C3SXGate(), [q[0], q[1], q[2], q[4]], []),
+        ]
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
+        return qc
+
+
 def mcx_mode_to_gate(num_ctrl_qubits: int, mcx_mode: str):
     """Constructs the MCX gate corresponding to the given number of control qubits and
     the given synthesis mode (represented as a string). When there are only a few control
@@ -258,10 +407,10 @@ def mcx_mode_to_gate(num_ctrl_qubits: int, mcx_mode: str):
         gate = CXGate()
     elif num_ctrl_qubits == 2:
         gate = CCXGate()
-    elif num_ctrl_qubits == 3 and mcx_mode in ["noancilla"]:
-        gate = C3XGate()
-    elif num_ctrl_qubits == 4 and mcx_mode in ["noancilla"]:
-        gate = C4XGate()
+    # elif num_ctrl_qubits == 3 and mcx_mode in ["noancilla"]:
+    #    gate = C3XGate()
+    # elif num_ctrl_qubits == 4 and mcx_mode in ["noancilla"]:
+    #    gate = C4XGate()
     elif mcx_mode in ["noancilla"]:
         gate = MCXGate(num_ctrl_qubits, synthesis=MCXSynthesisGrayCode())
     elif mcx_mode in ["recursion", "advanced"]:

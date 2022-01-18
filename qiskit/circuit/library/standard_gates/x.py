@@ -611,75 +611,12 @@ class C3XGate(ControlledGate):
     # seems like open controls not hapening?
     def _define(self):
         """
-        gate c3x a,b,c,d
-        {
-            h d;
-            p(pi/8) a;
-            p(pi/8) b;
-            p(pi/8) c;
-            p(pi/8) d;
-            cx a, b;
-            p(-pi/8) b;
-            cx a, b;
-            cx b, c;
-            p(-pi/8) c;
-            cx a, c;
-            p(pi/8) c;
-            cx b, c;
-            p(-pi/8) c;
-            cx a, c;
-            cx c, d;
-            p(-pi/8) d;
-            cx b, d;
-            p(pi/8) d;
-            cx c, d;
-            p(-pi/8) d;
-            cx a, d;
-            p(pi/8) d;
-            cx c, d;
-            p(-pi/8) d;
-            cx b, d;
-            p(pi/8) d;
-            cx c, d;
-            p(-pi/8) d;
-            cx a, d;
-            h d;
-        }
+        Implementation for X controlled by 3 qubits.
         """
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        # pylint: disable=cyclic-import
+        from qiskit.synthesis.mcx_synthesis import MCXSynthesisAlgorithms
 
-        q = QuantumRegister(4, name="q")
-        qc = QuantumCircuit(q, name=self.name)
-        qc.h(3)
-        qc.p(pi / 8, [0, 1, 2, 3])
-        qc.cx(0, 1)
-        qc.p(-pi / 8, 1)
-        qc.cx(0, 1)
-        qc.cx(1, 2)
-        qc.p(-pi / 8, 2)
-        qc.cx(0, 2)
-        qc.p(pi / 8, 2)
-        qc.cx(1, 2)
-        qc.p(-pi / 8, 2)
-        qc.cx(0, 2)
-        qc.cx(2, 3)
-        qc.p(-pi / 8, 3)
-        qc.cx(1, 3)
-        qc.p(pi / 8, 3)
-        qc.cx(2, 3)
-        qc.p(-pi / 8, 3)
-        qc.cx(0, 3)
-        qc.p(pi / 8, 3)
-        qc.cx(2, 3)
-        qc.p(-pi / 8, 3)
-        qc.cx(1, 3)
-        qc.p(pi / 8, 3)
-        qc.cx(2, 3)
-        qc.p(-pi / 8, 3)
-        qc.cx(0, 3)
-        qc.h(3)
-
-        self.definition = qc
+        self.definition = MCXSynthesisAlgorithms.noancilla_3qubits(self.name)
 
     def control(
         self,
@@ -831,52 +768,17 @@ class C4XGate(ControlledGate):
     # seems like open controls not hapening?
     def _define(self):
         """
-        gate c3sqrtx a,b,c,d
-        {
-            h d; cu1(pi/8) a,d; h d;
-            cx a,b;
-            h d; cu1(-pi/8) b,d; h d;
-            cx a,b;
-            h d; cu1(pi/8) b,d; h d;
-            cx b,c;
-            h d; cu1(-pi/8) c,d; h d;
-            cx a,c;
-            h d; cu1(pi/8) c,d; h d;
-            cx b,c;
-            h d; cu1(-pi/8) c,d; h d;
-            cx a,c;
-            h d; cu1(pi/8) c,d; h d;
-        }
-        gate c4x a,b,c,d,e
-        {
-            h e; cu1(pi/2) d,e; h e;
-            rc3x a,b,c,d;
-            h e; cu1(-pi/2) d,e; h e;
-            rc3x a,b,c,d;
-            c3sqrtx a,b,c,e;
-        }
+        This implementation is based on Page 21, Lemma 7.5, of [1], with the use
+        of the relative phase version of c3x, the rc3x [2].
+
+        References:
+            [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
+            [2] Maslov, 2015. https://arxiv.org/abs/1508.03273
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u1 import CU1Gate
+        from qiskit.synthesis.mcx_synthesis import MCXSynthesisAlgorithms
 
-        q = QuantumRegister(5, name="q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (HGate(), [q[4]], []),
-            (CU1Gate(numpy.pi / 2), [q[3], q[4]], []),
-            (HGate(), [q[4]], []),
-            (RC3XGate(), [q[0], q[1], q[2], q[3]], []),
-            (HGate(), [q[4]], []),
-            (CU1Gate(-numpy.pi / 2), [q[3], q[4]], []),
-            (HGate(), [q[4]], []),
-            (RC3XGate().inverse(), [q[0], q[1], q[2], q[3]], []),
-            (C3SXGate(), [q[0], q[1], q[2], q[4]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
-
-        self.definition = qc
+        self.definition = MCXSynthesisAlgorithms.noancilla_4qubits(self.name)
 
     def control(
         self,
@@ -1055,7 +957,8 @@ class MCXGrayCode(MCXGate):
     ):
         """Create a new MCXGrayCode instance"""
         # if 1 to 4 control qubits, create explicit gates
-        explicit = {1: CXGate, 2: CCXGate, 3: C3XGate, 4: C4XGate}
+        # explicit = {1: CXGate, 2: CCXGate, 3: C3XGate, 4: C4XGate}
+        explicit = {1: CXGate, 2: CCXGate}
         if num_ctrl_qubits in explicit:
             gate_class = explicit[num_ctrl_qubits]
             gate = gate_class(label=label, ctrl_state=ctrl_state)
