@@ -12,6 +12,7 @@
 
 """Test operations on the builder interfaces for control flow in dynamic QuantumCircuits."""
 
+import copy
 import math
 
 import ddt
@@ -60,6 +61,8 @@ class TestControlFlowBuilders(QiskitTestCase):
         # For our purposes here, we don't care about the order bits were added.
         self.assertEqual(set(a.qubits), set(b.qubits))
         self.assertEqual(set(a.clbits), set(b.clbits))
+        self.assertEqual(set(a.qregs), set(b.qregs))
+        self.assertEqual(set(a.cregs), set(b.cregs))
         self.assertEqual(len(a.data), len(b.data))
 
         for (a_op, a_qubits, a_clbits), (b_op, b_qubits, b_clbits) in zip(a.data, b.data):
@@ -157,6 +160,108 @@ class TestControlFlowBuilders(QiskitTestCase):
         expected.if_test((cr, 0), if_true0, [qr[0]], [cr[:]])
 
         self.assertCircuitsEquivalent(test, expected)
+
+    def test_register_condition_in_nested_block(self):
+        """Test that nested blocks can use registers of the outermost circuits as conditions, and
+        they get propagated through all the blocks."""
+
+        qr = QuantumRegister(2)
+        clbits = [Clbit(), Clbit(), Clbit()]
+        cr1 = ClassicalRegister(3)
+        # Try aliased classical registers as well, to catch potential overlap bugs.
+        cr2 = ClassicalRegister(bits=clbits[:2])
+        cr3 = ClassicalRegister(bits=clbits[1:])
+        cr4 = ClassicalRegister(bits=clbits)
+
+        with self.subTest("for/if"):
+            test = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            with test.for_loop(range(3)):
+                with test.if_test((cr1, 0)):
+                    test.x(0)
+                with test.if_test((cr2, 0)):
+                    test.y(0)
+                with test.if_test((cr3, 0)):
+                    test.z(0)
+
+            true_body1 = QuantumCircuit([qr[0]], cr1)
+            true_body1.x(0)
+            true_body2 = QuantumCircuit([qr[0]], cr2)
+            true_body2.y(0)
+            true_body3 = QuantumCircuit([qr[0]], cr3)
+            true_body3.z(0)
+
+            for_body = QuantumCircuit([qr[0]], clbits, cr1, cr2, cr3)  # but not cr4.
+            for_body.if_test((cr1, 0), true_body1, [qr[0]], cr1)
+            for_body.if_test((cr2, 0), true_body2, [qr[0]], cr2)
+            for_body.if_test((cr3, 0), true_body3, [qr[0]], cr3)
+
+            expected = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            expected.for_loop(range(3), None, for_body, [qr[0]], clbits + list(cr1))
+
+            self.assertCircuitsEquivalent(test, expected)
+
+        with self.subTest("for/while"):
+            test = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            with test.for_loop(range(3)):
+                with test.while_loop((cr1, 0)):
+                    test.x(0)
+                with test.while_loop((cr2, 0)):
+                    test.y(0)
+                with test.while_loop((cr3, 0)):
+                    test.z(0)
+
+            while_body1 = QuantumCircuit([qr[0]], cr1)
+            while_body1.x(0)
+            while_body2 = QuantumCircuit([qr[0]], cr2)
+            while_body2.y(0)
+            while_body3 = QuantumCircuit([qr[0]], cr3)
+            while_body3.z(0)
+
+            for_body = QuantumCircuit([qr[0]], clbits, cr1, cr2, cr3)
+            for_body.while_loop((cr1, 0), while_body1, [qr[0]], cr1)
+            for_body.while_loop((cr2, 0), while_body2, [qr[0]], cr2)
+            for_body.while_loop((cr3, 0), while_body3, [qr[0]], cr3)
+
+            expected = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            expected.for_loop(range(3), None, for_body, [qr[0]], clbits + list(cr1))
+
+            self.assertCircuitsEquivalent(test, expected)
+
+        with self.subTest("if/c_if"):
+            test = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            with test.if_test((cr1, 0)):
+                test.x(0).c_if(cr2, 0)
+                test.z(0).c_if(cr3, 0)
+
+            true_body = QuantumCircuit([qr[0]], cr1, cr2, cr3)
+            true_body.x(0).c_if(cr2, 0)
+            true_body.z(0).c_if(cr3, 0)
+
+            expected = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            expected.if_test((cr1, 0), true_body, [qr[0]], clbits + list(cr1))
+
+            self.assertCircuitsEquivalent(test, expected)
+
+        with self.subTest("while/else/c_if"):
+            test = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            with test.while_loop((cr1, 0)):
+                with test.if_test((cr2, 0)) as else_:
+                    test.x(0).c_if(cr3, 0)
+                with else_:
+                    test.z(0).c_if(cr4, 0)
+
+            true_body = QuantumCircuit([qr[0]], cr2, cr3, cr4)
+            true_body.x(0).c_if(cr3, 0)
+            false_body = QuantumCircuit([qr[0]], cr2, cr3, cr4)
+            false_body.z(0).c_if(cr4, 0)
+
+            while_body = QuantumCircuit([qr[0]], cr1, cr2, cr3, cr4)
+            while_body.if_else((cr2, 0), true_body, false_body, [qr[0]], clbits)
+
+            expected = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            expected.while_loop((cr1, 0), while_body, [qr[0]], clbits + list(cr1))
+
+            self.assertCircuitsEquivalent(test, expected)
 
     def test_if_else_simple(self):
         """Test a simple if/else statement builds correctly, in the midst of other instructions.
@@ -329,6 +434,33 @@ class TestControlFlowBuilders(QiskitTestCase):
         expected.if_else(cond, only_x, empty_with_qubit, [qubits[0]], [clbits[0]])
         expected.if_else(cond, empty_with_qubit, only_x, [qubits[0]], [clbits[0]])
         expected.if_else(cond, empty, empty, [], [clbits[0]])
+
+        self.assertCircuitsEquivalent(test, expected)
+
+    def test_if_else_tracks_registers(self):
+        """Test that classical registers used in both branches of if statements are tracked
+        correctly."""
+        qr = QuantumRegister(2)
+        cr = [ClassicalRegister(2) for _ in [None] * 4]
+
+        test = QuantumCircuit(qr, *cr)
+        with test.if_test((cr[0], 0)) as else_:
+            test.h(0).c_if(cr[1], 0)
+            # Test repetition.
+            test.h(0).c_if(cr[1], 0)
+        with else_:
+            test.h(0).c_if(cr[2], 0)
+
+        true_body = QuantumCircuit([qr[0]], cr[0], cr[1], cr[2])
+        true_body.h(qr[0]).c_if(cr[1], 0)
+        true_body.h(qr[0]).c_if(cr[1], 0)
+        false_body = QuantumCircuit([qr[0]], cr[0], cr[1], cr[2])
+        false_body.h(qr[0]).c_if(cr[2], 0)
+
+        expected = QuantumCircuit(qr, *cr)
+        expected.if_else(
+            (cr[0], 0), true_body, false_body, [qr[0]], list(cr[0]) + list(cr[1]) + list(cr[2])
+        )
 
         self.assertCircuitsEquivalent(test, expected)
 
@@ -1801,6 +1933,130 @@ class TestControlFlowBuilders(QiskitTestCase):
             instruction = test.data[-1][0].blocks[0].data[-1][0]
             self.assertIsInstance(instruction, IfElseOp)
             self.assertEqual(instruction.label, label)
+
+    def test_copy_of_circuits(self):
+        """Test that various methods of copying a circuit made with the builder interface works."""
+        test = QuantumCircuit(5, 5)
+        cond = (test.clbits[2], False)
+        with test.if_test(cond) as else_:
+            test.cx(0, 1)
+        with else_:
+            test.h(2)
+        with test.for_loop(range(5)):
+            with test.if_test(cond):
+                test.x(3)
+        with test.while_loop(cond):
+            test.measure(0, 4)
+        self.assertEqual(test, test.copy())
+        self.assertEqual(test, copy.copy(test))
+        self.assertEqual(test, copy.deepcopy(test))
+
+    def test_copy_of_instructions(self):
+        """Test that various methods of copying the actual instructions created by the builder
+        interface work."""
+        qubits = [Qubit() for _ in [None] * 3]
+        clbits = [Clbit() for _ in [None] * 3]
+        cond = (clbits[1], False)
+
+        with self.subTest("if"):
+            test = QuantumCircuit(qubits, clbits)
+            with test.if_test(cond):
+                test.cx(0, 1)
+                test.measure(2, 2)
+            if_instruction, _, _ = test.data[0]
+            self.assertEqual(if_instruction, if_instruction.copy())
+            self.assertEqual(if_instruction, copy.copy(if_instruction))
+            self.assertEqual(if_instruction, copy.deepcopy(if_instruction))
+
+        with self.subTest("if/else"):
+            test = QuantumCircuit(qubits, clbits)
+            with test.if_test(cond) as else_:
+                test.cx(0, 1)
+                test.measure(2, 2)
+            with else_:
+                test.cx(1, 0)
+                test.measure(2, 2)
+            if_instruction, _, _ = test.data[0]
+            self.assertEqual(if_instruction, if_instruction.copy())
+            self.assertEqual(if_instruction, copy.copy(if_instruction))
+            self.assertEqual(if_instruction, copy.deepcopy(if_instruction))
+
+        with self.subTest("for"):
+            test = QuantumCircuit(qubits, clbits)
+            with test.for_loop(range(4)):
+                test.cx(0, 1)
+                test.measure(2, 2)
+            for_instruction, _, _ = test.data[0]
+            self.assertEqual(for_instruction, for_instruction.copy())
+            self.assertEqual(for_instruction, copy.copy(for_instruction))
+            self.assertEqual(for_instruction, copy.deepcopy(for_instruction))
+
+        with self.subTest("while"):
+            test = QuantumCircuit(qubits, clbits)
+            with test.while_loop(cond):
+                test.cx(0, 1)
+                test.measure(2, 2)
+            while_instruction, _, _ = test.data[0]
+            self.assertEqual(while_instruction, while_instruction.copy())
+            self.assertEqual(while_instruction, copy.copy(while_instruction))
+            self.assertEqual(while_instruction, copy.deepcopy(while_instruction))
+
+    def test_copy_of_instruction_parameters(self):
+        """Test that various methods of copying the parameters inside instructions created by the
+        builder interface work.  Regression test of gh-7367."""
+        qubits = [Qubit() for _ in [None] * 3]
+        clbits = [Clbit() for _ in [None] * 3]
+        cond = (clbits[1], False)
+
+        with self.subTest("if"):
+            test = QuantumCircuit(qubits, clbits)
+            with test.if_test(cond):
+                test.cx(0, 1)
+                test.measure(2, 2)
+            if_instruction, _, _ = test.data[0]
+            (true_body,) = if_instruction.blocks
+            self.assertEqual(true_body, true_body.copy())
+            self.assertEqual(true_body, copy.copy(true_body))
+            self.assertEqual(true_body, copy.deepcopy(true_body))
+
+        with self.subTest("if/else"):
+            test = QuantumCircuit(qubits, clbits)
+            with test.if_test(cond) as else_:
+                test.cx(0, 1)
+                test.measure(2, 2)
+            with else_:
+                test.cx(1, 0)
+                test.measure(2, 2)
+            if_instruction, _, _ = test.data[0]
+            true_body, false_body = if_instruction.blocks
+            self.assertEqual(true_body, true_body.copy())
+            self.assertEqual(true_body, copy.copy(true_body))
+            self.assertEqual(true_body, copy.deepcopy(true_body))
+            self.assertEqual(false_body, false_body.copy())
+            self.assertEqual(false_body, copy.copy(false_body))
+            self.assertEqual(false_body, copy.deepcopy(false_body))
+
+        with self.subTest("for"):
+            test = QuantumCircuit(qubits, clbits)
+            with test.for_loop(range(4)):
+                test.cx(0, 1)
+                test.measure(2, 2)
+            for_instruction, _, _ = test.data[0]
+            (for_body,) = for_instruction.blocks
+            self.assertEqual(for_body, for_body.copy())
+            self.assertEqual(for_body, copy.copy(for_body))
+            self.assertEqual(for_body, copy.deepcopy(for_body))
+
+        with self.subTest("while"):
+            test = QuantumCircuit(qubits, clbits)
+            with test.while_loop(cond):
+                test.cx(0, 1)
+                test.measure(2, 2)
+            while_instruction, _, _ = test.data[0]
+            (while_body,) = while_instruction.blocks
+            self.assertEqual(while_body, while_body.copy())
+            self.assertEqual(while_body, copy.copy(while_body))
+            self.assertEqual(while_body, copy.deepcopy(while_body))
 
 
 @ddt.ddt

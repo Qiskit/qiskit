@@ -76,7 +76,7 @@ class TestEvolutionGate(QiskitTestCase):
         op = (X ^ 3) + (Y ^ 3) + (Z ^ 3)
         time = 0.123
         reps = 4
-        for order in [2, 4, 5]:
+        for order in [2, 4, 6]:
             if order == 2:
                 expected_cx = reps * 5 * 4
             elif order % 2 == 0:
