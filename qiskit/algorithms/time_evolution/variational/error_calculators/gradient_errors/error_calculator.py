@@ -48,8 +48,9 @@ class ErrorCalculator(ABC):
         self._operator_sampler = operator_sampler
         self._backend = backend
 
+    @classmethod
     def _bind_or_sample_operator(
-        self,
+        cls,
         operator: OperatorBase,
         param_dict: Dict[Parameter, Union[float, complex]],
         operator_circuit_sampler: Optional[CircuitSampler] = None,

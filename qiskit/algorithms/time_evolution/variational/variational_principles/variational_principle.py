@@ -43,6 +43,13 @@ class VariationalPrinciple(ABC):
         """
         self._qfi_method = qfi_method
         self._grad_method = grad_method
+        # variables below are initialized lazily in methods below
+        self._hamiltonian = None
+        self._ansatz = None
+        self._operator = None
+        self._params = None
+        self._raw_evolution_grad = None
+        self._raw_metric_tensor = None
 
     def _lazy_init(
         self,

@@ -99,6 +99,8 @@ class VarQte(EvolutionBase, ABC):
 
         self._operator = None
         self._initial_state = None
+        self._hamiltonian = None
+        self._hamiltonian_squared = None
 
     def _evolve_helper(
         self,
