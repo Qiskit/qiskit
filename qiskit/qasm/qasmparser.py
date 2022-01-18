@@ -375,13 +375,9 @@ class QasmParser:
         """
         version = node.Format(program[1])
         if (version.majorversion != "2") or (version.minorversion != "0"):
-            provided_version = str(version.majorversion) + "." + str(version.minorversion)
+            provided_version = f"{version.majorversion}.{version.minorversion}"
             raise QasmError(
-                str(
-                    "Invalid version string: "
-                    + provided_version
-                    + ". This module supports OPENQASM 2.0; only."
-                )
+                f"Invalid version: '{provided_version}'. This module supports OpenQASM 2.0 only."
             )
         program[0] = version
 

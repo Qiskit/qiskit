@@ -94,7 +94,7 @@ class TestParser(QiskitTestCase):
         """Ensure versions other than 2.0 or 2 fail."""
         filename = os.path.join(self.qasm_dir, filename)
         with self.assertRaisesRegex(
-            QasmError, "Invalid version string: .+\\. This module supports OPENQASM 2.0; only."
+            QasmError, r"Invalid version: '.+'\. This module supports OpenQASM 2\.0 only\."
         ):
             parse(filename)
 
