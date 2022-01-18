@@ -1,0 +1,16 @@
+\documentclass[border=2px]{standalone}
+
+\usepackage[braket, qm]{qcircuit}
+\usepackage{graphicx}
+
+\begin{document}
+\scalebox{1.0}{
+\Qcircuit @C=1.0em @R=1.0em @!R { \\
+	 	\nghost{{q1\_re\_\_g\_\_g} :  } & \lstick{{q1\_re\_\_g\_\_g} :  } & \qw & \qw\\
+	 	\nghost{{q3\_re\_g\_\_g}_{0} :  } & \lstick{{q3\_re\_g\_\_g}_{0} :  } & \qw & \qw\\
+	 	\nghost{{q3\_re\_g\_\_g}_{1} :  } & \lstick{{q3\_re\_g\_\_g}_{1} :  } & \qw & \qw\\
+	 	\nghost{{q3\_re\_g\_\_g}_{2} :  } & \lstick{{q3\_re\_g\_\_g}_{2} :  } & \qw & \qw\\
+	 	\nghost{\mathrm{{c1\_re\_g\_\_g} :  }} & \lstick{\mathrm{{c1\_re\_g\_\_g} :  }} & \lstick{/_{_{1}}} \cw & \cw\\
+	 	\nghost{\mathrm{{c3\_re\_g\_\_g} :  }} & \lstick{\mathrm{{c3\_re\_g\_\_g} :  }} & \lstick{/_{_{3}}} \cw & \cw\\
+\\ }}
+\end{document}
