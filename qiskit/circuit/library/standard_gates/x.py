@@ -788,19 +788,16 @@ class MCXGate(ControlledGate):
 
         return mcx_mode_to_num_ancilla_qubits(num_ctrl_qubits, mode)
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the MCX gate."""
-
-        mat = _compute_control_matrix(
-            self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
-        )
-
-        if self.num_ancilla_qubits > 0:
-            mat = numpy.kron(numpy.eye(2 ** self.num_ancilla_qubits), mat)
-
-        if dtype:
-            return numpy.asarray(mat, dtype=dtype)
-        return mat
+    # def __array__(self, dtype=None):
+    #    """Return a numpy.array for the MCX gate."""
+    #    mat = _compute_control_matrix(
+    #        self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
+    #    )
+    #    if self.num_ancilla_qubits > 0:
+    #        mat = numpy.kron(numpy.eye(2 ** self.num_ancilla_qubits), mat)
+    #    if dtype:
+    #        return numpy.asarray(mat, dtype=dtype)
+    #    return mat
 
 
 # The following explicit classes remain for backward compatibility.
