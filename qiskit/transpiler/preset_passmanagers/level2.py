@@ -41,6 +41,7 @@ from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
+from qiskit.transpiler.passes import Size
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CommutativeCancellation
@@ -268,10 +269,15 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _reset = RemoveResetInZeroState()
 
     # 8. 1q rotation merge and commutative cancellation iteratively until no more change in depth
+    # and size
     _depth_check = [Depth(), FixedPoint("depth")]
+    _size_check = [Size(), FixedPoint("size")]
 
-    def _opt_control(property_set):
+    def _depth_control(property_set):
         return not property_set["depth_fixed_point"]
+
+    def _size_control(property_set):
+        return not property_set["size_fixed_point"]
 
     _opt = [
         Optimize1qGatesDecomposition(basis_gates),
@@ -329,7 +335,10 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm2.append(_direction_check)
         pm2.append(_direction, condition=_direction_condition)
     pm2.append(_reset)
-    pm2.append(_depth_check + _opt + _unroll, do_while=_opt_control)
+
+    pm2.append(_depth_check + _opt + _unroll, do_while=_depth_control)
+    pm2.append(_size_check + _opt + _unroll, do_while=_size_control)
+
     if inst_map and inst_map.has_custom_gate():
         pm2.append(PulseGates(inst_map=inst_map))
     if scheduling_method:
