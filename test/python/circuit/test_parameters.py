@@ -1180,15 +1180,15 @@ class TestParameterExpressions(QiskitTestCase):
         bound_expr = x.bind({x: 2.3})
 
         self.assertEqual(bound_expr, 2.3)
-        
+
     def test_abs_function_when_bound(self):
-        """Verify expression can be used with  
+        """Verify expression can be used with
         abs functions when bound."""
 
         x = Parameter("x")
         xb_1 = x.bind({x: 1.0})
-        xb_2 = x.bind({x: 3.+4.j})
-        
+        xb_2 = x.bind({x: 3.0 + 4.0j})
+
         self.assertEqual(abs(xb_1), 1.0)
         self.assertEqual(abs(-xb_1), 1.0)
         self.assertEqual(abs(xb_2), 5.0)
