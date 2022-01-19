@@ -791,17 +791,16 @@ class MCXGate(ControlledGate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the MCX gate."""
 
-        # Though, we can only handle the case that there are no ancilla qubits
-        # (which includes the previous cases for C3XGate and C4XGate)
+        mat = _compute_control_matrix(
+            self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
+        )
+
         if self.num_ancilla_qubits == 0:
-            mat = _compute_control_matrix(
-                self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
-            )
-            if dtype:
-                return numpy.asarray(mat, dtype=dtype)
-            return mat
-        else:
-            return None
+            mat = numpy.kron(numpy.eye(2 ** self.num_ancilla_qubits), mat)
+
+        if dtype:
+            return numpy.asarray(mat, dtype=dtype)
+        return mat
 
 
 # The following explicit classes remain for backward compatibility.
