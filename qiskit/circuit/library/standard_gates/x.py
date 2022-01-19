@@ -795,7 +795,7 @@ class MCXGate(ControlledGate):
             self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
         )
 
-        if self.num_ancilla_qubits == 0:
+        if self.num_ancilla_qubits > 0:
             mat = numpy.kron(numpy.eye(2 ** self.num_ancilla_qubits), mat)
 
         if dtype:
