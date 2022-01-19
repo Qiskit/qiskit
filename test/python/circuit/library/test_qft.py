@@ -202,7 +202,7 @@ class TestQFT(QiskitTestCase):
                 qft.approximation_degree = 20
             self.assertFalse(caught_warnings)
 
-            with unittest.mock.patch("qiskit.circuit.QuantumCircuit.__new__", SentinelException):
+            with unittest.mock.patch("qiskit.circuit.QuantumCircuit.__init__", SentinelException):
                 with self.assertWarnsRegex(RuntimeWarning, "precision loss in QFT"):
                     with self.assertRaises(SentinelException):
                         qft._build()
