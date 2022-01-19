@@ -14,7 +14,7 @@
 Visualization functions for measurement counts.
 """
 
-from collections import Counter, OrderedDict
+from collections import Counter, OrderedDict, defaultdict
 import functools
 import numpy as np
 
@@ -270,7 +270,7 @@ def _plot_histogram_data(data, labels, number_to_keep):
     all_inds = []
     # if multiple executions, we consider number_to_keep for each execution
     # and this may result in more than number_to_keep slots
-    multiple_exec_keys_dict = OrderedDict()
+    multiple_exec_keys_dict = defaultdict()
     if len(data) > 1 and number_to_keep is not None:
         for execution in data:
             for common_key in dict(Counter(execution).most_common(number_to_keep)):
