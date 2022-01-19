@@ -326,13 +326,14 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # Build nested Flow controllers
 
-    # Check if the gates are in the basis to determine whether to run _unroll passes
-    _unroll_check = [GatesInBasis(basis_gates)]
-
     def _unroll_condition(property_set):
         return not property_set["all_gates_in_basis"]
 
-    _flow_unroll = [ConditionalController(_unroll, condition=_unroll_condition)]
+    # Check if any gate is not in the basis, and if so, run unroll passes
+    _unroll_if_out_of_basis = [
+        GatesInBasis(basis_gates),
+        ConditionalController(_unroll, condition=_unroll_condition)
+    ]
 
     # Build pass manager
     pm3 = PassManager()
@@ -359,14 +360,14 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         # the coupling map which with a target doesn't give a full picture
         if target is not None:
             pm3.append(
-                _depth_check + _opt + _unroll_check + _flow_unroll + _direction,
+                _depth_check + _opt + _unroll_if_out_of_basis + _direction,
                 do_while=_opt_control,
             )
         else:
-            pm3.append(_depth_check + _opt + _unroll_check + _flow_unroll, do_while=_opt_control)
+            pm3.append(_depth_check + _opt + _unroll_if_out_of_basis, do_while=_opt_control)
     else:
         pm3.append(_reset)
-        pm3.append(_depth_check + _opt + _unroll_check + _flow_unroll, do_while=_opt_control)
+        pm3.append(_depth_check + _opt + _unroll_if_out_of_basis, do_while=_opt_control)
     if inst_map and inst_map.has_custom_gate():
         pm3.append(PulseGates(inst_map=inst_map))
     if scheduling_method:
