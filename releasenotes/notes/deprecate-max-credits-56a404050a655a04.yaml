@@ -1,34 +1,14 @@
 deprecations:
   - |
-    As the credit system has not been used for several months, it is now deprecated and will no
-    longer work in a future release.
-    Now max_credits should not be used in:
-    :class:`~qiskit.qobj.QasmQobjConfig`
-    :class:`~qiskit.qobj.PulseQobjConfig`
-    ``qiskit.execute()``
-    For example, if you were calling execute function like::
-
-        from qiskit import QuantumCircuit, execute, BasicAer
-
-        backend = BasicAer.get_backend('qasm_simulator')
-
-        qc = QuantumCircuit(5, 5)
-        qc.h(0)
-        qc.cx(0, range(1, 5))
-        qc.measure_all()
+    The ``max_credits`` argument to :func:`~.execute_function.execute`, and all
+    of the ``Qobj`` configurations (e.g. :class:`.QasmQobjConfig` and
+    :class:`.PulseQobjConfig`), is deprecated and will be removed in a future
+    release.  The credit system has not been in use on IBM Quantum backends for
+    two years, and the option has no effect.  No alternative is necessary.
+    For example, if you were calling :func:`~.execute_function.execute` as::
 
         job = execute(qc, backend, shots=4321, max_credits=10)
 
-    instead you should call it like::
-
-        from qiskit import QuantumCircuit, execute, BasicAer
-
-        backend = BasicAer.get_backend('qasm_simulator')
-
-        qc = QuantumCircuit(5, 5)
-        qc.h(0)
-        qc.cx(0, range(1, 5))
-        qc.measure_all()
+    you can simply omit the ``max_credits`` argument::
 
         job = execute(qc, backend, shots=4321)
-
