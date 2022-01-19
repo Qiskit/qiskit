@@ -20,9 +20,9 @@ seaborn>=0.9.0
 reno>=3.4.0
 Sphinx>=3.0.0
 qiskit-sphinx-theme>=1.6
-sphinx-autodoc-typehints
+sphinx-autodoc-typehints<1.14.0
 jupyter-sphinx
-sphinx-panels<0.6.0
+sphinx-panels
 pygments>=2.4
 networkx>=2.2
 scikit-learn>=0.20.0

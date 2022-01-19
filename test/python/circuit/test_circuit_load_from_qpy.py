@@ -451,6 +451,50 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc.decompose(), new_circ.decompose())
         self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
 
+    def test_custom_gate_with_noop_definition(self):
+        """Test that a custom gate whose definition contains no elements is serialized with a
+        proper definition.
+
+        Regression test of gh-7429."""
+        empty = QuantumCircuit(1, name="empty").to_gate()
+        opaque = Gate("opaque", 1, [])
+        qc = QuantumCircuit(2)
+        qc.append(empty, [0], [])
+        qc.append(opaque, [1], [])
+
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+
+        self.assertEqual(qc, new_circ)
+        self.assertEqual(qc.decompose(), new_circ.decompose())
+        self.assertEqual(len(new_circ), 2)
+        self.assertIsInstance(new_circ.data[0][0].definition, QuantumCircuit)
+        self.assertIs(new_circ.data[1][0].definition, None)
+
+    def test_custom_instruction_with_noop_definition(self):
+        """Test that a custom instruction whose definition contains no elements is serialized with a
+        proper definition.
+
+        Regression test of gh-7429."""
+        empty = QuantumCircuit(1, name="empty").to_instruction()
+        opaque = Instruction("opaque", 1, 0, [])
+        qc = QuantumCircuit(2)
+        qc.append(empty, [0], [])
+        qc.append(opaque, [1], [])
+
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+
+        self.assertEqual(qc, new_circ)
+        self.assertEqual(qc.decompose(), new_circ.decompose())
+        self.assertEqual(len(new_circ), 2)
+        self.assertIsInstance(new_circ.data[0][0].definition, QuantumCircuit)
+        self.assertIs(new_circ.data[1][0].definition, None)
+
     def test_standard_gate_with_label(self):
         """Test a standard gate with a label."""
         qc = QuantumCircuit(1)
