@@ -489,7 +489,7 @@ class ParameterExpression:
                 return self._symbol_expr.equals(other._symbol_expr)
         elif isinstance(other, numbers.Number):
             return len(self.parameters) == 0 and complex(self._symbol_expr) == other
-        return False
+        return NotImplemented
 
     def __lt__(self, other: ParameterValueType) -> bool:
         """Check if this parameter expression is less than another parameter expression

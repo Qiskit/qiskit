@@ -1185,10 +1185,16 @@ class TestParameterExpressions(QiskitTestCase):
         self.assertTrue(bound_expr > 1.0)
         self.assertTrue(bound_expr >= 1.0)
 
-    def test_compare_to_value_not_bound(self):
+    def test_compare_not_bound(self):
         """Verify raises if compare to value and not bound."""
         x = Parameter("x")
+        y = x + 1 - 1
 
+        self.assertEqual(x, y)
+
+    def test_raise_compare_to_value_not_bound(self):
+        x = Parameter("x")
+        
         with self.assertRaisesRegex(TypeError, "unbound parameters"):
             x > 2.3
         with self.assertRaisesRegex(TypeError, "unbound parameters"):
