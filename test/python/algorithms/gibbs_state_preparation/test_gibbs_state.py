@@ -60,12 +60,8 @@ class TestGibbsState(QiskitAlgorithmsTestCase):
             gibbs_state_function, hamiltonian, temperature, ansatz, params_dict
         )
 
-        gradient_params = list(ansatz.parameters)
-        measurement_op = X
         gradient_method = "param_shift"
-        gradients = gibbs_state.calc_ansatz_gradients(
-            gradient_params, measurement_op, gradient_method
-        )
+        gradients = gibbs_state.calc_ansatz_gradients(gradient_method)
         expected_gradients = [
             (-3.0000000000000007e-17 + 0j),
             (-2.05e-17 + 0j),
@@ -100,14 +96,10 @@ class TestGibbsState(QiskitAlgorithmsTestCase):
             gibbs_state_function, hamiltonian, temperature, ansatz_params_dict=params_dict
         )
 
-        gradient_params = [Parameter("a"), Parameter("b")]
-        measurement_op = X
         gradient_method = "param_shift"
         np.testing.assert_raises(
             ValueError,
             gibbs_state.calc_ansatz_gradients,
-            gradient_params,
-            measurement_op,
             gradient_method,
         )
 
@@ -136,13 +128,10 @@ class TestGibbsState(QiskitAlgorithmsTestCase):
             gibbs_state_function, hamiltonian, temperature, ansatz, params_dict
         )
 
-        measurement_op = X
         gradient_method = "param_shift"
         np.testing.assert_raises(
             ValueError,
             gibbs_state.calc_ansatz_gradients,
-            gradient_params,
-            measurement_op,
             gradient_method,
         )
 
@@ -177,12 +166,8 @@ class TestGibbsState(QiskitAlgorithmsTestCase):
             hamiltonian_gradients,
         )
 
-        gradient_params = list(ansatz.parameters)
-        measurement_op = X
         gradient_method = "param_shift"
-        final_gradients = gibbs_state.calc_hamiltonian_gradients(
-            gradient_params, measurement_op, gradient_method
-        )
+        final_gradients = gibbs_state.calc_hamiltonian_gradients(gradient_method)
 
         expected_gradients = {param: (-0.09999999999999999 + 0j)}
 

@@ -21,10 +21,9 @@ from qiskit.utils import QuantumInstance
 
 
 def calc_ansatz_mes_fidelity(
-    ansatz_n_mes: OperatorBase, backend: Union[BaseBackend, QuantumInstance]
+    ansatz_n_mes: OperatorBase, backend: Union[BaseBackend, QuantumInstance], num_of_mes: int
 ) -> float:
     """Calculates fidelity between n exact Maximally Entangled States (MES) and bound ansatz."""
-    num_of_mes = ansatz_n_mes.num_qubits / 2
     exact_n_mes = _build_n_mes(num_of_mes, backend)
     return state_fidelity(exact_n_mes, ansatz_n_mes)
 

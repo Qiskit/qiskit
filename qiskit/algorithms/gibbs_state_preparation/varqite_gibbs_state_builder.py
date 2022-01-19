@@ -23,8 +23,9 @@ from qiskit.opflow import OperatorBase
 from qiskit.quantum_info import Statevector
 
 
-class QiteGibbsStateBuilder(GibbsStateBuilder):
-    """Class for building Gibbs States using Quantum Imaginary Time Evolution algorithms."""
+class VarQiteGibbsStateBuilder(GibbsStateBuilder):
+    """Class for building Gibbs States using Variational Quantum Imaginary Time Evolution
+    algorithms."""
 
     def __init__(
         self,
@@ -34,8 +35,8 @@ class QiteGibbsStateBuilder(GibbsStateBuilder):
     ):
         """
         Args:
-            qite_algorithm: Quantum Imaginary Time Evolution algorithm to be used for Gibbs State
-                            preparation.
+            qite_algorithm: Variational Quantum Imaginary Time Evolution algorithm to be used for
+                            Gibbs State preparation.
             ansatz: Initial ansatz for the qite_algorithm. Together with ansatz_init_params_dict,
                     it should result in n Maximally Entangled States, where n is half the number of
                     qubits in an ansatz.
@@ -50,7 +51,7 @@ class QiteGibbsStateBuilder(GibbsStateBuilder):
         self._qite_algorithm = qite_algorithm
         if ansatz.num_qubits % 2 != 0:
             raise ValueError(
-                f"QiteGibbsStateBuilder requires an ansatz on an even number of qubits. "
+                f"VarQiteGibbsStateBuilder requires an ansatz on an even number of qubits. "
                 f"{ansatz.num_qubits} qubits provided."
             )  # TODO might be specific to VarQite?
         self._ansatz = ansatz
@@ -75,7 +76,7 @@ class QiteGibbsStateBuilder(GibbsStateBuilder):
         if self._ansatz is None:  # set default ansatz
             self._set_default_ansatz(problem_hamiltonian)
 
-        time = 1 / (self.BOLTZMANN_CONSTANT * temperature)
+        time = 1 / (2 * self.BOLTZMANN_CONSTANT * temperature)
 
         # TODO extend to include hamiltonian param_dict?
         gibbs_state_function = self._qite_algorithm.evolve(
@@ -84,6 +85,7 @@ class QiteGibbsStateBuilder(GibbsStateBuilder):
             initial_state=self._ansatz,
             hamiltonian_value_dict=self._ansatz_init_params_dict,
         )
+        # TODO trace out
         return GibbsState(
             gibbs_state_function=gibbs_state_function,
             hamiltonian=problem_hamiltonian,
