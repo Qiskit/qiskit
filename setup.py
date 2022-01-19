@@ -51,6 +51,10 @@ CYTHON_EXTS = {
     "qiskit/result/mitigation/mthree/expval": "qiskit.result.mitigation.mthree.expval",
 }
 
+PACKAGE_DATA = {
+    "qiskit/mitigation/mthree": ["*.pxd"],
+}
+
 INCLUDE_DIRS = [np.get_include()]
 # Extra link args
 LINK_FLAGS = []
@@ -76,6 +80,7 @@ for src, module in CYTHON_EXTS.items():
         extra_compile_args=COMPILER_FLAGS,
         extra_link_args=LINK_FLAGS,
         language="c++",
+        define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
     )
     EXT_MODULES.append(ext)
 
@@ -132,7 +137,8 @@ setup(
     keywords="qiskit sdk quantum",
     packages=find_packages(exclude=["test*"]),
     install_requires=REQUIREMENTS,
-    setup_requires=["Cython>=0.27.1"],
+    package_data=PACKAGE_DATA,
+    setup_requires=["Cython>=0.27.1", "numpy>=1.17"],
     include_package_data=True,
     python_requires=">=3.7",
     extras_require={

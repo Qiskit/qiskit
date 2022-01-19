@@ -40,8 +40,8 @@ from .exceptions import M3Error
 
 
 class ProbDistribution(dict):
-    """A generic dict-like class for probability distributions.
-    """
+    """A generic dict-like class for probability distributions."""
+
     def __init__(self, data, shots=None, mitigation_overhead=None):
         """A generic dict-like class for probability distributions.
 
@@ -58,7 +58,10 @@ class ProbDistribution(dict):
             self.shots = int(sum(data.values()))
             self.mitigation_overhead = 1
             _data = {}
-            for key, val, in data.items():
+            for (
+                key,
+                val,
+            ) in data.items():
                 _data[key] = val / self.shots
             data = _data
         else:
@@ -67,7 +70,10 @@ class ProbDistribution(dict):
                 self.mitigation_overhead = 1
                 if self.shots != 1:
                     _data = {}
-                    for key, val, in data.items():
+                    for (
+                        key,
+                        val,
+                    ) in data.items():
                         _data[key] = val / self.shots
                     data = _data
             else:
@@ -75,7 +81,7 @@ class ProbDistribution(dict):
                 self.mitigation_overhead = mitigation_overhead
         super().__init__(data)
 
-    def expval(self, exp_ops=''):
+    def expval(self, exp_ops=""):
         """Compute expectation value from distribution.
 
         Parameters:
@@ -96,7 +102,7 @@ class ProbDistribution(dict):
         elif isinstance(exp_ops, list):
             return np.array([self.expval(item) for item in exp_ops], dtype=float)
         else:
-            raise M3Error('Invalid type passed to exp_ops')
+            raise M3Error("Invalid type passed to exp_ops")
 
     def stddev(self):
         """Compute standard deviation from distribution.
@@ -108,12 +114,12 @@ class ProbDistribution(dict):
             M3Error: Distribution is missing info.
         """
         if self.shots is None:
-            raise M3Error('Prob-dist is missing shots information.')
+            raise M3Error("Prob-dist is missing shots information.")
         if self.mitigation_overhead is None:
-            raise M3Error('Prob-dist is missing mitigation overhead.')
+            raise M3Error("Prob-dist is missing mitigation overhead.")
         return math.sqrt(self.mitigation_overhead / self.shots)
 
-    def expval_and_stddev(self, exp_ops=''):
+    def expval_and_stddev(self, exp_ops=""):
         """Compute expectation value and standard deviation from distribution.
 
         Parameters:
@@ -128,8 +134,8 @@ class ProbDistribution(dict):
 
 
 class QuasiDistribution(dict):
-    """A dict-like class for representing quasi-probabilities.
-    """
+    """A dict-like class for representing quasi-probabilities."""
+
     def __init__(self, data, shots=None, mitigation_overhead=None):
         """A dict-like class for representing quasi-probabilities.
 
@@ -142,7 +148,7 @@ class QuasiDistribution(dict):
         self.mitigation_overhead = mitigation_overhead
         super().__init__(data)
 
-    def expval(self, exp_ops=''):
+    def expval(self, exp_ops=""):
         """Compute expectation value from distribution.
 
         Parameters:
@@ -164,7 +170,7 @@ class QuasiDistribution(dict):
         elif isinstance(exp_ops, list):
             return np.array([self.expval(item) for item in exp_ops], dtype=float)
         else:
-            raise M3Error('Invalid type passed to exp_ops')
+            raise M3Error("Invalid type passed to exp_ops")
 
     def stddev(self):
         """Compute standard deviation estimate from distribution.
@@ -176,12 +182,12 @@ class QuasiDistribution(dict):
             M3Error: Missing shots or mitigation_overhead information.
         """
         if self.shots is None:
-            raise M3Error('Quasi-dist is missing shots information.')
+            raise M3Error("Quasi-dist is missing shots information.")
         if self.mitigation_overhead is None:
-            raise M3Error('Quasi-dist is missing mitigation overhead.')
+            raise M3Error("Quasi-dist is missing mitigation overhead.")
         return math.sqrt(self.mitigation_overhead / self.shots)
 
-    def expval_and_stddev(self, exp_ops=''):
+    def expval_and_stddev(self, exp_ops=""):
         """Compute expectation value and standard deviation estimate from distribution.
 
         Parameters:
@@ -215,8 +221,8 @@ class QuasiDistribution(dict):
 
 
 class QuasiCollection(list):
-    """A list subclass that makes handling multiple quasi-distributions easier.
-    """
+    """A list subclass that makes handling multiple quasi-distributions easier."""
+
     def __init__(self, data):
         """QuasiCollection constructor.
 
@@ -228,7 +234,7 @@ class QuasiCollection(list):
         """
         for dd in data:
             if not isinstance(dd, QuasiDistribution):
-                raise TypeError('QuasiCollection requires QuasiDistribution instances.')
+                raise TypeError("QuasiCollection requires QuasiDistribution instances.")
         super().__init__(data)
 
     @property
@@ -249,7 +255,7 @@ class QuasiCollection(list):
         """
         return np.array([item.mitigation_overhead for item in self], dtype=float)
 
-    def expval(self, exp_ops=''):
+    def expval(self, exp_ops=""):
         """Expectation value over entire collection.
 
         Parameters:
@@ -263,14 +269,14 @@ class QuasiCollection(list):
         """
         if isinstance(exp_ops, list):
             if len(exp_ops) != len(self):
-                raise M3Error('exp_ops length does not match container length')
+                raise M3Error("exp_ops length does not match container length")
             out = []
             for idx, item in enumerate(self):
                 out.append(item.expval(exp_ops[idx]))
             return np.array(out, dtype=float)
         return np.array([item.expval(exp_ops) for item in self], dtype=float)
 
-    def expval_and_stddev(self, exp_ops=''):
+    def expval_and_stddev(self, exp_ops=""):
         """Expectation value and standard deviation over entire collection.
 
         Parameters:
@@ -284,7 +290,7 @@ class QuasiCollection(list):
         """
         if isinstance(exp_ops, list):
             if len(exp_ops) != len(self):
-                raise M3Error('exp_ops length does not match container length')
+                raise M3Error("exp_ops length does not match container length")
             out = []
             for idx, item in enumerate(self):
                 out.append(item.expval_and_stddev(exp_ops[idx]))
@@ -309,8 +315,8 @@ class QuasiCollection(list):
 
 
 class ProbCollection(list):
-    """A list subclass that makes handling multiple probability-distributions easier.
-    """
+    """A list subclass that makes handling multiple probability-distributions easier."""
+
     def __init__(self, data):
         """ProbCollection constructor.
 
@@ -322,7 +328,7 @@ class ProbCollection(list):
         """
         for dd in data:
             if not isinstance(dd, ProbDistribution):
-                raise TypeError('ProbCollection requires ProbDistribution instances.')
+                raise TypeError("ProbCollection requires ProbDistribution instances.")
         super().__init__(data)
 
     @property
@@ -343,7 +349,7 @@ class ProbCollection(list):
         """
         return np.array([item.mitigation_overhead for item in self], dtype=float)
 
-    def expval(self, exp_ops=''):
+    def expval(self, exp_ops=""):
         """Expectation value over entire collection.
 
         Parameters:
@@ -357,14 +363,14 @@ class ProbCollection(list):
         """
         if isinstance(exp_ops, list):
             if len(exp_ops) != len(self):
-                raise M3Error('exp_ops length does not match container length')
+                raise M3Error("exp_ops length does not match container length")
             out = []
             for idx, item in enumerate(self):
                 out.append(item.expval(exp_ops[idx]))
             return np.array(out, dtype=float)
         return np.array([item.expval(exp_ops) for item in self], dtype=float)
 
-    def expval_and_stddev(self, exp_ops=''):
+    def expval_and_stddev(self, exp_ops=""):
         """Expectation value and standard deviation over entire collection.
 
         Parameters:
@@ -378,7 +384,7 @@ class ProbCollection(list):
         """
         if isinstance(exp_ops, list):
             if len(exp_ops) != len(self):
-                raise M3Error('exp_ops length does not match container length')
+                raise M3Error("exp_ops length does not match container length")
             out = []
             for idx, item in enumerate(self):
                 out.append(item.expval_and_stddev(exp_ops[idx]))

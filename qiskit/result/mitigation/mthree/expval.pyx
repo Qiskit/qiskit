@@ -14,7 +14,7 @@
 """mthree expectation value"""
 import numpy as np
 cimport numpy as cnp
-from mthree.exceptions import M3Error
+from .exceptions import M3Error
 
 cimport cython
 from libcpp cimport bool

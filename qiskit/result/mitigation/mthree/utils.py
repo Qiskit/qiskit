@@ -25,8 +25,7 @@ Utility functions
 """
 import numpy as np
 from .exceptions import M3Error
-from .classes import (QuasiDistribution, ProbDistribution,
-                            QuasiCollection, ProbCollection)
+from .classes import QuasiDistribution, ProbDistribution, QuasiCollection, ProbCollection
 
 
 def final_measurement_mapping(circuit):
@@ -108,7 +107,7 @@ def _final_measurement_mapping(circuit):
     return mapping
 
 
-def _expval_std(items, exp_ops='', method=0):
+def _expval_std(items, exp_ops="", method=0):
     """Compute expectation values from distributions.
 
     Parameters:
@@ -128,9 +127,9 @@ def _expval_std(items, exp_ops='', method=0):
 
     Raises:
         M3Error: Not a valid method.
-        """
+    """
     if method not in [0, 1, 2]:
-        raise M3Error('Invalid method int {} passed.'.format(method))
+        raise M3Error("Invalid method int {} passed.".format(method))
 
     got_list = False
     if isinstance(items, list):
@@ -140,10 +139,13 @@ def _expval_std(items, exp_ops='', method=0):
 
     if isinstance(exp_ops, list):
         if not len(exp_ops) == len(items):
-            raise M3Error(('exp_ops length ({}) does not match number ' +
-                          'of items passed ({}).').format(len(exp_ops), len(items)))
+            raise M3Error(
+                ("exp_ops length ({}) does not match number " + "of items passed ({}).").format(
+                    len(exp_ops), len(items)
+                )
+            )
     else:
-        exp_ops = [exp_ops]*len(items)
+        exp_ops = [exp_ops] * len(items)
 
     if isinstance(items[0], (ProbCollection, QuasiCollection)):
         if method == 0:
@@ -184,7 +186,7 @@ def _expval_std(items, exp_ops='', method=0):
     return out
 
 
-def expval(items, exp_ops=''):
+def expval(items, exp_ops=""):
     """Compute expectation values from distributions.
 
     .. versionadded:: 0.16.0
@@ -203,7 +205,7 @@ def expval(items, exp_ops=''):
 
         Notes:
             Cannot mix Counts and dicts with M3 Distributions in the same call.
-        """
+    """
     return _expval_std(items, exp_ops=exp_ops, method=0)
 
 
@@ -222,11 +224,11 @@ def stddev(items):
 
         Notes:
             Cannot mix Counts and dicts with M3 Distributions in the same call.
-        """
+    """
     return _expval_std(items, method=1)
 
 
-def expval_and_stddev(items, exp_ops=''):
+def expval_and_stddev(items, exp_ops=""):
     """Compute expectation values from distributions.
 
     .. versionadded:: 0.16.0
@@ -244,12 +246,12 @@ def expval_and_stddev(items, exp_ops=''):
 
         Notes:
             Cannot mix Counts and dicts with M3 Distributions in the same call.
-        """
+    """
     return _expval_std(items, exp_ops=exp_ops, method=2)
 
 
 def counts_to_vector(counts):
-    """ Return probability vector from counts dict.
+    """Return probability vector from counts dict.
 
     Parameters:
         counts (dict): Input dict of counts.
@@ -268,7 +270,7 @@ def counts_to_vector(counts):
 
 
 def vector_to_quasiprobs(vec, counts):
-    """ Return dict of quasi-probabilities.
+    """Return dict of quasi-probabilities.
 
     Parameters:
         vec (ndarray): 1d vector of quasi-probabilites.
