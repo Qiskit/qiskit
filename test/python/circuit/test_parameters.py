@@ -1178,7 +1178,39 @@ class TestParameterExpressions(QiskitTestCase):
 
         x = Parameter("x")
         bound_expr = x.bind({x: 2.3})
+
         self.assertEqual(bound_expr, 2.3)
+        self.assertTrue(bound_expr < 3.0)
+        self.assertTrue(bound_expr <= 3.0)
+        self.assertTrue(bound_expr > 1.0)
+        self.assertTrue(bound_expr >= 1.0)
+
+    def test_compare_to_value_not_bound(self):
+        """Verify raises if compare to value and not bound."""
+        x = Parameter("x")
+
+        with self.assertRaisesRegex(TypeError, "unbound parameters"):
+            x > 2.3
+        with self.assertRaisesRegex(TypeError, "unbound parameters"):
+            x < 2.3
+        with self.assertRaisesRegex(TypeError, "unbound parameters"):
+            x >= 2.3
+        with self.assertRaisesRegex(TypeError, "unbound parameters"):
+            x <= 2.3
+
+    def test_raise_if_compare_not_supported(self):
+        """Verify raises if compare to object."""
+        x = Parameter("x")
+        y = object()
+
+        with self.assertRaisesRegex(TypeError, "not supported"):
+            x < y
+        with self.assertRaisesRegex(TypeError, "not supported"):
+            x <= y
+        with self.assertRaisesRegex(TypeError, "not supported"):
+            x > y
+        with self.assertRaisesRegex(TypeError, "not supported"):
+            x >= y
 
     def test_cast_to_float_when_bound(self):
         """Verify expression can be cast to a float when fully bound."""
