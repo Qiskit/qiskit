@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """Class for building Gibbs States using Quantum Imaginary Time Evolution algorithms."""
-from typing import Dict, Union
+from typing import Dict, Union, Optional
 
 from qiskit.algorithms.gibbs_state_preparation.default_ansatz_builder import (
     build_ansatz,
@@ -62,13 +62,19 @@ class VarQiteGibbsStateBuilder(GibbsStateBuilder):
         maximally_entangled_states = self._ansatz.assign_parameters(self._ansatz_init_params_dict)
         return Statevector(maximally_entangled_states)
 
-    # TODO add hamiltonian param dict here as an arg?
-    def build(self, problem_hamiltonian: OperatorBase, temperature: float) -> GibbsState:
+    def build(
+        self,
+        problem_hamiltonian: OperatorBase,
+        temperature: float,
+        problem_hamiltonian_param_dict: Optional[Dict[Parameter, Union[complex, float]]] = None,
+    ) -> GibbsState:
         """
         Creates a Gibbs state from given parameters.
         Args:
             problem_hamiltonian: Hamiltonian that defines a desired Gibbs state.
             temperature: Temperature of a desired Gibbs state.
+            problem_hamiltonian_param_dict: If a problem Hamiltonian is parametrized, a dictionary
+                                            that maps all of its parameters to certain values.
         Returns:
             GibbsState object that includes a relevant quantum state functions as well as
             metadata.
@@ -78,12 +84,12 @@ class VarQiteGibbsStateBuilder(GibbsStateBuilder):
 
         time = 1 / (2 * self.BOLTZMANN_CONSTANT * temperature)
 
-        # TODO extend to include hamiltonian param_dict?
+        param_dict = {**self._ansatz_init_params_dict, **problem_hamiltonian_param_dict}
         gibbs_state_function = self._qite_algorithm.evolve(
             hamiltonian=problem_hamiltonian,
             time=time,
             initial_state=self._ansatz,
-            hamiltonian_value_dict=self._ansatz_init_params_dict,
+            hamiltonian_value_dict=param_dict,
         )
         # TODO trace out
         return GibbsState(
@@ -97,6 +103,6 @@ class VarQiteGibbsStateBuilder(GibbsStateBuilder):
         depth = 1
         self._ansatz = build_ansatz(num_qubits, depth)
         ansatz_init_params_vals = build_init_ansatz_params_vals(num_qubits, depth)
-        self._ansatz_params_dict = dict(
+        self._ansatz_init_params_dict = dict(
             zip(self._ansatz.ordered_parameters, ansatz_init_params_vals)
         )

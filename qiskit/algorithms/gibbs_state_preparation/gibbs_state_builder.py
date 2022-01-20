@@ -11,8 +11,10 @@
 # that they have been altered from the originals.
 """Interface for building Gibbs States."""
 from abc import abstractmethod
+from typing import Union, Dict, Optional
 
 from qiskit.algorithms.gibbs_state_preparation.gibbs_state import GibbsState
+from qiskit.circuit import Parameter
 from qiskit.opflow import OperatorBase
 
 
@@ -22,12 +24,19 @@ class GibbsStateBuilder:
     BOLTZMANN_CONSTANT = 1.38064852e-2
 
     @abstractmethod
-    def build(self, problem_hamiltonian: OperatorBase, temperature: float) -> GibbsState:
+    def build(
+        self,
+        problem_hamiltonian: OperatorBase,
+        temperature: float,
+        problem_hamiltonian_param_dict: Optional[Dict[Parameter, Union[complex, float]]] = None,
+    ) -> GibbsState:
         """
         Creates a Gibbs state from given parameters.
         Args:
             problem_hamiltonian: Hamiltonian that defines a desired Gibbs state.
             temperature: Temperature of a desired Gibbs state.
+            problem_hamiltonian_param_dict: If a problem Hamiltonian is parametrized, a dictionary
+                                            that maps all of its parameters to certain values.
         Returns: GibbsState object that includes a relevant quantum state functions as well as
                 metadata.
         """
