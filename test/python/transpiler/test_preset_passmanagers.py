@@ -945,6 +945,6 @@ class TestOptimizationOnSize(QiskitTestCase):
 
         circ = transpile(qc, optimization_level=level)
 
-        self.assertIsInstance(circ, QuantumCircuit)
+        self.assertDictEqual(qc.count_ops(), circ.count_ops())
         self.assertEqual(qc.size(), circ.size())
         self.assertEqual(qc.depth(), circ.depth())
