@@ -1,0 +1,4 @@
+
+issues:
+  - |
+    Resolves issue #6518 by implementing an '__abs__' function for the class ParameterExpression. 
