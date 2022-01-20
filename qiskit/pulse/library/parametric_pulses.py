@@ -202,7 +202,7 @@ class GaussianSquare(ParametricPulse):
         f'(x) &= \\begin{cases}\
             \\exp\\biggl(-\\frac12 \\frac{(x - \\text{risefall})^2}{\\text{sigma}^2}\\biggr)\
                 & x < \\text{risefall}\\\\
-            \\1\
+            1\
                 & \\text{risefall} \\le x < \\text{risefall} + \\text{width}\\\\
             \\exp\\biggl(-\\frac12\
                     \\frac{{\\bigl(x - (\\text{risefall} + \\text{width})\\bigr)}^2}\
