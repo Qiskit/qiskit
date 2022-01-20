@@ -235,7 +235,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _reset = RemoveResetInZeroState()
 
     # 9. Merge 1q rotations and cancel CNOT gates iteratively until no more change in depth
-    # or size
+    # or size of circuit
     _depth_check = [Depth(), FixedPoint("depth")]
     _size_check = [Size(), FixedPoint("size")]
 
