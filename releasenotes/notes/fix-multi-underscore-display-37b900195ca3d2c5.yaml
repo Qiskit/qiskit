@@ -1,7 +1,6 @@
 ---
 fixes:
   - |
-    Fixes a problem in the ``mpl`` circuit drawer when register names
-    with multiple underscores in the name did not display correctly.
-    Also the same problem would cause the ``latex`` drawer to fail,
-    which has been fixed.
+    Fixes a problem in the ``mpl`` circuit drawer when gates with
+    conditions would not display properly when a sufficient number
+    of gates caused the drawer to fold over to a second set of wires.

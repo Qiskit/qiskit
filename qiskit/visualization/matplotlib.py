@@ -345,7 +345,7 @@ class MatplotlibDrawer:
                 xl, yt, "Global Phase: %s" % pi_check(self._global_phase, output="mpl")
             )
         self._draw_regs_wires(num_folds, xmax, n_lines, max_anc)
-        self._draw_ops(verbose)
+        self._draw_ops(n_lines, verbose)
 
         if filename:
             self._figure.savefig(
@@ -739,7 +739,7 @@ class MatplotlibDrawer:
                     zorder=PORDER_TEXT,
                 )
 
-    def _draw_ops(self, verbose=False):
+    def _draw_ops(self, n_lines, verbose=False):
         """Draw the gates in the circuit"""
         prev_anc = -1
         for i, layer in enumerate(self._nodes):
@@ -756,10 +756,13 @@ class MatplotlibDrawer:
 
                 # add conditional
                 if op.condition:
-                    cond_xy = [
-                        self._c_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset)
-                        for ii in self._clbits_dict
-                    ]
+                    cond_xy = []
+                    for clbit in self._clbits_dict:
+                        xpos = self._data[node]["q_xy"][0][0]
+                        ypos = self._clbits_dict[clbit]["y"] - ((this_anc + 1) // self._fold) * (
+                            n_lines + 1
+                        )
+                        cond_xy.append((xpos, ypos))
                     self._condition(node, cond_xy)
 
                 # draw measure
