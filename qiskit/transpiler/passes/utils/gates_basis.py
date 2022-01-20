@@ -36,7 +36,9 @@ class GatesInBasis(AnalysisPass):
                 "A value for 'basis_gates' or 'target' must be set to use this pass"
             )
         if basis_gates is not None:
-            self._basis_gates = set(basis_gates)
+            self._basis_gates = set(basis_gates).union(
+                {"measure", "reset", "barrier", "snapshot", "delay"}
+            )
         self._target = target
 
     def run(self, dag):
@@ -55,9 +57,8 @@ class GatesInBasis(AnalysisPass):
                     gates_out_of_basis = True
                     break
         else:
-            basic_instrs = {"measure", "reset", "barrier", "snapshot", "delay"}
             for gate in dag._op_names:
-                if gate not in self._basis_gates and gate not in basic_instrs:
+                if gate not in self._basis_gates:
                     gates_out_of_basis = True
                     break
         self.property_set["all_gates_in_basis"] = not gates_out_of_basis
