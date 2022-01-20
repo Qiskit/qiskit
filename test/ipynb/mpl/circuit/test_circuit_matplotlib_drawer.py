@@ -25,7 +25,17 @@ from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.test.mock import FakeTenerife
 from qiskit.visualization.circuit_visualization import _matplotlib_circuit_drawer
-from qiskit.circuit.library import XGate, MCXGate, HGate, RZZGate, SwapGate, DCXGate, ZGate, SGate
+from qiskit.circuit.library import (
+    XGate,
+    MCXGate,
+    HGate,
+    RZZGate,
+    SwapGate,
+    DCXGate,
+    ZGate,
+    SGate,
+    U1Gate,
+)
 from qiskit.circuit.library import MCXVChain
 from qiskit.extensions import HamiltonianGate
 from qiskit.circuit import Parameter, Qubit, Clbit
