@@ -780,3 +780,24 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
+
+    def test_custom_metadata_serializer_full_path(self):
+        """Test that running with custom metadata serialization works."""
+        theta = Parameter("theta")
+        qc = QuantumCircuit(2, global_phase=theta)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        circuits = [qc, qc.copy()]
+        circuits[0].metadata = {"key": "Circuit 1"}
+        circuits[1].metadata = {"key": "Circuit 2"}
+        qpy_file = io.BytesIO()
+        dump(circuits, qpy_file, metadata_serializer=lambda x: x["key"].encode("mac_iceland"))
+        qpy_file.seek(0)
+        new_circuits = load(
+            qpy_file, metadata_deserializer=lambda x: {"key": x.decode("mac_iceland")}
+        )
+        self.assertEqual(qc, new_circuits[0])
+        self.assertEqual(circuits[0].metadata["key"], "Circuit 1")
+        self.assertEqual(qc, new_circuits[1])
+        self.assertEqual(circuits[1].metadata["key"], "Circuit 2")
