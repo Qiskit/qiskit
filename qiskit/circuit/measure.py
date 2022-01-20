@@ -17,10 +17,11 @@ Quantum measurement in the computational basis.
 import warnings
 
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.operation import Operation
 from qiskit.circuit.exceptions import CircuitError
 
 
-class Measure(Instruction):
+class Measure(Instruction, Operation):
     """Quantum measurement in the computational basis."""
 
     def __init__(self):

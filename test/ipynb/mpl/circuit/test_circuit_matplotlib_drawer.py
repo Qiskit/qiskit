@@ -221,6 +221,17 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename="long_name.png")
 
+    def test_multi_underscore_reg_names(self):
+        """Test that multi-underscores in register names display properly"""
+        q_reg1 = QuantumRegister(1, "q1_re__g__g")
+        q_reg3 = QuantumRegister(3, "q3_re_g__g")
+        c_reg1 = ClassicalRegister(1, "c1_re_g__g")
+        c_reg3 = ClassicalRegister(3, "c3_re_g__g")
+        circuit = QuantumCircuit(q_reg1, q_reg3, c_reg1, c_reg3)
+
+        self.circuit_drawer(circuit, cregbundle=True, filename="multi_underscore_true.png")
+        self.circuit_drawer(circuit, cregbundle=False, filename="multi_underscore_false.png")
+
     def test_conditional(self):
         """Test that circuits with conditionals draw correctly"""
         qr = QuantumRegister(2, "q")
