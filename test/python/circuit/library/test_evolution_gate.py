@@ -261,3 +261,15 @@ class TestEvolutionGate(QiskitTestCase):
             circuit.data[2][0].params[0],  # Z
         ]
         self.assertListEqual(rz_angles, [20, 30, -10])
+
+    def test_lie_trotter_two_qubit_correct_order(self):
+        """Test that evolutions on two qubit operators are in the right order.
+
+        Regression test of Qiskit/qiskit-terra#7544.
+        """
+        operator = I ^ Z ^ Z
+        time = 0.5
+        exact = scipy.linalg.expm(-1j * time * operator.to_matrix())
+        lie_trotter = PauliEvolutionGate(operator, time, synthesis=LieTrotter())
+
+        self.assertTrue(Operator(lie_trotter).equiv(exact))
