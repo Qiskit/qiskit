@@ -44,7 +44,7 @@ class GatesInBasis(AnalysisPass):
         gates_out_of_basis = False
         if self._target is not None:
             qubit_map = {qubit: index for index, qubit in enumerate(dag.qubits)}
-            for gate in dag.topological_op_nodes():
+            for gate in dag.op_nodes():
                 # Barrier is universal and supported by all backends
                 if gate.name == "barrier":
                     continue
