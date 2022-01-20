@@ -18,22 +18,37 @@ from qiskit.transpiler.basepasses import AnalysisPass
 class GatesInBasis(AnalysisPass):
     """Check if all gates in a DAG are in a given set of gates"""
 
-    def __init__(self, basis_gates):
+    def __init__(self, basis_gates, target=None):
         """Initialize the GatesInBasis pass.
 
         Args:
             basis_gates (list): The list of strings representing the set of basis gates.
+            target (Target): If specified the target represnting the backend. If specified
+                this will be used instead of the ``basis_gates`` parameter
         """
         super().__init__()
         self._basis_gates = set(basis_gates)
+        self._target = target
 
     def run(self, dag):
         """Run the GatesInBasis pass on `dag`."""
         gates_out_of_basis = False
-        basic_instrs = {"measure", "reset", "barrier", "snapshot", "delay"}
-        for gate in dag._op_names:
-            if gate not in self._basis_gates and gate not in basic_instrs:
-                gates_out_of_basis = True
-                break
-
+        if self._target is not None:
+            qubit_map = {qubit: index for index, qubit in enumerate(dag.qubits)}
+            for gate in dag.topological_op_nodes():
+                # Barrier is universal and supported by all backends
+                if gate.name == "barrier":
+                    continue
+                if gate.name not in self._target:
+                    gates_out_of_basis = True
+                    break
+                if tuple(qubit_map[bit] for bit in gate.qargs) not in self._target[gate.name]:
+                    gates_out_of_basis = True
+                    break
+        else:
+            basic_instrs = {"measure", "reset", "barrier", "snapshot", "delay"}
+            for gate in dag._op_names:
+                if gate not in self._basis_gates and gate not in basic_instrs:
+                    gates_out_of_basis = True
+                    break
         self.property_set["all_gates_in_basis"] = not gates_out_of_basis

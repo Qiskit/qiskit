@@ -17,7 +17,9 @@ from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import GatesInBasis
+from qiskit.transpiler.target import Target
 from qiskit.test import QiskitTestCase
+from qiskit.test.mock.fake_backend_v2 import FakeBackend5QV2
 
 
 class TestGatesInBasisPass(QiskitTestCase):
@@ -83,6 +85,90 @@ class TestGatesInBasisPass(QiskitTestCase):
         pm.append(analysis_pass)
         pm.append(
             BasisTranslator(SessionEquivalenceLibrary, basis_gates),
+            condition=lambda property_set: not property_set["all_gates_in_basis"],
+        )
+        pm.append(analysis_pass)
+        pm.run(circuit)
+        self.assertTrue(pm.property_set["all_gates_in_basis"])
+
+    def test_all_gates_in_basis_with_target(self):
+        """Test circuit with all gates in basis with target."""
+        target = FakeBackend5QV2().target
+        basis_gates = ["cx", "u"]  # not used
+        property_set = {}
+        analysis_pass = GatesInBasis(basis_gates, target=target)
+        circuit = QuantumCircuit(2)
+        circuit.u(0, 0, 0, 0)
+        circuit.cx(0, 1)
+        circuit.measure_all()
+        analysis_pass(circuit, property_set=property_set)
+        self.assertTrue(property_set["all_gates_in_basis"])
+
+    def test_all_gates_not_in_basis_with_target(self):
+        """Test circuit with not all gates in basis with target."""
+        target = FakeBackend5QV2().target
+        basis_gates = ["cx", "h"]
+        property_set = {}
+        analysis_pass = GatesInBasis(basis_gates, target=target)
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.measure_all()
+        analysis_pass(circuit, property_set=property_set)
+        self.assertFalse(property_set["all_gates_in_basis"])
+
+    def test_all_gates_in_basis_not_on_all_qubits_with_target(self):
+        """Test circuit with gate in global basis but not local basis."""
+        target = FakeBackend5QV2().target
+        basis_gates = ["ecr", "cx", "h"]
+        property_set = {}
+        analysis_pass = GatesInBasis(basis_gates, target=target)
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.ecr(0, 1)
+        circuit.measure_all()
+        analysis_pass(circuit, property_set=property_set)
+        self.assertFalse(property_set["all_gates_in_basis"])
+
+    def test_all_gates_in_basis_empty_circuit_with_target(self):
+        """Test circuit with no gates with target."""
+        target = FakeBackend5QV2().target
+        basis_gates = ["cx", "u"]
+        property_set = {}
+        analysis_pass = GatesInBasis(basis_gates, target=target)
+        circuit = QuantumCircuit(2)
+        analysis_pass(circuit, property_set=property_set)
+        self.assertTrue(property_set["all_gates_in_basis"])
+
+    def test_all_gates_in_empty_target(self):
+        """Test circuit with gates and empty basis with target."""
+        target = Target()
+        basis_gates = []
+        property_set = {}
+        analysis_pass = GatesInBasis(basis_gates, target=target)
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.measure_all()
+        analysis_pass(circuit, property_set=property_set)
+        self.assertFalse(property_set["all_gates_in_basis"])
+
+    def test_all_gates_in_basis_after_translation_with_target(self):
+        """Test circuit with gates in basis after conditional translation."""
+        target = FakeBackend5QV2().target
+        basis_gates = ["cx", "u"]
+        property_set = {}
+        analysis_pass = GatesInBasis(basis_gates, target)
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.measure_all()
+        analysis_pass(circuit, property_set=property_set)
+        self.assertFalse(property_set["all_gates_in_basis"])
+        pm = PassManager()
+        pm.append(analysis_pass)
+        pm.append(
+            BasisTranslator(SessionEquivalenceLibrary, basis_gates, target=target),
             condition=lambda property_set: not property_set["all_gates_in_basis"],
         )
         pm.append(analysis_pass)
