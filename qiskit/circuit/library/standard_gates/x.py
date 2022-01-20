@@ -790,22 +790,18 @@ class MCXGate(ControlledGate):
 
     def to_matrix(self) -> numpy.ndarray:
         """Return a Numpy.array for the gate unitary matrix."""
-
+        # This is the faster method of computing the unitary matrix;
+        # however, it only works when there are no ancillas.
+        # When there are ancillas, we use the circuit definition to
+        # construct the matrix.
         if self.num_ancilla_qubits == 0:
-            # This is the faster method of computing the unitary matrix;
-            # however, it only works when there are no ancillas.
-
             mat = _compute_control_matrix(
                 self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
             )
 
             return numpy.asarray(mat, dtype=complex)
         else:
-            # When there are ancillas, we use the circuit definition to
-            # construct the matrix.
-
-            # pylint: disable=cyclic-import
-            from qiskit.quantum_info.operators import Operator
+            from qiskit.quantum_info.operators import Operator  # pylint: disable=cyclic-import
 
             mat = Operator(self.definition).data
 
