@@ -919,3 +919,32 @@ class TestOptimizationWithCondition(QiskitTestCase):
         qc.cx(1, 0)
         circ = transpile(qc, basis_gates=["u3", "cz"])
         self.assertIsInstance(circ, QuantumCircuit)
+
+
+@ddt
+class TestOptimizationOnSize(QiskitTestCase):
+    """Test the optimization levels for optimization based on
+    both size and depth of the circuit.
+    See https://github.com/Qiskit/qiskit-terra/pull/7542
+    """
+
+    @data(1, 2, 3)
+    def test_size_optimization(self, level):
+        """Test the levels for optimization based on size of circuit"""
+        qc = QuantumCircuit(8)
+        qc.cx(5, 4)
+        qc.cx(6, 5)
+        qc.cx(4, 5)
+        qc.cx(5, 6)
+        qc.cx(5, 4)
+        qc.cx(6, 7)
+        qc.cx(6, 5)
+        qc.cx(5, 4)
+        qc.cx(7, 6)
+        qc.cx(6, 7)
+
+        circ = transpile(qc, optimization_level=level)
+
+        self.assertIsInstance(circ, QuantumCircuit)
+        self.assertEqual(qc.size(), circ.size())
+        self.assertEqual(qc.depth(), circ.depth())
