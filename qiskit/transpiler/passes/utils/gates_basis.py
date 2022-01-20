@@ -23,7 +23,7 @@ class GatesInBasis(AnalysisPass):
 
         Args:
             basis_gates (list): The list of strings representing the set of basis gates.
-            target (Target): If specified the target represnting the backend. If specified
+            target (Target): If specified the target representing the backend. If specified
                 this will be used instead of the ``basis_gates`` parameter
         """
         super().__init__()
