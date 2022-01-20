@@ -539,6 +539,13 @@ class TestStabilizerState(QiskitTestCase):
                 expval = stab.expectation_value(op)
                 self.assertEqual(expval, target)
 
+        pairs = [("Z", 1), ("-Z", -1), ("iZ", 1j), ("-iZ", -1j)]
+        for label, target in pairs:
+            with self.subTest(msg=f"<{label}>"):
+                op = Pauli(label)
+                expval = stab.expectation_value(op)
+                self.assertEqual(expval, target)
+
         qc = QuantumCircuit(num_qubits)
         qc.x(0)
         stab = StabilizerState(qc)
@@ -553,6 +560,13 @@ class TestStabilizerState(QiskitTestCase):
         qc.h(0)
         stab = StabilizerState(qc)
         pairs = [("Z", 0), ("X", 1), ("Y", 0), ("I", 1)]
+        for label, target in pairs:
+            with self.subTest(msg=f"<{label}>"):
+                op = Pauli(label)
+                expval = stab.expectation_value(op)
+                self.assertEqual(expval, target)
+
+        pairs = [("X", 1), ("-X", -1), ("iX", 1j), ("-iX", -1j)]
         for label, target in pairs:
             with self.subTest(msg=f"<{label}>"):
                 op = Pauli(label)
@@ -577,6 +591,9 @@ class TestStabilizerState(QiskitTestCase):
             ("XY", 0),
             ("XZ", 0),
             ("YZ", 0),
+            ("-ZZ", -1),
+            ("iZZ", 1j),
+            ("-iZZ", -1j),
         ]
         for label, target in pairs:
             with self.subTest(msg=f"<{label}>"):
@@ -621,6 +638,9 @@ class TestStabilizerState(QiskitTestCase):
             ("XY", 0),
             ("XZ", 0),
             ("YZ", 0),
+            ("-XX", -1),
+            ("iXX", 1j),
+            ("-iXX", -1j),
         ]
         for label, target in pairs:
             with self.subTest(msg=f"<{label}>"):
@@ -665,6 +685,9 @@ class TestStabilizerState(QiskitTestCase):
             ("XY", 0),
             ("XZ", 0),
             ("YZ", 0),
+            ("-YY", 1),
+            ("iYY", -1j),
+            ("-iYY", 1j),
         ]
         for label, target in pairs:
             with self.subTest(msg=f"<{label}>"):
@@ -688,6 +711,12 @@ class TestStabilizerState(QiskitTestCase):
             ("XY", 0),
             ("XZ", 0),
             ("YZ", 0),
+            ("-XX", -1),
+            ("-YY", -1),
+            ("iXX", 1j),
+            ("iYY", 1j),
+            ("-iXX", -1j),
+            ("-iYY", -1j),
         ]
         for label, target in pairs:
             with self.subTest(msg=f"<{label}>"):
@@ -714,6 +743,12 @@ class TestStabilizerState(QiskitTestCase):
             ("XY", 0),
             ("XZ", 0),
             ("YZ", 0),
+            ("-XX", -1),
+            ("-YY", -1),
+            ("iXX", 1j),
+            ("iYY", 1j),
+            ("-iXX", -1j),
+            ("-iYY", -1j),
         ]
         for label, target in pairs:
             with self.subTest(msg=f"<{label}>"):
