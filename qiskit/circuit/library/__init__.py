@@ -164,8 +164,12 @@ set the amount of qubits involved at instantiation time.
    RVGate
    PauliGate
 
-Boolean Logic Circuits
-======================
+Boolean Logic Circuits (:mod:`qiskit.circuit.library.boolean_logic`)
+====================================================================
+
+These are :class:`~qiskit.circuit.quantumcircuit.QuantumCircuit` subclasses that implement boolean logic
+operations.
+
 
 .. autosummary::
    :toctree: ../stubs/
