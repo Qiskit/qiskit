@@ -9,4 +9,5 @@ target-version = ['py36', 'py37', 'py38', 'py39']
 manylinux-x86_64-image = "manylinux2010"
 manylinux-i686-image = "manylinux2010"
 skip = "pp* cp36-*"
+test-skip = "cp310-win32 cp310-manylinux_i686"
 test-command = "python {project}/examples/python/stochastic_swap.py"
