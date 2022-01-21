@@ -92,7 +92,8 @@ class ErrorCalculator(ABC):
             metric: Fubini-Study Metric.
             param_dict: Dictionary of parameters to be bound.
         Returns:
-            Square root of the l2 norm of the error.
+            Real part of a squared gradient error, norm of the time derivative of a state,
+            time derivative of the expectation value ⟨ψ(ω)| H | ψ(ω)〉.
         """
         pass
 

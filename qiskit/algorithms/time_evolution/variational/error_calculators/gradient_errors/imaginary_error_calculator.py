@@ -40,29 +40,34 @@ class ImaginaryErrorCalculator(ErrorCalculator):
             metric: Fubini-Study Metric.
             param_dict: Dictionary of parameters to be bound.
         Returns:
-            Square root of the l2 norm of the error.
+            Real part of a squared gradient error, norm of the time derivative of a state,
+            time derivative of the expectation value ⟨ψ(ω)| H | ψ(ω)〉.
         """
-        eps_squared = 0
+        gradient_error_squared = 0
         h_squared_bound = self._bind_or_sample_operator(
             self._h_squared, param_dict, self._h_squared_sampler
         )
         exp_operator_bound = self._bind_or_sample_operator(
             self._operator, param_dict, self._operator_sampler
         )
-        eps_squared += np.real(h_squared_bound)
-        eps_squared -= np.real(exp_operator_bound ** 2)
+        gradient_error_squared += np.real(h_squared_bound)
+        gradient_error_squared -= np.real(exp_operator_bound ** 2)
 
         # ⟨dtψ(ω)|dtψ(ω)〉= dtωdtω⟨dωψ(ω)|dωψ(ω)〉
-        dtdt_state = np.conj(nat_grad_res).T.dot(np.dot(metric, nat_grad_res))
-        eps_squared += dtdt_state
+        state_time_derivative_norm = np.conj(nat_grad_res).T.dot(np.dot(metric, nat_grad_res))
+        gradient_error_squared += state_time_derivative_norm
 
         # 2Re⟨dtψ(ω)| H | ψ(ω)〉= 2Re dtω⟨dωψ(ω)|H | ψ(ω)〉
-        regrad2 = np.conj(grad_res).T.dot(nat_grad_res)
-        eps_squared += regrad2
+        expected_val_time_derivative = np.conj(grad_res).T.dot(nat_grad_res)
+        gradient_error_squared += expected_val_time_derivative
 
-        eps_squared = self._validate_epsilon_squared(eps_squared)
+        gradient_error_squared = self._validate_epsilon_squared(gradient_error_squared)
 
-        return np.real(eps_squared), dtdt_state, regrad2 * 0.5
+        return (
+            np.real(gradient_error_squared),
+            state_time_derivative_norm,
+            expected_val_time_derivative * 0.5,
+        )
 
     def _calc_single_step_error_gradient(
         self,
