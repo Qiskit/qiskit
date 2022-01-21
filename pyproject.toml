@@ -4,3 +4,9 @@ requires = ["Cython>=0.27.1", "setuptools", "wheel"]
 [tool.black]
 line-length = 100
 target-version = ['py36', 'py37', 'py38', 'py39']
+
+[tool.cibuildwheel]
+manylinux-x86_64-image = "manylinux2010"
+manylinux-i686-image = "manylinux2010"
+skip = "pp* cp36-*"
+test-command = "python {project}/examples/python/stochastic_swap.py"
