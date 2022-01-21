@@ -107,7 +107,7 @@ stages:
         env:
           TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'Windows'
-      pool: {vmImage: 'vs2017-win2016'}
+      pool: {vmImage: 'windows-latest'}
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         TWINE_USERNAME: qiskit
