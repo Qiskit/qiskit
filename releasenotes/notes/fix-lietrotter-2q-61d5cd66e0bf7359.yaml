@@ -5,7 +5,7 @@ fixes:
     :class:`qiskit.circuit.library.PauliEvolutionGate`, if used with a product formula synthesis.
     For instance, before, the evolution of `IIZ + IZI + IZZ` 
     
-    .. code-snippet:: python
+    .. code-block:: python
 
         from qiskit.opflow import I, Z
         operator = (I ^ I ^ Z) + (I ^ Z ^ I) + (I ^ Z ^ Z)
@@ -13,7 +13,7 @@ fixes:
 
     produced
 
-    .. code-snippet::
+    .. code-block::
 
              ┌───────┐
         q_0: ┤ Rz(2) ├────────
@@ -25,7 +25,7 @@ fixes:
 
     whereas now it, correctly, yields
 
-    .. code-snippet::
+    .. code-block::
 
              ┌───────┐
         q_0: ┤ Rz(2) ├─■──────
