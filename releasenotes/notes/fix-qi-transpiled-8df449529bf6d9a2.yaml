@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fix :meth:`~qiskit.utils.QuantumInstance.execute` method in the 
+    :class:`~qiskit.utils.QuantumInstance` to not modify the transpiled input circuit array.
+    Refer to the discussion in `#7449 <https://github.com/Qiskit/qiskit-terra/issues/7449>`__.
