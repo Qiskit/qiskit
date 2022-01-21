@@ -62,6 +62,7 @@ if HAS_FIXTURES:
         assertRaises = unittest.TestCase.assertRaises
         assertEqual = unittest.TestCase.assertEqual
 
+
 else:
 
     class BaseTestCase(unittest.TestCase):

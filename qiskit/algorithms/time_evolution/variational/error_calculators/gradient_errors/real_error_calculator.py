@@ -85,19 +85,19 @@ class RealErrorCalculator(ErrorCalculator):
             grad_res: -2Im⟨dψ(ω)/dω|H|ψ(ω).
             metric: Fubini-Study Metric.
         Returns:
-            Square root of the l2 norm of the error.
+            Real part of a squared gradient error
         Raises:
             Warning: if the value of an error has too large imaginary part (larger than 1e-6).
         """
-        grad_eps_squared = 0
+        gradient_error_squared = 0
         # dω_jF_ij^Q
-        grad_eps_squared += np.dot(metric, nat_grad_res) + np.dot(
+        gradient_error_squared += np.dot(metric, nat_grad_res) + np.dot(
             np.diag(np.diag(metric)), np.power(nat_grad_res, 2)
         )
 
         # 2Im⟨dωψ(ω)|H | ψ(ω)〉
-        grad_eps_squared -= grad_res
+        gradient_error_squared -= grad_res
         # TODO should this be an exception?
-        if np.linalg.norm(np.imag(grad_eps_squared)) > 1e-6:
+        if np.linalg.norm(np.imag(gradient_error_squared)) > 1e-6:
             raise Warning("Error gradient complex part are not to be neglected.")
-        return np.real(grad_eps_squared)
+        return np.real(gradient_error_squared)

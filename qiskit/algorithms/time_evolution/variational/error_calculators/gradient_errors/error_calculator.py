@@ -111,7 +111,7 @@ class ErrorCalculator(ABC):
             grad_res: -2Im⟨dψ(ω)/dω|H|ψ(ω)〉.
             metric: Fubini-Study Metric.
         Returns:
-            Square root of the l2 norm of the error.
+            Real part of a squared gradient error.
         """
         pass
 
