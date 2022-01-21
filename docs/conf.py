@@ -87,7 +87,7 @@ finance_tutorials = [
     '09_credit_risk_analysis',
     '10_qgan_option_pricing',
     '11_time_series',
-    'index.html'
+    'index'
 ]
 
 chemistry_tutorials = [
@@ -97,7 +97,7 @@ chemistry_tutorials = [
     '04_excited_states_solvers',
     '05_Sampling_potential_energy_surfaces',
     '06_calculating_thermodynamic_observables',
-    'index.html'
+    'index'
 ]
 
 ml_tutorials = [
@@ -105,7 +105,7 @@ ml_tutorials = [
     '02_qsvm_multiclass',
     '03_vqc',
     '04_qgans_for_loading_random_distributions',
-    'index.html'
+    'index'
 ]
 
 redirects = {
