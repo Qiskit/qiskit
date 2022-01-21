@@ -8,5 +8,5 @@ target-version = ['py36', 'py37', 'py38', 'py39']
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux2010"
 manylinux-i686-image = "manylinux2010"
-skip = "pp* cp36-*"
+skip = "pp* cp36-* *musllinux*"
 test-command = "python {project}/examples/python/stochastic_swap.py"
