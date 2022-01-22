@@ -928,15 +928,21 @@ class TestOptimizationOnSize(QiskitTestCase):
     See https://github.com/Qiskit/qiskit-terra/pull/7542
     """
 
-    @data(1, 2, 3)
+    @data(2, 3)
     def test_size_optimization(self, level):
         """Test the levels for optimization based on size of circuit"""
         qc = QuantumCircuit(8)
+        qc.cx(1, 2)
+        qc.cx(2, 3)
         qc.cx(5, 4)
         qc.cx(6, 5)
         qc.cx(4, 5)
+        qc.cx(3, 4)
         qc.cx(5, 6)
         qc.cx(5, 4)
+        qc.cx(3, 4)
+        qc.cx(2, 3)
+        qc.cx(1, 2)
         qc.cx(6, 7)
         qc.cx(6, 5)
         qc.cx(5, 4)
@@ -945,6 +951,5 @@ class TestOptimizationOnSize(QiskitTestCase):
 
         circ = transpile(qc, optimization_level=level)
 
-        self.assertDictEqual(qc.count_ops(), circ.count_ops())
-        self.assertEqual(qc.size(), circ.size())
-        self.assertEqual(qc.depth(), circ.depth())
+        self.assertLessEqual(circ.size(), qc.size())
+        self.assertLessEqual(circ.depth(), qc.depth())
