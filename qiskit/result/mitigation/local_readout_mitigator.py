@@ -91,6 +91,12 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
                 ainv = np.linalg.pinv(mat)
             self._mitigation_mats[i] = ainv
 
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {"assignment_matrices": self._assignment_mats,
+                "qubits": self._qubits}
+
     def expectation_value(
         self,
         data: Counts,

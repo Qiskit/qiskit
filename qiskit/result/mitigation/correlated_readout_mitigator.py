@@ -13,7 +13,7 @@
 Readout mitigator class based on the A-matrix inversion method
 """
 
-from typing import Optional, List, Tuple, Iterable, Callable, Union
+from typing import Optional, List, Tuple, Iterable, Callable, Union, Dict
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -61,6 +61,11 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         self._qubit_index = dict(zip(self._qubits, range(self._num_qubits)))
         self._assignment_mat = amat
         self._mitigation_mats = {}
+
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {"assignment_matrix": self._assignment_mat, "qubits": self._qubits}
 
     def expectation_value(
         self,
