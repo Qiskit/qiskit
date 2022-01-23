@@ -223,15 +223,6 @@ class M3Mitigation():
             self.single_qubit_cals = [np.asarray(cal) if cal else None
                                       for cal in orjson.loads(fd.read())]
 
-    def tensored_cals_from_file(self, cals_file):
-        """Generated the tensored calibration data from a previous runs output
-
-            cals_file (str): A string path to the saved counts file from an
-                             earlier run.
-        """
-        warnings.warn("This method is deprecated, use 'cals_from_file' instead.")
-        self.cals_from_file(cals_file)
-
     def _grab_additional_cals(self, qubits, shots=None, method='balanced', rep_delay=None,
                               initial_reset=False):
         """Grab missing calibration data from backend.
