@@ -345,7 +345,7 @@ class MatplotlibDrawer:
                 xl, yt, "Global Phase: %s" % pi_check(self._global_phase, output="mpl")
             )
         self._draw_regs_wires(num_folds, xmax, n_lines, max_anc)
-        self._draw_ops(n_lines, verbose)
+        self._draw_ops(verbose)
 
         if filename:
             self._figure.savefig(
@@ -739,7 +739,7 @@ class MatplotlibDrawer:
                     zorder=PORDER_TEXT,
                 )
 
-    def _draw_ops(self, n_lines, verbose=False):
+    def _draw_ops(self, verbose=False):
         """Draw the gates in the circuit"""
         prev_x_index = -1
         for i, layer in enumerate(self._nodes):
