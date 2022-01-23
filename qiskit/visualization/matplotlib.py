@@ -516,15 +516,15 @@ class MatplotlibDrawer:
 
         # create the anchor arrays
         for key, qubit in self._qubits_dict.items():
-            self._q_anchors[key] = Anchor(reg_num=n_lines, yind=qubit["y"], fold=self._fold)
+            self._q_anchors[key] = Anchor(num_wires=n_lines, y_index=qubit["y"], fold=self._fold)
         for key, clbit in self._clbits_dict.items():
-            self._c_anchors[key] = Anchor(reg_num=n_lines, yind=clbit["y"], fold=self._fold)
+            self._c_anchors[key] = Anchor(num_wires=n_lines, y_index=clbit["y"], fold=self._fold)
 
         # get all the necessary coordinates for placing gates on the wires
-        prev_anc = -1
+        prev_x_index = -1
         for i, layer in enumerate(self._nodes):
             layer_width = self._layer_widths[i]
-            this_anc = prev_anc + 1
+            anc_x_index = prev_x_index + 1
             for node in layer:
                 # get qubit index
                 q_indxs = []
@@ -551,20 +551,20 @@ class MatplotlibDrawer:
                 # only add the gate to the anchors if it is going to be plotted.
                 if self._plot_barriers or not node.op._directive:
                     for ii in q_indxs:
-                        self._q_anchors[ii].set_index(this_anc, layer_width)
+                        self._q_anchors[ii].set_index(anc_x_index, layer_width)
 
                 # qubit coordinate
                 self._data[node]["q_xy"] = [
-                    self._q_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset)
+                    self._q_anchors[ii].plot_coord(anc_x_index, layer_width, self._x_offset)
                     for ii in q_indxs
                 ]
                 # clbit coordinate
                 self._data[node]["c_xy"] = [
-                    self._c_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset)
+                    self._c_anchors[ii].plot_coord(anc_x_index, layer_width, self._x_offset)
                     for ii in c_indxs
                 ]
                 # update index based on the value from plotting
-                this_anc = self._q_anchors[q_indxs[0]].gate_anchor
+                anc_x_index = self._q_anchors[q_indxs[0]].get_gate_anchor()
                 self._data[node]["c_indxs"] = c_indxs
 
             # adjust the column if there have been barriers encountered, but not plotted
@@ -572,7 +572,7 @@ class MatplotlibDrawer:
             if not self._plot_barriers:
                 # only adjust if everything in the layer wasn't plotted
                 barrier_offset = -1 if all(nd.op._directive for nd in layer) else 0
-            prev_anc = this_anc + layer_width + barrier_offset - 1
+            prev_x_index = anc_x_index + layer_width + barrier_offset - 1
 
         anchors = [self._q_anchors[ii].get_index() for ii in self._qubits_dict]
         return max(anchors) if anchors else 0
@@ -741,10 +741,10 @@ class MatplotlibDrawer:
 
     def _draw_ops(self, n_lines, verbose=False):
         """Draw the gates in the circuit"""
-        prev_anc = -1
+        prev_x_index = -1
         for i, layer in enumerate(self._nodes):
             layer_width = self._layer_widths[i]
-            this_anc = prev_anc + 1
+            anc_x_index = prev_x_index + 1
 
             # draw the gates in this layer
             for node in layer:
@@ -757,12 +757,11 @@ class MatplotlibDrawer:
                 # add conditional
                 if op.condition:
                     cond_xy = []
-                    for clbit in self._clbits_dict:
-                        xpos = self._data[node]["q_xy"][0][0]
-                        ypos = self._clbits_dict[clbit]["y"] - ((this_anc + 1) // self._fold) * (
-                            n_lines + 1
-                        )
-                        cond_xy.append((xpos, ypos))
+                    idx = anc_x_index
+                    for ii in self._clbits_dict:
+                        cond_xy.append(self._c_anchors[ii].plot_coord(idx, layer_width, self._x_offset))
+                        idx = self._c_anchors[ii].get_gate_anchor()
+                    anc_x_index = self._c_anchors[0].get_gate_anchor()
                     self._condition(node, cond_xy)
 
                 # draw measure
@@ -792,7 +791,7 @@ class MatplotlibDrawer:
                 # only adjust if everything in the layer wasn't plotted
                 barrier_offset = -1 if all(nd.op._directive for nd in layer) else 0
 
-            prev_anc = this_anc + layer_width + barrier_offset - 1
+            prev_x_index = anc_x_index + layer_width + barrier_offset - 1
 
     def _get_colors(self, node):
         """Get all the colors needed for drawing the circuit"""
@@ -1375,29 +1374,28 @@ class MatplotlibDrawer:
 class Anchor:
     """Locate the anchors for the gates"""
 
-    def __init__(self, reg_num, yind, fold):
-        self._yind = yind
+    def __init__(self, num_wires, y_index, fold):
+        self._y_index = y_index
         self._fold = fold
-        self._reg_num = reg_num
+        self._num_wires = num_wires
         self._gate_placed = []
-        self.nxt_anchor_idx = 0
-        self.gate_anchor = 0
+        self._gate_anchor = 0
 
-    def plot_coord(self, index, gate_width, x_offset):
+    def plot_coord(self, x_index, gate_width, x_offset):
         """Set the coord positions for an index"""
-        h_pos = index % self._fold + 1
+        h_pos = x_index % self._fold + 1
         # check folding
         if self._fold > 0:
             if h_pos + (gate_width - 1) > self._fold:
-                index += self._fold - (h_pos - 1)
-            x_pos = index % self._fold + 0.5 * gate_width + 0.04
-            y_pos = self._yind - (index // self._fold) * (self._reg_num + 1)
+                x_index += self._fold - (h_pos - 1)
+            x_pos = x_index % self._fold + 0.5 * gate_width + 0.04
+            y_pos = self._y_index - (x_index // self._fold) * (self._num_wires + 1)
         else:
-            x_pos = index + 0.5 * gate_width + 0.04
-            y_pos = self._yind
+            x_pos = x_index + 0.5 * gate_width + 0.04
+            y_pos = self._y_index
 
         # could have been updated, so need to store
-        self.gate_anchor = index
+        self._gate_anchor = x_index
         return x_pos + x_offset, y_pos
 
     def set_index(self, index, layer_width):
@@ -1414,7 +1412,6 @@ class Anchor:
             idx = _index + ii
             if idx not in self._gate_placed:
                 self._gate_placed.append(idx)
-                self.nxt_anchor_idx = idx + 1
 
     def get_index(self):
         """Getter for the index"""
@@ -1422,6 +1419,9 @@ class Anchor:
             return self._gate_placed[-1] + 1
         return 0
 
+    def get_gate_anchor(self):
+        """Getter for the gate anchor"""
+        return self._gate_anchor
 
 class HasMatplotlibWrapper:
     """Wrapper to lazily import matplotlib."""
