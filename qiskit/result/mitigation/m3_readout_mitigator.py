@@ -67,19 +67,25 @@ class M3ReadoutMitigator(LocalReadoutMitigator):
         if qubits is None:
             self._num_qubits = len(amats)
             self._qubits = range(self._num_qubits)
+            qubits = self._qubits
         else:
             if len(qubits) != len(amats):
                 raise QiskitError(
                     "The number of given qubits ({}) is different than the number of qubits "
                     "inferred from the matrices ({})".format(len(qubits), len(amats))
                 )
+            self._qubits = qubits
+            self._num_qubits = len(self._qubits)
 
         max_qubit_index = max(qubits)
         m3_amats = [None] * (max_qubit_index + 1)
         for amat, qubit in zip(amats, qubits):
             m3_amats[qubit] = amat
 
-        self.m3_mitigator = M3Mitigation(m3_amats)
+        self._m3_mitigator = M3Mitigation(m3_amats)
+        self._assignment_mats = amats
+        self._qubit_index = dict(zip(self._qubits, range(self._num_qubits)))
+        self.compute_gammas()
 
     def quasi_probabilities(
         self,
@@ -88,7 +94,14 @@ class M3ReadoutMitigator(LocalReadoutMitigator):
         clbits: Optional[List[int]] = None,
         shots: Optional[int] = None,
     ) -> QuasiDistribution:
-        pass # placeholder
+        if qubits is None:
+            qubits = self._qubits
+        quasi_probs = self._m3_mitigator._apply_correction(data, qubits)
+        counts = dict(data)
+        shots = sum(counts.values())
+        # TODO: verify this estimate can be used here
+        quasi_probs._stddev_upper_bound = self.stddev_upper_bound(shots, qubits)
+        return quasi_probs
 
     def expectation_value(
             self,

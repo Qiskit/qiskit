@@ -26,7 +26,6 @@ from .utils import counts_to_vector, vector_to_quasiprobs
 from .norms import ainv_onenorm_est_lu, ainv_onenorm_est_iter
 from .matvec import M3MatVec
 from .exceptions import M3Error
-from .classes import QuasiCollection
 
 class M3Mitigation():
     """Main M3 calibration class."""
@@ -101,71 +100,6 @@ class M3Mitigation():
             self.single_qubit_cals = [np.asarray(cal) if cal else None
                                       for cal in orjson.loads(fd.read())]
 
-
-
-    def apply_correction(self, counts, qubits, distance=None,
-                         method='auto',
-                         max_iter=25, tol=1e-5,
-                         return_mitigation_overhead=False,
-                         details=False):
-        """Applies correction to given counts.
-
-        Parameters:
-            counts (dict, list): Input counts dict or list of dicts.
-            qubits (array_like): Qubits on which measurements applied.
-            distance (int): Distance to correct for. Default=num_bits
-            method (str): Solution method: 'auto', 'direct' or 'iterative'.
-            max_iter (int): Max. number of iterations, Default=25.
-            tol (float): Convergence tolerance of iterative method, Default=1e-5.
-            return_mitigation_overhead (bool): Returns the mitigation overhead, default=False.
-            details (bool): Return extra info, default=False.
-
-        Returns:
-            QuasiDistribution or QuasiCollection: Dictionary of quasiprobabilities if
-                                                  input is a single dict, else a collection
-                                                  of quasiprobabilities.
-
-        Raises:
-            M3Error: Bitstring length does not match number of qubits given.
-        """
-        if len(counts) == 0:
-            raise M3Error('Input counts is any empty dict.')
-        given_list = False
-        if isinstance(counts, (list, np.ndarray)):
-            given_list = True
-        if not given_list:
-            counts = [counts]
-
-        if isinstance(qubits, dict):
-            # If a mapping was given for qubits
-            qubits = [list(qubits)]
-        elif not any(isinstance(qq, (list, tuple, np.ndarray, dict)) for qq in qubits):
-            qubits = [qubits]*len(counts)
-        else:
-            if isinstance(qubits[0], dict):
-                # assuming passed a list of mappings
-                qubits = [list(qu) for qu in qubits]
-
-        if len(qubits) != len(counts):
-            raise M3Error('Length of counts does not match length of qubits.')
-
-        quasi_out = []
-
-        for idx, cnts in enumerate(counts):
-
-            quasi_out.append(
-                self._apply_correction(cnts, qubits=qubits[idx],
-                                       distance=distance,
-                                       method=method,
-                                       max_iter=max_iter, tol=tol,
-                                       return_mitigation_overhead=return_mitigation_overhead,
-                                       details=details)
-                            )
-
-        if not given_list:
-            return quasi_out[0]
-        return QuasiCollection(quasi_out)
-
     def _apply_correction(self, counts, qubits, distance=None,
                           method='auto',
                           max_iter=25, tol=1e-5,
@@ -204,17 +138,6 @@ class M3Mitigation():
         if bitstring_len != num_bits:
             raise M3Error('Bitstring length ({}) does not match'.format(bitstring_len) +
                           ' number of qubits ({})'.format(num_bits))
-
-        # Check if no cals done yet
-        if self.single_qubit_cals is None:
-            warnings.warn('No calibration data. Calibrating: {}'.format(qubits))
-            self._grab_additional_cals(qubits, method=self.cal_method)
-
-        # Check if one or more new qubits need to be calibrated.
-        missing_qubits = [qq for qq in qubits if self.single_qubit_cals[qq] is None]
-        if any(missing_qubits):
-            warnings.warn('Computing missing calibrations for qubits: {}'.format(missing_qubits))
-            self._grab_additional_cals(missing_qubits, method=self.cal_method)
 
         if method == 'auto':
             current_free_mem = psutil.virtual_memory().available / 1024**3

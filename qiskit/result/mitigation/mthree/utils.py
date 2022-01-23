@@ -25,7 +25,8 @@ Utility functions
 """
 import numpy as np
 from .exceptions import M3Error
-from .classes import QuasiDistribution, ProbDistribution, QuasiCollection, ProbCollection
+#from .classes import QuasiDistribution, ProbDistribution, QuasiCollection, ProbCollection
+from ...distributions.quasi import QuasiDistribution
 
 
 def final_measurement_mapping(circuit):

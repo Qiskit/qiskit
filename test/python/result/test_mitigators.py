@@ -22,6 +22,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.result import Counts
 from qiskit.result import CorrelatedReadoutMitigator
 from qiskit.result import LocalReadoutMitigator
+from qiskit.result import M3ReadoutMitigator
 from qiskit.result.mitigation.utils import (
     z_diagonal,
     counts_probability_vector,
@@ -178,7 +179,8 @@ class TestReadoutMitigation(QiskitTestCase):
         """Test whether readout mitigation led to more accurate results"""
         CRM = CorrelatedReadoutMitigator(circuits_data["correlated_method_matrix"])
         LRM = LocalReadoutMitigator(circuits_data["local_method_matrices"])
-        mitigators = [CRM, LRM]
+        M3RM = M3ReadoutMitigator(circuits_data["local_method_matrices"])
+        mitigators = [CRM, LRM, M3RM]
         for circuit_name, circuit_data in circuits_data["circuits"].items():
             counts_ideal = Counts(circuit_data["counts_ideal"])
             counts_noise = Counts(circuit_data["counts_noise"])

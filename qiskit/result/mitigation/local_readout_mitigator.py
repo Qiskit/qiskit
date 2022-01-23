@@ -76,6 +76,17 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         self._qubit_index = dict(zip(self._qubits, range(self._num_qubits)))
         self._assignment_mats = amats
         self._mitigation_mats = np.zeros([self._num_qubits, 2, 2], dtype=float)
+        self.compute_gammas()
+        for i in range(self._num_qubits):
+            mat = self._assignment_mats[i]
+            # Compute inverse mitigation matrix
+            try:
+                ainv = np.linalg.inv(mat)
+            except np.linalg.LinAlgError:
+                ainv = np.linalg.pinv(mat)
+            self._mitigation_mats[i] = ainv
+
+    def compute_gammas(self):
         self._gammas = np.zeros(self._num_qubits, dtype=float)
 
         for i in range(self._num_qubits):
@@ -84,12 +95,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             error0 = mat[1, 0]
             error1 = mat[0, 1]
             self._gammas[i] = (1 + abs(error0 - error1)) / (1 - error0 - error1)
-            # Compute inverse mitigation matrix
-            try:
-                ainv = np.linalg.inv(mat)
-            except np.linalg.LinAlgError:
-                ainv = np.linalg.pinv(mat)
-            self._mitigation_mats[i] = ainv
+
 
     def expectation_value(
         self,
