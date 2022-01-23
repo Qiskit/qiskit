@@ -94,8 +94,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
     @property
     def settings(self) -> Dict:
         """Return settings."""
-        return {"assignment_matrices": self._assignment_mats,
-                "qubits": self._qubits}
+        return {"assignment_matrices": self._assignment_mats, "qubits": self._qubits}
 
     def expectation_value(
         self,
