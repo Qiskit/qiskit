@@ -20,8 +20,6 @@ import numpy as np
 import scipy.linalg as la
 import scipy.sparse.linalg as spla
 import orjson
-from qiskit import QuantumCircuit, transpile, execute
-from qiskit.providers import BaseBackend
 
 from .matrix import _reduced_cal_matrix, sdd_check
 from .utils import counts_to_vector, vector_to_quasiprobs
@@ -30,101 +28,20 @@ from .matvec import M3MatVec
 from .exceptions import M3Error
 from .classes import QuasiCollection
 
-
-def _tensor_meas_states(qubit, num_qubits, initial_reset=False):
-    """Construct |0> and |1> states
-    for independent 1Q cals.
-    """
-    qc0 = QuantumCircuit(num_qubits, 1)
-    if initial_reset:
-        qc0.reset(qubit)
-    qc0.measure(qubit, 0)
-    qc1 = QuantumCircuit(num_qubits, 1)
-    if initial_reset:
-        qc1.reset(qubit)
-    qc1.x(qubit)
-    qc1.measure(qubit, 0)
-    return [qc0, qc1]
-
-
-def _marg_meas_states(num_qubits, initial_reset=False):
-    """Construct all zeros and all ones states
-    for marginal 1Q cals.
-    """
-    qc0 = QuantumCircuit(num_qubits)
-    if initial_reset:
-        qc0.reset(range(num_qubits))
-    qc0.measure_all()
-    qc1 = QuantumCircuit(num_qubits)
-    if initial_reset:
-        qc1.reset(range(num_qubits))
-    qc1.x(range(num_qubits))
-    qc1.measure_all()
-    return [qc0, qc1]
-
-
-def _balanced_cal_strings(num_qubits):
-    """Compute the 2*num_qubits strings for balanced calibration.
-
-    Parameters:
-        num_qubits (int): Number of qubits to be measured.
-
-    Returns:
-        list: List of strings for balanced calibration circuits.
-    """
-    strings = []
-    for rep in range(1, num_qubits+1):
-        str1 = ''
-        str2 = ''
-        for jj in range(int(np.ceil(num_qubits / rep))):
-            str1 += str(jj % 2) * rep
-            str2 += str((jj+1) % 2) * rep
-
-        strings.append(str1[:num_qubits])
-        strings.append(str2[:num_qubits])
-    return strings
-
-
-def _balanced_cal_circuits(cal_strings, initial_reset=False):
-    """Build balanced calibration circuits.
-
-    Parameters:
-        cal_strings (list): List of strings for balanced cal circuits.
-
-    Returns:
-        list: List of balanced cal circuits.
-    """
-    num_qubits = len(cal_strings[0])
-    circs = []
-    for string in cal_strings:
-        qc = QuantumCircuit(num_qubits)
-        if initial_reset:
-            qc.reset(range(num_qubits))
-        for idx, bit in enumerate(string[::-1]):
-            if bit == '1':
-                qc.x(idx)
-        qc.measure_all()
-        circs.append(qc)
-    return circs
-
-
 class M3Mitigation():
     """Main M3 calibration class."""
-    def __init__(self, system=None, iter_threshold=4096):
+    def __init__(self, single_qubit_cals, iter_threshold=4096):
         """Main M3 calibration class.
 
         Parameters:
-            system (BaseBackend): Target backend.
+            single_qubit_cals (list): 1Q calibration matrices
             iter_threshold (int): Sets the bitstring count at which iterative mode
                                   is turned on (assuming reasonable error rates).
-
-        Attributes:
-            system (BaseBackend): The target system.
-            single_qubit_cals (list): 1Q calibration matrices
         """
-        self.system = system
-        self.single_qubit_cals = None
-        self.num_qubits = system.configuration().num_qubits if system else None
+
+
+        self.single_qubit_cals = single_qubit_cals
+        self.num_qubits = len(self.single_qubit_cals)
         self.iter_threshold = iter_threshold
         self.cal_shots = None
         self.cal_method = 'balanced'
@@ -174,45 +91,6 @@ class M3Mitigation():
         cals = self._form_cals(qubits)
         return sdd_check(counts, cals, num_bits, distance)
 
-    def tensored_cals_from_system(self, qubits=None, shots=None,  method='balanced',
-                                  rep_delay=None, cals_file=None):
-        """Grab calibration data from system.
-
-        Parameters:
-            qubits (array_like): Qubits over which to correct calibration data. Default is all.
-            shots (int): Number of shots per circuit. Default is min(1e4, max_shots).
-            method (str): Type of calibration, 'balanced' (default), 'independent', or 'marginal'.
-            rep_delay (float): Delay between circuits on IBM Quantum backends.
-            cals_file (str): Output path to write JSON calibration data to.
-        """
-        warnings.warn("This method is deprecated, use 'cals_from_system' instead.")
-        self.cals_from_system(qubits=qubits, shots=shots, method=method,
-                              rep_delay=rep_delay,
-                              cals_file=cals_file)
-
-    def cals_from_system(self, qubits=None, shots=None, method='balanced',
-                         initial_reset=False, rep_delay=None, cals_file=None):
-        """Grab calibration data from system.
-
-        Parameters:
-            qubits (array_like): Qubits over which to correct calibration data. Default is all.
-            shots (int): Number of shots per circuit. min(1e4, max_shots).
-            method (str): Type of calibration, 'balanced' (default), 'independent', or 'marginal'.
-            initial_reset (bool): Use resets at beginning of calibration circuits, default=False.
-            rep_delay (float): Delay between circuits on IBM Quantum backends.
-            cals_file (str): Output path to write JSON calibration data to.
-        """
-        if qubits is None:
-            qubits = range(self.num_qubits)
-        self.cal_method = method
-        self.rep_delay = rep_delay
-        self._grab_additional_cals(qubits, shots=shots,  method=method,
-                                   rep_delay=rep_delay, initial_reset=initial_reset)
-        if cals_file:
-            with open(cals_file, 'wb') as fd:
-                fd.write(orjson.dumps(self.single_qubit_cals,
-                                      option=orjson.OPT_SERIALIZE_NUMPY))
-
     def cals_from_file(self, cals_file):
         """Generated the calibration data from a previous runs output
 
@@ -223,147 +101,7 @@ class M3Mitigation():
             self.single_qubit_cals = [np.asarray(cal) if cal else None
                                       for cal in orjson.loads(fd.read())]
 
-    def _grab_additional_cals(self, qubits, shots=None, method='balanced', rep_delay=None,
-                              initial_reset=False):
-        """Grab missing calibration data from backend.
 
-        Parameters:
-            qubits (array_like): List of measured qubits.
-            shots (int): Number of shots to take, min(1e4, max_shots).
-            method (str): Type of calibration, 'balanced' (default), 'independent', or 'marginal'.
-            rep_delay (float): Delay between circuits on IBM Quantum backends.
-            initial_reset (bool): Use resets at beginning of calibration circuits, default=False.
-
-        Raises:
-            M3Error: Backend not set.
-            M3Error: Faulty qubits found.
-        """
-        if self.system is None:
-            raise M3Error("System is not set.  Use 'cals_from_file'.")
-        if self.single_qubit_cals is None:
-            self.single_qubit_cals = [None]*self.num_qubits
-        if self.cal_shots is None:
-            if shots is None:
-                shots = min(self.system.configuration().max_shots, 10000)
-            self.cal_shots = shots
-        if self.rep_delay is None:
-            self.rep_delay = rep_delay
-
-        if method not in ['independent', 'balanced', 'marginal']:
-            raise M3Error('Invalid calibration method.')
-
-        if isinstance(qubits, dict):
-            # Assuming passed a mapping
-            qubits = list(qubits)
-        elif isinstance(qubits, list):
-            # Check if passed a list of mappings
-            if isinstance(qubits[0], dict):
-                # Assuming list of mappings, need to get unique elements
-                _qubits = []
-                for item in qubits:
-                    _qubits.extend(list(item))
-                qubits = list(set(_qubits))
-
-        num_cal_qubits = len(qubits)
-        if method == 'marginal':
-            circs = _marg_meas_states(num_cal_qubits, initial_reset=initial_reset)
-            trans_qcs = transpile(circs, self.system,
-                                  initial_layout=qubits, optimization_level=0)
-        elif method == 'balanced':
-            cal_strings = _balanced_cal_strings(num_cal_qubits)
-            circs = _balanced_cal_circuits(cal_strings, initial_reset=initial_reset)
-            trans_qcs = transpile(circs, self.system,
-                                  initial_layout=qubits, optimization_level=0)
-        # Indeopendent
-        else:
-            circs = []
-            for kk in qubits:
-                circs.extend(_tensor_meas_states(kk, self.num_qubits,
-                                                 initial_reset=initial_reset))
-            trans_qcs = transpile(circs, self.system, optimization_level=0)
-
-        # This BaseBackend check is here for Qiskit direct access.  Should be removed later.
-        if isinstance(self.system, BaseBackend):
-            job = execute(trans_qcs, self.system, optimization_level=0,
-                          shots=self.cal_shots, rep_delay=self.rep_delay)
-        else:
-            job = self.system.run(trans_qcs, shots=self.cal_shots, rep_delay=self.rep_delay)
-        counts = job.result().get_counts()
-
-        # A list of qubits with bad meas cals
-        bad_list = []
-        if method == 'independent':
-            for idx, qubit in enumerate(qubits):
-                self.single_qubit_cals[qubit] = np.zeros((2, 2), dtype=float)
-                # Counts 0 has all P00, P10 data, so do that here
-                prep0_counts = counts[2*idx]
-                P10 = prep0_counts.get('1', 0) / self.cal_shots
-                P00 = 1-P10
-                self.single_qubit_cals[qubit][:, 0] = [P00, P10]
-                # plus 1 here since zeros data at pos=0
-                prep1_counts = counts[2*idx+1]
-                P01 = prep1_counts.get('0', 0) / self.cal_shots
-                P11 = 1-P01
-                self.single_qubit_cals[qubit][:, 1] = [P01, P11]
-                if P01 >= P00:
-                    bad_list.append(qubit)
-        elif method == 'marginal':
-            prep0_counts = counts[0]
-            prep1_counts = counts[1]
-            for idx, qubit in enumerate(qubits):
-                self.single_qubit_cals[qubit] = np.zeros((2, 2), dtype=float)
-                count_vals = 0
-                index = num_cal_qubits-idx-1
-                for key, val in prep0_counts.items():
-                    if key[index] == '0':
-                        count_vals += val
-                P00 = count_vals / self.cal_shots
-                P10 = 1-P00
-                self.single_qubit_cals[qubit][:, 0] = [P00, P10]
-                count_vals = 0
-                for key, val in prep1_counts.items():
-                    if key[index] == '1':
-                        count_vals += val
-                P11 = count_vals / self.cal_shots
-                P01 = 1-P11
-                self.single_qubit_cals[qubit][:, 1] = [P01, P11]
-                if P01 >= P00:
-                    bad_list.append(qubit)
-
-        # balanced calibration
-        else:
-            cals = [np.zeros((2, 2), dtype=float) for kk in range(num_cal_qubits)]
-
-            for idx, count in enumerate(counts):
-
-                target = cal_strings[idx][::-1]
-                good_prep = np.zeros(num_cal_qubits, dtype=float)
-                denom = self.cal_shots * num_cal_qubits
-
-                for key, val in count.items():
-                    key = key[::-1]
-                    for kk in range(num_cal_qubits):
-                        if key[kk] == target[kk]:
-                            good_prep[kk] += val
-
-                for kk, cal in enumerate(cals):
-                    if target[kk] == '0':
-                        cal[0, 0] += good_prep[kk] / denom
-                    else:
-                        cal[1, 1] += good_prep[kk] / denom
-
-            for jj, cal in enumerate(cals):
-                cal[1, 0] = 1.0 - cal[0, 0]
-                cal[0, 1] = 1.0 - cal[1, 1]
-
-                if cal[0, 1] >= cal[0, 0]:
-                    bad_list.append(qubits[jj])
-
-            for idx, cal in enumerate(cals):
-                self.single_qubit_cals[qubits[idx]] = cal
-
-        if any(bad_list):
-            raise M3Error('Faulty qubits detected: {}'.format(bad_list))
 
     def apply_correction(self, counts, qubits, distance=None,
                          method='auto',
