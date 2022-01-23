@@ -548,11 +548,6 @@ class MatplotlibDrawer:
                             c_indxs.append(index)
                             break
 
-                # only add the gate to the anchors if it is going to be plotted.
-                if self._plot_barriers or not node.op._directive:
-                    for ii in q_indxs:
-                        self._q_anchors[ii].set_index(anc_x_index, layer_width)
-
                 # qubit coordinate
                 self._data[node]["q_xy"] = [
                     self._q_anchors[ii].plot_coord(anc_x_index, layer_width, self._x_offset)
@@ -564,7 +559,7 @@ class MatplotlibDrawer:
                     for ii in c_indxs
                 ]
                 # update index based on the value from plotting
-                anc_x_index = self._q_anchors[q_indxs[0]].get_gate_anchor()
+                anc_x_index = self._q_anchors[q_indxs[0]].get_x_index()
                 self._data[node]["c_indxs"] = c_indxs
 
             # adjust the column if there have been barriers encountered, but not plotted
@@ -574,8 +569,7 @@ class MatplotlibDrawer:
                 barrier_offset = -1 if all(nd.op._directive for nd in layer) else 0
             prev_x_index = anc_x_index + layer_width + barrier_offset - 1
 
-        anchors = [self._q_anchors[ii].get_index() for ii in self._qubits_dict]
-        return max(anchors) if anchors else 0
+        return prev_x_index + 1
 
     def _get_text_width(self, text, fontsize, param=False, reg_to_remove=None):
         """Compute the width of a string in the default font"""
@@ -756,14 +750,12 @@ class MatplotlibDrawer:
 
                 # add conditional
                 if op.condition:
-                    cond_xy = []
-                    idx = anc_x_index
-                    for ii in self._clbits_dict:
-                        cond_xy.append(
-                            self._c_anchors[ii].plot_coord(idx, layer_width, self._x_offset)
-                        )
-                        idx = self._c_anchors[ii].get_gate_anchor()
-                    anc_x_index = self._c_anchors[0].get_gate_anchor()
+                    cond_xy = [
+                        self._c_anchors[ii].plot_coord(anc_x_index, layer_width, self._x_offset)
+                        for ii in self._clbits_dict
+                    ]
+                    if self._clbits_dict:
+                        anc_x_index = self._c_anchors[0].get_x_index()
                     self._condition(node, cond_xy)
 
                 # draw measure
@@ -1377,14 +1369,13 @@ class Anchor:
     """Locate the anchors for the gates"""
 
     def __init__(self, num_wires, y_index, fold):
-        self._y_index = y_index
-        self._fold = fold
         self._num_wires = num_wires
-        self._gate_placed = []
-        self._gate_anchor = 0
+        self._fold = fold
+        self._y_index = y_index
+        self._x_index = 0
 
     def plot_coord(self, x_index, gate_width, x_offset):
-        """Set the coord positions for an index"""
+        """Get the coord positions for an index"""
         h_pos = x_index % self._fold + 1
         # check folding
         if self._fold > 0:
@@ -1397,33 +1388,12 @@ class Anchor:
             y_pos = self._y_index
 
         # could have been updated, so need to store
-        self._gate_anchor = x_index
+        self._x_index = x_index
         return x_pos + x_offset, y_pos
 
-    def set_index(self, index, layer_width):
-        """Set the index for a gate"""
-        if self._fold < 2:
-            _index = index
-        else:
-            h_pos = index % self._fold + 1
-            if h_pos + (layer_width - 1) > self._fold:
-                _index = index + self._fold - (h_pos - 1) + 1
-            else:
-                _index = index
-        for ii in range(layer_width):
-            idx = _index + ii
-            if idx not in self._gate_placed:
-                self._gate_placed.append(idx)
-
-    def get_index(self):
-        """Getter for the index"""
-        if self._gate_placed:
-            return self._gate_placed[-1] + 1
-        return 0
-
-    def get_gate_anchor(self):
-        """Getter for the gate anchor"""
-        return self._gate_anchor
+    def get_x_index(self):
+        """Getter for the x index"""
+        return self._x_index
 
 
 class HasMatplotlibWrapper:
