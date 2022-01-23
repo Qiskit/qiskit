@@ -759,7 +759,9 @@ class MatplotlibDrawer:
                     cond_xy = []
                     idx = anc_x_index
                     for ii in self._clbits_dict:
-                        cond_xy.append(self._c_anchors[ii].plot_coord(idx, layer_width, self._x_offset))
+                        cond_xy.append(
+                            self._c_anchors[ii].plot_coord(idx, layer_width, self._x_offset)
+                        )
                         idx = self._c_anchors[ii].get_gate_anchor()
                     anc_x_index = self._c_anchors[0].get_gate_anchor()
                     self._condition(node, cond_xy)
@@ -1422,6 +1424,7 @@ class Anchor:
     def get_gate_anchor(self):
         """Getter for the gate anchor"""
         return self._gate_anchor
+
 
 class HasMatplotlibWrapper:
     """Wrapper to lazily import matplotlib."""
