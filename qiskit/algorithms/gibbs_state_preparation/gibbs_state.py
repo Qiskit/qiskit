@@ -11,13 +11,13 @@
 # that they have been altered from the originals.
 """Class representing a quantum state of a Gibbs State along with metadata and gradient
 calculation methods."""
-from typing import List, Optional, Union, Dict
+from typing import Optional, Union, Dict
 
 import numpy as np
 import numpy.typing
 
 from qiskit.circuit import Parameter
-from qiskit.opflow import StateFn, OperatorBase, Gradient
+from qiskit.opflow import StateFn, OperatorBase, Gradient, CircuitStateFn, CircuitSampler
 
 
 class GibbsState:
@@ -92,8 +92,14 @@ class GibbsState:
         state."""
         return self._ansatz_params_dict
 
-    # TODO the length of output probabilities should correspond to the number of visible qubits,
-    #  not all qubits
+    def sample(self, backend):  # calc p_qbm
+        operator = CircuitStateFn(self.ansatz)
+        sampler = CircuitSampler(backend=backend).convert(operator, self._ansatz_params_dict)
+        p_qbm = sampler.eval()[0].primitive  # TODO don't want to eval just yet
+        # TODO trace out last half of registers
+        return p_qbm
+
+    # TODO the length of prob vector will be adjusted in QBM depending on visible units
     def calc_ansatz_gradients(
         self,
         gradient_method: str = "param_shift",
@@ -107,46 +113,22 @@ class GibbsState:
             Calculated gradients with respect to each parameter indicated in gradient_params
             with bound parameter values.
         Raises:
-            ValueError: If gradient_params not set or if ansatz and ansatz_params_dict are not both
-                        provided or if any of the provided gradient parameters is not present in an
-                        ansatz that gave rise to a Gibbs state.
+            ValueError: If ansatz and ansatz_params_dict are not both provided.
         """
         if not self._ansatz or not self._ansatz_params_dict:
             raise ValueError(
                 "Both ansatz and ansatz_params_dict must be present in the class to compute "
                 "gradients."
             )
-        gradient_params = self.ansatz.ordered_parameters
+        gradient_params = list(self.ansatz_params_dict.keys())
 
-        # op = ~StateFn(measurement_op) @ CircuitStateFn(self._ansatz)  # how is p_v_qbm calc?
-        operator = None  # TODO
+        operator = CircuitStateFn(self.ansatz)
 
         state_grad = Gradient(grad_method=gradient_method).convert(
             operator=operator, params=gradient_params
         )
         # TODO evaluation based on the backend type, post-proc
         return state_grad.assign_parameters(self._ansatz_params_dict).eval()
-
-    def _convert_counts_to_probs(self, qc_results):
-        # TODO use snapshot_probabilities if quantum_instance = qasm - see
-        #  aer/extensions/snapshot_probabilities.py
-        probs = []
-        for result in qc_results:
-            keys = list(result)
-            values = list(result.values())
-            normalization = sum(values)
-            values = [float(val) / normalization for val in values]
-
-            prob = np.ones(2 ** len(self._target_qubits)) * 1e-8
-            prob = prob.tolist()
-            for i, key in enumerate(keys):
-                if len(self._target_qubits) == 1:
-                    prob[int(key)] = values[i]
-                else:
-                    prob[int(key, len(self._target_qubits))] = values[i]
-            probs.append(prob)
-
-        return probs
 
     def calc_hamiltonian_gradients(
         self,
@@ -160,13 +142,8 @@ class GibbsState:
         Returns:
             Calculated gradients of the visible part of a Gibbs state w.r.t. parameters of a
             Hamiltonian that gave rise to the Gibbs state, gradient parameter values are not bound.
-        Raises:
-            ValueError: If gradient_params not set or if ansatz and ansatz_params_dict are not both
-                        provided or if any of the provided gradient parameters is not present in an
-                        ansatz that gave rise to a Gibbs state.
         """
         ansatz_gradients = self.calc_ansatz_gradients(gradient_method)
-
         gibbs_state_hamiltonian_gradients = {}
         for hamiltonian_parameter in self._hamiltonian.parameters:
             summed_gradient = np.dot(

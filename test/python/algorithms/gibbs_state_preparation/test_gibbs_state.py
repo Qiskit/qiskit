@@ -11,14 +11,18 @@
 # that they have been altered from the originals.
 """Tests GibbsState class."""
 import unittest
-from test.python.algorithms import QiskitAlgorithmsTestCase
-from ddt import ddt, data
+
+from ddt import ddt
 import numpy as np
 
+from qiskit.algorithms.gibbs_state_preparation.default_ansatz_builder import (
+    build_ansatz,
+    build_init_ansatz_params_vals,
+)
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit.circuit import Parameter
-from qiskit.circuit.library import EfficientSU2
 from qiskit.algorithms.gibbs_state_preparation.gibbs_state import GibbsState
-from qiskit.opflow import Zero, X, H, SummedOp, Z, I
+from qiskit.opflow import Zero, X, SummedOp, Z, I
 
 
 @ddt
@@ -44,16 +48,10 @@ class TestGibbsState(QiskitAlgorithmsTestCase):
         temperature = 42
 
         depth = 1
-        entangler_map = [[i + 1, i] for i in range(hamiltonian.num_qubits - 1)]
-        ansatz = EfficientSU2(4, reps=depth, entanglement=entangler_map)
-        qr = ansatz.qregs[0]
-        for i in range(int(len(qr) / 2)):
-            ansatz.cx(qr[i], qr[i + int(len(qr) / 2)])
+        num_qubits = 4
 
-        # Initialize the Ansatz parameters
-        param_values_init = np.zeros(2 * hamiltonian.num_qubits * (depth + 1))
-        for j in range(2 * H.num_qubits * depth, int(len(param_values_init) - H.num_qubits - 2)):
-            param_values_init[int(j)] = np.pi / 2.0
+        ansatz = build_ansatz(num_qubits, depth)
+        param_values_init = build_init_ansatz_params_vals(num_qubits, depth)
 
         params_dict = dict(zip(ansatz.ordered_parameters, param_values_init))
         gibbs_state = GibbsState(
@@ -62,23 +60,92 @@ class TestGibbsState(QiskitAlgorithmsTestCase):
 
         gradient_method = "param_shift"
         gradients = gibbs_state.calc_ansatz_gradients(gradient_method)
+
         expected_gradients = [
-            (-3.0000000000000007e-17 + 0j),
-            (-2.05e-17 + 0j),
-            (-4.199999999999999e-17 + 0j),
-            (-0.9999999999999998 + 0j),
-            0j,
-            0j,
-            (1.5250000000000001e-16 + 0j),
-            (-1.0999999999999994e-17 + 0j),
-            (-7.000000000000003e-18 + 0j),
-            (-2.4999999999999913e-18 + 0j),
-            0j,
-            (5.4999999999999994e-17 + 0j),
-            (-2.2499999999999996e-17 + 0j),
-            (-3.5e-17 + 0j),
-            (-1.500000000000001e-17 + 0j),
-            (-6.95e-17 + 0j),
+            [
+                (-0.25000000000000006 + 0j),
+                0j,
+                0j,
+                0j,
+                0j,
+                (0.25000000000000006 + 0j),
+                0j,
+                0j,
+                0j,
+                0j,
+                (-0.24999999999999994 + 0j),
+                0j,
+                0j,
+                0j,
+                0j,
+                (0.24999999999999994 + 0j),
+            ],
+            [
+                (0.24999999999999994 + 0j),
+                0j,
+                0j,
+                0j,
+                0j,
+                (-0.24999999999999994 + 0j),
+                0j,
+                0j,
+                0j,
+                0j,
+                (-0.24999999999999994 + 0j),
+                0j,
+                0j,
+                0j,
+                0j,
+                (0.24999999999999994 + 0j),
+            ],
+            [0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j],
+            [0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j],
+            [0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j],
+            [0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j],
+            [0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j],
+            [0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j],
+            [
+                (-0.25000000000000006 + 0j),
+                0j,
+                0j,
+                0j,
+                0j,
+                (0.25000000000000006 + 0j),
+                0j,
+                0j,
+                0j,
+                0j,
+                (-0.24999999999999994 + 0j),
+                0j,
+                0j,
+                0j,
+                0j,
+                (0.24999999999999994 + 0j),
+            ],
+            [
+                (-0.25000000000000006 + 0j),
+                0j,
+                0j,
+                0j,
+                0j,
+                (-0.24999999999999994 + 0j),
+                0j,
+                0j,
+                0j,
+                0j,
+                (0.25000000000000006 + 0j),
+                0j,
+                0j,
+                0j,
+                0j,
+                (0.24999999999999994 + 0j),
+            ],
+            [0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j],
+            [0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j],
+            [0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j],
+            [0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j],
+            [0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j],
+            [0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j, 0j],
         ]
 
         np.testing.assert_almost_equal(gradients, expected_gradients)
@@ -103,38 +170,6 @@ class TestGibbsState(QiskitAlgorithmsTestCase):
             gradient_method,
         )
 
-    @data(None, [Parameter("w")])
-    def test_calc_ansatz_gradients_invalid_gradient_params(self, gradient_params):
-        """Tests if expected errors are raised when gradient_params is invalid in ansatz
-        gradients."""
-        gibbs_state_function = Zero
-        hamiltonian = SummedOp([0.3 * Z ^ Z ^ I ^ I, 0.2 * Z ^ I ^ I ^ I, 0.5 * I ^ Z ^ I ^ I])
-        temperature = 42
-
-        depth = 1
-        entangler_map = [[i + 1, i] for i in range(hamiltonian.num_qubits - 1)]
-        ansatz = EfficientSU2(4, reps=depth, entanglement=entangler_map)
-        qr = ansatz.qregs[0]
-        for i in range(int(len(qr) / 2)):
-            ansatz.cx(qr[i], qr[i + int(len(qr) / 2)])
-
-        # Initialize the Ansatz parameters
-        param_values_init = np.zeros(2 * hamiltonian.num_qubits * (depth + 1))
-        for j in range(2 * H.num_qubits * depth, int(len(param_values_init) - H.num_qubits - 2)):
-            param_values_init[int(j)] = np.pi / 2.0
-
-        params_dict = dict(zip(ansatz.ordered_parameters, param_values_init))
-        gibbs_state = GibbsState(
-            gibbs_state_function, hamiltonian, temperature, ansatz, params_dict
-        )
-
-        gradient_method = "param_shift"
-        np.testing.assert_raises(
-            ValueError,
-            gibbs_state.calc_ansatz_gradients,
-            gradient_method,
-        )
-
     def test_calc_hamiltonian_gradients(self):
         """Tests if hamiltonian gradients are calculated correctly."""
         gibbs_state_function = Zero
@@ -143,20 +178,15 @@ class TestGibbsState(QiskitAlgorithmsTestCase):
         temperature = 42
 
         depth = 1
-        entangler_map = [[i + 1, i] for i in range(hamiltonian.num_qubits - 1)]
-        ansatz = EfficientSU2(4, reps=depth, entanglement=entangler_map)
-        qr = ansatz.qregs[0]
-        for i in range(int(len(qr) / 2)):
-            ansatz.cx(qr[i], qr[i + int(len(qr) / 2)])
+        num_qubits = 4
 
-        # Initialize the Ansatz parameters
-        param_values_init = np.zeros(2 * hamiltonian.num_qubits * (depth + 1))
-        for j in range(2 * H.num_qubits * depth, int(len(param_values_init) - H.num_qubits - 2)):
-            param_values_init[int(j)] = np.pi / 2.0
+        ansatz = build_ansatz(num_qubits, depth)
+        param_values_init = build_init_ansatz_params_vals(num_qubits, depth)
 
         params_dict = dict(zip(ansatz.ordered_parameters, param_values_init))
 
-        hamiltonian_gradients = {param: [0.1] * len(ansatz.parameters)}  # TODO np array
+        hamiltonian_gradients = {param: [1.0 / (i + 1) for i in range(len(ansatz.parameters))]}
+        # TODO np array
         gibbs_state = GibbsState(
             gibbs_state_function,
             hamiltonian,
@@ -169,9 +199,27 @@ class TestGibbsState(QiskitAlgorithmsTestCase):
         gradient_method = "param_shift"
         final_gradients = gibbs_state.calc_hamiltonian_gradients(gradient_method)
 
-        expected_gradients = {param: (-0.09999999999999999 + 0j)}
+        expected_gradients = [
+            -0.21543561 + 0.0j,
+            0.20123106 + 0.0j,
+            0.0 + 0.0j,
+            0.0 + 0.0j,
+            0.0 + 0.0j,
+            0.0 + 0.0j,
+            0.0 + 0.0j,
+            0.0 + 0.0j,
+            -0.21543561 + 0.0j,
+            -0.25331439 + 0.0j,
+            0.0 + 0.0j,
+            0.0 + 0.0j,
+            0.0 + 0.0j,
+            0.0 + 0.0j,
+            0.0 + 0.0j,
+            0.0 + 0.0j,
+        ]
 
-        np.testing.assert_equal(final_gradients, expected_gradients)
+        np.testing.assert_almost_equal(final_gradients[param], expected_gradients)
+        np.testing.assert_equal(len(final_gradients), 1)
 
 
 if __name__ == "__main__":
