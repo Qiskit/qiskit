@@ -890,6 +890,20 @@ Instructions:
                 f"{getattr(generated_constraints, i)}!={getattr(expected_constraints, i)}",
             )
 
+    def test_get_non_global_operation_name_ideal_backend(self):
+        self.assertEqual(self.aqt_target.get_non_global_operation_names(), [])
+        self.assertEqual(self.ideal_sim_target.get_non_global_operation_names(), [])
+        self.assertEqual(self.ibm_target.get_non_global_operation_names(), [])
+        self.assertEqual(self.fake_backend_target.get_non_global_operation_names(), [])
+
+    def test_get_non_global_operation_name_ideal_backend_strict_direction(self):
+        self.assertEqual(self.aqt_target.get_non_global_operation_names(True), [])
+        self.assertEqual(self.ideal_sim_target.get_non_global_operation_names(True), [])
+        self.assertEqual(self.ibm_target.get_non_global_operation_names(True), [])
+        self.assertEqual(
+            self.fake_backend_target.get_non_global_operation_names(True), ["cx", "ecr"]
+        )
+
 
 class TestPulseTarget(QiskitTestCase):
     def setUp(self):
