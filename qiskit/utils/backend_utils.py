@@ -179,7 +179,10 @@ def is_simulator_backend(backend):
     Returns:
         bool: True is a simulator
     """
-    return backend.configuration().simulator
+    backend_version = _get_backend_version(backend)
+    if backend_version <= 1:
+        return backend.configuration().simulator
+    return False
 
 
 def is_local_backend(backend):
@@ -191,7 +194,10 @@ def is_local_backend(backend):
     Returns:
         bool: True is a local backend
     """
-    return backend.configuration().local
+    backend_version = _get_backend_version(backend)
+    if backend_version <= 1:
+        return backend.configuration().local
+    return False
 
 
 def is_aer_qasm(backend):
