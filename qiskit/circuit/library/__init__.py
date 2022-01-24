@@ -271,15 +271,6 @@ Other arithmetic functions
 
    ExactReciprocal
 
-Amplitude Functions
-===================
-
-.. autosummary::
-   :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
-
-   LinearAmplitudeFunction
-
 Particular Quantum Circuits
 ===========================
 
