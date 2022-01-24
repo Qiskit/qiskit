@@ -225,7 +225,7 @@ class Grover(AmplitudeAmplifier):
             # Run a grover experiment for a given power of the Grover operator.
             if self._quantum_instance.is_statevector:
                 qc = self.construct_circuit(amplification_problem, power, measurement=False)
-                circuit_results = self._quantum_instance.execute(qc).get_statevector()
+                circuit_results = np.asarray(self._quantum_instance.execute(qc).get_statevector())
                 num_bits = len(amplification_problem.objective_qubits)
 
                 # trace out work qubits

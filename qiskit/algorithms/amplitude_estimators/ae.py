@@ -20,6 +20,7 @@ from scipy.optimize import bisect
 
 from qiskit import QuantumCircuit, ClassicalRegister
 from qiskit.providers import BaseBackend, Backend
+from qiskit.quantum_info import Statevector
 from qiskit.utils import QuantumInstance
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .ae_utils import pdf_a, derivative_log_pdf_a, bisect_max
@@ -368,7 +369,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
             NotImplementedError: If the confidence interval method `kind` is not implemented.
         """
         # if statevector simulator the estimate is exact
-        if isinstance(result.circuit_results, (list, np.ndarray)):
+        if isinstance(result.circuit_results, (list, np.ndarray, Statevector)):
             return (result.mle, result.mle)
 
         if kind in ["likelihood_ratio", "lr"]:

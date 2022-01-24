@@ -1,0 +1,22 @@
+---
+fixes:
+  - |
+    :class:`.Grover` amplification problems will no longer error when run on Aer
+    simulators with Qiskit Aer versions 0.10 and above.  Previously the code::
+
+        from qiskit import Aer
+        from qiskit.algorithms import AmplificationProblem, Grover
+        from qiskit.circuit.library import PhaseOracle
+
+        backend = Aer.get_backend("aer_simulator_statevector")
+
+        oracle = PhaseOracle("x1 & x2 & (not x3)")
+        problem = AmplificationProblem(oracle, is_good_state=oracle.evaluate_bitstring)
+        grover = Grover(quantum_instance=backend, iterations=2)
+        result = grover.amplify(problem)
+
+    would fail with::
+
+        IndexError: index 0 is out of bounds for axis 0 with size 0
+
+    but will now run as expected.
