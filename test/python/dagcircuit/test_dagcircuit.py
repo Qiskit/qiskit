@@ -602,6 +602,26 @@ class TestDagNodeSelection(QiskitTestCase):
         for node in op_nodes:
             self.assertIsInstance(node.op, Instruction)
 
+    def test_opnode_representation(self):
+        """Test the __repr__ method of the DAGOpNode"""
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+
+        custom_inst = Instruction(name="my_inst", num_qubits=1, num_clbits=1, params=[0, 1])
+        self.dag.apply_operation_back(custom_inst, [self.qubit0], [self.clbit0])
+
+        op_nodes = self.dag.op_nodes()
+        cx_node = op_nodes[0]
+        my_node = op_nodes[1]
+        self.assertEqual(
+            repr(cx_node),
+            f"""DAGOpNode(name : {cx_node.name}, qargs : {cx_node.qargs}, cargs : {cx_node.cargs})""",
+        )
+
+        self.assertEqual(
+            repr(my_node),
+            f"""DAGOpNode(name : {my_node.name}, qargs : {my_node.qargs}, cargs : {my_node.cargs})""",
+        )
+
     def test_get_op_nodes_particular(self):
         """The method dag.gates_nodes(op=AGate) returns all the AGate nodes"""
         self.dag.apply_operation_back(HGate(), [self.qubit0], [])

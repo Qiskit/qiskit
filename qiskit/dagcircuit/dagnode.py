@@ -341,6 +341,10 @@ class DAGOpNode(DAGNode):
         """Sets the Instruction name corresponding to the op for this node"""
         self.op.name = new_name
 
+    def __repr__(self):
+        """Returns a representation of the DAGOpNode"""
+        return f"""DAGOpNode(name : {self.name}, qargs : {self.qargs}, cargs : {self.cargs})"""
+
 
 class DAGInNode(DAGNode):
     """Object to represent an incoming wire node in the DAGCircuit."""
