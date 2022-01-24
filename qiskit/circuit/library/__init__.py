@@ -180,8 +180,12 @@ operations.
    XOR
    InnerProduct
 
-Basis Change Circuits
-=====================
+Basis Change Circuits (:mod:`qiskit.circuit.library.basis_change`)
+==================================================================
+
+Basis change algorithms are :class:`~qiskit.circuit.library.blueprintcircuit.BlueprintCircuit`
+subclasses that allow to transform between bases. For example, in the case of the
+Quantum Fourier Transform (QFT), it transforms between the computational basis and the Fourier basis.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -191,6 +195,9 @@ Basis Change Circuits
 
 Arithmetic Circuits
 ===================
+
+These :class:`~qiskit.circuit.quantumcircuit.QuantumCircuit`s allow to perform classical arithmetics,
+such as addition or multiplication.
 
 Amplitude Functions
 -------------------
