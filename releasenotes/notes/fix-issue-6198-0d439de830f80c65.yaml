@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Fix bug in :class:`~qiskit.circuit.library.PiecewiseChebyshev` so that the setting the
-    ``breakpoints`` parameter to ``None`` switches back to the default behavior of approximating
-    over the full interval.

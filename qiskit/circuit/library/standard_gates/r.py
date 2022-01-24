@@ -13,10 +13,12 @@
 """Rotation around an axis in x-y plane."""
 
 import math
+from typing import Optional
 import numpy
 from qiskit.qasm import pi
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 class RGate(Gate):
@@ -43,9 +45,11 @@ class RGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, theta, phi):
+    def __init__(
+        self, theta: ParameterValueType, phi: ParameterValueType, label: Optional[str] = None
+    ):
         """Create new r single-qubit gate."""
-        super().__init__("r", 1, [theta, phi])
+        super().__init__("r", 1, [theta, phi], label=label)
 
     def _define(self):
         """

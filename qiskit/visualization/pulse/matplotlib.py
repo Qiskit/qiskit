@@ -83,7 +83,7 @@ class EventsOutputChannels:
             pulse = instruction.pulse
         else:
             pulse = instruction
-        if start_time in self.pulses.keys():
+        if start_time in self.pulses:
             self.pulses[start_time].append(pulse)
         else:
             self.pulses[start_time] = [pulse]
@@ -876,7 +876,7 @@ class ScheduleDrawer:
         schedule: ScheduleComponent,
         dt: float,
         interp_method: Callable,
-        plot_range: Tuple[Union[int, float], Union[int, float]],
+        plot_range: Tuple[float, float],
         scale: float = None,
         channel_scales: Dict[Channel, float] = None,
         plot_all: bool = True,

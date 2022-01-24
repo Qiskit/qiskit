@@ -32,6 +32,12 @@ class TestQuasi(QiskitTestCase):
         quasi = QuasiDistribution(qprobs)
         self.assertEqual({0: 3 / 5, 1: 1 / 2, 2: 7 / 20, 3: 1 / 10, 4: -11 / 20}, quasi)
 
+    def test_bin_quasi_no_0b(self):
+        """Test binary input without 0b in front."""
+        qprobs = {"000": 3 / 5, "001": 1 / 2, "010": 7 / 20, "011": 1 / 10, "100": -11 / 20}
+        quasi = QuasiDistribution(qprobs)
+        self.assertEqual({0: 3 / 5, 1: 1 / 2, 2: 7 / 20, 3: 1 / 10, 4: -11 / 20}, quasi)
+
     def test_bin_no_prefix_quasi(self):
         """Test binary input without 0b prefix."""
         qprobs = {"0": 3 / 5, "1": 1 / 2, "10": 7 / 20, "11": 1 / 10, "100": -11 / 20}
@@ -62,21 +68,28 @@ class TestQuasi(QiskitTestCase):
         """Test hexadecimal input and binary output."""
         qprobs = {"0x0": 3 / 5, "0x1": 1 / 2, "0x2": 7 / 20, "0x3": 1 / 10, "0x4": -11 / 20}
         quasi = QuasiDistribution(qprobs)
-        expected = {"0": 3 / 5, "1": 1 / 2, "10": 7 / 20, "11": 1 / 10, "100": -11 / 20}
+        expected = {"000": 3 / 5, "001": 1 / 2, "010": 7 / 20, "011": 1 / 10, "100": -11 / 20}
         self.assertEqual(expected, quasi.binary_probabilities())
 
     def test_bin_quasi_bin_out(self):
         """Test binary input and binary output."""
         qprobs = {"0b0": 3 / 5, "0b1": 1 / 2, "0b10": 7 / 20, "0b11": 1 / 10, "0b100": -11 / 20}
         quasi = QuasiDistribution(qprobs)
-        expected = {"0": 3 / 5, "1": 1 / 2, "10": 7 / 20, "11": 1 / 10, "100": -11 / 20}
+        expected = {"000": 3 / 5, "001": 1 / 2, "010": 7 / 20, "011": 1 / 10, "100": -11 / 20}
         self.assertEqual(expected, quasi.binary_probabilities())
 
     def test_bin_no_prefix_quasi_bin_out(self):
         """Test binary input without a 0b prefix and binary output."""
-        qprobs = {"0": 3 / 5, "1": 1 / 2, "10": 7 / 20, "11": 1 / 10, "100": -11 / 20}
+        qprobs = {"000": 3 / 5, "001": 1 / 2, "010": 7 / 20, "011": 1 / 10, "100": -11 / 20}
         quasi = QuasiDistribution(qprobs)
         self.assertEqual(qprobs, quasi.binary_probabilities())
+
+    def test_hex_quasi_bin_out_padded(self):
+        """Test hexadecimal input and binary output, padded with zeros."""
+        qprobs = {"0x0": 3 / 5, "0x1": 1 / 2, "0x2": 7 / 20, "0x3": 1 / 10, "0x4": -11 / 20}
+        quasi = QuasiDistribution(qprobs)
+        expected = {"0000": 3 / 5, "0001": 1 / 2, "0010": 7 / 20, "0011": 1 / 10, "0100": -11 / 20}
+        self.assertEqual(expected, quasi.binary_probabilities(num_bits=4))
 
     def test_empty(self):
         """Test empty input."""

@@ -13,7 +13,6 @@
 """Node for an OPENQASM unary operator."""
 
 import operator
-import warnings
 
 from .node import Node
 from .nodeexception import NodeException
@@ -45,13 +44,6 @@ class UnaryOperator(Node):
         except KeyError as ex:
             raise NodeException(f"internal error: undefined prefix '{self.value}'") from ex
 
-    def qasm(self, prec=None):
+    def qasm(self):
         """Return QASM representation."""
-        if prec is not None:
-            warnings.warn(
-                "Parameter 'UnaryOperator.qasm(..., prec)' is no longer used and is "
-                "being deprecated.",
-                DeprecationWarning,
-                2,
-            )
         return self.value

@@ -114,7 +114,7 @@ class CVaRExpectation(ExpectationBase):
             elif isinstance(operator, ListOp):
                 return operator.combo_fn([cvar_variance(op) for op in operator.oplist])
 
-            raise ValueError("Input operator does not correspond to a value " "expectation value.")
+            raise ValueError("Input operator does not correspond to a value expectation value.")
 
         cvar_op = self.convert(exp_op)
         return cvar_variance(cvar_op)

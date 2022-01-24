@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member
-
 """Tests basic functionality of the transpile function"""
 
 import io
@@ -32,6 +30,7 @@ from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
 from qiskit.circuit import Parameter, Gate, Qubit, Clbit
 from qiskit.compiler import transpile
+from qiskit.dagcircuit import DAGOutNode
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate, RXGate, RYGate, RZGate
 from qiskit.test import QiskitTestCase
@@ -48,6 +47,10 @@ from qiskit.transpiler.preset_passmanagers import level_0_pass_manager
 @ddt
 class TestTranspile(QiskitTestCase):
     """Test transpile function."""
+
+    def test_empty_transpilation(self):
+        """Test that transpiling an empty list is a no-op.  Regression test of gh-7287."""
+        self.assertEqual(transpile([]), [])
 
     def test_pass_manager_none(self):
         """Test passing the default (None) pass manager to the transpiler.
@@ -522,8 +525,7 @@ class TestTranspile(QiskitTestCase):
             transpile(qc, backend, initial_layout=bad_initial_layout)
 
         self.assertEqual(
-            "FullAncillaAllocation: The layout refers to a qubit that does "
-            "not exist in circuit.",
+            "FullAncillaAllocation: The layout refers to a qubit that does not exist in circuit.",
             cm.exception.message,
         )
 
@@ -678,7 +680,7 @@ class TestTranspile(QiskitTestCase):
         meas_nodes = out_dag.named_nodes("measure")
         for meas_node in meas_nodes:
             is_last_measure = all(
-                after_measure.type == "out"
+                isinstance(after_measure, DAGOutNode)
                 for after_measure in out_dag.quantum_successors(meas_node)
             )
             self.assertTrue(is_last_measure)
@@ -1123,6 +1125,49 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(out.duration, cal.duration)
 
     @data(0, 1, 2, 3)
+    def test_multiqubit_gates_calibrations(self, opt_level):
+        """Test multiqubit gate > 2q with calibrations works
+
+        Adapted from issue description in https://github.com/Qiskit/qiskit-terra/issues/6572
+        """
+        circ = QuantumCircuit(5)
+        custom_gate = Gate("my_custom_gate", 5, [])
+        circ.append(custom_gate, [0, 1, 2, 3, 4])
+        circ.measure_all()
+        backend = FakeAlmaden()
+        with pulse.build(backend, name="custom") as my_schedule:
+            pulse.play(
+                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(0)
+            )
+            pulse.play(
+                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(1)
+            )
+            pulse.play(
+                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(2)
+            )
+            pulse.play(
+                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(3)
+            )
+            pulse.play(
+                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(4)
+            )
+            pulse.play(
+                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.ControlChannel(1)
+            )
+            pulse.play(
+                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.ControlChannel(2)
+            )
+            pulse.play(
+                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.ControlChannel(3)
+            )
+            pulse.play(
+                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.ControlChannel(4)
+            )
+        circ.add_calibration("my_custom_gate", [0, 1, 2, 3, 4], my_schedule, [])
+        trans_circ = transpile(circ, backend, optimization_level=opt_level)
+        self.assertEqual({"measure": 5, "my_custom_gate": 1, "barrier": 1}, trans_circ.count_ops())
+
+    @data(0, 1, 2, 3)
     def test_circuit_with_delay(self, optimization_level):
         """Verify a circuit with delay can transpile to a scheduled circuit."""
 
@@ -1169,12 +1214,12 @@ class TestTranspile(QiskitTestCase):
         # a -0.5 * theta phase for RZ to P twice, once at theta, and once at 3 pi
         # for the second and third RZ gates in the U3 decomposition.
         expected = QuantumCircuit(
-            1, global_phase=-np.pi / 2 - 0.5 * (0.2 + np.pi) - 0.5 * 3 * np.pi
+            1, global_phase=-np.pi / 2 - 0.5 * (-0.2 + np.pi) - 0.5 * 3 * np.pi
         )
-        expected.sx(0)
-        expected.p(-np.pi + 0.2, 0)
-        expected.sx(0)
         expected.p(-np.pi, 0)
+        expected.sx(0)
+        expected.p(np.pi - 0.2, 0)
+        expected.sx(0)
 
         error_message = (
             f"\nOutput circuit:\n{out!s}\n{Operator(out).data}\n"

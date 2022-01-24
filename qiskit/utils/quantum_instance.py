@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2021.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,15 +13,18 @@
 """ Quantum Instance module """
 
 from typing import Optional, List, Union, Dict, Callable, Tuple
+from enum import Enum
 import copy
 import logging
 import time
+import warnings
+
 import numpy as np
 
 from qiskit.qobj import Qobj
 from qiskit.utils import circuit_utils
 from qiskit.exceptions import QiskitError
-from .backend_utils import (
+from qiskit.utils.backend_utils import (
     is_ibmq_provider,
     is_statevector_backend,
     is_simulator_backend,
@@ -30,8 +33,93 @@ from .backend_utils import (
     is_basicaer_provider,
     support_backend_options,
 )
+from qiskit.utils.mitigation import (
+    CompleteMeasFitter,
+    TensoredMeasFitter,
+)
 
 logger = logging.getLogger(__name__)
+
+
+class _MeasFitterType(Enum):
+    """Meas Fitter Type."""
+
+    COMPLETE_MEAS_FITTER = 0
+    TENSORED_MEAS_FITTER = 1
+
+    @staticmethod
+    def type_from_class(meas_class):
+        """
+        Returns fitter type from class
+        """
+        if meas_class == CompleteMeasFitter:
+            return _MeasFitterType.COMPLETE_MEAS_FITTER
+        elif meas_class == TensoredMeasFitter:
+            return _MeasFitterType.TENSORED_MEAS_FITTER
+        try:
+            from qiskit.ignis.mitigation.measurement import (
+                CompleteMeasFitter as CompleteMeasFitter_IG,
+                TensoredMeasFitter as TensoredMeasFitter_IG,
+            )
+        except ImportError:
+            pass
+        if meas_class == CompleteMeasFitter_IG:
+            warnings.warn(
+                "The use of qiskit-ignis for measurement mitigation is "
+                "deprecated and will be removed in a future release. Instead "
+                "use the CompleteMeasFitter class from qiskit.utils.mitigation",
+                DeprecationWarning,
+                stacklevel=3,
+            )
+            return _MeasFitterType.COMPLETE_MEAS_FITTER
+        elif meas_class == TensoredMeasFitter_IG:
+            warnings.warn(
+                "The use of qiskit-ignis for measurement mitigation is "
+                "deprecated and will be removed in a future release. Instead "
+                "use the TensoredMeasFitter class from qiskit.utils.mitigation",
+                DeprecationWarning,
+                stacklevel=3,
+            )
+            return _MeasFitterType.TENSORED_MEAS_FITTER
+        else:
+            raise QiskitError(f"Unknown fitter {meas_class}")
+
+    @staticmethod
+    def type_from_instance(meas_instance):
+        """
+        Returns fitter type from instance
+        """
+        if isinstance(meas_instance, CompleteMeasFitter):
+            return _MeasFitterType.COMPLETE_MEAS_FITTER
+        elif isinstance(meas_instance, TensoredMeasFitter):
+            return _MeasFitterType.TENSORED_MEAS_FITTER
+        try:
+            from qiskit.ignis.mitigation.measurement import (
+                CompleteMeasFitter as CompleteMeasFitter_IG,
+                TensoredMeasFitter as TensoredMeasFitter_IG,
+            )
+        except ImportError:
+            pass
+        if isinstance(meas_instance, CompleteMeasFitter_IG):
+            warnings.warn(
+                "The use of qiskit-ignis for measurement mitigation is "
+                "deprecated and will be removed in a future release. Instead "
+                "use the CompleteMeasFitter class from qiskit.utils.mitigation",
+                DeprecationWarning,
+                stacklevel=3,
+            )
+            return _MeasFitterType.COMPLETE_MEAS_FITTER
+        elif isinstance(meas_instance, TensoredMeasFitter_IG):
+            warnings.warn(
+                "The use of qiskit-ignis for measurement mitigation is "
+                "deprecated and will be removed in a future release. Instead "
+                "use the TensoredMeasFitter class from qiskit.utils.mitigation",
+                DeprecationWarning,
+                stacklevel=3,
+            )
+            return _MeasFitterType.TENSORED_MEAS_FITTER
+        else:
+            raise QiskitError(f"Unknown fitter {meas_instance}")
 
 
 class QuantumInstance:
@@ -60,13 +148,14 @@ class QuantumInstance:
         # run config
         shots: Optional[int] = None,
         seed_simulator: Optional[int] = None,
-        max_credits: int = 10,
+        max_credits: int = None,
         # backend properties
         basis_gates: Optional[List[str]] = None,
         coupling_map=None,
         # transpile
         initial_layout=None,
         pass_manager=None,
+        bound_pass_manager=None,
         seed_transpiler: Optional[int] = None,
         optimization_level: Optional[int] = None,
         # simulation
@@ -81,6 +170,8 @@ class QuantumInstance:
         cals_matrix_refresh_period: int = 30,
         measurement_error_mitigation_shots: Optional[int] = None,
         job_callback: Optional[Callable] = None,
+        mit_pattern: Optional[List[List[int]]] = None,
+        max_job_retries: int = 50,
     ) -> None:
         """
         Quantum Instance holds a Qiskit Terra backend as well as configuration for circuit
@@ -92,15 +183,25 @@ class QuantumInstance:
             shots: Number of repetitions of each circuit, for sampling. If None, the shots are
                 extracted from the backend. If the backend has none set, the default is 1024.
             seed_simulator: Random seed for simulators
-            max_credits: Maximum credits to use
+            max_credits: DEPRECATED This parameter is deprecated as of
+                Qiskit Terra 0.20.0, and will be removed in a future release. This parameter has
+                no effect on modern IBM Quantum systems, and no alternative is necessary.
             basis_gates: List of basis gate names supported by the
-                                               target. Defaults to basis gates of the backend.
+                target. Defaults to basis gates of the backend.
             coupling_map (Optional[Union['CouplingMap', List[List]]]):
-                        Coupling map (perhaps custom) to target in mapping
+                Coupling map (perhaps custom) to target in mapping
             initial_layout (Optional[Union['Layout', Dict, List]]):
-                        Initial layout of qubits in mapping
-            pass_manager (Optional['PassManager']):
-                        Pass manager to handle how to compile the circuits
+                Initial layout of qubits in mapping
+            pass_manager (Optional['PassManager']): Pass manager to handle how to compile the circuits.
+                To run only this pass manager and not the ``bound_pass_manager``, call the
+                :meth:`~qiskit.utils.QuantumInstance.transpile` method with the argument
+                ``pass_manager=quantum_instance.unbound_pass_manager``.
+            bound_pass_manager (Optional['PassManager']): A second pass manager to apply on bound
+                circuits only, that is, circuits without any free parameters. To only run this pass
+                manager and not ``pass_manager`` call the
+                :meth:`~qiskit.utils.QuantumInstance.transpile` method with the argument
+                ``pass_manager=quantum_instance.bound_pass_manager``.
+                manager should also be run.
             seed_transpiler: The random seed for circuit mapper
             optimization_level: How much optimization to perform on the circuits.
                 Higher levels generate more optimized circuits, at the expense of longer
@@ -113,9 +214,10 @@ class QuantumInstance:
             skip_qobj_validation: Bypass Qobj validation to decrease circuit
                 processing time during submission to backend.
             measurement_error_mitigation_cls: The approach to mitigate
-                measurement errors. Qiskit Ignis provides fitter classes for this functionality
-                and CompleteMeasFitter from qiskit.ignis.mitigation.measurement module can be used
-                here. (TensoredMeasFitter is not supported).
+                measurement errors. The classes :class:`~qiskit.utils.mitigation.CompleteMeasFitter`
+                or :class:`~qiskit.utils.mitigation.TensoredMeasFitter` from the
+                :mod:`qiskit.utils.mitigation` module can be used here as exact values, not
+                instances. ``TensoredMeasFitter`` doesn't support the ``subset_fitter`` method.
             cals_matrix_refresh_period: How often to refresh the calibration
                 matrix in measurement mitigation. in minutes
             measurement_error_mitigation_shots: The number of shots number for
@@ -124,6 +226,12 @@ class QuantumInstance:
                 to monitor job progress as jobs are submitted for processing by an Aqua algorithm.
                 The callback is provided the following arguments: `job_id, job_status,
                 queue_position, job`
+            mit_pattern: Qubits on which to perform the TensoredMeasFitter
+                measurement correction, divided to groups according to tensors.
+                If `None` and `qr` is given then assumed to be performed over the entire
+                `qr` as one group (default `None`).
+            max_job_retries(int): positive non-zero number of trials for the job set (-1 for
+                infinite trials) (default: 50)
 
         Raises:
             QiskitError: the shots exceeds the maximum number of shots
@@ -132,6 +240,7 @@ class QuantumInstance:
         """
         self._backend = backend
         self._pass_manager = pass_manager
+        self._bound_pass_manager = bound_pass_manager
 
         # if the shots are none, try to get them from the backend
         if shots is None:
@@ -154,6 +263,15 @@ class QuantumInstance:
 
         # pylint: disable=cyclic-import
         from qiskit.assembler.run_config import RunConfig
+
+        if max_credits is not None:
+            warnings.warn(
+                "The `max_credits` parameter is deprecated as of Qiskit Terra 0.20.0, "
+                "and will be removed in a future release. This parameter has no effect on "
+                "modern IBM Quantum systems, and no alternative is necessary.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         run_config = RunConfig(shots=shots, max_credits=max_credits)
         if seed_simulator is not None:
@@ -198,7 +316,7 @@ class QuantumInstance:
                 self._backend_options = {"backend_options": backend_options}
             else:
                 raise QiskitError(
-                    "backend_options can not used with the backends in " "IBMQ provider."
+                    "backend_options can not used with the backends in IBMQ provider."
                 )
 
         # setup measurement error mitigation
@@ -206,7 +324,7 @@ class QuantumInstance:
         if self.is_statevector:
             if measurement_error_mitigation_cls is not None:
                 raise QiskitError(
-                    "Measurement error mitigation does not work " "with the statevector simulation."
+                    "Measurement error mitigation does not work with the statevector simulation."
                 )
         else:
             self._meas_error_mitigation_cls = measurement_error_mitigation_cls
@@ -215,6 +333,7 @@ class QuantumInstance:
         self._meas_error_mitigation_method = "least_squares"
         self._cals_matrix_refresh_period = cals_matrix_refresh_period
         self._meas_error_mitigation_shots = measurement_error_mitigation_shots
+        self._mit_pattern = mit_pattern
 
         if self._meas_error_mitigation_cls is not None:
             logger.info(
@@ -241,6 +360,7 @@ class QuantumInstance:
         self._circuit_summary = False
         self._job_callback = job_callback
         self._time_taken = 0.0
+        self._max_job_retries = max_job_retries
         logger.info(self)
 
     def __str__(self) -> str:
@@ -251,7 +371,7 @@ class QuantumInstance:
         """
         from qiskit import __version__ as terra_version
 
-        info = "\nQiskit Terra version: {}\n".format(terra_version)
+        info = f"\nQiskit Terra version: {terra_version}\n"
         info += "Backend: '{} ({})', with following setting:\n{}\n{}\n{}\n{}\n{}\n{}".format(
             self.backend_name,
             self._backend.provider(),
@@ -262,28 +382,67 @@ class QuantumInstance:
             self._backend_options,
             self._noise_config,
         )
-        info += "\nMeasurement mitigation: {}".format(self._meas_error_mitigation_cls)
+
+        info += f"\nMeasurement mitigation: {self._meas_error_mitigation_cls}"
 
         return info
 
-    def transpile(self, circuits):
+    @property
+    def unbound_pass_manager(self):
+        """Return the pass manager for designated for unbound circuits.
+
+        Returns:
+            Optional['PassManager']: The pass manager for unbound circuits, if it has been set.
         """
-        A wrapper to transpile circuits to allow algorithm access the transpiled circuits.
+        return self._pass_manager
+
+    @property
+    def bound_pass_manager(self):
+        """Return the pass manager for designated for bound circuits.
+
+        Returns:
+            Optional['PassManager']: The pass manager for bound circuits, if it has been set.
+        """
+        return self._bound_pass_manager
+
+    def transpile(self, circuits, pass_manager=None):
+        """A wrapper to transpile circuits to allow algorithm access the transpiled circuits.
+
         Args:
             circuits (Union['QuantumCircuit', List['QuantumCircuit']]): circuits to transpile
+            pass_manager (Optional['PassManager']): A pass manager to transpile the circuits. If
+                none is given, but either ``pass_manager`` or ``bound_pass_manager`` has been set
+                in the initializer, these are run. If none has been provided there either, the
+                backend and compile configs from the initializer are used.
+
         Returns:
             List['QuantumCircuit']: The transpiled circuits, it is always a list even though
-                                    the length is one.
+                the length is one.
         """
         # pylint: disable=cyclic-import
         from qiskit import compiler
+        from qiskit.transpiler import PassManager
 
-        if self._pass_manager is not None:
-            transpiled_circuits = self._pass_manager.run(circuits)
+        # if no pass manager here is given, check if they have been set in the init
+        if pass_manager is None:
+            # if they haven't been set in the init, use the transpile args from the init
+            if self._pass_manager is None and self._bound_pass_manager is None:
+                transpiled_circuits = compiler.transpile(
+                    circuits, self._backend, **self._backend_config, **self._compile_config
+                )
+            # it they have been set, run them
+            else:
+                pass_manager = PassManager()
+                if self._pass_manager is not None:
+                    pass_manager += self._pass_manager  # check if None
+                if self._bound_pass_manager is not None:
+                    pass_manager += self._bound_pass_manager
+
+                transpiled_circuits = pass_manager.run(circuits)
+        # custom pass manager set by user
         else:
-            transpiled_circuits = compiler.transpile(
-                circuits, self._backend, **self._backend_config, **self._compile_config
-            )
+            transpiled_circuits = pass_manager.run(circuits)
+
         if not isinstance(transpiled_circuits, list):
             transpiled_circuits = [transpiled_circuits]
 
@@ -312,6 +471,12 @@ class QuantumInstance:
                         circuits to execute
             had_transpiled: whether or not circuits had been transpiled
 
+        Raises:
+            QiskitError: Invalid error mitigation fitter class
+            QiskitError: TensoredMeasFitter class doesn't support subset fitter
+            MissingOptionalLibraryError: Ignis not installed
+
+
         Returns:
             Result: result object
 
@@ -319,7 +484,6 @@ class QuantumInstance:
               assembling to the qobj.
         """
         from qiskit.utils.run_circuits import run_qobj, run_circuits
-
         from qiskit.utils.measurement_error_mitigation import (
             get_measured_qubits_from_qobj,
             get_measured_qubits,
@@ -327,8 +491,18 @@ class QuantumInstance:
             build_measurement_error_mitigation_qobj,
         )
 
-        # maybe compile
-        if not had_transpiled:
+        if had_transpiled:
+            # Convert to a list or make a copy.
+            # The measurement mitigation logic expects a list and
+            # may change it in place. This makes sure that logic works
+            # and any future logic that may change the input.
+            # It also makes the code easier: it will always deal with a list.
+            if isinstance(circuits, list):
+                circuits = circuits.copy()
+            else:
+                circuits = [circuits]
+        else:
+            # transpile here, the method always returns a copied list
             circuits = self.transpile(circuits)
 
         from qiskit.providers import BackendV1
@@ -364,6 +538,9 @@ class QuantumInstance:
                 if circuit_job
                 else get_measured_qubits_from_qobj(qobj)
             )
+            mit_pattern = self._mit_pattern
+            if mit_pattern is None:
+                mit_pattern = [[i] for i in range(len(qubit_index))]
             qubit_index_str = "_".join([str(x) for x in qubit_index]) + "_{}".format(
                 self._meas_error_mitigation_shots or self._run_config.shots
             )
@@ -402,6 +579,8 @@ class QuantumInstance:
                 self.maybe_refresh_cals_matrix(timestamp) or meas_error_mitigation_fitter is None
             )
 
+            cal_circuits = None
+            prepended_calibration_circuits: int = 0
             if build_cals_matrix:
                 if circuit_job:
                     logger.info("Updating to also run measurement error mitigation.")
@@ -422,6 +601,7 @@ class QuantumInstance:
                         self._backend,
                         self._backend_config,
                         self._compile_config,
+                        mit_pattern=mit_pattern,
                     )
                     if use_different_shots:
                         cals_result = run_circuits(
@@ -432,6 +612,7 @@ class QuantumInstance:
                             noise_config=self._noise_config,
                             run_config=self._run_config.to_dict(),
                             job_callback=self._job_callback,
+                            max_job_retries=self._max_job_retries,
                         )
                         self._time_taken += cals_result.time_taken
                         result = run_circuits(
@@ -442,10 +623,12 @@ class QuantumInstance:
                             noise_config=self._noise_config,
                             run_config=self.run_config.to_dict(),
                             job_callback=self._job_callback,
+                            max_job_retries=self._max_job_retries,
                         )
                         self._time_taken += result.time_taken
                     else:
                         circuits[0:0] = cal_circuits
+                        prepended_calibration_circuits = len(cal_circuits)
                         result = run_circuits(
                             circuits,
                             self._backend,
@@ -454,6 +637,7 @@ class QuantumInstance:
                             noise_config=self._noise_config,
                             run_config=self.run_config.to_dict(),
                             job_callback=self._job_callback,
+                            max_job_retries=self._max_job_retries,
                         )
                         self._time_taken += result.time_taken
                         cals_result = result
@@ -479,6 +663,7 @@ class QuantumInstance:
                         self._backend_config,
                         self._compile_config,
                         temp_run_config,
+                        mit_pattern=mit_pattern,
                     )
                     if use_different_shots or is_aer_qasm(self._backend):
                         cals_result = run_qobj(
@@ -489,6 +674,7 @@ class QuantumInstance:
                             self._noise_config,
                             self._skip_qobj_validation,
                             self._job_callback,
+                            self._max_job_retries,
                         )
                         self._time_taken += cals_result.time_taken
                         result = run_qobj(
@@ -499,6 +685,7 @@ class QuantumInstance:
                             self._noise_config,
                             self._skip_qobj_validation,
                             self._job_callback,
+                            self._max_job_retries,
                         )
                         self._time_taken += result.time_taken
                     else:
@@ -512,14 +699,21 @@ class QuantumInstance:
                             self._noise_config,
                             self._skip_qobj_validation,
                             self._job_callback,
+                            self._max_job_retries,
                         )
                         self._time_taken += result.time_taken
                         cals_result = result
 
                 logger.info("Building calibration matrix for measurement error mitigation.")
-                meas_error_mitigation_fitter = self._meas_error_mitigation_cls(
-                    cals_result, state_labels, qubit_list=qubit_index, circlabel=circuit_labels
-                )
+                meas_type = _MeasFitterType.type_from_class(self._meas_error_mitigation_cls)
+                if meas_type == _MeasFitterType.COMPLETE_MEAS_FITTER:
+                    meas_error_mitigation_fitter = self._meas_error_mitigation_cls(
+                        cals_result, state_labels, qubit_list=qubit_index, circlabel=circuit_labels
+                    )
+                elif meas_type == _MeasFitterType.TENSORED_MEAS_FITTER:
+                    meas_error_mitigation_fitter = self._meas_error_mitigation_cls(
+                        cals_result, mit_pattern=state_labels, circlabel=circuit_labels
+                    )
                 self._meas_error_mitigation_fitters[qubit_index_str] = (
                     meas_error_mitigation_fitter,
                     time.time(),
@@ -534,6 +728,7 @@ class QuantumInstance:
                         noise_config=self._noise_config,
                         run_config=self._run_config.to_dict(),
                         job_callback=self._job_callback,
+                        max_job_retries=self._max_job_retries,
                     )
                     if circuit_job
                     else run_qobj(
@@ -544,6 +739,7 @@ class QuantumInstance:
                         self._noise_config,
                         self._skip_qobj_validation,
                         self._job_callback,
+                        self._max_job_retries,
                     )
                 )
                 self._time_taken += result.time_taken
@@ -560,7 +756,8 @@ class QuantumInstance:
                     num_param_variations = len(self._run_config.parameterizations[0][0])
                     num_circuits = num_circuit_templates * num_param_variations
                 else:
-                    num_circuits = len(circuits)
+                    input_circuits = circuits[prepended_calibration_circuits:]
+                    num_circuits = len(input_circuits)
                 skip_num_circuits = len(result.results) - num_circuits
                 #  remove the calibration counts from result object to assure the length of
                 #  ExperimentalResult is equal length to input circuits
@@ -571,12 +768,26 @@ class QuantumInstance:
                     tmp_result.results = [result.results[i] for i in c_idx]
                     if curr_qubit_index == qubit_index:
                         tmp_fitter = meas_error_mitigation_fitter
-                    else:
+                    elif _MeasFitterType.COMPLETE_MEAS_FITTER == _MeasFitterType.type_from_instance(
+                        meas_error_mitigation_fitter
+                    ):
                         tmp_fitter = meas_error_mitigation_fitter.subset_fitter(curr_qubit_index)
+                    else:
+                        raise QiskitError(
+                            "{} doesn't support subset_fitter.".format(
+                                meas_error_mitigation_fitter.__class__.__name__
+                            )
+                        )
                     tmp_result = tmp_fitter.filter.apply(
                         tmp_result, self._meas_error_mitigation_method
                     )
                     for i, n in enumerate(c_idx):
+                        # convert counts to integer and remove 0 values
+                        tmp_result.results[i].data.counts = {
+                            k: round(v)
+                            for k, v in tmp_result.results[i].data.counts.items()
+                            if round(v) != 0
+                        }
                         result.results[n] = tmp_result.results[i]
 
         else:
@@ -589,6 +800,7 @@ class QuantumInstance:
                     noise_config=self._noise_config,
                     run_config=self._run_config.to_dict(),
                     job_callback=self._job_callback,
+                    max_job_retries=self._max_job_retries,
                 )
                 if circuit_job
                 else run_qobj(
@@ -599,6 +811,7 @@ class QuantumInstance:
                     self._noise_config,
                     self._skip_qobj_validation,
                     self._job_callback,
+                    self._max_job_retries,
                 )
             )
             self._time_taken += result.time_taken
@@ -646,7 +859,7 @@ class QuantumInstance:
                 self._noise_config[k] = v
 
             else:
-                raise ValueError("unknown setting for the key ({}).".format(k))
+                raise ValueError(f"unknown setting for the key ({k}).")
 
     @property
     def time_taken(self) -> float:
@@ -696,6 +909,25 @@ class QuantumInstance:
     def circuit_summary(self, new_value):
         """sets circuit summary"""
         self._circuit_summary = new_value
+
+    @property
+    def max_job_retries(self):
+        """Getter of max tries"""
+        return self._max_job_retries
+
+    @max_job_retries.setter
+    def max_job_retries(self, new_value):
+        """Sets the maximum tries"""
+        if not isinstance(new_value, int):
+            raise TypeError("max_job_retries parameter must be an integer")
+        if new_value < -1 or new_value == 0:
+            raise ValueError(
+                "max_job_retries must either be a positive integer or -1(for infinite trials)"
+            )
+        if new_value == -1:
+            self._max_job_retries = int(1e18)
+        else:
+            self._max_job_retries = new_value
 
     @property
     def measurement_error_mitigation_cls(self):  # pylint: disable=invalid-name
@@ -798,7 +1030,7 @@ class QuantumInstance:
         """
         shots = self._meas_error_mitigation_shots or self._run_config.shots
         if qubit_index:
-            qubit_index_str = "_".join([str(x) for x in qubit_index]) + "_{}".format(shots)
+            qubit_index_str = "_".join([str(x) for x in qubit_index]) + f"_{shots}"
             fitter, timestamp = self._meas_error_mitigation_fitters.get(qubit_index_str, None)
             if fitter is not None:
                 return fitter.cal_matrix, timestamp

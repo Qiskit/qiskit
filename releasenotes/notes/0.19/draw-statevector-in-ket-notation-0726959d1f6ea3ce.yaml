@@ -1,0 +1,29 @@
+---
+features:
+  - |
+    The :obj:`.Statevector`\ s of states comprised only of qubits can now be
+    drawn in LaTeX in ket notation.  In ket notation the entries of the
+    statevector are processed such that exact factors like fractions or square
+    roots of two are drawn as such.  The particular convention can be chosen by
+    passing the ``convention`` keyword argument as either ``"ket"`` or
+    ``"vector"`` as appropriate::
+
+        import math
+        from qiskit.quantum_info import Statevector
+
+        sv = Statevector([math.sqrt(0.5), 0, 0, -math.sqrt(0.5)])
+        sv.draw("latex", convention="ket")
+        sv.draw("latex", convention="vector")
+upgrade:
+  - |
+    The output of :meth:`.Statevector.draw` when using ``"latex"`` output is
+    now the new ``"ket"`` convention if plotting a state comprised purely of qubits.
+    This was changed to make reading the output clearer, especially in
+    educational contexts, because it shows the ket labels, and only displays the
+    nonzero elements.
+issues:
+  - |
+    The ``"ket"`` convention in the ``"latex"`` drawer of :meth:`.Statevector.draw`
+    is only valid for states comprising purely of qubits.  If you are using states
+    with some spaces of dimension greater than two, you should either pass
+    ``convention="vector"``, or use a different drawer.

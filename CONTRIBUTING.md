@@ -10,6 +10,28 @@ https://qiskit.org/documentation/contributing_to_qiskit.html
 In addition to the general guidelines there are specific details for
 contributing to terra, these are documented below.
 
+### Contents
+* [Choose an issue to work on](#Choose-an-issue-to-work-on)
+* [Pull request checklist](#pull-request-checklist)
+* [Changelog generation](#changelog-generation)
+* [Release Notes](#release-notes)
+* [Installing Qiskit Terra from source](#installing-qiskit-terra-from-source)
+* [Test](#test)
+  * [Snapshot testing for visualizations](#snapshot-testing-for-visualizations)
+* [Style and Lint](#style-and-lint)
+* [Development Cycle](#development-cycle)
+  * [Branches](#branches)
+  * [Release Cycle](#release-cycle)
+* [Adding deprecation warnings](#adding-deprecation-warnings)
+* [Dealing with git blame ignore list](#dealing-with-the-git-blame-ignore-list)
+
+### Choose an issue to work on
+Qiskit Terra uses the following labels to help non-maintainers find issues best suited to their interests and experience level:
+
+* [good first issue](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) - these issues are typically the simplest available to work on, perfect for newcomers. They should already be fully scoped, with a clear approach outlined in the descriptions.
+* [help wanted](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22) - these issues are generally more complex than good first issues. They typically cover work that core maintainers don't currently have capacity to implement and may require more investigation/discussion. These are a great option for experienced contributors looking for something a bit more challenging.
+* [short project](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22short+project%22) - these issues are bigger pieces of work that require greater time commitment. Good options for hackathons, internship projects etc.
+
 ### Pull request checklist
 
 When submitting a pull request and you feel it is ready for review,
@@ -327,38 +349,38 @@ we used in our CI systems more closely.
 
 ### Snapshot Testing for Visualizations
 
-If you are working on code that makes changes to any matplotlib visualisations 
-you will need to check that your changes don't break any snapshot tests, and add 
+If you are working on code that makes changes to any matplotlib visualisations
+you will need to check that your changes don't break any snapshot tests, and add
 new tests where necessary. You can do this as follows:
 
 1. Make sure you have pushed your latest changes to your remote branch.
 2. Go to link: `https://mybinder.org/v2/gh/<github_user>/<repo>/<branch>?urlpath=apps/test/ipynb/mpl_tester.ipynb`. For example, if your GitHub username is `username`, your forked repo has the same name the original, and your branch is `my_awesome_new_feature`, you should visit https://mybinder.org/v2/gh/username/qiskit-terra/my_awesome_new_feature?urlpath=apps/test/ipynb/mpl_tester.ipynb.
-This opens a Jupyter Notebook application running in the cloud that automatically runs 
+This opens a Jupyter Notebook application running in the cloud that automatically runs
 the snapshot tests (note this may take some time to finish loading).
 3. Each test result provides a set of 3 images (left: reference image, middle: your test result, right: differences). In the list of tests the passed tests are collapsed and failed tests are expanded. If a test fails, you will see a situation like this:
 
    <img width="995" alt="Screenshot_2021-03-26_at_14 13 54" src="https://user-images.githubusercontent.com/23662430/112663508-d363e800-8e50-11eb-9478-6d665d0ff086.png">
-4. Fix any broken tests. Working on code for one aspect of the visualisations 
-can sometimes result in minor changes elsewhere to spacing etc. In these cases 
+4. Fix any broken tests. Working on code for one aspect of the visualisations
+can sometimes result in minor changes elsewhere to spacing etc. In these cases
 you just need to update the reference images as follows:
     - download the mismatched images (link at top of Jupyter Notebook output)
     - unzip the folder
-    - copy and paste the new images into `qiskit-terra/test/ipynb/mpl/references`, 
+    - copy and paste the new images into `qiskit-terra/test/ipynb/mpl/references`,
   replacing the existing reference images
-    - add, commit and push your changes, then restart the Jupyter Notebook app in your browser. The 
+    - add, commit and push your changes, then restart the Jupyter Notebook app in your browser. The
   tests should now pass.
 5. Add new snapshot tests covering your new features, extensions, or bugfixes.
     - add your new snapshot tests to `test/ipynb/mpl/test_circuit_matplotlib_drawer.py`
     , where you can also find existing tests to use as a guide.
-    - commit and push your changes, restart the Jupyter Notebook app in your browser. 
-    As this is the first time you run your new tests there won't be any reference 
-    images to compare to. Instead you should see an option in the list of tests 
+    - commit and push your changes, restart the Jupyter Notebook app in your browser.
+    As this is the first time you run your new tests there won't be any reference
+    images to compare to. Instead you should see an option in the list of tests
     to download the new images, like so:
 
     <img width="1002" alt="Screenshot_2021-03-26_at_15 38 31" src="https://user-images.githubusercontent.com/23662430/112665215-b9c3a000-8e52-11eb-89e7-b18550718522.png">
 
     - download the new images, then copy and paste into `qiskit-terra/test/ipynb/mpl/references`
-    - add, commit and push your changes, restart the Jupyter Notebook app in your browser. The 
+    - add, commit and push your changes, restart the Jupyter Notebook app in your browser. The
     new tests should now pass.
 
 Note: If you have run `test/ipynb/mpl_tester.ipynb` locally it is possible some file metadata has changed, **please do not commit and push changes to this file unless they were intentional**.
@@ -378,6 +400,12 @@ code formatting and lint. If black returns a code formatting error you can
 run `tox -eblack` to automatically update the code formatting to conform to
 the style. However, if `pylint` returns any error you will have to fix these
 issues by manually updating your code.
+
+Because `pylint` analysis can be slow, there is also a `tox -elint-incr` target, which only applies
+`pylint` to files which have changed from the source github. On rare occasions this will miss some
+issues that would have been caught by checking the complete source tree, but makes up for this by
+being much faster (and those rare oversights will still be caught by the CI after you open a pull
+request).
 
 ## Development Cycle
 

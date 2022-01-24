@@ -44,7 +44,8 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
         self.assertEqual(len(result.eigenvalues), 1)
         self.assertEqual(len(result.eigenstates), 1)
-        self.assertAlmostEqual(result.eigenvalues[0], -1.85727503 + 0j)
+        self.assertEqual(result.eigenvalues.dtype, np.float64)
+        self.assertAlmostEqual(result.eigenvalues[0], -1.85727503)
 
     def test_ce_k4(self):
         """Test for k=4 eigenvalues"""
@@ -52,8 +53,9 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
         self.assertEqual(len(result.eigenvalues), 4)
         self.assertEqual(len(result.eigenstates), 4)
+        self.assertEqual(result.eigenvalues.dtype, np.float64)
         np.testing.assert_array_almost_equal(
-            result.eigenvalues.real, [-1.85727503, -1.24458455, -0.88272215, -0.22491125]
+            result.eigenvalues, [-1.85727503, -1.24458455, -0.88272215, -0.22491125]
         )
 
     def test_ce_k4_filtered(self):
@@ -68,7 +70,8 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
         self.assertEqual(len(result.eigenvalues), 2)
         self.assertEqual(len(result.eigenstates), 2)
-        np.testing.assert_array_almost_equal(result.eigenvalues.real, [-0.88272215, -0.22491125])
+        self.assertEqual(result.eigenvalues.dtype, np.float64)
+        np.testing.assert_array_almost_equal(result.eigenvalues, [-0.88272215, -0.22491125])
 
     def test_ce_k4_filtered_empty(self):
         """Test for k=4 eigenvalues with filter always returning False"""
@@ -96,6 +99,84 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         algo = NumPyEigensolver(k=2)
         result = algo.compute_eigenvalues(operator=op)
         np.testing.assert_array_almost_equal(result.eigenvalues, [-1, 1])
+
+    def test_aux_operators_list(self):
+        """Test list-based aux_operators."""
+        aux_op1 = PauliSumOp.from_list([("II", 2.0)])
+        aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
+        aux_ops = [aux_op1, aux_op2]
+        algo = NumPyEigensolver()
+        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=aux_ops)
+        self.assertEqual(len(result.eigenvalues), 1)
+        self.assertEqual(len(result.eigenstates), 1)
+        self.assertEqual(result.eigenvalues.dtype, np.float64)
+        self.assertAlmostEqual(result.eigenvalues[0], -1.85727503)
+        self.assertEqual(len(result.aux_operator_eigenvalues), 1)
+        self.assertEqual(len(result.aux_operator_eigenvalues[0]), 2)
+        # expectation values
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][0], 2, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1][0], 0, places=6)
+        # standard deviations
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1][1], 0.0)
+
+        # Go again with additional None and zero operators
+        extra_ops = [*aux_ops, None, 0]
+        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=extra_ops)
+        self.assertEqual(len(result.eigenvalues), 1)
+        self.assertEqual(len(result.eigenstates), 1)
+        self.assertEqual(result.eigenvalues.dtype, np.float64)
+        self.assertAlmostEqual(result.eigenvalues[0], -1.85727503)
+        self.assertEqual(len(result.aux_operator_eigenvalues), 1)
+        self.assertEqual(len(result.aux_operator_eigenvalues[0]), 4)
+        # expectation values
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][0], 2, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1][0], 0, places=6)
+        self.assertIsNone(result.aux_operator_eigenvalues[0][2], None)
+        self.assertEqual(result.aux_operator_eigenvalues[0][3][0], 0.0)
+        # standard deviations
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1][1], 0.0)
+        self.assertEqual(result.aux_operator_eigenvalues[0][3][1], 0.0)
+
+    def test_aux_operators_dict(self):
+        """Test dict-based aux_operators."""
+        aux_op1 = PauliSumOp.from_list([("II", 2.0)])
+        aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
+        aux_ops = {"aux_op1": aux_op1, "aux_op2": aux_op2}
+        algo = NumPyEigensolver()
+        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=aux_ops)
+        self.assertEqual(len(result.eigenvalues), 1)
+        self.assertEqual(len(result.eigenstates), 1)
+        self.assertEqual(result.eigenvalues.dtype, np.float64)
+        self.assertAlmostEqual(result.eigenvalues[0], -1.85727503)
+        self.assertEqual(len(result.aux_operator_eigenvalues), 1)
+        self.assertEqual(len(result.aux_operator_eigenvalues[0]), 2)
+        # expectation values
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op1"][0], 2, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op2"][0], 0, places=6)
+        # standard deviations
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op1"][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op2"][1], 0.0)
+
+        # Go again with additional None and zero operators
+        extra_ops = {**aux_ops, "None_operator": None, "zero_operator": 0}
+        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=extra_ops)
+        self.assertEqual(len(result.eigenvalues), 1)
+        self.assertEqual(len(result.eigenstates), 1)
+        self.assertEqual(result.eigenvalues.dtype, np.float64)
+        self.assertAlmostEqual(result.eigenvalues[0], -1.85727503)
+        self.assertEqual(len(result.aux_operator_eigenvalues), 1)
+        self.assertEqual(len(result.aux_operator_eigenvalues[0]), 3)
+        # expectation values
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op1"][0], 2, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op2"][0], 0, places=6)
+        self.assertEqual(result.aux_operator_eigenvalues[0]["zero_operator"][0], 0.0)
+        self.assertTrue("None_operator" not in result.aux_operator_eigenvalues[0].keys())
+        # standard deviations
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op1"][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op2"][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["zero_operator"][1], 0.0)
 
 
 if __name__ == "__main__":

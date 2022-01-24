@@ -11,36 +11,44 @@
 # that they have been altered from the originals.
 
 # pylint: disable=invalid-name
-# pylint: disable=inconsistent-return-statements,unsubscriptable-object
 # pylint: disable=missing-param-doc,missing-type-doc,unused-argument
 
 """
 Visualization functions for quantum states.
 """
 
+from typing import Optional, List, Union
 from functools import reduce
 import colorsys
 import numpy as np
 from scipy import linalg
 from qiskit import user_config
 from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.quantum_info.states.statevector import Statevector
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from qiskit.visualization.array import array_to_latex
 from qiskit.utils.deprecation import deprecate_arguments
 from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.utils import _bloch_multivector_data, _paulivec_data
+from qiskit.visualization.utils import (
+    _bloch_multivector_data,
+    _paulivec_data,
+    matplotlib_close_if_inline,
+)
 from qiskit.circuit.tools.pi_check import pi_check
 
 
 @deprecate_arguments({"rho": "state"})
-def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None, *, rho=None):
+def plot_state_hinton(
+    state, title="", figsize=None, ax_real=None, ax_imag=None, *, rho=None, filename=None
+):
     """Plot a hinton diagram for the density matrix of a quantum state.
 
     Args:
         state (Statevector or DensityMatrix or ndarray): An N-qubit quantum state.
         title (str): a string that represents the plot title
         figsize (tuple): Figure size in inches.
+        filename (str): file path to save image to.
         ax_real (matplotlib.axes.Axes): An optional Axes object to be used for
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. If this is specified without an
@@ -85,7 +93,6 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
             pip_install="pip install matplotlib",
         )
     from matplotlib import pyplot as plt
-    from matplotlib import get_backend
 
     # Figure data
     rho = DensityMatrix(state)
@@ -167,9 +174,11 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
     if title:
         fig.suptitle(title, fontsize=16)
     if ax_real is None and ax_imag is None:
-        if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-            plt.close(fig)
+        matplotlib_close_if_inline(fig)
+    if filename is None:
         return fig
+    else:
+        return fig.savefig(filename)
 
 
 def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartesian"):
@@ -210,8 +219,6 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
             pip_install="pip install matplotlib",
         )
     from qiskit.visualization.bloch import Bloch
-    from matplotlib import get_backend
-    from matplotlib import pyplot as plt
 
     if figsize is None:
         figsize = (5, 5)
@@ -226,14 +233,15 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
     if ax is None:
         fig = B.fig
         fig.set_size_inches(figsize[0], figsize[1])
-        if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-            plt.close(fig)
+        matplotlib_close_if_inline(fig)
         return fig
     return None
 
 
 @deprecate_arguments({"rho": "state"})
-def plot_bloch_multivector(state, title="", figsize=None, *, rho=None, reverse_bits=False):
+def plot_bloch_multivector(
+    state, title="", figsize=None, *, rho=None, reverse_bits=False, filename=None
+):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
@@ -262,10 +270,10 @@ def plot_bloch_multivector(state, title="", figsize=None, *, rho=None, reverse_b
 
             qc = QuantumCircuit(2)
             qc.h(0)
-            qc.cx(0, 1)
+            qc.x(1)
 
             state = Statevector.from_instruction(qc)
-            plot_bloch_multivector(state, title="New Bloch Multivector", reverse_bits=False)
+            plot_bloch_multivector(state)
     """
     if not HAS_MATPLOTLIB:
         raise MissingOptionalLibraryError(
@@ -273,7 +281,6 @@ def plot_bloch_multivector(state, title="", figsize=None, *, rho=None, reverse_b
             name="plot_bloch_multivector",
             pip_install="pip install matplotlib",
         )
-    from matplotlib import get_backend
     from matplotlib import pyplot as plt
 
     # Data
@@ -287,15 +294,26 @@ def plot_bloch_multivector(state, title="", figsize=None, *, rho=None, reverse_b
         pos = num - 1 - i if reverse_bits else i
         ax = fig.add_subplot(1, num, i + 1, projection="3d")
         plot_bloch_vector(bloch_data[i], "qubit " + str(pos), ax=ax, figsize=figsize)
-    fig.suptitle(title, fontsize=16)
-    if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-        plt.close(fig)
-    return fig
+    fig.suptitle(title, fontsize=16, y=1.01)
+    matplotlib_close_if_inline(fig)
+    if filename is None:
+        return fig
+    else:
+        return fig.savefig(filename)
 
 
 @deprecate_arguments({"rho": "state"})
 def plot_state_city(
-    state, title="", figsize=None, color=None, alpha=1, ax_real=None, ax_imag=None, *, rho=None
+    state,
+    title="",
+    figsize=None,
+    color=None,
+    alpha=1,
+    ax_real=None,
+    ax_imag=None,
+    *,
+    rho=None,
+    filename=None,
 ):
     """Plot the cityscape of quantum state.
 
@@ -354,7 +372,6 @@ def plot_state_city(
             name="plot_state_city",
             pip_install="pip install matplotlib",
         )
-    from matplotlib import get_backend
     from matplotlib import pyplot as plt
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
@@ -456,13 +473,11 @@ def plot_state_city(
             else:
                 ax1.axes.set_zlim3d(auto=True)
         ax1.get_autoscalez_on()
-        ax1.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45, ha="right", va="top")
-        ax1.w_yaxis.set_ticklabels(
-            column_names, fontsize=14, rotation=-22.5, ha="left", va="center"
-        )
+        ax1.xaxis.set_ticklabels(row_names, fontsize=14, rotation=45, ha="right", va="top")
+        ax1.yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5, ha="left", va="center")
         ax1.set_zlabel("Re[$\\rho$]", fontsize=14)
         for tick in ax1.zaxis.get_major_ticks():
-            tick.label.set_fontsize(14)
+            tick.label1.set_fontsize(14)
 
     if ax2 is not None:
         fc2 = generate_facecolors(xpos, ypos, zpos, dx, dy, dzi, color[1])
@@ -506,24 +521,26 @@ def plot_state_city(
             else:
                 ax2.axes.set_zlim3d(auto=True)
 
-        ax2.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45, ha="right", va="top")
-        ax2.w_yaxis.set_ticklabels(
-            column_names, fontsize=14, rotation=-22.5, ha="left", va="center"
-        )
+        ax2.xaxis.set_ticklabels(row_names, fontsize=14, rotation=45, ha="right", va="top")
+        ax2.yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5, ha="left", va="center")
         ax2.set_zlabel("Im[$\\rho$]", fontsize=14)
         for tick in ax2.zaxis.get_major_ticks():
-            tick.label.set_fontsize(14)
+            tick.label1.set_fontsize(14)
         ax2.get_autoscalez_on()
 
     fig.suptitle(title, fontsize=16)
     if ax_real is None and ax_imag is None:
-        if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-            plt.close(fig)
+        matplotlib_close_if_inline(fig)
+    if filename is None:
         return fig
+    else:
+        return fig.savefig(filename)
 
 
 @deprecate_arguments({"rho": "state"})
-def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, rho=None):
+def plot_state_paulivec(
+    state, title="", figsize=None, color=None, ax=None, *, rho=None, filename=None
+):
     """Plot the paulivec representation of a quantum state.
 
     Plot a bargraph of the mixed state rho over the pauli matrices
@@ -569,7 +586,6 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, r
             name="plot_state_paulivec",
             pip_install="pip install matplotlib",
         )
-    from matplotlib import get_backend
     from matplotlib import pyplot as plt
 
     labels, values = _paulivec_data(state)
@@ -600,12 +616,14 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, r
     ax.set_ylim([-1, 1])
     ax.set_facecolor("#eeeeee")
     for tick in ax.xaxis.get_major_ticks() + ax.yaxis.get_major_ticks():
-        tick.label.set_fontsize(14)
+        tick.label1.set_fontsize(14)
     ax.set_title(title, fontsize=16)
     if return_fig:
-        if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-            plt.close(fig)
+        matplotlib_close_if_inline(fig)
+    if filename is None:
         return fig
+    else:
+        return fig.savefig(filename)
 
 
 def n_choose_k(n, k):
@@ -640,7 +658,7 @@ def lex_index(n, k, lst):
     if len(lst) != k:
         raise VisualizationError("list should have length k")
     comb = list(map(lambda x: n - 1 - x, lst))
-    dualm = sum([n_choose_k(comb[k - 1 - i], i + 1) for i in range(k)])
+    dualm = sum(n_choose_k(comb[k - 1 - i], i + 1) for i in range(k))
     return int(dualm)
 
 
@@ -675,6 +693,7 @@ def plot_state_qsphere(
     use_degrees=False,
     *,
     rho=None,
+    filename=None,
 ):
     """Plot the qsphere representation of a quantum state.
     Here, the size of the points is proportional to the probability
@@ -726,10 +745,9 @@ def plot_state_qsphere(
             pip_install="pip install matplotlib",
         )
 
-    import matplotlib.gridspec as gridspec
+    from matplotlib import gridspec
     from matplotlib import pyplot as plt
     from matplotlib.patches import Circle
-    from matplotlib import get_backend
     from qiskit.visualization.bloch import Arrow3D
 
     try:
@@ -783,14 +801,14 @@ def plot_state_qsphere(
     )
 
     # Get rid of the panes
-    ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-    ax.w_yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-    ax.w_zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
 
     # Get rid of the spines
-    ax.w_xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
-    ax.w_yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
-    ax.w_zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+    ax.xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+    ax.yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+    ax.zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
 
     # Get rid of the ticks
     ax.set_xticks([])
@@ -830,8 +848,7 @@ def plot_state_qsphere(
 
                 # get prob and angle - prob will be shade and angle color
                 prob = np.real(np.dot(state[i], state[i].conj()))
-                if prob > 1:  # See https://github.com/Qiskit/qiskit-terra/issues/4666
-                    prob = 1
+                prob = min(prob, 1)  # See https://github.com/Qiskit/qiskit-terra/issues/4666
                 colorstate = phase_to_rgb(state[i])
 
                 alfa = 1
@@ -937,9 +954,11 @@ def plot_state_qsphere(
     )
 
     if return_fig:
-        if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-            plt.close(fig)
+        matplotlib_close_if_inline(fig)
+    if filename is None:
         return fig
+    else:
+        return fig.savefig(filename)
 
 
 def generate_facecolors(x, y, z, dx, dy, dz, color):
@@ -1125,18 +1144,23 @@ def _shade_colors(color, normals, lightsource=None):
     return colors
 
 
-def state_to_latex(state, dims=None, **args):
+def state_to_latex(
+    state: Union[Statevector, DensityMatrix], dims: bool = None, convention: str = "ket", **args
+) -> str:
     """Return a Latex representation of a state. Wrapper function
-    for `qiskit.visualization.array_to_latex` to add dims if necessary.
+    for `qiskit.visualization.array_to_latex` for convention 'vector'.
+    Adds dims if necessary.
     Intended for use within `state_drawer`.
 
     Args:
-        state (`Statevector` or `DensityMatrix`): State to be drawn
+        state: State to be drawn
         dims (bool): Whether to display the state's `dims`
-        *args: Arguments to be passed directly to `array_to_latex`
+        convention (str): Either 'vector' or 'ket'. For 'ket' plot the state in the ket-notation.
+                Otherwise plot as a vector
+        **args: Arguments to be passed directly to `array_to_latex` for convention 'ket'
 
     Returns:
-        `str`: Latex representation of the state
+        Latex representation of the state
     """
     if dims is None:  # show dims if state is not only qubits
         if set(state.dims()) == {2}:
@@ -1150,8 +1174,142 @@ def state_to_latex(state, dims=None, **args):
         prefix = "\\begin{align}\n"
         dims_str = state._op_shape.dims_l()
         suffix = f"\\\\\n\\text{{dims={dims_str}}}\n\\end{{align}}"
-    latex_str = array_to_latex(state._data, source=True, **args)
+
+    operator_shape = state._op_shape
+    # we only use the ket convetion for qubit statevectors
+    # this means the operator shape should hve no input dimensions and all output dimensions equal to 2
+    is_qubit_statevector = len(operator_shape.dims_r()) == 0 and set(operator_shape.dims_l()) == {2}
+    if convention == "ket" and is_qubit_statevector:
+        latex_str = _state_to_latex_ket(state._data)
+    else:
+        latex_str = array_to_latex(state._data, source=True, **args)
     return prefix + latex_str + suffix
+
+
+def _round_if_close(data):
+    """Round real and imaginary parts of complex number of close to zero"""
+    data = np.real_if_close(data)
+    data = -1j * np.real_if_close(data * 1j)
+    return data
+
+
+def num_to_latex_ket(raw_value: complex, first_term: bool) -> Optional[str]:
+    """Convert a complex number to latex code suitable for a ket expression
+
+    Args:
+        raw_value: Value to convert
+        first_term: If True then generate latex code for the first term in an expression
+    Returns:
+        String with latex code or None if no term is required
+    """
+    import sympy  # runtime import
+
+    if raw_value == 0:
+        value = 0
+        real_value = 0
+        imag_value = 0
+    else:
+        raw_value = _round_if_close(raw_value)
+        value = sympy.nsimplify(raw_value, constants=(sympy.pi,), rational=False)
+        real_value = float(sympy.re(value))
+        imag_value = float(sympy.im(value))
+
+    element = ""
+    if np.abs(value) > 0:
+        latex_element = sympy.latex(value, full_prec=False)
+        two_term = real_value != 0 and imag_value != 0
+        if isinstance(value, sympy.core.Add):
+            # can happen for expressions like 1 + sqrt(2)
+            two_term = True
+        if two_term:
+            if first_term:
+                element = f"({latex_element})"
+            else:
+                element = f"+ ({latex_element})"
+        else:
+            if first_term:
+                if np.isreal(complex(value)) and value > 0:
+                    element = latex_element
+                else:
+                    element = latex_element
+                if element == "1":
+                    element = ""
+                elif element == "-1":
+                    element = "-"
+            else:
+
+                if imag_value == 0 and real_value > 0:
+                    element = "+" + latex_element
+                elif real_value == 0 and imag_value > 0:
+                    element = "+" + latex_element
+                else:
+                    element = latex_element
+                if element == "+1":
+                    element = "+"
+                elif element == "-1":
+                    element = "-"
+
+        return element
+    else:
+        return None
+
+
+def numbers_to_latex_terms(numbers: List[complex]) -> List[str]:
+    """Convert a list of numbers to latex formatted terms
+
+    The first non-zero term is treated differently. For this term a leading + is suppressed.
+
+    Args:
+        numbers: List of numbers to format
+    Returns:
+        List of formatted terms
+    """
+    first_term = True
+    terms = []
+    for number in numbers:
+        term = num_to_latex_ket(number, first_term)
+        if term is not None:
+            first_term = False
+        terms.append(term)
+    return terms
+
+
+def _state_to_latex_ket(data: List[complex], max_size: int = 12) -> str:
+    """Convert state vector to latex representation
+
+    Args:
+        data: State vector
+        max_size: Maximum number of non-zero terms in the expression. If the number of
+                 non-zero terms is larger than the max_size, then the representation is truncated.
+
+    Returns:
+        String with LaTeX representation of the state vector
+    """
+    num = int(np.log2(len(data)))
+
+    def ket_name(i):
+        return bin(i)[2:].zfill(num)
+
+    data = _round_if_close(data)
+    nonzero_indices = np.where(data != 0)[0].tolist()
+    if len(nonzero_indices) > max_size:
+        nonzero_indices = (
+            nonzero_indices[: max_size // 2] + [0] + nonzero_indices[-max_size // 2 + 1 :]
+        )
+        latex_terms = numbers_to_latex_terms(data[nonzero_indices])
+        nonzero_indices[max_size // 2] = None
+    else:
+        latex_terms = numbers_to_latex_terms(data[nonzero_indices])
+
+    latex_str = ""
+    for idx, ket_idx in enumerate(nonzero_indices):
+        if ket_idx is None:
+            latex_str += r" + \ldots "
+        else:
+            term = latex_terms[idx]
+            ket = ket_name(ket_idx)
+            latex_str += f"{term} |{ket}\\rangle"
+    return latex_str
 
 
 class TextMatrix:
@@ -1258,8 +1416,10 @@ def state_drawer(state, output=None, **drawer_args):
             raise MissingOptionalLibraryError(
                 libname="IPython",
                 name="state_drawer",
-                pip_install="\"pip install ipython\", or set output='latex_source' "
-                "instead for an ASCII string.",
+                pip_install=(
+                    "\"pip install ipython\", or set output='latex_source' "
+                    "instead for an ASCII string."
+                ),
             ) from err
         else:
             draw_func = drawers["latex_source"]

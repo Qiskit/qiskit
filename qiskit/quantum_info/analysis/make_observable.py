@@ -33,7 +33,7 @@ def make_dict_observable(matrix_observable):
     observable = np.array(matrix_observable)
     observable_size = len(observable)
     observable_bits = int(np.ceil(np.log2(observable_size)))
-    binary_formatter = "0{}b".format(observable_bits)
+    binary_formatter = f"0{observable_bits}b"
     if observable.ndim == 2:
         observable = observable.diagonal()
     for state_no in range(observable_size):

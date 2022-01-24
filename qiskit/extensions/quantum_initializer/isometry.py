@@ -25,6 +25,7 @@ import numpy as np
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.operation import Operation
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.exceptions import QiskitError
@@ -35,7 +36,7 @@ from qiskit.extensions.quantum_initializer.mcg_up_to_diagonal import MCGupDiag
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class Isometry(Instruction):
+class Isometry(Instruction, Operation):
     """
     Decomposition of arbitrary isometries from m to n qubits. In particular, this allows to
     decompose unitaries (m=n) and to do state preparation (m=0).
@@ -83,19 +84,19 @@ class Isometry(Instruction):
         m = np.log2(isometry.shape[1])
         if not n.is_integer() or n < 0:
             raise QiskitError(
-                "The number of rows of the isometry is not a non negative" " power of 2."
+                "The number of rows of the isometry is not a non negative power of 2."
             )
         if not m.is_integer() or m < 0:
             raise QiskitError(
-                "The number of columns of the isometry is not a non negative" " power of 2."
+                "The number of columns of the isometry is not a non negative power of 2."
             )
         if m > n:
             raise QiskitError(
-                "The input matrix has more columns than rows and hence " "it can't be an isometry."
+                "The input matrix has more columns than rows and hence it can't be an isometry."
             )
         if not is_isometry(isometry, self._epsilon):
             raise QiskitError(
-                "The input matrix has non orthonormal columns and hence " "it is not an isometry."
+                "The input matrix has non orthonormal columns and hence it is not an isometry."
             )
 
         num_qubits = int(n) + num_ancillas_zero + num_ancillas_dirty
@@ -298,9 +299,7 @@ class Isometry(Instruction):
         if isinstance(parameter, np.ndarray):
             return parameter
         else:
-            raise CircuitError(
-                "invalid param type {0} for gate  " "{1}".format(type(parameter), self.name)
-            )
+            raise CircuitError(f"invalid param type {type(parameter)} for gate {self.name}")
 
     def inverse(self):
         """Return the adjoint of the unitary."""

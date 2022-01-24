@@ -73,7 +73,6 @@ class NaturalGradient(GradientBase):
         self._regularization = regularization
         self._epsilon = kwargs.get("epsilon", 1e-6)
 
-    # pylint: disable=signature-differs
     def convert(
         self,
         operator: OperatorBase,
@@ -191,7 +190,7 @@ class NaturalGradient(GradientBase):
             regularization coefficient, solution to the regularization inverse problem
         """
 
-        def _get_curvature(x_lambda: List) -> Union[int, float]:
+        def _get_curvature(x_lambda: List) -> float:
             """Calculate Menger curvature
 
             Menger, K. (1930).  Untersuchungen  ̈uber Allgemeine Metrik. Math. Ann.,103(1), 466–501

@@ -70,4 +70,4 @@ from .unitary_simulator import UnitarySimulatorPy
 from .exceptions import BasicAerError
 
 # Global instance to be used as the entry point for convenience.
-BasicAer = BasicAerProvider()  # pylint: disable=invalid-name
+BasicAer = BasicAerProvider()

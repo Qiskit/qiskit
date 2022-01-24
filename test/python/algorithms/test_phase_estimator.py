@@ -136,7 +136,7 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
     def _setup_from_bound(self, evolution, op_class):
         hamiltonian = 0.5 * X + Y + Z
         state_preparation = None
-        bound = 1.2 * sum([abs(hamiltonian.coeff * coeff) for coeff in hamiltonian.coeffs])
+        bound = 1.2 * sum(abs(hamiltonian.coeff * coeff) for coeff in hamiltonian.coeffs)
         if op_class == "MatrixOp":
             hamiltonian = hamiltonian.to_matrix_op()
         backend = qiskit.BasicAer.get_backend("statevector_simulator")
@@ -182,7 +182,6 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
 class TestPhaseEstimation(QiskitAlgorithmsTestCase):
     """Evolution tests."""
 
-    # pylint: disable=invalid-name
     def one_phase(
         self,
         unitary_circuit,

@@ -104,9 +104,8 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         max_qubits = self.configuration().n_qubits
         if num_qubits > max_qubits:
             raise BasicAerError(
-                "Number of qubits {} ".format(num_qubits)
-                + "is greater than maximum ({}) ".format(max_qubits)
-                + 'for "{}".'.format(self.name())
+                f"Number of qubits {num_qubits} is greater than maximum ({max_qubits}) "
+                f'for "{self.name()}".'
             )
         if qobj.config.shots != 1:
             logger.info('"%s" only supports 1 shot. Setting shots=1.', self.name())
@@ -115,7 +114,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
             name = experiment.header.name
             if getattr(experiment.config, "shots", 1) != 1:
                 logger.info(
-                    '"%s" only supports 1 shot. ' 'Setting shots=1 for circuit "%s".',
+                    '"%s" only supports 1 shot. Setting shots=1 for circuit "%s".',
                     self.name(),
                     name,
                 )

@@ -42,6 +42,7 @@ class DictStateFn(StateFn):
         primitive: Union[str, dict, Result] = None,
         coeff: Union[complex, ParameterExpression] = 1.0,
         is_measurement: bool = False,
+        from_operator: bool = False,
     ) -> None:
         """
         Args:
@@ -49,6 +50,7 @@ class DictStateFn(StateFn):
                 Result, which defines the behavior of the underlying function.
             coeff: A coefficient by which to multiply the state function.
             is_measurement: Whether the StateFn is a measurement operator.
+            from_operator: if True the StateFn is derived from OperatorStateFn. (Default: False)
 
         Raises:
             TypeError: invalid parameters.
@@ -80,6 +82,7 @@ class DictStateFn(StateFn):
             )
 
         super().__init__(primitive, coeff=coeff, is_measurement=is_measurement)
+        self.from_operator = from_operator
 
     def primitive_strings(self) -> Set[str]:
         return {"Dict"}
@@ -87,6 +90,13 @@ class DictStateFn(StateFn):
     @property
     def num_qubits(self) -> int:
         return len(next(iter(self.primitive)))
+
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        data = super().settings
+        data["from_operator"] = self.from_operator
+        return data
 
     def add(self, other: OperatorBase) -> OperatorBase:
         if not self.num_qubits == other.num_qubits:
@@ -262,12 +272,17 @@ class DictStateFn(StateFn):
         # we define all missing strings to have a function value of
         # zero.
         if isinstance(front, DictStateFn):
+            # If self is come from operator, it should be expanded as
+            # <self|front> = <front| self | front>.
+            front_coeff = (
+                front.coeff * front.coeff.conjugate() if self.from_operator else front.coeff
+            )
             return np.round(
                 cast(
                     float,
-                    sum([v * front.primitive.get(b, 0) for (b, v) in self.primitive.items()])
+                    sum(v * front.primitive.get(b, 0) for (b, v) in self.primitive.items())
                     * self.coeff
-                    * front.coeff,
+                    * front_coeff,
                 ),
                 decimals=EVAL_SIG_DIGITS,
             )
@@ -281,7 +296,7 @@ class DictStateFn(StateFn):
             return np.round(
                 cast(
                     float,
-                    sum([v * front.primitive.data[int(b, 2)] for (b, v) in self.primitive.items()])
+                    sum(v * front.primitive.data[int(b, 2)] for (b, v) in self.primitive.items())
                     * self.coeff,
                 ),
                 decimals=EVAL_SIG_DIGITS,
@@ -297,7 +312,7 @@ class DictStateFn(StateFn):
         from .operator_state_fn import OperatorStateFn
 
         if isinstance(front, OperatorStateFn):
-            return cast(Union[OperatorBase, float, complex], front.adjoint().eval(self.adjoint()))
+            return cast(Union[OperatorBase, complex], front.adjoint().eval(self.adjoint()))
 
         # All other OperatorBases go here
         self_adjoint = cast(DictStateFn, self.adjoint())

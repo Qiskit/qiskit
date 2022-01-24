@@ -12,8 +12,10 @@
 
 """Two-qubit ZX-rotation gate."""
 
+from typing import Optional
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 class RZXGate(Gate):
@@ -112,9 +114,9 @@ class RZXGate(Gate):
                                     \end{pmatrix}
     """
 
-    def __init__(self, theta):
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RZX gate."""
-        super().__init__("rzx", 2, [theta])
+        super().__init__("rzx", 2, [theta], label=label)
 
     def _define(self):
         """

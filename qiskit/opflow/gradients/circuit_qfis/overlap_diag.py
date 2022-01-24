@@ -124,7 +124,7 @@ class OverlapDiag(CircuitQFI):
 
             if len(gate.params) != 1:
                 raise TypeError(
-                    "OverlapDiag cannot yet support gates with more than one " "parameter."
+                    "OverlapDiag cannot yet support gates with more than one parameter."
                 )
 
             param_value = gate.params[0]

@@ -84,7 +84,7 @@ def _ctrl_state_to_int(ctrl_state, num_ctrl_qubits):
         except ValueError as ex:
             raise CircuitError("invalid control bit string: " + ctrl_state) from ex
         except AssertionError as ex:
-            raise CircuitError("invalid control bit string: length != " "num_ctrl_qubits") from ex
+            raise CircuitError("invalid control bit string: length != num_ctrl_qubits") from ex
     if isinstance(ctrl_state, int):
         if 0 <= ctrl_state < 2 ** num_ctrl_qubits:
             ctrl_state_std = ctrl_state
@@ -93,5 +93,5 @@ def _ctrl_state_to_int(ctrl_state, num_ctrl_qubits):
     elif ctrl_state is None:
         ctrl_state_std = 2 ** num_ctrl_qubits - 1
     else:
-        raise CircuitError("invalid control state specification: {}".format(repr(ctrl_state)))
+        raise CircuitError(f"invalid control state specification: {repr(ctrl_state)}")
     return ctrl_state_std

@@ -58,10 +58,10 @@ class ApplyLayout(TransformationPass):
         new_dag.add_clbits(dag.clbits)
         for creg in dag.cregs.values():
             new_dag.add_creg(creg)
+        virtual_phsyical_map = layout.get_virtual_bits()
         for node in dag.topological_op_nodes():
-            if node.type == "op":
-                qargs = [q[layout[qarg]] for qarg in node.qargs]
-                new_dag.apply_operation_back(node.op, qargs, node.cargs)
+            qargs = [q[virtual_phsyical_map[qarg]] for qarg in node.qargs]
+            new_dag.apply_operation_back(node.op, qargs, node.cargs)
         new_dag._global_phase = dag._global_phase
 
         return new_dag

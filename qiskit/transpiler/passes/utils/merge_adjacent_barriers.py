@@ -76,8 +76,8 @@ class MergeAdjacentBarriers(TransformationPass):
     def _collect_potential_merges(dag, barriers):
         """Return the potential merges.
 
-        Returns a dict of DAGNode : Barrier objects, where the barrier needs to be
-        inserted where the corresponding DAGNode appears in the main DAG.
+        Returns a dict of DAGOpNode: Barrier objects, where the barrier needs to be
+        inserted where the corresponding DAGOpNode appears in the main DAG.
         """
         # if only got 1 or 0 barriers then can't merge
         if len(barriers) < 2:

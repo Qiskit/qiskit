@@ -16,7 +16,7 @@ from .operator import Operator
 from .scalar_op import ScalarOp
 from .channel import Choi, SuperOp, Kraus, Stinespring, Chi, PTM
 from .measures import process_fidelity, average_gate_fidelity, gate_error, diamond_norm
-from .symplectic import Clifford, Pauli, SparsePauliOp, PauliTable, StabilizerTable
+from .symplectic import Clifford, Pauli, PauliList, SparsePauliOp, PauliTable, StabilizerTable
 from .symplectic import pauli_basis
 from .pauli import pauli_group
 from .dihedral import CNOTDihedral

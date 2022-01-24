@@ -1,7 +1,0 @@
----
-features:
-  - |
-    Add a new state class class:`~qiskit.quantum_info.StabilizerState`,
-    which is a stabilizer simulator using the convention from
-    Aaronson and Gottesman (2004).
-    Based on the internal class :class:`~qiskit.quantum_info.Clifford`.

@@ -154,6 +154,15 @@ class StateFn(OperatorBase):
         """Whether the StateFn object is a measurement Operator."""
         return self._is_measurement
 
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {
+            "primitive": self._primitive,
+            "coeff": self._coeff,
+            "is_measurement": self._is_measurement,
+        }
+
     def primitive_strings(self) -> Set[str]:
         raise NotImplementedError
 
@@ -196,9 +205,17 @@ class StateFn(OperatorBase):
                 "{} of type {}.".format(scalar, type(scalar))
             )
 
-        return self.__class__(
-            self.primitive, coeff=self.coeff * scalar, is_measurement=self.is_measurement
-        )
+        if hasattr(self, "from_operator"):
+            return self.__class__(
+                self.primitive,
+                coeff=self.coeff * scalar,
+                is_measurement=self.is_measurement,
+                from_operator=self.from_operator,
+            )
+        else:
+            return self.__class__(
+                self.primitive, coeff=self.coeff * scalar, is_measurement=self.is_measurement
+            )
 
     def tensor(self, other: OperatorBase) -> OperatorBase:
         r"""

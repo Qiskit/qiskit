@@ -1,5 +1,0 @@
----
-other:
-  - |
-    Deprecation warning for :meth:`~qiskit.pulse.Instruction.parameters` is dropped.
-    This method will continue to be supported.

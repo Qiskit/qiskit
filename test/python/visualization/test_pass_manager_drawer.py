@@ -33,12 +33,12 @@ from .visualization import QiskitVisualizationTestCase, path_to_diagram_referenc
 try:
     import subprocess
 
-    _PROC = subprocess.Popen(["dot", "-V"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    _PROC.communicate()
-    if _PROC.returncode != 0:
-        HAS_GRAPHVIZ = False
-    else:
-        HAS_GRAPHVIZ = True
+    with subprocess.Popen(["dot", "-V"], stdout=subprocess.PIPE, stderr=subprocess.PIPE) as _proc:
+        _proc.communicate()
+        if _proc.returncode != 0:
+            HAS_GRAPHVIZ = False
+        else:
+            HAS_GRAPHVIZ = True
 except Exception:  # pylint: disable=broad-except
     # this is raised when the dot command cannot be found, which means GraphViz
     # isn't installed

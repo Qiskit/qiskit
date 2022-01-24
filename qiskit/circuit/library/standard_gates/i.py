@@ -12,6 +12,7 @@
 
 """Identity gate."""
 
+from typing import Optional
 import numpy
 from qiskit.circuit.gate import Gate
 
@@ -39,7 +40,7 @@ class IGate(Gate):
              └───┘
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label: Optional[str] = None):
         """Create new Identity gate."""
         super().__init__("id", 1, [], label=label)
 

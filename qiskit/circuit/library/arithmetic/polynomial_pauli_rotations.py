@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member
 
 """Polynomially controlled Pauli-rotations."""
 
@@ -19,7 +18,7 @@ from typing import List, Optional, Dict, Sequence
 
 from itertools import product
 
-from qiskit.circuit import QuantumRegister
+from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 
 from .functional_pauli_rotations import FunctionalPauliRotations
@@ -246,6 +245,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         return self.num_ancillas
 
     def _reset_registers(self, num_state_qubits):
+        """Reset the registers."""
         if num_state_qubits is not None:
             # set new register of appropriate size
             qr_state = QuantumRegister(num_state_qubits, name="state")
@@ -256,6 +256,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
             self.qregs = []
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """Check if the current configuration is valid."""
         valid = True
 
         if self.num_state_qubits is None:
@@ -310,26 +311,24 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         return rotation_coeffs
 
     def _build(self):
-        # do not build the circuit if _data is already populated
-        if self._data is not None:
+        """If not already built, build the circuit."""
+        if self._is_built:
             return
 
-        self._data = []
+        super()._build()
 
-        # check whether the configuration is valid
-        self._check_configuration()
-
-        qr_state = self.qubits[: self.num_state_qubits]
-        qr_target = self.qubits[self.num_state_qubits]
+        circuit = QuantumCircuit(*self.qregs, name=self.name)
+        qr_state = circuit.qubits[: self.num_state_qubits]
+        qr_target = circuit.qubits[self.num_state_qubits]
 
         rotation_coeffs = self._get_rotation_coefficients()
 
         if self.basis == "x":
-            self.rx(self.coeffs[0], qr_target)
+            circuit.rx(self.coeffs[0], qr_target)
         elif self.basis == "y":
-            self.ry(self.coeffs[0], qr_target)
+            circuit.ry(self.coeffs[0], qr_target)
         else:
-            self.rz(self.coeffs[0], qr_target)
+            circuit.rz(self.coeffs[0], qr_target)
 
         for c in rotation_coeffs:
             qr_control = []
@@ -345,16 +344,18 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
             # apply controlled rotations
             if len(qr_control) > 1:
                 if self.basis == "x":
-                    self.mcrx(rotation_coeffs[c], qr_control, qr_target)
+                    circuit.mcrx(rotation_coeffs[c], qr_control, qr_target)
                 elif self.basis == "y":
-                    self.mcry(rotation_coeffs[c], qr_control, qr_target)
+                    circuit.mcry(rotation_coeffs[c], qr_control, qr_target)
                 else:
-                    self.mcrz(rotation_coeffs[c], qr_control, qr_target)
+                    circuit.mcrz(rotation_coeffs[c], qr_control, qr_target)
 
             elif len(qr_control) == 1:
                 if self.basis == "x":
-                    self.crx(rotation_coeffs[c], qr_control[0], qr_target)
+                    circuit.crx(rotation_coeffs[c], qr_control[0], qr_target)
                 elif self.basis == "y":
-                    self.cry(rotation_coeffs[c], qr_control[0], qr_target)
+                    circuit.cry(rotation_coeffs[c], qr_control[0], qr_target)
                 else:
-                    self.crz(rotation_coeffs[c], qr_control[0], qr_target)
+                    circuit.crz(rotation_coeffs[c], qr_control[0], qr_target)
+
+        self.append(circuit.to_gate(), self.qubits)

@@ -290,13 +290,15 @@ class CircuitSampler(ConverterBase):
 
         if circuit_sfns:
             self._transpiled_circ_templates = None
-            if self._statevector:
+            if self._statevector or circuit_sfns[0].from_operator:
                 circuits = [op_c.to_circuit(meas=False) for op_c in circuit_sfns]
             else:
                 circuits = [op_c.to_circuit(meas=True) for op_c in circuit_sfns]
 
             try:
-                self._transpiled_circ_cache = self.quantum_instance.transpile(circuits)
+                self._transpiled_circ_cache = self.quantum_instance.transpile(
+                    circuits, pass_manager=self.quantum_instance.unbound_pass_manager
+                )
             except QiskitError:
                 logger.debug(
                     r"CircuitSampler failed to transpile circuits with unbound "
@@ -326,6 +328,12 @@ class CircuitSampler(ConverterBase):
         else:
             ready_circs = self._transpiled_circ_cache
 
+        # run transpiler passes on bound circuits
+        if self._transpile_before_bind and self.quantum_instance.bound_pass_manager is not None:
+            ready_circs = self.quantum_instance.transpile(
+                ready_circs, pass_manager=self.quantum_instance.bound_pass_manager
+            )
+
         results = self.quantum_instance.execute(
             ready_circs, had_transpiled=self._transpile_before_bind
         )
@@ -346,19 +354,15 @@ class CircuitSampler(ConverterBase):
                 circ_index = (i * reps) + j
                 circ_results = results.data(circ_index)
 
-                if "expval_measurement" in circ_results.get("snapshots", {}).get(
-                    "expectation_value", {}
-                ):
-                    snapshot_data = results.data(circ_index)["snapshots"]
-                    avg = snapshot_data["expectation_value"]["expval_measurement"][0]["value"]
-                    if isinstance(avg, (list, tuple)):
-                        # Aer versions before 0.4 use a list snapshot format
-                        # which must be converted to a complex value.
-                        avg = avg[0] + 1j * avg[1]
+                if "expval_measurement" in circ_results:
+                    avg = circ_results["expval_measurement"]
                     # Will be replaced with just avg when eval is called later
                     num_qubits = circuit_sfns[0].num_qubits
-                    result_sfn = (
-                        DictStateFn("0" * num_qubits, is_measurement=op_c.is_measurement) * avg
+                    result_sfn = DictStateFn(
+                        "0" * num_qubits,
+                        coeff=avg * op_c.coeff,
+                        is_measurement=op_c.is_measurement,
+                        from_operator=op_c.from_operator,
                     )
                 elif self._statevector:
                     result_sfn = StateFn(
@@ -367,12 +371,13 @@ class CircuitSampler(ConverterBase):
                     )
                 else:
                     shots = self.quantum_instance._run_config.shots
-                    result_sfn = StateFn(
+                    result_sfn = DictStateFn(
                         {
                             b: (v / shots) ** 0.5 * op_c.coeff
                             for (b, v) in results.get_counts(circ_index).items()
                         },
                         is_measurement=op_c.is_measurement,
+                        from_operator=op_c.from_operator,
                     )
                 if self._attach_results:
                     result_sfn.execution_results = circ_results
@@ -392,7 +397,7 @@ class CircuitSampler(ConverterBase):
             param_mappings = {}
             for param in inst_param._parameter_symbols.keys():
                 if param not in input_params:
-                    raise ValueError("unexpected parameter: {0}".format(param))
+                    raise ValueError(f"unexpected parameter: {param}")
                 param_mappings[param] = input_params[param]
             return float(inst_param.bind(param_mappings))
 

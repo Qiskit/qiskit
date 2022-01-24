@@ -343,8 +343,7 @@ def _cvxpy_check(name):
     # Check if CVXPY package is installed
     if not _HAS_CVX:
         raise QiskitError(
-            "CVXPY backage is requried for {}. Install"
-            " with `pip install cvxpy` to use.".format(name)
+            f"CVXPY package is requried for {name}. Install with `pip install cvxpy` to use."
         )
     # Check CVXPY version
     version = cvxpy.__version__
@@ -352,7 +351,7 @@ def _cvxpy_check(name):
         raise MissingOptionalLibraryError(
             "CVXPY >= 1.0",
             "diamond_norm",
-            msg="Incompatible CVXPY version {} found.".format(version),
+            msg=f"Incompatible CVXPY version {version} found.",
         )
 
 
@@ -384,7 +383,7 @@ def _input_formatter(obj, fallback_class, func_name, arg_name):
         "SuperOp, Choi) object instead.".format(func_name, arg_name),
         DeprecationWarning,
     )
-    warnings.warn("Treating array input as a {} object".format(fallback_class.__name__))
+    warnings.warn(f"Treating array input as a {fallback_class.__name__} object")
     return fallback_class(obj)
 
 
