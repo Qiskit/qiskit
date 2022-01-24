@@ -367,7 +367,6 @@ NCT (Not-CNOT-Toffoli) template circuits
    templates.nct.template_nct_7c_1
    templates.nct.template_nct_7d_1
    templates.nct.template_nct_7e_1
-   templates.nct.template_nct_2a_1
    templates.nct.template_nct_9a_1
    templates.nct.template_nct_9c_1
    templates.nct.template_nct_9c_2
