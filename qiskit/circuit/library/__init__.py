@@ -337,8 +337,38 @@ subclasses are used for classification and data encoding circuits (a.k.a. featur
    ZFeatureMap
    ZZFeatureMap
 
-NCT (Not-CNOT-Toffoli) template circuits
-========================================
+Template circuits (:mod:`qiskit.circuit.library.templates`)
+===========================================================
+
+Templates are functions that return circuits that compute the identity. They are used at
+circuit optimization where matching part of the template allows the compiler
+to replace the match with the inverse of the remainder from the template.
+
+In this example, the identity constant in a template is checked:
+
+.. jupyter-execute::
+
+    from qiskit.circuit.library.templates import template_nct_4b_1
+    from qiskit.quantum_info import Operator
+    import numpy as np
+
+    template = template_nct_4b_1()
+
+    identity = np.identity(2 ** len(template.qubits), dtype=complex)
+    data = Operator(template).data
+    np.allclose(data, identity)  # True, template_nct_4b_1 is the identity
+
+NCT (Not-CNOT-Toffoli) template circuits (:mod:`qiskit.circuit.library.templates.nct`)
+--------------------------------------------------------------------------------------
+
+Template circuits for :class:`~qiskit.circuit.library.standard_gates.x.XGate`,
+:class:`~qiskit.circuit.library.standard_gates.x.CXGate`,
+and :class:`~qiskit.circuit.library.standard_gates.x.CCXGate` (Toffoli) gates.
+
+**Reference:**
+Maslov, D. and Dueck, G. W. and Miller, D. M.,
+Techniques for the synthesis of reversible Toffoli networks, 2007
+http://dx.doi.org/10.1145/1278349.1278355
 
 .. autosummary::
    :toctree: ../stubs/
@@ -391,8 +421,10 @@ NCT (Not-CNOT-Toffoli) template circuits
    templates.nct.template_nct_9d_9
    templates.nct.template_nct_9d_10
 
-Clifford template circuits
-==========================
+Clifford template circuits (:mod:`qiskit.circuit.library.templates.clifford`)
+-----------------------------------------------------------------------------
+
+Template circuits over Clifford gates.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -416,8 +448,10 @@ Clifford template circuits
    clifford_8_2
    clifford_8_3
 
-RZXGate template circuits
-=========================
+RZXGate template circuits (:mod:`qiskit.circuit.library.templates.rzx`)
+-----------------------------------------------------------------------
+
+Template circuits with :class:`~qiskit.circuit.library.standard_gates.rzx.RZXGate`.
 
 .. autosummary::
    :toctree: ../stubs/
