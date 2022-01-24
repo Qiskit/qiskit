@@ -1100,8 +1100,11 @@ def _parse_output_name(output_name, circuits):
 
 
 def _parse_timing_constraints(backend, timing_constraints, num_circuits):
-
-    if backend is not None and timing_constraints is None:
+    if isinstance(timing_constraints, TimingConstraints):
+        return [timing_constraints] * num_circuits
+    if backend is None and timing_constraints is None:
+        timing_constraints = TimingConstraints()
+    else:
         backend_version = getattr(backend, "version", 0)
         if not isinstance(backend_version, int):
             backend_version = 0
@@ -1112,8 +1115,6 @@ def _parse_timing_constraints(backend, timing_constraints, num_circuits):
             timing_constraints = TimingConstraints(**timing_constraints)
         else:
             timing_constraints = backend.target.timing_constraints()
-    elif timing_constraints is None:
-        timing_constraints = TimingConstraints()
     return [timing_constraints] * num_circuits
 
 
