@@ -104,8 +104,6 @@ class QFT(BlueprintCircuit):
         self._insert_barriers = insert_barriers
         self._inverse = inverse
         self.num_qubits = num_qubits
-        # Warn immediately if we can detect straight away that there is a problem.
-        self._warn_if_precision_loss()
 
     @property
     def num_qubits(self) -> int:
@@ -238,8 +236,6 @@ class QFT(BlueprintCircuit):
         If we need an angle smaller than ``pi * 2**-1022``, we start to lose precision by going into
         the subnormal numbers.  We won't lose _all_ precision until an exponent of about 1075, but
         beyond 1022 we're using fractional bits to represent leading zeros."""
-        if self.num_qubits is None or self.approximation_degree is None:
-            return
         max_num_entanglements = self.num_qubits - self.approximation_degree - 1
         if max_num_entanglements > -np.finfo(float).minexp:  # > 1022 for doubles.
             warnings.warn(
