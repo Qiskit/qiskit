@@ -92,6 +92,8 @@ class GibbsState:
         state."""
         return self._ansatz_params_dict
 
+    # TODO the length of output probabilities should correspond to the number of visible qubits,
+    #  not all qubits
     def calc_ansatz_gradients(
         self,
         gradient_method: str = "param_shift",
@@ -124,6 +126,27 @@ class GibbsState:
         )
         # TODO evaluation based on the backend type, post-proc
         return state_grad.assign_parameters(self._ansatz_params_dict).eval()
+
+    def _convert_counts_to_probs(self, qc_results):
+        # TODO use snapshot_probabilities if quantum_instance = qasm - see
+        #  aer/extensions/snapshot_probabilities.py
+        probs = []
+        for result in qc_results:
+            keys = list(result)
+            values = list(result.values())
+            normalization = sum(values)
+            values = [float(val) / normalization for val in values]
+
+            prob = np.ones(2 ** len(self._target_qubits)) * 1e-8
+            prob = prob.tolist()
+            for i, key in enumerate(keys):
+                if len(self._target_qubits) == 1:
+                    prob[int(key)] = values[i]
+                else:
+                    prob[int(key, len(self._target_qubits))] = values[i]
+            probs.append(prob)
+
+        return probs
 
     def calc_hamiltonian_gradients(
         self,
