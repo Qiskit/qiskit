@@ -46,6 +46,7 @@ from qiskit.opflow import (
     X,
     Z,
 )
+from qiskit.quantum_info import Statevector
 from qiskit.transpiler import PassManager, PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import level_1_pass_manager
 from qiskit.utils import QuantumInstance, algorithm_globals, has_aer
@@ -170,7 +171,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
     @data(
         (SLSQP(maxiter=50), 5, 4),
-        (SPSA(maxiter=150), 3, 2),  # max_evals_grouped=n or =2 if n>2
+        (SPSA(maxiter=150), 2, 2),  # max_evals_grouped=n or =2 if n>2
     )
     @unpack
     def test_max_evals_grouped(self, optimizer, places, max_evals_grouped):
@@ -713,6 +714,21 @@ class TestVQE(QiskitAlgorithmsTestCase):
             "bound_pass_manager",
         ]
         self.assertEqual([record.message for record in cm.records], expected)
+
+    def test_construct_eigenstate_from_optpoint(self):
+        """Test constructing the eigenstate from the optimal point, if the default ansatz is used."""
+
+        # use Hamiltonian yielding more than 11 parameters in the default ansatz
+        hamiltonian = Z ^ Z ^ Z
+        optimizer = SPSA(maxiter=1, learning_rate=0.01, perturbation=0.01)
+        quantum_instance = QuantumInstance(
+            backend=BasicAer.get_backend("statevector_simulator"), basis_gates=["u3", "cx"]
+        )
+        vqe = VQE(optimizer=optimizer, quantum_instance=quantum_instance)
+        result = vqe.compute_minimum_eigenvalue(hamiltonian)
+
+        optimal_circuit = vqe.ansatz.bind_parameters(result.optimal_point)
+        self.assertTrue(Statevector(result.eigenstate).equiv(optimal_circuit))
 
 
 if __name__ == "__main__":
