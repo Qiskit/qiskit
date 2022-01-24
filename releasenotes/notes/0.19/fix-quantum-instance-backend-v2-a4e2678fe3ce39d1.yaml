@@ -3,7 +3,7 @@ fixes:
   - |
     Added a missing :attr:`.BackendV2.provider` attribute to implementations
     of the :class:`.BackendV2` abstract class. Previously, :class:`.BackendV2`
-    backends could be initialized with a provider but that was not accesible
+    backends could be initialized with a provider but that was not accessible
     to users.
   - |
     Fixed support for the :class:`.QuantumInstance` class when running with

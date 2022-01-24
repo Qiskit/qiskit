@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a problem in the ``latex`` and ``mpl`` circuit drawers when register names
+    with multiple underscores in the name did not display correctly.

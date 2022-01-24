@@ -4,7 +4,7 @@ fixes:
     Fixed QPY serialization of :class:`.QuantumCircuit` objects that contained
     control flow instructions. Previously if you attempted to serialize a
     circuit containing :class:`.IfElseOp`, :class:`.WhileLoopOp`, or
-    :class:`ForLoopOp` the serialization would fail.
+    :class:`.ForLoopOp` the serialization would fail.
     Fixed `#7583 <https://github.com/Qiskit/qiskit-terra/issues/7583>`__.
   - |
     Fixed QPY serialization of :class:`.QuantumCircuit` containing subsets of

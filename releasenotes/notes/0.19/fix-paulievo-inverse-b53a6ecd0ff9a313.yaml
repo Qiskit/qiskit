@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed the :meth:`.PauliEvolutionGate.inverse` method, which previously
+    computed the inverse by inverting the evolution time.  This was only the
+    correct inverse if the operator was evolved exactly. In particular, this
+    led to the inverse of Trotterization-based time evolutions being incorrect.

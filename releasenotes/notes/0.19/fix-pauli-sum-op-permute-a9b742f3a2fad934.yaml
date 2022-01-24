@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug in :meth:`.PauliSumOp.permute` where the object on which the
+    method is called was permuted in-place, instead of returning a permuted
+    copy.  This bug only occured for permutations that left the number of qubits
+    in the operator unchanged.

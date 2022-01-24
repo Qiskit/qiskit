@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    The :meth:`.QuantumInstance.execute` method will no longer mutate its input
+    if it is given a list of circuits.
