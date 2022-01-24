@@ -193,8 +193,8 @@ Quantum Fourier Transform (QFT), it transforms between the computational basis a
 
    QFT
 
-Arithmetic Circuits
-===================
+Arithmetic Circuits (:mod:`qiskit.circuit.library.arithmetic`)
+==============================================================
 
 These :class:`~qiskit.circuit.quantumcircuit.QuantumCircuit`s allow to perform classical arithmetics,
 such as addition or multiplication.
@@ -290,8 +290,10 @@ Particular Quantum Circuits
    PauliEvolutionGate
 
 
-Probability distributions
-=========================
+Probability distributions (:mod:`qiskit.circuit.library.probability_distributions`)
+===================================================================================
+
+**Deprecated**
 
 .. autosummary::
    :toctree: ../stubs/
@@ -302,8 +304,11 @@ Probability distributions
    LogNormalDistribution
 
 
-N-local circuits
-================
+N-local circuits (:mod:`qiskit.circuit.library.n_local`)
+========================================================
+
+These :class:`~qiskit.circuit.library.blueprintcircuit.BlueprintCircuit`
+subclasses are used as initial guess (a.k.a. Ansatz or variational form) in chemistry.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -320,6 +325,9 @@ N-local circuits
 
 Data encoding circuits
 ======================
+
+These :class:`~qiskit.circuit.library.blueprintcircuit.BlueprintCircuit`
+subclasses are used for classification and data encoding circuits (a.k.a. feature maps).
 
 .. autosummary::
    :toctree: ../stubs/
