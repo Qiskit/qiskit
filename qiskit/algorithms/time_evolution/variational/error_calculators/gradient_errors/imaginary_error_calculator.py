@@ -31,7 +31,7 @@ class ImaginaryErrorCalculator(ErrorCalculator):
         grad_res: Union[List, np.ndarray],
         metric: Union[List, np.ndarray],
         param_dict: Dict[Parameter, Union[float, complex]],
-    ) -> Tuple[int, Union[np.ndarray, complex, float], Union[Union[complex, float], Any]]:
+    ) -> Tuple[Union[float], Union[np.ndarray, complex, float], Union[Union[complex, float], Any]]:
         """
         Evaluate the l2 norm of the error for a single time step of VarQITE.
         Args:
@@ -40,31 +40,30 @@ class ImaginaryErrorCalculator(ErrorCalculator):
             metric: Fubini-Study Metric.
             param_dict: Dictionary of parameters to be bound.
         Returns:
-            Real part of a squared gradient error, norm of the time derivative of a state,
-            time derivative of the expectation value ⟨ψ(ω)| H | ψ(ω)〉.
+            L2 norm error with a potential imaginary part arising from numerical instabilities
+            removed, norm of the time derivative of a state, time derivative of the expectation
+            value ⟨ψ(ω)| H | ψ(ω)〉.
         """
-        gradient_error_squared = 0
+        error_squared = 0.0
         h_squared_bound = self._bind_or_sample_operator(
             self._h_squared, param_dict, self._h_squared_sampler
         )
         exp_operator_bound = self._bind_or_sample_operator(
             self._operator, param_dict, self._operator_sampler
         )
-        gradient_error_squared += np.real(h_squared_bound)
-        gradient_error_squared -= np.real(exp_operator_bound ** 2)
+        error_squared += np.real(h_squared_bound)
+        error_squared -= np.real(exp_operator_bound ** 2)
 
         # ⟨dtψ(ω)|dtψ(ω)〉= dtωdtω⟨dωψ(ω)|dωψ(ω)〉
         state_time_derivative_norm = np.conj(nat_grad_res).T.dot(np.dot(metric, nat_grad_res))
-        gradient_error_squared += state_time_derivative_norm
+        error_squared += state_time_derivative_norm
 
         # 2Re⟨dtψ(ω)| H | ψ(ω)〉= 2Re dtω⟨dωψ(ω)|H | ψ(ω)〉
         expected_val_time_derivative = np.conj(grad_res).T.dot(nat_grad_res)
-        gradient_error_squared += expected_val_time_derivative
-
-        gradient_error_squared = self._validate_epsilon_squared(gradient_error_squared)
+        error_squared += expected_val_time_derivative
 
         return (
-            np.real(gradient_error_squared),
+            self._remove_float_imag_part_from_instability(error_squared),
             state_time_derivative_norm,
             expected_val_time_derivative * 0.5,
         )
@@ -74,21 +73,22 @@ class ImaginaryErrorCalculator(ErrorCalculator):
         nat_grad_res: Union[List, np.ndarray],
         grad_res: Union[List, np.ndarray],
         metric: Union[List, np.ndarray],
-    ) -> float:
+    ) -> np.ndarray:
         """
-        Evaluate the gradient of the l2 norm for a single time step of VarQITE.
+        Evaluate the gradient of the l2 norm error for a single time step of VarQITE.
         Args:
             nat_grad_res: dω/dt.
             grad_res: 2Re⟨dψ(ω)/dω|H|ψ(ω).
             metric: Fubini-Study Metric.
         Returns:
-            Real part of a squared gradient error.
+            Gradient of the l2 norm error with a potential imaginary part arising from numerical
+            instabilities removed.
         """
-        gradient_error_squared = 0
+        gradient_error_squared = 0.0
         # dω_jF_ij^Q
         gradient_error_squared += np.dot(metric, nat_grad_res) + np.dot(
             np.diag(np.diag(metric)), np.power(nat_grad_res, 2)
         )
         # 2Re⟨dωψ(ω)|H | ψ(ω)〉
         gradient_error_squared += grad_res
-        return np.real(gradient_error_squared)
+        return self._remove_float_imag_part_from_instability(gradient_error_squared)

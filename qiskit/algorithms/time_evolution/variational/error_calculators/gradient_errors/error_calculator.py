@@ -59,21 +59,59 @@ class ErrorCalculator(ABC):
         Method accepts an OperatorBase and potentially a respective CircuitSampler. If the
         CircuitSampler is provided, it uses it to sample the operator using a dictionary of
         parameters and values. Otherwise, assign_parameters method is used to bind parameters in
-        an operator. A bound operator is then executed and a real part is returned because TODO.
+        an operator. A bound operator is then evaluated.
         Args:
             operator: Operator to be bound with parameter values.
             operator_circuit_sampler: CircuitSampler for the operator.
             param_dict: Dictionary which relates parameter values to the parameters in the operator.
         Returns:
-            Real part of an operator after binding parameters and executing associated quantum
-            circuits.
+            An operator after binding parameters and executing associated quantum
+            circuits. If an operator contains unexpected imaginary parts arising from numerical
+            instabilities, i.e. parts that are reasonably small, they are removed.
         """
         if operator_circuit_sampler is not None:
             operator = operator_circuit_sampler.convert(operator, params=param_dict)
         else:
             operator = operator.assign_parameters(param_dict)
 
+        return cls._remove_op_imag_part_from_instability(operator)
+
+    @classmethod
+    def _remove_op_imag_part_from_instability(
+        cls, operator: Union[np.ndarray, int, float, complex]
+    ) -> Union[np.ndarray, int, float, complex]:
         return np.real(operator.eval())
+
+    @classmethod
+    def _remove_float_imag_part_from_instability(
+        cls, value: Union[np.ndarray, float]
+    ) -> Union[np.ndarray, float]:
+        """
+        Fixes a value or array of values which is/are expected to be non-negative and real in case
+        it/they is/are not by a small margin due to numerical instabilities.
+        Args:
+            value: Value or array of values to be fixed.
+        Returns:
+            Modified (or not) value provided.
+        Raises:
+            ValueError: If the value provided cannot be fixed.
+        """
+        allowed_imaginary_part = 1e-7
+        if np.linalg.norm(np.imag(value)) > allowed_imaginary_part:
+            raise ValueError(
+                "Value provided has an unexpected imaginary part that is not to be neglected."
+            )
+        value = np.real(value)
+
+        numerical_instability_error = 1e-7
+
+        value = np.where((value < 0.0) & (value > -numerical_instability_error), 0.0, value)
+        if value.any() < 0:
+            raise ValueError(
+                "Propagation failed - value provided is negative and larger in absolute value "
+                "than a potential numerical instability."
+            )
+        return value
 
     @abstractmethod
     def _calc_single_step_error(
@@ -83,7 +121,6 @@ class ErrorCalculator(ABC):
         metric: Union[List, np.ndarray],
         param_dict: Dict[Parameter, Union[float, complex]],
     ) -> Tuple[int, Union[np.ndarray, complex, float], Union[Union[complex, float], Any],]:
-
         """
         Evaluate the l2 norm of the error for a single time step of VarQTE.
         Args:
@@ -92,8 +129,9 @@ class ErrorCalculator(ABC):
             metric: Fubini-Study Metric.
             param_dict: Dictionary of parameters to be bound.
         Returns:
-            Real part of a squared gradient error, norm of the time derivative of a state,
-            time derivative of the expectation value ⟨ψ(ω)| H | ψ(ω)〉.
+            L2 norm error with a potential imaginary part arising from numerical instabilities
+            removed, norm of the time derivative of a state, time derivative of the expectation
+            value ⟨ψ(ω)| H | ψ(ω)〉.
         """
         pass
 
@@ -103,37 +141,15 @@ class ErrorCalculator(ABC):
         nat_grad_res: Union[List, np.ndarray],
         grad_res: Union[List, np.ndarray],
         metric: Union[List, np.ndarray],
-    ) -> float:
+    ) -> np.ndarray:
         """
-        Evaluate the gradient of the l2 norm for a single time step of VarQRTE.
+        Evaluate the gradient of the l2 norm error for a single time step of VarQTE.
         Args:
             nat_grad_res: dω/dt.
             grad_res: -2Im⟨dψ(ω)/dω|H|ψ(ω)〉.
             metric: Fubini-Study Metric.
         Returns:
-            Real part of a squared gradient error.
+            Gradient of the l2 norm error with a potential imaginary part arising from numerical
+            instabilities removed.
         """
         pass
-
-    @classmethod
-    def _validate_epsilon_squared(cls, eps_squared: float) -> float:
-        """
-        Sets an epsilon provided to 0 if it is small enough and negative (smaller than 1e-7 in
-        absolute value).
-        Args:
-            eps_squared: Value to be validated.
-        Returns:
-            Modified (or not) value provided.
-        Raises:
-            ValueError: If the value provided is too large.
-        """
-        numerical_instability_error = 1e-7
-        if eps_squared < 0:
-            if np.abs(eps_squared) < numerical_instability_error:
-                eps_squared = 0
-            else:
-                raise ValueError(
-                    "Propagation failed - eps_squared negative and larger in absolute value than "
-                    "a potential numerical instability."
-                )
-        return eps_squared
