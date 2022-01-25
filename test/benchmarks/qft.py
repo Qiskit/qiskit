@@ -54,4 +54,5 @@ class QftTranspileBench:
                         [13, 12]]
         transpile(self.circuit,
                   basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
-                  coupling_map=coupling_map)
+                  coupling_map=coupling_map,
+                  seed_transpiler=20220125)

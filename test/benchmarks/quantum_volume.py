@@ -52,4 +52,5 @@ class QuantumVolumeBenchmark:
         transpile(self.circuit,
                   basis_gates=self.basis,
                   coupling_map=self.coupling_map,
-                  translation_method=translation)
+                  translation_method=translation,
+                  seed_transpiler=20220125)
