@@ -612,14 +612,14 @@ class TestDagNodeSelection(QiskitTestCase):
         op_nodes = self.dag.op_nodes()
         cx_node = op_nodes[0]
         my_node = op_nodes[1]
-        self.assertEqual(
-            repr(cx_node),
-            f"""DAGOpNode(name : {cx_node.name}, qargs : {cx_node.qargs}, cargs : {cx_node.cargs})""",
-        )
 
         self.assertEqual(
+            repr(cx_node),
+            f"DAGOpNode(op = {cx_node.op}, qargs = {cx_node.qargs}, cargs = {cx_node.cargs})",
+        )
+        self.assertEqual(
             repr(my_node),
-            f"""DAGOpNode(name : {my_node.name}, qargs : {my_node.qargs}, cargs : {my_node.cargs})""",
+            f"DAGOpNode(op = {my_node.op}, qargs = {my_node.qargs}, cargs = {my_node.cargs})",
         )
 
     def test_get_op_nodes_particular(self):
@@ -674,6 +674,12 @@ class TestDagNodeSelection(QiskitTestCase):
             or (isinstance(successor2, DAGOutNode) and isinstance(successor1.op, Reset))
         )
 
+        if isinstance(successor1, DAGOutNode):
+            self.assertEqual(repr(successor1), f"DAGOutNode(wire = {successor1.wire})")
+
+        if isinstance(successor2, DAGOutNode):
+            self.assertEqual(repr(successor2), f"DAGOutNode(wire = {successor2.wire})")
+
     def test_is_successor(self):
         """The method dag.is_successor(A, B) checks if node B is a successor of A"""
         self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
@@ -722,6 +728,11 @@ class TestDagNodeSelection(QiskitTestCase):
             (isinstance(predecessor1, DAGInNode) and isinstance(predecessor2.op, Reset))
             or (isinstance(predecessor2, DAGInNode) and isinstance(predecessor1.op, Reset))
         )
+        if isinstance(predecessor1, DAGInNode):
+            self.assertEqual(repr(predecessor1), f"DAGInNode(wire = {predecessor1.wire})")
+
+        if isinstance(predecessor2, DAGInNode):
+            self.assertEqual(repr(predecessor2), f"DAGInNode(wire = {predecessor2.wire})")
 
     def test_is_predecessor(self):
         """The method dag.is_predecessor(A, B) checks if node B is a predecessor of A"""

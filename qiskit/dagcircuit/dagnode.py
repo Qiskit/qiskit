@@ -343,7 +343,7 @@ class DAGOpNode(DAGNode):
 
     def __repr__(self):
         """Returns a representation of the DAGOpNode"""
-        return f"""DAGOpNode(name : {self.name}, qargs : {self.qargs}, cargs : {self.cargs})"""
+        return f"DAGOpNode(op = {self.op}, qargs = {self.qargs}, cargs = {self.cargs})"
 
 
 class DAGInNode(DAGNode):
@@ -360,6 +360,10 @@ class DAGInNode(DAGNode):
         # only works as str([]) for DAGInNodes. Need to figure out why.
         self.sort_key = str([])
 
+    def __repr__(self):
+        """Returns a representation of the DAGInNode"""
+        return f"DAGInNode(wire = {self.wire})"
+
 
 class DAGOutNode(DAGNode):
     """Object to represent an outgoing wire node in the DAGCircuit."""
@@ -374,3 +378,7 @@ class DAGOutNode(DAGNode):
         # TODO sort_key which is used in dagcircuit.topological_nodes
         # only works as str([]) for DAGOutNodes. Need to figure out why.
         self.sort_key = str([])
+
+    def __repr__(self):
+        """Returns a representation of the DAGOutNode"""
+        return f"DAGOutNode(wire = {self.wire})"
