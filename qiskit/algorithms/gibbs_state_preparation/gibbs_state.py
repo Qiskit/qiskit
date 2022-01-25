@@ -11,7 +11,8 @@
 # that they have been altered from the originals.
 """Class representing a quantum state of a Gibbs State along with metadata and gradient
 calculation methods."""
-from typing import Optional, Union, Dict
+from collections import defaultdict
+from typing import Optional, Union, Dict, Callable
 
 import numpy as np
 import numpy.typing
@@ -71,15 +72,10 @@ class GibbsState:
         """Returns a temperature."""
         return self._temperature
 
-    @property
-    def gibbs_state_function(self):
-        """Returns a Gibbs state function."""
-        return self._gibbs_state_function
-
-    @property
-    def gibbs_state_function_bound_ansatz(self):
-        """Returns a Gibbs state function."""
-        return self._gibbs_state_function.assign_parameters(self._ansatz_params_dict)
+    def eval_gibbs_state_matrix(self):
+        """Evaluates a Gibbs state matrix on a given backend. Note that this process is generally
+        not efficient and should not be used in production settings."""
+        pass
 
     @property
     def ansatz(self):
@@ -92,20 +88,21 @@ class GibbsState:
         state."""
         return self._ansatz_params_dict
 
+    # TODO caching through sampler?
     def sample(self, backend):  # calc p_qbm
         operator = CircuitStateFn(self.ansatz)
         sampler = CircuitSampler(backend=backend).convert(operator, self._ansatz_params_dict)
-        p_qbm = sampler.eval()[0].primitive  # TODO don't want to eval just yet
-        # TODO trace out last half of registers
-        return p_qbm
+        amplitudes_with_aux_regs = sampler.eval().primitive
+        probs = self._discard_aux_registers(amplitudes_with_aux_regs, self.ansatz.num_qubits)
+        return probs
 
-    # TODO the length of prob vector will be adjusted in QBM depending on visible units
     def calc_ansatz_gradients(
         self,
+        backend,
         gradient_method: str = "param_shift",
     ) -> numpy.typing.NDArray[Union[complex, float]]:
         """
-        Calculates gradients of the visible part of a Gibbs state w.r.t. desired
+        Calculates gradients of a Gibbs state w.r.t. desired
         gradient_params that parametrize the Gibbs state.
         Args:
             gradient_method: A desired gradient method chosen from the Qiskit Gradient Framework.
@@ -123,15 +120,31 @@ class GibbsState:
         gradient_params = list(self.ansatz_params_dict.keys())
 
         operator = CircuitStateFn(self.ansatz)
-
-        state_grad = Gradient(grad_method=gradient_method).convert(
-            operator=operator, params=gradient_params
+        # combo fn for an operator here, telling how to batch results together, pass combo fn to
+        # Gradient
+        # state_grad_with_aux_regs = Gradient(grad_method=gradient_method).convert(
+        #     operator=operator, params=gradient_params
+        # )
+        # sampler = CircuitSampler(backend=backend).convert(
+        #     state_grad_with_aux_regs, self._ansatz_params_dict
+        # )
+        # gradient_amplitudes_with_aux_regs = sampler.eval()[0]
+        gradient_amplitudes_with_aux_regs = Gradient(grad_method=gradient_method).gradient_wrapper(
+            operator, self.ansatz.ordered_parameters, backend=backend
         )
-        # TODO evaluation based on the backend type, post-proc
-        return state_grad.assign_parameters(self._ansatz_params_dict).eval()
+        # Get the values for the gradient of the sampling probabilities w.r.t. the Ansatz parameters
+        gradient_amplitudes_with_aux_regs = gradient_amplitudes_with_aux_regs(
+            self.ansatz_params_dict.values()
+        )
+        # TODO gradients of amplitudes or probabilities?
+        state_grad = self._discard_aux_registers_gradients(
+            gradient_amplitudes_with_aux_regs, self.ansatz.num_qubits
+        )
+        return state_grad
 
     def calc_hamiltonian_gradients(
         self,
+        backend,
         gradient_method: str = "param_shift",
     ) -> Dict[Parameter, Union[complex, float]]:
         """
@@ -143,7 +156,7 @@ class GibbsState:
             Calculated gradients of the visible part of a Gibbs state w.r.t. parameters of a
             Hamiltonian that gave rise to the Gibbs state, gradient parameter values are not bound.
         """
-        ansatz_gradients = self.calc_ansatz_gradients(gradient_method)
+        ansatz_gradients = self.calc_ansatz_gradients(backend, gradient_method)
         gibbs_state_hamiltonian_gradients = {}
         for hamiltonian_parameter in self._hamiltonian.parameters:
             summed_gradient = np.dot(
@@ -153,3 +166,38 @@ class GibbsState:
             gibbs_state_hamiltonian_gradients[hamiltonian_parameter] = summed_gradient
 
         return gibbs_state_hamiltonian_gradients
+
+    @classmethod
+    def _discard_aux_registers(cls, amplitudes_with_aux_regs, num_qubits_with_aux) -> np.ndarray:
+        """Accepts an object with complex amplitudes sampled from a state with auxiliary
+        registers and processes bit strings of qubit labels. For the default choice of an ansatz
+        in the GibbsStateBuilder, this method gets rid of the second half of qubits that
+        correspond to an auxiliary system. Then, it aggregates complex amplitudes and returns the
+        vector of probabilities. Indices of returned probability vector correspond to labels of a
+        reduced qubit state."""
+        if num_qubits_with_aux % 2 != 0:
+            raise ValueError(
+                "The number of qubits in the system with auxiliary registers must be a multiple "
+                "of 2."
+            )
+        discard_num_qubits = num_qubits_with_aux // 2  # TODO even
+        kept_num_qubits = num_qubits_with_aux - discard_num_qubits
+
+        probs = amplitudes_with_aux_regs.data
+        probs_qubit_labels_ints = amplitudes_with_aux_regs.indices
+        reduced_qubits_amplitudes = np.zeros(pow(2, kept_num_qubits))
+
+        for qubit_label_int, amplitude in zip(probs_qubit_labels_ints, probs):
+            reduced_label = qubit_label_int >> discard_num_qubits
+            reduced_qubits_amplitudes[reduced_label] += np.conj(amplitude) * amplitude
+
+        return reduced_qubits_amplitudes
+
+    @classmethod
+    def _discard_aux_registers_gradients(cls, amplitudes_with_aux_regs, num_qubits_with_aux):
+        reduced_qubits_amplitudes = np.zeros(len(amplitudes_with_aux_regs), dtype=object)
+        for ind, amplitude_data in enumerate(amplitudes_with_aux_regs):
+            res = cls._discard_aux_registers(amplitude_data, num_qubits_with_aux)
+            reduced_qubits_amplitudes[ind] = res
+
+        return reduced_qubits_amplitudes
