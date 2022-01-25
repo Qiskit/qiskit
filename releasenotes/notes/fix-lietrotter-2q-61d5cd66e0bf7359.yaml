@@ -3,7 +3,7 @@ fixes:
   - |
     Fix the qubit order of 2-qubit evolutions in the 
     :class:`qiskit.circuit.library.PauliEvolutionGate`, if used with a product formula synthesis.
-    For instance, before, the evolution of `IIZ + IZI + IZZ` 
+    For instance, before, the evolution of ``IIZ + IZI + IZZ`` 
     
     .. code-block:: python
 
@@ -23,7 +23,7 @@ fixes:
         q_2: ──────────■──────
 
 
-    whereas now it, correctly, yields
+    whereas now it correctly yields
 
     .. code-block::
 
