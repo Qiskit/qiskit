@@ -273,3 +273,8 @@ class TestEvolutionGate(QiskitTestCase):
         lie_trotter = PauliEvolutionGate(operator, time, synthesis=LieTrotter())
 
         self.assertTrue(Operator(lie_trotter).equiv(exact))
+
+    def test_complex_op_raises(self):
+        """Test an operator with complex coefficient raises an error."""
+        with self.assertRaises(ValueError):
+            _ = PauliEvolutionGate(Pauli("iZ"))
