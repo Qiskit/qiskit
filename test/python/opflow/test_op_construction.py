@@ -894,7 +894,6 @@ class TestOpConstruction(QiskitOpflowTestCase):
             self.assertEqual(pauli.to_circuit(), expected)
             expected = QuantumCircuit(2)
             expected.x(0)
-            expected.id(1)
             self.assertEqual(pauli.to_circuit().decompose(), expected)
 
         with self.subTest("two qubit with phase"):

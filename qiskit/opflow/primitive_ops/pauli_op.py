@@ -20,7 +20,7 @@ from scipy.sparse import spmatrix
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Instruction, ParameterExpression
-from qiskit.circuit.library import IGate, RXGate, RYGate, RZGate, XGate, YGate, ZGate
+from qiskit.circuit.library import RXGate, RYGate, RZGate, XGate, YGate, ZGate
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.list_ops.summed_op import SummedOp
@@ -321,11 +321,12 @@ class PauliOp(PrimitiveOp):
             qc.global_phase = -phase * pi / 2
             return qc
 
-        if self.num_qubits == 1:
-            gate = {"I": IGate(), "X": XGate(), "Y": YGate(), "Z": ZGate()}[pauli]
+        if self.num_qubits == 1 and pauli != "I":
+            gate = {"X": XGate(), "Y": YGate(), "Z": ZGate()}[pauli]
+            qc.append(gate, [0])
         else:
             gate = PauliGate(pauli)
-        qc.append(gate, range(self.num_qubits))
+            qc.append(gate, range(self.num_qubits))
 
         if not phase:
             return qc
