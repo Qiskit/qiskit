@@ -321,9 +321,10 @@ class PauliOp(PrimitiveOp):
             qc.global_phase = -phase * pi / 2
             return qc
 
-        if self.num_qubits == 1 and pauli != "I":
-            gate = {"X": XGate(), "Y": YGate(), "Z": ZGate()}[pauli]
-            qc.append(gate, [0])
+        if self.num_qubits == 1:
+            if pauli != "I":
+                gate = {"X": XGate, "Y": YGate, "Z": ZGate}[pauli]
+                qc.append(gate(), [0])
         else:
             gate = PauliGate(pauli)
             qc.append(gate, range(self.num_qubits))
