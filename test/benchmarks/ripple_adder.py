@@ -47,10 +47,12 @@ class RippleAdderTranspile:
         transpile(self.circuit,
                   coupling_map=self.coupling_map,
                   basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
-                  optimization_level=level)
+                  optimization_level=level,
+                  seed_transpiler=20220125)
 
     def track_depth_transpile_square_grid_ripple_adder(self, _, level):
         return transpile(self.circuit,
                          coupling_map=self.coupling_map,
                          basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
-                         optimization_level=level).depth()
+                         optimization_level=level,
+                         seed_transpiler=20220125).depth()
