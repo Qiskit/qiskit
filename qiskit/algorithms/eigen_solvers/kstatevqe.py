@@ -510,6 +510,7 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
         # set an expectation for this algorithm run (will be reset to None at the end)
         initial_point = _validate_initial_point(self.initial_point, self.ansatz)
 
+
         bounds = _validate_bounds(self.k, self.ansatz)
         # We need to handle the array entries being zero or Optional i.e. having value None
         if aux_operators:
@@ -559,7 +560,7 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
             # optimization routine.
             if isinstance(self._gradient, GradientBase):
                 gradient = self._gradient.gradient_wrapper(
-                    ~StateFn(operator) @ StateFn(self._ansatz) + (~StateFn(self._ansatz) + StateFn(self._ansatz)) * step,
+                    ~StateFn(operator) @ StateFn(self._ansatz) + (~StateFn(self._ansatz) @ StateFn(self._ansatz)) * step,
                     bind_params=self._ansatz_params,
                     backend=self._quantum_instance,
                 )
@@ -626,7 +627,8 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
         self._ret = result
 
         if aux_operators is not None:
-            aux_values = self._eval_aux_ops(opt_result.x, aux_operators)
+            print(opt_result.x, opt_result.fun)
+            aux_values = self._eval_aux_ops(opt_result.x, aux_operators, expectation=expectation)
             result.aux_operator_eigenvalues = aux_values
 
         return result
@@ -852,12 +854,12 @@ def _validate_initial_point(point, ansatz):
 def _validate_bounds(k, ansatz):
     if hasattr(ansatz, "parameter_bounds") and ansatz.parameter_bounds is not None:
         bounds = ansatz.parameter_bounds
-        if len(bounds) != k * ansatz.num_parameters:
+        if len(bounds) != ansatz.num_parameters:
             raise ValueError(
                 f"The number of bounds ({len(bounds)}) does not match the number of "
                 f"parameters in the circuit ({ansatz.num_parameters})."
             )
     else:
-        bounds = [(None, None)] * k * ansatz.num_parameters
+        bounds = [(None, None)] * ansatz.num_parameters
 
     return bounds
