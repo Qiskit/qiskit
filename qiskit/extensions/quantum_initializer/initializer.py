@@ -20,7 +20,7 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit import Instruction
+from qiskit.circuit import Instruction, Operation
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library.standard_gates.x import CXGate, XGate
 from qiskit.circuit.library.standard_gates.h import HGate
@@ -32,7 +32,7 @@ from qiskit.circuit.reset import Reset
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class Initialize(Instruction):
+class Initialize(Instruction, Operation):
     """Complex amplitude initialization.
 
     Class that implements the (complex amplitude) initialization of some

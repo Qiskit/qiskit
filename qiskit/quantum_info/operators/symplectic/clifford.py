@@ -16,7 +16,7 @@ import re
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import QuantumCircuit, Instruction
+from qiskit.circuit import QuantumCircuit, Instruction, Operation
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate, HGate, SGate
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.operator import Operator
@@ -27,7 +27,7 @@ from .stabilizer_table import StabilizerTable
 from .clifford_circuits import _append_circuit
 
 
-class Clifford(BaseOperator, AdjointMixin):
+class Clifford(BaseOperator, AdjointMixin, Operation):
     """An N-qubit unitary operator from the Clifford group.
 
     **Representation**
@@ -136,6 +136,21 @@ class Clifford(BaseOperator, AdjointMixin):
 
         # Initialize BaseOperator
         super().__init__(num_qubits=self._table.num_qubits)
+
+    @property
+    def name(self):
+        """Unique string identifier for operation type."""
+        return "clifford"
+
+    @property
+    def num_qubits(self):
+        """Number of qubits."""
+        return self._table.num_qubits
+
+    @property
+    def num_clbits(self):
+        """Number of classical bits."""
+        return 0
 
     def __repr__(self):
         return f"Clifford({repr(self.table)})"

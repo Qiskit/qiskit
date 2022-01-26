@@ -1,0 +1,17 @@
+fixes:
+  - |
+    Fixed an issue with the :meth:`.Target.get_non_global_operation_names`
+    method when running on a target incorrectly raising an exception on targets
+    with ideal global operations. Previously, if this method was called on a
+    target that contained any ideal globally defined operations, where the
+    instruction properties are set to ``None``, this method would raise an
+    exception instead of treating that instruction as global.
+  - |
+    Fixed an issue with the :func:`~qiskit.compiler.transpile` function where
+    it could fail when being passed a :class:`.Target` object directly with the
+    ``target`` kwarg.
+  - |
+    Fixed an issue with the :func:`~qiskit.compiler.transpile` function where
+    it could fail when the ``backend`` argument was a :class:`.BackendV2`
+    or a :class:`.Target` via the ``target`` kwarg that contained ideal
+    globally defined operations.
