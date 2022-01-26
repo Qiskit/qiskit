@@ -1,23 +1,13 @@
 ---
 features:
   - |
-    The Parameter class is now allowed in template optimization if the
-    parameterized gates are RZXGates and RXGates. It has been removed from 
-    the _remove_impossible() method for scenarios that are incompatible 
-    with template optimization. Inversion of gates is currently only 
-    implemented for the RXGate().
-issues:
-  - |
-    Currently the only gate that can be inverted (as done in the template 
-    optimization algorithm) with a Parameter is the RXGate().
-other:
-  - |
-    An illustrative example of this PR is modeled after the addition of 
-    calibrations for template optimization #5752:
+    The Parameter class is now allowed in the template optimization
+    transpiler pass. An illustrative example of using Parameters is 
+    the following:
 
     .. code-block:: 
 
-      from qiskit import QuantumCircuit, transpile, schedule, IBMQ
+      from qiskit import QuantumCircuit, transpile, schedule
       from qiskit.circuit import Parameter
       
       from qiskit.transpiler import PassManager
@@ -26,9 +16,8 @@ other:
       # New contributions to the template optimization
       from qiskit.transpiler.passes.scheduling import RZXCalibrationBuilder, rzx_templates
       
-      IBMQ.load_account()
-      provider = IBMQ.get_provider(...)
-      backend = provider.get_backend('ibmq_casablanca')
+      from qiskit.test.mock import FakeCasablanca
+      backend = FakeCasablanca()
       
       phi = Parameter('φ')
       
@@ -44,7 +33,7 @@ other:
       print('ZX based circuit:')
       print(qc_cz)
       
-      # Add the calibratiocns
+      # Add the calibrations
       pass_ = RZXCalibrationBuilder(backend)
       cal_qc = PassManager(pass_).run(qc_cz.bind_parameters({phi: 0.12}))
       
