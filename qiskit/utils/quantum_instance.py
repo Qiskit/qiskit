@@ -515,7 +515,7 @@ class QuantumInstance:
         from qiskit.providers import Backend
 
         circuit_job = isinstance(self._backend, Backend)
-        if self.is_statevector and self._backend.name() == "aer_simulator_statevector":
+        if self.is_statevector and self.backend_name == "aer_simulator_statevector":
             try:
                 from qiskit.providers.aer.library import SaveStatevector
 
