@@ -989,16 +989,12 @@ class QuantumInstance:
     @property
     def is_simulator(self):
         """Return True if backend is a simulator."""
-        if self._backend_version <= 1:
-            return is_simulator_backend(self._backend)
-        return False
+        return is_simulator_backend(self._backend)
 
     @property
     def is_local(self):
         """Return True if backend is a local backend."""
-        if self._backend_version <= 1:
-            return is_local_backend(self._backend)
-        return False
+        return is_local_backend(self._backend)
 
     @property
     def skip_qobj_validation(self):
