@@ -1,0 +1,26 @@
+---
+features:
+  - |
+    Introduced a new feature, that adds support in transpiler optimization which enables to join the u1, u2, and p gates together even if there are unbound parameters in them.
+    for example::
+
+      from qiskit import QuantumCircuit
+      from qiskit.circuit import Parameter
+      from qiskit.transpiler import PassManager
+      from qiskit.transpiler.passes import Optimize1qGates, Unroller
+
+      phi = Parameter('φ')
+      alpha = Parameter('α')
+
+      qc = QuantumCircuit(1)
+      qc.u1(2*phi, 0)
+      qc.u1(alpha, 0)
+      qc.u1(0.1, 0)
+      qc.u1(0.2, 0)
+
+      pm = PassManager([Unroller(['u1', 'cx']), Optimize1qGates()])
+      nqc = pm.run(qc)
+
+    will be combined to the circuit with only one single-qubit gate
+      qc = QuantumCircuit(1)
+      qc.u1(2*phi + alpha + 0.3, 0)
