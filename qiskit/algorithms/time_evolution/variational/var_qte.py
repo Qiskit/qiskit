@@ -69,6 +69,7 @@ class VarQte(EvolutionBase, ABC):
         optimizer: str = "COBYLA",
         optimizer_tolerance: float = 1e-6,
         allowed_imaginary_part: float = 1e-7,
+        allowed_num_instability_error: float = 1e-7,
     ):
         r"""
         Args:
@@ -88,6 +89,9 @@ class VarQte(EvolutionBase, ABC):
             optimizer_tolerance: Numerical tolerance of an optimizer used for convergence to a minimum.
             allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
                                     imaginary part is expected.
+            allowed_num_instability_error: The amount of negative value that is allowed to be
+                                           rounded up to 0 for quantities that are expected to be
+                                           non-negative.
         """
         super().__init__()
         self._variational_principle = variational_principle
@@ -103,6 +107,7 @@ class VarQte(EvolutionBase, ABC):
         self._optimizer = optimizer
         self._optimizer_tolerance = optimizer_tolerance
         self._allowed_imaginary_part = allowed_imaginary_part
+        self._allowed_num_instability_error = allowed_num_instability_error
 
         self._operator = None
         self._initial_state = None

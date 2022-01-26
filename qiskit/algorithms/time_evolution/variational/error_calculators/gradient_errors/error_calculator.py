@@ -34,6 +34,7 @@ class ErrorCalculator(ABC):
         operator_sampler: Optional[CircuitSampler] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         allowed_imaginary_part: float = 1e-7,
+        allowed_num_instability_error: float = 1e-7,
     ):
         """
         Args:
@@ -44,6 +45,9 @@ class ErrorCalculator(ABC):
             backend: Optional backend tht enables the use of circuit samplers.
             allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
                                     imaginary part is expected.
+            allowed_num_instability_error: The amount of negative value that is allowed to be
+                                           rounded up to 0 for quantities that are expected to be
+                                           non-negative.
         """
         self._h_squared = h_squared
         self._operator = operator
@@ -51,6 +55,7 @@ class ErrorCalculator(ABC):
         self._operator_sampler = operator_sampler
         self._backend = backend
         self._allowed_imaginary_part = allowed_imaginary_part
+        self._allowed_num_instability_error = allowed_num_instability_error
 
     @classmethod
     def _bind_or_sample_operator(
@@ -105,9 +110,7 @@ class ErrorCalculator(ABC):
             )
         value = np.real(value)
 
-        numerical_instability_error = 1e-7
-
-        value = np.where((value < 0.0) & (value > -numerical_instability_error), 0.0, value)
+        value = np.where((value < 0.0) & (value > -allowed_num_instability_error), 0.0, value)
         if value.any() < 0:
             raise ValueError(
                 "Propagation failed - value provided is negative and larger in absolute value "
