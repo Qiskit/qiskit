@@ -21,7 +21,7 @@ from qiskit.circuit import ParameterExpression
 from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.list_ops import ListOp, SummedOp, TensoredOp
 from qiskit.opflow.operator_base import OperatorBase
-from qiskit.opflow.primitive_ops import PauliOp
+from qiskit.opflow.primitive_ops import PauliOp, PauliSumOp
 from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
 from qiskit.opflow.state_fns.dict_state_fn import DictStateFn
 from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
@@ -364,11 +364,14 @@ def _check_is_diagonal(operator: OperatorBase) -> bool:
             return True
         return False
 
-    if isinstance(operator, SummedOp):
-        # cover the case of sums of diagonal paulis, but don't raise since there might be summands
-        # canceling the non-diagonal parts
+    # For sums (PauliSumOp and SummedOp), we cover the case of sums of diagonal paulis, but don't
+    # raise since there might be summand canceling the non-diagonal parts. That case is checked
+    # in the inefficient matrix check at the bottom.
+    if isinstance(operator, PauliSumOp):
+        if not np.any(operator.primitive.paulis.x):
+            return True
 
-        # ignoring mypy since we know that all operators are PauliOps
+    if isinstance(operator, SummedOp):
         if all(isinstance(op, PauliOp) and not np.any(op.primitive.x) for op in operator.oplist):
             return True
 

@@ -18,6 +18,7 @@ import numpy as np
 from ddt import ddt, data
 
 from qiskit import QuantumCircuit
+from qiskit.utils import algorithm_globals
 from qiskit.opflow import (
     CVaRMeasurement,
     StateFn,
@@ -26,6 +27,7 @@ from qiskit.opflow import (
     X,
     Y,
     Plus,
+    PauliSumOp,
     PauliExpectation,
     MatrixExpectation,
     CVaRExpectation,
@@ -160,6 +162,18 @@ class TestCVaRMeasurement(QiskitOpflowTestCase):
         with self.subTest("adjoint"):
             with self.assertRaises(OpflowError):
                 cvar.adjoint()
+
+    def test_cvar_on_paulisumop(self):
+        """Test a large PauliSumOp is checked for diagonality efficiently.
+
+        Regression test for Qiskit/qiskit-terra#7573.
+        """
+        op = PauliSumOp.from_list([("Z" * 30, 1)])
+        # assert global algorithm settings do not have massive calculations turned on
+        # (which is the default, but better to be sure in the test!)
+        algorithm_globals.massive = False
+
+        _ = CVaRMeasurement(op)
 
 
 @ddt
