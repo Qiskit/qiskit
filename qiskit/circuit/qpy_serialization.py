@@ -100,6 +100,51 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+.. _version_4:
+
+Version 4
+=========
+
+Version 4 is identical to :ref:`version 3` except that it adds 2 new type strings
+to the INSTRUCTION_PARAM struct, ``z`` to represent ``None`` (which is encoded as
+no data), ``q`` to represent a :class:`.QuantumCircuit` (which is encoded as
+a QPY circuit), ``r`` to represent a ``range`` of integers (which is encoded as
+a :ref:`range_pack`), and ``t`` to represent a ``tuple`` of integers (which is
+encoded as npy file containing a 1-d numpy array of integers). Additionally, version
+4 changes the type of register index mapping array from ``unit32_t`` to ``int64_t``.
+If the values of any of the array elements are negative they represent a register
+bit that is not present in the circuit.
+
+The :ref:`registers` header format has also been updated to
+
+.. code-block:: c
+
+    struct {
+        char type;
+        _Bool standalone;
+        uint32_t size;
+        uint16_t name_size;
+        _bool in_circuit;
+    }
+
+which just adds the ``in_circuit`` field which represents whether the register is
+part of the circuit or not.
+
+.. _range_pack:
+
+RANGE
+-----
+
+A RANGE is a representation of a ``range`` object. It is defined as:
+
+.. code-block::
+
+    struct {
+        int64_t start;
+        int64_t stop;
+        int64_t step;
+    }
+
 .. _version_3:
 
 Version 3
@@ -316,6 +361,8 @@ The METADATA field is a UTF8 encoded JSON string. After reading the HEADER
 you then read the`metadata_size`` number of bytes and parse the JSON to get
 the metadata for the circuit.
 
+.. _registers:
+
 REGISTERS
 ---------
 
@@ -339,6 +386,11 @@ size ``name_size``. After the ``name`` utf8 bytes there is then an array of
 uint32_t values of size ``size`` that contains a map of the register's index to
 the circuit's qubit index. For example, array element 0's value is the index
 of the ``register[0]``'s position in the containing circuit's qubits list.
+
+.. note::
+
+    Starting in QPY Version 4 the type of array elements has changed to int64_t
+    and a negative value represents a bit in the array not present in the circuit
 
 The standalone boolean determines whether the register is constructed as a
 standalone register that was added to the circuit or was created from existing
@@ -569,6 +621,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit import library
 from qiskit import circuit as circuit_mod
 from qiskit import extensions
+from qiskit.circuit import controlflow
 from qiskit.extensions import quantum_initializer
 from qiskit.version import __version__
 from qiskit.exceptions import QiskitError
@@ -641,9 +694,13 @@ CUSTOM_DEFINITION_SIZE = struct.calcsize(CUSTOM_DEFINITION_PACK)
 
 
 # REGISTER binary format
+REGISTER_V4 = namedtuple("REGISTER", ["type", "standalone", "size", "name_size", "in_circuit"])
+REGISTER_V4_PACK = "!1c?IH?"
+REGISTER_V4_SIZE = struct.calcsize(REGISTER_V4_PACK)
 REGISTER = namedtuple("REGISTER", ["type", "standalone", "size", "name_size"])
 REGISTER_PACK = "!1c?IH"
 REGISTER_SIZE = struct.calcsize(REGISTER_PACK)
+
 
 # INSTRUCTION binary format
 INSTRUCTION = namedtuple(
@@ -706,6 +763,10 @@ PAULI_EVOLUTION_DEF_SIZE = struct.calcsize(PAULI_EVOLUTION_DEF_PACK)
 SPARSE_PAULI_OP_LIST_ELEM = namedtuple("SPARSE_PAULI_OP_LIST_ELEMENT", ["size"])
 SPARSE_PAULI_OP_LIST_ELEM_PACK = "!Q"
 SPARSE_PAULI_OP_LIST_ELEM_SIZE = struct.calcsize(SPARSE_PAULI_OP_LIST_ELEM_PACK)
+# Range
+RANGE = namedtuple("RANGE", ["start", "stop", "step"])
+RANGE_PACK = "!qqq"
+RANGE_PACK_SIZE = struct.calcsize(RANGE_PACK)
 
 
 def _read_header_v2(file_obj, version, vectors):
@@ -771,9 +832,27 @@ def _read_registers(file_obj, num_registers):
         bit_indices_raw = file_obj.read(struct.calcsize(REGISTER_ARRAY_PACK))
         bit_indices = list(struct.unpack(REGISTER_ARRAY_PACK, bit_indices_raw))
         if register[0].decode("utf8") == "q":
-            registers["q"][name] = (standalone, bit_indices)
+            registers["q"][name] = (standalone, bit_indices, True)
         else:
-            registers["c"][name] = (standalone, bit_indices)
+            registers["c"][name] = (standalone, bit_indices, True)
+    return registers
+
+
+def _read_registers_v4(file_obj, num_registers):
+    registers = {"q": {}, "c": {}}
+    for _reg in range(num_registers):
+        register_raw = file_obj.read(REGISTER_V4_SIZE)
+        register = struct.unpack(REGISTER_V4_PACK, register_raw)
+        name = file_obj.read(register[3]).decode("utf8")
+        standalone = register[1]
+        REGISTER_ARRAY_PACK = "!%sq" % register[2]
+        in_circuit = register[4]
+        bit_indices_raw = file_obj.read(struct.calcsize(REGISTER_ARRAY_PACK))
+        bit_indices = list(struct.unpack(REGISTER_ARRAY_PACK, bit_indices_raw))
+        if register[0].decode("utf8") == "q":
+            registers["q"][name] = (standalone, bit_indices, in_circuit)
+        else:
+            registers["c"][name] = (standalone, bit_indices, in_circuit)
     return registers
 
 
@@ -954,6 +1033,16 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions, version
         elif type_str == "v":
             container = io.BytesIO(data)
             param = _read_parameter_vec(container, vectors)
+        elif type_str == "z":
+            param = None
+        elif type_str == "q":
+            with io.BytesIO(data) as container:
+                param = _read_circuit(container, version)
+        elif type_str == "r":
+            param = range(*struct.unpack(RANGE_PACK, data))
+        elif type_str == "t":
+            container = io.BytesIO(data)
+            param = tuple(np.load(container))
         else:
             raise TypeError("Invalid parameter type: %s" % type_str)
         params.append(param)
@@ -981,15 +1070,22 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions, version
         gate_class = getattr(extensions, gate_name)
     elif hasattr(quantum_initializer, gate_name):
         gate_class = getattr(quantum_initializer, gate_name)
+    elif hasattr(controlflow, gate_name):
+        gate_class = getattr(controlflow, gate_name)
     else:
         raise AttributeError("Invalid instruction type: %s" % gate_name)
-    if gate_name == "Initialize":
-        gate = gate_class(params)
+    if gate_name in {"IfElseOp", "WhileLoopOp"}:
+        gate = gate_class(condition_tuple, *params)
     else:
-        if gate_name == "Barrier":
-            params = [len(qargs)]
-        gate = gate_class(*params)
-    gate.condition = condition_tuple
+        if gate_name == "Initialize":
+            gate = gate_class(params)
+        else:
+            if gate_name == "Barrier":
+                params = [len(qargs)]
+            elif gate_name == "BreakLoopOp":
+                params = [len(qargs), len(cargs)]
+            gate = gate_class(*params)
+        gate.condition = condition_tuple
     if label_size > 0:
         gate.label = label
     if not isinstance(gate, Instruction):
@@ -1123,6 +1219,7 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
             and not hasattr(circuit_mod, gate_class_name)
             and not hasattr(extensions, gate_class_name)
             and not hasattr(quantum_initializer, gate_class_name)
+            and not hasattr(controlflow, gate_class_name)
         )
         or gate_class_name == "Gate"
         or gate_class_name == "Instruction"
@@ -1219,6 +1316,25 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
             np.save(container, param)
             container.seek(0)
             data = container.read()
+            size = len(data)
+        elif param is None:
+            type_key = "z"
+            data = b""
+            size = len(data)
+        elif isinstance(param, QuantumCircuit):
+            type_key = "q"
+            _write_circuit(container, param)
+            data = container.getvalue()
+            size = len(data)
+        elif isinstance(param, range):
+            type_key = "r"
+            data = struct.pack(RANGE_PACK, param.start, param.stop, param.step)
+            size = len(data)
+        elif gate_class_name == "ForLoopOp" and isinstance(param, tuple):
+            type_key = "t"
+            output_array = np.array(param, dtype=int)
+            np.save(container, output_array)
+            data = container.getvalue()
             size = len(data)
         else:
             raise TypeError(
@@ -1414,7 +1530,7 @@ def dump(circuits, file_obj):
     header = struct.pack(
         FILE_HEADER_PACK,
         b"QISKIT",
-        3,
+        4,
         version_parts[0],
         version_parts[1],
         version_parts[2],
@@ -1454,38 +1570,72 @@ def _write_circuit(file_obj, circuit):
             global_phase_data = container.getvalue()
     else:
         raise TypeError("unsupported global phase type %s" % type(circuit.global_phase))
-    header_raw = HEADER_V2(
-        name_size=len(circuit_name),
-        global_phase_type=global_phase_type,
-        global_phase_size=len(global_phase_data),
-        num_qubits=circuit.num_qubits,
-        num_clbits=circuit.num_clbits,
-        metadata_size=metadata_size,
-        num_registers=num_registers,
-        num_instructions=num_instructions,
-    )
-    header = struct.pack(HEADER_V2_PACK, *header_raw)
-    file_obj.write(header)
-    file_obj.write(circuit_name)
-    file_obj.write(global_phase_data)
-    file_obj.write(metadata_raw)
+
     qubit_indices = {bit: index for index, bit in enumerate(circuit.qubits)}
     clbit_indices = {bit: index for index, bit in enumerate(circuit.clbits)}
-    if num_registers > 0:
-        for reg in circuit.qregs:
+
+    def process_qregs(buf, qregs, in_circuit=True):
+        for reg in qregs:
             standalone = all(bit._register is reg for bit in reg)
             reg_name = reg.name.encode("utf8")
-            file_obj.write(struct.pack(REGISTER_PACK, b"q", standalone, reg.size, len(reg_name)))
-            file_obj.write(reg_name)
-            REGISTER_ARRAY_PACK = "!%sI" % reg.size
-            file_obj.write(struct.pack(REGISTER_ARRAY_PACK, *(qubit_indices[bit] for bit in reg)))
-        for reg in circuit.cregs:
+            buf.write(
+                struct.pack(REGISTER_V4_PACK, b"q", standalone, reg.size, len(reg_name), in_circuit)
+            )
+            buf.write(reg_name)
+            REGISTER_ARRAY_PACK = "!%sq" % reg.size
+            buf.write(
+                struct.pack(REGISTER_ARRAY_PACK, *(qubit_indices.get(bit, -1) for bit in reg))
+            )
+
+    def process_cregs(buf, cregs, in_circuit=True):
+        for reg in cregs:
             standalone = all(bit._register is reg for bit in reg)
             reg_name = reg.name.encode("utf8")
-            file_obj.write(struct.pack(REGISTER_PACK, b"c", standalone, reg.size, len(reg_name)))
-            file_obj.write(reg_name)
-            REGISTER_ARRAY_PACK = "!%sI" % reg.size
-            file_obj.write(struct.pack(REGISTER_ARRAY_PACK, *(clbit_indices[bit] for bit in reg)))
+            buf.write(
+                struct.pack(REGISTER_V4_PACK, b"c", standalone, reg.size, len(reg_name), in_circuit)
+            )
+            buf.write(reg_name)
+            REGISTER_ARRAY_PACK = "!%sq" % reg.size
+            buf.write(
+                struct.pack(REGISTER_ARRAY_PACK, *(clbit_indices.get(bit, -1) for bit in reg))
+            )
+
+    with io.BytesIO() as reg_buf:
+        if num_registers > 0:
+            process_qregs(reg_buf, circuit.qregs)
+            process_cregs(reg_buf, circuit.cregs)
+        # process dangling registers (those not added to circuit)
+        qreg_set = set()
+        for bit in circuit.qubits:
+            if bit._register is not None and bit._register not in circuit.qregs:
+                qreg_set.add(bit._register)
+        process_qregs(reg_buf, qreg_set, in_circuit=False)
+        num_registers += len(qreg_set)
+        creg_set = set()
+        for bit in circuit.clbits:
+            if bit._register is not None and bit._register not in circuit.cregs:
+                creg_set.add(bit._register)
+        process_cregs(reg_buf, creg_set, in_circuit=False)
+        num_registers += len(creg_set)
+        # Write circuit header
+        header_raw = HEADER_V2(
+            name_size=len(circuit_name),
+            global_phase_type=global_phase_type,
+            global_phase_size=len(global_phase_data),
+            num_qubits=circuit.num_qubits,
+            num_clbits=circuit.num_clbits,
+            metadata_size=metadata_size,
+            num_registers=num_registers,
+            num_instructions=num_instructions,
+        )
+        header = struct.pack(HEADER_V2_PACK, *header_raw)
+        file_obj.write(header)
+        file_obj.write(circuit_name)
+        file_obj.write(global_phase_data)
+        file_obj.write(metadata_raw)
+        # Write header payload
+        file_obj.write(reg_buf.getvalue())
+
     instruction_buffer = io.BytesIO()
     custom_instructions = {}
     index_map = {}
@@ -1587,7 +1737,10 @@ def _read_circuit(file_obj, version):
     out_registers = {"q": {}, "c": {}}
     if num_registers > 0:
         circ = QuantumCircuit(name=name, global_phase=global_phase, metadata=metadata)
-        registers = _read_registers(file_obj, num_registers)
+        if version < 4:
+            registers = _read_registers(file_obj, num_registers)
+        else:
+            registers = _read_registers_v4(file_obj, num_registers)
 
         for bit_type_label, bit_type, reg_type in [
             ("q", Qubit, QuantumRegister),
@@ -1596,17 +1749,27 @@ def _read_circuit(file_obj, version):
             register_bits = set()
             # Add quantum registers and bits
             for register_name in registers[bit_type_label]:
-                standalone, indices = registers[bit_type_label][register_name]
+                standalone, indices, in_circuit = registers[bit_type_label][register_name]
+                indices_defined = [x for x in indices if x >= 0]
                 if standalone:
-                    start = min(indices)
+                    start = min(indices_defined)
                     count = start
                     out_of_order = False
                     for index in indices:
+                        if index < 0:
+                            out_of_order = True
+                            continue
                         if not out_of_order and index != count:
                             out_of_order = True
                         count += 1
                         if index in register_bits:
+                            # If we have a bit in the position already it's been
+                            # added by an earlier register in the circuit
+                            # otherwise it's invalid qpy
+                            if not in_circuit:
+                                continue
                             raise QiskitError("Duplicate register bits found")
+
                         register_bits.add(index)
 
                     num_reg_bits = len(indices)
@@ -1616,20 +1779,28 @@ def _read_circuit(file_obj, version):
                     # If any bits from qreg are out of order in the circuit handle
                     # is case
                     if out_of_order:
-                        sorted_indices = np.argsort(indices)
-                        for index in sorted_indices:
-                            pos = indices[index]
+                        for index, pos in sorted(
+                            enumerate(x for x in indices if x >= 0), key=lambda x: x[1]
+                        ):
                             if bit_type_label == "q":
                                 bit_len = len(circ.qubits)
                             else:
                                 bit_len = len(circ.clbits)
+                            if pos < bit_len:
+                                # If we have a bit in the position already it's been
+                                # added by an earlier register in the circuit
+                                # otherwise it's invalid qpy
+                                if not in_circuit:
+                                    continue
+                                raise QiskitError("Duplicate register bits found")
                             # Fill any holes between the current register bit and the
                             # next one
                             if pos > bit_len:
                                 bits = [bit_type() for _ in range(pos - bit_len)]
                                 circ.add_bits(bits)
                             circ.add_bits([reg[index]])
-                        circ.add_register(reg)
+                        if in_circuit:
+                            circ.add_register(reg)
                     else:
                         if bit_type_label == "q":
                             bit_len = len(circ.qubits)
@@ -1659,7 +1830,8 @@ def _read_circuit(file_obj, version):
                     else:
                         bits = [circ.clbits[i] for i in indices]
                     reg = reg_type(name=register_name, bits=bits)
-                    circ.add_register(reg)
+                    if in_circuit:
+                        circ.add_register(reg)
                     out_registers[bit_type_label][register_name] = reg
         # If we don't have sufficient bits in the circuit after adding
         # all the registers add more bits to fill the circuit
