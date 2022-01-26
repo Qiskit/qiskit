@@ -343,7 +343,7 @@ class DAGOpNode(DAGNode):
 
     def __repr__(self):
         """Returns a representation of the DAGOpNode"""
-        return f"DAGOpNode(op = {self.op}, qargs = {self.qargs}, cargs = {self.cargs})"
+        return f"DAGOpNode(op={self.op}, qargs={self.qargs}, cargs={self.cargs})"
 
 
 class DAGInNode(DAGNode):
@@ -362,7 +362,7 @@ class DAGInNode(DAGNode):
 
     def __repr__(self):
         """Returns a representation of the DAGInNode"""
-        return f"DAGInNode(wire = {self.wire})"
+        return f"DAGInNode(wire={self.wire})"
 
 
 class DAGOutNode(DAGNode):
@@ -381,4 +381,4 @@ class DAGOutNode(DAGNode):
 
     def __repr__(self):
         """Returns a representation of the DAGOutNode"""
-        return f"DAGOutNode(wire = {self.wire})"
+        return f"DAGOutNode(wire={self.wire})"

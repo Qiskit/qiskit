@@ -602,25 +602,23 @@ class TestDagNodeSelection(QiskitTestCase):
         for node in op_nodes:
             self.assertIsInstance(node.op, Instruction)
 
-    def test_opnode_representation(self):
-        """Test the __repr__ method of the DAGOpNode"""
+    def test_node_representations(self):
+        """Test the __repr__ methods of the DAG Nodes"""
         self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
-
-        custom_inst = Instruction(name="my_inst", num_qubits=1, num_clbits=1, params=[0, 1])
-        self.dag.apply_operation_back(custom_inst, [self.qubit0], [self.clbit0])
-
-        op_nodes = self.dag.op_nodes()
-        cx_node = op_nodes[0]
-        my_node = op_nodes[1]
-
+        # test OpNode
+        cx_node = self.dag.named_nodes("cx")[0]
         self.assertEqual(
             repr(cx_node),
-            f"DAGOpNode(op = {cx_node.op}, qargs = {cx_node.qargs}, cargs = {cx_node.cargs})",
+            f"DAGOpNode(op={cx_node.op}, qargs={cx_node.qargs}, cargs={cx_node.cargs})",
         )
-        self.assertEqual(
-            repr(my_node),
-            f"DAGOpNode(op = {my_node.op}, qargs = {my_node.qargs}, cargs = {my_node.cargs})",
-        )
+        # test InNode
+        predecessor_cnot = self.dag.quantum_predecessors(cx_node)
+        predecessor = next(predecessor_cnot)
+        self.assertEqual(repr(predecessor), f"DAGInNode(wire={predecessor.wire})")
+        # test OutNode
+        successor_cnot = self.dag.quantum_successors(cx_node)
+        successor = next(successor_cnot)
+        self.assertEqual(repr(successor), f"DAGOutNode(wire={successor.wire})")
 
     def test_get_op_nodes_particular(self):
         """The method dag.gates_nodes(op=AGate) returns all the AGate nodes"""
@@ -674,12 +672,6 @@ class TestDagNodeSelection(QiskitTestCase):
             or (isinstance(successor2, DAGOutNode) and isinstance(successor1.op, Reset))
         )
 
-        if isinstance(successor1, DAGOutNode):
-            self.assertEqual(repr(successor1), f"DAGOutNode(wire = {successor1.wire})")
-
-        if isinstance(successor2, DAGOutNode):
-            self.assertEqual(repr(successor2), f"DAGOutNode(wire = {successor2.wire})")
-
     def test_is_successor(self):
         """The method dag.is_successor(A, B) checks if node B is a successor of A"""
         self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
@@ -728,11 +720,6 @@ class TestDagNodeSelection(QiskitTestCase):
             (isinstance(predecessor1, DAGInNode) and isinstance(predecessor2.op, Reset))
             or (isinstance(predecessor2, DAGInNode) and isinstance(predecessor1.op, Reset))
         )
-        if isinstance(predecessor1, DAGInNode):
-            self.assertEqual(repr(predecessor1), f"DAGInNode(wire = {predecessor1.wire})")
-
-        if isinstance(predecessor2, DAGInNode):
-            self.assertEqual(repr(predecessor2), f"DAGInNode(wire = {predecessor2.wire})")
 
     def test_is_predecessor(self):
         """The method dag.is_predecessor(A, B) checks if node B is a predecessor of A"""

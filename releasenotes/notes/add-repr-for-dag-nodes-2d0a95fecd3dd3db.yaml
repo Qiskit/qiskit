@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Representations for ``DAGOpNode``, ``DAGInNode`` and ``DAGOutNode``
+    which enables better print outputs.
