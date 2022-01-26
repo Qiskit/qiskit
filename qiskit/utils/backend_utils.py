@@ -36,15 +36,15 @@ _PROVIDER_CHECK = ProviderCheck()
 
 def _get_backend_version(backend):
     """Get the backend version int."""
-    backend_version = getattr(backend, "version", None)
-    if not isinstance(backend_version, int):
-        backend_version = 0
-    return backend_version
+    backend_interface_version = getattr(backend, "version", None)
+    if not isinstance(backend_interface_version, int):
+        backend_interface_version = 0
+    return backend_interface_version
 
 
 def _get_backend_provider(backend):
-    backend_version = _get_backend_version(backend)
-    if backend_version > 1:
+    backend_interface_version = _get_backend_version(backend)
+    if backend_interface_version > 1:
         provider = backend.provider
     else:
         provider = backend.provider()
@@ -163,8 +163,8 @@ def is_statevector_backend(backend):
             return True
     if backend is None:
         return False
-    backend_version = _get_backend_version(backend)
-    if backend_version <= 1:
+    backend_interface_version = _get_backend_version(backend)
+    if backend_interface_version <= 1:
         return backend.name().startswith("statevector")
     else:
         return backend.name.startswith("statevector")
@@ -179,8 +179,8 @@ def is_simulator_backend(backend):
     Returns:
         bool: True is a simulator
     """
-    backend_version = _get_backend_version(backend)
-    if backend_version <= 1:
+    backend_interface_version = _get_backend_version(backend)
+    if backend_interface_version <= 1:
         return backend.configuration().simulator
     return False
 
@@ -194,8 +194,8 @@ def is_local_backend(backend):
     Returns:
         bool: True is a local backend
     """
-    backend_version = _get_backend_version(backend)
-    if backend_version <= 1:
+    backend_interface_version = _get_backend_version(backend)
+    if backend_interface_version <= 1:
         return backend.configuration().local
     return False
 

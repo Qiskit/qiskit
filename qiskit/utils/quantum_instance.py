@@ -240,9 +240,9 @@ class QuantumInstance:
             QiskitError: set backend_options but the backend does not support that
         """
         self._backend = backend
-        self._backend_version = getattr(self._backend, "version", None)
-        if not isinstance(self._backend_version, int):
-            self._backend_version = 0
+        self._backend_interface_version = getattr(self._backend, "version", None)
+        if not isinstance(self._backend_interface_version, int):
+            self._backend_interface_version = 0
         self._pass_manager = pass_manager
         self._bound_pass_manager = bound_pass_manager
 
@@ -284,7 +284,7 @@ class QuantumInstance:
         self._run_config = run_config
 
         # setup backend config
-        if self._backend_version <= 1:
+        if self._backend_interface_version <= 1:
             basis_gates = basis_gates or backend.configuration().basis_gates
             coupling_map = coupling_map or getattr(backend.configuration(), "coupling_map", None)
             self._backend_config = {"basis_gates": basis_gates, "coupling_map": coupling_map}
@@ -974,7 +974,7 @@ class QuantumInstance:
     @property
     def backend_name(self):
         """Return backend name."""
-        if self._backend_version <= 1:
+        if self._backend_interface_version <= 1:
             return self._backend.name()
         else:
             return self._backend.name
@@ -982,7 +982,7 @@ class QuantumInstance:
     @property
     def is_statevector(self):
         """Return True if backend is a statevector-type simulator."""
-        if self._backend_version <= 1:
+        if self._backend_interface_version <= 1:
             return is_statevector_backend(self._backend)
         return False
 
