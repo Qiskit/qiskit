@@ -47,6 +47,7 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         t_param: Optional[Parameter] = None,
         optimizer: str = "COBYLA",
+        optimizer_tolerance: float = 1e-6,
     ):
         """
         Args:
@@ -67,6 +68,7 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
             backend: Optional backend tht enables the use of circuit samplers.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
             optimizer: Optimizer used in case error_based_ode is true.
+            optimizer_tolerance: Numerical tolerance of an optimizer used for convergence to a minimum.
         """
         super().__init__(
             param_dict,
@@ -80,6 +82,7 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
         )
         self._error_calculator = error_calculator
         self._optimizer = optimizer
+        self._optimizer_tolerance = optimizer_tolerance
 
     def var_qte_ode_function(self, time: float, parameters_values: Iterable) -> float:
         """
@@ -117,7 +120,7 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
             return et_squared
 
         # Use the natural gradient result as initial point for least squares solver
-        argmin = minimize(fun=argmin_fun, x0=nat_grad_res, method=self._optimizer, tol=1e-6)
+        argmin = minimize(fun=argmin_fun, x0=nat_grad_res, method=self._optimizer, tol=self._optimizer_tolerance)
 
         # self._et = argmin_fun(argmin.x)
         return argmin.x

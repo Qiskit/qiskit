@@ -30,8 +30,7 @@ class OdeFunctionGenerator(AbstractOdeFunctionGenerator):
             time: Current time of evolution.
             parameters_values: Current values of parameters.
         Returns:
-            Tuple containing natural gradient, metric tensor and evolution gradient results
-            arising from solving a system of linear equations.
+            Natural gradient arising from solving a system of linear equations.
         """
         current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
 

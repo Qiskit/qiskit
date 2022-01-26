@@ -49,6 +49,7 @@ class VarQite(Qite, VarQte):
         error_based_ode: Optional[bool] = False,
         ode_solver_callable: OdeSolver = "RK45",
         optimizer: str = "COBYLA",
+        optimizer_tolerance: float = 1e-6,
     ):
         r"""
         Args:
@@ -65,6 +66,7 @@ class VarQite(Qite, VarQte):
                              If True use the argument that minimizes the error.
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
             optimizer: Optimizer used in case error_based_ode is true.
+            optimizer_tolerance: Numerical tolerance of an optimizer used for convergence to a minimum.
         """
         super().__init__(
             variational_principle,
@@ -73,6 +75,7 @@ class VarQite(Qite, VarQte):
             error_based_ode,
             ode_solver_callable,
             optimizer,
+            optimizer_tolerance,
         )
 
     def evolve(

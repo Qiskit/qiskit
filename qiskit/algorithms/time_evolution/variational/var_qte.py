@@ -67,6 +67,7 @@ class VarQte(EvolutionBase, ABC):
         error_based_ode: Optional[bool] = False,
         ode_solver_callable: OdeSolver = RK45,
         optimizer: str = "COBYLA",
+        optimizer_tolerance: float = 1e-6,
     ):
         r"""
         Args:
@@ -83,6 +84,7 @@ class VarQte(EvolutionBase, ABC):
                              If True use the argument that minimizes the error error_bounds.
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
             optimizer: Optimizer used in case error_based_ode is true.
+            optimizer_tolerance: Numerical tolerance of an optimizer used for convergence to a minimum.
         """
         super().__init__()
         self._variational_principle = variational_principle
@@ -96,6 +98,7 @@ class VarQte(EvolutionBase, ABC):
         self._error_based_ode = error_based_ode
         self._ode_solver_callable = ode_solver_callable
         self._optimizer = optimizer
+        self._optimizer_tolerance = optimizer_tolerance
 
         self._operator = None
         self._initial_state = None
@@ -121,7 +124,7 @@ class VarQte(EvolutionBase, ABC):
                                 parametrized state/ansatz.
             hamiltonian:
                 ⟨ψ(ω)|H|ψ(ω)〉
-                Operator used vor Variational Quantum Imaginary Time Evolution (VarQITE)
+                Operator used vor Variational Quantum Imaginary Time Evolution (VarQte)
                 The coefficient of the operator (operator.coeff) determines the evolution
                 time.
                 The operator may be given either as a composed op consisting of a Hermitian
@@ -130,12 +133,11 @@ class VarQte(EvolutionBase, ABC):
                 The latter case enables the evaluation of a Quantum Natural Gradient.
             time: Total time of evolution.
             initial_state: Quantum state to be evolved.
-            observable: Observable to be evolved. Not supported by VarQite.
+            observable: Observable to be evolved. Not supported by VarQte.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
         Returns:
             StateFn (parameters are bound) which represents an approximation to the
-            respective
-            time evolution.
+            respective time evolution.
         Raises:
             TypeError: If observable is provided - not supported by this algorithm.
         """
@@ -274,6 +276,7 @@ class VarQte(EvolutionBase, ABC):
                 self._backend,
                 t_param,
                 self._optimizer,
+                self._optimizer_tolerance,
             )
         else:
             ode_function_generator = OdeFunctionGenerator(
