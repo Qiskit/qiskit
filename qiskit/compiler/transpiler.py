@@ -544,9 +544,9 @@ def _parse_transpile_args(
     # but if an argument is explicitly passed use that instead of the target version
     if target is not None:
         if coupling_map is None:
-            coupling_map = target.coupling_map()
+            coupling_map = target.build_coupling_map()
         if basis_gates is None:
-            basis_gates = target.operation_names()
+            basis_gates = target.operation_names
         if instruction_durations is None:
             instruction_durations = target.durations()
         if inst_map is None:
@@ -805,6 +805,8 @@ def _target_to_backend_properties(target: Target):
         else:
             qubit_props = {x: None for x in range(target.num_qubits)}
             for qargs, props in qargs_list.items():
+                if qargs is None:
+                    continue
                 qubit = qargs[0]
                 props_list = []
                 if props.error is not None:
@@ -1098,7 +1100,8 @@ def _parse_output_name(output_name, circuits):
 
 
 def _parse_timing_constraints(backend, timing_constraints, num_circuits):
-
+    if isinstance(timing_constraints, TimingConstraints):
+        return [timing_constraints] * num_circuits
     if backend is None and timing_constraints is None:
         timing_constraints = TimingConstraints()
     else:

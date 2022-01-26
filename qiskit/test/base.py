@@ -213,6 +213,11 @@ class QiskitTestCase(BaseQiskitTestCase):
             r"The QuantumCircuit.cu.",
             r"The CXDirection pass has been deprecated",
             r"The pauli_basis function with PauliTable.*",
+            # TODO: remove the following ignore after seaborn 0.12.0 releases
+            r"distutils Version classes are deprecated. Use packaging\.version",
+            # Internal deprecation warning emitted by jupyter client when
+            # calling nbconvert in python 3.10
+            r"There is no current event loop",
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)

@@ -192,8 +192,8 @@ class RZXCalibrationBuilder(CalibrationBuilder):
             gaussian_area = abs(amp) * sigma * np.sqrt(2 * np.pi) * math.erf(n_sigmas)
             area = gaussian_area + abs(amp) * width
 
-            target_area = abs(theta) / (np.pi / 2.0) * area
-            sign = theta / abs(theta)
+            target_area = abs(float(theta)) / (np.pi / 2.0) * area
+            sign = theta / abs(float(theta))
 
             if target_area > gaussian_area:
                 width = (target_area - gaussian_area) / abs(amp)
