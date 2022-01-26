@@ -48,6 +48,7 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
         t_param: Optional[Parameter] = None,
         optimizer: str = "COBYLA",
         optimizer_tolerance: float = 1e-6,
+        allowed_imaginary_part: float = 1e-7,
     ):
         """
         Args:
@@ -69,6 +70,8 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
             t_param: Time parameter in case of a time-dependent Hamiltonian.
             optimizer: Optimizer used in case error_based_ode is true.
             optimizer_tolerance: Numerical tolerance of an optimizer used for convergence to a minimum.
+            allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
+                                    imaginary part is expected.
         """
         super().__init__(
             param_dict,
@@ -79,6 +82,7 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
             regularization,
             backend,
             t_param,
+            allowed_imaginary_part,
         )
         self._error_calculator = error_calculator
         self._optimizer = optimizer
@@ -120,7 +124,9 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
             return et_squared
 
         # Use the natural gradient result as initial point for least squares solver
-        argmin = minimize(fun=argmin_fun, x0=nat_grad_res, method=self._optimizer, tol=self._optimizer_tolerance)
+        argmin = minimize(
+            fun=argmin_fun, x0=nat_grad_res, method=self._optimizer, tol=self._optimizer_tolerance
+        )
 
         # self._et = argmin_fun(argmin.x)
         return argmin.x

@@ -30,14 +30,14 @@ class EvolutionBase(ABC):
         initial_state: StateFn = None,
         observable: OperatorBase = None,
         t_param: Parameter = None,
-        hamiltonian_value_dict: [Parameter, Union[float, complex]] = None,
+        hamiltonian_value_dict: [Parameter, Union[float, complex]] = None,  # TODO change name?
     ):
         """
-        Evolves an initial state according to a Hamiltonian provided.
+        Evolves an initial state or an observable according to a Hamiltonian provided.
         Args:
             hamiltonian:
                 ⟨ψ(ω)|H|ψ(ω)〉
-                Operator used vor time evolution.
+                Operator used variational time evolution.
             time: Total time of evolution.
             initial_state: Quantum state to be evolved.
             observable: Observable to be evolved.
@@ -54,7 +54,7 @@ class EvolutionBase(ABC):
         hamiltonian: OperatorBase,
         time: float,
         initial_state: StateFn,
-        gradient_object: Gradient,
+        gradient_object: Gradient,  # TODO call it converter, default value?
         observable: OperatorBase = None,
         t_param: Parameter = None,
         hamiltonian_value_dict: [Parameter, Union[float, complex]] = None,

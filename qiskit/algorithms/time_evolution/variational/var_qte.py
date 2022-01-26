@@ -68,6 +68,7 @@ class VarQte(EvolutionBase, ABC):
         ode_solver_callable: OdeSolver = RK45,
         optimizer: str = "COBYLA",
         optimizer_tolerance: float = 1e-6,
+        allowed_imaginary_part: float = 1e-7,
     ):
         r"""
         Args:
@@ -85,6 +86,8 @@ class VarQte(EvolutionBase, ABC):
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
             optimizer: Optimizer used in case error_based_ode is true.
             optimizer_tolerance: Numerical tolerance of an optimizer used for convergence to a minimum.
+            allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
+                                    imaginary part is expected.
         """
         super().__init__()
         self._variational_principle = variational_principle
@@ -99,6 +102,7 @@ class VarQte(EvolutionBase, ABC):
         self._ode_solver_callable = ode_solver_callable
         self._optimizer = optimizer
         self._optimizer_tolerance = optimizer_tolerance
+        self._allowed_imaginary_part = allowed_imaginary_part
 
         self._operator = None
         self._initial_state = None
@@ -277,6 +281,7 @@ class VarQte(EvolutionBase, ABC):
                 t_param,
                 self._optimizer,
                 self._optimizer_tolerance,
+                self._allowed_imaginary_part,
             )
         else:
             ode_function_generator = OdeFunctionGenerator(
@@ -288,6 +293,7 @@ class VarQte(EvolutionBase, ABC):
                 self._regularization,
                 self._backend,
                 t_param,
+                self._allowed_imaginary_part,
             )
 
         return ode_function_generator

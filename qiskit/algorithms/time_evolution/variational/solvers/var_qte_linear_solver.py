@@ -41,7 +41,7 @@ class VarQteLinearSolver:
         metric_circ_sampler: Optional[CircuitSampler] = None,
         energy_sampler: Optional[CircuitSampler] = None,
         regularization: Optional[str] = None,
-        backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+        allowed_imaginary_part: float = 1e-7,
     ):
         """
         Args:
@@ -55,14 +55,15 @@ class VarQteLinearSolver:
                             or a penalty term given as Callable.
                             If regularization is None but the metric is ill-conditioned or singular
                             then a least square solver is used without regularization.
-            backend: Optional backend tht enables the use of circuit samplers.
+            allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
+                                    imaginary part is expected.
         """
 
-        self._backend = backend
         self._regularization = regularization
         self._grad_circ_sampler = grad_circ_sampler
         self._metric_circ_sampler = metric_circ_sampler
         self._energy_sampler = energy_sampler
+        self._allowed_imaginary_part = allowed_imaginary_part
 
     def _solve_sle(
         self,
@@ -106,7 +107,11 @@ class VarQteLinearSolver:
             metric = var_principle._raw_metric_tensor.bind_parameters(time_dict)
 
         grad_result = eval_grad_result(
-            grad, param_dict, self._grad_circ_sampler, self._energy_sampler
+            grad,
+            param_dict,
+            self._grad_circ_sampler,
+            self._energy_sampler,
+            self._allowed_imaginary_part,
         )
 
         metric_result = eval_metric_result(

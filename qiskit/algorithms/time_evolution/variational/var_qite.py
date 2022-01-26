@@ -50,6 +50,7 @@ class VarQite(Qite, VarQte):
         ode_solver_callable: OdeSolver = "RK45",
         optimizer: str = "COBYLA",
         optimizer_tolerance: float = 1e-6,
+        allowed_imaginary_part: float = 1e-7,
     ):
         r"""
         Args:
@@ -67,6 +68,8 @@ class VarQite(Qite, VarQte):
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
             optimizer: Optimizer used in case error_based_ode is true.
             optimizer_tolerance: Numerical tolerance of an optimizer used for convergence to a minimum.
+            allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
+                                    imaginary part is expected.
         """
         super().__init__(
             variational_principle,
@@ -76,6 +79,7 @@ class VarQite(Qite, VarQte):
             ode_solver_callable,
             optimizer,
             optimizer_tolerance,
+            allowed_imaginary_part,
         )
 
     def evolve(
@@ -146,6 +150,7 @@ class VarQite(Qite, VarQte):
                 self._h_squared_circ_sampler,
                 self._operator_circ_sampler,
                 self._backend,
+                self._allowed_imaginary_part,
             )
             return super()._create_ode_function_generator(
                 error_calculator, init_state_param_dict, t_param

@@ -33,6 +33,7 @@ class ErrorCalculator(ABC):
         h_squared_sampler: Optional[CircuitSampler] = None,
         operator_sampler: Optional[CircuitSampler] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+        allowed_imaginary_part: float = 1e-7,
     ):
         """
         Args:
@@ -41,12 +42,15 @@ class ErrorCalculator(ABC):
             h_squared_sampler: CircuitSampler for a squared Hamiltonian.
             operator_sampler: CircuitSampler for an operator.
             backend: Optional backend tht enables the use of circuit samplers.
+            allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
+                                    imaginary part is expected.
         """
         self._h_squared = h_squared
         self._operator = operator
         self._h_squared_sampler = h_squared_sampler
         self._operator_sampler = operator_sampler
         self._backend = backend
+        self._allowed_imaginary_part = allowed_imaginary_part
 
     @classmethod
     def _bind_or_sample_operator(
@@ -82,9 +86,8 @@ class ErrorCalculator(ABC):
     ) -> Union[np.ndarray, int, float, complex]:
         return np.real(operator.eval())
 
-    @classmethod
     def _remove_float_imag_part_from_instability(
-        cls, value: Union[np.ndarray, float]
+        self, value: Union[np.ndarray, float]
     ) -> Union[np.ndarray, float]:
         """
         Fixes a value or array of values which is/are expected to be non-negative and real in case
@@ -96,8 +99,7 @@ class ErrorCalculator(ABC):
         Raises:
             ValueError: If the value provided cannot be fixed.
         """
-        allowed_imaginary_part = 1e-7
-        if np.linalg.norm(np.imag(value)) > allowed_imaginary_part:
+        if np.linalg.norm(np.imag(value)) > self._allowed_imaginary_part:
             raise ValueError(
                 "Value provided has an unexpected imaginary part that is not to be neglected."
             )

@@ -29,7 +29,7 @@ class VarQteOdeSolver:
         self,
         init_params: List[Union[float, complex]],
         ode_function_generator: AbstractOdeFunctionGenerator,
-        ode_solver_callable: OdeSolver = "RK45",
+        ode_solver_callable: OdeSolver = "RK45",  # TODO check if string
     ):
         """
         Initialize ODE Solver.

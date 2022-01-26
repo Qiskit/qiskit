@@ -40,6 +40,7 @@ class AbstractOdeFunctionGenerator(ABC):
         regularization: Optional[str] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         t_param: Optional[Parameter] = None,
+        allowed_imaginary_part: float = 1e-7,
     ):
         """
         Args:
@@ -57,6 +58,8 @@ class AbstractOdeFunctionGenerator(ABC):
                             then a least square solver is used without regularization.
             backend: Optional backend tht enables the use of circuit samplers.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
+            allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
+                                    imaginary part is expected.
         """
         self._param_dict = param_dict
         self._variational_principle = variational_principle
@@ -70,9 +73,10 @@ class AbstractOdeFunctionGenerator(ABC):
             self._metric_circ_sampler,
             self._energy_sampler,
             self._regularization,
-            self._backend,
+            allowed_imaginary_part,
         )
         self._t_param = t_param
+        self._allowed_imaginary_part = allowed_imaginary_part
 
     @abstractmethod
     def var_qte_ode_function(self, time: float, parameters_values: Iterable) -> Iterable:
