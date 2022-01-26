@@ -270,10 +270,10 @@ def plot_bloch_multivector(
 
             qc = QuantumCircuit(2)
             qc.h(0)
-            qc.cx(0, 1)
+            qc.x(1)
 
             state = Statevector.from_instruction(qc)
-            plot_bloch_multivector(state, title="New Bloch Multivector", reverse_bits=False)
+            plot_bloch_multivector(state)
     """
     if not HAS_MATPLOTLIB:
         raise MissingOptionalLibraryError(

@@ -30,7 +30,7 @@ from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 
 
 class PauliSumOp(PrimitiveOp):
-    """Class for Operators backend by Terra's ``SparsePauliOp`` class."""
+    """Class for Operators backed by Terra's ``SparsePauliOp`` class."""
 
     primitive: SparsePauliOp
 
