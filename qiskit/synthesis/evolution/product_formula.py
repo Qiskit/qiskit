@@ -138,6 +138,8 @@ def evolve_pauli(
 
 def _single_qubit_evolution(pauli, time):
     definition = QuantumCircuit(pauli.num_qubits)
+    # Note that all phases are removed from the pauli label and are only in the coefficients.
+    # That's because the operators we evolved have all been translated to a SparsePauliOp.
     for i, pauli_i in enumerate(reversed(pauli.to_label())):
         if pauli_i == "X":
             definition.rx(2 * time, i)
@@ -150,7 +152,9 @@ def _single_qubit_evolution(pauli, time):
 
 
 def _two_qubit_evolution(pauli, time, cx_structure):
-    # get the Paulis and the qubits they act on
+    # Get the Paulis and the qubits they act on.
+    # Note that all phases are removed from the pauli label and are only in the coefficients.
+    # That's because the operators we evolved have all been translated to a SparsePauliOp.
     labels_as_array = np.array(list(reversed(pauli.to_label())))
     qubits = np.where(labels_as_array != "I")[0]
     labels = np.array([labels_as_array[idx] for idx in qubits])
@@ -186,6 +190,8 @@ def _multi_qubit_evolution(pauli, time, cx_structure):
 
     # determine qubit to do the rotation on
     target = None
+    # Note that all phases are removed from the pauli label and are only in the coefficients.
+    # That's because the operators we evolved have all been translated to a SparsePauliOp.
     for i, pauli_i in enumerate(reversed(pauli.to_label())):
         if pauli_i != "I":
             target = i

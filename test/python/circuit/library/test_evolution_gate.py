@@ -57,19 +57,21 @@ class TestEvolutionGate(QiskitTestCase):
         self.assertEqual(decomposed.count_ops()["cx"], reps * 3 * 4)
 
     def test_rzx_order(self):
-        """Test ZX is mapped onto the correct qubits."""
-        evo_gate = PauliEvolutionGate(X ^ Z)
-        decomposed = evo_gate.definition.decompose()
+        """Test ZX and XZ is mapped onto the correct qubits."""
+        for op, indices in zip([X ^ Z, Z ^ X], [(0, 1), (1, 0)]):
+            with self.subTest(op=op, indices=indices):
+                evo_gate = PauliEvolutionGate(op)
+                decomposed = evo_gate.definition.decompose()
 
-        ref = QuantumCircuit(2)
-        ref.h(1)
-        ref.cx(1, 0)
-        ref.rz(2.0, 0)
-        ref.cx(1, 0)
-        ref.h(1)
+                ref = QuantumCircuit(2)
+                ref.h(indices[1])
+                ref.cx(indices[1], indices[0])
+                ref.rz(2.0, indices[0])
+                ref.cx(indices[1], indices[0])
+                ref.h(indices[1])
 
-        # don't use circuit equality since RZX here decomposes with RZ on the bottom
-        self.assertTrue(Operator(decomposed).equiv(ref))
+                # don't use circuit equality since RZX here decomposes with RZ on the bottom
+                self.assertTrue(Operator(decomposed).equiv(ref))
 
     def test_suzuki_trotter(self):
         """Test constructing the circuit with Lie Trotter decomposition."""
