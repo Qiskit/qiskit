@@ -33,7 +33,7 @@ stages:
         - bash: |
             set -e
             python -m pip install --upgrade pip
-            pip install cibuildwheel==2.2.2
+            pip install cibuildwheel==2.3.1
             pip install -U twine
             cibuildwheel --output-dir wheelhouse .
         - task: PublishBuildArtifacts@1
@@ -74,7 +74,7 @@ stages:
       - bash: |
           set -e
           python -m pip install --upgrade pip
-          pip install cibuildwheel==2.2.2
+          pip install cibuildwheel==2.3.1
           pip install -U twine
           cibuildwheel --output-dir wheelhouse .
       - task: PublishBuildArtifacts@1
@@ -96,7 +96,7 @@ stages:
       - bash: |
           set -e
           python -m pip install --upgrade pip
-          pip install cibuildwheel==2.2.2
+          pip install cibuildwheel==2.3.1
           pip install -U twine
           cibuildwheel --output-dir wheelhouse .
       - task: PublishBuildArtifacts@1
@@ -107,7 +107,7 @@ stages:
         env:
           TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'Windows'
-      pool: {vmImage: 'vs2017-win2016'}
+      pool: {vmImage: 'windows-latest'}
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         TWINE_USERNAME: qiskit
@@ -123,7 +123,7 @@ stages:
         - bash: |
             set -e
             python -m pip install --upgrade pip
-            pip install cibuildwheel==2.2.2
+            pip install cibuildwheel==2.3.1
             pip install -U twine
             cibuildwheel --output-dir wheelhouse
         - task: PublishBuildArtifacts@1
