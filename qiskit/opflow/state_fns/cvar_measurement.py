@@ -360,9 +360,7 @@ def _check_is_diagonal(operator: OperatorBase) -> bool:
     """
     if isinstance(operator, PauliOp):
         # every X component must be False
-        if not np.any(operator.primitive.x):
-            return True
-        return False
+        return not np.any(operator.primitive.x)
 
     # For sums (PauliSumOp and SummedOp), we cover the case of sums of diagonal paulis, but don't
     # raise since there might be summand canceling the non-diagonal parts. That case is checked
@@ -371,16 +369,13 @@ def _check_is_diagonal(operator: OperatorBase) -> bool:
         if not np.any(operator.primitive.paulis.x):
             return True
 
-    if isinstance(operator, SummedOp):
+    elif isinstance(operator, SummedOp):
         if all(isinstance(op, PauliOp) and not np.any(op.primitive.x) for op in operator.oplist):
             return True
 
-    if isinstance(operator, ListOp):
+    elif isinstance(operator, ListOp):
         return all(operator.traverse(_check_is_diagonal))
 
     # cannot efficiently check if a operator is diagonal, converting to matrix
     matrix = operator.to_matrix()
-
-    if np.all(matrix == np.diag(np.diagonal(matrix))):
-        return True
-    return False
+    return np.all(matrix == np.diag(np.diagonal(matrix)))

@@ -173,7 +173,12 @@ class TestCVaRMeasurement(QiskitOpflowTestCase):
         # (which is the default, but better to be sure in the test!)
         algorithm_globals.massive = False
 
-        _ = CVaRMeasurement(op)
+        cvar = CVaRMeasurement(op, alpha=0.1)
+        fake_probabilities = [0.2, 0.8]
+        fake_energies = [1, 2]
+
+        expectation = cvar.compute_cvar(fake_energies, fake_probabilities)
+        self.assertEqual(expectation, 1)
 
 
 @ddt
