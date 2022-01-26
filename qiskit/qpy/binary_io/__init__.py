@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,17 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=wrong-import-position, unused-import
+"""Read and write QPY-serializable objects."""
 
-"""Alias for Qiskit QPY import."""
-
-import warnings
-
-warnings.warn(
-    "Importing QPY serialization from qiskit.circuit.qpy_serialization "
-    "has been deprecated. Use new import path qiskit.qpy instead. "
-    "This import path will be removed after sufficient deprecation period from 0.20 release.",
-    ImportWarning,
-)
-
-from qiskit.qpy import dump, load
+from .alphanumeric import dumps as dumps_alphanumeric, loads as load_alphanumeric
+from .circuits import write as write_circuit, read as read_circuit

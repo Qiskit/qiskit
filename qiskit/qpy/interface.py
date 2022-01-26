@@ -17,8 +17,7 @@ import warnings
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.qpy import formats, common
-from qiskit.qpy.objects import circuits as circuits_io
+from qiskit.qpy import formats, common, binary_io
 from qiskit.version import __version__
 
 
@@ -71,7 +70,7 @@ def dump(circuits, file_obj):
     header = struct.pack(
         formats.FILE_HEADER_PACK,
         b"QISKIT",
-        3,
+        common.QPY_VERSION,
         version_parts[0],
         version_parts[1],
         version_parts[2],
@@ -79,7 +78,7 @@ def dump(circuits, file_obj):
     )
     file_obj.write(header)
     for circuit in circuits:
-        circuits_io.write(file_obj, circuit)
+        binary_io.write_circuit(file_obj, circuit)
 
 
 def load(file_obj):
@@ -153,5 +152,5 @@ def load(file_obj):
         )
     circuits = []
     for _ in range(data.num_circuits):
-        circuits.append(circuits_io.read(file_obj, data.qpy_version))
+        circuits.append(binary_io.read_circuit(file_obj, data.qpy_version))
     return circuits

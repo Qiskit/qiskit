@@ -20,7 +20,7 @@ import numpy as np
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
-from qiskit.qpy import common, formats
+from qiskit.qpy import common, formats, exceptions
 from qiskit.qpy.common import AlphanumericTypeKey as TypeKey, ENCODE
 
 try:
@@ -66,9 +66,9 @@ def _write_parameter_expression(file_obj, obj):
 
         # serialize key
         if symbol_key == TypeKey.PARAMETER_VECTOR:
-            symbol_data = common.to_binary(symbol, _write_parameter_vec)
+            symbol_data = common.data_to_binary(symbol, _write_parameter_vec)
         else:
-            symbol_data = common.to_binary(symbol, _write_parameter)
+            symbol_data = common.data_to_binary(symbol, _write_parameter)
 
         # serialize value
         if value == symbol._symbol_expr:
@@ -78,7 +78,7 @@ def _write_parameter_expression(file_obj, obj):
             value_key, value_data = dumps(value)
 
         elem_header = struct.pack(
-            formats.PARAM_EXPR_MAP_ELEM_PACK_V3,
+            formats.PARAM_EXPR_MAP_ELEM_V3_PACK,
             symbol_key,
             value_key,
             len(value_data),
@@ -151,9 +151,9 @@ def _read_parameter_expression(file_obj):
         elif elem_key == TypeKey.PARAMETER:
             value = symbol._symbol_expr
         elif elem_key == TypeKey.PARAMETER_EXPRESSION:
-            value = common.from_binary(binary_data, _read_parameter_expression)
+            value = common.data_from_binary(binary_data, _read_parameter_expression)
         else:
-            raise TypeError("Invalid parameter expression map type: %s" % elem_key)
+            raise exceptions.QpyError("Invalid parameter expression map type: %s" % elem_key)
         symbol_map[symbol] = value
 
     return ParameterExpression(symbol_map, expr)
@@ -173,8 +173,8 @@ def _read_parameter_expression_v3(file_obj, vectors):
     for _ in range(data.map_elements):
         elem_data = formats.PARAM_EXPR_MAP_ELEM_V3(
             *struct.unpack(
-                formats.PARAM_EXPR_MAP_ELEM_PACK_V3,
-                file_obj.read(formats.PARAM_EXPR_MAP_ELEM_SIZE_V3),
+                formats.PARAM_EXPR_MAP_ELEM_V3_PACK,
+                file_obj.read(formats.PARAM_EXPR_MAP_ELEM_V3_SIZE),
             )
         )
         symbol_key = TypeKey(elem_data.symbol_type)
@@ -184,7 +184,7 @@ def _read_parameter_expression_v3(file_obj, vectors):
         elif symbol_key == TypeKey.PARAMETER_VECTOR:
             symbol = _read_parameter_vec(file_obj, vectors)
         else:
-            raise TypeError("Invalid parameter expression map type: %s" % symbol_key)
+            raise exceptions.QpyError("Invalid parameter expression map type: %s" % symbol_key)
 
         elem_key = TypeKey(elem_data.type)
         binary_data = file_obj.read(elem_data.size)
@@ -197,9 +197,11 @@ def _read_parameter_expression_v3(file_obj, vectors):
         elif elem_key in (TypeKey.PARAMETER, TypeKey.PARAMETER_VECTOR):
             value = symbol._symbol_expr
         elif elem_key == TypeKey.PARAMETER_EXPRESSION:
-            value = common.from_binary(binary_data, _read_parameter_expression_v3, vectors=vectors)
+            value = common.data_from_binary(
+                binary_data, _read_parameter_expression_v3, vectors=vectors
+            )
         else:
-            raise TypeError("Invalid parameter expression map type: %s" % elem_key)
+            raise exceptions.QpyError("Invalid parameter expression map type: %s" % elem_key)
         symbol_map[symbol] = value
 
     return ParameterExpression(symbol_map, expr)
@@ -215,7 +217,7 @@ def dumps(obj):
         tuple: TypeKey and binary data.
 
     Raises:
-        NotImplementedError: Serializer for given format is not ready.
+        QpyError: Serializer for given format is not ready.
     """
     type_key = TypeKey.assign(obj)
 
@@ -226,17 +228,21 @@ def dumps(obj):
     elif type_key == TypeKey.COMPLEX:
         binary_data = struct.pack(formats.COMPLEX_PACK, obj.real, obj.imag)
     elif type_key == TypeKey.NUMPY_OBJ:
-        binary_data = common.to_binary(obj, np.save)
+        binary_data = common.data_to_binary(obj, np.save)
     elif type_key == TypeKey.STRING:
         binary_data = obj.encode(ENCODE)
+    elif type_key == TypeKey.NULL:
+        binary_data = b""
     elif type_key == TypeKey.PARAMETER_VECTOR:
-        binary_data = common.to_binary(obj, _write_parameter_vec)
+        binary_data = common.data_to_binary(obj, _write_parameter_vec)
     elif type_key == TypeKey.PARAMETER:
-        binary_data = common.to_binary(obj, _write_parameter)
+        binary_data = common.data_to_binary(obj, _write_parameter)
     elif type_key == TypeKey.PARAMETER_EXPRESSION:
-        binary_data = common.to_binary(obj, _write_parameter_expression)
+        binary_data = common.data_to_binary(obj, _write_parameter_expression)
     else:
-        raise NotImplementedError(f"Serialization for {type_key} is not implemented.")
+        raise exceptions.QpyError(
+            f"Serialization for {type_key} is not implemented in alphanumeric I/O."
+        )
 
     return type_key, binary_data
 
@@ -254,10 +260,10 @@ def loads(type_key, binary_data, version, vectors):
         any: Deserialized alphanumeric object.
 
     Raises:
-        NotImplementedError: Serializer for given format is not ready.
+        QpyError: Serializer for given format is not ready.
     """
     if isinstance(type_key, bytes):
-        type_key = common.AlphanumericTypeKey(type_key)
+        type_key = TypeKey(type_key)
 
     if type_key == TypeKey.INTEGER:
         obj = struct.unpack("!q", binary_data)[0]
@@ -266,19 +272,25 @@ def loads(type_key, binary_data, version, vectors):
     elif type_key == TypeKey.COMPLEX:
         obj = complex(*struct.unpack(formats.COMPLEX_PACK, binary_data))
     elif type_key == TypeKey.NUMPY_OBJ:
-        obj = common.from_binary(binary_data, np.load)
+        obj = common.data_from_binary(binary_data, np.load)
     elif type_key == TypeKey.STRING:
         obj = binary_data.decode(ENCODE)
+    elif type_key == TypeKey.NULL:
+        obj = None
     elif type_key == TypeKey.PARAMETER_VECTOR:
-        obj = common.from_binary(binary_data, _read_parameter_vec, vectors=vectors)
+        obj = common.data_from_binary(binary_data, _read_parameter_vec, vectors=vectors)
     elif type_key == TypeKey.PARAMETER:
-        obj = common.from_binary(binary_data, _read_parameter)
+        obj = common.data_from_binary(binary_data, _read_parameter)
     elif type_key == TypeKey.PARAMETER_EXPRESSION:
         if version < 3:
-            obj = common.from_binary(binary_data, _read_parameter_expression)
+            obj = common.data_from_binary(binary_data, _read_parameter_expression)
         else:
-            obj = common.from_binary(binary_data, _read_parameter_expression_v3, vectors=vectors)
+            obj = common.data_from_binary(
+                binary_data, _read_parameter_expression_v3, vectors=vectors
+            )
     else:
-        raise NotImplementedError(f"Serialization for {type_key} is not implemented.")
+        raise exceptions.QpyError(
+            f"Serialization for {type_key} is not implemented in alphanumeric I/O."
+        )
 
     return obj

@@ -98,14 +98,81 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
-.. _version_3:
+.. _qpy_version_4:
+
+Version 4
+=========
+
+Version 4 is identical to :ref:`qpy_version_3` except that it adds 2 new type strings
+to the INSTRUCTION_PARAM struct, ``z`` to represent ``None`` (which is encoded as
+no data), ``q`` to represent a :class:`.QuantumCircuit` (which is encoded as
+a QPY circuit), ``r`` to represent a ``range`` of integers (which is encoded as
+a :ref:`qpy_range_pack`), and ``t`` to represent a ``sequence`` (which is encoded as
+defined by :ref:`qpy_sequence`). Additionally, version 4 changes the type of register
+index mapping array from ``uint32_t`` to ``int64_t``. If the values of any of the
+array elements are negative they represent a register bit that is not present in the
+circuit.
+
+The :ref:`qpy_registers` header format has also been updated to
+
+.. code-block:: c
+
+    struct {
+        char type;
+        _Bool standalone;
+        uint32_t size;
+        uint16_t name_size;
+        _bool in_circuit;
+    }
+
+which just adds the ``in_circuit`` field which represents whether the register is
+part of the circuit or not.
+
+.. _qpy_range_pack:
+
+RANGE
+-----
+
+A RANGE is a representation of a ``range`` object. It is defined as:
+
+.. code-block:: c
+
+    struct {
+        int64_t start;
+        int64_t stop;
+        int64_t step;
+    }
+
+.. _qpy_sequence:
+
+SEQUENCE
+--------
+
+A SEQUENCE is a reprentation of a arbitrary sequence object. As sequence are just fixed length
+containers of arbitrary python objects their QPY can't fully represent any sequence,
+but as long as the contents in a sequence are other QPY serializable types for
+the INSTRUCTION_PARAM payload the ``sequence`` object can be serialized.
+
+A sequence instruction parameter starts with a header defined as:
+
+.. code-block:: c
+
+    struct {
+        uint64_t size;
+    }
+
+followed by ``size`` elements that are INSTRUCTION_PARAM payloads, where each of
+these define an element in the sequence. The sequence object will be typecasted
+into proper type, e.g. ``tuple``, afterwards.
+
+.. _qpy_version_3:
 
 Version 3
 =========
 
-Version 3 of the QPY format is identical to :ref:`version_2` except that it defines
+Version 3 of the QPY format is identical to :ref:`qpy_version_2` except that it defines
 a struct format to represent a :class:`~qiskit.circuit.library.PauliEvolutionGate`
-natively in QPY. To accomplish this the :ref:`custom_definition` struct now supports
+natively in QPY. To accomplish this the :ref:`qpy_custom_definition` struct now supports
 a new type value ``'p'`` to represent a :class:`~qiskit.circuit.library.PauliEvolutionGate`.
 Enties in the custom instructions tables have unique name generated that start with the
 string ``"###PauliEvolutionGate_"`` followed by a uuid string. This gate name is reservered
@@ -130,18 +197,18 @@ This represents the high level :class:`~qiskit.circuit.library.PauliEvolutionGat
         uint64_t synthesis_size;
     }
 
-This is immediately followed by ``operator_count`` elements defined by the :ref:`pauli_sum_op`
+This is immediately followed by ``operator_count`` elements defined by the :ref:`qpy_pauli_sum_op`
 payload.  Following that we have ``time_size`` bytes representing the ``time`` attribute. If
 ``standalone_op`` is ``True`` then there must only be a single operator. The
 encoding of these bytes is determined by the value of ``time_type``. Possible values of
 ``time_type`` are ``'f'``, ``'p'``, and ``'e'``. If ``time_type`` is ``'f'`` it's a double,
 ``'p'`` defines a :class:`~qiskit.circuit.Parameter` object  which is represented by a
-:ref:`param_struct`, ``e`` defines a :class:`~qiskit.circuit.ParameterExpression` object
-(that's not a :class:`~qiskit.circuit.Parameter`) which is represented by a :ref:`param_expr`.
+:ref:`qpy_param_struct`, ``e`` defines a :class:`~qiskit.circuit.ParameterExpression` object
+(that's not a :class:`~qiskit.circuit.Parameter`) which is represented by a :ref:`qpy_param_expr`.
 Following that is ``synthesis_size`` bytes which is a utf8 encoded json payload representing
 the :class:`.EvolutionSynthesis` class used by the gate.
 
-.. _pauli_sum_op:
+.. _qpy_pauli_sum_op:
 
 SPARSE_PAULI_OP_LIST_ELEM
 -------------------------
@@ -163,10 +230,9 @@ Version 3 of the QPY format also defines a struct format to represent a
 a :class:`~qiskit.circuit.Parameter`. This adds a new parameter type char ``'v'``
 to represent a :class:`~qiskit.circuit.ParameterVectorElement` which is now
 supported as a type string value for an INSTRUCTION_PARAM. The payload for these
-parameters are defined below as :ref:`param_vector`.
+parameters are defined below as :ref:`qpy_param_vector`.
 
-.. _param_vector:
-
+.. _qpy_param_vector:
 
 PARAMETER_VECTOR_ELEMENT
 ------------------------
@@ -187,7 +253,7 @@ defined as:
 which is immediately followed by ``vector_name_size`` utf8 bytes representing
 the parameter's vector name.
 
-.. _param_expr_v3:
+.. _qpy_param_expr_v3:
 
 
 PARAMETER_EXPR
@@ -197,7 +263,7 @@ Additionally, since QPY format version v3 distinguishes between a
 :class:`~qiskit.circuit.Parameter` and :class:`~qiskit.circuit.ParameterVectorElement`
 the payload for a :class:`~qiskit.circuit.ParameterExpression` needs to be updated
 to distinguish between the types. The following is the modified payload format
-which is mostly identical to the format in Version 1 and :ref:`version_2` but just
+which is mostly identical to the format in Version 1 and :ref:`qpy_version_2` but just
 modifies the ``map_elements`` struct to include a symbol type field.
 
 A PARAMETER_EXPR represents a :class:`~qiskit.circuit.ParameterExpression`
@@ -228,9 +294,9 @@ The ``symbol_type`` key determines the payload type of the symbol representation
 for the element. If it's ``p`` it represents a :class:`~qiskit.circuit.Parameter`
 and if it's ``v`` it represents a :class:`~qiskit.circuit.ParameterVectorElement`.
 The map element struct is immediately followed by the symbol map key payload, if
-``symbol_type`` is ``p`` then it is followed immediately by a :ref:`param_struct`
+``symbol_type`` is ``p`` then it is followed immediately by a :ref:`qpy_param_struct`
 object (both the struct and utf8 name bytes) and if ``symbol_type`` is ``v``
-then the struct is imediately followed by :ref:`param_vector` (both the struct
+then the struct is imediately followed by :ref:`qpy_param_vector` (both the struct
 and utf8 name bytes). That is followed by ``size`` bytes for the
 data of the symbol. The data format is dependent on the value of ``type``. If
 ``type`` is ``p`` then it represents a :class:`~qiskit.circuit.Parameter` and
@@ -239,16 +305,16 @@ size will be 0, the value will just be the same as the key. Similarly if the
 and size will be 0 as the value will just be the same as the key. If
 ``type`` is ``f`` then it represents a double precision float. If ``type`` is
 ``c`` it represents a double precision complex, which is represented by the
-:ref:`complex`. Finally, if type is ``i`` it represents an integer which is an
+:ref:`qpy_complex`. Finally, if type is ``i`` it represents an integer which is an
 ``int64_t``.
 
-.. _version_2:
+.. _qpy_version_2:
 
 Version 2
 =========
 
 Version 2 of the QPY format is identical to version 1 except for the HEADER
-section is slightly different. You can refer to the :ref:`version_1` section
+section is slightly different. You can refer to the :ref:`qpy_version_1` section
 for the details on the rest of the payload format.
 
 HEADER
@@ -280,7 +346,7 @@ object  which is represented by a PARAM struct (see below), ``e`` defines a
 :class:`~qiskit.circuit.Parameter`) which is represented by a PARAM_EXPR struct
 (see below).
 
-.. _version_1:
+.. _qpy_version_1:
 
 Version 1
 =========
@@ -311,8 +377,10 @@ METADATA
 
 The METADATA field is a UTF8 encoded JSON string. After reading the HEADER
 (which is a fixed size at the start of the QPY file) and the ``name`` string
-you then read the`metadata_size`` number of bytes and parse the JSON to get
+you then read the ``metadata_size`` number of bytes and parse the JSON to get
 the metadata for the circuit.
+
+.. _qpy_registers:
 
 REGISTERS
 ---------
@@ -334,9 +402,16 @@ as:
 
 Immediately following the REGISTER struct is the utf8 encoded register name of
 size ``name_size``. After the ``name`` utf8 bytes there is then an array of
-uint32_t values of size ``size`` that contains a map of the register's index to
+int64_t values of size ``size`` that contains a map of the register's index to
 the circuit's qubit index. For example, array element 0's value is the index
 of the ``register[0]``'s position in the containing circuit's qubits list.
+
+.. note::
+
+    Prior to QPY :ref:`qpy_version_4` the type of array elements was uint32_t. This was changed
+    to enable negative values which represent bits in the array not present in the
+    circuit
+
 
 The standalone boolean determines whether the register is constructed as a
 standalone register that was added to the circuit or was created from existing
@@ -355,7 +430,7 @@ the register ``qr`` would be a standalone register. While something like::
 ``qr`` would have ``standalone`` set to ``False``.
 
 
-.. _custom_definition:
+.. _qpy_custom_definition:
 
 CUSTOM_DEFINITIONS
 ------------------
@@ -455,19 +530,19 @@ After each INSTRUCTION_PARAM the next ``size`` bytes are the parameter's data.
 The ``type`` field can be ``'i'``, ``'f'``, ``'p'``, ``'e'``, ``'s'``, ``'c'``
 or ``'n'`` which dictate the format. For ``'i'`` it's an integer, ``'f'`` it's
 a double, ``'s'`` if it's a string (encoded as utf8), ``'c'`` is a complex and
-the data is represented by the struct format in the :ref:`param_expr` section.
+the data is represented by the struct format in the :ref:`qpy_param_expr` section.
 ``'p'`` defines a :class:`~qiskit.circuit.Parameter` object  which is
-represented by a :ref:`param_struct` struct, ``e`` defines a
+represented by a :ref:`qpy_param_struct` struct, ``e`` defines a
 :class:`~qiskit.circuit.ParameterExpression` object (that's not a
-:class:`~qiskit.circuit.Parameter`) which is represented by a :ref:`param_expr`
-struct (on QPY format :ref:`version_3` the format is tweak slightly see:
-:ref:`param_expr_v3`), ``'n'`` represents an object from numpy (either an
+:class:`~qiskit.circuit.Parameter`) which is represented by a :ref:`qpy_param_expr`
+struct (on QPY format :ref:`qpy_version_3` the format is tweak slightly see:
+:ref:`qpy_param_expr_v3`), ``'n'`` represents an object from numpy (either an
 ``ndarray`` or a numpy type) which means the data is .npy format [#f2]_ data,
-and in QPY :ref:`version_3` ``'v'`` represents a
+and in QPY :ref:`qpy_version_3` ``'v'`` represents a
 :class:`~qiskit.circuit.ParameterVectorElement` which is represented by a
-:ref:`param_vector` struct.
+:ref:`qpy_param_vector` struct.
 
-.. _param_struct:
+.. _qpy_param_struct:
 
 PARAMETER
 ---------
@@ -485,7 +560,7 @@ a INSTRUCTION_PARAM. The contents of the PARAMETER are defined as:
 which is immediately followed by ``name_size`` utf8 bytes representing the
 parameter name.
 
-.. _param_expr:
+.. _qpy_param_expr:
 
 PARAMETER_EXPR
 --------------
@@ -521,10 +596,10 @@ data of the symbol. The data format is dependent on the value of ``type``. If
 ``type`` is ``p`` then it represents a :class:`~qiskit.circuit.Parameter` and
 size will be 0, the value will just be the same as the key. If
 ``type`` is ``f`` then it represents a double precision float. If ``type`` is
-``c`` it represents a double precision complex, which is represented by :ref:`complex`.
+``c`` it represents a double precision complex, which is represented by :ref:`qpy_complex`.
 Finally, if type is ``i`` it represents an integer which is an ``int64_t``.
 
-.. _complex:
+.. _qpy_complex:
 
 COMPLEX
 -------

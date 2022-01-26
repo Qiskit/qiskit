@@ -26,10 +26,10 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.parametervector import ParameterVectorElement
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.circuit import Gate, Instruction as CircuitInstruction
-from qiskit.qpy import formats
+from qiskit.circuit import Gate, Instruction as CircuitInstruction, QuantumCircuit
+from qiskit.qpy import formats, exceptions
 
-QPY_VERSION = 3
+QPY_VERSION = 4
 ENCODE = "utf8"
 
 
@@ -51,7 +51,7 @@ class CircuitInstructionTypeKey(bytes, Enum):
             CircuitInstructionTypeKey: Corresponding key object.
 
         Raises:
-            TypeError: if object type is not defined in QPY. Likely not supported.
+            QpyError: if object type is not defined in QPY. Likely not supported.
         """
         if isinstance(obj, PauliEvolutionGate):
             return cls.PAULI_EVOL_GATE
@@ -60,7 +60,9 @@ class CircuitInstructionTypeKey(bytes, Enum):
         if isinstance(obj, CircuitInstruction):
             return cls.INSTRUCTION
 
-        raise TypeError(f"Object type {type(obj)} is not supported.")
+        raise exceptions.QpyError(
+            f"Object type {type(obj)} is not supported in {cls.__name__} namespace."
+        )
 
 
 class AlphanumericTypeKey(bytes, Enum):
@@ -74,6 +76,7 @@ class AlphanumericTypeKey(bytes, Enum):
     PARAMETER_VECTOR = b"v"
     PARAMETER_EXPRESSION = b"e"
     STRING = b"s"
+    NULL = b"z"
 
     @classmethod
     def assign(cls, obj):
@@ -86,7 +89,7 @@ class AlphanumericTypeKey(bytes, Enum):
             AlphanumericTypeKey: Corresponding key object.
 
         Raises:
-            TypeError: if object type is not defined in QPY. Likely not supported.
+            QpyError: if object type is not defined in QPY. Likely not supported.
         """
         if isinstance(obj, int):
             return cls.INTEGER
@@ -104,31 +107,89 @@ class AlphanumericTypeKey(bytes, Enum):
             return cls.PARAMETER_EXPRESSION
         if isinstance(obj, str):
             return cls.STRING
+        if obj is None:
+            return cls.NULL
 
-        raise TypeError(f"Object type {type(obj)} is not supported.")
+        raise exceptions.QpyError(
+            f"Object type {type(obj)} is not supported in {cls.__name__} namespace."
+        )
 
 
-def read_typed_data(file_obj, key_scope):
+class ContainerTypeKey(bytes, Enum):
+    """Typle key enum for container-like object."""
+
+    RANGE = b"r"
+    TUPLE = b"t"
+
+    @classmethod
+    def assign(cls, obj):
+        """Assign type key to given object.
+
+        Args:
+            obj (any): Arbitrary object to evaluate.
+
+        Returns:
+            ContainerTypeKey: Corresponding key object.
+
+        Raises:
+            QpyError: if object type is not defined in QPY. Likely not supported.
+        """
+        if isinstance(obj, range):
+            return cls.RANGE
+        if isinstance(obj, tuple):
+            return cls.TUPLE
+
+        raise exceptions.QpyError(
+            f"Object type {type(obj)} is not supported in {cls.__name__} namespace."
+        )
+
+
+class ProgramTypeKey(bytes, Enum):
+    """Typle key enum for program that Qiskit generates."""
+
+    CIRCUIT = b"q"
+
+    @classmethod
+    def assign(cls, obj):
+        """Assign type key to given object.
+
+        Args:
+            obj (any): Arbitrary object to evaluate.
+
+        Returns:
+            ContainerTypeKey: Corresponding key object.
+
+        Raises:
+            QpyError: if object type is not defined in QPY. Likely not supported.
+        """
+        if isinstance(obj, QuantumCircuit):
+            return cls.CIRCUIT
+
+        raise exceptions.QpyError(
+            f"Object type {type(obj)} is not supported in {cls.__name__} namespace."
+        )
+
+
+def read_instruction_param(file_obj):
     """Read a single data chunk from the file like object.
 
     Args:
         file_obj (File): A file like object that contains the QPY binary data.
-        key_scope (EnumMeta): Expected type of this data.
 
     Returns:
-        tuple: Tuple of ``TypeKey`` and the bytes object of the single data.
+        tuple: Tuple of type key binary and the bytes object of the single data.
     """
-    data = formats.TYPED_OBJECT(
+    data = formats.INSTRUCTION_PARAM(
         *struct.unpack(
-            formats.TYPED_OBJECT_PACK,
-            file_obj.read(formats.TYPED_OBJECT_PACK_SIZE),
+            formats.INSTRUCTION_PARAM_PACK,
+            file_obj.read(formats.INSTRUCTION_PARAM_SIZE),
         )
     )
 
-    return key_scope(data.type), file_obj.read(data.size)
+    return data.type, file_obj.read(data.size)
 
 
-def write_typed_data(file_obj, type_key, data_binary):
+def write_instruction_param(file_obj, type_key, data_binary):
     """Write statically typed binary data to the file like object.
 
     Args:
@@ -136,12 +197,12 @@ def write_typed_data(file_obj, type_key, data_binary):
         type_key (Enum): Object type of the data.
         data_binary (bytes): Binary data to write.
     """
-    data_header = struct.pack(formats.TYPED_OBJECT_PACK, type_key, len(data_binary))
+    data_header = struct.pack(formats.INSTRUCTION_PARAM_PACK, type_key, len(data_binary))
     file_obj.write(data_header)
     file_obj.write(data_binary)
 
 
-def to_binary(obj, serializer, **kwargs):
+def data_to_binary(obj, serializer, **kwargs):
     """Convert object into binary data with specified serializer.
 
     Args:
@@ -160,8 +221,31 @@ def to_binary(obj, serializer, **kwargs):
     return binary_data
 
 
-def from_binary(binary_data, deserializer, **kwargs):
-    """Load object from binary data with specified serializer.
+def sequence_to_binary(sequence, serializer, **kwargs):
+    """Convert sequence into binary data with specified serializer.
+
+    Args:
+        sequence (Sequence): Object to serialize.
+        serializer (Callable): Serializer callback that can handle input object type.
+        kwargs: Options set to the serializer.
+
+    Returns:
+        bytes: Binary data.
+    """
+    num_elements = len(sequence)
+
+    with io.BytesIO() as container:
+        container.write(struct.pack(formats.SEQUENCE_PACK, num_elements))
+        for datum in sequence:
+            serializer(container, datum, **kwargs)
+        container.seek(0)
+        binary_data = container.read()
+
+    return binary_data
+
+
+def data_from_binary(binary_data, deserializer, **kwargs):
+    """Load object from binary data with specified deserializer.
 
     Args:
         binary_data (bytes): Binary data to deserialize.
@@ -174,3 +258,29 @@ def from_binary(binary_data, deserializer, **kwargs):
     with io.BytesIO(binary_data) as container:
         obj = deserializer(container, **kwargs)
     return obj
+
+
+def sequence_from_binary(binary_data, deserializer, **kwargs):
+    """Load object from binary sequence with specified deserializer.
+
+    Args:
+        binary_data (bytes): Binary data to deserialize.
+        deserializer (Callable): Deserializer callback that can handle input object type.
+        kwargs: Options set to the deserializer.
+
+    Returns:
+        any: Deserialized sequence.
+    """
+    sequence = []
+
+    with io.BytesIO(binary_data) as container:
+        data = formats.SEQUENCE._make(
+            struct.unpack(
+                formats.SEQUENCE_PACK,
+                container.read(formats.SEQUENCE_SIZE),
+            )
+        )
+        for _ in range(data.num_elements):
+            sequence.append(deserializer(container, **kwargs))
+
+    return sequence
