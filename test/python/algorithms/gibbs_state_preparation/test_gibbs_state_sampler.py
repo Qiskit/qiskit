@@ -21,15 +21,15 @@ from qiskit.algorithms.gibbs_state_preparation.default_ansatz_builder import (
     build_ansatz,
     build_init_ansatz_params_vals,
 )
-from qiskit.utils import algorithm_globals, QuantumInstance
+from qiskit.utils import QuantumInstance
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit.circuit import Parameter
-from qiskit.algorithms.gibbs_state_preparation.gibbs_state import GibbsState
+from qiskit.algorithms.gibbs_state_preparation.gibbs_state_sampler import GibbsStateSampler
 from qiskit.opflow import Zero, X, SummedOp, Z, I
 
 
 @ddt
-class TestGibbsState(QiskitAlgorithmsTestCase):
+class TestGibbsStateSampler(QiskitAlgorithmsTestCase):
     """Tests GibbsState class."""
 
     def test_gibbs_state_init(self):
@@ -38,34 +38,34 @@ class TestGibbsState(QiskitAlgorithmsTestCase):
         hamiltonian = X
         temperature = 42
 
-        gibbs_state = GibbsState(gibbs_state_function, hamiltonian, temperature)
+        gibbs_state = GibbsStateSampler(gibbs_state_function, hamiltonian, temperature)
 
         np.testing.assert_equal(gibbs_state.hamiltonian, X)
         np.testing.assert_equal(gibbs_state.temperature, 42)
 
-    # def test_sample(self):
-    #     """Tests if Gibbs state probabilities are sampled correctly.."""
-    #     gibbs_state_function = Zero
-    #     hamiltonian = SummedOp([0.3 * Z ^ Z ^ I ^ I, 0.2 * Z ^ I ^ I ^ I, 0.5 * I ^ Z ^ I ^ I])
-    #     temperature = 42
-    #
-    #     depth = 1
-    #     num_qubits = 4
-    #
-    #     ansatz = build_ansatz(num_qubits, depth)
-    #     param_values_init = build_init_ansatz_params_vals(num_qubits, depth)
-    #
-    #     params_dict = dict(zip(ansatz.ordered_parameters, param_values_init))
-    #     gibbs_state = GibbsState(
-    #         gibbs_state_function, hamiltonian, temperature, ansatz, params_dict
-    #     )
-    #
-    #     backend = Aer.get_backend("qasm_simulator")
-    #     seed = 170
-    #     qi = QuantumInstance(backend=backend, seed_simulator=seed, seed_transpiler=seed)
-    #     probs = gibbs_state.sample(qi)
-    #     expected_probs = [0.222656, 0.25293, 0.25293, 0.271484]
-    #     np.testing.assert_array_almost_equal(probs, expected_probs)
+    def test_sample(self):
+        """Tests if Gibbs state probabilities are sampled correctly.."""
+        gibbs_state_function = Zero
+        hamiltonian = SummedOp([0.3 * Z ^ Z ^ I ^ I, 0.2 * Z ^ I ^ I ^ I, 0.5 * I ^ Z ^ I ^ I])
+        temperature = 42
+
+        depth = 1
+        num_qubits = 4
+
+        ansatz = build_ansatz(num_qubits, depth)
+        param_values_init = build_init_ansatz_params_vals(num_qubits, depth)
+
+        params_dict = dict(zip(ansatz.ordered_parameters, param_values_init))
+        gibbs_state = GibbsStateSampler(
+            gibbs_state_function, hamiltonian, temperature, ansatz, params_dict
+        )
+
+        backend = Aer.get_backend("qasm_simulator")
+        seed = 170
+        qi = QuantumInstance(backend=backend, seed_simulator=seed, seed_transpiler=seed)
+        probs = gibbs_state.sample(qi)
+        expected_probs = [0.222656, 0.25293, 0.25293, 0.271484]
+        np.testing.assert_array_almost_equal(probs, expected_probs)
 
     def test_calc_ansatz_gradients(self):
         """Tests if ansatz gradients are calculated correctly."""
@@ -80,7 +80,7 @@ class TestGibbsState(QiskitAlgorithmsTestCase):
         param_values_init = build_init_ansatz_params_vals(num_qubits, depth)
 
         params_dict = dict(zip(ansatz.ordered_parameters, param_values_init))
-        gibbs_state = GibbsState(
+        gibbs_state = GibbsStateSampler(
             gibbs_state_function, hamiltonian, temperature, ansatz, params_dict
         )
 
@@ -120,7 +120,7 @@ class TestGibbsState(QiskitAlgorithmsTestCase):
         param_values_init = np.zeros(2)
 
         params_dict = dict(zip([Parameter("a"), Parameter("b")], param_values_init))
-        gibbs_state = GibbsState(
+        gibbs_state = GibbsStateSampler(
             gibbs_state_function, hamiltonian, temperature, ansatz_params_dict=params_dict
         )
 
@@ -148,7 +148,7 @@ class TestGibbsState(QiskitAlgorithmsTestCase):
 
         hamiltonian_gradients = {param: [1.0 / (i + 1) for i in range(len(ansatz.parameters))]}
 
-        gibbs_state = GibbsState(
+        gibbs_state = GibbsStateSampler(
             gibbs_state_function,
             hamiltonian,
             temperature,

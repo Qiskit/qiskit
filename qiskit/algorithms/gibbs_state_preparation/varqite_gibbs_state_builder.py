@@ -16,7 +16,7 @@ from qiskit.algorithms.gibbs_state_preparation.default_ansatz_builder import (
     build_ansatz,
     build_init_ansatz_params_vals,
 )
-from qiskit.algorithms.gibbs_state_preparation.gibbs_state import GibbsState
+from qiskit.algorithms.gibbs_state_preparation.gibbs_state_sampler import GibbsStateSampler
 from qiskit.algorithms.gibbs_state_preparation.gibbs_state_builder import GibbsStateBuilder
 from qiskit.circuit import Parameter
 from qiskit.opflow import OperatorBase
@@ -53,7 +53,7 @@ class VarQiteGibbsStateBuilder(GibbsStateBuilder):
         problem_hamiltonian: OperatorBase,
         temperature: float,
         problem_hamiltonian_param_dict: Optional[Dict[Parameter, Union[complex, float]]] = None,
-    ) -> GibbsState:
+    ) -> GibbsStateSampler:
         """
         Creates a Gibbs state from given parameters.
         Args:
@@ -78,7 +78,7 @@ class VarQiteGibbsStateBuilder(GibbsStateBuilder):
             hamiltonian_value_dict=param_dict,
         )
 
-        return GibbsState(
+        return GibbsStateSampler(
             gibbs_state_function=gibbs_state_function,
             hamiltonian=problem_hamiltonian,
             temperature=temperature,

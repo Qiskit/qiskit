@@ -11,8 +11,7 @@
 # that they have been altered from the originals.
 """Class representing a quantum state of a Gibbs State along with metadata and gradient
 calculation methods."""
-from collections import defaultdict
-from typing import Optional, Union, Dict, Callable
+from typing import Optional, Union, Dict
 
 import numpy as np
 import numpy.typing
@@ -21,7 +20,7 @@ from qiskit.circuit import Parameter
 from qiskit.opflow import StateFn, OperatorBase, Gradient, CircuitStateFn, CircuitSampler
 
 
-class GibbsState:
+class GibbsStateSampler:
     """Class representing a quantum state of a Gibbs State along with metadata and gradient
     calculation methods."""
 

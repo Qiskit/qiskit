@@ -13,7 +13,7 @@
 from abc import abstractmethod
 from typing import Union, Dict, Optional
 
-from qiskit.algorithms.gibbs_state_preparation.gibbs_state import GibbsState
+from qiskit.algorithms.gibbs_state_preparation.gibbs_state_sampler import GibbsStateSampler
 from qiskit.circuit import Parameter
 from qiskit.opflow import OperatorBase
 
@@ -29,7 +29,7 @@ class GibbsStateBuilder:
         problem_hamiltonian: OperatorBase,
         temperature: float,
         problem_hamiltonian_param_dict: Optional[Dict[Parameter, Union[complex, float]]] = None,
-    ) -> GibbsState:
+    ) -> GibbsStateSampler:
         """
         Creates a Gibbs state from given parameters.
         Args:
