@@ -38,7 +38,7 @@ following subfolders:
 .. currentmodule:: qiskit.algorithms.linear_solvers
 
 Linear Solvers
-====================
+==============
 
 .. autosummary::
    :toctree: ../stubs/
@@ -50,7 +50,7 @@ Linear Solvers
    NumPyLinearSolver
 
 Matrices
-================
+========
 
 .. autosummary::
    :toctree: ../stubs/
@@ -61,7 +61,7 @@ Matrices
    TridiagonalToeplitz
 
 Observables
-=================
+===========
 
 .. autosummary::
     :toctree: ../stubs/
