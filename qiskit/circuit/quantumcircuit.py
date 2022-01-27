@@ -259,7 +259,7 @@ class QuantumCircuit:
         self._qubits = []
         self._clbits = []
 
-        # Dict mapping Qubt or Clbit instances to tuple comprised of 0) the
+        # Dict mapping Qubit or Clbit instances to tuple comprised of 0) the
         # corresponding index in circuit.{qubits,clbits} and 1) a list of
         # Register-int pairs for each Register containing the Bit and its index
         # within that register.
@@ -1352,7 +1352,9 @@ class QuantumCircuit:
                 raise CircuitError('register name "%s" already exists' % register.name)
 
             if isinstance(register, AncillaRegister):
-                self._ancillas.extend(register)
+                for bit in register:
+                    if bit not in self._qubit_indices:
+                        self._ancillas.append(bit)
 
             if isinstance(register, QuantumRegister):
                 self.qregs.append(register)
@@ -3114,7 +3116,7 @@ class QuantumCircuit:
         return self.append(RYYGate(theta), [qubit1, qubit2], [])
 
     def rz(self, phi: ParameterValueType, qubit: QubitSpecifier) -> InstructionSet:
-        """Apply :class:`~qiskit.circuit.library.RYGate`.
+        """Apply :class:`~qiskit.circuit.library.RZGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
 
