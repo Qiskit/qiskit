@@ -15,48 +15,7 @@
 import io
 from typing import Sequence
 
-from .ast import (
-    ASTNode,
-    AliasStatement,
-    BitDeclaration,
-    BranchingStatement,
-    CalibrationDefinition,
-    CalibrationGrammarDeclaration,
-    ComparisonExpression,
-    Constant,
-    Designator,
-    EqualsOperator,
-    Expression,
-    GtOperator,
-    Header,
-    IO,
-    IOModifier,
-    Identifier,
-    Include,
-    Integer,
-    LtOperator,
-    PhysicalQubitIdentifier,
-    Pragma,
-    Program,
-    ProgramBlock,
-    QuantumArgument,
-    QuantumBarrier,
-    QuantumDeclaration,
-    QuantumGateCall,
-    QuantumGateDefinition,
-    QuantumGateModifier,
-    QuantumGateModifierName,
-    QuantumGateSignature,
-    QuantumMeasurement,
-    QuantumMeasurementAssignment,
-    QuantumReset,
-    Range,
-    ReturnStatement,
-    SubroutineCall,
-    SubroutineDefinition,
-    SubscriptedIdentifier,
-    Version,
-)
+from . import ast
 
 
 class BasicPrinter:
@@ -64,32 +23,61 @@ class BasicPrinter:
     formatting is simple block indentation."""
 
     _CONSTANT_LOOKUP = {
-        Constant.pi: "pi",
-        Constant.euler: "euler",
-        Constant.tau: "tau",
+        ast.Constant.PI: "pi",
+        ast.Constant.EULER: "euler",
+        ast.Constant.TAU: "tau",
     }
 
     _MODIFIER_LOOKUP = {
-        QuantumGateModifierName.ctrl: "ctrl",
-        QuantumGateModifierName.negctrl: "negctrl",
-        QuantumGateModifierName.inv: "inv",
-        QuantumGateModifierName.pow: "pow",
+        ast.QuantumGateModifierName.CTRL: "ctrl",
+        ast.QuantumGateModifierName.NEGCTRL: "negctrl",
+        ast.QuantumGateModifierName.INV: "inv",
+        ast.QuantumGateModifierName.POW: "pow",
     }
+
+    _FLOAT_WIDTH_LOOKUP = {type: str(type.value) for type in ast.FloatType}
 
     # The visitor names include the class names, so they mix snake_case with PascalCase.
     # pylint: disable=invalid-name
 
-    def __init__(self, stream: io.TextIOBase, *, indent: str):
+    def __init__(self, stream: io.TextIOBase, *, indent: str, chain_else_if: bool = False):
         """
         Args:
             stream (io.TextIOBase): the stream that the output will be written to.
             indent (str): the string to use as a single indentation level.
+            chain_else_if (bool): If ``True``, then constructs of the form::
+
+                    if (x == 0) {
+                        // ...
+                    } else {
+                        if (x == 1) {
+                            // ...
+                        } else {
+                            // ...
+                        }
+                    }
+
+                will be collapsed into the equivalent but flatter::
+
+                    if (x == 0) {
+                        // ...
+                    } else if (x == 1) {
+                        // ...
+                    } else {
+                        // ...
+                    }
+
+                This collapsed form may have less support on backends, so it is turned off by
+                default.  While the output of this printer is always unambiguous, using ``else``
+                without immediately opening an explicit scope with ``{ }`` in nested contexts can
+                cause issues, in the general case, which is why it is sometimes less supported.
         """
         self.stream = stream
         self.indent = indent
         self._current_indent = 0
+        self._chain_else_if = chain_else_if
 
-    def visit(self, node: ASTNode) -> None:
+    def visit(self, node: ast.ASTNode) -> None:
         """Visit this node of the AST, printing it out to the stream in this class instance.
 
         Normally, you will want to call this function on a complete :obj:`~qiskit.qasm3.ast.Program`
@@ -131,7 +119,7 @@ class BasicPrinter:
         self._end_statement()
 
     def _visit_sequence(
-        self, nodes: Sequence[ASTNode], *, start: str = "", end: str = "", separator: str
+        self, nodes: Sequence[ast.ASTNode], *, start: str = "", end: str = "", separator: str
     ) -> None:
         if start:
             self.stream.write(start)
@@ -143,48 +131,54 @@ class BasicPrinter:
         if end:
             self.stream.write(end)
 
-    def _visit_Program(self, node: Program) -> None:
+    def _visit_Program(self, node: ast.Program) -> None:
         self.visit(node.header)
         for statement in node.statements:
             self.visit(statement)
 
-    def _visit_Header(self, node: Header) -> None:
+    def _visit_Header(self, node: ast.Header) -> None:
         self.visit(node.version)
         for include in node.includes:
             self.visit(include)
 
-    def _visit_Version(self, node: Version) -> None:
+    def _visit_Version(self, node: ast.Version) -> None:
         self._write_statement(f"OPENQASM {node.version_number}")
 
-    def _visit_Include(self, node: Include) -> None:
+    def _visit_Include(self, node: ast.Include) -> None:
         self._write_statement(f'include "{node.filename}"')
 
-    def _visit_Pragma(self, node: Pragma) -> None:
+    def _visit_Pragma(self, node: ast.Pragma) -> None:
         self._write_statement(f"#pragma {node.content}")
 
-    def _visit_CalibrationGrammarDeclaration(self, node: CalibrationGrammarDeclaration) -> None:
+    def _visit_CalibrationGrammarDeclaration(self, node: ast.CalibrationGrammarDeclaration) -> None:
         self._write_statement(f'defcalgrammar "{node.name}"')
 
-    def _visit_Identifier(self, node: Identifier) -> None:
+    def _visit_FloatType(self, node: ast.FloatType) -> None:
+        self.stream.write(f"float[{self._FLOAT_WIDTH_LOOKUP[node]}]")
+
+    def _visit_BitArrayType(self, node: ast.BitArrayType) -> None:
+        self.stream.write(f"bit[{node.size}]")
+
+    def _visit_Identifier(self, node: ast.Identifier) -> None:
         self.stream.write(node.string)
 
-    def _visit_PhysicalQubitIdentifier(self, node: PhysicalQubitIdentifier) -> None:
+    def _visit_PhysicalQubitIdentifier(self, node: ast.PhysicalQubitIdentifier) -> None:
         self.stream.write("$")
         self.visit(node.identifier)
 
-    def _visit_Expression(self, node: Expression) -> None:
+    def _visit_Expression(self, node: ast.Expression) -> None:
         self.stream.write(str(node.something))
 
-    def _visit_Constant(self, node: Constant) -> None:
+    def _visit_Constant(self, node: ast.Constant) -> None:
         self.stream.write(self._CONSTANT_LOOKUP[node])
 
-    def _visit_SubscriptedIdentifier(self, node: SubscriptedIdentifier) -> None:
+    def _visit_SubscriptedIdentifier(self, node: ast.SubscriptedIdentifier) -> None:
         self.visit(node.identifier)
         self.stream.write("[")
         self.visit(node.subscript)
         self.stream.write("]")
 
-    def _visit_Range(self, node: Range) -> None:
+    def _visit_Range(self, node: ast.Range) -> None:
         if node.start is not None:
             self.visit(node.start)
         self.stream.write(":")
@@ -194,43 +188,54 @@ class BasicPrinter:
         if node.end is not None:
             self.visit(node.end)
 
-    def _visit_QuantumMeasurement(self, node: QuantumMeasurement) -> None:
+    def _visit_IndexSet(self, node: ast.IndexSet) -> None:
+        self._visit_sequence(node.values, start="{", separator=", ", end="}")
+
+    def _visit_QuantumMeasurement(self, node: ast.QuantumMeasurement) -> None:
         self.stream.write("measure ")
         self._visit_sequence(node.identifierList, separator=", ")
 
-    def _visit_QuantumMeasurementAssignment(self, node: QuantumMeasurementAssignment) -> None:
+    def _visit_QuantumMeasurementAssignment(self, node: ast.QuantumMeasurementAssignment) -> None:
         self._start_line()
         self.visit(node.identifier)
         self.stream.write(" = ")
         self.visit(node.quantumMeasurement)
         self._end_statement()
 
-    def _visit_QuantumReset(self, node: QuantumReset) -> None:
+    def _visit_QuantumReset(self, node: ast.QuantumReset) -> None:
         self._start_line()
         self.stream.write("reset ")
         self.visit(node.identifier)
         self._end_statement()
 
-    def _visit_Integer(self, node: Integer) -> None:
+    def _visit_Integer(self, node: ast.Integer) -> None:
         self.stream.write(str(node.something))
 
-    def _visit_Designator(self, node: Designator) -> None:
+    def _visit_Designator(self, node: ast.Designator) -> None:
         self.stream.write("[")
         self.visit(node.expression)
         self.stream.write("]")
 
-    def _visit_BitDeclaration(self, node: BitDeclaration) -> None:
+    def _visit_ClassicalDeclaration(self, node: ast.ClassicalDeclaration) -> None:
         self._start_line()
-        self.stream.write("bit")
-        self.visit(node.designator)
+        self.visit(node.type)
         self.stream.write(" ")
         self.visit(node.identifier)
-        if node.equalsExpression:
-            self.stream.write(" ")
-            self.visit(node.equalsExpression)
+        if node.initializer is not None:
+            self.stream.write(" = ")
+            self.visit(node.initializer)
         self._end_statement()
 
-    def _visit_QuantumDeclaration(self, node: QuantumDeclaration) -> None:
+    def _visit_IODeclaration(self, node: ast.IODeclaration) -> None:
+        self._start_line()
+        modifier = "input" if node.modifier is ast.IOModifier.INPUT else "output"
+        self.stream.write(modifier + " ")
+        self.visit(node.type)
+        self.stream.write(" ")
+        self.visit(node.identifier)
+        self._end_statement()
+
+    def _visit_QuantumDeclaration(self, node: ast.QuantumDeclaration) -> None:
         self._start_line()
         self.stream.write("qubit")
         self.visit(node.designator)
@@ -238,7 +243,7 @@ class BasicPrinter:
         self.visit(node.identifier)
         self._end_statement()
 
-    def _visit_AliasStatement(self, node: AliasStatement) -> None:
+    def _visit_AliasStatement(self, node: ast.AliasStatement) -> None:
         self._start_line()
         self.stream.write("let ")
         self.visit(node.identifier)
@@ -246,14 +251,14 @@ class BasicPrinter:
         self._visit_sequence(node.concatenation, separator=" ++ ")
         self._end_statement()
 
-    def _visit_QuantumGateModifier(self, node: QuantumGateModifier) -> None:
+    def _visit_QuantumGateModifier(self, node: ast.QuantumGateModifier) -> None:
         self.stream.write(self._MODIFIER_LOOKUP[node.modifier])
         if node.argument:
             self.stream.write("(")
             self.visit(node.argument)
             self.stream.write(")")
 
-    def _visit_QuantumGateCall(self, node: QuantumGateCall) -> None:
+    def _visit_QuantumGateCall(self, node: ast.QuantumGateCall) -> None:
         self._start_line()
         if node.modifiers:
             self._visit_sequence(node.modifiers, end=" @ ", separator=" @ ")
@@ -264,7 +269,7 @@ class BasicPrinter:
         self._visit_sequence(node.indexIdentifierList, separator=", ")
         self._end_statement()
 
-    def _visit_SubroutineCall(self, node: SubroutineCall) -> None:
+    def _visit_SubroutineCall(self, node: ast.SubroutineCall) -> None:
         self._start_line()
         self.visit(node.identifier)
         if node.expressionList:
@@ -273,13 +278,13 @@ class BasicPrinter:
         self._visit_sequence(node.indexIdentifierList, separator=", ")
         self._end_statement()
 
-    def _visit_QuantumBarrier(self, node: QuantumBarrier) -> None:
+    def _visit_QuantumBarrier(self, node: ast.QuantumBarrier) -> None:
         self._start_line()
         self.stream.write("barrier ")
         self._visit_sequence(node.indexIdentifierList, separator=", ")
         self._end_statement()
 
-    def _visit_ProgramBlock(self, node: ProgramBlock) -> None:
+    def _visit_ProgramBlock(self, node: ast.ProgramBlock) -> None:
         self.stream.write("{\n")
         self._current_indent += 1
         for statement in node.statements:
@@ -288,7 +293,7 @@ class BasicPrinter:
         self._start_line()
         self.stream.write("}")
 
-    def _visit_ReturnStatement(self, node: ReturnStatement) -> None:
+    def _visit_ReturnStatement(self, node: ast.ReturnStatement) -> None:
         self._start_line()
         if node.expression:
             self.stream.write("return ")
@@ -297,21 +302,21 @@ class BasicPrinter:
             self.stream.write("return")
         self._end_statement()
 
-    def _visit_QuantumArgument(self, node: QuantumArgument) -> None:
+    def _visit_QuantumArgument(self, node: ast.QuantumArgument) -> None:
         self.stream.write("qubit")
         if node.designator:
             self.visit(node.designator)
         self.stream.write(" ")
         self.visit(node.identifier)
 
-    def _visit_QuantumGateSignature(self, node: QuantumGateSignature) -> None:
+    def _visit_QuantumGateSignature(self, node: ast.QuantumGateSignature) -> None:
         self.visit(node.name)
         if node.params:
             self._visit_sequence(node.params, start="(", end=")", separator=", ")
         self.stream.write(" ")
         self._visit_sequence(node.qargList, separator=", ")
 
-    def _visit_QuantumGateDefinition(self, node: QuantumGateDefinition) -> None:
+    def _visit_QuantumGateDefinition(self, node: ast.QuantumGateDefinition) -> None:
         self._start_line()
         self.stream.write("gate ")
         self.visit(node.quantumGateSignature)
@@ -319,7 +324,7 @@ class BasicPrinter:
         self.visit(node.quantumBlock)
         self._end_line()
 
-    def _visit_SubroutineDefinition(self, node: SubroutineDefinition) -> None:
+    def _visit_SubroutineDefinition(self, node: ast.SubroutineDefinition) -> None:
         self._start_line()
         self.stream.write("def ")
         self.visit(node.identifier)
@@ -328,7 +333,7 @@ class BasicPrinter:
         self.visit(node.subroutineBlock)
         self._end_line()
 
-    def _visit_CalibrationDefinition(self, node: CalibrationDefinition) -> None:
+    def _visit_CalibrationDefinition(self, node: ast.CalibrationDefinition) -> None:
         self._start_line()
         self.stream.write("defcal ")
         self.visit(node.name)
@@ -342,38 +347,75 @@ class BasicPrinter:
         self.stream.write(" {}")
         self._end_line()
 
-    def _visit_LtOperator(self, _node: LtOperator) -> None:
+    def _visit_LtOperator(self, _node: ast.LtOperator) -> None:
         self.stream.write(">")
 
-    def _visit_GtOperator(self, _node: GtOperator) -> None:
+    def _visit_GtOperator(self, _node: ast.GtOperator) -> None:
         self.stream.write("<")
 
-    def _visit_EqualsOperator(self, _node: EqualsOperator) -> None:
+    def _visit_EqualsOperator(self, _node: ast.EqualsOperator) -> None:
         self.stream.write("==")
 
-    def _visit_ComparisonExpression(self, node: ComparisonExpression) -> None:
+    def _visit_ComparisonExpression(self, node: ast.ComparisonExpression) -> None:
         self.visit(node.left)
         self.stream.write(" ")
         self.visit(node.relation)
         self.stream.write(" ")
         self.visit(node.right)
 
-    def _visit_BranchingStatement(self, node: BranchingStatement) -> None:
-        self._start_line()
+    def _visit_BreakStatement(self, _node: ast.BreakStatement) -> None:
+        self._write_statement("break")
+
+    def _visit_ContinueStatement(self, _node: ast.ContinueStatement) -> None:
+        self._write_statement("continue")
+
+    def _visit_BranchingStatement(
+        self, node: ast.BranchingStatement, chained: bool = False
+    ) -> None:
+        if not chained:
+            self._start_line()
         self.stream.write("if (")
-        self.visit(node.booleanExpression)
+        self.visit(node.condition)
         self.stream.write(") ")
-        self.visit(node.programTrue)
-        if node.programFalse:
+        self.visit(node.true_body)
+        if node.false_body is not None:
             self.stream.write(" else ")
-            self.visit(node.programFalse)
+            # Special handling to flatten a perfectly nested structure of
+            #   if {...} else { if {...} else {...} }
+            # into the simpler
+            #   if {...} else if {...} else {...}
+            # but only if we're allowed to by our options.
+            if (
+                self._chain_else_if
+                and len(node.false_body.statements) == 1
+                and isinstance(node.false_body.statements[0], ast.BranchingStatement)
+            ):
+                self._visit_BranchingStatement(node.false_body.statements[0], chained=True)
+            else:
+                self.visit(node.false_body)
+        if not chained:
+            # The visitor to the first ``if`` will end the line.
+            self._end_line()
+
+    def _visit_ForLoopStatement(self, node: ast.ForLoopStatement) -> None:
+        self._start_line()
+        self.stream.write("for ")
+        self.visit(node.parameter)
+        self.stream.write(" in ")
+        if isinstance(node.indexset, ast.Range):
+            self.stream.write("[")
+            self.visit(node.indexset)
+            self.stream.write("]")
+        else:
+            self.visit(node.indexset)
+        self.stream.write(" ")
+        self.visit(node.body)
         self._end_line()
 
-    def _visit_IO(self, node: IO) -> None:
+    def _visit_WhileLoopStatement(self, node: ast.WhileLoopStatement) -> None:
         self._start_line()
-        modifier = "input" if node.modifier == IOModifier.input else "output"
-        self.stream.write(modifier + " ")
-        self.visit(node.type)
-        self.stream.write(" ")
-        self.visit(node.variable)
-        self._end_statement()
+        self.stream.write("while (")
+        self.visit(node.condition)
+        self.stream.write(") ")
+        self.visit(node.body)
+        self._end_line()

@@ -20,9 +20,10 @@ from scipy.linalg import schur
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
 from .instruction import Instruction
+from .operation import Operation
 
 
-class Gate(Instruction):
+class Gate(Instruction, Operation):
     """Unitary gate."""
 
     def __init__(

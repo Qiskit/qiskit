@@ -66,7 +66,7 @@ except:
 print("Running on current least busy device: ", least_busy_device)
 
 # running the job
-job_exp = execute(qc, least_busy_device, shots=1024, max_credits=10)
+job_exp = execute(qc, least_busy_device, shots=1024)
 result_exp = job_exp.result()
 
 # Show the results

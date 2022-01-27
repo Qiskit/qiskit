@@ -335,11 +335,9 @@ class TestOperator(OperatorTestCase):
 
         targ = Operator(np.dot(self.UY, self.UX))
         self.assertEqual(op1.dot(op2), targ)
-        self.assertEqual(op1 * op2, targ)
 
         targ = Operator(np.dot(self.UX, self.UY))
         self.assertEqual(op2.dot(op1), targ)
-        self.assertEqual(op2 * op1, targ)
 
     def test_compose_front(self):
         """Test front compose method."""

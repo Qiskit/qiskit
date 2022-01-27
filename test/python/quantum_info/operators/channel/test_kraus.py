@@ -205,13 +205,11 @@ class TestKraus(ChannelTestCase):
         chan2 = Kraus(self.UY)
         targ = rho.evolve(Kraus(self.UZ))
         self.assertEqual(rho.evolve(chan1.dot(chan2)), targ)
-        self.assertEqual(rho.evolve(chan1 * chan2), targ)
 
         # 50% depolarizing channel
         chan1 = Kraus(self.depol_kraus(0.5))
         targ = rho & Kraus(self.depol_kraus(0.75))
         self.assertEqual(rho.evolve(chan1.dot(chan1)), targ)
-        self.assertEqual(rho.evolve(chan1 * chan1), targ)
 
         # Compose different dimensions
         kraus1, kraus2 = self.rand_kraus(2, 4, 4), self.rand_kraus(4, 2, 4)
@@ -219,7 +217,6 @@ class TestKraus(ChannelTestCase):
         chan2 = Kraus(kraus2)
         targ = rho & chan1 & chan2
         self.assertEqual(rho.evolve(chan2.dot(chan1)), targ)
-        self.assertEqual(rho.evolve(chan2 * chan1), targ)
 
     def test_compose_front(self):
         """Test deprecated front compose method."""

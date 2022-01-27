@@ -14,11 +14,12 @@
 
 import unittest
 from test import combine
-from ddt import ddt
-import numpy as np
 
+import numpy as np
+from ddt import ddt
+
+from qiskit.quantum_info.operators import Operator, ScalarOp
 from qiskit.test import QiskitTestCase
-from qiskit.quantum_info.operators import ScalarOp, Operator
 
 
 class ScalarOpTestCase(QiskitTestCase):
@@ -508,22 +509,6 @@ class TestScalarOpComposeOperator(ScalarOpTestCase):
             self.assertEqual(val.output_dims(), (2, 2))
             self.assertEqual(val, target)
 
-        with self.subTest(msg=f"{iden} * Operator({label})"):
-            val = iden * op
-            target = iden.to_operator().dot(op)
-            self.assertTrue(isinstance(val, Operator))
-            self.assertEqual(val.input_dims(), (2, 2))
-            self.assertEqual(val.output_dims(), (2, 2))
-            self.assertEqual(val, target)
-
-        with self.subTest(msg=f"Operator({label}) * {iden}"):
-            val = op * iden
-            target = op.dot(iden.to_operator())
-            self.assertTrue(isinstance(val, Operator))
-            self.assertEqual(val.input_dims(), (2, 2))
-            self.assertEqual(val.output_dims(), (2, 2))
-            self.assertEqual(val, target)
-
     @combine(coeff=[0, 1, -3.1, 1 + 3j], label=["I", "X", "Y", "Z"])
     def test_compose_qargs_operator(self, coeff, label):
         """Test qargs compose and dot methods with ScalarOp and Operator."""
@@ -573,22 +558,6 @@ class TestScalarOpComposeOperator(ScalarOpTestCase):
         with self.subTest(msg=f"{iden} & Operator({label})([1])"):
             val = iden & op([1])
             target = iden.to_operator().compose(op, qargs=[1])
-            self.assertTrue(isinstance(val, Operator))
-            self.assertEqual(val.input_dims(), (2, 2))
-            self.assertEqual(val.output_dims(), (2, 2))
-            self.assertEqual(val, target)
-
-        with self.subTest(msg=f"{iden} * Operator({label})([0])"):
-            val = iden * op([0])
-            target = iden.to_operator().dot(op, qargs=[0])
-            self.assertTrue(isinstance(val, Operator))
-            self.assertEqual(val.input_dims(), (2, 2))
-            self.assertEqual(val.output_dims(), (2, 2))
-            self.assertEqual(val, target)
-
-        with self.subTest(msg=f"{iden} * Operator({label})([1])"):
-            val = iden * op([1])
-            target = iden.to_operator().dot(op, qargs=[1])
             self.assertTrue(isinstance(val, Operator))
             self.assertEqual(val.input_dims(), (2, 2))
             self.assertEqual(val.output_dims(), (2, 2))

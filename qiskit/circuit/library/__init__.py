@@ -24,7 +24,6 @@ Standard Gates
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
-   Barrier
    C3XGate
    C3SXGate
    C4XGate
@@ -50,12 +49,10 @@ Standard Gates
    MCXGrayCode
    MCXRecursive
    MCXVChain
-   Measure
    MSGate
    PhaseGate
    RCCXGate
    RC3XGate
-   Reset
    RGate
    RXGate
    RXXGate
@@ -64,6 +61,7 @@ Standard Gates
    RZGate
    RZZGate
    RZXGate
+   XYGate
    ECRGate
    SGate
    SdgGate
@@ -80,6 +78,19 @@ Standard Gates
    XGate
    YGate
    ZGate
+
+Standard Directives
+===================
+
+..
+    This summary table deliberately does not generate toctree entries; these directives are "owned"
+    by ``qiskit.circuit``.
+
+.. autosummary::
+
+   ~qiskit.circuit.Barrier
+   ~qiskit.circuit.Measure
+   ~qiskit.circuit.Reset
 
 Generalized Gates
 =================
@@ -186,6 +197,15 @@ Functions on binary variables
    :template: autosummary/class_no_inherited_members.rst
 
    QuadraticForm
+
+Other arithmetic functions
+--------------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   ExactReciprocal
 
 Amplitude Functions
 ===================
@@ -393,6 +413,7 @@ from .arithmetic import (
     PiecewiseChebyshev,
     HRSCumulativeMultiplier,
     RGQFTMultiplier,
+    ExactReciprocal,
 )
 
 from .n_local import (
