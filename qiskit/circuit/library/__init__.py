@@ -168,8 +168,8 @@ set the amount of qubits involved at instantiation time.
 Boolean Logic Circuits (:mod:`qiskit.circuit.library.boolean_logic`)
 ====================================================================
 
-These are :class:`~qiskit.circuit.quantumcircuit.QuantumCircuit` subclasses that implement boolean logic
-operations.
+These are :class:`~qiskit.circuit.quantumcircuit.QuantumCircuit` subclasses
+that implement boolean logic operations.
 
 
 .. autosummary::
