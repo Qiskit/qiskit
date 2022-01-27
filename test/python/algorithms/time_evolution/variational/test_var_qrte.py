@@ -22,7 +22,7 @@ from qiskit.algorithms.time_evolution.variational.variational_principles.real.im
     RealMcLachlanVariationalPrinciple,
 )
 from qiskit import Aer
-from qiskit.algorithms.time_evolution.variational.var_qrte import VarQrte
+from qiskit.algorithms.time_evolution.variational.algorithms.var_qrte import VarQrte
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import (
     SummedOp,

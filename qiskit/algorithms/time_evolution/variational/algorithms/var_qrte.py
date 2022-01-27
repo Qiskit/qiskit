@@ -26,7 +26,7 @@ from qiskit.algorithms.time_evolution.variational.variational_principles.real.re
 from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
     AbstractOdeFunctionGenerator,
 )
-from qiskit.algorithms.time_evolution.variational.var_qte import VarQte
+from qiskit.algorithms.time_evolution.variational.algorithms.var_qte import VarQte
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
     OperatorBase,

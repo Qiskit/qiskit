@@ -33,7 +33,7 @@ from qiskit.opflow import (
     Gradient,
     StateFn,
 )
-from qiskit.algorithms.time_evolution.variational.var_qte import VarQte
+from qiskit.algorithms.time_evolution.variational.algorithms.var_qte import VarQte
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 
