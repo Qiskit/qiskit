@@ -981,9 +981,7 @@ class QuantumInstance:
     @property
     def is_statevector(self):
         """Return True if backend is a statevector-type simulator."""
-        if self._backend_interface_version <= 1:
-            return is_statevector_backend(self._backend)
-        return False
+        return is_statevector_backend(self._backend)
 
     @property
     def is_simulator(self):
