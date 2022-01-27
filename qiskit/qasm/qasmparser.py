@@ -373,16 +373,13 @@ class QasmParser:
         """
         format : FORMAT
         """
-        program[0] = node.Format(program[1])
-
-    def p_format_0(self, _):
-        """
-        format : FORMAT error
-        """
-        version = "2.0;"
-        raise QasmError(
-            "Invalid version string. Expected '" + version + "'.  Is the semicolon missing?"
-        )
+        version = node.Format(program[1])
+        if (version.majorversion != "2") or (version.minorversion != "0"):
+            provided_version = f"{version.majorversion}.{version.minorversion}"
+            raise QasmError(
+                f"Invalid version: '{provided_version}'. This module supports OpenQASM 2.0 only."
+            )
+        program[0] = version
 
     # ----------------------------------------
     #  id : ID

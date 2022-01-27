@@ -280,3 +280,14 @@ class TestEvolutionGate(QiskitTestCase):
         """Test an operator with complex coefficient raises an error."""
         with self.assertRaises(ValueError):
             _ = PauliEvolutionGate(Pauli("iZ"))
+
+    @data(LieTrotter, MatrixExponential)
+    def test_inverse(self, synth_cls):
+        """Test calculating the inverse is correct."""
+        evo = PauliEvolutionGate(X + Y, time=0.12, synthesis=synth_cls())
+
+        circuit = QuantumCircuit(1)
+        circuit.append(evo, circuit.qubits)
+        circuit.append(evo.inverse(), circuit.qubits)
+
+        self.assertTrue(Operator(circuit).equiv(np.identity(2 ** circuit.num_qubits)))
