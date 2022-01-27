@@ -19,21 +19,48 @@ from qiskit.circuit.exceptions import CircuitError
 
 
 class LinearFunction(Gate):
-    """An n_qubit linear circuit."""
+    r"""A linear reversible circuit on n qubits.
+
+    Internally, a linear function acting on n qubits is represented
+    as a n x n matrix of 0s and 1s in numpy array format.
+
+    A linear function can be synthesized into CX and SWAP gates using the Patel–Markov–Hayes
+    algorithm, as implemented in `qiskit.transpiler.synthesis.cnot_synth` based on
+    the paper:
+    "Optimal synthesis of linear reversible circuits."
+    Patel, Ketan N., Igor L. Markov, and John P. Hayes.
+    Quantum Information & Computation 8.3 (2008): 282-294.
+
+    For efficiency, the internal n x n matrix is stored in the format expected
+    by cnot_synth, which is the big-endian (and not the little-endian) bit-ordering convention.
+
+    **Example:** the circuit
+
+    .. parsed-literal::
+
+        q_0: ──■──
+             ┌─┴─┐
+        q_1: ┤ X ├
+             └───┘
+        q_2: ─────
+
+    is represented by a 3x3 linear matrix
+
+    .. math::
+
+            \begin{pmatrix}
+                1 & 0 & 0 \\
+                1 & 1 & 0 \\
+                0 & 0 & 1
+            \end{pmatrix}
+    """
 
     def __init__(
         self,
         linear: Union[List[List[int]], np.ndarray, QuantumCircuit],
         validate_input: Optional[bool] = False,
     ) -> None:
-        r"""Create a new linear function.
-
-        Internally, represents a linear function acting on n qubits as a n x n matrix of 0s and 1s
-        in numpy array format.
-
-        A linear function can be synthesized into CX and SWAP gates using the Patel–Markov–Hayes
-        algorithm. For efficiency, the internal n x n matrix is stored in the format expected
-        by cnot_synth, which is the big-endian (and not the little-endian) bit-ordering convention.
+        """Create a new linear function.
 
         Args:
             linear (list[list] or ndarray[bool] or QuantumCircuit):
@@ -49,26 +76,6 @@ class LinearFunction(Gate):
                 either a matrix is non {square, invertible},
                 or a quantum circuit contains non-linear gates.
 
-        **Example:** the circuit
-
-        .. parsed-literal::
-
-            q_0: ──■──
-                 ┌─┴─┐
-            q_1: ┤ X ├
-                 └───┘
-            q_2: ─────
-
-        is represented by a 3x3 linear matrix
-
-        .. math::
-
-                \begin{pmatrix}
-                    1 & 0 & 0 \\
-                    1 & 1 & 0 \\
-                    0 & 0 & 1
-                \end{pmatrix}
-
         """
         if not isinstance(linear, (list, np.ndarray, QuantumCircuit)):
             raise CircuitError(
@@ -82,14 +89,12 @@ class LinearFunction(Gate):
 
         else:
             # Normalize to numpy array (coercing entries to 0s and 1s)
-            ok = True
             try:
                 self._linear = np.array(linear, dtype=bool, copy=True)
             except ValueError:
-                ok = False
-
-            if not ok:
-                raise CircuitError("A linear function must be represented by a square matrix.")
+                raise CircuitError(
+                    "A linear function must be represented by a square matrix."
+                ) from None
 
             # Check that the matrix is square
             if not len(self._linear.shape) == 2 or self._linear.shape[0] != self._linear.shape[1]:
@@ -125,7 +130,10 @@ class LinearFunction(Gate):
         return self._linear
 
     def is_permutation(self) -> bool:
-        """Returns whether this linear function is a permutation."""
+        """Returns whether this linear function is a permutation,
+        that is whether every row and every column of the n x n matrix
+        has exactly one 1.
+        """
         ones = np.ones([self._linear.shape[0]], dtype=int)
         perm = np.all(np.sum(self._linear, axis=0) == ones) and np.all(
             np.sum(self._linear, axis=1) == ones
@@ -133,7 +141,10 @@ class LinearFunction(Gate):
         return perm
 
     def get_permutation_pattern(self):
-        """In the case that this linear function is a permutation, returns the permutation pattern"""
+        """This method first checks if a linear function is a permutation and raises a
+        `qiskit.circuit.exceptions.CircuitError` if not. In the case that this linear function
+        is a permutation, returns the permutation pattern.
+        """
         if not self.is_permutation():
             raise CircuitError("The linear function is not a permutation")
         locs = np.where(self._linear == 1)

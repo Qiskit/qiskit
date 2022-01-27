@@ -24,7 +24,7 @@ class CollectLinearFunctions(TransformationPass):
 
     @staticmethod
     def _is_linear_gate(op):
-        return isinstance(op, (CXGate, SwapGate)) and op.condition is None
+        return op.name in ("cx", "swap") and op.condition is None
 
     # Called when reached the end of the linear block (either the next gate
     # is not linear, or no more nodes)
@@ -78,7 +78,6 @@ class CollectLinearFunctions(TransformationPass):
                     qc.swap(wire_pos_map[node.qargs[0]], wire_pos_map[node.qargs[1]])
 
             op = LinearFunction(qc)
-            # op.condition = None
             dag.replace_block_with_op(block, op, wire_pos_map, cycle_check=False)
 
         return dag

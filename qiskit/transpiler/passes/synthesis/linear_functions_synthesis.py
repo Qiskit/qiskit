@@ -17,6 +17,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.circuit.library import Permutation
+from qiskit.circuit.exceptions import CircuitError
 
 
 class LinearFunctionsSynthesis(TransformationPass):
@@ -51,7 +52,11 @@ class LinearFunctionsToPermutations(TransformationPass):
 
         for node in dag.named_nodes("linear_function"):
             if node.op.is_permutation():
-                pattern = node.op.get_permutation_pattern()
+                try:
+                    pattern = node.op.get_permutation_pattern()
+                except CircuitError:
+                    continue
+
                 permutation = Permutation(len(pattern), pattern)
                 dag.substitute_node(node, permutation.to_instruction())
         return dag
