@@ -28,7 +28,7 @@ features:
       print('Original circuit:')
       print(qc)
       
-      pass_ = TemplateOptimization(**rzx_templates(['zz2']))
+      pass_ = TemplateOptimization(**rzx_templates.rzx_templates(['zz2']))
       qc_cz = PassManager(pass_).run(qc)
       print('ZX based circuit:')
       print(qc_cz)
