@@ -1,0 +1,21 @@
+---
+fixes:
+  - |
+    Fixed a bug where a free parameter was not properly assigned to a new value in a
+    :class:`~qiskit.circuit.ControlledGate`. In some special cases this led to the original
+    parameter re-occuring::
+
+        from qiskit.circuit import Parameter
+        from qiskit import QuantumCircuit
+
+        qc = QuantumCircuit(1)
+        param = Parameter("old")
+        qc.p(param, 0)
+        controlled = qc.control()
+        new_param = Parameter("new")
+        qc = QuantumCircuit(2)
+        qc.append(controlled.assign_parameters({param: new_param}).inverse(), qc.qubits)
+
+        print(qc.decompose().decompose())  # previously showed "old", now shows "new"
+
+    This behavior does not occur anymore.

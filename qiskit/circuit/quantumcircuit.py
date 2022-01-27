@@ -2638,19 +2638,6 @@ class QuantumCircuit:
                     schedule.assign_parameters({parameter: value})
                     cals[(qubit, tuple(new_cal_params))] = schedule
 
-    def _rebind_definition(
-        self, instruction: Instruction, parameter: Parameter, value: ParameterValueType
-    ) -> None:
-        if instruction._definition:
-            for op, _, _ in instruction._definition:
-                for idx, param in enumerate(op.params):
-                    if isinstance(param, ParameterExpression) and parameter in param.parameters:
-                        if isinstance(value, ParameterExpression):
-                            op.params[idx] = param.subs({parameter: value})
-                        else:
-                            op.params[idx] = param.bind({parameter: value})
-                        self._rebind_definition(op, parameter, value)
-
     def barrier(self, *qargs: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.Barrier`. If qargs is empty, applies to all qubits in the
         circuit.

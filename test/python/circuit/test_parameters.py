@@ -1155,6 +1155,31 @@ class TestParameters(QiskitTestCase):
             self.assertIs(element, vec[1])
             self.assertListEqual([param.name for param in vec], _paramvec_names("x", 3))
 
+    def test_controlledgate_properly_bound(self):
+        """Test the parameter is properly bound in a ControlledGate.
+
+        Regression test of Qiskit/qiskit-terra#7486.
+        """
+        qc = QuantumCircuit(1)
+        param = Parameter("old")
+        qc.p(param, 0)
+        controlled = qc.control()
+        new_param = Parameter("new")
+        assigned = controlled.assign_parameters({param: new_param})
+
+        with self.subTest(msg="Test base_gate parameters"):
+            cgate = assigned.data[0][0]
+            base_gate_parameters = cgate.base_gate.definition.parameters
+            self.assertEqual(len(base_gate_parameters), 1)
+            self.assertEqual(base_gate_parameters[0], new_param)
+
+        with self.subTest(msg="Test ControlledGate.inverse"):
+            qc_cinv = QuantumCircuit(2)
+            qc_cinv.append(controlled.assign_parameters({param: new_param}).inverse(), range(2))
+
+            self.assertEqual(len(qc_cinv.parameters), 1)
+            self.assertEqual(qc_cinv.parameters[0], new_param)
+
 
 def _construct_circuit(param, qr):
     qc = QuantumCircuit(qr)
