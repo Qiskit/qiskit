@@ -22,8 +22,8 @@ Standard Gates
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
-   Barrier
    C3XGate
    C3SXGate
    C4XGate
@@ -49,12 +49,10 @@ Standard Gates
    MCXGrayCode
    MCXRecursive
    MCXVChain
-   Measure
    MSGate
    PhaseGate
    RCCXGate
    RC3XGate
-   Reset
    RGate
    RXGate
    RXXGate
@@ -63,6 +61,7 @@ Standard Gates
    RZGate
    RZZGate
    RZXGate
+   XYGate
    ECRGate
    SGate
    SdgGate
@@ -80,11 +79,25 @@ Standard Gates
    YGate
    ZGate
 
+Standard Directives
+===================
+
+..
+    This summary table deliberately does not generate toctree entries; these directives are "owned"
+    by ``qiskit.circuit``.
+
+.. autosummary::
+
+   ~qiskit.circuit.Barrier
+   ~qiskit.circuit.Measure
+   ~qiskit.circuit.Reset
+
 Generalized Gates
 =================
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    Diagonal
    MCMT
@@ -96,12 +109,14 @@ Generalized Gates
    GRY
    GRZ
    RVGate
+   PauliGate
 
 Boolean Logic Circuits
 ======================
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    AND
    OR
@@ -113,6 +128,7 @@ Basis Change Circuits
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    QFT
 
@@ -120,18 +136,20 @@ Arithmetic Circuits
 ===================
 
 Amplitude Functions
-+++++++++++++++++++
+-------------------
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    LinearAmplitudeFunction
 
 Functional Pauli Rotations
-++++++++++++++++++++++++++
+--------------------------
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    FunctionalPauliRotations
    LinearPauliRotations
@@ -141,10 +159,11 @@ Functional Pauli Rotations
    PiecewiseChebyshev
 
 Adders
-++++++
+------
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    DraperQFTAdder
    CDKMRippleCarryAdder
@@ -152,35 +171,48 @@ Adders
    WeightedAdder
 
 Multipliers
-+++++++++++
+-----------
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    HRSCumulativeMultiplier
    RGQFTMultiplier
 
 Comparators
-+++++++++++
+-----------
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    IntegerComparator
 
 Functions on binary variables
-+++++++++++++++++++++++++++++
+-----------------------------
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    QuadraticForm
+
+Other arithmetic functions
+--------------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   ExactReciprocal
 
 Amplitude Functions
 ===================
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    LinearAmplitudeFunction
 
@@ -189,6 +221,7 @@ Particular Quantum Circuits
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    FourierChecking
    GraphState
@@ -199,12 +232,15 @@ Particular Quantum Circuits
    GroverOperator
    PhaseOracle
    EvolvedOperatorAnsatz
+   PauliEvolutionGate
+
 
 Probability distributions
 =========================
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    UniformDistribution
    NormalDistribution
@@ -216,6 +252,7 @@ N-local circuits
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    NLocal
    TwoLocal
@@ -231,6 +268,7 @@ Data encoding circuits
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    PauliFeatureMap
    ZFeatureMap
@@ -349,7 +387,9 @@ from .generalized_gates import (
     GRY,
     GRZ,
     RVGate,
+    PauliGate,
 )
+from .pauli_evolution import PauliEvolutionGate
 from .boolean_logic import (
     AND,
     OR,
@@ -373,6 +413,7 @@ from .arithmetic import (
     PiecewiseChebyshev,
     HRSCumulativeMultiplier,
     RGQFTMultiplier,
+    ExactReciprocal,
 )
 
 from .n_local import (

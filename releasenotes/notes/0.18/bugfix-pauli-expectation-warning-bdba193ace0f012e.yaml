@@ -1,0 +1,15 @@
+---
+fixes:
+  - |
+    Fixed an issue when converting a :class:`~qiskit.opflow.list_ops.ListOp`
+    object of :class:`~qiskit.opflow.primitive_ops.PauliSumOp` objects using
+    :class:`~qiskit.opflow.expectations.PauliExpectation` or
+    :class:`~qiskit.opflow.expectations.AerPauliExpectation`. Previously, it would raise
+    a warning about it converting to a Pauli representation which is
+    potentially expensive. This has been fixed by instead of internally
+    converting the :class:`~qiskit.opflow.list_ops.ListOp` to a
+    :class:`~qiskit.opflow.list_ops.SummedOp` of
+    :class:`~qiskit.opflow.primitive_ops.PauliOp` objects, it now creates
+    a :class:`~qiskit.opflow.primitive_ops.PauliSumOp` which is more
+    efficient.
+    Fixed `#6159 <https://github.com/Qiskit/qiskit-terra/issues/6159>`__

@@ -65,7 +65,7 @@ def _append_circuit(elem, circuit, qargs=None):
         return elem
 
     if gate.definition is None:
-        raise QiskitError("Cannot apply Instruction: {}".format(gate.name))
+        raise QiskitError(f"Cannot apply Instruction: {gate.name}")
     if not isinstance(gate.definition, QuantumCircuit):
         raise QiskitError(
             "{} instruction definition is {}; expected QuantumCircuit".format(
@@ -152,6 +152,6 @@ def _append_circuit(elem, circuit, qargs=None):
             pass
 
         else:
-            raise QiskitError("Not a CNOT-Dihedral gate: {}".format(instr.name))
+            raise QiskitError(f"Not a CNOT-Dihedral gate: {instr.name}")
 
     return elem

@@ -197,13 +197,11 @@ class TestStinespring(ChannelTestCase):
         chan2 = Stinespring(self.UY)
         rho_targ = rho_init.evolve(Stinespring(self.UZ))
         self.assertEqual(rho_init.evolve(chan1.dot(chan2)), rho_targ)
-        self.assertEqual(rho_init.evolve(chan1 * chan2), rho_targ)
 
         # 50% depolarizing channel
         chan1 = Stinespring(self.depol_stine(0.5))
         rho_targ = rho_init & Stinespring(self.depol_stine(0.75))
         self.assertEqual(rho_init.evolve(chan1.dot(chan1)), rho_targ)
-        self.assertEqual(rho_init.evolve(chan1 * chan1), rho_targ)
 
         # Compose different dimensions
         stine1, stine2 = self.rand_matrix(16, 2), self.rand_matrix(8, 4)
@@ -211,7 +209,6 @@ class TestStinespring(ChannelTestCase):
         chan2 = Stinespring(stine2, input_dims=4, output_dims=2)
         rho_targ = rho_init & chan1 & chan2
         self.assertEqual(rho_init.evolve(chan2.dot(chan1)), rho_targ)
-        self.assertEqual(rho_init.evolve(chan2 * chan1), rho_targ)
 
     def test_compose_front(self):
         """Test deprecated front compose method."""

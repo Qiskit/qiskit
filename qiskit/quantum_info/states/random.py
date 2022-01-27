@@ -83,7 +83,7 @@ def random_density_matrix(dims, rank=None, method="Hilbert-Schmidt", seed=None):
     elif method == "Bures":
         rho = _random_density_bures(dim, rank, seed)
     else:
-        raise QiskitError("Error: unrecognized method {}".format(method))
+        raise QiskitError(f"Error: unrecognized method {method}")
     return DensityMatrix(rho, dims=dims)
 
 

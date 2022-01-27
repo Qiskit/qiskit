@@ -69,6 +69,12 @@ class TestPauliConversions(QiskitTestCase):
         pauli = Pauli(label)
         self.assertEqual(Pauli(str(pauli)), pauli)
 
+    @data("S", "XX-")
+    def test_invalid_labels(self, label):
+        """Test raise if invalid labels are supplied"""
+        with self.assertRaises(QiskitError):
+            Pauli(label)
+
     @data(*pauli_group_labels(1), *pauli_group_labels(2))
     def test_to_operator(self, label):
         """Test Pauli operator conversion"""
@@ -144,7 +150,7 @@ class TestPauliProperties(QiskitTestCase):
         target = _phase_from_label(coeff)
         self.assertEqual(pauli.phase, target)
 
-    @data(*[(p, q) for p in ["I", "X", "Y", "Z"] for q in range(4)])
+    @data(*((p, q) for p in ["I", "X", "Y", "Z"] for q in range(4)))
     @unpack
     def test_phase_setter(self, pauli, phase):
         """Test phase setter"""
@@ -167,10 +173,10 @@ class TestPauliProperties(QiskitTestCase):
         self.assertEqual(pauli, Pauli("ZZ"))
 
     @data(
-        *[
+        *(
             ("IXYZ", i)
             for i in [0, 1, 2, 3, slice(None, None, None), slice(None, 2, None), [0, 3], [2, 1, 3]]
-        ]
+        )
     )
     @unpack
     def test_getitem(self, label, qubits):
@@ -179,7 +185,7 @@ class TestPauliProperties(QiskitTestCase):
         value = str(pauli[qubits])
         val_array = np.array(list(reversed(label)))[qubits]
         target = "".join(reversed(val_array.tolist()))
-        self.assertEqual(value, target, msg="indices = {}".format(qubits))
+        self.assertEqual(value, target, msg=f"indices = {qubits}")
 
     @data(
         (0, "iY", "iIIY"),

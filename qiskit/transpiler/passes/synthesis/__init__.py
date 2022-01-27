@@ -13,3 +13,4 @@
 """Module containing transpiler synthesis passes."""
 
 from .unitary_synthesis import UnitarySynthesis
+from .plugin import unitary_synthesis_plugin_names

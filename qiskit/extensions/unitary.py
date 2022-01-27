@@ -22,6 +22,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister, Qubit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit._utils import _compute_control_matrix
+from qiskit.circuit.quantumcircuit import _qasm_escape_gate_name
 from qiskit.circuit.library.standard_gates import U3Gate
 from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.operators.predicates import matrix_equal
@@ -68,7 +69,6 @@ class UnitaryGate(Gate):
 
         self._qasm_name = None
         self._qasm_definition = None
-        self._qasm_def_written = False
         # Store instruction params
         super().__init__("unitary", num_qubits, [data], label=label)
 
@@ -166,21 +166,11 @@ class UnitaryGate(Gate):
         This is achieved by adding a custom gate that corresponds to the definition
         of this gate. It gives the gate a random name if one hasn't been given to it.
         """
-        # if this is true then we have written the gate definition already
-        # so we only need to write the name
-        if self._qasm_def_written:
-            return self._qasmif(self._qasm_name)
-
-        # we have worked out the definition before, but haven't written it yet
-        # so we need to write definition + name
-        if self._qasm_definition:
-            self._qasm_def_written = True
-            return self._qasm_definition + self._qasmif(self._qasm_name)
-
-        # need to work out the definition and then write it
 
         # give this unitary a name
-        self._qasm_name = self.label if self.label else "unitary" + str(id(self))
+        self._qasm_name = (
+            _qasm_escape_gate_name(self.label) if self.label else "unitary" + str(id(self))
+        )
 
         # map from gates in the definition to params in the method
         reg_to_qasm = OrderedDict()
@@ -195,7 +185,7 @@ class UnitaryGate(Gate):
                     reg_to_qasm[reg] = "p" + str(current_reg)
                     current_reg += 1
 
-            curr_gate = "\t%s %s;\n" % (
+            curr_gate = "\t{} {};\n".format(
                 gate[0].qasm(),
                 ",".join([reg_to_qasm[j] for j in gate[1] + gate[2]]),
             )
@@ -209,22 +199,19 @@ class UnitaryGate(Gate):
             + ",".join(reg_to_qasm.values())
             + " {\n"
             + gates_def
-            + "}\n"
+            + "}"
         )
 
-        self._qasm_def_written = True
         self._qasm_definition = overall
 
-        return self._qasm_definition + self._qasmif(self._qasm_name)
+        return self._qasmif(self._qasm_name)
 
     def validate_parameter(self, parameter):
         """Unitary gate parameter has to be an ndarray."""
         if isinstance(parameter, numpy.ndarray):
             return parameter
         else:
-            raise CircuitError(
-                "invalid param type {0} in gate " "{1}".format(type(parameter), self.name)
-            )
+            raise CircuitError(f"invalid param type {type(parameter)} in gate {self.name}")
 
 
 def unitary(self, obj, qubits, label=None):

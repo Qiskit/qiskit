@@ -122,9 +122,7 @@ class HamiltonianGate(Gate):
         elif isinstance(parameter, ParameterExpression) and len(parameter.parameters) == 0:
             return float(parameter)
         else:
-            raise CircuitError(
-                "invalid param type {0} for gate  " "{1}".format(type(parameter), self.name)
-            )
+            raise CircuitError(f"invalid param type {type(parameter)} for gate {self.name}")
 
 
 def hamiltonian(self, operator, time, qubits, label=None):

@@ -201,12 +201,12 @@ class TemplateSubstitution:
         left = []
         right = []
 
-        pred = set([])
+        pred = set()
         for index in template_sublist:
             pred = pred | set(self.template_dag_dep.get_node(index).predecessors)
         pred = list(pred - set(template_sublist))
 
-        succ = set([])
+        succ = set()
         for index in template_sublist:
             succ = succ | set(self.template_dag_dep.get_node(index).successors)
         succ = list(succ - set(template_sublist))

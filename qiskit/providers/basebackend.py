@@ -129,4 +129,4 @@ class BaseBackend(ABC):
 
         [0] https://docs.python.org/3/reference/datamodel.html#object.__repr__
         """
-        return "<{}('{}') from {}()>".format(self.__class__.__name__, self.name(), self._provider)
+        return f"<{self.__class__.__name__}('{self.name()}') from {self._provider}()>"

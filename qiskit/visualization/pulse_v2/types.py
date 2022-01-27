@@ -23,7 +23,11 @@ import numpy as np
 from qiskit import pulse
 
 
-PhaseFreqTuple = NamedTuple("PhaseFreqTuple", [("phase", float), ("freq", float)])
+class PhaseFreqTuple(NamedTuple):
+    phase: float
+    freq: float
+
+
 PhaseFreqTuple.__doc__ = "Data to represent a set of frequency and phase values."
 PhaseFreqTuple.phase.__doc__ = "Phase value in rad."
 PhaseFreqTuple.freq.__doc__ = "Frequency value in Hz."
@@ -65,36 +69,45 @@ SnapshotInstruction.dt.__doc__ = "System cycle time."
 SnapshotInstruction.inst.__doc__ = "Snapshot instruction."
 
 
-ChartAxis = NamedTuple("ChartAxis", [("name", str), ("channels", List[pulse.channels.Channel])])
+class ChartAxis(NamedTuple):
+    name: str
+    channels: List[pulse.channels.Channel]
+
+
 ChartAxis.__doc__ = "Data to represent an axis information of chart."
 ChartAxis.name.__doc__ = "Name of chart."
 ChartAxis.channels.__doc__ = "Channels associated with chart."
 
 
-ParsedInstruction = NamedTuple(
-    "ParsedInstruction", [("xvals", np.ndarray), ("yvals", np.ndarray), ("meta", Dict[str, Any])]
-)
+class ParsedInstruction(NamedTuple):
+    xvals: np.ndarray
+    yvals: np.ndarray
+    meta: Dict[str, Any]
+
+
 ParsedInstruction.__doc__ = "Data to represent a parsed pulse instruction for object generation."
 ParsedInstruction.xvals.__doc__ = "Numpy array of x axis data."
 ParsedInstruction.yvals.__doc__ = "Numpy array of y axis data."
 ParsedInstruction.meta.__doc__ = "Dictionary containing instruction details."
 
 
-OpaqueShape = NamedTuple("OpaqueShape", [("duration", np.ndarray), ("meta", Dict[str, Any])])
+class OpaqueShape(NamedTuple):
+    duration: np.ndarray
+    meta: Dict[str, Any]
+
+
 OpaqueShape.__doc__ = "Data to represent a pulse instruction with parameterized shape."
 OpaqueShape.duration.__doc__ = "Duration of instruction."
 OpaqueShape.meta.__doc__ = "Dictionary containing instruction details."
 
 
-HorizontalAxis = NamedTuple(
-    "HorizontalAxis",
-    [
-        ("window", Tuple[int, int]),
-        ("axis_map", Dict[float, Union[float, str]]),
-        ("axis_break_pos", List[int]),
-        ("label", str),
-    ],
-)
+class HorizontalAxis(NamedTuple):
+    window: Tuple[int, int]
+    axis_map: Dict[float, Union[float, str]]
+    axis_break_pos: List[int]
+    label: str
+
+
 HorizontalAxis.__doc__ = "Data to represent configuration of horizontal axis."
 HorizontalAxis.window.__doc__ = "Left and right edge of graph."
 HorizontalAxis.axis_map.__doc__ = "Mapping of apparent coordinate system and actual location."

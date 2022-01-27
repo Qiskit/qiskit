@@ -125,6 +125,11 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             self._op_shape.dims_l(),
         )
 
+    @property
+    def settings(self):
+        """Return settings."""
+        return {"data": self.data, "dims": self._op_shape.dims_l()}
+
     def draw(self, output=None, **drawer_args):
         """Return a visualization of the Statevector.
 
@@ -396,10 +401,8 @@ class DensityMatrix(QuantumState, TolerancesMixin):
 
         if isinstance(oper, SparsePauliOp):
             return sum(
-                [
-                    coeff * self._expectation_value_pauli(Pauli((z, x)), qargs)
-                    for z, x, coeff in zip(oper.table.Z, oper.table.X, oper.coeffs)
-                ]
+                coeff * self._expectation_value_pauli(Pauli((z, x)), qargs)
+                for z, x, coeff in zip(oper.paulis.z, oper.paulis.x, oper.coeffs)
             )
 
         if not isinstance(oper, Operator):
@@ -718,7 +721,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         # circuit decomposition definition if it exists, otherwise we
         # cannot compose this gate and raise an error.
         if other.definition is None:
-            raise QiskitError("Cannot apply Instruction: {}".format(other.name))
+            raise QiskitError(f"Cannot apply Instruction: {other.name}")
         if not isinstance(other.definition, QuantumCircuit):
             raise QiskitError(
                 "{} instruction definition is {}; expected QuantumCircuit".format(
@@ -729,7 +732,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         for instr, qregs, cregs in other.definition:
             if cregs:
                 raise QiskitError(
-                    "Cannot apply instruction with classical registers: {}".format(instr.name)
+                    f"Cannot apply instruction with classical registers: {instr.name}"
                 )
             # Get the integer position of the flat register
             if qargs is None:

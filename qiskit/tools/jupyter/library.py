@@ -72,11 +72,11 @@ td {
 
 tr:nth-child(even) {background-color: #f6f6f6;}
 </style>"""
-    html += "<tr><th>{}</th><th></tr>".format(circuit.name)
-    html += "<tr><td>Width</td><td>{}</td></tr>".format(circuit.width())
-    html += "<tr><td>Depth</td><td>{}</td></tr>".format(circuit.depth())
-    html += "<tr><td>Total Gates</td><td>{}</td></tr>".format(sum(ops.values()))
-    html += "<tr><td>Non-local Gates</td><td>{}</td></tr>".format(num_nl)
+    html += f"<tr><th>{circuit.name}</th><th></tr>"
+    html += f"<tr><td>Width</td><td>{circuit.width()}</td></tr>"
+    html += f"<tr><td>Depth</td><td>{circuit.depth()}</td></tr>"
+    html += f"<tr><td>Total Gates</td><td>{sum(ops.values())}</td></tr>"
+    html += f"<tr><td>Non-local Gates</td><td>{num_nl}</td></tr>"
     html += "</table>"
 
     out_wid = wid.HTML(html)
@@ -89,7 +89,7 @@ head_style = (
 )
 
 property_label = wid.HTML(
-    "<p style='{}'>Circuit Properties</p>".format(head_style),
+    f"<p style='{head_style}'>Circuit Properties</p>",
     layout=wid.Layout(margin="0px 0px 10px 0px"),
 )
 
@@ -155,7 +155,7 @@ def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
     )
 
     out_label = wid.HTML(
-        "<p style='{}'>OpenQASM</p>".format(head_style),
+        f"<p style='{head_style}'>OpenQASM</p>",
         layout=wid.Layout(margin="0px 0px 10px 0px"),
     )
 
@@ -203,7 +203,7 @@ def circuit_library_widget(circuit: QuantumCircuit) -> None:
 
     # The separator widget
     sep = wid.HTML(
-        "<div style='border-left: 3px solid #212121;" "height: {}px;'></div>".format(sep_length),
+        f"<div style='border-left: 3px solid #212121;height: {sep_length}px;'></div>",
         layout=wid.Layout(height="auto", max_height="495px", margin="40px 0px 0px 20px"),
     )
     bottom = wid.HBox(

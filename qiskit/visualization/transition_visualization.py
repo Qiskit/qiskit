@@ -72,10 +72,10 @@ class _Quaternion:
             return self._multiply_with_quaternion(b)
         elif isinstance(b, (list, tuple, np.ndarray)):
             if len(b) != 3:
-                raise Exception("Input vector has invalid length {}".format(len(b)))
+                raise Exception(f"Input vector has invalid length {len(b)}")
             return self._multiply_with_vector(b)
         else:
-            raise Exception("Multiplication with unknown type {}".format(type(b)))
+            raise Exception(f"Multiplication with unknown type {type(b)}")
 
     def _multiply_with_quaternion(self, q_2):
         """Multiplication of quaternion with quaternion"""
@@ -102,7 +102,7 @@ class _Quaternion:
 
     def __repr__(self):
         theta, v = self.get_axisangle()
-        return "(({}; {}, {}, {}))".format(theta, v[0], v[1], v[2])
+        return f"(({theta}; {v[0]}, {v[1]}, {v[2]}))"
 
     def get_axisangle(self):
         """Returns angle and vector of quaternion"""
@@ -192,7 +192,7 @@ def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
     time_between_frames = (spg * 1000) / fpg
 
     # quaternions of gates which don't take parameters
-    gates = dict()
+    gates = {}
     gates["x"] = ("x", _Quaternion.from_axisangle(np.pi / frames_per_gate, [1, 0, 0]), "#1abc9c")
     gates["y"] = ("y", _Quaternion.from_axisangle(np.pi / frames_per_gate, [0, 1, 0]), "#2ecc71")
     gates["z"] = ("z", _Quaternion.from_axisangle(np.pi / frames_per_gate, [0, 0, 1]), "#3498db")
@@ -228,7 +228,7 @@ def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
 
     for gate in circuit._data:
         if gate[0].name not in implemented_gates:
-            raise VisualizationError("Gate {} is not supported".format(gate[0].name))
+            raise VisualizationError(f"Gate {gate[0].name} is not supported")
         if gate[0].name in simple_gates:
             list_of_circuit_gates.append(gates[gate[0].name])
         else:
@@ -252,7 +252,12 @@ def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
     starting_pos = _normalize(np.array([0, 0, 1]))
 
     fig = plt.figure(figsize=(5, 5))
-    _ax = Axes3D(fig)
+    if tuple(int(x) for x in matplotlib.__version__.split(".")) >= (3, 4, 0):
+        _ax = Axes3D(fig, auto_add_to_figure=False)
+        fig.add_axes(_ax)
+    else:
+        _ax = Axes3D(fig)
+
     _ax.set_xlim(-10, 10)
     _ax.set_ylim(-10, 10)
     sphere = Bloch(axes=_ax)

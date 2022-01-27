@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    A new function, :func:`~qiskit.user_config.set_config`, has been added
+    to the :mod:`qiskit.user_config` module. This function enables setting
+    values in a user config from the Qiskit API. For example::
+
+      from qiskit.user_config import set_config
+      set_config("circuit_drawer", "mpl", section="default", file="settings.conf")
+
+    which will result in adding a value of ``circuit_drawer = mpl`` to the
+    ``default`` section in the ``settings.conf`` file.
+
+    If no ``file_path`` argument is specified, the currently used path to the
+    user config file (either the value of the ``QISKIT_SETTINGS`` environment
+    variable if set or the default location ``~/.qiskit/settings.conf``) will be
+    updated. However, changes to the existing config file will not be reflected in
+    the current session since the config file is parsed at import time.

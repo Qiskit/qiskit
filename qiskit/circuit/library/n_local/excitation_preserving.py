@@ -24,8 +24,8 @@ class ExcitationPreserving(TwoLocal):
     r"""The heuristic excitation-preserving wave function ansatz.
 
     The ``ExcitationPreserving`` circuit preserves the ratio of :math:`|00\rangle`,
-    :math:`|01\rangle + |10\rangle` and :math:`|11\rangle` states. The matrix representing
-    the operation is
+    :math:`|01\rangle + |10\rangle` and :math:`|11\rangle` states. To this end, this circuit
+    uses two-qubit interactions of the form
 
     .. math::
 
@@ -33,8 +33,8 @@ class ExcitationPreserving(TwoLocal):
 
         \begin{pmatrix}
         1 & 0 & 0 & 0 \\
-        0 & \cos(\th) & -\sin(\th) & 0 \\
-        0 & \sin(\th) & \cos(\th) & 0 \\
+        0 & \cos(\th) & -i\sin(\th) & 0 \\
+        0 & -i\sin(\th) & \cos(\th) & 0 \\
         0 & 0 & 0 & e^{-i\phi}
         \end{pmatrix}
 
@@ -99,6 +99,7 @@ class ExcitationPreserving(TwoLocal):
         parameter_prefix: str = "θ",
         insert_barriers: bool = False,
         initial_state: Optional[Any] = None,
+        name: str = "ExcitationPreserving",
     ) -> None:
         """Create a new ExcitationPreserving 2-local circuit.
 
@@ -132,7 +133,7 @@ class ExcitationPreserving(TwoLocal):
         """
         supported_modes = ["iswap", "fsim"]
         if mode not in supported_modes:
-            raise ValueError("Unsupported mode {}, choose one of {}".format(mode, supported_modes))
+            raise ValueError(f"Unsupported mode {mode}, choose one of {supported_modes}")
 
         theta = Parameter("θ")
         swap = QuantumCircuit(2, name="Interaction")
@@ -153,6 +154,7 @@ class ExcitationPreserving(TwoLocal):
             parameter_prefix=parameter_prefix,
             insert_barriers=insert_barriers,
             initial_state=initial_state,
+            name=name,
         )
 
     @property

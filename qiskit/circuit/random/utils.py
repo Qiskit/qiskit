@@ -121,12 +121,11 @@ def random_circuit(
     for _ in range(depth):
         # choose either 1, 2, or 3 qubits for the operation
         remaining_qubits = list(range(num_qubits))
+        rng.shuffle(remaining_qubits)
         while remaining_qubits:
             max_possible_operands = min(len(remaining_qubits), max_operands)
             num_operands = rng.choice(range(max_possible_operands)) + 1
-            rng.shuffle(remaining_qubits)
-            operands = remaining_qubits[:num_operands]
-            remaining_qubits = [q for q in remaining_qubits if q not in operands]
+            operands = [remaining_qubits.pop() for _ in range(num_operands)]
             if num_operands == 1:
                 operation = rng.choice(one_q_ops)
             elif num_operands == 2:

@@ -44,7 +44,7 @@ from qiskit.pulse.channels import (
     MeasureChannel,
 )
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.schedule import Schedule, ParameterizedSchedule, _overlaps, _find_insertion_index
+from qiskit.pulse.schedule import Schedule, _overlaps, _find_insertion_index
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 
@@ -243,7 +243,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         sched = sched.append(Play(lp0, self.config.drive(0)))  # child
         sched = sched.append(subsched)
 
-        start_times = sorted([shft + instr.start_time for shft, instr in sched.instructions])
+        start_times = sorted(shft + instr.start_time for shft, instr in sched.instructions)
         self.assertEqual([0, 30, 40], start_times)
 
     def test_shift_schedule(self):
@@ -260,7 +260,7 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         shift = sched.shift(100)
 
-        start_times = sorted([shft + instr.start_time for shft, instr in shift.instructions])
+        start_times = sorted(shft + instr.start_time for shft, instr in shift.instructions)
 
         self.assertEqual([100, 130, 140], start_times)
 
@@ -281,7 +281,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         # sched must keep 3 instructions (must not update to 5 instructions)
         self.assertEqual(3, len(list(sched.instructions)))
 
-    @patch("qiskit.util.is_main_process", return_value=True)
+    @patch("qiskit.utils.is_main_process", return_value=True)
     def test_auto_naming(self, is_main_process_mock):
         """Test that a schedule gets a default name, incremented per instance"""
 
@@ -319,35 +319,6 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         sched_snapshot = snapshot | sched1
         self.assertEqual(sched_snapshot.name, "snapshot_label")
-
-    def test_multiple_parameters_not_returned(self):
-        """Constructing ParameterizedSchedule object from multiple ParameterizedSchedules sharing
-        arguments should not produce repeated parameters in resulting ParameterizedSchedule
-        object."""
-
-        def my_test_par_sched_one(x, y, z):
-            result = Play(Waveform(np.array([x, y, z]), name="sample"), self.config.drive(0))
-            return 0, result
-
-        def my_test_par_sched_two(x, y, z):
-            result = Play(Waveform(np.array([x, y, z]), name="sample"), self.config.drive(0))
-            return 5, result
-
-        par_sched_in_0 = ParameterizedSchedule(
-            my_test_par_sched_one, parameters={"x": 0, "y": 1, "z": 2}
-        )
-        par_sched_in_1 = ParameterizedSchedule(
-            my_test_par_sched_two, parameters={"x": 0, "y": 1, "z": 2}
-        )
-        par_sched = ParameterizedSchedule(par_sched_in_0, par_sched_in_1)
-        actual = par_sched(0.01, 0.02, 0.03)
-        expected = par_sched_in_0.bind_parameters(
-            0.01, 0.02, 0.03
-        ) | par_sched_in_1.bind_parameters(0.01, 0.02, 0.03)
-        self.assertEqual(actual.start_time, expected.start_time)
-        self.assertEqual(actual.stop_time, expected.stop_time)
-
-        self.assertEqual(par_sched.parameters, ("x", "y", "z"))
 
     def test_schedule_with_acquire_on_single_qubit(self):
         """Test schedule with acquire on single qubit."""

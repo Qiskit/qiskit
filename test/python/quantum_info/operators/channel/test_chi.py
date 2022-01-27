@@ -134,8 +134,6 @@ class TestChi(ChannelTestCase):
         target = rho.evolve(Chi(self.chiZ))
         output = rho.evolve(chan2.dot(chan1))
         self.assertEqual(output, target)
-        output = rho.evolve(chan2 * chan1)
-        self.assertEqual(output, target)
 
         # Compose random
         chi1 = self.rand_matrix(4, 4, real=True)
@@ -144,8 +142,6 @@ class TestChi(ChannelTestCase):
         chan2 = Chi(chi2, input_dims=2, output_dims=2)
         target = rho.evolve(chan1).evolve(chan2)
         output = rho.evolve(chan2.dot(chan1))
-        self.assertEqual(output, target)
-        output = rho.evolve(chan2 * chan1)
         self.assertEqual(output, target)
 
     def test_compose_front(self):

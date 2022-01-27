@@ -85,7 +85,7 @@ class TestAbelianGrouper(QiskitOpflowTestCase):
                 self.assertEqual(grouped_sum, expected)
             else:
                 self.assertSetEqual(
-                    frozenset([frozenset(grouped_sum[i].primitive.to_list()) for i in range(2)]),
+                    frozenset(frozenset(grouped_sum[i].primitive.to_list()) for i in range(2)),
                     frozenset({frozenset({("ZY", 3)}), frozenset({("IX", 1), ("XX", 2)})}),
                 )
 
@@ -99,7 +99,7 @@ class TestAbelianGrouper(QiskitOpflowTestCase):
                 self.assertEqual(grouped_sum, paulis)
             else:
                 self.assertSetEqual(
-                    frozenset(sum([grouped_sum[i].primitive.to_list() for i in range(3)], [])),
+                    frozenset(sum((grouped_sum[i].primitive.to_list() for i in range(3)), [])),
                     frozenset([("X", 1), ("Y", 2), ("Z", 3)]),
                 )
 

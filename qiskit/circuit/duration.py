@@ -68,7 +68,7 @@ def convert_durations_to_dt(qc: QuantumCircuit, dt_in_sec: float, inplace=True):
             continue
 
         if not inst.unit.endswith("s"):
-            raise CircuitError("Invalid time unit: '{0}'".format(inst.unit))
+            raise CircuitError(f"Invalid time unit: '{inst.unit}'")
 
         duration = inst.duration
         if inst.unit != "s":

@@ -282,8 +282,7 @@ class QasmSimulatorPy(BackendV1):
         required_dim = 2 ** self._number_of_qubits
         if length != required_dim:
             raise BasicAerError(
-                "initial statevector is incorrect length: "
-                + "{} != {}".format(length, required_dim)
+                f"initial statevector is incorrect length: {length} != {required_dim}"
             )
 
     def _set_options(self, qobj_config=None, backend_options=None):
@@ -306,9 +305,7 @@ class QasmSimulatorPy(BackendV1):
             # Check the initial statevector is normalized
             norm = np.linalg.norm(self._initial_statevector)
             if round(norm, 12) != 1:
-                raise BasicAerError(
-                    "initial statevector is not normalized: " + "norm {} != 1".format(norm)
-                )
+                raise BasicAerError(f"initial statevector is not normalized: norm {norm} != 1")
         # Check for custom chop threshold
         # Replace with custom options
         if "chop_threshold" in backend_options:
@@ -413,7 +410,7 @@ class QasmSimulatorPy(BackendV1):
             qobj_options = qobj.config
         else:
             warnings.warn(
-                "Using a qobj for run() is deprecated and will be " "removed in a future release.",
+                "Using a qobj for run() is deprecated and will be removed in a future release.",
                 PendingDeprecationWarning,
                 stacklevel=2,
             )
@@ -658,18 +655,17 @@ class QasmSimulatorPy(BackendV1):
         max_qubits = self.configuration().n_qubits
         if n_qubits > max_qubits:
             raise BasicAerError(
-                "Number of qubits {} ".format(n_qubits)
-                + "is greater than maximum ({}) ".format(max_qubits)
-                + 'for "{}".'.format(self.name())
+                f"Number of qubits {n_qubits} is greater than maximum ({max_qubits}) "
+                f'for "{self.name()}".'
             )
         for experiment in qobj.experiments:
             name = experiment.header.name
             if experiment.config.memory_slots == 0:
                 logger.warning(
-                    'No classical registers in circuit "%s", ' "counts will be empty.", name
+                    'No classical registers in circuit "%s", counts will be empty.', name
                 )
             elif "measure" not in [op.name for op in experiment.instructions]:
                 logger.warning(
-                    'No measurements in circuit "%s", ' "classical register will remain all zeros.",
+                    'No measurements in circuit "%s", classical register will remain all zeros.',
                     name,
                 )

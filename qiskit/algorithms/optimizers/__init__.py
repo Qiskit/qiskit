@@ -34,6 +34,7 @@ Optimizer Base Class
    :toctree: ../stubs/
    :nosignatures:
 
+   OptimizerResult
    OptimizerSupportLevel
    Optimizer
 
@@ -59,6 +60,7 @@ Local Optimizers
    SPSA
    QNSPSA
    TNC
+   SciPyOptimizer
 
 Qiskit also provides the following optimizers, which are built-out using the optimizers from
 the `scikit-quant` package. The `scikit-quant` package is not installed by default but must be
@@ -81,9 +83,10 @@ The global optimizers here all use NLopt for their core function and can only be
 used if their dependent NLopt package is manually installed. See the following
 section for installation instructions.
 
-.. toctree::
+.. autosummary::
+    :toctree: ../stubs/
 
-   qiskit.algorithms.optimizers.nlopts
+    nlopts
 
 The global optimizers are as follows:
 
@@ -115,7 +118,7 @@ from .nlopts.direct_l import DIRECT_L
 from .nlopts.direct_l_rand import DIRECT_L_RAND
 from .nlopts.esch import ESCH
 from .nlopts.isres import ISRES
-from .optimizer import Optimizer, OptimizerSupportLevel
+from .optimizer import Optimizer, OptimizerResult, OptimizerSupportLevel
 from .p_bfgs import P_BFGS
 from .powell import POWELL
 from .qnspsa import QNSPSA

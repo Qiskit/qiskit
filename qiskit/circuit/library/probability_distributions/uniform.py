@@ -36,7 +36,7 @@ class UniformDistribution(QuantumCircuit):
 
     Examples:
         >>> circuit = UniformDistribution(3)
-        >>> circuit.draw()
+        >>> circuit.decompose().draw()
              ┌───┐
         q_0: ┤ H ├
              ├───┤
@@ -62,5 +62,8 @@ class UniformDistribution(QuantumCircuit):
             stacklevel=2,
         )
 
-        super().__init__(num_qubits, name=name)
-        self.h(self.qubits)
+        circuit = QuantumCircuit(num_qubits, name=name)
+        circuit.h(circuit.qubits)
+
+        super().__init__(*circuit.qregs, name=name)
+        self.compose(circuit.to_gate(), qubits=self.qubits, inplace=True)

@@ -205,11 +205,11 @@ class StabilizerTable(PauliTable, AdjointMixin):
                 raise QiskitError("Phase vector is incorrect shape.")
 
     def __repr__(self):
-        return "StabilizerTable(\n{},\nphase={})".format(repr(self._array), repr(self._phase))
+        return f"StabilizerTable(\n{repr(self._array)},\nphase={repr(self._phase)})"
 
     def __str__(self):
         """String representation"""
-        return "StabilizerTable: {}".format(self.to_labels())
+        return f"StabilizerTable: {self.to_labels()}"
 
     def __eq__(self, other):
         """Test if two StabilizerTables are equal"""
@@ -292,8 +292,9 @@ class StabilizerTable(PauliTable, AdjointMixin):
             ind = [ind]
         if max(ind) >= self.size:
             raise QiskitError(
-                "Indices {} are not all less than the size"
-                " of the SatbilizerTable ({})".format(ind, self.size)
+                "Indices {} are not all less than the size of the StabilizerTable ({})".format(
+                    ind, self.size
+                )
             )
         return StabilizerTable(
             np.delete(self._array, ind, axis=0), np.delete(self._phase, ind, axis=0)
@@ -864,7 +865,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
         Returns:
             list or array: The rows of the StabilizerTable in label form.
         """
-        ret = np.zeros(self.size, dtype="<U{}".format(1 + self.num_qubits))
+        ret = np.zeros(self.size, dtype=f"<U{1 + self.num_qubits}")
         for i in range(self.size):
             ret[i] = self._to_label(self._array[i], self._phase[i])
         if array:
@@ -1014,7 +1015,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
             """Label representation iteration and item access."""
 
             def __repr__(self):
-                return "<StabilizerTable_label_iterator at {}>".format(hex(id(self)))
+                return f"<StabilizerTable_label_iterator at {hex(id(self))}>"
 
             def __getitem__(self, key):
                 return self.obj._to_label(self.obj.array[key], self.obj.phase[key])
@@ -1041,7 +1042,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
             """Matrix representation iteration and item access."""
 
             def __repr__(self):
-                return "<StabilizerTable_matrix_iterator at {}>".format(hex(id(self)))
+                return f"<StabilizerTable_matrix_iterator at {hex(id(self))}>"
 
             def __getitem__(self, key):
                 return self.obj._to_matrix(self.obj.array[key], self.obj.phase[key], sparse=sparse)

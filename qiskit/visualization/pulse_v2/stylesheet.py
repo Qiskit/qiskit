@@ -52,7 +52,7 @@ class QiskitPulseStyle(dict):
         for key, value in __m.items():
             if key in self._deprecated_keys:
                 warnings.warn(
-                    "%s is deprecated. Use %s instead." % (key, self._deprecated_keys[key]),
+                    f"{key} is deprecated. Use {self._deprecated_keys[key]} instead.",
                     DeprecationWarning,
                 )
                 self.__setitem__(self._deprecated_keys[key], value)
@@ -63,7 +63,7 @@ class QiskitPulseStyle(dict):
     @property
     def formatter(self):
         """Return formatter field of style dictionary."""
-        sub_dict = dict()
+        sub_dict = {}
         for key, value in self.items():
             sub_keys = key.split(".")
             if sub_keys[0] == "formatter":
@@ -73,7 +73,7 @@ class QiskitPulseStyle(dict):
     @property
     def generator(self):
         """Return generator field of style dictionary."""
-        sub_dict = dict()
+        sub_dict = {}
         for key, value in self.items():
             sub_keys = key.split(".")
             if sub_keys[0] == "generator":
@@ -83,7 +83,7 @@ class QiskitPulseStyle(dict):
     @property
     def layout(self):
         """Return layout field of style dictionary."""
-        sub_dict = dict()
+        sub_dict = {}
         for key, value in self.items():
             sub_keys = key.split(".")
             if sub_keys[0] == "layout":

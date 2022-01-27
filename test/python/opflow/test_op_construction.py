@@ -13,50 +13,55 @@
 """ Test Operator construction, including OpPrimitives and singletons. """
 
 
-import unittest
-from test.python.opflow import QiskitOpflowTestCase
 import itertools
-import scipy
-from scipy.stats import unitary_group
+import unittest
+from math import pi
+from test.python.opflow import QiskitOpflowTestCase
+
 import numpy as np
-from ddt import ddt, data
+import scipy
+from ddt import data, ddt
+from scipy.stats import unitary_group
 
 from qiskit import QiskitError
-from qiskit.circuit import QuantumCircuit, QuantumRegister, Instruction, Parameter, ParameterVector
-
-from qiskit.extensions.exceptions import ExtensionError
-from qiskit.quantum_info import Operator, Pauli, Statevector
+from qiskit.circuit import (
+    Instruction,
+    Parameter,
+    ParameterVector,
+    QuantumCircuit,
+    QuantumRegister,
+)
 from qiskit.circuit.library import CZGate, ZGate
-
+from qiskit.extensions.exceptions import ExtensionError
 from qiskit.opflow import (
+    CX,
+    CircuitOp,
+    CircuitStateFn,
+    ComposedOp,
+    DictStateFn,
+    EvolvedOp,
+    H,
+    I,
+    ListOp,
+    MatrixOp,
+    Minus,
+    OperatorBase,
+    OperatorStateFn,
+    OpflowError,
+    PauliOp,
+    PrimitiveOp,
+    SparseVectorStateFn,
+    StateFn,
+    SummedOp,
+    T,
+    TensoredOp,
+    VectorStateFn,
     X,
     Y,
     Z,
-    I,
-    CX,
-    T,
-    H,
-    Minus,
-    PrimitiveOp,
-    PauliOp,
-    CircuitOp,
-    MatrixOp,
-    EvolvedOp,
-    StateFn,
-    CircuitStateFn,
-    VectorStateFn,
-    DictStateFn,
-    OperatorStateFn,
-    ListOp,
-    ComposedOp,
-    TensoredOp,
-    SummedOp,
-    OperatorBase,
     Zero,
-    OpflowError,
-    SparseVectorStateFn,
 )
-
+from qiskit.quantum_info import Operator, Pauli, Statevector
 
 # pylint: disable=invalid-name
 
@@ -495,7 +500,7 @@ class TestOpConstruction(QiskitOpflowTestCase):
         expected_circuit_op = expected_pauli_op.to_circuit_op()
 
         self.assertEqual(
-            permuted_circuit_op.primitive.__str__(), expected_circuit_op.primitive.__str__()
+            Operator(permuted_circuit_op.primitive), Operator(expected_circuit_op.primitive)
         )
 
         # MatrixOp
@@ -867,6 +872,43 @@ class TestOpConstruction(QiskitOpflowTestCase):
 
         self.assertTrue(Operator(unitary).equiv(circuit))
 
+    def test_pauli_op_to_circuit(self):
+        """Test PauliOp.to_circuit()"""
+        with self.subTest("single Pauli"):
+            pauli = PauliOp(Pauli("Y"))
+            expected = QuantumCircuit(1)
+            expected.y(0)
+            self.assertEqual(pauli.to_circuit(), expected)
+
+        with self.subTest("single Pauli with phase"):
+            pauli = PauliOp(Pauli("-iX"))
+            expected = QuantumCircuit(1)
+            expected.x(0)
+            expected.global_phase = -pi / 2
+            self.assertEqual(Operator(pauli.to_circuit()), Operator(expected))
+
+        with self.subTest("two qubit"):
+            pauli = PauliOp(Pauli("IX"))
+            expected = QuantumCircuit(2)
+            expected.pauli("IX", range(2))
+            self.assertEqual(pauli.to_circuit(), expected)
+            expected = QuantumCircuit(2)
+            expected.x(0)
+            expected.id(1)
+            self.assertEqual(pauli.to_circuit().decompose(), expected)
+
+        with self.subTest("two qubit with phase"):
+            pauli = PauliOp(Pauli("iXZ"))
+            expected = QuantumCircuit(2)
+            expected.pauli("XZ", range(2))
+            expected.global_phase = pi / 2
+            self.assertEqual(pauli.to_circuit(), expected)
+            expected = QuantumCircuit(2)
+            expected.z(0)
+            expected.x(1)
+            expected.global_phase = pi / 2
+            self.assertEqual(pauli.to_circuit().decompose(), expected)
+
     def test_op_to_circuit_with_parameters(self):
         """On parameterized SummedOp, to_matrix_op returns ListOp, instead of MatrixOp. To avoid
         the infinite recursion, OpflowError is raised."""
@@ -892,9 +934,7 @@ class TestOpConstruction(QiskitOpflowTestCase):
         indented_str = op._indent(initial_str)
         starts_with_indent = indented_str.startswith(op.INDENTATION)
         self.assertTrue(starts_with_indent)
-        indented_str_content = (indented_str[len(op.INDENTATION) :]).split(
-            "\n{}".format(op.INDENTATION)
-        )
+        indented_str_content = (indented_str[len(op.INDENTATION) :]).split(f"\n{op.INDENTATION}")
         self.assertListEqual(indented_str_content, initial_str.split("\n"))
 
     def test_composed_op_immutable_under_eval(self):
@@ -920,7 +960,7 @@ class TestOpConstruction(QiskitOpflowTestCase):
         l = Parameter("λ")
         op = PrimitiveOp(qc, coeff=l)
 
-        params = set([phi, l, *theta.params])
+        params = {phi, l, *theta.params}
 
         self.assertEqual(params, op.parameters)
         self.assertEqual(params, StateFn(op).parameters)
@@ -1057,6 +1097,29 @@ class TestOpMethods(QiskitOpflowTestCase):
 
             with self.assertRaises(ValueError):
                 X @ op  # pylint: disable=pointless-statement
+
+    def test_is_hermitian(self):
+        """Test is_hermitian method."""
+        with self.subTest("I"):
+            self.assertTrue(I.is_hermitian())
+
+        with self.subTest("X"):
+            self.assertTrue(X.is_hermitian())
+
+        with self.subTest("Y"):
+            self.assertTrue(Y.is_hermitian())
+
+        with self.subTest("Z"):
+            self.assertTrue(Z.is_hermitian())
+
+        with self.subTest("XY"):
+            self.assertFalse((X @ Y).is_hermitian())
+
+        with self.subTest("CX"):
+            self.assertTrue(CX.is_hermitian())
+
+        with self.subTest("T"):
+            self.assertFalse(T.is_hermitian())
 
 
 @ddt

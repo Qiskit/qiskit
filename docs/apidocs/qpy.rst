@@ -1,4 +1,4 @@
-.. _qiskit-qpy:
+.. _qiskit-circuit-qpy_serialization:
 
 .. automodule:: qiskit.circuit.qpy_serialization
    :no-members:

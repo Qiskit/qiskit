@@ -495,7 +495,7 @@ class TestChartGenerators(QiskitTestCase):
 
         # data check
         self.assertListEqual(obj.channels, [pulse.DriveChannel(0)])
-        self.assertEqual(obj.text, "x{scale}".format(scale=types.DynamicString.SCALE))
+        self.assertEqual(obj.text, f"x{types.DynamicString.SCALE}")
 
         # style check
         ref_style = {

@@ -19,7 +19,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.optimization.commutation_analysis import CommutationAnalysis
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit import DAGCircuit, DAGInNode, DAGOutNode
 from qiskit.circuit.library.standard_gates.u1 import U1Gate
 from qiskit.circuit.library.standard_gates.rx import RXGate
 from qiskit.circuit.library.standard_gates.p import PhaseGate
@@ -97,7 +97,7 @@ class CommutativeCancellation(TransformationPass):
             wire_commutation_set = self.property_set["commutation_set"][wire]
 
             for com_set_idx, com_set in enumerate(wire_commutation_set):
-                if com_set[0].type in ["in", "out"]:
+                if isinstance(com_set[0], (DAGInNode, DAGOutNode)):
                     continue
                 for node in com_set:
                     num_qargs = len(node.qargs)

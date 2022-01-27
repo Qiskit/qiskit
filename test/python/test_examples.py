@@ -33,7 +33,7 @@ class TestPythonExamples(QiskitTestCase):
 
     @unittest.skipIf(
         sys.platform == "darwin" and sys.version_info[1] >= 8,
-        "Multiprocess spawn fails on macOS python >=3.8 without " "__name__ == '__main__' guard",
+        "Multiprocess spawn fails on macOS python >=3.8 without __name__ == '__main__' guard",
     )
     def test_all_examples(self):
         """Execute the example python files and pass if it returns 0."""
@@ -44,23 +44,23 @@ class TestPythonExamples(QiskitTestCase):
             with self.subTest(example=example):
                 example_path = os.path.join(examples_dir, example)
                 cmd = [sys.executable, example_path]
-                run_example = subprocess.Popen(
+                with subprocess.Popen(
                     cmd,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     env={**os.environ, "PYTHONIOENCODING": "utf8"},
-                )
-                stdout, stderr = run_example.communicate()
-                error_string = "Running example %s failed with return code %s\n" % (
-                    example,
-                    run_example.returncode,
-                )
-                error_string += "stdout:%s\nstderr: %s" % (stdout, stderr)
-                self.assertEqual(run_example.returncode, 0, error_string)
+                ) as run_example:
+                    stdout, stderr = run_example.communicate()
+                    error_string = (
+                        f"Running example {example} failed with return code"
+                        f"{run_example.returncode}\n"
+                        f"stdout:{stdout}\nstderr: {stderr}"
+                    )
+                    self.assertEqual(run_example.returncode, 0, error_string)
 
     @unittest.skipIf(
         sys.platform == "darwin" and sys.version_info[1] >= 8,
-        "Multiprocess spawn fails on macOS python >=3.8 without " "__name__ == '__main__' guard",
+        "Multiprocess spawn fails on macOS python >=3.8 without __name__ == '__main__' guard",
     )
     @online_test
     @slow_test
@@ -77,16 +77,16 @@ class TestPythonExamples(QiskitTestCase):
             with self.subTest(example=example):
                 example_path = os.path.join(ibmq_examples_dir, example)
                 cmd = [sys.executable, example_path]
-                run_example = subprocess.Popen(
+                with subprocess.Popen(
                     cmd,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     env={**os.environ, "PYTHONIOENCODING": "utf8"},
-                )
-                stdout, stderr = run_example.communicate()
-                error_string = "Running example %s failed with return code %s\n" % (
-                    example,
-                    run_example.returncode,
-                )
-                error_string += "\tstdout:%s\n\tstderr: %s" % (stdout, stderr)
-                self.assertEqual(run_example.returncode, 0, error_string)
+                ) as run_example:
+                    stdout, stderr = run_example.communicate()
+                    error_string = (
+                        f"Running example {example} failed with return code"
+                        f"{run_example.returncode}\n"
+                        f"stdout:{stdout}\nstderr: {stderr}"
+                    )
+                    self.assertEqual(run_example.returncode, 0, error_string)

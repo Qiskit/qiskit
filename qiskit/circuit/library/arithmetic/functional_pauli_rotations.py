@@ -66,7 +66,7 @@ class FunctionalPauliRotations(BlueprintCircuit, ABC):
         basis = basis.lower()
         if self._basis is None or basis != self._basis:
             if basis not in ["x", "y", "z"]:
-                raise ValueError("The provided basis must be X, Y or Z, not {}".format(basis))
+                raise ValueError(f"The provided basis must be X, Y or Z, not {basis}")
             self._invalidate()
             self._basis = basis
 

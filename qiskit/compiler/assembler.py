@@ -29,7 +29,6 @@ from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.pulse.channels import PulseChannel
 from qiskit.qobj import QobjHeader, Qobj
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
-from qiskit.validation.jsonschema import SchemaValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +46,7 @@ def assemble(
         Schedule,
         List[Schedule],
         ScheduleBlock,
-        Union[ScheduleBlock],
+        List[ScheduleBlock],
     ],
     backend: Optional[Union[Backend, BaseBackend]] = None,
     qobj_id: Optional[str] = None,
@@ -75,7 +74,6 @@ def assemble(
     parameter_binds: Optional[List[Dict[Parameter, float]]] = None,
     parametric_pulses: Optional[List[str]] = None,
     init_qubits: bool = True,
-    use_measure_esp: Optional[bool] = None,
     **run_config: Dict,
 ) -> Qobj:
     """Assemble a list of circuits or pulse schedules into a ``Qobj``.
@@ -83,6 +81,10 @@ def assemble(
     This function serializes the payloads, which could be either circuits or schedules,
     to create ``Qobj`` "experiments". It further annotates the experiment payload with
     header and configurations.
+
+    NOTE: Backend.options is not used within assemble. The required values
+    (previously given by backend.set_options) should be manually extracted
+    from options and supplied directly when calling.
 
     Args:
         experiments: Circuit(s) or pulse schedule(s) to execute
@@ -100,7 +102,9 @@ def assemble(
         memory: If ``True``, per-shot measurement bitstrings are returned as well
             (provided the backend supports it). For OpenPulse jobs, only
             measurement level 2 supports this option.
-        max_credits: Maximum credits to spend on job. Default: 10
+        max_credits: DEPRECATED This parameter is deprecated as of
+            Qiskit Terra 0.20.0, and will be removed in a future release. This parameter has
+            no effect on modern IBM Quantum systems, and no alternative is necessary.
         seed_simulator: Random seed to control sampling, for when backend is a simulator
         qubit_lo_freq: List of job level qubit drive LO frequencies in Hz. Overridden by
             ``schedule_los`` if specified. Must have length ``n_qubits.``
@@ -141,12 +145,7 @@ def assemble(
 
             ['gaussian', 'constant']
         init_qubits: Whether to reset the qubits to the ground state for each shot.
-            Default: ``True``.
-        use_measure_esp: Whether to use excited state promoted (ESP) readout for the final
-            measurement in each circuit. ESP readout discriminates between the ``|0>`` and higher
-            transmon states to improve readout fidelity. See
-            `here <https://arxiv.org/pdf/2008.08571.pdf>`_.
-            Default: ``True`` if the backend supports ESP readout, else ``False``.
+                     Default: ``True``.
         **run_config: Extra arguments used to configure the run (e.g., for Aer configurable
             backends). Refer to the backend documentation for details on these
             arguments.
@@ -158,8 +157,18 @@ def assemble(
     Raises:
         QiskitError: if the input cannot be interpreted as either circuits or schedules
     """
+    if max_credits is not None:
+        max_credits = None
+        warnings.warn(
+            "The `max_credits` parameter is deprecated as of Qiskit Terra 0.20.0, "
+            "and will be removed in a future release. This parameter has no effect on "
+            "modern IBM Quantum systems, and no alternative is necessary.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
     start_time = time()
     experiments = experiments if isinstance(experiments, list) else [experiments]
+    pulse_qobj = any(isinstance(exp, (ScheduleBlock, Schedule, Instruction)) for exp in experiments)
     qobj_id, qobj_header, run_config_common_dict = _parse_common_args(
         backend,
         qobj_id,
@@ -169,13 +178,13 @@ def assemble(
         max_credits,
         seed_simulator,
         init_qubits,
-        use_measure_esp,
         rep_delay,
         qubit_lo_freq,
         meas_lo_freq,
         qubit_lo_range,
         meas_lo_range,
         schedule_los,
+        pulse_qobj=pulse_qobj,
         **run_config,
     )
 
@@ -222,9 +231,7 @@ def assemble(
         )
 
     else:
-        raise QiskitError(
-            "bad input to assemble() function; " "must be either circuits or schedules"
-        )
+        raise QiskitError("bad input to assemble() function; must be either circuits or schedules")
 
 
 # TODO: rework to return a list of RunConfigs (one for each experiments), and a global one
@@ -237,13 +244,13 @@ def _parse_common_args(
     max_credits,
     seed_simulator,
     init_qubits,
-    use_measure_esp,
     rep_delay,
     qubit_lo_freq,
     meas_lo_freq,
     qubit_lo_range,
     meas_lo_range,
     schedule_los,
+    pulse_qobj=False,
     **run_config,
 ):
     """Resolve the various types of args allowed to the assemble() function through
@@ -266,8 +273,6 @@ def _parse_common_args(
             - If any of qubit or meas lo's, or associated ranges do not have length equal to
             ``n_qubits``.
             - If qubit or meas lo's do not fit into perscribed ranges.
-            - If ``use_measure_esp`` is set to ``True`` on a device which does not support ESP
-                readout.
     """
     # grab relevant info from backend if it exists
     backend_config = None
@@ -278,12 +283,17 @@ def _parse_common_args(
         n_qubits = backend_config.n_qubits
         # check for memory flag applied to backend that does not support memory
         if memory and not backend_config.memory:
-            raise QiskitError(
-                "memory not supported by backend {}".format(backend_config.backend_name)
-            )
+            raise QiskitError(f"memory not supported by backend {backend_config.backend_name}")
 
         # try to set defaults for pulse, other leave as None
-        if backend_config.open_pulse:
+        pulse_param_set = (
+            qubit_lo_freq is not None
+            or meas_lo_freq is not None
+            or qubit_lo_range is not None
+            or meas_lo_range is not None
+            or schedule_los is not None
+        )
+        if pulse_qobj or (backend_config.open_pulse and pulse_param_set):
             try:
                 backend_defaults = backend.defaults()
             except AttributeError:
@@ -353,14 +363,6 @@ def _parse_common_args(
         for lo_config in schedule_los
     ]
 
-    measure_esp_enabled = getattr(backend_config, "measure_esp_enabled", False)
-    use_measure_esp = use_measure_esp or measure_esp_enabled  # default to backend support value
-    if use_measure_esp and not measure_esp_enabled:
-        raise QiskitError(
-            "ESP readout not supported on this device. Please make sure the flag "
-            "'use_measure_esp' is unset or set to 'False'."
-        )
-
     # create run configuration and populate
     run_config_dict = dict(
         shots=shots,
@@ -368,7 +370,6 @@ def _parse_common_args(
         max_credits=max_credits,
         seed_simulator=seed_simulator,
         init_qubits=init_qubits,
-        use_measure_esp=use_measure_esp,
         rep_delay=rep_delay,
         qubit_lo_freq=qubit_lo_freq,
         meas_lo_freq=meas_lo_freq,
@@ -408,7 +409,7 @@ def _check_lo_freqs(
         for i, freq in enumerate(lo_freq):
             freq_range = lo_range[i]
             if not (isinstance(freq_range, list) and len(freq_range) == 2):
-                raise QiskitError("Each element of {} LO range must be a 2d list.".format(lo_type))
+                raise QiskitError(f"Each element of {lo_type} LO range must be a 2d list.")
             if freq < freq_range[0] or freq > freq_range[1]:
                 raise QiskitError(
                     "Qubit {} {} LO frequency is {}. The range is [{}, {}].".format(
@@ -434,7 +435,7 @@ def _parse_pulse_args(
         RunConfig: a run config, which is a standardized object that configures the qobj
             and determines the runtime environment.
     Raises:
-        SchemaValidationError: If the given meas_level is not allowed for the given `backend`.
+        QiskitError: If the given meas_level is not allowed for the given `backend`.
     """
     # grab relevant info from backend if it exists
     backend_config = None
@@ -442,7 +443,7 @@ def _parse_pulse_args(
         backend_config = backend.configuration()
 
         if meas_level not in getattr(backend_config, "meas_levels", [MeasLevel.CLASSIFIED]):
-            raise SchemaValidationError(
+            raise QiskitError(
                 ("meas_level = {} not supported for backend {}, only {} is supported").format(
                     meas_level, backend_config.backend_name, backend_config.meas_levels
                 )
@@ -462,8 +463,8 @@ def _parse_pulse_args(
         if isinstance(rep_time, list):
             rep_time = rep_time[0]
         rep_time = int(rep_time * 1e6)  # convert sec to μs
-
-    parametric_pulses = parametric_pulses or getattr(backend_config, "parametric_pulses", [])
+    if parametric_pulses is None:
+        parametric_pulses = getattr(backend_config, "parametric_pulses", [])
 
     # create run configuration and populate
     run_config_dict = dict(
@@ -522,7 +523,7 @@ def _parse_rep_delay(
         rep_delay_range: Backend list defining allowable range of rep delays.
 
     Raises:
-        SchemaValidationError: If rep_delay is not in the backend rep_delay_range.
+        QiskitError: If rep_delay is not in the backend rep_delay_range.
     Returns:
         float: Modified rep delay after parsing.
     """
@@ -533,13 +534,13 @@ def _parse_rep_delay(
         # check that rep_delay is in rep_delay_range
         if rep_delay_range is not None and isinstance(rep_delay_range, list):
             if len(rep_delay_range) != 2:
-                raise SchemaValidationError(
+                raise QiskitError(
                     "Backend rep_delay_range {} must be a list with two entries.".format(
                         rep_delay_range
                     )
                 )
             if not rep_delay_range[0] <= rep_delay <= rep_delay_range[1]:
-                raise SchemaValidationError(
+                raise QiskitError(
                     "Supplied rep delay {} not in the supported "
                     "backend range {}".format(rep_delay, rep_delay_range)
                 )

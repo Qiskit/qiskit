@@ -18,7 +18,7 @@ import numpy as np
 
 from qiskit.opflow import OperatorBase
 from ..eigen_solvers.numpy_eigen_solver import NumPyEigensolver
-from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
+from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult, ListOrDict
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
     def __init__(
         self,
         filter_criterion: Callable[
-            [Union[List, np.ndarray], float, Optional[List[float]]], bool
+            [Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool
         ] = None,
     ) -> None:
         """
@@ -49,7 +49,7 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
     @property
     def filter_criterion(
         self,
-    ) -> Optional[Callable[[Union[List, np.ndarray], float, Optional[List[float]]], bool]]:
+    ) -> Optional[Callable[[Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool]]:
         """returns the filter criterion if set"""
         return self._ces.filter_criterion
 
@@ -57,7 +57,7 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
     def filter_criterion(
         self,
         filter_criterion: Optional[
-            Callable[[Union[List, np.ndarray], float, Optional[List[float]]], bool]
+            Callable[[Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool]
         ],
     ) -> None:
         """set the filter criterion"""
@@ -68,7 +68,7 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
         return NumPyEigensolver.supports_aux_operators()
 
     def compute_minimum_eigenvalue(
-        self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None
+        self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]] = None
     ) -> MinimumEigensolverResult:
         super().compute_minimum_eigenvalue(operator, aux_operators)
         result_ces = self._ces.compute_eigenvalues(operator, aux_operators)

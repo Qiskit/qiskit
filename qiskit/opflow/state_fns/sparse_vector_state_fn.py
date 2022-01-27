@@ -185,10 +185,8 @@ class SparseVectorStateFn(StateFn):
         if isinstance(front, DictStateFn):
             return np.round(
                 sum(
-                    [
-                        v * self.primitive.data[int(b, 2)] * front.coeff
-                        for (b, v) in front.primitive.items()
-                    ]
+                    v * self.primitive.data[int(b, 2)] * front.coeff
+                    for (b, v) in front.primitive.items()
                 )
                 * self.coeff,
                 decimals=EVAL_SIG_DIGITS,

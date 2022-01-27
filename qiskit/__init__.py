@@ -17,7 +17,6 @@
 import pkgutil
 import sys
 import warnings
-import os
 
 # qiskit errors operator
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
@@ -57,15 +56,6 @@ from .version import QiskitVersion  # noqa
 
 
 __qiskit_version__ = QiskitVersion()
-
-
-if sys.version_info[0] == 3 and sys.version_info[1] == 6:
-    warnings.warn(
-        "Using Qiskit with Python 3.6 is deprecated as of the 0.17.0 release. "
-        "Support for running Qiskit with Python 3.6 will be removed in a "
-        "future release.",
-        DeprecationWarning,
-    )
 
 
 class AerWrapper:
@@ -128,3 +118,20 @@ class IBMQWrapper:
 
 Aer = AerWrapper()
 IBMQ = IBMQWrapper()
+
+__all__ = [
+    "Aer",
+    "AncillaRegister",
+    "BasicAer",
+    "ClassicalRegister",
+    "IBMQ",
+    "MissingOptionalLibraryError",
+    "QiskitError",
+    "QuantumCircuit",
+    "QuantumRegister",
+    "assemble",
+    "execute",
+    "schedule",
+    "sequence",
+    "transpile",
+]

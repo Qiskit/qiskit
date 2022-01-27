@@ -91,7 +91,7 @@ class GMS(QuantumCircuit):
         for i in range(self.num_qubits):
             for j in range(i + 1, self.num_qubits):
                 gms.append(RXXGate(theta[i][j]), [i, j])
-        self.append(gms, self.qubits)
+        self.append(gms.to_gate(), self.qubits)
 
 
 class MSGate(Gate):

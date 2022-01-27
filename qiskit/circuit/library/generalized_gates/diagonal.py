@@ -92,7 +92,8 @@ class Diagonal(QuantumCircuit):
             raise CircuitError("A diagonal element does not have absolute value one.")
 
         num_qubits = int(num_qubits)
-        super().__init__(num_qubits, name="diagonal")
+
+        circuit = QuantumCircuit(num_qubits, name="Diagonal")
 
         # Since the diagonal is a unitary, all its entries have absolute value
         # one and the diagonal is fully specified by the phases of its entries.
@@ -106,13 +107,18 @@ class Diagonal(QuantumCircuit):
             num_act_qubits = int(np.log2(n))
             ctrl_qubits = list(range(num_qubits - num_act_qubits + 1, num_qubits))
             target_qubit = num_qubits - num_act_qubits
-            self.ucrz(angles_rz, ctrl_qubits, target_qubit)
+            circuit.ucrz(angles_rz, ctrl_qubits, target_qubit)
             n //= 2
-        self.global_phase += diag_phases[0]
+        circuit.global_phase += diag_phases[0]
+
+        super().__init__(num_qubits, name="Diagonal")
+        self.append(circuit.to_gate(), self.qubits)
 
 
 # extract a Rz rotation (angle given by first output) such that exp(j*phase)*Rz(z_angle)
 # is equal to the diagonal matrix with entires exp(1j*ph1) and exp(1j*ph2)
+
+
 def _extract_rz(phi1, phi2):
     phase = (phi1 + phi2) / 2.0
     z_angle = phi2 - phi1

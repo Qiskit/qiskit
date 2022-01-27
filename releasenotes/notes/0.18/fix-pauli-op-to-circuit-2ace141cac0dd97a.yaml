@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed the bug that caused :meth:`~qiskit.opflow.PauliOp.to_circuit` to fail when
+    :class:`~qiskit.opflow.PauliOp` had a phase. At the same time, it was made more efficient to
+    use :class:`~qiskit.circuit.library.generalized_gates.PauliGate`.

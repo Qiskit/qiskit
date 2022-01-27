@@ -96,7 +96,7 @@ class ParameterVector:
             return self.params[start:stop:step]
 
         if key > self._size:
-            raise IndexError("Index out of range: {} > {}".format(key, self._size))
+            raise IndexError(f"Index out of range: {key} > {self._size}")
         return self.params[key]
 
     def __iter__(self):
@@ -106,10 +106,10 @@ class ParameterVector:
         return self._size
 
     def __str__(self):
-        return "{}, {}".format(self.name, [str(item) for item in self.params[: self._size]])
+        return f"{self.name}, {[str(item) for item in self.params[: self._size]]}"
 
     def __repr__(self):
-        return "{}(name={}, length={})".format(self.__class__.__name__, self.name, len(self))
+        return f"{self.__class__.__name__}(name={self.name}, length={len(self)})"
 
     def resize(self, length):
         """Resize the parameter vector.

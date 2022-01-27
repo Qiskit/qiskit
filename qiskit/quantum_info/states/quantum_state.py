@@ -21,7 +21,6 @@ import numpy as np
 
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.result.counts import Counts
-from qiskit.utils.deprecation import deprecate_function
 
 
 class QuantumState:
@@ -148,7 +147,7 @@ class QuantumState:
         Raises:
             NotImplementedError: if subclass does not support addition.
         """
-        raise NotImplementedError("{} does not support addition".format(type(self)))
+        raise NotImplementedError(f"{type(self)} does not support addition")
 
     def _multiply(self, other):
         """Return the scalar multipled state other * self.
@@ -163,7 +162,7 @@ class QuantumState:
             NotImplementedError: if subclass does not support scala
                                  multiplication.
         """
-        raise NotImplementedError("{} does not support scalar multiplication".format(type(self)))
+        raise NotImplementedError(f"{type(self)} does not support scalar multiplication")
 
     @abstractmethod
     def evolve(self, other, qargs=None):
@@ -429,8 +428,7 @@ class QuantumState:
         # Make dict of tuples
         if string_labels:
             return {
-                "{}|{}".format(ket, bra): val
-                for ket, bra, val in zip(kets, bras, vals[inds_row, inds_col])
+                f"{ket}|{bra}": val for ket, bra, val in zip(kets, bras, vals[inds_row, inds_col])
             }
 
         return {
@@ -471,18 +469,6 @@ class QuantumState:
 
     # Overloads
     def __and__(self, other):
-        return self.evolve(other)
-
-    @deprecate_function(
-        "Using `psi @ U` as shorthand for `psi.evolve(U)` is deprecated"
-        " as of version 0.17.0 and will be removed no earlier than 3 months"
-        " after the release date. It has been superceded by the `&` operator"
-        " (`psi & U == psi.evolve(U)`) instead."
-    )
-    def __matmul__(self, other):
-        # Check for subsystem case return by __call__ method
-        if isinstance(other, tuple) and len(other) == 2:
-            return self.evolve(other[0], qargs=other[1])
         return self.evolve(other)
 
     def __xor__(self, other):

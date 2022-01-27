@@ -31,11 +31,9 @@ class TolerancesMeta(ABCMeta):
     def _check_value(cls, value, value_name):
         """Check if value is within valid ranges"""
         if value < 0:
-            raise QiskitError("Invalid {} ({}) must be non-negative.".format(value_name, value))
+            raise QiskitError(f"Invalid {value_name} ({value}) must be non-negative.")
         if value > cls._MAX_TOL:
-            raise QiskitError(
-                "Invalid {} ({}) must be less than {}.".format(value_name, value, cls._MAX_TOL)
-            )
+            raise QiskitError(f"Invalid {value_name} ({value}) must be less than {cls._MAX_TOL}.")
 
     @property
     def atol(cls):

@@ -21,11 +21,12 @@ Executing Experiments (:mod:`qiskit.execute_function`)
 """
 import logging
 from time import time
+import warnings
 from qiskit.compiler import transpile, assemble, schedule
 from qiskit.providers import BaseBackend
 from qiskit.providers.backend import Backend
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
-from qiskit.pulse import Schedule
+from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.exceptions import QiskitError
 
 logger = logging.getLogger(__name__)
@@ -49,7 +50,7 @@ def execute(
     qobj_id=None,
     qobj_header=None,
     shots=None,  # common run options
-    memory=False,
+    memory=None,
     max_credits=None,
     seed_simulator=None,
     default_qubit_los=None,
@@ -166,7 +167,9 @@ def execute(
             (provided the backend supports it). For OpenPulse jobs, only
             measurement level 2 supports this option. Default: False
 
-        max_credits (int): Maximum credits to spend on job. Default: 10
+        max_credits (int): DEPRECATED This parameter is deprecated as of
+        Qiskit Terra 0.20.0, and will be removed in a future release. This parameter has
+        no effect on modern IBM Quantum systems, and no alternative is necessary.
 
         seed_simulator (int): Random seed to control sampling, for when backend is a simulator
 
@@ -242,7 +245,7 @@ def execute(
             Optionally specify a particular scheduling method.
 
         init_qubits (bool): Whether to reset the qubits to the ground state for each shot.
-            Default: ``True``.
+                            Default: ``True``.
 
         run_config (dict):
             Extra arguments used to configure the run (e.g. for Aer configurable backends).
@@ -272,8 +275,8 @@ def execute(
 
             job = execute(qc, backend, shots=4321)
     """
-    if isinstance(experiments, Schedule) or (
-        isinstance(experiments, list) and isinstance(experiments[0], Schedule)
+    if isinstance(experiments, (Schedule, ScheduleBlock)) or (
+        isinstance(experiments, list) and isinstance(experiments[0], (Schedule, ScheduleBlock))
     ):
         # do not transpile a schedule circuit
         if schedule_circuit:
@@ -310,13 +313,21 @@ def execute(
             meas_map=meas_map,
             method=scheduling_method,
         )
+    if max_credits is not None:
+        warnings.warn(
+            "The `max_credits` parameter is deprecated as of Qiskit Terra 0.20.0, "
+            "and will be removed in a future release. This parameter has no effect on "
+            "modern IBM Quantum systems, and no alternative is necessary.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
     if isinstance(backend, BaseBackend):
         # assembling the circuits into a qobj to be run on the backend
         if shots is None:
             shots = 1024
-        if max_credits is None:
-            max_credits = 10
+        if memory is None:
+            memory = False
         if meas_level is None:
             meas_level = MeasLevel.CLASSIFIED
         if meas_return is None:
@@ -330,7 +341,6 @@ def execute(
             qobj_header=qobj_header,
             shots=shots,
             memory=memory,
-            max_credits=max_credits,
             seed_simulator=seed_simulator,
             qubit_lo_freq=default_qubit_los,
             meas_lo_freq=default_meas_los,
@@ -377,24 +387,16 @@ def execute(
             if not hasattr(backend.options, key):
                 if run_kwargs[key] is not None:
                     logger.info(
-                        "%s backend doesn't support option %s so not "
-                        "passing that kwarg to run()",
+                        "%s backend doesn't support option %s so not passing that kwarg to run()",
                         backend.name,
                         key,
                     )
                 del run_kwargs[key]
-            elif key == "shots" and run_kwargs[key] is None:
-                run_kwargs[key] = 1024
-            elif key == "max_credits" and run_kwargs[key] is None:
-                run_kwargs[key] = 10
-            elif key == "meas_level" and run_kwargs[key] is None:
-                run_kwargs[key] = MeasLevel.CLASSIFIED
-            elif key == "meas_return" and run_kwargs[key] is None:
-                run_kwargs[key] = MeasReturnType.AVERAGE
-            elif key == "memory_slot_size" and run_kwargs[key] is None:
-                run_kwargs[key] = 100
+            elif run_kwargs[key] is None:
+                del run_kwargs[key]
 
-        run_kwargs["parameter_binds"] = parameter_binds
+        if parameter_binds:
+            run_kwargs["parameter_binds"] = parameter_binds
         run_kwargs.update(run_config)
         job = backend.run(experiments, **run_kwargs)
         end_time = time()

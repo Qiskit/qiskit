@@ -15,7 +15,7 @@
 
 from typing import List, Optional
 
-from qiskit.circuit import QuantumRegister, QuantumCircuit
+from qiskit.circuit import QuantumRegister, QuantumCircuit, AncillaRegister
 from qiskit.circuit.library.standard_gates import MCXGate
 
 
@@ -66,7 +66,6 @@ class AND(QuantumCircuit):
             flags: A list of +1/0/-1 marking negations or omissions of qubits.
             mcx_mode: The mode to be used to implement the multi-controlled X gate.
         """
-        # store num_variables_qubits and flags
         self.num_variable_qubits = num_variable_qubits
         self.flags = flags
 
@@ -74,7 +73,7 @@ class AND(QuantumCircuit):
         qr_variable = QuantumRegister(num_variable_qubits, name="variable")
         qr_result = QuantumRegister(1, name="result")
 
-        super().__init__(qr_variable, qr_result, name="and")
+        circuit = QuantumCircuit(qr_variable, qr_result, name="and")
 
         # determine the control qubits: all that have a nonzero flag
         flags = flags or [1] * num_variable_qubits
@@ -84,15 +83,18 @@ class AND(QuantumCircuit):
         flip_qubits = [q for q, flag in zip(qr_variable, flags) if flag < 0]
 
         # determine the number of ancillas
-        self.num_ancilla_qubits = MCXGate.get_num_ancilla_qubits(len(control_qubits), mode=mcx_mode)
-        if self.num_ancilla_qubits > 0:
-            qr_ancilla = QuantumRegister(self.num_ancilla_qubits, "ancilla")
-            self.add_register(qr_ancilla)
+        num_ancillas = MCXGate.get_num_ancilla_qubits(len(control_qubits), mode=mcx_mode)
+        if num_ancillas > 0:
+            qr_ancilla = AncillaRegister(num_ancillas, "ancilla")
+            circuit.add_register(qr_ancilla)
         else:
             qr_ancilla = []
 
         if len(flip_qubits) > 0:
-            self.x(flip_qubits)
-        self.mcx(control_qubits, qr_result[:], qr_ancilla[:], mode=mcx_mode)
+            circuit.x(flip_qubits)
+        circuit.mcx(control_qubits, qr_result[:], qr_ancilla[:], mode=mcx_mode)
         if len(flip_qubits) > 0:
-            self.x(flip_qubits)
+            circuit.x(flip_qubits)
+
+        super().__init__(*circuit.qregs, name="and")
+        self.compose(circuit.to_gate(), qubits=self.qubits, inplace=True)

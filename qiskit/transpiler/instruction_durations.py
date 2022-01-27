@@ -191,7 +191,7 @@ class InstructionDurations:
         elif name in self.duration_by_name:
             duration, unit = self.duration_by_name[name]
         else:
-            raise TranspilerError("No value is found for key={}".format(key))
+            raise TranspilerError(f"No value is found for key={key}")
 
         return self._convert_unit(duration, unit, to_unit)
 
@@ -206,7 +206,7 @@ class InstructionDurations:
 
         if self.dt is None:
             raise TranspilerError(
-                "dt is necessary to convert durations from '{}' to '{}'".format(from_unit, to_unit)
+                f"dt is necessary to convert durations from '{from_unit}' to '{to_unit}'"
             )
         if from_unit == "s" and to_unit == "dt":
             if isinstance(duration, ParameterExpression):
@@ -215,9 +215,7 @@ class InstructionDurations:
         elif from_unit == "dt" and to_unit == "s":
             return duration * self.dt
         else:
-            raise TranspilerError(
-                "Conversion from '{}' to '{}' is not supported".format(from_unit, to_unit)
-            )
+            raise TranspilerError(f"Conversion from '{from_unit}' to '{to_unit}' is not supported")
 
     def units_used(self) -> Set[str]:
         """Get the set of all units used in this instruction durations.

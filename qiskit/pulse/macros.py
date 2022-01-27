@@ -51,7 +51,7 @@ def measure(
     Raises:
         PulseError: If both ``inst_map`` or ``meas_map``, and ``backend`` is None.
     """
-    schedule = Schedule(name="Default measurement schedule for qubits {}".format(qubits))
+    schedule = Schedule(name=f"Default measurement schedule for qubits {qubits}")
     try:
         inst_map = inst_map or backend.defaults().instruction_schedule_map
         meas_map = meas_map or backend.configuration().meas_map

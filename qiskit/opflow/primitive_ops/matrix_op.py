@@ -64,7 +64,7 @@ class MatrixOp(PrimitiveOp):
                 f"not '{primitive_orig.__class__.__name__}'"
             )
 
-        if not primitive.input_dims() == primitive.output_dims():
+        if primitive.input_dims() != primitive.output_dims():
             raise ValueError("Cannot handle non-square matrices yet.")
 
         super().__init__(primitive, coeff=coeff)
@@ -183,7 +183,7 @@ class MatrixOp(PrimitiveOp):
         if self.coeff == 1.0:
             return prim_str
         else:
-            return "{} * {}".format(self.coeff, prim_str)
+            return f"{self.coeff} * {prim_str}"
 
     def eval(
         self,

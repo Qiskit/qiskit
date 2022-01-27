@@ -12,8 +12,6 @@
 
 """Node for an OPENQASM id."""
 
-import warnings
-
 from .node import Node
 from .nodeexception import NodeException
 
@@ -41,24 +39,12 @@ class Id(Node):
         ind = indent * " "
         print(ind, "id", self.name)
 
-    def qasm(self, prec=None):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
-        if prec is not None:
-            warnings.warn(
-                "Parameter 'Id.qasm(..., prec)' is no longer used and is being " "deprecated.",
-                DeprecationWarning,
-                2,
-            )
         return self.name
 
-    def latex(self, prec=None, nested_scope=None):
+    def latex(self, nested_scope=None):
         """Return the correspond math mode latex string."""
-        if prec is not None:
-            warnings.warn(
-                "Parameter 'Id.latex(..., prec)' is no longer used and is being " "deprecated.",
-                DeprecationWarning,
-                2,
-            )
         if not nested_scope:
             return "\textrm{" + self.name + "}"
         else:
@@ -77,7 +63,7 @@ class Id(Node):
         if not nested_scope or self.name not in nested_scope[-1]:
             raise NodeException(
                 "Expected local parameter name: ",
-                "name=%s, line=%s, file=%s" % (self.name, self.line, self.file),
+                f"name={self.name}, line={self.line}, file={self.file}",
             )
         return nested_scope[-1][self.name].sym(nested_scope[0:-1])
 
@@ -86,7 +72,7 @@ class Id(Node):
         if not nested_scope or self.name not in nested_scope[-1]:
             raise NodeException(
                 "Expected local parameter name: ",
-                "name=%s, line=%s, file=%s" % (self.name, self.line, self.file),
+                f"name={self.name}, line={self.line}, file={self.file}",
             )
 
         return nested_scope[-1][self.name].real(nested_scope[0:-1])

@@ -18,7 +18,7 @@ from qiskit.exceptions import QiskitError
 
 
 def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label=None):
-    """Build a ``Gate`` object from a ``QuantumCircuit``.
+    """Build a :class:`.Gate` object from a :class:`.QuantumCircuit`.
 
     The gate is anonymous (not tied to a named quantum register),
     and so can be inserted into another circuit. The gate will
@@ -47,7 +47,7 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
     from qiskit.circuit.quantumcircuit import QuantumCircuit
 
     if circuit.clbits:
-        raise QiskitError("Circuit with classical bits cannot be converted " "to gate.")
+        raise QiskitError("Circuit with classical bits cannot be converted to gate.")
 
     for inst, _, _ in circuit.data:
         if not isinstance(inst, Gate):
@@ -73,7 +73,7 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
 
     gate = Gate(
         name=circuit.name,
-        num_qubits=sum([qreg.size for qreg in circuit.qregs]),
+        num_qubits=circuit.num_qubits,
         params=[*parameter_dict.values()],
         label=label,
     )
