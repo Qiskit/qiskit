@@ -16,6 +16,7 @@ from typing import Optional, Union, Dict, List
 
 from scipy.integrate import OdeSolver
 
+from qiskit.algorithms.time_evolution.evolution_result import EvolutionResult
 from qiskit.algorithms.time_evolution.imaginary.qite import Qite
 
 from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
@@ -95,7 +96,7 @@ class VarQite(Qite, VarQte):
         observable: OperatorBase = None,
         t_param: Parameter = None,
         hamiltonian_value_dict: Dict[Parameter, Union[float, complex]] = None,
-    ) -> StateFn:
+    ) -> EvolutionResult:
         """
         Apply Variational Quantum Imaginary Time Evolution (VarQITE) w.r.t. the given
         operator.
@@ -124,7 +125,7 @@ class VarQite(Qite, VarQte):
             hamiltonian_value_dict, list(initial_state.parameters)
         )
 
-        return super()._evolve_helper(
+        evolved_object = super()._evolve_helper(
             self._create_imag_ode_function_generator,
             init_state_param_dict,
             hamiltonian,
@@ -132,6 +133,8 @@ class VarQite(Qite, VarQte):
             initial_state,
             observable,
         )
+
+        return EvolutionResult(evolved_object)
 
     def _create_imag_ode_function_generator(
         self,

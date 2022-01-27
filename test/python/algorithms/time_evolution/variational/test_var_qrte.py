@@ -79,6 +79,8 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
             hamiltonian_value_dict=param_dict,
         )
 
+        evolved_state = evolution_result.evolved_object
+
         # values from the prototype
         thetas_expected = [
             0.88689233,
@@ -91,11 +93,11 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
             1.53843156,
         ]
 
-        parameter_values = evolution_result.data[0][0].params
+        parameter_values = evolved_state.data[0][0].params
 
         print(
             state_fidelity(
-                Statevector(evolution_result),
+                Statevector(evolved_state),
                 Statevector(
                     ansatz.assign_parameters(dict(zip(ansatz.parameters, thetas_expected)))
                 ),
@@ -144,6 +146,8 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
             hamiltonian_value_dict=param_dict,
         )
 
+        evolved_state = evolution_result.evolved_object
+
         thetas_expected = [
             0.348407744196573,
             0.919404626262464,
@@ -161,13 +165,13 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
 
         print(
             state_fidelity(
-                Statevector(evolution_result),
+                Statevector(evolved_state),
                 Statevector(
                     ansatz.assign_parameters(dict(zip(ansatz.parameters, thetas_expected)))
                 ),
             )
         )
-        parameter_values = evolution_result.data[0][0].params
+        parameter_values = evolved_state.data[0][0].params
 
         for i, parameter_value in enumerate(parameter_values):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=4)
@@ -209,6 +213,8 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
             hamiltonian_value_dict=param_dict,
         )
 
+        evolved_state = evolution_result.evolved_object
+
         thetas_expected = [
             0.786375454622673,
             0.804937305358425,
@@ -220,10 +226,10 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
             0.771127803805238,
         ]
 
-        parameter_values = evolution_result.data[0][0].params
+        parameter_values = evolved_state.data[0][0].params
         print(
             state_fidelity(
-                Statevector(evolution_result),
+                Statevector(evolved_state),
                 Statevector(
                     ansatz.assign_parameters(dict(zip(ansatz.parameters, thetas_expected)))
                 ),
@@ -270,6 +276,8 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
             hamiltonian_value_dict=param_dict,
         )
 
+        evolved_state = evolution_result.evolved_object
+
         thetas_expected = [
             0.786456906200498,
             0.797872720168642,
@@ -281,10 +289,10 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
             0.777629466133638,
         ]
 
-        parameter_values = evolution_result.data[0][0].params
+        parameter_values = evolved_state.data[0][0].params
         print(
             state_fidelity(
-                Statevector(evolution_result),
+                Statevector(evolved_state),
                 Statevector(
                     ansatz.assign_parameters(dict(zip(ansatz.parameters, thetas_expected)))
                 ),

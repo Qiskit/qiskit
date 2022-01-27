@@ -77,6 +77,8 @@ class TestVarQite(QiskitAlgorithmsTestCase):
             hamiltonian_value_dict=param_dict,
         )
 
+        evolved_state = evolution_result.evolved_object
+
         # values from the prototype
         thetas_expected = [
             0.905901128153194,
@@ -90,13 +92,13 @@ class TestVarQite(QiskitAlgorithmsTestCase):
         ]
         print(
             state_fidelity(
-                Statevector(evolution_result),
+                Statevector(evolved_state),
                 Statevector(
                     ansatz.assign_parameters(dict(zip(ansatz.parameters, thetas_expected)))
                 ),
             )
         )
-        parameter_values = evolution_result.data[0][0].params
+        parameter_values = evolved_state.data[0][0].params
 
         for i, parameter_value in enumerate(parameter_values):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=3)
@@ -141,6 +143,8 @@ class TestVarQite(QiskitAlgorithmsTestCase):
             hamiltonian_value_dict=param_dict,
         )
 
+        evolved_state = evolution_result.evolved_object
+
         # values from the prototype
         thetas_expected = [
             0.828917365718767,
@@ -154,13 +158,13 @@ class TestVarQite(QiskitAlgorithmsTestCase):
         ]
         print(
             state_fidelity(
-                Statevector(evolution_result),
+                Statevector(evolved_state),
                 Statevector(
                     ansatz.assign_parameters(dict(zip(ansatz.parameters, thetas_expected)))
                 ),
             )
         )
-        parameter_values = evolution_result.data[0][0].params
+        parameter_values = evolved_state.data[0][0].params
 
         for i, parameter_value in enumerate(parameter_values):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=2)
@@ -205,6 +209,8 @@ class TestVarQite(QiskitAlgorithmsTestCase):
             hamiltonian_value_dict=param_dict,
         )
 
+        evolved_state = evolution_result.evolved_object
+
         # values from the prototype
         thetas_expected = [
             1.29495364023786,
@@ -222,13 +228,13 @@ class TestVarQite(QiskitAlgorithmsTestCase):
         ]
         print(
             state_fidelity(
-                Statevector(evolution_result),
+                Statevector(evolved_state),
                 Statevector(
                     ansatz.assign_parameters(dict(zip(ansatz.parameters, thetas_expected)))
                 ),
             )
         )
-        parameter_values = evolution_result.data[0][0].params
+        parameter_values = evolved_state.data[0][0].params
 
         for i, parameter_value in enumerate(parameter_values):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=4)
