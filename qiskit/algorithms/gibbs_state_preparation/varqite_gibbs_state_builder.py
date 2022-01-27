@@ -30,32 +30,18 @@ class VarQiteGibbsStateBuilder(GibbsStateBuilder):
     def __init__(
         self,
         qite_algorithm,
-        ansatz: OperatorBase,
-        ansatz_init_params_dict: Dict[Parameter, Union[complex, float]],
     ):
         """
         Args:
             qite_algorithm: Variational Quantum Imaginary Time Evolution algorithm to be used for
                             Gibbs State preparation.
-            ansatz: Initial ansatz for the qite_algorithm. Together with ansatz_init_params_dict,
-                    it should result in n Maximally Entangled States, where n is half the number of
-                    qubits in an ansatz.
-            ansatz_init_params_dict: Dictionary that maps parameters from ansatz to their initial
-                                     values. When bound to an ansatz, it should result in n
-                                     Maximally Entangled States, where n is half the number of
-                                     qubits in an ansatz.
         Raises:
             ValueError: if an ansatz is defined on an odd number of qubits.
 
         """
         self._qite_algorithm = qite_algorithm
-        if ansatz.num_qubits % 2 != 0:
-            raise ValueError(
-                f"VarQiteGibbsStateBuilder requires an ansatz on an even number of qubits. "
-                f"{ansatz.num_qubits} qubits provided."
-            )  # TODO might be specific to VarQite?
-        self._ansatz = ansatz
-        self._ansatz_init_params_dict = ansatz_init_params_dict
+        self._ansatz = None
+        self._ansatz_init_params_dict = None
 
     def _evaluate_initial_ansatz(self) -> Statevector:
         """Binds initial parameters values to an ansatz and returns the result as a state vector."""
@@ -91,7 +77,7 @@ class VarQiteGibbsStateBuilder(GibbsStateBuilder):
             initial_state=self._ansatz,
             hamiltonian_value_dict=param_dict,
         )
-        # TODO trace out
+
         return GibbsState(
             gibbs_state_function=gibbs_state_function,
             hamiltonian=problem_hamiltonian,
