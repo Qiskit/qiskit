@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds an argument ``parameter_prefix`` to the constructor of ZFeatureMap and
+    ZZFeatureMap classes, to set the prefix of parameters of data encoding 
+    circuit. Fixes #7565. This option gets propagated to parent class 
+    PauliFeatureMap. By default, ``parameter_prefix`` is "x".
