@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2021.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -148,7 +148,7 @@ class QuantumInstance:
         # run config
         shots: Optional[int] = None,
         seed_simulator: Optional[int] = None,
-        max_credits: int = 10,
+        max_credits: int = None,
         # backend properties
         basis_gates: Optional[List[str]] = None,
         coupling_map=None,
@@ -183,7 +183,9 @@ class QuantumInstance:
             shots: Number of repetitions of each circuit, for sampling. If None, the shots are
                 extracted from the backend. If the backend has none set, the default is 1024.
             seed_simulator: Random seed for simulators
-            max_credits: Maximum credits to use
+            max_credits: DEPRECATED This parameter is deprecated as of
+                Qiskit Terra 0.20.0, and will be removed in a future release. This parameter has
+                no effect on modern IBM Quantum systems, and no alternative is necessary.
             basis_gates: List of basis gate names supported by the
                 target. Defaults to basis gates of the backend.
             coupling_map (Optional[Union['CouplingMap', List[List]]]):
@@ -261,6 +263,15 @@ class QuantumInstance:
 
         # pylint: disable=cyclic-import
         from qiskit.assembler.run_config import RunConfig
+
+        if max_credits is not None:
+            warnings.warn(
+                "The `max_credits` parameter is deprecated as of Qiskit Terra 0.20.0, "
+                "and will be removed in a future release. This parameter has no effect on "
+                "modern IBM Quantum systems, and no alternative is necessary.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         run_config = RunConfig(shots=shots, max_credits=max_credits)
         if seed_simulator is not None:
@@ -480,8 +491,18 @@ class QuantumInstance:
             build_measurement_error_mitigation_qobj,
         )
 
-        # maybe compile
-        if not had_transpiled:
+        if had_transpiled:
+            # Convert to a list or make a copy.
+            # The measurement mitigation logic expects a list and
+            # may change it in place. This makes sure that logic works
+            # and any future logic that may change the input.
+            # It also makes the code easier: it will always deal with a list.
+            if isinstance(circuits, list):
+                circuits = circuits.copy()
+            else:
+                circuits = [circuits]
+        else:
+            # transpile here, the method always returns a copied list
             circuits = self.transpile(circuits)
 
         from qiskit.providers import BackendV1

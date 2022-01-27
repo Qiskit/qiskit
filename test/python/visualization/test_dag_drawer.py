@@ -17,6 +17,7 @@ import unittest
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.tools.visualization import dag_drawer
+from qiskit.exceptions import InvalidFileError
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.converters import circuit_to_dag
 
@@ -35,6 +36,18 @@ class TestDagDrawer(QiskitTestCase):
     def test_dag_drawer_invalid_style(self):
         """Test dag draw with invalid style."""
         self.assertRaises(VisualizationError, dag_drawer, self.dag, style="multicolor")
+
+    def test_dag_drawer_checks_filename_correct_format(self):
+        """filename must contain name and extension"""
+        with self.assertRaisesRegex(
+            InvalidFileError, "Parameter 'filename' must be in format 'name.extension'"
+        ):
+            dag_drawer(self.dag, filename="aaabc")
+
+    def test_dag_drawer_checks_filename_extension(self):
+        """filename must have a valid extension"""
+        with self.assertRaisesRegex(InvalidFileError, "Filename extension must be one of: .*"):
+            dag_drawer(self.dag, filename="aa.abc")
 
 
 if __name__ == "__main__":
