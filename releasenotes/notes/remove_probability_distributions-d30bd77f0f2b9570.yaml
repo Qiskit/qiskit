@@ -5,4 +5,4 @@ upgrade:
     (released Apr 1, 2021) via #6080 <https://github.com/Qiskit/qiskit-terra/issues/6080>`__. 
     The affected classes are ``UniformDistribution``,
     ``NormalDistribution``, and ``LogNormalDistribution``. They are all moved to qiskit-finance, into the circuit library module
-    (`qiskit_finance.circuit.library.probability_distributions`).
+    (``qiskit_finance.circuit.library.probability_distributions``).
