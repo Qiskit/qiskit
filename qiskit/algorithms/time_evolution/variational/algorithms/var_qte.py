@@ -120,9 +120,9 @@ class VarQte(EvolutionBase, ABC):
         init_state_param_dict: Dict[Parameter, Union[float, complex]],
         hamiltonian: OperatorBase,
         time: float,
-        initial_state: OperatorBase = None,
-        observable: OperatorBase = None,
-        t_param: Parameter = None,
+        initial_state: Optional[OperatorBase] = None,
+        observable: Optional[OperatorBase] = None,
+        t_param: Optional[Parameter] = None,
     ) -> OperatorBase:
         """
         Helper method for performing time evolution. Works both for imaginary and real case.

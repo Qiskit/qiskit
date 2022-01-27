@@ -13,7 +13,7 @@
 """Base class for quantum time evolution."""
 
 from abc import ABC, abstractmethod
-from typing import Union, List
+from typing import Union, List, Optional, Dict
 
 from qiskit.circuit import Parameter
 from qiskit.opflow import OperatorBase, StateFn, Gradient
@@ -27,10 +27,12 @@ class EvolutionBase(ABC):
         self,
         hamiltonian: OperatorBase,
         time: float,
-        initial_state: StateFn = None,
-        observable: OperatorBase = None,
-        t_param: Parameter = None,
-        hamiltonian_value_dict: [Parameter, Union[float, complex]] = None,  # TODO change name?
+        initial_state: Optional[StateFn] = None,
+        observable: Optional[OperatorBase] = None,
+        t_param: Optional[Parameter] = None,
+        hamiltonian_value_dict: Optional[
+            Dict[Parameter, Union[float, complex]]
+        ] = None,  # TODO change name?
     ):
         """
         Evolves an initial state or an observable according to a Hamiltonian provided.
@@ -55,10 +57,10 @@ class EvolutionBase(ABC):
         time: float,
         initial_state: StateFn,
         gradient_object: Gradient,  # TODO call it converter, default value?
-        observable: OperatorBase = None,
-        t_param: Parameter = None,
-        hamiltonian_value_dict: [Parameter, Union[float, complex]] = None,
-        gradient_params: List[Parameter] = None,
+        observable: Optional[OperatorBase] = None,
+        t_param: Optional[Parameter] = None,
+        hamiltonian_value_dict: Optional[Dict[Parameter, Union[float, complex]]] = None,
+        gradient_params: Optional[List[Parameter]] = None,
     ):
         """Performs Quantum Time Evolution of gradient expressions."""
         raise NotImplementedError()

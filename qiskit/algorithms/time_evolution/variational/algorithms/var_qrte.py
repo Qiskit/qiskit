@@ -12,7 +12,7 @@
 
 """Variational Quantum Real Time Evolution algorithm."""
 
-from typing import Optional, Union, Dict
+from typing import Optional, Union, Dict, List
 
 from scipy.integrate import OdeSolver
 
@@ -95,8 +95,8 @@ class VarQrte(VarQte, Qrte):
         time: float,
         initial_state: Optional[StateFn] = None,
         observable: Optional[OperatorBase] = None,
-        t_param: Parameter = None,
-        hamiltonian_value_dict: Dict[Parameter, Union[float, complex]] = None,
+        t_param: Optional[Parameter] = None,
+        hamiltonian_value_dict: Optional[Dict[Parameter, Union[float, complex]]] = None,
     ) -> EvolutionResult:
 
         """
@@ -175,9 +175,9 @@ class VarQrte(VarQte, Qrte):
         initial_state: StateFn,
         gradient_object: Gradient,
         observable: Optional[OperatorBase] = None,
-        t_param: Parameter = None,
-        hamiltonian_value_dict: Dict[Parameter, Union[float, complex]] = None,
-        gradient_params=None,
+        t_param: Optional[Parameter] = None,
+        hamiltonian_value_dict: Optional[Dict[Parameter, Union[float, complex]]] = None,
+        gradient_params: Optional[List[Parameter]] = None,
     ):
         """Performs Variational Quantum Real Time Evolution of gradient expressions."""
         pass

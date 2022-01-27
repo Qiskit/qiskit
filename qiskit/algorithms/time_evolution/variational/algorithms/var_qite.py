@@ -92,10 +92,10 @@ class VarQite(Qite, VarQte):
         self,
         hamiltonian: OperatorBase,
         time: float,
-        initial_state: OperatorBase = None,
-        observable: OperatorBase = None,
-        t_param: Parameter = None,
-        hamiltonian_value_dict: Dict[Parameter, Union[float, complex]] = None,
+        initial_state: Optional[StateFn] = None,
+        observable: Optional[OperatorBase] = None,
+        t_param: Optional[Parameter] = None,
+        hamiltonian_value_dict: Optional[Dict[Parameter, Union[float, complex]]] = None,
     ) -> EvolutionResult:
         """
         Apply Variational Quantum Imaginary Time Evolution (VarQITE) w.r.t. the given
@@ -173,10 +173,10 @@ class VarQite(Qite, VarQte):
         time: float,
         initial_state: StateFn,
         gradient_object: Gradient,
-        observable: OperatorBase = None,
-        t_param: Parameter = None,
-        hamiltonian_value_dict: Dict[Parameter, Union[float, complex]] = None,
-        gradient_params: List[Parameter] = None,
+        observable: Optional[OperatorBase] = None,
+        t_param: Optional[Parameter] = None,
+        hamiltonian_value_dict: Optional[Dict[Parameter, Union[float, complex]]] = None,
+        gradient_params: Optional[List[Parameter]] = None,
     ):
         """Performs Variational Quantum Imaginary Time Evolution of gradient expressions."""
         raise NotImplementedError()
