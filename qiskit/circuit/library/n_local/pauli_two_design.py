@@ -97,6 +97,7 @@ class PauliTwoDesign(TwoLocal):
         self._prepended_entanglement = ["linear"]
 
     def _invalidate(self):
+        """Invalidate the circuit and reset the random number."""
         self._rng = np.random.default_rng(self._seed)  # reset number generator
         super()._invalidate()
 
