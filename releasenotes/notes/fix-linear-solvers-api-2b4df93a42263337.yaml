@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    The linear solvers package API documentation was incomplete. The subfolders
+    :mod:`qiskit.algorithms.linear_solvers.matrices` and 
+    :mod:`qiskit.algorithms.linear_solvers.observables`, 
+    and all classes therein have now been added.
+    Furthermore, the module-level documentation for linear solvers was
+    generally improved.
