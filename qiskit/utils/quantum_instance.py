@@ -33,7 +33,7 @@ from qiskit.utils.backend_utils import (
     is_basicaer_provider,
     support_backend_options,
     _get_backend_provider,
-    _get_backend_interface_version
+    _get_backend_interface_version,
 )
 from qiskit.utils.mitigation import (
     CompleteMeasFitter,
