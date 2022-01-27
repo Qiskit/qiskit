@@ -85,7 +85,7 @@ class UnitaryGate(Gate):
             # Check input is unitary
             if not is_unitary_matrix(data):
                 raise ExtensionError("Input matrix is not unitary.")
-        except ParameterTypeError as ex:
+        except ParameterTypeError:
             print("Type of unbound Parameter cannot be determined to ensure unitarity.")
             pass
 
