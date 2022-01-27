@@ -33,6 +33,7 @@ from qiskit.utils.backend_utils import (
     is_basicaer_provider,
     support_backend_options,
     _get_backend_provider,
+    _get_backend_interface_version
 )
 from qiskit.utils.mitigation import (
     CompleteMeasFitter,
@@ -240,9 +241,7 @@ class QuantumInstance:
             QiskitError: set backend_options but the backend does not support that
         """
         self._backend = backend
-        self._backend_interface_version = getattr(self._backend, "version", None)
-        if not isinstance(self._backend_interface_version, int):
-            self._backend_interface_version = 0
+        self._backend_interface_version = _get_backend_interface_version(self._backend)
         self._pass_manager = pass_manager
         self._bound_pass_manager = bound_pass_manager
 
