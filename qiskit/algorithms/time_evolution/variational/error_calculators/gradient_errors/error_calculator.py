@@ -110,7 +110,7 @@ class ErrorCalculator(ABC):
             )
         value = np.real(value)
 
-        value = np.where((value < 0.0) & (value > -allowed_num_instability_error), 0.0, value)
+        value = np.where((value < 0.0) & (value > -self._allowed_num_instability_error), 0.0, value)
         if value.any() < 0:
             raise ValueError(
                 "Propagation failed - value provided is negative and larger in absolute value "
