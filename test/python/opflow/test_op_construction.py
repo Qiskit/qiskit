@@ -896,6 +896,11 @@ class TestOpConstruction(QiskitOpflowTestCase):
             expected.x(0)
             self.assertEqual(pauli.to_circuit().decompose(), expected)
 
+        with self.subTest("Pauli identity"):
+            pauli = PauliOp(Pauli("I"))
+            expected = QuantumCircuit(1)
+            self.assertEqual(pauli.to_circuit(), expected)
+
         with self.subTest("two qubit with phase"):
             pauli = PauliOp(Pauli("iXZ"))
             expected = QuantumCircuit(2)
