@@ -1,9 +1,9 @@
 ---
 features:
   - |
-    The Parameter class is now allowed in the template optimization
-    transpiler pass. An illustrative example of using Parameters is 
-    the following:
+    The :class:`.ParameterExpression` class is now allowed in the 
+    template optimization transpiler pass. An illustrative example 
+    of using :class:`.Parameter`\s is the following:
 
     .. code-block:: 
 
@@ -73,5 +73,6 @@ features:
       Duration of standard with two CNOT gates:
       6848
       
-    Note that the Parameters/ParameterExpressions must be bound before the 
-    RZXCalibrationBuilder can define calibrations for the RZXGates.
+    Note that the :class:`.Parameter`\s/:class:`.ParameterExpression`\s 
+    must be bound before the :class:`.RZXCalibrationBuilder` can define 
+    calibrations for the :class:`.RZXGate`\ s.

@@ -65,6 +65,7 @@ class UnitaryGate(Gate):
 
         Raises:
             ExtensionError: if input data is not an N-qubit unitary operator.
+            ParameterTypeError: if parameter is unbound so that type cannot be determined.
         """
         if hasattr(data, "to_matrix"):
             # If input is Gate subclass or some other class object that has
@@ -85,17 +86,8 @@ class UnitaryGate(Gate):
             if not is_unitary_matrix(data):
                 raise ExtensionError("Input matrix is not unitary.")
         except ParameterTypeError as ex:
-            # Bind to test value and convert to numpy array in case not already an array
-            for ii in range(numpy.shape(data)[0]):
-                for jj in range(numpy.shape(data)[1]):
-                    if isinstance(data[ii][jj], ParameterExpression):
-                        for param in data[ii][jj].parameters:
-                            data[ii][jj] = data[ii][jj].bind({param: float(0.42)})
-            data = numpy.array(data, dtype=complex)
-
-            # Check input is unitary
-            if not is_unitary_matrix(data):
-                raise ExtensionError("Input matrix is not unitary.") from ex
+            print("Type of unbound Parameter cannot be determined to ensure unitarity.")
+            pass
 
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
