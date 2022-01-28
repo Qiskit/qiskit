@@ -9,9 +9,10 @@ fixes:
   - |
     Fixed QPY serialization of :class:`.QuantumCircuit` containing subsets of
     bits from a :class:`.QuantumRegister` or :class:`.ClassicalRegister`.
-    Previously if you tried to serialize
-
-    For example, if you try to serialize a circuit like::
+    Previously if you tried to serialize a circuit like this it would
+    incorrectly treat these bits as standalone :class:`.Qubit` or
+    :class:`.Clbit` without having a register set. For example, if you try to
+    serialize a circuit like::
 
         import io
         from qiskit import QuantumCircuit, QuantumRegister
