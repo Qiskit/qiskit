@@ -383,14 +383,15 @@ as:
 
 Immediately following the REGISTER struct is the utf8 encoded register name of
 size ``name_size``. After the ``name`` utf8 bytes there is then an array of
-uint32_t values of size ``size`` that contains a map of the register's index to
+int64_t values of size ``size`` that contains a map of the register's index to
 the circuit's qubit index. For example, array element 0's value is the index
 of the ``register[0]``'s position in the containing circuit's qubits list.
 
 .. note::
 
-    Starting in QPY Version 4 the type of array elements has changed to int64_t
-    and a negative value represents a bit in the array not present in the circuit
+    Prior to QPY Version 4 the type of array elements was uint32_t. This was changed
+    to enable negative values which represent bits in the array not present in the
+    circuit
 
 The standalone boolean determines whether the register is constructed as a
 standalone register that was added to the circuit or was created from existing
