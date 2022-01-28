@@ -1573,6 +1573,8 @@ def _write_circuit(file_obj, circuit):
 
     qubit_indices = {bit: index for index, bit in enumerate(circuit.qubits)}
     clbit_indices = {bit: index for index, bit in enumerate(circuit.clbits)}
+    processed_qubit_indices = set()
+    processed_clbit_indices = set()
 
     def process_qregs(buf, qregs, in_circuit=True):
         for reg in qregs:
@@ -1583,8 +1585,16 @@ def _write_circuit(file_obj, circuit):
             )
             buf.write(reg_name)
             REGISTER_ARRAY_PACK = "!%sq" % reg.size
+            bit_indices = []
+            for bit in reg:
+                bit_index = qubit_indices.get(bit, -1)
+                if bit_index in processed_qubit_indices:
+                    bit_index = -1
+                if bit_index >= 0:
+                    processed_qubit_indices.add(bit_index)
+                bit_indices.append(bit_index)
             buf.write(
-                struct.pack(REGISTER_ARRAY_PACK, *(qubit_indices.get(bit, -1) for bit in reg))
+                struct.pack(REGISTER_ARRAY_PACK, *bit_indices)
             )
 
     def process_cregs(buf, cregs, in_circuit=True):
@@ -1596,8 +1606,18 @@ def _write_circuit(file_obj, circuit):
             )
             buf.write(reg_name)
             REGISTER_ARRAY_PACK = "!%sq" % reg.size
+            bit_indices = []
+            for bit in reg:
+                bit_index = clbit_indices.get(bit, -1)
+                # If index already in circuit treat it as non-existent (since it indicates dual
+                # register membership and the bit is already being reconstructed
+                if bit_index in processed_clbit_indices:
+                    bit_index = -1
+                if bit_index >= 0:
+                    processed_clbit_indices.add(bit_index)
+                bit_indices.append(bit_index)
             buf.write(
-                struct.pack(REGISTER_ARRAY_PACK, *(clbit_indices.get(bit, -1) for bit in reg))
+                struct.pack(REGISTER_ARRAY_PACK, *bit_indices)
             )
 
     with io.BytesIO() as reg_buf:
@@ -1751,6 +1771,9 @@ def _read_circuit(file_obj, version):
             for register_name in registers[bit_type_label]:
                 standalone, indices, in_circuit = registers[bit_type_label][register_name]
                 indices_defined = [x for x in indices if x >= 0]
+                # If a register has no bits in the circuit skip it
+                if not indices_defined:
+                    continue
                 if standalone:
                     start = min(indices_defined)
                     count = start
@@ -1778,7 +1801,7 @@ def _read_circuit(file_obj, version):
                     reg = reg_type(num_reg_bits, register_name)
                     # If any bits from qreg are out of order in the circuit handle
                     # is case
-                    if out_of_order:
+                    if out_of_order or not in_circuit:
                         for index, pos in sorted(
                             enumerate(x for x in indices if x >= 0), key=lambda x: x[1]
                         ):
@@ -1811,7 +1834,8 @@ def _read_circuit(file_obj, version):
                         if start > len(circ.qubits):
                             bits = [bit_type() for _ in range(start - bit_len)]
                             circ.add_bits(bit_len)
-                        circ.add_register(reg)
+                        if in_circuit:
+                            circ.add_register(reg)
                         out_registers[bit_type_label][register_name] = reg
                 else:
                     for index in indices:

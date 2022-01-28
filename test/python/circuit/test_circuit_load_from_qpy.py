@@ -813,10 +813,9 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_qpy_with_while_loop(self):
         """Test qpy serialization with a for loop."""
-        bits = [Qubit(), Qubit(), Clbit()]
-        qc = QuantumCircuit(bits)
+        qc = QuantumCircuit(2, 1)
 
-        with qc.while_loop((bits[2], 0)):
+        with qc.while_loop((qc.clbits[0], 0)):
             qc.h(0)
             qc.cx(0, 1)
             qc.measure(0, 0)
@@ -824,8 +823,6 @@ class TestLoadFromQPY(QiskitTestCase):
         dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circuit = load(qpy_file)[0]
-        print(qc)
-        print(new_circuit)
         self.assertEqual(qc, new_circuit)
 
     def test_qpy_with_for_loop(self):
@@ -841,8 +838,6 @@ class TestLoadFromQPY(QiskitTestCase):
         dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circuit = load(qpy_file)[0]
-        print(qc)
-        print(new_circuit)
         self.assertEqual(qc, new_circuit)
 
     def test_standalone_register_partial_bit_in_circuit(self):
