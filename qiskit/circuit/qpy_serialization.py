@@ -109,11 +109,11 @@ Version 4 is identical to :ref:`qpy_version_3` except that it adds 2 new type st
 to the INSTRUCTION_PARAM struct, ``z`` to represent ``None`` (which is encoded as
 no data), ``q`` to represent a :class:`.QuantumCircuit` (which is encoded as
 a QPY circuit), ``r`` to represent a ``range`` of integers (which is encoded as
-a :ref:`qpy_range_pack`), and ``t`` to represent a ``tuple`` of integers (which is
-encoded as npy file containing a 1-d numpy array of integers). Additionally, version
-4 changes the type of register index mapping array from ``uint32_t`` to ``int64_t``.
-If the values of any of the array elements are negative they represent a register
-bit that is not present in the circuit.
+a :ref:`qpy_range_pack`), and ``t`` to represent a ``tuple`` (which is encoded as
+defined by :ref:`qpy_tuple`). Additionally, version 4 changes the type of register
+index mapping array from ``uint32_t`` to ``int64_t``. If the values of any of the
+array elements are negative they represent a register bit that is not present in the
+circuit.
 
 The :ref:`qpy_registers` header format has also been updated to
 
@@ -137,13 +137,32 @@ RANGE
 
 A RANGE is a representation of a ``range`` object. It is defined as:
 
-.. code-block::
+.. code-block:: c
 
     struct {
         int64_t start;
         int64_t stop;
         int64_t step;
     }
+
+.. _qpy_tuple:
+
+TUPLE
+-----
+
+A TUPLE is a reprentation of a ``tuple`` object. As tuples are just fixed length
+containers of arbitrary python objects
+
+A tuple instruction parameter starts with a header defined as:
+
+.. code-block:: c
+
+    struct {
+        uint64_t size;
+    }
+
+followed by ``size`` elements that are INSTRUCTION_PARAM payloads. Where each of
+these define an element in the tuple.
 
 .. _qpy_version_3:
 
@@ -768,6 +787,10 @@ SPARSE_PAULI_OP_LIST_ELEM_SIZE = struct.calcsize(SPARSE_PAULI_OP_LIST_ELEM_PACK)
 RANGE = namedtuple("RANGE", ["start", "stop", "step"])
 RANGE_PACK = "!qqq"
 RANGE_PACK_SIZE = struct.calcsize(RANGE_PACK)
+# Tuple
+TUPLE = namedtuple("TUPLE", ["num_elements"])
+TUPLE_PACK = "!Q"
+TUPLE_PACK_SIZE = struct.calcsize(TUPLE_PACK)
 
 
 def _read_header_v2(file_obj, version, vectors):
@@ -955,6 +978,53 @@ def _read_parameter_expression(file_obj):
     return ParameterExpression(symbol_map, expr)
 
 
+def _read_instruction_param(file_obj, version, vectors):
+    param_raw = file_obj.read(INSTRUCTION_PARAM_SIZE)
+    type_str, data_size = struct.unpack(INSTRUCTION_PARAM_PACK, param_raw)
+    data = file_obj.read(data_size)
+    type_str = type_str.decode("utf8")
+    param = None
+    if type_str == "i":
+        param = struct.unpack("<q", data)[0]
+    elif type_str == "f":
+        param = struct.unpack("<d", data)[0]
+    elif type_str == "c":
+        param = complex(*struct.unpack(COMPLEX_PACK, data))
+    elif type_str == "n":
+        container = io.BytesIO(data)
+        param = np.load(container)
+    elif type_str == "s":
+        param = data.decode("utf8")
+    elif type_str == "p":
+        container = io.BytesIO(data)
+        param = _read_parameter(container)
+    elif type_str == "e":
+        container = io.BytesIO(data)
+        if version < 3:
+            param = _read_parameter_expression(container)
+        else:
+            param = _read_parameter_expression_v3(container, vectors)
+    elif type_str == "v":
+        container = io.BytesIO(data)
+        param = _read_parameter_vec(container, vectors)
+    elif type_str == "z":
+        param = None
+    elif type_str == "q":
+        with io.BytesIO(data) as container:
+            param = _read_circuit(container, version)
+    elif type_str == "r":
+        param = range(*struct.unpack(RANGE_PACK, data))
+    elif type_str == "t":
+        with io.BytesIO(data) as container:
+            num_elements = struct.unpack(TUPLE_PACK, container.read(TUPLE_PACK_SIZE))[0]
+            param = tuple(
+                _read_instruction_param(container, version, vectors) for _ in range(num_elements)
+            )
+    else:
+        raise TypeError("Invalid parameter type: %s" % type_str)
+    return param
+
+
 def _read_instruction(file_obj, circuit, registers, custom_instructions, version, vectors):
     instruction_raw = file_obj.read(INSTRUCTION_SIZE)
     instruction = struct.unpack(INSTRUCTION_PACK, instruction_raw)
@@ -1006,46 +1076,7 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions, version
         cargs.append(clbit_indices[carg[1]])
     # Load Parameters
     for _param in range(num_params):
-        param_raw = file_obj.read(INSTRUCTION_PARAM_SIZE)
-        param = struct.unpack(INSTRUCTION_PARAM_PACK, param_raw)
-        data = file_obj.read(param[1])
-        type_str = param[0].decode("utf8")
-        param = None
-        if type_str == "i":
-            param = struct.unpack("<q", data)[0]
-        elif type_str == "f":
-            param = struct.unpack("<d", data)[0]
-        elif type_str == "c":
-            param = complex(*struct.unpack(COMPLEX_PACK, data))
-        elif type_str == "n":
-            container = io.BytesIO(data)
-            param = np.load(container)
-        elif type_str == "s":
-            param = data.decode("utf8")
-        elif type_str == "p":
-            container = io.BytesIO(data)
-            param = _read_parameter(container)
-        elif type_str == "e":
-            container = io.BytesIO(data)
-            if version < 3:
-                param = _read_parameter_expression(container)
-            else:
-                param = _read_parameter_expression_v3(container, vectors)
-        elif type_str == "v":
-            container = io.BytesIO(data)
-            param = _read_parameter_vec(container, vectors)
-        elif type_str == "z":
-            param = None
-        elif type_str == "q":
-            with io.BytesIO(data) as container:
-                param = _read_circuit(container, version)
-        elif type_str == "r":
-            param = range(*struct.unpack(RANGE_PACK, data))
-        elif type_str == "t":
-            container = io.BytesIO(data)
-            param = tuple(np.load(container))
-        else:
-            raise TypeError("Invalid parameter type: %s" % type_str)
+        param = _read_instruction_param(file_obj, version, vectors)
         params.append(param)
     # Load Gate object
     gate_class = None
@@ -1212,6 +1243,77 @@ def _write_parameter_expression(file_obj, param):
         file_obj.write(data)
 
 
+def _write_instruction_parameter(file_obj, param):
+    container = io.BytesIO()
+    if isinstance(param, int):
+        type_key = "i"
+        data = struct.pack("<q", param)
+        size = struct.calcsize("<q")
+    elif isinstance(param, float):
+        type_key = "f"
+        data = struct.pack("<d", param)
+        size = struct.calcsize("<d")
+    elif isinstance(param, str):
+        type_key = "s"
+        data = param.encode("utf8")
+        size = len(data)
+    elif isinstance(param, ParameterVectorElement):
+        type_key = "v"
+        _write_parameter_vec(container, param)
+        container.seek(0)
+        data = container.read()
+        size = len(data)
+    elif isinstance(param, Parameter):
+        type_key = "p"
+        _write_parameter(container, param)
+        container.seek(0)
+        data = container.read()
+        size = len(data)
+    elif isinstance(param, ParameterExpression):
+        type_key = "e"
+        _write_parameter_expression(container, param)
+        container.seek(0)
+        data = container.read()
+        size = len(data)
+    elif isinstance(param, complex):
+        type_key = "c"
+        data = struct.pack(COMPLEX_PACK, param.real, param.imag)
+        size = struct.calcsize(COMPLEX_PACK)
+    elif isinstance(param, (np.integer, np.floating, np.ndarray, np.complexfloating)):
+        type_key = "n"
+        np.save(container, param)
+        container.seek(0)
+        data = container.read()
+        size = len(data)
+    elif param is None:
+        type_key = "z"
+        data = b""
+        size = len(data)
+    elif isinstance(param, QuantumCircuit):
+        type_key = "q"
+        _write_circuit(container, param)
+        data = container.getvalue()
+        size = len(data)
+    elif isinstance(param, range):
+        type_key = "r"
+        data = struct.pack(RANGE_PACK, param.start, param.stop, param.step)
+        size = len(data)
+    elif isinstance(param, tuple):
+        type_key = "t"
+        num_elements = len(param)
+        container.write(struct.pack(TUPLE_PACK, num_elements))
+        for item in param:
+            _write_instruction_parameter(container, item)
+        data = container.getvalue()
+        size = len(data)
+    else:
+        raise TypeError(f"Invalid parameter type {type(param)}")
+    instruction_param_raw = struct.pack(INSTRUCTION_PARAM_PACK, type_key.encode("utf8"), size)
+    file_obj.write(instruction_param_raw)
+    file_obj.write(data)
+    container.close()
+
+
 def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_map):
     gate_class_name = instruction_tuple[0].__class__.__name__
     if (
@@ -1277,81 +1379,7 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
         file_obj.write(instruction_arg_raw)
     # Encode instruction params
     for param in instruction_tuple[0].params:
-        container = io.BytesIO()
-        if isinstance(param, int):
-            type_key = "i"
-            data = struct.pack("<q", param)
-            size = struct.calcsize("<q")
-        elif isinstance(param, float):
-            type_key = "f"
-            data = struct.pack("<d", param)
-            size = struct.calcsize("<d")
-        elif isinstance(param, str):
-            type_key = "s"
-            data = param.encode("utf8")
-            size = len(data)
-        elif isinstance(param, ParameterVectorElement):
-            type_key = "v"
-            _write_parameter_vec(container, param)
-            container.seek(0)
-            data = container.read()
-            size = len(data)
-        elif isinstance(param, Parameter):
-            type_key = "p"
-            _write_parameter(container, param)
-            container.seek(0)
-            data = container.read()
-            size = len(data)
-        elif isinstance(param, ParameterExpression):
-            type_key = "e"
-            _write_parameter_expression(container, param)
-            container.seek(0)
-            data = container.read()
-            size = len(data)
-        elif isinstance(param, complex):
-            type_key = "c"
-            data = struct.pack(COMPLEX_PACK, param.real, param.imag)
-            size = struct.calcsize(COMPLEX_PACK)
-        elif isinstance(param, (np.integer, np.floating, np.ndarray, np.complexfloating)):
-            type_key = "n"
-            np.save(container, param)
-            container.seek(0)
-            data = container.read()
-            size = len(data)
-        elif param is None:
-            type_key = "z"
-            data = b""
-            size = len(data)
-        elif isinstance(param, QuantumCircuit):
-            type_key = "q"
-            _write_circuit(container, param)
-            data = container.getvalue()
-            size = len(data)
-        elif isinstance(param, range):
-            type_key = "r"
-            data = struct.pack(RANGE_PACK, param.start, param.stop, param.step)
-            size = len(data)
-        # Tuples are arbitrary containers of python objects and can have anything
-        # as a value, qpy doesn't support this as a type currently. But in the
-        # ForLoopOp the indexset parameter is a tuple of only integers
-        # as the consumed integer iterator to use as loop iteration values.
-        # Serialize this as a numpy array of integers and use a unique type
-        # code to indicate the array needs to be case to a tuple on
-        # deserialization
-        elif gate_class_name == b"ForLoopOp" and isinstance(param, tuple):
-            type_key = "t"
-            output_array = np.array(param, dtype=int)
-            np.save(container, output_array)
-            data = container.getvalue()
-            size = len(data)
-        else:
-            raise TypeError(
-                f"Invalid parameter type {instruction_tuple[0]} for gate {type(param)},"
-            )
-        instruction_param_raw = struct.pack(INSTRUCTION_PARAM_PACK, type_key.encode("utf8"), size)
-        file_obj.write(instruction_param_raw)
-        file_obj.write(data)
-        container.close()
+        _write_instruction_parameter(file_obj, param)
 
 
 def _write_pauli_evolution_gate(file_obj, evolution_gate):
