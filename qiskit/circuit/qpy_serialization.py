@@ -105,7 +105,7 @@ circuits in the data.
 Version 4
 =========
 
-Version 4 is identical to :ref:`version 3` except that it adds 2 new type strings
+Version 4 is identical to :ref:`version_3` except that it adds 2 new type strings
 to the INSTRUCTION_PARAM struct, ``z`` to represent ``None`` (which is encoded as
 no data), ``q`` to represent a :class:`.QuantumCircuit` (which is encoded as
 a QPY circuit), ``r`` to represent a ``range`` of integers (which is encoded as
