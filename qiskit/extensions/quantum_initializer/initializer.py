@@ -60,7 +60,8 @@ class Initialize(Instruction, Operation):
             and params is 3. This allows qubits 0 and 1 to be initialized to `|1>` and the
             remaining 3 qubits to be initialized to `|0>`.
         normalize (Bool): Function to normalize a params array of real or complex weights.
-            Example list: [1,2,3,4]. Example ndarray: np.array([1+4.j, 3-0.j]).
+                Example list: [1,2,3,4]. Example ndarray: np.array([1+4.j, 3-0.j]).
+            * Bool: Pass True to normalize vector.
         """
         # pylint: disable=cyclic-import
         from qiskit.quantum_info import Statevector
@@ -91,7 +92,7 @@ class Initialize(Instruction, Operation):
             if num_qubits == 0 or not num_qubits.is_integer():
                 raise QiskitError("Desired statevector length not a positive power of 2.")
 
-            # Check if normalize=True then normalizes input array
+                # Check if normalize=True then normalizes input array
             if normalize is True:
                 params = self._normalize(params)
 
@@ -400,7 +401,9 @@ def initialize(self, params, qubits=None, normalize=False):
         qubits (QuantumRegister or int):
             * QuantumRegister: A list of qubits to be initialized [Default: None].
             * int: Index of qubit to initialized [Default: None].
-
+        normalize (Bool): Function to normalize a params array of real or complex weights.
+                Example list: [1,2,3,4]. Example ndarray: np.array([1+4.j, 3-0.j]).
+            * Bool: Pass True to normalize vector.
     Returns:
         qiskit.circuit.Instruction: a handle to the instruction that was just initialized
 
