@@ -35,7 +35,7 @@ class TestQAOAAnsatz(QiskitTestCase):
         circuit = circuit.decompose()
         self.assertEqual(1, len(parameters))
         self.assertIsInstance(circuit.data[0][0], HGate)
-        self.assertIsInstance(circuit.data[1][0], RXGate)
+        self.assertIsInstance(circuit.decompose().data[1][0], RXGate)
 
     def test_custom_initial_state(self):
         """Test circuit with a custom initial state."""
@@ -47,7 +47,7 @@ class TestQAOAAnsatz(QiskitTestCase):
         circuit = circuit.decompose()
         self.assertEqual(1, len(parameters))
         self.assertIsInstance(circuit.data[0][0], YGate)
-        self.assertIsInstance(circuit.data[1][0], RXGate)
+        self.assertIsInstance(circuit.decompose().data[1][0], RXGate)
 
     def test_invalid_reps(self):
         """Test negative reps."""

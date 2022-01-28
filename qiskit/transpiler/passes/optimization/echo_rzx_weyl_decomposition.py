@@ -14,7 +14,7 @@
 
 from typing import Tuple
 
-from qiskit import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.library.standard_gates import RZXGate, HGate, XGate
 
 from qiskit.transpiler.basepasses import TransformationPass
@@ -23,9 +23,6 @@ from qiskit.transpiler.layout import Layout
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag
-
-import qiskit.quantum_info as qi
-from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitControlledUDecomposer
 
 
 class EchoRZXWeylDecomposition(TransformationPass):
@@ -36,8 +33,13 @@ class EchoRZXWeylDecomposition(TransformationPass):
     Each pair of RZXGates forms an echoed RZXGate.
     """
 
-    def __init__(self, instruction_schedule_map: "InstructionScheduleMap"):
-        """EchoRZXWeylDecomposition pass."""
+    def __init__(self, instruction_schedule_map):
+        """EchoRZXWeylDecomposition pass.
+
+        Args:
+            instruction_schedule_map (InstructionScheduleMap): the mapping from circuit
+                :class:`~.circuit.Instruction` names and arguments to :class:`.Schedule`\\ s.
+        """
         super().__init__()
         self._inst_map = instruction_schedule_map
 
@@ -90,6 +92,10 @@ class EchoRZXWeylDecomposition(TransformationPass):
             TranspilerError: If the circuit cannot be rewritten.
         """
 
+        # pylint: disable=cyclic-import
+        from qiskit.quantum_info import Operator
+        from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitControlledUDecomposer
+
         if len(dag.qregs) > 1:
             raise TranspilerError(
                 "EchoRZXWeylDecomposition expects a single qreg input DAG,"
@@ -102,7 +108,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
 
         for node in dag.two_qubit_ops():
 
-            unitary = qi.Operator(node.op).data
+            unitary = Operator(node.op).data
             dag_weyl = circuit_to_dag(decomposer(unitary))
             dag.substitute_node_with_dag(node, dag_weyl)
 

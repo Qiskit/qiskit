@@ -29,7 +29,7 @@ class QDrift(ProductFormula):
 
     References:
         [1]: E. Campbell, "A random compiler for fast Hamiltonian simulation" (2018).
-         `arXiv:quant-ph/1811.08017 <https://arxiv.org/abs/1811.08017>`_
+        `arXiv:quant-ph/1811.08017 <https://arxiv.org/abs/1811.08017>`_
     """
 
     def __init__(

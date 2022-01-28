@@ -24,13 +24,9 @@ import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import RXXGate, RZXGate
 from qiskit.exceptions import QiskitError
-from qiskit.extensions import UnitaryGate
-from qiskit.quantum_info.operators import Operator, average_gate_fidelity
+from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis.one_qubit_decompose import ONE_QUBIT_EULER_BASIS_GATES
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylDecomposition
-from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
-    Optimize1qGatesDecomposition,
-)
 
 from .circuits import apply_reflection, apply_shift, canonical_xx_circuit
 from .utilities import EPSILON
@@ -72,8 +68,9 @@ class XXDecomposer:
             applications of XX(pi/2), in which case standard synthesis methods provide lower
             1Q gate count.
 
-    NOTE: If embodiments is not passed, or if an entry is missing, it will be populated as needed
-        using the method _default_embodiment.
+    .. note::
+        If ``embodiments`` is not passed, or if an entry is missing, it will be populated as needed
+        using the method ``_default_embodiment``.
     """
 
     def __init__(
@@ -82,6 +79,10 @@ class XXDecomposer:
         embodiments: Optional[dict] = None,
         backup_optimizer: Optional[Callable] = None,
     ):
+        from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
+            Optimize1qGatesDecomposition,  # pylint: disable=cyclic-import
+        )
+
         self._decomposer1q = Optimize1qGatesDecomposition(ONE_QUBIT_EULER_BASIS_GATES[euler_basis])
         self.gate = RZXGate(np.pi / 2)
         self.embodiments = embodiments if embodiments is not None else {}
@@ -110,6 +111,8 @@ class XXDecomposer:
         Checks that `self.embodiments` is populated with legal circuit embodiments: the key-value
         pair (angle, circuit) satisfies Operator(circuit) approx RXX(angle).to_matrix().
         """
+        # pylint: disable=cyclic-import
+        from qiskit.quantum_info.operators.measures import average_gate_fidelity
 
         for angle, embodiment in self.embodiments.items():
             actual = Operator(RXXGate(angle))
@@ -220,6 +223,7 @@ class XXDecomposer:
         strength_to_infidelity = self._strength_to_infidelity(
             basis_fidelity, approximate=approximate
         )
+        from qiskit.extensions import UnitaryGate  # pylint: disable=cyclic-import
 
         # get the associated _positive_ canonical coordinate
         weyl_decomposition = TwoQubitWeylDecomposition(unitary)

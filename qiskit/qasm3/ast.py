@@ -559,12 +559,12 @@ class ForLoopStatement(Statement):
 
     def __init__(
         self,
-        parameter: Identifier,
         indexset: Union[Identifier, IndexSet, Range],
+        parameter: Identifier,
         body: ProgramBlock,
     ):
-        self.parameter = parameter
         self.indexset = indexset
+        self.parameter = parameter
         self.body = body
 
 

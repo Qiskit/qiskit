@@ -1,9 +1,0 @@
----
-features:
-  - |
-    The ``EigenSolver`` and ``MinimumEigenSolver`` interfaces now support the type
-    ``Dict[str, Optional[OperatorBase]]`` for the ``aux_operators`` parameter in the respective
-    ``compute_eigenvalues`` and ``compute_minimum_eigenvalue`` methods.
-    In this case, the auxiliary eigenvalues are also stored in a dictionary under the same keys
-    provided by the `aux_operators` dictionary. Keys that correspond to an operator that does not commute
-    with the main operator are dropped.

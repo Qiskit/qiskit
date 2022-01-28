@@ -329,7 +329,7 @@ class CircuitSampler(ConverterBase):
             ready_circs = self._transpiled_circ_cache
 
         # run transpiler passes on bound circuits
-        if self._transpile_before_bind:
+        if self._transpile_before_bind and self.quantum_instance.bound_pass_manager is not None:
             ready_circs = self.quantum_instance.transpile(
                 ready_circs, pass_manager=self.quantum_instance.bound_pass_manager
             )

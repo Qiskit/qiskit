@@ -100,6 +100,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
     unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
+    target = pass_manager_config.target
 
     # 1. Use trivial layout if no layout given
     _given_layout = SetLayout(initial_layout)
@@ -192,7 +193,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 plugin_config=unitary_synthesis_plugin_config,
             ),
             UnrollCustomDefinitions(sel, basis_gates),
-            BasisTranslator(sel, basis_gates),
+            BasisTranslator(sel, basis_gates, target),
         ]
     elif translation_method == "synthesis":
         _unroll = [
@@ -222,12 +223,12 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         raise TranspilerError("Invalid translation method %s." % translation_method)
 
     # 7. Fix any bad CX directions
-    _direction_check = [CheckGateDirection(coupling_map)]
+    _direction_check = [CheckGateDirection(coupling_map, target)]
 
     def _direction_condition(property_set):
         return not property_set["is_direction_mapped"]
 
-    _direction = [GateDirection(coupling_map)]
+    _direction = [GateDirection(coupling_map, target)]
 
     # 8. Remove zero-state reset
     _reset = RemoveResetInZeroState()
@@ -284,7 +285,9 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm1.append(_swap_check)
         pm1.append(_swap, condition=_swap_condition)
     pm1.append(_unroll)
-    if coupling_map and not coupling_map.is_symmetric:
+    if (coupling_map and not coupling_map.is_symmetric) or (
+        target is not None and target.get_non_global_operation_names(strict_direction=True)
+    ):
         pm1.append(_direction_check)
         pm1.append(_direction, condition=_direction_condition)
     pm1.append(_reset)

@@ -717,7 +717,7 @@ class QASM3Builder:
         self, instruction: ForLoopOp, qubits: Iterable[Qubit], clbits: Iterable[Clbit]
     ) -> ast.ForLoopStatement:
         """Build a :obj:`.ForLoopOp` into a :obj:`.ast.ForLoopStatement`."""
-        loop_parameter, indexset, loop_circuit = instruction.params
+        indexset, loop_parameter, loop_circuit = instruction.params
         if loop_parameter is None:
             # The loop parameter is implicitly declared by the ``for`` loop (see also
             # _infer_parameter_declaration), so it doesn't matter that we haven't declared this,
@@ -744,7 +744,7 @@ class QASM3Builder:
         self.push_scope(loop_circuit, qubits, clbits)
         body_ast = self.build_program_block(loop_circuit)
         self.pop_scope()
-        return ast.ForLoopStatement(loop_parameter_ast, indexset_ast, body_ast)
+        return ast.ForLoopStatement(indexset_ast, loop_parameter_ast, body_ast)
 
     def build_integer(self, value) -> ast.Integer:
         """Build an integer literal, raising a :obj:`.QASM3ExporterError` if the input is not
@@ -865,8 +865,8 @@ def _infer_variable_declaration(
         # at all the places it's used in the circuit.
         for instruction, index in circuit._parameter_table[parameter]:
             if isinstance(instruction, ForLoopOp):
-                # The parameters of ForLoopOp are (loop_parameter, indexset, body).
-                if index == 0:
+                # The parameters of ForLoopOp are (indexset, loop_parameter, body).
+                if index == 1:
                     return True
             if isinstance(instruction, ControlFlowOp):
                 if is_loop_variable(instruction.params[index], parameter):

@@ -107,6 +107,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
     unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
+    target = pass_manager_config.target
 
     # 1. Unroll to 1q or 2q gates
     _unroll3q = [
@@ -226,7 +227,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 method=unitary_synthesis_method,
             ),
             UnrollCustomDefinitions(sel, basis_gates),
-            BasisTranslator(sel, basis_gates),
+            BasisTranslator(sel, basis_gates, target),
         ]
     elif translation_method == "synthesis":
         _unroll = [
@@ -255,12 +256,12 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         raise TranspilerError("Invalid translation method %s." % translation_method)
 
     # 6. Fix any CX direction mismatch
-    _direction_check = [CheckGateDirection(coupling_map)]
+    _direction_check = [CheckGateDirection(coupling_map, target)]
 
     def _direction_condition(property_set):
         return not property_set["is_direction_mapped"]
 
-    _direction = [GateDirection(coupling_map)]
+    _direction = [GateDirection(coupling_map, target)]
 
     # 8. Optimize iteratively until no more change in depth. Removes useless gates
     # after reset and before measure, commutes gates and optimizes contiguous blocks.
@@ -334,11 +335,23 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm3.append(_swap_check)
         pm3.append(_swap, condition=_swap_condition)
     pm3.append(_unroll)
-    if coupling_map and not coupling_map.is_symmetric:
+    if (coupling_map and not coupling_map.is_symmetric) or (
+        target is not None and target.get_non_global_operation_names(strict_direction=True)
+    ):
         pm3.append(_direction_check)
         pm3.append(_direction, condition=_direction_condition)
-    pm3.append(_reset)
-    pm3.append(_depth_check + _opt + _unroll, do_while=_opt_control)
+        pm3.append(_reset)
+        # For transpiling to a target we need to run GateDirection in the
+        # optimization loop to correct for incorrect directions that might be
+        # inserted by UnitarySynthesis which is direction aware but only via
+        # the coupling map which with a target doesn't give a full picture
+        if target is not None:
+            pm3.append(_depth_check + _opt + _unroll + _direction, do_while=_opt_control)
+        else:
+            pm3.append(_depth_check + _opt + _unroll, do_while=_opt_control)
+    else:
+        pm3.append(_reset)
+        pm3.append(_depth_check + _opt + _unroll, do_while=_opt_control)
     if inst_map and inst_map.has_custom_gate():
         pm3.append(PulseGates(inst_map=inst_map))
     if scheduling_method:

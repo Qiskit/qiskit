@@ -25,6 +25,7 @@ from qiskit.circuit import (
     Gate,
     Instruction,
     Measure,
+    ControlFlowOp,
 )
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.tools import pi_check
@@ -129,6 +130,9 @@ def get_param_str(op, drawer, ndigits=3):
     if not hasattr(op, "params") or any(isinstance(param, np.ndarray) for param in op.params):
         return ""
 
+    if isinstance(op, ControlFlowOp):
+        return ""
+
     if isinstance(op, Delay):
         param_list = [f"{op.params[0]}[{op.unit}]"]
     else:
@@ -181,14 +185,18 @@ def get_bit_label(drawer, register, index, qubit=True, layout=None, cregbundle=T
         reg_name = f"{register.name}"
         reg_name_index = f"{register.name}_{index}"
     else:
-        reg_name = f"{{{register.name}}}"
-        reg_name_index = f"{{{register.name}}}_{{{index}}}"
+        reg_name = f"{{{fix_special_characters(register.name)}}}"
+        reg_name_index = f"{reg_name}_{{{index}}}"
 
     # Clbits
     if not qubit:
-        if cregbundle:
+        if cregbundle and drawer != "latex":
             bit_label = f"{register.name}"
-        elif register.size == 1:
+            return bit_label
+
+        size = register.size
+        if size == 1 or cregbundle:
+            size = 1
             bit_label = reg_name
         else:
             bit_label = reg_name_index
@@ -214,6 +222,8 @@ def get_bit_label(drawer, register, index, qubit=True, layout=None, cregbundle=T
                 bit_label = f"{virt_bit} -> {index}"
             else:
                 bit_label = f"{{{virt_bit}}} \\mapsto {{{index}}}"
+        if drawer != "text":
+            bit_label = bit_label.replace(" ", "\\;")  # use wider spaces
     else:
         bit_label = index_str
 
@@ -266,6 +276,22 @@ def get_condition_label(condition, clbits, bit_locations, cregbundle):
         label = hex(val)
 
     return label, clbit_mask, vlist
+
+
+def fix_special_characters(label):
+    """
+    Convert any special characters for mpl and latex drawers.
+    Currently only checks for multiple underscores in register names
+    and uses wider space for mpl and latex drawers.
+
+    Args:
+        label (str): the label to fix
+
+    Returns:
+        str: label to display
+    """
+    label = label.replace("_", r"\_").replace(" ", "\\;")
+    return label
 
 
 def generate_latex_label(label):

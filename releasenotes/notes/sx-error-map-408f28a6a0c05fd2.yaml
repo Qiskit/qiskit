@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Update the 1-qubit gate errors in
-    :obj:`~qiskit.visualization.plot_error_map` to use the `'sx'` gate instead
-    of the `'u2`' gate, consistent with IBMQ backends.
