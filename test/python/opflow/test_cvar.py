@@ -72,6 +72,10 @@ class TestCVaRMeasurement(QiskitOpflowTestCase):
 
         return result / alpha
 
+    def cleanup_algorithm_globals(self, massive):
+        """Method used to reset the values of algorithm_globals."""
+        algorithm_globals.massive = massive
+
     def test_cvar_simple(self):
         """Test a simple case with a single Pauli."""
         theta = 1.2
@@ -170,7 +174,10 @@ class TestCVaRMeasurement(QiskitOpflowTestCase):
         """
         op = PauliSumOp.from_list([("Z" * 30, 1)])
         # assert global algorithm settings do not have massive calculations turned on
-        # (which is the default, but better to be sure in the test!)
+        # -- which is the default, but better to be sure in the test!
+        # also add a cleanup so we're sure to reset to the original value after the test, even if
+        # the test would fail
+        self.addCleanup(self.cleanup_algorithm_globals, algorithm_globals.massive)
         algorithm_globals.massive = False
 
         cvar = CVaRMeasurement(op, alpha=0.1)
