@@ -13,7 +13,7 @@ We encourage installing Qiskit via the pip tool (a python package manager). The 
 pip install qiskit
 ```
 
-PIP will handle all dependencies automatically and you will always install the latest (and well-tested) version.
+Pip will handle all dependencies automatically and you will always install the latest (and well-tested) version.
 
 To install from source, follow the instructions in the [documentation](https://qiskit.org/documentation/contributing_to_qiskit.html#install-install-from-source-label).
 
