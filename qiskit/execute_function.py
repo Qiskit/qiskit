@@ -21,6 +21,7 @@ Executing Experiments (:mod:`qiskit.execute_function`)
 """
 import logging
 from time import time
+import warnings
 from qiskit.compiler import transpile, assemble, schedule
 from qiskit.providers import BaseBackend
 from qiskit.providers.backend import Backend
@@ -166,7 +167,9 @@ def execute(
             (provided the backend supports it). For OpenPulse jobs, only
             measurement level 2 supports this option. Default: False
 
-        max_credits (int): Maximum credits to spend on job. Default: 10
+        max_credits (int): DEPRECATED This parameter is deprecated as of
+        Qiskit Terra 0.20.0, and will be removed in a future release. This parameter has
+        no effect on modern IBM Quantum systems, and no alternative is necessary.
 
         seed_simulator (int): Random seed to control sampling, for when backend is a simulator
 
@@ -310,6 +313,14 @@ def execute(
             meas_map=meas_map,
             method=scheduling_method,
         )
+    if max_credits is not None:
+        warnings.warn(
+            "The `max_credits` parameter is deprecated as of Qiskit Terra 0.20.0, "
+            "and will be removed in a future release. This parameter has no effect on "
+            "modern IBM Quantum systems, and no alternative is necessary.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
     if isinstance(backend, BaseBackend):
         # assembling the circuits into a qobj to be run on the backend
@@ -317,8 +328,6 @@ def execute(
             shots = 1024
         if memory is None:
             memory = False
-        if max_credits is None:
-            max_credits = 10
         if meas_level is None:
             meas_level = MeasLevel.CLASSIFIED
         if meas_return is None:
@@ -332,7 +341,6 @@ def execute(
             qobj_header=qobj_header,
             shots=shots,
             memory=memory,
-            max_credits=max_credits,
             seed_simulator=seed_simulator,
             qubit_lo_freq=default_qubit_los,
             meas_lo_freq=default_meas_los,
@@ -379,8 +387,7 @@ def execute(
             if not hasattr(backend.options, key):
                 if run_kwargs[key] is not None:
                     logger.info(
-                        "%s backend doesn't support option %s so not "
-                        "passing that kwarg to run()",
+                        "%s backend doesn't support option %s so not passing that kwarg to run()",
                         backend.name,
                         key,
                     )

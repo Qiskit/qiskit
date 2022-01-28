@@ -24,7 +24,21 @@ from qiskit.transpiler import CouplingMap, Layout, PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BIPMapping
 from qiskit.transpiler.passes import CheckMap, Collect2qBlocks, ConsolidateBlocks, UnitarySynthesis
-from qiskit.transpiler.passes.routing.algorithms.bip_model import HAS_CPLEX, HAS_DOCPLEX
+
+
+try:
+    import cplex  # pylint: disable=unused-import
+
+    HAS_CPLEX = True
+except ImportError:
+    HAS_CPLEX = False
+
+try:
+    import docplex  # pylint: disable=unused-import
+
+    HAS_DOCPLEX = True
+except ImportError:
+    HAS_DOCPLEX = False
 
 
 @unittest.skipUnless(HAS_CPLEX, "cplex is required to run the BIPMapping tests")

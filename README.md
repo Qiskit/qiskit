@@ -15,7 +15,7 @@ pip install qiskit
 
 PIP will handle all dependencies automatically and you will always install the latest (and well-tested) version.
 
-To install from source, follow the instructions in the [documentation](https://qiskit.org/documentation/contributing_to_qiskit.html#install-terra-from-source).
+To install from source, follow the instructions in the [documentation](https://qiskit.org/documentation/contributing_to_qiskit.html#install-install-from-source-label).
 
 ## Creating Your First Quantum Program in Qiskit Terra
 

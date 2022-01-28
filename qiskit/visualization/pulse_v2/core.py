@@ -115,7 +115,7 @@ class DrawerCanvas:
         self.disable_types = set()
 
         # data scaling
-        self.chan_scales = dict()
+        self.chan_scales = {}
 
         # global time
         self._time_range = (0, 0)
@@ -433,8 +433,8 @@ class Chart:
         self.parent = parent
 
         # data stored in this channel
-        self._collections = dict()
-        self._output_dataset = dict()
+        self._collections = {}
+        self._output_dataset = {}
 
         # channel metadata
         self.index = self._cls_index()

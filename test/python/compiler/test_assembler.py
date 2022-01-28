@@ -19,7 +19,7 @@ import sys
 import copy
 
 import numpy as np
-import qiskit.pulse as pulse
+from qiskit import pulse
 from qiskit.circuit import Instruction, Gate, Parameter, ParameterVector
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler.assembler import assemble

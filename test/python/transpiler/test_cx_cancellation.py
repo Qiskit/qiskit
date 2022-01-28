@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member
-
 """Tests for pass cancelling 2 consecutive CNOTs on the same qubits."""
 
 from qiskit import QuantumRegister, QuantumCircuit

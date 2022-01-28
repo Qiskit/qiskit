@@ -19,3 +19,4 @@ from .ucrx import UCRXGate
 from .diagonal import DiagonalGate
 from .uc import UCGate
 from .isometry import Isometry
+from .initializer import Initialize

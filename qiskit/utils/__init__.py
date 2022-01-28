@@ -58,7 +58,6 @@ backend etc.
 """
 
 from .quantum_instance import QuantumInstance
-from .deprecation import _filter_deprecation_warnings
 from .deprecation import deprecate_arguments
 from .deprecation import deprecate_function
 from .multiprocessing import local_hardware_info

@@ -36,6 +36,7 @@ from qiskit.opflow import (
     Y,
     Z,
     Zero,
+    OpflowError,
 )
 from qiskit.quantum_info import Pauli, PauliTable, SparsePauliOp
 
@@ -168,6 +169,16 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         expected = PauliSumOp(SparsePauliOp((X ^ I ^ Y ^ Z ^ I).primitive))
 
         self.assertEqual(pauli_sum.permute([1, 2, 4]), expected)
+
+        pauli_sum = PauliSumOp(SparsePauliOp((X ^ Y ^ Z).primitive))
+        expected = PauliSumOp(SparsePauliOp((Z ^ Y ^ X).primitive))
+        self.assertEqual(pauli_sum.permute([2, 1, 0]), expected)
+
+        with self.assertRaises(OpflowError):
+            pauli_sum.permute([1, 2, 1])
+
+        with self.assertRaises(OpflowError):
+            pauli_sum.permute([1, 2, -1])
 
     def test_compose(self):
         """compose test"""

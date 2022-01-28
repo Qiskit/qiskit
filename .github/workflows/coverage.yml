@@ -3,6 +3,9 @@ on:
   push:
   pull_request:
     branches: ['main']
+concurrency:
+  group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
+  cancel-in-progress: true
 jobs:
   coverage:
     name: Coverage

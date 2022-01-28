@@ -21,7 +21,7 @@ import sys
 import tempfile
 
 from qiskit.dagcircuit.dagnode import DAGOpNode, DAGInNode, DAGOutNode
-from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.exceptions import MissingOptionalLibraryError, InvalidFileError
 from .exceptions import VisualizationError
 
 try:
@@ -30,6 +30,64 @@ try:
     HAS_PIL = True
 except ImportError:
     HAS_PIL = False
+
+FILENAME_EXTENSIONS = {
+    "bmp",
+    "canon",
+    "cgimage",
+    "cmap",
+    "cmapx",
+    "cmapx_np",
+    "dot",
+    "dot_json",
+    "eps",
+    "exr",
+    "fig",
+    "gd",
+    "gd2",
+    "gif",
+    "gv",
+    "icns",
+    "ico",
+    "imap",
+    "imap_np",
+    "ismap",
+    "jp2",
+    "jpe",
+    "jpeg",
+    "jpg",
+    "json",
+    "json0",
+    "mp",
+    "pct",
+    "pdf",
+    "pic",
+    "pict",
+    "plain",
+    "plain-ext",
+    "png",
+    "pov",
+    "ps",
+    "ps2",
+    "psd",
+    "sgi",
+    "svg",
+    "svgz",
+    "tga",
+    "tif",
+    "tiff",
+    "tk",
+    "vdx",
+    "vml",
+    "vmlz",
+    "vrml",
+    "wbmp",
+    "webp",
+    "xdot",
+    "xdot1.2",
+    "xdot1.4",
+    "xdot_json",
+}
 
 
 def dag_drawer(dag, scale=0.7, filename=None, style="color"):
@@ -59,6 +117,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
     Raises:
         VisualizationError: when style is not recognized.
         MissingOptionalLibraryError: when pydot or pillow are not installed.
+        InvalidFileError: when filename provided is not valid
 
     Example:
         .. jupyter-execute::
@@ -166,7 +225,13 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
     dot = pydot.graph_from_dot_data(dot_str)[0]
 
     if filename:
+        if "." not in filename:
+            raise InvalidFileError("Parameter 'filename' must be in format 'name.extension'")
         extension = filename.split(".")[-1]
+        if extension not in FILENAME_EXTENSIONS:
+            raise InvalidFileError(
+                "Filename extension must be one of: " + " ".join(FILENAME_EXTENSIONS)
+            )
         dot.write(filename, format=extension)
         return None
     elif ("ipykernel" in sys.modules) and ("spyder" not in sys.modules):
