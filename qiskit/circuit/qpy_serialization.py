@@ -1330,7 +1330,14 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
             type_key = "r"
             data = struct.pack(RANGE_PACK, param.start, param.stop, param.step)
             size = len(data)
-        elif gate_class_name == "ForLoopOp" and isinstance(param, tuple):
+        # Tuples are arbitrary containers of python objects and can have anythin
+        # as a value, qpy doesn't support this as a type currently. But in the
+        # ForLoopOp the indexset parameter is a tuple of only intergers
+        # as the consumed integer iterator to use as loop iteration values.
+        # Serialize this as a numpy array of integers and use a unique type
+        # code to indicate the array needs to be case to a tuple on
+        # deserialization
+        elif gate_class_name == b"ForLoopOp" and isinstance(param, tuple):
             type_key = "t"
             output_array = np.array(param, dtype=int)
             np.save(container, output_array)
@@ -1593,9 +1600,7 @@ def _write_circuit(file_obj, circuit):
                 if bit_index >= 0:
                     processed_qubit_indices.add(bit_index)
                 bit_indices.append(bit_index)
-            buf.write(
-                struct.pack(REGISTER_ARRAY_PACK, *bit_indices)
-            )
+            buf.write(struct.pack(REGISTER_ARRAY_PACK, *bit_indices))
 
     def process_cregs(buf, cregs, in_circuit=True):
         for reg in cregs:
@@ -1616,9 +1621,7 @@ def _write_circuit(file_obj, circuit):
                 if bit_index >= 0:
                     processed_clbit_indices.add(bit_index)
                 bit_indices.append(bit_index)
-            buf.write(
-                struct.pack(REGISTER_ARRAY_PACK, *bit_indices)
-            )
+            buf.write(struct.pack(REGISTER_ARRAY_PACK, *bit_indices))
 
     with io.BytesIO() as reg_buf:
         if num_registers > 0:

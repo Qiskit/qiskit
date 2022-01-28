@@ -840,6 +840,21 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
 
+    def test_qpy_with_for_loop_iterator(self):
+        """Test qpy serialization with a for loop."""
+        qc = QuantumCircuit(2, 1)
+
+        with qc.for_loop(iter(range(5))):
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure(0, 0)
+            qc.break_loop().c_if(0, True)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
     def test_standalone_register_partial_bit_in_circuit(self):
         """Test qpy with only some bits from standalone register."""
         qr = QuantumRegister(2)
