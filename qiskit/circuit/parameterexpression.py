@@ -19,7 +19,7 @@ import operator
 
 import numpy
 
-from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.exceptions import CircuitError, ParameterTypeError
 
 try:
     import symengine
@@ -33,12 +33,6 @@ except ImportError:
 # can safely be used by runtime type-checkers like Sphinx.  Mypy does not need this because it
 # handles the references by static analysis.
 ParameterValueType = Union["ParameterExpression", float]
-
-
-class ParameterTypeError(TypeError):
-    """The type error throw by parameter if we try to cast to number unbind parameter."""
-
-    pass
 
 
 class ParameterExpression:
@@ -538,7 +532,7 @@ class ParameterExpression:
                 return False
         return True
 
-    def get_sympy_expr(self):
+    def to_simplify_expression(self):
         """Return symbolic expression from sympy/symengine"""
         if HAS_SYMENGINE:
             return symengine.sympify(self._symbol_expr)

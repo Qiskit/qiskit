@@ -21,13 +21,6 @@ from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit.dagdependency import DAGDependency
 from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
 
-try:
-    import symengine
-
-    HAS_SYMENGINE = True
-except ImportError:
-    HAS_SYMENGINE = False
-
 
 class SubstitutionConfig:
     """
@@ -503,26 +496,20 @@ class TemplateSubstitution:
 
         # Create the fake binding dict and check
         equations, circ_dict, temp_symbols, sol, fake_bind = [], {}, {}, {}, {}
-        for t_idx, template_params in enumerate(template_params):
-            if isinstance(template_params, ParameterExpression):
-                if isinstance(circuit_params[t_idx], ParameterExpression):
-                    circ_param_sym = circuit_params[t_idx].get_sympy_expr()
+        for circuit_param, template_param in zip(circuit_params, template_params):
+            if isinstance(template_param, ParameterExpression):
+                if isinstance(circuit_param, ParameterExpression):
+                    circ_param_sym = circuit_param.to_simplify_expression()
                 else:
-                    circ_param_sym = parse_expr(str(circuit_params[t_idx]))
-                equations.append(sym.Eq(template_params.get_sympy_expr(), circ_param_sym))
+                    circ_param_sym = parse_expr(str(circuit_param))
+                equations.append(sym.Eq(template_param.to_simplify_expression(), circ_param_sym))
 
-                for param in template_params.parameters:
-                    if not HAS_SYMENGINE:
-                        temp_symbols[param] = sym.Symbol(str(param))
-                    else:
-                        temp_symbols[param] = symengine.Symbol(str(param))
+                for param in template_param.parameters:
+                    temp_symbols[param] = param.to_simplify_expression()
 
-                if isinstance(circuit_params[t_idx], ParameterExpression):
-                    for param in circuit_params[t_idx].parameters:
-                        if not HAS_SYMENGINE:
-                            circ_dict[param] = sym.Symbol(str(param))
-                        else:
-                            circ_dict[param] = symengine.Symbol(str(param))
+                if isinstance(circuit_param, ParameterExpression):
+                    for param in circuit_param.parameters:
+                        circ_dict[param] = param.to_simplify_expression()
 
         if not temp_symbols:
             return template_dag_dep
