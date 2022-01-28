@@ -13,6 +13,7 @@
 """A gate to implement time-evolution of operators."""
 
 from typing import Union, Optional
+import numpy as np
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -104,9 +105,6 @@ class PauliEvolutionGate(Gate):
         """Unroll, where the default synthesis is matrix based."""
         self.definition = self.synthesis.synthesize(self)
 
-    def inverse(self) -> "PauliEvolutionGate":
-        return PauliEvolutionGate(operator=self.operator, time=-self.time, synthesis=self.synthesis)
-
     def validate_parameter(
         self, parameter: Union[int, float, ParameterExpression]
     ) -> Union[float, ParameterExpression]:
@@ -130,14 +128,17 @@ def _to_sparse_pauli_op(operator):
     if isinstance(operator, PauliSumOp):
         sparse_pauli = operator.primitive
         sparse_pauli._coeffs *= operator.coeff
-        return sparse_pauli
-    if isinstance(operator, PauliOp):
+    elif isinstance(operator, PauliOp):
         sparse_pauli = SparsePauliOp(operator.primitive)
         sparse_pauli._coeffs *= operator.coeff
-        return sparse_pauli
-    if isinstance(operator, Pauli):
-        return SparsePauliOp(operator)
-    if isinstance(operator, SparsePauliOp):
-        return operator
+    elif isinstance(operator, Pauli):
+        sparse_pauli = SparsePauliOp(operator)
+    elif isinstance(operator, SparsePauliOp):
+        sparse_pauli = operator
+    else:
+        raise ValueError(f"Unsupported operator type for evolution: {type(operator)}.")
 
-    raise ValueError(f"Unsupported operator type for evolution: {type(operator)}.")
+    if any(np.iscomplex(sparse_pauli.coeffs)):
+        raise ValueError("Operator contains complex coefficients, which are not supported.")
+
+    return sparse_pauli
