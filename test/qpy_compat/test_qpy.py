@@ -288,6 +288,55 @@ def generate_evolution_gate():
     return qc
 
 
+def generate_control_flow_circuits():
+    """Test qpy serialization with control flow instructions."""
+    # If instruction
+    circuits = []
+    qc = QuantumCircuit(2, 2)
+    qc.h(0)
+    qc.measure(0, 0)
+    with qc.if_test((qc.clbits[0], True)):
+        qc.x(1)
+    qc.measure(1, 1)
+    circuits.append(qc)
+    # If else instruction
+    qc = QuantumCircuit(2, 2)
+    qc.h(0)
+    qc.measure(0, 0)
+    with qc.if_test((qc.clbits[0], True)) as else_:
+        qc.x(1)
+    with else_:
+        qc.y(1)
+    qc.measure(1, 1)
+    circuits.append(qc)
+    # While loop
+    qc = QuantumCircuit(2, 1)
+
+    with qc.while_loop((qc.clbits[0], 0)):
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure(0, 0)
+    circuits.append(qc)
+    # for loop range
+    qc = QuantumCircuit(2, 1)
+
+    with qc.for_loop(range(5)):
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure(0, 0)
+        qc.break_loop().c_if(0, True)
+    circuits.append(qc)
+    # For loop iterator
+    qc = QuantumCircuit(2, 1)
+
+    with qc.for_loop(iter(range(5))):
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure(0, 0)
+        qc.break_loop().c_if(0, True)
+    return circuits
+
+
 def generate_circuits(version_str=None):
     """Generate reference circuits."""
     version_parts = None
@@ -318,6 +367,8 @@ def generate_circuits(version_str=None):
         output_circuits["parameter_vector_expression.qpy"] = [
             generate_parameter_vector_expression()
         ]
+    if version_parts >= (0, 19, 2):
+        output_circuits["control_flow.qpy"] = generate_control_flow_circuits()
 
     return output_circuits
 
