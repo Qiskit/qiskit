@@ -1082,7 +1082,7 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions, version
         else:
             if gate_name == "Barrier":
                 params = [len(qargs)]
-            elif gate_name == "BreakLoopOp":
+            elif gate_name {"BreakLoopOp", "ContinueLoopOp"}:
                 params = [len(qargs), len(cargs)]
             gate = gate_class(*params)
         gate.condition = condition_tuple
