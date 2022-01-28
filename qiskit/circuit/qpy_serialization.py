@@ -111,7 +111,7 @@ no data), ``q`` to represent a :class:`.QuantumCircuit` (which is encoded as
 a QPY circuit), ``r`` to represent a ``range`` of integers (which is encoded as
 a :ref:`range_pack`), and ``t`` to represent a ``tuple`` of integers (which is
 encoded as npy file containing a 1-d numpy array of integers). Additionally, version
-4 changes the type of register index mapping array from ``unit32_t`` to ``int64_t``.
+4 changes the type of register index mapping array from ``uint32_t`` to ``int64_t``.
 If the values of any of the array elements are negative they represent a register
 bit that is not present in the circuit.
 
@@ -358,7 +358,7 @@ METADATA
 
 The METADATA field is a UTF8 encoded JSON string. After reading the HEADER
 (which is a fixed size at the start of the QPY file) and the ``name`` string
-you then read the`metadata_size`` number of bytes and parse the JSON to get
+you then read the ``metadata_size`` number of bytes and parse the JSON to get
 the metadata for the circuit.
 
 .. _registers:
@@ -1330,9 +1330,9 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
             type_key = "r"
             data = struct.pack(RANGE_PACK, param.start, param.stop, param.step)
             size = len(data)
-        # Tuples are arbitrary containers of python objects and can have anythin
+        # Tuples are arbitrary containers of python objects and can have anything
         # as a value, qpy doesn't support this as a type currently. But in the
-        # ForLoopOp the indexset parameter is a tuple of only intergers
+        # ForLoopOp the indexset parameter is a tuple of only integers
         # as the consumed integer iterator to use as loop iteration values.
         # Serialize this as a numpy array of integers and use a unique type
         # code to indicate the array needs to be case to a tuple on
