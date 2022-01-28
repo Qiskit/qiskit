@@ -980,9 +980,9 @@ def _read_parameter_expression(file_obj):
 
 def _read_instruction_param(file_obj, version, vectors):
     param_raw = file_obj.read(INSTRUCTION_PARAM_SIZE)
-    type_str, data_size = struct.unpack(INSTRUCTION_PARAM_PACK, param_raw)
-    data = file_obj.read(data_size)
-    type_str = type_str.decode("utf8")
+    param = struct.unpack(INSTRUCTION_PARAM_PACK, param_raw)
+    data = file_obj.read(param[1])
+    type_str = param[0].decode("utf8")
     param = None
     if type_str == "i":
         param = struct.unpack("<q", data)[0]
