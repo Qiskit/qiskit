@@ -151,35 +151,9 @@ class TestDataPreparation(QiskitTestCase):
             "ParameterView([ParameterVectorElement(r[0]), ParameterVectorElement(r[1])])",
         )
 
-        self.assertNotEqual(
-            str(encoding_pauli.parameters),
-            "ParameterView([ParameterVectorElement(x[0]), ParameterVectorElement(x[1])])",
-        )
-        self.assertNotEqual(
-            str(encoding_z.parameters),
-            "ParameterView([ParameterVectorElement(x[0]), ParameterVectorElement(x[1])])",
-        )
-        self.assertNotEqual(
-            str(encoding_zz.parameters),
-            "ParameterView([ParameterVectorElement(x[0]), ParameterVectorElement(x[1])])",
-        )
-
         encoding_pauli_param_x = encoding_pauli.assign_parameters(x)
         encoding_z_param_x = encoding_z.assign_parameters(x)
         encoding_zz_param_x = encoding_zz.assign_parameters(x)
-
-        self.assertNotEqual(
-            str(encoding_pauli_param_x.parameters),
-            "ParameterView([ParameterVectorElement(p[0]), ParameterVectorElement(p[1])])",
-        )
-        self.assertNotEqual(
-            str(encoding_z_param_x.parameters),
-            "ParameterView([ParameterVectorElement(q[0]), ParameterVectorElement(q[1])])",
-        )
-        self.assertNotEqual(
-            str(encoding_zz_param_x.parameters),
-            "ParameterView([ParameterVectorElement(r[0]), ParameterVectorElement(r[1])])",
-        )
 
         self.assertEqual(
             str(encoding_pauli_param_x.parameters),
@@ -197,19 +171,6 @@ class TestDataPreparation(QiskitTestCase):
         encoding_pauli_param_y = encoding_pauli.assign_parameters({1, y})
         encoding_z_param_y = encoding_z.assign_parameters({1, y})
         encoding_zz_param_y = encoding_zz.assign_parameters({1, y})
-
-        self.assertNotEqual(
-            str(encoding_pauli_param_y.parameters),
-            "ParameterView([ParameterVectorElement(p[0]), ParameterVectorElement(p[1])])",
-        )
-        self.assertNotEqual(
-            str(encoding_z_param_y.parameters),
-            "ParameterView([ParameterVectorElement(q[0]), ParameterVectorElement(q[1])])",
-        )
-        self.assertNotEqual(
-            str(encoding_zz_param_y.parameters),
-            "ParameterView([ParameterVectorElement(r[0]), ParameterVectorElement(r[1])])",
-        )
 
         self.assertEqual(str(encoding_pauli_param_y.parameters), "ParameterView([Parameter(y)])")
         self.assertEqual(str(encoding_z_param_y.parameters), "ParameterView([Parameter(y)])")
