@@ -84,7 +84,12 @@ class VarQiteGibbsStateBuilder(GibbsStateBuilder):
             temperature=temperature,
         )
 
-    def _set_default_ansatz(self, problem_hamiltonian):
+    def _set_default_ansatz(self, problem_hamiltonian: OperatorBase) -> None:
+        """
+        Sets a default ansatz with default parameters for a Gibbs state preparation.
+        Args:
+            problem_hamiltonian: Hamiltonian that defines a desired Gibbs state.
+        """
         num_qubits = problem_hamiltonian.num_qubits
         depth = 1
         self._ansatz = build_ansatz(num_qubits, depth)
