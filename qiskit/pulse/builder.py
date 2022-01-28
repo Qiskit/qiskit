@@ -10,12 +10,47 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-r"""Use the pulse builder DSL to write pulse programs with an imperative syntax.
+r"""
+=============
+Pulse Builder
+=============
+
+..
+    We actually want people to think of these functions as being defined within the ``qiskit.pulse``
+    namespace, not the submodule ``qiskit.pulse.builder``.
+
+.. currentmodule: qiskit.pulse
+
+Use the pulse builder DSL to write pulse programs with an imperative syntax.
 
 .. warning::
     The pulse builder interface is still in active development. It may have
     breaking API changes without deprecation warnings in future releases until
     otherwise indicated.
+
+
+The pulse builder provides an imperative API for writing pulse programs
+with less difficulty than the :class:`~qiskit.pulse.Schedule` API.
+It contextually constructs a pulse schedule and then emits the schedule for
+execution. For example, to play a series of pulses on channels is as simple as:
+
+
+.. jupyter-execute::
+
+    from qiskit import pulse
+
+    dc = pulse.DriveChannel
+    d0, d1, d2, d3, d4 = dc(0), dc(1), dc(2), dc(3), dc(4)
+
+    with pulse.build(name='pulse_programming_in') as pulse_prog:
+        pulse.play([1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1], d0)
+        pulse.play([1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0], d1)
+        pulse.play([1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0], d2)
+        pulse.play([1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0], d3)
+        pulse.play([1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0], d4)
+
+    pulse_prog.draw()
+
 
 To begin pulse programming we must first initialize our program builder
 context with :func:`build`, after which we can begin adding program
@@ -33,7 +68,7 @@ a pulse:
 
     pulse_prog.draw()
 
-The builder initializes a :class:`pulse.Schedule`, ``pulse_prog``
+The builder initializes a :class:`.pulse.Schedule`, ``pulse_prog``
 and then begins to construct the program within the context. The output pulse
 schedule will survive after the context is exited and can be executed like a
 normal Qiskit schedule using ``qiskit.execute(pulse_prog, backend)``.
@@ -188,9 +223,220 @@ In the example below we demonstrate some more features of the pulse builder:
             with pulse.phase_offset(math.pi, d0):
                 pulse.play(gaussian_pulse, d0)
 
-The above is just a small taste of what is possible with the builder. See the
-rest of the module documentation for more information on its
-capabilities.
+The above is just a small taste of what is possible with the builder. See the rest of the module
+documentation for more information on its capabilities.
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    build
+
+
+Channels
+========
+
+Methods to return the correct channels for the respective qubit indices.
+
+.. jupyter-execute::
+
+    from qiskit import pulse
+    from qiskit.test.mock import FakeArmonk
+
+    backend = FakeArmonk()
+
+    with pulse.build(backend) as drive_sched:
+        d0 = pulse.drive_channel(0)
+        print(d0)
+
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    acquire_channel
+    control_channels
+    drive_channel
+    measure_channel
+
+
+Instructions
+============
+
+Pulse instructions are available within the builder interface. Here's an example:
+
+.. jupyter-execute::
+
+    from qiskit import pulse
+    from qiskit.test.mock import FakeArmonk
+
+    backend = FakeArmonk()
+
+    with pulse.build(backend) as drive_sched:
+        d0 = pulse.drive_channel(0)
+        a0 = pulse.acquire_channel(0)
+
+        pulse.play(pulse.library.Constant(10, 1.0), d0)
+        pulse.delay(20, d0)
+        pulse.shift_phase(3.14/2, d0)
+        pulse.set_phase(3.14, d0)
+        pulse.shift_frequency(1e7, d0)
+        pulse.set_frequency(5e9, d0)
+
+        with pulse.build() as temp_sched:
+            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), d0)
+            pulse.play(pulse.library.Gaussian(20, -1.0, 3.0), d0)
+
+        pulse.call(temp_sched)
+        pulse.acquire(30, a0, pulse.MemorySlot(0))
+
+    drive_sched.draw()
+
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    acquire
+    barrier
+    call
+    delay
+    play
+    set_frequency
+    set_phase
+    shift_frequency
+    shift_phase
+    snapshot
+
+
+Contexts
+========
+
+Builder aware contexts that modify the construction of a pulse program. For
+example an alignment context like :func:`align_right` may
+be used to align all pulses as late as possible in a pulse program.
+
+.. jupyter-execute::
+
+    from qiskit import pulse
+
+    d0 = pulse.DriveChannel(0)
+    d1 = pulse.DriveChannel(1)
+
+    with pulse.build() as pulse_prog:
+        with pulse.align_right():
+            # this pulse will start at t=0
+            pulse.play(pulse.Constant(100, 1.0), d0)
+            # this pulse will start at t=80
+            pulse.play(pulse.Constant(20, 1.0), d1)
+
+    pulse_prog.draw()
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    align_equispaced
+    align_func
+    align_left
+    align_right
+    align_sequential
+    circuit_scheduler_settings
+    frequency_offset
+    inline
+    pad
+    phase_offset
+    transpiler_settings
+
+
+Macros
+======
+
+Macros help you add more complex functionality to your pulse program.
+
+.. jupyter-execute::
+
+    from qiskit import pulse
+    from qiskit.test.mock import FakeArmonk
+
+    backend = FakeArmonk()
+
+    with pulse.build(backend) as measure_sched:
+        mem_slot = pulse.measure(0)
+        print(mem_slot)
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    measure
+    measure_all
+    delay_qubits
+
+
+Circuit Gates
+=============
+
+To use circuit level gates within your pulse program call a circuit
+with :func:`call`.
+
+.. warning::
+    These will be removed in future versions with the release of a circuit
+    builder interface in which it will be possible to calibrate a gate in
+    terms of pulses and use that gate in a circuit.
+
+.. jupyter-execute::
+
+    import math
+
+    from qiskit import pulse
+    from qiskit.test.mock import FakeArmonk
+
+    backend = FakeArmonk()
+
+    with pulse.build(backend) as u3_sched:
+        pulse.u3(math.pi, 0, math.pi, 0)
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    cx
+    u1
+    u2
+    u3
+    x
+
+
+Utilities
+=========
+
+The utility functions can be used to gather attributes about the backend and modify
+how the program is built.
+
+.. jupyter-execute::
+
+    from qiskit import pulse
+
+    from qiskit.test.mock import FakeArmonk
+
+    backend = FakeArmonk()
+
+    with pulse.build(backend) as u3_sched:
+        print('Number of qubits in backend: {}'.format(pulse.num_qubits()))
+
+        samples = 160
+        print('There are {} samples in {} seconds'.format(
+            samples, pulse.samples_to_seconds(160)))
+
+        seconds = 1e-6
+        print('There are {} seconds in {} samples.'.format(
+            seconds, pulse.seconds_to_samples(1e-6)))
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    active_backend
+    active_transpiler_settings
+    active_circuit_scheduler_settings
+    num_qubits
+    qubit_channels
+    samples_to_seconds
+    seconds_to_samples
 """
 import collections
 import contextvars

@@ -124,7 +124,7 @@ class InverseCancellation(TransformationPass):
             DAGCircuit: Transformed DAG.
         """
         for pair in inverse_gate_pairs:
-            gate_cancel_runs = dag.collect_runs([pair[0].name])
+            gate_cancel_runs = dag.collect_runs([pair[0].name, pair[1].name])
             for dag_nodes in gate_cancel_runs:
                 for i in range(len(dag_nodes) - 1):
                     if dag_nodes[i].op == pair[0] and dag_nodes[i + 1].op == pair[1]:

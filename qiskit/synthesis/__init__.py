@@ -11,9 +11,9 @@
 # that they have been altered from the originals.
 
 """
-===================================================
+===========================================
 Circuit Synthesis (:mod:`qiskit.synthesis`)
-===================================================
+===========================================
 
 .. currentmodule:: qiskit.synthesis
 
@@ -37,4 +37,5 @@ from .evolution import (
     LieTrotter,
     SuzukiTrotter,
     MatrixExponential,
+    QDrift,
 )

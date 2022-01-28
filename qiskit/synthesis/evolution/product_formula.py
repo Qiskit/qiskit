@@ -12,7 +12,7 @@
 
 """A product formula base for decomposing non-commuting operator exponentials."""
 
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Any, Dict
 from functools import partial
 import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -25,7 +25,7 @@ from .evolution_synthesis import EvolutionSynthesis
 class ProductFormula(EvolutionSynthesis):
     """Product formula base class for the decomposition of non-commuting operator exponentials.
 
-    Lie-Trotter and Suzuki inherit this class.
+    :obj:`.LieTrotter` and :obj:`.SuzukiTrotter` inherit from this class.
     """
 
     def __init__(
@@ -55,10 +55,37 @@ class ProductFormula(EvolutionSynthesis):
         self.reps = reps
         self.insert_barriers = insert_barriers
 
+        # user-provided atomic evolution, stored for serialization
+        self._atomic_evolution = atomic_evolution
+        self._cx_structure = cx_structure
+
+        # if atomic evolution is not provided, set a default
         if atomic_evolution is None:
             atomic_evolution = partial(_default_atomic_evolution, cx_structure=cx_structure)
 
         self.atomic_evolution = atomic_evolution
+
+    @property
+    def settings(self) -> Dict[str, Any]:
+        """Return the settings in a dictionary, which can be used to reconstruct the object.
+
+        Returns:
+            A dictionary containing the settings of this product formula.
+
+        Raises:
+            NotImplementedError: If a custom atomic evolution is set, which cannot be serialized.
+        """
+        if self._atomic_evolution is not None:
+            raise NotImplementedError(
+                "Cannot serialize a product formula with a custom atomic evolution."
+            )
+
+        return {
+            "order": self.order,
+            "reps": self.reps,
+            "insert_barriers": self.insert_barriers,
+            "cx_structure": self._cx_structure,
+        }
 
 
 def evolve_pauli(
@@ -283,13 +310,13 @@ def cnot_fountain(pauli: Pauli) -> QuantumCircuit:
 def _default_atomic_evolution(operator, time, cx_structure):
     if isinstance(operator, Pauli):
         # single Pauli operator: just exponentiate it
-        evo = evolve_pauli(operator, time, cx_structure)
+        evolution_circuit = evolve_pauli(operator, time, cx_structure)
     else:
         # sum of Pauli operators: exponentiate each term (this assumes they commute)
         pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operator.to_list()]
         name = f"exp(it {[pauli.to_label() for pauli, _ in pauli_list]})"
-        evo = QuantumCircuit(operator.num_qubits, name=name)
+        evolution_circuit = QuantumCircuit(operator.num_qubits, name=name)
         for pauli, coeff in pauli_list:
-            evo.compose(evolve_pauli(pauli, coeff * time, cx_structure), inplace=True)
+            evolution_circuit.compose(evolve_pauli(pauli, coeff * time, cx_structure), inplace=True)
 
-    return evo
+    return evolution_circuit

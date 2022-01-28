@@ -21,10 +21,22 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import transpile
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Gate, Parameter, EquivalenceLibrary
-from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate
+from qiskit.circuit.library import (
+    U1Gate,
+    U2Gate,
+    U3Gate,
+    CU1Gate,
+    CU3Gate,
+    UGate,
+    RZGate,
+    XGate,
+    SXGate,
+    CXGate,
+)
 from qiskit.converters import circuit_to_dag, dag_to_circuit, circuit_to_instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Operator
+from qiskit.transpiler.target import Target, InstructionProperties
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.basis import BasisTranslator, UnrollCustomDefinitions
 
@@ -834,3 +846,65 @@ class TestBasisExamples(QiskitTestCase):
             seed_transpiler=42,
         )
         self.assertEqual(circ_transpiled.count_ops(), {"cx": 91, "rz": 66, "sx": 22})
+
+
+class TestBasisTranslatorWithTarget(QiskitTestCase):
+    """Test the basis translator when running with a Target."""
+
+    def setUp(self):
+        super().setUp()
+        self.target = Target()
+
+        # U gate in qubit 0.
+        self.theta = Parameter("theta")
+        self.phi = Parameter("phi")
+        self.lam = Parameter("lambda")
+        u_props = {
+            (0,): InstructionProperties(duration=5.23e-8, error=0.00038115),
+        }
+        self.target.add_instruction(UGate(self.theta, self.phi, self.lam), u_props)
+
+        # Rz gate in qubit 1.
+        rz_props = {
+            (1,): InstructionProperties(duration=0.0, error=0),
+        }
+        self.target.add_instruction(RZGate(self.phi), rz_props)
+
+        # X gate in qubit 1.
+        x_props = {
+            (1,): InstructionProperties(
+                duration=3.5555555555555554e-08, error=0.00020056469709026198
+            ),
+        }
+        self.target.add_instruction(XGate(), x_props)
+
+        # SX gate in qubit 1.
+        sx_props = {
+            (1,): InstructionProperties(
+                duration=3.5555555555555554e-08, error=0.00020056469709026198
+            ),
+        }
+        self.target.add_instruction(SXGate(), sx_props)
+
+        cx_props = {
+            (0, 1): InstructionProperties(duration=5.23e-7, error=0.00098115),
+            (1, 0): InstructionProperties(duration=4.52e-7, error=0.00132115),
+        }
+        self.target.add_instruction(CXGate(), cx_props)
+
+    def test_2q_with_non_global_1q(self):
+        """Test translation works with a 2q gate on an non-global 1q basis."""
+        qc = QuantumCircuit(2)
+        qc.cz(0, 1)
+
+        bt_pass = BasisTranslator(std_eqlib, target_basis=None, target=self.target)
+        output = bt_pass(qc)
+        expected = QuantumCircuit(2, global_phase=pi / 2)
+        expected.rz(pi / 2, 1)
+        expected.sx(1)
+        expected.rz(pi / 2, 1)
+        expected.cx(0, 1)
+        expected.rz(pi / 2, 1)
+        expected.sx(1)
+        expected.rz(pi / 2, 1)
+        self.assertEqual(output, expected)
