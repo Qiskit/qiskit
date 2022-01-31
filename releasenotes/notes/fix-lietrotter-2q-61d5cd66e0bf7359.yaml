@@ -1,0 +1,36 @@
+---
+fixes:
+  - |
+    Fix the qubit order of 2-qubit evolutions in the
+    :class:`qiskit.circuit.library.PauliEvolutionGate`, if used with a product formula synthesis.
+    For instance, before, the evolution of ``IIZ + IZI + IZZ``
+
+    .. code-block:: python
+
+        from qiskit.circuit.library import PauliEvolutionGate
+        from qiskit.opflow import I, Z
+        operator = (I ^ I ^ Z) + (I ^ Z ^ I) + (I ^ Z ^ Z)
+        print(PauliEvolutionGate(operator).definition.decompose())
+
+    produced
+
+    .. code-block::
+
+             ┌───────┐
+        q_0: ┤ Rz(2) ├────────
+             ├───────┤
+        q_1: ┤ Rz(2) ├─■──────
+             └───────┘ │ZZ(2)
+        q_2: ──────────■──────
+
+
+    whereas now it correctly yields
+
+    .. code-block::
+
+             ┌───────┐
+        q_0: ┤ Rz(2) ├─■──────
+             ├───────┤ │ZZ(2)
+        q_1: ┤ Rz(2) ├─■──────
+             └───────┘
+        q_2: ─────────────────
