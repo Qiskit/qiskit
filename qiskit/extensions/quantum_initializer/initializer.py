@@ -185,8 +185,8 @@ class Initialize(Instruction, Operation):
     def _normalize(self, state_array):
         """Normalizes input list or ndarray of real or complex nums.
         Returns ndarray."""
-        norm_factor = np.linalg.norm(state_array, 2) #l2 norm
-        normalized_state_array = np.array(state_array)/norm_factor
+        norm_factor = np.linalg.norm(state_array, 2)  # l2 norm
+        normalized_state_array = np.array(state_array) / norm_factor
         return normalized_state_array
 
     def gates_to_uncompute(self):
