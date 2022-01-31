@@ -94,6 +94,8 @@ class TemplateSubstitution:
                 "tdg": 1,
                 "s": 1,
                 "sdg": 1,
+                "sx": 1,
+                "sxdg": 1,
                 "u1": 1,
                 "u2": 2,
                 "u3": 2,

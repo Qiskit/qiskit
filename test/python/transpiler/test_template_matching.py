@@ -357,6 +357,48 @@ class TestTemplateMatching(QiskitTestCase):
         # commute with any other gates in the DAG dependency.
         self.assertEqual(circuit_out.count_ops().get("cx", 0), 2)
 
+    def test_pass_sx_sxdg_optimization(self):
+        """
+        Check the optimization(cancellation) of sx-sxdg and sxdg-sx gates.
+        See issue #7585
+        """
+        qr = QuantumRegister(1, "qr")
+        circuit_in = QuantumCircuit(qr)
+        circuit_in.z(0)
+        circuit_in.x(0)
+        circuit_in.x(0)
+        circuit_in.sx(0)
+        circuit_in.sxdg(0)
+        circuit_in.y(0)
+        circuit_in.sx(0)
+        circuit_in.sxdg(0)
+        circuit_in.h(0)
+        circuit_in.sxdg(0)
+        circuit_in.sx(0)
+        dag_in = circuit_to_dag(circuit_in)
+
+        template_1 = QuantumCircuit(qr)
+        template_1.sx(0)
+        template_1.sxdg(0)
+
+        template_2 = QuantumCircuit(qr)
+        template_2.sxdg(0)
+        template_2.sx(0)
+
+        template_list = [template_1, template_2]
+        pass_ = TemplateOptimization(template_list)
+        dag_opt = pass_.run(dag_in)
+
+        circuit_expected = QuantumCircuit(qr)
+        circuit_expected.z(0)
+        circuit_expected.x(0)
+        circuit_expected.x(0)
+        circuit_expected.y(0)
+        circuit_expected.h(0)
+        dag_expected = circuit_to_dag(circuit_expected)
+
+        self.assertEqual(dag_opt, dag_expected)
+
 
 if __name__ == "__main__":
     unittest.main()
