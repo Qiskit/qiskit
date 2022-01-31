@@ -1002,7 +1002,7 @@ def _parse_custom_instruction(custom_instructions, gate_name, params):
     (type_str, num_qubits, num_clbits, definition) = custom_instructions[gate_name]
     if type_str == "i":
         inst_obj = Instruction(gate_name, num_qubits, num_clbits, params)
-        if definition:
+        if definition is not None:
             inst_obj.definition = definition
     elif type_str == "g":
         inst_obj = Gate(gate_name, num_qubits, params)
@@ -1338,7 +1338,7 @@ def _write_custom_instruction(file_obj, name, instruction):
     data = None
     num_qubits = instruction.num_qubits
     num_clbits = instruction.num_clbits
-    if instruction.definition or type_str == b"p":
+    if instruction.definition is not None or type_str == b"p":
         has_definition = True
         definition_buffer = io.BytesIO()
         if type_str == b"p":
