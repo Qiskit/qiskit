@@ -17,11 +17,12 @@ Readout mitigator class based on the 1-qubit local tensored mitigation method
 from typing import Optional, List, Tuple, Iterable, Callable, Union
 import numpy as np
 
+from qiskit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from ..distributions.quasi import QuasiDistribution
 from ..counts import Counts
-from .mthree import M3Mitigation
-from .mthree.expval import exp_val
+from mthree import M3Mitigation
+from mthree.expval import exp_val
 from .local_readout_mitigator import LocalReadoutMitigator
 
 

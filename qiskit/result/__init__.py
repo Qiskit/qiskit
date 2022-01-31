@@ -42,6 +42,7 @@ Mitigation
    BaseReadoutMitigator
    CorrelatedReadoutMitigator
    LocalReadoutMitigator
+   M3ReadoutMitigator
 
 """
 
@@ -55,3 +56,4 @@ from .distributions.quasi import QuasiDistribution
 from .mitigation.base_readout_mitigator import BaseReadoutMitigator
 from .mitigation.correlated_readout_mitigator import CorrelatedReadoutMitigator
 from .mitigation.local_readout_mitigator import LocalReadoutMitigator
+from .mitigation.m3_readout_mitigator import M3ReadoutMitigator
