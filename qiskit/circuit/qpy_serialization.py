@@ -161,7 +161,7 @@ A tuple instruction parameter starts with a header defined as:
         uint64_t size;
     }
 
-followed by ``size`` elements that are INSTRUCTION_PARAM payloads. Where each of
+followed by ``size`` elements that are INSTRUCTION_PARAM payloads, where each of
 these define an element in the tuple.
 
 .. _qpy_version_3:
