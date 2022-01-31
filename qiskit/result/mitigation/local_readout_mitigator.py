@@ -37,10 +37,10 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
     """
 
     def __init__(
-            self,
-            amats: Optional[List[np.ndarray]] = None,
-            qubits: Optional[Iterable[int]] = None,
-            backend=None,
+        self,
+        amats: Optional[List[np.ndarray]] = None,
+        qubits: Optional[Iterable[int]] = None,
+        backend=None,
     ):
         """Initialize a LocalReadoutMitigator
         Args:
@@ -66,8 +66,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             if len(qubits) != len(amats):
                 raise QiskitError(
                     "The number of given qubits ({}) is different than the number of qubits "
-                    "inferred from the matrices ({})".format(len(qubits),
-                                                             len(amats))
+                    "inferred from the matrices ({})".format(len(qubits), len(amats))
                 )
             self._qubits = qubits
             self._num_qubits = len(self._qubits)
@@ -86,6 +85,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             self._mitigation_mats[i] = ainv
 
     def compute_gammas(self):
+        """Compute the stddev gamma values"""
         self._gammas = np.zeros(self._num_qubits, dtype=float)
 
         for i in range(self._num_qubits):

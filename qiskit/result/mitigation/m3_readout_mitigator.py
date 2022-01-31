@@ -16,12 +16,12 @@ Readout mitigator class based on the 1-qubit local tensored mitigation method
 
 from typing import Optional, List, Tuple, Iterable, Callable, Union
 import numpy as np
+from mthree import M3Mitigation
+from mthree.expval import exp_val
 
 from qiskit.exceptions import QiskitError
 from ..distributions.quasi import QuasiDistribution
 from ..counts import Counts
-from mthree import M3Mitigation
-from mthree.expval import exp_val
 from .local_readout_mitigator import LocalReadoutMitigator
 
 
@@ -64,7 +64,6 @@ class M3ReadoutMitigator(LocalReadoutMitigator):
                     "Assignment matrix columns must be valid probability distributions"
                 )
 
-
         if qubits is None:
             self._num_qubits = len(amats)
             self._qubits = range(self._num_qubits)
@@ -99,29 +98,28 @@ class M3ReadoutMitigator(LocalReadoutMitigator):
         if qubits is None:
             qubits = self._qubits
         quasi_probs = self._m3_mitigator._apply_correction(data, qubits)
-        quasi_probs = QuasiDistribution(quasi_probs) # conversion from M3's format
+        quasi_probs = QuasiDistribution(quasi_probs)  # conversion from M3's format
         shots = sum(dict(data).values())
         quasi_probs._stddev_upper_bound = self.stddev_upper_bound(shots, qubits)
         return quasi_probs
 
     def expectation_value(
-            self,
-            data: Counts,
-            diagonal: Union[Callable, dict, str, np.ndarray] = None,
-            qubits: Iterable[int] = None,
-            clbits: Optional[List[int]] = None,
-            shots: Optional[int] = None,
+        self,
+        data: Counts,
+        diagonal: Union[Callable, dict, str, np.ndarray] = None,
+        qubits: Iterable[int] = None,
+        clbits: Optional[List[int]] = None,
+        shots: Optional[int] = None,
     ) -> Tuple[float, float]:
         quasi_probs = self.quasi_probabilities(data, qubits, clbits, shots)
-        labels = [bin(j)[2:].zfill(self._num_qubits) for j in
-                  range(2 ** self._num_qubits)]
+        labels = [bin(j)[2:].zfill(self._num_qubits) for j in range(2 ** self._num_qubits)]
         quasi_probs_dict = {labels[i]: value for (i, value) in quasi_probs.items()}
         if isinstance(diagonal, np.ndarray):
-            diagonal = {label: value for (label, value) in zip (labels, diagonal)}
+            diagonal = dict(zip(labels, diagonal))
         if isinstance(diagonal, dict):
             exp_val_result = exp_val(quasi_probs_dict, dict_ops=diagonal)
         if isinstance(diagonal, str):
-            exp_val_result =  exp_val(quasi_probs_dict, exp_ops=diagonal)
+            exp_val_result = exp_val(quasi_probs_dict, exp_ops=diagonal)
         shots = sum(dict(data).values())
         stddev_upper_bound_result = self.stddev_upper_bound(shots, qubits)
         return (exp_val_result, stddev_upper_bound_result)
