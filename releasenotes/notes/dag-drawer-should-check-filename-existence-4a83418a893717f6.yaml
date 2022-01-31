@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    :meth:`.DAGCircuit.draw` and the associated function :func:`.dag_drawer`
+    will now show a more useful error message when the provided filename is not
+    valid.
