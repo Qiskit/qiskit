@@ -51,12 +51,11 @@ class LinearFunctionsToPermutations(TransformationPass):
         """
 
         for node in dag.named_nodes("linear_function"):
-            if node.op.is_permutation():
-                try:
-                    pattern = node.op.get_permutation_pattern()
-                except CircuitError:
-                    continue
+            try:
+                pattern = node.op.get_permutation_pattern()
+            except CircuitError:
+                continue
 
-                permutation = Permutation(len(pattern), pattern)
-                dag.substitute_node(node, permutation.to_instruction())
+            permutation = Permutation(len(pattern), pattern)
+            dag.substitute_node(node, permutation.to_instruction())
         return dag
