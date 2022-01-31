@@ -60,6 +60,7 @@ from qiskit.transpiler.passes import AlignMeasures
 from qiskit.transpiler.passes import ValidatePulseGates
 from qiskit.transpiler.passes import PulseGates
 from qiskit.transpiler.passes import Error
+from qiskit.transpiler.passes import ContainsInstruction
 
 from qiskit.transpiler import TranspilerError
 
@@ -95,8 +96,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     inst_map = pass_manager_config.inst_map
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
-    layout_method = pass_manager_config.layout_method or "dense"
-    routing_method = pass_manager_config.routing_method or "stochastic"
+    layout_method = pass_manager_config.layout_method or "sabre"
+    routing_method = pass_manager_config.routing_method or "sabre"
     translation_method = pass_manager_config.translation_method or "translator"
     scheduling_method = pass_manager_config.scheduling_method
     instruction_durations = pass_manager_config.instruction_durations
@@ -105,6 +106,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     approximation_degree = pass_manager_config.approximation_degree
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
+    unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
+    target = pass_manager_config.target
 
     # 1. Unroll to 1q or 2q gates
     _unroll3q = [
@@ -112,9 +115,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         UnitarySynthesis(
             basis_gates,
             approximation_degree=approximation_degree,
-            coupling_map=coupling_map,
-            backend_props=backend_properties,
             method=unitary_synthesis_method,
+            plugin_config=unitary_synthesis_plugin_config,
             min_qubits=3,
         ),
         Unroll3qOrMore(),
@@ -163,7 +165,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         # set by trivial layout so we clear that before running CSP
         if property_set["trivial_layout_score"] is not None:
             if property_set["trivial_layout_score"] != 0:
-                property_set["layout"]._wrapped = None
                 return True
         return False
 
@@ -200,8 +201,10 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     elif routing_method == "none":
         _swap += [
             Error(
-                msg="No routing method selected, but circuit is not routed to device. "
-                "CheckMap Error: {check_map_msg}",
+                msg=(
+                    "No routing method selected, but circuit is not routed to device. "
+                    "CheckMap Error: {check_map_msg}"
+                ),
                 action="raise",
             )
         ]
@@ -220,10 +223,11 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 approximation_degree=approximation_degree,
                 coupling_map=coupling_map,
                 backend_props=backend_properties,
+                plugin_config=unitary_synthesis_plugin_config,
                 method=unitary_synthesis_method,
             ),
             UnrollCustomDefinitions(sel, basis_gates),
-            BasisTranslator(sel, basis_gates),
+            BasisTranslator(sel, basis_gates, target),
         ]
     elif translation_method == "synthesis":
         _unroll = [
@@ -233,6 +237,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 coupling_map=coupling_map,
                 backend_props=backend_properties,
                 method=unitary_synthesis_method,
+                plugin_config=unitary_synthesis_plugin_config,
                 min_qubits=3,
             ),
             Unroll3qOrMore(),
@@ -244,18 +249,19 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 coupling_map=coupling_map,
                 backend_props=backend_properties,
                 method=unitary_synthesis_method,
+                plugin_config=unitary_synthesis_plugin_config,
             ),
         ]
     else:
         raise TranspilerError("Invalid translation method %s." % translation_method)
 
     # 6. Fix any CX direction mismatch
-    _direction_check = [CheckGateDirection(coupling_map)]
+    _direction_check = [CheckGateDirection(coupling_map, target)]
 
     def _direction_condition(property_set):
         return not property_set["is_direction_mapped"]
 
-    _direction = [GateDirection(coupling_map)]
+    _direction = [GateDirection(coupling_map, target)]
 
     # 8. Optimize iteratively until no more change in depth. Removes useless gates
     # after reset and before measure, commutes gates and optimizes contiguous blocks.
@@ -277,6 +283,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             coupling_map=coupling_map,
             backend_props=backend_properties,
             method=unitary_synthesis_method,
+            plugin_config=unitary_synthesis_plugin_config,
         ),
         Optimize1qGatesDecomposition(basis_gates),
         CommutativeCancellation(),
@@ -284,8 +291,15 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # 9. Unify all durations (either SI, or convert to dt if known)
     # Schedule the circuit only when scheduling_method is supplied
-    _scheduling = [TimeUnitConversion(instruction_durations)]
+    _time_unit_setup = [ContainsInstruction("delay")]
+    _time_unit_conversion = [TimeUnitConversion(instruction_durations)]
+
+    def _contains_delay(property_set):
+        return property_set["contains_delay"]
+
+    _scheduling = []
     if scheduling_method:
+        _scheduling += _time_unit_conversion
         if scheduling_method in {"alap", "as_late_as_possible"}:
             _scheduling += [ALAPSchedule(instruction_durations)]
         elif scheduling_method in {"asap", "as_soon_as_possible"}:
@@ -294,12 +308,19 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
 
     # 10. Call measure alignment. Should come after scheduling.
-    _alignments = [
-        ValidatePulseGates(
-            granularity=timing_constraints.granularity, min_length=timing_constraints.min_length
-        ),
-        AlignMeasures(alignment=timing_constraints.acquire_alignment),
-    ]
+    if (
+        timing_constraints.granularity != 1
+        or timing_constraints.min_length != 1
+        or timing_constraints.acquire_alignment != 1
+    ):
+        _alignments = [
+            ValidatePulseGates(
+                granularity=timing_constraints.granularity, min_length=timing_constraints.min_length
+            ),
+            AlignMeasures(alignment=timing_constraints.acquire_alignment),
+        ]
+    else:
+        _alignments = []
 
     # Build pass manager
     pm3 = PassManager()
@@ -314,14 +335,30 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm3.append(_swap_check)
         pm3.append(_swap, condition=_swap_condition)
     pm3.append(_unroll)
-    if coupling_map and not coupling_map.is_symmetric:
+    if (coupling_map and not coupling_map.is_symmetric) or (
+        target is not None and target.get_non_global_operation_names(strict_direction=True)
+    ):
         pm3.append(_direction_check)
         pm3.append(_direction, condition=_direction_condition)
-    pm3.append(_reset)
-    pm3.append(_depth_check + _opt + _unroll, do_while=_opt_control)
+        pm3.append(_reset)
+        # For transpiling to a target we need to run GateDirection in the
+        # optimization loop to correct for incorrect directions that might be
+        # inserted by UnitarySynthesis which is direction aware but only via
+        # the coupling map which with a target doesn't give a full picture
+        if target is not None:
+            pm3.append(_depth_check + _opt + _unroll + _direction, do_while=_opt_control)
+        else:
+            pm3.append(_depth_check + _opt + _unroll, do_while=_opt_control)
+    else:
+        pm3.append(_reset)
+        pm3.append(_depth_check + _opt + _unroll, do_while=_opt_control)
     if inst_map and inst_map.has_custom_gate():
         pm3.append(PulseGates(inst_map=inst_map))
-    pm3.append(_scheduling)
+    if scheduling_method:
+        pm3.append(_scheduling)
+    elif instruction_durations:
+        pm3.append(_time_unit_setup)
+        pm3.append(_time_unit_conversion, condition=_contains_delay)
     pm3.append(_alignments)
 
     return pm3

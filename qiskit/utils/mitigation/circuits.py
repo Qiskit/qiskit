@@ -207,7 +207,7 @@ def tensored_meas_cal(
 
     cal_circuits = []
     for basis_state in state_labels:
-        qc_circuit = QuantumCircuit(qr, cr, name="%scal_%s" % (circlabel, basis_state))
+        qc_circuit = QuantumCircuit(qr, cr, name=f"{circlabel}cal_{basis_state}")
 
         end_index = nqubits
         for qubit_list, list_size in zip(mit_pattern, qubits_list_sizes):

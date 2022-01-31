@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    Fix a bug where upon decomposing a circuit gates, whose definition were
-    an empty circuit, were not decomposed.

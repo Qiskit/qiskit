@@ -344,6 +344,7 @@ class TestPauliListProperties(QiskitTestCase):
         """Test add method with qargs."""
         pauli1 = PauliList(["IIII", "YYYY"])
         pauli2 = PauliList(["XY", "YZ"])
+        pauli3 = PauliList(["X", "Y", "Z"])
 
         with self.subTest(msg="qargs=[0, 1]"):
             target = PauliList(["IIII", "YYYY", "IIXY", "IIYZ"])
@@ -360,6 +361,22 @@ class TestPauliListProperties(QiskitTestCase):
         with self.subTest(msg="qargs=[3, 1]"):
             target = PauliList(["IIII", "YYYY", "YIXI", "ZIYI"])
             self.assertEqual(pauli1 + pauli2([3, 1]), target)
+
+        with self.subTest(msg="qargs=[0]"):
+            target = PauliList(["IIII", "YYYY", "IIIX", "IIIY", "IIIZ"])
+            self.assertEqual(pauli1 + pauli3([0]), target)
+
+        with self.subTest(msg="qargs=[1]"):
+            target = PauliList(["IIII", "YYYY", "IIXI", "IIYI", "IIZI"])
+            self.assertEqual(pauli1 + pauli3([1]), target)
+
+        with self.subTest(msg="qargs=[2]"):
+            target = PauliList(["IIII", "YYYY", "IXII", "IYII", "IZII"])
+            self.assertEqual(pauli1 + pauli3([2]), target)
+
+        with self.subTest(msg="qargs=[3]"):
+            target = PauliList(["IIII", "YYYY", "XIII", "YIII", "ZIII"])
+            self.assertEqual(pauli1 + pauli3([3]), target)
 
     def test_getitem_methods(self):
         """Test __getitem__ method."""

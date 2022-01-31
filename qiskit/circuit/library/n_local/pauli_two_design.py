@@ -81,7 +81,7 @@ class PauliTwoDesign(TwoLocal):
         self._rng = np.random.default_rng(seed)
 
         # store a dict to keep track of the random gates
-        self._gates = dict()
+        self._gates = {}
 
         super().__init__(
             num_qubits,
@@ -97,6 +97,7 @@ class PauliTwoDesign(TwoLocal):
         self._prepended_entanglement = ["linear"]
 
     def _invalidate(self):
+        """Invalidate the circuit and reset the random number."""
         self._rng = np.random.default_rng(self._seed)  # reset number generator
         super()._invalidate()
 

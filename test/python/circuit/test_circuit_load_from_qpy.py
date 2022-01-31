@@ -23,9 +23,11 @@ from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.library import XGate, QFT, QAOAAnsatz
+from qiskit.circuit.library import XGate, QFT, QAOAAnsatz, PauliEvolutionGate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.parametervector import ParameterVector
+from qiskit.synthesis import LieTrotter, SuzukiTrotter
 from qiskit.extensions import UnitaryGate
 from qiskit.opflow import I, X, Y, Z
 from qiskit.test import QiskitTestCase
@@ -449,6 +451,50 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc.decompose(), new_circ.decompose())
         self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
 
+    def test_custom_gate_with_noop_definition(self):
+        """Test that a custom gate whose definition contains no elements is serialized with a
+        proper definition.
+
+        Regression test of gh-7429."""
+        empty = QuantumCircuit(1, name="empty").to_gate()
+        opaque = Gate("opaque", 1, [])
+        qc = QuantumCircuit(2)
+        qc.append(empty, [0], [])
+        qc.append(opaque, [1], [])
+
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+
+        self.assertEqual(qc, new_circ)
+        self.assertEqual(qc.decompose(), new_circ.decompose())
+        self.assertEqual(len(new_circ), 2)
+        self.assertIsInstance(new_circ.data[0][0].definition, QuantumCircuit)
+        self.assertIs(new_circ.data[1][0].definition, None)
+
+    def test_custom_instruction_with_noop_definition(self):
+        """Test that a custom instruction whose definition contains no elements is serialized with a
+        proper definition.
+
+        Regression test of gh-7429."""
+        empty = QuantumCircuit(1, name="empty").to_instruction()
+        opaque = Instruction("opaque", 1, 0, [])
+        qc = QuantumCircuit(2)
+        qc.append(empty, [0], [])
+        qc.append(opaque, [1], [])
+
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+
+        self.assertEqual(qc, new_circ)
+        self.assertEqual(qc.decompose(), new_circ.decompose())
+        self.assertEqual(len(new_circ), 2)
+        self.assertIsInstance(new_circ.data[0][0].definition, QuantumCircuit)
+        self.assertIs(new_circ.data[1][0].definition, None)
+
     def test_standard_gate_with_label(self):
         """Test a standard gate with a label."""
         qc = QuantumCircuit(1)
@@ -522,13 +568,117 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_qaoa(self):
         """Test loading a QAOA circuit works."""
         cost_operator = Z ^ I ^ I ^ Z
-        qaoa = QAOAAnsatz(cost_operator)
+        qaoa = QAOAAnsatz(cost_operator, reps=2)
         qpy_file = io.BytesIO()
         dump(qaoa, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qaoa, new_circ)
         self.assertEqual([x[0].label for x in qaoa.data], [x[0].label for x in new_circ.data])
+
+    def test_evolutiongate(self):
+        """Test loading a circuit with evolution gate works."""
+        synthesis = LieTrotter(reps=2)
+        evo = PauliEvolutionGate((Z ^ I) + (I ^ Z), time=2, synthesis=synthesis)
+        qc = QuantumCircuit(2)
+        qc.append(evo, range(2))
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+
+        self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+        new_evo = new_circ.data[0][0]
+        self.assertIsInstance(new_evo, PauliEvolutionGate)
+
+    def test_evolutiongate_param_time(self):
+        """Test loading a circuit with an evolution gate that has a parameter for time."""
+        synthesis = LieTrotter(reps=2)
+        time = Parameter("t")
+        evo = PauliEvolutionGate((Z ^ I) + (I ^ Z), time=time, synthesis=synthesis)
+        qc = QuantumCircuit(2)
+        qc.append(evo, range(2))
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+
+        self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+        new_evo = new_circ.data[0][0]
+        self.assertIsInstance(new_evo, PauliEvolutionGate)
+
+    def test_evolutiongate_param_expr_time(self):
+        """Test loading a circuit with an evolution gate that has a parameter for time."""
+        synthesis = LieTrotter(reps=2)
+        time = Parameter("t")
+        evo = PauliEvolutionGate((Z ^ I) + (I ^ Z), time=time * time, synthesis=synthesis)
+        qc = QuantumCircuit(2)
+        qc.append(evo, range(2))
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+
+        self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+        new_evo = new_circ.data[0][0]
+        self.assertIsInstance(new_evo, PauliEvolutionGate)
+
+    def test_evolutiongate_param_vec_time(self):
+        """Test loading a an evolution gate that has a param vector element for time."""
+        synthesis = LieTrotter(reps=2)
+        time = ParameterVector("TimeVec", 1)
+        evo = PauliEvolutionGate((Z ^ I) + (I ^ Z), time=time[0], synthesis=synthesis)
+        qc = QuantumCircuit(2)
+        qc.append(evo, range(2))
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+
+        self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+        new_evo = new_circ.data[0][0]
+        self.assertIsInstance(new_evo, PauliEvolutionGate)
+
+    def test_op_list_evolutiongate(self):
+        """Test loading a circuit with evolution gate works."""
+        evo = PauliEvolutionGate([(Z ^ I) + (I ^ Z)] * 5, time=0.2, synthesis=None)
+        qc = QuantumCircuit(2)
+        qc.append(evo, range(2))
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+
+        self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+        new_evo = new_circ.data[0][0]
+        self.assertIsInstance(new_evo, PauliEvolutionGate)
+
+    def test_op_evolution_gate_suzuki_trotter(self):
+        """Test qpy path with a suzuki trotter synthesis method on an evolution gate."""
+        synthesis = SuzukiTrotter()
+        evo = PauliEvolutionGate((Z ^ I) + (I ^ Z), time=0.2, synthesis=synthesis)
+        qc = QuantumCircuit(2)
+        qc.append(evo, range(2))
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+
+        self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+        new_evo = new_circ.data[0][0]
+        self.assertIsInstance(new_evo, PauliEvolutionGate)
 
     def test_parameter_expression_global_phase(self):
         """Test a circuit with a parameter expression global_phase."""
@@ -563,6 +713,68 @@ class TestLoadFromQPY(QiskitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_parameter_vector(self):
+        """Test a circuit with a parameter vector for gate parameters."""
+        qc = QuantumCircuit(11)
+        input_params = ParameterVector("x_par", 11)
+        user_params = ParameterVector("θ_par", 11)
+        for i, param in enumerate(user_params):
+            qc.ry(param, i)
+        for i, param in enumerate(input_params):
+            qc.rz(param, i)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        expected_params = [x.name for x in qc.parameters]
+        self.assertEqual([x.name for x in new_circuit.parameters], expected_params)
+
+    def test_parameter_vector_element_in_expression(self):
+        """Test a circuit with a parameter vector used in a parameter expression."""
+        qc = QuantumCircuit(7)
+        entanglement = [[i, i + 1] for i in range(7 - 1)]
+        input_params = ParameterVector("x_par", 14)
+        user_params = ParameterVector("\u03B8_par", 1)
+
+        for i in range(qc.num_qubits):
+            qc.ry(user_params[0], qc.qubits[i])
+
+        for source, target in entanglement:
+            qc.cz(qc.qubits[source], qc.qubits[target])
+
+        for i in range(qc.num_qubits):
+            qc.rz(-2 * input_params[2 * i + 1], qc.qubits[i])
+            qc.rx(-2 * input_params[2 * i], qc.qubits[i])
+
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        expected_params = [x.name for x in qc.parameters]
+        self.assertEqual([x.name for x in new_circuit.parameters], expected_params)
+
+    def test_parameter_vector_incomplete_warns(self):
+        """Test that qpy's deserialization warns if a ParameterVector isn't fully identical."""
+        vec = ParameterVector("test", 3)
+        qc = QuantumCircuit(1, name="fun")
+        qc.rx(vec[1], 0)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        with self.assertWarnsRegex(UserWarning, r"^The ParameterVector.*Elements 0, 2.*fun$"):
+            new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_parameter_vector_global_phase(self):
+        """Test that a circuit with a standalone ParameterVectorElement phase works."""
+        vec = ParameterVector("phase", 1)
+        qc = QuantumCircuit(1, global_phase=vec[0])
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
         qpy_file.seek(0)

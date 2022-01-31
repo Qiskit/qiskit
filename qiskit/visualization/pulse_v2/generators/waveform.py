@@ -544,7 +544,7 @@ def _parse_waveform(
     """
     inst = data.inst
 
-    meta = dict()
+    meta = {}
     if isinstance(inst, instructions.Play):
         # pulse
         operand = inst.pulse

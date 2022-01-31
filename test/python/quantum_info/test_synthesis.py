@@ -943,7 +943,6 @@ class TestTwoQubitDecompose(CheckDecompositions):
     @combine(seed=range(10), name="test_exact_supercontrolled_decompose_random_{seed}")
     def test_exact_supercontrolled_decompose_random(self, seed):
         """Exact decomposition for random supercontrolled basis and random target (seed={seed})"""
-        # pylint: disable=invalid-name
         state = np.random.default_rng(seed)
         decomposer = self.make_random_supercontrolled_decomposer(state)
         self.check_exact_decomposition(random_unitary(4, seed=state).data, decomposer)

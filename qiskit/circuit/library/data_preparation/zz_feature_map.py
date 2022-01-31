@@ -63,6 +63,7 @@ class ZZFeatureMap(PauliFeatureMap):
         reps: int = 2,
         entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "full",
         data_map_func: Optional[Callable[[np.ndarray], float]] = None,
+        parameter_prefix: str = "x",
         insert_barriers: bool = False,
         name: str = "ZZFeatureMap",
     ) -> None:
@@ -74,6 +75,7 @@ class ZZFeatureMap(PauliFeatureMap):
             entanglement: Specifies the entanglement structure. Refer to
                 :class:`~qiskit.circuit.library.NLocal` for detail.
             data_map_func: A mapping function for data x.
+            parameter_prefix: The prefix used if default parameters are generated.
             insert_barriers: If True, barriers are inserted in between the evolution instructions
                 and hadamard layers.
 
@@ -92,6 +94,7 @@ class ZZFeatureMap(PauliFeatureMap):
             entanglement=entanglement,
             paulis=["Z", "ZZ"],
             data_map_func=data_map_func,
+            parameter_prefix=parameter_prefix,
             insert_barriers=insert_barriers,
             name=name,
         )

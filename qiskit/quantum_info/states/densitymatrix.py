@@ -125,6 +125,11 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             self._op_shape.dims_l(),
         )
 
+    @property
+    def settings(self):
+        """Return settings."""
+        return {"data": self.data, "dims": self._op_shape.dims_l()}
+
     def draw(self, output=None, **drawer_args):
         """Return a visualization of the Statevector.
 
@@ -397,7 +402,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         if isinstance(oper, SparsePauliOp):
             return sum(
                 coeff * self._expectation_value_pauli(Pauli((z, x)), qargs)
-                for z, x, coeff in zip(oper.table.Z, oper.table.X, oper.coeffs)
+                for z, x, coeff in zip(oper.paulis.z, oper.paulis.x, oper.coeffs)
             )
 
         if not isinstance(oper, Operator):

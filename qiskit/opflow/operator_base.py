@@ -170,6 +170,13 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
         """
         return csr_matrix(self.to_matrix())
 
+    def is_hermitian(self) -> bool:
+        """Return True if the operator is hermitian.
+
+        Returns: Boolean value
+        """
+        return (self.to_spmatrix() != self.to_spmatrix().getH()).nnz == 0
+
     @staticmethod
     def _indent(lines: str, indentation: str = INDENTATION) -> str:
         """Indented representation to allow pretty representation of nested operators."""

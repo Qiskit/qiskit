@@ -65,9 +65,10 @@ class NLoptOptimizer(Optimizer):
             raise MissingOptionalLibraryError(
                 libname="nlopt",
                 name="NLoptOptimizer",
-                msg="See https://qiskit.org/documentation/apidoc/"
-                "qiskit.algorithms.optimizers.nlopts.html"
-                " for installation information",
+                msg=(
+                    "See https://qiskit.org/documentation/apidoc/"
+                    "qiskit.algorithms.optimizers.nlopts.html for installation information"
+                ),
             )
 
         super().__init__()

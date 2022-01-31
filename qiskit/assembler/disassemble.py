@@ -40,6 +40,14 @@ PulseModule = NewType("PulseModule", Tuple[List[pulse.Schedule], Dict[str, Any],
 def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
     """Disassemble a qobj and return the circuits or pulse schedules, run_config, and user header.
 
+    .. note::
+
+        ``disassemble(assemble(qc))`` is not guaranteed to produce an exactly equal circuit to the
+        input, due to limitations in the :obj:`.QasmQobj` format that need to be maintained for
+        backend system compatibility.  This is most likely to be the case when using newer features
+        of :obj:`.QuantumCircuit`.  In most cases, the output should be equivalent, if not quite
+        equal.
+
     Args:
         qobj (Qobj): The input qobj object to disassemble
 
@@ -176,13 +184,18 @@ def _experiments_to_circuits(qobj):
                     raw_map[creg] = mask
                     mask_map[int("".join(str(x) for x in mask), 2)] = creg
                 if bin(int(i.mask, 16)).count("1") == 1:
+                    # The condition is on a single bit.  This might be a single-bit condition, or it
+                    # might be a register of length one.  The case that it's a single-bit condition
+                    # in a register of length one is ambiguous, and we choose to return a condition
+                    # on the register.  This may not match the input circuit exactly, but is at
+                    # least equivalent.
                     cbit = int(math.log2(int(i.mask, 16)))
-                    for reg in creg_dict:
-                        size = creg_dict[reg].size
+                    for reg in creg_dict.values():
+                        size = reg.size
                         if cbit >= size:
                             cbit -= size
                         else:
-                            conditional["register"] = creg_dict[reg][cbit]
+                            conditional["register"] = reg if reg.size == 1 else reg[cbit]
                             break
                     mask_str = bin(int(i.mask, 16))[2:].zfill(full_bit_size)
                     mask = [int(item) for item in list(mask_str)]

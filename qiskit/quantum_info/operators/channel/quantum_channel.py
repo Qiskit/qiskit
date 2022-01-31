@@ -74,6 +74,15 @@ class QuantumChannel(LinearOp):
         """Return channel representation string"""
         return type(self).__name__
 
+    @property
+    def settings(self):
+        """Return settings."""
+        return {
+            "data": self.data,
+            "input_dims": self.input_dims(),
+            "output_dims": self.output_dims(),
+        }
+
     # ---------------------------------------------------------------------
     # LinearOp methods
     # ---------------------------------------------------------------------

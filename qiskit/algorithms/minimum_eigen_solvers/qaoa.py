@@ -112,6 +112,7 @@ class QAOA(VQE):
         self._reps = reps
         self._mixer = mixer
         self._initial_state = initial_state
+        self._cost_operator = None
 
         super().__init__(
             ansatz=None,
@@ -127,7 +128,8 @@ class QAOA(VQE):
 
     def _check_operator_ansatz(self, operator: OperatorBase) -> OperatorBase:
         # Recreates a circuit based on operator parameter.
-        if operator.num_qubits != self.ansatz.num_qubits:
+        if operator != self._cost_operator:
+            self._cost_operator = operator
             self.ansatz = QAOAAnsatz(
                 operator, self._reps, initial_state=self._initial_state, mixer_operator=self._mixer
             ).decompose()  # TODO remove decompose once #6674 is fixed

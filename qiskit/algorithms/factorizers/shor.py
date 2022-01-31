@@ -458,7 +458,7 @@ class Shor:
                 up_qreg_density_mat = partial_trace(complete_state_vec, range(2 * n, 4 * n + 2))
                 up_qreg_density_mat_diag = np.diag(up_qreg_density_mat)
 
-                counts = dict()
+                counts = {}
                 for i, v in enumerate(up_qreg_density_mat_diag):
                     if not v == 0:
                         counts[bin(int(i))[2:].zfill(2 * n)] = v ** 2
