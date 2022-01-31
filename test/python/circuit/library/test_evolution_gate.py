@@ -17,7 +17,7 @@ import scipy
 from ddt import ddt, data, unpack
 
 from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.circuit.library import PauliEvolutionGate, RYGate
 from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential, QDrift
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
@@ -276,10 +276,12 @@ class TestEvolutionGate(QiskitTestCase):
 
         self.assertTrue(Operator(lie_trotter).equiv(exact))
 
-    def test_complex_op_raises(self):
-        """Test an operator with complex coefficient raises an error."""
-        with self.assertRaises(ValueError):
-            _ = PauliEvolutionGate(Pauli("iZ"))
+    # TODO This test can be enabled once the complex coefficient check in the PauliEvolutionGate
+    # (see corresponding TODO) is enabled for the 0.20.0 release.
+    # def test_complex_op_raises(self):
+    #     """Test an operator with complex coefficient raises an error."""
+    #     with self.assertRaises(ValueError):
+    #         _ = PauliEvolutionGate(Pauli("iZ"))
 
     @data(LieTrotter, MatrixExponential)
     def test_inverse(self, synth_cls):
@@ -291,3 +293,18 @@ class TestEvolutionGate(QiskitTestCase):
         circuit.append(evo.inverse(), circuit.qubits)
 
         self.assertTrue(Operator(circuit).equiv(np.identity(2 ** circuit.num_qubits)))
+
+    def test_small_complex_coeff_allowed(self):
+        """Compatibility test with the Qiskit applications, which might pass small complex coeffs.
+
+        This test can be removed once the complex coefficient check in the PauliEvolutionGate
+        (see corresponding TODO) is enabled for the 0.20.0 release.
+        """
+        # operator data is from the Qiskit Nature test:
+        # test_excited_states_solvers.TestNumericalQEOMESCCalculation.test_vqe_mes_parity_auto
+        op = SparsePauliOp(
+            ["X", "Y"], coeffs=[-6.9388939e-18 + 2.08166817e-17j, 1.0000000e00 - 2.08166817e-17j]
+        )
+
+        evo = PauliEvolutionGate(op, time=1)
+        self.assertTrue(Operator(evo).equiv(RYGate(2)))

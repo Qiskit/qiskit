@@ -138,7 +138,9 @@ def _to_sparse_pauli_op(operator):
     else:
         raise ValueError(f"Unsupported operator type for evolution: {type(operator)}.")
 
-    if any(np.iscomplex(sparse_pauli.coeffs)):
-        raise ValueError("Operator contains complex coefficients, which are not supported.")
+    # TODO Enable this check for Qiskit Terra 0.20.0. It cannot be included in a 0.19.x release
+    # since it breaks already released application modules.
+    # if any(np.iscomplex(sparse_pauli.coeffs)):
+    #     raise ValueError("Operator contains complex coefficients, which are not supported.")
 
     return sparse_pauli
