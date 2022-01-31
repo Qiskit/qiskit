@@ -26,10 +26,9 @@ class TestUnroll3qOrMore(QiskitTestCase):
     gates until reaching only 1q or 2q gates."""
 
     def test_ccx(self):
-        """Test decompose CCX.
-        """
-        qr1 = QuantumRegister(2, 'qr1')
-        qr2 = QuantumRegister(1, 'qr2')
+        """Test decompose CCX."""
+        qr1 = QuantumRegister(2, "qr1")
+        qr2 = QuantumRegister(1, "qr2")
         circuit = QuantumCircuit(qr1, qr2)
         circuit.ccx(qr1[0], qr1[1], qr2[0])
         dag = circuit_to_dag(circuit)
@@ -38,13 +37,12 @@ class TestUnroll3qOrMore(QiskitTestCase):
         op_nodes = after_dag.op_nodes()
         self.assertEqual(len(op_nodes), 15)
         for node in op_nodes:
-            self.assertIn(node.name, ['h', 't', 'tdg', 'cx'])
+            self.assertIn(node.name, ["h", "t", "tdg", "cx"])
 
     def test_cswap(self):
-        """Test decompose CSwap (recursively).
-        """
-        qr1 = QuantumRegister(2, 'qr1')
-        qr2 = QuantumRegister(1, 'qr2')
+        """Test decompose CSwap (recursively)."""
+        qr1 = QuantumRegister(2, "qr1")
+        qr2 = QuantumRegister(1, "qr2")
         circuit = QuantumCircuit(qr1, qr2)
         circuit.cswap(qr1[0], qr1[1], qr2[0])
         dag = circuit_to_dag(circuit)
@@ -53,13 +51,12 @@ class TestUnroll3qOrMore(QiskitTestCase):
         op_nodes = after_dag.op_nodes()
         self.assertEqual(len(op_nodes), 17)
         for node in op_nodes:
-            self.assertIn(node.name, ['h', 't', 'tdg', 'cx'])
+            self.assertIn(node.name, ["h", "t", "tdg", "cx"])
 
     def test_decompose_conditional(self):
-        """Test decompose a 3-qubit gate with a conditional.
-        """
-        qr = QuantumRegister(3, 'qr')
-        cr = ClassicalRegister(1, 'cr')
+        """Test decompose a 3-qubit gate with a conditional."""
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
         circuit.ccx(qr[0], qr[1], qr[2]).c_if(cr, 0)
         dag = circuit_to_dag(circuit)
@@ -68,12 +65,12 @@ class TestUnroll3qOrMore(QiskitTestCase):
         op_nodes = after_dag.op_nodes()
         self.assertEqual(len(op_nodes), 15)
         for node in op_nodes:
-            self.assertIn(node.name, ['h', 't', 'tdg', 'cx'])
-            self.assertEqual(node.condition, (cr, 0))
+            self.assertIn(node.name, ["h", "t", "tdg", "cx"])
+            self.assertEqual(node.op.condition, (cr, 0))
 
     def test_decompose_unitary(self):
         """Test unrolling of unitary gate over 4qubits."""
-        qr = QuantumRegister(4, 'qr')
+        qr = QuantumRegister(4, "qr")
         circuit = QuantumCircuit(qr)
         unitary = random_unitary(16, seed=42)
         circuit.unitary(unitary, [0, 1, 2, 3])
@@ -85,7 +82,7 @@ class TestUnroll3qOrMore(QiskitTestCase):
 
     def test_identity(self):
         """Test unrolling of identity gate over 3qubits."""
-        qr = QuantumRegister(3, 'qr')
+        qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
         gate = UnitaryGate(np.eye(2 ** 3))
         circuit.append(gate, range(3))

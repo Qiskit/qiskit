@@ -35,7 +35,7 @@ class ParameterVectorElement(Parameter):
         return (self.vector, self.index, self._uuid)
 
     def __init__(self, vector, index):
-        name = f'{vector.name}[{index}]'
+        name = f"{vector.name}[{index}]"
         super().__init__(name)
         self._vector = vector
         self._index = index
@@ -49,6 +49,21 @@ class ParameterVectorElement(Parameter):
     def vector(self):
         """Get the parent vector instance."""
         return self._vector
+
+    def __getstate__(self):
+        return {
+            "name": self._name,
+            "uuid": self._uuid,
+            "vector": self._vector,
+            "index": self._index,
+        }
+
+    def __setstate__(self, state):
+        self._name = state["name"]
+        self._uuid = state["uuid"]
+        self._vector = state["vector"]
+        self._index = state["index"]
+        super().__init__(self._name)
 
 
 class ParameterVector:
@@ -81,20 +96,20 @@ class ParameterVector:
             return self.params[start:stop:step]
 
         if key > self._size:
-            raise IndexError('Index out of range: {} > {}'.format(key, self._size))
+            raise IndexError(f"Index out of range: {key} > {self._size}")
         return self.params[key]
 
     def __iter__(self):
-        return iter(self.params[:self._size])
+        return iter(self.params[: self._size])
 
     def __len__(self):
         return self._size
 
     def __str__(self):
-        return '{}, {}'.format(self.name, [str(item) for item in self.params[:self._size]])
+        return f"{self.name}, {[str(item) for item in self.params[: self._size]]}"
 
     def __repr__(self):
-        return '{}(name={}, length={})'.format(self.__class__.__name__, self.name, len(self))
+        return f"{self.__class__.__name__}(name={self.name}, length={len(self)})"
 
     def resize(self, length):
         """Resize the parameter vector.

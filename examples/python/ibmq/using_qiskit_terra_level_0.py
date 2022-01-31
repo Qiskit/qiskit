@@ -37,19 +37,19 @@ provider = IBMQ.load_account()
 qc1 = QuantumCircuit(2, 2)
 qc1.h(0)
 qc1.cx(0, 1)
-qc1.measure([0,1], [0,1])
+qc1.measure([0, 1], [0, 1])
 
 # making another circuit: superpositions
 qc2 = QuantumCircuit(2, 2)
-qc2.h([0,1])
-qc2.measure([0,1], [0,1])
+qc2.h([0, 1])
+qc2.measure([0, 1], [0, 1])
 
 # setting up the backend
 print("(BasicAER Backends)")
 print(BasicAer.backends())
 
 # running the job
-job_sim = execute([qc1, qc2], BasicAer.get_backend('qasm_simulator'))
+job_sim = execute([qc1, qc2], BasicAer.get_backend("qasm_simulator"))
 sim_result = job_sim.result()
 
 # Show the results
@@ -70,7 +70,7 @@ except:
 print("Running on current least busy device: ", least_busy_device)
 
 # running the job
-job_exp = execute([qc1, qc2], backend=least_busy_device, shots=1024, max_credits=10)
+job_exp = execute([qc1, qc2], backend=least_busy_device, shots=1024)
 
 job_monitor(job_exp)
 exp_result = job_exp.result()

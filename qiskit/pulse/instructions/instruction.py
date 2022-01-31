@@ -21,15 +21,11 @@ For example::
     sched = Schedule()
     sched += Delay(duration, channel)  # Delay is a specific subclass of Instruction
 """
-import warnings
-from abc import ABC
-from collections import defaultdict
-from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Any
+from abc import ABC, abstractmethod
+from typing import Callable, Iterable, List, Optional, Set, Tuple
 
-from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.utils import format_parameter_value
 
 
 # pylint: disable=missing-return-doc
@@ -40,17 +36,15 @@ class Instruction(ABC):
     channels.
     """
 
-    def __init__(self,
-                 operands: Tuple,
-                 duration: int,
-                 channels: Tuple[Channel],
-                 name: Optional[str] = None):
+    def __init__(
+        self,
+        operands: Tuple,
+        name: Optional[str] = None,
+    ):
         """Instruction initializer.
 
         Args:
             operands: The argument list.
-            duration: Deprecated.
-            channels: Tuple of pulse channels that this instruction operates on.
             name: Optional display name for this instruction.
 
         Raises:
@@ -58,24 +52,13 @@ class Instruction(ABC):
             PulseError: If the input ``channels`` are not all of
                 type :class:`Channel`.
         """
-        for channel in channels:
-            if not isinstance(channel, Channel):
-                raise PulseError("Expected a channel, got {} instead.".format(channel))
-
-        if duration is not None:
-            warnings.warn('Specifying duration in the constructor is deprecated. '
-                          'Now duration is an abstract property rather than class variable. '
-                          'All subclasses should implement ``duration`` accordingly. '
-                          'See Qiskit-Terra #5679 for more information.',
-                          DeprecationWarning)
-
-        self._channels = channels
         self._operands = operands
         self._name = name
         self._hash = None
 
-        self._parameter_table = defaultdict(list)
-        self._initialize_parameter_table(operands)
+        for channel in self.channels:
+            if not isinstance(channel, Channel):
+                raise PulseError(f"Expected a channel, got {channel} instead.")
 
     @property
     def name(self) -> str:
@@ -93,9 +76,10 @@ class Instruction(ABC):
         return self._operands
 
     @property
+    @abstractmethod
     def channels(self) -> Tuple[Channel]:
-        """Returns channels that this schedule uses."""
-        return self._channels
+        """Returns the channels that this schedule uses."""
+        raise NotImplementedError
 
     @property
     def start_time(self) -> int:
@@ -113,12 +97,12 @@ class Instruction(ABC):
         raise NotImplementedError
 
     @property
-    def _children(self) -> Tuple['Instruction']:
+    def _children(self) -> Tuple["Instruction"]:
         """Instruction has no child nodes."""
         return ()
 
     @property
-    def instructions(self) -> Tuple[Tuple[int, 'Instruction']]:
+    def instructions(self) -> Tuple[Tuple[int, "Instruction"]]:
         """Iterable for getting instructions from Schedule tree."""
         return tuple(self._instructions())
 
@@ -130,10 +114,7 @@ class Instruction(ABC):
         """
         return self.ch_stop_time(*channels)
 
-    def ch_start_time(
-            self,
-            *channels: List[Channel]
-    ) -> int:
+    def ch_start_time(self, *channels: List[Channel]) -> int:
         # pylint: disable=unused-argument
         """Return minimum start time for supplied channels.
 
@@ -152,7 +133,7 @@ class Instruction(ABC):
             return self.duration
         return 0
 
-    def _instructions(self, time: int = 0) -> Iterable[Tuple[int, 'Instruction']]:
+    def _instructions(self, time: int = 0) -> Iterable[Tuple[int, "Instruction"]]:
         """Iterable for flattening Schedule tree.
 
         Args:
@@ -164,17 +145,7 @@ class Instruction(ABC):
         """
         yield (time, self)
 
-    def flatten(self) -> 'Instruction':
-        """Return itself as already single instruction."""
-
-        warnings.warn('`This method is being deprecated. Please use '
-                      '`qiskit.pulse.transforms.flatten` function with this schedule.',
-                      DeprecationWarning)
-
-        return self
-
-    def shift(self,
-              time: int, name: Optional[str] = None):
+    def shift(self, time: int, name: Optional[str] = None):
         """Return a new schedule shifted forward by `time`.
 
         Args:
@@ -190,8 +161,7 @@ class Instruction(ABC):
             name = self.name
         return Schedule((time, self), name=name)
 
-    def insert(self, start_time: int, schedule,
-               name: Optional[str] = None):
+    def insert(self, start_time: int, schedule, name: Optional[str] = None):
         """Return a new :class:`~qiskit.pulse.Schedule` with ``schedule`` inserted within
         ``self`` at ``start_time``.
 
@@ -209,8 +179,7 @@ class Instruction(ABC):
             name = self.name
         return Schedule(self, (start_time, schedule), name=name)
 
-    def append(self, schedule,
-               name: Optional[str] = None):
+    def append(self, schedule, name: Optional[str] = None):
         """Return a new :class:`~qiskit.pulse.Schedule` with ``schedule`` inserted at the
         maximum time over all channels shared between ``self`` and ``schedule``.
 
@@ -228,71 +197,32 @@ class Instruction(ABC):
     @property
     def parameters(self) -> Set:
         """Parameters which determine the instruction behavior."""
-        return set(self._parameter_table.keys())
+        parameters = set()
+        for op in self.operands:
+            if hasattr(op, "parameters"):
+                for op_param in op.parameters:
+                    parameters.add(op_param)
+        return parameters
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
-        return bool(self.parameters)
+        return any(chan.is_parameterized() for chan in self.channels)
 
-    def _initialize_parameter_table(self,
-                                    operands: Tuple[Any]):
-        """A helper method to initialize parameter table.
-
-        Args:
-            operands: List of operands associated with this instruction.
-        """
-        for idx, op in enumerate(operands):
-            if isinstance(op, ParameterExpression):
-                for param in op.parameters:
-                    self._parameter_table[param].append(idx)
-            elif isinstance(op, Channel) and op.is_parameterized():
-                for param in op.parameters:
-                    self._parameter_table[param].append(idx)
-
-    def assign_parameters(self,
-                          value_dict: Dict[ParameterExpression, ParameterValueType]
-                          ) -> 'Instruction':
-        """Modify and return self with parameters assigned according to the input.
-
-        Args:
-            value_dict: A mapping from Parameters to either numeric values or another
-                Parameter expression.
-
-        Returns:
-            Self with updated parameters.
-        """
-        new_operands = list(self.operands)
-
-        for parameter in self.parameters:
-            if parameter not in value_dict:
-                continue
-
-            value = value_dict[parameter]
-            op_indices = self._parameter_table[parameter]
-            for op_idx in op_indices:
-                param_expr = new_operands[op_idx]
-                new_operands[op_idx] = format_parameter_value(param_expr.assign(parameter, value))
-
-            # Update parameter table
-            entry = self._parameter_table.pop(parameter)
-            if isinstance(value, ParameterExpression):
-                for new_parameter in value.parameters:
-                    if new_parameter in self._parameter_table:
-                        new_entry = set(entry + self._parameter_table[new_parameter])
-                        self._parameter_table[new_parameter] = list(new_entry)
-                    else:
-                        self._parameter_table[new_parameter] = entry
-
-        self._operands = tuple(new_operands)
-        return self
-
-    def draw(self, dt: float = 1, style=None,
-             filename: Optional[str] = None, interp_method: Optional[Callable] = None,
-             scale: float = 1, plot_all: bool = False,
-             plot_range: Optional[Tuple[float]] = None,
-             interactive: bool = False, table: bool = True,
-             label: bool = False, framechange: bool = True,
-             channels: Optional[List[Channel]] = None):
+    def draw(
+        self,
+        dt: float = 1,
+        style=None,
+        filename: Optional[str] = None,
+        interp_method: Optional[Callable] = None,
+        scale: float = 1,
+        plot_all: bool = False,
+        plot_range: Optional[Tuple[float]] = None,
+        interactive: bool = False,
+        table: bool = True,
+        label: bool = False,
+        framechange: bool = True,
+        channels: Optional[List[Channel]] = None,
+    ):
         """Plot the instruction.
 
         Args:
@@ -316,15 +246,23 @@ class Instruction(ABC):
         # pylint: disable=cyclic-import
         from qiskit import visualization
 
-        return visualization.pulse_drawer(self, dt=dt, style=style,
-                                          filename=filename, interp_method=interp_method,
-                                          scale=scale,
-                                          plot_all=plot_all, plot_range=plot_range,
-                                          interactive=interactive, table=table,
-                                          label=label, framechange=framechange,
-                                          channels=channels)
+        return visualization.pulse_drawer(
+            self,
+            dt=dt,
+            style=style,
+            filename=filename,
+            interp_method=interp_method,
+            scale=scale,
+            plot_all=plot_all,
+            plot_range=plot_range,
+            interactive=interactive,
+            table=table,
+            label=label,
+            framechange=framechange,
+            channels=channels,
+        )
 
-    def __eq__(self, other: 'Instruction') -> bool:
+    def __eq__(self, other: "Instruction") -> bool:
         """Check if this Instruction is equal to the `other` instruction.
 
         Equality is determined by the instruction sharing the same operands and channels.
@@ -367,6 +305,7 @@ class Instruction(ABC):
         return self.shift(time)
 
     def __repr__(self) -> str:
-        operands = ', '.join(str(op) for op in self.operands)
-        return "{}({}{})".format(self.__class__.__name__, operands,
-                                 ", name='{}'".format(self.name) if self.name else "")
+        operands = ", ".join(str(op) for op in self.operands)
+        return "{}({}{})".format(
+            self.__class__.__name__, operands, f", name='{self.name}'" if self.name else ""
+        )

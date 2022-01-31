@@ -59,7 +59,7 @@ def is_power(num, return_decomposition=False):
             m = int((a + c) / 2)
 
             if (m ** b) < (num + 1):
-                p = int((m ** b))
+                p = int(m ** b)
             else:
                 p = int(num + 1)
 
@@ -127,7 +127,7 @@ def transpositions(permutation: List[int]) -> List[Tuple[int, int]]:
             res.append((x[0], x[1]))
         elif len_x > 2:
             first = x[0]
-            for y in x[len_x - 1:0:-1]:
+            for y in x[len_x - 1 : 0 : -1]:
                 res.append((first, y))
     return res
 

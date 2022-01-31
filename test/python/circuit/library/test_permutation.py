@@ -56,5 +56,5 @@ class TestPermutationLibrary(QiskitTestCase):
             self.assertLess(len(swap_list), width)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

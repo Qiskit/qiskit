@@ -13,3 +13,4 @@
 """Mock burlington backend"""
 
 from .fake_burlington import FakeBurlington
+from .fake_burlington import FakeLegacyBurlington

@@ -1,0 +1,28 @@
+---
+features:
+  - |
+    A new kwarg, ``format_marginal`` has been added to the function
+    :func:`~qiskit.result.utils.marginal_counts` which when set to ``True``
+    formats the counts output according to the
+    :attr:`~qiskit.circuit.QuantumCircuit.cregs` in the circuit and missing
+    indices are represented with a ``_``. For example:
+
+    .. jupyter-execute::
+
+        from qiskit import QuantumCircuit, execute, BasicAer, result
+        from qiskit.result.utils import marginal_counts
+        qc = QuantumCircuit(5, 5)
+        qc.x(0)
+        qc.measure(0, 0)
+
+        result = execute(qc, BasicAer.get_backend('qasm_simulator')).result()
+        print(marginal_counts(result.get_counts(), [0, 2, 4], format_marginal=True))
+
+fixes:
+  - |
+    An issue when passing the :class:`~qiskit.result.Counts` object
+    returned by :meth:`~qiskit.result.Result.get_counts` to
+    :func:`~qiskit.result.marginal_counts` would produce an improperly
+    formatted :class:`~qiskit.result.Counts` object with certain inputs has
+    been fixed. Fixes
+    `#5424 <https://github.com/Qiskit/qiskit-terra/issues/5424>`__

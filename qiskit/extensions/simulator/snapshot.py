@@ -24,43 +24,36 @@ class Snapshot(Instruction):
 
     _directive = True
 
-    def __init__(self,
-                 label,
-                 snapshot_type='statevector',
-                 num_qubits=0,
-                 num_clbits=0,
-                 params=None):
+    def __init__(self, label, snapshot_type="statevector", num_qubits=0, num_clbits=0, params=None):
         """Create new snapshot instruction.
 
         Args:
             label (str): the snapshot label for result data.
             snapshot_type (str): the type of the snapshot.
             num_qubits (int): the number of qubits for the snapshot type [Default: 0].
-            num_clbits (int): the number of classical bits for the snapshot type [Default: 0].
+            num_clbits (int): the number of classical bits for the snapshot type
+                              [Default: 0].
             params (list or None): the parameters for snapshot_type [Default: None].
 
         Raises:
             ExtensionError: if snapshot label is invalid.
         """
         if not isinstance(label, str):
-            raise ExtensionError('Snapshot label must be a string.')
-        self._label = label
+            raise ExtensionError("Snapshot label must be a string.")
         self._snapshot_type = snapshot_type
         if params is None:
             params = []
-        super().__init__('snapshot', num_qubits, num_clbits, params)
+        super().__init__("snapshot", num_qubits, num_clbits, params, label=label)
 
     def assemble(self):
         """Assemble a QasmQobjInstruction"""
         instruction = super().assemble()
-        instruction.label = self._label
         instruction.snapshot_type = self._snapshot_type
         return instruction
 
     def inverse(self):
         """Special case. Return self."""
-        return Snapshot(self.num_qubits, self.num_clbits, self.params[0],
-                        self.params[1])
+        return Snapshot(self.num_qubits, self.num_clbits, self.params[0], self.params[1])
 
     @property
     def snapshot_type(self):
@@ -85,17 +78,13 @@ class Snapshot(Instruction):
         if isinstance(name, str):
             self._label = name
         else:
-            raise TypeError('label expects a string')
+            raise TypeError("label expects a string")
 
     def c_if(self, classical, val):
-        raise QiskitError('Snapshots are simulator directives and cannot be conditional.')
+        raise QiskitError("Snapshots are simulator directives and cannot be conditional.")
 
 
-def snapshot(self,
-             label,
-             snapshot_type='statevector',
-             qubits=None,
-             params=None):
+def snapshot(self, label, snapshot_type="statevector", qubits=None, params=None):
     """Take a statevector snapshot of the internal simulator representation.
     Works on all qubits, and prevents reordering (like barrier).
 
@@ -123,7 +112,7 @@ def snapshot(self,
             for register in self.qregs:
                 tuples.append(register)
         if not tuples:
-            raise ExtensionError('no qubits for snapshot')
+            raise ExtensionError("no qubits for snapshot")
         qubits = []
         for tuple_element in tuples:
             if isinstance(tuple_element, QuantumRegister):
@@ -132,11 +121,8 @@ def snapshot(self,
             else:
                 qubits.append(tuple_element)
     return self.append(
-        Snapshot(
-            label,
-            snapshot_type=snapshot_type,
-            num_qubits=len(qubits),
-            params=params), qubits)
+        Snapshot(label, snapshot_type=snapshot_type, num_qubits=len(qubits), params=params), qubits
+    )
 
 
 # Add to QuantumCircuit class

@@ -31,91 +31,90 @@ field, which is a result of measurements for each shot.
 import uuid
 import time
 import logging
+import warnings
 
 from math import log2
 from collections import Counter
 import numpy as np
 
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.utils.multiprocessing import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.result import Result
-from qiskit.providers import BaseBackend
+from qiskit.providers.backend import BackendV1
+from qiskit.providers.options import Options
 from qiskit.providers.basicaer.basicaerjob import BasicAerJob
 from .exceptions import BasicAerError
 from .basicaertools import single_gate_matrix
+from .basicaertools import SINGLE_QUBIT_GATES
 from .basicaertools import cx_gate_matrix
 from .basicaertools import einsum_vecmul_index
 
 logger = logging.getLogger(__name__)
 
 
-class QasmSimulatorPy(BaseBackend):
+class QasmSimulatorPy(BackendV1):
     """Python implementation of a qasm simulator."""
 
-    MAX_QUBITS_MEMORY = int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16))
+    MAX_QUBITS_MEMORY = int(log2(local_hardware_info()["memory"] * (1024 ** 3) / 16))
 
     DEFAULT_CONFIGURATION = {
-        'backend_name': 'qasm_simulator',
-        'backend_version': '2.0.0',
-        'n_qubits': min(24, MAX_QUBITS_MEMORY),
-        'url': 'https://github.com/Qiskit/qiskit-terra',
-        'simulator': True,
-        'local': True,
-        'conditional': True,
-        'open_pulse': False,
-        'memory': True,
-        'max_shots': 65536,
-        'coupling_map': None,
-        'description': 'A python simulator for qasm experiments',
-        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'unitary'],
-        'gates': [
+        "backend_name": "qasm_simulator",
+        "backend_version": "2.1.0",
+        "n_qubits": min(24, MAX_QUBITS_MEMORY),
+        "url": "https://github.com/Qiskit/qiskit-terra",
+        "simulator": True,
+        "local": True,
+        "conditional": True,
+        "open_pulse": False,
+        "memory": True,
+        "max_shots": 65536,
+        "coupling_map": None,
+        "description": "A python simulator for qasm experiments",
+        "basis_gates": ["u1", "u2", "u3", "rz", "sx", "x", "cx", "id", "unitary"],
+        "gates": [
             {
-                'name': 'u1',
-                'parameters': ['lambda'],
-                'qasm_def': 'gate u1(lambda) q { U(0,0,lambda) q; }'
+                "name": "u1",
+                "parameters": ["lambda"],
+                "qasm_def": "gate u1(lambda) q { U(0,0,lambda) q; }",
             },
             {
-                'name': 'u2',
-                'parameters': ['phi', 'lambda'],
-                'qasm_def': 'gate u2(phi,lambda) q { U(pi/2,phi,lambda) q; }'
+                "name": "u2",
+                "parameters": ["phi", "lambda"],
+                "qasm_def": "gate u2(phi,lambda) q { U(pi/2,phi,lambda) q; }",
             },
             {
-                'name': 'u3',
-                'parameters': ['theta', 'phi', 'lambda'],
-                'qasm_def': 'gate u3(theta,phi,lambda) q { U(theta,phi,lambda) q; }'
+                "name": "u3",
+                "parameters": ["theta", "phi", "lambda"],
+                "qasm_def": "gate u3(theta,phi,lambda) q { U(theta,phi,lambda) q; }",
             },
+            {"name": "rz", "parameters": ["phi"], "qasm_def": "gate rz(phi) q { U(0,0,phi) q; }"},
             {
-                'name': 'cx',
-                'parameters': ['c', 't'],
-                'qasm_def': 'gate cx c,t { CX c,t; }'
+                "name": "sx",
+                "parameters": [],
+                "qasm_def": "gate sx(phi) q { U(pi/2,7*pi/2,pi/2) q; }",
             },
-            {
-                'name': 'id',
-                'parameters': ['a'],
-                'qasm_def': 'gate id a { U(0,0,0) a; }'
-            },
-            {
-                'name': 'unitary',
-                'parameters': ['matrix'],
-                'qasm_def': 'unitary(matrix) q1, q2,...'
-            }
-        ]
+            {"name": "x", "parameters": [], "qasm_def": "gate x q { U(pi,7*pi/2,pi/2) q; }"},
+            {"name": "cx", "parameters": [], "qasm_def": "gate cx c,t { CX c,t; }"},
+            {"name": "id", "parameters": [], "qasm_def": "gate id a { U(0,0,0) a; }"},
+            {"name": "unitary", "parameters": ["matrix"], "qasm_def": "unitary(matrix) q1, q2,..."},
+        ],
     }
 
-    DEFAULT_OPTIONS = {
-        "initial_statevector": None,
-        "chop_threshold": 1e-15
-    }
+    DEFAULT_OPTIONS = {"initial_statevector": None, "chop_threshold": 1e-15}
 
     # Class level variable to return the final state at the end of simulation
     # This should be set to True for the statevector simulator
     SHOW_FINAL_STATE = False
 
-    def __init__(self, configuration=None, provider=None):
-        super().__init__(configuration=(
-            configuration or QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
-                         provider=provider)
-
+    def __init__(self, configuration=None, provider=None, **fields):
+        super().__init__(
+            configuration=(
+                configuration or QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)
+            ),
+            provider=provider,
+            **fields,
+        )
         # Define attributes in __init__.
         self._local_random = np.random.RandomState()
         self._classical_memory = 0
@@ -125,11 +124,23 @@ class QasmSimulatorPy(BaseBackend):
         self._number_of_qubits = 0
         self._shots = 0
         self._memory = False
-        self._initial_statevector = self.DEFAULT_OPTIONS["initial_statevector"]
-        self._chop_threshold = self.DEFAULT_OPTIONS["chop_threshold"]
+        self._initial_statevector = self.options.get("initial_statevector")
+        self._chop_threshold = self.options.get("chop_threashold")
         self._qobj_config = None
         # TEMP
         self._sample_measure = False
+
+    @classmethod
+    def _default_options(cls):
+        return Options(
+            shots=1024,
+            memory=False,
+            initial_statevector=None,
+            chop_threshold=1e-15,
+            allow_sample_measuring=True,
+            seed_simulator=None,
+            parameter_binds=None,
+        )
 
     def _add_unitary(self, gate, qubits):
         """Apply an N-qubit unitary matrix.
@@ -143,11 +154,11 @@ class QasmSimulatorPy(BaseBackend):
         # Compute einsum index string for 1-qubit matrix multiplication
         indexes = einsum_vecmul_index(qubits, self._number_of_qubits)
         # Convert to complex rank-2N tensor
-        gate_tensor = np.reshape(np.array(gate, dtype=complex),
-                                 num_qubits * [2, 2])
+        gate_tensor = np.reshape(np.array(gate, dtype=complex), num_qubits * [2, 2])
         # Apply matrix multiplication
-        self._statevector = np.einsum(indexes, gate_tensor, self._statevector,
-                                      dtype=complex, casting='no')
+        self._statevector = np.einsum(
+            indexes, gate_tensor, self._statevector, dtype=complex, casting="no"
+        )
 
     def _get_measure_outcome(self, qubit):
         """Simulate the outcome of measurement of a qubit.
@@ -166,9 +177,9 @@ class QasmSimulatorPy(BaseBackend):
         # Compute einsum index string for 1-qubit matrix multiplication
         random_number = self._local_random.rand()
         if random_number < probabilities[0]:
-            return '0', probabilities[0]
+            return "0", probabilities[0]
         # Else outcome was '1'
-        return '1', probabilities[1]
+        return "1", probabilities[1]
 
     def _add_sample_measure(self, measure_params, num_samples):
         """Generate memory samples from current statevector.
@@ -193,14 +204,13 @@ class QasmSimulatorPy(BaseBackend):
             # Remove from largest qubit to smallest so list position is correct
             # with respect to position from end of the list
             axis.remove(self._number_of_qubits - 1 - qubit)
-        probabilities = np.reshape(np.sum(np.abs(self._statevector) ** 2,
-                                          axis=tuple(axis)),
-                                   2 ** num_measured)
+        probabilities = np.reshape(
+            np.sum(np.abs(self._statevector) ** 2, axis=tuple(axis)), 2 ** num_measured
+        )
         # Generate samples on measured qubits as ints with qubit
         # position in the bit-string for each int given by the qubit
         # position in the sorted measured_qubits list
-        samples = self._local_random.choice(range(2 ** num_measured),
-                                            num_samples, p=probabilities)
+        samples = self._local_random.choice(range(2 ** num_measured), num_samples, p=probabilities)
         # Convert the ints to bitstrings
         memory = []
         for sample in samples:
@@ -230,11 +240,12 @@ class QasmSimulatorPy(BaseBackend):
 
         if cregbit is not None:
             regbit = 1 << cregbit
-            self._classical_register = \
-                (self._classical_register & (~regbit)) | (int(outcome) << cregbit)
+            self._classical_register = (self._classical_register & (~regbit)) | (
+                int(outcome) << cregbit
+            )
 
         # update quantum state
-        if outcome == '0':
+        if outcome == "0":
             update_diag = [[1 / np.sqrt(probability), 0], [0, 0]]
         else:
             update_diag = [[0, 0], [0, 1 / np.sqrt(probability)]]
@@ -254,7 +265,7 @@ class QasmSimulatorPy(BaseBackend):
         # get measure outcome
         outcome, probability = self._get_measure_outcome(qubit)
         # update quantum state
-        if outcome == '0':
+        if outcome == "0":
             update = [[1 / np.sqrt(probability), 0], [0, 0]]
             self._add_unitary(update, [qubit])
         else:
@@ -270,50 +281,48 @@ class QasmSimulatorPy(BaseBackend):
         length = len(self._initial_statevector)
         required_dim = 2 ** self._number_of_qubits
         if length != required_dim:
-            raise BasicAerError('initial statevector is incorrect length: ' +
-                                '{} != {}'.format(length, required_dim))
+            raise BasicAerError(
+                f"initial statevector is incorrect length: {length} != {required_dim}"
+            )
 
     def _set_options(self, qobj_config=None, backend_options=None):
         """Set the backend options for all experiments in a qobj"""
         # Reset default options
-        self._initial_statevector = self.DEFAULT_OPTIONS["initial_statevector"]
-        self._chop_threshold = self.DEFAULT_OPTIONS["chop_threshold"]
-        if backend_options is None:
-            backend_options = {}
+        self._initial_statevector = self.options.get("initial_statevector")
+        self._chop_threshold = self.options.get("chop_threshold")
+        if "backend_options" in backend_options and backend_options["backend_options"]:
+            backend_options = backend_options["backend_options"]
 
         # Check for custom initial statevector in backend_options first,
         # then config second
-        if 'initial_statevector' in backend_options:
-            self._initial_statevector = np.array(backend_options['initial_statevector'],
-                                                 dtype=complex)
-        elif hasattr(qobj_config, 'initial_statevector'):
-            self._initial_statevector = np.array(qobj_config.initial_statevector,
-                                                 dtype=complex)
+        if "initial_statevector" in backend_options:
+            self._initial_statevector = np.array(
+                backend_options["initial_statevector"], dtype=complex
+            )
+        elif hasattr(qobj_config, "initial_statevector"):
+            self._initial_statevector = np.array(qobj_config.initial_statevector, dtype=complex)
         if self._initial_statevector is not None:
             # Check the initial statevector is normalized
             norm = np.linalg.norm(self._initial_statevector)
             if round(norm, 12) != 1:
-                raise BasicAerError('initial statevector is not normalized: ' +
-                                    'norm {} != 1'.format(norm))
+                raise BasicAerError(f"initial statevector is not normalized: norm {norm} != 1")
         # Check for custom chop threshold
         # Replace with custom options
-        if 'chop_threshold' in backend_options:
-            self._chop_threshold = backend_options['chop_threshold']
-        elif hasattr(qobj_config, 'chop_threshold'):
+        if "chop_threshold" in backend_options:
+            self._chop_threshold = backend_options["chop_threshold"]
+        elif hasattr(qobj_config, "chop_threshold"):
             self._chop_threshold = qobj_config.chop_threshold
 
     def _initialize_statevector(self):
         """Set the initial statevector for simulation"""
         if self._initial_statevector is None:
             # Set to default state of all qubits in |0>
-            self._statevector = np.zeros(2 ** self._number_of_qubits,
-                                         dtype=complex)
+            self._statevector = np.zeros(2 ** self._number_of_qubits, dtype=complex)
             self._statevector[0] = 1
         else:
             self._statevector = self._initial_statevector.copy()
         # Reshape to rank-N tensor
-        self._statevector = np.reshape(self._statevector,
-                                       self._number_of_qubits * [2])
+        self._statevector = np.reshape(self._statevector, self._number_of_qubits * [2])
 
     def _get_statevector(self):
         """Return the current statevector"""
@@ -335,7 +344,7 @@ class QasmSimulatorPy(BaseBackend):
             return
 
         # Check for config flag
-        if hasattr(experiment.config, 'allows_measure_sampling'):
+        if hasattr(experiment.config, "allows_measure_sampling"):
             self._sample_measure = experiment.config.allows_measure_sampling
         # If flag isn't found do a simple test to see if a circuit contains
         # no reset instructions, and no gates instructions after
@@ -361,7 +370,7 @@ class QasmSimulatorPy(BaseBackend):
             # measure sampling is allowed
             self._sample_measure = True
 
-    def run(self, qobj, backend_options=None):
+    def run(self, qobj, **backend_options):
         """Run qobj asynchronously.
 
         Args:
@@ -386,11 +395,29 @@ class QasmSimulatorPy(BaseBackend):
                     "initial_statevector": np.array([1, 0, 0, 1j]) / np.sqrt(2),
                 }
         """
-        self._set_options(qobj_config=qobj.config,
-                          backend_options=backend_options)
+        if isinstance(qobj, (QuantumCircuit, list)):
+            from qiskit.compiler import assemble
+
+            out_options = {}
+            for key in backend_options:
+                if not hasattr(self.options, key):
+                    warnings.warn(
+                        "Option %s is not used by this backend" % key, UserWarning, stacklevel=2
+                    )
+                else:
+                    out_options[key] = backend_options[key]
+            qobj = assemble(qobj, self, **out_options)
+            qobj_options = qobj.config
+        else:
+            warnings.warn(
+                "Using a qobj for run() is deprecated and will be removed in a future release.",
+                PendingDeprecationWarning,
+                stacklevel=2,
+            )
+            qobj_options = qobj.config
+        self._set_options(qobj_config=qobj_options, backend_options=backend_options)
         job_id = str(uuid.uuid4())
-        job = BasicAerJob(self, job_id, self._run_job, qobj)
-        job.submit()
+        job = BasicAerJob(self, job_id, self._run_job(job_id, qobj))
         return job
 
     def _run_job(self, job_id, qobj):
@@ -406,21 +433,23 @@ class QasmSimulatorPy(BaseBackend):
         self._validate(qobj)
         result_list = []
         self._shots = qobj.config.shots
-        self._memory = getattr(qobj.config, 'memory', False)
+        self._memory = getattr(qobj.config, "memory", False)
         self._qobj_config = qobj.config
         start = time.time()
         for experiment in qobj.experiments:
             result_list.append(self.run_experiment(experiment))
         end = time.time()
-        result = {'backend_name': self.name(),
-                  'backend_version': self._configuration.backend_version,
-                  'qobj_id': qobj.qobj_id,
-                  'job_id': job_id,
-                  'results': result_list,
-                  'status': 'COMPLETED',
-                  'success': True,
-                  'time_taken': (end - start),
-                  'header': qobj.header.to_dict()}
+        result = {
+            "backend_name": self.name(),
+            "backend_version": self._configuration.backend_version,
+            "qobj_id": qobj.qobj_id,
+            "job_id": job_id,
+            "results": result_list,
+            "status": "COMPLETED",
+            "success": True,
+            "time_taken": (end - start),
+            "header": qobj.header.to_dict(),
+        }
 
         return Result.from_dict(result)
 
@@ -460,14 +489,14 @@ class QasmSimulatorPy(BaseBackend):
         # Validate the dimension of initial statevector if set
         self._validate_initial_statevector()
         # Get the seed looking in circuit, qobj, and then random.
-        if hasattr(experiment.config, 'seed_simulator'):
+        if hasattr(experiment.config, "seed_simulator"):
             seed_simulator = experiment.config.seed_simulator
-        elif hasattr(self._qobj_config, 'seed_simulator'):
+        elif hasattr(self._qobj_config, "seed_simulator"):
             seed_simulator = self._qobj_config.seed_simulator
         else:
             # For compatibility on Windows force dyte to be int32
             # and set the maximum value to be (2 ** 31) - 1
-            seed_simulator = np.random.randint(2147483647, dtype='int32')
+            seed_simulator = np.random.randint(2147483647, dtype="int32")
 
         self._local_random.seed(seed=seed_simulator)
         # Check if measure sampling is supported for current circuit
@@ -492,7 +521,7 @@ class QasmSimulatorPy(BaseBackend):
             self._classical_memory = 0
             self._classical_register = 0
             for operation in experiment.instructions:
-                conditional = getattr(operation, 'conditional', None)
+                conditional = getattr(operation, "conditional", None)
                 if isinstance(conditional, int):
                     conditional_bit_set = (self._classical_register >> conditional) & 1
                     if not conditional_bit_set:
@@ -508,35 +537,35 @@ class QasmSimulatorPy(BaseBackend):
                             continue
 
                 # Check if single  gate
-                if operation.name == 'unitary':
+                if operation.name == "unitary":
                     qubits = operation.qubits
                     gate = operation.params[0]
                     self._add_unitary(gate, qubits)
-                elif operation.name in ('U', 'u1', 'u2', 'u3'):
-                    params = getattr(operation, 'params', None)
+                elif operation.name in SINGLE_QUBIT_GATES:
+                    params = getattr(operation, "params", None)
                     qubit = operation.qubits[0]
                     gate = single_gate_matrix(operation.name, params)
                     self._add_unitary(gate, [qubit])
                 # Check if CX gate
-                elif operation.name in ('id', 'u0'):
+                elif operation.name in ("id", "u0"):
                     pass
-                elif operation.name in ('CX', 'cx'):
+                elif operation.name in ("CX", "cx"):
                     qubit0 = operation.qubits[0]
                     qubit1 = operation.qubits[1]
                     gate = cx_gate_matrix()
                     self._add_unitary(gate, [qubit0, qubit1])
                 # Check if reset
-                elif operation.name == 'reset':
+                elif operation.name == "reset":
                     qubit = operation.qubits[0]
                     self._add_qasm_reset(qubit)
                 # Check if barrier
-                elif operation.name == 'barrier':
+                elif operation.name == "barrier":
                     pass
                 # Check if measure
-                elif operation.name == 'measure':
+                elif operation.name == "measure":
                     qubit = operation.qubits[0]
                     cmembit = operation.memory[0]
-                    cregbit = operation.register[0] if hasattr(operation, 'register') else None
+                    cregbit = operation.register[0] if hasattr(operation, "register") else None
 
                     if self._sample_measure:
                         # If sampling measurements record the qubit and cmembit
@@ -545,39 +574,41 @@ class QasmSimulatorPy(BaseBackend):
                     else:
                         # If not sampling perform measurement as normal
                         self._add_qasm_measure(qubit, cmembit, cregbit)
-                elif operation.name == 'bfunc':
+                elif operation.name == "bfunc":
                     mask = int(operation.mask, 16)
                     relation = operation.relation
                     val = int(operation.val, 16)
 
                     cregbit = operation.register
-                    cmembit = operation.memory if hasattr(operation, 'memory') else None
+                    cmembit = operation.memory if hasattr(operation, "memory") else None
 
                     compared = (self._classical_register & mask) - val
 
-                    if relation == '==':
-                        outcome = (compared == 0)
-                    elif relation == '!=':
-                        outcome = (compared != 0)
-                    elif relation == '<':
-                        outcome = (compared < 0)
-                    elif relation == '<=':
-                        outcome = (compared <= 0)
-                    elif relation == '>':
-                        outcome = (compared > 0)
-                    elif relation == '>=':
-                        outcome = (compared >= 0)
+                    if relation == "==":
+                        outcome = compared == 0
+                    elif relation == "!=":
+                        outcome = compared != 0
+                    elif relation == "<":
+                        outcome = compared < 0
+                    elif relation == "<=":
+                        outcome = compared <= 0
+                    elif relation == ">":
+                        outcome = compared > 0
+                    elif relation == ">=":
+                        outcome = compared >= 0
                     else:
-                        raise BasicAerError('Invalid boolean function relation.')
+                        raise BasicAerError("Invalid boolean function relation.")
 
                     # Store outcome in register and optionally memory slot
                     regbit = 1 << cregbit
-                    self._classical_register = \
-                        (self._classical_register & (~regbit)) | (int(outcome) << cregbit)
+                    self._classical_register = (self._classical_register & (~regbit)) | (
+                        int(outcome) << cregbit
+                    )
                     if cmembit is not None:
                         membit = 1 << cmembit
-                        self._classical_memory = \
-                            (self._classical_memory & (~membit)) | (int(outcome) << cmembit)
+                        self._classical_memory = (self._classical_memory & (~membit)) | (
+                            int(outcome) << cmembit
+                        )
                 else:
                     backend = self.name()
                     err_msg = '{0} encountered unrecognized operation "{1}"'
@@ -594,41 +625,47 @@ class QasmSimulatorPy(BaseBackend):
                     memory.append(hex(int(outcome, 2)))
 
         # Add data
-        data = {'counts': dict(Counter(memory))}
+        data = {"counts": dict(Counter(memory))}
         # Optionally add memory list
         if self._memory:
-            data['memory'] = memory
+            data["memory"] = memory
         # Optionally add final statevector
         if self.SHOW_FINAL_STATE:
-            data['statevector'] = self._get_statevector()
+            data["statevector"] = self._get_statevector()
             # Remove empty counts and memory for statevector simulator
-            if not data['counts']:
-                data.pop('counts')
-            if 'memory' in data and not data['memory']:
-                data.pop('memory')
+            if not data["counts"]:
+                data.pop("counts")
+            if "memory" in data and not data["memory"]:
+                data.pop("memory")
         end = time.time()
-        return {'name': experiment.header.name,
-                'seed_simulator': seed_simulator,
-                'shots': self._shots,
-                'data': data,
-                'status': 'DONE',
-                'success': True,
-                'time_taken': (end - start),
-                'header': experiment.header.to_dict()}
+        return {
+            "name": experiment.header.name,
+            "seed_simulator": seed_simulator,
+            "shots": self._shots,
+            "data": data,
+            "status": "DONE",
+            "success": True,
+            "time_taken": (end - start),
+            "header": experiment.header.to_dict(),
+        }
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas."""
         n_qubits = qobj.config.n_qubits
         max_qubits = self.configuration().n_qubits
         if n_qubits > max_qubits:
-            raise BasicAerError('Number of qubits {} '.format(n_qubits) +
-                                'is greater than maximum ({}) '.format(max_qubits) +
-                                'for "{}".'.format(self.name()))
+            raise BasicAerError(
+                f"Number of qubits {n_qubits} is greater than maximum ({max_qubits}) "
+                f'for "{self.name()}".'
+            )
         for experiment in qobj.experiments:
             name = experiment.header.name
             if experiment.config.memory_slots == 0:
-                logger.warning('No classical registers in circuit "%s", '
-                               'counts will be empty.', name)
-            elif 'measure' not in [op.name for op in experiment.instructions]:
-                logger.warning('No measurements in circuit "%s", '
-                               'classical register will remain all zeros.', name)
+                logger.warning(
+                    'No classical registers in circuit "%s", counts will be empty.', name
+                )
+            elif "measure" not in [op.name for op in experiment.instructions]:
+                logger.warning(
+                    'No measurements in circuit "%s", classical register will remain all zeros.',
+                    name,
+                )

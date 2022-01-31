@@ -13,8 +13,6 @@
 """Grover's search algorithm."""
 
 import itertools
-import logging
-import math
 import operator
 from typing import Iterator, List, Optional, Union
 
@@ -27,13 +25,11 @@ from qiskit.utils import QuantumInstance
 from .amplification_problem import AmplificationProblem
 from .amplitude_amplifier import AmplitudeAmplifier, AmplitudeAmplifierResult
 
-logger = logging.getLogger(__name__)
-
 
 class Grover(AmplitudeAmplifier):
     r"""Grover's Search algorithm.
 
-    Grover's Search [1, 2] is a well known quantum algorithm for that can be used for
+    Grover's Search [1, 2] is a well known quantum algorithm that can be used for
     searching through unstructured collections of records for particular targets
     with quadratic speedup compared to classical algorithms.
 
@@ -62,10 +58,10 @@ class Grover(AmplitudeAmplifier):
     The details of how :math:`S_f` works are unimportant to the algorithm; Grover's
     search algorithm treats the oracle as a black box.
 
-    This class supports oracles in form of :class:`~qiskit.QuantumCircuit`
+    This class supports oracles in form of a :class:`~qiskit.circuit.QuantumCircuit`.
 
-    With oracle at hand, Grover's Search constructs the Grover operator to amplify the amplitudes
-    of the good states:
+    With the given oracle, Grover's Search constructs the Grover operator to amplify the
+    amplitudes of the good states:
 
     .. math::
 
@@ -82,7 +78,7 @@ class Grover(AmplitudeAmplifier):
     powers of Grover's operator, see the `iterations` argument, and after each iteration checks
     if a good state has been measured using `good_state`.
 
-    The generalization of Grover's Search, Quantum Amplitude Amplification [3] uses a modified
+    The generalization of Grover's Search, Quantum Amplitude Amplification [3], uses a modified
     version of :math:`\mathcal{Q}` where the diffusion operator does not reflect about the
     equal superposition state, but another state specified via an operator :math:`\mathcal{A}`:
 
@@ -104,21 +100,24 @@ class Grover(AmplitudeAmplifier):
 
     """
 
-    def __init__(self,
-                 iterations: Optional[Union[int, List[int], Iterator[int], float]] = None,
-                 growth_rate: Optional[float] = None,
-                 sample_from_iterations: bool = False,
-                 quantum_instance: Optional[Union[QuantumInstance, Backend, BaseBackend]] = None,
-                 ) -> None:
+    def __init__(
+        self,
+        iterations: Optional[Union[List[int], Iterator[int], int]] = None,
+        growth_rate: Optional[float] = None,
+        sample_from_iterations: bool = False,
+        quantum_instance: Optional[Union[QuantumInstance, Backend, BaseBackend]] = None,
+    ) -> None:
         r"""
         Args:
             iterations: Specify the number of iterations/power of Grover's operator to be checked.
                 * If an int, only one circuit is run with that power of the Grover operator.
-                If the number of solutions is known, this is option should be used with the optimal
+                If the number of solutions is known, this option should be used with the optimal
                 power. The optimal power can be computed with ``Grover.optimal_num_iterations``.
                 * If a list, all the powers in the list are run in the specified order.
                 * If an iterator, the powers yielded by the iterator are checked, until a maximum
                 number of iterations or maximum power is reached.
+                * If ``None``, the :obj:`AmplificationProblem` provided must have an ``is_good_state``,
+                and circuits are run until that good state is reached.
             growth_rate: If specified, the iterator is set to increasing powers of ``growth_rate``,
                 i.e. to ``int(growth_rate ** 1), int(growth_rate ** 2), ...`` until a maximum
                 number of iterations is reached.
@@ -140,7 +139,7 @@ class Grover(AmplitudeAmplifier):
             growth_rate = 1.2
 
         if growth_rate is not None and iterations is not None:
-            raise ValueError('Pass either a value for iterations or growth_rate, not both.')
+            raise ValueError("Pass either a value for iterations or growth_rate, not both.")
 
         if growth_rate is not None:
             # yield iterations ** 1, iterations ** 2, etc. and casts to int
@@ -155,6 +154,7 @@ class Grover(AmplitudeAmplifier):
             self.quantum_instance = quantum_instance
 
         self._sample_from_iterations = sample_from_iterations
+        self._iterations_arg = iterations
 
     @property
     def quantum_instance(self) -> Optional[QuantumInstance]:
@@ -165,8 +165,9 @@ class Grover(AmplitudeAmplifier):
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(self, quantum_instance: Union[QuantumInstance,
-                                                       BaseBackend, Backend]) -> None:
+    def quantum_instance(
+        self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
+    ) -> None:
         """Set quantum instance.
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
@@ -175,7 +176,7 @@ class Grover(AmplitudeAmplifier):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
 
-    def amplify(self, amplification_problem: AmplificationProblem) -> 'GroverResult':
+    def amplify(self, amplification_problem: AmplificationProblem) -> "GroverResult":
         """Run the Grover algorithm.
 
         Args:
@@ -184,6 +185,10 @@ class Grover(AmplitudeAmplifier):
         Returns:
             The result as a ``GroverResult``, where e.g. the most likely state can be queried
             as ``result.top_measurement``.
+
+        Raises:
+            TypeError: If ``is_good_state`` is not provided and is required (i.e. when iterations
+            is ``None`` or a ``list``)
         """
         if isinstance(self._iterations, list):
             max_iterations = len(self._iterations)
@@ -192,13 +197,14 @@ class Grover(AmplitudeAmplifier):
         else:
             max_iterations = max(10, 2 ** amplification_problem.oracle.num_qubits)
             max_power = np.ceil(
-                2 ** (len(amplification_problem.grover_operator.reflection_qubits) / 2))
+                2 ** (len(amplification_problem.grover_operator.reflection_qubits) / 2)
+            )
             iterator = self._iterations
 
         result = GroverResult()
 
         iterations = []
-        top_measurement = '0' * len(amplification_problem.objective_qubits)
+        top_measurement = "0" * len(amplification_problem.objective_qubits)
         oracle_evaluation = False
         all_circuit_results = []
         max_probability = 0
@@ -224,26 +230,45 @@ class Grover(AmplitudeAmplifier):
 
                 # trace out work qubits
                 if qc.width() != num_bits:
-                    indices = [i for i in range(qc.num_qubits)
-                               if i not in amplification_problem.objective_qubits]
+                    indices = [
+                        i
+                        for i in range(qc.num_qubits)
+                        if i not in amplification_problem.objective_qubits
+                    ]
                     rho = partial_trace(circuit_results, indices)
                     circuit_results = np.diag(rho.data)
 
                 max_amplitude = max(circuit_results.max(), circuit_results.min(), key=abs)
                 max_amplitude_idx = np.where(circuit_results == max_amplitude)[0][0]
                 top_measurement = np.binary_repr(max_amplitude_idx, num_bits)
-                max_probability = np.abs(max_amplitude)**2
+                max_probability = np.abs(max_amplitude) ** 2
                 shots = 1
             else:
                 qc = self.construct_circuit(amplification_problem, power, measurement=True)
                 circuit_results = self._quantum_instance.execute(qc).get_counts(qc)
                 top_measurement = max(circuit_results.items(), key=operator.itemgetter(1))[0]
                 shots = sum(circuit_results.values())
-                max_probability = max(circuit_results.items(), key=operator.itemgetter(1))[1] \
-                    / shots
+                max_probability = (
+                    max(circuit_results.items(), key=operator.itemgetter(1))[1] / shots
+                )
 
             all_circuit_results.append(circuit_results)
+
+            if (isinstance(self._iterations_arg, int)) and (
+                amplification_problem.is_good_state is None
+            ):
+                oracle_evaluation = None  # cannot check for good state without is_good_state arg
+                break
+
+            # is_good_state arg must be provided if iterations arg is not an integer
+            if (
+                self._iterations_arg is None or isinstance(self._iterations_arg, list)
+            ) and amplification_problem.is_good_state is None:
+                raise TypeError("An is_good_state function is required with the provided oracle")
+
+            # only check if top measurement is a good state if an is_good_state arg is provided
             oracle_evaluation = amplification_problem.is_good_state(top_measurement)
+
             if oracle_evaluation is True:
                 break  # we found a solution
 
@@ -267,11 +292,12 @@ class Grover(AmplitudeAmplifier):
         Returns:
             The optimal number of iterations for Grover's algorithm to succeed.
         """
-        return math.floor(np.pi * np.sqrt(2 ** num_qubits / num_solutions) / 4)
+        amplitude = np.sqrt(num_solutions / 2 ** num_qubits)
+        return round(np.arccos(amplitude) / (2 * np.arcsin(amplitude)))
 
-    def construct_circuit(self, problem: AmplificationProblem,
-                          power: Optional[int] = None,
-                          measurement: bool = False) -> QuantumCircuit:
+    def construct_circuit(
+        self, problem: AmplificationProblem, power: Optional[int] = None, measurement: bool = False
+    ) -> QuantumCircuit:
         """Construct the circuit for Grover's algorithm with ``power`` Grover operators.
 
         Args:
@@ -288,10 +314,10 @@ class Grover(AmplitudeAmplifier):
         """
         if power is None:
             if len(self._iterations) > 1:
-                raise ValueError('Please pass ``power`` if the iterations are not an integer.')
+                raise ValueError("Please pass ``power`` if the iterations are not an integer.")
             power = self._iterations[0]
 
-        qc = QuantumCircuit(problem.oracle.num_qubits, name='Grover circuit')
+        qc = QuantumCircuit(problem.oracle.num_qubits, name="Grover circuit")
         qc.compose(problem.state_preparation, inplace=True)
         if power > 0:
             qc.compose(problem.grover_operator.power(power), inplace=True)

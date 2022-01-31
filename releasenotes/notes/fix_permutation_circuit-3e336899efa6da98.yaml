@@ -1,4 +1,0 @@
----
-fixes:
-  - |
-    Fixes a bug in :mod:`qiskit.circuit.library.generalized_gates.permutation` where some permutations would not be properly generated. This issue could also affect :mod:`qiskit.circuit.library.quantum_volume` if called with 'classical_permutation' = False.

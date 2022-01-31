@@ -32,7 +32,7 @@ from qiskit.circuit import Parameter, QuantumCircuit
 def rzx_xz(theta: float = None):
     """Template for CX - RXGate - CX."""
     if theta is None:
-        theta = Parameter('ϴ')
+        theta = Parameter("ϴ")
 
     qc = QuantumCircuit(2)
     qc.cx(1, 0)
@@ -42,7 +42,7 @@ def rzx_xz(theta: float = None):
     qc.rz(np.pi / 2, 0)
     qc.rx(np.pi / 2, 0)
     qc.rz(np.pi / 2, 0)
-    qc.rzx(-1*theta, 0, 1)
+    qc.rzx(-1 * theta, 0, 1)
     qc.rz(np.pi / 2, 0)
     qc.rx(np.pi / 2, 0)
     qc.rz(np.pi / 2, 0)

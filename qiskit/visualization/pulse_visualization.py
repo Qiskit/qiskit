@@ -17,30 +17,34 @@ import warnings
 
 from typing import Union, Callable, List, Dict, Tuple
 
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.pulse import Schedule, Instruction, Waveform
 from qiskit.pulse.channels import Channel
 from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse import matplotlib as _matplotlib
 from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
+from qiskit.visualization.utils import matplotlib_close_if_inline
 
 
-def pulse_drawer(data: Union[Waveform, Union[Schedule, Instruction]],
-                 dt: int = 1,
-                 style: Union[PulseStyle, SchedStyle] = None,
-                 filename: str = None,
-                 interp_method: Callable = None,
-                 scale: float = None,
-                 channel_scales: Dict[Channel, float] = None,
-                 plot_all: bool = False,
-                 plot_range: Tuple[Union[int, float], Union[int, float]] = None,
-                 interactive: bool = False,
-                 table: bool = False,
-                 label: bool = False,
-                 framechange: bool = True,
-                 channels: List[Channel] = None,
-                 show_framechange_channels: bool = True,
-                 draw_title: bool = False):
+def pulse_drawer(
+    data: Union[Waveform, Union[Schedule, Instruction]],
+    dt: int = 1,
+    style: Union[PulseStyle, SchedStyle] = None,
+    filename: str = None,
+    interp_method: Callable = None,
+    scale: float = None,
+    channel_scales: Dict[Channel, float] = None,
+    plot_all: bool = False,
+    plot_range: Tuple[float, float] = None,
+    interactive: bool = False,
+    table: bool = False,
+    label: bool = False,
+    framechange: bool = True,
+    channels: List[Channel] = None,
+    show_framechange_channels: bool = True,
+    draw_title: bool = False,
+):
     """Deprecated.
 
     Plot the interpolated envelope of pulse and schedule.
@@ -138,40 +142,51 @@ def pulse_drawer(data: Union[Waveform, Union[Schedule, Instruction]],
 
     Raises:
         VisualizationError: when invalid data is given
-        ImportError: when matplotlib is not installed
+        MissingOptionalLibraryError: when matplotlib is not installed
     """
-    warnings.warn('This legacy pulse drawer is deprecated and will be removed no earlier than '
-                  '3 months after the release date. Use `qiskit.visualization.pulse_drawer_v2` '
-                  'instead. After the legacy drawer is removed, the import path of this module '
-                  'will be dedicated to the v2 drawer. '
-                  'New drawer will provide much more flexibility with richer stylesheets '
-                  'and cleaner visualization.', DeprecationWarning)
+    warnings.warn(
+        "This legacy pulse drawer is deprecated and will be removed no earlier than "
+        "3 months after the release date. Use `qiskit.visualization.pulse_drawer_v2` "
+        "instead. After the legacy drawer is removed, the import path of this module "
+        "will be dedicated to the v2 drawer. "
+        "New drawer will provide much more flexibility with richer stylesheets "
+        "and cleaner visualization.",
+        DeprecationWarning,
+    )
 
     if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed.')
-    from matplotlib import get_backend
-    from matplotlib import pyplot as plt
-
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="pulse_drawer",
+            pip_install="pip install matplotlib",
+        )
     if isinstance(data, Waveform):
         drawer = _matplotlib.WaveformDrawer(style=style)
         image = drawer.draw(data, dt=dt, interp_method=interp_method, scale=scale)
     elif isinstance(data, (Schedule, Instruction)):
         drawer = _matplotlib.ScheduleDrawer(style=style)
-        image = drawer.draw(data, dt=dt, interp_method=interp_method, scale=scale,
-                            channel_scales=channel_scales, plot_range=plot_range,
-                            plot_all=plot_all, table=table, label=label,
-                            framechange=framechange, channels=channels,
-                            show_framechange_channels=show_framechange_channels,
-                            draw_title=draw_title)
+        image = drawer.draw(
+            data,
+            dt=dt,
+            interp_method=interp_method,
+            scale=scale,
+            channel_scales=channel_scales,
+            plot_range=plot_range,
+            plot_all=plot_all,
+            table=table,
+            label=label,
+            framechange=framechange,
+            channels=channels,
+            show_framechange_channels=show_framechange_channels,
+            draw_title=draw_title,
+        )
     else:
-        raise VisualizationError('This data cannot be visualized.')
+        raise VisualizationError("This data cannot be visualized.")
 
     if filename:
-        image.savefig(filename, dpi=drawer.style.dpi, bbox_inches='tight')
+        image.savefig(filename, dpi=drawer.style.dpi, bbox_inches="tight")
 
-    if get_backend() in ['module://ipykernel.pylab.backend_inline',
-                         'nbAgg']:
-        plt.close(image)
+    matplotlib_close_if_inline(image)
     if image and interactive:
         image.show()
     return image

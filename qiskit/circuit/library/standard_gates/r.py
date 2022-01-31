@@ -13,10 +13,12 @@
 """Rotation around an axis in x-y plane."""
 
 import math
+from typing import Optional
 import numpy
 from qiskit.qasm import pi
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 class RGate(Gate):
@@ -43,9 +45,11 @@ class RGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, theta, phi):
+    def __init__(
+        self, theta: ParameterValueType, phi: ParameterValueType, label: Optional[str] = None
+    ):
         """Create new r single-qubit gate."""
-        super().__init__('r', 1, [theta, phi])
+        super().__init__("r", 1, [theta, phi], label=label)
 
     def _define(self):
         """
@@ -54,13 +58,12 @@ class RGate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u3 import U3Gate
-        q = QuantumRegister(1, 'q')
+
+        q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
         theta = self.params[0]
         phi = self.params[1]
-        rules = [
-            (U3Gate(theta, phi - pi / 2, -phi + pi / 2), [q[0]], [])
-        ]
+        rules = [(U3Gate(theta, phi - pi / 2, -phi + pi / 2), [q[0]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
@@ -80,5 +83,4 @@ class RGate(Gate):
         sin = math.sin(theta / 2)
         exp_m = numpy.exp(-1j * phi)
         exp_p = numpy.exp(1j * phi)
-        return numpy.array([[cos, -1j * exp_m * sin],
-                            [-1j * exp_p * sin, cos]], dtype=dtype)
+        return numpy.array([[cos, -1j * exp_m * sin], [-1j * exp_p * sin, cos]], dtype=dtype)

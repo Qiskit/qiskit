@@ -1,0 +1,16 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :func:`qiskit.visualization.timeline_drawer`
+    function where classical bits were inproperly handled.
+    Fixed `#5361 <https://github.com/Qiskit/qiskit-terra/issues/5361>`__
+  - |
+    Fixed an issue in the :func:`qiskit.visualization.circuit_drawer` function
+    and the :meth:`qiskit.circuit.QuantumCircuit.draw` method where
+    :class:`~qiskit.circuit.Delay` instructions in a
+    :class:`~qiskit.circuit.QuantumCircuit` object were not being correctly
+    treated as idle time. So when the ``idle_wires`` kwarg was set to
+    ``False`` the wires with the :class:`~qiskit.circuit.Delay` objects would
+    still be shown. This has been fixed so that the idle wires are removed from
+    the visualization if there are only :class:`~qiskit.circuit.Delay` objects
+    on a wire.

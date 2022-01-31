@@ -12,11 +12,11 @@
 
 """Line search with Gaussian-smoothed samples on a sphere."""
 
-from typing import Dict, Optional, Tuple, List, Callable
+from typing import Dict, Optional, Tuple, List, Callable, Any
 import numpy as np
 
 from qiskit.utils import algorithm_globals
-from .optimizer import Optimizer, OptimizerSupportLevel
+from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
 
 class GSLS(Optimizer):
@@ -25,26 +25,43 @@ class GSLS(Optimizer):
     An implementation of the line search algorithm described in
     https://arxiv.org/pdf/1905.01332.pdf, using gradient approximation
     based on Gaussian-smoothed samples on a sphere.
+
+    .. note::
+
+        This component has some function that is normally random. If you want to reproduce behavior
+        then you should set the random number generator seed in the algorithm_globals
+        (``qiskit.utils.algorithm_globals.random_seed = seed``).
     """
 
-    _OPTIONS = ['maxiter', 'max_eval', 'disp', 'sampling_radius',
-                'sample_size_factor', 'initial_step_size', 'min_step_size',
-                'step_size_multiplier', 'armijo_parameter',
-                'min_gradient_norm', 'max_failed_rejection_sampling']
+    _OPTIONS = [
+        "maxiter",
+        "max_eval",
+        "disp",
+        "sampling_radius",
+        "sample_size_factor",
+        "initial_step_size",
+        "min_step_size",
+        "step_size_multiplier",
+        "armijo_parameter",
+        "min_gradient_norm",
+        "max_failed_rejection_sampling",
+    ]
 
     # pylint: disable=unused-argument
-    def __init__(self,
-                 maxiter: int = 10000,
-                 max_eval: int = 10000,
-                 disp: bool = False,
-                 sampling_radius: float = 1.0e-6,
-                 sample_size_factor: int = 1,
-                 initial_step_size: float = 1.0e-2,
-                 min_step_size: float = 1.0e-10,
-                 step_size_multiplier: float = 0.4,
-                 armijo_parameter: float = 1.0e-1,
-                 min_gradient_norm: float = 1e-8,
-                 max_failed_rejection_sampling: int = 50) -> None:
+    def __init__(
+        self,
+        maxiter: int = 10000,
+        max_eval: int = 10000,
+        disp: bool = False,
+        sampling_radius: float = 1.0e-6,
+        sample_size_factor: int = 1,
+        initial_step_size: float = 1.0e-2,
+        min_step_size: float = 1.0e-10,
+        step_size_multiplier: float = 0.4,
+        armijo_parameter: float = 1.0e-1,
+        min_gradient_norm: float = 1e-8,
+        max_failed_rejection_sampling: int = 50,
+    ) -> None:
         """
         Args:
             maxiter: Maximum number of iterations.
@@ -75,39 +92,72 @@ class GSLS(Optimizer):
             A dictionary containing the support levels for different options.
         """
         return {
-            'gradient': OptimizerSupportLevel.ignored,
-            'bounds': OptimizerSupportLevel.supported,
-            'initial_point': OptimizerSupportLevel.required
+            "gradient": OptimizerSupportLevel.ignored,
+            "bounds": OptimizerSupportLevel.supported,
+            "initial_point": OptimizerSupportLevel.required,
         }
 
-    def optimize(self, num_vars: int,
-                 objective_function: Callable,
-                 gradient_function: Optional[Callable] = None,
-                 variable_bounds: Optional[List[Tuple[float, float]]] = None,
-                 initial_point: Optional[np.ndarray] = None) -> Tuple[np.ndarray, float, int]:
-        super().optimize(num_vars, objective_function, gradient_function,
-                         variable_bounds, initial_point)
+    @property
+    def settings(self) -> Dict[str, Any]:
+        return {key: self._options.get(key, None) for key in self._OPTIONS}
 
+    def minimize(
+        self,
+        fun: Callable[[POINT], float],
+        x0: POINT,
+        jac: Optional[Callable[[POINT], POINT]] = None,
+        bounds: Optional[List[Tuple[float, float]]] = None,
+    ) -> OptimizerResult:
+        if not isinstance(x0, np.ndarray):
+            x0 = np.asarray(x0)
+
+        if bounds is None:
+            var_lb = np.array([-np.inf] * x0.size)
+            var_ub = np.array([np.inf] * x0.size)
+        else:
+            var_lb = np.array([l for (l, _) in bounds])
+            var_ub = np.array([u for (_, u) in bounds])
+
+        x, fun, nfev, njev = self.ls_optimize(x0.size, fun, x0, var_lb, var_ub)
+
+        result = OptimizerResult()
+        result.x = x
+        result.fun = fun
+        result.nfev = nfev
+        result.njev = njev
+
+        return result
+
+    def optimize(
+        self,
+        num_vars: int,
+        objective_function: Callable,
+        gradient_function: Optional[Callable] = None,
+        variable_bounds: Optional[List[Tuple[float, float]]] = None,
+        initial_point: Optional[np.ndarray] = None,
+    ) -> Tuple[np.ndarray, float, int]:
+        super().optimize(
+            num_vars, objective_function, gradient_function, variable_bounds, initial_point
+        )
         if initial_point is None:
             initial_point = algorithm_globals.random.normal(size=num_vars)
         else:
             initial_point = np.array(initial_point)
 
-        if variable_bounds is None:
-            var_lb = np.array([-np.inf] * num_vars)
-            var_ub = np.array([np.inf] * num_vars)
-        else:
-            var_lb = np.array([l for (l, _) in variable_bounds])
-            var_ub = np.array([u for (_, u) in variable_bounds])
-
-        x, x_value, n_evals, _ = self.ls_optimize(
-            num_vars, objective_function, initial_point, var_lb, var_ub
+        result = self.minimize(
+            objective_function, initial_point, gradient_function, variable_bounds
         )
 
-        return x, x_value, n_evals
+        return result.x, result.fun, result.nfev
 
-    def ls_optimize(self, n: int, obj_fun: Callable, initial_point: np.ndarray, var_lb: np.ndarray,
-                    var_ub: np.ndarray) -> Tuple[np.ndarray, float, int, float]:
+    def ls_optimize(
+        self,
+        n: int,
+        obj_fun: Callable,
+        initial_point: np.ndarray,
+        var_lb: np.ndarray,
+        var_ub: np.ndarray,
+    ) -> Tuple[np.ndarray, float, int, float]:
         """Run the line search optimization.
 
         Args:
@@ -128,11 +178,11 @@ class GSLS(Optimizer):
                 the length of the lower or upper bound.
         """
         if len(initial_point) != n:
-            raise ValueError('Size of the initial point mismatches the number of dimensions.')
+            raise ValueError("Size of the initial point mismatches the number of dimensions.")
         if len(var_lb) != n:
-            raise ValueError('Length of the lower bound mismatches the number of dimensions.')
+            raise ValueError("Length of the lower bound mismatches the number of dimensions.")
         if len(var_ub) != n:
-            raise ValueError('Length of the upper bound mismatches the number of dimensions.')
+            raise ValueError("Length of the upper bound mismatches the number of dimensions.")
 
         # Initialize counters and data
         iter_count = 0
@@ -140,21 +190,20 @@ class GSLS(Optimizer):
         prev_iter_successful = True
         prev_directions, prev_sample_set_x, prev_sample_set_y = None, None, None
         consecutive_fail_iter = 0
-        alpha = self._options['initial_step_size']
+        alpha = self._options["initial_step_size"]
         grad_norm = np.inf
-        sample_set_size = int(round(self._options['sample_size_factor'] * n))
+        sample_set_size = int(round(self._options["sample_size_factor"] * n))
 
         # Initial point
         x = initial_point
         x_value = obj_fun(x)
         n_evals += 1
-        while iter_count < self._options['maxiter'] \
-                and n_evals < self._options['max_eval']:
+        while iter_count < self._options["maxiter"] and n_evals < self._options["max_eval"]:
 
             # Determine set of sample points
             directions, sample_set_x = self.sample_set(n, x, var_lb, var_ub, sample_set_size)
 
-            if n_evals + len(sample_set_x) + 1 >= self._options['max_eval']:
+            if n_evals + len(sample_set_x) + 1 >= self._options["max_eval"]:
                 # The evaluation budget is too small to allow for
                 # another full iteration; we therefore exit now
                 break
@@ -169,27 +218,27 @@ class GSLS(Optimizer):
                 sample_set_y = np.hstack((prev_sample_set_y, sample_set_y))
 
             # Find gradient approximation and candidate point
-            grad = self.gradient_approximation(n, x, x_value, directions, sample_set_x,
-                                               sample_set_y)
+            grad = self.gradient_approximation(
+                n, x, x_value, directions, sample_set_x, sample_set_y
+            )
             grad_norm = np.linalg.norm(grad)
             new_x = np.clip(x - alpha * grad, var_lb, var_ub)
             new_x_value = obj_fun(new_x)
             n_evals += 1
 
             # Print information
-            if self._options['disp']:
-                print('Iter {:d}'.format(iter_count))
-                print('Point {} obj {}'.format(x, x_value))
-                print('Gradient {}'.format(grad))
-                print('Grad norm {} new_x_value {} step_size {}'.format(grad_norm, new_x_value,
-                                                                        alpha))
-                print('Direction {}'.format(directions))
+            if self._options["disp"]:
+                print(f"Iter {iter_count:d}")
+                print(f"Point {x} obj {x_value}")
+                print(f"Gradient {grad}")
+                print(f"Grad norm {grad_norm} new_x_value {new_x_value} step_size {alpha}")
+                print(f"Direction {directions}")
 
             # Test Armijo condition for sufficient decrease
-            if new_x_value <= x_value - self._options['armijo_parameter'] * alpha * grad_norm:
+            if new_x_value <= x_value - self._options["armijo_parameter"] * alpha * grad_norm:
                 # Accept point
                 x, x_value = new_x, new_x_value
-                alpha /= 2 * self._options['step_size_multiplier']
+                alpha /= 2 * self._options["step_size_multiplier"]
                 prev_iter_successful = True
                 consecutive_fail_iter = 0
 
@@ -199,7 +248,7 @@ class GSLS(Optimizer):
                 prev_sample_set_y = None
             else:
                 # Do not accept point
-                alpha *= self._options['step_size_multiplier']
+                alpha *= self._options["step_size_multiplier"]
                 prev_iter_successful = False
                 consecutive_fail_iter += 1
 
@@ -210,14 +259,17 @@ class GSLS(Optimizer):
             iter_count += 1
 
             # Check termination criterion
-            if grad_norm <= self._options['min_gradient_norm'] \
-                    or alpha <= self._options['min_step_size']:
+            if (
+                grad_norm <= self._options["min_gradient_norm"]
+                or alpha <= self._options["min_step_size"]
+            ):
                 break
 
         return x, x_value, n_evals, grad_norm
 
-    def sample_points(self, n: int, x: np.ndarray, num_points: int
-                      ) -> Tuple[np.ndarray, np.ndarray]:
+    def sample_points(
+        self, n: int, x: np.ndarray, num_points: int
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """Sample ``num_points`` points around ``x`` on the ``n``-sphere of specified radius.
 
         The radius of the sphere is ``self._options['sampling_radius']``.
@@ -233,12 +285,13 @@ class GSLS(Optimizer):
         normal_samples = algorithm_globals.random.normal(size=(num_points, n))
         row_norms = np.linalg.norm(normal_samples, axis=1, keepdims=True)
         directions = normal_samples / row_norms
-        points = x + self._options['sampling_radius'] * directions
+        points = x + self._options["sampling_radius"] * directions
 
         return points, directions
 
-    def sample_set(self, n: int, x: np.ndarray, var_lb: np.ndarray, var_ub: np.ndarray,
-                   num_points: int) -> Tuple[np.ndarray, np.ndarray]:
+    def sample_set(
+        self, n: int, x: np.ndarray, var_lb: np.ndarray, var_ub: np.ndarray, num_points: int
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """Construct sample set of given size.
 
         Args:
@@ -263,7 +316,7 @@ class GSLS(Optimizer):
         # Check bounds
         if (points >= var_lb).all() and (points <= var_ub).all():
             # If all points are within bounds, return them
-            return directions, (x + self._options['sampling_radius'] * directions)
+            return directions, (x + self._options["sampling_radius"] * directions)
         else:
             # Otherwise we perform rejection sampling until we have
             # enough points that satisfy the bounds
@@ -271,12 +324,15 @@ class GSLS(Optimizer):
             accepted = directions[indices]
             num_trials = 0
 
-            while len(accepted) < num_points \
-                    and num_trials < self._options['max_failed_rejection_sampling']:
+            while (
+                len(accepted) < num_points
+                and num_trials < self._options["max_failed_rejection_sampling"]
+            ):
                 # Generate points uniformly on the sphere
                 points, directions = self.sample_points(n, x, num_points)
-                indices = np.where((points >= var_lb).all(axis=1) &
-                                   (points <= var_ub).all(axis=1))[0]
+                indices = np.where((points >= var_lb).all(axis=1) & (points <= var_ub).all(axis=1))[
+                    0
+                ]
                 accepted = np.vstack((accepted, directions[indices]))
                 num_trials += 1
 
@@ -288,21 +344,32 @@ class GSLS(Optimizer):
                 points, directions = self.sample_points(n, x, num_points)
                 to_be_flipped = (points < var_lb) | (points > var_ub)
                 directions *= np.where(to_be_flipped, -1, 1)
-                points = x + self._options['sampling_radius'] * directions
-                indices = np.where((points >= var_lb).all(axis=1) &
-                                   (points <= var_ub).all(axis=1))[0]
+                points = x + self._options["sampling_radius"] * directions
+                indices = np.where((points >= var_lb).all(axis=1) & (points <= var_ub).all(axis=1))[
+                    0
+                ]
                 accepted = np.vstack((accepted, directions[indices]))
 
             # If we still do not have enough sampling points, we have failed.
             if len(accepted) < num_points:
-                raise RuntimeError('Could not generate enough samples '
-                                   'within bounds; try smaller radius.')
+                raise RuntimeError(
+                    "Could not generate enough samples within bounds; try smaller radius."
+                )
 
-            return (accepted[:num_points],
-                    x + self._options['sampling_radius'] * accepted[:num_points])
+            return (
+                accepted[:num_points],
+                x + self._options["sampling_radius"] * accepted[:num_points],
+            )
 
-    def gradient_approximation(self, n: int, x: np.ndarray, x_value: float, directions: np.ndarray,
-                               sample_set_x: np.ndarray, sample_set_y: np.ndarray) -> np.ndarray:
+    def gradient_approximation(
+        self,
+        n: int,
+        x: np.ndarray,
+        x_value: float,
+        directions: np.ndarray,
+        sample_set_x: np.ndarray,
+        sample_set_y: np.ndarray,
+    ) -> np.ndarray:
         """Construct gradient approximation from given sample.
 
         Args:
@@ -317,7 +384,11 @@ class GSLS(Optimizer):
             Gradient approximation at x, as a 1D array.
         """
         ffd = sample_set_y - x_value
-        gradient = float(n) / len(sample_set_y) * np.sum(ffd.reshape(len(sample_set_y), 1) /
-                                                         self._options['sampling_radius']
-                                                         * directions, 0)
+        gradient = (
+            float(n)
+            / len(sample_set_y)
+            * np.sum(
+                ffd.reshape(len(sample_set_y), 1) / self._options["sampling_radius"] * directions, 0
+            )
+        )
         return gradient

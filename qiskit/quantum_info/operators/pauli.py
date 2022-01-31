@@ -21,7 +21,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 
 
-def pauli_group(number_of_qubits, case='weight'):
+def pauli_group(number_of_qubits, case="weight"):
     """DEPRECATED: Return the Pauli group with 4^n elements.
 
     This function is deprecated. Use :func:`~qiskit.quantum_info.pauli_basis`
@@ -42,21 +42,23 @@ def pauli_group(number_of_qubits, case='weight'):
         QiskitError: case is not 'weight' or 'tensor'
         QiskitError: number_of_qubits is larger than 4
     """
-    warn('`insert_paulis` is deprecated and will be removed no earlier than '
-         '3 months after the release date. For equivalent functionality to'
-         '`qiskit.quantum_info.pauli_group` instead. '
-         '`pauli_group(n)` is equivalent to `pauli_basis(n, weight=True)`, '
-         '`pauli_group(n, case="tensor") is equivalent to `pauli_basis(n)`',
-         DeprecationWarning, stacklevel=2)
+    warn(
+        "`insert_paulis` is deprecated and will be removed no earlier than "
+        "3 months after the release date. For equivalent functionality to"
+        "`qiskit.quantum_info.pauli_group` instead. "
+        "`pauli_group(n)` is equivalent to `pauli_basis(n, weight=True)`, "
+        '`pauli_group(n, case="tensor") is equivalent to `pauli_basis(n)`',
+        DeprecationWarning,
+        stacklevel=2,
+    )
     if number_of_qubits < 5:
         temp_set = []
 
-        if case == 'weight':
-            tmp = pauli_group(number_of_qubits, case='tensor')
+        if case == "weight":
+            tmp = pauli_group(number_of_qubits, case="tensor")
             # sort on the weight of the Pauli operator
-            return sorted(tmp, key=lambda x: -np.count_nonzero(
-                np.array(x.to_label(), 'c') == b'I'))
-        elif case == 'tensor':
+            return sorted(tmp, key=lambda x: -np.count_nonzero(np.array(x.to_label(), "c") == b"I"))
+        elif case == "tensor":
             # the Pauli set is in tensor order II IX IY IZ XI ...
             for k in range(4 ** number_of_qubits):
                 z = np.zeros(number_of_qubits, dtype=bool)
@@ -76,7 +78,6 @@ def pauli_group(number_of_qubits, case='weight'):
                 temp_set.append(Pauli(z, x))
             return temp_set
         else:
-            raise QiskitError("Only support 'weight' or 'tensor' cases "
-                              "but you have {}.".format(case))
+            raise QiskitError(f"Only support 'weight' or 'tensor' cases but you have {case}.")
 
     raise QiskitError("Only support number of qubits is less than 5")

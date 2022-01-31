@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    Quantum circuit Calibrations are now carried over when the operators += and +
-    are used.

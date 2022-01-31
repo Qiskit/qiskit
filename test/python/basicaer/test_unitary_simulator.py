@@ -77,22 +77,19 @@ class BasicAerUnitarySimulatorPyTest(providers.BackendTestCase):
         gate_x = np.array([[0, 1], [1, 0]])
         gate_y = np.array([[0, -1j], [1j, 0]])
         gate_z = np.array([[1, 0], [0, -1]])
-        gate_cx = np.array([[1, 0, 0, 0],
-                            [0, 0, 0, 1],
-                            [0., 0, 1, 0],
-                            [0, 1, 0, 0]])
+        gate_cx = np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0.0, 0, 1, 0], [0, 1, 0, 0]])
         # Unitary matrices
         target_unitary1 = np.kron(np.kron(gate_h, gate_h), gate_h)
         target_unitary2 = np.kron(np.eye(2), gate_cx)
         target_unitary3 = np.kron(gate_cx, gate_y)
-        target_unitary4 = np.dot(np.kron(gate_cx, np.eye(2)),
-                                 np.dot(np.kron(np.eye(2), gate_cx),
-                                        np.kron(np.eye(4), gate_h)))
-        target_unitary5 = np.kron(np.kron(np.dot(gate_x, gate_z),
-                                          np.dot(gate_z, gate_y)),
-                                  np.dot(gate_y, gate_x))
-        return [target_unitary1, target_unitary2, target_unitary3,
-                target_unitary4, target_unitary5]
+        target_unitary4 = np.dot(
+            np.kron(gate_cx, np.eye(2)),
+            np.dot(np.kron(np.eye(2), gate_cx), np.kron(np.eye(4), gate_h)),
+        )
+        target_unitary5 = np.kron(
+            np.kron(np.dot(gate_x, gate_z), np.dot(gate_z, gate_y)), np.dot(gate_y, gate_x)
+        )
+        return [target_unitary1, target_unitary2, target_unitary3, target_unitary4, target_unitary5]
 
     def test_unitary(self):
         """Test unitary gate instruction"""
@@ -102,7 +99,7 @@ class BasicAerUnitarySimulatorPyTest(providers.BackendTestCase):
         for i in range(max_qubits):
             num_qubits = i + 1
             unitary_init = Operator(np.eye(2 ** num_qubits))
-            qr = QuantumRegister(num_qubits, 'qr')
+            qr = QuantumRegister(num_qubits, "qr")
             for _ in range(num_trials):
                 # Create random unitary
                 unitary = random_unitary(2 ** num_qubits)
@@ -117,6 +114,25 @@ class BasicAerUnitarySimulatorPyTest(providers.BackendTestCase):
                 fidelity = process_fidelity(unitary_target, unitary_out)
                 self.assertGreater(fidelity, 0.999)
 
+    def test_global_phase(self):
+        """Test global phase for XZH
+        See https://github.com/Qiskit/qiskit-terra/issues/3083"""
 
-if __name__ == '__main__':
+        q = QuantumRegister(1)
+        circuit = QuantumCircuit(q)
+        circuit.h(q[0])
+        circuit.z(q[0])
+        circuit.x(q[0])
+
+        job = execute(circuit, self.backend)
+        result = job.result()
+
+        unitary_out = result.get_unitary(circuit)
+        unitary_target = np.array(
+            [[-1 / np.sqrt(2), 1 / np.sqrt(2)], [1 / np.sqrt(2), 1 / np.sqrt(2)]]
+        )
+        self.assertTrue(np.allclose(unitary_out, unitary_target))
+
+
+if __name__ == "__main__":
     unittest.main()

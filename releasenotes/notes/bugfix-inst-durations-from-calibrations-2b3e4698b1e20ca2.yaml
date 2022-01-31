@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Circuits with custom gate calibrations can now be scheduled with the
-    transpiler without explicitly providing the durations of each circuit
-    calibration.

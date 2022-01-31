@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    Left-hand side quantum circuit Calibrations are now carried over when the + operator
-    is used.

@@ -20,16 +20,77 @@ import os
 import sys
 import tempfile
 
+from qiskit.dagcircuit.dagnode import DAGOpNode, DAGInNode, DAGOutNode
+from qiskit.exceptions import MissingOptionalLibraryError, InvalidFileError
 from .exceptions import VisualizationError
 
 try:
     from PIL import Image
+
     HAS_PIL = True
 except ImportError:
     HAS_PIL = False
 
+FILENAME_EXTENSIONS = {
+    "bmp",
+    "canon",
+    "cgimage",
+    "cmap",
+    "cmapx",
+    "cmapx_np",
+    "dot",
+    "dot_json",
+    "eps",
+    "exr",
+    "fig",
+    "gd",
+    "gd2",
+    "gif",
+    "gv",
+    "icns",
+    "ico",
+    "imap",
+    "imap_np",
+    "ismap",
+    "jp2",
+    "jpe",
+    "jpeg",
+    "jpg",
+    "json",
+    "json0",
+    "mp",
+    "pct",
+    "pdf",
+    "pic",
+    "pict",
+    "plain",
+    "plain-ext",
+    "png",
+    "pov",
+    "ps",
+    "ps2",
+    "psd",
+    "sgi",
+    "svg",
+    "svgz",
+    "tga",
+    "tif",
+    "tiff",
+    "tk",
+    "vdx",
+    "vml",
+    "vmlz",
+    "vrml",
+    "wbmp",
+    "webp",
+    "xdot",
+    "xdot1.2",
+    "xdot1.4",
+    "xdot_json",
+}
 
-def dag_drawer(dag, scale=0.7, filename=None, style='color'):
+
+def dag_drawer(dag, scale=0.7, filename=None, style="color"):
     """Plot the directed acyclic graph (dag) to represent operation dependencies
     in a quantum circuit.
 
@@ -55,7 +116,8 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
 
     Raises:
         VisualizationError: when style is not recognized.
-        ImportError: when pydot or pillow are not installed.
+        MissingOptionalLibraryError: when pydot or pillow are not installed.
+        InvalidFileError: when filename provided is not valid
 
     Example:
         .. jupyter-execute::
@@ -80,106 +142,122 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     try:
         import pydot
     except ImportError as ex:
-        raise ImportError("dag_drawer requires pydot. "
-                          "Run 'pip install pydot'.") from ex
+        raise MissingOptionalLibraryError(
+            libname="PyDot",
+            name="dag_drawer",
+            pip_install="pip install pydot",
+        ) from ex
     # NOTE: use type str checking to avoid potential cyclical import
     # the two tradeoffs ere that it will not handle subclasses and it is
     # slower (which doesn't matter for a visualization function)
     type_str = str(type(dag))
-    if 'DAGDependency' in type_str:
-        graph_attrs = {'dpi': str(100 * scale)}
+    if "DAGDependency" in type_str:
+        graph_attrs = {"dpi": str(100 * scale)}
 
         def node_attr_func(node):
-            if style == 'plain':
+            if style == "plain":
                 return {}
-            if style == 'color':
+            if style == "color":
                 n = {}
-                n['label'] = str(node.node_id) + ': ' + str(node.name)
-                if node.name == 'measure':
-                    n['color'] = 'blue'
-                    n['style'] = 'filled'
-                    n['fillcolor'] = 'lightblue'
-                if node.name == 'barrier':
-                    n['color'] = 'black'
-                    n['style'] = 'filled'
-                    n['fillcolor'] = 'green'
+                n["label"] = str(node.node_id) + ": " + str(node.name)
+                if node.name == "measure":
+                    n["color"] = "blue"
+                    n["style"] = "filled"
+                    n["fillcolor"] = "lightblue"
+                if node.name == "barrier":
+                    n["color"] = "black"
+                    n["style"] = "filled"
+                    n["fillcolor"] = "green"
                 if node.op._directive:
-                    n['color'] = 'black'
-                    n['style'] = 'filled'
-                    n['fillcolor'] = 'red'
-                if node.condition:
-                    n['label'] = str(node.node_id) + ': ' + str(node.name) + ' (conditional)'
-                    n['color'] = 'black'
-                    n['style'] = 'filled'
-                    n['fillcolor'] = 'lightgreen'
+                    n["color"] = "black"
+                    n["style"] = "filled"
+                    n["fillcolor"] = "red"
+                if node.op.condition:
+                    n["label"] = str(node.node_id) + ": " + str(node.name) + " (conditional)"
+                    n["color"] = "black"
+                    n["style"] = "filled"
+                    n["fillcolor"] = "lightgreen"
                 return n
             else:
                 raise VisualizationError("Unrecognized style %s for the dag_drawer." % style)
+
         edge_attr_func = None
 
     else:
-        bit_labels = {bit: "%s[%s]" % (reg.name, idx)
-                      for reg in list(dag.qregs.values()) + list(dag.cregs.values())
-                      for (idx, bit) in enumerate(reg)}
+        bit_labels = {
+            bit: f"{reg.name}[{idx}]"
+            for reg in list(dag.qregs.values()) + list(dag.cregs.values())
+            for (idx, bit) in enumerate(reg)
+        }
 
-        graph_attrs = {'dpi': str(100 * scale)}
+        graph_attrs = {"dpi": str(100 * scale)}
 
         def node_attr_func(node):
-            if style == 'plain':
+            if style == "plain":
                 return {}
-            if style == 'color':
+            if style == "color":
                 n = {}
-                if node.type == 'op':
-                    n['label'] = node.name
-                    n['color'] = 'blue'
-                    n['style'] = 'filled'
-                    n['fillcolor'] = 'lightblue'
-                if node.type == 'in':
-                    n['label'] = bit_labels[node.wire]
-                    n['color'] = 'black'
-                    n['style'] = 'filled'
-                    n['fillcolor'] = 'green'
-                if node.type == 'out':
-                    n['label'] = bit_labels[node.wire]
-                    n['color'] = 'black'
-                    n['style'] = 'filled'
-                    n['fillcolor'] = 'red'
+                if isinstance(node, DAGOpNode):
+                    n["label"] = node.name
+                    n["color"] = "blue"
+                    n["style"] = "filled"
+                    n["fillcolor"] = "lightblue"
+                if isinstance(node, DAGInNode):
+                    n["label"] = bit_labels[node.wire]
+                    n["color"] = "black"
+                    n["style"] = "filled"
+                    n["fillcolor"] = "green"
+                if isinstance(node, DAGOutNode):
+                    n["label"] = bit_labels[node.wire]
+                    n["color"] = "black"
+                    n["style"] = "filled"
+                    n["fillcolor"] = "red"
                 return n
             else:
-                raise VisualizationError('Invalid style %s' % style)
+                raise VisualizationError("Invalid style %s" % style)
 
         def edge_attr_func(edge):
             e = {}
-            e['label'] = bit_labels[edge]
+            e["label"] = bit_labels[edge]
             return e
 
-    dot_str = dag._multi_graph.to_dot(node_attr_func, edge_attr_func,
-                                      graph_attrs)
+    dot_str = dag._multi_graph.to_dot(node_attr_func, edge_attr_func, graph_attrs)
     dot = pydot.graph_from_dot_data(dot_str)[0]
 
     if filename:
-        extension = filename.split('.')[-1]
+        if "." not in filename:
+            raise InvalidFileError("Parameter 'filename' must be in format 'name.extension'")
+        extension = filename.split(".")[-1]
+        if extension not in FILENAME_EXTENSIONS:
+            raise InvalidFileError(
+                "Filename extension must be one of: " + " ".join(FILENAME_EXTENSIONS)
+            )
         dot.write(filename, format=extension)
         return None
-    elif ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
+    elif ("ipykernel" in sys.modules) and ("spyder" not in sys.modules):
         if not HAS_PIL:
-            raise ImportError(
-                "dag_drawer requires pillow for drawing in jupyter directly. "
-                "Run 'pip install pillow'.")
+            raise MissingOptionalLibraryError(
+                libname="pillow",
+                name="dag_drawer",
+                pip_install="pip install pillow",
+            )
 
         with tempfile.TemporaryDirectory() as tmpdirname:
-            tmp_path = os.path.join(tmpdirname, 'dag.png')
+            tmp_path = os.path.join(tmpdirname, "dag.png")
             dot.write_png(tmp_path)
-            image = Image.open(tmp_path)
+            with Image.open(tmp_path) as test_image:
+                image = test_image.copy()
             os.remove(tmp_path)
             return image
     else:
         if not HAS_PIL:
-            raise ImportError(
-                "dag_drawer requires pillow for drawing to a window directly. "
-                "Run 'pip install pillow'.")
+            raise MissingOptionalLibraryError(
+                libname="pillow",
+                name="dag_drawer",
+                pip_install="pip install pillow",
+            )
         with tempfile.TemporaryDirectory() as tmpdirname:
-            tmp_path = os.path.join(tmpdirname, 'dag.png')
+            tmp_path = os.path.join(tmpdirname, "dag.png")
             dot.write_png(tmp_path)
             image = Image.open(tmp_path)
             image.show()

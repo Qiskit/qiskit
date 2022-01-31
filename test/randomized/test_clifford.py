@@ -27,8 +27,10 @@ class TestClifford(unittest.TestCase):
         self.assertIsInstance(value, Clifford)
         self.assertEqual(value.num_qubits, num_qubits)
 
-    @given(strategies.integers(min_value=0, max_value=2 ** 32 - 1),
-           strategies.integers(min_value=1, max_value=211))
+    @given(
+        strategies.integers(min_value=0, max_value=2 ** 32 - 1),
+        strategies.integers(min_value=1, max_value=211),
+    )
     @settings(deadline=None)
     def test_random_clifford_valid(self, seed, num_qubits):
         """Test random_clifford."""
@@ -36,5 +38,5 @@ class TestClifford(unittest.TestCase):
         self.assertValidClifford(value, num_qubits=num_qubits)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

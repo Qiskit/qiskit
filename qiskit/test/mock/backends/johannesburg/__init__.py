@@ -13,3 +13,4 @@
 """Mock johannesburg backend"""
 
 from .fake_johannesburg import FakeJohannesburg
+from .fake_johannesburg import FakeLegacyJohannesburg

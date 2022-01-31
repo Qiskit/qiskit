@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    The constructors of the :class:`~qiskit.circuit.Bit` class and subclasses,
+    :class:`~qiskit.circuit.Qubit`, :class:`~qiskit.circuit.Clbit`, and
+    :class:`~qiskit.circuit.AncillaQubit`, have been updated such that their
+    two parameters, ``register`` and ``index`` are now optional. This enables
+    the creation of bit objects that are independent of a register.
