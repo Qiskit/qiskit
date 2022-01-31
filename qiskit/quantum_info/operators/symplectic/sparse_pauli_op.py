@@ -404,6 +404,15 @@ class SparsePauliOp(LinearOp):
             x = self.paulis.x[non_zero_indexes]
             z = self.paulis.z[non_zero_indexes]
             coeffs = coeffs[non_zero]
+
+            # Remove real (resp. imaginary) parts that are close to 0. This part for instance
+            # truncates 1+1e-17j to 1.0. Note that all coefficients that are left at this point
+            # are guaranteed to have a value above tolerance due to the previous is_zero check.
+            realpart_zero = np.isclose(coeffs.real, 0, atol=atol, rtol=rtol)
+            imagpart_zero = np.isclose(coeffs.imag, 0, atol=atol, rtol=rtol)
+            coeffs.real[realpart_zero] = 0
+            coeffs.imag[imagpart_zero] = 0
+
         return SparsePauliOp(
             PauliList.from_symplectic(z, x), coeffs, ignore_pauli_phase=True, copy=False
         )

@@ -89,6 +89,8 @@ class Z2Symmetries:
         sq_paulis: List[Pauli],
         sq_list: List[int],
         tapering_values: Optional[List[int]] = None,
+        atol: Optional[float] = None,
+        rtol: Optional[float] = None,
     ):
         """
         Args:
@@ -98,6 +100,9 @@ class Z2Symmetries:
             sq_list: the list of support of the single-qubit Pauli objects used to build
                                  the Clifford operators
             tapering_values: values determines the sector.
+            atol: Absolute tolerance threshold for ignoring real or complex parts of a coefficient.
+            rtol: Relative tolerance threshold for ignoring real or complex parts of a coefficient.
+
         Raises:
             OpflowError: Invalid paulis
         """
@@ -122,6 +127,28 @@ class Z2Symmetries:
         self._sq_paulis = sq_paulis
         self._sq_list = sq_list
         self._tapering_values = tapering_values
+        self._atol = atol
+        self._rtol = rtol
+
+    @property
+    def atol(self):
+        """Absolute tolerance threshold for ignoring real or complex parts of a coefficient."""
+        return self._atol
+
+    @atol.setter
+    def atol(self, value):
+        """Set absolute tolerance threshold for ignoring real or complex parts of a coefficient."""
+        self._atol = value
+
+    @property
+    def rtol(self):
+        """Relative tolerance threshold for ignoring real or complex parts of a coefficient."""
+        return self._rtol
+
+    @rtol.setter
+    def rtol(self, value):
+        """Set relative tolerance threshold for ignoring real or complex parts of a coefficient."""
+        self._rtol = value
 
     @property
     def symmetries(self):
@@ -391,7 +418,8 @@ class Z2Symmetries:
             z_temp = np.delete(pauli_term.primitive.paulis.z[0].copy(), np.asarray(self._sq_list))
             x_temp = np.delete(pauli_term.primitive.paulis.x[0].copy(), np.asarray(self._sq_list))
             pauli_list.append((Pauli((z_temp, x_temp)).to_label(), coeff_out))
-        spo = SparsePauliOp.from_list(pauli_list).simplify(atol=0.0)
+
+        spo = SparsePauliOp.from_list(pauli_list).simplify(atol=self.atol, rtol=self.rtol)
         z2_symmetries = self.copy()
         z2_symmetries.tapering_values = curr_tapering_values
 
