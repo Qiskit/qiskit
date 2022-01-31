@@ -17,7 +17,6 @@ Readout mitigator class based on the 1-qubit local tensored mitigation method
 from typing import Optional, List, Tuple, Iterable, Callable, Union
 import numpy as np
 
-from qiskit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from ..distributions.quasi import QuasiDistribution
 from ..counts import Counts
@@ -84,7 +83,8 @@ class M3ReadoutMitigator(LocalReadoutMitigator):
         for amat, qubit in zip(amats, qubits):
             m3_amats[qubit] = amat
 
-        self._m3_mitigator = M3Mitigation(m3_amats)
+        self._m3_mitigator = M3Mitigation()
+        self._m3_mitigator.cals_from_matrices(m3_amats)
         self._assignment_mats = amats
         self._qubit_index = dict(zip(self._qubits, range(self._num_qubits)))
         self.compute_gammas()
@@ -99,6 +99,7 @@ class M3ReadoutMitigator(LocalReadoutMitigator):
         if qubits is None:
             qubits = self._qubits
         quasi_probs = self._m3_mitigator._apply_correction(data, qubits)
+        quasi_probs = QuasiDistribution(quasi_probs) # conversion from M3's format
         shots = sum(dict(data).values())
         quasi_probs._stddev_upper_bound = self.stddev_upper_bound(shots, qubits)
         return quasi_probs

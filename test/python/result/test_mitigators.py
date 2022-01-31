@@ -222,6 +222,8 @@ class TestReadoutMitigation(QiskitTestCase):
         and that its standard deviation is increased"""
         CRM = CorrelatedReadoutMitigator(circuits_data["correlated_method_matrix"])
         LRM = LocalReadoutMitigator(circuits_data["local_method_matrices"])
+        M3RM = M3ReadoutMitigator(circuits_data["local_method_matrices"])
+        mitigators = [CRM, LRM, M3RM]
         num_qubits = circuits_data["num_qubits"]
         diagonals = []
         diagonals.append(z_diagonal(2 ** num_qubits))
@@ -229,7 +231,6 @@ class TestReadoutMitigation(QiskitTestCase):
         diagonals.append("ZZZ")
         diagonals.append("101")
         diagonals.append("IZI")
-        mitigators = [CRM, LRM]
         qubit_index = {i: i for i in range(num_qubits)}
         for circuit_name, circuit_data in circuits_data["circuits"].items():
             counts_ideal = Counts(circuit_data["counts_ideal"])
