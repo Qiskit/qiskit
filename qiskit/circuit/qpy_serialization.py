@@ -151,7 +151,9 @@ TUPLE
 -----
 
 A TUPLE is a reprentation of a ``tuple`` object. As tuples are just fixed length
-containers of arbitrary python objects
+containers of arbitrary python objects their QPY can't fully represent any tuple,
+but as long as the contents in a tuple are other QPY serializable types for
+the INSTRUCTION_PARAM payload the ``tuple`` object can be serialized.
 
 A tuple instruction parameter starts with a header defined as:
 
