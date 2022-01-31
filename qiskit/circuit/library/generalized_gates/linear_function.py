@@ -25,11 +25,7 @@ class LinearFunction(Gate):
     as a n x n matrix of 0s and 1s in numpy array format.
 
     A linear function can be synthesized into CX and SWAP gates using the Patel–Markov–Hayes
-    algorithm, as implemented in `qiskit.transpiler.synthesis.cnot_synth` based on
-    the paper:
-    "Optimal synthesis of linear reversible circuits."
-    Patel, Ketan N., Igor L. Markov, and John P. Hayes.
-    Quantum Information & Computation 8.3 (2008): 282-294.
+    algorithm, as implemented in `qiskit.transpiler.synthesis.cnot_synth` based on reference [1].
 
     For efficiency, the internal n x n matrix is stored in the format expected
     by cnot_synth, which is the big-endian (and not the little-endian) bit-ordering convention.
@@ -53,6 +49,13 @@ class LinearFunction(Gate):
                 1 & 1 & 0 \\
                 0 & 0 & 1
             \end{pmatrix}
+
+
+    References:
+        [1]: Ketan N. Patel, Igor L. Markov, and John P. Hayes,
+             Optimal synthesis of linear reversible circuits,
+             Quantum Inf. Comput. 8(3) (2008).
+             `Online at umich.edu. <https://web.eecs.umich.edu/~imarkov/pubs/jour/qic08-cnot.pdf>`_
     """
 
     def __init__(
