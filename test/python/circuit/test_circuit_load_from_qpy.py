@@ -865,3 +865,14 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
+
+    def test_nested_tuple_param(self):
+        """Test qpy with an instruction that contains nested tuples."""
+        inst = Instruction("tuple_test", 1, 0, [((((0, 1), (0, 1)), 2, 3), ("A", "B", "C"))])
+        qc = QuantumCircuit(1)
+        qc.append(inst, [0])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
