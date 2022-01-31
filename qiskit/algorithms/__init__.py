@@ -114,10 +114,7 @@ Algorithms to solve linear systems of equations.
    :toctree: ../stubs/
    :nosignatures:
 
-   HHL
-   NumPyLinearSolver
-   LinearSolver
-   LinearSolverResult
+   linear_solvers
 
 
 Minimum Eigensolvers

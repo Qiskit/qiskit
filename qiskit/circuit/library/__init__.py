@@ -235,18 +235,6 @@ Particular Quantum Circuits
    PauliEvolutionGate
 
 
-Probability distributions
-=========================
-
-.. autosummary::
-   :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
-
-   UniformDistribution
-   NormalDistribution
-   LogNormalDistribution
-
-
 N-local circuits
 ================
 
@@ -426,11 +414,6 @@ from .n_local import (
     QAOAAnsatz,
 )
 from .data_preparation import PauliFeatureMap, ZFeatureMap, ZZFeatureMap
-from .probability_distributions import (
-    LogNormalDistribution,
-    NormalDistribution,
-    UniformDistribution,
-)
 from .quantum_volume import QuantumVolume
 from .fourier_checking import FourierChecking
 from .graph_state import GraphState
