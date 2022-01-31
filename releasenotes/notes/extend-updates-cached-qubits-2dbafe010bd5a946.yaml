@@ -1,8 +1,0 @@
----
-fixes:
-  - |
-    Extending circuits with differing registers updated the ``qregs`` and 
-    ``cregs`` properties accordingly, but not the ``qubits`` and ``clbits`` 
-    lists. As these are no longer generated from the registers but are cached
-    lists, this lead to a discrepancy of registers and bits. This has been 
-    fixed and the ``extend`` method explicitly updates the cached bit lists.

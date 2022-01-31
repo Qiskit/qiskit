@@ -1,0 +1,24 @@
+---
+upgrade:
+  - |
+    Following transpilation of a parameterized
+    :class:`~qiskit.circuit.QuantumCircuit`, the
+    :attr:`~qiskit.circuit.QuantumCircuit.global_phase` attribute of output
+    circuit may no longer be returned in a simplified form, if the global phase
+    is a :class:`~qiskit.circuit.ParameterExpression`.
+
+    For example::
+
+      qc = QuantumCircuit(1)
+      theta = Parameter('theta')
+
+      qc.rz(theta, 0)
+      qc.rz(-theta, 0)
+
+      print(transpile(qc, basis_gates=['p']).global_phase)
+
+    previously returned ``0``, but will now return ``-0.5*theta + 0.5*theta``.
+    This change was necessary was to avoid a large runtime performance
+    penalty as simplifying symbolic expressions can be quite slow, especially
+    if there are many :class:`~qiskit.circuit.ParameterExpression` objects
+    in a circuit.

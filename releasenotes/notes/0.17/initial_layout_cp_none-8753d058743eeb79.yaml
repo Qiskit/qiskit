@@ -1,0 +1,40 @@
+---
+fixes:
+  - |
+    When the argument ``coupling_map=None`` (either set explicitly, set
+    implicitly as the default value, or via the ``backend`` kwarg), the
+    transpiling process was not "embedding" the circuit. That is, even when an
+    ``initial_layout`` was specified, the virtual qubits were not assigned to
+    physical qubits. This has been fixed so that now, the
+    :func:`qiskit.compiler.transpile` function honors the ``initial_layout``
+    argument by embedding the circuit:
+
+    .. jupyter-execute::
+
+        from qiskit import QuantumCircuit, QuantumRegister
+        from qiskit.compiler import transpile
+        
+        qr = QuantumRegister(2, name='qr')
+        circ = QuantumCircuit(qr)
+        circ.h(qr[0])
+        circ.cx(qr[0], qr[1])
+        
+        transpile(circ, initial_layout=[1, 0]).draw(output='mpl')
+
+
+    If the ``initial_layout`` refers to more qubits than in the circuit, the
+    transpiling process will extended the circuit with ancillas.
+
+    .. jupyter-execute::
+
+        from qiskit import QuantumCircuit, QuantumRegister
+        from qiskit.compiler import transpile
+
+        qr = QuantumRegister(2, name='qr')
+        circ = QuantumCircuit(qr)
+        circ.h(qr[0])
+        circ.cx(qr[0], qr[1])
+
+        transpile(circ, initial_layout=[4, 2], coupling_map=None).draw()
+
+    Fixed `#5345 <https://github.com/Qiskit/qiskit-terra/issues/5345>`__

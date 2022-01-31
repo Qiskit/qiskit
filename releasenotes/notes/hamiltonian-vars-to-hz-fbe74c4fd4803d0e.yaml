@@ -1,4 +1,0 @@
----
-upgrade:
-  - |
-    In the ``PulseBackendConfiguration`` hamiltonian ``vars`` are now returned in Hz rather than GHZ.

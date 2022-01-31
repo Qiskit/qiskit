@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Added the :class:`~qiskit.circuit.library.GroverOperator` to the circuit
+    library (:mod:`qiskit.circuit.library`) to construct the Grover operator
+    used in Grover's search algorithm and Quantum Amplitude
+    Amplification/Estimation. Provided with an oracle in form of a circuit,
+    ``GroverOperator`` creates the textbook Grover operator. To generalize
+    this for amplitude amplification and use a generic operator instead of
+    Hadamard gates as state preparation, the ``state_in`` argument can be
+    used.

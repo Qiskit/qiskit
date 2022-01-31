@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    Added support for running with Python 3.10. This includes publishing
+    precompiled binaries to PyPI for Python 3.10 on supported platforms.
+upgrade:
+  - |
+    Qiskit Terra no longer fully supports 32 bit platforms on Python >= 3.10.
+    These are Linux i686 and 32-bit Windows. These platforms with Python 3.10
+    are now at Tier 3 instead of Tier 2 support (per the tiers defined in:
+    https://qiskit.org/documentation/getting_started.html#platform-support)
+    This is because the upstream dependencies Numpy and Scipy have dropped
+    support for them. Qiskit will still publish precompiled binaries for these
+    platforms, but we're unable to test the packages prior to publishing, and
+    you will need a C/C++ compiler so that ``pip`` can build their dependencies
+    from source. If you're using one of these platforms, we recommended that
+    you use Python 3.7, 3.8, or 3.9.

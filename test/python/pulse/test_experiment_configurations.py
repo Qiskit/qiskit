@@ -43,15 +43,13 @@ class TestLoConfig(QiskitTestCase):
     """LoConfig tests."""
 
     def test_can_create_empty_user_lo_config(self):
-        """Test if a LoConfig can be created without no arguments.
-        """
+        """Test if a LoConfig can be created without no arguments."""
         user_lo_config = LoConfig()
         self.assertEqual({}, user_lo_config.qubit_los)
         self.assertEqual({}, user_lo_config.meas_los)
 
     def test_can_create_valid_user_lo_config(self):
-        """Test if a LoConfig can be created with valid user_los.
-        """
+        """Test if a LoConfig can be created with valid user_los."""
         channel1 = DriveChannel(0)
         channel2 = MeasureChannel(0)
         user_lo_config = LoConfig({channel1: 1.4, channel2: 3.6})
@@ -59,15 +57,13 @@ class TestLoConfig(QiskitTestCase):
         self.assertEqual(3.6, user_lo_config.meas_los[channel2])
 
     def test_fail_to_create_with_out_of_range_user_lo(self):
-        """Test if a LoConfig cannot be created with invalid user_los.
-        """
+        """Test if a LoConfig cannot be created with invalid user_los."""
         channel = DriveChannel(0)
         with self.assertRaises(PulseError):
             LoConfig({channel: 3.3}, {channel: (1.0, 2.0)})
 
     def test_fail_to_create_with_invalid_channel(self):
-        """Test if a LoConfig cannot be created with invalid channel.
-        """
+        """Test if a LoConfig cannot be created with invalid channel."""
         channel = AcquireChannel(0)
         with self.assertRaises(PulseError):
             LoConfig({channel: 1.0})
@@ -97,5 +93,5 @@ class TestLoConfig(QiskitTestCase):
             lo_config.channel_lo(MeasureChannel(1))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

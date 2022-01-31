@@ -1,4 +1,0 @@
----
-fixes:
-  - |
-    Fixed an error where u/phase(p)/sx/sxdg gates did not load via QASM.

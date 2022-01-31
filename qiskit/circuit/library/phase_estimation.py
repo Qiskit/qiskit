@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member
-
 """Phase estimation circuit."""
 
 from typing import Optional
@@ -50,11 +48,13 @@ class PhaseEstimation(QuantumCircuit):
 
     """
 
-    def __init__(self,
-                 num_evaluation_qubits: int,
-                 unitary: QuantumCircuit,
-                 iqft: Optional[QuantumCircuit] = None,
-                 name: str = 'QPE') -> None:
+    def __init__(
+        self,
+        num_evaluation_qubits: int,
+        unitary: QuantumCircuit,
+        iqft: Optional[QuantumCircuit] = None,
+        name: str = "QPE",
+    ) -> None:
         """
         Args:
             num_evaluation_qubits: The number of evaluation qubits.
@@ -81,16 +81,19 @@ class PhaseEstimation(QuantumCircuit):
                 circuit = PhaseEstimation(3, unitary)
                 %circuit_library_info circuit
         """
-        qr_eval = QuantumRegister(num_evaluation_qubits, 'eval')
-        qr_state = QuantumRegister(unitary.num_qubits, 'q')
-        super().__init__(qr_eval, qr_state, name=name)
+        qr_eval = QuantumRegister(num_evaluation_qubits, "eval")
+        qr_state = QuantumRegister(unitary.num_qubits, "q")
+        circuit = QuantumCircuit(qr_eval, qr_state, name=name)
 
         if iqft is None:
-            iqft = QFT(num_evaluation_qubits, inverse=True, do_swaps=False)
+            iqft = QFT(num_evaluation_qubits, inverse=True, do_swaps=False).reverse_bits()
 
-        self.h(qr_eval)  # hadamards on evaluation qubits
+        circuit.h(qr_eval)  # hadamards on evaluation qubits
 
         for j in range(num_evaluation_qubits):  # controlled powers
-            self.append(unitary.power(2**j).control(), [j] + qr_state[:])
+            circuit.compose(unitary.power(2 ** j).control(), qubits=[j] + qr_state[:], inplace=True)
 
-        self.append(iqft, qr_eval[:])  # final QFT
+        circuit.compose(iqft, qubits=qr_eval[:], inplace=True)  # final QFT
+
+        super().__init__(*circuit.qregs, name=circuit.name)
+        self.compose(circuit.to_gate(), qubits=self.qubits, inplace=True)

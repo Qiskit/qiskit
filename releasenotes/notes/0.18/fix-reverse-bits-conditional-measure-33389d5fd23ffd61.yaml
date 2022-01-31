@@ -1,0 +1,16 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :func:`~qiskit.visualization.circuit_drawer`
+    function and :meth:`~qiskit.circuit.QuantumCircuit.draw` method of
+    :class:`~qiskit.circuit.QuantumCircuit`. When the ``reverse_bits`` kwarg
+    was set to ``True``, in some situations the lines from conditional gates
+    or measurements intersected with other gates or circuit elements.
+fixes:
+  - |
+    Fixed an issue with the :func:`~qiskit.visualization.circuit_drawer`
+    function and :meth:`~qiskit.circuit.QuantumCircuit.draw` method of
+    :class:`~qiskit.circuit.QuantumCircuit`. When using the ``mpl`` or ``latex``
+    output modes, with the ``cregbundle`` kwarg set to ``False`` and the
+    ``reverse_bits`` kwarg set to ``True``, the bits in the classical registers
+    displayed in the same order as when ``reverse_bits`` was set to ``False``.

@@ -14,7 +14,6 @@
 
 import logging
 import os
-import unittest
 from enum import Enum
 from itertools import product
 
@@ -27,13 +26,13 @@ class Path(Enum):
     # Main SDK path:    qiskit/
     SDK = qiskit_path[0]
     # test.python path: qiskit/test/python/
-    TEST = os.path.normpath(os.path.join(SDK, '..', 'test', 'python'))
+    TEST = os.path.normpath(os.path.join(SDK, "..", "test", "python"))
     # Examples path:    examples/
-    EXAMPLES = os.path.normpath(os.path.join(SDK, '..', 'examples'))
+    EXAMPLES = os.path.normpath(os.path.join(SDK, "..", "examples"))
     # Schemas path:     qiskit/schemas
-    SCHEMAS = os.path.normpath(os.path.join(SDK, 'schemas'))
+    SCHEMAS = os.path.normpath(os.path.join(SDK, "schemas"))
     # Sample QASMs path: qiskit/test/python/qasm
-    QASMS = os.path.normpath(os.path.join(TEST, 'qasm'))
+    QASMS = os.path.normpath(os.path.join(TEST, "qasm"))
 
 
 def setup_test_logging(logger, log_level, filename):
@@ -45,8 +44,7 @@ def setup_test_logging(logger, log_level, filename):
         filename (str): name of the output file.
     """
     # Set up formatter.
-    log_fmt = ('{}.%(funcName)s:%(levelname)s:%(asctime)s:'
-               ' %(message)s'.format(logger.name))
+    log_fmt = f"{logger.name}.%(funcName)s:%(levelname)s:%(asctime)s: %(message)s"
     formatter = logging.Formatter(log_fmt)
 
     # Set up the file handler.
@@ -54,7 +52,7 @@ def setup_test_logging(logger, log_level, filename):
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
-    if os.getenv('STREAM_LOG'):
+    if os.getenv("STREAM_LOG"):
         # Set up the stream handler.
         stream_handler = logging.StreamHandler()
         stream_handler.setFormatter(formatter)
@@ -66,39 +64,14 @@ def setup_test_logging(logger, log_level, filename):
     logger.setLevel(level)
 
 
-class _AssertNoLogsContext(unittest.case._AssertLogsContext):
-    """A context manager used to implement TestCase.assertNoLogs()."""
-
-    # pylint: disable=inconsistent-return-statements
-    def __exit__(self, exc_type, exc_value, tb):
-        """
-        This is a modified version of TestCase._AssertLogsContext.__exit__(...)
-        """
-        self.logger.handlers = self.old_handlers
-        self.logger.propagate = self.old_propagate
-        self.logger.setLevel(self.old_level)
-        if exc_type is not None:
-            # let unexpected exceptions pass through
-            return False
-
-        if self.watcher.records:
-            msg = 'logs of level {} or higher triggered on {}:\n'.format(
-                logging.getLevelName(self.level), self.logger.name)
-            for record in self.watcher.records:
-                msg += 'logger %s %s:%i: %s\n' % (record.name, record.pathname,
-                                                  record.lineno,
-                                                  record.getMessage())
-
-            self._raiseFailure(msg)
-
-
 class Case(dict):
     """<no description>"""
+
     pass
 
 
 def generate_cases(docstring, dsc=None, name=None, **kwargs):
-    """Combines kwargs in cartesian product and creates Case with them"""
+    """Combines kwargs in Cartesian product and creates Case with them"""
     ret = []
     keys = kwargs.keys()
     vals = kwargs.values()

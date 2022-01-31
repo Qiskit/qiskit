@@ -1,0 +1,32 @@
+---
+features:
+  - |
+    Global R gates have been added to :mod:`qiskit.circuit.library`. This
+    includes the global R gate (:class:`~qiskit.circuit.library.GR`),
+    global Rx (:class:`~qiskit.circuit.library.GRX`) and global Ry
+    (:class:`~qiskit.circuit.library.GRY`) gates which are derived from the
+    :class:`~qiskit.circuit.library.GR` gate, and global Rz (
+    :class:`~qiskit.circuit.library.GRZ`) that is defined in a similar way
+    to the :class:`~qiskit.circuit.library.GR` gates. The global R gates are
+    defined on a number of qubits simultaneously, and act as a direct sum of
+    R gates on each qubit.
+
+    For example:
+    
+    .. code-block :: python
+
+      from qiskit import QuantumCircuit, QuantumRegister      
+      import numpy as np
+
+      num_qubits = 3
+      qr = QuantumRegister(num_qubits)
+      qc = QuantumCircuit(qr)
+
+      qc.compose(GR(num_qubits, theta=np.pi/3, phi=2*np.pi/3), inplace=True)
+
+    will create a :class:`~qiskit.circuit.QuantumCircuit` on a
+    :class:`~qiskit.circuit.QuantumRegister` of 3 qubits and perform a
+    :class:`~qiskit.circuit.library.RGate` of an angle
+    :math:`\theta = \frac{\pi}{3}` about an axis in the xy-plane of the Bloch
+    spheres that makes an angle of :math:`\phi = \frac{2\pi}{3}` with the x-axis
+    on each qubit.

@@ -1,4 +1,0 @@
----
-fixes:
-  - |
-    Fix bugs of the concrete implementations of meth:`~qiskit.circuit.ControlledGate.inverse` method which do not preserve the `ctrl_state` parameter.

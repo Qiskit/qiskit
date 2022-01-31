@@ -39,8 +39,9 @@ class TestHiddenLinearFunctionLibrary(QiskitTestCase):
         for i in range(2 ** num_qubits):
             i_qiskit = int(bin(i)[2:].zfill(num_qubits)[::-1], 2)
             x_vec = np.asarray(list(map(int, bin(i)[2:].zfill(num_qubits)[::-1])))
-            expected[i_qiskit, i_qiskit] = 1j ** (np.dot(x_vec.transpose(),
-                                                         np.dot(hidden_function, x_vec)))
+            expected[i_qiskit, i_qiskit] = 1j ** (
+                np.dot(x_vec.transpose(), np.dot(hidden_function, x_vec))
+            )
 
         qc = QuantumCircuit(num_qubits)
         qc.h(range(num_qubits))
@@ -50,9 +51,7 @@ class TestHiddenLinearFunctionLibrary(QiskitTestCase):
 
     def test_hlf(self):
         """Test if the HLF matrix produces the right matrix."""
-        hidden_function = [[1, 1, 0],
-                           [1, 0, 1],
-                           [0, 1, 1]]
+        hidden_function = [[1, 1, 0], [1, 0, 1], [0, 1, 1]]
         hlf = HiddenLinearFunction(hidden_function)
         self.assertHLFIsCorrect(hidden_function, hlf)
 
@@ -62,5 +61,5 @@ class TestHiddenLinearFunctionLibrary(QiskitTestCase):
             HiddenLinearFunction([[1, 1, 0], [1, 0, 1], [1, 1, 1]])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

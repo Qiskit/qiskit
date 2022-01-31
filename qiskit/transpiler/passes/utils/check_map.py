@@ -41,12 +41,26 @@ class CheckMap(AnalysisPass):
         Args:
             dag (DAGCircuit): DAG to map.
         """
-        self.property_set['is_swap_mapped'] = True
+        self.property_set["is_swap_mapped"] = True
+
+        if self.coupling_map is None or len(self.coupling_map.graph) == 0:
+            return
+
+        qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
+        # Use dist matrix directly to avoid validation overhead
+        dist_matrix = self.coupling_map.distance_matrix
 
         for gate in dag.two_qubit_ops():
-            physical_q0 = gate.qargs[0].index
-            physical_q1 = gate.qargs[1].index
+            if dag.has_calibration_for(gate):
+                continue
+            physical_q0 = qubit_indices[gate.qargs[0]]
+            physical_q1 = qubit_indices[gate.qargs[1]]
 
-            if self.coupling_map.distance(physical_q0, physical_q1) != 1:
-                self.property_set['is_swap_mapped'] = False
+            if dist_matrix[physical_q0, physical_q1] != 1:
+                self.property_set["check_map_msg"] = "{}({}, {}) failed".format(
+                    gate.name,
+                    physical_q0,
+                    physical_q1,
+                )
+                self.property_set["is_swap_mapped"] = False
                 return

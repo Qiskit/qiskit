@@ -27,10 +27,10 @@ except ImportError:
 
 from qiskit.visualization import utils
 from qiskit.visualization.exceptions import VisualizationError
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.transpiler.basepasses import AnalysisPass, TransformationPass
 
-DEFAULT_STYLE = {AnalysisPass: 'red',
-                 TransformationPass: 'blue'}
+DEFAULT_STYLE = {AnalysisPass: "red", TransformationPass: "blue"}
 
 
 def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
@@ -54,7 +54,7 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
         PIL.Image or None: an in-memory representation of the pass manager. Or None if
         no image was generated or PIL is not installed.
     Raises:
-        ImportError: when nxpd or pydot not installed.
+        MissingOptionalLibraryError: when nxpd or pydot not installed.
         VisualizationError: If raw=True and filename=None.
 
     Example:
@@ -82,14 +82,14 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     try:
         import subprocess
 
-        _PROC = subprocess.Popen(['dot', '-V'],  # pylint: disable=invalid-name
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
-        _PROC.communicate()
-        if _PROC.returncode != 0:
-            has_graphviz = False
-        else:
-            has_graphviz = True
+        with subprocess.Popen(
+            ["dot", "-V"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        ) as _proc:
+            _proc.communicate()
+            if _proc.returncode != 0:
+                has_graphviz = False
+            else:
+                has_graphviz = True
     except Exception:  # pylint: disable=broad-except
         # this is raised when the dot command cannot be found, which means GraphViz
         # isn't installed
@@ -97,15 +97,18 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
 
     HAS_GRAPHVIZ = has_graphviz  # pylint: disable=invalid-name
 
+    if not HAS_GRAPHVIZ:
+        raise MissingOptionalLibraryError(
+            libname="graphviz",
+            name="pass_manager_drawer",
+            pip_install="'brew install graphviz' on Mac or by downloading it from the website.",
+        )
     try:
         import pydot
-        if not HAS_GRAPHVIZ:
-            raise ImportError
-    except ImportError:
-        raise ImportError("pass_manager_drawer requires pydot and graphviz. "
-                          "Run 'pip install pydot'. "
-                          "Graphviz can be installed using 'brew install graphviz' on Mac"
-                          " or by downloading it from the website.")
+    except ImportError as ex:
+        raise MissingOptionalLibraryError(
+            libname="pydot", name="pass_manager_drawer", pip_install="pip install pydot"
+        ) from ex
 
     passes = pass_manager.passes()
 
@@ -125,21 +128,24 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     for index, controller_group in enumerate(passes):
 
         # label is the name of the flow controller parameter
-        label = "[%s] %s" % (index, ', '.join(controller_group['flow_controllers']))
+        label = "[{}] {}".format(index, ", ".join(controller_group["flow_controllers"]))
 
         # create the subgraph for this controller
-        subgraph = pydot.Cluster(str(component_id), label=label, fontname='helvetica',
-                                 labeljust='l')
+        subgraph = pydot.Cluster(
+            str(component_id), label=label, fontname="helvetica", labeljust="l"
+        )
         component_id += 1
 
-        for pass_ in controller_group['passes']:
+        for pass_ in controller_group["passes"]:
 
             # label is the name of the pass
-            node = pydot.Node(str(component_id),
-                              label=str(type(pass_).__name__),
-                              color=_get_node_color(pass_, style),
-                              shape="rectangle",
-                              fontname='helvetica')
+            node = pydot.Node(
+                str(component_id),
+                label=str(type(pass_).__name__),
+                color=_get_node_color(pass_, style),
+                shape="rectangle",
+                fontname="helvetica",
+            )
 
             subgraph.add_node(node)
             component_id += 1
@@ -153,18 +159,21 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
 
             # add in the inputs to the pass
             for arg_index, arg in enumerate(args):
-                nd_style = 'solid'
+                nd_style = "solid"
                 # any optional args are dashed
                 # the num of optional counts from the end towards the start of the list
                 if arg_index >= (len(args) - num_optional):
-                    nd_style = 'dashed'
+                    nd_style = "dashed"
 
-                input_node = pydot.Node(component_id, label=arg,
-                                        color="black",
-                                        shape="ellipse",
-                                        fontsize=10,
-                                        style=nd_style,
-                                        fontname='helvetica')
+                input_node = pydot.Node(
+                    component_id,
+                    label=arg,
+                    color="black",
+                    shape="ellipse",
+                    fontsize=10,
+                    style=nd_style,
+                    fontname="helvetica",
+                )
                 subgraph.add_node(input_node)
                 component_id += 1
                 subgraph.add_edge(pydot.Edge(input_node, node))
@@ -179,27 +188,27 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
 
     if raw:
         if filename:
-            graph.write(filename, format='raw')
+            graph.write(filename, format="raw")
             return None
         else:
             raise VisualizationError("if format=raw, then a filename is required.")
 
     if not HAS_PIL and filename:
-        # linter says this isn't a method - it is
+        # pylint says this isn't a method - it is
         graph.write_png(filename)  # pylint: disable=no-member
         return None
 
     with tempfile.TemporaryDirectory() as tmpdirname:
-        tmppath = os.path.join(tmpdirname, 'pass_manager.png')
+        tmppath = os.path.join(tmpdirname, "pass_manager.png")
 
-        # linter says this isn't a method - it is
+        # pylint says this isn't a method - it is
         graph.write_png(tmppath)  # pylint: disable=no-member
 
         image = Image.open(tmppath)
         image = utils._trim(image)
         os.remove(tmppath)
         if filename:
-            image.save(filename, 'PNG')
+            image.save(filename, "PNG")
         return image
 
 

@@ -15,41 +15,24 @@ Fake Manhattan device (65 qubit).
 """
 
 import os
-import json
-
-from qiskit.providers.models import (PulseDefaults, PulseBackendConfiguration,
-                                     BackendProperties)
-from qiskit.test.mock.fake_backend import FakeBackend
+from qiskit.test.mock import fake_pulse_backend
 
 
-class FakeManhattan(FakeBackend):
+class FakeManhattan(fake_pulse_backend.FakePulseBackend):
     """A fake Manhattan backend."""
 
-    def __init__(self):
-        dirname = os.path.dirname(__file__)
-        filename = "conf_manhattan.json"
-        with open(os.path.join(dirname, filename)) as f_conf:
-            conf = json.load(f_conf)
-        configuration = PulseBackendConfiguration.from_dict(conf)
-        configuration.backend_name = 'fake_manhattan'
-        self._defaults = None
-        self._properties = None
-        super().__init__(configuration)
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_manhattan.json"
+    props_filename = "props_manhattan.json"
+    defs_filename = "defs_manhattan.json"
+    backend_name = "fake_manhattan"
 
-    def properties(self):
-        """Returns a snapshot of device properties"""
-        dirname = os.path.dirname(__file__)
-        filename = "props_manhattan.json"
-        with open(os.path.join(dirname, filename)) as f_prop:
-            props = json.load(f_prop)
-        return BackendProperties.from_dict(props)
 
-    def defaults(self):
-        """Returns a snapshot of device defaults"""
-        if not self._defaults:
-            dirname = os.path.dirname(__file__)
-            filename = "defs_manhattan.json"
-            with open(os.path.join(dirname, filename)) as f_defs:
-                defs = json.load(f_defs)
-            self._defaults = PulseDefaults.from_dict(defs)
-        return self._defaults
+class FakeLegacyManhattan(fake_pulse_backend.FakePulseLegacyBackend):
+    """A fake Manhattan backend."""
+
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_manhattan.json"
+    props_filename = "props_manhattan.json"
+    defs_filename = "defs_manhattan.json"
+    backend_name = "fake_manhattan"

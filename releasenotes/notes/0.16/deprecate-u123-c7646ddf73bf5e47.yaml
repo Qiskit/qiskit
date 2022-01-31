@@ -1,0 +1,24 @@
+---
+deprecations:
+  - |
+    The :class:`~qiskit.circuit.QuantumCircuit` methods ``u1``, ``u2`` and
+    ``u3`` are now deprecated. Instead the following replacements can be
+    used.
+
+    .. code-block::
+
+        u1(theta) = p(theta) = u(0, 0, theta)
+        u2(phi, lam) = u(pi/2, phi, lam) = p(pi/2 + phi) sx p(pi/2 lam)
+        u3(theta, phi, lam) = u(theta, phi, lam) = p(phi + pi) sx p(theta + pi) sx p(lam)
+
+    The gate classes themselves, :class:`~qiskit.circuit.library.U1Gate`,
+    :class:`~qiskit.circuit.library.U2Gate` and :class:`~qiskit.circuit.library.U3Gate`
+    remain, to allow loading of old jobs.
+
+upgrade:
+  - |
+    The :class:`~qiskit.circuit.library.U3Gate` definition has been changed to
+    be in terms of the :class:`~qiskit.circuit.library.UGate` class. The
+    :class:`~qiskit.circuit.library.UGate` class has no definition. It is
+    therefore not possible to unroll **every** circuit in terms of U3
+    and CX anymore. Instead, U and CX can be used for **every** circuit.

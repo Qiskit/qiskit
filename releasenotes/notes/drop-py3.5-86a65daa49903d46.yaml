@@ -1,7 +1,0 @@
----
-upgrade:
-  - |
-    The deprecated support for running qiskit-terra with Python 3.5 has been
-    removed. To use qiskit-terra >=0.16.0 you will now need at least Python 3.6.
-    If you are using Python 3.5 the last version which will work is Qiskit
-    0.15.x.

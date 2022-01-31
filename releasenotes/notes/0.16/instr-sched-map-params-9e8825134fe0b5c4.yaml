@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    The :class:`~qiskit.pulse.InstructionScheduleMap` methods
+    :meth:`~qiskit.pulse.InstructionScheduleMap.get` and
+    :meth:`~qiskit.pulse.InstructionScheduleMap.pop` methods now take
+    :class:`~qiskit.circuit.ParameterExpression` instances
+    in addition to numerical values for schedule generator parameters. If the
+    generator is a function, expressions may be bound before or within the
+    function call. If the generator is a
+    :class:`~qiskit.pulse.ParameterizedSchedule`, expressions must be
+    bound before the schedule itself is bound/called.

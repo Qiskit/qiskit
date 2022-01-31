@@ -1,0 +1,7 @@
+deprecations:
+  - |
+    The :mod:`qiskit.util` module has been deprecated and will be removed
+    in a future release. It has been replaced by :mod:`qiskit.utils` which
+    provides  the same functionality and will be expanded in the future. Note
+    that no ``DeprecationWarning`` will be emitted regarding this deprecation
+    since it was not feasible on Python 3.6.

@@ -11,6 +11,7 @@ Qiskit Terra API Reference
    compiler
    execute
    visualization
+   classicalfunction
    converters
    assembler
    dagcircuit
@@ -20,8 +21,10 @@ Qiskit Terra API Reference
    providers_models
    pulse
    scheduler
+   synthesis
    qasm
    qobj
+   qpy
    quantum_info
    result
    tools
@@ -29,5 +32,9 @@ Qiskit Terra API Reference
    transpiler
    transpiler_passes
    transpiler_preset
-   validation
-   visualization
+   transpiler_plugins
+   transpiler_builtin_plugins
+   utils
+   utils_mitigation
+   opflow
+   algorithms

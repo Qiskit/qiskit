@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug that would potentially cause registers to be mismapped when
+    unrolling/decomposing a gate defined with only one 2-qubit operation.

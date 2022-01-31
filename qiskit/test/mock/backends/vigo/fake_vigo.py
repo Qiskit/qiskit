@@ -15,33 +15,32 @@ Fake Vigo device (5 qubit).
 """
 
 import os
-import json
-
-from qiskit.providers.models import QasmBackendConfiguration, BackendProperties
-from qiskit.test.mock.fake_backend import FakeBackend
+from qiskit.test.mock import fake_qasm_backend
 
 
-class FakeVigo(FakeBackend):
-    """A fake 5 qubit backend."""
+class FakeVigo(fake_qasm_backend.FakeQasmBackend):
+    """A fake 5 qubit backend.
 
-    def __init__(self):
-        """
-         0 ↔ 1 ↔ 3 ↔ 4
-             ↕
-             2
-        """
-        dirname = os.path.dirname(__file__)
-        filename = "conf_vigo.json"
-        with open(os.path.join(dirname, filename)) as f_conf:
-            conf = json.load(f_conf)
-        configuration = QasmBackendConfiguration.from_dict(conf)
-        configuration.backend_name = 'fake_vigo'
-        super().__init__(configuration)
+    0 ↔ 1 ↔ 3 ↔ 4
+        ↕
+        2
+    """
 
-    def properties(self):
-        """Returns a snapshot of device properties"""
-        dirname = os.path.dirname(__file__)
-        filename = "props_vigo.json"
-        with open(os.path.join(dirname, filename)) as f_prop:
-            props = json.load(f_prop)
-        return BackendProperties.from_dict(props)
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_vigo.json"
+    props_filename = "props_vigo.json"
+    backend_name = "fake_vigo"
+
+
+class FakeLegacyVigo(fake_qasm_backend.FakeQasmLegacyBackend):
+    """A fake 5 qubit backend.
+
+    0 ↔ 1 ↔ 3 ↔ 4
+        ↕
+        2
+    """
+
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_vigo.json"
+    props_filename = "props_vigo.json"
+    backend_name = "fake_vigo"

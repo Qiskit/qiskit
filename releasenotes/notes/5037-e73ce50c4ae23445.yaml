@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    The parameters `backend` and `passmanager` in :func:`qiskit.execute.execute`
-    are not conflicting and they are simultaneously allowed now.

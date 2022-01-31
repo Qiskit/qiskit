@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    The :class:`~qiskit.result.Result` class's methods
+    :meth:`~qiskit.result.Result.data`, :meth:`~qiskit.result.Result.get_memory`,
+    :meth:`~qiskit.result.Result.get_counts`,  :meth:`~qiskit.result.Result.get_unitary`,
+    and :meth:`~qiskit.result.Result.get_statevector ` will now emit a warning
+    when the ``experiment`` kwarg is specified for attempting to fetch
+    results using either a :class:`~qiskit.circuit.QuantumCircuit` or
+    :class:`~qiskit.pulse.Schedule` instance, when more than one entry matching
+    the instance name is present in the ``Result`` object. Note that only the
+    first entry matching this name will be returned. Fixes
+    `#3207 <https://github.com/Qiskit/qiskit-terra/issues/3207>`__

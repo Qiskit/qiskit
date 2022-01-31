@@ -13,13 +13,10 @@
 """Pulses are descriptions of waveform envelopes. They can be transmitted by control electronics
 to the device.
 """
-from typing import Callable, Dict, Optional
 from abc import ABC, abstractmethod
+from typing import Dict, Optional, Any, Tuple, Union
 
-import numpy as np
-
-from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
-from qiskit.pulse.exceptions import PulseError
+from qiskit.circuit.parameterexpression import ParameterExpression
 
 
 class Pulse(ABC):
@@ -27,56 +24,105 @@ class Pulse(ABC):
     modulation phase and frequency are specified separately from ``Pulse``s.
     """
 
+    limit_amplitude = True
+
     @abstractmethod
-    def __init__(self, duration: int, name: Optional[str] = None):
-        if not isinstance(duration, (int, np.integer)):
-            raise PulseError('Pulse duration should be integer.')
-        self.duration = int(duration)
+    def __init__(
+        self,
+        duration: Union[int, ParameterExpression],
+        name: Optional[str] = None,
+        limit_amplitude: Optional[bool] = None,
+    ):
+        """Abstract base class for pulses
+        Args:
+            duration: Duration of the pulse
+            name: Optional name for the pulse
+            limit_amplitude: If ``True``, then limit the amplitude of the waveform to 1.
+                             The default value of ``None`` causes the flag value to be
+                             derived from :py:attr:`~limit_amplitude` which is ``True``
+                             by default but may be set by the user to disable amplitude
+                             checks globally.
+        """
+
+        self.duration = duration
         self.name = name
+        if limit_amplitude is not None:
+            self.limit_amplitude = limit_amplitude
 
     @property
     def id(self) -> int:  # pylint: disable=invalid-name
         """Unique identifier for this pulse."""
         return id(self)
 
-    def assign_parameters(self,
-                          value_dict: Dict[ParameterExpression, ParameterValueType]
-                          ) -> 'Pulse':
-        """Return a new pulse with parameters assigned.
+    @property
+    @abstractmethod
+    def parameters(self) -> Dict[str, Any]:
+        """Return a dictionary containing the pulse's parameters."""
+        pass
 
-        Args:
-            value_dict: A mapping from Parameters to either numeric values or another
-                Parameter expression.
-
-        Returns:
-            New pulse with updated parameters.
-        """
+    def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
         raise NotImplementedError
 
-    @abstractmethod
-    def draw(self, dt: float = 1,
-             style=None,
-             filename: Optional[str] = None,
-             interp_method: Optional[Callable] = None,
-             scale: float = 1, interactive: bool = False):
+    def draw(
+        self,
+        style: Optional[Dict[str, Any]] = None,
+        backend=None,  # importing backend causes cyclic import
+        time_range: Optional[Tuple[int, int]] = None,
+        time_unit: str = "dt",
+        show_waveform_info: bool = True,
+        plotter: str = "mpl2d",
+        axis: Optional[Any] = None,
+    ):
         """Plot the interpolated envelope of pulse.
 
         Args:
-            dt: Time interval of samples.
-            style (Optional[PulseStyle]): A style sheet to configure plot appearance
-            filename: Name required to save pulse image
-            interp_method: A function for interpolation
-            scale: Relative visual scaling of waveform amplitudes
-            interactive: When set true show the circuit in a new window
-                (this depends on the matplotlib backend being used supporting this)
+            style: Stylesheet options. This can be dictionary or preset stylesheet classes. See
+                :py:class:`~qiskit.visualization.pulse_v2.stylesheets.IQXStandard`,
+                :py:class:`~qiskit.visualization.pulse_v2.stylesheets.IQXSimple`, and
+                :py:class:`~qiskit.visualization.pulse_v2.stylesheets.IQXDebugging` for details of
+                preset stylesheets.
+            backend (Optional[BaseBackend]): Backend object to play the input pulse program.
+                If provided, the plotter may use to make the visualization hardware aware.
+            time_range: Set horizontal axis limit. Tuple ``(tmin, tmax)``.
+            time_unit: The unit of specified time range either ``dt`` or ``ns``.
+                The unit of ``ns`` is available only when ``backend`` object is provided.
+            show_waveform_info: Show waveform annotations, i.e. name, of waveforms.
+                Set ``True`` to show additional information about waveforms.
+            plotter: Name of plotter API to generate an output image.
+                One of following APIs should be specified::
+
+                    mpl2d: Matplotlib API for 2D image generation.
+                        Matplotlib API to generate 2D image. Charts are placed along y axis with
+                        vertical offset. This API takes matplotlib.axes.Axes as `axis` input.
+
+                `axis` and `style` kwargs may depend on the plotter.
+            axis: Arbitrary object passed to the plotter. If this object is provided,
+                the plotters use a given ``axis`` instead of internally initializing
+                a figure object. This object format depends on the plotter.
+                See plotter argument for details.
 
         Returns:
-            matplotlib.figure: A matplotlib figure object of the pulse envelope
+            Visualization output data.
+            The returned data type depends on the ``plotter``.
+            If matplotlib family is specified, this will be a ``matplotlib.pyplot.Figure`` data.
         """
-        raise NotImplementedError
+        # pylint: disable=cyclic-import, missing-return-type-doc
+        from qiskit.visualization import pulse_drawer_v2
+
+        return pulse_drawer_v2(
+            program=self,
+            style=style,
+            backend=backend,
+            time_range=time_range,
+            time_unit=time_unit,
+            show_waveform_info=show_waveform_info,
+            plotter=plotter,
+            axis=axis,
+        )
 
     @abstractmethod
-    def __eq__(self, other: 'Pulse') -> bool:
+    def __eq__(self, other: "Pulse") -> bool:
         return isinstance(other, type(self))
 
     @abstractmethod

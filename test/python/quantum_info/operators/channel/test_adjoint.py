@@ -35,28 +35,43 @@ class TestEquivalence(ChannelTestCase):
     """
 
     unitaries = [
-        ChannelTestCase.UI, ChannelTestCase.UX, ChannelTestCase.UY,
-        ChannelTestCase.UZ, ChannelTestCase.UH
+        ChannelTestCase.UI,
+        ChannelTestCase.UX,
+        ChannelTestCase.UY,
+        ChannelTestCase.UZ,
+        ChannelTestCase.UH,
     ]
 
     chois = [
-        ChannelTestCase.choiI, ChannelTestCase.choiX, ChannelTestCase.choiY,
-        ChannelTestCase.choiZ, ChannelTestCase.choiH
+        ChannelTestCase.choiI,
+        ChannelTestCase.choiX,
+        ChannelTestCase.choiY,
+        ChannelTestCase.choiZ,
+        ChannelTestCase.choiH,
     ]
 
     chis = [
-        ChannelTestCase.chiI, ChannelTestCase.chiX, ChannelTestCase.chiY,
-        ChannelTestCase.chiZ, ChannelTestCase.chiH
+        ChannelTestCase.chiI,
+        ChannelTestCase.chiX,
+        ChannelTestCase.chiY,
+        ChannelTestCase.chiZ,
+        ChannelTestCase.chiH,
     ]
 
     sops = [
-        ChannelTestCase.sopI, ChannelTestCase.sopX, ChannelTestCase.sopY,
-        ChannelTestCase.sopZ, ChannelTestCase.sopH
+        ChannelTestCase.sopI,
+        ChannelTestCase.sopX,
+        ChannelTestCase.sopY,
+        ChannelTestCase.sopZ,
+        ChannelTestCase.sopH,
     ]
 
     ptms = [
-        ChannelTestCase.ptmI, ChannelTestCase.ptmX, ChannelTestCase.ptmY,
-        ChannelTestCase.ptmZ, ChannelTestCase.ptmH
+        ChannelTestCase.ptmI,
+        ChannelTestCase.ptmX,
+        ChannelTestCase.ptmY,
+        ChannelTestCase.ptmZ,
+        ChannelTestCase.ptmH,
     ]
 
     def _compare_transpose_to_operator(self, chans, mats):
@@ -297,5 +312,5 @@ class TestEquivalence(ChannelTestCase):
         self._compare_adjoint_to_operator(chans, mats)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

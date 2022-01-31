@@ -1,0 +1,56 @@
+---
+features:
+  - |
+    A new color scheme, ``iqx``, has been added to the ``mpl`` backend for the
+    circuit drawer :func:`qiskit.visualization.circuit_drawer` and
+    :meth:`qiskit.circuit.QuantumCircuit.draw`. This uses the same color scheme
+    as the Circuit Composer on the IBM Quantum Experience website. There are
+    now 3 available color schemes - ``default``, ``iqx``, and ``bw``.
+
+    There are two ways to select a color scheme. The first is to use a user
+    config file, by default in the ``~/.qiskit`` directory, in the
+    file ``settings.conf`` under the ``[Default]`` heading, a user can enter
+    ``circuit_mpl_style = iqx`` to select the ``iqx`` color scheme.
+
+    The second way is to add ``{'name': 'iqx'}`` to the ``style`` kwarg to the
+    ``QuantumCircuit.draw`` method or to the ``circuit_drawer`` function. The
+    second way will override the setting in the settings.conf file. For example:
+
+    .. jupyter-execute::
+
+      from qiskit.circuit import QuantumCircuit
+
+      circuit = QuantumCircuit(2)
+      circuit.h(0)
+      circuit.cx(0, 1)
+      circuit.measure_all()
+      circuit.draw('mpl', style={'name': 'iqx'})
+
+  - |
+    In the ``style`` kwarg for the the circuit drawer
+    :func:`qiskit.visualization.circuit_drawer` and
+    :meth:`qiskit.circuit.QuantumCircuit.draw` the ``displaycolor`` field with
+    the ``mpl`` backend now allows for entering both the gate color and the text
+    color for each gate type in the form ``(gate_color, text_color)``.  This
+    allows the use of light and dark gate colors with contrasting text colors.
+    Users can still set only the gate color, in which case the ``gatetextcolor``
+    field will be used. Gate colors can be set in the ``style`` dict for any
+    number of gate types, from one to the entire ``displaycolor`` dict. For
+    example:
+
+    .. jupyter-execute::
+
+      from qiskit.circuit import QuantumCircuit
+
+      circuit = QuantumCircuit(1)
+      circuit.h(0)
+
+      style_dict = {'displaycolor': {'h': ('#FA74A6', '#000000')}}
+      circuit.draw('mpl', style=style_dict)
+
+    or
+
+    .. jupyter-execute::
+
+      style_dict = {'displaycolor': {'h': '#FA74A6'}}
+      circuit.draw('mpl', style=style_dict)

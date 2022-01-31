@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Previously the :func:`qiskit.execute.execute` function would incorrectly
+    disallow both the ``backend`` and ``pass_manager`` kwargs to be
+    specified at the same time. This has been fixed so that both
+    ``backend`` and ``pass_manager`` can be used together on calls to
+    :func:`~qiskit.execute.execute`.
+    Fixes `#5037 <https://github.com/Qiskit/qiskit-terra/issues/5037>`__

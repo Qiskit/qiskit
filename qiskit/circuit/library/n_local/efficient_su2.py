@@ -74,20 +74,27 @@ class EfficientSU2(TwoLocal):
 
     """
 
-    def __init__(self,
-                 num_qubits: Optional[int] = None,
-                 su2_gates: Optional[Union[
-                     str, type, Instruction, QuantumCircuit,
-                     List[Union[str, type, Instruction, QuantumCircuit]]
-                 ]] = None,
-                 entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
-                 reps: int = 3,
-                 skip_unentangled_qubits: bool = False,
-                 skip_final_rotation_layer: bool = False,
-                 parameter_prefix: str = 'θ',
-                 insert_barriers: bool = False,
-                 initial_state: Optional[Any] = None,
-                 ) -> None:
+    def __init__(
+        self,
+        num_qubits: Optional[int] = None,
+        su2_gates: Optional[
+            Union[
+                str,
+                type,
+                Instruction,
+                QuantumCircuit,
+                List[Union[str, type, Instruction, QuantumCircuit]],
+            ]
+        ] = None,
+        entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "full",
+        reps: int = 3,
+        skip_unentangled_qubits: bool = False,
+        skip_final_rotation_layer: bool = False,
+        parameter_prefix: str = "θ",
+        insert_barriers: bool = False,
+        initial_state: Optional[Any] = None,
+        name: str = "EfficientSU2",
+    ) -> None:
         """Create a new EfficientSU2 2-local circuit.
 
         Args:
@@ -104,7 +111,7 @@ class EfficientSU2(TwoLocal):
                 the index of the entanglement layer.
                 See the Examples section of :class:`~qiskit.circuit.library.TwoLocal` for more
                 detail.
-            initial_state: An `InitialState` object to prepend to the circuit.
+            initial_state: A `QuantumCircuit` object to prepend to the circuit.
             skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
                 that are entangled with another qubit. If False, the single qubit gates are applied
                 to each qubit in the Ansatz. Defaults to False.
@@ -118,16 +125,19 @@ class EfficientSU2(TwoLocal):
         """
         if su2_gates is None:
             su2_gates = [RYGate, RZGate]
-        super().__init__(num_qubits=num_qubits,
-                         rotation_blocks=su2_gates,
-                         entanglement_blocks=CXGate,
-                         entanglement=entanglement,
-                         reps=reps,
-                         skip_unentangled_qubits=skip_unentangled_qubits,
-                         skip_final_rotation_layer=skip_final_rotation_layer,
-                         parameter_prefix=parameter_prefix,
-                         insert_barriers=insert_barriers,
-                         initial_state=initial_state)
+        super().__init__(
+            num_qubits=num_qubits,
+            rotation_blocks=su2_gates,
+            entanglement_blocks=CXGate,
+            entanglement=entanglement,
+            reps=reps,
+            skip_unentangled_qubits=skip_unentangled_qubits,
+            skip_final_rotation_layer=skip_final_rotation_layer,
+            parameter_prefix=parameter_prefix,
+            insert_barriers=insert_barriers,
+            initial_state=initial_state,
+            name=name,
+        )
 
     @property
     def parameter_bounds(self) -> List[Tuple[float, float]]:

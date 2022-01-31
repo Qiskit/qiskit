@@ -15,30 +15,22 @@ Fake Santiago device (5 qubit).
 """
 
 import os
-import json
-
-from qiskit.providers.models import QasmBackendConfiguration, BackendProperties
-from qiskit.test.mock.fake_backend import FakeBackend
+from qiskit.test.mock import fake_qasm_backend
 
 
-class FakeSantiago(FakeBackend):
+class FakeSantiago(fake_qasm_backend.FakeQasmBackend):
     """A fake Santiago backend."""
 
-    def __init__(self):
-        dirname = os.path.dirname(__file__)
-        filename = "conf_santiago.json"
-        with open(os.path.join(dirname, filename)) as f_conf:
-            conf = json.load(f_conf)
-        configuration = QasmBackendConfiguration.from_dict(conf)
-        configuration.backend_name = 'fake_santiago'
-        self._defaults = None
-        self._properties = None
-        super().__init__(configuration)
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_santiago.json"
+    props_filename = "props_santiago.json"
+    backend_name = "fake_santiago"
 
-    def properties(self):
-        """Returns a snapshot of device properties"""
-        dirname = os.path.dirname(__file__)
-        filename = "props_santiago.json"
-        with open(os.path.join(dirname, filename)) as f_prop:
-            props = json.load(f_prop)
-        return BackendProperties.from_dict(props)
+
+class FakeLegacySantiago(fake_qasm_backend.FakeQasmLegacyBackend):
+    """A fake Santiago backend."""
+
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_santiago.json"
+    props_filename = "props_santiago.json"
+    backend_name = "fake_santiago"

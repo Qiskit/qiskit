@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    ``QuantumCircuit.compose`` and ``DAGCircuit.compose`` had, in some cases,
-    incorrectly translated conditional gates if the input circuit contained
-    more than one ``ClassicalRegister``. This has been resolved.
