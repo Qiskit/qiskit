@@ -231,9 +231,7 @@ class TestOptimize1qGates(QiskitTestCase):
         dag = circuit_to_dag(qc)
 
         expected = QuantumCircuit(qr)
-        expected.append(U1Gate(0.7), [qr])
-        expected.append(U1Gate(theta), [qr])
-        expected.append(U1Gate(0.3), [qr])
+        expected.append(U1Gate(theta + 1.0), [qr])
 
         after = Optimize1qGates().run(dag)
 
@@ -257,11 +255,7 @@ class TestOptimize1qGates(QiskitTestCase):
         dag = circuit_to_dag(qc)
 
         expected = QuantumCircuit(qr)
-        expected.append(U1Gate(0.7), [qr])
-        expected.append(U1Gate(theta), [qr])
-        expected.append(U1Gate(0.3), [qr])
-        expected.append(U1Gate(theta), [qr])
-        expected.append(U1Gate(0.5), [qr])
+        expected.append(U1Gate(2 * theta + 1.5), [qr])
 
         after = Optimize1qGates().run(dag)
 
@@ -288,12 +282,7 @@ class TestOptimize1qGates(QiskitTestCase):
         dag = circuit_to_dag(qc)
 
         expected = QuantumCircuit(qr)
-        expected.append(U1Gate(0.7), [qr])
-        expected.append(U1Gate(theta), [qr])
-        expected.append(U1Gate(phi), [qr])
-        expected.append(U1Gate(sum_), [qr])
-        expected.append(U1Gate(product_), [qr])
-        expected.append(U1Gate(0.5), [qr])
+        expected.append(U1Gate(2 * theta + 2 * phi + product_ + 1.2), [qr])
 
         after = Optimize1qGates().run(dag)
 
@@ -644,6 +633,28 @@ class TestOptimize1qGatesBasis(QiskitTestCase):
         passmanager = PassManager()
         passmanager.append(Optimize1qGates(["p"]))
         result = passmanager.run(circuit)
+
+        self.assertEqual(expected, result)
+
+    def test_optimize_u3_with_parameters(self):
+        """Test correct behavior for u3 gates."""
+        phi = Parameter("φ")
+        alpha = Parameter("α")
+        qr = QuantumRegister(1, "qr")
+
+        qc = QuantumCircuit(qr)
+        qc.ry(2 * phi, qr[0])
+        qc.ry(alpha, qr[0])
+        qc.ry(0.1, qr[0])
+        qc.ry(0.2, qr[0])
+
+        passmanager = PassManager([Unroller(["u3"]), Optimize1qGates()])
+        result = passmanager.run(qc)
+
+        expected = QuantumCircuit(qr)
+        expected.append(U3Gate(2 * phi, 0, 0), [qr[0]])
+        expected.append(U3Gate(alpha, 0, 0), [qr[0]])
+        expected.append(U3Gate(0.3, 0, 0), [qr[0]])
 
         self.assertEqual(expected, result)
 
