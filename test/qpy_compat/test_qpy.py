@@ -290,25 +290,27 @@ def generate_evolution_gate():
 
 def generate_control_flow_circuits():
     """Test qpy serialization with control flow instructions."""
-    from qiskit.circuit.controlflow import WhileLoopOp
+    from qiskit.circuit.controlflow import WhileLoopOp, IfElseOp, ForLoopOp
 
     # If instruction
     circuits = []
     qc = QuantumCircuit(2, 2)
     qc.h(0)
     qc.measure(0, 0)
-    with qc.if_test((qc.clbits[0], True)):
-        qc.x(1)
+    true_body = QuantumCircuit(1)
+    true_body.x(0)
+    if_op = IfElseOp((qc.clbits[0], True), true_body=true_body)
+    qc.append(if_op, [1])
     qc.measure(1, 1)
     circuits.append(qc)
     # If else instruction
     qc = QuantumCircuit(2, 2)
     qc.h(0)
     qc.measure(0, 0)
-    with qc.if_test((qc.clbits[0], True)) as else_:
-        qc.x(1)
-    with else_:
-        qc.y(1)
+    false_body = QuantumCircuit(1)
+    false_body.y(0)
+    if_else_op = IfElseOp((qc.clbits[0], True), true_body, false_body)
+    qc.append(if_else_op, [1])
     qc.measure(1, 1)
     circuits.append(qc)
     # While loop
@@ -322,21 +324,19 @@ def generate_control_flow_circuits():
     circuits.append(qc)
     # for loop range
     qc = QuantumCircuit(2, 1)
-
-    with qc.for_loop(range(5)):
-        qc.h(0)
-        qc.cx(0, 1)
-        qc.measure(0, 0)
-        qc.break_loop().c_if(0, True)
+    body = QuantumCircuit(2, 1)
+    body.h(0)
+    body.cx(0, 1)
+    body.measure(0, 0)
+    body.break_loop().c_if(0, True)
+    for_loop_op = ForLoopOp(range(5), None, body=body)
+    qc.append(for_loop_op, [0, 1], [0])
     circuits.append(qc)
     # For loop iterator
     qc = QuantumCircuit(2, 1)
-
-    with qc.for_loop(iter(range(5))):
-        qc.h(0)
-        qc.cx(0, 1)
-        qc.measure(0, 0)
-        qc.break_loop().c_if(0, True)
+    for_loop_op = ForLoopOp(iter(range(5)), None, body=body)
+    qc.append(for_loop_op, [0, 1], [0])
+    circuits.append(qc)
     return circuits
 
 
