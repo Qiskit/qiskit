@@ -138,7 +138,4 @@ def _to_sparse_pauli_op(operator):
     else:
         raise ValueError(f"Unsupported operator type for evolution: {type(operator)}.")
 
-    if any(np.iscomplex(sparse_pauli.coeffs)):
-        raise ValueError("Operator contains complex coefficients, which are not supported.")
-
     return sparse_pauli
