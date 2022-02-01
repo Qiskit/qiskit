@@ -35,7 +35,7 @@ class HoareOptimizer(TransformationPass):
         Args:
             size (int): size of gate cache, in number of gates
         Raises:
-            TranspilerError: if unable to import z3 solver
+            MissingOptionalLibraryError: if unable to import z3 solver
         """
         # This module is just a script that adds several post conditions onto existing classes.
         from . import _gate_extension  # pylint: disable=unused-import
