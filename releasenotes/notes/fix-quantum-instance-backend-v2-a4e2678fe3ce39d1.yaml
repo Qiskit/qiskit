@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Added a missing :attr:`.BackendV2.provider` attribute to implementations
+    of the :class:`.BackendV2` abstract class. Previously, :class:`.BackendV2`
+    backends could be initialized with a provider but that was not accesible
+    to users.
+  - |
+    Fixed support for the :class:`.QuantumInstance` class when running with
+    a :class:`.BackendV2` backend. Previously, attempting to use a
+    :class:`.QuantumInstance` with a :class:`.BackendV2` would have resulted in
+    an error.
