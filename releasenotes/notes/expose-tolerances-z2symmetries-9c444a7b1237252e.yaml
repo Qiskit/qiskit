@@ -1,0 +1,30 @@
+---
+features:
+  - |
+    The :class:`~qiskit.opflow.Z2Symmetries` class now exposes the threshold 
+    tolerances, ``atol`` and ``rtol``, used to truncate small coefficients.
+    With this one can control how the coefficients of the tapered operator are 
+    simplified. For example::
+
+        from qiskit.opflow import Z2Symmetries
+        from qiskit.quantum_info import Pauli
+
+        z2_symmetries = Z2Symmetries(
+            symmetries=[Pauli("IIZI"), Pauli("IZIZ"), Pauli("ZIII")],
+            sq_paulis=[Pauli("IIXI"), Pauli("IIIX"), Pauli("XIII")],
+            sq_list=[1, 0, 3],
+            tapering_values=[1, -1, -1],
+            atol=1e-10,
+            rtol=1e-8,
+        )
+
+
+    Per default, the standard cutoff tolerances of the :class:`~qiskit.quantum_info.SparsePauliOp`
+    are used.
+        
+fixes:
+  - |
+    The :meth:`qiskit.quantum_info.SparsePauliOp.simplify` method now truncates real and 
+    imaginary parts of coefficients individually. Before, coefficients were only reduced if the
+    absolute value as below the threshold. For example, before the coefficients `[1+1e-17j, 1e-17j]`
+    were reduced to `[1+1e-17j, 0]` but now are reduced to `[1, 0]`.
