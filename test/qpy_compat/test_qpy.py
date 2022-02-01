@@ -291,6 +291,7 @@ def generate_evolution_gate():
 def generate_control_flow_circuits():
     """Test qpy serialization with control flow instructions."""
     from qiskit.circuit.controlflow import WhileLoopOp
+
     # If instruction
     circuits = []
     qc = QuantumCircuit(2, 2)
