@@ -25,10 +25,14 @@ from qiskit.circuit.library.standard_gates import (
     UGate,
     ECRGate,
     RXGate,
+    SXGate,
+    XGate,
+    RZGate,
 )
 from qiskit.providers.backend import BackendV2, QubitProperties
 from qiskit.providers.options import Options
 from qiskit.transpiler import Target, InstructionProperties
+from qiskit.providers.basicaer.qasm_simulator import QasmSimulatorPy
 
 
 class FakeBackendV2(BackendV2):
@@ -176,3 +180,40 @@ class FakeBackend5QV2(BackendV2):
         if isinstance(qubit, int):
             return self._qubit_properties[qubit]
         return [self._qubit_properties[i] for i in qubit]
+
+
+class FakeBackendSimple(BackendV2):
+    """A fake simple backend that wraps BasicAer to implement run()."""
+
+    def __init__(self):
+        super().__init__(
+            None,
+            name="FakeSimpleV2",
+            description="A fake simple BackendV2 example",
+            online_date=datetime.datetime.utcnow(),
+            backend_version="0.0.1",
+        )
+        self._lam = Parameter("lambda")
+        self._target = Target(num_qubits=20)
+        self._target.add_instruction(SXGate())
+        self._target.add_instruction(XGate())
+        self._target.add_instruction(RZGate(self._lam))
+        self._target.add_instruction(CXGate())
+        self._target.add_instruction(Measure())
+        self._runner = QasmSimulatorPy()
+
+    @property
+    def target(self):
+        return self._target
+
+    @property
+    def max_circuits(self):
+        return None
+
+    @classmethod
+    def _default_options(cls):
+        return QasmSimulatorPy._default_options()
+
+    def run(self, run_input, **options):
+        self._runner._options = self._options
+        return self._runner.run(run_input, **options)
