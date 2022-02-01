@@ -740,10 +740,7 @@ def _read_header_v2(file_obj, version, vectors, metadata_deserializer=None):
         "num_instructions": header_tuple[7],
     }
     metadata_raw = file_obj.read(header_tuple[5])
-    if metadata_deserializer is None:
-        metadata = json.loads(metadata_raw)
-    else:
-        metadata = metadata_deserializer(metadata_raw)
+    metadata = json.loads(metadata_raw, cls=metadata_deserializer)
     return header, name, metadata
 
 
@@ -759,10 +756,7 @@ def _read_header(file_obj, metadata_deserializer=None):
         "num_instructions": header_tuple[6],
     }
     metadata_raw = file_obj.read(header_tuple[4])
-    if metadata_deserializer is None:
-        metadata = json.loads(metadata_raw)
-    else:
-        metadata = metadata_deserializer(metadata_raw)
+    metadata = json.loads(metadata_raw, cls=metadata_deserializer)
     return header, name, metadata
 
 
@@ -1413,12 +1407,10 @@ def dump(circuits, file_obj, metadata_serializer=None):
             store in the specified file like object. This can either be a
             single QuantumCircuit object or a list of QuantumCircuits.
         file_obj (file): The file like object to write the QPY data too
-        metadata_serializer (callable): An optional callable that will be passed
-            the :attr:`.QuantumCircuit.metadata` dictionary for each circuit
-            in ``circuits`` and is expected to return a ``bytes`` object
-            representing that dictionary (ideally as JSON but not necessarily if
-            combined with the ``metadata_deserializer`` argument of the
-            :func:`~qiskit.circuit.qpy_serialization.load` function).
+        metadata_serializer (JSONEncoder): An optional JSONEncoder class that
+            will be passed the :attr:`.QuantumCircuit.metadata` dictionary for
+            each circuit in ``circuits`` and will be used as the ``cls`` kwarg
+            on the ``json.dump()`` call to JSON serialize that dictionary.
     """
     if isinstance(circuits, QuantumCircuit):
         circuits = [circuits]
@@ -1438,12 +1430,10 @@ def dump(circuits, file_obj, metadata_serializer=None):
 
 
 def _write_circuit(file_obj, circuit, metadata_serializer=None):
-    if metadata_serializer is None:
-        metadata_raw = json.dumps(circuit.metadata, separators=(",", ":")).encode("utf8")
-        metadata_size = len(metadata_raw)
-    else:
-        metadata_raw = metadata_serializer(circuit.metadata)
-        metadata_size = len(metadata_raw)
+    metadata_raw = json.dumps(
+        circuit.metadata, separators=(",", ":"), cls=metadata_serializer
+    ).encode("utf8")
+    metadata_size = len(metadata_raw)
     num_registers = len(circuit.qregs) + len(circuit.cregs)
     num_instructions = len(circuit)
     circuit_name = circuit.name.encode("utf8")
@@ -1549,11 +1539,13 @@ def load(file_obj, metadata_deserializer=None):
     Args:
         file_obj (File): A file like object that contains the QPY binary
             data for a circuit
-        metadata_deserializer (callable): An optional callable that will be
-            passed the ``bytes`` object representing the circuit metadata and
-            expected to return a ``dict`` object for the metadata. If this is
-            not specified the circuit metadata will be parsed as JSON with the
-            stdlib ``json.load()`` function without a custom deserializer.
+        metadata_deserializer (JSONDecoder): An optional JSONDecoder class
+            that will be used for the ``cls`` kwarg on the internal
+            ``json.load`` call used to deserialize the JSON payload used for
+            the :attr:`.QuantumCircuit.metadata` attribute for any circuits
+            in the QPY file. If this is not specified the circuit metadata will
+            be parsed as JSON with the stdlib ``json.load()`` function using
+            the default ``JSONDecoder`` class.
     Returns:
         list: List of ``QuantumCircuit``
             The list of :class:`~qiskit.circuit.QuantumCircuit` objects
