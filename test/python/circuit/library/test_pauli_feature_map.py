@@ -19,7 +19,7 @@ import numpy as np
 from ddt import ddt, data, unpack
 
 from qiskit.test.base import QiskitTestCase
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, Parameter, ParameterVector
 from qiskit.circuit.library import PauliFeatureMap, ZFeatureMap, ZZFeatureMap, HGate
 from qiskit.quantum_info import Operator
 
@@ -127,6 +127,54 @@ class TestDataPreparation(QiskitTestCase):
         """Test the ``ZZFeatureMap`` raises an error if the number of qubits is smaller than 2."""
         with self.assertRaises(ValueError):
             _ = ZZFeatureMap(1)
+
+    def test_parameter_prefix(self):
+        """Test the Parameter prefix"""
+        encoding_pauli = PauliFeatureMap(
+            feature_dimension=2, reps=2, paulis=["ZY"], parameter_prefix="p"
+        )
+        encoding_z = ZFeatureMap(feature_dimension=2, reps=2, parameter_prefix="q")
+        encoding_zz = ZZFeatureMap(feature_dimension=2, reps=2, parameter_prefix="r")
+        x = ParameterVector("x", 2)
+        y = Parameter("y")
+
+        self.assertEqual(
+            str(encoding_pauli.parameters),
+            "ParameterView([ParameterVectorElement(p[0]), ParameterVectorElement(p[1])])",
+        )
+        self.assertEqual(
+            str(encoding_z.parameters),
+            "ParameterView([ParameterVectorElement(q[0]), ParameterVectorElement(q[1])])",
+        )
+        self.assertEqual(
+            str(encoding_zz.parameters),
+            "ParameterView([ParameterVectorElement(r[0]), ParameterVectorElement(r[1])])",
+        )
+
+        encoding_pauli_param_x = encoding_pauli.assign_parameters(x)
+        encoding_z_param_x = encoding_z.assign_parameters(x)
+        encoding_zz_param_x = encoding_zz.assign_parameters(x)
+
+        self.assertEqual(
+            str(encoding_pauli_param_x.parameters),
+            "ParameterView([ParameterVectorElement(x[0]), ParameterVectorElement(x[1])])",
+        )
+        self.assertEqual(
+            str(encoding_z_param_x.parameters),
+            "ParameterView([ParameterVectorElement(x[0]), ParameterVectorElement(x[1])])",
+        )
+        self.assertEqual(
+            str(encoding_zz_param_x.parameters),
+            "ParameterView([ParameterVectorElement(x[0]), ParameterVectorElement(x[1])])",
+        )
+
+        encoding_pauli_param_y = encoding_pauli.assign_parameters({1, y})
+        encoding_z_param_y = encoding_z.assign_parameters({1, y})
+        encoding_zz_param_y = encoding_zz.assign_parameters({1, y})
+
+        self.assertEqual(str(encoding_pauli_param_y.parameters), "ParameterView([Parameter(y)])")
+        self.assertEqual(str(encoding_z_param_y.parameters), "ParameterView([Parameter(y)])")
+        self.assertEqual(str(encoding_zz_param_y.parameters), "ParameterView([Parameter(y)])")
 
 
 if __name__ == "__main__":
