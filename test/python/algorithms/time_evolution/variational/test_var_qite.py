@@ -31,11 +31,13 @@ from qiskit.opflow import (
 )
 from qiskit.quantum_info import state_fidelity, Statevector
 
-np.random.seed = 11
-
 
 class TestVarQite(QiskitAlgorithmsTestCase):
     """Test Variational Quantum Imaginary Time Evolution algorithm."""
+
+    def setUp(self):
+        super().setUp()
+        np.random.seed(11)
 
     def test_run_d_1(self):
         """Test VarQite for d = 1 and t = 1."""

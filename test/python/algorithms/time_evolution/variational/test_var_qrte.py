@@ -32,12 +32,13 @@ from qiskit.opflow import (
     Z,
 )
 
-np.random.seed = 11
-algorithm_globals.random_seed = 11
-
 
 class TestVarQrte(QiskitAlgorithmsTestCase):
     """Test Variational Quantum Real Time Evolution algorithm."""
+
+    def setUp(self):
+        super().setUp()
+        np.random.seed(11)
 
     def test_run_d_1(self):
         """Test VarQrte for d = 1 and t = 0.1."""
