@@ -259,7 +259,7 @@ class QuantumCircuit:
         self._qubits = []
         self._clbits = []
 
-        # Dict mapping Qubt or Clbit instances to tuple comprised of 0) the
+        # Dict mapping Qubit or Clbit instances to tuple comprised of 0) the
         # corresponding index in circuit.{qubits,clbits} and 1) a list of
         # Register-int pairs for each Register containing the Bit and its index
         # within that register.
