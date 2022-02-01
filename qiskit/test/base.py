@@ -191,9 +191,6 @@ class QiskitTestCase(BaseQiskitTestCase):
         for mod in allow_DeprecationWarning_modules:
             warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
         allow_DeprecationWarning_message = [
-            r".*LogNormalDistribution.*",
-            r".*NormalDistribution.*",
-            r".*UniformDistribution.*",
             r".*QuantumCircuit\.combine.*",
             r".*QuantumCircuit\.__add__.*",
             r".*QuantumCircuit\.__iadd__.*",
