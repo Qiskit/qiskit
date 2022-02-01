@@ -607,8 +607,34 @@ class TextDrawing:
         cregbundle=False,
         global_phase=None,
         encoding=None,
+        qregs=None,
+        cregs=None,
         circuit=None,
     ):
+        if qregs is not None:
+            warn(
+                "The 'qregs' kwarg to the MatplotlibDrawer class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                RuntimeWarning,
+                2,
+            )
+        if cregs is not None:
+            warn(
+                "The 'cregs' kwarg to the MatplotlibDrawer class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                RuntimeWarning,
+                2,
+            )
+        if global_phase is not None:
+            warn(
+                "The 'global_phase' kwarg to the MatplotlibDrawer class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                RuntimeWarning,
+                2,
+            )
         self.qubits = qubits
         self.clbits = clbits
         self._circuit = circuit
@@ -617,7 +643,7 @@ class TextDrawing:
         self.layout = layout
         self.initial_state = initial_state
         self.cregbundle = cregbundle
-        self.global_phase = global_phase
+        self.global_phase = circuit.global_phase
         self.plotbarriers = plotbarriers
         self.line_length = line_length
         if vertical_compression not in ["high", "medium", "low"]:

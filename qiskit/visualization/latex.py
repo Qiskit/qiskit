@@ -15,6 +15,7 @@
 import io
 import math
 import re
+from warnings import warn
 
 import numpy as np
 from qiskit.circuit import Clbit, Qubit, ClassicalRegister
@@ -57,6 +58,8 @@ class QCircuitImage:
         initial_state=False,
         cregbundle=False,
         global_phase=None,
+        qregs=None,
+        cregs=None,
         circuit=None,
     ):
         """QCircuitImage initializer.
@@ -79,6 +82,30 @@ class QCircuitImage:
         Raises:
             ImportError: If pylatexenc is not installed
         """
+        if qregs is not None:
+            warn(
+                "The 'qregs' kwarg to the MatplotlibDrawer class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                RuntimeWarning,
+                2,
+            )
+        if cregs is not None:
+            warn(
+                "The 'cregs' kwarg to the MatplotlibDrawer class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                RuntimeWarning,
+                2,
+            )
+        if global_phase is not None:
+            warn(
+                "The 'global_phase' kwarg to the MatplotlibDrawer class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                RuntimeWarning,
+                2,
+            )
         self._qubits = qubits
         self._clbits = clbits
 
@@ -121,7 +148,7 @@ class QCircuitImage:
         self._layout = layout
         self._initial_state = initial_state
         self._cregbundle = cregbundle
-        self._global_phase = global_phase
+        self._global_phase = circuit.global_phase
         self._circuit = circuit
 
         # If there is any custom instruction that uses classical bits

@@ -28,7 +28,7 @@ except ImportError:
     HAS_PYLATEX = False
 
 from qiskit.circuit import ControlledGate, Qubit, Clbit, ClassicalRegister
-from qiskit.circuit import Measure
+from qiskit.circuit import Measure, QuantumCircuit
 from qiskit.circuit.library.standard_gates import (
     SwapGate,
     RZZGate,
@@ -83,6 +83,8 @@ class MatplotlibDrawer:
         initial_state=False,
         cregbundle=True,
         global_phase=None,
+        qregs=None,
+        cregs=None,
         calibrations=None,
         circuit=None,
     ):
@@ -106,6 +108,39 @@ class MatplotlibDrawer:
                 pip_install="pip install pylatexenc",
             )
 
+        if qregs is not None:
+            warn(
+                "The 'qregs' kwarg to the MatplotlibDrawer class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                RuntimeWarning,
+                2,
+            )
+        if cregs is not None:
+            warn(
+                "The 'cregs' kwarg to the MatplotlibDrawer class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                RuntimeWarning,
+                2,
+            )
+        if global_phase is not None:
+            warn(
+                "The 'global_phase' kwarg to the MatplotlibDrawer class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                RuntimeWarning,
+                2,
+            )
+        if calibrations is not None:
+            warn(
+                "The 'calibrations' kwarg to the MatplotlibDrawer class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                RuntimeWarning,
+                2,
+            )
+        self._circuit = circuit
         self._qubits = qubits
         self._clbits = clbits
         self._qubits_dict = {}
@@ -115,7 +150,6 @@ class MatplotlibDrawer:
         self._wire_map = {}
 
         self._nodes = nodes
-        self._circuit = circuit
         self._scale = 1.0 if scale is None else scale
 
         self._style, def_font_ratio = load_style(style)
@@ -146,8 +180,8 @@ class MatplotlibDrawer:
 
         self._initial_state = initial_state
         self._cregbundle = cregbundle
-        self._global_phase = global_phase
-        self._calibrations = calibrations
+        self._global_phase = self._circuit.global_phase
+        self._calibrations = self._circuit.calibrations
 
         self._fs = self._style["fs"]
         self._sfs = self._style["sfs"]
