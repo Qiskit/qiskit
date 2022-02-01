@@ -25,7 +25,7 @@ from qiskit.circuit.library import TwoLocal
 
 
 class TestBackendV2(QiskitAlgorithmsTestCase):
-    """test BackendV1 interface"""
+    """test BackendV2 interface"""
 
     def setUp(self):
         super().setUp()
