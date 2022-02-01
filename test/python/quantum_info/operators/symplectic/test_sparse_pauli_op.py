@@ -462,6 +462,16 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         np.testing.assert_array_equal(spp_op.paulis.phase, np.zeros(spp_op.size))
         np.testing.assert_array_equal(simplified_op.paulis.phase, np.zeros(simplified_op.size))
 
+    def test_simplify_truncates_real_and_imag(self):
+        """Test that simplify individually truncates real and imaginary parts of the coeffs."""
+        eps = 1e-10
+        op = SparsePauliOp(
+            ["I", "Z", "X", "Y"], coeffs=[eps + 1j * eps, 1 + 1j * eps, eps + 1j, 1 + 1j]
+        )
+        simplified = op.simplify()
+        expected_coeffs = [1, 1j, 1 + 1j]
+        self.assertListEqual(simplified.coeffs.tolist(), expected_coeffs)
+
     @combine(num_qubits=[1, 2, 3, 4], num_ops=[1, 2, 3, 4])
     def test_sum(self, num_qubits, num_ops):
         """Test sum method for {num_qubits} qubits with {num_ops} operators."""
