@@ -25,6 +25,7 @@ from qiskit.circuit import Instruction as CircuitInst
 from qiskit.circuit.library.standard_gates import RZXGate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.pulse import (
     Play,
     Delay,
@@ -231,8 +232,8 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         try:
             theta = float(node_op.params[0])
         except TypeError as ex:
-            raise QiskitError(
-                "This transpilation pass requires all Parameters to be bound."
+            raise TranspilerError(
+                "This transpilation pass requires all Parameters to be bound and real."
             ) from ex
 
         q1, q2 = qubits[0], qubits[1]

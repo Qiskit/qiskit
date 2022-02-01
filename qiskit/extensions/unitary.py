@@ -30,27 +30,10 @@ from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import two_qubit_cnot_decompose
 from qiskit.extensions.exceptions import ExtensionError
-from qiskit.circuit.parameterexpression import ParameterTypeError, ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.circuit.exceptions import ParameterTypeError
 
 _DECOMPOSER1Q = OneQubitEulerDecomposer("U3")
-
-
-def to_sympy_matrix(numpy_matrix):
-    """Convert (numpy) matrix to sympy matrix."""
-    matrix = []
-    i = 0
-    for row in numpy_matrix:
-        nrow = []
-        i += 1
-        for expr in row:
-            if isinstance(expr, ParameterExpression):
-                expr = expr.get_sympy_expr()
-            nrow.append(expr)
-        matrix.append(nrow)
-
-    from sympy import Matrix
-
-    return Matrix(matrix), i
 
 
 class UnitaryGate(Gate):
