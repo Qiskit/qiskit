@@ -128,6 +128,8 @@ class LinComb(CircuitGradient):
         Returns:
             An operator corresponding to the gradient resp. Hessian. The order is in accordance with
             the order of the given parameters.
+        Raises:
+            Warning: If the provided auxiliary measurement operator acts on more that 1 qubit.
         """
         if aux_meas_op.num_qubits != 1:
             raise Warning(

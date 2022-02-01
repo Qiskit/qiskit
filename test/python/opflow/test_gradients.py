@@ -15,6 +15,8 @@
 
 import unittest
 from collections import OrderedDict
+
+from qiskit.quantum_info import SparsePauliOp
 from test.python.opflow import QiskitOpflowTestCase
 from itertools import product
 import numpy as np
@@ -44,7 +46,7 @@ from qiskit.opflow import (
     ListOp,
     CircuitSampler,
     TensoredOp,
-    SummedOp,
+    SummedOp, PauliSumOp,
 )
 from qiskit.opflow.gradients import Gradient, NaturalGradient, Hessian
 from qiskit.opflow.gradients.qfi import QFI
@@ -1174,7 +1176,7 @@ class TestGradients(QiskitOpflowTestCase):
 
         # Gradient callable
         vqe = VQE(
-            var_form=wavefunction, optimizer=optimizer, gradient=grad, quantum_instance=q_instance
+            ansatz=wavefunction, optimizer=optimizer, gradient=grad, quantum_instance=q_instance
         )
 
         result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
