@@ -48,7 +48,7 @@ External Python Libraries
     :widths: 25 75
 
     * - .. py:data:: HAS_CPLEX
-      - The `IBM CPLEX Optimizer <https://www.ibm.com/uk-en/analytics/cplex-optimizer>`__ is a
+      - The `IBM CPLEX Optimizer <https://www.ibm.com/analytics/cplex-optimizer>`__ is a
         high-performance mathematical programming solver for linear, mixed-integer and quadratic
         programming.  It is required by the :class:`.BIPMapping` transpiler pass.
 
