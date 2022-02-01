@@ -28,8 +28,6 @@ from qiskit.algorithms.time_evolution.variational.variational_principles.variati
 from qiskit.opflow.gradients.natural_gradient import NaturalGradient
 from qiskit.circuit import Parameter
 from qiskit.opflow import CircuitSampler
-from qiskit.providers import BaseBackend
-from qiskit.utils import QuantumInstance
 
 
 class VarQteLinearSolver:

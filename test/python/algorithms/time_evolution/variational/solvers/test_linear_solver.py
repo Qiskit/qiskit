@@ -38,7 +38,6 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
             CircuitSampler(backend),
             CircuitSampler(backend),
             CircuitSampler(backend),
-            backend=None,
         )
 
         # Define the Hamiltonian for the simulation

@@ -16,6 +16,8 @@ from qiskit.opflow import OperatorBase
 
 
 class EvolutionResult:
+    """Class for holding evolution result and relevant metadata."""
+
     def __init__(self, evolved_object: OperatorBase, metadata: Optional[Dict[str, Any]] = None):
         """
         Args:

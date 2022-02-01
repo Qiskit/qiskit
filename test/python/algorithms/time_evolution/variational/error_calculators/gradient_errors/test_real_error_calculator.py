@@ -82,9 +82,7 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
             circuit_sampler,
             backend=backend,
         )
-        linear_solver = VarQteLinearSolver(
-            circuit_sampler, circuit_sampler, circuit_sampler, backend=backend
-        )
+        linear_solver = VarQteLinearSolver(circuit_sampler, circuit_sampler, circuit_sampler)
         var_principle = RealMcLachlanVariationalPrinciple()
         # for the purpose of the test we invoke lazy_init
         var_principle._lazy_init(observable, ansatz, parameters)
@@ -140,9 +138,7 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
             circuit_sampler,
             backend=backend,
         )
-        linear_solver = VarQteLinearSolver(
-            circuit_sampler, circuit_sampler, circuit_sampler, backend=backend
-        )
+        linear_solver = VarQteLinearSolver(circuit_sampler, circuit_sampler, circuit_sampler)
         var_principle = RealMcLachlanVariationalPrinciple()
 
         # for the purpose of the test we invoke lazy_init
