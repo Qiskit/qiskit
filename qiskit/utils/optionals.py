@@ -98,7 +98,8 @@ External Python Libraries
     * - .. py:data:: HAS_PIL
       - PIL is a Python image-manipulation library.  Qiskit actually uses the `pillow
         <https://pillow.readthedocs.io/en/stable/>`__ fork of PIL if it is available when generating
-        circuit visualisations in some modes.
+        certain visualizations, for example of both :class:`.QuantumCircuit` and
+        :class:`.DAGCircuit` in certain modes.
 
     * - .. py:data:: HAS_PYDOT
       - For some graph visualisations, Qiskit uses `pydot <https://github.com/pydot/pydot>`__ as an
