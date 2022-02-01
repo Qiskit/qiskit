@@ -23,7 +23,8 @@ from qiskit.algorithms.time_evolution.variational.solvers.ode.ode_function_gener
     OdeFunctionGenerator,
 )
 from qiskit import Aer
-from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary\
+    .implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2

@@ -19,7 +19,8 @@ from qiskit.algorithms.time_evolution.variational.calculators import (
     metric_tensor_calculator,
     evolution_grad_calculator,
 )
-from qiskit.algorithms.time_evolution.variational.variational_principles.real.real_variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.real\
+    .real_variational_principle import (
     RealVariationalPrinciple,
 )
 from qiskit.circuit import Parameter

@@ -21,16 +21,20 @@ from scipy.integrate import RK45, OdeSolver
 from qiskit import QuantumCircuit
 from qiskit.algorithms.time_evolution.evolution_base import EvolutionBase
 
-from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
+from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
+    .error_calculator import (
     ErrorCalculator,
 )
-from qiskit.algorithms.time_evolution.variational.variational_principles.variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.variational_principle \
+    import (
     VariationalPrinciple,
 )
-from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
+from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator \
+    import (
     AbstractOdeFunctionGenerator,
 )
-from qiskit.algorithms.time_evolution.variational.solvers.ode.error_based_ode_function_generator import (
+from qiskit.algorithms.time_evolution.variational.solvers.ode.error_based_ode_function_generator \
+    import (
     ErrorBasedOdeFunctionGenerator,
 )
 from qiskit.algorithms.time_evolution.variational.solvers.ode.ode_function_generator import (

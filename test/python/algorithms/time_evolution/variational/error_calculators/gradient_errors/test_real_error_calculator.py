@@ -17,10 +17,12 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from ddt import ddt
 
-from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors.real_error_calculator import (
+from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
+    .real_error_calculator import (
     RealErrorCalculator,
 )
-from qiskit.algorithms.time_evolution.variational.variational_principles.real.implementations.real_mc_lachlan_variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.real.implementations\
+    .real_mc_lachlan_variational_principle import (
     RealMcLachlanVariationalPrinciple,
 )
 from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (

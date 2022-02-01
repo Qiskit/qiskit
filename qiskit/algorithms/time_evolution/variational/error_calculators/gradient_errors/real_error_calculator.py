@@ -16,7 +16,8 @@ from typing import Union, List, Dict, Tuple, Any
 
 import numpy as np
 
-from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
+from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
+    .error_calculator import (
     ErrorCalculator,
 )
 from qiskit.circuit import Parameter

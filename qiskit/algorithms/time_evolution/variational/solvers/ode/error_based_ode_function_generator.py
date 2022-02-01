@@ -17,13 +17,16 @@ from typing import Union, List, Dict, Optional, Iterable
 import numpy as np
 from scipy.optimize import minimize
 
-from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
+from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
+    .error_calculator import (
     ErrorCalculator,
 )
-from qiskit.algorithms.time_evolution.variational.variational_principles.variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.variational_principle \
+    import (
     VariationalPrinciple,
 )
-from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
+from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator \
+    import (
     AbstractOdeFunctionGenerator,
 )
 from qiskit.circuit import Parameter

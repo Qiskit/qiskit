@@ -17,14 +17,17 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from numpy import array
 
-from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
+from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
+    .imaginary_error_calculator import (
     ImaginaryErrorCalculator,
 )
-from qiskit.algorithms.time_evolution.variational.solvers.ode.error_based_ode_function_generator import (
+from qiskit.algorithms.time_evolution.variational.solvers.ode.error_based_ode_function_generator \
+    import (
     ErrorBasedOdeFunctionGenerator,
 )
 from qiskit import Aer
-from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary\
+    .implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2

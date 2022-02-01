@@ -19,13 +19,16 @@ from scipy.integrate import OdeSolver
 from qiskit.algorithms.time_evolution.evolution_result import EvolutionResult
 from qiskit.algorithms.time_evolution.imaginary.qite import Qite
 
-from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
+from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
+    .imaginary_error_calculator import (
     ImaginaryErrorCalculator,
 )
-from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary.imaginary_variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary\
+    .imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
-from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
+from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator \
+    import (
     AbstractOdeFunctionGenerator,
 )
 from qiskit.circuit import Parameter

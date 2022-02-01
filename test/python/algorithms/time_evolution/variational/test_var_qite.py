@@ -17,7 +17,8 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
 from qiskit import Aer
-from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary\
+    .implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.algorithms.time_evolution.variational.algorithms.var_qite import VarQite

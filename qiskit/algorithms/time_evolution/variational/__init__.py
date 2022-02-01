@@ -105,13 +105,16 @@ VariationalPrinciples
     ImaginaryMcLachlanVariationalPrinciple
 """
 
-from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary\
+    .implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
-from qiskit.algorithms.time_evolution.variational.variational_principles.real.implementations.real_mc_lachlan_variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.real.implementations\
+    .real_mc_lachlan_variational_principle import (
     RealMcLachlanVariationalPrinciple,
 )
-from qiskit.algorithms.time_evolution.variational.variational_principles.real.implementations.real_time_dependent_variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.real.implementations\
+    .real_time_dependent_variational_principle import (
     RealTimeDependentVariationalPrinciple,
 )
 from qiskit.algorithms.time_evolution.variational.algorithms.var_qite import VarQite

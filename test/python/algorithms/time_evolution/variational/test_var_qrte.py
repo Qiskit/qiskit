@@ -13,12 +13,13 @@
 """Test Variational Quantum Real Time Evolution algorithm."""
 
 import unittest
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
-from qiskit.utils import algorithm_globals
 
 from qiskit.quantum_info import state_fidelity, Statevector
-from qiskit.algorithms.time_evolution.variational.variational_principles.real.implementations.real_mc_lachlan_variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.real.implementations\
+    .real_mc_lachlan_variational_principle import (
     RealMcLachlanVariationalPrinciple,
 )
 from qiskit import Aer
