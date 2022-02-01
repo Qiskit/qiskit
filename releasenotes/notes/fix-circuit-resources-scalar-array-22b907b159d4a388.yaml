@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    :class:`.QuantumCircuit` will no longer raise an ``IndexError`` when trying
+    to use a size-1 Numpy array of integers as the specifier for the qubits or
+    clbits of an operation.

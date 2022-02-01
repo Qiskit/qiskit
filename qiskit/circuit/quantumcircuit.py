@@ -1081,7 +1081,7 @@ class QuantumCircuit:
                 ret = bit_representation[:]
             elif isinstance(QuantumCircuit.cast(bit_representation, int), int):
                 # circuit.h(0) -> circuit.h([qr[0]])
-                ret = [in_array[bit_representation]]
+                ret = [in_array[int(bit_representation)]]
             elif isinstance(bit_representation, slice):
                 # circuit.h(slice(0,2)) -> circuit.h([qr[0], qr[1]])
                 ret = in_array[bit_representation]

@@ -12,6 +12,7 @@
 
 """Test Qiskit's QuantumCircuit class."""
 
+import ddt
 import numpy as np
 
 from qiskit.circuit import (
@@ -28,6 +29,7 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
 
 
+@ddt.ddt
 class TestCircuitRegisters(QiskitTestCase):
     """QuantumCircuit Registers tests."""
 
@@ -469,6 +471,19 @@ class TestCircuitRegisters(QiskitTestCase):
 
         qc.h([qr[0], 1])
         self.assertEqual(qc, expected)
+
+    @ddt.data(np.array(0), np.array([0]))
+    def test_index_scalar_numpy_array(self, index):
+        """Test that size-1 Numpy arrays with various numbers of dimensions can be used to index
+        arguments.  These arrays can be passed to ``int``, which means they sometimes might be
+        involved in spurious casts."""
+        test = QuantumCircuit(1, 1)
+        test.measure(index, index)
+
+        expected = QuantumCircuit(1, 1)
+        expected.measure(0, 0)
+
+        self.assertEqual(test, expected)
 
     def test_4_args_custom_gate_trivial_expansion(self):
         """test 'expansion' of 4 args in custom gate.
