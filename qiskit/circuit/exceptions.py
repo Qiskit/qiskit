@@ -19,3 +19,9 @@ class CircuitError(QiskitError):
     """Base class for errors raised while processing a circuit."""
 
     pass
+
+
+class ParameterTypeError(TypeError):
+    """The type error throw by parameter if we try to cast to number unbind parameter."""
+
+    pass
