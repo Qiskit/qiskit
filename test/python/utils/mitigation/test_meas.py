@@ -42,14 +42,13 @@ from qiskit.utils.mitigation import (
 from qiskit.utils.mitigation._filters import MeasurementFilter
 from qiskit.utils.mitigation.circuits import count_keys
 
-try:
+from qiskit.utils import optionals
+
+if optionals.HAS_AER:
+    # pylint: disable=import-error,no-name-in-module
     from qiskit.providers.aer import Aer
     from qiskit.providers.aer.noise import NoiseModel
     from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
-
-    HAS_AER = True
-except ImportError:
-    HAS_AER = False
 
 # fixed seed for tests - for both simulator and transpiler
 SEED = 42
@@ -206,7 +205,7 @@ def tensored_calib_circ_execution(shots: int, seed: int):
     return cal_results, mit_pattern, ghz_results, meas_layout
 
 
-@unittest.skipUnless(HAS_AER, "Qiskit aer is required to run these tests")
+@unittest.skipUnless(optionals.HAS_AER, "Qiskit aer is required to run these tests")
 class TestMeasCal(QiskitTestCase):
     """The test class."""
 
