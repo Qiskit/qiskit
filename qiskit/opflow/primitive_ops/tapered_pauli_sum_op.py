@@ -89,8 +89,8 @@ class Z2Symmetries:
         sq_paulis: List[Pauli],
         sq_list: List[int],
         tapering_values: Optional[List[int]] = None,
-        atol: Optional[float] = None,
-        rtol: Optional[float] = None,
+        atol: float = 0.0,
+        rtol: float = 0.0,
     ):
         """
         Args:
