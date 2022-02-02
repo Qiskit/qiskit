@@ -1,0 +1,20 @@
+---
+features:
+  - |
+    Several lazy dependency checkers have been added to the new module
+    :mod:`qiskit.utils.optionals`, which can be used to query if certain Qiskit
+    functionality is available.  For example, you can ask if Qiskit has detected
+    the presence of ``matplotlib`` by asking
+    ``if qiskit.utils.optionals.HAS_MATPLOTLIB``.  These objects only attempt to
+    import their dependencies when they are queried, so you can use them in
+    runtime code without affecting import time.
+  - |
+    Import time for ``qiskit`` has been significantly improved, especially for
+    those with many of Qiskit Terra's optional dependencies installed.
+upgrade:
+  - |
+    The error raised by :class:`.HoareOptimizer` if the optional dependency
+    ``z3`` is not available has changed from :class:`.TranspilerError` to
+    :class:`.MissingOptionalLibraryError` (which is both a :class:`.QiskitError`
+    and an ``ImportError``).  This is for consistency with other optional
+    dependencies.
