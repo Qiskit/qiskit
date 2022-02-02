@@ -225,9 +225,10 @@ class RZXCalibrationBuilder(CalibrationBuilder):
             schedule: The calibration schedule for the RZXGate(theta).
 
         Raises:
-            QiskitError: If all Parameters are not bound, if the control and target
+            QiskitError: If the control and target
                 qubits cannot be identified, or the backend does not support cx between
                 the qubits.
+            TranspilerError: If all Parameters are not bound.
         """
         try:
             theta = float(node_op.params[0])
