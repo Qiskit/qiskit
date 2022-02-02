@@ -32,6 +32,8 @@ from qiskit.utils.backend_utils import (
     is_aer_qasm,
     is_basicaer_provider,
     support_backend_options,
+    _get_backend_provider,
+    _get_backend_interface_version,
 )
 from qiskit.utils.mitigation import (
     CompleteMeasFitter,
@@ -237,15 +239,16 @@ class QuantumInstance:
             QiskitError: set backend_options but the backend does not support that
         """
         self._backend = backend
+        self._backend_interface_version = _get_backend_interface_version(self._backend)
         self._pass_manager = pass_manager
         self._bound_pass_manager = bound_pass_manager
 
         # if the shots are none, try to get them from the backend
         if shots is None:
             from qiskit.providers.basebackend import BaseBackend  # pylint: disable=cyclic-import
-            from qiskit.providers.backend import BackendV1  # pylint: disable=cyclic-import
+            from qiskit.providers.backend import Backend  # pylint: disable=cyclic-import
 
-            if isinstance(backend, (BaseBackend, BackendV1)):
+            if isinstance(backend, (BaseBackend, Backend)):
                 if hasattr(backend, "options"):  # should always be true for V1
                     backend_shots = backend.options.get("shots", 1024)
                     if shots != backend_shots:
@@ -269,9 +272,12 @@ class QuantumInstance:
         self._run_config = run_config
 
         # setup backend config
-        basis_gates = basis_gates or backend.configuration().basis_gates
-        coupling_map = coupling_map or getattr(backend.configuration(), "coupling_map", None)
-        self._backend_config = {"basis_gates": basis_gates, "coupling_map": coupling_map}
+        if self._backend_interface_version <= 1:
+            basis_gates = basis_gates or backend.configuration().basis_gates
+            coupling_map = coupling_map or getattr(backend.configuration(), "coupling_map", None)
+            self._backend_config = {"basis_gates": basis_gates, "coupling_map": coupling_map}
+        else:
+            self._backend_config = {}
 
         # setup compile config
         self._compile_config = {
@@ -295,7 +301,7 @@ class QuantumInstance:
                     "The noise model is not supported "
                     "on the selected backend {} ({}) "
                     "only certain backends, such as Aer qasm simulator "
-                    "support noise.".format(self.backend_name, self._backend.provider())
+                    "support noise.".format(self.backend_name, _get_backend_provider(self._backend))
                 )
 
         # setup backend options for run
@@ -363,7 +369,7 @@ class QuantumInstance:
         info = f"\nQiskit Terra version: {terra_version}\n"
         info += "Backend: '{} ({})', with following setting:\n{}\n{}\n{}\n{}\n{}\n{}".format(
             self.backend_name,
-            self._backend.provider(),
+            _get_backend_provider(self._backend),
             self._backend_config,
             self._compile_config,
             self._run_config,
@@ -494,10 +500,10 @@ class QuantumInstance:
             # transpile here, the method always returns a copied list
             circuits = self.transpile(circuits)
 
-        from qiskit.providers import BackendV1
+        from qiskit.providers import Backend
 
-        circuit_job = isinstance(self._backend, BackendV1)
-        if self.is_statevector and self._backend.name() == "aer_simulator_statevector":
+        circuit_job = isinstance(self._backend, Backend)
+        if self.is_statevector and self.backend_name == "aer_simulator_statevector":
             try:
                 from qiskit.providers.aer.library import SaveStatevector
 
@@ -825,7 +831,7 @@ class QuantumInstance:
                 if not support_backend_options(self._backend):
                     raise QiskitError(
                         "backend_options can not be used with this backend "
-                        "{} ({}).".format(self.backend_name, self._backend.provider())
+                        "{} ({}).".format(self.backend_name, _get_backend_provider(self._backend))
                     )
 
                 if k in QuantumInstance._BACKEND_OPTIONS_QASM_ONLY and self.is_statevector:
@@ -842,7 +848,7 @@ class QuantumInstance:
                     raise QiskitError(
                         "The noise model is not supported on the selected backend {} ({}) "
                         "only certain backends, such as Aer qasm support "
-                        "noise.".format(self.backend_name, self._backend.provider())
+                        "noise.".format(self.backend_name, _get_backend_provider(self._backend))
                     )
 
                 self._noise_config[k] = v
@@ -956,7 +962,10 @@ class QuantumInstance:
     @property
     def backend_name(self):
         """Return backend name."""
-        return self._backend.name()
+        if self._backend_interface_version <= 1:
+            return self._backend.name()
+        else:
+            return self._backend.name
 
     @property
     def is_statevector(self):
