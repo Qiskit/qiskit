@@ -199,6 +199,49 @@ class Operator(LinearOp):
                 op = op.compose(label_mats[char], qargs=[qubit])
         return op
 
+    @classmethod
+    def from_circuit(cls, circuit, use_layout=True, layout=None):
+        """Create a new Operator object from a :class`.QuantumCircuit`
+
+        While a :class:`.QuantumCircuit` object can passed directly as ``data``
+        to the class constructor
+
+        By default this constructor method will permute the qubits based on a
+        configured initial layout (i.e. after it was transpiled). It also
+        provides an option to manually provide a :class:`.Layout` object
+        directly.
+
+        Args:
+            circuit (QuantumCircuit): The :class:`.QuantumCircuit` to create an Operator
+                object from.
+            use_layout (bool): When set to ``False`` if the input ``circuit``
+                has a layout set it will be ignored
+            layout (Layout): If specified this kwarg can be used to specify a
+                particular layout to use to permute the qubits in the created
+                :class:`.Operator`. If this is specified it will be used instead
+                of a layout contained in the ``circuit`` input.
+        Returns:
+            Operator: An operator representing the input circuit
+        """
+        dimension = 2 ** circuit.num_qubits
+        op = cls(np.eye(dimension))
+        if layout is None:
+            if use_layout:
+                layout = getattr(circuit, "_layout", None)
+        qargs = None
+        # If there was a layout specified (either from the circuit
+        # or via user input) use that to set qargs to permute qubits
+        # based on that layout
+        if layout is not None:
+            qargs = {
+                phys: circuit.find_bit(bit).index
+                for phys, bit in layout.get_physical_bits().items()
+            }
+        # Convert circuit to an instruction
+        instruction = circuit.to_instruction()
+        op._append_instruction(instruction, qargs=qargs)
+        return op
+
     def is_unitary(self, atol=None, rtol=None):
         """Return True if operator is a unitary matrix."""
         if atol is None:
