@@ -5,7 +5,7 @@ features:
     :meth:`.Operator.from_circuit` for creating a new :class`.Operator`
     object from a :class:`.QuantumCircuit`. While this was possible normally
     using the default constructor, the :meth:`.Operator.from_circuit` method
-    provide additional options to adjust how the operator is created. Primarily
+    provides additional options to adjust how the operator is created. Primarily
     this lets you permute the qubit order based on a set :class:`.Layout`. For,
     example::
 
