@@ -98,8 +98,9 @@ automatically lowered to be run as a pulse program:
     d2 = pulse.DriveChannel(2)
 
     with pulse.build(backend) as bell_prep:
-        pulse.u2(0, math.pi, 0)
-        pulse.cx(0, 1)
+        with pulse.transpiler_settings(optimization_level=3):
+            pulse.u2(0, math.pi, 0)
+            pulse.cx(0, 1)
 
     with pulse.build(backend) as decoupled_bell_prep_and_measure:
         # We call our bell state preparation schedule constructed above.
@@ -197,13 +198,14 @@ In the example below we demonstrate some more features of the pulse builder:
             # circuit which is then transpiled and scheduled before inserting into
             # a pulse schedule.
             # NOTE: Quantum register indices correspond to physical qubit indices.
-            qc = QuantumCircuit(2, 2)
-            qc.cx(0, 1)
-            pulse.call(qc)
-            # Calling a small set of standard gates and decomposing to pulses is
-            # also supported with more natural syntax.
-            pulse.u3(0, math.pi, 0, 0)
-            pulse.cx(0, 1)
+            with pulse.transpiler_settings(layout_method="trivial"):
+                qc = QuantumCircuit(2, 2)
+                qc.cx(0, 1)
+                pulse.call(qc)
+                # Calling a small set of standard gates and decomposing to pulses is
+                # also supported with more natural syntax.
+                pulse.u3(0, math.pi, 0, 0)
+                pulse.cx(0, 1)
 
 
             # It is also be possible to call a preexisting schedule
