@@ -18,7 +18,6 @@ Transformations between QuantumChannel representations.
 """
 
 import numpy as np
-import scipy.linalg as la
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
@@ -219,6 +218,8 @@ def _kraus_to_choi(data):
 
 def _choi_to_kraus(data, input_dim, output_dim, atol=ATOL_DEFAULT):
     """Transform Choi representation to Kraus representation."""
+    from scipy import linalg as la
+
     # Check if hermitian matrix
     if is_hermitian_matrix(data, atol=atol):
         # Get eigen-decomposition of Choi-matrix

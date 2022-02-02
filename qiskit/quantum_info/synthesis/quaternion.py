@@ -15,7 +15,6 @@ A module for using quaternions.
 """
 import math
 import numpy as np
-import scipy.linalg as la
 
 
 class Quaternion:
@@ -47,6 +46,8 @@ class Quaternion:
 
     def norm(self):
         """Norm of quaternion."""
+        import scipy.linalg as la
+
         return la.norm(self.data)
 
     def normalize(self, inplace=False):
