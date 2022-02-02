@@ -729,6 +729,39 @@ class TestOperator(OperatorTestCase):
         global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
         self.assertTrue(global_phase_equivalent)
 
+    def test_from_circuit_constructor_reverse_embedded_layout_ignore_set_layout(self):
+        """Test initialization from a circuit with an ignored embedded reverse layout."""
+        # Test tensor product of 1-qubit gates
+        circuit = QuantumCircuit(3)
+        circuit.h(2)
+        circuit.x(1)
+        circuit.ry(np.pi / 2, 0)
+        circuit._layout = Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2})
+        op = Operator.from_circuit(circuit, ignore_set_layout=True).reverse_qargs()
+        y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
+        target = np.kron(y90, np.kron(self.UX, self.UH))
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+        # Test decomposition of Controlled-Phase gate
+        lam = np.pi / 4
+        circuit = QuantumCircuit(2)
+        circuit.cp(lam, 1, 0)
+        circuit._layout = Layout({circuit.qubits[1]: 0, circuit.qubits[0]: 1})
+        op = Operator.from_circuit(circuit, ignore_set_layout=True).reverse_qargs()
+        target = np.diag([1, 1, 1, np.exp(1j * lam)])
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+        # Test decomposition of controlled-H gate
+        circuit = QuantumCircuit(2)
+        circuit.ch(1, 0)
+        circuit._layout = Layout({circuit.qubits[1]: 0, circuit.qubits[0]: 1})
+        op = Operator.from_circuit(circuit, ignore_set_layout=True).reverse_qargs()
+        target = np.kron(self.UI, np.diag([1, 0])) + np.kron(self.UH, np.diag([0, 1]))
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
     def test_from_circuit_constructor_reverse_user_specified_layout(self):
         """Test initialization from a circuit with a user specified reverse layout."""
         # Test tensor product of 1-qubit gates

@@ -200,11 +200,14 @@ class Operator(LinearOp):
         return op
 
     @classmethod
-    def from_circuit(cls, circuit, use_layout=True, layout=None):
+    def from_circuit(cls, circuit, ignore_set_layout=False, layout=None):
         """Create a new Operator object from a :class`.QuantumCircuit`
 
         While a :class:`.QuantumCircuit` object can passed directly as ``data``
-        to the class constructor
+        to the class constructor this provides no options on how the circuit
+        is used to create an :class:`.Operator`. This constructor method lets
+        you control how the :class:`.Operator` is created so it can be adjusted
+        for a particular use case.
 
         By default this constructor method will permute the qubits based on a
         configured initial layout (i.e. after it was transpiled). It also
@@ -214,7 +217,7 @@ class Operator(LinearOp):
         Args:
             circuit (QuantumCircuit): The :class:`.QuantumCircuit` to create an Operator
                 object from.
-            use_layout (bool): When set to ``False`` if the input ``circuit``
+            ignore_set_layout (bool): When set to ``True`` if the input ``circuit``
                 has a layout set it will be ignored
             layout (Layout): If specified this kwarg can be used to specify a
                 particular layout to use to permute the qubits in the created
@@ -226,7 +229,7 @@ class Operator(LinearOp):
         dimension = 2 ** circuit.num_qubits
         op = cls(np.eye(dimension))
         if layout is None:
-            if use_layout:
+            if not ignore_set_layout:
                 layout = getattr(circuit, "_layout", None)
         qargs = None
         # If there was a layout specified (either from the circuit
