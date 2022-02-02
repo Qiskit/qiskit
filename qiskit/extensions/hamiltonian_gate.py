@@ -16,7 +16,6 @@ Gate described by the time evolution of a Hermitian Hamiltonian operator.
 
 from numbers import Number
 import numpy
-import scipy.linalg
 
 from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister, ParameterExpression
 from qiskit.quantum_info.operators.predicates import matrix_equal
@@ -80,6 +79,8 @@ class HamiltonianGate(Gate):
     def __array__(self, dtype=None):
         """Return matrix for the unitary."""
         # pylint: disable=unused-argument
+        import scipy.linalg
+
         try:
             return scipy.linalg.expm(-1j * self.params[0] * float(self.params[1]))
         except TypeError as ex:

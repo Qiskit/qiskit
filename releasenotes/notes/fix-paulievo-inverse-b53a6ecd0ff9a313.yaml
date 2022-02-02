@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fix :meth:`~qiskit.circuit.library.PauliEvolutionGate.inverse` which previously computed the
+    inverse by inverting the evolution time, which is only the correct inverse if the operator
+    was involved correctly. In particular, this led to the inverse of Trotterization-based time
+    evolutions being incorrect.

@@ -14,7 +14,7 @@
 
 import unittest
 from numpy import pi
-from qiskit.transpiler.passes.optimization.hoare_opt import HAS_Z3
+from qiskit.utils import optionals
 from qiskit.transpiler.passes import HoareOptimizer
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumCircuit
@@ -24,7 +24,7 @@ from qiskit.dagcircuit import DAGOpNode
 from qiskit.quantum_info import Statevector
 
 
-@unittest.skipUnless(HAS_Z3, "z3-solver needs to be installed to run these tests")
+@unittest.skipUnless(optionals.HAS_Z3, "z3-solver needs to be installed to run these tests")
 class TestHoareOptimizer(QiskitTestCase):
     """Test the HoareOptimizer pass"""
 
