@@ -15,17 +15,11 @@
 from typing import Any, Dict, Tuple, List, Callable, Optional
 
 import numpy as np
-from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.utils import optionals as _optionals
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
-try:
-    import skquant.opt as skq
 
-    _HAS_SKQUANT = True
-except ImportError:
-    _HAS_SKQUANT = False
-
-
+@_optionals.HAS_SKQUANT.require_in_instance
 class BOBYQA(Optimizer):
     """Bound Optimization BY Quadratic Approximation algorithm.
 
@@ -48,10 +42,6 @@ class BOBYQA(Optimizer):
         Raises:
             MissingOptionalLibraryError: scikit-quant not installed
         """
-        if not _HAS_SKQUANT:
-            raise MissingOptionalLibraryError(
-                libname="scikit-quant", name="BOBYQA", pip_install="pip install scikit-quant"
-            )
         super().__init__()
         self._maxiter = maxiter
 
@@ -74,6 +64,8 @@ class BOBYQA(Optimizer):
         jac: Optional[Callable[[POINT], POINT]] = None,
         bounds: Optional[List[Tuple[float, float]]] = None,
     ) -> OptimizerResult:
+        from skquant import opt as skq
+
         res, history = skq.minimize(
             func=fun,
             x0=np.asarray(x0),

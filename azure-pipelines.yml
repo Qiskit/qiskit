@@ -33,7 +33,7 @@ stages:
         - bash: |
             set -e
             python -m pip install --upgrade pip
-            pip install cibuildwheel==2.2.2
+            pip install cibuildwheel==2.3.1
             pip install -U twine
             cibuildwheel --output-dir wheelhouse .
         - task: PublishBuildArtifacts@1
@@ -74,7 +74,7 @@ stages:
       - bash: |
           set -e
           python -m pip install --upgrade pip
-          pip install cibuildwheel==2.2.2
+          pip install cibuildwheel==2.3.1
           pip install -U twine
           cibuildwheel --output-dir wheelhouse .
       - task: PublishBuildArtifacts@1
@@ -96,7 +96,7 @@ stages:
       - bash: |
           set -e
           python -m pip install --upgrade pip
-          pip install cibuildwheel==2.2.2
+          pip install cibuildwheel==2.3.1
           pip install -U twine
           cibuildwheel --output-dir wheelhouse .
       - task: PublishBuildArtifacts@1
@@ -107,7 +107,7 @@ stages:
         env:
           TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'Windows'
-      pool: {vmImage: 'vs2017-win2016'}
+      pool: {vmImage: 'windows-latest'}
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         TWINE_USERNAME: qiskit
@@ -123,7 +123,7 @@ stages:
         - bash: |
             set -e
             python -m pip install --upgrade pip
-            pip install cibuildwheel==2.2.2
+            pip install cibuildwheel==2.3.1
             pip install -U twine
             cibuildwheel --output-dir wheelhouse
         - task: PublishBuildArtifacts@1
@@ -182,7 +182,8 @@ stages:
             cp -r test /tmp/terra-tests/.
             cp .stestr.conf /tmp/terra-tests/.
             cp -r .stestr /tmp/terra-tests/. || :
-            sudo apt install -y graphviz
+            sudo apt-get update
+            sudo apt-get install -y graphviz
             pip check
           displayName: 'Install dependencies'
         - bash: |
@@ -239,7 +240,8 @@ stages:
             image_tests/bin/pip install -U -r requirements.txt -c constraints.txt
             image_tests/bin/pip install -U -c constraints.txt -e ".[visualization]"
             image_tests/bin/python setup.py build_ext --inplace
-            sudo apt install -y graphviz pandoc
+            sudo apt-get update
+            sudo apt-get install -y graphviz pandoc
             image_tests/bin/pip check
           displayName: 'Install dependencies'
         - bash: image_tests/bin/python -m unittest discover -v test/ipynb
@@ -313,7 +315,8 @@ stages:
             python -m pip install --upgrade pip setuptools wheel
             pip install -U tox
             python setup.py build_ext --inplace
-            sudo apt install -y graphviz
+            sudo apt-get update
+            sudo apt-get install -y graphviz
           displayName: 'Install dependencies'
         - bash: |
             tox -edocs
@@ -617,7 +620,8 @@ stages:
             pip install -U -c constraints.txt -e .
             pip install -U "qiskit-aer" "z3-solver" -c constraints.txt
             python setup.py build_ext --inplace
-            sudo apt install -y graphviz
+            sudo apt-get update
+            sudo apt-get install -y graphviz
             pip check
           displayName: 'Install dependencies'
         - bash: |
@@ -768,7 +772,8 @@ stages:
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" "qiskit-ignis" "matplotlib>=3.3.0" sphinx nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
             python setup.py build_ext --inplace
-            sudo apt install -y graphviz pandoc
+            sudo apt-get update
+            sudo apt-get install -y graphviz pandoc
             pip check
           displayName: 'Install dependencies'
         - bash: |
