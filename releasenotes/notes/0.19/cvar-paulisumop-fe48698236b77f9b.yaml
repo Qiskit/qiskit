@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed a bug where the :class:`.CVaRMeasurement` attempted to convert a
+    :class:`.PauliSumOp` to a dense matrix to check whether it were diagonal.
+    For large operators (> 16 qubits) this computation was extremely expensive and raised
+    an error if not explicitly enabled using ``qiskit.utils.algorithm_globals.massive = True``.
+    The check is now efficient even for large numbers of qubits.

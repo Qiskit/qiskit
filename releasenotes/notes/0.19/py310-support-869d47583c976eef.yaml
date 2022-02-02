@@ -5,7 +5,7 @@ features:
     precompiled binaries to PyPI for Python 3.10 on supported platforms.
 upgrade:
   - |
-    Qiskit Terra no longer fully supports 32 bit platforms on Python >= 3.10.
+    Starting from Python 3.10, Qiskit Terra will have reduced support for 32-bit platforms.
     These are Linux i686 and 32-bit Windows. These platforms with Python 3.10
     are now at Tier 3 instead of Tier 2 support (per the tiers defined in:
     https://qiskit.org/documentation/getting_started.html#platform-support)

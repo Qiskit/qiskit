@@ -1,0 +1,4 @@
+---
+prelude: |
+    Qiskit Terra 0.19.2 is predominantly a bugfix release, but also now comes
+    with wheels built for Python 3.10 on all major platforms.
