@@ -13,7 +13,6 @@
 """A gate to implement time-evolution of operators."""
 
 from typing import Union, Optional
-import numpy as np
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -137,8 +136,5 @@ def _to_sparse_pauli_op(operator):
         sparse_pauli = operator
     else:
         raise ValueError(f"Unsupported operator type for evolution: {type(operator)}.")
-
-    if any(np.iscomplex(sparse_pauli.coeffs)):
-        raise ValueError("Operator contains complex coefficients, which are not supported.")
 
     return sparse_pauli

@@ -276,11 +276,6 @@ class TestEvolutionGate(QiskitTestCase):
 
         self.assertTrue(Operator(lie_trotter).equiv(exact))
 
-    def test_complex_op_raises(self):
-        """Test an operator with complex coefficient raises an error."""
-        with self.assertRaises(ValueError):
-            _ = PauliEvolutionGate(Pauli("iZ"))
-
     @data(LieTrotter, MatrixExponential)
     def test_inverse(self, synth_cls):
         """Test calculating the inverse is correct."""
