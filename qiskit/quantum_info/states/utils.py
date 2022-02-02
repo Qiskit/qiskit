@@ -15,7 +15,6 @@ Quantum information utility functions for states.
 """
 
 import numpy as np
-import scipy.linalg as la
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.statevector import Statevector
@@ -148,6 +147,8 @@ def _funm_svd(matrix, func):
         ndarray: funm (N, N) Value of the matrix function specified by func
                  evaluated at `A`.
     """
+    import scipy.linalg as la
+
     unitary1, singular_values, unitary2 = la.svd(matrix)
     diag_func_singular = np.diag(func(singular_values))
     return unitary1.dot(diag_func_singular).dot(unitary2)
