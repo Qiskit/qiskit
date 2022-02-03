@@ -72,6 +72,7 @@ class MatplotlibDrawer:
         reverse_bits=False,
         plot_barriers=True,
         layout=None,
+        with_layout=False,
         fold=25,
         ax=None,
         initial_state=False,
@@ -93,7 +94,7 @@ class MatplotlibDrawer:
                 "The 'qregs' kwarg to the MatplotlibDrawer class is deprecated "
                 "as of 0.20.0 and will be removed no earlier than 3 months "
                 "after the release date.",
-                RuntimeWarning,
+                DeprecationWarning,
                 2,
             )
         if cregs is not None:
@@ -101,7 +102,7 @@ class MatplotlibDrawer:
                 "The 'cregs' kwarg to the MatplotlibDrawer class is deprecated "
                 "as of 0.20.0 and will be removed no earlier than 3 months "
                 "after the release date.",
-                RuntimeWarning,
+                DeprecationWarning,
                 2,
             )
         if global_phase is not None:
@@ -109,7 +110,15 @@ class MatplotlibDrawer:
                 "The 'global_phase' kwarg to the MatplotlibDrawer class is deprecated "
                 "as of 0.20.0 and will be removed no earlier than 3 months "
                 "after the release date.",
-                RuntimeWarning,
+                DeprecationWarning,
+                2,
+            )
+        if layout is not None:
+            warn(
+                "The 'layout' kwarg to the MatplotlibDrawer class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                DeprecationWarning,
                 2,
             )
         if calibrations is not None:
@@ -117,14 +126,15 @@ class MatplotlibDrawer:
                 "The 'calibrations' kwarg to the MatplotlibDrawer class is deprecated "
                 "as of 0.20.0 and will be removed no earlier than 3 months "
                 "after the release date.",
-                RuntimeWarning,
+                DeprecationWarning,
                 2,
             )
+        # This check should be removed when the 5 deprecations above are removed
         if circuit is None:
             warn(
-                "The 'circuit' kwarg must be a valid QuantumCircuit and not None. "
-                "A new circuit is being created using the qubits and clbits "
-                "for rendering the drawing.",
+                "The 'circuit' kwarg to the MaptlotlibDrawer class must be a valid "
+                "QuantumCircuit and not None. A new circuit is being created using "
+                "the qubits and clbits for rendering the drawing.",
                 DeprecationWarning,
                 2,
             )
@@ -157,7 +167,11 @@ class MatplotlibDrawer:
 
         self._reverse_bits = reverse_bits
         self._plot_barriers = plot_barriers
-        self._layout = layout
+        if with_layout:
+            self._layout = self._circuit._layout
+        else:
+            self._layout = None
+
         self._fold = fold
         if self._fold < 2:
             self._fold = -1

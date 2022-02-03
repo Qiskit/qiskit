@@ -307,17 +307,13 @@ def _text_circuit_drawer(
     qubits, clbits, nodes = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
-    if with_layout:
-        layout = circuit._layout
-    else:
-        layout = None
-
     text_drawing = _text.TextDrawing(
         qubits,
         clbits,
         nodes,
         reverse_bits=reverse_bits,
-        layout=layout,
+        layout=None,
+        with_layout=with_layout,
         initial_state=initial_state,
         cregbundle=cregbundle,
         global_phase=None,
@@ -497,11 +493,6 @@ def _generate_latex_source(
     qubits, clbits, nodes = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
-    if with_layout:
-        layout = circuit._layout
-    else:
-        layout = None
-
     qcimg = _latex.QCircuitImage(
         qubits,
         clbits,
@@ -510,7 +501,8 @@ def _generate_latex_source(
         style=style,
         reverse_bits=reverse_bits,
         plot_barriers=plot_barriers,
-        layout=layout,
+        layout=None,
+        with_layout=with_layout,
         initial_state=initial_state,
         cregbundle=cregbundle,
         global_phase=None,
@@ -583,11 +575,6 @@ def _matplotlib_circuit_drawer(
     qubits, clbits, nodes = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
-    if with_layout:
-        layout = circuit._layout
-    else:
-        layout = None
-
     if fold is None:
         fold = 25
 
@@ -599,7 +586,8 @@ def _matplotlib_circuit_drawer(
         style=style,
         reverse_bits=reverse_bits,
         plot_barriers=plot_barriers,
-        layout=layout,
+        layout=None,
+        with_layout=with_layout,
         fold=fold,
         ax=ax,
         initial_state=initial_state,

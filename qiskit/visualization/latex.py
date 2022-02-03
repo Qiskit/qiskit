@@ -55,6 +55,7 @@ class QCircuitImage:
         reverse_bits=False,
         plot_barriers=True,
         layout=None,
+        with_layout=False,
         initial_state=False,
         cregbundle=False,
         global_phase=None,
@@ -84,28 +85,55 @@ class QCircuitImage:
         """
         if qregs is not None:
             warn(
-                "The 'qregs' kwarg to the MatplotlibDrawer class is deprecated "
+                "The 'qregs' kwarg to the QCircuitImage class is deprecated "
                 "as of 0.20.0 and will be removed no earlier than 3 months "
                 "after the release date.",
-                RuntimeWarning,
+                DeprecationWarning,
                 2,
             )
         if cregs is not None:
             warn(
-                "The 'cregs' kwarg to the MatplotlibDrawer class is deprecated "
+                "The 'cregs' kwarg to the QCircuitImage class is deprecated "
                 "as of 0.20.0 and will be removed no earlier than 3 months "
                 "after the release date.",
-                RuntimeWarning,
+                DeprecationWarning,
+                2,
+            )
+        if layout is not None:
+            warn(
+                "The 'layout' kwarg to the QCircuitImage class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                DeprecationWarning,
                 2,
             )
         if global_phase is not None:
             warn(
-                "The 'global_phase' kwarg to the MatplotlibDrawer class is deprecated "
+                "The 'global_phase' kwarg to the QCircuitImage class is deprecated "
                 "as of 0.20.0 and will be removed no earlier than 3 months "
                 "after the release date.",
-                RuntimeWarning,
+                DeprecationWarning,
                 2,
             )
+        # This check should be removed when the 4 deprecations above are removed
+        if circuit is None:
+            warn(
+                "The 'circuit' kwarg to the QCircuitImage class must be a valid "
+                "QuantumCircuit and not None. A new circuit is being created using "
+                "the qubits and clbits for rendering the drawing.",
+                DeprecationWarning,
+                2,
+            )
+            circ = QuantumCircuit(qubits, clbits)
+            for reg in qregs:
+                bits = [qubits[circ._qubit_indices[q].index] for q in reg]
+                circ.add_register(QuantumRegister(None, reg.name, list(bits)))
+            for reg in cregs:
+                bits = [clbits[circ._clbit_indices[q].index] for q in reg]
+                circ.add_register(ClassicalRegister(None, reg.name, list(bits)))
+            self._circuit = circ
+        else:
+            self._circuit = circuit
         self._qubits = qubits
         self._clbits = clbits
 
@@ -145,11 +173,14 @@ class QCircuitImage:
 
         self._reverse_bits = reverse_bits
         self._plot_barriers = plot_barriers
-        self._layout = layout
+        if with_layout:
+            self._layout = self._circuit._layout
+        else:
+            self._layout = None
+
         self._initial_state = initial_state
         self._cregbundle = cregbundle
         self._global_phase = circuit.global_phase
-        self._circuit = circuit
 
         # If there is any custom instruction that uses classical bits
         # then cregbundle is forced to be False.
