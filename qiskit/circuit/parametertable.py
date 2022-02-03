@@ -17,6 +17,7 @@ import functools
 from collections.abc import MutableMapping, MappingView
 
 from .instruction import Instruction
+from .parameter import Parameter
 
 
 class ParameterTable(MutableMapping):
@@ -51,6 +52,13 @@ class ParameterTable(MutableMapping):
         self._table[parameter] = instr_params
         self._keys.add(parameter)
         self._names.add(parameter.name)
+
+    def delete_element(self, instruction: Instruction):
+        for param_index, param in enumerate(instruction.params):
+            if isinstance(param, Parameter):
+                for idx, spec in enumerate(self._table[param]):
+                    if spec[0] is instruction and spec[1] == param_index:
+                        self._table[param].pop(idx)
 
     def get_keys(self):
         """Return a set of all keys in the parameter table
