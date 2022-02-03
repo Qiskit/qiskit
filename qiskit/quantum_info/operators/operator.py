@@ -193,7 +193,7 @@ class Operator(LinearOp):
             raise QiskitError("Label contains invalid characters.")
         # Initialize an identity matrix and apply each gate
         num_qubits = len(label)
-        op = Operator(np.eye(2 ** num_qubits, dtype=complex))
+        op = Operator(np.eye(2**num_qubits, dtype=complex))
         for qubit, char in enumerate(reversed(label)):
             if char != "I":
                 op = op.compose(label_mats[char], qargs=[qubit])
@@ -226,7 +226,7 @@ class Operator(LinearOp):
         Returns:
             Operator: An operator representing the input circuit
         """
-        dimension = 2 ** circuit.num_qubits
+        dimension = 2**circuit.num_qubits
         op = cls(np.eye(dimension))
         if layout is None:
             if not ignore_set_layout:
@@ -503,7 +503,7 @@ class Operator(LinearOp):
         if hasattr(instruction, "__array__"):
             return Operator(np.array(instruction, dtype=complex))
 
-        dimension = 2 ** instruction.num_qubits
+        dimension = 2**instruction.num_qubits
         op = Operator(np.eye(dimension))
         # Convert circuit to an instruction
         if isinstance(instruction, QuantumCircuit):
@@ -553,7 +553,7 @@ class Operator(LinearOp):
                     )
                 )
             if obj.definition.global_phase:
-                dimension = 2 ** obj.num_qubits
+                dimension = 2**obj.num_qubits
                 op = self.compose(
                     ScalarOp(dimension, np.exp(1j * float(obj.definition.global_phase))),
                     qargs=qargs,
