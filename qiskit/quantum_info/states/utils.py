@@ -66,7 +66,7 @@ def partial_trace(state, qargs):
     ret = state.evolve(tr_op, [qargs[0]])
     # Trace over remaining subsystems
     for qarg, dim in zip(qargs[1:], dims[1:]):
-        tr_op = SuperOp(np.eye(dim).reshape(1, dim ** 2), input_dims=[dim], output_dims=[1])
+        tr_op = SuperOp(np.eye(dim).reshape(1, dim**2), input_dims=[dim], output_dims=[1])
         ret = ret.evolve(tr_op, [qarg])
     # Remove traced over subsystems which are listed as dimension 1
     ret._op_shape = traced_shape

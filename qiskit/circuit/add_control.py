@@ -52,7 +52,7 @@ def add_control(
 
     """
     if ctrl_state is None:
-        ctrl_state = 2 ** num_ctrl_qubits - 1
+        ctrl_state = 2**num_ctrl_qubits - 1
     if isinstance(operation, UnitaryGate):
         # attempt decomposition
         operation._define()

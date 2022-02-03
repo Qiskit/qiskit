@@ -260,7 +260,7 @@ class TestMeasCal(QiskitTestCase):
             result_dict[state] = #shots/len(state_labels)
         """
         results_dict = {}
-        results_list = [0] * (2 ** weight)
+        results_list = [0] * (2**weight)
         state_num = len(state_labels)
         for state in state_labels:
             shots_per_state = self.shots / state_num
@@ -273,7 +273,7 @@ class TestMeasCal(QiskitTestCase):
     def test_ideal_meas_cal(self):
         """Test ideal execution, without noise."""
         for nq in self.nq_list:
-            for pattern_type in range(1, 2 ** nq):
+            for pattern_type in range(1, 2**nq):
 
                 # Generate the quantum register according to the pattern
                 qubits, weight = self.choose_calibration(nq, pattern_type)
@@ -290,7 +290,7 @@ class TestMeasCal(QiskitTestCase):
                 meas_cal = CompleteMeasFitter(cal_results, state_labels, circlabel="test")
 
                 # Assert that the calibration matrix is equal to identity
-                IdentityMatrix = np.identity(2 ** weight)
+                IdentityMatrix = np.identity(2**weight)
                 self.assertListEqual(
                     meas_cal.cal_matrix.tolist(),
                     IdentityMatrix.tolist(),
