@@ -1089,7 +1089,7 @@ class TwoQubitBasisDecomposer:
 
         target_decomposed = TwoQubitWeylDecomposition(target)
         traces = self.traces(target_decomposed)
-        expected_fidelities = [trace_to_fid(traces[i]) * basis_fidelity ** i for i in range(4)]
+        expected_fidelities = [trace_to_fid(traces[i]) * basis_fidelity**i for i in range(4)]
 
         best_nbasis = int(np.argmax(expected_fidelities))
         if _num_basis_uses is not None:
@@ -1400,7 +1400,7 @@ class TwoQubitBasisDecomposer:
             4 * math.cos(c),
             4,
         ]
-        return np.argmax([trace_to_fid(traces[i]) * self.basis_fidelity ** i for i in range(4)])
+        return np.argmax([trace_to_fid(traces[i]) * self.basis_fidelity**i for i in range(4)])
 
 
 # This weird duplicated lazy structure is for backwards compatibility; Qiskit has historically

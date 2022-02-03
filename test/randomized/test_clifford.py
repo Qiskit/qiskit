@@ -28,7 +28,7 @@ class TestClifford(unittest.TestCase):
         self.assertEqual(value.num_qubits, num_qubits)
 
     @given(
-        strategies.integers(min_value=0, max_value=2 ** 32 - 1),
+        strategies.integers(min_value=0, max_value=2**32 - 1),
         strategies.integers(min_value=1, max_value=211),
     )
     @settings(deadline=None)

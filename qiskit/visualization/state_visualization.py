@@ -107,8 +107,8 @@ def plot_state_hinton(
             fig = ax_imag.get_figure()
         ax1 = ax_real
         ax2 = ax_imag
-    column_names = [bin(i)[2:].zfill(num) for i in range(2 ** num)]
-    row_names = [bin(i)[2:].zfill(num) for i in range(2 ** num)]
+    column_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
+    row_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
     ly, lx = datareal.shape
     # Real
     if ax1:
@@ -363,8 +363,8 @@ def plot_state_city(
     dataimag = np.imag(rho.data)
 
     # get the labels
-    column_names = [bin(i)[2:].zfill(num) for i in range(2 ** num)]
-    row_names = [bin(i)[2:].zfill(num) for i in range(2 ** num)]
+    column_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
+    row_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
 
     lx = len(datareal[0])  # Work out matrix dimensions
     ly = len(datareal[:, 0])
@@ -789,7 +789,7 @@ def plot_state_qsphere(
             state = angleset * state
 
             d = num
-            for i in range(2 ** num):
+            for i in range(2**num):
                 # get x,y,z points
                 element = bin(i)[2:].zfill(num)
                 weight = element.count("1")
@@ -805,8 +805,8 @@ def plot_state_qsphere(
                 ):
                     angle = np.pi - angle - (2 * np.pi / number_of_divisions)
 
-                xvalue = np.sqrt(1 - zvalue ** 2) * np.cos(angle)
-                yvalue = np.sqrt(1 - zvalue ** 2) * np.sin(angle)
+                xvalue = np.sqrt(1 - zvalue**2) * np.cos(angle)
+                yvalue = np.sqrt(1 - zvalue**2) * np.sin(angle)
 
                 # get prob and angle - prob will be shade and angle color
                 prob = np.real(np.dot(state[i], state[i].conj()))
@@ -819,7 +819,7 @@ def plot_state_qsphere(
 
                 if not np.isclose(prob, 0) and show_state_labels:
                     rprime = 1.3
-                    angle_theta = np.arctan2(np.sqrt(1 - zvalue ** 2), zvalue)
+                    angle_theta = np.arctan2(np.sqrt(1 - zvalue**2), zvalue)
                     xvalue_text = rprime * np.sin(angle_theta) * np.cos(angle)
                     yvalue_text = rprime * np.sin(angle_theta) * np.sin(angle)
                     zvalue_text = rprime * np.cos(angle_theta)
@@ -868,7 +868,7 @@ def plot_state_qsphere(
             for weight in range(d + 1):
                 theta = np.linspace(-2 * np.pi, 2 * np.pi, 100)
                 z = -2 * weight / d + 1
-                r = np.sqrt(1 - z ** 2)
+                r = np.sqrt(1 - z**2)
                 x = r * np.cos(theta)
                 y = r * np.sin(theta)
                 ax.plot(x, y, z, color=(0.5, 0.5, 0.5), lw=1, ls=":", alpha=0.5)
