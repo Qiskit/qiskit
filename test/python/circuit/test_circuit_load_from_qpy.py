@@ -780,3 +780,110 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
+
+    def test_qpy_with_ifelseop(self):
+        """Test qpy serialization with an if block."""
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.measure(0, 0)
+        with qc.if_test((qc.clbits[0], True)):
+            qc.x(1)
+        qc.measure(1, 1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_qpy_with_ifelseop_with_else(self):
+        """Test qpy serialization with an else block."""
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.measure(0, 0)
+        with qc.if_test((qc.clbits[0], True)) as else_:
+            qc.x(1)
+        with else_:
+            qc.y(1)
+        qc.measure(1, 1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_qpy_with_while_loop(self):
+        """Test qpy serialization with a for loop."""
+        qc = QuantumCircuit(2, 1)
+
+        with qc.while_loop((qc.clbits[0], 0)):
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure(0, 0)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_qpy_with_for_loop(self):
+        """Test qpy serialization with a for loop."""
+        qc = QuantumCircuit(2, 1)
+
+        with qc.for_loop(range(5)):
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure(0, 0)
+            qc.break_loop().c_if(0, True)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_qpy_with_for_loop_iterator(self):
+        """Test qpy serialization with a for loop."""
+        qc = QuantumCircuit(2, 1)
+
+        with qc.for_loop(iter(range(5))):
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure(0, 0)
+            qc.break_loop().c_if(0, True)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_standalone_register_partial_bit_in_circuit(self):
+        """Test qpy with only some bits from standalone register."""
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit([qr[0]])
+        qc.x(0)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_nested_tuple_param(self):
+        """Test qpy with an instruction that contains nested tuples."""
+        inst = Instruction("tuple_test", 1, 0, [((((0, 1), (0, 1)), 2, 3), ("A", "B", "C"))])
+        qc = QuantumCircuit(1)
+        qc.append(inst, [0])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_empty_tuple_param(self):
+        """Test qpy with an instruction that contains an empty tuple."""
+        inst = Instruction("empty_tuple_test", 1, 0, [tuple()])
+        qc = QuantumCircuit(1)
+        qc.append(inst, [0])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
