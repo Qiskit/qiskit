@@ -1376,4 +1376,3 @@ class Anchor:
     def get_x_index(self):
         """Getter for the x index"""
         return self._x_index
-
