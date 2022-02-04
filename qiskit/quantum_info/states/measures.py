@@ -250,5 +250,5 @@ def entanglement_of_formation(state):
     if state.dim != 4:
         raise QiskitError("Input density matrix must be a 2-qubit state.")
     conc = concurrence(state)
-    val = (1 + np.sqrt(1 - (conc ** 2))) / 2
+    val = (1 + np.sqrt(1 - (conc**2))) / 2
     return shannon_entropy([val, 1 - val])
