@@ -78,10 +78,16 @@ class VarQiteGibbsStateBuilder(GibbsStateBuilder):
             hamiltonian_value_dict=param_dict,
         )
 
+        aux_registers = set(range(self._ansatz.num_qubits / 2, self._ansatz.num_qubits))
+
         return GibbsStateSampler(
             gibbs_state_function=gibbs_state_function,
             hamiltonian=problem_hamiltonian,
             temperature=temperature,
+            ansatz=self._ansatz,
+            ansatz_params_dict=None,  # TODO get from evolution result
+            ansatz_hamiltonian_gradients=None,  # TODO get from evolution result
+            aux_registers=aux_registers,
         )
 
     def _set_default_ansatz(self, problem_hamiltonian: OperatorBase) -> None:
