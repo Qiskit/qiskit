@@ -21,7 +21,7 @@ from scipy.optimize import fsolve
 from qiskit.circuit import Gate, QuantumCircuit
 
 
-class GateSequence():
+class GateSequence:
     """A class implementing a sequence of gates.
 
     This class stores the sequence of gates along with the unitary they implement.
@@ -54,7 +54,7 @@ class GateSequence():
         self.global_phase = global_phase
         self.product = so3_matrix
 
-    def __eq__(self, other: 'GateSequence') -> bool:
+    def __eq__(self, other: "GateSequence") -> bool:
         """Check if this GateSequence is the same as the other GateSequence.
 
         Args:
@@ -94,7 +94,7 @@ class GateSequence():
 
         return circuit
 
-    def append(self, gate: Gate) -> 'GateSequence':
+    def append(self, gate: Gate) -> "GateSequence":
         """Append gate to the sequence of gates.
 
         Args:
@@ -115,7 +115,7 @@ class GateSequence():
 
         return self
 
-    def adjoint(self) -> 'GateSequence':
+    def adjoint(self) -> "GateSequence":
         """Get the complex conjugate."""
         adjoint = GateSequence()
         adjoint.gates = [gate.inverse() for gate in reversed(self.gates)]
@@ -124,7 +124,7 @@ class GateSequence():
 
         return adjoint
 
-    def copy(self) -> 'GateSequence':
+    def copy(self) -> "GateSequence":
         """Create copy of the sequence of gates.
 
         Returns:
@@ -158,12 +158,12 @@ class GateSequence():
         Returns:
             Representation of this sequence of gates.
         """
-        out = '['
+        out = "["
         for gate in self.gates:
             out += gate.name
-            out += ', '
-        out += ']'
-        out += ', product: '
+            out += ", "
+        out += "]"
+        out += ", product: "
         out += str(self.product)
         return out
 
@@ -173,17 +173,17 @@ class GateSequence():
         Returns:
             Representation of this sequence of gates.
         """
-        out = '['
+        out = "["
         for gate in self.gates:
             out += gate.name
-            out += ', '
-        out += ']'
-        out += ', product: \n'
+            out += ", "
+        out += "]"
+        out += ", product: \n"
         out += str(self.product)
         return out
 
     @classmethod
-    def from_matrix(cls, matrix: np.ndarray) -> 'GateSequence':
+    def from_matrix(cls, matrix: np.ndarray) -> "GateSequence":
         """Initialize the gate sequence from a matrix, without a gate sequence.
 
         Args:
@@ -201,12 +201,12 @@ class GateSequence():
         elif matrix.shape == (3, 3):
             instance.product = matrix
         else:
-            raise ValueError(f'Matrix must have shape (3, 3) or (2, 2) but has {matrix.shape}.')
+            raise ValueError(f"Matrix must have shape (3, 3) or (2, 2) but has {matrix.shape}.")
 
         instance.gates = []
         return instance
 
-    def dot(self, other: 'GateSequence') -> 'GateSequence':
+    def dot(self, other: "GateSequence") -> "GateSequence":
         """Compute the dot-product with another gate sequence.
 
         Args:
@@ -249,18 +249,16 @@ def _compute_euler_angles_from_so3(matrix: np.ndarray) -> Tuple[float, float, fl
     matrix = np.round(matrix, decimals=7)
     if matrix[2][0] != 1 and matrix[2][1] != -1:
         theta = -math.asin(matrix[2][0])
-        psi = math.atan2(matrix[2][1] / math.cos(theta),
-                         matrix[2][2] / math.cos(theta))
-        phi = math.atan2(matrix[1][0] / math.cos(theta),
-                         matrix[0][0] / math.cos(theta))
+        psi = math.atan2(matrix[2][1] / math.cos(theta), matrix[2][2] / math.cos(theta))
+        phi = math.atan2(matrix[1][0] / math.cos(theta), matrix[0][0] / math.cos(theta))
         return phi, theta, psi
     else:
         phi = 0
         if matrix[2][0] == 1:
-            theta = math.pi/2
+            theta = math.pi / 2
             psi = phi + math.atan2(matrix[0][1], matrix[0][2])
         else:
-            theta = -math.pi/2
+            theta = -math.pi / 2
             psi = -phi + math.atan2(-matrix[0][1], -matrix[0][2])
         return phi, theta, psi
 
@@ -276,12 +274,15 @@ def _compute_su2_from_euler_angles(angles: Tuple[float, float, float]) -> np.nda
         The SU(2)-matrix corresponding to the Euler angles in angles.
     """
     phi, theta, psi = angles
-    uz_phi = np.array([[np.exp(-0.5j * phi), 0],
-                       [0, np.exp(0.5j * phi)]], dtype=complex)
-    uy_theta = np.array([[math.cos(theta / 2), math.sin(theta / 2)],
-                         [-math.sin(theta / 2), math.cos(theta / 2)]], dtype=complex)
-    ux_psi = np.array([[math.cos(psi / 2), math.sin(psi / 2) * 1j],
-                       [math.sin(psi / 2) * 1j, math.cos(psi / 2)]], dtype=complex)
+    uz_phi = np.array([[np.exp(-0.5j * phi), 0], [0, np.exp(0.5j * phi)]], dtype=complex)
+    uy_theta = np.array(
+        [[math.cos(theta / 2), math.sin(theta / 2)], [-math.sin(theta / 2), math.cos(theta / 2)]],
+        dtype=complex,
+    )
+    ux_psi = np.array(
+        [[math.cos(psi / 2), math.sin(psi / 2) * 1j], [math.sin(psi / 2) * 1j, math.cos(psi / 2)]],
+        dtype=complex,
+    )
     return np.dot(uz_phi, np.dot(uy_theta, ux_psi))
 
 
@@ -304,11 +305,14 @@ def _convert_su2_to_so3(matrix: np.ndarray) -> np.ndarray:
     b = np.imag(matrix[0][0])
     c = -np.real(matrix[0][1])
     d = -np.imag(matrix[0][1])
-    rotation = np.array([
-        [a ** 2 - b ** 2 - c ** 2 + d ** 2, 2 * a * b + 2 * c * d, -2 * a * c + 2 * b * d],
-        [-2 * a * b + 2 * c * d, a ** 2 - b ** 2 + c ** 2 - d ** 2, 2 * a * d + 2 * b * c],
-        [2 * a * c + 2 * b * d, 2 * b * c - 2 * a * d, a ** 2 + b ** 2 - c ** 2 - d ** 2]
-        ], dtype=float)
+    rotation = np.array(
+        [
+            [a ** 2 - b ** 2 - c ** 2 + d ** 2, 2 * a * b + 2 * c * d, -2 * a * c + 2 * b * d],
+            [-2 * a * b + 2 * c * d, a ** 2 - b ** 2 + c ** 2 - d ** 2, 2 * a * d + 2 * b * c],
+            [2 * a * c + 2 * b * d, 2 * b * c - 2 * a * d, a ** 2 + b ** 2 - c ** 2 - d ** 2],
+        ],
+        dtype=float,
+    )
     return rotation
 
 
@@ -331,7 +335,7 @@ def _solve_decomposition_angle(matrix: np.ndarray) -> float:
     _check_is_so3(matrix)
 
     trace = _compute_trace_so3(matrix)
-    angle = math.acos((1/2)*(trace-1))
+    angle = math.acos((1 / 2) * (trace - 1))
 
     def objective(phi):
         rhs = 2 * math.sin(phi / 2) ** 2
@@ -421,7 +425,8 @@ def _compute_commutator_so3(a: np.ndarray, b: np.ndarray) -> np.ndarray:
 
 
 def _compute_rotation_from_angle_and_axis(  # pylint: disable=invalid-name
-        angle: float, axis: np.ndarray) -> np.ndarray:
+    angle: float, axis: np.ndarray
+) -> np.ndarray:
     """Computes the SO(3)-matrix corresponding to the rotation of ``angle`` about ``axis``.
 
     Args:
@@ -435,10 +440,10 @@ def _compute_rotation_from_angle_and_axis(  # pylint: disable=invalid-name
         ValueError: if ``axis`` is not a 3-dim unit vector.
     """
     if axis.shape != (3,):
-        raise ValueError(f'Axis must be a 1d array of length 3, but has shape {axis.shape}.')
+        raise ValueError(f"Axis must be a 1d array of length 3, but has shape {axis.shape}.")
 
     if abs(np.linalg.norm(axis) - 1.0) > 1e-4:
-        raise ValueError(f'Axis must have a norm of 1, but has {np.linalg.norm(axis)}.')
+        raise ValueError(f"Axis must have a norm of 1, but has {np.linalg.norm(axis)}.")
 
     res = math.cos(angle) * np.identity(3) + math.sin(angle) * _cross_product_matrix(axis)
     res += (1 - math.cos(angle)) * np.outer(axis, axis)
@@ -491,23 +496,24 @@ def _convert_so3_to_su2(matrix: np.ndarray) -> np.ndarray:
 def _check_is_su2(matrix: np.ndarray) -> None:
     """Check whether ``matrix`` is SU(2), otherwise raise an error."""
     if matrix.shape != (2, 2):
-        raise ValueError(f'Matrix must have shape (2, 2) but has {matrix.shape}.')
+        raise ValueError(f"Matrix must have shape (2, 2) but has {matrix.shape}.")
 
     if abs(np.linalg.det(matrix) - 1) > 1e-4:
-        raise ValueError(f'Determinant of matrix must be 1, but is {np.linalg.det(matrix)}.')
+        raise ValueError(f"Determinant of matrix must be 1, but is {np.linalg.det(matrix)}.")
 
 
 def _check_is_so3(matrix: np.ndarray) -> None:
     """Check whether ``matrix`` is SO(3), otherwise raise an error."""
     if matrix.shape != (3, 3):
-        raise ValueError(f'Matrix must have shape (3, 3) but has {matrix.shape}.')
+        raise ValueError(f"Matrix must have shape (3, 3) but has {matrix.shape}.")
 
     if abs(np.linalg.det(matrix) - 1) > 1e-4:
-        raise ValueError(f'Determinant of matrix must be 1, but is {np.linalg.det(matrix)}.')
+        raise ValueError(f"Determinant of matrix must be 1, but is {np.linalg.det(matrix)}.")
 
 
-def commutator_decompose(u_so3: np.ndarray, check_input: bool = True
-                         ) -> Tuple[GateSequence, GateSequence]:
+def commutator_decompose(
+    u_so3: np.ndarray, check_input: bool = True
+) -> Tuple[GateSequence, GateSequence]:
     r"""Decompose an :math:`SO(3)`-matrix, :math:`U` as a balanced commutator.
 
     This function finds two :math:`SO(3)` matrices :math:`V, W` such that the input matrix
@@ -539,16 +545,18 @@ def commutator_decompose(u_so3: np.ndarray, check_input: bool = True
     if check_input:
         # assert that the input matrix is really SO(3)
         if u_so3.shape != (3, 3):
-            raise ValueError('Input matrix has wrong shape', u_so3.shape)
+            raise ValueError("Input matrix has wrong shape", u_so3.shape)
 
         if abs(np.linalg.det(u_so3) - 1) > 1e-6:
-            raise ValueError('Determinant of input is not 1 (up to tolerance of 1e-6), but',
-                             np.linalg.det(u_so3))
+            raise ValueError(
+                "Determinant of input is not 1 (up to tolerance of 1e-6), but", np.linalg.det(u_so3)
+            )
 
         identity = np.identity(3)
-        if not (np.allclose(u_so3.dot(u_so3.T), identity) and
-                np.allclose(u_so3.T.dot(u_so3), identity)):
-            raise ValueError('Input matrix is not orthogonal.')
+        if not (
+            np.allclose(u_so3.dot(u_so3.T), identity) and np.allclose(u_so3.T.dot(u_so3), identity)
+        ):
+            raise ValueError("Input matrix is not orthogonal.")
 
     angle = _solve_decomposition_angle(u_so3)
 

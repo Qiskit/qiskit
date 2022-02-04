@@ -37,21 +37,21 @@ def _trace_distance(circuit1, circuit2):
 
 
 def _generate_x_rotation(angle: float) -> np.ndarray:
-    return np.array([[1, 0, 0],
-                     [0, math.cos(angle), -math.sin(angle)],
-                     [0, math.sin(angle), math.cos(angle)]])
+    return np.array(
+        [[1, 0, 0], [0, math.cos(angle), -math.sin(angle)], [0, math.sin(angle), math.cos(angle)]]
+    )
 
 
 def _generate_y_rotation(angle: float) -> np.ndarray:
-    return np.array([[math.cos(angle), 0, math.sin(angle)],
-                     [0, 1, 0],
-                     [-math.sin(angle), 0, math.cos(angle)]])
+    return np.array(
+        [[math.cos(angle), 0, math.sin(angle)], [0, 1, 0], [-math.sin(angle), 0, math.cos(angle)]]
+    )
 
 
 def _generate_z_rotation(angle: float) -> np.ndarray:
-    return np.array([[math.cos(angle), -math.sin(angle), 0],
-                     [math.sin(angle), math.cos(angle), 0],
-                     [0, 0, 1]])
+    return np.array(
+        [[math.cos(angle), -math.sin(angle), 0], [math.sin(angle), math.cos(angle), 0], [0, 0, 1]]
+    )
 
 
 def is_so3_matrix(array: np.ndarray) -> bool:
@@ -59,7 +59,7 @@ def is_so3_matrix(array: np.ndarray) -> bool:
     if array.shape != (3, 3):
         return False
 
-    if abs(np.linalg.det(array)-1.0) > 1e-10:
+    if abs(np.linalg.det(array) - 1.0) > 1e-10:
         return False
 
     if False in np.isreal(array):
@@ -111,7 +111,7 @@ class TestSolovayKitaev(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.rx(0.8, 0)
 
-        basis_gates = ['h', 't', 's']
+        basis_gates = ["h", "t", "s"]
         synth = SolovayKitaevDecomposition(2, basis_gates, 3)
 
         dag = circuit_to_dag(circuit)
@@ -127,16 +127,16 @@ class TestSolovayKitaev(QiskitTestCase):
     def test_approximation_on_qft(self):
         """Test the Solovay-Kitaev decomposition on the QFT circuit."""
         qft = QFT(3)
-        transpiled = transpile(qft, basis_gates=['u', 'cx'], optimization_level=1)
+        transpiled = transpile(qft, basis_gates=["u", "cx"], optimization_level=1)
 
         skd = SolovayKitaevDecomposition(1)
 
-        with self.subTest('1 recursion'):
+        with self.subTest("1 recursion"):
             discretized = skd(transpiled)
             self.assertLess(_trace_distance(transpiled, discretized), 15)
 
         skd.recursion_degree = 2
-        with self.subTest('2 recursions'):
+        with self.subTest("2 recursions"):
             discretized = skd(transpiled)
             self.assertLess(_trace_distance(transpiled, discretized), 7)
 
@@ -162,16 +162,16 @@ class TestGateSequence(QiskitTestCase):
         seq3.global_phase = 0.12
         seq4 = GateSequence([IGate(), HGate()])
 
-        with self.subTest('equal'):
+        with self.subTest("equal"):
             self.assertEqual(base, seq1)
 
-        with self.subTest('same product, but different repr (-> false)'):
+        with self.subTest("same product, but different repr (-> false)"):
             self.assertNotEqual(base, seq2)
 
-        with self.subTest('differing global phase (-> false)'):
+        with self.subTest("differing global phase (-> false)"):
             self.assertNotEqual(base, seq3)
 
-        with self.subTest('same num gates, but different gates (-> false)'):
+        with self.subTest("same num gates, but different gates (-> false)"):
             self.assertNotEqual(base, seq4)
 
     def test_to_circuit(self):
@@ -234,9 +234,7 @@ class TestGateSequence(QiskitTestCase):
 
     def test_from_so3_matrix(self):
         """Test from_matrix with an SO3 matrix."""
-        matrix = np.array([[0, 0, -1],
-                           [0, -1, 0],
-                           [-1, 0, 0]])
+        matrix = np.array([[0, 0, -1], [0, -1, 0], [-1, 0, 0]])
         seq = GateSequence.from_matrix(matrix)
 
         ref = GateSequence([HGate()])
@@ -247,12 +245,12 @@ class TestGateSequence(QiskitTestCase):
 
     def test_from_invalid_matrix(self):
         """Test from_matrix with invalid matrices."""
-        with self.subTest('2x2 but not SU2'):
+        with self.subTest("2x2 but not SU2"):
             matrix = np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
             with self.assertRaises(ValueError):
                 _ = GateSequence.from_matrix(matrix)
 
-        with self.subTest('not 2x2 or 3x3'):
+        with self.subTest("not 2x2 or 3x3"):
             with self.assertRaises(ValueError):
                 _ = GateSequence.from_matrix(np.array([[1]]))
 
@@ -280,7 +278,7 @@ class TestSolovayKitaevUtils(QiskitTestCase):
         _generate_y_rotation(0.2),
         _generate_z_rotation(0.3),
         np.dot(_generate_z_rotation(0.5), _generate_y_rotation(0.4)),
-        np.dot(_generate_y_rotation(0.5), _generate_x_rotation(0.4))
+        np.dot(_generate_y_rotation(0.5), _generate_x_rotation(0.4)),
     )
     def test_commutator_decompose_return_type(self, u_so3: np.ndarray):
         """Test that ``commutator_decompose`` returns two SO(3) gate sequences."""
@@ -295,7 +293,7 @@ class TestSolovayKitaevUtils(QiskitTestCase):
         _generate_y_rotation(0.2),
         _generate_z_rotation(0.3),
         np.dot(_generate_z_rotation(0.5), _generate_y_rotation(0.4)),
-        np.dot(_generate_y_rotation(0.5), _generate_x_rotation(0.4))
+        np.dot(_generate_y_rotation(0.5), _generate_x_rotation(0.4)),
     )
     def test_commutator_decompose_decomposes_correctly(self, u_so3):
         """Test that ``commutator_decompose`` exactly decomposes the input."""
@@ -306,5 +304,5 @@ class TestSolovayKitaevUtils(QiskitTestCase):
         self.assertTrue(np.allclose(actual_commutator, u_so3))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
