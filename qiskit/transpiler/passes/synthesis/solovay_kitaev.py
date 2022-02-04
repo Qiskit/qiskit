@@ -25,11 +25,11 @@ from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
 from qiskit.transpiler.passes.synthesis.solovay_kitaev_utils import (
     GateSequence,
-    commutator_decompose
+    commutator_decompose,
 )
 
 
-class SolovayKitaev():
+class SolovayKitaev:
     """The Solovay Kitaev discrete decomposition algorithm.
 
     See :class:`~qiskit.transpiler.passes.SolovayKitaevDecomposition` for more information.
@@ -37,21 +37,22 @@ class SolovayKitaev():
 
     # allowed (unparameterized) single qubit gates
     _1q_gates = {
-        'i': gates.IGate(),
-        'x': gates.XGate(),
-        'y': gates.YGate(),
-        'z': gates.ZGate(),
-        'h': gates.HGate(),
-        't': gates.TGate(),
-        'tdg': gates.TdgGate(),
-        's': gates.SGate(),
-        'sdg': gates.SdgGate(),
-        'sx': gates.SXGate(),
-        'sxdg': gates.SXdgGate()
+        "i": gates.IGate(),
+        "x": gates.XGate(),
+        "y": gates.YGate(),
+        "z": gates.ZGate(),
+        "h": gates.HGate(),
+        "t": gates.TGate(),
+        "tdg": gates.TdgGate(),
+        "s": gates.SGate(),
+        "sdg": gates.SdgGate(),
+        "sx": gates.SXGate(),
+        "sxdg": gates.SXdgGate(),
     }
 
-    def __init__(self, basis_gates: Optional[List[Union[str, Gate]]] = None,
-                 depth: Optional[int] = None) -> None:
+    def __init__(
+        self, basis_gates: Optional[List[Union[str, Gate]]] = None, depth: Optional[int] = None
+    ) -> None:
         """
 
         .. note::
@@ -85,7 +86,7 @@ class SolovayKitaev():
         matrices = data[1:]
 
         if len(gatestrings) != len(matrices):
-            raise ValueError('Mismatching number of gates and matrices.')
+            raise ValueError("Mismatching number of gates and matrices.")
 
         sequences = []
         for i, gatestring in enumerate(gatestrings):
@@ -97,9 +98,9 @@ class SolovayKitaev():
         self._basic_approximations = sequences
 
     @staticmethod
-    def generate_basic_approximations(basis_gates: List[Union[str, Gate]], depth: int,
-                                      filename: Optional[str] = None
-                                      ) -> Optional[List[GateSequence]]:
+    def generate_basic_approximations(
+        basis_gates: List[Union[str, Gate]], depth: int, filename: Optional[str] = None
+    ) -> Optional[List[GateSequence]]:
         """Generates a list of ``GateSequence``s with the gates in ``basic_gates``.
 
         Args:
@@ -118,13 +119,12 @@ class SolovayKitaev():
                 if gate in SolovayKitaev._1q_gates.keys():
                     basis_gates[i] = SolovayKitaev._1q_gates[gate]
                 else:
-                    raise ValueError(f'Invalid gate identifier: {gate}')
+                    raise ValueError(f"Invalid gate identifier: {gate}")
 
         # get all products from all depths
         products = []
         for reps in range(1, depth + 1):
-            products += list(list(comb)
-                             for comb in itertools.product(*[basis_gates] * reps))
+            products += list(list(comb) for comb in itertools.product(*[basis_gates] * reps))
 
         sequences = []
         for item in products:
@@ -139,7 +139,7 @@ class SolovayKitaev():
             matrices = []
             for sequence in sequences:
                 matrices.append(sequence.product)
-                gatestrings.append(' '.join([gate.name for gate in sequence.gates]))
+                gatestrings.append(" ".join([gate.name for gate in sequence.gates]))
 
             data = np.array([np.array(gatestrings)] + [np.array(matrix) for matrix in matrices])
             np.save(filename, data)
@@ -189,8 +189,7 @@ class SolovayKitaev():
             ValueError: if ``u`` does not represent an SO(3)-matrix.
         """
         if sequence.product.shape != (3, 3):
-            raise ValueError(
-                'Shape of U must be (3, 3) but is', sequence.shape)
+            raise ValueError("Shape of U must be (3, 3) but is", sequence.shape)
 
         if n == 0:
             return self.find_basic_approximation(sequence)
@@ -212,6 +211,7 @@ class SolovayKitaev():
         Returns:
             Gate in basic approximations that is closest to ``sequence``.
         """
+
         def key(x):
             return np.linalg.norm(np.subtract(x.product, sequence.product))
 
@@ -292,9 +292,12 @@ class SolovayKitaevDecomposition(TransformationPass):
 
     """
 
-    def __init__(self, recursion_degree: int = 3,
-                 basis_gates: Optional[List[Union[str, Gate]]] = None,
-                 depth: Optional[int] = None) -> None:
+    def __init__(
+        self,
+        recursion_degree: int = 3,
+        basis_gates: Optional[List[Union[str, Gate]]] = None,
+        depth: Optional[int] = None,
+    ) -> None:
         """
 
         .. note::
@@ -318,12 +321,13 @@ class SolovayKitaevDecomposition(TransformationPass):
 
         # set default basic approximations
         dirname = os.path.dirname(os.path.abspath(__file__))
-        filename = 'depth10_t_h_tdg.npy'
+        filename = "depth10_t_h_tdg.npy"
         self._default_approximation_set = os.path.join(dirname, filename)
 
     @staticmethod
-    def generate_basic_approximations(basis_gates: List[Union[str, Gate]], depth: int,
-                                      filename: str) -> None:
+    def generate_basic_approximations(
+        basis_gates: List[Union[str, Gate]], depth: int, filename: str
+    ) -> None:
         """Generate and save the basic approximations.
 
         Args:
@@ -353,10 +357,7 @@ class SolovayKitaevDecomposition(TransformationPass):
         if self._sk._basic_approximations is None:
             self.load_basic_approximations(self._default_approximation_set)
 
-        for node in dag.nodes():
-            if node.type != 'op':
-                continue  # skip all nodes that do not represent operations
-
+        for node in dag.op_nodes():
             if not node.op.num_qubits == 1:
                 continue  # ignore all non-single qubit gates
 
@@ -374,6 +375,7 @@ class SolovayKitaevDecomposition(TransformationPass):
 
 def _check_candidate(candidate: GateSequence, sequences: List[GateSequence]) -> bool:
     from qiskit.quantum_info.operators.predicates import matrix_equal
+
     # check if a matrix representation already exists
     for existing in sequences:
         # eliminate global phase
