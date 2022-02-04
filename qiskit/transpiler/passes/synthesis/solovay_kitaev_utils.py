@@ -307,9 +307,9 @@ def _convert_su2_to_so3(matrix: np.ndarray) -> np.ndarray:
     d = -np.imag(matrix[0][1])
     rotation = np.array(
         [
-            [a ** 2 - b ** 2 - c ** 2 + d ** 2, 2 * a * b + 2 * c * d, -2 * a * c + 2 * b * d],
-            [-2 * a * b + 2 * c * d, a ** 2 - b ** 2 + c ** 2 - d ** 2, 2 * a * d + 2 * b * c],
-            [2 * a * c + 2 * b * d, 2 * b * c - 2 * a * d, a ** 2 + b ** 2 - c ** 2 - d ** 2],
+            [a**2 - b**2 - c**2 + d**2, 2 * a * b + 2 * c * d, -2 * a * c + 2 * b * d],
+            [-2 * a * b + 2 * c * d, a**2 - b**2 + c**2 - d**2, 2 * a * d + 2 * b * c],
+            [2 * a * c + 2 * b * d, 2 * b * c - 2 * a * d, a**2 + b**2 - c**2 - d**2],
         ],
         dtype=float,
     )
