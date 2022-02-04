@@ -404,9 +404,12 @@ def initialize(self, params, qubits=None):
             circuit.draw()
 
         output:
-             ┌──────────────────────────────┐
-        q_0: ┤ initialize(0.70711,-0.70711) ├
-             └──────────────────────────────┘
+
+        .. parsed-literal::
+
+                 ┌──────────────────────────────┐
+            q_0: ┤ initialize(0.70711,-0.70711) ├
+                 └──────────────────────────────┘
 
 
         Initialize from a string two qubits in the state `|10>`.
@@ -424,12 +427,14 @@ def initialize(self, params, qubits=None):
             circuit.draw()
 
         output:
-             ┌──────────────────┐
-        q_0: ┤0                 ├
-             │  initialize(0,1) │
-        q_1: ┤1                 ├
-             └──────────────────┘
 
+        .. parsed-literal::
+
+                 ┌──────────────────┐
+            q_0: ┤0                 ├
+                 │  initialize(0,1) │
+            q_1: ┤1                 ├
+                 └──────────────────┘
 
         Initialize two qubits from an array of complex amplitudes
         .. jupyter-execute::
@@ -442,11 +447,14 @@ def initialize(self, params, qubits=None):
             circuit.draw()
 
         output:
-             ┌────────────────────────────────────┐
-        q_0: ┤0                                   ├
-             │  initialize(0,0.70711,-0.70711j,0) │
-        q_1: ┤1                                   ├
-             └────────────────────────────────────┘
+
+        .. parsed-literal::
+
+                 ┌────────────────────────────────────┐
+            q_0: ┤0                                   ├
+                 │  initialize(0,0.70711,-0.70711j,0) │
+            q_1: ┤1                                   ├
+                 └────────────────────────────────────┘
     """
     if qubits is None:
         qubits = self.qubits
