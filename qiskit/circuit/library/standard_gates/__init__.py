@@ -69,7 +69,6 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
    ZGate
 
 """
-
 from .h import HGate, CHGate
 from .i import IGate
 from .p import PhaseGate, CPhaseGate, MCPhaseGate
@@ -98,5 +97,6 @@ from .x import XGate, CXGate, CCXGate, C3XGate, C3SXGate, C4XGate, RCCXGate, RC3
 from .x import MCXGate, MCXGrayCode, MCXRecursive, MCXVChain
 from .y import YGate, CYGate
 from .z import ZGate, CZGate
+
 
 from .multi_control_rotation_gates import mcrx, mcry, mcrz

@@ -1,0 +1,12 @@
+---
+features:
+    - |
+     A new transpiler pass : class: `qiskit.transpiler.passes.optimization.swap-cx-swap_to_bridge.py`
+     to convert SWAP-CX-SWAP subcircuit to BridgeGate.
+     This runs post-routing to find instances where a routing pass inserted a SWAP-CX-SWAP and replaces it
+     with a bridge gate. It allows for all non-bridge aware routing passes to take advantage of the bridge gate,
+     without requiring them to be updated individually.
+
+issues:
+    - |
+     The current in-tree routing passes are not aware of the bridge gate

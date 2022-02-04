@@ -12,7 +12,6 @@
 
 """Standard gates."""
 
-
 import warnings
 from qiskit.qasm import pi
 from qiskit.circuit import EquivalenceLibrary, Parameter, QuantumCircuit, QuantumRegister
@@ -65,9 +64,7 @@ from . import (
     CZGate,
 )
 
-
 _sel = StandardEquivalenceLibrary = EquivalenceLibrary()
-
 
 # Import existing gate definitions
 
@@ -234,7 +231,6 @@ for inst, qargs, cargs in [
 ]:
     def_rzx.append(inst, qargs, cargs)
 _sel.add_equivalence(RZXGate(theta), def_rzx)
-
 
 # RYGate
 
@@ -857,7 +853,6 @@ y_to_ry = QuantumCircuit(q)
 y_to_ry.append(RYGate(theta=pi), [q[0]])
 y_to_ry.global_phase = pi / 2
 _sel.add_equivalence(YGate(), y_to_ry)
-
 
 # HGate, RXGate(pi).RYGate(pi/2) equivalence
 

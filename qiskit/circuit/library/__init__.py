@@ -99,6 +99,7 @@ Generalized Gates
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
+   BridgeGate
    Diagonal
    MCMT
    MCMTVChain
