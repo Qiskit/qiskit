@@ -119,6 +119,7 @@ class FakeBackend(BackendV1):
         """Main job in simulator"""
         circuits = run_input
         pulse_job = None
+        options_copy = dict(self.options.__dict__)
         if isinstance(circuits, (pulse.Schedule, pulse.ScheduleBlock)):
             pulse_job = True
         elif isinstance(circuits, circuit.QuantumCircuit):
@@ -140,9 +141,11 @@ class FakeBackend(BackendV1):
 
                 system_model = PulseSystemModel.from_backend(self)
                 sim = aer.Aer.get_backend("pulse_simulator")
+                sim.set_options(**options_copy)
                 job = sim.run(circuits, system_model=system_model, **kwargs)
             else:
                 sim = aer.Aer.get_backend("qasm_simulator")
+                sim.set_options(**options_copy)
                 if self.properties():
                     from qiskit.providers.aer.noise import NoiseModel
 
@@ -155,6 +158,7 @@ class FakeBackend(BackendV1):
                 raise QiskitError("Unable to run pulse schedules without qiskit-aer installed")
             warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
             sim = basicaer.BasicAer.get_backend("qasm_simulator")
+            sim.set_options(**options_copy)
             job = sim.run(circuits, **kwargs)
         return job
 
