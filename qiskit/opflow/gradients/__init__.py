@@ -12,7 +12,7 @@
 
 r"""
 Gradients (:mod:`qiskit.opflow.gradients`)
-==================================================
+==========================================
 
 Given an operator that represents either a quantum state resp. an expectation value, the gradient
 framework enables the evaluation of gradients, natural gradients, Hessians, as well as the Quantum
@@ -127,11 +127,11 @@ callable and are thus compatible with the optimizers.
 .. currentmodule:: qiskit.opflow.gradients
 
 Base Classes
-============
+------------
 
 .. autosummary::
    :toctree: ../stubs/
-   :nosignatures:
+   :template: autosummary/class_no_inherited_members.rst
 
    DerivativeBase
    GradientBase
@@ -139,21 +139,21 @@ Base Classes
    QFIBase
 
 Converters
-==========
+----------
 
 .. autosummary::
    :toctree: ../stubs/
-   :nosignatures:
+   :template: autosummary/class_no_inherited_members.rst
 
    CircuitGradient
    CircuitQFI
 
 Derivatives
-===========
+-----------
 
 .. autosummary::
    :toctree: ../stubs/
-   :nosignatures:
+   :template: autosummary/class_no_inherited_members.rst
 
    Gradient
    Hessian
@@ -173,13 +173,15 @@ from .hessian import Hessian
 from .qfi_base import QFIBase
 from .qfi import QFI
 
-__all__ = ['DerivativeBase',
-           'CircuitGradient',
-           'GradientBase',
-           'Gradient',
-           'NaturalGradient',
-           'HessianBase',
-           'Hessian',
-           'QFIBase',
-           'QFI',
-           'CircuitQFI']
+__all__ = [
+    "DerivativeBase",
+    "CircuitGradient",
+    "GradientBase",
+    "Gradient",
+    "NaturalGradient",
+    "HessianBase",
+    "Hessian",
+    "QFIBase",
+    "QFI",
+    "CircuitQFI",
+]

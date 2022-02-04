@@ -1,0 +1,24 @@
+---
+fixes:
+  - |
+    Fixed the :mod:`~qiskit.circuit.qpy_serialization` support for serializing
+    a :class:`~qiskit.circuit.library.PauliEvolutionGate` object. Previously,
+    the :class:`~qiskit.circuit.library.PauliEvolutionGate` was treated as
+    a custom gate for serialization and would be deserialized as a
+    :class:`~qiskit.circuit.Gate` object that had the same definition and
+    name as the original :class:`~qiskit.circuit.library.PauliEvolutionGate`.
+    However, this would lose the original state from the
+    :class:`~qiskit.circuit.library.PauliEvolutionGate`. This has been fixed
+    so that starting in this release a
+    :class:`~qiskit.circuit.library.PauliEvolutionGate` in the circuit will
+    be preserved 1:1 across QPY serialization now. The only limitation with
+    this is that it does not support custom
+    :class:`~qiskit.synthesis.EvolutionSynthesis` classes. Only the classes
+    available from :mod:`qiskit.synthesis` can be used with a
+    :class:`~qiskit.circuit.library.PauliEvolutionGate` for qpy serialization.
+
+    To fix this issue a new QPY format version, :ref:`qpy_version_3`, was required.
+    This new format version includes a representation of the
+    :class:`~qiskit.circuit.library.PauliEvolutionGate` class which is
+    described in the :mod:`~qiskit.circuit.qpy_serialization` documentation at
+    :ref:`pauli_evo_qpy`.

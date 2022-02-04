@@ -57,9 +57,13 @@ class MaximalMatches:
         Method that extracts and stores maximal matches in decreasing length order.
         """
 
-        self.max_match_list = [Match(sorted(self.template_matches[0].match),
-                                     self.template_matches[0].qubit,
-                                     self.template_matches[0].clbit)]
+        self.max_match_list = [
+            Match(
+                sorted(self.template_matches[0].match),
+                self.template_matches[0].qubit,
+                self.template_matches[0].clbit,
+            )
+        ]
 
         for matches in self.template_matches[1::]:
             present = False
@@ -68,6 +72,6 @@ class MaximalMatches:
                     if elem in max_match.match and len(matches.match) <= len(max_match.match):
                         present = True
             if not present:
-                self.max_match_list.append(Match(sorted(matches.match),
-                                                 matches.qubit,
-                                                 matches.clbit))
+                self.max_match_list.append(
+                    Match(sorted(matches.match), matches.qubit, matches.clbit)
+                )

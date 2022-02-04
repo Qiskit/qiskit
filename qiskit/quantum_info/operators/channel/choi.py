@@ -90,7 +90,7 @@ class Choi(QuantumChannel):
             # Determine input and output dimensions
             dim_l, dim_r = choi_mat.shape
             if dim_l != dim_r:
-                raise QiskitError('Invalid Choi-matrix input.')
+                raise QiskitError("Invalid Choi-matrix input.")
             if input_dims:
                 input_dim = np.product(input_dims)
             if output_dims:
@@ -105,8 +105,9 @@ class Choi(QuantumChannel):
             # Check dimensions
             if input_dim * output_dim != dim_l:
                 raise QiskitError("Invalid shape for input Choi-matrix.")
-            op_shape = OpShape.auto(dims_l=output_dims, dims_r=input_dims,
-                                    shape=(output_dim, input_dim))
+            op_shape = OpShape.auto(
+                dims_l=output_dims, dims_r=input_dims, shape=(output_dim, input_dim)
+            )
         else:
             # Otherwise we initialize by conversion from another Qiskit
             # object into the QuantumChannel.
@@ -121,7 +122,7 @@ class Choi(QuantumChannel):
             op_shape = data._op_shape
             output_dim, input_dim = op_shape.shape
             # Now that the input is an operator we convert it to a Choi object
-            rep = getattr(data, '_channel_rep', 'Operator')
+            rep = getattr(data, "_channel_rep", "Operator")
             choi_mat = _to_choi(rep, data._data, input_dim, output_dim)
         super().__init__(choi_mat, op_shape=op_shape)
 
@@ -133,8 +134,7 @@ class Choi(QuantumChannel):
     @property
     def _bipartite_shape(self):
         """Return the shape for bipartite matrix"""
-        return (self._input_dim, self._output_dim, self._input_dim,
-                self._output_dim)
+        return (self._input_dim, self._output_dim, self._input_dim, self._output_dim)
 
     def _evolve(self, state, qargs=None):
         return SuperOp(self)._evolve(state, qargs)
@@ -161,10 +161,9 @@ class Choi(QuantumChannel):
 
     def compose(self, other, qargs=None, front=False):
         if qargs is None:
-            qargs = getattr(other, 'qargs', None)
+            qargs = getattr(other, "qargs", None)
         if qargs is not None:
-            return Choi(
-                SuperOp(self).compose(other, qargs=qargs, front=front))
+            return Choi(SuperOp(self).compose(other, qargs=qargs, front=front))
 
         if not isinstance(other, Choi):
             other = Choi(other)
@@ -179,8 +178,10 @@ class Choi(QuantumChannel):
             second = np.reshape(other._data, other._bipartite_shape)
 
         # Contract Choi matrices for composition
-        data = np.reshape(np.einsum('iAjB,AkBl->ikjl', first, second),
-                          (input_dim * output_dim, input_dim * output_dim))
+        data = np.reshape(
+            np.einsum("iAjB,AkBl->ikjl", first, second),
+            (input_dim * output_dim, input_dim * output_dim),
+        )
         ret = Choi(data)
         ret._op_shape = new_shape
         return ret
@@ -199,9 +200,9 @@ class Choi(QuantumChannel):
     def _tensor(cls, a, b):
         ret = copy.copy(a)
         ret._op_shape = a._op_shape.tensor(b._op_shape)
-        ret._data = _bipartite_tensor(a._data, b.data,
-                                      shape1=a._bipartite_shape,
-                                      shape2=b._bipartite_shape)
+        ret._data = _bipartite_tensor(
+            a._data, b.data, shape1=a._bipartite_shape, shape2=b._bipartite_shape
+        )
         return ret
 
 

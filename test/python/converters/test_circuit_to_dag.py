@@ -42,7 +42,7 @@ class TestCircuitToDag(QiskitTestCase):
     def test_calibrations(self):
         """Test that calibrations are properly copied over."""
         circuit_in = QuantumCircuit(1)
-        circuit_in.add_calibration('h', [0], None)
+        circuit_in.add_calibration("h", [0], None)
         self.assertEqual(len(circuit_in.calibrations), 1)
 
         dag = circuit_to_dag(circuit_in)
@@ -52,5 +52,5 @@ class TestCircuitToDag(QiskitTestCase):
         self.assertEqual(len(circuit_out.calibrations), 1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main(verbosity=2)

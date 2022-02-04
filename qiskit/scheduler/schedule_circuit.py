@@ -21,9 +21,9 @@ from qiskit.scheduler.config import ScheduleConfig
 from qiskit.scheduler.methods import as_soon_as_possible, as_late_as_possible
 
 
-def schedule_circuit(circuit: QuantumCircuit,
-                     schedule_config: ScheduleConfig,
-                     method: Optional[str] = None) -> Schedule:
+def schedule_circuit(
+    circuit: QuantumCircuit, schedule_config: ScheduleConfig, method: Optional[str] = None
+) -> Schedule:
     """
     Basic scheduling pass from a circuit to a pulse Schedule, using the backend. If no method is
     specified, then a basic, as late as possible scheduling pass is performed, i.e. pulses are
@@ -32,7 +32,7 @@ def schedule_circuit(circuit: QuantumCircuit,
     Supported methods:
 
         * ``'as_soon_as_possible'``: Schedule pulses greedily, as early as possible on a
-          qubit resource. alias: ``'asap'``)
+          qubit resource. (alias: ``'asap'``)
         * ``'as_late_as_possible'``: Schedule pulses late-- keep qubits in the ground state when
           possible. (alias: ``'alap'``)
 
@@ -48,13 +48,13 @@ def schedule_circuit(circuit: QuantumCircuit,
         QiskitError: If method isn't recognized.
     """
     methods = {
-        'as_soon_as_possible': as_soon_as_possible,
-        'asap': as_soon_as_possible,
-        'as_late_as_possible': as_late_as_possible,
-        'alap': as_late_as_possible
+        "as_soon_as_possible": as_soon_as_possible,
+        "asap": as_soon_as_possible,
+        "as_late_as_possible": as_late_as_possible,
+        "alap": as_late_as_possible,
     }
     if method is None:
-        method = 'as_late_as_possible'
+        method = "as_late_as_possible"
     try:
         return methods[method](circuit, schedule_config)
     except KeyError as ex:

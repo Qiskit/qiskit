@@ -10,12 +10,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""This library provides Pulse users with convenient methods to build Pulse waveforms.
+r"""
+=====================================================
+Pulse Library (waveforms :mod:`qiskit.pulse.library`)
+=====================================================
 
-Arbitrary waveforms can be described with :py:class:`~qiskit.pulse.library.Waveform` s.
+This library provides Pulse users with convenient methods to build Pulse waveforms.
+
+Arbitrary waveforms can be described with :py:class:`~qiskit.pulse.library.Waveform`\ s.
 
 The :py:mod:`~qiskit.pulse.library.discrete` module will generate
-:py:class:`~qiskit.pulse.library.Waveform` s for common waveform envelopes.
+:py:class:`~qiskit.pulse.library.Waveform`\ s for common waveform envelopes.
 
 The parametric pulses, :py:class:`~qiskit.pulse.library.Gaussian`,
 :py:class:`~qiskit.pulse.library.GaussianSquare`, :py:class:`~qiskit.pulse.library.Drag` and
@@ -34,7 +39,6 @@ those pulses, which can greatly reduce the size of the job sent to the backend.
 
 """
 from .discrete import *
-from .parametric_pulses import (ParametricPulse, Gaussian, GaussianSquare,
-                                Drag, Constant)
+from .parametric_pulses import ParametricPulse, Gaussian, GaussianSquare, Drag, Constant
 from .pulse import Pulse
 from .waveform import Waveform

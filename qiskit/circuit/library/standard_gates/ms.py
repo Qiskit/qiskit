@@ -12,9 +12,11 @@
 
 """Global Mølmer–Sørensen gate."""
 
+from typing import Optional
 import warnings
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 class MSGate(Gate):
@@ -30,20 +32,25 @@ class MSGate(Gate):
     and is thus reduced to the RXXGate.
     """
 
-    def __init__(self, num_qubits, theta, label=None):
+    def __init__(self, num_qubits: int, theta: ParameterValueType, label: Optional[str] = None):
         """Create new MS gate."""
-        warnings.warn('The qiskit.circuit.library.standard_gates.ms import '
-                      'is deprecated as of 0.16.0. You should import MSGate '
-                      'using qiskit.circuit.library.generalized_gates '
-                      'instead.', DeprecationWarning, stacklevel=2)
-        super().__init__('ms', num_qubits, [theta], label=label)
+        warnings.warn(
+            "The qiskit.circuit.library.standard_gates.ms import "
+            "is deprecated as of 0.16.0. You should import MSGate "
+            "using qiskit.circuit.library.generalized_gates "
+            "instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__("ms", num_qubits, [theta], label=label)
 
     def _define(self):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .rxx import RXXGate
+
         theta = self.params[0]
-        q = QuantumRegister(self.num_qubits, 'q')
+        q = QuantumRegister(self.num_qubits, "q")
         qc = QuantumCircuit(q, name=self.name)
         for i in range(self.num_qubits):
             for j in range(i + 1, self.num_qubits):

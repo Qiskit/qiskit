@@ -30,10 +30,15 @@ class TestDiagonalGate(QiskitTestCase):
 
     def test_diag_gate(self):
         """Test diagonal gates."""
-        for phases in [[0, 0], [0, 0.8], [0, 0, 1, 1], [0, 1, 0.5, 1],
-                       (2 * np.pi * np.random.rand(2 ** 3)).tolist(),
-                       (2 * np.pi * np.random.rand(2 ** 4)).tolist(),
-                       (2 * np.pi * np.random.rand(2 ** 5)).tolist()]:
+        for phases in [
+            [0, 0],
+            [0, 0.8],
+            [0, 0, 1, 1],
+            [0, 1, 0.5, 1],
+            (2 * np.pi * np.random.rand(2 ** 3)).tolist(),
+            (2 * np.pi * np.random.rand(2 ** 4)).tolist(),
+            (2 * np.pi * np.random.rand(2 ** 5)).tolist(),
+        ]:
             with self.subTest(phases=phases):
                 diag = [np.exp(1j * ph) for ph in phases]
                 num_qubits = int(np.log2(len(diag)))
@@ -41,9 +46,9 @@ class TestDiagonalGate(QiskitTestCase):
                 qc = QuantumCircuit(q)
                 qc.diagonal(diag, q[0:num_qubits])
                 # Decompose the gate
-                qc = transpile(qc, basis_gates=['u1', 'u3', 'u2', 'cx', 'id'], optimization_level=0)
+                qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"], optimization_level=0)
                 # Simulate the decomposed gate
-                simulator = BasicAer.get_backend('unitary_simulator')
+                simulator = BasicAer.get_backend("unitary_simulator")
                 result = execute(qc, simulator).result()
                 unitary = result.get_unitary(qc)
                 unitary_desired = _get_diag_gate_matrix(diag)
@@ -54,5 +59,5 @@ def _get_diag_gate_matrix(diag):
     return np.diagflat(diag)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

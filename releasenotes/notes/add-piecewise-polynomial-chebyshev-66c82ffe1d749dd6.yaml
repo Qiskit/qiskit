@@ -1,6 +1,0 @@
----
-features:
-  - |
-    For a given function :math:`f(x)` and degree :math:`d`, this class implements a piecewise
-    polynomial Chebyshev approximation on :math:`n` qubits to :math:`f(x)` on the given intervals.
-    All the polynomials in the approximation are of degree :math:`d`.

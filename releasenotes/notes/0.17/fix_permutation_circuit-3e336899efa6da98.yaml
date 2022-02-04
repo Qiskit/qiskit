@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue in the :class:`qiskit.circuit.library.Permutation` circuit
+    class where some permutations would not be properly generated. This issue
+    could also effect :class:`qiskit.circuit.library.QuantumVolume` if it were
+    called with `classical_permutation=False``.
+    Fixed `#5812 <https://github.com/Qiskit/qiskit-terra/issues/5812>`__

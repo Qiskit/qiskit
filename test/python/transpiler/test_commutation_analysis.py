@@ -31,7 +31,7 @@ class TestCommutationAnalysis(QiskitTestCase):
         self.pset = self.pass_.property_set = PropertySet()
 
     def assertCommutationSet(self, result, expected):
-        """ Compares the result of propertyset["commutation_set"] with a dictionary of the form
+        """Compares the result of propertyset["commutation_set"] with a dictionary of the form
         {'q[0]': [ [node_id, ...], [node_id, ...] ]}
         """
         result_to_compare = {}
@@ -40,8 +40,7 @@ class TestCommutationAnalysis(QiskitTestCase):
                 continue
             result_to_compare[qbit] = []
             for commutation_set in sets:
-                result_to_compare[qbit].append(
-                    sorted([node._node_id for node in commutation_set]))
+                result_to_compare[qbit].append(sorted(node._node_id for node in commutation_set))
 
         for qbit, sets in expected.items():
             for commutation_set in sets:
@@ -51,14 +50,14 @@ class TestCommutationAnalysis(QiskitTestCase):
 
     def test_commutation_set_property_is_created(self):
         """Test property is created"""
-        qr = QuantumRegister(3, 'qr')
+        qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
         circuit.h(qr)
         dag = circuit_to_dag(circuit)
 
-        self.assertIsNone(self.pset['commutation_set'])
+        self.assertIsNone(self.pset["commutation_set"])
         self.pass_.run(dag)
-        self.assertIsNotNone(self.pset['commutation_set'])
+        self.assertIsNotNone(self.pset["commutation_set"])
 
     def test_all_gates(self):
         """Test all gates on 1 and 2 qubits
@@ -67,7 +66,7 @@ class TestCommutationAnalysis(QiskitTestCase):
                                                                        |   |   |
         qr1:----------------------------------------------------------(+)-(Y)--.--
         """
-        qr = QuantumRegister(2, 'qr')
+        qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
         circuit.x(qr[0])
@@ -85,18 +84,10 @@ class TestCommutationAnalysis(QiskitTestCase):
 
         self.pass_.run(dag)
 
-        expected = {qr[0]: [[0],
-                            [4],
-                            [5],
-                            [6],
-                            [7, 8, 9, 10],
-                            [11],
-                            [12],
-                            [13],
-                            [14],
-                            [15],
-                            [1]],
-                    qr[1]: [[2], [13], [14], [15], [3]]}
+        expected = {
+            qr[0]: [[0], [4], [5], [6], [7, 8, 9, 10], [11], [12], [13], [14], [15], [1]],
+            qr[1]: [[2], [13], [14], [15], [3]],
+        }
         self.assertCommutationSet(self.pset["commutation_set"], expected)
 
     def test_non_commutative_circuit(self):
@@ -108,7 +99,7 @@ class TestCommutationAnalysis(QiskitTestCase):
 
         qr2:---[H]---
         """
-        qr = QuantumRegister(3, 'qr')
+        qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
         circuit.h(qr)
         dag = circuit_to_dag(circuit)
@@ -127,7 +118,7 @@ class TestCommutationAnalysis(QiskitTestCase):
                         |
         qr2:---[H]-----(+)----
         """
-        qr = QuantumRegister(3, 'qr')
+        qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.h(qr[2])
@@ -136,9 +127,11 @@ class TestCommutationAnalysis(QiskitTestCase):
 
         self.pass_.run(dag)
 
-        expected = {qr[0]: [[0], [6], [1]],
-                    qr[1]: [[2], [6], [8], [3]],
-                    qr[2]: [[4], [7], [8], [5]]}
+        expected = {
+            qr[0]: [[0], [6], [1]],
+            qr[1]: [[2], [6], [8], [3]],
+            qr[2]: [[4], [7], [8], [5]],
+        }
         self.assertCommutationSet(self.pset["commutation_set"], expected)
 
     def test_commutative_circuit(self):
@@ -151,7 +144,7 @@ class TestCommutationAnalysis(QiskitTestCase):
         qr2:---[H]------.----
         """
 
-        qr = QuantumRegister(3, 'qr')
+        qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.h(qr[2])
@@ -160,9 +153,7 @@ class TestCommutationAnalysis(QiskitTestCase):
 
         self.pass_.run(dag)
 
-        expected = {qr[0]: [[0], [6], [1]],
-                    qr[1]: [[2], [6, 8], [3]],
-                    qr[2]: [[4], [7], [8], [5]]}
+        expected = {qr[0]: [[0], [6], [1]], qr[1]: [[2], [6, 8], [3]], qr[2]: [[4], [7], [8], [5]]}
         self.assertCommutationSet(self.pset["commutation_set"], expected)
 
     def test_commutative_circuit_2(self):
@@ -176,7 +167,7 @@ class TestCommutationAnalysis(QiskitTestCase):
         qr2:---[H]-----.----
         """
 
-        qr = QuantumRegister(3, 'qr')
+        qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.z(qr[0])
@@ -186,9 +177,11 @@ class TestCommutationAnalysis(QiskitTestCase):
 
         self.pass_.run(dag)
 
-        expected = {qr[0]: [[0], [6, 7], [1]],
-                    qr[1]: [[2], [6, 9], [3]],
-                    qr[2]: [[4], [8], [9], [5]]}
+        expected = {
+            qr[0]: [[0], [6, 7], [1]],
+            qr[1]: [[2], [6, 9], [3]],
+            qr[2]: [[4], [8], [9], [5]],
+        }
         self.assertCommutationSet(self.pset["commutation_set"], expected)
 
     def test_commutative_circuit_3(self):
@@ -200,7 +193,7 @@ class TestCommutationAnalysis(QiskitTestCase):
                        |            |
         qr2:---[H]-----.-----[x]---(+)-----
         """
-        qr = QuantumRegister(3, 'qr')
+        qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.h(qr[2])
@@ -214,9 +207,11 @@ class TestCommutationAnalysis(QiskitTestCase):
 
         self.pass_.run(dag)
 
-        expected = {qr[0]: [[0], [6, 8, 10, 12], [1]],
-                    qr[1]: [[2], [6, 9, 10], [13], [3]],
-                    qr[2]: [[4], [7], [9], [11, 13], [5]]}
+        expected = {
+            qr[0]: [[0], [6, 8, 10, 12], [1]],
+            qr[1]: [[2], [6, 9, 10], [13], [3]],
+            qr[2]: [[4], [7], [9], [11, 13], [5]],
+        }
         self.assertCommutationSet(self.pset["commutation_set"], expected)
 
     def test_jordan_wigner_type_circuit(self):
@@ -234,7 +229,7 @@ class TestCommutationAnalysis(QiskitTestCase):
                                         |             |
         qr5:---------------------------(+)----[z]----(+)---------------------------
         """
-        qr = QuantumRegister(6, 'qr')
+        qr = QuantumRegister(6, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[1], qr[2])
@@ -252,17 +247,19 @@ class TestCommutationAnalysis(QiskitTestCase):
 
         self.pass_.run(dag)
 
-        expected = {qr[0]: [[0], [12, 22], [1]],
-                    qr[1]: [[2], [12], [13, 21], [22], [3]],
-                    qr[2]: [[4], [13], [14, 20], [21], [5]],
-                    qr[3]: [[6], [14], [15, 19], [20], [7]],
-                    qr[4]: [[8], [15], [16, 18], [19], [9]],
-                    qr[5]: [[10], [16], [17], [18], [11]]}
+        expected = {
+            qr[0]: [[0], [12, 22], [1]],
+            qr[1]: [[2], [12], [13, 21], [22], [3]],
+            qr[2]: [[4], [13], [14, 20], [21], [5]],
+            qr[3]: [[6], [14], [15, 19], [20], [7]],
+            qr[4]: [[8], [15], [16, 18], [19], [9]],
+            qr[5]: [[10], [16], [17], [18], [11]],
+        }
         self.assertCommutationSet(self.pset["commutation_set"], expected)
 
     def test_all_commute_circuit(self):
         """Test circuit with that all commute"""
-        qr = QuantumRegister(5, 'qr')
+        qr = QuantumRegister(5, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[2], qr[1])
@@ -278,13 +275,15 @@ class TestCommutationAnalysis(QiskitTestCase):
 
         self.pass_.run(dag)
 
-        expected = {qr[0]: [[0], [10, 14, 16], [1]],
-                    qr[1]: [[2], [10, 11, 16, 17], [3]],
-                    qr[2]: [[4], [11, 13, 17, 19], [5]],
-                    qr[3]: [[6], [12, 13, 18, 19], [7]],
-                    qr[4]: [[8], [12, 15, 18], [9]]}
+        expected = {
+            qr[0]: [[0], [10, 14, 16], [1]],
+            qr[1]: [[2], [10, 11, 16, 17], [3]],
+            qr[2]: [[4], [11, 13, 17, 19], [5]],
+            qr[3]: [[6], [12, 13, 18, 19], [7]],
+            qr[4]: [[8], [12, 15, 18], [9]],
+        }
         self.assertCommutationSet(self.pset["commutation_set"], expected)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

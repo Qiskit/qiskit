@@ -23,37 +23,41 @@ from typing import Optional, Tuple
 import logging
 
 logger = logging.getLogger(__name__)
-ComplexColors = namedtuple('ComplexColors', ['real', 'imaginary'])
-SchedTableColors = namedtuple('SchedTableColors', ['time', 'channel', 'event'])
+ComplexColors = namedtuple("ComplexColors", ["real", "imaginary"])
+SchedTableColors = namedtuple("SchedTableColors", ["time", "channel", "event"])
 
 
 class SchedStyle:
     """Style sheet for Qiskit-Pulse schedule drawer."""
-    def __init__(self, figsize: Optional[Tuple[float, float]] = (10.0, 12.0),
-                 fig_unit_h_table: float = 0.4,
-                 use_table: bool = True,
-                 table_columns: int = 2,
-                 table_font_size: int = 10,
-                 axis_font_size: int = 18,
-                 label_font_size: int = 10,
-                 icon_font_size: int = 18,
-                 title_font_size: Optional[int] = 25,
-                 label_ch_linestyle: str = '--',
-                 label_ch_color: str = '#222222',
-                 label_ch_alpha: float = 0.3,
-                 d_ch_color: ComplexColors = ('#648fff', '#002999'),
-                 u_ch_color: ComplexColors = ('#ffb000', '#994A00'),
-                 m_ch_color: ComplexColors = ('#dc267f', '#760019'),
-                 s_ch_color: str = '#7da781',
-                 s_ch_linestyle: str = '-',
-                 table_color: SchedTableColors = ('#e0e0e0', '#f6f6f6', '#f6f6f6'),
-                 bg_color: str = '#f2f3f4',
-                 num_points: int = 1000,
-                 dpi: Optional[int] = 150,
-                 remove_spacing: bool = True,
-                 max_table_ratio: float = 0.5,
-                 vertical_span: float = 0.2,
-                 axis_formatter: str = '%s'):
+
+    def __init__(
+        self,
+        figsize: Optional[Tuple[float, float]] = (10.0, 12.0),
+        fig_unit_h_table: float = 0.4,
+        use_table: bool = True,
+        table_columns: int = 2,
+        table_font_size: int = 10,
+        axis_font_size: int = 18,
+        label_font_size: int = 10,
+        icon_font_size: int = 18,
+        title_font_size: Optional[int] = 25,
+        label_ch_linestyle: str = "--",
+        label_ch_color: str = "#222222",
+        label_ch_alpha: float = 0.3,
+        d_ch_color: ComplexColors = ("#648fff", "#002999"),
+        u_ch_color: ComplexColors = ("#ffb000", "#994A00"),
+        m_ch_color: ComplexColors = ("#dc267f", "#760019"),
+        s_ch_color: str = "#7da781",
+        s_ch_linestyle: str = "-",
+        table_color: SchedTableColors = ("#e0e0e0", "#f6f6f6", "#f6f6f6"),
+        bg_color: str = "#f2f3f4",
+        num_points: int = 1000,
+        dpi: Optional[int] = 150,
+        remove_spacing: bool = True,
+        max_table_ratio: float = 0.5,
+        vertical_span: float = 0.2,
+        axis_formatter: str = "%s",
+    ):
         """Deprecated.
 
         Create new style sheet.
@@ -123,11 +127,13 @@ class SchedStyle:
             If you want to show more events, increase figure height or
             reduce size of line height and table font size.
         """
-        warnings.warn('The legacy pulse drawer is deprecated along with this stylesheet. '
-                      'Please use new drawer `qiskit.visualization.pulse_drawer_v2` '
-                      'with new stylesheet classes provided by `qiskit.visualization.pulse_v2`. '
-                      'You can choose one of `IQXStandard`, `IQXSimple`, `IQXDebugging`.',
-                      DeprecationWarning)
+        warnings.warn(
+            "The legacy pulse drawer is deprecated along with this stylesheet. "
+            "Please use new drawer `qiskit.visualization.pulse_drawer_v2` "
+            "with new stylesheet classes provided by `qiskit.visualization.pulse_v2`. "
+            "You can choose one of `IQXStandard`, `IQXSimple`, `IQXDebugging`.",
+            DeprecationWarning,
+        )
 
         self.figsize = figsize
         self.fig_unit_h_table = fig_unit_h_table
@@ -154,8 +160,9 @@ class SchedStyle:
         self.remove_spacing = remove_spacing
 
         if max_table_ratio < 0.0 or max_table_ratio > 1.0:
-            logger.warning('max_table_ratio of %.2f is not in range [0.0, 1.0], clamping...',
-                           max_table_ratio)
+            logger.warning(
+                "max_table_ratio of %.2f is not in range [0.0, 1.0], clamping...", max_table_ratio
+            )
 
         self.max_table_ratio = max(min(max_table_ratio, 0.0), 1.0)
         self.vertical_span = vertical_span
@@ -166,12 +173,16 @@ class PulseStyle:
     """Deprecated.
 
     Style sheet for Qiskit-Pulse sample pulse drawer."""
-    def __init__(self, figsize: Optional[Tuple[float, float]] = (7.0, 5.0),
-                 title_font_size: Optional[int] = 18,
-                 wave_color: ComplexColors = ('#ff0000', '#0000ff'),
-                 bg_color: str = '#f2f3f4',
-                 num_points: int = 1000,
-                 dpi: Optional[int] = None):
+
+    def __init__(
+        self,
+        figsize: Optional[Tuple[float, float]] = (7.0, 5.0),
+        title_font_size: Optional[int] = 18,
+        wave_color: ComplexColors = ("#ff0000", "#0000ff"),
+        bg_color: str = "#f2f3f4",
+        num_points: int = 1000,
+        dpi: Optional[int] = None,
+    ):
         """Create new style sheet.
 
         For any of the Optional fields, if that field is None then it will revert to its
@@ -196,11 +207,13 @@ class PulseStyle:
                 If the output is ``matplotlib``, the default
                 parameter is ``rcParams['figure.dpi']``.
         """
-        warnings.warn('The legacy pulse drawer is deprecated along with this stylesheet. '
-                      'Please use new drawer `qiskit.visualization.pulse_drawer_v2` '
-                      'with new stylesheet classes provided by `qiskit.visualization.pulse_v2`. '
-                      'You can choose one of `IQXStandard`, `IQXSimple`, `IQXDebugging`.',
-                      DeprecationWarning)
+        warnings.warn(
+            "The legacy pulse drawer is deprecated along with this stylesheet. "
+            "Please use new drawer `qiskit.visualization.pulse_drawer_v2` "
+            "with new stylesheet classes provided by `qiskit.visualization.pulse_v2`. "
+            "You can choose one of `IQXStandard`, `IQXSimple`, `IQXDebugging`.",
+            DeprecationWarning,
+        )
 
         self.figsize = figsize
         self.title_font_size = title_font_size

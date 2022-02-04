@@ -26,6 +26,7 @@ from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.measures import process_fidelity
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
+from qiskit.transpiler.passes import Collect1qRuns
 from qiskit.transpiler.passes import Collect2qBlocks
 
 
@@ -45,7 +46,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         dag = circuit_to_dag(qc)
 
         pass_ = ConsolidateBlocks(force_consolidate=True)
-        pass_.property_set['block_list'] = [list(dag.topological_op_nodes())]
+        pass_.property_set["block_list"] = [list(dag.topological_op_nodes())]
         new_dag = pass_.run(dag)
 
         unitary = Operator(qc)
@@ -61,7 +62,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         dag = circuit_to_dag(qc)
 
         pass_ = ConsolidateBlocks(force_consolidate=True)
-        pass_.property_set['block_list'] = [dag.op_nodes()]
+        pass_.property_set["block_list"] = [dag.op_nodes()]
         new_dag = pass_.run(dag)
 
         new_node = new_dag.op_nodes()[0]
@@ -72,12 +73,12 @@ class TestConsolidateBlocks(QiskitTestCase):
 
     def test_topological_order_preserved(self):
         """the original topological order of nodes is preserved
-                                                    ______
-         q0:--[p]-------.----      q0:-------------|      |--
-                        |                 ______   |  U2  |
-         q1:--[u2]--(+)-(+)--   =  q1:---|      |--|______|--
-                     |                   |  U1  |
-         q2:---------.-------      q2:---|______|------------
+                                                   ______
+        q0:--[p]-------.----      q0:-------------|      |--
+                       |                 ______   |  U2  |
+        q1:--[u2]--(+)-(+)--   =  q1:---|      |--|______|--
+                    |                   |  U1  |
+        q2:---------.-------      q2:---|______|------------
         """
         qr = QuantumRegister(3, "qr")
         qc = QuantumCircuit(qr)
@@ -91,10 +92,10 @@ class TestConsolidateBlocks(QiskitTestCase):
         topo_ops = list(dag.topological_op_nodes())
         block_1 = [topo_ops[1], topo_ops[2]]
         block_2 = [topo_ops[0], topo_ops[3]]
-        pass_.property_set['block_list'] = [block_1, block_2]
+        pass_.property_set["block_list"] = [block_1, block_2]
         new_dag = pass_.run(dag)
 
-        new_topo_ops = [i for i in new_dag.topological_op_nodes() if i.type == 'op']
+        new_topo_ops = list(new_dag.topological_op_nodes())
         self.assertEqual(len(new_topo_ops), 2)
         self.assertEqual(new_topo_ops[0].qargs, [qr[1], qr[2]])
         self.assertEqual(new_topo_ops[1].qargs, [qr[0], qr[1]])
@@ -110,7 +111,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         dag = circuit_to_dag(qc)
 
         pass_ = ConsolidateBlocks(force_consolidate=True)
-        pass_.property_set['block_list'] = [list(dag.topological_op_nodes())]
+        pass_.property_set["block_list"] = [list(dag.topological_op_nodes())]
         new_dag = pass_.run(dag)
 
         unitary = Operator(qc)
@@ -129,7 +130,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         dag = circuit_to_dag(qc)
 
         pass_ = ConsolidateBlocks(force_consolidate=True)
-        pass_.property_set['block_list'] = [list(dag.topological_op_nodes())]
+        pass_.property_set["block_list"] = [list(dag.topological_op_nodes())]
         new_dag = pass_.run(dag)
 
         unitary = Operator(qc)
@@ -148,12 +149,13 @@ class TestConsolidateBlocks(QiskitTestCase):
         dag = circuit_to_dag(qc)
 
         pass_ = ConsolidateBlocks(force_consolidate=True)
-        pass_.property_set['block_list'] = [list(dag.topological_op_nodes())]
+        pass_.property_set["block_list"] = [list(dag.topological_op_nodes())]
         new_dag = pass_.run(dag)
 
         original_unitary = UnitaryGate(Operator(qc))
 
         from qiskit.converters import dag_to_circuit
+
         new_unitary = UnitaryGate(Operator(dag_to_circuit(new_dag)))
 
         self.assertEqual(original_unitary, new_unitary)
@@ -280,6 +282,30 @@ class TestConsolidateBlocks(QiskitTestCase):
 
         self.assertEqual(qc, qc1)
 
+    def test_overlapping_block_and_run(self):
+        """Test that an overlapping block and run only consolidate once"""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.t(0)
+        qc.sdg(0)
+        qc.cx(0, 1)
+        qc.t(1)
+        qc.sdg(1)
+        qc.z(1)
+        qc.i(1)
+
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(Collect1qRuns())
+        pass_manager.append(ConsolidateBlocks(force_consolidate=True))
+        result = pass_manager.run(qc)
+        expected = Operator(qc)
+        # Assert output circuit is a single unitary gate equivalent to
+        # unitary of original circuit
+        self.assertEqual(len(result), 1)
+        self.assertIsInstance(result.data[0][0], UnitaryGate)
+        self.assertTrue(np.allclose(result.data[0][0].to_matrix(), expected))
+
     def test_classical_conditions_maintained(self):
         """Test that consolidate blocks doesn't drop the classical conditions
         This issue was raised in #2752
@@ -300,10 +326,22 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.h(0)
         dag = circuit_to_dag(qc)
-        consolidate_blocks_pass = ConsolidateBlocks(basis_gates=['u3'])
+        consolidate_blocks_pass = ConsolidateBlocks(basis_gates=["u3"])
         res = consolidate_blocks_pass.run(dag)
         self.assertEqual(res, dag)
 
+    def test_single_gate_block_outside_basis(self):
+        """Test that a single gate block outside the configured basis gets converted."""
+        qc = QuantumCircuit(2)
+        qc.swap(0, 1)
+        consolidate_block_pass = ConsolidateBlocks(basis_gates=["id", "cx", "rz", "sx", "x"])
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(consolidate_block_pass)
+        expected = QuantumCircuit(2)
+        expected.unitary(np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]]), [0, 1])
+        self.assertEqual(expected, pass_manager.run(qc))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

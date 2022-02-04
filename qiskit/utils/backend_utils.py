@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,7 +16,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-_UNSUPPORTED_BACKENDS = ['unitary_simulator', 'clifford_simulator']
+_UNSUPPORTED_BACKENDS = ["unitary_simulator", "clifford_simulator"]
 
 # pylint: disable=no-name-in-module, import-error, unused-import
 
@@ -34,12 +34,32 @@ class ProviderCheck:
 _PROVIDER_CHECK = ProviderCheck()
 
 
+def _get_backend_interface_version(backend):
+    """Get the backend version int."""
+    backend_interface_version = getattr(backend, "version", None)
+    # Handle deprecated BaseBackend based backends which have a version()
+    # method
+    if not isinstance(backend_interface_version, int):
+        backend_interface_version = 0
+    return backend_interface_version
+
+
+def _get_backend_provider(backend):
+    backend_interface_version = _get_backend_interface_version(backend)
+    if backend_interface_version > 1:
+        provider = backend.provider
+    else:
+        provider = backend.provider()
+    return provider
+
+
 def has_ibmq():
-    """ Check if IBMQ is installed """
+    """Check if IBMQ is installed"""
     if not _PROVIDER_CHECK.checked_ibmq:
         try:
             from qiskit.providers.ibmq import IBMQFactory
             from qiskit.providers.ibmq.accountprovider import AccountProvider
+
             _PROVIDER_CHECK.has_ibmq = True
         except Exception as ex:  # pylint: disable=broad-except
             _PROVIDER_CHECK.has_ibmq = False
@@ -51,10 +71,11 @@ def has_ibmq():
 
 
 def has_aer():
-    """ check if Aer is installed """
+    """check if Aer is installed"""
     if not _PROVIDER_CHECK.checked_aer:
         try:
             from qiskit.providers.aer import AerProvider
+
             _PROVIDER_CHECK.has_aer = True
         except Exception as ex:  # pylint: disable=broad-except
             _PROVIDER_CHECK.has_aer = False
@@ -75,7 +96,12 @@ def is_aer_provider(backend):
     """
     if has_aer():
         from qiskit.providers.aer import AerProvider
-        return isinstance(backend.provider(), AerProvider)
+
+        if isinstance(_get_backend_provider(backend), AerProvider):
+            return True
+        from qiskit.providers.aer.backends.aerbackend import AerBackend
+
+        return isinstance(backend, AerBackend)
 
     return False
 
@@ -90,7 +116,7 @@ def is_basicaer_provider(backend):
     """
     from qiskit.providers.basicaer import BasicAerProvider
 
-    return isinstance(backend.provider(), BasicAerProvider)
+    return isinstance(_get_backend_provider(backend), BasicAerProvider)
 
 
 def is_ibmq_provider(backend):
@@ -103,7 +129,8 @@ def is_ibmq_provider(backend):
     """
     if has_ibmq():
         from qiskit.providers.ibmq.accountprovider import AccountProvider
-        return isinstance(backend.provider(), AccountProvider)
+
+        return isinstance(_get_backend_provider(backend), AccountProvider)
 
     return False
 
@@ -129,7 +156,20 @@ def is_statevector_backend(backend):
     Returns:
         bool: True is statevector
     """
-    return backend.name().startswith('statevector') if backend is not None else False
+    if has_aer():
+        from qiskit.providers.aer.backends import AerSimulator, StatevectorSimulator
+
+        if isinstance(backend, StatevectorSimulator):
+            return True
+        if isinstance(backend, AerSimulator) and backend.name() == "aer_simulator_statevector":
+            return True
+    if backend is None:
+        return False
+    backend_interface_version = _get_backend_interface_version(backend)
+    if backend_interface_version <= 1:
+        return backend.name().startswith("statevector")
+    else:
+        return backend.name.startswith("statevector")
 
 
 def is_simulator_backend(backend):
@@ -141,7 +181,10 @@ def is_simulator_backend(backend):
     Returns:
         bool: True is a simulator
     """
-    return backend.configuration().simulator
+    backend_interface_version = _get_backend_interface_version(backend)
+    if backend_interface_version <= 1:
+        return backend.configuration().simulator
+    return False
 
 
 def is_local_backend(backend):
@@ -153,7 +196,10 @@ def is_local_backend(backend):
     Returns:
         bool: True is a local backend
     """
-    return backend.configuration().local
+    backend_interface_version = _get_backend_interface_version(backend)
+    if backend_interface_version <= 1:
+        return backend.configuration().local
+    return False
 
 
 def is_aer_qasm(backend):

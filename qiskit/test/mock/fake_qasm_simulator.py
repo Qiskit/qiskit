@@ -23,10 +23,10 @@ class FakeQasmSimulator(FakeBackend):
 
     def __init__(self):
         configuration = QasmBackendConfiguration(
-            backend_name='fake_qasm_simulator',
-            backend_version='0.0.0',
+            backend_name="fake_qasm_simulator",
+            backend_version="0.0.0",
             n_qubits=5,
-            basis_gates=['u1', 'u2', 'u3', 'cx', 'id', 'unitary'],
+            basis_gates=["u1", "u2", "u3", "cx", "id", "unitary"],
             coupling_map=None,
             simulator=True,
             local=True,
@@ -34,9 +34,11 @@ class FakeQasmSimulator(FakeBackend):
             open_pulse=False,
             memory=True,
             max_shots=65536,
-            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
+            gates=[GateConfig(name="TODO", parameters=[], qasm_def="TODO")],
             dt=1.3333,
-            dtm=10.5
+            dtm=10.5,
+            qubit_lo_range=[[4.95, 5.05], [4.95, 5.05], [4.95, 5.05], [4.95, 5.05], [4.95, 5.05]],
+            meas_lo_range=[[6.65, 6.75], [6.65, 6.75], [6.65, 6.75], [6.65, 6.75], [6.65, 6.75]],
         )
 
         super().__init__(configuration)

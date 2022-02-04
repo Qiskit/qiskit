@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,25 +16,27 @@ This module implements the abstract base class for algorithm results.
 
 from abc import ABC
 import inspect
-from collections import OrderedDict
 import pprint
 
 
 class AlgorithmResult(ABC):
-    """ Abstract Base Class for algorithm results."""
+    """Abstract Base Class for algorithm results."""
 
     def __str__(self) -> str:
-        result = OrderedDict()
+        result = {}
         for name, value in inspect.getmembers(self):
-            if not name.startswith('_') and \
-                    not inspect.ismethod(value) and not inspect.isfunction(value) and \
-                    hasattr(self, name):
+            if (
+                not name.startswith("_")
+                and not inspect.ismethod(value)
+                and not inspect.isfunction(value)
+                and hasattr(self, name)
+            ):
 
                 result[name] = value
 
         return pprint.pformat(result, indent=4)
 
-    def combine(self, result: 'AlgorithmResult') -> None:
+    def combine(self, result: "AlgorithmResult") -> None:
         """
         Any property from the argument that exists in the receiver is
         updated.
@@ -44,13 +46,20 @@ class AlgorithmResult(ABC):
             TypeError: Argument is None
         """
         if result is None:
-            raise TypeError('Argument result expected.')
+            raise TypeError("Argument result expected.")
         if result == self:
             return
 
         # find any result public property that exists in the receiver
         for name, value in inspect.getmembers(result):
-            if not name.startswith('_') and \
-                    not inspect.ismethod(value) and not inspect.isfunction(value) and \
-                    hasattr(self, name):
-                setattr(self, name, value)
+            if (
+                not name.startswith("_")
+                and not inspect.ismethod(value)
+                and not inspect.isfunction(value)
+                and hasattr(self, name)
+            ):
+                try:
+                    setattr(self, name, value)
+                except AttributeError:
+                    # some attributes may be read only
+                    pass

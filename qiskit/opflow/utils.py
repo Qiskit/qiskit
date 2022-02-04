@@ -12,7 +12,7 @@
 
 """ Utility functions for OperatorFlow """
 
-from .operator_base import OperatorBase
+from qiskit.opflow.operator_base import OperatorBase
 
 
 def commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
@@ -50,10 +50,10 @@ def anti_commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
 
 
 def double_commutator(
-        op_a: OperatorBase,
-        op_b: OperatorBase,
-        op_c: OperatorBase,
-        sign: bool = False,
+    op_a: OperatorBase,
+    op_b: OperatorBase,
+    op_c: OperatorBase,
+    sign: bool = False,
 ) -> OperatorBase:
     r"""
     Compute symmetric double commutator of `op_a`, `op_b` and `op_c`.
@@ -97,12 +97,7 @@ def double_commutator(
     res = (
         op_abc
         - sign_num * op_cba
-        + 0.5 * (
-            - op_bac
-            + sign_num * op_cab
-            - op_acb
-            + sign_num * op_bca
-        )
+        + 0.5 * (-op_bac + sign_num * op_cab - op_acb + sign_num * op_bca)
     )
 
     return res.reduce()
