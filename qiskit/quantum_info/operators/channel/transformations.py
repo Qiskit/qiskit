@@ -423,7 +423,7 @@ def _transform_to_pauli(data, num_qubits):
             ),
             (4 * dim * dim, 4 * dim * dim),
         )
-    return np.dot(np.dot(cob, data), cob.conj().T) / 2 ** num_qubits
+    return np.dot(np.dot(cob, data), cob.conj().T) / 2**num_qubits
 
 
 def _transform_from_pauli(data, num_qubits):
@@ -444,7 +444,7 @@ def _transform_from_pauli(data, num_qubits):
             ),
             (4 * dim * dim, 4 * dim * dim),
         )
-    return np.dot(np.dot(cob, data), cob.conj().T) / 2 ** num_qubits
+    return np.dot(np.dot(cob, data), cob.conj().T) / 2**num_qubits
 
 
 def _reshuffle(mat, shape):
@@ -462,5 +462,5 @@ def _check_nqubit_dim(input_dim, output_dim):
             f"Not an n-qubit channel: input_dim ({input_dim}) != output_dim ({output_dim})"
         )
     num_qubits = int(np.log2(input_dim))
-    if 2 ** num_qubits != input_dim:
+    if 2**num_qubits != input_dim:
         raise QiskitError("Not an n-qubit channel: input_dim != 2 ** n")

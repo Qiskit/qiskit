@@ -162,14 +162,14 @@ class OpShape:
         """Return the total input dimension."""
         if self._dims_r:
             return reduce(mul, self._dims_r)
-        return 2 ** self._num_qargs_r
+        return 2**self._num_qargs_r
 
     @property
     def _dim_l(self):
         """Return the total input dimension."""
         if self._dims_l:
             return reduce(mul, self._dims_l)
-        return 2 ** self._num_qargs_l
+        return 2**self._num_qargs_l
 
     def validate_shape(self, shape):
         """Raise an exception if shape is not valid for the OpShape"""
@@ -192,7 +192,7 @@ class OpShape:
                         "({} != {})".format(reduce(mul, self._dims_l), shape[0])
                     )
                 return False
-        elif shape[0] != 2 ** self._num_qargs_l:
+        elif shape[0] != 2**self._num_qargs_l:
             if raise_exception:
                 raise QiskitError("Number of left qubits does not match matrix shape")
             return False
@@ -206,7 +206,7 @@ class OpShape:
                             "({} != {})".format(reduce(mul, self._dims_r), shape[1])
                         )
                     return False
-            elif shape[1] != 2 ** self._num_qargs_r:
+            elif shape[1] != 2**self._num_qargs_r:
                 if raise_exception:
                     raise QiskitError("Number of right qubits does not match matrix shape")
                 return False

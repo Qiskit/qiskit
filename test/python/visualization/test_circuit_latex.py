@@ -433,7 +433,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         filename2 = self._get_resource_path("test_latex_scale_half.tex")
         filename3 = self._get_resource_path("test_latex_scale_double.tex")
         circuit = QuantumCircuit(5)
-        circuit.unitary(random_unitary(2 ** 5), circuit.qubits)
+        circuit.unitary(random_unitary(2**5), circuit.qubits)
 
         circuit_drawer(circuit, filename=filename1, output="latex_source")
 
