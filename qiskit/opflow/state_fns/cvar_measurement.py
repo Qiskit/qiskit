@@ -198,7 +198,7 @@ class CVaRMeasurement(OperatorStateFn):
                 is computed as H_j^2 + 1/α*(sum_i<j p_i*(H_i^2 - H_j^2))
         """
         energies, probabilities = self.get_outcome_energies_probabilities(front)
-        sq_energies = [energy ** 2 for energy in energies]
+        sq_energies = [energy**2 for energy in energies]
         return self.compute_cvar(sq_energies, probabilities) - self.eval(front) ** 2
 
     def get_outcome_energies_probabilities(

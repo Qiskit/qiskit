@@ -36,7 +36,7 @@ class TestGroverOperator(QiskitTestCase):
         state_in = Operator(state_in)
 
         if zero_reflection is None:
-            zero_reflection = np.eye(2 ** oracle.num_qubits)
+            zero_reflection = np.eye(2**oracle.num_qubits)
             zero_reflection[0][0] = -1
         zero_reflection = Operator(zero_reflection)
 

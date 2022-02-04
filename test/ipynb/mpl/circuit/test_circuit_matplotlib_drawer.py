@@ -500,7 +500,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         """Tests scale
         See: https://github.com/Qiskit/qiskit-terra/issues/4179"""
         circuit = QuantumCircuit(5)
-        circuit.unitary(random_unitary(2 ** 5), circuit.qubits)
+        circuit.unitary(random_unitary(2**5), circuit.qubits)
 
         self.circuit_drawer(circuit, filename="scale_default.png")
         self.circuit_drawer(circuit, filename="scale_half.png", scale=0.5)
@@ -764,7 +764,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
     def test_overwide_gates(self):
         """Test gates don't exceed width of default fold"""
         circuit = QuantumCircuit(5)
-        initial_state = np.zeros(2 ** 5)
+        initial_state = np.zeros(2**5)
         initial_state[5] = 1
         circuit.initialize(initial_state)
         self.circuit_drawer(circuit, filename="wide_params.png")

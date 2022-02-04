@@ -339,7 +339,7 @@ class SPSA(Optimizer):
         avg_magnitudes /= steps
 
         if modelspace:
-            a = target_magnitude / (avg_magnitudes ** 2)
+            a = target_magnitude / (avg_magnitudes**2)
         else:
             a = target_magnitude / avg_magnitudes
 
@@ -430,7 +430,7 @@ class SPSA(Optimizer):
         hessian_sample = None
         if self.second_order:
             diff = (values[2] - plus) - (values[3] - minus)
-            diff /= 2 * eps ** 2
+            diff /= 2 * eps**2
 
             rank_one = np.outer(delta1, delta2)
             hessian_sample = diff * (rank_one + rank_one.T) / 2
