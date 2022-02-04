@@ -18,21 +18,16 @@ import os
 import inspect
 import tempfile
 
-try:
-    from PIL import Image
-
-    HAS_PIL = True
-except ImportError:
-    HAS_PIL = False
-
+from qiskit.utils import optionals as _optionals
 from qiskit.visualization import utils
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.transpiler.basepasses import AnalysisPass, TransformationPass
 
 DEFAULT_STYLE = {AnalysisPass: "red", TransformationPass: "blue"}
 
 
+@_optionals.HAS_GRAPHVIZ.require_in_call
+@_optionals.HAS_PYDOT.require_in_call
 def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     """
     Draws the pass manager.
@@ -78,37 +73,7 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
 
             pass_manager_drawer(pm, "passmanager.jpg")
     """
-
-    try:
-        import subprocess
-
-        with subprocess.Popen(
-            ["dot", "-V"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        ) as _proc:
-            _proc.communicate()
-            if _proc.returncode != 0:
-                has_graphviz = False
-            else:
-                has_graphviz = True
-    except Exception:  # pylint: disable=broad-except
-        # this is raised when the dot command cannot be found, which means GraphViz
-        # isn't installed
-        has_graphviz = False
-
-    HAS_GRAPHVIZ = has_graphviz  # pylint: disable=invalid-name
-
-    if not HAS_GRAPHVIZ:
-        raise MissingOptionalLibraryError(
-            libname="graphviz",
-            name="pass_manager_drawer",
-            pip_install="'brew install graphviz' on Mac or by downloading it from the website.",
-        )
-    try:
-        import pydot
-    except ImportError as ex:
-        raise MissingOptionalLibraryError(
-            libname="pydot", name="pass_manager_drawer", pip_install="pip install pydot"
-        ) from ex
+    import pydot
 
     passes = pass_manager.passes()
 
@@ -193,12 +158,16 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
         else:
             raise VisualizationError("if format=raw, then a filename is required.")
 
-    if not HAS_PIL and filename:
+    if not _optionals.HAS_PIL and filename:
         # pylint says this isn't a method - it is
         graph.write_png(filename)  # pylint: disable=no-member
         return None
 
+    _optionals.HAS_PIL.require_now("pass manager drawer")
+
     with tempfile.TemporaryDirectory() as tmpdirname:
+        from PIL import Image
+
         tmppath = os.path.join(tmpdirname, "pass_manager.png")
 
         # pylint says this isn't a method - it is

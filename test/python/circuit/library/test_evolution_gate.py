@@ -295,4 +295,4 @@ class TestEvolutionGate(QiskitTestCase):
         circuit.append(evo, circuit.qubits)
         circuit.append(evo.inverse(), circuit.qubits)
 
-        self.assertTrue(Operator(circuit).equiv(np.identity(2 ** circuit.num_qubits)))
+        self.assertTrue(Operator(circuit).equiv(np.identity(2**circuit.num_qubits)))

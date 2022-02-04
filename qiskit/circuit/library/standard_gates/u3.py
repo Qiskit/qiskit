@@ -280,7 +280,7 @@ def _generate_gray_code(num_bits):
         raise ValueError("Cannot generate the gray code for less than 1 bit.")
     result = [0]
     for i in range(num_bits):
-        result += [x + 2 ** i for x in reversed(result)]
+        result += [x + 2**i for x in reversed(result)]
     return [format(x, "0%sb" % num_bits) for x in result]
 
 

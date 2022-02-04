@@ -699,7 +699,7 @@ class TestCNOTDihedral(unittest.TestCase):
                 elem = CNOTDihedral(circ)
                 mat = elem.to_matrix()
                 self.assertIsInstance(mat, np.ndarray)
-                self.assertEqual(mat.shape, 2 * (2 ** num_qubits,))
+                self.assertEqual(mat.shape, 2 * (2**num_qubits,))
                 value = Operator(mat)
                 target = Operator(circ)
                 self.assertTrue(value.equiv(target), "Error: matrix of the circuit is not the same")

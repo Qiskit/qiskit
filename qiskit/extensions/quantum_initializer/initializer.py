@@ -259,7 +259,7 @@ class Initialize(Instruction, Operation):
         a_complex = complex(a_complex)
         b_complex = complex(b_complex)
         mag_a = np.absolute(a_complex)
-        final_r = float(np.sqrt(mag_a ** 2 + np.absolute(b_complex) ** 2))
+        final_r = float(np.sqrt(mag_a**2 + np.absolute(b_complex) ** 2))
         if final_r < _EPS:
             theta = 0
             phi = 0
@@ -341,7 +341,7 @@ class Initialize(Instruction, Operation):
             raise QiskitError(
                 "Initialize parameter vector has %d elements, therefore expects %s "
                 "qubits. However, %s were provided."
-                % (2 ** self.num_qubits, self.num_qubits, len(flat_qargs))
+                % (2**self.num_qubits, self.num_qubits, len(flat_qargs))
             )
         yield flat_qargs, []
 
