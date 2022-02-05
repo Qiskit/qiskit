@@ -16,6 +16,7 @@ satisfy the circuit, i.e. no further swap is needed. If no solution is
 found, no ``property_set['layout']`` is set.
 """
 import random
+import itertools
 from time import time
 from constraint import Problem, RecursiveBacktrackingSolver, AllDifferentConstraint
 
@@ -100,10 +101,15 @@ class CSPLayout(AnalysisPass):
     def run(self, dag):
         """run the layout method"""
         qubits = dag.qubits
-        cxs = set()
+        needed_connections = set()
 
         for gate in dag.two_qubit_ops():
-            cxs.add((qubits.index(gate.qargs[0]), qubits.index(gate.qargs[1])))
+            needed_connections.add((qubits.index(gate.qargs[0]), qubits.index(gate.qargs[1])))
+
+        for gate in dag.multi_qubit_ops():
+            for (q_0, q_1) in itertools.combinations(gate.qargs, 2):
+                needed_connections.add((qubits.index(q_0), qubits.index(q_1)))
+
         edges = set(self.coupling_map.get_edges())
 
         if self.time_limit is None and self.call_limit is None:
@@ -129,7 +135,7 @@ class CSPLayout(AnalysisPass):
             def constraint(control, target):
                 return (control, target) in edges or (target, control) in edges
 
-        for pair in cxs:
+        for pair in needed_connections:
             problem.addConstraint(constraint, [pair[0], pair[1]])
 
         solution = problem.getSolution()
