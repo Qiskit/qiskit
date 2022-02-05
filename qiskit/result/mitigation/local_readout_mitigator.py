@@ -142,7 +142,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
 
         # Get operator coeffs
         if diagonal is None:
-            diagonal = z_diagonal(2 ** num_qubits)
+            diagonal = z_diagonal(2**num_qubits)
         elif isinstance(diagonal, str):
             diagonal = str2diag(diagonal)
 

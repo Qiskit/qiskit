@@ -30,7 +30,7 @@ from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 
 
 class PauliSumOp(PrimitiveOp):
-    """Class for Operators backend by Terra's ``SparsePauliOp`` class."""
+    """Class for Operators backed by Terra's ``SparsePauliOp`` class."""
 
     primitive: SparsePauliOp
 
@@ -210,7 +210,7 @@ class PauliSumOp(PrimitiveOp):
         if length > self.num_qubits:
             spop = self.primitive.tensor(SparsePauliOp(Pauli("I" * (length - self.num_qubits))))
         else:
-            spop = self.primitive
+            spop = self.primitive.copy()
 
         permutation = [i for i in range(length) if i not in permutation] + permutation
         permu_arr = np.arange(length)[np.argsort(permutation)]

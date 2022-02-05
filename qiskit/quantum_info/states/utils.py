@@ -15,7 +15,6 @@ Quantum information utility functions for states.
 """
 
 import numpy as np
-import scipy.linalg as la
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.statevector import Statevector
@@ -67,7 +66,7 @@ def partial_trace(state, qargs):
     ret = state.evolve(tr_op, [qargs[0]])
     # Trace over remaining subsystems
     for qarg, dim in zip(qargs[1:], dims[1:]):
-        tr_op = SuperOp(np.eye(dim).reshape(1, dim ** 2), input_dims=[dim], output_dims=[1])
+        tr_op = SuperOp(np.eye(dim).reshape(1, dim**2), input_dims=[dim], output_dims=[1])
         ret = ret.evolve(tr_op, [qarg])
     # Remove traced over subsystems which are listed as dimension 1
     ret._op_shape = traced_shape
@@ -148,6 +147,8 @@ def _funm_svd(matrix, func):
         ndarray: funm (N, N) Value of the matrix function specified by func
                  evaluated at `A`.
     """
+    import scipy.linalg as la
+
     unitary1, singular_values, unitary2 = la.svd(matrix)
     diag_func_singular = np.diag(func(singular_values))
     return unitary1.dot(diag_func_singular).dot(unitary2)
