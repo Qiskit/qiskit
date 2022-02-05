@@ -753,7 +753,7 @@ class MatplotlibDrawer:
                         for ii in self._clbits_dict
                     ]
                     if self._clbits_dict:
-                        anc_x_index = max(anc_x_index, self._c_anchors[0].get_x_index())
+                        anc_x_index = max(anc_x_index, next(iter(self._c_anchors.values())).get_x_index())
                     self._condition(node, cond_xy)
 
                 # draw measure
