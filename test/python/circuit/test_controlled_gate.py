@@ -443,7 +443,7 @@ class TestControlledGate(QiskitTestCase):
         q_target = QuantumRegister(1)
 
         # iterate over all possible combinations of control qubits
-        for ctrl_state in range(2 ** num_controls):
+        for ctrl_state in range(2**num_controls):
             bitstr = bin(ctrl_state)[2:].zfill(num_controls)[::-1]
             lam = 0.3165354 * pi
             qc = QuantumCircuit(q_controls, q_target)
@@ -591,7 +591,7 @@ class TestControlledGate(QiskitTestCase):
         q_target = QuantumRegister(1)
 
         # iterate over all possible combinations of control qubits
-        for ctrl_state in range(2 ** num_controls):
+        for ctrl_state in range(2**num_controls):
             bitstr = bin(ctrl_state)[2:].zfill(num_controls)[::-1]
             theta = 0.871236 * pi
             qc = QuantumCircuit(q_controls, q_target)
@@ -649,7 +649,7 @@ class TestControlledGate(QiskitTestCase):
         q_controls = QuantumRegister(num_controls)
         q_target = QuantumRegister(1)
 
-        for ctrl_state in range(2 ** num_controls):
+        for ctrl_state in range(2**num_controls):
             bitstr = bin(ctrl_state)[2:].zfill(num_controls)[::-1]
             theta = 0.871236 * pi
             if num_ancillas > 0:
@@ -803,7 +803,7 @@ class TestControlledGate(QiskitTestCase):
     def test_controlled_random_unitary(self, num_ctrl_qubits):
         """Test the matrix data of an Operator based on a random UnitaryGate."""
         num_target = 2
-        base_gate = random_unitary(2 ** num_target).to_instruction()
+        base_gate = random_unitary(2**num_target).to_instruction()
         base_mat = base_gate.to_matrix()
         cgate = base_gate.control(num_ctrl_qubits)
         test_op = Operator(cgate)
@@ -849,7 +849,7 @@ class TestControlledGate(QiskitTestCase):
         for i in range(num_target_qubits - 1):
             target_op = target_op.tensor(XGate())
 
-        for i in range(2 ** num_qubits):
+        for i in range(2**num_qubits):
             input_bitstring = bin(i)[2:].zfill(num_qubits)
             input_target = input_bitstring[0:num_target_qubits]
             input_ctrl = input_bitstring[-num_ctrl_qubits:]
@@ -857,7 +857,7 @@ class TestControlledGate(QiskitTestCase):
             cop = Operator(
                 _compute_control_matrix(target_op.data, num_ctrl_qubits, ctrl_state=input_ctrl)
             )
-            for j in range(2 ** num_qubits):
+            for j in range(2**num_qubits):
                 output_bitstring = bin(j)[2:].zfill(num_qubits)
                 output_target = output_bitstring[0:num_target_qubits]
                 output_ctrl = output_bitstring[-num_ctrl_qubits:]
@@ -914,6 +914,13 @@ class TestControlledGate(QiskitTestCase):
         unroller = Unroller(["x", "ccx"])
         unrolled_dag = unroller.run(dag)
 
+        #       ┌───┐     ┌───┐
+        # q0_0: ┤ X ├──■──┤ X ├
+        #       ├───┤  │  ├───┤
+        # q0_1: ┤ X ├──■──┤ X ├
+        #       └───┘┌─┴─┐└───┘
+        # q0_2: ─────┤ X ├─────
+        #            └───┘
         ref_circuit = QuantumCircuit(qreg)
         ref_circuit.x(qreg[0])
         ref_circuit.x(qreg[1])
@@ -1080,7 +1087,7 @@ class TestControlledGate(QiskitTestCase):
         with self.assertRaises(CircuitError):
             base_gate.control(num_ctrl_qubits, ctrl_state=-1)
         with self.assertRaises(CircuitError):
-            base_gate.control(num_ctrl_qubits, ctrl_state=2 ** num_ctrl_qubits)
+            base_gate.control(num_ctrl_qubits, ctrl_state=2**num_ctrl_qubits)
         with self.assertRaises(CircuitError):
             base_gate.control(num_ctrl_qubits, ctrl_state="201")
 
@@ -1324,7 +1331,7 @@ class TestControlledStandardGates(QiskitTestCase):
     def test_controlled_standard_gates(self, num_ctrl_qubits, gate_class):
         """Test controlled versions of all standard gates."""
         theta = pi / 2
-        ctrl_state_ones = 2 ** num_ctrl_qubits - 1
+        ctrl_state_ones = 2**num_ctrl_qubits - 1
         ctrl_state_zeros = 0
         ctrl_state_mixed = ctrl_state_ones >> int(num_ctrl_qubits / 2)
 

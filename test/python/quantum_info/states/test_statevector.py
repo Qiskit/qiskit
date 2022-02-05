@@ -220,8 +220,8 @@ class TestStatevector(QiskitTestCase):
     def test_getitem_except(self):
         """Test __getitem__ method raises exceptions."""
         for i in range(1, 4):
-            state = Statevector(self.rand_vec(2 ** i))
-            self.assertRaises(QiskitError, state.__getitem__, 2 ** i)
+            state = Statevector(self.rand_vec(2**i))
+            self.assertRaises(QiskitError, state.__getitem__, 2**i)
             self.assertRaises(QiskitError, state.__getitem__, -1)
 
     def test_copy(self):
@@ -1043,7 +1043,7 @@ class TestStatevector(QiskitTestCase):
         """Test expectation_value method for Pauli op"""
         seed = 1020
         op = Pauli(pauli)
-        state = random_statevector(2 ** op.num_qubits, seed=seed)
+        state = random_statevector(2**op.num_qubits, seed=seed)
         target = state.expectation_value(op.to_matrix())
         expval = state.expectation_value(op)
         self.assertAlmostEqual(expval, target)
@@ -1053,7 +1053,7 @@ class TestStatevector(QiskitTestCase):
         """Test expectation_value method for Pauli op"""
         seed = 1020
         op = random_pauli(2, seed=seed)
-        state = random_statevector(2 ** 3, seed=seed)
+        state = random_statevector(2**3, seed=seed)
         target = state.expectation_value(op.to_matrix(), qubits)
         expval = state.expectation_value(op, qubits)
         self.assertAlmostEqual(expval, target)
@@ -1079,7 +1079,7 @@ class TestStatevector(QiskitTestCase):
         circ = transpile(state_circ, sim)
         circ.measure(qargs, range(nc))
         result = sim.run(circ, shots=shots, seed_simulator=seed).result()
-        target = np.zeros(2 ** nc, dtype=float)
+        target = np.zeros(2**nc, dtype=float)
         for i, p in result.get_counts(0).int_outcomes().items():
             target[i] = p / shots
         # Compare
@@ -1120,7 +1120,7 @@ class TestStatevector(QiskitTestCase):
 
     def test_state_to_latex_for_large_statevector(self):
         """Test conversion of large dense state vector"""
-        sv = Statevector(np.ones((2 ** 15, 1)))
+        sv = Statevector(np.ones((2**15, 1)))
         latex_representation = state_to_latex(sv)
         self.assertEqual(
             latex_representation,
@@ -1132,7 +1132,7 @@ class TestStatevector(QiskitTestCase):
 
     def test_state_to_latex_for_large_sparse_statevector(self):
         """Test conversion of large sparse state vector"""
-        sv = Statevector(np.eye(2 ** 15, 1))
+        sv = Statevector(np.eye(2**15, 1))
         latex_representation = state_to_latex(sv)
         self.assertEqual(latex_representation, " |000000000000000\\rangle")
 

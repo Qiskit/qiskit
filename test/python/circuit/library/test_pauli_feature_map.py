@@ -19,7 +19,7 @@ import numpy as np
 from ddt import ddt, data, unpack
 
 from qiskit.test.base import QiskitTestCase
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, Parameter, ParameterVector
 from qiskit.circuit.library import PauliFeatureMap, ZFeatureMap, ZZFeatureMap, HGate
 from qiskit.quantum_info import Operator
 
@@ -61,6 +61,12 @@ class TestDataPreparation(QiskitTestCase):
             self.assertTrue(Operator(pauli).equiv(evo))
 
         with self.subTest(pauli_string="XYZ"):
+            # q_0: ─────────────■────────────────────────■──────────────
+            #      ┌─────────┐┌─┴─┐                    ┌─┴─┐┌──────────┐
+            # q_1: ┤ Rx(π/2) ├┤ X ├──■──────────────■──┤ X ├┤ Rx(-π/2) ├
+            #      └──┬───┬──┘└───┘┌─┴─┐┌────────┐┌─┴─┐├───┤└──────────┘
+            # q_2: ───┤ H ├────────┤ X ├┤ P(2.8) ├┤ X ├┤ H ├────────────
+            #         └───┘        └───┘└────────┘└───┘└───┘
             evo = QuantumCircuit(3)
             # X on the most-significant, bottom qubit, Z on the top
             evo.h(2)
@@ -86,6 +92,15 @@ class TestDataPreparation(QiskitTestCase):
         times = [0.2, 1, np.pi, -1.2]
         encoding = ZFeatureMap(4, reps=3).assign_parameters(times)
 
+        #      ┌───┐ ┌────────┐┌───┐ ┌────────┐┌───┐ ┌────────┐
+        # q_0: ┤ H ├─┤ P(0.4) ├┤ H ├─┤ P(0.4) ├┤ H ├─┤ P(0.4) ├
+        #      ├───┤ └┬──────┬┘├───┤ └┬──────┬┘├───┤ └┬──────┬┘
+        # q_1: ┤ H ├──┤ P(2) ├─┤ H ├──┤ P(2) ├─┤ H ├──┤ P(2) ├─
+        #      ├───┤ ┌┴──────┤ ├───┤ ┌┴──────┤ ├───┤ ┌┴──────┤
+        # q_2: ┤ H ├─┤ P(2π) ├─┤ H ├─┤ P(2π) ├─┤ H ├─┤ P(2π) ├─
+        #      ├───┤┌┴───────┴┐├───┤┌┴───────┴┐├───┤┌┴───────┴┐
+        # q_3: ┤ H ├┤ P(-2.4) ├┤ H ├┤ P(-2.4) ├┤ H ├┤ P(-2.4) ├
+        #      └───┘└─────────┘└───┘└─────────┘└───┘└─────────┘
         ref = QuantumCircuit(4)
         for _ in range(3):
             ref.h([0, 1, 2, 3])
@@ -105,6 +120,27 @@ class TestDataPreparation(QiskitTestCase):
             circuit.p(2 * time, qubit2)
             circuit.cx(qubit1, qubit2)
 
+        #      ┌───┐┌────────┐                                         ┌───┐┌────────┐»
+        # q_0: ┤ H ├┤ P(0.4) ├──■─────────────────■────■────────────■──┤ H ├┤ P(0.4) ├»
+        #      ├───┤└┬──────┬┘┌─┴─┐┌───────────┐┌─┴─┐  │            │  └───┘└────────┘»
+        # q_1: ┤ H ├─┤ P(2) ├─┤ X ├┤ P(12.599) ├┤ X ├──┼────────────┼────■────────────»
+        #      ├───┤┌┴──────┤ └───┘└───────────┘└───┘┌─┴─┐┌──────┐┌─┴─┐┌─┴─┐ ┌──────┐ »
+        # q_2: ┤ H ├┤ P(2π) ├────────────────────────┤ X ├┤ P(0) ├┤ X ├┤ X ├─┤ P(0) ├─»
+        #      └───┘└───────┘                        └───┘└──────┘└───┘└───┘ └──────┘ »
+        # «                                                                              »
+        # «q_0: ─────────────────────■─────────────────■────■────────────■───────────────»
+        # «          ┌───┐ ┌──────┐┌─┴─┐┌───────────┐┌─┴─┐  │            │               »
+        # «q_1: ──■──┤ H ├─┤ P(2) ├┤ X ├┤ P(12.599) ├┤ X ├──┼────────────┼────■──────────»
+        # «     ┌─┴─┐├───┤┌┴──────┤└───┘└───────────┘└───┘┌─┴─┐┌──────┐┌─┴─┐┌─┴─┐┌──────┐»
+        # «q_2: ┤ X ├┤ H ├┤ P(2π) ├───────────────────────┤ X ├┤ P(0) ├┤ X ├┤ X ├┤ P(0) ├»
+        # «     └───┘└───┘└───────┘                       └───┘└──────┘└───┘└───┘└──────┘»
+        # «
+        # «q_0: ─────
+        # «
+        # «q_1: ──■──
+        # «     ┌─┴─┐
+        # «q_2: ┤ X ├
+        # «     └───┘
         ref = QuantumCircuit(3)
         for _ in range(2):
             ref.h([0, 1, 2])
@@ -127,6 +163,54 @@ class TestDataPreparation(QiskitTestCase):
         """Test the ``ZZFeatureMap`` raises an error if the number of qubits is smaller than 2."""
         with self.assertRaises(ValueError):
             _ = ZZFeatureMap(1)
+
+    def test_parameter_prefix(self):
+        """Test the Parameter prefix"""
+        encoding_pauli = PauliFeatureMap(
+            feature_dimension=2, reps=2, paulis=["ZY"], parameter_prefix="p"
+        )
+        encoding_z = ZFeatureMap(feature_dimension=2, reps=2, parameter_prefix="q")
+        encoding_zz = ZZFeatureMap(feature_dimension=2, reps=2, parameter_prefix="r")
+        x = ParameterVector("x", 2)
+        y = Parameter("y")
+
+        self.assertEqual(
+            str(encoding_pauli.parameters),
+            "ParameterView([ParameterVectorElement(p[0]), ParameterVectorElement(p[1])])",
+        )
+        self.assertEqual(
+            str(encoding_z.parameters),
+            "ParameterView([ParameterVectorElement(q[0]), ParameterVectorElement(q[1])])",
+        )
+        self.assertEqual(
+            str(encoding_zz.parameters),
+            "ParameterView([ParameterVectorElement(r[0]), ParameterVectorElement(r[1])])",
+        )
+
+        encoding_pauli_param_x = encoding_pauli.assign_parameters(x)
+        encoding_z_param_x = encoding_z.assign_parameters(x)
+        encoding_zz_param_x = encoding_zz.assign_parameters(x)
+
+        self.assertEqual(
+            str(encoding_pauli_param_x.parameters),
+            "ParameterView([ParameterVectorElement(x[0]), ParameterVectorElement(x[1])])",
+        )
+        self.assertEqual(
+            str(encoding_z_param_x.parameters),
+            "ParameterView([ParameterVectorElement(x[0]), ParameterVectorElement(x[1])])",
+        )
+        self.assertEqual(
+            str(encoding_zz_param_x.parameters),
+            "ParameterView([ParameterVectorElement(x[0]), ParameterVectorElement(x[1])])",
+        )
+
+        encoding_pauli_param_y = encoding_pauli.assign_parameters({1, y})
+        encoding_z_param_y = encoding_z.assign_parameters({1, y})
+        encoding_zz_param_y = encoding_zz.assign_parameters({1, y})
+
+        self.assertEqual(str(encoding_pauli_param_y.parameters), "ParameterView([Parameter(y)])")
+        self.assertEqual(str(encoding_z_param_y.parameters), "ParameterView([Parameter(y)])")
+        self.assertEqual(str(encoding_zz_param_y.parameters), "ParameterView([Parameter(y)])")
 
 
 if __name__ == "__main__":

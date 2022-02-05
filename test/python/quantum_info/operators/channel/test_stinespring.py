@@ -297,7 +297,7 @@ class TestStinespring(ChannelTestCase):
         chan1 = Stinespring(self.depol_stine(1 - p_id))
 
         # Compose 3 times
-        p_id3 = p_id ** 3
+        p_id3 = p_id**3
         chan = chan1.power(3)
         rho_targ = rho_init & chan1 & chan1 & chan1
         self.assertEqual(rho_init & chan, rho_targ)

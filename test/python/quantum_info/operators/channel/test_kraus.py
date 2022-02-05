@@ -305,7 +305,7 @@ class TestKraus(ChannelTestCase):
         chan = Kraus(self.depol_kraus(1 - p_id))
 
         # Compose 3 times
-        p_id3 = p_id ** 3
+        p_id3 = p_id**3
         chan3 = chan.power(3)
         targ3a = rho & chan & chan & chan
         self.assertEqual(rho & chan3, targ3a)

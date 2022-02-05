@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    ``ParametrizedSchedule`` has been removed and no longer exist.
+    This class was deprecated as a part of the 0.17.0 release.
+    Now you can directly parametrize :py:class:`~qiskit.pulse.schedule.Schedule` or
+    :py:class:`~qiskit.pulse.schedule.ScheduleBlock` by specifying
+    :py:class:`~qiskit.circuit.parameter.Parameter` object to the parametric pulse argument.
