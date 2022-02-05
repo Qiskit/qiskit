@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Adds an argument ``parameter_prefix`` to the initializer of 
+    :class:`~qiskit.circuit.library.ZFeatureMap` and
+    :class:`~qiskit.circuit.library.ZZFeatureMap`, to set the prefix
+    of parameters of the data encoding circuit::
+
+      from qiskit.circuit.library import ZFeatureMap
+      feature_map = ZFeatureMap(feature_dimension=4, 
+      parameter_prefix="my_prefix")

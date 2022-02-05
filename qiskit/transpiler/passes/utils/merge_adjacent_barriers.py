@@ -38,6 +38,17 @@ class MergeAdjacentBarriers(TransformationPass):
         circuit.barrier(qr[0])
         circuit.barrier(qr)
 
+    i.e,
+
+    .. parsed-literal::
+              ░  ░             ░  ░
+        q_0: ─░──░─      q_0: ─░──░─
+              ░  ░             ░  ░
+        q_1: ─░──░─  =>  q_1: ────░─
+              ░  ░                ░
+        q_2: ────░─      q_2: ────░─
+                 ░
+
     after one iteration of the pass. These two barriers were not merged by the
     first pass as they are not adjacent in the initial circuit.
 

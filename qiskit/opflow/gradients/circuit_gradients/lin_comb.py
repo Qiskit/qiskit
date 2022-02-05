@@ -423,7 +423,7 @@ class LinComb(CircuitGradient):
             return [([-0.5j], [czx])]
         if isinstance(gate, ControlledGate):
             # TODO support arbitrary control states
-            if gate.ctrl_state != 2 ** gate.num_ctrl_qubits - 1:
+            if gate.ctrl_state != 2**gate.num_ctrl_qubits - 1:
                 raise OpflowError(
                     "Function only support controlled gates with control state `1` on all control "
                     "qubits."
@@ -443,7 +443,7 @@ class LinComb(CircuitGradient):
                 coeffs = []
                 gates = []
                 for phase, proj_gates in proj_gates_controlled:
-                    coeffs.extend([phase * c / (2 ** gate.num_ctrl_qubits) for c in base_coeffs])
+                    coeffs.extend([phase * c / (2**gate.num_ctrl_qubits) for c in base_coeffs])
                     for base_gate in base_gates:
                         controlled_circ = QuantumCircuit(gate.num_ctrl_qubits + gate.num_qubits)
                         for i, proj_gate in enumerate(proj_gates):

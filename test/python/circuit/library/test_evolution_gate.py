@@ -57,19 +57,26 @@ class TestEvolutionGate(QiskitTestCase):
         self.assertEqual(decomposed.count_ops()["cx"], reps * 3 * 4)
 
     def test_rzx_order(self):
-        """Test ZX is mapped onto the correct qubits."""
-        evo_gate = PauliEvolutionGate(X ^ Z)
-        decomposed = evo_gate.definition.decompose()
+        """Test ZX and XZ is mapped onto the correct qubits."""
+        for op, indices in zip([X ^ Z, Z ^ X], [(0, 1), (1, 0)]):
+            with self.subTest(op=op, indices=indices):
+                evo_gate = PauliEvolutionGate(op)
+                decomposed = evo_gate.definition.decompose()
 
-        ref = QuantumCircuit(2)
-        ref.h(1)
-        ref.cx(1, 0)
-        ref.rz(2.0, 0)
-        ref.cx(1, 0)
-        ref.h(1)
+                #           ┌───┐┌───────┐┌───┐
+                # q_0: ─────┤ X ├┤ Rz(2) ├┤ X ├─────
+                #      ┌───┐└─┬─┘└───────┘└─┬─┘┌───┐
+                # q_1: ┤ H ├──■─────────────■──┤ H ├
+                #      └───┘                   └───┘
+                ref = QuantumCircuit(2)
+                ref.h(indices[1])
+                ref.cx(indices[1], indices[0])
+                ref.rz(2.0, indices[0])
+                ref.cx(indices[1], indices[0])
+                ref.h(indices[1])
 
-        # don't use circuit equality since RZX here decomposes with RZ on the bottom
-        self.assertTrue(Operator(decomposed).equiv(ref))
+                # don't use circuit equality since RZX here decomposes with RZ on the bottom
+                self.assertTrue(Operator(decomposed).equiv(ref))
 
     def test_suzuki_trotter(self):
         """Test constructing the circuit with Lie Trotter decomposition."""
@@ -261,3 +268,31 @@ class TestEvolutionGate(QiskitTestCase):
             circuit.data[2][0].params[0],  # Z
         ]
         self.assertListEqual(rz_angles, [20, 30, -10])
+
+    def test_lie_trotter_two_qubit_correct_order(self):
+        """Test that evolutions on two qubit operators are in the right order.
+
+        Regression test of Qiskit/qiskit-terra#7544.
+        """
+        operator = I ^ Z ^ Z
+        time = 0.5
+        exact = scipy.linalg.expm(-1j * time * operator.to_matrix())
+        lie_trotter = PauliEvolutionGate(operator, time, synthesis=LieTrotter())
+
+        self.assertTrue(Operator(lie_trotter).equiv(exact))
+
+    def test_complex_op_raises(self):
+        """Test an operator with complex coefficient raises an error."""
+        with self.assertRaises(ValueError):
+            _ = PauliEvolutionGate(Pauli("iZ"))
+
+    @data(LieTrotter, MatrixExponential)
+    def test_inverse(self, synth_cls):
+        """Test calculating the inverse is correct."""
+        evo = PauliEvolutionGate(X + Y, time=0.12, synthesis=synth_cls())
+
+        circuit = QuantumCircuit(1)
+        circuit.append(evo, circuit.qubits)
+        circuit.append(evo.inverse(), circuit.qubits)
+
+        self.assertTrue(Operator(circuit).equiv(np.identity(2**circuit.num_qubits)))
