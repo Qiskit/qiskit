@@ -317,7 +317,7 @@ ry_to_rx = QuantumCircuit(q)
 ry_to_rx.sdg(0)
 ry_to_rx.rx(theta, 0)
 ry_to_rx.s(0)
-_sel.add_equivalence(RZGate(theta), ry_to_rx)
+_sel.add_equivalence(RYGate(theta), ry_to_rx)
 
 # CRYGate
 #
@@ -374,7 +374,7 @@ for inst, qargs, cargs in [
     (SGate(), [q[1]], []),
 ]:
     ryy_to_rzz.append(inst, qargs, cargs)
-_sel.add_equivalence(RZZGate(theta), ryy_to_rzz)
+_sel.add_equivalence(RYYGate(theta), ryy_to_rzz)
 
 # RZGate
 #                  global phase: -ϴ/2
@@ -469,7 +469,7 @@ for inst, qargs, cargs in [
     (HGate(), [q[1]], []),
 ]:
     rzz_to_ryy.append(inst, qargs, cargs)
-_sel.add_equivalence(RYYGate(theta), rzz_to_ryy)
+_sel.add_equivalence(RZZGate(theta), rzz_to_ryy)
 
 # RZXGate
 #
