@@ -192,6 +192,10 @@ class CRXGate(ControlledGate):
         from .u3 import U3Gate
         from .x import CXGate
 
+        # q_0: ─────────────■───────────────────■────────────────────
+        #      ┌─────────┐┌─┴─┐┌─────────────┐┌─┴─┐┌────────────────┐
+        # q_1: ┤ U1(π/2) ├┤ X ├┤ U3(0/2,0,0) ├┤ X ├┤ U3(0/2,-π/2,0) ├
+        #      └─────────┘└───┘└─────────────┘└───┘└────────────────┘
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [

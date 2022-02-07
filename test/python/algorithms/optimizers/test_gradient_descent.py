@@ -95,7 +95,7 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
             def powerlaw():
                 n = 0
                 while True:
-                    yield constant_coeff * (n ** power)
+                    yield constant_coeff * (n**power)
                     n += 1
 
             return powerlaw()

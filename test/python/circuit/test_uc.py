@@ -39,9 +39,9 @@ squs_list = [
     [_id, _id],
     [_id, 1j * _id],
     [_id, _not, _id, _not],
-    [random_unitary(2).data for i in range(2 ** 2)],
-    [random_unitary(2).data for i in range(2 ** 3)],
-    [random_unitary(2).data for i in range(2 ** 4)],
+    [random_unitary(2).data for i in range(2**2)],
+    [random_unitary(2).data for i in range(2**3)],
+    [random_unitary(2).data for i in range(2**4)],
 ]
 
 up_to_diagonal_list = [True, False]

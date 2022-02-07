@@ -18,27 +18,24 @@ then the gate is trivial.
 If a gate has no `_trivial_if`, then is assumed to be non-trivial.
 If a gate has no `_postconditions`, then is assumed to have unknown post-conditions.
 """
-try:
-    from z3 import Not, And
-
-    HAS_Z3 = True
-except ImportError:
-    HAS_Z3 = False
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
 from qiskit.circuit.library.standard_gates import CXGate, CCXGate, CYGate, CZGate
 from qiskit.circuit.library.standard_gates import TGate, TdgGate, SGate, SdgGate, RZGate, U1Gate
 from qiskit.circuit.library.standard_gates import SwapGate, CSwapGate, CRZGate, CU1Gate, MCU1Gate
+from qiskit.utils import optionals as _optionals
 
-if HAS_Z3:
+if _optionals.HAS_Z3:
+    import z3  # pylint: disable=import-error
+
     # FLIP GATES #
     # XGate
-    XGate._postconditions = lambda self, x1, y1: y1 == Not(x1)
-    CXGate._postconditions = lambda self, x1, y1: y1 == Not(x1)
-    CCXGate._postconditions = lambda self, x1, y1: y1 == Not(x1)
+    XGate._postconditions = lambda self, x1, y1: y1 == z3.Not(x1)
+    CXGate._postconditions = lambda self, x1, y1: y1 == z3.Not(x1)
+    CCXGate._postconditions = lambda self, x1, y1: y1 == z3.Not(x1)
 
     # YGate
-    YGate._postconditions = lambda self, x1, y1: y1 == Not(x1)
-    CYGate._postconditions = lambda self, x1, y1: y1 == Not(x1)
+    YGate._postconditions = lambda self, x1, y1: y1 == z3.Not(x1)
+    CYGate._postconditions = lambda self, x1, y1: y1 == z3.Not(x1)
 
     # PHASE GATES #
     # IdGate
@@ -78,6 +75,6 @@ if HAS_Z3:
     # MULTI-QUBIT GATES #
     # SwapGate
     SwapGate._trivial_if = lambda self, x1, x2: x1 == x2
-    SwapGate._postconditions = lambda self, x1, x2, y1, y2: And(x1 == y2, x2 == y1)
+    SwapGate._postconditions = lambda self, x1, x2, y1, y2: z3.And(x1 == y2, x2 == y1)
     CSwapGate._trivial_if = lambda self, x1, x2: x1 == x2
-    CSwapGate._postconditions = lambda self, x1, x2, y1, y2: And(x1 == y2, x2 == y1)
+    CSwapGate._postconditions = lambda self, x1, x2, y1, y2: z3.And(x1 == y2, x2 == y1)

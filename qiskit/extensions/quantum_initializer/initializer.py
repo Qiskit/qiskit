@@ -273,7 +273,7 @@ class Initialize(Instruction, Operation):
         a_complex = complex(a_complex)
         b_complex = complex(b_complex)
         mag_a = np.absolute(a_complex)
-        final_r = float(np.sqrt(mag_a ** 2 + np.absolute(b_complex) ** 2))
+        final_r = float(np.sqrt(mag_a**2 + np.absolute(b_complex) ** 2))
         if final_r < _EPS:
             theta = 0
             phi = 0
@@ -355,7 +355,7 @@ class Initialize(Instruction, Operation):
             raise QiskitError(
                 "Initialize parameter vector has %d elements, therefore expects %s "
                 "qubits. However, %s were provided."
-                % (2 ** self.num_qubits, self.num_qubits, len(flat_qargs))
+                % (2**self.num_qubits, self.num_qubits, len(flat_qargs))
             )
         yield flat_qargs, []
 
@@ -418,9 +418,12 @@ def initialize(self, params, qubits=None, normalize=False):
             circuit.draw()
 
         output:
-             ┌──────────────────────────────┐
-        q_0: ┤ initialize(0.70711,-0.70711) ├
-             └──────────────────────────────┘
+
+        .. parsed-literal::
+
+                 ┌──────────────────────────────┐
+            q_0: ┤ initialize(0.70711,-0.70711) ├
+                 └──────────────────────────────┘
 
 
         Initialize from a string two qubits in the state `|10>`.
@@ -438,12 +441,14 @@ def initialize(self, params, qubits=None, normalize=False):
             circuit.draw()
 
         output:
-             ┌──────────────────┐
-        q_0: ┤0                 ├
-             │  initialize(0,1) │
-        q_1: ┤1                 ├
-             └──────────────────┘
 
+        .. parsed-literal::
+
+                 ┌──────────────────┐
+            q_0: ┤0                 ├
+                 │  initialize(0,1) │
+            q_1: ┤1                 ├
+                 └──────────────────┘
 
         Initialize two qubits from an array of complex amplitudes
         .. jupyter-execute::
@@ -456,11 +461,14 @@ def initialize(self, params, qubits=None, normalize=False):
             circuit.draw()
 
         output:
-             ┌────────────────────────────────────┐
-        q_0: ┤0                                   ├
-             │  initialize(0,0.70711,-0.70711j,0) │
-        q_1: ┤1                                   ├
-             └────────────────────────────────────┘
+
+        .. parsed-literal::
+
+                 ┌────────────────────────────────────┐
+            q_0: ┤0                                   ├
+                 │  initialize(0,0.70711,-0.70711j,0) │
+            q_1: ┤1                                   ├
+                 └────────────────────────────────────┘
     """
     if qubits is None:
         qubits = self.qubits
