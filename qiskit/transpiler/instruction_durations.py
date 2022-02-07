@@ -113,27 +113,34 @@ class InstructionDurations:
             self.duration_by_name_qubits_params.update(inst_durations.duration_by_name_qubits_params)
         else:
             for i, items in enumerate(inst_durations):
+
                 if not isinstance(items[-1], str):
-                    inst_durations[i] = (*items, "dt")  # set default unit
+                    items = (*items, "dt")  # set default unit
 
-                elif len(items) == 4:  # (inst_name, qubits, duration, unit)
-                    inst_durations[i] = (*items[:2], None, items[3])
+                if len(items) == 4:  # (inst_name, qubits, duration, unit)
+                    inst_durations[i] = (*items[:3], None, items[3])
+                else:
+                    inst_durations[i] = items
 
-                # assert items = (inst_name, qubits, duration, parameters, unit)
-                elif len(items) != 5:
+                # assert (inst_name, qubits, duration, parameters, unit)
+                if len(inst_durations[i]) != 5:
                     raise TranspilerError(
                         "Each entry of inst_durations dictionary must be "
                         "(inst_name, qubits, duration) or "
                         "(inst_name, qubits, duration, unit) or"
-                        "(inst_name, qubits, parameters, duration or"
-                        "(inst_name, qubits, parameters, duration, unit)"
+                        "(inst_name, qubits, duration, parameters) or"
+                        "(inst_name, qubits, duration, parameters, unit) "
+                        f"received {inst_durations[i]}."
                     )
 
-            for name, qubits, parameters, duration, unit in inst_durations:
+            for name, qubits, duration, parameters, unit in inst_durations:
                 if isinstance(qubits, int):
                     qubits = [qubits]
 
-                if qubits is None and parameters is None:
+                if isinstance(parameters, (int, float)):
+                    parameters = [parameters]
+
+                if qubits is None:
                     self.duration_by_name[name] = duration, unit
                 elif parameters is None:
                     self.duration_by_name_qubits[(name, tuple(qubits))] = duration, unit
@@ -208,7 +215,7 @@ class InstructionDurations:
         if name == "barrier":
             return 0
 
-        if parameters is None:
+        if parameters is not None:
             key = (name, tuple(qubits), tuple(parameters))
         else:
             key = (name, tuple(qubits))
@@ -263,6 +270,8 @@ class InstructionDurations:
 InstructionDurationsType = Union[
     List[Tuple[str, Optional[Iterable[int]], Optional[Iterable[float]], float, str]],
     List[Tuple[str, Optional[Iterable[int]], Optional[Iterable[float]], float]],
+    List[Tuple[str, Optional[Iterable[int]], float, str]],
+    List[Tuple[str, Optional[Iterable[int]], float]],
     InstructionDurations,
 ]
 """List of tuples representing (instruction name, qubits indices, parameters, duration)."""
