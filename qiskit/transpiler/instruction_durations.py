@@ -27,7 +27,8 @@ class InstructionDurations:
 
     It stores durations (gate lengths) and dt to be used at the scheduling stage of transpiling.
     It can be constructed from ``backend`` or ``instruction_durations``,
-    which is an argument of :func:`transpile`.
+    which is an argument of :func:`transpile`. The duration of an instruction depends on the
+    instruction (given by name), the qubits, and optionally the parameters of the instruction.
     """
 
     def __init__(
@@ -112,12 +113,19 @@ class InstructionDurations:
             self.duration_by_name_qubits_params.update(inst_durations.duration_by_name_qubits_params)
         else:
             for i, items in enumerate(inst_durations):
-                if len(items) == 3:
+                if not isinstance(items[-1], str):
                     inst_durations[i] = (*items, "dt")  # set default unit
+
+                elif len(items) == 4:  # (inst_name, qubits, duration, unit)
+                    inst_durations[i] = (*items[:2], None, items[3])
+
+                # assert items = (inst_name, qubits, duration, parameters, unit)
                 elif len(items) != 5:
                     raise TranspilerError(
                         "Each entry of inst_durations dictionary must be "
-                        "(inst_name, qubits, parameters, duration) or "
+                        "(inst_name, qubits, duration) or "
+                        "(inst_name, qubits, duration, unit) or"
+                        "(inst_name, qubits, parameters, duration or"
                         "(inst_name, qubits, parameters, duration, unit)"
                     )
 
