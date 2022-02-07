@@ -25,18 +25,20 @@ class AQC:
     the underlying implementation of the approximate circuit, objective, and optimizer. Users may
     pass corresponding implementations of the abstract classes:
 
-        * Optimizer is an instance of :class:`~qiskit.algorithms.optimizer.Optimizer` and
-          used to run the optimization process. A choice of optimizer may affect overall
-          convergence, required time for the optimization process and achieved objective value.
-        * Approximate circuit represents a template which parameters we want to optimize.
-          Currently, there's only one implementation based on 4-rotations CNOT unit blocks:
-          :class:`~qiskit.transpiler.aqc.CNOTUnitCircuit`. See the paper for more details.
-        * Approximate objective is tightly coupled with the approximate circuit implementation
-          and provides two methods for computing objective function and gradient with respect to
-          approximate circuit parameters. This objective is passed to the optimizer. Currently,
-          there's only one implementation based on 4-rotations CNOT unit blocks:
-          :class:`~qiskit.transpiler.aqc.DefaultCNOTUnitObjective`. This is a naive implementation
-          of the objective function and gradient and may suffer from performance issues.
+    * Optimizer is an instance of :class:`~qiskit.algorithms.optimizers.Optimizer` and used to run
+      the optimization process. A choice of optimizer may affect overall convergence, required time
+      for the optimization process and achieved objective value.
+
+    * Approximate circuit represents a template which parameters we want to optimize.  Currently,
+      there's only one implementation based on 4-rotations CNOT unit blocks:
+      :class:`.CNOTUnitCircuit`. See the paper for more details.
+
+    * Approximate objective is tightly coupled with the approximate circuit implementation and
+      provides two methods for computing objective function and gradient with respect to approximate
+      circuit parameters. This objective is passed to the optimizer. Currently, there's only one
+      implementation based on 4-rotations CNOT unit blocks: :class:`.DefaultCNOTUnitObjective`. This
+      is a naive implementation of the objective function and gradient and may suffer from performance
+      issues.
     """
 
     def __init__(
@@ -47,7 +49,7 @@ class AQC:
         """
         Args:
             optimizer: an optimizer to be used in the optimization procedure of the search for
-                the best approximate circuit. By default ``L_BFGS_B`` is used with max iterations
+                the best approximate circuit. By default :obj:`.L_BFGS_B` is used with max iterations
                 is set to 1000.
             seed: a seed value to be user by a random number generator.
         """

@@ -179,12 +179,24 @@ class TestCNOTDihedral(unittest.TestCase):
         self.assertEqual(elem1, elem2, "Error: 2-qubit SWAP identity does not hold")
 
         # CS01 = CS10 (symmetric)
+        #
+        #      ┌───┐
+        # q_0: ┤ T ├──■───────────■──
+        #      ├───┤┌─┴─┐┌─────┐┌─┴─┐
+        # q_1: ┤ T ├┤ X ├┤ Tdg ├┤ X ├
+        #      └───┘└───┘└─────┘└───┘
         circ1 = QuantumCircuit(2)
         circ1.t(0)
         circ1.t(1)
         circ1.cx(0, 1)
         circ1.tdg(1)
         circ1.cx(0, 1)
+
+        #      ┌───┐┌───┐┌─────┐┌───┐
+        # q_0: ┤ T ├┤ X ├┤ Tdg ├┤ X ├
+        #      ├───┤└─┬─┘└─────┘└─┬─┘
+        # q_1: ┤ T ├──■───────────■──
+        #      └───┘
         circ2 = QuantumCircuit(2)
         circ2.t(1)
         circ2.t(0)
@@ -196,6 +208,12 @@ class TestCNOTDihedral(unittest.TestCase):
         self.assertEqual(elem1, elem2, "Error: 2-qubit CS identity does not hold")
 
         # TI*CS*TdgI = CS
+        #
+        #      ┌───┐┌───┐                 ┌─────┐
+        # q_0: ┤ T ├┤ T ├──■───────────■──┤ Tdg ├
+        #      ├───┤└───┘┌─┴─┐┌─────┐┌─┴─┐└─────┘
+        # q_1: ┤ T ├─────┤ X ├┤ Tdg ├┤ X ├───────
+        #      └───┘     └───┘└─────┘└───┘
         circ3 = QuantumCircuit(2)
         circ3.t(0)
         circ3.t(0)
@@ -208,6 +226,12 @@ class TestCNOTDihedral(unittest.TestCase):
         self.assertEqual(elem1, elem3, "Error: 2-qubit CS identity does not hold")
 
         # IT*CS*ITdg = CS
+        #
+        #      ┌───┐
+        # q_0: ┤ T ├───────■───────────■─────────
+        #      ├───┤┌───┐┌─┴─┐┌─────┐┌─┴─┐┌─────┐
+        # q_1: ┤ T ├┤ T ├┤ X ├┤ Tdg ├┤ X ├┤ Tdg ├
+        #      └───┘└───┘└───┘└─────┘└───┘└─────┘
         circ4 = QuantumCircuit(2)
         circ4.t(1)
         circ4.t(0)
@@ -220,6 +244,12 @@ class TestCNOTDihedral(unittest.TestCase):
         self.assertEqual(elem1, elem4, "Error: 2-qubit CS identity does not hold")
 
         # XX*CS*XX*SS = CS
+        #
+        #      ┌───┐┌───┐                 ┌───┐┌───┐
+        # q_0: ┤ X ├┤ T ├──■───────────■──┤ X ├┤ S ├
+        #      ├───┤├───┤┌─┴─┐┌─────┐┌─┴─┐├───┤├───┤
+        # q_1: ┤ X ├┤ T ├┤ X ├┤ Tdg ├┤ X ├┤ X ├┤ S ├
+        #      └───┘└───┘└───┘└─────┘└───┘└───┘└───┘
         circ5 = QuantumCircuit(2)
         circ5.x(0)
         circ5.x(1)
@@ -236,12 +266,24 @@ class TestCNOTDihedral(unittest.TestCase):
         self.assertEqual(elem1, elem5, "Error: 2-qubit CS identity does not hold")
 
         # CSdg01 = CSdg10 (symmetric)
+        #
+        #      ┌─────┐
+        # q_0: ┤ Tdg ├──■─────────■──
+        #      ├─────┤┌─┴─┐┌───┐┌─┴─┐
+        # q_1: ┤ Tdg ├┤ X ├┤ T ├┤ X ├
+        #      └─────┘└───┘└───┘└───┘
         circ1 = QuantumCircuit(2)
         circ1.tdg(0)
         circ1.tdg(1)
         circ1.cx(0, 1)
         circ1.t(1)
         circ1.cx(0, 1)
+
+        #      ┌─────┐┌───┐┌───┐┌───┐
+        # q_0: ┤ Tdg ├┤ X ├┤ T ├┤ X ├
+        #      ├─────┤└─┬─┘└───┘└─┬─┘
+        # q_1: ┤ Tdg ├──■─────────■──
+        #      └─────┘
         circ2 = QuantumCircuit(2)
         circ2.tdg(1)
         circ2.tdg(0)
@@ -253,6 +295,12 @@ class TestCNOTDihedral(unittest.TestCase):
         self.assertEqual(elem1, elem2, "Error: 2-qubit CSdg identity does not hold")
 
         # XI*CS*XI*ISdg = CSdg
+        #
+        #      ┌───┐┌───┐                  ┌───┐
+        # q_0: ┤ X ├┤ T ├──■───────────■───┤ X ├─
+        #      ├───┤└───┘┌─┴─┐┌─────┐┌─┴─┐┌┴───┴┐
+        # q_1: ┤ T ├─────┤ X ├┤ Tdg ├┤ X ├┤ Sdg ├
+        #      └───┘     └───┘└─────┘└───┘└─────┘
         circ3 = QuantumCircuit(2)
         circ3.x(0)
         circ3.t(0)
@@ -266,6 +314,12 @@ class TestCNOTDihedral(unittest.TestCase):
         self.assertEqual(elem1, elem3, "Error: 2-qubit CSdg identity does not hold")
 
         # IX*CS*IX*SdgI = CSdg
+        #
+        #      ┌───┐                      ┌─────┐
+        # q_0: ┤ T ├───────■───────────■──┤ Sdg ├
+        #      ├───┤┌───┐┌─┴─┐┌─────┐┌─┴─┐└┬───┬┘
+        # q_1: ┤ X ├┤ T ├┤ X ├┤ Tdg ├┤ X ├─┤ X ├─
+        #      └───┘└───┘└───┘└─────┘└───┘ └───┘
         circ4 = QuantumCircuit(2)
         circ4.x(1)
         circ4.t(0)
@@ -291,6 +345,12 @@ class TestCNOTDihedral(unittest.TestCase):
         self.assertEqual(elem1, elem2, "Error: 2-qubit CZ identity does not hold")
 
         # CZ = CS * CS
+        #
+        #      ┌───┐                 ┌───┐
+        # q_0: ┤ T ├──■───────────■──┤ T ├──■───────────■──
+        #      ├───┤┌─┴─┐┌─────┐┌─┴─┐├───┤┌─┴─┐┌─────┐┌─┴─┐
+        # q_1: ┤ T ├┤ X ├┤ Tdg ├┤ X ├┤ T ├┤ X ├┤ Tdg ├┤ X ├
+        #      └───┘└───┘└─────┘└───┘└───┘└───┘└─────┘└───┘
         circ3 = QuantumCircuit(2)
         circ3.t(0)
         circ3.t(1)
@@ -306,6 +366,12 @@ class TestCNOTDihedral(unittest.TestCase):
         self.assertEqual(elem1, elem3, "Error: 2-qubit CZ identity does not hold")
 
         # CZ = CSdg * CSdg
+        #
+        #      ┌─────┐               ┌─────┐
+        # q_0: ┤ Tdg ├──■─────────■──┤ Tdg ├──■─────────■──
+        #      ├─────┤┌─┴─┐┌───┐┌─┴─┐├─────┤┌─┴─┐┌───┐┌─┴─┐
+        # q_1: ┤ Tdg ├┤ X ├┤ T ├┤ X ├┤ Tdg ├┤ X ├┤ T ├┤ X ├
+        #      └─────┘└───┘└───┘└───┘└─────┘└───┘└───┘└───┘
         circ4 = QuantumCircuit(2)
         circ4.tdg(0)
         circ4.tdg(1)
@@ -321,6 +387,12 @@ class TestCNOTDihedral(unittest.TestCase):
         self.assertEqual(elem1, elem4, "Error: 2-qubit CZ identity does not hold")
 
         # CZ = TdgTdg * CX * T^2I * CX * TdgTdg
+        #
+        #      ┌─────┐┌───┐┌───┐┌───┐┌───┐┌─────┐
+        # q_0: ┤ Tdg ├┤ X ├┤ T ├┤ T ├┤ X ├┤ Tdg ├
+        #      ├─────┤└─┬─┘└───┘└───┘└─┬─┘├─────┤
+        # q_1: ┤ Tdg ├──■──────────────■──┤ Tdg ├
+        #      └─────┘                    └─────┘
         circ5 = QuantumCircuit(2)
         circ5.tdg(0)
         circ5.tdg(1)
@@ -339,6 +411,12 @@ class TestCNOTDihedral(unittest.TestCase):
         elem1 = CNOTDihedral(circ1)
 
         # TI*CX*TdgI = CX
+        #
+        #      ┌───┐     ┌─────┐
+        # q_0: ┤ T ├──■──┤ Tdg ├
+        #      └───┘┌─┴─┐└─────┘
+        # q_1: ─────┤ X ├───────
+        #           └───┘
         circ2 = QuantumCircuit(2)
         circ2.t(0)
         circ2.cx(0, 1)
@@ -347,6 +425,12 @@ class TestCNOTDihedral(unittest.TestCase):
         self.assertEqual(elem1, elem2, "Error: 2-qubit CX identity does not hold")
 
         # IZ*CX*ZZ = CX
+        #
+        #                ┌───┐
+        # q_0: ───────■──┤ Z ├
+        #      ┌───┐┌─┴─┐├───┤
+        # q_1: ┤ Z ├┤ X ├┤ Z ├
+        #      └───┘└───┘└───┘
         circ3 = QuantumCircuit(2)
         circ3.z(1)
         circ3.cx(0, 1)
@@ -356,6 +440,11 @@ class TestCNOTDihedral(unittest.TestCase):
         self.assertEqual(elem1, elem3, "Error: 2-qubit CX identity does not hold")
 
         # IX*CX*IX = CX
+        #
+        # q_0: ───────■───────
+        #      ┌───┐┌─┴─┐┌───┐
+        # q_1: ┤ X ├┤ X ├┤ X ├
+        #      └───┘└───┘└───┘
         circ4 = QuantumCircuit(2)
         circ4.x(1)
         circ4.cx(0, 1)
@@ -364,6 +453,12 @@ class TestCNOTDihedral(unittest.TestCase):
         self.assertEqual(elem1, elem4, "Error: 2-qubit CX identity does not hold")
 
         # XI*CX*XX = CX
+        #
+        #      ┌───┐     ┌───┐
+        # q_0: ┤ X ├──■──┤ X ├
+        #      └───┘┌─┴─┐├───┤
+        # q_1: ─────┤ X ├┤ X ├
+        #           └───┘└───┘
         circ5 = QuantumCircuit(2)
         circ5.x(0)
         circ5.cx(0, 1)
@@ -373,9 +468,21 @@ class TestCNOTDihedral(unittest.TestCase):
         self.assertEqual(elem1, elem5, "Error: 2-qubit CX identity does not hold")
 
         # IT*CX01*CX10*TdgI = CX01*CX10
+        #
+        #           ┌───┐
+        # q_0: ──■──┤ X ├
+        #      ┌─┴─┐└─┬─┘
+        # q_1: ┤ X ├──■──
+        #      └───┘
         circ1 = QuantumCircuit(2)
         circ1.cx(0, 1)
         circ1.cx(1, 0)
+
+        #                ┌───┐┌─────┐
+        # q_0: ───────■──┤ X ├┤ Tdg ├
+        #      ┌───┐┌─┴─┐└─┬─┘└─────┘
+        # q_1: ┤ T ├┤ X ├──■─────────
+        #      └───┘└───┘
         circ2 = QuantumCircuit(2)
         circ2.t(1)
         circ2.cx(0, 1)
@@ -592,7 +699,7 @@ class TestCNOTDihedral(unittest.TestCase):
                 elem = CNOTDihedral(circ)
                 mat = elem.to_matrix()
                 self.assertIsInstance(mat, np.ndarray)
-                self.assertEqual(mat.shape, 2 * (2 ** num_qubits,))
+                self.assertEqual(mat.shape, 2 * (2**num_qubits,))
                 value = Operator(mat)
                 target = Operator(circ)
                 self.assertTrue(value.equiv(target), "Error: matrix of the circuit is not the same")

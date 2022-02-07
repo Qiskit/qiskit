@@ -1,0 +1,7 @@
+---
+
+features:
+  - |
+    Added new gate, :class:`~qiskit.circuit.library.standard_gates.XYGate` to
+    the standard library and as a function for the :class:`~qiskit.circuit.QuantumCircuit`
+    class. Refer to the discussion in `#7164 <https://github.com/Qiskit/qiskit-terra/issues/7164>`__.

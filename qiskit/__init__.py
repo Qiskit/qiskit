@@ -58,14 +58,6 @@ from .version import QiskitVersion  # noqa
 __qiskit_version__ = QiskitVersion()
 
 
-if sys.version_info < (3, 7):
-    warnings.warn(
-        "Using Qiskit with Python 3.6 is deprecated as of qiskit-terra 0.17.0. "
-        "Support for running Qiskit with Python 3.6 will be removed in qiskit-terra 0.20.0.",
-        DeprecationWarning,
-    )
-
-
 class AerWrapper:
     """Lazy loading wrapper for Aer provider."""
 

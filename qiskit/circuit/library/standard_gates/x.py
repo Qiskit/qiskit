@@ -206,8 +206,8 @@ class CXGate(ControlledGate):
         call = QuantumGateCall(
             Identifier("U"),
             [control, target],
-            parameters=[Constant.pi, Integer(0), Constant.pi],
-            modifiers=[QuantumGateModifier(QuantumGateModifierName.ctrl)],
+            parameters=[Constant.PI, Integer(0), Constant.PI],
+            modifiers=[QuantumGateModifier(QuantumGateModifierName.CTRL)],
         )
         return QuantumGateDefinition(
             QuantumGateSignature(Identifier("cx"), [control, target]),
@@ -335,6 +335,13 @@ class CCXGate(ControlledGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
+        #                                                        ┌───┐
+        # q_0: ───────────────────■─────────────────────■────■───┤ T ├───■──
+        #                         │             ┌───┐   │  ┌─┴─┐┌┴───┴┐┌─┴─┐
+        # q_1: ───────■───────────┼─────────■───┤ T ├───┼──┤ X ├┤ Tdg ├┤ X ├
+        #      ┌───┐┌─┴─┐┌─────┐┌─┴─┐┌───┐┌─┴─┐┌┴───┴┐┌─┴─┐├───┤└┬───┬┘└───┘
+        # q_2: ┤ H ├┤ X ├┤ Tdg ├┤ X ├┤ T ├┤ X ├┤ Tdg ├┤ X ├┤ T ├─┤ H ├──────
+        #      └───┘└───┘└─────┘└───┘└───┘└───┘└─────┘└───┘└───┘ └───┘
         q = QuantumRegister(3, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [

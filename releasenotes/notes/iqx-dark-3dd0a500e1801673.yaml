@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    Add a new colorscheme to the circuit drawer: the dark version of the Quantum Experience.
+    This colorscheme can be used for instance as
+
+    .. code-block::
+
+        from qiskit.circuit import QuantumCircuit
+        from matplotlib.pyplot import show
+
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.p(0.2, 1)
+
+        circuit.draw("mpl", style="iqx-dark")
+        show()
