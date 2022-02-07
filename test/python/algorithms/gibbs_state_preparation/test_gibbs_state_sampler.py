@@ -38,7 +38,9 @@ class TestGibbsStateSampler(QiskitAlgorithmsTestCase):
         hamiltonian = X
         temperature = 42
 
-        gibbs_state = GibbsStateSampler(gibbs_state_function, hamiltonian, temperature)
+        backend = Aer.get_backend("qasm_simulator")
+
+        gibbs_state = GibbsStateSampler(gibbs_state_function, hamiltonian, temperature, backend)
 
         np.testing.assert_equal(gibbs_state.hamiltonian, X)
         np.testing.assert_equal(gibbs_state.temperature, 42)
@@ -48,6 +50,10 @@ class TestGibbsStateSampler(QiskitAlgorithmsTestCase):
         gibbs_state_function = Zero
         hamiltonian = SummedOp([0.3 * Z ^ Z ^ I ^ I, 0.2 * Z ^ I ^ I ^ I, 0.5 * I ^ Z ^ I ^ I])
         temperature = 42
+
+        backend = Aer.get_backend("qasm_simulator")
+        seed = 170
+        qi = QuantumInstance(backend=backend, seed_simulator=seed, seed_transpiler=seed)
 
         depth = 1
         num_qubits = 4
@@ -62,15 +68,13 @@ class TestGibbsStateSampler(QiskitAlgorithmsTestCase):
             gibbs_state_function,
             hamiltonian,
             temperature,
+            qi,
             ansatz,
             params_dict,
             aux_registers=aux_registers,
         )
 
-        backend = Aer.get_backend("qasm_simulator")
-        seed = 170
-        qi = QuantumInstance(backend=backend, seed_simulator=seed, seed_transpiler=seed)
-        probs = gibbs_state.sample(qi)
+        probs = gibbs_state.sample()
         expected_probs = [0.222656, 0.25293, 0.25293, 0.271484]
         np.testing.assert_array_almost_equal(probs, expected_probs)
 
@@ -88,6 +92,8 @@ class TestGibbsStateSampler(QiskitAlgorithmsTestCase):
         )
         temperature = 42
 
+        backend = Aer.get_backend("qasm_simulator")
+
         depth = 1
         num_qubits = 7
 
@@ -101,6 +107,7 @@ class TestGibbsStateSampler(QiskitAlgorithmsTestCase):
             gibbs_state_function,
             hamiltonian,
             temperature,
+            backend,
             ansatz,
             params_dict,
             aux_registers=aux_registers,
@@ -117,6 +124,10 @@ class TestGibbsStateSampler(QiskitAlgorithmsTestCase):
         hamiltonian = SummedOp([0.3 * Z ^ Z ^ I ^ I, 0.2 * Z ^ I ^ I ^ I, 0.5 * I ^ Z ^ I ^ I])
         temperature = 42
 
+        backend = Aer.get_backend("qasm_simulator")
+        seed = 170
+        qi = QuantumInstance(backend=backend, seed_simulator=seed, seed_transpiler=seed)
+
         depth = 1
         num_qubits = 4
 
@@ -130,16 +141,14 @@ class TestGibbsStateSampler(QiskitAlgorithmsTestCase):
             gibbs_state_function,
             hamiltonian,
             temperature,
+            qi,
             ansatz,
             params_dict,
             aux_registers=aux_registers,
         )
 
         gradient_method = "param_shift"
-        backend = Aer.get_backend("qasm_simulator")
-        seed = 170
-        qi = QuantumInstance(backend=backend, seed_simulator=seed, seed_transpiler=seed)
-        gradients = gibbs_state.calc_ansatz_gradients(qi, gradient_method)
+        gradients = gibbs_state.calc_ansatz_gradients(gradient_method)
 
         expected_gradients = [
             [0.06372666, 0.0565455, 0.06128526, 0.06875253],
@@ -168,6 +177,9 @@ class TestGibbsStateSampler(QiskitAlgorithmsTestCase):
         gibbs_state_function = Zero
         hamiltonian = SummedOp([0.3 * Z ^ Z ^ I ^ I, 0.2 * Z ^ I ^ I ^ I, 0.5 * I ^ Z ^ I ^ I])
         temperature = 42
+
+        backend = Aer.get_backend("qasm_simulator")
+
         param_values_init = np.zeros(2)
 
         aux_registers = set(range(2, 4))
@@ -177,6 +189,7 @@ class TestGibbsStateSampler(QiskitAlgorithmsTestCase):
             gibbs_state_function,
             hamiltonian,
             temperature,
+            backend,
             ansatz_params_dict=params_dict,
             aux_registers=aux_registers,
         )
@@ -195,6 +208,10 @@ class TestGibbsStateSampler(QiskitAlgorithmsTestCase):
         hamiltonian = SummedOp([param * Z ^ Z ^ I ^ I, 0.2 * Z ^ I ^ I ^ I, 0.5 * I ^ Z ^ I ^ I])
         temperature = 42
 
+        backend = Aer.get_backend("qasm_simulator")
+        seed = 170
+        qi = QuantumInstance(backend=backend, seed_simulator=seed, seed_transpiler=seed)
+
         depth = 1
         num_qubits = 4
 
@@ -211,6 +228,7 @@ class TestGibbsStateSampler(QiskitAlgorithmsTestCase):
             gibbs_state_function,
             hamiltonian,
             temperature,
+            qi,
             ansatz,
             params_dict,
             hamiltonian_gradients,
@@ -218,10 +236,8 @@ class TestGibbsStateSampler(QiskitAlgorithmsTestCase):
         )
 
         gradient_method = "param_shift"
-        backend = Aer.get_backend("qasm_simulator")
-        seed = 170
-        qi = QuantumInstance(backend=backend, seed_simulator=seed, seed_transpiler=seed)
-        final_gradients = gibbs_state.calc_hamiltonian_gradients(qi, gradient_method)
+
+        final_gradients = gibbs_state.calc_hamiltonian_gradients(gradient_method)
 
         expected_gradients = array([0.1058241, 0.1023696, 0.1040996, 0.1169942])
 

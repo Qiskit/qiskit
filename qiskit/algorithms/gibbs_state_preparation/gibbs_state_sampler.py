@@ -32,6 +32,7 @@ class GibbsStateSampler:
         gibbs_state_function: StateFn,
         hamiltonian: Optional[OperatorBase],
         temperature: Optional[float],
+        backend: Union[Backend, BaseBackend, QuantumInstance],
         ansatz: Optional[OperatorBase] = None,
         ansatz_params_dict: Optional[Dict[Parameter, Union[complex, float]]] = None,
         ansatz_hamiltonian_gradients: Optional[
@@ -44,6 +45,7 @@ class GibbsStateSampler:
             gibbs_state_function: Quantum state function of a Gibbs state.
             hamiltonian: Hamiltonian used to build a Gibbs state.
             temperature: Temperature used to build a Gibbs state.
+            backend: A backend used for sampling circuit probabilities.
             ansatz: Ansatz that gave rise to a Gibbs state.
             ansatz_params_dict: Dictionary that maps ansatz parameters to values optimal for a
                                 Gibbs state.
@@ -64,10 +66,13 @@ class GibbsStateSampler:
         self._gibbs_state_function = gibbs_state_function
         self._hamiltonian = hamiltonian
         self._temperature = temperature
+        self._backend = backend
         self._ansatz = ansatz
         self._ansatz_params_dict = ansatz_params_dict
         self._ansatz_hamiltonian_gradients = ansatz_hamiltonian_gradients
         self._aux_registers = aux_registers
+
+        self._circuit_sampler = CircuitSampler(backend=backend)
 
     @property
     def hamiltonian(self) -> OperatorBase:
@@ -78,6 +83,10 @@ class GibbsStateSampler:
     def temperature(self) -> float:
         """Returns a temperature."""
         return self._temperature
+
+    @property
+    def backend(self):
+        return self._backend
 
     @property
     def ansatz(self) -> OperatorBase:
@@ -101,33 +110,26 @@ class GibbsStateSampler:
         not efficient and should not be used in production settings."""
         pass
 
-    # TODO caching through sampler?
-    def sample(
-        self, backend: Union[Backend, BaseBackend, QuantumInstance]
-    ) -> NDArray[Union[complex, float]]:  # calc p_qbm
+    def sample(self) -> NDArray[Union[complex, float]]:  # calc p_qbm
         """
         Samples probabilities from a Gibbs state.
-        Args:
-            backend: A backend used for sampling circuit probabilities.
         Returns:
             An array of samples probabilities.
         """
         operator = CircuitStateFn(self._ansatz)
-        sampler = CircuitSampler(backend=backend).convert(operator, self._ansatz_params_dict)
+        sampler = self._circuit_sampler.convert(operator, self._ansatz_params_dict)
         amplitudes_with_aux_regs = sampler.eval().primitive
         probs = self._discard_aux_registers(amplitudes_with_aux_regs)
         return probs
 
     def calc_ansatz_gradients(
         self,
-        backend: Union[Backend, BaseBackend, QuantumInstance],
         gradient_method: str = "param_shift",
     ) -> NDArray[NDArray[Union[complex, float]]]:
         """
         Calculates gradients of a Gibbs state w.r.t. desired
         gradient_params that parametrize the Gibbs state.
         Args:
-            backend: A backend used for sampling circuit probabilities.
             gradient_method: A desired gradient method chosen from the Qiskit Gradient Framework.
         Returns:
             Calculated gradients with respect to each parameter indicated in gradient_params
@@ -140,24 +142,15 @@ class GibbsStateSampler:
                 "Both ansatz and ansatz_params_dict must be present in the class to compute "
                 "gradients."
             )
-        gradient_params = list(self._ansatz_params_dict.keys())
 
         operator = CircuitStateFn(self._ansatz)
-        # combo fn for an operator here, telling how to batch results together, pass combo fn to
-        # Gradient
-        # state_grad_with_aux_regs = Gradient(grad_method=gradient_method).convert(
-        #     operator=operator, params=gradient_params
-        # )
-        # sampler = CircuitSampler(backend=backend).convert(
-        #     state_grad_with_aux_regs, self._ansatz_params_dict
-        # )
-        # gradient_amplitudes_with_aux_regs = sampler.eval()[0]
+
         gradient_amplitudes_with_aux_regs = Gradient(grad_method=gradient_method).gradient_wrapper(
-            operator, self._ansatz.ordered_parameters, backend=backend
+            operator, self._ansatz.ordered_parameters, backend=self._backend
         )
         # Get the values for the gradient of the sampling probabilities w.r.t. the Ansatz parameters
         gradient_amplitudes_with_aux_regs = gradient_amplitudes_with_aux_regs(
-            self.ansatz_params_dict.values()
+            self._ansatz_params_dict.values()
         )
         # TODO gradients of amplitudes or probabilities?
         state_grad = self._discard_aux_registers_gradients(gradient_amplitudes_with_aux_regs)
@@ -165,20 +158,18 @@ class GibbsStateSampler:
 
     def calc_hamiltonian_gradients(
         self,
-        backend: Union[Backend, BaseBackend, QuantumInstance],
         gradient_method: str = "param_shift",
     ) -> Dict[Parameter, NDArray[Union[complex, float]]]:
         """
         Calculates gradients of the visible part of a Gibbs state w.r.t. parameters of a
         Hamiltonian that gave rise to the Gibbs state.
         Args:
-            backend: A backend used for sampling circuit probabilities.
             gradient_method: A desired gradient method chosen from the Qiskit Gradient Framework.
         Returns:
             Calculated gradients of the visible part of a Gibbs state w.r.t. parameters of a
             Hamiltonian that gave rise to the Gibbs state.
         """
-        ansatz_gradients = self.calc_ansatz_gradients(backend, gradient_method)
+        ansatz_gradients = self.calc_ansatz_gradients(gradient_method)
         gibbs_state_hamiltonian_gradients = {}
         for hamiltonian_parameter in self._hamiltonian.parameters:
             summed_gradient = np.dot(
