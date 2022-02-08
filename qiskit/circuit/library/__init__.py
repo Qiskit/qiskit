@@ -17,7 +17,7 @@ Circuit Library (:mod:`qiskit.circuit.library`)
 
 .. currentmodule:: qiskit.circuit.library
 
-Circuit Library is a collection of well studied circuits, directives, and gates that can be plugged
+The circuit library is a collection of well studied circuits, directives, and gates that can be plugged
 into many experiments allowing users to program at higher levels of abstraction when developing and
 experimenting with circuits.
 
