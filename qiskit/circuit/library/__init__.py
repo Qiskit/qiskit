@@ -37,8 +37,8 @@ Any element of the circuit library can be attached to a circuit with the method
 
 The library is organized in several sections.
 
-Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
-=============================================================
+Standard gates
+==============
 
 These instructions are reversible unitary gates and they all subclass
 :class:`~qiskit.circuit.gate.Gate`. As a consequence, they all have the methods
@@ -165,8 +165,8 @@ set the amount of qubits involved at instantiation time.
    RVGate
    PauliGate
 
-Boolean Logic Circuits (:mod:`qiskit.circuit.library.boolean_logic`)
-====================================================================
+Boolean Logic Circuits
+======================
 
 These are :class:`~qiskit.circuit.quantumcircuit.QuantumCircuit` subclasses
 that implement boolean logic operations.
@@ -181,8 +181,8 @@ that implement boolean logic operations.
    XOR
    InnerProduct
 
-Basis Change Circuits (:mod:`qiskit.circuit.library.basis_change`)
-==================================================================
+Basis Change Circuits
+=====================
 
 Basis change algorithms are :class:`~qiskit.circuit.library.blueprintcircuit.BlueprintCircuit` subclasses
 that allow to transform between bases. For example, in the case of the
@@ -194,8 +194,8 @@ Quantum Fourier Transform (QFT), it transforms between the computational basis a
 
    QFT
 
-Arithmetic Circuits (:mod:`qiskit.circuit.library.arithmetic`)
-==============================================================
+Arithmetic Circuits
+===================
 
 These :class:`~qiskit.circuit.quantumcircuit.QuantumCircuit`s allow to perform classical arithmetics,
 such as addition or multiplication.
@@ -291,8 +291,8 @@ Particular Quantum Circuits
    PauliEvolutionGate
 
 
-N-local circuits (:mod:`qiskit.circuit.library.n_local`)
-========================================================
+N-local circuits
+================
 
 These :class:`~qiskit.circuit.library.blueprintcircuit.BlueprintCircuit`
 subclasses are used as initial guess (a.k.a. Ansatz or variational form) in chemistry.
@@ -324,8 +324,8 @@ subclasses are used for classification and data encoding circuits (a.k.a. featur
    ZFeatureMap
    ZZFeatureMap
 
-Template circuits (:mod:`qiskit.circuit.library.templates`)
-===========================================================
+Template circuits
+=================
 
 Templates are functions that return circuits that compute the identity. They are used at
 circuit optimization where matching part of the template allows the compiler
@@ -345,8 +345,8 @@ In this example, the identity constant in a template is checked:
     data = Operator(template).data
     np.allclose(data, identity)  # True, template_nct_4b_1 is the identity
 
-NCT (Not-CNOT-Toffoli) template circuits (:mod:`qiskit.circuit.library.templates.nct`)
---------------------------------------------------------------------------------------
+NCT (Not-CNOT-Toffoli) template circuits
+----------------------------------------
 
 Template circuits for :class:`~qiskit.circuit.library.standard_gates.x.XGate`,
 :class:`~qiskit.circuit.library.standard_gates.x.CXGate`,
@@ -408,8 +408,8 @@ http://dx.doi.org/10.1145/1278349.1278355
    templates.nct.template_nct_9d_9
    templates.nct.template_nct_9d_10
 
-Clifford template circuits (:mod:`qiskit.circuit.library.templates.clifford`)
------------------------------------------------------------------------------
+Clifford template circuits
+--------------------------
 
 Template circuits over Clifford gates.
 
@@ -435,8 +435,8 @@ Template circuits over Clifford gates.
    clifford_8_2
    clifford_8_3
 
-RZXGate template circuits (:mod:`qiskit.circuit.library.templates.rzx`)
------------------------------------------------------------------------
+RZXGate template circuits
+-------------------------
 
 Template circuits with :class:`~qiskit.circuit.library.standard_gates.rzx.RZXGate`.
 
