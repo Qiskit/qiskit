@@ -295,7 +295,7 @@ N-local circuits
 ================
 
 These :class:`~qiskit.circuit.library.blueprintcircuit.BlueprintCircuit`
-subclasses are used as initial guess (a.k.a. Ansatz or variational form) in chemistry.
+subclasses are used as initial guesses (a.k.a. ansatzes or variational forms) in chemistry.
 
 .. autosummary::
    :toctree: ../stubs/
