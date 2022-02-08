@@ -23,7 +23,7 @@ experimenting with circuits.
 
 
 Any element of the circuit library can be attached to a circuit with the method
-:meth:`~qiskit.circuit.QuantumCircuit.append()`. For example, to append a multi-controlled CNOT:
+:meth:`.QuantumCircuit.append`. For example, to append a multi-controlled CNOT:
 
 .. jupyter-execute::
 
