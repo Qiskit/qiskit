@@ -577,6 +577,15 @@ class BackendV2(Backend, ABC):
         """
         return self._options
 
+    @property
+    def provider(self):
+        """Return the backend Provider.
+
+        Returns:
+            Provider: the Provider responsible for the backend.
+        """
+        return self._provider
+
     @abstractmethod
     def run(self, run_input, **options):
         """Run on the backend.

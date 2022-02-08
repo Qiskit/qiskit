@@ -288,6 +288,58 @@ def generate_evolution_gate():
     return qc
 
 
+def generate_control_flow_circuits():
+    """Test qpy serialization with control flow instructions."""
+    from qiskit.circuit.controlflow import WhileLoopOp, IfElseOp, ForLoopOp
+
+    # If instruction
+    circuits = []
+    qc = QuantumCircuit(2, 2)
+    qc.h(0)
+    qc.measure(0, 0)
+    true_body = QuantumCircuit(1)
+    true_body.x(0)
+    if_op = IfElseOp((qc.clbits[0], True), true_body=true_body)
+    qc.append(if_op, [1])
+    qc.measure(1, 1)
+    circuits.append(qc)
+    # If else instruction
+    qc = QuantumCircuit(2, 2)
+    qc.h(0)
+    qc.measure(0, 0)
+    false_body = QuantumCircuit(1)
+    false_body.y(0)
+    if_else_op = IfElseOp((qc.clbits[0], True), true_body, false_body)
+    qc.append(if_else_op, [1])
+    qc.measure(1, 1)
+    circuits.append(qc)
+    # While loop
+    qc = QuantumCircuit(2, 1)
+    block = QuantumCircuit(2, 1)
+    block.h(0)
+    block.cx(0, 1)
+    block.measure(0, 0)
+    while_loop = WhileLoopOp((qc.clbits[0], 0), block)
+    qc.append(while_loop, [0, 1], [0])
+    circuits.append(qc)
+    # for loop range
+    qc = QuantumCircuit(2, 1)
+    body = QuantumCircuit(2, 1)
+    body.h(0)
+    body.cx(0, 1)
+    body.measure(0, 0)
+    body.break_loop().c_if(0, True)
+    for_loop_op = ForLoopOp(range(5), None, body=body)
+    qc.append(for_loop_op, [0, 1], [0])
+    circuits.append(qc)
+    # For loop iterator
+    qc = QuantumCircuit(2, 1)
+    for_loop_op = ForLoopOp(iter(range(5)), None, body=body)
+    qc.append(for_loop_op, [0, 1], [0])
+    circuits.append(qc)
+    return circuits
+
+
 def generate_circuits(version_str=None):
     """Generate reference circuits."""
     version_parts = None
@@ -318,6 +370,8 @@ def generate_circuits(version_str=None):
         output_circuits["parameter_vector_expression.qpy"] = [
             generate_parameter_vector_expression()
         ]
+    if version_parts >= (0, 19, 2):
+        output_circuits["control_flow.qpy"] = generate_control_flow_circuits()
 
     return output_circuits
 
