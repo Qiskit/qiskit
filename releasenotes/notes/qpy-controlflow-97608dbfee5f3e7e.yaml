@@ -1,0 +1,29 @@
+---
+fixes:
+  - |
+    Fixed QPY serialization of :class:`.QuantumCircuit` objects that contained
+    control flow instructions. Previously if you attempted to serialize a
+    circuit containing :class:`.IfElseOp`, :class:`.WhileLoopOp`, or
+    :class:`ForLoopOp` the serialization would fail.
+    Fixed `#7583 <https://github.com/Qiskit/qiskit-terra/issues/7583>`__.
+  - |
+    Fixed QPY serialization of :class:`.QuantumCircuit` containing subsets of
+    bits from a :class:`.QuantumRegister` or :class:`.ClassicalRegister`.
+    Previously if you tried to serialize a circuit like this it would
+    incorrectly treat these bits as standalone :class:`.Qubit` or
+    :class:`.Clbit` without having a register set. For example, if you try to
+    serialize a circuit like::
+
+        import io
+        from qiskit import QuantumCircuit, QuantumRegister
+        from qiskit.circuit.qpy_serialization import load, dump
+
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit([qr[0]])
+        qc.x(0)
+        with open('file.qpy', 'wb') as fd:
+            dump(qc, fd)
+
+    when that circuit is loaded now the registers will be correctly populated
+    fully even though the circuit only contains a subset of the bits from the
+    register.

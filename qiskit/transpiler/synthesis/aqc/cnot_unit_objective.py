@@ -78,7 +78,7 @@ class DefaultCNOTUnitObjective(CNOTUnitObjective):
         # rename parameters just to make shorter and make use of our dictionary
         thetas = param_values
         n = self._num_qubits
-        d = int(2 ** n)
+        d = int(2**n)
         cnots = self._cnots
         num_cnots = self.num_cnots
 
@@ -183,7 +183,7 @@ class DefaultCNOTUnitObjective(CNOTUnitObjective):
         pauli_z = np.multiply(-1j / 2, np.array([[1, 0], [0, -1]]))
 
         n = self._num_qubits
-        d = int(2 ** n)
+        d = int(2**n)
         cnots = self._cnots
         num_cnots = self.num_cnots
 

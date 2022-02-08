@@ -45,14 +45,7 @@ from qiskit.algorithms.optimizers import (
 )
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.exceptions import MissingOptionalLibraryError
-from qiskit.utils import algorithm_globals
-
-try:
-    import skquant.opt as skq  # pylint: disable=unused-import
-
-    _HAS_SKQUANT = True
-except ImportError:
-    _HAS_SKQUANT = False
+from qiskit.utils import algorithm_globals, optionals
 
 
 @ddt
@@ -269,7 +262,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         self.assertListEqual(settings["eta"], [0.2, 0.1])
         self.assertListEqual(settings["momentum"], [0.25, 0.1])
 
-    @unittest.skipIf(not _HAS_SKQUANT, "Install scikit-quant to run this test.")
+    @unittest.skipIf(not optionals.HAS_SKQUANT, "Install scikit-quant to run this test.")
     def test_bobyqa(self):
         """Test BOBYQA is serializable."""
 
@@ -278,7 +271,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
 
         self.assertEqual(settings["maxiter"], 200)
 
-    @unittest.skipIf(not _HAS_SKQUANT, "Install scikit-quant to run this test.")
+    @unittest.skipIf(not optionals.HAS_SKQUANT, "Install scikit-quant to run this test.")
     def test_imfil(self):
         """Test IMFIL is serializable."""
 
@@ -335,7 +328,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         def powerlaw():
             n = 0
             while True:
-                yield rate ** n
+                yield rate**n
                 n += 1
 
         def steps():

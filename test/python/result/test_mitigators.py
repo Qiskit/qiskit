@@ -222,7 +222,7 @@ class TestReadoutMitigation(QiskitTestCase):
         LRM = LocalReadoutMitigator(circuits_data["local_method_matrices"])
         num_qubits = circuits_data["num_qubits"]
         diagonals = []
-        diagonals.append(z_diagonal(2 ** num_qubits))
+        diagonals.append(z_diagonal(2**num_qubits))
         diagonals.append("IZ0")
         diagonals.append("ZZZ")
         diagonals.append("101")
