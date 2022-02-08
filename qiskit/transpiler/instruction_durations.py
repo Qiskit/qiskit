@@ -110,7 +110,9 @@ class InstructionDurations:
         if isinstance(inst_durations, InstructionDurations):
             self.duration_by_name.update(inst_durations.duration_by_name)
             self.duration_by_name_qubits.update(inst_durations.duration_by_name_qubits)
-            self.duration_by_name_qubits_params.update(inst_durations.duration_by_name_qubits_params)
+            self.duration_by_name_qubits_params.update(
+                inst_durations.duration_by_name_qubits_params
+            )
         else:
             for i, items in enumerate(inst_durations):
 
@@ -209,7 +211,7 @@ class InstructionDurations:
         name: str,
         qubits: List[int],
         to_unit: str,
-        parameters: Optional[Iterable[float]] = None
+        parameters: Optional[Iterable[float]] = None,
     ) -> float:
         """Get the duration of the instruction with the name, qubits, and parameters."""
         if name == "barrier":
