@@ -45,8 +45,8 @@ def expval_with_stddev(coeffs: np.ndarray, probs: np.ndarray, shots: int) -> Tup
     expval = coeffs.dot(probs)
 
     # Compute variance
-    sq_expval = (coeffs ** 2).dot(probs)
-    variance = (sq_expval - expval ** 2) / shots
+    sq_expval = (coeffs**2).dot(probs)
+    variance = (sq_expval - expval**2) / shots
 
     # Compute standard deviation
     if variance < 0 and not np.isclose(variance, 0):
@@ -86,7 +86,7 @@ def str2diag(string):
 
 def counts_to_vector(counts: Counts, num_qubits: int) -> Tuple[np.ndarray, int]:
     """Transforms Counts to a probability vector"""
-    vec = np.zeros(2 ** num_qubits, dtype=float)
+    vec = np.zeros(2**num_qubits, dtype=float)
     shots = 0
     for key, val in counts.items():
         shots += val

@@ -1,0 +1,28 @@
+---
+features:
+  - |
+    The :class:`.Optimize1qGates` transpiler pass now has support for optimizing :class:`.U1Gate`,
+    :class:`.U2Gate`, and :class:`.PhaseGate` gates with unbound parameters in a circuit.
+    Previously, if these gates had unbound parameters the pass would not use them. For example::
+
+        from qiskit import QuantumCircuit
+        from qiskit.circuit import Parameter
+        from qiskit.transpiler import PassManager
+        from qiskit.transpiler.passes import Optimize1qGates, Unroller
+
+        phi = Parameter('φ')
+        alpha = Parameter('α')
+
+        qc = QuantumCircuit(1)
+        qc.u1(2*phi, 0)
+        qc.u1(alpha, 0)
+        qc.u1(0.1, 0)
+        qc.u1(0.2, 0)
+
+        pm = PassManager([Unroller(['u1', 'cx']), Optimize1qGates()])
+        nqc = pm.run(qc)
+
+    will be combined to the circuit with only one single-qubit gate::
+    
+        qc = QuantumCircuit(1)
+        qc.u1(2*phi + alpha + 0.3, 0)

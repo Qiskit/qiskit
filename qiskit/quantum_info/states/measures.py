@@ -14,7 +14,6 @@ Quantum information measures, metrics, and related functions for states.
 """
 
 import numpy as np
-import scipy.linalg as la
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.statevector import Statevector
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
@@ -119,6 +118,8 @@ def entropy(state, base=2):
     Raises:
         QiskitError: if the input state is not a valid QuantumState.
     """
+    import scipy.linalg as la
+
     state = _format_state(state, validate=True)
     if isinstance(state, Statevector):
         return 0
@@ -195,6 +196,8 @@ def concurrence(state):
         QiskitError: if input is not a bipartite QuantumState.
         QiskitError: if density matrix input is not a 2-qubit state.
     """
+    import scipy.linalg as la
+
     # Concurrence computation requires the state to be valid
     state = _format_state(state, validate=True)
     if isinstance(state, Statevector):
@@ -247,5 +250,5 @@ def entanglement_of_formation(state):
     if state.dim != 4:
         raise QiskitError("Input density matrix must be a 2-qubit state.")
     conc = concurrence(state)
-    val = (1 + np.sqrt(1 - (conc ** 2))) / 2
+    val = (1 + np.sqrt(1 - (conc**2))) / 2
     return shannon_entropy([val, 1 - val])
