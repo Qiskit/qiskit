@@ -135,7 +135,7 @@ set the amount of qubits involved at instantiation time.
 
 .. jupyter-execute::
 
-    from qiskit.circuit.library.generalized_gates import Diagonal
+    from qiskit.circuit.library import Diagonal
 
     diagonal = Diagonal([1, 1])
     print(diagonal.num_qubits)
