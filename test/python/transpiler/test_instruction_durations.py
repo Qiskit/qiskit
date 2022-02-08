@@ -122,4 +122,4 @@ class TestTranspile(QiskitTestCase):
         dd_sequence = [XGate(), XGate()]
         pm = PassManager([ALAPSchedule(durations), DynamicalDecoupling(durations, dd_sequence)])
 
-        self.assertEqual(pm.run([circ])[0].duration, rx_duration + 100 + 300)
+        self.assertEqual(pm.run(circ).duration, rx_duration + 100 + 300)
