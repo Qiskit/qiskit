@@ -438,7 +438,7 @@ Template circuits over Clifford gates.
 RZXGate template circuits
 -------------------------
 
-Template circuits with :class:`~qiskit.circuit.library.standard_gates.rzx.RZXGate`.
+Template circuits with :class:`~qiskit.circuit.library.RZXGate`.
 
 .. autosummary::
    :toctree: ../stubs/
