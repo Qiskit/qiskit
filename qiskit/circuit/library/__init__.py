@@ -185,7 +185,7 @@ Basis Change Circuits
 =====================
 
 Basis change algorithms are :class:`~qiskit.circuit.library.blueprintcircuit.BlueprintCircuit` subclasses
-that allow to transform between bases. For example, in the case of the
+that transform between bases. For example, in the case of the
 Quantum Fourier Transform (QFT), it transforms between the computational basis and the Fourier basis.
 
 .. autosummary::
