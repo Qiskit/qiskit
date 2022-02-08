@@ -141,7 +141,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
     def __array__(self, dtype=None):
         """Convert to numpy array"""
         # pylint: disable=unused-argument
-        shape = (len(self),) + 2 * (2 ** self.num_qubits,)
+        shape = (len(self),) + 2 * (2**self.num_qubits,)
         ret = np.zeros(shape, dtype=complex)
         for i, mat in enumerate(self.matrix_iter()):
             ret[i] = mat
@@ -985,7 +985,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         # For efficiency we also allow returning a single rank-3
         # array where first index is the Pauli row, and second two
         # indices are the matrix indices
-        dim = 2 ** self.num_qubits
+        dim = 2**self.num_qubits
         ret = np.zeros((self.size, dim, dim), dtype=complex)
         iterator = self.matrix_iter(sparse=sparse)
         for i in range(self.size):

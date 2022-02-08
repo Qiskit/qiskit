@@ -57,7 +57,7 @@ logger = logging.getLogger(__name__)
 class UnitarySimulatorPy(BackendV1):
     """Python implementation of a unitary simulator."""
 
-    MAX_QUBITS_MEMORY = int(log2(sqrt(local_hardware_info()["memory"] * (1024 ** 3) / 16)))
+    MAX_QUBITS_MEMORY = int(log2(sqrt(local_hardware_info()["memory"] * (1024**3) / 16)))
 
     DEFAULT_CONFIGURATION = {
         "backend_name": "unitary_simulator",
@@ -147,7 +147,7 @@ class UnitarySimulatorPy(BackendV1):
             return
         # Check unitary is correct length for number of qubits
         shape = np.shape(self._initial_unitary)
-        required_shape = (2 ** self._number_of_qubits, 2 ** self._number_of_qubits)
+        required_shape = (2**self._number_of_qubits, 2**self._number_of_qubits)
         if shape != required_shape:
             raise BasicAerError(
                 f"initial unitary is incorrect shape: {shape} != 2 ** {required_shape}"
@@ -191,7 +191,7 @@ class UnitarySimulatorPy(BackendV1):
         self._validate_initial_unitary()
         if self._initial_unitary is None:
             # Set to identity matrix
-            self._unitary = np.eye(2 ** self._number_of_qubits, dtype=complex)
+            self._unitary = np.eye(2**self._number_of_qubits, dtype=complex)
         else:
             self._unitary = self._initial_unitary.copy()
         # Reshape to rank-N tensor
@@ -199,7 +199,7 @@ class UnitarySimulatorPy(BackendV1):
 
     def _get_unitary(self):
         """Return the current unitary"""
-        unitary = np.reshape(self._unitary, 2 * [2 ** self._number_of_qubits])
+        unitary = np.reshape(self._unitary, 2 * [2**self._number_of_qubits])
         if self._global_phase:
             unitary *= np.exp(1j * float(self._global_phase))
         unitary[abs(unitary) < self._chop_threshold] = 0.0

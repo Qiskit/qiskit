@@ -85,8 +85,8 @@ class ExpectationFactory:
                             "the BasicAer qasm backend for this expectation to avoid having to "
                             "construct the %dx%d operator matrix.",
                             operator.num_qubits,
-                            2 ** operator.num_qubits,
-                            2 ** operator.num_qubits,
+                            2**operator.num_qubits,
+                            2**operator.num_qubits,
                         )
                         backend_to_check = BasicAer.get_backend("qasm_simulator")
 
