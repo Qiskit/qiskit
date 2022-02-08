@@ -135,6 +135,9 @@ class InstructionDurations:
                         f"received {inst_durations[i]}."
                     )
 
+                if inst_durations[i][2] is None:
+                    raise TranspilerError(f"None duration for {inst_durations[i]}.")
+
             for name, qubits, duration, parameters, unit in inst_durations:
                 if isinstance(qubits, int):
                     qubits = [qubits]
