@@ -151,7 +151,7 @@ class InstructionDurations:
                     self.duration_by_name_qubits[(name, tuple(qubits))] = duration, unit
                 else:
                     key = (name, tuple(qubits), tuple(parameters))
-                    self.duration_by_name_qubits_params[key] = duration, int
+                    self.duration_by_name_qubits_params[key] = duration, unit
 
         return self
 
@@ -159,8 +159,8 @@ class InstructionDurations:
         self,
         inst: Union[str, Instruction],
         qubits: Union[int, List[int], Qubit, List[Qubit]],
-        parameters: Optional[List[float]] = None,
         unit: str = "dt",
+        parameters: Optional[List[float]] = None,
     ) -> float:
         """Get the duration of the instruction with the name, qubits, and parameters.
 
@@ -169,8 +169,8 @@ class InstructionDurations:
         Args:
             inst: An instruction or its name to be queried.
             qubits: Qubits or its indices that the instruction acts on.
-            parameters: The value of the parameters of the desired instruction.
             unit: The unit of duration to be returned. It must be 's' or 'dt'.
+            parameters: The value of the parameters of the desired instruction.
 
         Returns:
             float|int: The duration of the instruction on the qubits.
@@ -273,8 +273,8 @@ class InstructionDurations:
 
 
 InstructionDurationsType = Union[
-    List[Tuple[str, Optional[Iterable[int]], Optional[Iterable[float]], float, str]],
-    List[Tuple[str, Optional[Iterable[int]], Optional[Iterable[float]], float]],
+    List[Tuple[str, Optional[Iterable[int]], float, Optional[Iterable[float]], str]],
+    List[Tuple[str, Optional[Iterable[int]], float, Optional[Iterable[float]]]],
     List[Tuple[str, Optional[Iterable[int]], float, str]],
     List[Tuple[str, Optional[Iterable[int]], float]],
     InstructionDurations,
