@@ -53,7 +53,6 @@ class ParamShift(CircuitGradient):
                       else use a finite difference approach
             epsilon: The offset size to use when computing finite difference gradients.
                      Ignored if analytic == True
-
         Raises:
             ValueError: If method != ``fin_diff`` and ``epsilon`` is not None.
         """
@@ -64,20 +63,16 @@ class ParamShift(CircuitGradient):
     @property
     def analytic(self) -> bool:
         """Returns ``analytic`` flag.
-
         Returns:
              ``analytic`` flag.
-
         """
         return self._analytic
 
     @property
     def epsilon(self) -> float:
         """Returns ``epsilon``.
-
         Returns:
             ``epsilon``.
-
         """
         return self._epsilon
 
@@ -103,13 +98,11 @@ class ParamShift(CircuitGradient):
                     If a Tuple[ParameterExpression, ParameterExpression] or
                     List[Tuple[ParameterExpression, ParameterExpression]]
                     is given, then the 2nd order derivative of the operator is calculated.
-
         Returns:
             An operator corresponding to the gradient resp. Hessian. The order is in accordance with
             the order of the given parameters.
         Raises:
             OpflowError: If the parameters are given in an invalid format.
-
         """
         if isinstance(params, (ParameterExpression, ParameterVector)):
             return self._parameter_shift(operator, params)
@@ -148,7 +141,6 @@ class ParamShift(CircuitGradient):
                     a ParameterVector is provided, each parameter will be shifted.
         Returns:
             param_shifted_op: An operator object which evaluates to the respective gradients.
-
         Raises:
             ValueError: If the given parameters do not occur in the provided operator
             TypeError: If the operator has more than one circuit representing the quantum state
@@ -273,17 +265,13 @@ class ParamShift(CircuitGradient):
         shift_constant: float,
     ) -> Union[Dict, np.ndarray]:
         """Implement the combo_fn used to evaluate probability gradients
-
         Args:
             x: Output of an operator evaluation
             shift_constant: Shifting constant factor needed for proper rescaling
-
         Returns:
             Array representing the probability gradients w.r.t. the given operator and parameters
-
         Raises:
             TypeError: if ``x`` is not DictStateFn, VectorStateFn or their list.
-
         """
         # In the probability gradient case, the amplitudes still need to be converted
         # into sampling probabilities.
@@ -348,15 +336,12 @@ class ParamShift(CircuitGradient):
     @staticmethod
     def _replace_operator_circuit(operator: OperatorBase, circuit: QuantumCircuit) -> OperatorBase:
         """Replace a circuit element in an operator with a single element given as circuit
-
         Args:
             operator: Operator for which the circuit representing the quantum state shall be
                       replaced
             circuit: Circuit which shall replace the circuit in the given operator
-
         Returns:
             Operator with replaced circuit quantum state function
-
         """
         if isinstance(operator, CircuitStateFn):
             return CircuitStateFn(circuit, coeff=operator.coeff)
@@ -370,13 +355,10 @@ class ParamShift(CircuitGradient):
     @classmethod
     def get_unique_circuits(cls, operator: OperatorBase) -> List[QuantumCircuit]:
         """Traverse the operator and return all unique circuits
-
         Args:
             operator: An operator that potentially includes QuantumCircuits
-
         Returns:
             A list of all unique quantum circuits that appear in the operator
-
         """
         if isinstance(operator, CircuitStateFn):
             return [operator.primitive]
@@ -401,14 +383,11 @@ class ParamShift(CircuitGradient):
         """Traverse the operator and return all OperatorBase objects flattened
            into a single list. This is used as a subroutine to extract all
            circuits within a large composite operator.
-
         Args:
             operator: An OperatorBase type object
-
         Returns:
             A single flattened list of all OperatorBase objects within the
             input operator
-
         """
         if isinstance(operator, ListOp):
             return [cls.unroll_operator(op) for op in operator]
