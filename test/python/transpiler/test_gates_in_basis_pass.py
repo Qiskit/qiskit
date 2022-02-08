@@ -13,6 +13,8 @@
 """Test GatesInBasis pass."""
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.library import HGate, CXGate, UGate
+from qiskit.circuit.measure import Measure
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import BasisTranslator
@@ -146,6 +148,36 @@ class TestGatesInBasisPass(QiskitTestCase):
         basis_gates = []
         property_set = {}
         analysis_pass = GatesInBasis(basis_gates, target=target)
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.measure_all()
+        analysis_pass(circuit, property_set=property_set)
+        self.assertFalse(property_set["all_gates_in_basis"])
+
+    def test_all_gates_in_ideal_sim_target(self):
+        """Test with target that has ideal gates."""
+        target = Target()
+        target.add_instruction(HGate())
+        target.add_instruction(CXGate())
+        target.add_instruction(Measure())
+        property_set = {}
+        analysis_pass = GatesInBasis(target=target)
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.measure_all()
+        analysis_pass(circuit, property_set=property_set)
+        self.assertTrue(property_set["all_gates_in_basis"])
+
+    def test_all_gates_not_in_ideal_sim_target(self):
+        """Test with target that has ideal gates."""
+        target = Target()
+        target.add_instruction(HGate())
+        target.add_instruction(UGate(0, 0, 0))
+        target.add_instruction(Measure())
+        property_set = {}
+        analysis_pass = GatesInBasis(target=target)
         circuit = QuantumCircuit(2)
         circuit.h(0)
         circuit.cx(0, 1)

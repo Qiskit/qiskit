@@ -53,7 +53,10 @@ class GatesInBasis(AnalysisPass):
                 if gate.name not in self._target:
                     gates_out_of_basis = True
                     break
-                if tuple(qubit_map[bit] for bit in gate.qargs) not in self._target[gate.name]:
+                if (
+                    None not in self._target[gate.name]
+                    and tuple(qubit_map[bit] for bit in gate.qargs) not in self._target[gate.name]
+                ):
                     gates_out_of_basis = True
                     break
         else:
