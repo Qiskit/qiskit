@@ -197,7 +197,7 @@ Quantum Fourier Transform (QFT), it transforms between the computational basis a
 Arithmetic Circuits
 ===================
 
-These :class:`~qiskit.circuit.quantumcircuit.QuantumCircuit`s allow to perform classical arithmetics,
+These :class:`~qiskit.circuit.quantumcircuit.QuantumCircuit`\\ s perform classical arithmetic,
 such as addition or multiplication.
 
 Amplitude Functions
