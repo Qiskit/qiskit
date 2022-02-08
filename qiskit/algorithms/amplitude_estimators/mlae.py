@@ -81,7 +81,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
             if evaluation_schedule < 0:
                 raise ValueError("The evaluation schedule cannot be < 0.")
 
-            self._evaluation_schedule = [0] + [2 ** j for j in range(evaluation_schedule)]
+            self._evaluation_schedule = [0] + [2**j for j in range(evaluation_schedule)]
         else:
             if any(value < 0 for value in evaluation_schedule):
                 raise ValueError("The elements of the evaluation schedule cannot be < 0.")
@@ -445,7 +445,7 @@ def _compute_fisher_information(
             d_loglik += (2 * m_k + 1) * (h_k / tan + (shots_k - h_k) * tan)
 
         d_loglik /= np.sqrt(a * (1 - a))
-        fisher_information = d_loglik ** 2 / len(all_hits)
+        fisher_information = d_loglik**2 / len(all_hits)
 
     else:
         fisher_information = sum(

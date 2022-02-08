@@ -18,7 +18,7 @@ import unittest
 
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
-from qiskit.tools.visualization import HAS_MATPLOTLIB
+from qiskit.utils import optionals
 from qiskit.test import Path, QiskitTestCase, slow_test
 
 
@@ -28,6 +28,7 @@ TIMEOUT = 1000
 JUPYTER_KERNEL = "python3"
 
 
+@unittest.skipUnless(optionals.HAS_IBMQ, "requires IBMQ provider")
 class TestJupyter(QiskitTestCase):
     """Notebooks test case."""
 
@@ -49,6 +50,7 @@ class TestJupyter(QiskitTestCase):
 
         top_str = """
         import qiskit
+        import qiskit.providers.ibmq
         import sys
         from unittest.mock import create_autospec, MagicMock
         from qiskit.test.mock import FakeProviderFactory
@@ -83,7 +85,7 @@ class TestJupyter(QiskitTestCase):
         """Test Jupyter progress bars and job status functionality"""
         self._execute_notebook(os.path.join(self.notebook_dir, "test_pbar_status.ipynb"))
 
-    @unittest.skipIf(not HAS_MATPLOTLIB, "matplotlib not available.")
+    @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     @slow_test
     def test_backend_tools(self):
         """Test Jupyter backend tools."""
