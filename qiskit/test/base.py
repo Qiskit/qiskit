@@ -56,6 +56,7 @@ if _optionals.HAS_TESTTOOLS:
         assertRaises = unittest.TestCase.assertRaises
         assertEqual = unittest.TestCase.assertEqual
 
+
 else:
 
     class BaseTestCase(unittest.TestCase):
