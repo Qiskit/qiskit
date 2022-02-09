@@ -176,7 +176,7 @@ class StochasticSwap(TransformationPass):
         best_circuit = None  # initialize best swap circuit
         best_layout = None  # initialize best final layout
 
-        cdist2 = coupling._dist_matrix ** 2
+        cdist2 = coupling._dist_matrix**2
         # Scaling matrix
         scale = np.zeros((num_qubits, num_qubits))
 

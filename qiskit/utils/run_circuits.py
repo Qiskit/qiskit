@@ -33,6 +33,7 @@ from .backend_utils import (
     is_simulator_backend,
     is_local_backend,
     is_ibmq_provider,
+    _get_backend_interface_version,
 )
 
 MAX_CIRCUITS_PER_JOB = os.environ.get("QISKIT_AQUA_MAX_CIRCUITS_PER_JOB", None)
@@ -277,7 +278,11 @@ def run_qobj(
         if is_local_backend(backend):
             max_circuits_per_job = sys.maxsize
         else:
-            max_circuits_per_job = backend.configuration().max_experiments
+            backend_interface_version = _get_backend_interface_version(backend)
+            if backend_interface_version <= 1:
+                max_circuits_per_job = backend.configuration().max_experiments
+            else:
+                max_circuits_per_job = backend.max_circuits
 
     # split qobj if it exceeds the payload of the backend
 
@@ -470,18 +475,29 @@ def run_circuits(
     Raises:
         QiskitError: Any error except for JobError raised by Qiskit Terra
     """
+    backend_interface_version = _get_backend_interface_version(backend)
+
     backend_options = backend_options or {}
     noise_config = noise_config or {}
     run_config = run_config or {}
-    with_autorecover = not is_simulator_backend(backend)
+    if backend_interface_version <= 1:
+        with_autorecover = not is_simulator_backend(backend)
+    else:
+        with_autorecover = False
 
     if MAX_CIRCUITS_PER_JOB is not None:
         max_circuits_per_job = int(MAX_CIRCUITS_PER_JOB)
     else:
-        if is_local_backend(backend):
-            max_circuits_per_job = sys.maxsize
+        if backend_interface_version <= 1:
+            if is_local_backend(backend):
+                max_circuits_per_job = sys.maxsize
+            else:
+                max_circuits_per_job = backend.configuration().max_experiments
         else:
-            max_circuits_per_job = backend.configuration().max_experiments
+            if backend.max_circuits is not None:
+                max_circuits_per_job = backend.max_circuits
+            else:
+                max_circuits_per_job = sys.maxsize
 
     if len(circuits) > max_circuits_per_job:
         jobs = []

@@ -31,14 +31,8 @@ from .utils.backend_converter import (
     convert_to_target,
     qubit_properties_dict_from_properties
 )
-
-try:
-    from qiskit.providers import aer
-
-    HAS_AER = True
-except ImportError:
-    HAS_AER = False
-    from qiskit.providers import basicaer
+from qiskit.utils import optionals as _optionals
+from qiskit.providers import basicaer
 
 
 class _Credentials:
@@ -116,7 +110,9 @@ class FakeBackend(BackendV1):
 
     @classmethod
     def _default_options(cls):
-        if HAS_AER:
+        if _optionals.HAS_AER:
+            from qiskit.providers import aer
+
             return aer.QasmSimulator._default_options()
         else:
             return basicaer.QasmSimulatorPy._default_options()
@@ -140,7 +136,9 @@ class FakeBackend(BackendV1):
                 "Invalid input object %s, must be either a "
                 "QuantumCircuit, Schedule, or a list of either" % circuits
             )
-        if HAS_AER:
+        if _optionals.HAS_AER:
+            from qiskit.providers import aer
+
             if pulse_job:
                 from qiskit.providers.aer.pulse import PulseSystemModel
 
@@ -230,7 +228,9 @@ class FakeLegacyBackend(BaseBackend):
 
     def run(self, qobj):
         """Main job in simulator"""
-        if HAS_AER:
+        if _optionals.HAS_AER:
+            from qiskit.providers import aer
+
             if qobj.type == "PULSE":
                 from qiskit.providers.aer.pulse import PulseSystemModel
 
