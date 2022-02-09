@@ -405,13 +405,39 @@ class SparsePauliOp(LinearOp):
             z = self.paulis.z[non_zero_indexes]
             coeffs = coeffs[non_zero]
 
-            # Remove real (resp. imaginary) parts that are close to 0. This part for instance
-            # truncates 1+1e-17j to 1.0. Note that all coefficients that are left at this point
-            # are guaranteed to have a value above tolerance due to the previous is_zero check.
-            realpart_zero = np.isclose(coeffs.real, 0, atol=atol, rtol=rtol)
-            imagpart_zero = np.isclose(coeffs.imag, 0, atol=atol, rtol=rtol)
-            coeffs.real[realpart_zero] = 0
-            coeffs.imag[imagpart_zero] = 0
+        return SparsePauliOp(
+            PauliList.from_symplectic(z, x), coeffs, ignore_pauli_phase=True, copy=False
+        )
+
+    def chop(self, tol=1e-14):
+        """Remove real and imaginary parts of the coefficient that are close to 0.
+
+        For example, the operator representing ``1+1e-17j X + 1e-17 Y`` with a tolerance larger
+        than ``1e-17`` will be reduced to ``1 X`` whereas :meth:`.SparsePauliOp.simplify` would
+        return ``1+1e-17j X``.
+
+        Args:
+            tol (float): The absolute tolerance to check whether a real or imaginary part is 0.
+
+        Returns:
+            SparsePauliOp: This operator with chopped coefficients.
+        """
+        # Remove real (resp. imaginary) parts that are close to 0. This part for instance
+        # truncates 1+1e-17j to 1.0. Note that all coefficients that are left at this point
+        # are guaranteed to have a value above tolerance due to the previous is_zero check.
+        realpart_nonzero = np.logical_not(np.isclose(self.coeffs.real, 0, atol=tol))
+        imagpart_nonzero = np.logical_not(np.isclose(self.coeffs.imag, 0, atol=tol))
+
+        remaining_indices = np.logical_or(realpart_nonzero, imagpart_nonzero)
+        remaining_real = realpart_nonzero[remaining_indices]
+        remaining_imag = imagpart_nonzero[remaining_indices]
+
+        coeffs = np.zeros(sum(remaining_indices), dtype=complex)
+        coeffs[remaining_real] += self.coeffs.real[realpart_nonzero]
+        coeffs[remaining_imag] += 1j * self.coeffs.imag[imagpart_nonzero]
+
+        x = self.paulis.x[remaining_indices]
+        z = self.paulis.z[remaining_indices]
 
         return SparsePauliOp(
             PauliList.from_symplectic(z, x), coeffs, ignore_pauli_phase=True, copy=False

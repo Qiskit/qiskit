@@ -462,13 +462,13 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         np.testing.assert_array_equal(spp_op.paulis.phase, np.zeros(spp_op.size))
         np.testing.assert_array_equal(simplified_op.paulis.phase, np.zeros(simplified_op.size))
 
-    def test_simplify_truncates_real_and_imag(self):
-        """Test that simplify individually truncates real and imaginary parts of the coeffs."""
+    def test_chop(self):
+        """Test chop, which individually truncates real and imaginary parts of the coeffs."""
         eps = 1e-10
         op = SparsePauliOp(
             ["I", "Z", "X", "Y"], coeffs=[eps + 1j * eps, 1 + 1j * eps, eps + 1j, 1 + 1j]
         )
-        simplified = op.simplify()
+        simplified = op.chop(atol=eps)
         expected_coeffs = [1, 1j, 1 + 1j]
         self.assertListEqual(simplified.coeffs.tolist(), expected_coeffs)
 
