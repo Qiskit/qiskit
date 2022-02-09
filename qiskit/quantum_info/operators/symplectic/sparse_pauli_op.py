@@ -432,12 +432,17 @@ class SparsePauliOp(LinearOp):
         remaining_real = realpart_nonzero[remaining_indices]
         remaining_imag = imagpart_nonzero[remaining_indices]
 
-        coeffs = np.zeros(sum(remaining_indices), dtype=complex)
-        coeffs[remaining_real] += self.coeffs.real[realpart_nonzero]
-        coeffs[remaining_imag] += 1j * self.coeffs.imag[imagpart_nonzero]
+        if not np.any(remaining_indices):
+            x = np.zeros((1, self.num_qubits), dtype=bool)
+            z = np.zeros((1, self.num_qubits), dtype=bool)
+            coeffs = np.array([0j], dtype=complex)
+        else:
+            coeffs = np.zeros(sum(remaining_indices), dtype=complex)
+            coeffs[remaining_real] += self.coeffs.real[realpart_nonzero]
+            coeffs[remaining_imag] += 1j * self.coeffs.imag[imagpart_nonzero]
 
-        x = self.paulis.x[remaining_indices]
-        z = self.paulis.z[remaining_indices]
+            x = self.paulis.x[remaining_indices]
+            z = self.paulis.z[remaining_indices]
 
         return SparsePauliOp(
             PauliList.from_symplectic(z, x), coeffs, ignore_pauli_phase=True, copy=False
@@ -519,7 +524,7 @@ class SparsePauliOp(LinearOp):
         # Non-zero coefficients
         coeffs = []
         # Non-normalized basis factor
-        denom = 2**num_qubits
+        denom = 2 ** num_qubits
         # Compute coefficients from basis
         basis = pauli_basis(num_qubits, pauli_list=True)
         for i, mat in enumerate(basis.matrix_iter()):
