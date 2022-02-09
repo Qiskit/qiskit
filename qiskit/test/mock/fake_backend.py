@@ -21,10 +21,16 @@ import warnings
 
 from qiskit import circuit
 from qiskit.providers.models import BackendProperties
-from qiskit.providers import BackendV1, BaseBackend
+from qiskit.providers import BackendV1, BackendV2, BaseBackend
 from qiskit import pulse
+from qiskit.circuit.parameter import Parameter
+from qiskit.transpiler import Target, InstructionProperties
 from qiskit.exceptions import QiskitError
 from qiskit.test.mock import fake_job
+from .utils.backend_converter import (
+    convert_to_target,
+    qubit_properties_dict_from_properties
+)
 
 try:
     from qiskit.providers import aer
@@ -256,3 +262,50 @@ class FakeLegacyBackend(BaseBackend):
             out_job = fake_job.FakeLegacyJob(self, job_id, run_job)
             out_job.submit()
         return out_job
+
+class FakeBackendV2(BackendV2):
+    """This is a dummy bakend just for resting purposes. the FakeBackendV2 builds on top of the BackendV2 base class."""
+
+    def __init__(self, configuration):
+        super().__init__(
+            provider=None,
+            name=configuration.backend_name,
+            description=configuration.description,
+            online_date=configuration.online_date,
+            backend_version=configuration.backend_version
+        )
+
+        self._configuration = configuration
+        self._properties = None
+        self._qubit_properties = None
+        self._defaults = None
+        self._target = None
+
+    def _get_properties(self) -> None:
+        """Gets backend properties and decodes it"""
+        if not self._properties:
+            api_properties = self._api_client.backend_properties(self.name)
+            if api_properties:
+                backend_properties = properties_from_server_data(api_properties)
+                self._properties = backend_properties
+
+    def _convert_to_target(self) -> None:
+        """Converts backend configuration, properties and defaults to Target object"""
+        if not self._target:
+            self._target = convert_to_target(
+                configuration=self._configuration.to_dict(),
+                properties=self._properties.to_dict() if self._properties else None,
+                defaults=self._defaults.to_dict() if self._defaults else None,
+            )
+
+    @property
+    def target(self) -> Target:
+        """A :class:`qiskit.transpiler.Target` object for the backend.
+
+        Returns:
+            Target
+        """
+        self._get_properties()
+        self._get_defaults()
+        self._convert_to_target()
+        return self._target
