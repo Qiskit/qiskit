@@ -22,6 +22,421 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.34.2
+*************
+
+.. _Release Notes_0.19.2:
+
+Terra 0.19.2
+============
+
+.. _Release Notes_0.19.2_Prelude:
+
+Prelude
+-------
+
+.. releasenotes/notes/0.19/prepare-0.19.2-bfcec925e228a2ad.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+Qiskit Terra 0.19.2 is predominantly a bugfix release, but also now comes
+with wheels built for Python 3.10 on all major platforms.
+
+
+.. _Release Notes_0.19.2_New Features:
+
+New Features
+------------
+
+.. releasenotes/notes/0.19/py310-support-869d47583c976eef.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- Added support for running with Python 3.10. This includes publishing
+  precompiled binaries to PyPI for Python 3.10 on supported platforms.
+
+
+.. _Release Notes_0.19.2_Upgrade Notes:
+
+Upgrade Notes
+-------------
+
+.. releasenotes/notes/0.19/py310-support-869d47583c976eef.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- Starting from Python 3.10, Qiskit Terra will have reduced support for 32-bit platforms.
+  These are Linux i686 and 32-bit Windows. These platforms with Python 3.10
+  are now at Tier 3 instead of Tier 2 support (per the tiers defined in:
+  https://qiskit.org/documentation/getting_started.html#platform-support)
+  This is because the upstream dependencies Numpy and Scipy have dropped
+  support for them. Qiskit will still publish precompiled binaries for these
+  platforms, but we're unable to test the packages prior to publishing, and
+  you will need a C/C++ compiler so that ``pip`` can build their dependencies
+  from source. If you're using one of these platforms, we recommended that
+  you use Python 3.7, 3.8, or 3.9.
+
+
+.. _Release Notes_0.19.2_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/0.19/cvar-paulisumop-fe48698236b77f9b.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- Fixed a bug where the :class:`.CVaRMeasurement` attempted to convert a
+  :class:`.PauliSumOp` to a dense matrix to check whether it were diagonal.
+  For large operators (> 16 qubits) this computation was extremely expensive and raised
+  an error if not explicitly enabled using ``qiskit.utils.algorithm_globals.massive = True``.
+  The check is now efficient even for large numbers of qubits.
+
+.. releasenotes/notes/0.19/dag-drawer-should-check-filename-existence-4a83418a893717f6.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- :meth:`.DAGCircuit.draw` and the associated function :func:`.dag_drawer`
+  will now show a more useful error message when the provided filename is not
+  valid.
+
+.. releasenotes/notes/0.19/fix-adding-ancilla-register-without-checking-abe367dab5a63dbb.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- :meth:`.QuantumCircuit.add_register` will no longer cause duplicate
+  :class:`.AncillaQubit` references in a circuit when given an
+  :class:`.AncillaRegister` whose bits are already present.
+
+.. releasenotes/notes/0.19/fix-circuit_to_instruction_single-bit-condition-db75291ce921001a.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- Fixed conversion of :class:`.QuantumCircuit`\ s with classical conditions on
+  single, registerless :class:`.Clbit` \s to :class:`~.circuit.Instruction`\ s when
+  using the :func:`.circuit_to_instruction` function or the
+  :meth:`.QuantumCircuit.to_instruction` method.  For example, the following
+  will now work::
+
+      from qiskit.circuit import QuantumCircuit, Qubit, Clbit
+
+      qc = QuantumCircuit([Qubit(), Clbit()])
+      qc.h(0).c_if(qc.clbits[0], 0)
+      qc.to_instruction()
+
+.. releasenotes/notes/0.19/fix-duplicated-bits-9e72181c9247f934.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- Registers will now correctly reject duplicate bits.  Fixed `#7446
+  <https://github.com/Qiskit/qiskit-terra/issues/7446>`__.
+
+.. releasenotes/notes/0.19/fix-fake-openpulse2q-15f9c880de52e98f.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- The ``FakeOpenPulse2Q`` mock backend now has T2 times and readout errors
+  stored for its qubits.  These are arbitrary values, approximately consistent
+  with real backends at the time of its creation.
+
+.. releasenotes/notes/0.19/fix-lietrotter-2q-61d5cd66e0bf7359.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- Fix the qubit order of 2-qubit evolutions in the
+  :class:`.PauliEvolutionGate`, if used with a product formula synthesis.
+  For instance, before, the evolution of ``IIZ + IZI + IZZ``
+
+  .. code-block:: python
+
+      from qiskit.circuit.library import PauliEvolutionGate
+      from qiskit.opflow import I, Z
+      operator = (I ^ I ^ Z) + (I ^ Z ^ I) + (I ^ Z ^ Z)
+      print(PauliEvolutionGate(operator).definition.decompose())
+
+  produced
+
+  .. code-block::
+
+           ┌───────┐
+      q_0: ┤ Rz(2) ├────────
+           ├───────┤
+      q_1: ┤ Rz(2) ├─■──────
+           └───────┘ │ZZ(2)
+      q_2: ──────────■──────
+
+
+  whereas now it correctly yields
+
+  .. code-block::
+
+           ┌───────┐
+      q_0: ┤ Rz(2) ├─■──────
+           ├───────┤ │ZZ(2)
+      q_1: ┤ Rz(2) ├─■──────
+           └───────┘
+      q_2: ─────────────────
+
+.. releasenotes/notes/0.19/fix-multi-underscore-display-37b900195ca3d2c5.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- Fixed a problem in the ``latex`` and ``mpl`` circuit drawers when register names
+  with multiple underscores in the name did not display correctly.
+
+.. releasenotes/notes/0.19/fix-negative-fraction-display-735efdba3b825cba.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- Negative numbers in array outputs from the drawers will now appear as
+  decimal numbers instead of fractions with huge numerators and
+  denominators.  Like positive numbers, they will still be fractions if the
+  ratio is between small numbers.
+
+.. releasenotes/notes/0.19/fix-non-global-operation-name-ideal-sim-3dcbc97e29c707c7.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- Fixed an issue with the :meth:`.Target.get_non_global_operation_names`
+  method when running on a target incorrectly raising an exception on targets
+  with ideal global operations. Previously, if this method was called on a
+  target that contained any ideal globally defined operations, where the
+  instruction properties are set to ``None``, this method would raise an
+  exception instead of treating that instruction as global.
+
+.. releasenotes/notes/0.19/fix-non-global-operation-name-ideal-sim-3dcbc97e29c707c7.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- Fixed an issue with the :func:`~qiskit.compiler.transpile` function where
+  it could fail when being passed a :class:`.Target` object directly with the
+  ``target`` kwarg.
+
+.. releasenotes/notes/0.19/fix-non-global-operation-name-ideal-sim-3dcbc97e29c707c7.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- Fixed an issue with the :func:`~qiskit.compiler.transpile` function where
+  it could fail when the ``backend`` argument was a :class:`.BackendV2`
+  or a :class:`.Target` via the ``target`` kwarg that contained ideal
+  globally defined operations.
+
+.. releasenotes/notes/0.19/fix-path2d-mpl3.4-b1af3a23b408d30a.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- Fixed an issue where plotting Bloch spheres could cause an ``AttributeError``
+  to be raised in Jupyter or when trying to crop figures down to size with
+  Matplotlib 3.3 or 3.4 (but not 3.5).  For example, the following code would
+  previously crash with a message::
+
+    AttributeError: 'Arrow3D' object has no attribute '_path2d'
+
+  but will now succeed with all current supported versions of Matplotlib::
+
+    from qiskit.visualization import plot_bloch_vector
+    plot_bloch_vector([0, 1, 0]).savefig("tmp.png", bbox_inches='tight')
+
+.. releasenotes/notes/0.19/fix-pauli-sum-op-permute-a9b742f3a2fad934.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- Fixed a bug in :meth:`.PauliSumOp.permute` where the object on which the
+  method is called was permuted in-place, instead of returning a permuted
+  copy.  This bug only occured for permutations that left the number of qubits
+  in the operator unchanged.
+
+.. releasenotes/notes/0.19/fix-paulievo-inverse-b53a6ecd0ff9a313.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- Fixed the :meth:`.PauliEvolutionGate.inverse` method, which previously
+  computed the inverse by inverting the evolution time.  This was only the
+  correct inverse if the operator was evolved exactly. In particular, this
+  led to the inverse of Trotterization-based time evolutions being incorrect.
+
+.. releasenotes/notes/0.19/fix-qi-transpiled-8df449529bf6d9a2.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- The :meth:`.QuantumInstance.execute` method will no longer mutate its input
+  if it is given a list of circuits.
+
+.. releasenotes/notes/0.19/fix-qpy-empty-definition-a3a24a0409377a76.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- Fixed QPY serialisation of custom instructions which had an explicit no-op
+  definition.  Previously these would be written and subsequently read the
+  same way as if they were opaque gates (with no given definition).  They will
+  now correctly round-trip an empty definition.  For example, the following
+  will now be correct::
+
+      import io
+      from qiskit.circuit import Instruction, QuantumCircuit, qpy_serialization
+
+      # This instruction is explicitly defined as a one-qubit gate with no
+      # operations.
+      empty = QuantumCircuit(1, name="empty").to_instruction()
+      # This instruction will perform some operations that are only known
+      # by the hardware backend.
+      opaque = Instruction("opaque", 1, 0, [])
+
+      circuit = QuantumCircuit(2)
+      circuit.append(empty, [0], [])
+      circuit.append(opaque, [1], [])
+
+      qpy_file = io.BytesIO()
+      qpy_serialization.dump(circuit, qpy_file)
+      qpy_file.seek(0)
+      new_circuit = qpy_serialization.load(qpy_file)[0]
+
+      # Previously both instructions in `new_circuit` would now be opaque, but
+      # there is now a correct distinction.
+      circuit == new_circuit
+
+.. releasenotes/notes/0.19/fix-quantum-instance-backend-v2-a4e2678fe3ce39d1.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- Added a missing :attr:`.BackendV2.provider` attribute to implementations
+  of the :class:`.BackendV2` abstract class. Previously, :class:`.BackendV2`
+  backends could be initialized with a provider but that was not accessible
+  to users.
+
+.. releasenotes/notes/0.19/fix-quantum-instance-backend-v2-a4e2678fe3ce39d1.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- Fixed support for the :class:`.QuantumInstance` class when running with
+  a :class:`.BackendV2` backend. Previously, attempting to use a
+  :class:`.QuantumInstance` with a :class:`.BackendV2` would have resulted in
+  an error.
+
+.. releasenotes/notes/0.19/fix-vqe-paramorder-if-ansatz-resized-14634a7efff7c74f.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- Fixed a bug in :class:`~qiskit.algorithms.VQE` where the parameters of the ansatz were
+  still explicitly ASCII-sorted by their name if the ansatz was resized. This led to a
+  mismatched order of the optimized values in the ``optimal_point`` attribute of the result
+  object.
+
+  In particular, this bug occurred if no ansatz was set by the user and the VQE chose
+  a default with 11 or more free parameters.
+
+.. releasenotes/notes/0.19/qasm-lexer-bugfix-1779525b3738902c.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- Stopped the parser in :meth:`.QuantumCircuit.from_qasm_str` and
+  :meth:`~.QuantumCircuit.from_qasm_file` from accepting OpenQASM programs
+  that identified themselves as being from a language version other than 2.0.
+  This parser is only for OpenQASM 2.0; support for imported circuits from
+  OpenQASM 3.0 will be added in an upcoming release.
+
+.. releasenotes/notes/0.19/qpy-controlflow-97608dbfee5f3e7e.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- Fixed QPY serialization of :class:`.QuantumCircuit` objects that contained
+  control flow instructions. Previously if you attempted to serialize a
+  circuit containing :class:`.IfElseOp`, :class:`.WhileLoopOp`, or
+  :class:`.ForLoopOp` the serialization would fail.
+  Fixed `#7583 <https://github.com/Qiskit/qiskit-terra/issues/7583>`__.
+
+.. releasenotes/notes/0.19/qpy-controlflow-97608dbfee5f3e7e.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- Fixed QPY serialization of :class:`.QuantumCircuit` containing subsets of
+  bits from a :class:`.QuantumRegister` or :class:`.ClassicalRegister`.
+  Previously if you tried to serialize a circuit like this it would
+  incorrectly treat these bits as standalone :class:`.Qubit` or
+  :class:`.Clbit` without having a register set. For example, if you try to
+  serialize a circuit like::
+
+      import io
+      from qiskit import QuantumCircuit, QuantumRegister
+      from qiskit.circuit.qpy_serialization import load, dump
+
+      qr = QuantumRegister(2)
+      qc = QuantumCircuit([qr[0]])
+      qc.x(0)
+      with open('file.qpy', 'wb') as fd:
+          dump(qc, fd)
+
+  when that circuit is loaded now the registers will be correctly populated
+  fully even though the circuit only contains a subset of the bits from the
+  register.
+
+.. releasenotes/notes/0.19/warn-on-too-large-qft-a2dd60d4a374751a.yaml @ b'6069e5cc01632353972068218c1acfa60f01a119'
+
+- :class:`.QFT` will now warn if it is instantiated or built with settings
+  that will cause it to lose precision, rather than raising an
+  ``OverflowError``.  This can happen if the number of qubits is very large
+  (slightly over 1000) without the approximation degree being similarly large.
+  The circuit will now build successfully, but some angles might be
+  indistinguishable from zero, due to limitations in double-precision
+  floating-point numbers.
+
+.. _Release Notes_Aer_0.10.3:
+
+Aer 0.10.3
+==========
+
+.. _Release Notes_Aer_0.10.3_Prelude:
+
+Prelude
+-------
+
+.. releasenotes/notes/release-0.10.3-22c93ddf4d160c5f.yaml @ b'326efca12cfcd7341f49ec4e5cf5a5aa769f6c94'
+
+Qiskit Aer 0.10.3 is mainly a bugfix release, fixing several bugs that
+have been discovered since the 0.10.2 release. Howver, this release also
+introduces support for running with Python 3.10 including precompiled
+binary wheels on all major platforms. This release also includes precompiled
+binary wheels for arm64 on macOS.
+
+
+.. _Release Notes_Aer_0.10.3_New Features:
+
+New Features
+------------
+
+.. releasenotes/notes/add-py310-b6b1e7a0ed3a8e9d.yaml @ b'e9233eab38ca16d17fce56a0d4dbf7af09b829a8'
+
+- Added support for running with Python 3.10. This includes publishing
+  precompiled binaries to PyPI for Python 3.10 on supported platforms.
+
+.. releasenotes/notes/arm64-macos-wheels-3778e83a8d036168.yaml @ b'c5f63f387fd0837d62195c550334b95b618b1a88'
+
+- Added support for M1 macOS systems. Precompiled binaries for supported
+  Python versions >=3.8 on arm64 macOS will now be published on PyPI for this
+  and future releases.
+
+.. _Release Notes_Aer_0.10.3_Upgrade Notes:
+
+Upgrade Notes
+-------------
+
+.. releasenotes/notes/add-py310-b6b1e7a0ed3a8e9d.yaml @ b'e9233eab38ca16d17fce56a0d4dbf7af09b829a8'
+
+- Qiskit Aer no longer fully supports 32 bit platforms on Python >= 3.10.
+  These are Linux i686 and 32-bit Windows. These platforms with Python 3.10
+  are now at Tier 3 instead of Tier 2 support (per the tiers defined in:
+  https://qiskit.org/documentation/getting_started.html#platform-support)
+  This is because the upstream dependencies Numpy and Scipy have dropped
+  support for them. Qiskit will still publish precompiled binaries for these
+  platforms, but we're unable to test the packages prior to publishing, and
+  you will need a C/C++ compiler so that ``pip`` can build their dependencies
+  from source. If you're using one of these platforms, we recommended that
+  you use Python 3.7, 3.8, or 3.9.
+
+.. _Release Notes_Aer_0.10.3_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/delay-pass-units-a31341568057fdb3.yaml @ b'0119f3b1f55e2da1444fc89109b93f85833efbf3'
+
+- Fixes a bug in :class:`.RelaxationNoisePass` where instruction durations
+  were always assumed to be in *dt* time units, regardless of the actual
+  unit of the isntruction. Now unit conversion is correctly handled for
+  all instruction duration units.
+
+  See `#1453 <https://github.com/Qiskit/qiskit-aer/issues/1453>`__
+  for details.
+
+.. releasenotes/notes/fix-local-noise-pass-f94546869a169103.yaml @ b'71e7e53fe9c690d3f9ce194d785610ea8a3c9d8f'
+
+- Fixes an issue with :class:`.LocalNoisePass` for noise functions that
+  return a :class:`.QuantumCircuit` for the noise op. These were appended
+  to the DAG as an opaque circuit instruction that must be unrolled to be
+  simulated. This fix composes them so that the cirucit instructions are
+  added to the new DAG and can be simulated without additional unrolling
+  if all circuit instructions are supported by the simulator.
+
+  See `#1447 <https://github.com/Qiskit/qiskit-aer/issues/1447>`__
+  for details.
+
+.. releasenotes/notes/fix_parallel_diag_fusion-a7f914b3a9f491f7.yaml @ b'bc306537a47cd0116744900538bd543a3520bddd'
+
+- Multi-threaded transpilations to generate diagonal gates will now work correctly if
+  the number of gates of a circuit exceeds ``fusion_parallelization_threshold``.
+  Previously, different threads would occasionally fuse the same element into multiple blocks,
+  causing incorrect results.
+
+.. releasenotes/notes/resolve_parameters_before_truncation-ec7074f1f0f831e2.yaml @ b'b086dc6505ad1c116f25c58cc4e29b6ec652bc8b'
+
+- Fixes a bug with truncation of circuits in parameterized Qobjs.
+  Previously parameters of parameterized QObj could be wrongly resolved
+  if unused qubits of their circuits were truncated, because indices of
+  the parameters were not updated after the instructions on unmeasured qubits
+  were removed.
+
+  See `#1427 <https://github.com/Qiskit/qiskit-aer/issues/1427>`__
+  for details.
+
+Ignis 0.7.0
+===========
+
+No change
+
+IBM Q Provider 0.18.3
+=====================
+
+No change
+
+*************
 Qiskit 0.34.1
 *************
 
