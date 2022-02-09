@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    An opflow expression containing the Pauli identity ``opflow.I`` no longer
+    produces an :class:`~qiskit.circuit.library.IGate` when converted to a circuit. 
+    This change fixes a difference in expectation; the identity gate in the circuit indicates 
+    a delay however in opflow we expect a mathematical identity -- meaning no operation at all.
+  - |
+    The :class:`~qiskit.circuit.library.PauliGate` no longer inserts an 
+    :class:`~qiskit.circuit.library.IGate` for Paulis with the label `"I"`.

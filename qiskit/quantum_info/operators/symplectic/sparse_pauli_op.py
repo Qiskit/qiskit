@@ -519,7 +519,7 @@ class SparsePauliOp(LinearOp):
         # Non-zero coefficients
         coeffs = []
         # Non-normalized basis factor
-        denom = 2 ** num_qubits
+        denom = 2**num_qubits
         # Compute coefficients from basis
         basis = pauli_basis(num_qubits, pauli_list=True)
         for i, mat in enumerate(basis.matrix_iter()):

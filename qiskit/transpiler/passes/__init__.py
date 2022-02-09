@@ -79,6 +79,7 @@ Optimizations
    RemoveDiagonalGatesBeforeMeasure
    RemoveResetInZeroState
    CrosstalkAdaptiveSchedule
+   HoareOptimizer
    TemplateOptimization
    EchoRZXWeylDecomposition
 
