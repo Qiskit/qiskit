@@ -18,8 +18,6 @@ features:
         )
 
     Per default coefficients are chopped with a tolerance of ``tol=1e-14``.
-
-features:
   - |
     Add a :meth:`qiskit.quantum_info.SparsePauliOp.chop` method that truncates real and
     imaginary parts of coefficients individually. This is different to
