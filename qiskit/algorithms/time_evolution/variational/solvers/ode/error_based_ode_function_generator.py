@@ -12,27 +12,15 @@
 
 """Class for generating error-based ODE functions."""
 
-from typing import Union, List, Dict, Optional, Iterable
+from typing import Union, List, Iterable
 
 import numpy as np
 from scipy.optimize import minimize
 
-from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
-    .error_calculator import (
-    ErrorCalculator,
-)
-from qiskit.algorithms.time_evolution.variational.variational_principles.variational_principle \
-    import (
-    VariationalPrinciple,
-)
 from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator \
     import (
     AbstractOdeFunctionGenerator,
 )
-from qiskit.circuit import Parameter
-from qiskit.opflow import CircuitSampler
-from qiskit.providers import BaseBackend
-from qiskit.utils import QuantumInstance
 
 
 class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
@@ -40,54 +28,20 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
 
     def __init__(
         self,
-        error_calculator: ErrorCalculator,
-        param_dict: Dict[Parameter, Union[float, complex]],
-        variational_principle: VariationalPrinciple,
-        grad_circ_sampler: Optional[CircuitSampler] = None,
-        metric_circ_sampler: Optional[CircuitSampler] = None,
-        energy_sampler: Optional[CircuitSampler] = None,
-        regularization: Optional[str] = None,
-        backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
-        t_param: Optional[Parameter] = None,
         optimizer: str = "COBYLA",
         optimizer_tolerance: float = 1e-6,
-        allowed_imaginary_part: float = 1e-7,
     ):
         """
         Args:
-            error_calculator: ErrorCalculator object to calculate gradient errors in case of
-                                error-based evolution.
-            param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
-            variational_principle: Variational Principle to be used.
-            grad_circ_sampler: CircuitSampler for evolution gradients.
-            metric_circ_sampler: CircuitSampler for metric tensors.
-            energy_sampler: CircuitSampler for energy.
-            regularization: Use the following regularization with a least square method to solve the
-                            underlying system of linear equations.
-                            Can be either None or ``'ridge'`` or ``'lasso'`` or ``'perturb_diag'``
-                            ``'ridge'`` and ``'lasso'`` use an automatic optimal parameter search,
-                            or a penalty term given as Callable.
-                            If regularization is None but the metric is ill-conditioned or singular
-                            then a least square solver is used without regularization.
-            backend: Optional backend tht enables the use of circuit samplers.
-            t_param: Time parameter in case of a time-dependent Hamiltonian.
             optimizer: Optimizer used in case error_based_ode is true.
             optimizer_tolerance: Numerical tolerance of an optimizer used for convergence to a minimum.
-            allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
-                                    imaginary part is expected.
         """
-        super().__init__(
-            param_dict,
-            variational_principle,
-            grad_circ_sampler,
-            metric_circ_sampler,
-            energy_sampler,
-            regularization,
-            backend,
-            t_param,
-            allowed_imaginary_part,
-        )
-        self._error_calculator = error_calculator
+
+        self._error_calculator = None
+        self._variational_principle = None
+        self._t_param = None
+        self._regularization = None
+
         self._optimizer = optimizer
         self._optimizer_tolerance = optimizer_tolerance
 

@@ -22,6 +22,9 @@ from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_err
     .real_error_calculator import (
     RealErrorCalculator,
 )
+from qiskit.algorithms.time_evolution.variational.solvers.ode.error_based_ode_function_generator \
+    import \
+    ErrorBasedOdeFunctionGenerator
 from qiskit.algorithms.time_evolution.variational.variational_principles.real\
     .real_variational_principle import (
     RealVariationalPrinciple,
@@ -47,13 +50,10 @@ class VarQrte(VarQte, Qrte):
     def __init__(
         self,
         variational_principle: RealVariationalPrinciple,
+        ode_function_generator: AbstractOdeFunctionGenerator,
         regularization: Optional[str] = None,
-        # TODO: Should we keep this more general? And pass here a natural gradient object?
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
-        error_based_ode: Optional[bool] = False,
         ode_solver_callable: OdeSolver = "RK45",
-        optimizer: str = "COBYLA",
-        optimizer_tolerance: float = 1e-6,
         allowed_imaginary_part: float = 1e-7,
         allowed_num_instability_error: float = 1e-7,
     ):
@@ -82,12 +82,10 @@ class VarQrte(VarQte, Qrte):
         """
         super().__init__(
             variational_principle,
+            ode_function_generator,
             regularization,
             backend,
-            error_based_ode,
             ode_solver_callable,
-            optimizer,
-            optimizer_tolerance,
             allowed_imaginary_part,
             allowed_num_instability_error,
         )
@@ -128,34 +126,10 @@ class VarQrte(VarQte, Qrte):
         init_state_param_dict = self._create_init_state_param_dict(
             hamiltonian_value_dict, list(initial_state.parameters)
         )
+        self._init_ham_objects()
 
-        evolved_object = super()._evolve_helper(
-            self._create_real_ode_function_generator,
-            init_state_param_dict,
-            hamiltonian,
-            time,
-            initial_state,
-            observable,
-        )
-
-        return EvolutionResult(evolved_object)
-
-    def _create_real_ode_function_generator(
-        self,
-        init_state_param_dict: Dict[Parameter, Union[float, complex]],
-        t_param: Optional[Parameter] = None,
-    ) -> AbstractOdeFunctionGenerator:
-        """
-        Creates an ODE function generator for the real time evolution, i.e. with an
-        RealErrorCalculator in case of an error-based evolution.
-        Args:
-            init_state_param_dict: Dictionary mapping parameters to their initial values for a
-                                quantum state.
-            t_param: Time parameter in case of a time-dependent Hamiltonian.
-        Returns:
-            Instantiated real ODE function generator.
-        """
-        if self._error_based_ode:
+        error_calculator = None
+        if isinstance(self._ode_function_generator, ErrorBasedOdeFunctionGenerator):
             error_calculator = RealErrorCalculator(
                 self._hamiltonian_squared,
                 self._operator,
@@ -165,11 +139,18 @@ class VarQrte(VarQte, Qrte):
                 self._allowed_imaginary_part,
                 self._allowed_num_instability_error,
             )
-            return super()._create_ode_function_generator(
-                error_calculator, init_state_param_dict, t_param
-            )
-        else:
-            return super()._create_ode_function_generator(None, init_state_param_dict, t_param)
+
+        evolved_object = super()._evolve_helper(
+            init_state_param_dict,
+            hamiltonian,
+            time,
+            t_param,
+            error_calculator,
+            initial_state,
+            observable,
+        )
+
+        return EvolutionResult(evolved_object)
 
     def gradient(
         self,

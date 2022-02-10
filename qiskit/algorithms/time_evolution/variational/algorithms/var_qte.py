@@ -25,6 +25,20 @@ from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_err
     .error_calculator import (
     ErrorCalculator,
 )
+from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
+    .imaginary_error_calculator import \
+    ImaginaryErrorCalculator
+from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
+    .real_error_calculator import \
+    RealErrorCalculator
+from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import \
+    VarQteLinearSolver
+from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary\
+    .imaginary_variational_principle import \
+    ImaginaryVariationalPrinciple
+from qiskit.algorithms.time_evolution.variational.variational_principles.real\
+    .real_variational_principle import \
+    RealVariationalPrinciple
 from qiskit.algorithms.time_evolution.variational.variational_principles.variational_principle \
     import (
     VariationalPrinciple,
@@ -66,12 +80,10 @@ class VarQte(EvolutionBase, ABC):
     def __init__(
         self,
         variational_principle: VariationalPrinciple,
+        ode_function_generator: AbstractOdeFunctionGenerator,
         regularization: Optional[str] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
-        error_based_ode: Optional[bool] = False,
         ode_solver_callable: OdeSolver = RK45,
-        optimizer: str = "COBYLA",
-        optimizer_tolerance: float = 1e-6,
         allowed_imaginary_part: float = 1e-7,
         allowed_num_instability_error: float = 1e-7,
     ):
@@ -85,12 +97,7 @@ class VarQte(EvolutionBase, ABC):
                 If regularization is None but the metric is ill-conditioned or singular then
                 a least square solver is used without regularization
             backend: Backend used to evaluate the quantum circuit outputs
-            error_based_ode: If False use the provided variational principle to get the parameter
-                                updates.
-                             If True use the argument that minimizes the error error_bounds.
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
-            optimizer: Optimizer used in case error_based_ode is true.
-            optimizer_tolerance: Numerical tolerance of an optimizer used for convergence to a minimum.
             allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
                                     imaginary part is expected.
             allowed_num_instability_error: The amount of negative value that is allowed to be
@@ -105,11 +112,16 @@ class VarQte(EvolutionBase, ABC):
         # we define separate instances of CircuitSamplers as it caches aggressively according
         # to its documentation
         self._init_samplers()
+        self._linear_solver = VarQteLinearSolver(
+            self._grad_circ_sampler,
+            self._metric_circ_sampler,
+            self._energy_sampler,
+            regularization,
+            allowed_imaginary_part,
+        )
 
-        self._error_based_ode = error_based_ode
+        self._ode_function_generator=ode_function_generator
         self._ode_solver_callable = ode_solver_callable
-        self._optimizer = optimizer
-        self._optimizer_tolerance = optimizer_tolerance
         self._allowed_imaginary_part = allowed_imaginary_part
         self._allowed_num_instability_error = allowed_num_instability_error
 
@@ -120,19 +132,17 @@ class VarQte(EvolutionBase, ABC):
 
     def _evolve_helper(
         self,
-        ode_function_generator_callable: Callable,
         init_state_param_dict: Dict[Parameter, Union[float, complex]],
         hamiltonian: OperatorBase,
         time: float,
+        t_param: Parameter,
+        error_calculator: ErrorCalculator,
         initial_state: Optional[OperatorBase] = None,
         observable: Optional[OperatorBase] = None,
-        t_param: Optional[Parameter] = None,
     ) -> OperatorBase:
         """
         Helper method for performing time evolution. Works both for imaginary and real case.
         Args:
-            ode_function_generator_callable: Callable of a function that will be used by an ODE
-                                            solver.
             init_state_param_dict: Parameter dictionary with initial values for a given
                                 parametrized state/ansatz.
             hamiltonian:
@@ -163,17 +173,14 @@ class VarQte(EvolutionBase, ABC):
 
         self._variational_principle._lazy_init(hamiltonian, initial_state, init_state_parameters)
         self.bind_initial_state(StateFn(initial_state), init_state_param_dict)
-        self._operator = self._variational_principle._operator
-        self._validate_operator(self._operator)
 
         # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator
-
-        self._init_ham_objects()
-
-        ode_function_generator = ode_function_generator_callable(init_state_param_dict, t_param)
+        self._ode_function_generator._lazy_init(error_calculator, self._variational_principle,
+                                                t_param, self._regularization,
+                                                init_state_param_dict, self._linear_solver)
 
         ode_solver = VarQteOdeSolver(
-            init_state_parameters_values, ode_function_generator, self._ode_solver_callable
+            init_state_parameters_values, self._ode_function_generator, self._ode_solver_callable
         )
         parameter_values = ode_solver._run(time)
         # return evolved
@@ -214,6 +221,8 @@ class VarQte(EvolutionBase, ABC):
 
     def _init_ham_objects(self) -> None:
         """Initialize the gradient objects needed to perform VarQTE."""
+        self._operator = self._variational_principle._operator
+        self._validate_operator(self._operator)
         self._hamiltonian = self._operator.oplist[0].primitive * self._operator.oplist[0].coeff
         self._hamiltonian_squared = self._hamiltonian_power(2)
 
@@ -257,55 +266,6 @@ class VarQte(EvolutionBase, ABC):
                     init_state_parameter_values.append(hamiltonian_value_dict[param])
         init_state_param_dict = dict(zip(init_state_parameters, init_state_parameter_values))
         return init_state_param_dict
-
-    def _create_ode_function_generator(
-        self,
-        error_calculator: ErrorCalculator,
-        init_state_param_dict: Dict[Parameter, Union[float, complex]],
-        t_param: Optional[Parameter] = None,
-    ) -> AbstractOdeFunctionGenerator:
-        """
-        Creates an ODE function generator for variational time evolution, with an
-        ErrorCalculator in case of an error-based evolution.
-        Args:
-            error_calculator: ErrorCalculator object to calculate gradient errors in case of
-                                error-based evolution.
-            init_state_param_dict: Dictionary mapping parameters to their initial values for a
-                                quantum state.
-            t_param: Time parameter in case of a time-dependent Hamiltonian.
-        Returns:
-            Instantiated ODE function generator.
-        """
-        # TODO potentially introduce a factory
-        if self._error_based_ode:
-            ode_function_generator = ErrorBasedOdeFunctionGenerator(
-                error_calculator,
-                init_state_param_dict,
-                self._variational_principle,
-                self._grad_circ_sampler,
-                self._metric_circ_sampler,
-                self._energy_sampler,
-                self._regularization,
-                self._backend,
-                t_param,
-                self._optimizer,
-                self._optimizer_tolerance,
-                self._allowed_imaginary_part,
-            )
-        else:
-            ode_function_generator = OdeFunctionGenerator(
-                init_state_param_dict,
-                self._variational_principle,
-                self._grad_circ_sampler,
-                self._metric_circ_sampler,
-                self._energy_sampler,
-                self._regularization,
-                self._backend,
-                t_param,
-                self._allowed_imaginary_part,
-            )
-
-        return ode_function_generator
 
     def _validate_operator(self, operator) -> None:
         """
