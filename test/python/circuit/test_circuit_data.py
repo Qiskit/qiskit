@@ -446,11 +446,11 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         qc_case1 = qc.copy()
         qc_case2 = qc.copy()
         qc_case3 = qc.copy()
-        
+
         # Case1-1, 1-2
         param1 = Parameter("param1")
-        qc.rx(param1, 0)    # Case1-1
-        qc.rx(param1, 0)    # Case1-2
+        qc.rx(param1, 0)  # Case1-1
+        qc.rx(param1, 0)  # Case1-2
         qc.rx(param1, 0)
 
         # Create an expected ParaemterTable for Case1-1, 1-2
@@ -465,7 +465,7 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         param2 = Parameter("param2")
         qc.data[0] = (RXGate(param1), [qr[0]], [])  # Case2-1
         qc.data[1] = (RXGate(param2), [qr[0]], [])  # Case2-2
-        qc.data[2] = (HGate(), [qr[0]], [])         # Case2-3
+        qc.data[2] = (HGate(), [qr[0]], [])  # Case2-3
 
         # Create an expected ParaemterTable for Case2-1, 2-2, 2-3
         qc_case2._parameter_table[param1] = [(qc.data[0][0], 0)]
@@ -476,7 +476,7 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
 
         # Case3-1, 3-2
         param3 = Parameter("param3")
-        qc.u(param1, param2, param3, 0)             # Case3-1
+        qc.u(param1, param2, param3, 0)  # Case3-1
         qc.u(param1, param2, param3, 0)
         qc.data[4] = (RXGate(param1), [qr[0]], [])  # Case3-2
 
