@@ -12,13 +12,13 @@
 """
 Tests building up CNOT unit structures.
 """
-from test.python.transpiler.aqc.sample_data import CARTAN_4, CARTAN_3
 
+import unittest
 import numpy as np
 from ddt import ddt, data, unpack
-
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.synthesis.aqc import make_cnot_network
+from test.python.transpiler.aqc.sample_data import CARTAN_4, CARTAN_3
 
 
 @ddt
@@ -52,3 +52,7 @@ class TestCNOTNetworks(QiskitTestCase):
             depth=depth,
         )
         np.testing.assert_array_equal(cnots, output)
+
+
+if __name__ == "__main__":
+    unittest.main()

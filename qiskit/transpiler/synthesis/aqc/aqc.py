@@ -35,10 +35,12 @@ class AQC:
 
     * Approximate objective is tightly coupled with the approximate circuit implementation and
       provides two methods for computing objective function and gradient with respect to approximate
-      circuit parameters. This objective is passed to the optimizer. Currently, there's only one
-      implementation based on 4-rotations CNOT unit blocks: :class:`.DefaultCNOTUnitObjective`. This
-      is a naive implementation of the objective function and gradient and may suffer from performance
-      issues.
+      circuit parameters. This objective is passed to the optimizer. Currently, there are two
+      implementations based on 4-rotations CNOT unit blocks: :class:`.DefaultCNOTUnitObjective` and
+      its accelerated version :class:`.FastCNOTUnitObjective`. Both realizations share the same idea
+      of maximization the Hilbert-Schmidt product between the target matrix and its approximation.
+      The latter approach should be considered as a baseline one. It may suffer from performance
+      and scalability issues, and is mostly suitable for a small number of qubits (up to 5 or 6).
     """
 
     def __init__(
@@ -49,13 +51,13 @@ class AQC:
         """
         Args:
             optimizer: an optimizer to be used in the optimization procedure of the search for
-                the best approximate circuit. By default :obj:`.L_BFGS_B` is used with max iterations
-                is set to 1000.
+                the best approximate circuit. By default, :obj:`.L_BFGS_B` is used with max
+                iterations set to 1000.
             seed: a seed value to be user by a random number generator.
         """
         super().__init__()
         self._optimizer = optimizer
-        self._seed = seed
+        self._seed = seed or 12345
 
     def compile_unitary(
         self,
@@ -93,15 +95,24 @@ class AQC:
 
         if initial_point is None:
             np.random.seed(self._seed)
-            initial_point = np.random.uniform(0, 2 * np.pi, approximating_objective.num_thetas)
+            initial_point = np.random.uniform(0, 2 * np.pi,
+                                              approximating_objective.num_thetas)
 
-        opt_result = optimizer.minimize(
-            fun=approximating_objective.objective,
-            x0=initial_point,
-            jac=approximating_objective.gradient,
-        )
-
-        approximate_circuit.build(opt_result.x)
+        if hasattr(optimizer, "minimize"):
+            opt_result = optimizer.minimize(
+                fun=approximating_objective.objective,
+                x0=initial_point,
+                jac=approximating_objective.gradient,
+            )
+            approximate_circuit.build(opt_result.x)
+        else:
+            thetas, _, _ = optimizer.optimize(
+                num_vars=initial_point.size,
+                objective_function=approximating_objective.objective,
+                gradient_function=approximating_objective.gradient,
+                initial_point=initial_point
+            )
+            approximate_circuit.build(thetas)
 
         approx_matrix = Operator(approximate_circuit).data
 
