@@ -168,7 +168,7 @@ class TestReadoutMitigation(QiskitTestCase):
         mitigators = self.mitigators(assignment_matrices)
         num_qubits = len(assignment_matrices)
         diagonals = []
-        diagonals.append(z_diagonal(2 ** num_qubits))
+        diagonals.append(z_diagonal(2**num_qubits))
         diagonals.append("IZ0")
         diagonals.append("ZZZ")
         diagonals.append("101")

@@ -325,7 +325,7 @@ class TestPauli(QiskitTestCase):
         """Test power method."""
         iden = Pauli("II")
         op = Pauli(label)
-        self.assertTrue(op ** 2, iden)
+        self.assertTrue(op**2, iden)
 
     @data(1, 1.0, -1, -1.0, 1j, -1j)
     def test_multiply(self, val):
