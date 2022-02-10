@@ -29,7 +29,7 @@ from .cambridge import FakeCambridgeAlternativeBasis
 from .casablanca import FakeCasablanca
 from .essex import FakeEssex
 from .guadalupe import FakeGuadalupe
-from .jakarta import FakeJakarta
+from .jakarta import FakeJakarta, FakeJakartaV2
 from .johannesburg import FakeJohannesburg
 from .lagos import FakeLagos
 from .lima import FakeLima

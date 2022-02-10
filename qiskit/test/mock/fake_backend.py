@@ -22,6 +22,7 @@ import warnings
 from qiskit import circuit
 from qiskit.providers.models import BackendProperties
 from qiskit.providers import BackendV1, BackendV2, BaseBackend
+from qiskit.providers.options import Options
 from qiskit import pulse
 from qiskit.circuit.parameter import Parameter
 from qiskit.transpiler import Target, InstructionProperties
@@ -281,22 +282,23 @@ class FakeBackendV2(BackendV2):
         self._defaults = None
         self._target = None
 
-    def _get_properties(self) -> None:
-        """Gets backend properties and decodes it"""
-        if not self._properties:
-            api_properties = self._api_client.backend_properties(self.name)
-            if api_properties:
-                backend_properties = properties_from_server_data(api_properties)
-                self._properties = backend_properties
 
-    def _convert_to_target(self) -> None:
-        """Converts backend configuration, properties and defaults to Target object"""
-        if not self._target:
-            self._target = convert_to_target(
-                configuration=self._configuration.to_dict(),
-                properties=self._properties.to_dict() if self._properties else None,
-                defaults=self._defaults.to_dict() if self._defaults else None,
-            )
+    # def _get_properties(self) -> None:
+    #     """Gets backend properties and decodes it"""
+    #     if not self._properties:
+    #         api_properties = self._api_client.backend_properties(self.name)
+    #         if api_properties:
+    #             backend_properties = properties_from_server_data(api_properties)
+    #             self._properties = backend_properties
+
+    # def _convert_to_target(self) -> None:
+    #     """Converts backend configuration, properties and defaults to Target object"""
+    #     if not self._target:
+    #         self._target = convert_to_target(
+    #             configuration=self._configuration.to_dict(),
+    #             properties=self._properties.to_dict() if self._properties else None,
+    #             defaults=self._defaults.to_dict() if self._defaults else None,
+    #         )
 
     @property
     def target(self) -> Target:
@@ -309,3 +311,14 @@ class FakeBackendV2(BackendV2):
         self._get_defaults()
         self._convert_to_target()
         return self._target
+
+    @property
+    def max_circuits(self):
+        return None
+
+    @classmethod
+    def _default_options(cls):
+        return Options(shots=1024)
+
+    def run(self, run_input, **options):
+        raise NotImplementedError

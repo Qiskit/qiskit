@@ -128,11 +128,7 @@ class FakeQasmBackendV2(FakeBackendV2):
         configuration = self._get_conf_from_json()
         self._defaults = None
         self._properties = None
-        super().__init__(
-            provider=None,
-            name=configuration.backend_name,
-            description=configuration.description,
-            online_date=configuration.online_date, backend_version=configuration.backend_version)
+        super().__init__(configuration)
 
     def properties(self):
         """Returns a snapshot of device properties"""

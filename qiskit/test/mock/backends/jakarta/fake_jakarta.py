@@ -15,7 +15,7 @@ Fake Jakarta device (7 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_pulse_backend, fake_backend
+from qiskit.test.mock import fake_pulse_backend, fake_backend, fake_qasm_backend
 
 
 class FakeJakarta(fake_pulse_backend.FakePulseBackend):
@@ -27,7 +27,7 @@ class FakeJakarta(fake_pulse_backend.FakePulseBackend):
     defs_filename = "defs_jakarta.json"
     backend_name = "fake_jakarta"
 
-class FakeJakartaV2(fake_backend.FakeBackendV2):
+class FakeJakartaV2(fake_qasm_backend.FakeQasmBackendV2):
     """A fake 7 qubit V2 backend."""
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_jakarta.json"

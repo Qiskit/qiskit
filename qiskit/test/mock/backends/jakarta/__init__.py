@@ -12,4 +12,4 @@
 
 """Mock jakarta backend"""
 
-from .fake_jakarta import FakeJakarta
+from .fake_jakarta import FakeJakarta, FakeJakartaV2
