@@ -72,7 +72,7 @@ class TestReadoutMitigation(QiskitTestCase):
         """Simulates the given circuit under the given readout noise"""
         probs = Statevector.from_instruction(circuit).probabilities()
         noisy_probs = assignment_matrix @ probs
-        labels = [bin(a)[2:].zfill(num_qubits) for a in range(2 ** num_qubits)]
+        labels = [bin(a)[2:].zfill(num_qubits) for a in range(2**num_qubits)]
         results = TestReadoutMitigation.rng.choice(labels, size=shots, p=noisy_probs)
         return Counts(dict(Counter(results)))
 
@@ -110,7 +110,7 @@ class TestReadoutMitigation(QiskitTestCase):
         for m in assignment_matrices[1:]:
             full_assignment_matrix = np.kron(full_assignment_matrix, m)
         num_qubits = len(assignment_matrices)
-        ideal_assignment_matrix = np.eye(2 ** num_qubits)
+        ideal_assignment_matrix = np.eye(2**num_qubits)
         counts_ideal = TestReadoutMitigation.simulate_circuit(
             circuit, ideal_assignment_matrix, num_qubits, shots
         )
