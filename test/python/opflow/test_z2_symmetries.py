@@ -81,7 +81,7 @@ class TestZ2Symmetries(QiskitOpflowTestCase):
             ]
         )
         z2_symmetries = Z2Symmetries.find_Z2_symmetries(qubit_op)
-        z2_symmetries.atol = 0.2  # removes the X part of the tapered op which is < 0.2
+        z2_symmetries.tol = 0.2  # removes the X part of the tapered op which is < 0.2
 
         tapered_op = z2_symmetries.taper(qubit_op)[1]
         primitive = SparsePauliOp.from_list(

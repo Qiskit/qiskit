@@ -17,7 +17,7 @@ features:
             tol=1e-10,
         )
 
-    Per default no coefficients are chopped with a tolerance of ``tol=1e-14``.
+    Per default coefficients are chopped with a tolerance of ``tol=1e-14``.
 
 features:
   - |
