@@ -40,6 +40,7 @@ from qiskit.opflow import (
 )
 from qiskit.opflow.gradients import Gradient, NaturalGradient, Hessian
 from qiskit.opflow.gradients.qfi import QFI
+from qiskit.opflow.gradients.circuit_gradients import LinComb
 from qiskit.opflow.gradients.circuit_qfis import LinCombFull, OverlapBlockDiag, OverlapDiag
 from qiskit.circuit import Parameter
 from qiskit.circuit import ParameterVector
@@ -684,6 +685,69 @@ class TestGradients(QiskitOpflowTestCase):
                 )
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
+
+    def test_gradient_p_imag(self):
+        """Test the imaginary state gradient for p
+        |psi(a)> = 1/sqrt(2)[[1, exp(ia)]]
+        <psi(a)|X|da psi(a)> = iexp(-ia)/2 <1|H(|0>+exp(ia)|1>)
+        Im(<psi(a)|X|da psi(a)>) = 0.5 cos(a)
+        """
+        method = "lin_comb"
+        ham = X
+        a = Parameter("a")
+        params = a
+        q = QuantumRegister(1)
+        qc = QuantumCircuit(q)
+        qc.h(q)
+        qc.p(a, q[0])
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
+
+        state_grad = LinComb().convert(operator=op, params=params,
+                                       aux_meas_op=(-1) * Y)
+        values_dict = [{a: np.pi / 4}, {a: 0}, {a: np.pi / 2}]
+        correct_values = [1 / np.sqrt(2), 1, 0]
+
+        for i, value_dict in enumerate(values_dict):
+            np.testing.assert_array_almost_equal(
+                state_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+            )
+
+    def test_qfi_p_imag(self):
+        """Test the imaginary state QFI for RXRY
+        """
+        x = Parameter("x")
+        y = Parameter("y")
+        circuit = QuantumCircuit(1)
+        circuit.ry(y, 0)
+        circuit.rx(x, 0)
+        state = StateFn(circuit)
+
+        dx = lambda x, y: (-1) * 0.5j * np.array(
+            [[-1j * np.sin(x / 2) * np.cos(y / 2) + np.cos(x / 2) * np.sin(y / 2),
+              np.cos(x / 2) * np.cos(y / 2) - 1j * np.sin(x / 2) * np.sin(y / 2)]])
+
+        dy = lambda x, y: (-1) * 0.5j * np.array(
+            [[-1j * np.cos(x / 2) * np.sin(y / 2) + np.sin(x / 2) * np.cos(y / 2),
+              1j * np.cos(x / 2) * np.cos(y / 2) - 1 * np.sin(x / 2) * np.sin(y / 2)]])
+
+        state_grad = LinCombFull().convert(operator=state, params=[x, y], aux_meas_op=-1 * Y,
+                                           phase_fix=False)
+        values_dict = [{x: 0, y: np.pi / 4}, {x: 0, y: np.pi / 2}, {x: np.pi / 2, y: 0}]
+
+        for i, value_dict in enumerate(values_dict):
+            x_ = list(value_dict.values())[0]
+            y_ = list(value_dict.values())[1]
+            correct_values = [
+                [4 * np.imag(np.dot(dx(x_, y_), np.conj(np.transpose(dx(x_, y_))))[0][0]),
+                 4 * np.imag(np.dot(dy(x_, y_), np.conj(np.transpose(dx(x_, y_))))[0][
+                                 0])],
+                [4 * np.imag(np.dot(dy(x_, y_), np.conj(np.transpose(dx(x_, y_))))[0][0]),
+                 4 * np.imag(np.dot(dy(x_, y_), np.conj(np.transpose(dy(x_, y_))))[0][
+                                 0])]]
+
+            np.testing.assert_array_almost_equal(
+                state_grad.assign_parameters(value_dict).eval(), correct_values, decimal=3
+            )
 
     @unittest.skipIf(not optionals.HAS_JAX, "Skipping test due to missing jax module.")
     @idata(product(["lin_comb", "param_shift", "fin_diff"], [True, False]))
