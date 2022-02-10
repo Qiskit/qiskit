@@ -13,6 +13,10 @@
 """Test solver of ODEs."""
 
 import unittest
+
+from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (
+    VarQteLinearSolver,
+)
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
@@ -77,15 +81,9 @@ class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
 
         reg = "ridge"
 
-        ode_function_generator = OdeFunctionGenerator(
-            param_dict,
-            var_principle,
-            CircuitSampler(backend),
-            CircuitSampler(backend),
-            CircuitSampler(backend),
-            reg,
-            None,
-        )
+        ode_function_generator = OdeFunctionGenerator()
+        linear_solver = VarQteLinearSolver()
+        ode_function_generator._lazy_init(None, var_principle, None, reg, param_dict, linear_solver)
 
         var_qte_ode_solver = VarQteOdeSolver(
             list(param_dict.values()),

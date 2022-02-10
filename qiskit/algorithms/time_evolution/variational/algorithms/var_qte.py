@@ -13,32 +13,20 @@
 """The Variational Quantum Time Evolution Interface"""
 
 from abc import ABC
-from typing import Optional, Union, Dict, Callable, List
+from typing import Optional, Union, Dict, List
 
 import numpy as np
 from scipy.integrate import RK45, OdeSolver
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.time_evolution.evolution_base import EvolutionBase
-
 from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
     .error_calculator import (
     ErrorCalculator,
 )
-from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
-    .imaginary_error_calculator import \
-    ImaginaryErrorCalculator
-from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
-    .real_error_calculator import \
-    RealErrorCalculator
-from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import \
-    VarQteLinearSolver
-from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary\
-    .imaginary_variational_principle import \
-    ImaginaryVariationalPrinciple
-from qiskit.algorithms.time_evolution.variational.variational_principles.real\
-    .real_variational_principle import \
-    RealVariationalPrinciple
+from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (
+    VarQteLinearSolver,
+)
 from qiskit.algorithms.time_evolution.variational.variational_principles.variational_principle \
     import (
     VariationalPrinciple,
@@ -46,13 +34,6 @@ from qiskit.algorithms.time_evolution.variational.variational_principles.variati
 from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator \
     import (
     AbstractOdeFunctionGenerator,
-)
-from qiskit.algorithms.time_evolution.variational.solvers.ode.error_based_ode_function_generator \
-    import (
-    ErrorBasedOdeFunctionGenerator,
-)
-from qiskit.algorithms.time_evolution.variational.solvers.ode.ode_function_generator import (
-    OdeFunctionGenerator,
 )
 from qiskit.algorithms.time_evolution.variational.solvers.ode.var_qte_ode_solver import (
     VarQteOdeSolver,
@@ -120,7 +101,7 @@ class VarQte(EvolutionBase, ABC):
             allowed_imaginary_part,
         )
 
-        self._ode_function_generator=ode_function_generator
+        self._ode_function_generator = ode_function_generator
         self._ode_solver_callable = ode_solver_callable
         self._allowed_imaginary_part = allowed_imaginary_part
         self._allowed_num_instability_error = allowed_num_instability_error
@@ -171,13 +152,15 @@ class VarQte(EvolutionBase, ABC):
         init_state_parameters = list(init_state_param_dict.keys())
         init_state_parameters_values = list(init_state_param_dict.values())
 
-        self._variational_principle._lazy_init(hamiltonian, initial_state, init_state_parameters)
-        self.bind_initial_state(StateFn(initial_state), init_state_param_dict)
-
         # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator
-        self._ode_function_generator._lazy_init(error_calculator, self._variational_principle,
-                                                t_param, self._regularization,
-                                                init_state_param_dict, self._linear_solver)
+        self._ode_function_generator._lazy_init(
+            error_calculator,
+            self._variational_principle,
+            t_param,
+            self._regularization,
+            init_state_param_dict,
+            self._linear_solver,
+        )
 
         ode_solver = VarQteOdeSolver(
             init_state_parameters_values, self._ode_function_generator, self._ode_solver_callable
@@ -234,7 +217,7 @@ class VarQte(EvolutionBase, ABC):
         Returns:
             Hamiltonian raised to a given power.
         """
-        h_power = self._hamiltonian ** power
+        h_power = self._hamiltonian**power
         h_power = ComposedOp([~StateFn(h_power.reduce()), StateFn(self._initial_state)])
         h_power = PauliExpectation().convert(h_power)
         # TODO Include Sampler here if backend is given

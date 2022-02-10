@@ -68,12 +68,9 @@ class VarQite(Qite, VarQte):
                             If regularization is None but the metric is ill-conditioned or singular
                             then a least square solver is used without regularization.
             backend: Backend used to evaluate the quantum circuit outputs
-            error_based_ode: If False use the provided variational principle to get the parameter
-                                updates.
+
                              If True use the argument that minimizes the error.
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
-            optimizer: Optimizer used in case error_based_ode is true.
-            optimizer_tolerance: Numerical tolerance of an optimizer used for convergence to a minimum.
             allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
                                     imaginary part is expected.
             allowed_num_instability_error: The amount of negative value that is allowed to be
@@ -126,6 +123,9 @@ class VarQite(Qite, VarQte):
         init_state_param_dict = self._create_init_state_param_dict(
             hamiltonian_value_dict, list(initial_state.parameters)
         )
+        init_state_parameters = list(init_state_param_dict.keys())  # TODO
+        self._variational_principle._lazy_init(hamiltonian, initial_state, init_state_parameters)
+        self.bind_initial_state(StateFn(initial_state), init_state_param_dict)
         self._init_ham_objects()
 
         error_calculator = None

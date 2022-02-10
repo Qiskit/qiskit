@@ -126,6 +126,9 @@ class VarQrte(VarQte, Qrte):
         init_state_param_dict = self._create_init_state_param_dict(
             hamiltonian_value_dict, list(initial_state.parameters)
         )
+        init_state_parameters = list(init_state_param_dict.keys())  # TODO
+        self._variational_principle._lazy_init(hamiltonian, initial_state, init_state_parameters)
+        self.bind_initial_state(StateFn(initial_state), init_state_param_dict)
         self._init_ham_objects()
 
         error_calculator = None

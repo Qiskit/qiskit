@@ -13,6 +13,10 @@
 """Test error-based ODE function generator."""
 
 import unittest
+
+from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (
+    VarQteLinearSolver,
+)
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from numpy import array
@@ -72,7 +76,7 @@ class TestErrorBasedOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         state = operator[-1]
 
         hamiltonian = operator.oplist[0].primitive * operator.oplist[0].coeff
-        h_squared = hamiltonian ** 2
+        h_squared = hamiltonian**2
         h_squared = ComposedOp([~StateFn(h_squared.reduce()), state])
         h_squared = PauliExpectation().convert(h_squared)
 
@@ -85,15 +89,13 @@ class TestErrorBasedOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         # for the purpose of the test we invoke lazy_init
         var_principle._lazy_init(observable, ansatz, parameters)
 
-        ode_function_generator = ErrorBasedOdeFunctionGenerator(
-            error_calculator,
-            param_dict,
-            var_principle,
-            CircuitSampler(backend),
-            CircuitSampler(backend),
-            CircuitSampler(backend),
-        )
+        ode_function_generator = ErrorBasedOdeFunctionGenerator()
         time = 0.1
+        linear_solver = VarQteLinearSolver()
+
+        ode_function_generator._lazy_init(
+            error_calculator, var_principle, None, None, param_dict, linear_solver
+        )
         qte_ode_function = ode_function_generator.var_qte_ode_function(time, param_dict.values())
 
         # TODO verify values if correct

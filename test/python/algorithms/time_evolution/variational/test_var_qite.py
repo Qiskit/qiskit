@@ -13,12 +13,15 @@
 """Test Variational Quantum Imaginary Time Evolution algorithm."""
 
 import unittest
+
+from qiskit.algorithms.time_evolution.variational.solvers.ode.ode_function_generator import (
+    OdeFunctionGenerator,
+)
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
 from qiskit import Aer
-from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary\
-    .implementations.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.algorithms.time_evolution.variational.algorithms.var_qite import VarQite
@@ -64,13 +67,11 @@ class TestVarQite(QiskitAlgorithmsTestCase):
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
 
         param_dict = dict(zip(parameters, init_param_values))
-
         reg = None
         backend = Aer.get_backend("statevector_simulator")
 
-        var_qite = VarQite(
-            var_principle, regularization=reg, backend=backend, error_based_ode=False
-        )
+        ode_function = OdeFunctionGenerator()
+        var_qite = VarQite(var_principle, ode_function, regularization=reg, backend=backend)
         time = 1
 
         evolution_result = var_qite.evolve(
@@ -134,9 +135,8 @@ class TestVarQite(QiskitAlgorithmsTestCase):
         reg = None
         backend = Aer.get_backend("statevector_simulator")
 
-        var_qite = VarQite(
-            var_principle, regularization=reg, backend=backend, error_based_ode=False
-        )
+        ode_function = OdeFunctionGenerator()
+        var_qite = VarQite(var_principle, ode_function, regularization=reg, backend=backend)
         time = 7
 
         evolution_result = var_qite.evolve(
@@ -200,9 +200,8 @@ class TestVarQite(QiskitAlgorithmsTestCase):
         reg = None
         backend = Aer.get_backend("statevector_simulator")
 
-        var_qite = VarQite(
-            var_principle, regularization=reg, backend=backend, error_based_ode=False
-        )
+        ode_function = OdeFunctionGenerator()
+        var_qite = VarQite(var_principle, ode_function, regularization=reg, backend=backend)
         time = 1
 
         evolution_result = var_qite.evolve(
