@@ -13,7 +13,7 @@
 """Test operations on circuit.data."""
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Parameter
-from qiskit.circuit.library import HGate, XGate, CXGate, RXGate
+from qiskit.circuit.library import HGate, XGate, CXGate, RXGate, UGate
 
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
@@ -427,17 +427,66 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         self.assertNotEqual(qc0_instance, qc1_instance)
 
     def test_parameter_table_is_updated(self):
-        """Verify that circuit._parameter_table is consistent with circuit.data."""
-        qr = QuantumRegister(1, "q")
+        """
+        Verify that qc._parameter_table is consistent with qc.data when qc.data is updated with __setitem__ in quantumcircuitdata.py
+
+         - Case1-1. Add an instruction with a parameter that was not previously in ParameterTable.
+         - Case1-2. Add an instrcution with a parameter that was in ParameterTable.
+
+         - Case2-1. Replace an instruction with a parameter by other instruction with the same parameter.
+         - Case2-2. Replace an instruction with a parameter by other instruction with a different parameter.
+         - Case2-3. Replace an instruction with a parameter by other instruction with no parameter.
+
+         - Case3-1. Add an instruction with multiple parameter
+         - Case3-2. Replace an instruction with multiple parameter by other instruction
+
+        """
+        qr = QuantumRegister(3, "q")
         qc = QuantumCircuit(qr)
+        qc_case1 = qc.copy()
+        qc_case2 = qc.copy()
+        qc_case3 = qc.copy()
+        
+        # Case1-1, 1-2
+        param1 = Parameter("param1")
+        qc.rx(param1, 0)    # Case1-1
+        qc.rx(param1, 0)    # Case1-2
+        qc.rx(param1, 0)
 
-        a = Parameter("a")
-        qc.h(0)
-        qc.ry(a, 0)
-        qc.rz(a, 0)
+        # Create an expected ParaemterTable for Case1-1, 1-2
+        qc_case1._parameter_table[param1] = [(qc.data[0][0], 0)]
+        qc_case1._parameter_table[param1].append((qc.data[1][0], 0))
+        qc_case1._parameter_table[param1].append((qc.data[2][0], 0))
 
-        qc.data[0] = (RXGate(a), [qr[0]], [])
-        qc.data[1] = (RXGate(a), [qr[0]], [])
-        qc.data[2] = (HGate(), [qr[0]], [])
+        # Assertion for Case1-1, 1-2
+        self.assertEqual(qc._parameter_table, qc_case1._parameter_table)
 
-        qc.copy()
+        # Case2-1, 2-2, 2-3
+        param2 = Parameter("param2")
+        qc.data[0] = (RXGate(param1), [qr[0]], [])  # Case2-1
+        qc.data[1] = (RXGate(param2), [qr[0]], [])  # Case2-2
+        qc.data[2] = (HGate(), [qr[0]], [])         # Case2-3
+
+        # Create an expected ParaemterTable for Case2-1, 2-2, 2-3
+        qc_case2._parameter_table[param1] = [(qc.data[0][0], 0)]
+        qc_case2._parameter_table[param2] = [(qc.data[1][0], 0)]
+
+        # Assertion for Case2-1, 2-2, 2-3
+        self.assertEqual(qc._parameter_table, qc_case2._parameter_table)
+
+        # Case3-1, 3-2
+        param3 = Parameter("param3")
+        qc.u(param1, param2, param3, 0)             # Case3-1
+        qc.u(param1, param2, param3, 0)
+        qc.data[4] = (RXGate(param1), [qr[0]], [])  # Case3-2
+
+        # Create an expected ParaemterTable for Case3-1, 3-2
+        qc_case3._parameter_table[param1] = [(qc.data[0][0], 0)]
+        qc_case3._parameter_table[param2] = [(qc.data[1][0], 0)]
+        qc_case3._parameter_table[param1].append((qc.data[3][0], 0))
+        qc_case3._parameter_table[param2].append((qc.data[3][0], 1))
+        qc_case3._parameter_table[param3] = [(qc.data[3][0], 2)]
+        qc_case3._parameter_table[param1].append((qc.data[4][0], 0))
+
+        # Assertion for Case3-1, 3-2
+        self.assertEqual(qc._parameter_table, qc_case3._parameter_table)
