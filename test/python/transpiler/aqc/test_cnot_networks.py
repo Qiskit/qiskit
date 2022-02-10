@@ -14,11 +14,11 @@ Tests building up CNOT unit structures.
 """
 
 import unittest
-import numpy as np
+from test.python.transpiler.aqc.sample_data import CARTAN_4, CARTAN_3
 from ddt import ddt, data, unpack
+import numpy as np
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.synthesis.aqc import make_cnot_network
-from test.python.transpiler.aqc.sample_data import CARTAN_4, CARTAN_3
 
 
 @ddt

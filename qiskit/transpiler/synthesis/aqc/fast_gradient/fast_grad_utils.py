@@ -14,7 +14,6 @@
 Utility functions in the fast gradient implementation.
 """
 
-import cmath
 from typing import Union
 import numpy as np
 
@@ -252,7 +251,7 @@ def make_rx(phi: float, out: np.ndarray) -> np.ndarray:
     # assert isinstance(phi, float) and isinstance(out, np.ndarray)
     # assert out.shape == (2, 2) and out.dtype == np.cfloat
     a = 0.5 * phi
-    cs, sn = cmath.cos(a), -1j * cmath.sin(a)
+    cs, sn = np.cos(a).item(), -1j * np.sin(a).item()
     out[0, 0] = cs
     out[0, 1] = sn
     out[1, 0] = sn
@@ -274,7 +273,7 @@ def make_ry(phi: float, out: np.ndarray) -> np.ndarray:
     # assert isinstance(phi, float) and isinstance(out, np.ndarray)
     # assert out.shape == (2, 2) and out.dtype == np.cfloat
     a = 0.5 * phi
-    cs, sn = cmath.cos(a), cmath.sin(a)
+    cs, sn = np.cos(a).item(), np.sin(a).item()
     out[0, 0] = cs
     out[0, 1] = -sn
     out[1, 0] = sn
@@ -295,7 +294,7 @@ def make_rz(phi: float, out: np.ndarray) -> np.ndarray:
     """
     # assert isinstance(phi, float) and isinstance(out, np.ndarray)
     # assert out.shape == (2, 2) and out.dtype == np.cfloat
-    exp = cmath.exp(0.5j * phi)
+    exp = np.exp(0.5j * phi).item()
     out[0, 0] = 1 / exp
     out[0, 1] = 0
     out[1, 0] = 0

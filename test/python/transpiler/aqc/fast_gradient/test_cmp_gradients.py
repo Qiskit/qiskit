@@ -19,12 +19,12 @@ import gc
 import sys
 from time import perf_counter
 import unittest
-import numpy as np
 import concurrent.futures
+from test.python.transpiler.aqc.fast_gradient.utils_for_testing import rand_circuit, rand_su_mat
+import numpy as np
 from qiskit.transpiler.synthesis.aqc.fast_gradient.fast_gradient import FastCNOTUnitObjective
 from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
 from qiskit.test import QiskitTestCase
-from test.python.transpiler.aqc.fast_gradient.utils_for_testing import rand_circuit, rand_su_mat
 
 __glo_verbose__ = False
 
