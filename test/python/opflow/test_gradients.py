@@ -692,7 +692,6 @@ class TestGradients(QiskitOpflowTestCase):
         <psi(a)|X|da psi(a)> = iexp(-ia)/2 <1|H(|0>+exp(ia)|1>)
         Im(<psi(a)|X|da psi(a)>) = 0.5 cos(a)
         """
-        method = "lin_comb"
         ham = X
         a = Parameter("a")
         params = a
@@ -734,7 +733,7 @@ class TestGradients(QiskitOpflowTestCase):
                                            phase_fix=False)
         values_dict = [{x: 0, y: np.pi / 4}, {x: 0, y: np.pi / 2}, {x: np.pi / 2, y: 0}]
 
-        for i, value_dict in enumerate(values_dict):
+        for value_dict in values_dict:
             x_ = list(value_dict.values())[0]
             y_ = list(value_dict.values())[1]
             correct_values = [
