@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fix a bug in :meth:`qiskit.opflow.PauliSumOp.permute` where the original object on which
+    the method is called is permuted, instead of only returning a new, permuted copy. 
+    This bug only occured for permutations that left the number of qubits in the operator 
+    unchanged.

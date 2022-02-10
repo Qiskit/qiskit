@@ -83,7 +83,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
 
         # get parameters
         self._m = num_eval_qubits  # pylint: disable=invalid-name
-        self._M = 2 ** num_eval_qubits  # pylint: disable=invalid-name
+        self._M = 2**num_eval_qubits  # pylint: disable=invalid-name
 
         self._iqft = iqft
         self._pec = phase_estimation_circuit
@@ -194,7 +194,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
             if y >= int(self._M / 2):
                 y = self._M - y
             # due to the finite accuracy of the sine, we round the result to 7 decimals
-            a = np.round(np.power(np.sin(y * np.pi / 2 ** self._m), 2), decimals=7)
+            a = np.round(np.power(np.sin(y * np.pi / 2**self._m), 2), decimals=7)
             samples[a] = samples.get(a, 0) + probability
 
         return samples, measurements
@@ -209,7 +209,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
             y = int(state.replace(" ", "")[: self._m][::-1], 2)
             probability = count / shots
             measurements[y] = probability
-            a = np.round(np.power(np.sin(y * np.pi / 2 ** self._m), 2), decimals=7)
+            a = np.round(np.power(np.sin(y * np.pi / 2**self._m), 2), decimals=7)
             samples[a] = samples.get(a, 0.0) + probability
 
         return samples, measurements
@@ -229,7 +229,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
             The MLE for the provided result object.
         """
         m = result.num_evaluation_qubits
-        M = 2 ** m  # pylint: disable=invalid-name
+        M = 2**m  # pylint: disable=invalid-name
         qae = result.estimation
 
         # likelihood function
@@ -481,7 +481,7 @@ def _compute_fisher_information(result: AmplitudeEstimationResult, observed: boo
     fisher_information = None
     mlv = result.mle  # MLE in [0,1]
     m = result.num_evaluation_qubits
-    M = 2 ** m  # pylint: disable=invalid-name
+    M = 2**m  # pylint: disable=invalid-name
 
     if observed:
         a_i = np.asarray(list(result.samples.keys()))
@@ -535,7 +535,7 @@ def _likelihood_ratio_confint(result: AmplitudeEstimationResult, alpha: float) -
     # Compute the two intervals in which we the look for values above
     # the likelihood ratio: the two bubbles next to the QAE estimate
     m = result.num_evaluation_qubits
-    M = 2 ** m  # pylint: disable=invalid-name
+    M = 2**m  # pylint: disable=invalid-name
     qae = result.estimation
 
     y = int(np.round(M * np.arcsin(np.sqrt(qae)) / np.pi))
