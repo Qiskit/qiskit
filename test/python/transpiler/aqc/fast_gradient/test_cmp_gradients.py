@@ -51,7 +51,7 @@ class TestCompareGradientImpls(QiskitTestCase):
 
         cnots = rand_circuit(num_qubits=num_qubits, depth=depth)
         depth = cnots.shape[1]  # might be less than initial depth
-        u_mat = rand_su_mat(2 ** num_qubits)
+        u_mat = rand_su_mat(2**num_qubits)
         dflt_obj = DefaultCNOTUnitObjective(num_qubits=num_qubits, cnots=cnots)
         fast_obj = FastCNOTUnitObjective(num_qubits=num_qubits, cnots=cnots)
         thetas = np.random.rand(4 * depth + 3 * num_qubits) * 2 * np.pi
@@ -82,7 +82,7 @@ class TestCompareGradientImpls(QiskitTestCase):
 
         fobj_rel_err = abs(f1 - f2) / f2
         grad_rel_err = np.linalg.norm(g1 - g2) / np.linalg.norm(g2)
-        speedup = t2 / max(t1, np.finfo(np.float64).eps ** 2)
+        speedup = t2 / max(t1, np.finfo(np.float64).eps**2)
 
         tol = float(np.sqrt(np.finfo(np.float64).eps))
         self.assertLess(fobj_rel_err, tol)

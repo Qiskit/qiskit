@@ -26,7 +26,7 @@ def _pp(perm: np.ndarray):
     """
     # assert isinstance(perm, np.ndarray) and perm.dtype == np.int64
     # assert np.all(perm >= 0)
-    if np.amax(perm) >= 2 ** 8:
+    if np.amax(perm) >= 2**8:
         print("WARNING: index in permutation should occupy 8 bits or less")
         return
     for i in range(perm.size):
@@ -52,7 +52,7 @@ def _pb(x: int):
     The least significant bit is on the left.
     """
     # assert isinstance(x, int) and x >= 0
-    if x >= 2 ** 8:
+    if x >= 2**8:
         print("WARNING: index value should occupy 8 bits or less")
         return
     print("{0:08b}".format(x)[::-1])
@@ -80,8 +80,8 @@ def make_unit_vector(pos: int, nbits: int) -> np.ndarray:
         unit vector of size 2^nbits.
     """
     # assert isinstance(pos, int) and isinstance(nbits, int)
-    # assert 0 <= pos < 2 ** nbits
-    vec = np.full((2 ** nbits,), fill_value=0, dtype=np.int64)
+    # assert 0 <= pos < 2**nbits
+    vec = np.full((2**nbits,), fill_value=0, dtype=np.int64)
     vec[myu.reverse_bits(pos, nbits, enable=not myu.is_natural_bit_ordering())] = 1
     return vec
 
@@ -97,7 +97,7 @@ def identity_matrix(n: int) -> np.ndarray:
         unit matrix of size 2^n with integer entries.
     """
     # assert isinstance(n, int) and n >= 0
-    return np.eye(2 ** n, dtype=np.int64)
+    return np.eye(2**n, dtype=np.int64)
 
 
 def kron3(a_mat: np.ndarray, b_mat: np.ndarray, c_mat: np.ndarray) -> np.ndarray:
@@ -234,7 +234,7 @@ def rand_su_mat(dim: int) -> np.ndarray:
     # tol = float(np.sqrt(np.finfo(np.float64).eps))
     # assert isinstance(dim, (int, np.int64)) and dim >= 4
     u_mat = unitary_group.rvs(dim)
-    u_mat /= (np.linalg.det(u_mat) ** (1.0 / float(dim)))
+    u_mat /= (np.linalg.det(u_mat)**(1.0 / float(dim)))
     # assert u_mat.dtype == np.cfloat
     # assert abs(np.linalg.det(u_mat) - 1.0) < tol
     # assert np.allclose(np.conj(u_mat).T @ u_mat, np.eye(dim), atol=tol, rtol=tol)

@@ -80,7 +80,7 @@ class PMatrix:
             num_qubits: number of qubits.
         """
         # assert isinstance(num_qubits, int) and 2 <= num_qubits <= get_max_num_bits()
-        dim = 2 ** num_qubits
+        dim = 2**num_qubits
         self._dim = dim
         self._temp_g2x2 = np.zeros((2, 2), dtype=np.cfloat)
         self._temp_g4x4 = np.zeros((4, 4), dtype=np.cfloat)

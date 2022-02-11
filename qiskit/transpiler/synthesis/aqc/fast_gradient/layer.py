@@ -88,7 +88,7 @@ class Layer1Q(LayerBase):
             np.copyto(self._gmat, g2x2)  # todo: why copy?
 
         bit_flip = True
-        dim = 2 ** nbits
+        dim = 2**nbits
         row_perm = reverse_bits(bit_permutation_1q(n=nbits, k=k), nbits=nbits, enable=bit_flip)
         col_perm = reverse_bits(np.arange(dim, dtype=np.int64), nbits=nbits, enable=bit_flip)
         self._perm = np.full((dim,), fill_value=0, dtype=np.int64)
@@ -139,7 +139,7 @@ class Layer2Q(LayerBase):
             np.copyto(self._gmat, g4x4)
 
         bit_flip = True  # TODO: is_natural_bit_ordering()
-        dim = 2 ** nbits
+        dim = 2**nbits
         row_perm = reverse_bits(bit_permutation_2q(n=nbits, j=j, k=k), nbits=nbits, enable=bit_flip)
         col_perm = reverse_bits(np.arange(dim, dtype=np.int64), nbits=nbits, enable=bit_flip)
         self._perm = np.full((dim,), fill_value=0, dtype=np.int64)

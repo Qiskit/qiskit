@@ -1,0 +1,8 @@
+************* Module test.python.transpiler.aqc.visual.plot_cnots
+test/python/transpiler/aqc/visual/plot_cnots.py:88:4: W0702: No exception type(s) specified (bare-except)
+test/python/transpiler/aqc/visual/plot_cnots.py:17:0: W0611: Unused import os (unused-import)
+test/python/transpiler/aqc/visual/plot_cnots.py:18:0: W0611: Unused import sys (unused-import)
+
+------------------------------------------------------------------
+Your code has been rated at 9.98/10 (previous run: 9.98/10, -0.00)
+

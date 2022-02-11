@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Implementation of the fast gradient computation.
+Implementation of the fast objective function class.
 """
 
 import warnings
@@ -56,7 +56,7 @@ class FastCNOTUnitObjective(ApproximatingObjective):
         # assert np.all(0 <= cnots) and np.all(cnots < num_qubits)
 
         self.num_qubits = num_qubits    # number of qubits
-        dim = 2 ** num_qubits           # actual problem dimension
+        dim = 2**num_qubits             # actual problem dimension
         depth = cnots.shape[1]
         self._depth = depth             # number of C-layers (circuit depth)
 
@@ -110,7 +110,7 @@ class FastCNOTUnitObjective(ApproximatingObjective):
         depth, n = self._depth, self.num_qubits
         # assert depth >= 2
         # assert isinstance(self.target_matrix, np.ndarray)
-        # assert self.target_matrix.shape == (2 ** n, 2 ** n)
+        # assert self.target_matrix.shape == (2**n, 2**n)
         # assert self.target_matrix.dtype == np.cfloat
         # assert isinstance(param_values, np.ndarray) and param_values.ndim == 1
         # assert param_values.size == self.num_thetas and param_values.dtype == np.float64
@@ -160,6 +160,9 @@ class FastCNOTUnitObjective(ApproximatingObjective):
         return grad
 
     def __copy__(self):
+        """
+        Prevents this object from being copied.
+        """
         raise NotImplementedError("non-copyable")
 
     def _init_layers(self):
@@ -210,7 +213,7 @@ class FastCNOTUnitObjective(ApproximatingObjective):
         """
         ucf = self._ucf_mat.finalize(temp_mat=self._tmp1)
         trace_ucf = np.trace(ucf)
-        fobj = abs((2 ** self.num_qubits) - float(np.real(trace_ucf)))
+        fobj = abs((2**self.num_qubits) - float(np.real(trace_ucf)))
 
         # No need to finalize both matrices ucf_mat and fuc_mat, just for debugging.
         if self._debug:
@@ -230,6 +233,9 @@ class FastCNOTUnitObjective(ApproximatingObjective):
         return fobj
 
     def _calc_gradient4d(self, grad4d: np.ndarray):
+        """
+        Calculates a part gradient contributed by 2-qubit gates.
+        """
         fuc = self._fuc_mat
         tmp1, tmp2 = self._tmp1, self._tmp2
         c_gates = self._c_gates
@@ -252,6 +258,9 @@ class FastCNOTUnitObjective(ApproximatingObjective):
                 )
 
     def _calc_gradient3n(self, grad3n: np.ndarray):
+        """
+        Calculates a part gradient contributed by 1-qubit gates.
+        """
         ucf = self._ucf_mat
         tmp1, tmp2 = self._tmp1, self._tmp2
         f_gates = self._f_gates

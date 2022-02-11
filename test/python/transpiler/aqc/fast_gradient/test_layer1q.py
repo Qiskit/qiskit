@@ -50,7 +50,7 @@ class TestLayer1q(QiskitTestCase):
             if __glo_verbose__:
                 print("n:", n)
 
-            dim = 2 ** n
+            dim = 2**n
             iden = tut.identity_matrix(n)
             for k in range(n):
                 m_mat = tut.rand_matrix(dim=dim, kind=mat_kind)
@@ -106,7 +106,7 @@ class TestLayer1q(QiskitTestCase):
             if __glo_verbose__:
                 print("n:", n)
 
-            dim = 2 ** n
+            dim = 2**n
             tmp1 = np.ndarray((dim, dim), dtype=np.cfloat)
             tmp2 = tmp1.copy()
             for _ in range(200 if __glo_verbose__ else 50):

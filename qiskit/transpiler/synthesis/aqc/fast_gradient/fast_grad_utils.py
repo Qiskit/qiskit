@@ -99,20 +99,20 @@ def reverse_bits(x: Union[int, np.ndarray],
 
     if not enable:
         if isinstance(x, int):
-            # assert 0 <= x < 2 ** nbits
+            # assert 0 <= x < 2**nbits
             pass
         else:
             # assert isinstance(x, np.ndarray) and x.dtype == np.int64
-            # assert np.all((x >= 0) & (x < 2 ** nbits))
+            # assert np.all((x >= 0) & (x < 2**nbits))
             x = x.copy()
         return x
 
     if isinstance(x, int):
-        # assert 0 <= x < 2 ** nbits
+        # assert 0 <= x < 2**nbits
         res = int(0)
     else:
         # assert isinstance(x, np.ndarray) and x.dtype == np.int64
-        # assert np.all((x >= 0) & (x < 2 ** nbits))
+        # assert np.all((x >= 0) & (x < 2**nbits))
         x = x.copy()
         res = np.full_like(x, fill_value=0)
 
@@ -160,9 +160,9 @@ def bit_permutation_1q(n: int, k: int) -> np.ndarray:
     """
     # assert isinstance(n, int) and isinstance(k, int)
     # assert 0 <= k < n <= get_max_num_bits()
-    perm = np.arange(2 ** n, dtype=np.int64)
+    perm = np.arange(2**n, dtype=np.int64)
     if k != n - 1:
-        for v in range(2 ** n):
+        for v in range(2**n):
             perm[v] = swap_bits(v, k, n - 1)
     return perm
 
@@ -189,7 +189,7 @@ def bit_permutation_2q(n: int, j: int, k: int) -> np.ndarray:
     """
     # assert isinstance(n, int) and isinstance(j, int) and isinstance(k, int)
     # assert j != k and 0 <= j < n and 0 <= k < n and 2 <= n <= get_max_num_bits()
-    dim = 2 ** n
+    dim = 2**n
     perm = np.arange(dim, dtype=np.int64)
     if j < n - 2:
         if k < n - 2:

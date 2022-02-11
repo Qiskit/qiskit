@@ -29,7 +29,7 @@ __glo_verbose__ = False
 
 class TestLayer2q(QiskitTestCase):
     """
-    Tests for Layer1Q class.
+    Tests for Layer2Q class.
     """
 
     def test_layer2q_matrix(self):
@@ -50,7 +50,7 @@ class TestLayer2q(QiskitTestCase):
             if __glo_verbose__:
                 print("n:", n)
 
-            dim = 2 ** n
+            dim = 2**n
             iden = tut.identity_matrix(n)
             for j in range(n):
                 for k in range(n):
@@ -109,7 +109,7 @@ class TestLayer2q(QiskitTestCase):
             if __glo_verbose__:
                 print("n:", n)
 
-            dim = 2 ** n
+            dim = 2**n
             tmp1 = np.ndarray((dim, dim), dtype=np.cfloat)
             tmp2 = tmp1.copy()
             for _ in range(200 if __glo_verbose__ else 50):

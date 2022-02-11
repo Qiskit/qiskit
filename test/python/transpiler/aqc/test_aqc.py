@@ -35,7 +35,7 @@ class TestAqc(QiskitTestCase):
     def _print_result_info(target_matrix: np.ndarray, approx_matrix: np.ndarray):
         if __glo_verbose__:
             diff = approx_matrix - target_matrix
-            fro_err = 0.5 * (np.linalg.norm(diff, "fro") ** 2)
+            fro_err = 0.5 * (np.linalg.norm(diff, "fro")**2)
             sin_err = np.linalg.norm(diff, 2)
             print("\nApproximation misfit:")
             print(f"Cost function based on Frobenius norm: {fro_err:0.8f}")
@@ -68,7 +68,7 @@ class TestAqc(QiskitTestCase):
         )
 
         approx_matrix = Operator(circ).data
-        error = 0.5 * (np.linalg.norm(approx_matrix - target_matrix, "fro") ** 2)
+        error = 0.5 * (np.linalg.norm(approx_matrix - target_matrix, "fro")**2)
         self._print_result_info(target_matrix, approx_matrix)
         self.assertTrue(error < 1e-3)
 
@@ -89,7 +89,7 @@ class TestAqc(QiskitTestCase):
         aqc = AQC(optimizer=optimizer, seed=seed)
 
         # Make multi-control CNOT gate matrix.
-        target_matrix = np.eye(2 ** num_qubits, dtype=np.cfloat)
+        target_matrix = np.eye(2**num_qubits, dtype=np.cfloat)
         target_matrix[-2:, -2:] = [[0, 1], [1, 0]]
         # target_matrix = np.array(ORIGINAL_CIRCUIT)
 
@@ -104,7 +104,7 @@ class TestAqc(QiskitTestCase):
         )
 
         approx_matrix = Operator(circ).data
-        error = 0.5 * (np.linalg.norm(approx_matrix - target_matrix, "fro") ** 2)
+        error = 0.5 * (np.linalg.norm(approx_matrix - target_matrix, "fro")**2)
         self._print_result_info(target_matrix, approx_matrix)
         self.assertTrue(error < 1e-3)
 

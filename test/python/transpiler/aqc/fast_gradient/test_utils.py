@@ -71,13 +71,13 @@ class TestUtils(QiskitTestCase):
 
         start = perf_counter()
         nbits = myu.get_max_num_bits() if __glo_verbose__ else 7
-        for x in range(2 ** nbits):
+        for x in range(2**nbits):
             y = myu.reverse_bits(x, nbits, enable=True)
             self.assertTrue(x == myu.reverse_bits(y, nbits, enable=True))
             for i in range(nbits):
                 self.assertTrue(((x >> i) & 1) == ((y >> (nbits - i - 1)) & 1))
 
-        x = np.arange(2 ** nbits, dtype=np.int64)
+        x = np.arange(2**nbits, dtype=np.int64)
         y = myu.reverse_bits(x, nbits, enable=True)
         self.assertTrue(np.all(myu.reverse_bits(y, nbits, enable=True) == x))
 
@@ -96,7 +96,7 @@ class TestUtils(QiskitTestCase):
         # Computes unit vector as Kronecker product of (1 0) or (0 1) sub-vectors.
         def _make_unit_vector_simple(num: int, nbits: int) -> np.ndarray:
             self.assertTrue(isinstance(num, int) and isinstance(nbits, int))
-            self.assertTrue(0 <= num < 2 ** nbits)
+            self.assertTrue(0 <= num < 2**nbits)
             vec = 1
             for i in range(nbits):
                 x = (num >> i) & 1
@@ -104,11 +104,11 @@ class TestUtils(QiskitTestCase):
                     vec = np.kron(np.array([1 - x, x], dtype=np.int64), vec)
                 else:
                     vec = np.kron(vec, np.array([1 - x, x], dtype=np.int64))
-            self.assertTrue(vec.dtype == np.int64 and vec.shape == (2 ** nbits,))
+            self.assertTrue(vec.dtype == np.int64 and vec.shape == (2**nbits,))
             return vec
 
         for n in range(1, (11 if __glo_verbose__ else 5) + 1):
-            for k in range(2 ** n):
+            for k in range(2**n):
                 v1 = _make_unit_vector_simple(k, n)
                 v2 = tut.make_unit_vector(k, n)
                 self.assertTrue(np.all(v1 == v2))
@@ -129,7 +129,7 @@ class TestUtils(QiskitTestCase):
 
         start = perf_counter()
         nbits = myu.get_max_num_bits() if __glo_verbose__ else 7
-        for x in range(2 ** nbits):
+        for x in range(2**nbits):
             for a in range(nbits):
                 for b in range(nbits):
                     y = myu.swap_bits(x, a, b)
@@ -166,7 +166,7 @@ class TestUtils(QiskitTestCase):
 
             start = perf_counter()
 
-            dim = 2 ** n
+            dim = 2**n
             for _ in range(100):
                 perm1, inv_perm1, p1_mat, q1_mat = _permutation_and_matrix(dim)
                 perm2, inv_perm2, p2_mat, q2_mat = _permutation_and_matrix(dim)

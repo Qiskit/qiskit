@@ -78,7 +78,7 @@ class DefaultCNOTUnitObjective(CNOTUnitObjective):
         # rename parameters just to make shorter and make use of our dictionary
         thetas = param_values
         n = self._num_qubits
-        d = int(2 ** n)
+        d = int(2**n)
         cnots = self._cnots
         num_cnots = self.num_cnots
 
@@ -156,7 +156,7 @@ class DefaultCNOTUnitObjective(CNOTUnitObjective):
         circuit_matrix = np.dot(cnot_matrix, rotation_matrix)
 
         # compute error
-        error = 0.5 * (la.norm(circuit_matrix - self._target_matrix, "fro") ** 2)
+        error = 0.5 * (la.norm(circuit_matrix - self._target_matrix, "fro")**2)
 
         # cache computations for gradient
         self._last_thetas = thetas
@@ -183,7 +183,7 @@ class DefaultCNOTUnitObjective(CNOTUnitObjective):
         pauli_z = np.multiply(-1j / 2, np.array([[1, 0], [0, -1]]))
 
         n = self._num_qubits
-        d = int(2 ** n)
+        d = int(2**n)
         cnots = self._cnots
         num_cnots = self.num_cnots
 
