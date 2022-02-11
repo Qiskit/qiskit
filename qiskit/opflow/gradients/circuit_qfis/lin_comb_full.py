@@ -64,7 +64,7 @@ class LinCombFull(CircuitQFI):
         # QFI & phase fix observable
         qfi_observable = StateFn(
             4 * aux_meas_op ^ (I ^ operator.num_qubits), is_measurement=True
-        ).reduce()
+        )
         if phase_fix:
             phase_fix_observable = SummedOp(
                 [Z ^ (I ^ operator.num_qubits), -1j * Y ^ (I ^ operator.num_qubits)]
