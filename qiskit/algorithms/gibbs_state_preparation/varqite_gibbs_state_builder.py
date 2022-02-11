@@ -97,7 +97,16 @@ class VarQiteGibbsStateBuilder(GibbsStateBuilder):
             aux_registers=aux_registers,
         )
 
-    def _extend_hamiltonian_to_aux_registers(self, hamiltonian):
+    def _extend_hamiltonian_to_aux_registers(self, hamiltonian: OperatorBase):
+        """This class operates of a purified Gibbs state which includes auxiliary registers not
+        present in the original Hamiltonian. This method creates an extended Hamiltonian in the
+        bigger space that includes identity operators on auxiliary registers.
+        Args:
+            hamiltonian: Hamiltonian to be extended to a bigger space.
+        Returns:
+            An extended Hamiltonian in a bigger space, with identity operators on auxiliary
+            registers.
+        """
         num_qubits = self._ansatz.num_qubits
         if hamiltonian.num_qubits != num_qubits / 2:
             raise ValueError("Mismatch between number of qubits in a Hamiltonian and in an ansatz.")

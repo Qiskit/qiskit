@@ -212,6 +212,13 @@ class GibbsStateSampler:
         return reduced_qubits_amplitudes
 
     def _reduce_label(self, label: int) -> int:
+        """Accepts an integer label that represents a measurement outcome and discards auxiliary
+        registers in the label.
+        Args:
+            label: An integer label that represents a measurement outcome.
+        Returns:
+            A reduced label after discarding indices of auxiliary quantum registers.
+        """
         cnt = len(bin(label)) - 2
         cnt2 = 0
         reduced_label_bits = []
