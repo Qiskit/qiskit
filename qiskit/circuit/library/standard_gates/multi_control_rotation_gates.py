@@ -25,6 +25,11 @@ from qiskit.exceptions import QiskitError
 def _apply_cu(circuit, theta, phi, lam, control, target, use_basis_gates=True):
     if use_basis_gates:
         # pylint: disable=cyclic-import
+        #          ┌──────────────┐
+        # control: ┤ P(λ/2 + φ/2) ├──■──────────────────────────────────■────────────────
+        #          ├──────────────┤┌─┴─┐┌────────────────────────────┐┌─┴─┐┌────────────┐
+        #  target: ┤ P(λ/2 - φ/2) ├┤ X ├┤ U(-0.5*0,0,-0.5*λ - 0.5*φ) ├┤ X ├┤ U(0/2,φ,0) ├
+        #          └──────────────┘└───┘└────────────────────────────┘└───┘└────────────┘
         circuit.p((lam + phi) / 2, [control])
         circuit.p((lam - phi) / 2, [target])
         circuit.cx(control, target)

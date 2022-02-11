@@ -335,6 +335,13 @@ class CCXGate(ControlledGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
+        #                                                        ┌───┐
+        # q_0: ───────────────────■─────────────────────■────■───┤ T ├───■──
+        #                         │             ┌───┐   │  ┌─┴─┐┌┴───┴┐┌─┴─┐
+        # q_1: ───────■───────────┼─────────■───┤ T ├───┼──┤ X ├┤ Tdg ├┤ X ├
+        #      ┌───┐┌─┴─┐┌─────┐┌─┴─┐┌───┐┌─┴─┐┌┴───┴┐┌─┴─┐├───┤└┬───┬┘└───┘
+        # q_2: ┤ H ├┤ X ├┤ Tdg ├┤ X ├┤ T ├┤ X ├┤ Tdg ├┤ X ├┤ T ├─┤ H ├──────
+        #      └───┘└───┘└─────┘└───┘└───┘└───┘└─────┘└───┘└───┘ └───┘
         q = QuantumRegister(3, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
