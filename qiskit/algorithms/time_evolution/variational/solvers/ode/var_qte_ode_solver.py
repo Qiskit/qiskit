@@ -15,7 +15,7 @@
 import itertools
 from typing import List, Union
 
-from scipy.integrate import OdeSolver, solve_ivp
+from scipy.integrate import OdeSolver, solve_ivp, RK45
 
 from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
     AbstractOdeFunctionGenerator,
@@ -29,7 +29,7 @@ class VarQteOdeSolver:
         self,
         init_params: List[Union[float, complex]],
         ode_function_generator: AbstractOdeFunctionGenerator,
-        ode_solver_callable: OdeSolver = "RK45",  # TODO check if string
+        ode_solver_callable: OdeSolver = RK45,
     ):
         """
         Initialize ODE Solver.

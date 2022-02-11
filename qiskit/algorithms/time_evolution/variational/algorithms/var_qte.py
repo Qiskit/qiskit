@@ -19,6 +19,7 @@ import numpy as np
 from scipy.integrate import RK45, OdeSolver
 
 from qiskit import QuantumCircuit
+from qiskit.algorithms.optimizers import COBYLA, Optimizer
 from qiskit.algorithms.time_evolution.evolution_base import EvolutionBase
 
 from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
@@ -70,7 +71,7 @@ class VarQte(EvolutionBase, ABC):
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         error_based_ode: Optional[bool] = False,
         ode_solver_callable: OdeSolver = RK45,
-        optimizer: str = "COBYLA",
+        optimizer: Optimizer = COBYLA,
         optimizer_tolerance: float = 1e-6,
         allowed_imaginary_part: float = 1e-7,
         allowed_num_instability_error: float = 1e-7,

@@ -14,8 +14,9 @@
 
 from typing import Optional, Union, Dict, List
 
-from scipy.integrate import OdeSolver
+from scipy.integrate import OdeSolver, RK45
 
+from qiskit.algorithms.optimizers import Optimizer, COBYLA
 from qiskit.algorithms.time_evolution.evolution_result import EvolutionResult
 from qiskit.algorithms.time_evolution.real.qrte import Qrte
 from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
@@ -51,8 +52,8 @@ class VarQrte(VarQte, Qrte):
         # TODO: Should we keep this more general? And pass here a natural gradient object?
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         error_based_ode: Optional[bool] = False,
-        ode_solver_callable: OdeSolver = "RK45",
-        optimizer: str = "COBYLA",
+        ode_solver_callable: OdeSolver = RK45,
+        optimizer: Optimizer = COBYLA,
         optimizer_tolerance: float = 1e-6,
         allowed_imaginary_part: float = 1e-7,
         allowed_num_instability_error: float = 1e-7,

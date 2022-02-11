@@ -12,11 +12,12 @@
 
 """Class for generating error-based ODE functions."""
 
-from typing import Union, List, Dict, Optional, Iterable
+from typing import Union, List, Dict, Optional, Iterable, Callable
 
 import numpy as np
 from scipy.optimize import minimize
 
+from qiskit.algorithms.optimizers import COBYLA, Optimizer
 from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
     .error_calculator import (
     ErrorCalculator,
@@ -49,7 +50,7 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
         regularization: Optional[str] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         t_param: Optional[Parameter] = None,
-        optimizer: str = "COBYLA",
+        optimizer: Callable = COBYLA,
         optimizer_tolerance: float = 1e-6,
         allowed_imaginary_part: float = 1e-7,
     ):
@@ -71,7 +72,7 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
                             then a least square solver is used without regularization.
             backend: Optional backend tht enables the use of circuit samplers.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
-            optimizer: Optimizer used in case error_based_ode is true.
+            optimizer: Qiskit optimizer callable used in an error-based ODE function.
             optimizer_tolerance: Numerical tolerance of an optimizer used for convergence to a minimum.
             allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
                                     imaginary part is expected.
@@ -88,7 +89,7 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
             allowed_imaginary_part,
         )
         self._error_calculator = error_calculator
-        self._optimizer = optimizer
+        self._optimizer = optimizer(tol=optimizer_tolerance)
         self._optimizer_tolerance = optimizer_tolerance
 
     def var_qte_ode_function(self, time: float, parameters_values: Iterable) -> float:
@@ -127,8 +128,8 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
             return et_squared
 
         # Use the natural gradient result as initial point for least squares solver
-        argmin = minimize(
-            fun=argmin_fun, x0=nat_grad_res, method=self._optimizer, tol=self._optimizer_tolerance
+        argmin = self._optimizer.minimize(
+            fun=argmin_fun, x0=nat_grad_res
         )
 
         # self._et = argmin_fun(argmin.x)
