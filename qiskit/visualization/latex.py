@@ -55,12 +55,12 @@ class QCircuitImage:
         reverse_bits=False,
         plot_barriers=True,
         layout=None,
-        with_layout=False,
         initial_state=False,
         cregbundle=False,
         global_phase=None,
         qregs=None,
         cregs=None,
+        with_layout=False,
         circuit=None,
     ):
         """QCircuitImage initializer.
