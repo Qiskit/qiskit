@@ -421,7 +421,7 @@ class Instruction:
         if val < 0:
             raise CircuitError("condition value should be non-negative")
 
-        if (isinstance(classical, ClassicalRegister) and val >= 2 ** classical.size) or (
+        if (isinstance(classical, ClassicalRegister) and val >= 2**classical.size) or (
             isinstance(classical, list) and val >= 2 ** len(classical)
         ):
             raise CircuitError("condition value should be less than 2 ^ number of bits")

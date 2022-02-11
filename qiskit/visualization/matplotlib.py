@@ -594,7 +594,7 @@ class MatplotlibDrawer:
                 # get qubit index
                 q_indxs = []
                 for qarg in node.qargs:
-                   q_indxs.append(self._wire_map[qarg])
+                    q_indxs.append(self._wire_map[qarg])
 
                 c_indxs = []
                 for carg in node.cargs:
@@ -901,7 +901,9 @@ class MatplotlibDrawer:
     def _condition(self, node, cond_xy):
         """Add a conditional to a gate"""
         condition = node.op.condition
-        cond_label, cond_list = get_condition_label_val(condition, self._circuit, self._cregbundle, self._reverse_bits)
+        cond_label, cond_list = get_condition_label_val(
+            condition, self._circuit, self._cregbundle, self._reverse_bits
+        )
         xy_plot = []
         for bit, val in cond_list:
             # if it's a register bit and cregbundle on, need to use
