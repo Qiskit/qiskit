@@ -29,6 +29,7 @@ class TestSchedulingPass(QiskitTestCase):
     def test_alap_agree_with_reverse_asap_reverse(self):
         """Test if ALAP schedule agrees with doubly-reversed ASAP schedule."""
         qc = QuantumCircuit(2)
+        qc.barrier()
         qc.h(0)
         qc.delay(500, 1)
         qc.cx(0, 1)
@@ -64,14 +65,14 @@ class TestSchedulingPass(QiskitTestCase):
               0 └─────────┘
 
         (scheduled)
-                                ┌─┐┌────────────────┐
-        q_0: ───────────────────┤M├┤ Delay(200[dt]) ├
-             ┌─────────────────┐└╥┘└─────┬───┬──────┘
-        q_1: ┤ Delay(1000[dt]) ├─╫───────┤ X ├───────
-             └─────────────────┘ ║       └─╥─┘
-                                 ║    ┌────╨────┐
-        c: 1/════════════════════╩════╡ c_0 = T ╞════
-                                 0    └─────────┘
+                                ┌─┐
+        q_0: ───────────────────┤M├───────────
+             ┌─────────────────┐└╥┘   ┌───┐
+        q_1: ┤ Delay(1000[dt]) ├─╫────┤ X ├───
+             └─────────────────┘ ║    └─╥─┘
+                                 ║ ┌────╨────┐
+        c: 1/════════════════════╩═╡ c_0=0x1 ╞
+                                 0 └─────────┘
         """
         qc = QuantumCircuit(2, 1)
         qc.measure(0, 0)
@@ -83,7 +84,6 @@ class TestSchedulingPass(QiskitTestCase):
 
         expected = QuantumCircuit(2, 1)
         expected.measure(0, 0)
-        expected.delay(200, 0)
         expected.delay(1000, 1)  # x.c_if starts after measure
         expected.x(1).c_if(0, True)
 
@@ -104,13 +104,13 @@ class TestSchedulingPass(QiskitTestCase):
                    0  0
 
         (scheduled)
-                   ┌───┐       ┌─┐
-        q_0: ──────┤ X ├───────┤M├───
-             ┌─────┴───┴──────┐└╥┘┌─┐
-        q_1: ┤ Delay(200[dt]) ├─╫─┤M├
-             └────────────────┘ ║ └╥┘
-        c: 1/═══════════════════╩══╩═
-                                0  0
+                    ┌───┐       ┌─┐
+        q_0: ───────┤ X ├───────┤M├───
+             ┌──────┴───┴──────┐└╥┘┌─┐
+        q_1: ┤ Delay(1200[dt]) ├─╫─┤M├
+             └─────────────────┘ ║ └╥┘
+        c: 1/════════════════════╩══╩═
+                                 0  0
         """
         qc = QuantumCircuit(2, 1)
         qc.x(0)
@@ -124,7 +124,7 @@ class TestSchedulingPass(QiskitTestCase):
         expected = QuantumCircuit(2, 1)
         expected.x(0)
         expected.measure(0, 0)
-        expected.delay(200, 1)  # 2nd measure starts at the same time as 1st measure starts
+        expected.delay(1200, 1)
         expected.measure(1, 0)
 
         self.assertEqual(expected, scheduled)
@@ -146,16 +146,17 @@ class TestSchedulingPass(QiskitTestCase):
               0 └─────────┘└─────────┘
 
         (scheduled)
-                                ┌─┐┌────────────────┐
-        q_0: ───────────────────┤M├┤ Delay(200[dt]) ├───────────
-             ┌─────────────────┐└╥┘└─────┬───┬──────┘
-        q_1: ┤ Delay(1000[dt]) ├─╫───────┤ X ├──────────────────
-             ├─────────────────┤ ║       └─╥─┘          ┌───┐
-        q_2: ┤ Delay(1000[dt]) ├─╫─────────╫────────────┤ X ├───
-             └─────────────────┘ ║         ║            └─╥─┘
-                                 ║    ┌────╨────┐    ┌────╨────┐
-        c: 1/════════════════════╩════╡ c_0 = T ╞════╡ c_0 = T ╞
-                                 0    └─────────┘    └─────────┘
+
+                                ┌─┐
+        q_0: ───────────────────┤M├──────────────────────
+             ┌─────────────────┐└╥┘   ┌───┐
+        q_1: ┤ Delay(1000[dt]) ├─╫────┤ X ├──────────────
+             ├─────────────────┤ ║    └─╥─┘      ┌───┐
+        q_2: ┤ Delay(1000[dt]) ├─╫──────╫────────┤ X ├───
+             └─────────────────┘ ║      ║        └─╥─┘
+                                 ║ ┌────╨────┐┌────╨────┐
+        c: 1/════════════════════╩═╡ c_0=0x1 ╞╡ c_0=0x1 ╞
+                                 0 └─────────┘└─────────┘
         """
         qc = QuantumCircuit(3, 1)
         qc.measure(0, 0)
@@ -168,7 +169,6 @@ class TestSchedulingPass(QiskitTestCase):
 
         expected = QuantumCircuit(3, 1)
         expected.measure(0, 0)
-        expected.delay(200, 0)
         expected.delay(1000, 1)
         expected.delay(1000, 2)
         expected.x(1).c_if(0, True)
@@ -190,13 +190,13 @@ class TestSchedulingPass(QiskitTestCase):
               0  0
 
         (scheduled)
-                               ┌─┐
-        q_0: ──────────────────┤M├───
-             ┌────────────────┐└╥┘┌─┐
-        q_1: ┤ Delay(300[dt]) ├─╫─┤M├
-             └────────────────┘ ║ └╥┘
-        c: 1/═══════════════════╩══╩═
-                                0  0
+                                ┌─┐
+        q_0: ───────────────────┤M├───
+             ┌─────────────────┐└╥┘┌─┐
+        q_1: ┤ Delay(1000[dt]) ├─╫─┤M├
+             └─────────────────┘ ║ └╥┘
+        c: 1/════════════════════╩══╩═
+                                 0  0
         """
         qc = QuantumCircuit(2, 1)
         qc.measure(0, 0)
@@ -208,12 +208,13 @@ class TestSchedulingPass(QiskitTestCase):
 
         expected = QuantumCircuit(2, 1)
         expected.measure(0, 0)
-        expected.delay(300, 1)
+        expected.delay(1000, 1)
         expected.measure(1, 0)
 
         self.assertEqual(expected, scheduled)
 
-    def test_measure_after_c_if(self):
+    @data(ALAPSchedule, ASAPSchedule)
+    def test_measure_after_c_if(self, schedule_pass):
         """Test if ALAP/ASAP schedules circuits with c_if after measure with a common clbit.
 
         (input)
@@ -227,27 +228,16 @@ class TestSchedulingPass(QiskitTestCase):
         c: 1/═╩═╡ c_0 = T ╞═╩═
               0 └─────────┘ 0
 
-        (scheduled - ASAP)
-                                ┌─┐┌────────────────┐
-        q_0: ───────────────────┤M├┤ Delay(200[dt]) ├─────────────────────
-             ┌─────────────────┐└╥┘└─────┬───┬──────┘
-        q_1: ┤ Delay(1000[dt]) ├─╫───────┤ X ├────────────────────────────
-             └─────────────────┘ ║       └─╥─┘       ┌─┐┌────────────────┐
-        q_2: ────────────────────╫─────────╫─────────┤M├┤ Delay(200[dt]) ├
-                                 ║    ┌────╨────┐    └╥┘└────────────────┘
-        c: 1/════════════════════╩════╡ c_0 = T ╞═════╩═══════════════════
-                                 0    └─────────┘     0
-
-        (scheduled - ALAP)
-                                ┌─┐┌────────────────┐
-        q_0: ───────────────────┤M├┤ Delay(200[dt]) ├───
-             ┌─────────────────┐└╥┘└─────┬───┬──────┘
-        q_1: ┤ Delay(1000[dt]) ├─╫───────┤ X ├──────────
-             └┬────────────────┤ ║       └─╥─┘       ┌─┐
-        q_2: ─┤ Delay(200[dt]) ├─╫─────────╫─────────┤M├
-              └────────────────┘ ║    ┌────╨────┐    └╥┘
-        c: 1/════════════════════╩════╡ c_0 = T ╞═════╩═
-                                 0    └─────────┘     0
+        (scheduled)
+                                ┌─┐
+        q_0: ───────────────────┤M├──────────────
+             ┌─────────────────┐└╥┘   ┌───┐
+        q_1: ┤ Delay(1000[dt]) ├─╫────┤ X ├──────
+             ├─────────────────┤ ║    └─╥─┘   ┌─┐
+        q_2: ┤ Delay(1200[dt]) ├─╫──────╫─────┤M├
+             └─────────────────┘ ║ ┌────╨────┐└╥┘
+        c: 1/════════════════════╩═╡ c_0=0x1 ╞═╩═
+                                 0 └─────────┘ 0
         """
         qc = QuantumCircuit(3, 1)
         qc.measure(0, 0)
@@ -255,27 +245,146 @@ class TestSchedulingPass(QiskitTestCase):
         qc.measure(2, 0)
 
         durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
-        actual_asap = PassManager(ASAPSchedule(durations)).run(qc)
-        actual_alap = PassManager(ALAPSchedule(durations)).run(qc)
+        pm = PassManager(schedule_pass(durations))
+        scheduled = pm.run(qc)
 
-        # start times of 2nd measure depends on ASAP/ALAP
-        expected_asap = QuantumCircuit(3, 1)
-        expected_asap.measure(0, 0)
-        expected_asap.delay(200, 0)
-        expected_asap.delay(1000, 1)
-        expected_asap.x(1).c_if(0, 1)
-        expected_asap.measure(2, 0)
-        expected_asap.delay(200, 2)  # delay after measure on q_2
-        self.assertEqual(expected_asap, actual_asap)
+        expected = QuantumCircuit(3, 1)
+        expected.delay(1000, 1)
+        expected.delay(1200, 2)
+        expected.measure(0, 0)
+        expected.x(1).c_if(0, 1)
+        expected.measure(2, 0)
+        expected.draw()
 
-        expected_aslp = QuantumCircuit(3, 1)
-        expected_aslp.measure(0, 0)
-        expected_aslp.delay(200, 0)
-        expected_aslp.delay(1000, 1)
-        expected_aslp.x(1).c_if(0, 1)
-        expected_aslp.delay(200, 2)
-        expected_aslp.measure(2, 0)  # delay before measure on q_2
-        self.assertEqual(expected_aslp, actual_alap)
+        self.assertEqual(expected, scheduled)
+
+    def test_parallel_gate_different_length(self):
+        """Test circuit having two parallel instruction with different length.
+
+        (input)
+             ┌───┐┌─┐
+        q_0: ┤ X ├┤M├───
+             ├───┤└╥┘┌─┐
+        q_1: ┤ X ├─╫─┤M├
+             └───┘ ║ └╥┘
+        c: 2/══════╩══╩═
+                   0  1
+
+        (expected, ALAP)
+             ┌────────────────┐┌───┐┌─┐
+        q_0: ┤ Delay(200[dt]) ├┤ X ├┤M├
+             └─────┬───┬──────┘└┬─┬┘└╥┘
+        q_1: ──────┤ X ├────────┤M├──╫─
+                   └───┘        └╥┘  ║
+        c: 2/════════════════════╩═══╩═
+                                 1   0
+
+        (expected, ASAP)
+             ┌───┐┌─┐
+        q_0: ┤ X ├┤M├───
+             ├───┤└╥┘┌─┐
+        q_1: ┤ X ├─╫─┤M├
+             └───┘ ║ └╥┘
+        c: 2/══════╩══╩═
+                   0  1
+        """
+        qc = QuantumCircuit(2, 2)
+        qc.x(0)
+        qc.x(1)
+        qc.measure(0, 0)
+        qc.measure(1, 1)
+
+        durations = InstructionDurations(
+            [("x", [0], 200), ("x", [1], 400), ("measure", None, 1000)]
+        )
+        pm = PassManager(ALAPSchedule(durations))
+        qc_alap = pm.run(qc)
+
+        alap_expected = QuantumCircuit(2, 2)
+        alap_expected.delay(200, 0)
+        alap_expected.x(0)
+        alap_expected.x(1)
+        alap_expected.measure(0, 0)
+        alap_expected.measure(1, 1)
+
+        self.assertEqual(qc_alap, alap_expected)
+
+        pm = PassManager(ASAPSchedule(durations))
+        qc_asap = pm.run(qc)
+
+        asap_expected = QuantumCircuit(2, 2)
+        asap_expected.x(0)
+        asap_expected.x(1)
+        asap_expected.measure(0, 0)  # immediately start after X gate
+        asap_expected.measure(1, 1)
+
+        self.assertEqual(qc_asap, asap_expected)
+
+    def test_parallel_gate_different_length_with_barrier(self):
+        """Test circuit having two parallel instruction with different length with barrier.
+
+        (input)
+             ┌───┐┌─┐
+        q_0: ┤ X ├┤M├───
+             ├───┤└╥┘┌─┐
+        q_1: ┤ X ├─╫─┤M├
+             └───┘ ║ └╥┘
+        c: 2/══════╩══╩═
+                   0  1
+
+        (expected, ALAP)
+             ┌────────────────┐┌───┐ ░ ┌─┐
+        q_0: ┤ Delay(200[dt]) ├┤ X ├─░─┤M├───
+             └─────┬───┬──────┘└───┘ ░ └╥┘┌─┐
+        q_1: ──────┤ X ├─────────────░──╫─┤M├
+                   └───┘             ░  ║ └╥┘
+        c: 2/═══════════════════════════╩══╩═
+                                        0  1
+
+        (expected, ASAP)
+             ┌───┐┌────────────────┐ ░ ┌─┐
+        q_0: ┤ X ├┤ Delay(200[dt]) ├─░─┤M├───
+             ├───┤└────────────────┘ ░ └╥┘┌─┐
+        q_1: ┤ X ├───────────────────░──╫─┤M├
+             └───┘                   ░  ║ └╥┘
+        c: 2/═══════════════════════════╩══╩═
+                                        0  1
+        """
+        qc = QuantumCircuit(2, 2)
+        qc.x(0)
+        qc.x(1)
+        qc.barrier()
+        qc.measure(0, 0)
+        qc.measure(1, 1)
+
+        durations = InstructionDurations(
+            [("x", [0], 200), ("x", [1], 400), ("measure", None, 1000)]
+        )
+        pm = PassManager(ALAPSchedule(durations))
+        qc_alap = pm.run(qc)
+
+        alap_expected = QuantumCircuit(2, 2)
+        alap_expected.delay(200, 0)
+        alap_expected.x(0)
+        alap_expected.x(1)
+        alap_expected.barrier()
+        alap_expected.measure(0, 0)
+        alap_expected.measure(1, 1)
+
+        self.assertEqual(qc_alap, alap_expected)
+
+        pm = PassManager(ASAPSchedule(durations))
+        qc_asap = pm.run(qc)
+
+        asap_expected = QuantumCircuit(2, 2)
+        asap_expected.x(0)
+        asap_expected.delay(200, 0)
+        asap_expected.x(1)
+        asap_expected.barrier()
+        asap_expected.measure(0, 0)
+        asap_expected.measure(1, 1)
+
+        self.assertEqual(qc_asap, asap_expected)
 
 
 if __name__ == "__main__":

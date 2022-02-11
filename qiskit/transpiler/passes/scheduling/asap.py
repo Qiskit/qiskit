@@ -11,13 +11,9 @@
 # that they have been altered from the originals.
 
 """ASAP Scheduling."""
-import itertools
-from collections import defaultdict
-from typing import List
-
-from qiskit.circuit import Delay, Measure
+from qiskit.circuit import Delay, Qubit
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit import DAGCircuit, DAGOutNode
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
@@ -69,17 +65,7 @@ class ASAPSchedule(TransformationPass):
         for creg in dag.cregs.values():
             new_dag.add_creg(creg)
 
-        qubit_time_available = defaultdict(int)
-        clbit_readable = defaultdict(int)
-        clbit_writeable = defaultdict(int)
-
-        def pad_with_delays(qubits: List[int], until, unit) -> None:
-            """Pad idle time-slots in ``qubits`` with delays in ``unit`` until ``until``."""
-            for q in qubits:
-                if qubit_time_available[q] < until:
-                    idle_duration = until - qubit_time_available[q]
-                    new_dag.apply_operation_back(Delay(idle_duration, unit), [q])
-
+        idle_after = {q: 0 for q in dag.qubits + dag.clbits}
         bit_indices = {q: index for index, q in enumerate(dag.qubits)}
         for node in dag.topological_op_nodes():
             # validate node.op.duration
@@ -100,39 +86,31 @@ class ASAPSchedule(TransformationPass):
                     f"Parameterized duration ({node.op.duration}) "
                     f"of {node.op.name} on qubits {indices} is not bounded."
                 )
-            # choose appropriate clbit available time depending on op
-            clbit_time_available = (
-                clbit_writeable if isinstance(node.op, Measure) else clbit_readable
-            )
-            # correction to change clbit start time to qubit start time
-            delta = node.op.duration if isinstance(node.op, Measure) else 0
-            # must wait for op.condition_bits as well as node.cargs
-            start_time = max(
-                itertools.chain(
-                    (qubit_time_available[q] for q in node.qargs),
-                    (clbit_time_available[c] - delta for c in node.cargs + node.op.condition_bits),
-                )
-            )
 
-            pad_with_delays(node.qargs, until=start_time, unit=time_unit)
+            this_t0 = max(idle_after[q] for q in node.qargs + node.cargs + node.op.condition_bits)
+            this_t1 = this_t0 + node.op.duration
+
+            for next_node in dag.successors(node):
+                if isinstance(next_node, DAGOutNode):
+                    continue
+                # Keep current bit status until operation complete
+                for blocked_bit in set(node.op.condition_bits) & set(next_node.cargs):
+                    idle_after[blocked_bit] = this_t1
+
+            for bit in node.qargs + node.cargs:
+                delta = this_t0 - idle_after[bit]
+                if delta > 0 and isinstance(bit, Qubit):
+                    new_dag.apply_operation_back(Delay(delta, time_unit), [bit], [])
+                idle_after[bit] = this_t1
 
             new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
 
-            stop_time = start_time + node.op.duration
-            # update time table
-            for q in node.qargs:
-                qubit_time_available[q] = stop_time
-            for c in node.cargs:  # measure
-                clbit_writeable[c] = clbit_readable[c] = stop_time
-            for c in node.op.condition_bits:  # conditional op
-                clbit_writeable[c] = max(start_time, clbit_writeable[c])
-
-        working_qubits = qubit_time_available.keys()
-        circuit_duration = max(qubit_time_available[q] for q in working_qubits)
-        pad_with_delays(new_dag.qubits, until=circuit_duration, unit=time_unit)
+        circuit_duration = max(idle_after.values())
 
         new_dag.name = dag.name
         new_dag.metadata = dag.metadata
+        new_dag.calibrations = dag.calibrations
+
         # set circuit duration and unit to indicate it is scheduled
         new_dag.duration = circuit_duration
         new_dag.unit = time_unit
