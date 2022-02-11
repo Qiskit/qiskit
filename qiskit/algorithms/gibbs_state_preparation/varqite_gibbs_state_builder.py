@@ -19,8 +19,10 @@ from qiskit.algorithms.gibbs_state_preparation.default_ansatz_builder import (
 from qiskit.algorithms.gibbs_state_preparation.gibbs_state_sampler import GibbsStateSampler
 from qiskit.algorithms.gibbs_state_preparation.gibbs_state_builder import GibbsStateBuilder
 from qiskit.circuit import Parameter
-from qiskit.opflow import OperatorBase
+from qiskit.opflow import OperatorBase, I
+from qiskit.providers import BaseBackend
 from qiskit.quantum_info import Statevector
+from qiskit.utils import QuantumInstance
 
 
 class VarQiteGibbsStateBuilder(GibbsStateBuilder):
@@ -30,16 +32,19 @@ class VarQiteGibbsStateBuilder(GibbsStateBuilder):
     def __init__(
         self,
         qite_algorithm,
+        backend: Union[BaseBackend, QuantumInstance],
     ):
         """
         Args:
             qite_algorithm: Variational Quantum Imaginary Time Evolution algorithm to be used for
                             Gibbs State preparation.
+            backend: A backend of quantum instance to evaluate the circuits.
         Raises:
             ValueError: if an ansatz is defined on an odd number of qubits.
 
         """
         self._qite_algorithm = qite_algorithm
+        self._backend = backend
         self._ansatz = None
         self._ansatz_init_params_dict = None
 
@@ -71,8 +76,9 @@ class VarQiteGibbsStateBuilder(GibbsStateBuilder):
         time = 1 / (2 * self.BOLTZMANN_CONSTANT * temperature)
 
         param_dict = {**self._ansatz_init_params_dict, **problem_hamiltonian_param_dict}
+        extended_hamiltonian = self._extend_hamiltonian_to_aux_registers(problem_hamiltonian)
         gibbs_state_function = self._qite_algorithm.evolve(
-            hamiltonian=problem_hamiltonian,
+            hamiltonian=extended_hamiltonian,
             time=time,
             initial_state=self._ansatz,
             hamiltonian_value_dict=param_dict,
@@ -84,11 +90,19 @@ class VarQiteGibbsStateBuilder(GibbsStateBuilder):
             gibbs_state_function=gibbs_state_function,
             hamiltonian=problem_hamiltonian,
             temperature=temperature,
+            backend=self._backend,
             ansatz=self._ansatz,
             ansatz_params_dict=None,  # TODO get from evolution result
             ansatz_hamiltonian_gradients=None,  # TODO get from evolution result
             aux_registers=aux_registers,
         )
+
+    def _extend_hamiltonian_to_aux_registers(self, hamiltonian):
+        num_qubits = self._ansatz.num_qubits
+        if hamiltonian.num_qubits != num_qubits / 2:
+            raise ValueError("Mismatch between number of qubits in a Hamiltonian and in an ansatz.")
+
+        return hamiltonian ^ (I * (num_qubits / 2))
 
     def _set_default_ansatz(self, problem_hamiltonian: OperatorBase) -> None:
         """
@@ -98,8 +112,8 @@ class VarQiteGibbsStateBuilder(GibbsStateBuilder):
         """
         num_qubits = problem_hamiltonian.num_qubits
         depth = 1
-        self._ansatz = build_ansatz(num_qubits, depth)
-        ansatz_init_params_vals = build_init_ansatz_params_vals(num_qubits, depth)
+        self._ansatz = build_ansatz(2 * num_qubits, depth)
+        ansatz_init_params_vals = build_init_ansatz_params_vals(2 * num_qubits, depth)
         self._ansatz_init_params_dict = dict(
             zip(self._ansatz.ordered_parameters, ansatz_init_params_vals)
         )

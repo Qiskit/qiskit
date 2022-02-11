@@ -19,11 +19,11 @@ from qiskit.circuit.library import EfficientSU2
 def build_ansatz(num_qubits: int, depth: int):
     """
     Builds a default ansatz for a VarQITE-based Gibbs state preparation which relies on EfficientSU2
-    ansatz. Together with parameter values contructed by the method build_init_ansatz_params_vals,
+    ansatz. Together with parameter values constructed by the method build_init_ansatz_params_vals,
     it results in num_qubits/2 maximally entangled states, as expected by the VarQITE-based Gibbs
     state preparation algorithm.
     Args:
-        num_qubits: Number of qubits for an ansatz. Should be the same as the number of qubits of
+        num_qubits: Number of qubits for an ansatz. Should be the double of the number of qubits of
                     a Hamiltonian that defines a desired Gibbs state.
         depth: Depth of an EfficientSU2 ansatz quantum circuit.
     Returns:
