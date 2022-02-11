@@ -1,10 +1,13 @@
 ---
 features:
-  - Introducing imaginary gradients. Using a different measurement basis, i.e. `-Y` we can measure 'imaginary' gradients using `circuit_gradients/lin_comb.py` and `circuit_qfis/lin_comb_fu    ll.py`
-    For the gradients:
-    `aux_meas_op = Z` computes `0.5Re[(⟨ψ(ω)|)O(θ)|dωψ(ω)〉]`
-    `aux_meas_op = -Y` computes `0.5Im[(⟨ψ(ω)|)O(θ)|dωψ(ω)〉]`
+  - |
+    Enable the calculation of the imaginary part of expectation value gradients. 
+    Using a different measurement basis, i.e. ``-Y`` instead of ``Z``, we can measure the
+    imaginary part of gradients using the existing :class:`~qiskit.circuit.opflow.Gradient` and
+    :class:`~qiskit.circuit.opflow.QFI` classes. 
+    The measurement basis can be set with the ``aux_meas_op`` argument.
 
-    For the QFIs:
-    `aux_meas_op = Z` computes `4Re[(dω⟨<ψ(ω)|)(dω|ψ(ω)〉)]`
-    `aux_meas_op = -Y` computes `4Im[(dω⟨<ψ(ω)|)(dω|ψ(ω)〉)]` 
+    For the gradients, ``aux_meas_op = Z`` computes ``0.5Re[(⟨ψ(ω)|)O(θ)|dωψ(ω)〉]``
+    and ``aux_meas_op = -Y`` computes ``0.5Im[(⟨ψ(ω)|)O(θ)|dωψ(ω)〉]``
+    For the QFIs, ``aux_meas_op = Z`` computes ``4Re[(dω⟨<ψ(ω)|)(dω|ψ(ω)〉)]``
+    and ``aux_meas_op = -Y`` computes ``4Im[(dω⟨<ψ(ω)|)(dω|ψ(ω)〉)]``. 

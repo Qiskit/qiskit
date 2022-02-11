@@ -49,10 +49,10 @@ class LinCombFull(CircuitQFI):
                 for which we compute the QFI.
             params: The parameters :math:`\omega` with respect to which we are computing the QFI.
             aux_meas_op: The operator that the auxiliary qubit is measured with respect to.
-                         for aux_meas_op = Z we compute Re[(dω⟨<ψ(ω)|)(dω|ψ(ω)〉)]
-                         for aux_meas_op = -Y we compute Im[(dω⟨<ψ(ω)|)(dω|ψ(ω)〉)]
+                For ``aux_meas_op = Z`` we compute Re[(dω⟨<ψ(ω)|)(dω|ψ(ω)〉)] and
+                for ``aux_meas_op = -Y`` we compute Im[(dω⟨<ψ(ω)|)(dω|ψ(ω)〉)].
             phase_fix: Whether or not to compute the additional phase fix term
-                       Re[(dω⟨<ψ(ω)|)|ψ(ω)><ψ(ω)|(dω|ψ(ω))>]
+                Re[(dω⟨<ψ(ω)|)|ψ(ω)><ψ(ω)|(dω|ψ(ω))>].
 
 
         Returns:
@@ -64,7 +64,7 @@ class LinCombFull(CircuitQFI):
         # QFI & phase fix observable
         qfi_observable = StateFn(
             4 * aux_meas_op ^ (I ^ operator.num_qubits), is_measurement=True
-        ).reduce()
+        )
         if phase_fix:
             phase_fix_observable = SummedOp(
                 [Z ^ (I ^ operator.num_qubits), -1j * Y ^ (I ^ operator.num_qubits)]
