@@ -19,8 +19,8 @@ import operator
 
 import numpy
 
-<<<<<<< HEAD
 from qiskit.circuit.exceptions import CircuitError, ParameterTypeError
+from qiskit.utils import optionals as _optionals
 
 try:
     import symengine
@@ -28,11 +28,6 @@ try:
     HAS_SYMENGINE = True
 except ImportError:
     HAS_SYMENGINE = False
-=======
-from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils import optionals as _optionals
->>>>>>> main
-
 
 # This type is redefined at the bottom to insert the full reference to "ParameterExpression", so it
 # can safely be used by runtime type-checkers like Sphinx.  Mypy does not need this because it
