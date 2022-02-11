@@ -72,7 +72,6 @@ class MatplotlibDrawer:
         reverse_bits=False,
         plot_barriers=True,
         layout=None,
-        with_layout=False,
         fold=25,
         ax=None,
         initial_state=False,
@@ -81,6 +80,7 @@ class MatplotlibDrawer:
         qregs=None,
         cregs=None,
         calibrations=None,
+        with_layout=False,
         circuit=None,
     ):
         from matplotlib import patches

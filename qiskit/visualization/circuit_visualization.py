@@ -313,13 +313,13 @@ def _text_circuit_drawer(
         nodes,
         reverse_bits=reverse_bits,
         layout=None,
-        with_layout=with_layout,
         initial_state=initial_state,
         cregbundle=cregbundle,
         global_phase=None,
         encoding=encoding,
         qregs=None,
         cregs=None,
+        with_layout=with_layout,
         circuit=circuit,
     )
     text_drawing.plotbarriers = plot_barriers
@@ -502,12 +502,12 @@ def _generate_latex_source(
         reverse_bits=reverse_bits,
         plot_barriers=plot_barriers,
         layout=None,
-        with_layout=with_layout,
         initial_state=initial_state,
         cregbundle=cregbundle,
         global_phase=None,
         qregs=None,
         cregs=None,
+        with_layout=with_layout,
         circuit=circuit,
     )
     latex = qcimg.latex()
@@ -587,7 +587,6 @@ def _matplotlib_circuit_drawer(
         reverse_bits=reverse_bits,
         plot_barriers=plot_barriers,
         layout=None,
-        with_layout=with_layout,
         fold=fold,
         ax=ax,
         initial_state=initial_state,
@@ -596,6 +595,7 @@ def _matplotlib_circuit_drawer(
         calibrations=None,
         qregs=None,
         cregs=None,
+        with_layout=with_layout,
         circuit=circuit,
     )
     return qcd.draw(filename)

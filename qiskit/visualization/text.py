@@ -603,13 +603,13 @@ class TextDrawing:
         line_length=None,
         vertical_compression="high",
         layout=None,
-        with_layout=False,
         initial_state=True,
         cregbundle=False,
         global_phase=None,
         encoding=None,
         qregs=None,
         cregs=None,
+        with_layout=False,
         circuit=None,
     ):
         if qregs is not None:
