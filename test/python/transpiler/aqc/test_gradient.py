@@ -13,15 +13,14 @@
 Tests analytical gradient vs the one computed via finite differences.
 """
 
-import sys
 import unittest
-from test.python.transpiler.aqc.sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
+from test.python.transpiler.aqc.sample_data import ORIGINAL_CIRCUIT
+
 import numpy as np
+
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
 from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
-
-__glo_verbose__ = False
 
 
 class TestGradientAgainstFiniteDiff(QiskitTestCase):
@@ -44,12 +43,11 @@ class TestGradientAgainstFiniteDiff(QiskitTestCase):
         )
 
         # we pick a target matrix from the existing sample data
-        target_matrix = np.asarray(ORIGINAL_CIRCUIT)
+        target_matrix = ORIGINAL_CIRCUIT
         objective = DefaultCNOTUnitObjective(num_qubits, cnots)
         objective.target_matrix = target_matrix
 
-        # thetas = np.random.rand(objective.num_thetas) * (2.0 * np.pi)
-        thetas = np.asarray(INITIAL_THETAS)
+        thetas = np.random.rand(objective.num_thetas) * (2.0 * np.pi)
         fobj0 = objective.objective(thetas)
         grad0 = objective.gradient(thetas)
 
@@ -64,15 +62,17 @@ class TestGradientAgainstFiniteDiff(QiskitTestCase):
         diff_prev = 0.0
         orders = []
         errors = []
-        steps = 9
+        steps = 8
         for step in range(steps):
             # Estimate gradient approximation error.
             for i in range(thetas.size):
                 np.copyto(thetas_delta, thetas)
                 thetas_delta[i] -= tau
+                # circuit.set_thetas(thetas_delta)
                 fobj1 = objective.objective(thetas_delta)
                 np.copyto(thetas_delta, thetas)
                 thetas_delta[i] += tau
+                # circuit.set_thetas(thetas_delta)
                 fobj2 = objective.objective(thetas_delta)
                 numerical_grad[i] = (fobj2 - fobj1) / (2.0 * tau)
             errors.append(np.linalg.norm(grad0 - numerical_grad) / np.linalg.norm(grad0))
@@ -92,25 +92,18 @@ class TestGradientAgainstFiniteDiff(QiskitTestCase):
             tau /= 2.0
             diff_prev = diff
 
-        if __glo_verbose__ > 0:
-            print("Numerical vs analytical as tau decreasing:")
-            print(np.asarray(errors))
-            print("Approximation order term as tau decreasing:")
-            print(np.asarray(orders))
-
         # check errors
         prev_error = errors[0]
         for error in errors[1:]:
-            self.assertLess(error, prev_error * 0.75)
+            self.assertLess(error, prev_error)
             prev_error = error
 
         # check orders, skipping first zero
+        orders = np.asarray(orders[1:0])
         # pylint:disable=misplaced-comparison-constant
-        self.assertTrue(np.count_nonzero(1.8 < np.asarray(orders[1:])) >= 3)
-        self.assertTrue(np.count_nonzero(np.asarray(orders[1:]) < 3) >= 3)
+        self.assertTrue(np.all(2 <= orders))
+        self.assertTrue(np.all(orders < 3))
 
 
 if __name__ == "__main__":
-    np.set_printoptions(precision=6, linewidth=256)
-    __glo_verbose__ = ("-v" in sys.argv) or ("--verbose" in sys.argv)
     unittest.main()

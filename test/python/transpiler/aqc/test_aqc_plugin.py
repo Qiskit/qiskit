@@ -13,20 +13,16 @@
 Tests AQC plugin.
 """
 
-import sys
-import unittest
 import numpy as np
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.algorithms.optimizers import SLSQP
-from qiskit.converters.dag_to_circuit import dag_to_circuit
-from qiskit.converters.circuit_to_dag import circuit_to_dag
-from qiskit.quantum_info.operators.operator import Operator
-from qiskit.test import QiskitTestCase
-from qiskit.transpiler.passmanager import PassManager
-from qiskit.transpiler.passes.synthesis.unitary_synthesis import UnitarySynthesis
-from qiskit.transpiler.synthesis.aqc.aqc_plugin import AQCSynthesisPlugin
 
-__glo_verbose__ = False
+from qiskit import QuantumCircuit
+from qiskit.algorithms.optimizers import SLSQP
+from qiskit.converters import dag_to_circuit, circuit_to_dag
+from qiskit.quantum_info import Operator
+from qiskit.test import QiskitTestCase
+from qiskit.transpiler import PassManager
+from qiskit.transpiler.passes import UnitarySynthesis
+from qiskit.transpiler.synthesis.aqc.aqc_plugin import AQCSynthesisPlugin
 
 
 class TestAQCSynthesisPlugin(QiskitTestCase):
@@ -104,8 +100,3 @@ class TestAQCSynthesisPlugin(QiskitTestCase):
         ).run(qc)
         approx_unitary = Operator(aqc).data
         np.testing.assert_array_almost_equal(np.eye(8), approx_unitary, 3)
-
-
-if __name__ == "__main__":
-    __glo_verbose__ = ("-v" in sys.argv) or ("--verbose" in sys.argv)
-    unittest.main()

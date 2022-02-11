@@ -156,7 +156,7 @@ class DefaultCNOTUnitObjective(CNOTUnitObjective):
         circuit_matrix = np.dot(cnot_matrix, rotation_matrix)
 
         # compute error
-        error = 0.5 * (la.norm(circuit_matrix - self._target_matrix, "fro")**2)
+        error = 0.5 * (la.norm(circuit_matrix - self._target_matrix, "fro") ** 2)
 
         # cache computations for gradient
         self._last_thetas = thetas
