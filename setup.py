@@ -25,17 +25,19 @@ except ImportError:
     subprocess.call([sys.executable, "-m", "pip", "install", "Cython>=0.27.1"])
     from Cython.Build import cythonize
 
+try:
+    from setuptools_rust import Binding, RustExtension
+except ImportError:
+    import subprocess
+
+    subprocess.call([sys.executable, "-m", "pip", "install", "setuptools-rust"])
+    from setuptools_rust import Binding, RustExtension
+
 with open("requirements.txt") as f:
     REQUIREMENTS = f.read().splitlines()
 
 # Add Cython extensions here
 CYTHON_EXTS = {
-    "qiskit/transpiler/passes/routing/cython/stochastic_swap/utils": (
-        "qiskit.transpiler.passes.routing.cython.stochastic_swap.utils"
-    ),
-    "qiskit/transpiler/passes/routing/cython/stochastic_swap/swap_trial": (
-        "qiskit.transpiler.passes.routing.cython.stochastic_swap.swap_trial"
-    ),
     "qiskit/quantum_info/states/cython/exp_value": "qiskit.quantum_info.states.cython.exp_value",
 }
 
@@ -139,6 +141,9 @@ setup(
         "Source Code": "https://github.com/Qiskit/qiskit-terra",
     },
     ext_modules=cythonize(EXT_MODULES),
+    rust_extensions=[
+        RustExtension("qiskit.stochastic_swap_rs", "Cargo.toml", binding=Binding.PyO3)
+    ],
     zip_safe=False,
     entry_points={
         "qiskit.unitary_synthesis": [

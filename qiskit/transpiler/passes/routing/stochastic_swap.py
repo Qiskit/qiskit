@@ -24,12 +24,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.layout import Layout
 
-# pylint: disable=no-name-in-module
-from .cython.stochastic_swap.utils import nlayout_from_layout
-
-# pylint: disable=no-name-in-module
-from .cython.stochastic_swap.swap_trial import swap_trial
-
+from qiskit import stochastic_swap_rs
 
 logger = logging.getLogger(__name__)
 
@@ -99,9 +94,6 @@ class StochasticSwap(TransformationPass):
         self._qubit_indices = {bit: idx for idx, bit in enumerate(dag.qubits)}
 
         self.qregs = dag.qregs
-        if self.seed is None:
-            self.seed = np.random.randint(0, np.iinfo(np.int32).max)
-        self.rng = np.random.default_rng(self.seed)
         logger.debug("StochasticSwap default_rng seeded with seed=%s", self.seed)
         self.coupling_map.compute_distance_matrix()
         new_dag = self._mapper(dag, self.coupling_map, trials=self.trials)
@@ -182,50 +174,36 @@ class StochasticSwap(TransformationPass):
 
         int_qubit_subset = np.fromiter(
             (self._qubit_indices[bit] for bit in qubit_subset),
-            dtype=np.int32,
+            dtype=np.uint64,
             count=len(qubit_subset),
         )
 
         int_gates = np.fromiter(
             (self._qubit_indices[bit] for gate in gates for bit in gate),
-            dtype=np.int32,
+            dtype=np.uint64,
             count=2 * len(gates),
         )
 
-        int_layout = nlayout_from_layout(layout, self._qubit_indices, num_qubits, coupling.size())
+        layout_mapping = {self._qubit_indices[k]: v for k, v in layout.get_virtual_bits().items()}
+        int_layout = stochastic_swap_rs.NLayout(layout_mapping, num_qubits, coupling.size())
 
         trial_circuit = DAGCircuit()  # SWAP circuit for slice of swaps in this trial
         trial_circuit.add_qubits(layout.get_virtual_bits())
 
-        edges = np.asarray(coupling.get_edges(), dtype=np.int32).ravel()
+        edges = np.asarray(coupling.get_edges(), dtype=np.uint64).ravel()
         cdist = coupling._dist_matrix
-        for trial in range(trials):
-            logger.debug("layer_permutation: trial %s", trial)
-            # This is one Trial --------------------------------------
-            dist, optim_edges, trial_layout, depth_step = swap_trial(
-                num_qubits,
-                int_layout,
-                int_qubit_subset,
-                int_gates,
-                cdist2,
-                cdist,
-                edges,
-                scale,
-                self.rng,
-            )
-
-            logger.debug("layer_permutation: final distance for this trial = %s", dist)
-            if dist == len(gates) and depth_step < best_depth:
-                logger.debug("layer_permutation: got circuit with improved depth %s", depth_step)
-                best_edges = optim_edges
-                best_layout = trial_layout
-                best_depth = min(best_depth, depth_step)
-
-            # Break out of trial loop if we found a depth 1 circuit
-            # since we can't improve it further
-            if best_depth == 1:
-                break
-
+        best_edges, best_layout, best_depth = stochastic_swap_rs.swap_trials(
+            trials,
+            num_qubits,
+            len(gates),
+            int_layout,
+            int_qubit_subset,
+            int_gates,
+            cdist,
+            cdist2,
+            edges,
+            self.seed,
+        )
         # If we have no best circuit for this layer, all of the
         # trials have failed
         if best_layout is None:
@@ -233,7 +211,7 @@ class StochasticSwap(TransformationPass):
             return False, None, None, None
 
         edges = best_edges.edges()
-        for idx in range(best_edges.size // 2):
+        for idx in range(len(edges) // 2):
             swap_src = self.trivial_layout._p2v[edges[2 * idx]]
             swap_tgt = self.trivial_layout._p2v[edges[2 * idx + 1]]
             trial_circuit.apply_operation_back(SwapGate(), [swap_src, swap_tgt], [])
@@ -241,7 +219,9 @@ class StochasticSwap(TransformationPass):
 
         # Otherwise, we return our result for this layer
         logger.debug("layer_permutation: success!")
-        best_lay = best_layout.to_layout(qregs)
+        layout_mapping = best_layout.layout_mapping()
+
+        best_lay = Layout({best_circuit.qubits[k]: v for (k, v) in layout_mapping})
         return True, best_circuit, best_depth, best_lay
 
     def _layer_update(self, dag, layer, best_layout, best_depth, best_circuit):
