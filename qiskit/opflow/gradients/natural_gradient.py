@@ -134,9 +134,9 @@ class NaturalGradient(GradientBase):
         c = x[0]
         a = x[1]
         if any(np.abs(np.imag(c_item)) > 1e-8 for c_item in c):
-            raise Warning("The imaginary part of the gradient are non-negligible.")
+            raise ValueError("The imaginary part of the gradient are non-negligible.")
         if np.any([[np.abs(np.imag(a_item)) > 1e-8 for a_item in a_row] for a_row in a]):
-            raise Warning("The imaginary part of the gradient are non-negligible.")
+            raise ValueError("The imaginary part of the gradient are non-negligible.")
         c = np.real(c)
         a = np.real(a)
 
@@ -146,24 +146,20 @@ class NaturalGradient(GradientBase):
             nat_grad = NaturalGradient._regularized_sle_solver(a, c, regularization=regularization)
         else:
             # Check if numerical instabilities lead to a metric which is not positive semidefinite
-            while True:
-                w, v = np.linalg.eigh(a)
+            w, v = np.linalg.eigh(a)
 
-                if not all(ew >= -1e-8 for ew in w):
-                    raise Warning(
-                        "The underlying metric has ein Eigenvalue < ",
-                        -1e-8,
-                        ". Please use a regularized least-square solver for this " "problem.",
-                    )
-                if not all(ew >= 0 for ew in w):
-                    # If not all eigenvalues are non-negative, set them to a small positive
-                    # value
-                    w = [max(1e-10, ew) for ew in w]
-                    # Recompose the adapted eigenvalues with the eigenvectors to get a new metric
-                    a = np.real(v @ np.diag(w) @ np.linalg.inv(v))
-                else:
-                    # If all eigenvalues are non-negative use the metric
-                    break
+            if not all(ew >= -1e-8 for ew in w):
+                raise ValueError(
+                    "The underlying metric has ein Eigenvalue < ",
+                    -1e-8,
+                    ". Please use a regularized least-square solver for this " "problem.",
+                )
+            if not all(ew >= 0 for ew in w):
+                # If not all eigenvalues are non-negative, set them to a small positive
+                # value
+                w = [max(1e-10, ew) for ew in w]
+                # Recompose the adapted eigenvalues with the eigenvectors to get a new metric
+                a = np.real(v @ np.diag(w) @ np.linalg.inv(v))
             nat_grad = np.linalg.lstsq(a, c, rcond=1e-2)[0]
         return nat_grad
 

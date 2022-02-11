@@ -602,7 +602,7 @@ class LinComb(CircuitGradient):
     def _gradient_states(
         self,
         state_op: StateFn,
-        meas_op: Union[OperatorBase, bool] = True,
+        meas_op: Optional[OperatorBase] = None,
         target_params: Optional[Union[Parameter, List[Parameter]]] = None,
         open_ctrl: bool = False,
         trim_after_grad_gate: bool = False,
@@ -631,9 +631,8 @@ class LinComb(CircuitGradient):
         state_qc = QuantumCircuit(*state_op.primitive.qregs, qr_superpos)
         state_qc.h(qr_superpos)
 
-        if not isinstance(meas_op, bool):
-            if meas_op is not None:
-                meas_op = meas_op.reduce()
+        if meas_op is not None:
+            meas_op = meas_op.reduce()
 
         state_qc.compose(unrolled, inplace=True)
 
@@ -677,7 +676,7 @@ class LinComb(CircuitGradient):
                             state = StateFn(meas_op, is_measurement=True) @ state
                             state = PauliExpectation().convert(state).reduce()
 
-                        elif meas_op is True:
+                        else:
                             state = ListOp(
                                 [state],
                                 combo_fn=partial(
@@ -699,7 +698,12 @@ class LinComb(CircuitGradient):
         self,
         state_op: StateFn,
         meas_op: Optional[OperatorBase] = None,
-        target_params=None,
+        target_params: Optional[
+            Union[
+                Tuple[ParameterExpression, ParameterExpression],
+                List[Tuple[ParameterExpression, ParameterExpression]],
+            ]
+        ] = None,
         aux_meas_op: OperatorBase = Z,
     ) -> OperatorBase:
         """Generate the operator states whose evaluation returns the Hessian (items).
@@ -732,9 +736,8 @@ class LinComb(CircuitGradient):
         state_qc.h(qr_add0)
         state_qc.h(qr_add1)
 
-        if not isinstance(meas_op, bool):
-            if meas_op is not None:
-                meas_op = meas_op.reduce()
+        if meas_op is not None:
+            meas_op = meas_op.reduce()
 
         # compose with the original circuit
         state_qc.compose(state_op.primitive, inplace=True)
