@@ -603,13 +603,13 @@ class TextDrawing:
         line_length=None,
         vertical_compression="high",
         layout=None,
-        with_layout=False,
         initial_state=True,
         cregbundle=False,
         global_phase=None,
         encoding=None,
         qregs=None,
         cregs=None,
+        with_layout=False,
         circuit=None,
     ):
         if qregs is not None:
@@ -1418,7 +1418,7 @@ class Layer:
             condition (list[Union(Clbit, ClassicalRegister), int]): The condition
             top_connect (char): The char to connect the box on the top.
         """
-        cond_label, cond_list = get_condition_label_val(condition, self._circuit, self.cregbundle)
+        cond_label, cond_list = get_condition_label_val(condition, self._circuit, self.cregbundle, self.reverse_bits)
         val_bits = [val for bit, val in cond_list]
         cond_bits = [bit for bit, val in cond_list]
         if self.cregbundle:

@@ -19,7 +19,6 @@ from warnings import warn
 
 import numpy as np
 
-
 from qiskit.circuit import ControlledGate, Qubit, Clbit, ClassicalRegister
 from qiskit.circuit import Measure, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import (
@@ -73,7 +72,6 @@ class MatplotlibDrawer:
         reverse_bits=False,
         plot_barriers=True,
         layout=None,
-        with_layout=False,
         fold=25,
         ax=None,
         initial_state=False,
@@ -82,6 +80,7 @@ class MatplotlibDrawer:
         qregs=None,
         cregs=None,
         calibrations=None,
+        with_layout=False,
         circuit=None,
     ):
         from matplotlib import patches
@@ -595,7 +594,7 @@ class MatplotlibDrawer:
                 # get qubit index
                 q_indxs = []
                 for qarg in node.qargs:
-                    q_indxs.append(self._wire_map[qarg])
+                   q_indxs.append(self._wire_map[qarg])
 
                 c_indxs = []
                 for carg in node.cargs:
@@ -902,7 +901,7 @@ class MatplotlibDrawer:
     def _condition(self, node, cond_xy):
         """Add a conditional to a gate"""
         condition = node.op.condition
-        cond_label, cond_list = get_condition_label_val(condition, self._circuit, self._cregbundle)
+        cond_label, cond_list = get_condition_label_val(condition, self._circuit, self._cregbundle, self._reverse_bits)
         xy_plot = []
         for bit, val in cond_list:
             # if it's a register bit and cregbundle on, need to use

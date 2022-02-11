@@ -281,13 +281,14 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
     return wire_label
 
 
-def get_condition_label_val(condition, circuit, cregbundle):
+def get_condition_label_val(condition, circuit, cregbundle, reverse_bits):
     """Get the label and value list to display a condition
 
     Args:
         condition (Union[Clbit, ClassicalRegister, list[Clbit]], int): classical condition
         circuit (QuantumCircuit): the circuit that is being drawn
         cregbundle (bool): if set True bundle classical registers
+        reverse_bits (bool): if set True reverse the bit order
 
     Returns:
         str: label to display for the condition

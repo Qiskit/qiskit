@@ -55,12 +55,12 @@ class QCircuitImage:
         reverse_bits=False,
         plot_barriers=True,
         layout=None,
-        with_layout=False,
         initial_state=False,
         cregbundle=False,
         global_phase=None,
         qregs=None,
         cregs=None,
+        with_layout=False,
         circuit=None,
     ):
         """QCircuitImage initializer.
@@ -216,7 +216,6 @@ class QCircuitImage:
 
         self._wire_map = get_wire_map(circuit, qubits + clbits, self._cregbundle)
         self._img_width = len(self._wire_map)
-
         self._style, _ = load_style(style)
 
     def latex(self):
@@ -645,7 +644,7 @@ class QCircuitImage:
     def _add_condition(self, op, wire_list, col):
         """Add a condition to the _latex list"""
         cond_label, cond_list = get_condition_label_val(
-            op.condition, self._circuit, self._cregbundle
+            op.condition, self._circuit, self._cregbundle, self._reverse_bits
         )
         # make a list of (wire_number, value) pairs from the (bit, value) pairs
         cwire_list = []
