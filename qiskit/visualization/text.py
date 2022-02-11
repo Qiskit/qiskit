@@ -1418,9 +1418,7 @@ class Layer:
             condition (list[Union(Clbit, ClassicalRegister), int]): The condition
             top_connect (char): The char to connect the box on the top.
         """
-        cond_label, cond_list = get_condition_label_val(
-            condition, self._circuit, self.cregbundle, self.reverse_bits
-        )
+        cond_label, cond_list = get_condition_label_val(condition, self._circuit, self.cregbundle)
         val_bits = [val for bit, val in cond_list]
         cond_bits = [bit for bit, val in cond_list]
         if self.cregbundle:

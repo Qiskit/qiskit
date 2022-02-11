@@ -281,7 +281,7 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
     return wire_label
 
 
-def get_condition_label_val(condition, circuit, cregbundle, reverse_bits):
+def get_condition_label_val(condition, circuit, cregbundle):
     """Get the label and value list to display a condition
 
     Args:

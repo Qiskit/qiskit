@@ -644,7 +644,7 @@ class QCircuitImage:
     def _add_condition(self, op, wire_list, col):
         """Add a condition to the _latex list"""
         cond_label, cond_list = get_condition_label_val(
-            op.condition, self._circuit, self._cregbundle, self._reverse_bits
+            op.condition, self._circuit, self._cregbundle
         )
         # make a list of (wire_number, value) pairs from the (bit, value) pairs
         cwire_list = []
