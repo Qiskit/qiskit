@@ -89,12 +89,12 @@ class TestErrorBasedOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         # for the purpose of the test we invoke lazy_init
         var_principle._lazy_init(observable, ansatz, parameters)
 
-        ode_function_generator = ErrorBasedOdeFunctionGenerator()
+        ode_function_generator = ErrorBasedOdeFunctionGenerator(regularization=None)
         time = 0.1
         linear_solver = VarQteLinearSolver()
 
         ode_function_generator._lazy_init(
-            error_calculator, var_principle, None, None, param_dict, linear_solver
+            error_calculator, var_principle, None, param_dict, linear_solver
         )
         qte_ode_function = ode_function_generator.var_qte_ode_function(time, param_dict.values())
 

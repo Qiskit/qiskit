@@ -73,7 +73,7 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
         circuit_sampler = None
 
         hamiltonian = operator.oplist[0].primitive * operator.oplist[0].coeff
-        h_squared = hamiltonian ** 2
+        h_squared = hamiltonian**2
         h_squared = ComposedOp([~StateFn(h_squared.reduce()), state])
         h_squared = PauliExpectation().convert(h_squared)
 
@@ -129,7 +129,7 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
         circuit_sampler = None
 
         hamiltonian = operator.oplist[0].primitive * operator.oplist[0].coeff
-        h_squared = hamiltonian ** 2
+        h_squared = hamiltonian**2
         h_squared = ComposedOp([~StateFn(h_squared.reduce()), state])
         h_squared = PauliExpectation().convert(h_squared)
 

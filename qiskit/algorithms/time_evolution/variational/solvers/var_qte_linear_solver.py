@@ -38,7 +38,6 @@ class VarQteLinearSolver:
         grad_circ_sampler: Optional[CircuitSampler] = None,
         metric_circ_sampler: Optional[CircuitSampler] = None,
         energy_sampler: Optional[CircuitSampler] = None,
-        regularization: Optional[str] = None,
         allowed_imaginary_part: float = 1e-7,
     ):
         """
@@ -46,18 +45,10 @@ class VarQteLinearSolver:
             grad_circ_sampler: CircuitSampler for evolution gradients.
             metric_circ_sampler: CircuitSampler for metric tensors.
             energy_sampler: CircuitSampler for energy.
-            regularization: Use the following regularization with a least square method to solve the
-                            underlying system of linear equations.
-                            Can be either None or ``'ridge'`` or ``'lasso'`` or ``'perturb_diag'``
-                            ``'ridge'`` and ``'lasso'`` use an automatic optimal parameter search,
-                            or a penalty term given as Callable.
-                            If regularization is None but the metric is ill-conditioned or singular
-                            then a least square solver is used without regularization.
             allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
                                     imaginary part is expected.
         """
 
-        self._regularization = regularization
         self._grad_circ_sampler = grad_circ_sampler
         self._metric_circ_sampler = metric_circ_sampler
         self._energy_sampler = energy_sampler

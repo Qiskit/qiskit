@@ -75,10 +75,8 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
             CircuitSampler(backend), CircuitSampler(backend), CircuitSampler(backend)
         )
 
-        ode_function_generator = OdeFunctionGenerator()
-        ode_function_generator._lazy_init(
-            None, var_principle, None, None, param_dict, linear_solver
-        )
+        ode_function_generator = OdeFunctionGenerator(regularization=None)
+        ode_function_generator._lazy_init(None, var_principle, None, param_dict, linear_solver)
 
         qte_ode_function = ode_function_generator.var_qte_ode_function(time, param_dict.values())
         # TODO check if values correct
@@ -127,13 +125,11 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         var_principle._lazy_init(observable, ansatz, parameters)
         time = 2
 
-        ode_function_generator = OdeFunctionGenerator()
+        ode_function_generator = OdeFunctionGenerator(regularization=None)
         linear_solver = VarQteLinearSolver(
             CircuitSampler(backend), CircuitSampler(backend), CircuitSampler(backend)
         )
-        ode_function_generator._lazy_init(
-            None, var_principle, t_param, None, param_dict, linear_solver
-        )
+        ode_function_generator._lazy_init(None, var_principle, t_param, param_dict, linear_solver)
 
         qte_ode_function = ode_function_generator.var_qte_ode_function(time, param_dict.values())
 

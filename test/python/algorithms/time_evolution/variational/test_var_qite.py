@@ -70,8 +70,8 @@ class TestVarQite(QiskitAlgorithmsTestCase):
         reg = None
         backend = Aer.get_backend("statevector_simulator")
 
-        ode_function = OdeFunctionGenerator()
-        var_qite = VarQite(var_principle, ode_function, regularization=reg, backend=backend)
+        ode_function = OdeFunctionGenerator(regularization=reg)
+        var_qite = VarQite(var_principle, ode_function, backend=backend)
         time = 1
 
         evolution_result = var_qite.evolve(
@@ -135,8 +135,8 @@ class TestVarQite(QiskitAlgorithmsTestCase):
         reg = None
         backend = Aer.get_backend("statevector_simulator")
 
-        ode_function = OdeFunctionGenerator()
-        var_qite = VarQite(var_principle, ode_function, regularization=reg, backend=backend)
+        ode_function = OdeFunctionGenerator(regularization=reg)
+        var_qite = VarQite(var_principle, ode_function, backend=backend)
         time = 7
 
         evolution_result = var_qite.evolve(
@@ -200,8 +200,8 @@ class TestVarQite(QiskitAlgorithmsTestCase):
         reg = None
         backend = Aer.get_backend("statevector_simulator")
 
-        ode_function = OdeFunctionGenerator()
-        var_qite = VarQite(var_principle, ode_function, regularization=reg, backend=backend)
+        ode_function = OdeFunctionGenerator(regularization=reg)
+        var_qite = VarQite(var_principle, ode_function, backend=backend)
         time = 1
 
         evolution_result = var_qite.evolve(

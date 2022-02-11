@@ -62,7 +62,6 @@ class VarQte(EvolutionBase, ABC):
         self,
         variational_principle: VariationalPrinciple,
         ode_function_generator: AbstractOdeFunctionGenerator,
-        regularization: Optional[str] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         ode_solver_callable: OdeSolver = RK45,
         allowed_imaginary_part: float = 1e-7,
@@ -71,12 +70,6 @@ class VarQte(EvolutionBase, ABC):
         r"""
         Args:
             variational_principle: Variational Principle to be used.
-            regularization: Use the following regularization with a least square method to solve the
-                underlying system of linear equations
-                Can be either None or ``'ridge'`` or ``'lasso'`` or ``'perturb_diag'``
-                ``'ridge'`` and ``'lasso'`` use an automatic optimal parameter search
-                If regularization is None but the metric is ill-conditioned or singular then
-                a least square solver is used without regularization
             backend: Backend used to evaluate the quantum circuit outputs
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
             allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
@@ -87,7 +80,6 @@ class VarQte(EvolutionBase, ABC):
         """
         super().__init__()
         self._variational_principle = variational_principle
-        self._regularization = regularization
 
         self._backend = backend
         # we define separate instances of CircuitSamplers as it caches aggressively according
@@ -97,7 +89,6 @@ class VarQte(EvolutionBase, ABC):
             self._grad_circ_sampler,
             self._metric_circ_sampler,
             self._energy_sampler,
-            regularization,
             allowed_imaginary_part,
         )
 
@@ -157,7 +148,6 @@ class VarQte(EvolutionBase, ABC):
             error_calculator,
             self._variational_principle,
             t_param,
-            self._regularization,
             init_state_param_dict,
             self._linear_solver,
         )

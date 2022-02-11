@@ -31,11 +31,32 @@ from qiskit.circuit import Parameter
 class AbstractOdeFunctionGenerator(ABC):
     """Abstract class for generating ODE functions."""
 
-    def _lazy_init(self, error_calculator: ErrorCalculator, variational_principle: VariationalPrinciple, t_param: Parameter, regularization: str, param_dict: Dict[Parameter, Union[float, complex]], linear_solver: VarQteLinearSolver):
+    def __init__(
+        self,
+        regularization: Optional[str] = None,
+    ):
+        """
+        Args:
+            regularization: Use the following regularization with a least square method to solve the
+                            underlying system of linear equations.
+                            Can be either None or ``'ridge'`` or ``'lasso'`` or ``'perturb_diag'``
+                            ``'ridge'`` and ``'lasso'`` use an automatic optimal parameter search
+                            If regularization is None but the metric is ill-conditioned or singular
+                            then a least square solver is used without regularization.
+        """
+        self._regularization = regularization
+
+    def _lazy_init(
+        self,
+        error_calculator: ErrorCalculator,
+        variational_principle: VariationalPrinciple,
+        t_param: Parameter,
+        param_dict: Dict[Parameter, Union[float, complex]],
+        linear_solver: VarQteLinearSolver,
+    ):
         self._error_calculator = error_calculator
         self._variational_principle = variational_principle
         self._t_param = t_param
-        self._regularization = regularization
         self._param_dict = param_dict
         self._linear_solver = linear_solver
 

@@ -52,7 +52,6 @@ class VarQite(Qite, VarQte):
         self,
         variational_principle: ImaginaryVariationalPrinciple,
         ode_function_generator: AbstractOdeFunctionGenerator,
-        regularization: Optional[str] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         ode_solver_callable: OdeSolver = "RK45",
         allowed_imaginary_part: float = 1e-7,
@@ -61,12 +60,6 @@ class VarQite(Qite, VarQte):
         r"""
         Args:
             variational_principle: Variational Principle to be used.
-            regularization: Use the following regularization with a least square method to solve the
-                            underlying system of linear equations.
-                            Can be either None or ``'ridge'`` or ``'lasso'`` or ``'perturb_diag'``
-                            ``'ridge'`` and ``'lasso'`` use an automatic optimal parameter search
-                            If regularization is None but the metric is ill-conditioned or singular
-                            then a least square solver is used without regularization.
             backend: Backend used to evaluate the quantum circuit outputs
 
                              If True use the argument that minimizes the error.
@@ -80,7 +73,6 @@ class VarQite(Qite, VarQte):
         super().__init__(
             variational_principle,
             ode_function_generator,
-            regularization,
             backend,
             ode_solver_callable,
             allowed_imaginary_part,

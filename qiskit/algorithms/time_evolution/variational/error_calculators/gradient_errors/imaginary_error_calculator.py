@@ -53,7 +53,7 @@ class ImaginaryErrorCalculator(ErrorCalculator):
             self._operator, param_dict, self._operator_sampler
         )
         error_squared += np.real(h_squared_bound)
-        error_squared -= np.real(exp_operator_bound ** 2)
+        error_squared -= np.real(exp_operator_bound**2)
 
         # ⟨dtψ(ω)|dtψ(ω)〉= dtωdtω⟨dωψ(ω)|dωψ(ω)〉
         state_time_derivative_norm = np.conj(nat_grad_res).T.dot(np.dot(metric, nat_grad_res))

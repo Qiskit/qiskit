@@ -51,7 +51,6 @@ class VarQrte(VarQte, Qrte):
         self,
         variational_principle: RealVariationalPrinciple,
         ode_function_generator: AbstractOdeFunctionGenerator,
-        regularization: Optional[str] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         ode_solver_callable: OdeSolver = "RK45",
         allowed_imaginary_part: float = 1e-7,
@@ -60,20 +59,9 @@ class VarQrte(VarQte, Qrte):
         r"""
         Args:
             variational_principle: Variational Principle to be used.
-            regularization: Use the following regularization with a least square method to solve the
-                underlying system of linear equations
-                Can be either None or ``'ridge'`` or ``'lasso'`` or ``'perturb_diag'``
-                ``'ridge'`` and ``'lasso'`` use an automatic optimal parameter search
-                If regularization is None but the metric is ill-conditioned or singular then
-                a least square solver is used without regularization
             backend: Backend used to evaluate the quantum circuit outputs
-            error_based_ode: If False use the provided variational principle to get the parameter
-                                updates.
-                             If True use the argument that minimizes the error error_bounds.
-                             Deprecated if error is not being computed.
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
-            optimizer: Optimizer used in case error_based_ode is true.
-            optimizer_tolerance: Numerical tolerance of an optimizer used for convergence to a minimum.
+
             allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
                                     imaginary part is expected.
             allowed_num_instability_error: The amount of negative value that is allowed to be
@@ -83,7 +71,6 @@ class VarQrte(VarQte, Qrte):
         super().__init__(
             variational_principle,
             ode_function_generator,
-            regularization,
             backend,
             ode_solver_callable,
             allowed_imaginary_part,

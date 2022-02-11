@@ -28,19 +28,27 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
 
     def __init__(
         self,
+        regularization: Optional[str] = None,
         optimizer: str = "COBYLA",
         optimizer_tolerance: float = 1e-6,
     ):
         """
         Args:
+            regularization: Use the following regularization with a least square method to solve the
+                            underlying system of linear equations.
+                            Can be either None or ``'ridge'`` or ``'lasso'`` or ``'perturb_diag'``
+                            ``'ridge'`` and ``'lasso'`` use an automatic optimal parameter search
+                            If regularization is None but the metric is ill-conditioned or singular
+                            then a least square solver is used without regularization.
             optimizer: Optimizer used in case error_based_ode is true.
             optimizer_tolerance: Numerical tolerance of an optimizer used for convergence to a minimum.
         """
 
+        super().__init__(regularization)
+
         self._error_calculator = None
         self._variational_principle = None
         self._t_param = None
-        self._regularization = None
 
         self._optimizer = optimizer
         self._optimizer_tolerance = optimizer_tolerance

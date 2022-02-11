@@ -81,9 +81,11 @@ class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
 
         reg = "ridge"
 
-        ode_function_generator = OdeFunctionGenerator()
-        linear_solver = VarQteLinearSolver()
-        ode_function_generator._lazy_init(None, var_principle, None, reg, param_dict, linear_solver)
+        ode_function_generator = OdeFunctionGenerator(regularization=reg)
+        linear_solver = VarQteLinearSolver(
+            CircuitSampler(backend), CircuitSampler(backend), CircuitSampler(backend)
+        )
+        ode_function_generator._lazy_init(None, var_principle, None, param_dict, linear_solver)
 
         var_qte_ode_solver = VarQteOdeSolver(
             list(param_dict.values()),
