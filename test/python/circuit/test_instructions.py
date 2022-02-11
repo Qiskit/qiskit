@@ -527,8 +527,6 @@ class TestInstructions(QiskitTestCase):
             case(ClassicalRegister(2), r"Register .* is not present in this circuit\.")
         with self.subTest("index out of range"):
             case(2, r"Classical bit index .* is out-of-range\.")
-        with self.subTest("list of bits"):
-            case(list(creg), r"Unknown classical resource specifier: .*")
         with self.subTest("tuple of bits"):
             case(tuple(creg), r"Unknown classical resource specifier: .*")
         with self.subTest("float"):
