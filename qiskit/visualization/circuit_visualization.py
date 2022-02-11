@@ -307,22 +307,19 @@ def _text_circuit_drawer(
     qubits, clbits, nodes = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
-
-    if with_layout:
-        layout = circuit._layout
-    else:
-        layout = None
-    global_phase = circuit.global_phase if hasattr(circuit, "global_phase") else None
     text_drawing = _text.TextDrawing(
         qubits,
         clbits,
         nodes,
         reverse_bits=reverse_bits,
-        layout=layout,
+        layout=None,
+        with_layout=with_layout,
         initial_state=initial_state,
         cregbundle=cregbundle,
-        global_phase=global_phase,
+        global_phase=None,
         encoding=encoding,
+        qregs=None,
+        cregs=None,
         circuit=circuit,
     )
     text_drawing.plotbarriers = plot_barriers
@@ -496,12 +493,6 @@ def _generate_latex_source(
     qubits, clbits, nodes = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
-    if with_layout:
-        layout = circuit._layout
-    else:
-        layout = None
-
-    global_phase = circuit.global_phase if hasattr(circuit, "global_phase") else None
     qcimg = _latex.QCircuitImage(
         qubits,
         clbits,
@@ -510,10 +501,13 @@ def _generate_latex_source(
         style=style,
         reverse_bits=reverse_bits,
         plot_barriers=plot_barriers,
-        layout=layout,
+        layout=None,
+        with_layout=with_layout,
         initial_state=initial_state,
         cregbundle=cregbundle,
-        global_phase=global_phase,
+        global_phase=None,
+        qregs=None,
+        cregs=None,
         circuit=circuit,
     )
     latex = qcimg.latex()
@@ -581,15 +575,9 @@ def _matplotlib_circuit_drawer(
     qubits, clbits, nodes = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
-    if with_layout:
-        layout = circuit._layout
-    else:
-        layout = None
-
     if fold is None:
         fold = 25
 
-    global_phase = circuit.global_phase if hasattr(circuit, "global_phase") else None
     qcd = _matplotlib.MatplotlibDrawer(
         qubits,
         clbits,
@@ -598,13 +586,16 @@ def _matplotlib_circuit_drawer(
         style=style,
         reverse_bits=reverse_bits,
         plot_barriers=plot_barriers,
-        layout=layout,
+        layout=None,
+        with_layout=with_layout,
         fold=fold,
         ax=ax,
         initial_state=initial_state,
         cregbundle=cregbundle,
-        global_phase=global_phase,
-        calibrations=circuit.calibrations,
+        global_phase=None,
+        calibrations=None,
+        qregs=None,
+        cregs=None,
         circuit=circuit,
     )
     return qcd.draw(filename)

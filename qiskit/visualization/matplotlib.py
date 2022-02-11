@@ -21,7 +21,7 @@ import numpy as np
 
 
 from qiskit.circuit import ControlledGate, Qubit, Clbit, ClassicalRegister
-from qiskit.circuit import Measure
+from qiskit.circuit import Measure, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import (
     SwapGate,
     RZZGate,
@@ -73,11 +73,14 @@ class MatplotlibDrawer:
         reverse_bits=False,
         plot_barriers=True,
         layout=None,
+        with_layout=False,
         fold=25,
         ax=None,
         initial_state=False,
         cregbundle=True,
         global_phase=None,
+        qregs=None,
+        cregs=None,
         calibrations=None,
         circuit=None,
     ):
@@ -87,6 +90,65 @@ class MatplotlibDrawer:
         self._patches_mod = patches
         self._plt_mod = plt
 
+        if qregs is not None:
+            warn(
+                "The 'qregs' kwarg to the MatplotlibDrawer class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                DeprecationWarning,
+                2,
+            )
+        if cregs is not None:
+            warn(
+                "The 'cregs' kwarg to the MatplotlibDrawer class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                DeprecationWarning,
+                2,
+            )
+        if global_phase is not None:
+            warn(
+                "The 'global_phase' kwarg to the MatplotlibDrawer class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                DeprecationWarning,
+                2,
+            )
+        if layout is not None:
+            warn(
+                "The 'layout' kwarg to the MatplotlibDrawer class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                DeprecationWarning,
+                2,
+            )
+        if calibrations is not None:
+            warn(
+                "The 'calibrations' kwarg to the MatplotlibDrawer class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                DeprecationWarning,
+                2,
+            )
+        # This check should be removed when the 5 deprecations above are removed
+        if circuit is None:
+            warn(
+                "The 'circuit' kwarg to the MaptlotlibDrawer class must be a valid "
+                "QuantumCircuit and not None. A new circuit is being created using "
+                "the qubits and clbits for rendering the drawing.",
+                DeprecationWarning,
+                2,
+            )
+            circ = QuantumCircuit(qubits, clbits)
+            for reg in qregs:
+                bits = [qubits[circ._qubit_indices[q].index] for q in reg]
+                circ.add_register(QuantumRegister(None, reg.name, list(bits)))
+            for reg in cregs:
+                bits = [clbits[circ._clbit_indices[q].index] for q in reg]
+                circ.add_register(ClassicalRegister(None, reg.name, list(bits)))
+            self._circuit = circ
+        else:
+            self._circuit = circuit
         self._qubits = qubits
         self._clbits = clbits
         self._qubits_dict = {}
@@ -96,7 +158,6 @@ class MatplotlibDrawer:
         self._wire_map = {}
 
         self._nodes = nodes
-        self._circuit = circuit
         self._scale = 1.0 if scale is None else scale
 
         self._style, def_font_ratio = load_style(style)
@@ -107,7 +168,11 @@ class MatplotlibDrawer:
 
         self._reverse_bits = reverse_bits
         self._plot_barriers = plot_barriers
-        self._layout = layout
+        if with_layout:
+            self._layout = self._circuit._layout
+        else:
+            self._layout = None
+
         self._fold = fold
         if self._fold < 2:
             self._fold = -1
@@ -127,8 +192,8 @@ class MatplotlibDrawer:
 
         self._initial_state = initial_state
         self._cregbundle = cregbundle
-        self._global_phase = global_phase
-        self._calibrations = calibrations
+        self._global_phase = self._circuit.global_phase
+        self._calibrations = self._circuit.calibrations
 
         self._fs = self._style["fs"]
         self._sfs = self._style["sfs"]
@@ -753,7 +818,9 @@ class MatplotlibDrawer:
                         for ii in self._clbits_dict
                     ]
                     if self._clbits_dict:
-                        anc_x_index = max(anc_x_index, next(iter(self._c_anchors.values())).get_x_index())
+                        anc_x_index = max(
+                            anc_x_index, next(iter(self._c_anchors.items()))[1].get_x_index()
+                        )
                     self._condition(node, cond_xy)
 
                 # draw measure
