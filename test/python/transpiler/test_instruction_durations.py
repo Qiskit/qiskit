@@ -14,17 +14,10 @@
 
 """Test InstructionDurations class."""
 
-from ddt import ddt, data
-
-from qiskit.circuit import Delay, Parameter, QuantumCircuit
-from qiskit.circuit.library import XGate
+from qiskit.circuit import Delay, Parameter
 from qiskit.test.mock.backends import FakeParis, FakeTokyo
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
-from qiskit.transpiler.passes import ALAPSchedule, DynamicalDecoupling
-from qiskit.transpiler import PassManager
-
-import qiskit.pulse as pulse
 
 from qiskit.test.base import QiskitTestCase
 
@@ -95,31 +88,3 @@ class TestInstructionDurationsClass(QiskitTestCase):
         parameterized_delay = Delay(param, "s")
         with self.assertRaises(TranspilerError):
             InstructionDurations().get(parameterized_delay, 0)
-
-
-@ddt
-class TestTranspile(QiskitTestCase):
-    """Test InstructionDurations with calibrations and DD."""
-
-    @data(0.5, 1.5)
-    def test_dd_with_calibrations_with_parameters(self, param_value):
-        """Check that calibrations in a circuit with parameter work fine."""
-
-        circ = QuantumCircuit(2)
-        circ.x(0)
-        circ.cx(0, 1)
-        circ.rx(param_value, 1)
-
-        rx_duration = int(param_value * 1000)
-
-        with pulse.build() as rx:
-            pulse.play(pulse.Gaussian(rx_duration, 0.1, rx_duration // 4), pulse.DriveChannel(1))
-
-        circ.add_calibration("rx", (1,), rx, params=[param_value])
-
-        durations = InstructionDurations([("x", None, 100), ("cx", None, 300)])
-
-        dd_sequence = [XGate(), XGate()]
-        pm = PassManager([ALAPSchedule(durations), DynamicalDecoupling(durations, dd_sequence)])
-
-        self.assertEqual(pm.run(circ).duration, rx_duration + 100 + 300)

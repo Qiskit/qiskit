@@ -3,17 +3,3 @@ upgrade:
   - |
     The `InstructionDurations` class is upgraded to accept gate parameters. Now,
     an instruction duration is a tuple of `(inst_name, qubits, duration, parameters, unit)`.
-    This makes it possible to run transpiler passes such as Dynamical Decoupling
-    on circuits that have pulse gates with parameters such as
-
-    .. parsed-literal::
-
-      circ = QuantumCircuit(2)
-      circ.x(0)
-      circ.cx(0, 1)
-      circ.rx(1.5, 1)
-
-      with pulse.build() as rx:
-          pulse.play(pulse.Gaussian(2000, 0.1, 500), pulse.DriveChannel(1))
-
-      circ.add_calibration("rx", (1, ), rx, params = [1.5])
