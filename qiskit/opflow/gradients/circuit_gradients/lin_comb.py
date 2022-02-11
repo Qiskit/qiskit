@@ -130,7 +130,7 @@ class LinComb(CircuitGradient):
             Warning: If the provided auxiliary measurement operator acts on more that 1 qubit.
         """
         if aux_meas_op.num_qubits != 1:
-            raise Warning(
+            raise ValueError(
                 "The auxiliary measurement operator is only used to evaluate an "
                 "expectation value on one auxiliary qubit. Please define it "
                 "accordingly. "
