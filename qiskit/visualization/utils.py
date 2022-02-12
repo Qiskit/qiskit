@@ -312,7 +312,7 @@ def get_condition_label_val(condition, circuit, cregbundle):
         cond_len = (
             condition[0].size if isinstance(condition[0], ClassicalRegister) else len(condition[0])
         )
-        val_bits = list(str(bin(cond_val))[2:].zfill(cond_len))[::-1]
+        val_bits = list(f"{cond_val:0{cond_len}b}")[::-1]
         for idx, bit in enumerate(condition[0]):
             cond_list.append((bit, val_bits[idx]))
 
