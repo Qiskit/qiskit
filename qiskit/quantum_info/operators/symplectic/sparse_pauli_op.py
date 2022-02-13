@@ -387,7 +387,20 @@ class SparsePauliOp(LinearOp):
 
         # Pack bool vectors into np.uint8 vectors by np.packbits
         array = np.packbits(self.paulis.x, axis=1) * 256 + np.packbits(self.paulis.z, axis=1)
-        _, indexes, inverses = np.unique(array, return_index=True, return_inverse=True, axis=0)
+
+        # The following corresponds to
+        # _, indexes, inverses = np.unique(array, return_index=True, return_inverse=True, axis=0)
+        table = {}
+        indexes = []
+        inverses = []
+        for i, ary in enumerate(array):
+            b = ary.data.tobytes()
+            if b not in table:
+                indexes.append(i)
+                table[b] = len(table)
+            inverses.append(table[b])
+        indexes = np.array(indexes)
+
         coeffs = np.zeros(indexes.shape[0], dtype=complex)
         np.add.at(coeffs, inverses, self.coeffs)
         # Delete zero coefficient rows
