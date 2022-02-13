@@ -104,29 +104,29 @@ class TestCompareGradientImpls(QiskitTestCase):
             print("for equivalence")
 
         # Configurations of the number of qubits and depths we want to try.
-        max_depth = 100 if __glo_verbose__ else 20
+        max_depth = 100 if __glo_verbose__ else 10
         configs = [
             (n, depth)
-            for n in range(2, (8 if __glo_verbose__ else 5) + 1)
+            for n in range(2, (8 if __glo_verbose__ else 3) + 1)
             for depth in np.sort(
-                np.random.permutation(np.arange(3 if n <= 3 else 7, 15 if n <= 3 else max_depth))[
+                np.random.permutation(np.arange(3 if n <= 3 else 7, 9 if n <= 3 else max_depth))[
                     0:10
                 ]
             )
         ]
 
-        _debug = False
         results = list()
-        if _debug:
-            for nqubits, depth in configs:
-                results.append(self._compare(nqubits, depth, __glo_verbose__))
-        else:
+        if __glo_verbose__:
             with concurrent.futures.ProcessPoolExecutor() as executor:
                 tasks = [
                     executor.submit(self._compare, nqubits, depth, __glo_verbose__)
                     for nqubits, depth in configs
                 ]
                 results = [t.result() for t in tasks]
+        else:
+            for nqubits, depth in configs:
+                results.append(self._compare(nqubits, depth, __glo_verbose__))
+
         if __glo_verbose__:
             print("")
         sys.stderr.flush()
