@@ -392,13 +392,13 @@ class SparsePauliOp(LinearOp):
         # _, indexes, inverses = np.unique(array, return_index=True, return_inverse=True, axis=0)
         table = {}
         indexes = []
-        inverses = []
+        inverses = np.zeros(array.shape[0], dtype=int)
         for i, ary in enumerate(array):
             b = ary.data.tobytes()
             if b not in table:
                 indexes.append(i)
                 table[b] = len(table)
-            inverses.append(table[b])
+            inverses[i] = table[b]
         indexes = np.array(indexes)
 
         coeffs = np.zeros(indexes.shape[0], dtype=complex)
