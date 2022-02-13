@@ -128,10 +128,12 @@ class SparsePauliOp(LinearOp):
 
     def __eq__(self, other):
         """Check if two SparsePauliOp operators are equal"""
+        self_ind = self.paulis.argsort()
+        other_ind = other.paulis.argsort()
         return (
             super().__eq__(other)
-            and np.allclose(self.coeffs, other.coeffs)
-            and self.paulis == other.paulis
+            and np.allclose(self.coeffs[self_ind], other.coeffs[other_ind])
+            and self.paulis[self_ind] == other.paulis[other_ind]
         )
 
     @property
