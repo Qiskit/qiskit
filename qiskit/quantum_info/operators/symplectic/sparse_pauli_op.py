@@ -390,7 +390,7 @@ class SparsePauliOp(LinearOp):
         # _, indexes, inverses = np.unique(array, return_index=True, return_inverse=True, axis=0)
         table = {}
         indexes = []
-        inverses = np.zeros(array.shape[0], dtype=int)
+        inverses = np.empty(array.shape[0], dtype=int)
         for i, ary in enumerate(array):
             b = ary.data.tobytes()
             if b in table:
