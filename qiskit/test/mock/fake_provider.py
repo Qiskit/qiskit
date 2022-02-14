@@ -194,3 +194,73 @@ class FakeLegacyProvider(BaseProvider):
         ]
 
         super().__init__()
+
+class FakeProviderV2(ProviderV1):
+    """Dummy provider just for testing purposes.
+
+    Only filtering backends by name is implemented.
+    This class contains fake V2 backends
+    """
+
+    def get_backend(self, name=None, **kwargs):
+        backend = self._backends[0]
+        if name:
+            filtered_backends = [backend for backend in self._backends if backend.name() == name]
+            if not filtered_backends:
+                raise QiskitBackendNotFoundError()
+
+            backend = filtered_backends[0]
+
+        return backend
+
+    def backends(self, name=None, **kwargs):
+        return self._backends
+
+    def __init__(self):
+        self._backends = [
+            # FakeAlmaden(),
+            # FakeArmonk(),
+            # FakeAthens(),
+            # FakeBelem(),
+            # FakeBoeblingen(),
+            # FakeBogota(),
+            # FakeBrooklyn(),
+            # FakeBurlington(),
+            # FakeCambridge(),
+            # FakeCambridgeAlternativeBasis(),
+            # FakeCasablanca(),
+            # FakeEssex(),
+            # FakeGuadalupe(),
+            FakeJakartaV2(),
+            # FakeJohannesburg(),
+            # FakeLagos(),
+            # FakeLima(),
+            # FakeLondon(),
+            # FakeManila(),
+            # FakeManhattan(),
+            # FakeMelbourne(),
+            # FakeMontreal(),
+            # FakeMumbai(),
+            # FakeOpenPulse2Q(),
+            # FakeOpenPulse3Q(),
+            # FakeOurense(),
+            # FakeParis(),
+            # FakePoughkeepsie(),
+            # FakeQasmSimulator(),
+            # FakeQuito(),
+            # FakeRochester(),
+            # FakeRome(),
+            # FakeRueschlikon(),
+            # FakeSantiago(),
+            # FakeSingapore(),
+            # FakeSydney(),
+            # FakeTenerife(),
+            # FakeTokyo(),
+            # FakeToronto(),
+            # FakeValencia(),
+            # FakeVigo(),
+            # FakeYorktown(),
+        ]
+
+        super().__init__()
+
