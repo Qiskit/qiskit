@@ -22,7 +22,7 @@ import json
 import os
 
 from qiskit import circuit
-from qiskit.providers.models import BackendProperties, QasmBackendConfiguration
+from qiskit.providers.models import BackendProperties, PulseBackendConfiguration
 from qiskit.providers import BackendV1, BackendV2, BaseBackend
 from qiskit.providers.options import Options
 from qiskit import pulse
@@ -33,6 +33,7 @@ from qiskit.test.mock import fake_job
 from qiskit.test.mock.utils.json_decoder import (
     decode_backend_configuration,
     decode_backend_properties,
+    decode_pulse_defaults
 )
 from qiskit.test.mock.utils.backend_converter import (
     convert_to_target,
@@ -296,13 +297,39 @@ class FakeBackendV2(BackendV2):
         configuration.backend_name = self.backend_name
         return configuration
 
+    def properties(self):
+        """Returns a snapshot of device properties"""
+        if not self._properties:
+            self._set_props_from_json()
+        return self._properties
+
+    def defaults(self):
+        """Returns a snapshot of device defaults"""
+        if not self._defaults:
+            self._set_defaults_from_json()
+        return self._defaults
+
+    def _set_props_from_json(self):
+        if not self.props_filename:
+            raise QiskitError("No properties file has been defined")
+        props = self._load_json(self.props_filename)
+        decode_backend_properties(props)
+        self._properties = BackendProperties.from_dict(props)
+
+    def _set_defaults_from_json(self):
+        if not self.props_filename:
+            raise QiskitError("No properties file has been defined")
+        defs = self._load_json(self.defs_filename)
+        decode_pulse_defaults(defs)
+        self._defaults = PulseDefaults.from_dict(defs)
+
     def _load_json(self, filename):
         with open(os.path.join(self.dirname, filename)) as f_json:
             the_json = json.load(f_json)
         return the_json
 
     def _get_config_from_dict(self, conf):
-        return QasmBackendConfiguration.from_dict(conf)
+        return PulseBackendConfiguration.from_dict(conf)
 
 
     # def _get_properties(self) -> None:
