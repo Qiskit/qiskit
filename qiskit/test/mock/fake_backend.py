@@ -309,6 +309,9 @@ class FakeBackendV2(BackendV2):
         configuration.backend_name = self.backend_name
         return configuration
 
+    def _get_config_from_dict(self, conf):
+        return PulseBackendConfiguration.from_dict(conf)
+
     def _set_props_from_json(self):
         if not self.props_filename:
             raise QiskitError("No properties file has been defined")
@@ -327,9 +330,6 @@ class FakeBackendV2(BackendV2):
         with open(os.path.join(self.dirname, filename)) as f_json:
             the_json = json.load(f_json)
         return the_json
-
-    def _get_config_from_dict(self, conf):
-        return PulseBackendConfiguration.from_dict(conf)
 
 
     # def _get_properties(self) -> None:
