@@ -98,9 +98,8 @@ automatically lowered to be run as a pulse program:
     d2 = pulse.DriveChannel(2)
 
     with pulse.build(backend) as bell_prep:
-        with pulse.transpiler_settings(optimization_level=3):
-            pulse.u2(0, math.pi, 0)
-            pulse.cx(0, 1)
+        pulse.u2(0, math.pi, 0)
+        pulse.cx(0, 1)
 
     with pulse.build(backend) as decoupled_bell_prep_and_measure:
         # We call our bell state preparation schedule constructed above.
@@ -198,14 +197,13 @@ In the example below we demonstrate some more features of the pulse builder:
             # circuit which is then transpiled and scheduled before inserting into
             # a pulse schedule.
             # NOTE: Quantum register indices correspond to physical qubit indices.
-            with pulse.transpiler_settings(layout_method="trivial"):
-                qc = QuantumCircuit(2, 2)
-                qc.cx(0, 1)
-                pulse.call(qc)
-                # Calling a small set of standard gates and decomposing to pulses is
-                # also supported with more natural syntax.
-                pulse.u3(0, math.pi, 0, 0)
-                pulse.cx(0, 1)
+            qc = QuantumCircuit(2, 2)
+            qc.cx(0, 1)
+            pulse.call(qc)
+            # Calling a small set of standard gates and decomposing to pulses is
+            # also supported with more natural syntax.
+            pulse.u3(0, math.pi, 0, 0)
+            pulse.cx(0, 1)
 
 
             # It is also be possible to call a preexisting schedule
@@ -1985,7 +1983,12 @@ def barrier(*channels_or_qubits: Union[chans.Channel, int], name: Optional[str] 
 
     This directive prevents the compiler from moving instructions across
     the barrier. Consider the case where we want to enforce that one pulse
-    happens after another on separate channels, this can be done with::
+    happens after another on separate channels, this can be done with:
+
+    .. jupyter-kernel:: python3
+        :id: barrier
+
+    .. jupyter-execute::
 
         from qiskit import pulse
         from qiskit.test.mock import FakeOpenPulse2Q
@@ -2000,7 +2003,9 @@ def barrier(*channels_or_qubits: Union[chans.Channel, int], name: Optional[str] 
             pulse.barrier(d0, d1)
             pulse.play(pulse.Constant(10, 1.0), d1)
 
-    Of course this could have been accomplished with::
+    Of course this could have been accomplished with:
+
+    .. jupyter-execute::
 
         from qiskit.pulse import transforms
 
@@ -2017,7 +2022,9 @@ def barrier(*channels_or_qubits: Union[chans.Channel, int], name: Optional[str] 
     The barrier allows the pulse compiler to take care of more advanced
     scheduling alignment operations across channels. For example
     in the case where we are calling an outside circuit or schedule and
-    want to align a pulse at the end of one call::
+    want to align a pulse at the end of one call:
+
+    .. jupyter-execute::
 
         import math
 
@@ -2331,7 +2338,9 @@ def cx(control: int, target: int):  # pylint: disable=invalid-name
         deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
-    Examples::
+    Examples:
+
+    .. jupyter-execute::
 
         from qiskit import pulse
         from qiskit.test.mock import FakeOpenPulse2Q
@@ -2354,7 +2363,9 @@ def u1(theta: float, qubit: int):  # pylint: disable=invalid-name
         deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
-    Examples::
+    Examples:
+
+    .. jupyter-execute::
 
         import math
 
@@ -2379,7 +2390,9 @@ def u2(phi: float, lam: float, qubit: int):  # pylint: disable=invalid-name
         deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
-    Examples::
+    Examples:
+
+    .. jupyter-execute::
 
         import math
 
@@ -2404,7 +2417,9 @@ def u3(theta: float, phi: float, lam: float, qubit: int):  # pylint: disable=inv
         deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
-    Examples::
+    Examples:
+
+    .. jupyter-execute::
 
         import math
 
@@ -2429,7 +2444,9 @@ def x(qubit: int):
         deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
-    Examples::
+    Examples:
+
+    .. jupyter-execute::
 
         from qiskit import pulse
         from qiskit.test.mock import FakeOpenPulse2Q

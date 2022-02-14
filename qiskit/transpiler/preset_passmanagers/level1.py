@@ -15,8 +15,6 @@
 Level 1 pass manager: light optimization by simple adjacent gate collapsing.
 """
 
-import warnings
-
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
@@ -116,18 +114,8 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         # Verify that a trivial layout is perfect. If trivial_layout_score > 0
         # the layout is not perfect. The layout is unconditionally set by trivial
         # layout so we need to clear it before contuing.
-        if property_set["trivial_layout_score"] is not None:
-            if property_set["trivial_layout_score"] != 0:
-                return True
-            else:
-                warnings.warn(
-                    "The current implicit default of using a trivial layout if it's a "
-                    "perfect layout will change in a future release, if you're "
-                    "depending on this behavior it is better to explicit set "
-                    "layout_method='trivial' when calling transpile()",
-                    FutureWarning,
-                )
-                # stack_level is not set because targeting transpile() is difficult
+        if property_set["trivial_layout_score"] is not None and property_set["trivial_layout_score"] != 0:
+            return True
         return False
 
     def _vf2_match_not_found(property_set):
