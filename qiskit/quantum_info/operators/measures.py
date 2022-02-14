@@ -126,7 +126,7 @@ def process_fidelity(channel, target=None, require_cp=True, require_tp=True):
             fid = np.abs(np.trace(channel.data) / input_dim) ** 2
         else:
             # Tr[S] / (dim ** 2)
-            fid = np.trace(SuperOp(channel).data) / (input_dim ** 2)
+            fid = np.trace(SuperOp(channel).data) / (input_dim**2)
         return float(np.real(fid))
 
     # For comparing two non-unitary channels we compute the state fidelity of

@@ -120,6 +120,19 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         qr = QuantumRegister(num_qubits, "qr")
         cr = ClassicalRegister(4, "cr")
 
+        #             ░     ░     ░ ┌─┐ ░
+        # qr_0: ──────░─────░─────░─┤M├─░────
+        #       ┌───┐ ░     ░ ┌─┐ ░ └╥┘ ░
+        # qr_1: ┤ X ├─░─────░─┤M├─░──╫──░────
+        #       └───┘ ░     ░ └╥┘ ░  ║  ░
+        # qr_2: ──────░─────░──╫──░──╫──░────
+        #       ┌───┐ ░ ┌─┐ ░  ║  ░  ║  ░ ┌─┐
+        # qr_3: ┤ X ├─░─┤M├─░──╫──░──╫──░─┤M├
+        #       └───┘ ░ └╥┘ ░  ║  ░  ║  ░ └╥┘
+        # qr_4: ──────░──╫──░──╫──░──╫──░──╫─
+        #             ░  ║  ░  ║  ░  ║  ░  ║
+        # cr: 4/═════════╩═════╩═════╩═════╩═
+        #                1     0     2     3
         circuit = QuantumCircuit(qr, cr)
         circuit.x(qr[3])
         circuit.x(qr[1])
@@ -161,6 +174,16 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(3, "cr")
 
+        #       ┌───┐┌─┐          ┌─┐
+        # qr_0: ┤ X ├┤M├──────────┤M├──────
+        #       ├───┤└╥┘┌─┐       └╥┘┌─┐
+        # qr_1: ┤ X ├─╫─┤M├────────╫─┤M├───
+        #       └───┘ ║ └╥┘ ┌───┐  ║ └╥┘┌─┐
+        # qr_2: ──────╫──╫──┤ X ├──╫──╫─┤M├
+        #             ║  ║  └─╥─┘  ║  ║ └╥┘
+        #             ║  ║ ┌──╨──┐ ║  ║  ║
+        # cr: 3/══════╩══╩═╡ 0x3 ╞═╩══╩══╩═
+        #             0  1 └─────┘ 0  1  2
         circuit_if_true = QuantumCircuit(qr, cr)
         circuit_if_true.x(qr[0])
         circuit_if_true.x(qr[1])
@@ -171,6 +194,16 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         circuit_if_true.measure(qr[1], cr[1])
         circuit_if_true.measure(qr[2], cr[2])
 
+        #       ┌───┐┌─┐       ┌─┐
+        # qr_0: ┤ X ├┤M├───────┤M├──────
+        #       └┬─┬┘└╥┘       └╥┘┌─┐
+        # qr_1: ─┤M├──╫─────────╫─┤M├───
+        #        └╥┘  ║  ┌───┐  ║ └╥┘┌─┐
+        # qr_2: ──╫───╫──┤ X ├──╫──╫─┤M├
+        #         ║   ║  └─╥─┘  ║  ║ └╥┘
+        #         ║   ║ ┌──╨──┐ ║  ║  ║
+        # cr: 3/══╩═══╩═╡ 0x3 ╞═╩══╩══╩═
+        #         1   0 └─────┘ 0  1  2
         circuit_if_false = QuantumCircuit(qr, cr)
         circuit_if_false.x(qr[0])
         circuit_if_false.measure(qr[0], cr[0])
@@ -195,6 +228,17 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
     def test_bit_cif_crossaffect(self):
         """Test if bits in a classical register other than
         the single conditional bit affect the conditioned operation."""
+        #               ┌───┐          ┌─┐
+        # q0_0: ────────┤ H ├──────────┤M├
+        #       ┌───┐   └─╥─┘    ┌─┐   └╥┘
+        # q0_1: ┤ X ├─────╫──────┤M├────╫─
+        #       ├───┤     ║      └╥┘┌─┐ ║
+        # q0_2: ┤ X ├─────╫───────╫─┤M├─╫─
+        #       └───┘┌────╨─────┐ ║ └╥┘ ║
+        # c0: 3/═════╡ c0_0=0x1 ╞═╩══╩══╬═
+        #            └──────────┘ 1  2  ║
+        # c1: 1/════════════════════════╩═
+        #                               0
         shots = 100
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
@@ -212,6 +256,20 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
 
     def test_teleport(self):
         """Test teleportation as in tutorials"""
+        #       ┌─────────┐          ┌───┐ ░ ┌─┐
+        # qr_0: ┤ Ry(π/4) ├───────■──┤ H ├─░─┤M├────────────────────
+        #       └──┬───┬──┘     ┌─┴─┐└───┘ ░ └╥┘┌─┐
+        # qr_1: ───┤ H ├─────■──┤ X ├──────░──╫─┤M├─────────────────
+        #          └───┘   ┌─┴─┐└───┘      ░  ║ └╥┘ ┌───┐  ┌───┐ ┌─┐
+        # qr_2: ───────────┤ X ├───────────░──╫──╫──┤ Z ├──┤ X ├─┤M├
+        #                  └───┘           ░  ║  ║  └─╥─┘  └─╥─┘ └╥┘
+        #                                     ║  ║ ┌──╨──┐   ║    ║
+        # cr0: 1/═════════════════════════════╩══╬═╡ 0x1 ╞═══╬════╬═
+        #                                     0  ║ └─────┘┌──╨──┐ ║
+        # cr1: 1/════════════════════════════════╩════════╡ 0x1 ╞═╬═
+        #                                        0        └─────┘ ║
+        # cr2: 1/═════════════════════════════════════════════════╩═
+        #                                                         0
         self.log.info("test_teleport")
         pi = np.pi
         shots = 2000
@@ -257,6 +315,20 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
 
     def test_memory(self):
         """Test memory."""
+        #       ┌───┐        ┌─┐
+        # qr_0: ┤ H ├──■─────┤M├───
+        #       └───┘┌─┴─┐   └╥┘┌─┐
+        # qr_1: ─────┤ X ├────╫─┤M├
+        #            └┬─┬┘    ║ └╥┘
+        # qr_2: ──────┤M├─────╫──╫─
+        #       ┌───┐ └╥┘ ┌─┐ ║  ║
+        # qr_3: ┤ X ├──╫──┤M├─╫──╫─
+        #       └───┘  ║  └╥┘ ║  ║
+        # cr0: 2/══════╬═══╬══╩══╩═
+        #              ║   ║  0  1
+        #              ║   ║
+        # cr1: 2/══════╩═══╩═══════
+        #              0   1
         qr = QuantumRegister(4, "qr")
         cr0 = ClassicalRegister(2, "cr0")
         cr1 = ClassicalRegister(2, "cr1")

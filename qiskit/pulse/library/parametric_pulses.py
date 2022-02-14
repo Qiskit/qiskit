@@ -450,7 +450,7 @@ class Drag(ParametricPulse):
             #    There is a second maxima mirrored around the center of the pulse with the same
             #    norm as the first, so checking the value at the first x maxima is sufficient.
             argmax_x = self.duration / 2 - (self.sigma / self.beta) * math.sqrt(
-                self.beta ** 2 - self.sigma ** 2
+                self.beta**2 - self.sigma**2
             )
             # If the max point is out of range, either end of the pulse will do
             argmax_x = max(argmax_x, 0)

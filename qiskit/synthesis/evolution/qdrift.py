@@ -71,7 +71,7 @@ class QDrift(ProductFormula):
         weights = np.abs(coeffs)
         lambd = np.sum(weights)
 
-        num_gates = int(np.ceil(2 * (lambd ** 2) * (time ** 2) * self.reps))
+        num_gates = int(np.ceil(2 * (lambd**2) * (time**2) * self.reps))
         # The protocol calls for the removal of the individual coefficients,
         # and multiplication by a constant evolution time.
         evolution_time = lambd * time / num_gates

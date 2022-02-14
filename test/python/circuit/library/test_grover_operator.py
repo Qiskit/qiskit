@@ -36,7 +36,7 @@ class TestGroverOperator(QiskitTestCase):
         state_in = Operator(state_in)
 
         if zero_reflection is None:
-            zero_reflection = np.eye(2 ** oracle.num_qubits)
+            zero_reflection = np.eye(2**oracle.num_qubits)
             zero_reflection[0][0] = -1
         zero_reflection = Operator(zero_reflection)
 
@@ -129,6 +129,21 @@ class TestGroverOperator(QiskitTestCase):
 
     def test_num_mcx_ancillas(self):
         """Test the number of ancilla bits for the mcx gate in zero_reflection."""
+        #
+        # q_0: ──■──────────────────────
+        #        │
+        # q_1: ──■──────────────────────
+        #        │
+        # q_2: ──┼────■─────────────────
+        #        │    │
+        # q_3: ──┼────■─────────────────
+        #      ┌─┴─┐  │
+        # q_4: ┤ X ├──┼────■────────────
+        #      └───┘┌─┴─┐  │
+        # q_5: ─────┤ X ├──■────────────
+        #      ┌───┐├───┤┌─┴─┐┌───┐┌───┐
+        # q_6: ┤ X ├┤ H ├┤ X ├┤ H ├┤ X ├
+        #      └───┘└───┘└───┘└───┘└───┘
         oracle = QuantumCircuit(7)
         oracle.x(6)
         oracle.h(6)

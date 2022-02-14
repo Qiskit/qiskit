@@ -64,7 +64,7 @@ class UnitaryGate(Gate):
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
         num_qubits = int(numpy.log2(input_dim))
-        if input_dim != output_dim or 2 ** num_qubits != input_dim:
+        if input_dim != output_dim or 2**num_qubits != input_dim:
             raise ExtensionError("Input matrix is not an N-qubit operator.")
 
         self._qasm_name = None

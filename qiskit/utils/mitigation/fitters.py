@@ -391,7 +391,7 @@ class TensoredMeasFitter:
         # initialize the set of empty calibration matrices
         self._cal_matrices = []
         for list_size in self._qubit_list_sizes:
-            self._cal_matrices.append(np.zeros([2 ** list_size, 2 ** list_size], dtype=float))
+            self._cal_matrices.append(np.zeros([2**list_size, 2**list_size], dtype=float))
 
         # go through for each calibration experiment
         for result in self._result_list:

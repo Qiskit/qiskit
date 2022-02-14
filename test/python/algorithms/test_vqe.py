@@ -226,7 +226,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         with self.assertWarns(DeprecationWarning):
             optimal_vector = vqe.get_optimal_vector()
 
-        self.assertAlmostEqual(sum(v ** 2 for v in optimal_vector.values()), 1.0, places=4)
+        self.assertAlmostEqual(sum(v**2 for v in optimal_vector.values()), 1.0, places=4)
 
     @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
     def test_with_aer_statevector(self):

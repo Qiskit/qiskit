@@ -328,7 +328,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         def powerlaw():
             n = 0
             while True:
-                yield rate ** n
+                yield rate**n
                 n += 1
 
         def steps():
