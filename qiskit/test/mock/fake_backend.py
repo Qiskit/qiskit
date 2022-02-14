@@ -22,7 +22,7 @@ import json
 import os
 
 from qiskit import circuit
-from qiskit.providers.models import BackendProperties, PulseBackendConfiguration
+from qiskit.providers.models import BackendProperties, PulseBackendConfiguration, PulseDefaults
 from qiskit.providers import BackendV1, BackendV2, BaseBackend
 from qiskit.providers.options import Options
 from qiskit import pulse
@@ -288,15 +288,6 @@ class FakeBackendV2(BackendV2):
         self._defaults = None
         self._target = None
 
-    def _get_conf_from_json(self):
-        if not self.conf_filename:
-            raise QiskitError("No configuration file has been defined")
-        conf = self._load_json(self.conf_filename)
-        decode_backend_configuration(conf)
-        configuration = self._get_config_from_dict(conf)
-        configuration.backend_name = self.backend_name
-        return configuration
-
     def properties(self):
         """Returns a snapshot of device properties"""
         if not self._properties:
@@ -308,6 +299,15 @@ class FakeBackendV2(BackendV2):
         if not self._defaults:
             self._set_defaults_from_json()
         return self._defaults
+
+    def _get_conf_from_json(self):
+        if not self.conf_filename:
+            raise QiskitError("No configuration file has been defined")
+        conf = self._load_json(self.conf_filename)
+        decode_backend_configuration(conf)
+        configuration = self._get_config_from_dict(conf)
+        configuration.backend_name = self.backend_name
+        return configuration
 
     def _set_props_from_json(self):
         if not self.props_filename:
