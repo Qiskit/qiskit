@@ -18,7 +18,6 @@ import math
 from test import combine
 
 from ddt import ddt, data
-import numpy as np
 
 from qiskit.circuit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.compiler import transpile
