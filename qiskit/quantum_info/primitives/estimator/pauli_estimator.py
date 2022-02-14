@@ -255,8 +255,8 @@ class PauliEstimator(BaseEstimator):
                 expval, var = _expval_with_variance(datum, diagonal=diagonal)
                 # Accumulate
                 combined_expval += expval * coeff
-                combined_variance += var * coeff ** 2
-                combined_stderr += np.sqrt(max(var * coeff ** 2 / shots, 0.0))
+                combined_variance += var * coeff**2
+                combined_stderr += np.sqrt(max(var * coeff**2 / shots, 0.0))
 
         return EstimatorResult(
             np.array([combined_expval], np.float64),
@@ -294,8 +294,8 @@ def _expval_with_variance(
         # The square of the parity diagonal is the all 1 vector
         sq_expval = np.sum(probs)
     else:
-        sq_expval = (coeffs ** 2).dot(probs)
-    variance = sq_expval - expval ** 2
+        sq_expval = (coeffs**2).dot(probs)
+    variance = sq_expval - expval**2
 
     # Compute standard deviation
     if variance < 0:
