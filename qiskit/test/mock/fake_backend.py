@@ -18,9 +18,11 @@ Base class for dummy backends.
 
 import uuid
 import warnings
+import json
+import os
 
 from qiskit import circuit
-from qiskit.providers.models import BackendProperties
+from qiskit.providers.models import BackendProperties, QasmBackendConfiguration
 from qiskit.providers import BackendV1, BackendV2, BaseBackend
 from qiskit.providers.options import Options
 from qiskit import pulse
@@ -28,7 +30,11 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.transpiler import Target, InstructionProperties
 from qiskit.exceptions import QiskitError
 from qiskit.test.mock import fake_job
-from .utils.backend_converter import (
+from qiskit.test.mock.utils.json_decoder import (
+    decode_backend_configuration,
+    decode_backend_properties,
+)
+from qiskit.test.mock.utils.backend_converter import (
     convert_to_target,
     qubit_properties_dict_from_properties
 )
@@ -267,7 +273,8 @@ class FakeLegacyBackend(BaseBackend):
 class FakeBackendV2(BackendV2):
     """This is a dummy bakend just for resting purposes. the FakeBackendV2 builds on top of the BackendV2 base class."""
 
-    def __init__(self, configuration):
+    def __init__(self):
+        configuration = self._get_conf_from_json()
         super().__init__(
             provider=None,
             name=configuration.backend_name,
@@ -275,12 +282,27 @@ class FakeBackendV2(BackendV2):
             online_date=configuration.online_date,
             backend_version=configuration.backend_version
         )
-
-        self._configuration = configuration
         self._properties = None
         self._qubit_properties = None
         self._defaults = None
         self._target = None
+
+    def _get_conf_from_json(self):
+        if not self.conf_filename:
+            raise QiskitError("No configuration file has been defined")
+        conf = self._load_json(self.conf_filename)
+        decode_backend_configuration(conf)
+        configuration = self._get_config_from_dict(conf)
+        configuration.backend_name = self.backend_name
+        return configuration
+
+    def _load_json(self, filename):
+        with open(os.path.join(self.dirname, filename)) as f_json:
+            the_json = json.load(f_json)
+        return the_json
+
+    def _get_config_from_dict(self, conf):
+        return QasmBackendConfiguration.from_dict(conf)
 
 
     # def _get_properties(self) -> None:
