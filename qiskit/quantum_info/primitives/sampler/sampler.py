@@ -17,6 +17,8 @@ from __future__ import annotations
 from collections import Counter
 from typing import Optional, Union, cast
 
+import numpy as np
+
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
@@ -60,6 +62,7 @@ class Sampler(BasePrimitive):
         else:
             self._circuits = [init_circuit(circuits)]
 
+        self._num_evaluated_circuits = 0
         self._skip_transpilation = False
 
     @classmethod
@@ -89,6 +92,18 @@ class Sampler(BasePrimitive):
     def preprocessed_circuits(self) -> Optional[list[QuantumCircuit]]:
         return self._circuits
 
+    @staticmethod
+    def _get_num_evaluated_circuits(
+        circuits: list[QuantumCircuit], parameters: Optional[Union[list[float], list[list[float]]]]
+    ) -> int:
+        if parameters is None:
+            return len(circuits)
+        params = np.asarray(parameters)
+        if params.ndim == 1:
+            return 1
+        else:
+            return params.shape[0]
+
     # pylint: disable=arguments-differ
     def run(
         self,
@@ -98,6 +113,7 @@ class Sampler(BasePrimitive):
     ) -> SamplerResult:
         if circuits is not None:
             self._circuits = circuits
+        self._num_evaluated_circuits = self._get_num_evaluated_circuits(self._circuits, parameters)
         return cast(SamplerResult, super().run(parameters, **run_options))
 
     @property
@@ -113,13 +129,13 @@ class Sampler(BasePrimitive):
         self._skip_transpilation = True
 
     def _get_quasis(
-        self, results: list[Result], num_circuits: int = -1
+        self, results: list[Result], num_circuits: int
     ) -> tuple[list[QuasiDistribution], float]:
         """Converts a list of results to quasi-probabilities and the total number of shots
 
         Args:
             results: a list of results
-            num_circuits: the number of circuits. If -1, `len(self._circuits)` will be used.
+            num_circuits: the number of circuits.
 
         Returns:
             a list of quasi-probabilities and the total number of shots
@@ -130,8 +146,6 @@ class Sampler(BasePrimitive):
         if len(results) == 0:
             raise QiskitError("Empty result")
         list_counts = self._backend.get_counts(results)
-        if num_circuits == -1:
-            num_circuits = len(self._circuits)
         counters: list[Counter] = [Counter() for _ in range(num_circuits)]
         i = 0
         for counts in list_counts:
@@ -147,7 +161,7 @@ class Sampler(BasePrimitive):
             raise TypeError("result must be an instance of Result.")
 
         raw_results = [result]
-        quasis, shots = self._get_quasis(raw_results)
+        quasis, shots = self._get_quasis(raw_results, self._num_evaluated_circuits)
         metadata = [res.header.metadata for result in raw_results for res in result.results]
 
         return SamplerResult(
