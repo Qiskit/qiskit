@@ -17,8 +17,6 @@ from __future__ import annotations
 from collections import Counter
 from typing import Optional, Union, cast
 
-import numpy as np
-
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
@@ -62,7 +60,6 @@ class Sampler(BasePrimitive):
         else:
             self._circuits = [init_circuit(circuits)]
 
-        self._num_evaluated_circuits = 0
         self._skip_transpilation = False
 
     @classmethod
@@ -92,18 +89,6 @@ class Sampler(BasePrimitive):
     def preprocessed_circuits(self) -> Optional[list[QuantumCircuit]]:
         return self._circuits
 
-    @staticmethod
-    def _get_num_evaluated_circuits(
-        circuits: list[QuantumCircuit], parameters: Optional[Union[list[float], list[list[float]]]]
-    ) -> int:
-        if parameters is None:
-            return len(circuits)
-        params = np.asarray(parameters)
-        if params.ndim == 1:
-            return 1
-        else:
-            return params.shape[0]
-
     # pylint: disable=arguments-differ
     def run(
         self,
@@ -113,7 +98,6 @@ class Sampler(BasePrimitive):
     ) -> SamplerResult:
         if circuits is not None:
             self._circuits = circuits
-        self._num_evaluated_circuits = self._get_num_evaluated_circuits(self._circuits, parameters)
         return cast(SamplerResult, super().run(parameters, **run_options))
 
     @property
@@ -161,7 +145,7 @@ class Sampler(BasePrimitive):
             raise TypeError("result must be an instance of Result.")
 
         raw_results = [result]
-        quasis, shots = self._get_quasis(raw_results, self._num_evaluated_circuits)
+        quasis, shots = self._get_quasis(raw_results, len(result.results))
         metadata = [res.header.metadata for result in raw_results for res in result.results]
 
         return SamplerResult(

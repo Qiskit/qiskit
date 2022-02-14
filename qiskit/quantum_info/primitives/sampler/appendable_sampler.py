@@ -71,7 +71,7 @@ class AppendableSampler(Sampler):
             raise TypeError("result must be an instance of Result.")
 
         self._raw_results.append(result)
-        quasis, shots = self._get_quasis(self._raw_results, self._num_evaluated_circuits)
+        quasis, shots = self._get_quasis(self._raw_results, len(result.results))
         metadata = [res.header.metadata for result in self._raw_results for res in result.results]
 
         return SamplerResult(
