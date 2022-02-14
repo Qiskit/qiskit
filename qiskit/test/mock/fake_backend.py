@@ -331,35 +331,19 @@ class FakeBackendV2(BackendV2):
             the_json = json.load(f_json)
         return the_json
 
-
-    # def _get_properties(self) -> None:
-    #     """Gets backend properties and decodes it"""
-    #     if not self._properties:
-    #         api_properties = self._api_client.backend_properties(self.name)
-    #         if api_properties:
-    #             backend_properties = properties_from_server_data(api_properties)
-    #             self._properties = backend_properties
-
-    # def _convert_to_target(self) -> None:
-    #     """Converts backend configuration, properties and defaults to Target object"""
-    #     if not self._target:
-    #         self._target = convert_to_target(
-    #             configuration=self._configuration.to_dict(),
-    #             properties=self._properties.to_dict() if self._properties else None,
-    #             defaults=self._defaults.to_dict() if self._defaults else None,
-    #         )
-
     @property
     def target(self) -> Target:
-        """A :class:`qiskit.transpiler.Target` object for the backend.
-
-        Returns:
-            Target
-        """
-        self._get_properties()
-        self._get_defaults()
         self._convert_to_target()
         return self._target
+
+    def _convert_to_target(self) -> None:
+        """Converts backend configuration, properties and defaults to Target object"""
+        if not self._target:
+            self._target = convert_to_target(
+                configuration=self._configuration.to_dict(),
+                properties=self._properties.to_dict() if self._properties else None,
+                defaults=self._defaults.to_dict() if self._defaults else None,
+            )
 
     @property
     def max_circuits(self):
