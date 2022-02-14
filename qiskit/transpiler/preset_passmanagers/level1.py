@@ -179,7 +179,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
 
-    # 3. Extend dag/layout with ancillas using the full coupling map
+    # 4. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
 
     # 5. Swap to fit the coupling map
