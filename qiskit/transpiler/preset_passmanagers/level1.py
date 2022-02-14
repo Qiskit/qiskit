@@ -114,7 +114,10 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         # Verify that a trivial layout is perfect. If trivial_layout_score > 0
         # the layout is not perfect. The layout is unconditionally set by trivial
         # layout so we need to clear it before contuing.
-        if property_set["trivial_layout_score"] is not None and property_set["trivial_layout_score"] != 0:
+        if (
+            property_set["trivial_layout_score"] is not None
+            and property_set["trivial_layout_score"] != 0
+        ):
             return True
         return False
 
