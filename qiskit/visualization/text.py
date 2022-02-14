@@ -431,6 +431,8 @@ class Bullet(DirectOnQuWire):
     def __init__(self, top_connect="", bot_connect="", conditional=False, label=None, bottom=False):
         super().__init__("■")
         self.top_connect = top_connect
+        #if conditional:
+        #    self._mid_padding = "──"
         self.bot_connect = "║" if conditional else bot_connect
         if label and bottom:
             self.bot_connect = label
@@ -1191,8 +1193,10 @@ class TextDrawing:
 
             for node in node_layer:
                 layer, current_connections, connection_label = self._node_to_gate(node, layer)
+                print(connection_label)
 
                 layer.connections.append((connection_label, current_connections))
+            print(layer.connections)
             layer.connect_with("│")
             layers.append(layer.full_layer)
 
@@ -1501,4 +1505,6 @@ class Layer:
 
             if label:
                 for affected_bit in affected_bits:
+                    print(affected_bit)
+                    print(label, len(label), affected_bit.mid, len(affected_bit.mid))
                     affected_bit.right_fill = len(label) + len(affected_bit.mid)
