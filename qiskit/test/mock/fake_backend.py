@@ -351,7 +351,12 @@ class FakeBackendV2(BackendV2):
 
     @classmethod
     def _default_options(cls):
-        return Options(shots=1024)
+        if _optionals.HAS_AER:
+            from qiskit.providers import aer
+
+            return aer.QasmSimulator._default_options()
+        else:
+            return basicaer.QasmSimulatorPy._default_options()
 
     def run(self, run_input, **options):
         raise NotImplementedError
