@@ -119,13 +119,13 @@ class TestCompareGradientImpls(QiskitTestCase):
         if __glo_verbose__:
             with concurrent.futures.ProcessPoolExecutor() as executor:
                 tasks = [
-                    executor.submit(self._compare, nqubits, depth, __glo_verbose__)
+                    executor.submit(self._compare, int(nqubits), int(depth), bool(__glo_verbose__))
                     for nqubits, depth in configs
                 ]
                 results = [t.result() for t in tasks]
         else:
             for nqubits, depth in configs:
-                results.append(self._compare(nqubits, depth, __glo_verbose__))
+                results.append(self._compare(int(nqubits), int(depth), bool(__glo_verbose__)))
 
         if __glo_verbose__:
             print("")
