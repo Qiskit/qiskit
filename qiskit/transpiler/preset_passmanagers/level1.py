@@ -104,7 +104,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
     target = pass_manager_config.target
 
-    # 1. Use trivial layout if no layout given
+    # 1. Use trivial layout if no layout given if that isn't perfect use vf2 layout
     _given_layout = SetLayout(initial_layout)
 
     def _choose_layout_condition(property_set):
@@ -153,7 +153,6 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         )
     )
 
-    # 2. Use a better layout on densely connected qubits, if circuit needs swaps
     # 2. Decompose so only 1-qubit and 2-qubit gates remain
     _unroll3q = [
         # Use unitary synthesis for basis aware decomposition of UnitaryGates

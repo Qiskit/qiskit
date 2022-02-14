@@ -140,7 +140,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             return True
         return False
 
-    # 1a. Try using VF2 layout to find a perfect layout
+    # 2a. Try using VF2 layout to find a perfect layout
     _choose_layout_0 = (
         []
         if pass_manager_config.layout_method
@@ -153,7 +153,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         )
     )
 
-    # 1b. if VF2 layout doesn't converge on a solution use layout_method (dense) to get a layout
+    # 2b. if VF2 layout doesn't converge on a solution use layout_method (dense) to get a layout
     if layout_method == "trivial":
         _choose_layout_1 = TrivialLayout(coupling_map)
     elif layout_method == "dense":
