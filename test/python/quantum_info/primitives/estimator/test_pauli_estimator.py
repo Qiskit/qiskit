@@ -159,15 +159,3 @@ class TestPauliEstimator(QiskitTestCase):
         self.assertAlmostEqual(result.values[0], -1.3138315875089022)
         self.assertIsInstance(result.variances[0], float)
         self.assertAlmostEqual(result.variances[0], 0.2908987145867)
-
-    def test_evaluate_with_fakebackend(self):
-        """test for evaluate with FakeBogota"""
-        with PauliEstimator([self.ansatz], [self.observable], backend=FakeBogota()) as est:
-            est.set_transpile_options(seed_transpiler=15)
-            est.set_run_options(seed_simulator=15)
-            result = est([0, 1, 1, 2, 3, 5])
-        self.assertIsInstance(result, EstimatorResult)
-        self.assertIsInstance(result.values[0], float)
-        self.assertAlmostEqual(result.values[0], -1.281041706216703)
-        self.assertIsInstance(result.variances[0], float)
-        self.assertAlmostEqual(result.variances[0], 0.3050495277408149)
