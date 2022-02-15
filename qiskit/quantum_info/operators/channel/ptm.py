@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unpacking-non-sequence
 
 """
 Pauli Transfer Matrix (PTM) representation of a Quantum Channel.
@@ -114,7 +113,7 @@ class PTM(QuantumChannel):
                 data = self._init_transformer(data)
             input_dim, output_dim = data.dim
             # Now that the input is an operator we convert it to a PTM object
-            rep = getattr(data, '_channel_rep', 'Operator')
+            rep = getattr(data, "_channel_rep", "Operator")
             ptm = _to_ptm(rep, data._data, input_dim, output_dim)
             if input_dims is None:
                 input_dims = data.input_dims()
@@ -134,8 +133,7 @@ class PTM(QuantumChannel):
     @property
     def _bipartite_shape(self):
         """Return the shape for bipartite matrix"""
-        return (self._output_dim, self._output_dim, self._input_dim,
-                self._input_dim)
+        return (self._output_dim, self._output_dim, self._input_dim, self._input_dim)
 
     def _evolve(self, state, qargs=None):
         return SuperOp(self)._evolve(state, qargs)
@@ -158,10 +156,9 @@ class PTM(QuantumChannel):
 
     def compose(self, other, qargs=None, front=False):
         if qargs is None:
-            qargs = getattr(other, 'qargs', None)
+            qargs = getattr(other, "qargs", None)
         if qargs is not None:
-            return PTM(
-                SuperOp(self).compose(other, qargs=qargs, front=front))
+            return PTM(SuperOp(self).compose(other, qargs=qargs, front=front))
 
         # Convert other to PTM
         if not isinstance(other, PTM):

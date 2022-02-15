@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    In the transpiler pass :class:`qiskit.transpiler.passes.CSPLayout` a bias
+    towards lower numbered qubits could be observed. This undesireable bias has
+    been fixed by shuffling the candidates to randomize the results.
+    Furthermore, the usage of the :class:`~qiskit.transpiler.passes.CSPLayout`
+    pass in the :mod:`~qiskit.transpiler.preset_passmanagers` (for level 2 and
+    3) has been adjusted to use a configured seed if the ``seed_transpiler``
+    kwarg is set when :func:`~qiskit.compiler.transpile` is called.
+    Fixed `#5990 <https://github.com/Qiskit/qiskit-terra/issues/5990>`__

@@ -1,0 +1,40 @@
+---
+deprecations:
+  - |
+    The :mod:`~qiskit.pulse` builder functions:
+
+    * :py:func:`qiskit.pulse.call_circuit`
+    * :py:func:`qiskit.pulse.call_schedule`
+
+    are deprecated and will be removed in a future release.
+    These functions are unified into :py:func:`qiskit.pulse.call` which should
+    be used instead.
+  - |
+    The :class:`qiskit.pulse.Schedule` method
+    :py:meth:`qiskit.pulse.Schedule.flatten` method is deprecated and will
+    be removed in a future release. Instead you can use the
+    :py:func:`qiskit.pulse.transforms.flatten` function which will perform
+    the same operation.
+
+features:
+  - |
+    The :py:func:`qiskit.pulse.call` function can now take a
+    :class:`~qiskit.circuit.Parameter` object along with a parameterized
+    subroutine. This enables assigning different values to the
+    :class:`~qiskit.circuit.Parameter` objects for each subroutine call.
+
+    For example,
+
+    .. code-block:: python
+
+      from qiskit.circuit import Parameter
+      from qiskit import pulse
+
+      amp = Parameter('amp')
+
+      with pulse.build() as subroutine:
+          pulse.play(pulse.Gaussian(160, amp, 40), DriveChannel(0))
+
+      with pulse.build() as main_prog:
+          pulse.call(subroutine, amp=0.1)
+          pulse.call(subroutine, amp=0.3)

@@ -1,9 +1,0 @@
----
-fixes:
-  - |
-    Pulse :py:class:`~qiskit.pulse.instructions.Delay` is now explicitly
-    assembled as qobj instructions.
-
-    Previously, we could ignore delays rather than assembling them. Now, with
-    pulse gates, there are times that we want to schedule ONLY a delay, and not
-    including the delay itself would remove the delay.

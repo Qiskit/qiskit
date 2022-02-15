@@ -13,6 +13,7 @@
 """Base class for a backend provider."""
 
 from abc import ABC, abstractmethod
+import warnings
 
 from .exceptions import QiskitBackendNotFoundError
 
@@ -20,7 +21,16 @@ from .exceptions import QiskitBackendNotFoundError
 class BaseProvider(ABC):
     """Base class for a Backend Provider."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # pylint: disable=unused-argument
+        warnings.warn(
+            "The BaseProvider abstract interface is deprecated as of "
+            "the 0.18.0 release and will be removed in a future "
+            "release. Instead you should build your backends using "
+            "the ProviderV1 abstract class (which is the current "
+            "latest version of the provider interface).",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         pass
 
     def get_backend(self, name=None, **kwargs):
@@ -39,9 +49,9 @@ class BaseProvider(ABC):
         """
         backends = self.backends(name, **kwargs)
         if len(backends) > 1:
-            raise QiskitBackendNotFoundError('More than one backend matches the criteria')
+            raise QiskitBackendNotFoundError("More than one backend matches the criteria")
         if not backends:
-            raise QiskitBackendNotFoundError('No backend matches the criteria')
+            raise QiskitBackendNotFoundError("No backend matches the criteria")
 
         return backends[0]
 

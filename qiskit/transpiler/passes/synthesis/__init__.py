@@ -14,3 +14,4 @@
 
 from .unitary_synthesis import UnitarySynthesis
 from .solovay_kitaev import SolovayKitaevDecomposition
+from .plugin import unitary_synthesis_plugin_names

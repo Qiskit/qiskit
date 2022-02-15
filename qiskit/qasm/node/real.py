@@ -12,9 +12,9 @@
 
 """Node for an OPENQASM real number."""
 
-import warnings
 import numpy as np
 
+from qiskit.exceptions import MissingOptionalLibraryError
 from .node import Node
 
 
@@ -32,34 +32,24 @@ class Real(Node):
 
     def to_string(self, indent):
         """Print with indent."""
-        ind = indent * ' '
-        print(ind, 'real', self.value)
+        ind = indent * " "
+        print(ind, "real", self.value)
 
-    def qasm(self, prec=None):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
-        if prec is not None:
-            warnings.warn('Parameter \'Real.qasm(..., prec)\' is no longer used and'
-                          ' is being deprecated.', DeprecationWarning, 2)
         if self.value == np.pi:
             return "pi"
 
         return str(np.round(float(self.value)))
 
-    def latex(self, prec=None, nested_scope=None):
+    def latex(self):
         """Return the corresponding math mode latex string."""
-        if prec is not None:
-            warnings.warn('Parameter \'Real.latex(..., prec)\' is no longer used and is being '
-                          'deprecated.', DeprecationWarning, 2)
-        if nested_scope is not None:
-            warnings.warn('Parameter \'Real.latex(..., nested_scope)\' is no longer used and is '
-                          'being deprecated.', DeprecationWarning, 2)
         try:
             from pylatexenc.latexencode import utf8tolatex
-        except ImportError:
-            raise ImportError("To export latex from qasm "
-                              "pylatexenc needs to be installed. Run "
-                              "'pip install pylatexenc' before using this "
-                              "method.")
+        except ImportError as ex:
+            raise MissingOptionalLibraryError(
+                "pylatexenc", "latex-from-qasm exporter", "pip install pylatexenc"
+            ) from ex
         return utf8tolatex(self.value)
 
     def sym(self, nested_scope=None):

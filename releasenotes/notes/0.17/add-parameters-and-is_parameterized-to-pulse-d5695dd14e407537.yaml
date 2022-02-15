@@ -1,0 +1,25 @@
+---
+features:
+  - |
+    The :py:class:`qiskit.pulse.Schedule`,
+    :py:class:`qiskit.pulse.Instruction`, and :py:class:`qiskit.pulse.Channel`
+    classes now have a :attr:`~qiiskit.pulse.Schedule.parameter` property
+    which will return any :class:`~qiskit.circuit.Parameter` objects used
+    in the object and a :meth:`~qiskit.pulse.Schedule.is_parameterized()`
+    method which will return ``True`` if any parameters are used in the
+    object.
+
+    For example:
+
+    .. jupyter-execute::
+
+        from qiskit.circuit import Parameter
+        from qiskit import pulse
+
+        shift = Parameter('alpha')
+
+        schedule = pulse.Schedule()
+        schedule += pulse.SetFrequency(shift, pulse.DriveChannel(0))
+
+        assert schedule.is_parameterized() == True
+        print(schedule.parameters)

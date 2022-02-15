@@ -10,6 +10,32 @@ https://qiskit.org/documentation/contributing_to_qiskit.html
 In addition to the general guidelines there are specific details for
 contributing to terra, these are documented below.
 
+### Contents
+* [Choose an issue to work on](#Choose-an-issue-to-work-on)
+* [Pull request checklist](#pull-request-checklist)
+* [Changelog generation](#changelog-generation)
+* [Release Notes](#release-notes)
+* [Installing Qiskit Terra from source](#installing-qiskit-terra-from-source)
+* [Test](#test)
+  * [Snapshot testing for visualizations](#snapshot-testing-for-visualizations)
+* [Style and Lint](#style-and-lint)
+* [Development Cycle](#development-cycle)
+  * [Branches](#branches)
+  * [Release Cycle](#release-cycle)
+* [Adding deprecation warnings](#adding-deprecation-warnings)
+* [Using dependencies](#using-dependencies)
+  * [Adding a requirement](#adding-a-requirement)
+  * [Adding an optional dependency](#adding-an-optional-dependency)
+  * [Checking for optionals](#checking-for-optionals)
+* [Dealing with git blame ignore list](#dealing-with-the-git-blame-ignore-list)
+
+### Choose an issue to work on
+Qiskit Terra uses the following labels to help non-maintainers find issues best suited to their interests and experience level:
+
+* [good first issue](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) - these issues are typically the simplest available to work on, perfect for newcomers. They should already be fully scoped, with a clear approach outlined in the descriptions.
+* [help wanted](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22) - these issues are generally more complex than good first issues. They typically cover work that core maintainers don't currently have capacity to implement and may require more investigation/discussion. These are a great option for experienced contributors looking for something a bit more challenging.
+* [short project](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22short+project%22) - these issues are bigger pieces of work that require greater time commitment. Good options for hackathons, internship projects etc.
+
 ### Pull request checklist
 
 When submitting a pull request and you feel it is ready for review,
@@ -18,9 +44,22 @@ please ensure that:
 1. The code follows the code style of the project and successfully
    passes the tests. For convenience, you can execute `tox` locally,
    which will run these checks and report any issues.
+
+   If your code fails the local style checks (specifically the black
+   code formatting check) you can use `tox -eblack` to automatically
+   fix update the code formatting.
 2. The documentation has been updated accordingly. In particular, if a
    function or class has been modified during the PR, please update the
    *docstring* accordingly.
+
+   If your pull request is adding a new class, function, or module that is
+   intended to be user facing ensure that you've also added those to a
+   documentation `autosummary` index to include it in the api documentation.
+   For more details you can refer to:
+
+   https://qiskit.org/documentation/contributing_to_qiskit.html#documentation-structure
+
+
 3. If it makes sense for your change that you have added new tests that
    cover the changes.
 4. Ensure that if your change has an end user facing impact (new feature,
@@ -190,7 +229,7 @@ Please see the [Installing Qiskit Terra from
 Source](https://qiskit.org/documentation/contributing_to_qiskit.html#installing-terra-from-source)
 section of the Qiskit documentation.
 
-### Test
+## Test
 
 Once you've made a code change, it is important to verify that your change
 does not break any existing tests and that any new tests that you've added
@@ -312,7 +351,67 @@ Alternatively, the `make test_ci` target can be used instead of
 `make test` in order to run in a setup that replicates the configuration
 we used in our CI systems more closely.
 
-### Development Cycle
+### Snapshot Testing for Visualizations
+
+If you are working on code that makes changes to any matplotlib visualisations
+you will need to check that your changes don't break any snapshot tests, and add
+new tests where necessary. You can do this as follows:
+
+1. Make sure you have pushed your latest changes to your remote branch.
+2. Go to link: `https://mybinder.org/v2/gh/<github_user>/<repo>/<branch>?urlpath=apps/test/ipynb/mpl_tester.ipynb`. For example, if your GitHub username is `username`, your forked repo has the same name the original, and your branch is `my_awesome_new_feature`, you should visit https://mybinder.org/v2/gh/username/qiskit-terra/my_awesome_new_feature?urlpath=apps/test/ipynb/mpl_tester.ipynb.
+This opens a Jupyter Notebook application running in the cloud that automatically runs
+the snapshot tests (note this may take some time to finish loading).
+3. Each test result provides a set of 3 images (left: reference image, middle: your test result, right: differences). In the list of tests the passed tests are collapsed and failed tests are expanded. If a test fails, you will see a situation like this:
+
+   <img width="995" alt="Screenshot_2021-03-26_at_14 13 54" src="https://user-images.githubusercontent.com/23662430/112663508-d363e800-8e50-11eb-9478-6d665d0ff086.png">
+4. Fix any broken tests. Working on code for one aspect of the visualisations
+can sometimes result in minor changes elsewhere to spacing etc. In these cases
+you just need to update the reference images as follows:
+    - download the mismatched images (link at top of Jupyter Notebook output)
+    - unzip the folder
+    - copy and paste the new images into `qiskit-terra/test/ipynb/mpl/references`,
+  replacing the existing reference images
+    - add, commit and push your changes, then restart the Jupyter Notebook app in your browser. The
+  tests should now pass.
+5. Add new snapshot tests covering your new features, extensions, or bugfixes.
+    - add your new snapshot tests to `test/ipynb/mpl/test_circuit_matplotlib_drawer.py`
+    , where you can also find existing tests to use as a guide.
+    - commit and push your changes, restart the Jupyter Notebook app in your browser.
+    As this is the first time you run your new tests there won't be any reference
+    images to compare to. Instead you should see an option in the list of tests
+    to download the new images, like so:
+
+    <img width="1002" alt="Screenshot_2021-03-26_at_15 38 31" src="https://user-images.githubusercontent.com/23662430/112665215-b9c3a000-8e52-11eb-89e7-b18550718522.png">
+
+    - download the new images, then copy and paste into `qiskit-terra/test/ipynb/mpl/references`
+    - add, commit and push your changes, restart the Jupyter Notebook app in your browser. The
+    new tests should now pass.
+
+Note: If you have run `test/ipynb/mpl_tester.ipynb` locally it is possible some file metadata has changed, **please do not commit and push changes to this file unless they were intentional**.
+
+## Style and lint
+
+Qiskit Terra uses 2 tools for verify code formatting and lint checking. The
+first tool is [black](https://github.com/psf/black) which is a code formatting
+tool that will automatically update the code formatting to a consistent style.
+The second tool is [pylint](https://www.pylint.org/) which is a code linter
+which does a deeper analysis of the Python code to find both style issues and
+potential bugs and other common issues in Python.
+
+You can check that your local modifications conform to the style rules
+by running `tox -elint` which will run `black` and `pylint` to check the local
+code formatting and lint. If black returns a code formatting error you can
+run `tox -eblack` to automatically update the code formatting to conform to
+the style. However, if `pylint` returns any error you will have to fix these
+issues by manually updating your code.
+
+Because `pylint` analysis can be slow, there is also a `tox -elint-incr` target, which only applies
+`pylint` to files which have changed from the source github. On rare occasions this will miss some
+issues that would have been caught by checking the complete source tree, but makes up for this by
+being much faster (and those rare oversights will still be caught by the CI after you open a pull
+request).
+
+## Development Cycle
 
 The development cycle for qiskit-terra is all handled in the open using
 the project boards in Github for project management. We use milestones
@@ -323,11 +422,11 @@ previous version in the release notes.
 
 ### Branches
 
-* `master`:
+* `main`:
 
-The master branch is used for development of the next version of qiskit-terra.
+The main branch is used for development of the next version of qiskit-terra.
 It will be updated frequently and should not be considered stable. The API
-can and will change on master as we introduce and refine new features.
+can and will change on main as we introduce and refine new features.
 
 * `stable/*` branches:
 Branches under `stable/*` are used to maintain released versions of qiskit-terra.
@@ -341,13 +440,13 @@ merged to it are bugfixes.
 When it is time to release a new minor version of qiskit-terra we will:
 
 1.  Create a new tag with the version number and push it to github
-2.  Change the `master` version to the next release version.
+2.  Change the `main` version to the next release version.
 
 The release automation processes will be triggered by the new tag and perform
 the following steps:
 
 1.  Create a stable branch for the new minor version from the release tag
-    on the `master` branch
+    on the `main` branch
 2.  Build and upload binary wheels to pypi
 3.  Create a github release page with a generated changelog
 4.  Generate a PR on the meta-repository to bump the terra version and
@@ -355,3 +454,86 @@ the following steps:
 
 The `stable/*` branches should only receive changes in the form of bug
 fixes.
+
+## Adding deprecation warnings
+The qiskit-terra code is part of Qiskit and, therefore, the [Qiskit Deprecation Policy](https://qiskit.org/documentation/contributing_to_qiskit.html#deprecation-policy) fully applies here. Additionally, qiskit-terra does not allow `DeprecationWarning`s in its testsuite. If you are deprecating code, you should add a test to use the new/non-deprecated method (most of the time based on the existing test of the deprecated method) and alter the existing test to check that the deprecated method still works as expected, [using `assertWarns`](https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertWarns). The `assertWarns` context will silence the deprecation warning while checking that it raises.
+
+For example, if `Obj.method1` is being deprecated in favour of `Obj.method2`, the existing test (or tests) for `method1` might look like this:
+
+```python
+def test_method1(self):
+   result = Obj.method1()
+   self.assertEqual(result, <expected>)
+```
+
+Deprecating `method1` means that `Obj.method1()` now raises a deprecation warning and the test will not pass. The existing test should be updated and a new test added for `method2`:
+
+
+```python
+def test_method1_deprecated(self):
+   with self.assertWarns(DeprecationWarning):
+       result = Obj.method1()
+   self.assertEqual(result, <expected>)
+
+def test_method2(self):
+   result = Obj.method2()
+   self.assertEqual(result, <expected>)
+```
+
+`test_method1_deprecated` can be removed after `Obj.method1` is removed (following the [Qiskit Deprecation Policy](https://qiskit.org/documentation/contributing_to_qiskit.html#deprecation-policy)).
+
+## Using dependencies
+
+We distinguish between "requirements" and "optional dependencies" in qiskit-terra.
+A requirement is a package that is absolutely necessary for core functionality in qiskit-terra, such as Numpy or Scipy.
+An optional dependency is a package that is used for specialized functionality, which might not be needed by all users.
+If a new feature has a new dependency, it is almost certainly optional.
+
+### Adding a requirement
+
+Any new requirement must have broad system support; it needs to be supported on all the Python versions and operating systems that qiskit-terra supports.
+It also cannot impose many version restrictions on other packages.
+Users often install qiskit-terra into virtual environments with many different packages in, and we need to ensure that neither we, nor any of our requirements, conflict with their other packages.
+When adding a new requirement, you must add it to [`requirements.txt`](requirements.txt) with as loose a constraint on the allowed versions as possible.
+
+### Adding an optional dependency
+
+New features can also use optional dependencies, which might be used only in very limited parts of qiskit-terra.
+These are not required to use the rest of the package, and so should not be added to `requirements.txt`.
+Instead, if several optional dependencies are grouped together to provide one feature, you can consider adding an "extra" to the package metadata, such as the `visualization` extra that installs Matplotlib and Seaborn (amongst others).
+To do this, modify the [`setup.py`](setup.py) file, adding another entry in the `extras_require` keyword argument to `setup()` at the bottom of the file.
+You do not need to be quite as accepting of all versions here, but it is still a good idea to be as permissive as you possibly can be.
+You should also add a new "tester" to [`qiskit.utils.optionals`](qiskit/utils/optionals.py), for use in the next section.
+
+### Checking for optionals
+
+You cannot `import` an optional dependency at the top of a file, because if it is not installed, it will raise an error and qiskit-terra will be unusable.
+We also largely want to avoid importing packages until they are actually used; if we import a lot of packages during `import qiskit`, it becomes sluggish for the user if they have a large environment.
+Instead, you should use [one of the "lazy testers" for optional dependencies](https://qiskit.org/documentation/apidoc/utils.html#module-qiskit.utils.optionals), and import your optional dependency inside the function or class that uses it, as in the examples within that link.
+Very lightweight _requirements_ can be imported at the tops of files, but even this should be limited; it's always ok to `import numpy`, but Scipy modules are relatively heavy, so only import them within functions that use them.
+
+
+## Dealing with the git blame ignore list
+
+In the qiskit-terra repository we maintain a list of commits for git blame
+to ignore. This is mostly commits that are code style changes that don't
+change the functionality but just change the code formatting (for example,
+when we migrated to use black for code formatting). This file,
+`.git-blame-ignore-revs` just contains a list of commit SHA1s you can tell git
+to ignore when using the `git blame` command. This can be done one time
+with something like
+
+```
+git blame --ignore-revs-file .git-blame-ignore-revs qiskit/version.py
+
+```
+
+from the root of the repository. If you'd like to enable this by default you
+can update your local repository's configuration with:
+
+```
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
+which will update your local repositories configuration to use the ignore list
+by default.

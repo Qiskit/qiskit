@@ -1,0 +1,31 @@
+---
+features:
+  - |
+    The :func:`qiskit.quantum_info.process_fidelity` function is now able to be
+    used with a non-unitary target channel. In this case the returned value is
+    equivalent to the :func:`qiskit.quantum_info.state_fidelity` of the
+    normalized :class:`qiskit.quantum_info.Choi` matrices for the channels.
+    
+    Note that the :func:`qiskit.quantum_info.average_gate_fidelity` and
+    :func:`qiskit.quantum_info.gate_error` functions still require the target
+    channel to be unitary and will raise an exception if it is not.
+deprecations:
+  - |
+    Using a ``list`` or ``numpy.ndarray`` as the ``channel`` or ``target``
+    argument for the :func:`qiskit.quantum_info.process_fidelity`,
+    :func:`qiskit.quantum_info.average_gate_fidelity`,
+    :func:`qiskit.quantum_info.gate_error`, and 
+    :func:`qiskit.quantum_info.diamond_norm` functions has been
+    deprecated and will not be supported in a future release. The inputs should
+    instead be a :class:`~qiskit.circuit.Gate` or a ``BaseOperator`` subclass
+    object (eg. :class:`~qiskit.quantum_info.Operator`,
+    :class:`~qiskit.quantum_info.Choi`, etc.)
+upgrade:
+  - |
+    When the ``require_cp`` and/or ``require_tp`` kwargs of
+    :func:`qiskit.quantum_info.process_fidelity`,
+    :func:`qiskit.quantum_info.average_gate_fidelity`,
+    :func:`qiskit.quantum_info.gate_error` are ``True``, they will now only log a
+    warning rather than the previous behavior of raising a
+    :class:`~qiskit.exceptions.QiskitError` exception if the input channel is
+    non-CP or non-TP respectively.

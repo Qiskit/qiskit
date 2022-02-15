@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    The :class:`~qiskit.extensions.Initialize` class in the
+    :mod:`qiskit.extensions` module now supports constructing directly from
+    a Pauli label (analogous to the
+    :meth:`qiskit.quantum_info.Statevector.from_label` method). The Pauli label
+    refer to basis states of the Pauli eigenstates Z, X, Y. These labels use
+    Qiskit's standard little-endian notation, for example a label of ``'01'``
+    would initialize qubit 0 to :math:`|1\rangle` and qubit 1 to
+    :math:`|0\rangle`.
+
+    .. jupyter-execute::
+    
+        from qiskit.extensions import Initialize
+        
+        initialize = Initialize("10+-lr")
+        initialize.definition.draw('mpl')

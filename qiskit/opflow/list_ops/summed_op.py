@@ -12,38 +12,37 @@
 
 """ SummedOp Class """
 
-from typing import List, Union, cast
+from typing import List, Union, cast, Dict
 
 import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression
-from ..exceptions import OpflowError
-from ..operator_base import OperatorBase
-from .list_op import ListOp
+from qiskit.opflow.exceptions import OpflowError
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.operator_base import OperatorBase
 
 
 class SummedOp(ListOp):
-    """ A class for lazily representing sums of Operators. Often Operators cannot be
+    """A class for lazily representing sums of Operators. Often Operators cannot be
     efficiently added to one another, but may be manipulated further so that they can be
     later. This class holds logic to indicate that the Operators in ``oplist`` are meant to
     be added together, and therefore if they reach a point in which they can be, such as after
-    evaluation or conversion to matrices, they can be reduced by addition. """
+    evaluation or conversion to matrices, they can be reduced by addition."""
 
-    def __init__(self,
-                 oplist: List[OperatorBase],
-                 coeff: Union[int, float, complex, ParameterExpression] = 1.0,
-                 abelian: bool = False) -> None:
+    def __init__(
+        self,
+        oplist: List[OperatorBase],
+        coeff: Union[complex, ParameterExpression] = 1.0,
+        abelian: bool = False,
+    ) -> None:
         """
         Args:
             oplist: The Operators being summed.
             coeff: A coefficient multiplying the operator
             abelian: Indicates whether the Operators in ``oplist`` are known to mutually commute.
         """
-        super().__init__(oplist,
-                         combo_fn=lambda x: np.sum(x, axis=0),
-                         coeff=coeff,
-                         abelian=abelian)
+        super().__init__(oplist, combo_fn=lambda x: np.sum(x, axis=0), coeff=coeff, abelian=abelian)
 
     @property
     def num_qubits(self) -> int:
@@ -53,7 +52,12 @@ class SummedOp(ListOp):
     def distributive(self) -> bool:
         return True
 
-    def add(self, other: OperatorBase) -> OperatorBase:
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {"oplist": self._oplist, "coeff": self._coeff, "abelian": self._abelian}
+
+    def add(self, other: OperatorBase) -> "SummedOp":
         """Return Operator addition of ``self`` and ``other``, overloaded by ``+``.
 
         Note:
@@ -68,16 +72,18 @@ class SummedOp(ListOp):
         Returns:
             A ``SummedOp`` equivalent to the sum of self and other.
         """
-        self_new_ops = self.oplist if self.coeff == 1 \
-            else [op.mul(self.coeff) for op in self.oplist]
+        self_new_ops = (
+            self.oplist if self.coeff == 1 else [op.mul(self.coeff) for op in self.oplist]
+        )
         if isinstance(other, SummedOp):
-            other_new_ops = other.oplist if other.coeff == 1 \
-                else [op.mul(other.coeff) for op in other.oplist]
+            other_new_ops = (
+                other.oplist if other.coeff == 1 else [op.mul(other.coeff) for op in other.oplist]
+            )
         else:
             other_new_ops = [other]
         return SummedOp(self_new_ops + other_new_ops)
 
-    def collapse_summands(self) -> 'SummedOp':
+    def collapse_summands(self) -> "SummedOp":
         """Return Operator by simplifying duplicate operators.
 
         E.g., ``SummedOp([2 * X ^ Y, X ^ Y]).collapse_summands() -> SummedOp([3 * X ^ Y])``.
@@ -85,8 +91,9 @@ class SummedOp(ListOp):
         Returns:
             A simplified ``SummedOp`` equivalent to self.
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..primitive_ops.primitive_op import PrimitiveOp
+
         oplist = []  # type: List[OperatorBase]
         coeffs = []  # type: List[Union[int, float, complex, ParameterExpression]]
         for op in self.oplist:
@@ -106,7 +113,7 @@ class SummedOp(ListOp):
                 else:
                     oplist.append(op)
                     coeffs.append(self.coeff)
-        return SummedOp([op * coeff for op, coeff in zip(oplist, coeffs)])  # type: ignore
+        return SummedOp([op * coeff for op, coeff in zip(oplist, coeffs)])
 
     # TODO be smarter about the fact that any two ops in oplist could be evaluated for sum.
     def reduce(self) -> OperatorBase:
@@ -118,6 +125,9 @@ class SummedOp(ListOp):
         Returns:
             A collapsed version of self, if possible.
         """
+        if len(self.oplist) == 0:
+            return SummedOp([], coeff=self.coeff, abelian=self.abelian)
+
         # reduce constituents
         reduced_ops = sum(op.reduce() for op in self.oplist) * self.coeff
 
@@ -125,8 +135,9 @@ class SummedOp(ListOp):
         if isinstance(reduced_ops, SummedOp):
             reduced_ops = reduced_ops.collapse_summands()
 
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..primitive_ops.pauli_sum_op import PauliSumOp
+
         if isinstance(reduced_ops, PauliSumOp):
             reduced_ops = reduced_ops.reduce()
 
@@ -138,7 +149,7 @@ class SummedOp(ListOp):
     def to_circuit(self) -> QuantumCircuit:
         """Returns the quantum circuit, representing the SummedOp. In the first step,
         the SummedOp is converted to MatrixOp. This is straightforward for most operators,
-        but it is not supported for operators containing parametrized PrimitiveOps (in that case,
+        but it is not supported for operators containing parameterized PrimitiveOps (in that case,
         OpflowError is raised). In the next step, the MatrixOp representation of SummedOp is
         converted to circuit. In most cases, if the summands themselves are unitary operators,
         the SummedOp itself is non-unitary and can not be converted to circuit. In that case,
@@ -149,28 +160,32 @@ class SummedOp(ListOp):
 
         Raises:
             OpflowError: if SummedOp can not be converted to MatrixOp (e.g. SummedOp is composed of
-            parametrized PrimitiveOps).
+            parameterized PrimitiveOps).
         """
-        # pylint: disable=import-outside-toplevel,cyclic-import
+        # pylint: disable=cyclic-import
         from ..primitive_ops.matrix_op import MatrixOp
+
         matrix_op = self.to_matrix_op()
         if isinstance(matrix_op, MatrixOp):
             return matrix_op.to_circuit()
-        raise OpflowError("The SummedOp can not be converted to circuit, because to_matrix_op did "
-                          "not return a MatrixOp.")
+        raise OpflowError(
+            "The SummedOp can not be converted to circuit, because to_matrix_op did "
+            "not return a MatrixOp."
+        )
 
-    def to_matrix_op(self, massive: bool = False) -> OperatorBase:
-        """ Returns an equivalent Operator composed of only NumPy-based primitives, such as
-        ``MatrixOp`` and ``VectorStateFn``. """
-        accum = self.oplist[0].to_matrix_op(massive=massive)  # type: ignore
+    def to_matrix_op(self, massive: bool = False) -> "SummedOp":
+        """Returns an equivalent Operator composed of only NumPy-based primitives, such as
+        ``MatrixOp`` and ``VectorStateFn``."""
+        accum = self.oplist[0].to_matrix_op(massive=massive)
         for i in range(1, len(self.oplist)):
-            accum += self.oplist[i].to_matrix_op(massive=massive)  # type: ignore
+            accum += self.oplist[i].to_matrix_op(massive=massive)
 
-        return accum * self.coeff
+        return cast(SummedOp, accum * self.coeff)
 
-    def to_pauli_op(self, massive: bool = False) -> OperatorBase:
-        # pylint: disable=import-outside-toplevel,cyclic-import
+    def to_pauli_op(self, massive: bool = False) -> "SummedOp":
+        # pylint: disable=cyclic-import
         from ..state_fns.state_fn import StateFn
+
         pauli_sum = SummedOp(
             [
                 op.to_pauli_op(massive=massive)  # type: ignore
@@ -181,6 +196,8 @@ class SummedOp(ListOp):
             coeff=self.coeff,
             abelian=self.abelian,
         ).reduce()
+        if isinstance(pauli_sum, SummedOp):
+            return pauli_sum
         return pauli_sum.to_pauli_op()  # type: ignore
 
     def equals(self, other: OperatorBase) -> bool:
@@ -220,11 +237,9 @@ class SummedOp(ListOp):
 
         # absorb coeffs into the operators
         if self_reduced.coeff != 1:
-            self_reduced = SummedOp(
-                [op * self_reduced.coeff for op in self_reduced.oplist])  # type: ignore
+            self_reduced = SummedOp([op * self_reduced.coeff for op in self_reduced.oplist])
         if other_reduced.coeff != 1:
-            other_reduced = SummedOp(
-                [op * other_reduced.coeff for op in other_reduced.oplist])  # type: ignore
+            other_reduced = SummedOp([op * other_reduced.coeff for op in other_reduced.oplist])
 
         # compare independent of order
         return all(any(i == j for j in other_reduced) for i in self_reduced)

@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    A new kwarg, ``user_cost_dict`` has been added to the constructor for the
+    :class:`qiskit.transpiler.passes.TemplateOptimization` transpiler pass.
+    This enables users to providing a custom cost dictionary for the gates to
+    the underlying template matching algorithm. For example::
+
+      from qiskit.transpiler.passes import TemplateOptimization
+
+      cost_dict = {'id': 0, 'x': 1, 'y': 1, 'z': 1, 'h': 1, 't': 1}
+      pass = TemplateOptimization(user_cost_dict=cost_dict)

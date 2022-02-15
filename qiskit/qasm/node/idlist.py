@@ -11,8 +11,6 @@
 # that they have been altered from the originals.
 
 """Node for an OPENQASM idlist."""
-import warnings
-
 from .node import Node
 
 
@@ -24,16 +22,12 @@ class IdList(Node):
 
     def __init__(self, children):
         """Create the idlist node."""
-        super().__init__('id_list', children, None)
+        super().__init__("id_list", children, None)
 
     def size(self):
         """Return the length of the list."""
         return len(self.children)
 
-    def qasm(self, prec=None):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
-        if prec is not None:
-            warnings.warn('Parameter \'IdList.qasm(..., prec)\' is no longer used and is being '
-                          'deprecated.', DeprecationWarning, 2)
-        return ",".join([self.children[j].qasm()
-                         for j in range(self.size())])
+        return ",".join([self.children[j].qasm() for j in range(self.size())])

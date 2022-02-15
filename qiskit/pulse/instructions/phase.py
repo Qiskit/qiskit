@@ -15,7 +15,7 @@ This includes ``SetPhase`` instructions which lock the modulation to a particula
 at that moment, and ``ShiftPhase`` instructions which increase the existing phase by a
 relative amount.
 """
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 
 from qiskit.circuit import ParameterExpression
 from qiskit.pulse.channels import PulseChannel
@@ -39,9 +39,12 @@ class ShiftPhase(Instruction):
     by using a ShiftPhase to update the frame tracking the qubit state.
     """
 
-    def __init__(self, phase: Union[complex, ParameterExpression],
-                 channel: PulseChannel,
-                 name: Optional[str] = None):
+    def __init__(
+        self,
+        phase: Union[complex, ParameterExpression],
+        channel: PulseChannel,
+        name: Optional[str] = None,
+    ):
         """Instantiate a shift phase instruction, increasing the output signal phase on ``channel``
         by ``phase`` [radians].
 
@@ -50,7 +53,7 @@ class ShiftPhase(Instruction):
             channel: The channel this instruction operates on.
             name: Display name for this instruction.
         """
-        super().__init__((phase, channel), None, (channel,), name=name)
+        super().__init__(operands=(phase, channel), name=name)
 
     @property
     def phase(self) -> Union[complex, ParameterExpression]:
@@ -65,9 +68,18 @@ class ShiftPhase(Instruction):
         return self.operands[1]
 
     @property
+    def channels(self) -> Tuple[PulseChannel]:
+        """Returns the channels that this schedule uses."""
+        return (self.channel,)
+
+    @property
     def duration(self) -> int:
         """Duration of this instruction."""
         return 0
+
+    def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
+        return isinstance(self.phase, ParameterExpression) or super().is_parameterized()
 
 
 class SetPhase(Instruction):
@@ -83,10 +95,12 @@ class SetPhase(Instruction):
     The ``SetPhase`` instruction sets :math:`\phi` to the instruction's ``phase`` operand.
     """
 
-    def __init__(self,
-                 phase: Union[complex, ParameterExpression],
-                 channel: PulseChannel,
-                 name: Optional[str] = None):
+    def __init__(
+        self,
+        phase: Union[complex, ParameterExpression],
+        channel: PulseChannel,
+        name: Optional[str] = None,
+    ):
         """Instantiate a set phase instruction, setting the output signal phase on ``channel``
         to ``phase`` [radians].
 
@@ -95,7 +109,7 @@ class SetPhase(Instruction):
             channel: The channel this instruction operates on.
             name: Display name for this instruction.
         """
-        super().__init__((phase, channel), None, (channel,), name=name)
+        super().__init__(operands=(phase, channel), name=name)
 
     @property
     def phase(self) -> Union[complex, ParameterExpression]:
@@ -110,6 +124,15 @@ class SetPhase(Instruction):
         return self.operands[1]
 
     @property
+    def channels(self) -> Tuple[PulseChannel]:
+        """Returns the channels that this schedule uses."""
+        return (self.channel,)
+
+    @property
     def duration(self) -> int:
         """Duration of this instruction."""
         return 0
+
+    def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
+        return isinstance(self.phase, ParameterExpression) or super().is_parameterized()

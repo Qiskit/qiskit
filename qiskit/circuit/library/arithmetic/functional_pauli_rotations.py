@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member
 
 """Base class for functional Pauli rotations."""
 
@@ -23,10 +22,9 @@ from ..blueprintcircuit import BlueprintCircuit
 class FunctionalPauliRotations(BlueprintCircuit, ABC):
     """Base class for functional Pauli rotations."""
 
-    def __init__(self,
-                 num_state_qubits: Optional[int] = None,
-                 basis: str = 'Y',
-                 name: str = 'F') -> None:
+    def __init__(
+        self, num_state_qubits: Optional[int] = None, basis: str = "Y", name: str = "F"
+    ) -> None:
         r"""Create a new functional Pauli rotation circuit.
 
         Args:
@@ -67,8 +65,8 @@ class FunctionalPauliRotations(BlueprintCircuit, ABC):
         """
         basis = basis.lower()
         if self._basis is None or basis != self._basis:
-            if basis not in ['x', 'y', 'z']:
-                raise ValueError('The provided basis must be X, Y or Z, not {}'.format(basis))
+            if basis not in ["x", "y", "z"]:
+                raise ValueError(f"The provided basis must be X, Y or Z, not {basis}")
             self._invalidate()
             self._basis = basis
 

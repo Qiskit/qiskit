@@ -20,7 +20,7 @@ Transpiler (:mod:`qiskit.transpiler`)
 Overview
 ========
 Transpilation is the process of rewriting a given input circuit to match
-the topoplogy of a specific quantum device, and/or to optimize the circuit
+the topology of a specific quantum device, and/or to optimize the circuit
 for execution on present day noisy quantum systems.
 
 Most circuits must undergo a series of transformations that make them compatible with
@@ -358,6 +358,15 @@ Supplementary Information
 Transpiler API
 ==============
 
+Transpiler Target
+-----------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Target
+   InstructionProperties
+
 Pass Manager Construction
 -------------------------
 
@@ -395,6 +404,15 @@ Fenced Objects
    FencedDAGCircuit
    FencedPropertySet
 
+Abstract Passes
+---------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   TransformationPass
+   AnalysisPass
+
 Exceptions
 ----------
 
@@ -415,3 +433,5 @@ from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap
 from .layout import Layout
 from .instruction_durations import InstructionDurations
+from .target import Target
+from .target import InstructionProperties

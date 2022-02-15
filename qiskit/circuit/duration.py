@@ -34,9 +34,11 @@ def duration_in_dt(duration_in_sec: float, dt_in_sec: float) -> int:
     res = round(duration_in_sec / dt_in_sec)
     rounding_error = abs(duration_in_sec - res * dt_in_sec)
     if rounding_error > 1e-15:
-        warnings.warn("Duration is rounded to %d [dt] = %e [s] from %e [s]"
-                      % (res, res * dt_in_sec, duration_in_sec),
-                      UserWarning)
+        warnings.warn(
+            "Duration is rounded to %d [dt] = %e [s] from %e [s]"
+            % (res, res * dt_in_sec, duration_in_sec),
+            UserWarning,
+        )
     return res
 
 
@@ -62,22 +64,22 @@ def convert_durations_to_dt(qc: QuantumCircuit, dt_in_sec: float, inplace=True):
         circ = qc.copy()
 
     for inst, _, _ in circ.data:
-        if inst.unit == 'dt' or inst.duration is None:
+        if inst.unit == "dt" or inst.duration is None:
             continue
 
-        if not inst.unit.endswith('s'):
-            raise CircuitError("Invalid time unit: '{0}'".format(inst.unit))
+        if not inst.unit.endswith("s"):
+            raise CircuitError(f"Invalid time unit: '{inst.unit}'")
 
         duration = inst.duration
-        if inst.unit != 's':
+        if inst.unit != "s":
             duration = apply_prefix(duration, inst.unit)
 
         inst.duration = duration_in_dt(duration, dt_in_sec)
-        inst.unit = 'dt'
+        inst.unit = "dt"
 
     if circ.duration is not None:
         circ.duration = duration_in_dt(circ.duration, dt_in_sec)
-        circ.unit = 'dt'
+        circ.unit = "dt"
 
     if not inplace:
         return circ

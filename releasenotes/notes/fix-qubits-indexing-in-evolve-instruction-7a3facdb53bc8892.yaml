@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Changes the way 
-    :meth:`~qiskit.quantum_info.states.statevector.Statevector._evolve_instruction` 
-    access qubits to handle the case of an instruction with multiple registers.

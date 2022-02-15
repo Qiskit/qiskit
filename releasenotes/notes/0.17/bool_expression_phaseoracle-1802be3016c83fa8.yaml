@@ -1,0 +1,112 @@
+---
+features:
+  - |
+    A new class,
+    :class:`~qiskit.circuit.classicalfunction.BooleanExpression`, has been
+    added to the :mod:`qiskit.circuit.classicalfunction` module. This class
+    allows for creating an oracle from a Python boolean expression. For example:
+
+    .. jupyter-execute::
+
+      from qiskit.circuit import BooleanExpression, QuantumCircuit
+      
+      expression = BooleanExpression('~x & (y | z)')
+      circuit = QuantumCircuit(4)
+      circuit.append(expression, [0, 1, 2, 3])
+      circuit.draw('mpl')
+
+    .. jupyter-execute::
+
+      circuit.decompose().draw('mpl')
+
+    The :class:`~qiskit.circuit.classicalfunction.BooleanExpression` also
+    includes a method,
+    :meth:`~qiskit.circuit.classicalfunction.BooleanExpression.from_dimacs_file`,
+    which allows loading formulas described in the
+    `DIMACS-CNF <https://people.sc.fsu.edu/~jburkardt/data/cnf/cnf.html>`__
+    format. For example::
+
+    .. code-block::
+
+      from qiskit.circuit import BooleanExpression, QuantumCircuit
+
+      boolean_exp = BooleanExpression.from_dimacs_file("simple_v3_c2.cnf")
+      circuit = QuantumCircuit(boolean_exp.num_qubits)
+      circuit.append(boolean_exp, range(boolean_exp.num_qubits))
+      circuit.draw('text')
+
+    .. parsed-literal::
+
+           ┌───────────────────┐
+      q_0: ┤0                  ├
+           │                   │
+      q_1: ┤1                  ├
+           │  SIMPLE_V3_C2.CNF │
+      q_2: ┤2                  ├
+           │                   │
+      q_3: ┤3                  ├
+           └───────────────────┘
+
+    .. code-block::
+
+      circuit.decompose().draw('text')
+
+    .. parsed-literal::
+
+      q_0: ──o────o────────────
+             │    │            
+      q_1: ──■────o────■───────
+             │    │    │       
+      q_2: ──■────┼────o────■──
+           ┌─┴─┐┌─┴─┐┌─┴─┐┌─┴─┐
+      q_3: ┤ X ├┤ X ├┤ X ├┤ X ├
+           └───┘└───┘└───┘└───┘
+
+  - |
+    Added a new class, :class:`~qiskit.circuit.library.PhaseOracle`, has been
+    added to the :mod:`qiskit.circuit.library` module. This class enables the
+    construction of phase oracle circuits from Python boolean expressions.
+
+    .. jupyter-execute::
+
+      from qiskit.circuit.library.phase_oracle import PhaseOracle
+
+      oracle = PhaseOracle('x1 & x2 & (not x3)')
+      oracle.draw('mpl')
+    
+    These phase oracles can be used as part of a larger algorithm, for example
+    with :class:`qiskit.algorithms.AmplificationProblem`:
+
+    .. jupyter-execute::
+
+      from qiskit.algorithms import AmplificationProblem, Grover
+      from qiskit import BasicAer
+      
+      backend = BasicAer.get_backend('qasm_simulator')
+      
+      problem = AmplificationProblem(oracle, is_good_state=oracle.evaluate_bitstring)
+      grover = Grover(quantum_instance=backend)
+      result = grover.amplify(problem)
+      result.top_measurement
+
+    The :class:`~qiskit.circuit.library.PhaseOracle` class also includes a
+    :meth:`~qiskit.circuit.library.PhaseOracle.from_dimacs_file` method which
+    enables constructing a phase oracle from a file describing a formula in the
+    `DIMACS-CNF <https://people.sc.fsu.edu/~jburkardt/data/cnf/cnf.html>`__
+    format.
+
+    .. code-block::
+
+      from qiskit.circuit.library.phase_oracle import PhaseOracle
+
+      oracle = PhaseOracle.from_dimacs_file("simple_v3_c2.cnf")
+      oracle.draw('text')
+
+    .. parsed-literal::
+      
+       state_0: ─o───────o──────────────
+                 │ ┌───┐ │ ┌───┐        
+       state_1: ─■─┤ X ├─■─┤ X ├─■──────
+                 │ └───┘   └───┘ │ ┌───┐
+       state_2: ─■───────────────o─┤ Z ├
+                                   └───┘

@@ -12,7 +12,7 @@
 
 """ Trotter Class """
 
-from .suzuki import Suzuki
+from qiskit.opflow.evolutions.trotterizations.suzuki import Suzuki
 
 
 class Trotter(Suzuki):
@@ -20,8 +20,8 @@ class Trotter(Suzuki):
     Simple Trotter expansion, composing the evolution circuits of each Operator in the sum
     together ``reps`` times and dividing the evolution time of each by ``reps``.
     """
-    def __init__(self,
-                 reps: int = 1) -> None:
+
+    def __init__(self, reps: int = 1) -> None:
         r"""
         Args:
             reps: The number of times to repeat the Trotterization circuit.

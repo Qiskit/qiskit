@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed an issue where the bit-order in
+    :meth:`qiskit.circuit.library.PhaseOracle.evaluate_bitstring` did not agree
+    with the order of the measured bitstring. This fix also affects the
+    execution of the :class:`~qiskit.algorithms.Grover` algorithm class if the 
+    oracle is specified as a :class:`~qiskit.circuit.library.PhaseOracle`, which
+    now will now correctly identify the correct bitstring.
+    Fixed `#6314 <https://github.com/Qiskit/qiskit-terra/issues/6314>`__
