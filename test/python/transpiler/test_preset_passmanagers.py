@@ -949,7 +949,18 @@ class TestOptimizationOnSize(QiskitTestCase):
         qc.cx(7, 6)
         qc.cx(6, 7)
 
-        circ = transpile(qc, optimization_level=level)
+        circ = transpile(qc, optimization_level=level).decompose()
 
-        self.assertLessEqual(circ.size(), qc.size())
+        circ_data = circ.data
+        free_qubits = set([0, 1, 2, 3])
+
+        # ensure no gates are using qubits - (0,1,2,3)
+        for gate in circ_data:
+            qubits = gate[1]
+            indices = {circ.find_bit(qubit).index for qubit in qubits}
+            common = indices.intersection(free_qubits)
+            for common_qubit in common:
+                self.assertTrue(common_qubit not in free_qubits)
+
+        self.assertLess(circ.size(), qc.size())
         self.assertLessEqual(circ.depth(), qc.depth())
