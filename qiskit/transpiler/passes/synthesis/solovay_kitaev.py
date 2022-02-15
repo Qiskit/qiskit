@@ -12,7 +12,7 @@
 
 """Synthesize a single qubit gate to a discrete basis set."""
 
-import os
+import pathlib
 from typing import List, Union, Optional
 import itertools
 import numpy as np
@@ -320,10 +320,12 @@ class SolovayKitaevDecomposition(TransformationPass):
         self.recursion_degree = recursion_degree
         self._sk = SolovayKitaev(basis_gates, depth)
 
-        # set default basic approximations
-        dirname = os.path.dirname(os.path.abspath(__file__))
+    @staticmethod
+    def _get_default_approximation_set():
+        # get default basic approximations
+        dirpath = pathlib.Path(__file__).parent
         filename = "depth10_t_h_tdg.npy"
-        self._default_approximation_set = os.path.join(dirname, filename)
+        return (dirpath / filename).resolve()
 
     @staticmethod
     def generate_basic_approximations(
@@ -354,9 +356,12 @@ class SolovayKitaevDecomposition(TransformationPass):
 
         Returns:
             Output dag with 1q gates synthesized in the discrete target basis.
+
+        Raises:
+            TranspilerError: If a unsupported gate is found in the DAG.
         """
         if self._sk._basic_approximations is None:
-            self.load_basic_approximations(self._default_approximation_set)
+            self.load_basic_approximations(self._get_default_approximation_set())
 
         for node in dag.op_nodes():
             if not node.op.num_qubits == 1:
