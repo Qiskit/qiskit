@@ -26,6 +26,7 @@ from qiskit import execute, assemble, BasicAer
 from qiskit.quantum_info import state_fidelity, Statevector, Operator
 from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase
+from qiskit.converters import circuit_to_dag
 
 
 class TestInitialize(QiskitTestCase):
@@ -445,7 +446,64 @@ class TestInitialize(QiskitTestCase):
                 zero = Statevector.from_int(0, dim)
                 actual = zero & disentangler
                 self.assertEqual(target, actual)
+    
+    def test_decompose_with_int(self):
+        """Test initialize with int arg decomposes to a StatePreparation and reset"""
+        qc = QuantumCircuit(2)
+        qc.initialize(2)
+        decom_circ = qc.decompose()
+        decom_circ2 = decom_circ.decompose()
+        dag1 = circuit_to_dag(decom_circ)
+        dag2 = circuit_to_dag(decom_circ2)
 
+        self.assertEqual(len(dag1.op_nodes()), 3)
+        self.assertEqual(dag1.op_nodes()[0].name, "reset")
+        self.assertEqual(dag1.op_nodes()[1].name, "reset")
+        self.assertEqual(dag1.op_nodes()[2].name, "state_preparation")
+
+        self.assertEqual(len(dag2.op_nodes()), 3)
+        self.assertEqual(dag2.op_nodes()[0].name, "reset")
+        self.assertEqual(dag2.op_nodes()[1].name, "reset")
+        self.assertEqual(dag2.op_nodes()[2].name, "x")
+    
+    def test_decompose_with_string(self):
+        """Test initialize with string arg decomposes to a StatePreparation and reset"""
+        qc = QuantumCircuit(2)
+        qc.initialize('11')
+        decom_circ = qc.decompose()
+        decom_circ2 = decom_circ.decompose()
+        dag1 = circuit_to_dag(decom_circ)
+        dag2 = circuit_to_dag(decom_circ2)
+
+        self.assertEqual(len(dag1.op_nodes()), 3)
+        self.assertEqual(dag1.op_nodes()[0].name, "reset")
+        self.assertEqual(dag1.op_nodes()[1].name, "reset")
+        self.assertEqual(dag1.op_nodes()[2].name, "state_preparation")
+
+        self.assertEqual(len(dag2.op_nodes()), 4)
+        self.assertEqual(dag2.op_nodes()[0].name, "reset")
+        self.assertEqual(dag2.op_nodes()[1].name, "x")
+        self.assertEqual(dag2.op_nodes()[2].name, "reset")
+        self.assertEqual(dag2.op_nodes()[3].name, "x")
+    
+    def test_decompose_with_statevector(self):
+        """Test initialize with statevector arg decomposes to a StatePreparation and reset"""
+        qc = QuantumCircuit(2)
+        qc.initialize([1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)])
+        decom_circ = qc.decompose()
+        decom_circ2 = decom_circ.decompose()
+        dag1 = circuit_to_dag(decom_circ)
+        dag2 = circuit_to_dag(decom_circ2)
+
+        self.assertEqual(len(dag1.op_nodes()), 3)
+        self.assertEqual(dag1.op_nodes()[0].name, "reset")
+        self.assertEqual(dag1.op_nodes()[1].name, "reset")
+        self.assertEqual(dag1.op_nodes()[2].name, "state_preparation")
+
+        self.assertEqual(len(dag2.op_nodes()), 3)
+        self.assertEqual(dag2.op_nodes()[0].name, "reset")
+        self.assertEqual(dag2.op_nodes()[1].name, "reset")
+        self.assertEqual(dag2.op_nodes()[2].name, "disentangler_dg")
 
 class TestInstructionParam(QiskitTestCase):
     """Test conversion of numpy type parameters."""

@@ -29,8 +29,8 @@ _EPS = 1e-10  # global variable used to chop very small numbers to zero
 class Initialize(Instruction):
     """Complex amplitude initialization.
 
-    Class that implements the (complex amplitude) initialization of some
-    flexible collection of qubit registers.
+    Class that initializes some flexible collection of qubit registers, implemented by calling
+    the StatePreparation Class.
     Note that Initialize is an Instruction and not a Gate since it contains a reset instruction,
     which is not unitary.
     """
@@ -54,72 +54,26 @@ class Initialize(Instruction):
             and params is 3. This allows qubits 0 and 1 to be initialized to `|1>` and the
             remaining 3 qubits to be initialized to `|0>`.
         """
-        # self.params = params
-        # self.num_qubits = num_qubits
-
-        # pylint: disable=cyclic-import
-        # from qiskit.quantum_info import Statevector
-
-        # if isinstance(params, Statevector):
-        #     params = params.data
-
-        # if not isinstance(params, int) and num_qubits is not None:
-        #     raise QiskitError(
-        #         "The num_qubits parameter to Initialize should only be"
-        #         " used when params is an integer"
-        #     )
-        # self._from_label = False
-        # self._from_int = False
-
-        # if isinstance(params, str):
-        #     self._from_label = True
-        #     num_qubits = len(params)
-        # elif isinstance(params, int):
-        #     self._from_int = True
-        #     if num_qubits is None:
-        #         num_qubits = int(math.log2(params)) + 1
-        #     params = [params]
-        # else:
-        #     num_qubits = math.log2(len(params))
-
-        #     # Check if param is a power of 2
-        #     if num_qubits == 0 or not num_qubits.is_integer():
-        #         raise QiskitError("Desired statevector length not a positive power of 2.")
-
-        #     # Check if probabilities (amplitudes squared) sum to 1
-        #     if not math.isclose(sum(np.absolute(params) ** 2), 1.0, abs_tol=_EPS):
-        #         raise QiskitError("Sum of amplitudes-squared does not equal one.")
-
-        #     num_qubits = int(num_qubits)
-
-        # self._define(params, num_qubits)
-
-        # self.reset(self.qubits)
-        # self.append(StatePreparation(params, num_qubits), self.qubits)
-
-        # replace with StatePreparation.get_num_qubits
         self._stateprep = StatePreparation(params, num_qubits)
+    
+        super().__init__("initialize",self._stateprep.num_qubits, 0, self._stateprep.params)
 
-        super().__init__("initialize",self._stateprep.num_qubits, 0, params)
-
-    def _define(self): #??? only called with qc.decompose not qc.initialise?
-        print('initialize _define')
-        # print('num_qubits: ' + str(num_qubits))
-        # print('params' + str(params))
-        # call static method StatePreparation.get_num_qubits
-        q = QuantumRegister(self._stateprep.num_qubits, "q")
+    def _define(self):
+        q = QuantumRegister(self.num_qubits, "q")
         initialize_circuit = QuantumCircuit(q, name="init_def")
         initialize_circuit.reset(q)
-        # initialize_circuit.append(StatePreparation(self.params, etc etc), q)
+        initialize_circuit.append(self._stateprep, q)
         self.definition = initialize_circuit
 
+    def gates_to_uncompute(self):
+        return self._stateprep.gates_to_uncompute()
+
 def initialize(self, params, qubits=None):
-    print('initialize')
     r"""Initialize qubits in a specific state.
 
     Qubit initialization is done by first resetting the qubits to :math:`|0\rangle`
-    followed by an state preparing unitary. Both these steps are included in the
-    `Initialize` instruction.
+    followed by calling the StatePreparation class to prepare the qubits in a specified state.
+    Both these steps are included in the `Initialize` instruction.
 
     Args:
         params (str or list or int):
@@ -134,7 +88,7 @@ def initialize(self, params, qubits=None):
                to `|1>` and qubit 1 to `|0>`.
         qubits (QuantumRegister or int):
             * QuantumRegister: A list of qubits to be initialized [Default: None].
-            * int: Index of qubit to initialized [Default: None].
+            * int: Index of qubit to be initialized [Default: None].
 
     Returns:
         qiskit.circuit.Instruction: a handle to the instruction that was just initialized
@@ -153,7 +107,7 @@ def initialize(self, params, qubits=None):
 
         output:
              ┌──────────────────────────────┐
-        q_0: ┤ initialize(0.70711,-0.70711) ├
+        q_0: ┤ Initialize(0.70711,-0.70711) ├
              └──────────────────────────────┘
 
 
@@ -174,7 +128,7 @@ def initialize(self, params, qubits=None):
         output:
              ┌──────────────────┐
         q_0: ┤0                 ├
-             │  initialize(0,1) │
+             │  Initialize(0,1) │
         q_1: ┤1                 ├
              └──────────────────┘
 
@@ -192,14 +146,10 @@ def initialize(self, params, qubits=None):
         output:
              ┌────────────────────────────────────┐
         q_0: ┤0                                   ├
-             │  initialize(0,0.70711,-0.70711j,0) │
+             │  Initialize(0,0.70711,-0.70711j,0) │
         q_1: ┤1                                   ├
              └────────────────────────────────────┘
     """
-    print('initialize')
-    print('qubits:' + str(qubits))
-    print('self.qubits:' + str(self.qubits))
-    print('self.num_qubits:' + str(self.num_qubits))
     if qubits is None:
         qubits = self.qubits
     else:
@@ -208,11 +158,7 @@ def initialize(self, params, qubits=None):
         qubits = self._bit_argument_conversion(qubits, self.qubits)
 
     num_qubits = None if not isinstance(params, int) else len(qubits)
-    # num_qubits = len(qubits)
 
-    return self.append(Initialize(params, num_qubits), qubits) #??? why does this method have access to .append, .reset etc.
-    # self.reset(self.qubits)
-    # return self.append(StatePreparation(params, num_qubits), qubits)
-
+    return self.append(Initialize(params, num_qubits), qubits)
 
 QuantumCircuit.initialize = initialize

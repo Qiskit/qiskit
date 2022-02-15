@@ -27,6 +27,11 @@ from qiskit.circuit.exceptions import CircuitError
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 class StatePreparation(Instruction):
+    """Complex amplitude state preparation.
+
+    Class that implements the (complex amplitude) state preparation of some
+    flexible collection of qubit registers.
+    """
 
     def __init__(self, params, num_qubits=None, synthesis=None):
         """Prepare state
@@ -55,51 +60,27 @@ class StatePreparation(Instruction):
 
         if not isinstance(params, int) and num_qubits is not None:
             raise QiskitError(
-                "The num_qubits parameter to Initialize should only be"
+                "The num_qubits parameter to StatePreparation should only be"
                 " used when params is an integer"
             )
-        self._from_label = False
-        self._from_int = False
+        self._from_label = True if isinstance(params, str) else False
+        self._from_int = True if isinstance(params, int) else False
 
-        # put in determine num qubit static method
-        if isinstance(params, str):
-            self._from_label = True
-            num_qubits = len(params)
-        elif isinstance(params, int):
-            self._from_int = True
-            if num_qubits is None:
-                num_qubits = int(math.log2(params)) + 1
-            params = [params]
-        else:
-            num_qubits = math.log2(len(params))
+        num_qubits = self.get_num_qubits(num_qubits, params)
 
-            # Check if param is a power of 2
-            if num_qubits == 0 or not num_qubits.is_integer():
-                raise QiskitError("Desired statevector length not a positive power of 2.")
+        params = [params] if isinstance(params, int) else params
 
-            # Check if probabilities (amplitudes squared) sum to 1
-            if not math.isclose(sum(np.absolute(params) ** 2), 1.0, abs_tol=_EPS):
-                raise QiskitError("Sum of amplitudes-squared does not equal one.")
-
-            num_qubits = int(num_qubits)
-        #############################################
-
-        super().__init__("state_preparation", num_qubits, 0, params) # ???
+        super().__init__("state_preparation", num_qubits, 0, params)
 
     def _define(self):
-        print('stateprep define')
-        # self.definition = self.synthesis(self)
         if self._from_label:
                 self.definition = self._define_from_label()
         elif self._from_int:
             self.definition = self._define_from_int()
-        # elif self.synthesis == 'isometry':
-        #     self.definition = self._isometry_synthesis()
         else:
             self.definition = self._default_synthesis()
   
     def _define_from_label(self):
-        print('stateprep _define_from_label')
         q = QuantumRegister(self.num_qubits, "q")
         initialize_circuit = QuantumCircuit(q, name="init_def")
 
@@ -121,7 +102,6 @@ class StatePreparation(Instruction):
         return initialize_circuit
 
     def _define_from_int(self):
-        print('stateprep _define_from_int')
         q = QuantumRegister(self.num_qubits, "q")
         initialize_circuit = QuantumCircuit(q, name="init_def")
 
@@ -132,7 +112,7 @@ class StatePreparation(Instruction):
         # Raise if number of bits is greater than num_qubits
         if len(intstr) > self.num_qubits:
             raise QiskitError(
-                "Initialize integer has %s bits, but this exceeds the"
+                "StatePreparation integer has %s bits, but this exceeds the"
                 " number of qubits in the circuit, %s." % (len(intstr), self.num_qubits)
             )
 
@@ -143,7 +123,6 @@ class StatePreparation(Instruction):
         return initialize_circuit
 
     def _default_synthesis(self):
-        print('stateprep _default_synthesis')
         """Calculate a subcircuit that implements this initialization
 
         Implements a recursive initialization algorithm, including optimizations,
@@ -162,28 +141,45 @@ class StatePreparation(Instruction):
 
         q = QuantumRegister(self.num_qubits, "q")
         initialize_circuit = QuantumCircuit(q, name="init_def")
-        # KEEP:
-        # for qubit in q:
-        #     initialize_circuit.append(Reset(), [qubit])
         initialize_circuit.append(initialize_instr, q[:])
 
         return initialize_circuit
+
+    @staticmethod
+    def get_num_qubits(num_qubits, params):
+        if isinstance(params, str):
+            num_qubits = len(params)
+        elif isinstance(params, int):
+            if num_qubits is None:
+                num_qubits = int(math.log2(params)) + 1
+            params = [params]
+        else:
+            num_qubits = math.log2(len(params))
+
+            # Check if param is a power of 2
+            if num_qubits == 0 or not num_qubits.is_integer():
+                raise QiskitError("Desired statevector length not a positive power of 2.")
+
+            # Check if probabilities (amplitudes squared) sum to 1
+            if not math.isclose(sum(np.absolute(params) ** 2), 1.0, abs_tol=_EPS):
+                raise QiskitError("Sum of amplitudes-squared does not equal one.")
+
+            num_qubits = int(num_qubits)
+        return num_qubits
     
-    def broadcast_arguments(self, qargs, cargs): #??? move to StatePrep?
-        print('stateprep broadcast_arguments')
+    def broadcast_arguments(self, qargs, cargs):
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]
 
         if self.num_qubits != len(flat_qargs):
             raise QiskitError(
-                "Initialize parameter vector has %d elements, therefore expects %s "
+                "StatePreparation parameter vector has %d elements, therefore expects %s "
                 "qubits. However, %s were provided."
                 % (2 ** self.num_qubits, self.num_qubits, len(flat_qargs))
             )
         yield flat_qargs, []
 
     def validate_parameter(self, parameter): #??? move to StatePrep?
-        print('stateprep validate_parameter')
-        """Initialize instruction parameter can be str, int, float, and complex."""
+        """StatePreparation instruction parameter can be str, int, float, and complex."""
         
         # Initialize instruction parameter can be str
         if isinstance(parameter, str):
@@ -203,7 +199,6 @@ class StatePreparation(Instruction):
             raise CircuitError(f"invalid param type {type(parameter)} for instruction  {self.name}")
 
     def gates_to_uncompute(self):
-        print('stateprep gates_to_uncompute')
         """Call to create a circuit with gates that take the desired vector to zero.
 
         Returns:
@@ -239,7 +234,6 @@ class StatePreparation(Instruction):
 
     @staticmethod
     def _rotations_to_disentangle(local_param):
-        print('stateprep _rotations_to_disentangle')
         """
         Static internal method to work out Ry and Rz rotation angles used
         to disentangle the LSB qubit.
@@ -279,7 +273,6 @@ class StatePreparation(Instruction):
 
     @staticmethod
     def _bloch_angles(pair_of_complex):
-        print('stateprep _bloch_angles')
         """
         Static internal method to work out rotation to create the passed-in
         qubit from the zero vector.
@@ -305,7 +298,6 @@ class StatePreparation(Instruction):
         return final_r * np.exp(1.0j * final_t / 2), theta, phi
 
     def _multiplex(self, target_gate, list_of_angles, last_cnot=True):
-        print('stateprep _multiplex')
         """
         Return a recursive implementation of a multiplexor circuit,
         where each instruction itself has a decomposition based on
@@ -366,9 +358,84 @@ class StatePreparation(Instruction):
         return circuit
 
 def prepare_state(self, state, qubits=None):
-    print('stateprep')
-    print('qubits:' + str(qubits))
-    print('self.qubits:' + str(self.qubits))
+    r"""Prpare qubits in a specific state.
+
+    Args:
+        params (str or list or int):
+            * str: labels of basis states of the Pauli eigenstates Z, X, Y. See
+                :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
+                Notice the order of the labels is reversed with respect to the qubit index to
+                be applied to. Example label '01' initializes the qubit zero to `|1>` and the
+                qubit one to `|0>`.
+            * list: vector of complex amplitudes to initialize to.
+            * int: an integer that is used as a bitmap indicating which qubits to initialize
+               to `|1>`. Example: setting params to 5 would initialize qubit 0 and qubit 2
+               to `|1>` and qubit 1 to `|0>`.
+        qubits (QuantumRegister or int):
+            * QuantumRegister: A list of qubits to be initialized [Default: None].
+            * int: Index of qubit to be initialized [Default: None].
+
+    Returns:
+        qiskit.circuit.Instruction: a handle to the instruction that was just initialized
+
+    Examples:
+        Prepare a qubit in the state :math:`(|0\rangle - |1\rangle) / \sqrt{2}`.
+
+        .. jupyter-execute::
+
+            import numpy as np
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.prepare_state([1/np.sqrt(2), -1/np.sqrt(2)], 0)
+            circuit.draw()
+
+        output:
+             ┌─────────────────────────────────────┐
+        q_0: ┤ State_preparation(0.70711,-0.70711) ├
+             └─────────────────────────────────────┘
+
+
+        Prepare from a string two qubits in the state `|10>`.
+        The order of the labels is reversed with respect to qubit index.
+        More information about labels for basis states are in
+        :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
+
+        .. jupyter-execute::
+
+            import numpy as np
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(2)
+            circuit.prepare_state('01', circuit.qubits)
+            circuit.draw()
+
+        output:
+             ┌─────────────────────────┐
+        q_0: ┤0                        ├
+             │  State_preparation(0,1) │
+        q_1: ┤1                        ├
+             └─────────────────────────┘
+
+
+        Initialize two qubits from an array of complex amplitudes
+        .. jupyter-execute::
+
+            import numpy as np
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(2)
+            circuit.prepare_state([0, 1/np.sqrt(2), -1.j/np.sqrt(2), 0], circuit.qubits)
+            circuit.draw()
+
+        output:
+             ┌───────────────────────────────────────────┐
+        q_0: ┤0                                          ├
+             │  State_preparation(0,0.70711,-0.70711j,0) │
+        q_1: ┤1                                          ├
+             └───────────────────────────────────────────┘
+    """
+
     if qubits is None:
         qubits = self.qubits
     else:
@@ -379,55 +446,4 @@ def prepare_state(self, state, qubits=None):
     num_qubits = None if not isinstance(state, int) else len(qubits)
     return self.append(StatePreparation(state, num_qubits), qubits)
 
-QuantumCircuit.prepare_state = prepare_state #??? prepare_state or state_preparation
-
-
-
-
-
-
-
-
-
-
-
-
-
-#   def _isometry_synthesis(self):
-#     state = stateprep.state
-
-  # class StatePrep(Instruction):
-  #   # copy everything from initialize w/o the resets
-
-
-  # class Initialize(Instruction):
-
-  #     def __init__(self, state):
-  #         self.state = state  # vector, int, str --> all gonna be handled in StatePrep
-
-  #     def _define(self):
-  #         self.reset(self.qubits)
-  #         self.append(StatePrep(self.state), self.qubits)
-
-
-  # # step 2:
-  # class StatePrep(Instruction):
-  #     def __init__(self, state, synthesis=None):
-  #         self.state = state
-  #         self.synthesis = synthesis
-
-  #     def _define(self):
-  #         self.definition = self.synthesis(self)
-
-
-  # # in qiskit/synthesis/state_preparation
-  # def synthesize_paper1(stateprep: StatePrep):
-  #     state = stateprep.state
-
-  #     # construct circuit producing ``state``
-
-  #     # whatever in initialize was
-
-
-  # def synthesize_paper2(...):
-  #     # call Isometry
+QuantumCircuit.prepare_state = prepare_state
