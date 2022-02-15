@@ -12,111 +12,46 @@
 
 """Test the Solovay Kitaev transpilation pass."""
 
-import itertools
 import unittest
 import math
 import numpy as np
 import scipy
 
-from scipy.optimize import minimize
-from ddt import ddt, data, unpack
+from ddt import ddt, data
 
+from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
-import qiskit.circuit.library as gates
-from qiskit.circuit.library import TGate, TdgGate, RXGate, RYGate, HGate, SGate, SdgGate, IGate, QFT
+from qiskit.circuit.library import TGate, TdgGate, HGate, SGate, SdgGate, IGate, QFT
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.transpiler.passes import SolovayKitaevDecomposition
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler.passes import SolovayKitaevDecomposition
 from qiskit.transpiler.passes.synthesis.solovay_kitaev import commutator_decompose
 from qiskit.transpiler.passes.synthesis.solovay_kitaev_utils import GateSequence
+from qiskit.quantum_info import Operator
 
-# pylint: disable=invalid-name, missing-class-docstring
 
-
-def distance(A, B):
-    """Find the distance in norm of A and B, ignoring global phase."""
-
-    def objective(global_phase):
-        return np.linalg.norm(A - np.exp(1j * global_phase) * B)
-    result1 = minimize(objective, [1], bounds=[(-np.pi, np.pi)])
-    result2 = minimize(objective, [0.5], bounds=[(-np.pi, np.pi)])
-    return min(result1.fun, result2.fun)
+def _trace_distance(circuit1, circuit2):
+    """Return the trace distance of the two input circuits."""
+    op1, op2 = Operator(circuit1), Operator(circuit2)
+    return 0.5 * np.trace(scipy.linalg.sqrtm(np.conj(op1 - op2).T.dot(op1 - op2))).real
 
 
 def _generate_x_rotation(angle: float) -> np.ndarray:
-    return np.array([[1, 0, 0],
-                     [0, math.cos(angle), -math.sin(angle)],
-                     [0, math.sin(angle), math.cos(angle)]])
+    return np.array(
+        [[1, 0, 0], [0, math.cos(angle), -math.sin(angle)], [0, math.sin(angle), math.cos(angle)]]
+    )
 
 
 def _generate_y_rotation(angle: float) -> np.ndarray:
-    return np.array([[math.cos(angle), 0, math.sin(angle)],
-                     [0, 1, 0],
-                     [-math.sin(angle), 0, math.cos(angle)]])
+    return np.array(
+        [[math.cos(angle), 0, math.sin(angle)], [0, 1, 0], [-math.sin(angle), 0, math.cos(angle)]]
+    )
 
 
 def _generate_z_rotation(angle: float) -> np.ndarray:
-    return np.array([[math.cos(angle), -math.sin(angle), 0],
-                     [math.sin(angle), math.cos(angle), 0],
-                     [0, 0, 1]])
-
-
-def _generate_random_rotation() -> np.ndarray:
-    return np.array(scipy.stats.special_ortho_group.rvs(3))
-
-
-def _build_rotation(angle: float, axis: int) -> np.ndarray:
-    if axis == 0:
-        return _generate_x_rotation(angle)
-    elif axis == 1:
-        return _generate_y_rotation(angle)
-    elif axis == 2:
-        return _generate_z_rotation(angle)
-    else:
-        return _generate_random_rotation()
-
-
-def _build_axis(axis: int) -> np.ndarray:
-    if axis == 0:
-        return np.array([1.0, 0.0, 0.0])
-    elif axis == 1:
-        return np.array([0.0, 1.0, 0.0])
-    elif axis == 2:
-        return np.array([0.0, 0.0, 1.0])
-    else:
-        return np.array([1/math.sqrt(3), 1/math.sqrt(3), 1/math.sqrt(3)])
-
-
-def _generate_x_su2(angle: float) -> np.ndarray:
-    return np.array([[math.cos(angle/2), math.sin(angle/2)*1j],
-                     [math.sin(angle/2)*1j, math.cos(angle/2)]], dtype=complex)
-
-
-def _generate_y_su2(angle: float) -> np.ndarray:
-    return np.array([[math.cos(angle/2), math.sin(angle/2)],
-                     [-math.sin(angle/2), math.cos(angle/2)]], dtype=complex)
-
-
-def _generate_z_su2(angle: float) -> np.ndarray:
-    return np.array([[np.exp(-(1/2)*angle*1j), 0], [0, np.exp((1/2)*angle*1j)]], dtype=complex)
-
-
-def _generate_su2(alpha: complex, beta: complex) -> np.ndarray:
-    base = np.array([[alpha, beta], [-np.conj(beta), np.conj(alpha)]])
-    det = np.linalg.det(base)
-    if abs(det) < 1e10:
-        return np.array([[1, 0], [0, 1]])
-    else:
-        return np.linalg.det(base)*base
-
-
-def _build_unit_vector(a: float, b: float, c: float) -> np.ndarray:
-    vector = np.array([a, b, c])
-    if a != 0.0 or b != 0.0 or c != 0.0:
-        unit_vector = vector/np.linalg.norm(vector)
-        return unit_vector
-    else:
-        return np.array([1, 0, 0])
+    return np.array(
+        [[math.cos(angle), -math.sin(angle), 0], [math.sin(angle), math.cos(angle), 0], [0, 0, 1]]
+    )
 
 
 def is_so3_matrix(array: np.ndarray) -> bool:
@@ -124,7 +59,7 @@ def is_so3_matrix(array: np.ndarray) -> bool:
     if array.shape != (3, 3):
         return False
 
-    if abs(np.linalg.det(array)-1.0) > 1e-10:
+    if abs(np.linalg.det(array) - 1.0) > 1e-10:
         return False
 
     if False in np.isreal(array):
@@ -133,175 +68,50 @@ def is_so3_matrix(array: np.ndarray) -> bool:
     return True
 
 
-def are_almost_equal_so3_matrices(a: np.ndarray, b: np.ndarray) -> bool:
-    """TODO"""
-    for t in itertools.product(range(2), range(2)):
-        if abs(a[t[0]][t[1]]-b[t[0]][t[1]]) > 1e-10:
-            return False
-    return True
-
-
-@ddt
 class TestSolovayKitaev(QiskitTestCase):
     """Test the Solovay Kitaev algorithm and transformation pass."""
 
-    @data(
-        [_generate_x_rotation(0.1)],
-        [_generate_y_rotation(0.2)],
-        [_generate_z_rotation(0.3)],
-        [np.dot(_generate_z_rotation(0.5), _generate_y_rotation(0.4))],
-        [np.dot(_generate_y_rotation(0.5), _generate_x_rotation(0.4))]
-    )
-    @unpack
-    def test_commutator_decompose_returns_tuple_of_two_so3_gatesequences(self, u_so3: np.ndarray):
-        """Test that ``commutator_decompose`` returns two SO(3) gate sequences."""
-        actual_result = commutator_decompose(u_so3)
-        self.assertTrue(is_so3_matrix(actual_result[0].product))
-        self.assertTrue(is_so3_matrix(actual_result[1].product))
-
-    @data(
-        [_generate_x_rotation(0.1)],
-        [_generate_y_rotation(0.2)],
-        [_generate_z_rotation(0.3)],
-        [np.dot(_generate_z_rotation(0.5), _generate_y_rotation(0.4))],
-        [np.dot(_generate_y_rotation(0.5), _generate_x_rotation(0.4))]
-    )
-    @unpack
-    def test_commutator_decompose_returns_tuple_whose_commutator_equals_input(self, u_so3):
-        """Test that ``commutator_decompose`` exactly decomposes the input."""
-        actual_result = commutator_decompose(u_so3)
-        first_so3 = actual_result[0].product
-        second_so3 = actual_result[1].product
-        actual_commutator = np.dot(first_so3, np.dot(second_so3, np.dot(
-            np.matrix.getH(first_so3), np.matrix.getH(second_so3))))
-        self.assertTrue(are_almost_equal_so3_matrices(
-            actual_commutator, u_so3))
-
-    @data(
-        [_generate_x_rotation(0.1)],
-        [_generate_y_rotation(0.2)],
-        [_generate_z_rotation(0.3)],
-        [np.dot(_generate_z_rotation(0.5), _generate_y_rotation(0.4))],
-        [np.dot(_generate_y_rotation(0.5), _generate_x_rotation(0.4))]
-    )
-    @unpack
-    def test_commutator_decompose_returns_tuple_whose_commutator_equals_input_2(self, u_so3):
-        """Test that ``commutator_decompose`` exactly decomposes the input."""
-        actual_result = commutator_decompose(u_so3)
-        first_so3 = actual_result[0].product
-        second_so3 = actual_result[1].product
-        actual_commutator = np.dot(first_so3, np.dot(second_so3, np.dot(
-            np.matrix.getH(first_so3), np.matrix.getH(second_so3))))
-        self.assertTrue(are_almost_equal_so3_matrices(
-            actual_commutator, u_so3))
-
-    @data(
-        [_generate_x_rotation(0.1)],
-        [_generate_y_rotation(0.2)],
-        [_generate_z_rotation(0.3)],
-        [np.dot(_generate_z_rotation(0.5), _generate_y_rotation(0.4))],
-        [np.dot(_generate_y_rotation(0.5), _generate_x_rotation(0.4))]
-    )
-    @unpack
-    @unittest.skip("Make algorithm more precise first")
-    def test_commutator_decompose_returns_tuple_with_first_x_axis_rotation(self, u_so3):
-        """Test that ``commutator_decompose`` returns a X-rotation as first element."""
-        actual_result = commutator_decompose(u_so3)
-        actual_first = actual_result[0]
-        actual = actual_first.product
-        self.assertAlmostEqual(actual[0][0], 1.0)
-        self.assertAlmostEqual(actual[0][1], 0.0)
-        self.assertAlmostEqual(actual[0][2], 0.0)
-        self.assertAlmostEqual(actual[1][0], 0.0)
-        self.assertAlmostEqual(actual[2][0], 0.0)
-
-    @data(
-        [_generate_x_rotation(0.1)],
-        [_generate_y_rotation(0.2)],
-        [_generate_z_rotation(0.3)],
-        [np.dot(_generate_z_rotation(0.5), _generate_y_rotation(0.4))],
-        [np.dot(_generate_y_rotation(0.5), _generate_x_rotation(0.4))]
-    )
-    @unpack
-    @unittest.skip("Make algorithm more precise first")
-    def test_commutator_decompose_returns_tuple_with_second_y_axis_rotation(self, u_so3):
-        """Test that ``commutator_decompose`` returns a Y-rotation as second element."""
-        actual_result = commutator_decompose(u_so3)
-        actual_second = actual_result[1]
-        actual = actual_second.product
-        self.assertAlmostEqual(actual[1][1], 1.0)
-        self.assertAlmostEqual(actual[0][1], 0.0)
-        self.assertAlmostEqual(actual[1][0], 0.0)
-        self.assertAlmostEqual(actual[1][2], 0.0)
-        self.assertAlmostEqual(actual[2][1], 0.0)
-
-    def test_solovay_kitaev_basic_gates_on_h_returns_circuit_h(self):
-        """Test that ``SolovayKitaevDecomposition`` returns a circuit with an H-gate when
-        it approximates the H-gate and the H-gate is in the basic gates."""
-
+    def test_loading_default_approximation(self):
+        """Test the approximation set loaded by default."""
+        skd = SolovayKitaevDecomposition()
         circuit = QuantumCircuit(1)
-        circuit.h(0)
+        dummy = skd(circuit)
 
-        basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
-                       SdgGate(), RXGate(math.pi), RYGate(math.pi)]
-        synth = SolovayKitaevDecomposition(3, basic_gates, 3)
+        self.assertIsNotNone(skd._sk._basic_approximations)
 
-        dag = circuit_to_dag(circuit)
-        decomposed_dag = synth.run(dag)
-        decomposed_circuit = dag_to_circuit(decomposed_dag)
-        self.assertTrue(circuit == decomposed_circuit)
-
-    def test_solovay_kitaev_basic_gates_on_i_returns_empty_circuit(self):
+    def test_i_returns_empty_circuit(self):
         """Test that ``SolovayKitaevDecomposition`` returns an empty circuit when
         it approximates the I-gate."""
         circuit = QuantumCircuit(1)
         circuit.i(0)
 
-        basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
-                       SdgGate(), RXGate(math.pi), RYGate(math.pi)]
-        synth = SolovayKitaevDecomposition(3, basic_gates, 3)
+        basic_gates = [HGate(), TGate(), TdgGate()]
+        skd = SolovayKitaevDecomposition(3, basic_gates, 3)
 
-        dag = circuit_to_dag(circuit)
-        decomposed_dag = synth.run(dag)
-        decomposed_circuit = dag_to_circuit(decomposed_dag)
-        self.assertTrue(QuantumCircuit(1) == decomposed_circuit)
+        decomposed_circuit = skd(circuit)
+        self.assertEqual(QuantumCircuit(1), decomposed_circuit)
 
-    def test_solovay_kitaev_basic_gates_on_t_returns_circuit_t(self):
-        """Test that ``SolovayKitaevDecomposition`` returns a circuit with a T-gate when
-        it approximates the T-gate and the T-gate is in the basic gates."""
+    def test_exact_decomposition_acts_trivially(self):
+        """Test that the a circuit that can be represented exactly is represented exactly."""
         circuit = QuantumCircuit(1)
         circuit.t(0)
+        circuit.h(0)
+        circuit.tdg(0)
 
-        basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
-                       SdgGate(), RXGate(math.pi), RYGate(math.pi)]
+        basic_gates = [HGate(), TGate(), TdgGate()]
         synth = SolovayKitaevDecomposition(3, basic_gates, 3)
 
         dag = circuit_to_dag(circuit)
         decomposed_dag = synth.run(dag)
         decomposed_circuit = dag_to_circuit(decomposed_dag)
-        self.assertTrue(circuit == decomposed_circuit)
-
-    @ data(2, 3, 4, 5)
-    def test_solovay_kitaev_basic_gates_on_qft_returns_circuit_qft(self, nr_qubits):
-        """Test that ``SolovayKitaevDecomposition`` returns a QFT-circuit when
-        it approximates the QFT-circuit and the basic gates contain the gates of QFT."""
-        circuit = QFT(nr_qubits, 0)
-        basic_gates = [HGate(), TGate(), SGate(), gates.IGate(), HGate().inverse(), TdgGate(),
-                       SdgGate(), RXGate(math.pi), RYGate(math.pi)]
-        synth = SolovayKitaevDecomposition(4, basic_gates, 3)
-
-        dag = circuit_to_dag(circuit)
-        decomposed_dag = synth.run(dag)
-        decomposed_circuit = dag_to_circuit(decomposed_dag)
-
-        self.assertTrue(circuit == decomposed_circuit)
+        self.assertEqual(circuit, decomposed_circuit)
 
     def test_str_basis_gates(self):
         """Test specifying the basis gates by string works."""
         circuit = QuantumCircuit(1)
         circuit.rx(0.8, 0)
 
-        basis_gates = ['h', 't', 's']
+        basis_gates = ["h", "t", "s"]
         synth = SolovayKitaevDecomposition(2, basis_gates, 3)
 
         dag = circuit_to_dag(circuit)
@@ -314,64 +124,185 @@ class TestSolovayKitaev(QiskitTestCase):
 
         self.assertEqual(discretized, reference)
 
+    def test_approximation_on_qft(self):
+        """Test the Solovay-Kitaev decomposition on the QFT circuit."""
+        qft = QFT(3)
+        transpiled = transpile(qft, basis_gates=["u", "cx"], optimization_level=1)
 
-@ ddt
+        skd = SolovayKitaevDecomposition(1)
+
+        with self.subTest("1 recursion"):
+            discretized = skd(transpiled)
+            self.assertLess(_trace_distance(transpiled, discretized), 15)
+
+        skd.recursion_degree = 2
+        with self.subTest("2 recursions"):
+            discretized = skd(transpiled)
+            self.assertLess(_trace_distance(transpiled, discretized), 7)
+
+
+@ddt
+class TestGateSequence(QiskitTestCase):
+    """Test the ``GateSequence`` class."""
+
+    def test_append(self):
+        """Test append."""
+        seq = GateSequence([IGate()])
+        seq.append(HGate())
+
+        ref = GateSequence([IGate(), HGate()])
+        self.assertEqual(seq, ref)
+
+    def test_eq(self):
+        """Test equality."""
+        base = GateSequence([HGate(), HGate()])
+        seq1 = GateSequence([HGate(), HGate()])
+        seq2 = GateSequence([IGate()])
+        seq3 = GateSequence([HGate(), HGate()])
+        seq3.global_phase = 0.12
+        seq4 = GateSequence([IGate(), HGate()])
+
+        with self.subTest("equal"):
+            self.assertEqual(base, seq1)
+
+        with self.subTest("same product, but different repr (-> false)"):
+            self.assertNotEqual(base, seq2)
+
+        with self.subTest("differing global phase (-> false)"):
+            self.assertNotEqual(base, seq3)
+
+        with self.subTest("same num gates, but different gates (-> false)"):
+            self.assertNotEqual(base, seq4)
+
+    def test_to_circuit(self):
+        """Test converting a gate sequence to a circuit."""
+        seq = GateSequence([HGate(), HGate(), TGate(), SGate(), SdgGate()])
+        ref = QuantumCircuit(1)
+        ref.h(0)
+        ref.h(0)
+        ref.t(0)
+        ref.s(0)
+        ref.sdg(0)
+        # a GateSequence is SU(2), so add the right phase
+        z = 1 / np.sqrt(np.linalg.det(Operator(ref)))
+        ref.global_phase = np.arctan2(np.imag(z), np.real(z))
+
+        self.assertEqual(seq.to_circuit(), ref)
+
+    def test_adjoint(self):
+        """Test adjoint."""
+        seq = GateSequence([TGate(), SGate(), HGate(), IGate()])
+        inv = GateSequence([IGate(), HGate(), SdgGate(), TdgGate()])
+
+        self.assertEqual(seq.adjoint(), inv)
+
+    def test_copy(self):
+        """Test copy."""
+        seq = GateSequence([IGate()])
+        copied = seq.copy()
+        seq.gates.append(HGate())
+
+        self.assertEqual(len(seq.gates), 2)
+        self.assertEqual(len(copied.gates), 1)
+
+    @data(0, 1, 10)
+    def test_len(self, n):
+        """Test __len__."""
+        seq = GateSequence([IGate()] * n)
+        self.assertEqual(len(seq), n)
+
+    def test_getitem(self):
+        """Test __getitem__."""
+        seq = GateSequence([IGate(), HGate(), IGate()])
+        self.assertEqual(seq[0], IGate())
+        self.assertEqual(seq[1], HGate())
+        self.assertEqual(seq[2], IGate())
+
+        self.assertEqual(seq[-2], HGate())
+
+    def test_from_su2_matrix(self):
+        """Test from_matrix with an SU2 matrix."""
+        matrix = np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
+        matrix /= np.sqrt(np.linalg.det(matrix))
+        seq = GateSequence.from_matrix(matrix)
+
+        ref = GateSequence([HGate()])
+
+        self.assertEqual(seq.gates, list())
+        self.assertTrue(np.allclose(seq.product, ref.product))
+        self.assertEqual(seq.global_phase, 0)
+
+    def test_from_so3_matrix(self):
+        """Test from_matrix with an SO3 matrix."""
+        matrix = np.array([[0, 0, -1], [0, -1, 0], [-1, 0, 0]])
+        seq = GateSequence.from_matrix(matrix)
+
+        ref = GateSequence([HGate()])
+
+        self.assertEqual(seq.gates, list())
+        self.assertTrue(np.allclose(seq.product, ref.product))
+        self.assertEqual(seq.global_phase, 0)
+
+    def test_from_invalid_matrix(self):
+        """Test from_matrix with invalid matrices."""
+        with self.subTest("2x2 but not SU2"):
+            matrix = np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
+            with self.assertRaises(ValueError):
+                _ = GateSequence.from_matrix(matrix)
+
+        with self.subTest("not 2x2 or 3x3"):
+            with self.assertRaises(ValueError):
+                _ = GateSequence.from_matrix(np.array([[1]]))
+
+    def test_dot(self):
+        """Test dot."""
+        seq1 = GateSequence([HGate()])
+        seq2 = GateSequence([TGate(), SGate()])
+        composed = seq1.dot(seq2)
+
+        ref = GateSequence([TGate(), SGate(), HGate()])
+
+        # check the product matches
+        self.assertTrue(np.allclose(ref.product, composed.product))
+
+        # check the circuit & phases are equivalent
+        self.assertTrue(Operator(ref.to_circuit()).equiv(composed.to_circuit()))
+
+
+@ddt
 class TestSolovayKitaevUtils(QiskitTestCase):
-    """Test the algebra utils."""
+    """Test the public functions in the Solovay Kitaev utils."""
 
-    @ data([GateSequence([IGate()]), IGate(), GateSequence([IGate(), IGate()])])
-    @ unpack
-    def test_append(self, first_value, second_value, third_value):
-        """Test append of ``GateSequence``."""
-        actual_gate = first_value.append(second_value)
-        self.assertTrue(actual_gate == third_value)
-
-    @ data(
-        [GateSequence([IGate()]), GateSequence([IGate(), IGate()]), 0.0],
-        [GateSequence([IGate(), IGate()]), GateSequence(
-            [IGate(), IGate(), IGate()]), 0.0],
-        [GateSequence([IGate(), RXGate(1)]), GateSequence([RXGate(1)]), 0.0],
-        [GateSequence([RXGate(1)]), GateSequence([RXGate(0.99)]), 0.01],
+    @data(
+        _generate_x_rotation(0.1),
+        _generate_y_rotation(0.2),
+        _generate_z_rotation(0.3),
+        np.dot(_generate_z_rotation(0.5), _generate_y_rotation(0.4)),
+        np.dot(_generate_y_rotation(0.5), _generate_x_rotation(0.4)),
     )
-    @ unpack
-    def test_represents_same_gate_true(self, first_sequence, second_sequence, precision):
-        """Test ``represents_same_gate``."""
-        self.assertTrue(first_sequence.represents_same_gate(
-            second_sequence, precision))
+    def test_commutator_decompose_return_type(self, u_so3: np.ndarray):
+        """Test that ``commutator_decompose`` returns two SO(3) gate sequences."""
+        v, w = commutator_decompose(u_so3)
+        self.assertTrue(is_so3_matrix(v.product))
+        self.assertTrue(is_so3_matrix(w.product))
+        self.assertIsInstance(v, GateSequence)
+        self.assertIsInstance(w, GateSequence)
 
-    @ data(
-        [GateSequence([IGate()]), GateSequence([IGate(), RXGate(1)]), 0.0],
-        [GateSequence([RXGate(1), RXGate(1), RXGate(0.5)]),
-         GateSequence([RXGate(1)]), 0.0],
-        [GateSequence([RXGate(1)]), GateSequence([RXGate(0.5)]), 0.0],
-        [GateSequence([RXGate(1)]), GateSequence(
-            [RXGate(0.3), RXGate(0.2)]), 0.0],
-        [GateSequence([RXGate(0.3), RXGate(0.5), RXGate(1)]),
-         GateSequence([RXGate(0.3), RXGate(0.2)]), 0.0],
-        [GateSequence([RXGate(0.3), RXGate(0.8), RXGate(1)]),
-         GateSequence([RXGate(0.1), RXGate(0.2)]), 0.0],
+    @data(
+        _generate_x_rotation(0.1),
+        _generate_y_rotation(0.2),
+        _generate_z_rotation(0.3),
+        np.dot(_generate_z_rotation(0.5), _generate_y_rotation(0.4)),
+        np.dot(_generate_y_rotation(0.5), _generate_x_rotation(0.4)),
     )
-    @ unpack
-    def test_represents_same_gate_false(self, first_sequence, second_sequence, precision):
-        """Test ``represents_same_gate``."""
-        self.assertFalse(first_sequence.represents_same_gate(
-            second_sequence, precision))
-
-    @ data(
-        [GateSequence([IGate(), IGate()]), GateSequence([]), 0.0],
-        [GateSequence([IGate(), RXGate(1), IGate()]),
-         GateSequence([RXGate(1)]), 0.0],
-        [GateSequence([IGate(), RXGate(1), IGate(), RXGate(0.4)]),
-         GateSequence([RXGate(1), RXGate(0.4)]), 0.0],
-        [GateSequence([IGate(), RXGate(2*math.pi), RXGate(2*math.pi)]),
-         GateSequence([]), 1e10],
-    )
-    @ unpack
-    def test_simplify(self, original_sequence, expected_sequence, precision):
-        """Test the simplify method on ``GateSequence``."""
-        actual_sequence = original_sequence.simplify(precision)
-        self.assertTrue(actual_sequence == expected_sequence)
+    def test_commutator_decompose_decomposes_correctly(self, u_so3):
+        """Test that ``commutator_decompose`` exactly decomposes the input."""
+        v, w = commutator_decompose(u_so3)
+        v_so3 = v.product
+        w_so3 = w.product
+        actual_commutator = np.dot(v_so3, np.dot(w_so3, np.dot(np.conj(v_so3).T, np.conj(w_so3).T)))
+        self.assertTrue(np.allclose(actual_commutator, u_so3))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

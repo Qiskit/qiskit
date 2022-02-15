@@ -12,7 +12,8 @@
 
 """Synthesize a single qubit gate to a discrete basis set."""
 
-from typing import List, Union, Tuple, Optional
+import os
+from typing import List, Union, Optional
 import itertools
 import numpy as np
 
@@ -24,15 +25,11 @@ from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
 from qiskit.transpiler.passes.synthesis.solovay_kitaev_utils import (
     GateSequence,
-    compute_rotation_axis,
-    compute_rotation_between,
-    compute_rotation_from_angle_and_axis,
-    solve_decomposition_angle,
-    _compute_commutator_so3,
+    commutator_decompose,
 )
 
 
-class SolovayKitaev():
+class SolovayKitaev:
     """The Solovay Kitaev discrete decomposition algorithm.
 
     See :class:`~qiskit.transpiler.passes.SolovayKitaevDecomposition` for more information.
@@ -40,21 +37,22 @@ class SolovayKitaev():
 
     # allowed (unparameterized) single qubit gates
     _1q_gates = {
-        'i': gates.IGate(),
-        'x': gates.XGate(),
-        'y': gates.YGate(),
-        'z': gates.ZGate(),
-        'h': gates.HGate(),
-        't': gates.TGate(),
-        'tdg': gates.TdgGate(),
-        's': gates.SGate(),
-        'sdg': gates.SdgGate(),
-        'sx': gates.SXGate(),
-        'sxdg': gates.SXdgGate()
+        "i": gates.IGate(),
+        "x": gates.XGate(),
+        "y": gates.YGate(),
+        "z": gates.ZGate(),
+        "h": gates.HGate(),
+        "t": gates.TGate(),
+        "tdg": gates.TdgGate(),
+        "s": gates.SGate(),
+        "sdg": gates.SdgGate(),
+        "sx": gates.SXGate(),
+        "sxdg": gates.SXdgGate(),
     }
 
-    def __init__(self, basis_gates: Optional[List[Union[str, Gate]]] = None,
-                 depth: Optional[int] = None) -> None:
+    def __init__(
+        self, basis_gates: Optional[List[Union[str, Gate]]] = None, depth: Optional[int] = None
+    ) -> None:
         """
 
         .. note::
@@ -79,13 +77,16 @@ class SolovayKitaev():
 
         Args:
             filename: The path to the file from where to load the data.
+
+        Raises:
+            ValueError: If the number of gate combinations and associated matrices does not match.
         """
         data = np.load(filename, allow_pickle=True)
         gatestrings = data[0]
         matrices = data[1:]
 
         if len(gatestrings) != len(matrices):
-            raise ValueError('Mismatching number of gates and matrices.')
+            raise ValueError("Mismatching number of gates and matrices.")
 
         sequences = []
         for i, gatestring in enumerate(gatestrings):
@@ -97,9 +98,9 @@ class SolovayKitaev():
         self._basic_approximations = sequences
 
     @staticmethod
-    def generate_basic_approximations(basis_gates: List[Union[str, Gate]], depth: int,
-                                      filename: Optional[str] = None
-                                      ) -> Optional[List[GateSequence]]:
+    def generate_basic_approximations(
+        basis_gates: List[Union[str, Gate]], depth: int, filename: Optional[str] = None
+    ) -> Optional[List[GateSequence]]:
         """Generates a list of ``GateSequence``s with the gates in ``basic_gates``.
 
         Args:
@@ -118,13 +119,12 @@ class SolovayKitaev():
                 if gate in SolovayKitaev._1q_gates.keys():
                     basis_gates[i] = SolovayKitaev._1q_gates[gate]
                 else:
-                    raise ValueError(f'Invalid gate identifier: {gate}')
+                    raise ValueError(f"Invalid gate identifier: {gate}")
 
         # get all products from all depths
         products = []
         for reps in range(1, depth + 1):
-            products += list(list(comb)
-                             for comb in itertools.product(*[basis_gates] * reps))
+            products += list(list(comb) for comb in itertools.product(*[basis_gates] * reps))
 
         sequences = []
         for item in products:
@@ -139,7 +139,7 @@ class SolovayKitaev():
             matrices = []
             for sequence in sequences:
                 matrices.append(sequence.product)
-                gatestrings.append(' '.join([gate.name for gate in sequence.gates]))
+                gatestrings.append(" ".join([gate.name for gate in sequence.gates]))
 
             data = np.array([np.array(gatestrings)] + [np.array(matrix) for matrix in matrices])
             np.save(filename, data)
@@ -171,7 +171,7 @@ class SolovayKitaev():
         # convert to a circuit and attach the right phases
         # TODO insert simplify again, but it seems to break the accuracy test
         circuit = decomposition.to_circuit()
-        decomposition.global_phase = decomposition.global_phase - global_phase
+        circuit.global_phase = decomposition.global_phase - global_phase
 
         return circuit
 
@@ -189,8 +189,7 @@ class SolovayKitaev():
             ValueError: if ``u`` does not represent an SO(3)-matrix.
         """
         if sequence.product.shape != (3, 3):
-            raise ValueError(
-                'Shape of U must be (3, 3) but is', sequence.shape)
+            raise ValueError("Shape of U must be (3, 3) but is", sequence.shape)
 
         if n == 0:
             return self.find_basic_approximation(sequence)
@@ -212,11 +211,6 @@ class SolovayKitaev():
         Returns:
             Gate in basic approximations that is closest to ``sequence``.
         """
-        # use this snippet to return the exact gate with no approximation
-        # from .solovay_kitaev_utils import convert_so3_to_su2
-        # from qiskit.extensions import UnitaryGate
-        # su2 = convert_so3_to_su2(sequence.product)
-        # return GateSequence([UnitaryGate(su2)])
 
         def key(x):
             return np.linalg.norm(np.subtract(x.product, sequence.product))
@@ -298,9 +292,12 @@ class SolovayKitaevDecomposition(TransformationPass):
 
     """
 
-    def __init__(self, recursion_degree: int,
-                 basis_gates: Optional[List[Union[str, Gate]]] = None,
-                 depth: Optional[int] = None) -> None:
+    def __init__(
+        self,
+        recursion_degree: int = 3,
+        basis_gates: Optional[List[Union[str, Gate]]] = None,
+        depth: Optional[int] = None,
+    ) -> None:
         """
 
         .. note::
@@ -319,12 +316,18 @@ class SolovayKitaevDecomposition(TransformationPass):
             depth: The maximum depth of the basic approximations.
         """
         super().__init__()
-        self._recursion_degree = recursion_degree
+        self.recursion_degree = recursion_degree
         self._sk = SolovayKitaev(basis_gates, depth)
 
+        # set default basic approximations
+        dirname = os.path.dirname(os.path.abspath(__file__))
+        filename = "depth10_t_h_tdg.npy"
+        self._default_approximation_set = os.path.join(dirname, filename)
+
     @staticmethod
-    def generate_basic_approximations(basis_gates: List[Union[str, Gate]], depth: int,
-                                      filename: str) -> None:
+    def generate_basic_approximations(
+        basis_gates: List[Union[str, Gate]], depth: int, filename: str
+    ) -> None:
         """Generate and save the basic approximations.
 
         Args:
@@ -351,17 +354,17 @@ class SolovayKitaevDecomposition(TransformationPass):
         Returns:
             Output dag with 1q gates synthesized in the discrete target basis.
         """
-        for node in dag.nodes():
-            if node.type != 'op':
-                continue  # skip all nodes that do not represent operations
+        if self._sk._basic_approximations is None:
+            self.load_basic_approximations(self._default_approximation_set)
 
+        for node in dag.op_nodes():
             if not node.op.num_qubits == 1:
                 continue  # ignore all non-single qubit gates
 
             matrix = node.op.to_matrix()
 
             # call solovay kitaev
-            approximation = self._sk.run(matrix, self._recursion_degree)
+            approximation = self._sk.run(matrix, self.recursion_degree)
 
             # convert to a dag and replace the gate by the approximation
             substitute = circuit_to_dag(approximation)
@@ -370,74 +373,9 @@ class SolovayKitaevDecomposition(TransformationPass):
         return dag
 
 
-def commutator_decompose(u_so3: np.ndarray, check_input: bool = True
-                         ) -> Tuple[GateSequence, GateSequence]:
-    r"""Decompose an :math:`SO(3)`-matrix, :math:`U` as a balanced commutator.
-
-    This function finds two :math:`SO(3)` matrices :math:`V, W` such that the input matrix
-    equals
-
-    .. math::
-
-        U = V^\dagger W^\dagger V W.
-
-    For this decomposition, the following statement holds
-
-
-    .. math::
-
-        ||V - I||_F, ||W - I||_F \leq \frac{\sqrt{||U - I||_F}}{2},
-
-    where :math:`I` is the identity and :math:`||\cdot ||_F` is the Frobenius norm.
-
-    Args:
-        u_so3: SO(3)-matrix that needs to be decomposed as balanced commutator.
-        check_input: If True, checks whether the input matrix is actually SO(3).
-
-    Returns:
-        Tuple of GateSequences from SO(3)-matrices :math:`V, W`.
-
-    Raises:
-        ValueError: if ``u_so3`` is not an SO(3)-matrix.
-    """
-    if check_input:
-        # assert that the input matrix is really SO(3)
-        if u_so3.shape != (3, 3):
-            raise ValueError('Input matrix has wrong shape', u_so3.shape)
-
-        if abs(np.linalg.det(u_so3) - 1) > 1e-6:
-            raise ValueError('Determinant of input is not 1 (up to tolerance of 1e-6), but',
-                             np.linalg.det(u_so3))
-
-        identity = np.identity(3)
-        if not (np.allclose(u_so3.dot(u_so3.T), identity) and
-                np.allclose(u_so3.T.dot(u_so3), identity)):
-            raise ValueError('Input matrix is not orthogonal.')
-
-    angle = solve_decomposition_angle(u_so3)
-
-    # Compute rotation about x-axis with angle 'angle'
-    vx = compute_rotation_from_angle_and_axis(angle, np.array([1, 0, 0]))
-
-    # Compute rotation about y-axis with angle 'angle'
-    wy = compute_rotation_from_angle_and_axis(angle, np.array([0, 1, 0]))
-
-    commutator = _compute_commutator_so3(vx, wy)
-
-    u_so3_axis = compute_rotation_axis(u_so3)
-    commutator_axis = compute_rotation_axis(commutator)
-
-    sim_matrix = compute_rotation_between(commutator_axis, u_so3_axis)
-    sim_matrix_dagger = np.matrix.getH(sim_matrix)
-
-    v = np.dot(np.dot(sim_matrix, vx), sim_matrix_dagger)
-    w = np.dot(np.dot(sim_matrix, wy), sim_matrix_dagger)
-
-    return GateSequence.from_matrix(v), GateSequence.from_matrix(w)
-
-
 def _check_candidate(candidate: GateSequence, sequences: List[GateSequence]) -> bool:
     from qiskit.quantum_info.operators.predicates import matrix_equal
+
     # check if a matrix representation already exists
     for existing in sequences:
         # eliminate global phase
