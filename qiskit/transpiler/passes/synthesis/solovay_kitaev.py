@@ -22,6 +22,7 @@ import qiskit.circuit.library.standard_gates as gates
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit.transpiler.passes.synthesis.solovay_kitaev_utils import (
     GateSequence,
@@ -360,6 +361,12 @@ class SolovayKitaevDecomposition(TransformationPass):
         for node in dag.op_nodes():
             if not node.op.num_qubits == 1:
                 continue  # ignore all non-single qubit gates
+
+            if not hasattr(node.op, "to_matrix"):
+                raise TranspilerError(
+                    "SolovayKitaevDecomposition does not support gate without"
+                    f"to_matrix method: {node.op.name}"
+                )
 
             matrix = node.op.to_matrix()
 
