@@ -26,6 +26,7 @@ from qiskit.circuit.exceptions import CircuitError
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
+
 class StatePreparation(Instruction):
     """Complex amplitude state preparation.
 
@@ -74,12 +75,12 @@ class StatePreparation(Instruction):
 
     def _define(self):
         if self._from_label:
-                self.definition = self._define_from_label()
+            self.definition = self._define_from_label()
         elif self._from_int:
             self.definition = self._define_from_int()
         else:
             self.definition = self._default_synthesis()
-  
+
     def _define_from_label(self):
         q = QuantumRegister(self.num_qubits, "q")
         initialize_circuit = QuantumCircuit(q, name="init_def")
@@ -166,7 +167,7 @@ class StatePreparation(Instruction):
 
             num_qubits = int(num_qubits)
         return num_qubits
-    
+
     def broadcast_arguments(self, qargs, cargs):
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]
 
@@ -178,9 +179,9 @@ class StatePreparation(Instruction):
             )
         yield flat_qargs, []
 
-    def validate_parameter(self, parameter): #??? move to StatePrep?
+    def validate_parameter(self, parameter):  # ??? move to StatePrep?
         """StatePreparation instruction parameter can be str, int, float, and complex."""
-        
+
         # Initialize instruction parameter can be str
         if isinstance(parameter, str):
             if parameter in ["0", "1", "+", "-", "l", "r"]:
@@ -213,7 +214,9 @@ class StatePreparation(Instruction):
         for i in range(self.num_qubits):
             # work out which rotations must be done to disentangle the LSB
             # qubit (we peel away one qubit at a time)
-            (remaining_param, thetas, phis) = StatePreparation._rotations_to_disentangle(remaining_param)
+            (remaining_param, thetas, phis) = StatePreparation._rotations_to_disentangle(
+                remaining_param
+            )
 
             # perform the required rotations to decouple the LSB qubit (so that
             # it can be "factored" out, leaving a shorter amplitude vector to peel away)
@@ -357,6 +360,7 @@ class StatePreparation(Instruction):
 
         return circuit
 
+
 def prepare_state(self, state, qubits=None):
     r"""Prpare qubits in a specific state.
 
@@ -445,5 +449,6 @@ def prepare_state(self, state, qubits=None):
 
     num_qubits = None if not isinstance(state, int) else len(qubits)
     return self.append(StatePreparation(state, num_qubits), qubits)
+
 
 QuantumCircuit.prepare_state = prepare_state

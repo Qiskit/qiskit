@@ -55,8 +55,8 @@ class Initialize(Instruction):
             remaining 3 qubits to be initialized to `|0>`.
         """
         self._stateprep = StatePreparation(params, num_qubits)
-    
-        super().__init__("initialize",self._stateprep.num_qubits, 0, self._stateprep.params)
+
+        super().__init__("initialize", self._stateprep.num_qubits, 0, self._stateprep.params)
 
     def _define(self):
         q = QuantumRegister(self.num_qubits, "q")
@@ -67,6 +67,7 @@ class Initialize(Instruction):
 
     def gates_to_uncompute(self):
         return self._stateprep.gates_to_uncompute()
+
 
 def initialize(self, params, qubits=None):
     r"""Initialize qubits in a specific state.
@@ -160,5 +161,6 @@ def initialize(self, params, qubits=None):
     num_qubits = None if not isinstance(params, int) else len(qubits)
 
     return self.append(Initialize(params, num_qubits), qubits)
+
 
 QuantumCircuit.initialize = initialize
