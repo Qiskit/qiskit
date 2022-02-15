@@ -28,6 +28,7 @@ from qiskit.transpiler.passes import SolovayKitaevDecomposition
 from qiskit.transpiler.passes.synthesis.solovay_kitaev import commutator_decompose
 from qiskit.transpiler.passes.synthesis.solovay_kitaev_utils import GateSequence
 from qiskit.quantum_info import Operator
+from qiskit.transpiler.exceptions import TranspilerError
 
 
 def _trace_distance(circuit1, circuit2):
@@ -105,6 +106,23 @@ class TestSolovayKitaev(QiskitTestCase):
         decomposed_dag = synth.run(dag)
         decomposed_circuit = dag_to_circuit(decomposed_dag)
         self.assertEqual(circuit, decomposed_circuit)
+
+    def test_fails_with_no_to_matrix(self):
+        """Test failer if gate does not have to_matrix."""
+        circuit = QuantumCircuit(1)
+        circuit.initialize("0")
+
+        synth = SolovayKitaevDecomposition(3, [], 3)
+
+        dag = circuit_to_dag(circuit)
+
+        with self.assertRaises(TranspilerError) as cm:
+            _ = synth.run(dag)
+
+        self.assertEqual(
+            "SolovayKitaevDecomposition does not support gate without to_matrix method: initialize",
+            cm.exception.message,
+        )
 
     def test_str_basis_gates(self):
         """Test specifying the basis gates by string works."""

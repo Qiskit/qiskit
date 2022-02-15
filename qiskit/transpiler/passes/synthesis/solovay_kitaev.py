@@ -358,7 +358,7 @@ class SolovayKitaevDecomposition(TransformationPass):
             Output dag with 1q gates synthesized in the discrete target basis.
 
         Raises:
-            TranspilerError: If a unsupported gate is found in the DAG.
+            TranspilerError: if a gates does not have to_matrix
         """
         if self._sk._basic_approximations is None:
             self.load_basic_approximations(self._get_default_approximation_set())
@@ -369,7 +369,7 @@ class SolovayKitaevDecomposition(TransformationPass):
 
             if not hasattr(node.op, "to_matrix"):
                 raise TranspilerError(
-                    "SolovayKitaevDecomposition does not support gate without"
+                    "SolovayKitaevDecomposition does not support gate without "
                     f"to_matrix method: {node.op.name}"
                 )
 
