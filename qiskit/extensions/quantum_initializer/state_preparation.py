@@ -394,6 +394,9 @@ def prepare_state(self, state, qubits=None):
             circuit.draw()
 
         output:
+        
+        .. parsed-literal::
+
              ┌─────────────────────────────────────┐
         q_0: ┤ State_preparation(0.70711,-0.70711) ├
              └─────────────────────────────────────┘
@@ -414,6 +417,9 @@ def prepare_state(self, state, qubits=None):
             circuit.draw()
 
         output:
+
+        .. parsed-literal::
+        
              ┌─────────────────────────┐
         q_0: ┤0                        ├
              │  State_preparation(0,1) │
@@ -432,6 +438,9 @@ def prepare_state(self, state, qubits=None):
             circuit.draw()
 
         output:
+
+        .. parsed-literal::
+
              ┌───────────────────────────────────────────┐
         q_0: ┤0                                          ├
              │  State_preparation(0,0.70711,-0.70711j,0) │

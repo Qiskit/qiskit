@@ -108,7 +108,9 @@ def initialize(self, params, qubits=None):
             circuit.draw()
 
         output:
+
         .. parsed-literal::
+        
              ┌──────────────────────────────┐
         q_0: ┤ Initialize(0.70711,-0.70711) ├
              └──────────────────────────────┘
@@ -129,7 +131,9 @@ def initialize(self, params, qubits=None):
             circuit.draw()
 
         output:
+
         .. parsed-literal::
+
              ┌──────────────────┐
         q_0: ┤0                 ├
              │  Initialize(0,1) │
@@ -147,7 +151,9 @@ def initialize(self, params, qubits=None):
             circuit.draw()
 
         output:
+
         .. parsed-literal::
+
              ┌────────────────────────────────────┐
         q_0: ┤0                                   ├
              │  Initialize(0,0.70711,-0.70711j,0) │
