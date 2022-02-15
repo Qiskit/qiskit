@@ -23,7 +23,6 @@ from qiskit.quantum_info import Operator, Statevector
 from qiskit.quantum_info.primitives import PauliEstimator
 from qiskit.quantum_info.primitives.results import EstimatorResult
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeBogota
 from qiskit.utils import has_aer
 
 if has_aer():
