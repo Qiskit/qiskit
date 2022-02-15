@@ -29,13 +29,13 @@ from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.result import Result
 from qiskit.transpiler import PassManager
-from qiskit.utils import has_aer
+from qiskit.utils import optionals as _optionals
 
 from ..results import EstimatorResult
 from ..results.base_result import BaseResult
 from .base_estimator import BaseEstimator
 
-if has_aer():
+if _optionals.HAS_AER:
     from qiskit.providers.aer.library import SaveExpectationValueVariance
 
 
@@ -52,7 +52,7 @@ class ExactEstimator(BaseEstimator):
         transpile_options: Optional[dict] = None,
         bound_pass_manager: Optional[PassManager] = None,
     ):
-        if not has_aer():
+        if not _optionals.HAS_AER:
             raise MissingOptionalLibraryError(
                 libname="qiskit-aer",
                 name="Aer provider",
