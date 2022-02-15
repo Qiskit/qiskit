@@ -99,7 +99,7 @@ class Z2Symmetries:
             sq_list: the list of support of the single-qubit Pauli objects used to build
                                  the Clifford operators
             tapering_values: values determines the sector.
-            tol: Tolerance threshold for ignoring real or complex parts of a coefficient.
+            tol: Tolerance threshold for ignoring real and complex parts of a coefficient.
 
         Raises:
             OpflowError: Invalid paulis
@@ -129,12 +129,12 @@ class Z2Symmetries:
 
     @property
     def tol(self):
-        """Tolerance threshold for ignoring real or complex parts of a coefficient."""
+        """Tolerance threshold for ignoring real and complex parts of a coefficient."""
         return self._tol
 
     @tol.setter
     def tol(self, value):
-        """Set the tolerance threshold for ignoring real or complex parts of a coefficient."""
+        """Set the tolerance threshold for ignoring real and complex parts of a coefficient."""
         self._tol = value
 
     @property
@@ -406,7 +406,7 @@ class Z2Symmetries:
             x_temp = np.delete(pauli_term.primitive.paulis.x[0].copy(), np.asarray(self._sq_list))
             pauli_list.append((Pauli((z_temp, x_temp)).to_label(), coeff_out))
 
-        spo = SparsePauliOp.from_list(pauli_list).simplify(0.0)
+        spo = SparsePauliOp.from_list(pauli_list).simplify(atol=0.0)
         spo = spo.chop(self.tol)
         z2_symmetries = self.copy()
         z2_symmetries.tapering_values = curr_tapering_values

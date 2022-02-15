@@ -410,7 +410,7 @@ class SparsePauliOp(LinearOp):
         )
 
     def chop(self, tol=1e-14):
-        """Remove real and imaginary parts of the coefficient that are close to 0.
+        """Remove real and imaginary parts of the coefficients that are close to 0.
 
         For example, the operator representing ``1+1e-17j X + 1e-17 Y`` with a tolerance larger
         than ``1e-17`` will be reduced to ``1 X`` whereas :meth:`.SparsePauliOp.simplify` would
