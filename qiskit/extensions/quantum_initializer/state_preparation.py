@@ -34,7 +34,7 @@ class StatePreparation(Instruction):
     flexible collection of qubit registers.
     """
 
-    def __init__(self, params, num_qubits=None, synthesis=None):
+    def __init__(self, params, num_qubits=None):
         """Prepare state
 
         Args:
@@ -153,7 +153,6 @@ class StatePreparation(Instruction):
         elif isinstance(params, int):
             if num_qubits is None:
                 num_qubits = int(math.log2(params)) + 1
-            params = [params]
         else:
             num_qubits = math.log2(len(params))
 
