@@ -14,13 +14,5 @@
 
 """Alias for Qiskit QPY import."""
 
-import warnings
-
-warnings.warn(
-    "Importing QPY serialization from qiskit.circuit.qpy_serialization "
-    "has been deprecated. Use new import path qiskit.qpy instead. "
-    "This import path will be removed after sufficient deprecation period from 0.20 release.",
-    ImportWarning,
-)
-
+# TODO deprecate this in 0.21.0
 from qiskit.qpy import dump, load
