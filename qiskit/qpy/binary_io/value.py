@@ -21,7 +21,7 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
 from qiskit.qpy import common, formats, exceptions
-from qiskit.qpy.common import AlphanumericTypeKey as TypeKey, ENCODE
+from qiskit.qpy.common import ValueTypeKey as TypeKey, ENCODE
 from qiskit.utils import optionals as _optional
 
 
@@ -206,10 +206,10 @@ def _read_parameter_expression_v3(file_obj, vectors):
 
 
 def dumps_value(obj):
-    """Serialize input alphanumeric object.
+    """Serialize input value object.
 
     Args:
-        obj (any): Arbitrary alphanumeric object to serialize.
+        obj (any): Arbitrary value object to serialize.
 
     Returns:
         tuple: TypeKey and binary data.
@@ -238,15 +238,13 @@ def dumps_value(obj):
     elif type_key == TypeKey.PARAMETER_EXPRESSION:
         binary_data = common.data_to_binary(obj, _write_parameter_expression)
     else:
-        raise exceptions.QpyError(
-            f"Serialization for {type_key} is not implemented in alphanumeric I/O."
-        )
+        raise exceptions.QpyError(f"Serialization for {type_key} is not implemented in value I/O.")
 
     return type_key, binary_data
 
 
 def loads_value(type_key, binary_data, version, vectors):
-    """Deserialize input binary data to alphanumeric object.
+    """Deserialize input binary data to value object.
 
     Args:
         type_key (ValueTypeKey): Type enum information.
@@ -255,7 +253,7 @@ def loads_value(type_key, binary_data, version, vectors):
         vectors (dict): ParameterVector in current scope.
 
     Returns:
-        any: Deserialized alphanumeric object.
+        any: Deserialized value object.
 
     Raises:
         QpyError: Serializer for given format is not ready.
@@ -287,8 +285,6 @@ def loads_value(type_key, binary_data, version, vectors):
                 binary_data, _read_parameter_expression_v3, vectors=vectors
             )
     else:
-        raise exceptions.QpyError(
-            f"Serialization for {type_key} is not implemented in alphanumeric I/O."
-        )
+        raise exceptions.QpyError(f"Serialization for {type_key} is not implemented in value I/O.")
 
     return obj

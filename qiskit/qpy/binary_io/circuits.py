@@ -137,10 +137,10 @@ def _read_instruction_parameter(file_obj, version, vectors):
                 vectors=vectors,
             )
         )
-    elif type_key == common.AlphanumericTypeKey.INTEGER:
+    elif type_key == common.ValueTypeKey.INTEGER:
         # TODO This uses little endian. Should be fixed in the next QPY version.
         param = struct.unpack("<q", bin_data)[0]
-    elif type_key == common.AlphanumericTypeKey.FLOAT:
+    elif type_key == common.ValueTypeKey.FLOAT:
         # TODO This uses little endian. Should be fixed in the next QPY version.
         param = struct.unpack("<d", bin_data)[0]
     else:
@@ -306,7 +306,7 @@ def _read_pauli_evolution_gate(file_obj, version, vectors):
         pauli_op = operator_list
 
     time = value.loads_value(
-        common.AlphanumericTypeKey(pauli_evolution_def.time_type),
+        common.ValueTypeKey(pauli_evolution_def.time_type),
         file_obj.read(pauli_evolution_def.time_size),
         version=version,
         vectors=vectors,
@@ -367,11 +367,11 @@ def _write_instruction_parameter(file_obj, param):
         data = common.sequence_to_binary(param, _write_instruction_parameter)
     elif isinstance(param, int):
         # TODO This uses little endian. This should be fixed in next QPY version.
-        type_key = common.AlphanumericTypeKey.INTEGER
+        type_key = common.ValueTypeKey.INTEGER
         data = struct.pack("<q", param)
     elif isinstance(param, float):
         # TODO This uses little endian. This should be fixed in next QPY version.
-        type_key = common.AlphanumericTypeKey.FLOAT
+        type_key = common.ValueTypeKey.FLOAT
         data = struct.pack("<d", param)
     else:
         type_key, data = value.dumps_value(param)

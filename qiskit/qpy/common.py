@@ -65,8 +65,8 @@ class CircuitInstructionTypeKey(bytes, Enum):
         )
 
 
-class AlphanumericTypeKey(bytes, Enum):
-    """Type key enum for alphanumeric object."""
+class ValueTypeKey(bytes, Enum):
+    """Type key enum for value object, e.g. numbers, string, null, parameters."""
 
     INTEGER = b"i"
     FLOAT = b"f"
@@ -86,7 +86,7 @@ class AlphanumericTypeKey(bytes, Enum):
             obj (any): Arbitrary object to evaluate.
 
         Returns:
-            AlphanumericTypeKey: Corresponding key object.
+            ValueTypeKey: Corresponding key object.
 
         Raises:
             QpyError: if object type is not defined in QPY. Likely not supported.
