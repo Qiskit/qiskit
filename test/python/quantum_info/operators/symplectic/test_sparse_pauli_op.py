@@ -466,7 +466,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         """Test chop, which individually truncates real and imaginary parts of the coeffs."""
         eps = 1e-10
         op = SparsePauliOp(
-            ["I", "Z", "X", "Y"], coeffs=[eps + 1j * eps, 1 + 1j * eps, eps + 1j, 1 + 1j]
+            ["Z", "Z", "X", "Y"], coeffs=[eps + 1j * eps, 1 + 1j * eps, eps + 1j, 1 + 1j]
         )
         simplified = op.chop(tol=eps)
         expected_coeffs = [1, 1j, 1 + 1j]
