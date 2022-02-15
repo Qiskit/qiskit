@@ -17,8 +17,9 @@ import math
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.circuit import Instruction
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumRegister
+from qiskit.circuit import Instruction, Operation
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.reset import Reset
 from .state_preparation import StatePreparation
@@ -26,7 +27,7 @@ from .state_preparation import StatePreparation
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class Initialize(Instruction):
+class Initialize(Instruction, Operation):
     """Complex amplitude initialization.
 
     Class that initializes some flexible collection of qubit registers, implemented by calling
@@ -107,6 +108,7 @@ def initialize(self, params, qubits=None):
             circuit.draw()
 
         output:
+        .. parsed-literal::
              ┌──────────────────────────────┐
         q_0: ┤ Initialize(0.70711,-0.70711) ├
              └──────────────────────────────┘
@@ -127,12 +129,12 @@ def initialize(self, params, qubits=None):
             circuit.draw()
 
         output:
+        .. parsed-literal::
              ┌──────────────────┐
         q_0: ┤0                 ├
              │  Initialize(0,1) │
         q_1: ┤1                 ├
              └──────────────────┘
-
 
         Initialize two qubits from an array of complex amplitudes
         .. jupyter-execute::
@@ -145,6 +147,7 @@ def initialize(self, params, qubits=None):
             circuit.draw()
 
         output:
+        .. parsed-literal::
              ┌────────────────────────────────────┐
         q_0: ┤0                                   ├
              │  Initialize(0,0.70711,-0.70711j,0) │

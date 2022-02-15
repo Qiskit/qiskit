@@ -84,7 +84,7 @@ class TestUnroll3qOrMore(QiskitTestCase):
         """Test unrolling of identity gate over 3qubits."""
         qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
-        gate = UnitaryGate(np.eye(2 ** 3))
+        gate = UnitaryGate(np.eye(2**3))
         circuit.append(gate, range(3))
         dag = circuit_to_dag(circuit)
         pass_ = Unroll3qOrMore()

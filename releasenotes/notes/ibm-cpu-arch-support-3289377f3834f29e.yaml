@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Added partial support for running on ppc64le and s390x Linux platforms.
+    This release will start publishing pre-compiled binaries for ppc64le and
+    s390x Linux platforms on all Python versions. However, unlike other
+    supported platforms not all of Qiskit's upstream dependencies support these
+    platforms yet. So a C/C++ compiler may be required to build and install
+    these dependencies and a simple ``pip install qiskit-terra`` with just a
+    working Python environment will not be sufficient to install Qiskit.
+    Additionally, these same constraints prevent us from testing the
+    pre-compiled before publishing them so the same guarantees around platform
+    support that exist for the other platforms don't apply here.

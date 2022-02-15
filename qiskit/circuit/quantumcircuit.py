@@ -259,7 +259,7 @@ class QuantumCircuit:
         self._qubits = []
         self._clbits = []
 
-        # Dict mapping Qubt or Clbit instances to tuple comprised of 0) the
+        # Dict mapping Qubit or Clbit instances to tuple comprised of 0) the
         # corresponding index in circuit.{qubits,clbits} and 1) a list of
         # Register-int pairs for each Register containing the Bit and its index
         # within that register.
@@ -425,18 +425,24 @@ class QuantumCircuit:
         Examples:
 
             input:
-                 ┌───┐
-            q_0: ┤ H ├─────■──────
-                 └───┘┌────┴─────┐
-            q_1: ─────┤ RX(1.57) ├
-                      └──────────┘
+
+            .. parsed-literal::
+
+                     ┌───┐
+                q_0: ┤ H ├─────■──────
+                     └───┘┌────┴─────┐
+                q_1: ─────┤ RX(1.57) ├
+                          └──────────┘
 
             output:
-                             ┌───┐
-            q_0: ─────■──────┤ H ├
-                 ┌────┴─────┐└───┘
-            q_1: ┤ RX(1.57) ├─────
-                 └──────────┘
+
+            .. parsed-literal::
+
+                                 ┌───┐
+                q_0: ─────■──────┤ H ├
+                     ┌────┴─────┐└───┘
+                q_1: ┤ RX(1.57) ├─────
+                     └──────────┘
         """
         reverse_circ = QuantumCircuit(
             self.qubits, self.clbits, *self.qregs, *self.cregs, name=self.name + "_reverse"
@@ -465,18 +471,24 @@ class QuantumCircuit:
         Examples:
 
             input:
-                 ┌───┐
-            q_0: ┤ H ├─────■──────
-                 └───┘┌────┴─────┐
-            q_1: ─────┤ RX(1.57) ├
-                      └──────────┘
+
+            .. parsed-literal::
+
+                     ┌───┐
+                q_0: ┤ H ├─────■──────
+                     └───┘┌────┴─────┐
+                q_1: ─────┤ RX(1.57) ├
+                          └──────────┘
 
             output:
-                      ┌──────────┐
-            q_0: ─────┤ RX(1.57) ├
-                 ┌───┐└────┬─────┘
-            q_1: ┤ H ├─────■──────
-                 └───┘
+
+            .. parsed-literal::
+
+                          ┌──────────┐
+                q_0: ─────┤ RX(1.57) ├
+                     ┌───┐└────┬─────┘
+                q_1: ┤ H ├─────■──────
+                     └───┘
         """
         circ = QuantumCircuit(
             *reversed(self.qregs),
@@ -511,18 +523,24 @@ class QuantumCircuit:
         Examples:
 
             input:
-                 ┌───┐
-            q_0: ┤ H ├─────■──────
-                 └───┘┌────┴─────┐
-            q_1: ─────┤ RX(1.57) ├
-                      └──────────┘
+
+            .. parsed-literal::
+
+                     ┌───┐
+                q_0: ┤ H ├─────■──────
+                     └───┘┌────┴─────┐
+                q_1: ─────┤ RX(1.57) ├
+                          └──────────┘
 
             output:
-                              ┌───┐
-            q_0: ──────■──────┤ H ├
-                 ┌─────┴─────┐└───┘
-            q_1: ┤ RX(-1.57) ├─────
-                 └───────────┘
+
+            .. parsed-literal::
+
+                                  ┌───┐
+                q_0: ──────■──────┤ H ├
+                     ┌─────┴─────┐└───┘
+                q_1: ┤ RX(-1.57) ├─────
+                     └───────────┘
         """
         inverse_circ = QuantumCircuit(
             self.qubits,
@@ -910,11 +928,11 @@ class QuantumCircuit:
 
         .. parsed-literal::
 
-                 ┌────────┐        ┌─────┐          ┌─────┐
+                 ┌────────┐         ┌─────┐          ┌─────┐
             q_0: ┤ bottom ├ ⊗ q_0: ┤ top ├  = q_0: ─┤ top ├──
-                 └────────┘        └─────┘         ┌┴─────┴─┐
-                                              q_1: ┤ bottom ├
-                                                   └────────┘
+                 └────────┘         └─────┘         ┌┴─────┴─┐
+                                               q_1: ┤ bottom ├
+                                                    └────────┘
 
         Args:
             other (QuantumCircuit): The other circuit to tensor this circuit with.
@@ -1352,7 +1370,9 @@ class QuantumCircuit:
                 raise CircuitError('register name "%s" already exists' % register.name)
 
             if isinstance(register, AncillaRegister):
-                self._ancillas.extend(register)
+                for bit in register:
+                    if bit not in self._qubit_indices:
+                        self._ancillas.append(bit)
 
             if isinstance(register, QuantumRegister):
                 self.qregs.append(register)
@@ -3135,7 +3155,7 @@ class QuantumCircuit:
         return self.append(RYYGate(theta), [qubit1, qubit2], [])
 
     def rz(self, phi: ParameterValueType, qubit: QubitSpecifier) -> InstructionSet:
-        """Apply :class:`~qiskit.circuit.library.RYGate`.
+        """Apply :class:`~qiskit.circuit.library.RZGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
 
@@ -3217,6 +3237,30 @@ class QuantumCircuit:
         from .library.standard_gates.rzz import RZZGate
 
         return self.append(RZZGate(theta), [qubit1, qubit2], [])
+
+    def xy(
+        self,
+        theta: ParameterValueType,
+        qubit1: QubitSpecifier,
+        qubit2: QubitSpecifier,
+        beta: Optional[ParameterValueType] = 0,
+    ) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.library.XYGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Args:
+            theta: The rotation angle of the gate.
+            beta: The phase angle of the gate.
+            qubit1: The qubit(s) to apply the gate to.
+            qubit2: The qubit(s) to apply the gate to.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.xy import XYGate
+
+        return self.append(XYGate(theta, beta), [qubit1, qubit2], [])
 
     def ecr(self, qubit1: QubitSpecifier, qubit2: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.ECRGate`.
@@ -4052,7 +4096,11 @@ class QuantumCircuit:
         return self.append(PauliGate(pauli_string), qubits, [])
 
     def _push_scope(
-        self, qubits: Iterable[Qubit] = (), clbits: Iterable[Clbit] = (), allow_jumps: bool = True
+        self,
+        qubits: Iterable[Qubit] = (),
+        clbits: Iterable[Clbit] = (),
+        registers: Iterable[Register] = (),
+        allow_jumps: bool = True,
     ):
         """Add a scope for collecting instructions into this circuit.
 
@@ -4067,11 +4115,19 @@ class QuantumCircuit:
         # pylint: disable=cyclic-import
         from qiskit.circuit.controlflow.builder import ControlFlowBuilderBlock
 
+        # Chain resource requests so things like registers added to inner scopes via conditions are
+        # requested in the outer scope as well.
+        if self._control_flow_scopes:
+            resource_requester = self._control_flow_scopes[-1].request_classical_resource
+        else:
+            resource_requester = self._resolve_classical_resource
+
         self._control_flow_scopes.append(
             ControlFlowBuilderBlock(
                 qubits,
                 clbits,
-                resource_requester=self._resolve_classical_resource,
+                resource_requester=resource_requester,
+                registers=registers,
                 allow_jumps=allow_jumps,
             )
         )
@@ -4277,7 +4333,7 @@ class QuantumCircuit:
                 qc.h(0)
                 qc.cx(0, 1)
                 qc.measure(0, 0)
-                qc.break_loop().c_if(0)
+                qc.break_loop().c_if(0, True)
 
         Args:
             indexset (Iterable[int]): A collection of integers to loop over.  Always necessary.
@@ -4516,7 +4572,8 @@ class QuantumCircuit:
 
         if self._control_flow_scopes:
             operation = BreakLoopPlaceholder()
-            return self.append(operation, *operation.placeholder_resources())
+            resources = operation.placeholder_resources()
+            return self.append(operation, resources.qubits, resources.clbits)
         return self.append(BreakLoopOp(self.num_qubits, self.num_clbits), self.qubits, self.clbits)
 
     def continue_loop(self) -> InstructionSet:
@@ -4545,7 +4602,8 @@ class QuantumCircuit:
 
         if self._control_flow_scopes:
             operation = ContinueLoopPlaceholder()
-            return self.append(operation, *operation.placeholder_resources())
+            resources = operation.placeholder_resources()
+            return self.append(operation, resources.qubits, resources.clbits)
         return self.append(
             ContinueLoopOp(self.num_qubits, self.num_clbits), self.qubits, self.clbits
         )

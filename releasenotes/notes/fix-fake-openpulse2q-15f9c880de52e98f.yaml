@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The ``FakeOpenPulse2Q`` mock backend now has T2 times and readout errors
+    stored for its qubits.  These are arbitrary values, approximately consistent
+    with real backends at the time of its creation.

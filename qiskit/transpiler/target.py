@@ -633,12 +633,16 @@ class Target(Mapping):
             if self._non_global_basis is not None:
                 return self._non_global_basis
 
-            search_set = {frozenset(qarg) for qarg in self._qarg_gate_map if len(qarg) != 1}
+            search_set = {
+                frozenset(qarg)
+                for qarg in self._qarg_gate_map
+                if qarg is not None and len(qarg) != 1
+            }
         incomplete_basis_gates = []
         size_dict = defaultdict(int)
         size_dict[1] = self.num_qubits
         for qarg in search_set:
-            if len(qarg) == 1:
+            if qarg is None or len(qarg) == 1:
                 continue
             size_dict[len(qarg)] += 1
         for inst, qargs in self._gate_map.items():
