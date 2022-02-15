@@ -406,7 +406,7 @@ class SparsePauliOp(LinearOp):
         indexes, inverses = _unique(array)
         if len(indexes) == array.shape[0]:
             # No duplicate operator
-            return self
+            return self.copy()
         indexes = np.array(indexes)
 
         coeffs = np.zeros(indexes.shape[0], dtype=complex)
