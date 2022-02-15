@@ -52,6 +52,11 @@ class TestSampler(QiskitTestCase):
         self._pqc.compose(RealAmplitudes(num_qubits=2, reps=2), inplace=True)
         self._pqc.measure(0, 0)
         self._pqc.measure(1, 1)
+        self._pqc_params = [
+            [0, 0, 0, 0, 0, 0],
+            [1, 1, 1, 1, 1, 1],
+        ]
+        self._pqc_target = [{0: 1}, {0: 0.0148, 1: 0.3449, 2: 0.0531, 3: 0.5872}]
 
     def _generate_circuits_target(self, indices):
         if isinstance(indices, int):
@@ -63,6 +68,17 @@ class TestSampler(QiskitTestCase):
         else:
             raise ValueError(f"invalid index {indices}")
         return circuits, target
+
+    def _generate_params_target(self, indices):
+        if isinstance(indices, int):
+            params = self._pqc_params[indices]
+            target = self._pqc_target[indices]
+        elif isinstance(indices, list):
+            params = [self._pqc_params[j] for j in indices]
+            target = [self._pqc_target[j] for j in indices]
+        else:
+            raise ValueError(f"invalid index {indices}")
+        return params, target
 
     def _compare_probs(self, prob, target):
         if not isinstance(target, list):
@@ -111,16 +127,13 @@ class TestSampler(QiskitTestCase):
             self._compare_probs(result.quasi_dists, target)
 
     @combine(
-        params_target=[
-            ([0, 0, 0, 0, 0, 0], {0: 1}),
-            ([1, 1, 1, 1, 1, 1], {0: 0.0148, 1: 0.3449, 2: 0.0531, 3: 0.5872}),
-        ],
+        indices=[0, 1, [0, 1]],
         shots=[1000, 2000],
     )
-    def test_evaluate_pqc_basicaer(self, params_target, shots):
-        """test for evaluate parametrized circuits"""
+    def test_evaluate_pqc_basicaer(self, indices, shots):
+        """test for evaluate a parametrized circuit"""
         backend = BasicAer.get_backend("qasm_simulator")
-        params, target = params_target
+        params, target = self._generate_params_target(indices)
         with self.subTest("with-guard"):
             with Sampler(circuits=self._pqc, backend=backend) as sampler:
                 sampler.set_run_options(shots=shots, **self._run_config)
@@ -137,16 +150,13 @@ class TestSampler(QiskitTestCase):
 
     @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
     @combine(
-        params_target=[
-            ([0, 0, 0, 0, 0, 0], {0: 1}),
-            ([1, 1, 1, 1, 1, 1], {0: 0.0148, 1: 0.3449, 2: 0.0531, 3: 0.5872}),
-        ],
+        indices=[0, 1, [0, 1]],
         shots=[1000, 2000],
     )
-    def test_evaluate_pqc_aer(self, params_target, shots):
-        """test for evaluate parametrized circuits"""
+    def test_evaluate_pqc_aer(self, indices, shots):
+        """test for evaluate a parametrized circuit"""
         backend = Aer.get_backend("aer_simulator")
-        params, target = params_target
+        params, target = self._generate_params_target(indices)
         with self.subTest("with-guard"):
             with Sampler(circuits=self._pqc, backend=backend) as sampler:
                 sampler.set_run_options(shots=shots, **self._run_config)
@@ -156,6 +166,53 @@ class TestSampler(QiskitTestCase):
 
         with self.subTest("direct call"):
             sampler = Sampler(circuits=self._pqc, backend=backend)
+            sampler.set_run_options(shots=shots, **self._run_config)
+            result = sampler(params)
+            self.assertEqual(result.shots, shots)
+            self._compare_probs(result.quasi_dists, target)
+
+    @combine(
+        indices=[[0, 0], [0, 1], [1, 1]],
+        shots=[1000, 2000],
+    )
+    def test_evaluate_two_pqcs_basicaer(self, indices, shots):
+        """test for evaluate two parametrized circuits"""
+        backend = BasicAer.get_backend("qasm_simulator")
+        circs = [self._pqc, self._pqc]
+        params, target = self._generate_params_target(indices)
+        with self.subTest("with-guard"):
+            with Sampler(circuits=circs, backend=backend) as sampler:
+                sampler.set_run_options(shots=shots, **self._run_config)
+                result: SamplerResult = sampler(params)
+                self.assertEqual(result.shots, shots)
+                self._compare_probs(result.quasi_dists, target)
+
+        with self.subTest("direct call"):
+            sampler = Sampler(circuits=circs, backend=backend)
+            sampler.set_run_options(shots=shots, **self._run_config)
+            result = sampler(params)
+            self.assertEqual(result.shots, shots)
+            self._compare_probs(result.quasi_dists, target)
+
+    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
+    @combine(
+        indices=[[0, 0], [0, 1], [1, 1]],
+        shots=[1000, 2000],
+    )
+    def test_evaluate_two_pqcs_aer(self, indices, shots):
+        """test for evaluate two parametrized circuits"""
+        backend = Aer.get_backend("aer_simulator")
+        circs = [self._pqc, self._pqc]
+        params, target = self._generate_params_target(indices)
+        with self.subTest("with-guard"):
+            with Sampler(circuits=circs, backend=backend) as sampler:
+                sampler.set_run_options(shots=shots, **self._run_config)
+                result: SamplerResult = sampler(params)
+                self.assertEqual(result.shots, shots)
+                self._compare_probs(result.quasi_dists, target)
+
+        with self.subTest("direct call"):
+            sampler = Sampler(circuits=circs, backend=backend)
             sampler.set_run_options(shots=shots, **self._run_config)
             result = sampler(params)
             self.assertEqual(result.shots, shots)

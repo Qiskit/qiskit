@@ -113,13 +113,13 @@ class Sampler(BasePrimitive):
         self._skip_transpilation = True
 
     def _get_quasis(
-        self, results: list[Result], num_circuits: int = -1
+        self, results: list[Result], num_circuits: int
     ) -> tuple[list[QuasiDistribution], float]:
         """Converts a list of results to quasi-probabilities and the total number of shots
 
         Args:
             results: a list of results
-            num_circuits: the number of circuits. If -1, `len(self._circuits)` will be used.
+            num_circuits: the number of circuits.
 
         Returns:
             a list of quasi-probabilities and the total number of shots
@@ -130,8 +130,6 @@ class Sampler(BasePrimitive):
         if len(results) == 0:
             raise QiskitError("Empty result")
         list_counts = self._backend.get_counts(results)
-        if num_circuits == -1:
-            num_circuits = len(self._circuits)
         counters: list[Counter] = [Counter() for _ in range(num_circuits)]
         i = 0
         for counts in list_counts:
@@ -147,7 +145,7 @@ class Sampler(BasePrimitive):
             raise TypeError("result must be an instance of Result.")
 
         raw_results = [result]
-        quasis, shots = self._get_quasis(raw_results)
+        quasis, shots = self._get_quasis(raw_results, len(result.results))
         metadata = [res.header.metadata for result in raw_results for res in result.results]
 
         return SamplerResult(
