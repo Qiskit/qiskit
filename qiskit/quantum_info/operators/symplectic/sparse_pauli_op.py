@@ -386,18 +386,27 @@ class SparsePauliOp(LinearOp):
         # Pack bool vectors into np.uint8 vectors by np.packbits
         array = np.packbits(self.paulis.x, axis=1) * 256 + np.packbits(self.paulis.z, axis=1)
 
-        # The following corresponds to
-        # _, indexes, inverses = np.unique(array, return_index=True, return_inverse=True, axis=0)
-        table = {}
-        indexes = []
-        inverses = np.empty(array.shape[0], dtype=int)
-        for i, ary in enumerate(array):
-            b = ary.data.tobytes()
-            if b in table:
-                inverses[i] = table[b]
-            else:
-                inverses[i] = table[b] = len(table)
-                indexes.append(i)
+        def _unique(array):
+            # This function corresponds to
+            # _, indexes, inverses = np.unique(array, return_index=True, return_inverse=True, axis=0)
+            #
+            # But, note that this does not sort the array while np.unique sorts the array.
+            table = {}
+            indexes = []
+            inverses = np.empty(array.shape[0], dtype=int)
+            for i, ary in enumerate(array):
+                b = ary.data.tobytes()
+                if b in table:
+                    inverses[i] = table[b]
+                else:
+                    inverses[i] = table[b] = len(table)
+                    indexes.append(i)
+            return indexes, inverses
+
+        indexes, inverses = _unique(array)
+        if len(indexes) == array.shape[0]:
+            # No duplicate operator
+            return self
         indexes = np.array(indexes)
 
         coeffs = np.zeros(indexes.shape[0], dtype=complex)
