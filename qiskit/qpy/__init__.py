@@ -624,3 +624,12 @@ this matches the internal C representation of Python's complex type. [#f3]_
 """
 
 from .interface import dump, load
+
+# For backward compatibility. Provide, Runtime, Experiment call these private functions.
+from .binary_io import (
+    _write_instruction,
+    _read_instruction,
+    _write_parameter_expression,
+    _read_parameter_expression,
+    _read_parameter_expression_v3,
+)

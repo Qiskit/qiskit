@@ -215,8 +215,7 @@ def data_to_binary(obj, serializer, **kwargs):
     """
     with io.BytesIO() as container:
         serializer(container, obj, **kwargs)
-        container.seek(0)
-        binary_data = container.read()
+        binary_data = container.getvalue()
 
     return binary_data
 
@@ -238,8 +237,7 @@ def sequence_to_binary(sequence, serializer, **kwargs):
         container.write(struct.pack(formats.SEQUENCE_PACK, num_elements))
         for datum in sequence:
             serializer(container, datum, **kwargs)
-        container.seek(0)
-        binary_data = container.read()
+        binary_data = container.getvalue()
 
     return binary_data
 

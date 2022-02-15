@@ -32,7 +32,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.extensions import quantum_initializer
 from qiskit.qpy import common, formats, exceptions
-from qiskit.qpy.binary_io import alphanumeric
+from qiskit.qpy.binary_io import value
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.synthesis import evolution as evo_synth
 
@@ -45,7 +45,7 @@ def _read_header_v2(file_obj, version, vectors):
         )
     )
     name = file_obj.read(data.name_size).decode(common.ENCODE)
-    global_phase = alphanumeric.loads(
+    global_phase = value.loads_value(
         data.global_phase_type,
         file_obj.read(data.global_phase_size),
         version=version,
@@ -124,7 +124,7 @@ def _read_instruction_parameter(file_obj, version, vectors):
     type_key, bin_data = common.read_instruction_param(file_obj)
 
     if type_key == common.ProgramTypeKey.CIRCUIT:
-        param = common.data_from_binary(bin_data, read, version=version)
+        param = common.data_from_binary(bin_data, read_circuit, version=version)
     elif type_key == common.ContainerTypeKey.RANGE:
         data = formats.RANGE._make(struct.unpack(formats.RANGE_PACK, bin_data))
         param = range(data.start, data.stop, data.step)
@@ -144,7 +144,7 @@ def _read_instruction_parameter(file_obj, version, vectors):
         # TODO This uses little endian. Should be fixed in the next QPY version.
         param = struct.unpack("<d", bin_data)[0]
     else:
-        param = alphanumeric.loads(type_key, bin_data, version, vectors)
+        param = value.loads_value(type_key, bin_data, version, vectors)
 
     return param
 
@@ -305,7 +305,7 @@ def _read_pauli_evolution_gate(file_obj, version, vectors):
     else:
         pauli_op = operator_list
 
-    time = alphanumeric.loads(
+    time = value.loads_value(
         common.AlphanumericTypeKey(pauli_evolution_def.time_type),
         file_obj.read(pauli_evolution_def.time_size),
         version=version,
@@ -339,7 +339,9 @@ def _read_custom_instructions(file_obj, version, vectors):
             if data.custom_definition:
                 def_binary = file_obj.read(data.size)
                 if version < 3 or not name.startswith(r"###PauliEvolutionGate_"):
-                    definition_circuit = common.data_from_binary(def_binary, read, version=version)
+                    definition_circuit = common.data_from_binary(
+                        def_binary, read_circuit, version=version
+                    )
                 elif name.startswith(r"###PauliEvolutionGate_"):
                     definition_circuit = common.data_from_binary(
                         def_binary, _read_pauli_evolution_gate, version=version, vectors=vectors
@@ -356,7 +358,7 @@ def _read_custom_instructions(file_obj, version, vectors):
 def _write_instruction_parameter(file_obj, param):
     if isinstance(param, QuantumCircuit):
         type_key = common.ProgramTypeKey.CIRCUIT
-        data = common.data_to_binary(param, write)
+        data = common.data_to_binary(param, write_circuit)
     elif isinstance(param, range):
         type_key = common.ContainerTypeKey.RANGE
         data = struct.pack(formats.RANGE_PACK, param.start, param.stop, param.step)
@@ -372,7 +374,7 @@ def _write_instruction_parameter(file_obj, param):
         type_key = common.AlphanumericTypeKey.FLOAT
         data = struct.pack("<d", param)
     else:
-        type_key, data = alphanumeric.dumps(param)
+        type_key, data = value.dumps_value(param)
     common.write_instruction_param(file_obj, type_key, data)
 
 
@@ -468,7 +470,7 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate):
         data = common.data_to_binary(operator, _write_elem)
         pauli_data_buf.write(data)
 
-    time_type, time_data = alphanumeric.dumps(evolution_gate.time)
+    time_type, time_data = value.dumps_value(evolution_gate.time)
     time_size = len(time_data)
     synth_class = str(type(evolution_gate.synthesis).__name__)
     settings_dict = evolution_gate.synthesis.settings
@@ -503,7 +505,7 @@ def _write_custom_instruction(file_obj, name, instruction):
         size = len(data)
     elif instruction.definition is not None:
         has_definition = True
-        data = common.data_to_binary(instruction.definition, write)
+        data = common.data_to_binary(instruction.definition, write_circuit)
         size = len(data)
     name_raw = name.encode(common.ENCODE)
     custom_instruction_raw = struct.pack(
@@ -560,7 +562,7 @@ def _write_registers(file_obj, in_circ_regs, full_bits):
     return len(in_circ_regs) + len(out_circ_regs)
 
 
-def write(file_obj, circuit):
+def write_circuit(file_obj, circuit):
     """Write a single QuantumCircuit object in the file like object.
 
     Args:
@@ -571,7 +573,7 @@ def write(file_obj, circuit):
     metadata_size = len(metadata_raw)
     num_instructions = len(circuit)
     circuit_name = circuit.name.encode(common.ENCODE)
-    global_phase_type, global_phase_data = alphanumeric.dumps(circuit.global_phase)
+    global_phase_type, global_phase_data = value.dumps_value(circuit.global_phase)
 
     with io.BytesIO() as reg_buf:
         num_qregs = _write_registers(reg_buf, circuit.qregs, circuit.qubits)
@@ -614,7 +616,7 @@ def write(file_obj, circuit):
     instruction_buffer.close()
 
 
-def read(file_obj, version):
+def read_circuit(file_obj, version):
     """Read a single QuantumCircuit object from the file like object.
 
     Args:

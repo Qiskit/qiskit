@@ -12,5 +12,19 @@
 
 """Read and write QPY-serializable objects."""
 
-from .alphanumeric import dumps as dumps_alphanumeric, loads as load_alphanumeric
-from .circuits import write as write_circuit, read as read_circuit
+from .value import (
+    dumps_value,
+    loads_value,
+    # for backward compatibility; provider, runtime, experiment call this private methods.
+    _write_parameter_expression,
+    _read_parameter_expression,
+    _read_parameter_expression_v3,
+)
+
+from .circuits import (
+    write_circuit,
+    read_circuit,
+    # for backward compatibility; provider calls this private methods.
+    _write_instruction,
+    _read_instruction,
+)

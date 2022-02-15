@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Binary IO for alphanumeric objects"""
+"""Binary IO for any value objects, such as numbers, string, parameters."""
 
 import struct
 import uuid
@@ -22,13 +22,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
 from qiskit.qpy import common, formats, exceptions
 from qiskit.qpy.common import AlphanumericTypeKey as TypeKey, ENCODE
-
-try:
-    import symengine
-
-    HAS_SYMENGINE = True
-except ImportError:
-    HAS_SYMENGINE = False
+from qiskit.utils import optionals as _optional
 
 
 def _write_parameter(file_obj, obj):
@@ -75,7 +69,7 @@ def _write_parameter_expression(file_obj, obj):
             value_key = symbol_key
             value_data = bytes()
         else:
-            value_key, value_data = dumps(value)
+            value_key, value_data = dumps_value(value)
 
         elem_header = struct.pack(
             formats.PARAM_EXPR_MAP_ELEM_V3_PACK,
@@ -126,7 +120,9 @@ def _read_parameter_expression(file_obj):
     )
     from sympy.parsing.sympy_parser import parse_expr
 
-    if HAS_SYMENGINE:
+    if _optional.HAS_SYMENGINE:
+        import symengine
+
         expr = symengine.sympify(parse_expr(file_obj.read(data.expr_size).decode(ENCODE)))
     else:
         expr = parse_expr(file_obj.read(data.expr_size).decode(ENCODE))
@@ -165,7 +161,9 @@ def _read_parameter_expression_v3(file_obj, vectors):
     )
     from sympy.parsing.sympy_parser import parse_expr
 
-    if HAS_SYMENGINE:
+    if _optional.HAS_SYMENGINE:
+        import symengine
+
         expr = symengine.sympify(parse_expr(file_obj.read(data.expr_size).decode(ENCODE)))
     else:
         expr = parse_expr(file_obj.read(data.expr_size).decode(ENCODE))
@@ -207,7 +205,7 @@ def _read_parameter_expression_v3(file_obj, vectors):
     return ParameterExpression(symbol_map, expr)
 
 
-def dumps(obj):
+def dumps_value(obj):
     """Serialize input alphanumeric object.
 
     Args:
@@ -247,7 +245,7 @@ def dumps(obj):
     return type_key, binary_data
 
 
-def loads(type_key, binary_data, version, vectors):
+def loads_value(type_key, binary_data, version, vectors):
     """Deserialize input binary data to alphanumeric object.
 
     Args:
