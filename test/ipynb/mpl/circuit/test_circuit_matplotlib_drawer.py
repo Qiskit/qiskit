@@ -25,7 +25,17 @@ from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.test.mock import FakeTenerife
 from qiskit.visualization.circuit_visualization import _matplotlib_circuit_drawer
-from qiskit.circuit.library import XGate, MCXGate, HGate, RZZGate, SwapGate, DCXGate, ZGate, SGate
+from qiskit.circuit.library import (
+    XGate,
+    MCXGate,
+    HGate,
+    RZZGate,
+    SwapGate,
+    DCXGate,
+    ZGate,
+    SGate,
+    U1Gate,
+)
 from qiskit.circuit.library import MCXVChain
 from qiskit.extensions import HamiltonianGate
 from qiskit.circuit import Parameter, Qubit, Clbit
@@ -841,6 +851,41 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(qr[1]).c_if(cr[1], 0)
         circuit.h(qr[2]).c_if(cr[0], 0)
         self.circuit_drawer(circuit, cregbundle=False, filename="measure_cond_bits_right.png")
+
+    def test_conditions_with_bits_reverse(self):
+        """Test that gates with conditions work with bits reversed"""
+        bits = [Qubit(), Qubit(), Clbit(), Clbit()]
+        cr = ClassicalRegister(2, "cr")
+        crx = ClassicalRegister(2, "cs")
+        circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
+        circuit.x(0).c_if(bits[3], 0)
+        self.circuit_drawer(
+            circuit, cregbundle=False, reverse_bits=True, filename="cond_bits_reverse.png"
+        )
+
+    def test_fold_with_conditions(self):
+        """Test that gates with conditions draw correctly when folding"""
+        qr = QuantumRegister(3)
+        cr = ClassicalRegister(5)
+        circuit = QuantumCircuit(qr, cr)
+
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 1)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 3)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 5)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 7)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 9)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 11)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 13)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 15)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 17)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 19)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 21)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 23)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 25)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 27)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 29)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 31)
+        self.circuit_drawer(circuit, cregbundle=False, filename="fold_with_conditions.png")
 
 
 if __name__ == "__main__":
