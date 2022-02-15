@@ -28,7 +28,7 @@ from ..backends import BackendWrapper
 from ..framework.base_primitive import BasePrimitive
 from ..results import SamplerResult
 from ..results.base_result import BaseResult
-from ..utils import init_circuit
+from ..framework.utils import init_circuit
 
 
 class Sampler(BasePrimitive):

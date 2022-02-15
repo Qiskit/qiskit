@@ -32,7 +32,7 @@ from qiskit.transpiler import PassManager
 from ..backends import BackendWrapper
 from ..results import EstimatorResult
 from ..results.base_result import BaseResult
-from ..utils import Group, init_circuit, init_observable
+from ..framework.utils import Group, init_circuit, init_observable
 
 
 class BaseEstimator(BasePrimitive, ABC):

@@ -10,12 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Evaluators (:mod:`qiskit.evaluators`)
-==========================================
-It contains evaluator primitives.
-"""
+"""Framework for primitives."""
 
-from .estimator import ExactEstimator, PauliEstimator
-from .sampler import AppendableSampler, Sampler
-from .framework import Group
+from .utils import Group
