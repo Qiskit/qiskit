@@ -935,7 +935,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         # For efficiency we also allow returning a single rank-3
         # array where first index is the Pauli row, and second two
         # indices are the matrix indices
-        dim = 2 ** self.num_qubits
+        dim = 2**self.num_qubits
         ret = np.zeros((self.size, dim, dim), dtype=complex)
         for i in range(self.size):
             ret[i] = self._to_matrix(self._array[i])
@@ -1013,7 +1013,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         x = symp[0:num_qubits]
         z = symp[num_qubits : 2 * num_qubits]
 
-        dim = 2 ** num_qubits
+        dim = 2**num_qubits
         twos_array = 1 << np.arange(num_qubits)
         x_indices = np.array(x).dot(twos_array)
         z_indices = np.array(z).dot(twos_array)

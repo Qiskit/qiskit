@@ -10,8 +10,8 @@ fixes:
     order of :attr:`~qiskit.circuit.QuantumCircuit.parameters` could be
     incorrect.
 
-    To fix this issue a new QPY format version, :ref:`version_3`, was required.
+    To fix this issue a new QPY format version, :ref:`qpy_version_3`, was required.
     This new format version includes a representation of the
     :class:`~qiskit.circuit.ParameterVectorElement` class which is
     described in the :mod:`~qiskit.circuit.qpy_serialization` documentation at
-    :ref:`param_vector`.
+    :ref:`qpy_param_vector`.
