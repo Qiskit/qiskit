@@ -394,12 +394,12 @@ def prepare_state(self, state, qubits=None):
             circuit.draw()
 
         output:
-        
+
         .. parsed-literal::
 
-             ┌─────────────────────────────────────┐
-        q_0: ┤ State_preparation(0.70711,-0.70711) ├
-             └─────────────────────────────────────┘
+                ┌─────────────────────────────────────┐
+            q_0: ┤ State_preparation(0.70711,-0.70711) ├
+                └─────────────────────────────────────┘
 
 
         Prepare from a string two qubits in the state `|10>`.
@@ -420,11 +420,11 @@ def prepare_state(self, state, qubits=None):
 
         .. parsed-literal::
         
-             ┌─────────────────────────┐
-        q_0: ┤0                        ├
-             │  State_preparation(0,1) │
-        q_1: ┤1                        ├
-             └─────────────────────────┘
+                ┌─────────────────────────┐
+            q_0: ┤0                        ├
+                │  State_preparation(0,1) │
+            q_1: ┤1                        ├
+                └─────────────────────────┘
 
 
         Initialize two qubits from an array of complex amplitudes
@@ -441,11 +441,11 @@ def prepare_state(self, state, qubits=None):
 
         .. parsed-literal::
 
-             ┌───────────────────────────────────────────┐
-        q_0: ┤0                                          ├
-             │  State_preparation(0,0.70711,-0.70711j,0) │
-        q_1: ┤1                                          ├
-             └───────────────────────────────────────────┘
+                ┌───────────────────────────────────────────┐
+            q_0: ┤0                                          ├
+                │  State_preparation(0,0.70711,-0.70711j,0) │
+            q_1: ┤1                                          ├
+                └───────────────────────────────────────────┘
     """
 
     if qubits is None:

@@ -110,10 +110,10 @@ def initialize(self, params, qubits=None):
         output:
 
         .. parsed-literal::
-        
-             ┌──────────────────────────────┐
-        q_0: ┤ Initialize(0.70711,-0.70711) ├
-             └──────────────────────────────┘
+
+                ┌──────────────────────────────┐
+            q_0: ┤ Initialize(0.70711,-0.70711) ├
+                └──────────────────────────────┘
 
 
         Initialize from a string two qubits in the state `|10>`.
@@ -134,11 +134,11 @@ def initialize(self, params, qubits=None):
 
         .. parsed-literal::
 
-             ┌──────────────────┐
-        q_0: ┤0                 ├
-             │  Initialize(0,1) │
-        q_1: ┤1                 ├
-             └──────────────────┘
+                ┌──────────────────┐
+            q_0: ┤0                 ├
+                │  Initialize(0,1) │
+            q_1: ┤1                 ├
+                └──────────────────┘
 
         Initialize two qubits from an array of complex amplitudes
         .. jupyter-execute::
@@ -154,11 +154,11 @@ def initialize(self, params, qubits=None):
 
         .. parsed-literal::
 
-             ┌────────────────────────────────────┐
-        q_0: ┤0                                   ├
-             │  Initialize(0,0.70711,-0.70711j,0) │
-        q_1: ┤1                                   ├
-             └────────────────────────────────────┘
+                ┌────────────────────────────────────┐
+            q_0: ┤0                                   ├
+                │  Initialize(0,0.70711,-0.70711j,0) │
+            q_1: ┤1                                   ├
+                └────────────────────────────────────┘
     """
     if qubits is None:
         qubits = self.qubits
