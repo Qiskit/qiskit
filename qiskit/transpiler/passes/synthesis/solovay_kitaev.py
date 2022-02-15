@@ -12,7 +12,6 @@
 
 """Synthesize a single qubit gate to a discrete basis set."""
 
-import pathlib
 from typing import List, Union, Optional
 import itertools
 import numpy as np
@@ -73,27 +72,33 @@ class SolovayKitaev:
         else:
             self._basic_approximations = None
 
-    def load_basic_approximations(self, filename: str) -> None:
+    def load_basic_approximations(self, data: Union[dict, str]) -> None:
         """Load basic approximations.
 
         Args:
-            filename: The path to the file from where to load the data.
+            data: If a string, specifies the path to the file from where to load the data.
+                If a dictionary, directly specifies the decompositions as ``{gates: matrix}``.
+                There ``gates`` are the names of the gates producing the SO(3) matrix ``matrix``,
+                e.g. ``{"h t": np.array([[0, 0.7071, -0.7071], [0, -0.7071, -0.7071], [-1, 0, 0]]}``.
 
         Raises:
             ValueError: If the number of gate combinations and associated matrices does not match.
         """
-        data = np.load(filename, allow_pickle=True)
-        gatestrings = data[0]
-        matrices = data[1:]
+        # if a file, load the dictionary
+        if isinstance(data, str):
+            data = np.load(data, allow_pickle=True)
+        # gatestrings = data[0]
+        # matrices = data[1:]
 
-        if len(gatestrings) != len(matrices):
-            raise ValueError("Mismatching number of gates and matrices.")
+        # if len(gatestrings) != len(matrices):
+        #     raise ValueError("Mismatching number of gates and matrices.")
 
         sequences = []
-        for i, gatestring in enumerate(gatestrings):
+        for gatestring, matrix in data.items():
+            # for i, gatestring in enumerate(gatestrings):
             sequence = GateSequence()
             sequence.gates = [self._1q_gates[element] for element in gatestring.split()]
-            sequence.product = matrices[i]
+            sequence.product = np.asarray(matrix)
             sequences.append(sequence)
 
         self._basic_approximations = sequences
@@ -107,7 +112,7 @@ class SolovayKitaev:
         Args:
             basis_gates: The gates from which to create the sequences of gates.
             depth: The maximum depth of the approximations.
-            filename: The file to store the approximations.
+            filename: If provided, the basic approximations are stored in this file.
 
         Returns:
             List of GateSequences using the gates in basic_gates.
@@ -136,13 +141,16 @@ class SolovayKitaev:
                 sequences.append(candidate)
 
         if filename is not None:
-            gatestrings = []
-            matrices = []
+            # gatestrings = []
+            # matrices = []
+            data = {}
             for sequence in sequences:
-                matrices.append(sequence.product)
-                gatestrings.append(" ".join([gate.name for gate in sequence.gates]))
+                gatestring = " ".join([gate.name for gate in sequence.gates])
+                data[gatestring] = sequence.product
+                # matrices.append(sequence.product)
+                # gatestrings.append(
 
-            data = np.array([np.array(gatestrings)] + [np.array(matrix) for matrix in matrices])
+            # data = np.array([np.array(gatestrings)] + [np.array(matrix) for matrix in matrices])
             np.save(filename, data)
 
         return sequences
@@ -321,11 +329,10 @@ class SolovayKitaevDecomposition(TransformationPass):
         self._sk = SolovayKitaev(basis_gates, depth)
 
     @staticmethod
-    def _get_default_approximation_set():
-        # get default basic approximations
-        dirpath = pathlib.Path(__file__).parent
-        filename = "depth10_t_h_tdg.npy"
-        return (dirpath / filename).resolve()
+    def _get_default_approximations():
+        from .depth10_t_h_tdg import decompositions
+
+        return decompositions
 
     @staticmethod
     def generate_basic_approximations(
@@ -361,7 +368,7 @@ class SolovayKitaevDecomposition(TransformationPass):
             TranspilerError: if a gates does not have to_matrix
         """
         if self._sk._basic_approximations is None:
-            self.load_basic_approximations(self._get_default_approximation_set())
+            self.load_basic_approximations(self._get_default_approximations())
 
         for node in dag.op_nodes():
             if not node.op.num_qubits == 1:
