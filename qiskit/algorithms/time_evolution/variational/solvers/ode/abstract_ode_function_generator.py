@@ -38,11 +38,11 @@ class AbstractOdeFunctionGenerator(ABC):
         """
         Args:
             regularization: Use the following regularization with a least square method to solve the
-                            underlying system of linear equations.
-                            Can be either None or ``'ridge'`` or ``'lasso'`` or ``'perturb_diag'``
-                            ``'ridge'`` and ``'lasso'`` use an automatic optimal parameter search
-                            If regularization is None but the metric is ill-conditioned or singular
-                            then a least square solver is used without regularization.
+                underlying system of linear equations. Can be either None or ``'ridge'`` or
+                ``'lasso'`` or ``'perturb_diag'``. ``'ridge'`` and ``'lasso'`` use an automatic
+                optimal parameter search. If regularization is None but the metric is
+                ill-conditioned or singular then a least square solver is used without
+                regularization.
         """
         self._regularization = regularization
 
@@ -65,10 +65,12 @@ class AbstractOdeFunctionGenerator(ABC):
         """
         Evaluates an ODE function for a given time and parameter values. It is used by an ODE
         solver.
+
         Args:
             time: Current time of evolution.
             parameters_values: Current values of parameters.
         Returns:
+
             Tuple containing natural gradient, metric tensor and evolution gradient results
             arising from solving a system of linear equations.
         """

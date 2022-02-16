@@ -36,11 +36,13 @@ class RealErrorCalculator(ErrorCalculator):
 
         """
         Evaluate the l2 norm of the error for a single time step of VarQRTE.
+
         Args:
             nat_grad_res: dω/dt.
             grad_res: -2Im⟨dψ(ω)/dω|H|ψ(ω).
             metric: Fubini-Study Metric.
             param_dict: Dictionary of parameters to be bound.
+
         Returns:
             L2 norm error with a potential imaginary part arising from numerical instabilities
             removed, norm of the time derivative of a state, time derivative of the expectation
@@ -80,10 +82,12 @@ class RealErrorCalculator(ErrorCalculator):
     ) -> np.ndarray:
         """
         Evaluate the gradient of the l2 norm error for a single time step of VarQRTE.
+
         Args:
             nat_grad_res: dω/dt.
             grad_res: -2Im⟨dψ(ω)/dω|H|ψ(ω).
             metric: Fubini-Study Metric.
+
         Returns:
             Gradient of the l2 norm error with a potential imaginary part arising from numerical
             instabilities removed.

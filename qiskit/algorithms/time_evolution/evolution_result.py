@@ -23,7 +23,7 @@ class EvolutionResult:
         Args:
             evolved_object: An evolved quantum state or an evolved quantum observable.
             metadata: A dictionary with algorithm-specific metadata. Keys contain strings that name
-                      data stores as a corresponding value.
+                data stores as a corresponding value.
         """
         self._evolved_object = evolved_object
         self._metadata = metadata

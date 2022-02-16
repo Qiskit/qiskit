@@ -31,16 +31,18 @@ def calculate(
 ) -> OperatorBase:
     """
     Calculates a parametrized evolution gradient object.
+
     Args:
         observable: Observable for which an evolution gradient should be calculated,
-                    e.g., a Hamiltonian of a system.
+            e.g., a Hamiltonian of a system.
         ansatz: Quantum state to be evolved.
         parameters: Parameters with respect to which gradients should be computed.
         grad_method: The method used to compute the state gradient. Can be either
-                    ``'param_shift'`` or ``'lin_comb'`` or ``'fin_diff'``.
+            ``'param_shift'`` or ``'lin_comb'`` or ``'fin_diff'``.
         basis: Basis with respect to which evolution gradient is calculated. In case of a default
-                Z basis a real part of an evolution gradient is returned. In case of a Y basis,
-                an imaginary part of an evolution gradient is returned.
+            Z basis a real part of an evolution gradient is returned. In case of a Y basis,
+            an imaginary part of an evolution gradient is returned.
+
     Returns:
         Parametrized evolution gradient as an OperatorBase.
     """
@@ -59,18 +61,20 @@ def eval_grad_result(
 ) -> OperatorBase:
     """Binds a parametrized evolution grad object to parameters values provided. Uses circuit
     samplers if available.
+
     Args:
         grad: Either an evolution gradient as an OperatorBase to be evaluated or a callable that
             constructs an OperatorBase from a dictionairy of parameters and evalues and
-            potentially a
-            CircuitSampler.
+            potentially a CircuitSampler.
         param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
         grad_circ_sampler: CircuitSampler for evolution gradients.
         energy_sampler: CircuitSampler for energy.
         allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
-                                imaginary part is expected.
+            imaginary part is expected.
+
     Returns:
         Evolution gradient with all parameters bound.
+
     Raises:
         Warning: if an unexpected non-negligible imaginary part of the gradient is detected.
     """

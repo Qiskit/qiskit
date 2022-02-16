@@ -35,11 +35,13 @@ class ImaginaryErrorCalculator(ErrorCalculator):
     ) -> Tuple[Union[float], Union[np.ndarray, complex, float], Union[Union[complex, float], Any]]:
         """
         Evaluate the l2 norm of the error for a single time step of VarQITE.
+
         Args:
             nat_grad_res: dω/dt.
             grad_res: 2Re⟨dψ(ω)/dω|H|ψ(ω).
             metric: Fubini-Study Metric.
             param_dict: Dictionary of parameters to be bound.
+
         Returns:
             L2 norm error with a potential imaginary part arising from numerical instabilities
             removed, norm of the time derivative of a state, time derivative of the expectation
@@ -77,10 +79,12 @@ class ImaginaryErrorCalculator(ErrorCalculator):
     ) -> np.ndarray:
         """
         Evaluate the gradient of the l2 norm error for a single time step of VarQITE.
+
         Args:
             nat_grad_res: dω/dt.
             grad_res: 2Re⟨dψ(ω)/dω|H|ψ(ω).
             metric: Fubini-Study Metric.
+
         Returns:
             Gradient of the l2 norm error with a potential imaginary part arising from numerical
             instabilities removed.

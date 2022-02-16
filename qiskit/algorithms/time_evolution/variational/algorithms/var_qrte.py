@@ -61,12 +61,11 @@ class VarQrte(VarQte, Qrte):
             variational_principle: Variational Principle to be used.
             backend: Backend used to evaluate the quantum circuit outputs
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
-
             allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
-                                    imaginary part is expected.
+                imaginary part is expected.
             allowed_num_instability_error: The amount of negative value that is allowed to be
-                                           rounded up to 0 for quantities that are expected to be
-                                           non-negative.
+                rounded up to 0 for quantities that are expected to be
+                non-negative.
         """
         super().__init__(
             variational_principle,
@@ -89,9 +88,9 @@ class VarQrte(VarQte, Qrte):
 
         """
         Apply Variational Quantum Real Time Evolution (VarQRTE) w.r.t. the given operator.
+
         Args:
             hamiltonian:
-                ⟨ψ(ω)|H(t, theta)|ψ(ω)〉
                 Operator used vor Variational Quantum Imaginary Time Evolution (VarQITE)
                 The coefficient of the operator (operator.coeff) determines the evolution
                 time.
@@ -104,8 +103,9 @@ class VarQrte(VarQte, Qrte):
             observable: Observable to be evolved. Not supported by VarQite.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
             hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
-                                    certain values, including the t_param. If no state parameters
-                                    are provided, they are generated randomly.
+                certain values, including the t_param. If no state parameters
+                are provided, they are generated randomly.
+
         Returns:
             StateFn (parameters are bound) which represents an approximation to the respective
             time evolution.

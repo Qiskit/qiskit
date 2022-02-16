@@ -46,9 +46,11 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
     ) -> ListOp:
         """
         Calculates a metric tensor according to the rules of this variational principle.
+
         Args:
             ansatz: Quantum state to be used for calculating a metric tensor.
             parameters: Parameters with respect to which gradients should be computed.
+
         Returns:
             Transformed metric tensor.
         """
@@ -66,11 +68,13 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
     ) -> Callable:
         """
         Calculates an evolution gradient according to the rules of this variational principle.
+
         Args:
             hamiltonian: Observable for which an evolution gradient should be calculated,
-                        e.g., a Hamiltonian of a system.
+                e.g., a Hamiltonian of a system.
             ansatz: Quantum state to be used for calculating an evolution gradient.
             parameters: Parameters with respect to which gradients should be computed.
+
         Returns:
             Transformed evolution gradient.
         """
@@ -82,8 +86,9 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
             """
             Args:
                 param_dict: Dictionary which relates parameter values to the parameters in the
-                            ansatz.
+                    ansatz.
                 energy_sampler: CircuitSampler for energy.
+
             Returns:
                 Calculated evolution gradient, according to the variational principle.
             """

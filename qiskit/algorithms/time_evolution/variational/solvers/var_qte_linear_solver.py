@@ -46,7 +46,7 @@ class VarQteLinearSolver:
             metric_circ_sampler: CircuitSampler for metric tensors.
             energy_sampler: CircuitSampler for energy.
             allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
-                                    imaginary part is expected.
+                imaginary part is expected.
         """
 
         self._grad_circ_sampler = grad_circ_sampler
@@ -65,21 +65,23 @@ class VarQteLinearSolver:
         """
         Solve the system of linear equations underlying McLachlan's variational principle for the
         calculation without error bounds.
+
         Args:
             var_principle: Variational Principle to be used.
             param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
             time_value: Time value that will be bound to t_param. It is required if t_param is
-            not None.
+                not None.
             regularization: Use the following regularization with a least square method to solve the
-                            underlying system of linear equations.
-                            Can be either None or ``'ridge'`` or ``'lasso'`` or ``'perturb_diag'``
-                            ``'ridge'`` and ``'lasso'`` use an automatic optimal parameter search,
-                            or a penalty term given as Callable.
-                            If regularization is None but the metric is ill-conditioned or singular
-                            then a least square solver is used without regularization.
-        Returns: dω/dt, 2Re⟨dψ(ω)/dω|H|ψ(ω) for VarQITE/ 2Im⟨dψ(ω)/dω|H|ψ(ω) for VarQRTE,
-                Fubini-Study Metric.
+                underlying system of linear equations. Can be either None or ``'ridge'`` or
+                ``'lasso'`` or ``'perturb_diag'``. ``'ridge'`` and ``'lasso'`` use an automatic
+                optimal parameter search, or a penalty term given as Callable.
+                If regularization is None but the metric is ill-conditioned or singular then a
+                least square solver is used without regularization.
+
+        Returns:
+            dω/dt, 2Re⟨dψ(ω)/dω|H|ψ(ω) for VarQITE/ 2Im⟨dψ(ω)/dω|H|ψ(ω) for VarQRTE, Fubini-Study
+            Metric.
         """
         grad = var_principle._raw_evolution_grad
         metric = var_principle._raw_metric_tensor

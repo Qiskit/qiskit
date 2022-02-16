@@ -73,10 +73,10 @@ class VarQte(EvolutionBase, ABC):
             backend: Backend used to evaluate the quantum circuit outputs
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
             allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
-                                    imaginary part is expected.
+                imaginary part is expected.
             allowed_num_instability_error: The amount of negative value that is allowed to be
-                                           rounded up to 0 for quantities that are expected to be
-                                           non-negative.
+                rounded up to 0 for quantities that are expected to be
+                non-negative.
         """
         super().__init__()
         self._variational_principle = variational_principle
@@ -114,11 +114,11 @@ class VarQte(EvolutionBase, ABC):
     ) -> OperatorBase:
         """
         Helper method for performing time evolution. Works both for imaginary and real case.
+
         Args:
             init_state_param_dict: Parameter dictionary with initial values for a given
-                                parametrized state/ansatz.
+                parametrized state/ansatz.
             hamiltonian:
-                ⟨ψ(ω)|H|ψ(ω)〉
                 Operator used vor Variational Quantum Imaginary Time Evolution (VarQte)
                 The coefficient of the operator (operator.coeff) determines the evolution
                 time.
@@ -130,9 +130,11 @@ class VarQte(EvolutionBase, ABC):
             initial_state: Quantum state to be evolved.
             observable: Observable to be evolved. Not supported by VarQte.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
+
         Returns:
             StateFn (parameters are bound) which represents an approximation to the
             respective time evolution.
+
         Raises:
             TypeError: If observable is provided - not supported by this algorithm.
         """
@@ -173,6 +175,7 @@ class VarQte(EvolutionBase, ABC):
         """
         Bind parameters in a given quantum state to values provided. Uses a CircuitSampler if
         available.
+
         Args:
             state: Parametrized quantum state to be bound.
             param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
@@ -202,8 +205,10 @@ class VarQte(EvolutionBase, ABC):
     def _hamiltonian_power(self, power: int) -> OperatorBase:
         """
         Calculates a Hamiltonian raised to a given power.
+
         Args:
             power: Power to which a Hamiltonian operator should be raised.
+
         Returns:
             Hamiltonian raised to a given power.
         """
@@ -225,9 +230,11 @@ class VarQte(EvolutionBase, ABC):
         provided. Based on that, it creates a new dictionary containing only parameters present
         in an initial state and their respective values. If not hamiltonian_value_dict is
         present, values are chosen uniformly at random.
+
         Args:
             hamiltonian_value_dict: Dictionary which relates parameter values to the parameters.
             init_state_parameters: Parameters present in a quantum state.
+
         Returns: Dictionary that maps parameters of an initial state to some values.
         """
         if hamiltonian_value_dict is None:
@@ -244,8 +251,10 @@ class VarQte(EvolutionBase, ABC):
         """
         Validates a constructed operator to make sure that it includes an ansatz and that it is
         an ComposedOp or a ListOp.
+
         Args:
             operator: Operator to be validated.
+
         Raises:
             TypeError: In case an operator provided is not valid.
         """

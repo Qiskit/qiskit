@@ -36,16 +36,15 @@ class EvolutionBase(ABC):
     ):
         """
         Evolves an initial state or an observable according to a Hamiltonian provided.
+
         Args:
-            hamiltonian:
-                ⟨ψ(ω)|H|ψ(ω)〉
-                Operator used variational time evolution.
+            hamiltonian: Operator used variational time evolution.
             time: Total time of evolution.
             initial_state: Quantum state to be evolved.
             observable: Observable to be evolved.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
             hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
-                                    certain values, including the t_param.
+                certain values, including the t_param.
                                     # TODO do we allow binding t_param here?
         """
         raise NotImplementedError()

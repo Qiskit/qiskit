@@ -33,6 +33,7 @@ class VarQteOdeSolver:
     ):
         """
         Initialize ODE Solver.
+
         Args:
             init_params: Set of initial parameters for time 0.
             ode_function_generator: Generator for a function that ODE will use.
@@ -45,8 +46,10 @@ class VarQteOdeSolver:
     def _run(self, evolution_time: float) -> List[Union[float, complex]]:
         """
         Find numerical solution with ODE Solver.
+
         Args:
             evolution_time: Evolution time.
+
         Returns:
             List of parameters found by an ODE solver for a given ODE function callable.
         """

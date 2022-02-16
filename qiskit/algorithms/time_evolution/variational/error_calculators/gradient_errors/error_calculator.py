@@ -44,10 +44,9 @@ class ErrorCalculator(ABC):
             operator_sampler: CircuitSampler for an operator.
             backend: Optional backend tht enables the use of circuit samplers.
             allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
-                                    imaginary part is expected.
+                imaginary part is expected.
             allowed_num_instability_error: The amount of negative value that is allowed to be
-                                           rounded up to 0 for quantities that are expected to be
-                                           non-negative.
+                rounded up to 0 for quantities that are expected to be non-negative.
         """
         self._h_squared = h_squared
         self._operator = operator
@@ -69,10 +68,12 @@ class ErrorCalculator(ABC):
         CircuitSampler is provided, it uses it to sample the operator using a dictionary of
         parameters and values. Otherwise, assign_parameters method is used to bind parameters in
         an operator. A bound operator is then evaluated.
+
         Args:
             operator: Operator to be bound with parameter values.
             operator_circuit_sampler: CircuitSampler for the operator.
             param_dict: Dictionary which relates parameter values to the parameters in the operator.
+
         Returns:
             An operator after binding parameters and executing associated quantum
             circuits. If an operator contains unexpected imaginary parts arising from numerical
@@ -97,10 +98,13 @@ class ErrorCalculator(ABC):
         """
         Fixes a value or array of values which is/are expected to be non-negative and real in case
         it/they is/are not by a small margin due to numerical instabilities.
+
         Args:
             value: Value or array of values to be fixed.
+
         Returns:
             Modified (or not) value provided.
+
         Raises:
             ValueError: If the value provided cannot be fixed.
         """
@@ -128,11 +132,13 @@ class ErrorCalculator(ABC):
     ) -> Tuple[int, Union[np.ndarray, complex, float], Union[Union[complex, float], Any],]:
         """
         Evaluate the l2 norm of the error for a single time step of VarQTE.
+
         Args:
             nat_grad_res: dω/dt.
             grad_res: 2Re⟨dψ(ω)/dω|H|ψ(ω)〉.
             metric: Fubini-Study Metric.
             param_dict: Dictionary of parameters to be bound.
+
         Returns:
             L2 norm error with a potential imaginary part arising from numerical instabilities
             removed, norm of the time derivative of a state, time derivative of the expectation
@@ -149,10 +155,12 @@ class ErrorCalculator(ABC):
     ) -> np.ndarray:
         """
         Evaluate the gradient of the l2 norm error for a single time step of VarQTE.
+
         Args:
             nat_grad_res: dω/dt.
             grad_res: -2Im⟨dψ(ω)/dω|H|ψ(ω)〉.
             metric: Fubini-Study Metric.
+
         Returns:
             Gradient of the l2 norm error with a potential imaginary part arising from numerical
             instabilities removed.

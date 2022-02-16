@@ -91,9 +91,9 @@ class VarQite(Qite, VarQte):
         """
         Apply Variational Quantum Imaginary Time Evolution (VarQITE) w.r.t. the given
         operator.
+
         Args:
             hamiltonian:
-                ⟨ψ(ω)|H(t, theta)|ψ(ω)〉
                 Operator used vor Variational Quantum Imaginary Time Evolution (VarQITE)
                 The coefficient of the operator (operator.coeff) determines the evolution
                 time.
@@ -106,8 +106,9 @@ class VarQite(Qite, VarQte):
             observable: Observable to be evolved. Not supported by VarQite.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
             hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
-                                    certain values, including the t_param. If no state parameters
-                                    are provided, they are generated randomly.
+                certain values, including the t_param. If no state parameters
+                are provided, they are generated randomly.
+
         Returns:
             StateFn (parameters are bound) which represents an approximation to the
             respective time evolution.
