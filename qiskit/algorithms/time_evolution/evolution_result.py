@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """Class for holding evolution result and relevant metadata."""
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union
 
 from qiskit.opflow import OperatorBase
 
@@ -23,17 +23,17 @@ class EvolutionResult:
         Args:
             evolved_object: An evolved quantum state or an evolved quantum observable.
             metadata: A dictionary with algorithm-specific metadata. Keys contain strings that name
-                      data stores as a corresponding value.
+                data stores as a corresponding value.
         """
         self._evolved_object = evolved_object
         self._metadata = metadata
 
     @property
-    def evolved_object(self):
+    def evolved_object(self) -> OperatorBase:
         """Returns an evolved quantum state or an evolved quantum observable."""
         return self._evolved_object
 
     @property
-    def metadata(self):
+    def metadata(self) -> Union[Dict[str, Any], None]:
         """Returns a dictionary with algorithm-specific metadata."""
         return self._metadata

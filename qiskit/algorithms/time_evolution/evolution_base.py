@@ -15,6 +15,7 @@
 from abc import ABC, abstractmethod
 from typing import Union, List, Optional, Dict
 
+from qiskit.algorithms.time_evolution.evolution_result import EvolutionResult
 from qiskit.circuit import Parameter
 from qiskit.opflow import OperatorBase, StateFn, Gradient
 
@@ -31,17 +32,22 @@ class EvolutionBase(ABC):
         observable: Optional[OperatorBase] = None,
         t_param: Optional[Parameter] = None,
         hamiltonian_value_dict: Optional[Dict[Parameter, Union[float, complex]]] = None,
-    ):
+    ) -> EvolutionResult:
         """
         Evolves an initial state or an observable according to a Hamiltonian provided.
+
         Args:
             hamiltonian: Operator used for variational time evolution.
             time: Total time of evolution.
             initial_state: Quantum state to be evolved.
             observable: Observable to be evolved.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
-            hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
-                                    certain values, including the t_param.
+            hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to certain
+                values, including the t_param.
+
+        Returns:
+            Evolution result which includes an evolved gradient of quantum state or an observable
+                and metadata.
         """
         raise NotImplementedError()
 
@@ -56,19 +62,25 @@ class EvolutionBase(ABC):
         t_param: Optional[Parameter] = None,
         hamiltonian_value_dict: Optional[Dict[Parameter, Union[float, complex]]] = None,
         gradient_params: Optional[List[Parameter]] = None,
-    ):
-        """Performs Quantum Time Evolution of gradient expressions.
+    ) -> EvolutionResult:
+        """
+        Performs Quantum Time Evolution of gradient expressions.
+
         Args:
             hamiltonian: Operator used for variational time evolution.
             time: Total time of evolution.
             initial_state: Quantum state to be evolved.
-            gradient_object: ``Gradient`` object which defines a method for computing desired
-                            gradients.
+            gradient_object: Gradient object which defines a method for computing desired
+                gradients.
             observable: Observable to be evolved.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
             hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
-                                    certain values, including the t_param.
-            gradient_params: List of ``Parameter`` instances that indicate gradients with respect to
-                            which parameters shall be computed.
+                certain values, including the t_param.
+            gradient_params: List of parameters that indicates with respect to which parameters
+                gradients shall be computed.
+
+        Returns:
+            Evolution result which includes an evolved gradient of quantum state or an observable
+                and metadata.
         """
         raise NotImplementedError()
