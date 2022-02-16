@@ -254,7 +254,7 @@ class QuantumCircuit:
         # full width of bits, but the builder interface won't know what bits are used until the end.
         self._control_flow_scopes = []
 
-        self.qregs: List[int] = []
+        self.qregs = []
         self.cregs = []
         self._qubits = []
         self._clbits = []
