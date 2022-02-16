@@ -89,7 +89,7 @@ fn swap_trial(
     if locked_best_possible.read().unwrap().is_some() {
         return None;
     }
-    let mut opt_edges: EdgeCollection = EdgeCollection::new();
+    let mut opt_edges = EdgeCollection::new();
     let mut new_layout = int_layout.clone();
     let mut trial_layout = int_layout.clone();
     let mut optimal_layout = int_layout.clone();
