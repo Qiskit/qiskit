@@ -14,8 +14,8 @@
 import unittest
 from qiskit import QuantumCircuit, transpile
 from qiskit.test import QiskitTestCase
-from qiskit.mock import FakeBogota
-from qiskit.mock import HAS_AER
+from qiskit.providers.fake_provider import FakeBogota
+from qiskit.providers.fake_provider import HAS_AER
 
 
 class FakeQasmBackendsTest(QiskitTestCase):
