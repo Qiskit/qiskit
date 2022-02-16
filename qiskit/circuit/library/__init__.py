@@ -24,7 +24,6 @@ Standard Gates
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
-   Barrier
    C3XGate
    C3SXGate
    C4XGate
@@ -50,12 +49,10 @@ Standard Gates
    MCXGrayCode
    MCXRecursive
    MCXVChain
-   Measure
    MSGate
    PhaseGate
    RCCXGate
    RC3XGate
-   Reset
    RGate
    RXGate
    RXXGate
@@ -64,6 +61,7 @@ Standard Gates
    RZGate
    RZZGate
    RZXGate
+   XYGate
    ECRGate
    SGate
    SdgGate
@@ -80,6 +78,19 @@ Standard Gates
    XGate
    YGate
    ZGate
+
+Standard Directives
+===================
+
+..
+    This summary table deliberately does not generate toctree entries; these directives are "owned"
+    by ``qiskit.circuit``.
+
+.. autosummary::
+
+   ~qiskit.circuit.Barrier
+   ~qiskit.circuit.Measure
+   ~qiskit.circuit.Reset
 
 Generalized Gates
 =================
@@ -222,18 +233,6 @@ Particular Quantum Circuits
    PhaseOracle
    EvolvedOperatorAnsatz
    PauliEvolutionGate
-
-
-Probability distributions
-=========================
-
-.. autosummary::
-   :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
-
-   UniformDistribution
-   NormalDistribution
-   LogNormalDistribution
 
 
 N-local circuits
@@ -415,11 +414,6 @@ from .n_local import (
     QAOAAnsatz,
 )
 from .data_preparation import PauliFeatureMap, ZFeatureMap, ZZFeatureMap
-from .probability_distributions import (
-    LogNormalDistribution,
-    NormalDistribution,
-    UniformDistribution,
-)
 from .quantum_volume import QuantumVolume
 from .fourier_checking import FourierChecking
 from .graph_state import GraphState

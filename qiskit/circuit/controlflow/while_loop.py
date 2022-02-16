@@ -16,7 +16,7 @@ from typing import Optional, Tuple, Union
 
 from qiskit.circuit import Clbit, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
-from .condition import validate_condition, condition_bits
+from .condition import validate_condition, condition_bits, condition_registers
 from .control_flow import ControlFlowOp
 
 
@@ -125,6 +125,11 @@ class WhileLoopContext:
             qc.h(0)
             qc.cx(0, 1)
             qc.measure(0, 0)
+
+    .. warning::
+
+        This is an internal interface and no part of it should be relied upon outside of Qiskit
+        Terra.
     """
 
     __slots__ = ("_circuit", "_condition", "_label")
@@ -146,7 +151,9 @@ class WhileLoopContext:
         self._label = label
 
     def __enter__(self):
-        self._circuit._push_scope(clbits=condition_bits(self._condition))
+        self._circuit._push_scope(
+            clbits=condition_bits(self._condition), registers=condition_registers(self._condition)
+        )
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:

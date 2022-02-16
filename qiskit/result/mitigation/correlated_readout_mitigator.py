@@ -112,7 +112,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
 
         # Get operator coeffs
         if diagonal is None:
-            diagonal = z_diagonal(2 ** self._num_qubits)
+            diagonal = z_diagonal(2**self._num_qubits)
         elif isinstance(diagonal, str):
             diagonal = str2diag(diagonal)
 
@@ -222,10 +222,10 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         )
         num_qubits = len(qubits)
 
-        new_amat = np.zeros(2 * [2 ** num_qubits], dtype=float)
+        new_amat = np.zeros(2 * [2**num_qubits], dtype=float)
         for i, col in enumerate(self._assignment_mat.T[self._keep_indexes(qubit_indices)]):
             new_amat[i] = (
-                np.reshape(col, self._num_qubits * [2]).sum(axis=axis).reshape([2 ** num_qubits])
+                np.reshape(col, self._num_qubits * [2]).sum(axis=axis).reshape([2**num_qubits])
             )
         new_amat = new_amat.T
         return new_amat

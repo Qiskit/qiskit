@@ -105,6 +105,13 @@ class TestPhaseEstimation(QiskitTestCase):
             self.assertPhaseEstimationIsCorrect(pec, eigenstate, phase_as_binary)
 
         with self.subTest("a 3-q unitary"):
+            #      ┌───┐
+            # q_0: ┤ X ├──■────■───────
+            #      ├───┤  │    │
+            # q_1: ┤ X ├──■────■───────
+            #      ├───┤┌───┐┌─┴─┐┌───┐
+            # q_2: ┤ X ├┤ H ├┤ X ├┤ H ├
+            #      └───┘└───┘└───┘└───┘
             unitary = QuantumCircuit(3)
             unitary.x([0, 1, 2])
             unitary.cz(0, 1)
@@ -112,6 +119,13 @@ class TestPhaseEstimation(QiskitTestCase):
             unitary.ccx(0, 1, 2)
             unitary.h(2)
 
+            #      ┌───┐
+            # q_0: ┤ H ├──■────■──
+            #      └───┘┌─┴─┐  │
+            # q_1: ─────┤ X ├──┼──
+            #           └───┘┌─┴─┐
+            # q_2: ──────────┤ X ├
+            #                └───┘
             eigenstate = QuantumCircuit(3)
             eigenstate.h(0)
             eigenstate.cx(0, 1)

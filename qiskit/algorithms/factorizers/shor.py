@@ -461,7 +461,7 @@ class Shor:
                 counts = {}
                 for i, v in enumerate(up_qreg_density_mat_diag):
                     if not v == 0:
-                        counts[bin(int(i))[2:].zfill(2 * n)] = v ** 2
+                        counts[bin(int(i))[2:].zfill(2 * n)] = v**2
             else:
                 circuit = self.construct_circuit(N=N, a=a, measurement=True)
                 counts = self._quantum_instance.execute(circuit).get_counts(circuit)
