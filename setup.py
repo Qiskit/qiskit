@@ -135,9 +135,7 @@ setup(
         "Source Code": "https://github.com/Qiskit/qiskit-terra",
     },
     ext_modules=cythonize(EXT_MODULES),
-    rust_extensions=[
-        RustExtension("qiskit._accelerate", "Cargo.toml", binding=Binding.PyO3)
-    ],
+    rust_extensions=[RustExtension("qiskit._accelerate", "Cargo.toml", binding=Binding.PyO3)],
     zip_safe=False,
     entry_points={
         "qiskit.unitary_synthesis": [

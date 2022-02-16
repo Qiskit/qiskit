@@ -14,7 +14,6 @@
 
 import logging
 from math import inf
-from collections import OrderedDict
 import numpy as np
 
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -138,9 +137,7 @@ class StochasticSwap(TransformationPass):
         logger.debug("layer_permutation: trials = %s", trials)
 
         # The input dag is on a flat canonical register
-        # TODO: cleanup the code that is general for multiple qregs below
         canonical_register = QuantumRegister(len(layout), "q")
-        qregs = OrderedDict({canonical_register.name: canonical_register})
 
         gates = []  # list of lists of tuples [[(register, index), ...], ...]
         for gate_args in layer_partition:
@@ -169,9 +166,6 @@ class StochasticSwap(TransformationPass):
         best_layout = None  # initialize best final layout
 
         cdist2 = coupling._dist_matrix**2
-        # Scaling matrix
-        scale = np.zeros((num_qubits, num_qubits))
-
         int_qubit_subset = np.fromiter(
             (self._qubit_indices[bit] for bit in qubit_subset),
             dtype=np.uint64,

@@ -286,6 +286,8 @@ stages:
             tools/verify_headers.py qiskit test
             python tools/find_optional_imports.py
             reno lint
+            cargo fmt --check
+            cargo clippy -- -D warnings
           displayName: 'Style and lint'
     - job: 'Docs'
       pool: {vmImage: 'ubuntu-latest'}
