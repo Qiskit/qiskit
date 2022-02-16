@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    This change introduces the unified framework for Quantum Time Evolution for imaginary and real
+    case. This contribution includes relevant interfaces that will be implement by many algorithms.
+    It covers any time evolution algorithm for evolving quantum states or observables, including
+    time-dependent Hamiltonians.
