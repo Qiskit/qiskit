@@ -86,11 +86,8 @@ fn swap_trial(
     trial_num: u64,
     locked_best_possible: &RwLock<&mut Option<(f64, EdgeCollection, NLayout, usize)>>,
 ) -> Option<(f64, EdgeCollection, NLayout, usize)> {
-    {
-        let best_possible = locked_best_possible.read().unwrap();
-        if best_possible.is_some() {
-            return None;
-        }
+    if locked_best_possible.read().unwrap().is_some() {
+        return None;
     }
     let mut opt_edges: EdgeCollection = EdgeCollection::new();
     let mut new_layout = int_layout.clone();
