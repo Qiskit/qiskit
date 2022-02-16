@@ -115,7 +115,7 @@ fn swap_trial(
 
     let mut scale = Array2::zeros((num_qubits, num_qubits));
 
-    let distribution = Normal::new(0.0, 1.0 / num_qubits as f64).unwrap();
+    let distribution = Normal::new(1.0, 1.0 / num_qubits as f64).unwrap();
     let mut rng: Pcg64Mcg = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed + trial_num),
         None => Pcg64Mcg::from_entropy(),
@@ -123,7 +123,6 @@ fn swap_trial(
     let rand: Vec<f64> = distribution
         .sample_iter(&mut rng)
         .take(num_qubits * (num_qubits + 1) / 2)
-        .map(|i| i + 1.0)
         .collect();
 
     compute_random_scaling(&mut scale, &cdist2, &rand, num_qubits);
