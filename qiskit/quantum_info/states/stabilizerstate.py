@@ -209,7 +209,7 @@ class StabilizerState(QuantumState):
             QiskitError: if oper is not a Pauli operator.
         """
         if not isinstance(oper, Pauli):
-            raise QiskitError("Operator for Expetation value is not a Pauli operator.")
+            raise QiskitError("Operator for expectation value is not a Pauli operator.")
 
         num_qubits = self.clifford.num_qubits
         if qargs is None:
