@@ -34,7 +34,7 @@ impl NLayout {
 impl NLayout {
     #[new]
     fn new(
-        qubit_indicies: HashMap<usize, usize>,
+        qubit_indices: HashMap<usize, usize>,
         logical_qubits: usize,
         physical_qubits: usize,
     ) -> Self {
@@ -42,7 +42,7 @@ impl NLayout {
             logic_to_phys: vec![0; logical_qubits],
             phys_to_logic: vec![0; physical_qubits],
         };
-        for (key, value) in qubit_indicies {
+        for (key, value) in qubit_indices {
             res.logic_to_phys[key] = value;
             res.phys_to_logic[value] = key;
         }
