@@ -22,7 +22,7 @@ The mock devices are mainly for testing the compiler.
 
 from ...test.mock.fake_provider import FakeProvider, FakeLegacyProvider
 from ...test.mock.fake_provider import FakeProviderFactory
-from ...test.mock.fake_backend import FakeBackend, FakeLegacyBackend, HAS_AER
+from ...test.mock.fake_backend import FakeBackend, FakeLegacyBackend
 from ...test.mock.fake_pulse_backend import FakePulseBackend, FakePulseLegacyBackend
 from ...test.mock.fake_qasm_backend import FakeQasmBackend, FakeQasmLegacyBackend
 from ...test.mock.utils.configurable_backend import ConfigurableFakeBackend

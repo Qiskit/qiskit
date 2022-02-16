@@ -15,13 +15,13 @@ import unittest
 from qiskit import QuantumCircuit, transpile
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeBogota
-from qiskit.providers.fake_provider import HAS_AER
+from qiskit.utils.backend_utils import has_aer
 
 
 class FakeQasmBackendsTest(QiskitTestCase):
     """Tests for FakeQasmBackend"""
 
-    @unittest.skipUnless(HAS_AER, "qiskit-aer is required to run this test")
+    @unittest.skipUnless(has_aer(), "qiskit-aer is required to run this test")
     def test_fake_qasm_backend_configured(self):
         """Fake backends honor kwargs passed."""
         backend = FakeBogota()  # this is a FakePulseBackend implementation
