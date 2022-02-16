@@ -227,10 +227,10 @@ class SabreSwap(TransformationPass):
                 )
                 logger.debug(
                     "front_layer: %s",
-                    [(n.name if isinstance(n, 
-                                          
-                                          
-                                          
+                    [(n.name if isinstance(n,
+
+
+
                                           ) else None, n.qargs) for n in front_layer],
                 )
 
@@ -361,17 +361,13 @@ class SabreSwap(TransformationPass):
         to it. The goodness of a layout is evaluated based on how viable it makes
         the remaining virtual gates that must be applied.
         """
-            return sum(self.coupling_map.distance(*[layout[q] for q in node.qargs])
-            return sum(self.distance[layout[node.qargs[0]], layout[node.qargs[1]]]
-                       for node in front_layer)
-
         first_cost = self._compute_cost(front_layer, layout)
         if heuristic == "basic":
             return first_cost
         elif heuristic == 'lookahead':
             first_cost = self._score_heuristic('basic', front_layer, [], layout)
             first_cost /= len(front_layer)
-                       
+
         first_cost /= len(front_layer)
         second_cost = 0
         if extended_set:
