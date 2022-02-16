@@ -11,36 +11,19 @@
 # that they have been altered from the originals.
 
 """ALAP Scheduling."""
-from qiskit.circuit import Delay, Qubit
-from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.dagcircuit import DAGCircuit, DAGInNode
-from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.circuit import Delay, Qubit, Measure, Gate
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
+
+from .base_scheduler import BaseScheduler
 
 
-class ALAPSchedule(TransformationPass):
+class ALAPSchedule(BaseScheduler):
     """ALAP Scheduling pass, which schedules the **stop** time of instructions as late as possible.
 
-    For circuits with instructions writing or reading clbits (e.g. measurements, conditional gates),
-    the scheduler assumes clbits I/O operations take no time, ``measure`` locks clbits to be written
-    at its end and ``c_if`` locks clbits to be read at its beginning.
-
-    Notes:
-        The ALAP scheduler may not schedule a circuit exactly the same as any real backend does
-        when the circuit contains control flows (e.g. conditional instructions).
+    See :class:`~qiskit.transpiler.passes.scheduling.base_scheduler.BaseScheduler` for the
+    detailed behavior of the control flow operation, i.e. ``c_if``.
     """
-
-    def __init__(self, durations):
-        """ALAPSchedule initializer.
-
-        Args:
-            durations (InstructionDurations): Durations of instructions to be used in scheduling
-        """
-        super().__init__()
-        self.durations = durations
-        # ensure op node durations are attached and in consistent unit
-        self.requires.append(TimeUnitConversion(durations))
 
     def run(self, dag):
         """Run the ALAPSchedule pass on `dag`.
@@ -67,41 +50,70 @@ class ALAPSchedule(TransformationPass):
         idle_before = {q: 0 for q in dag.qubits + dag.clbits}
         bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for node in reversed(list(dag.topological_op_nodes())):
-            # validate node.op.duration
-            if node.op.duration is None:
-                indices = [bit_indices[qarg] for qarg in node.qargs]
-                if dag.has_calibration_for(node):
-                    node.op.duration = dag.calibrations[node.op.name][
-                        (tuple(indices), tuple(float(p) for p in node.op.params))
-                    ].duration
+            op_duration = self._get_node_duration(node, bit_indices, dag)
 
-                if node.op.duration is None:
-                    raise TranspilerError(
-                        f"Duration of {node.op.name} on qubits {indices} is not found."
-                    )
-            if isinstance(node.op.duration, ParameterExpression):
-                indices = [bit_indices[qarg] for qarg in node.qargs]
-                raise TranspilerError(
-                    f"Parameterized duration ({node.op.duration}) "
-                    f"of {node.op.name} on qubits {indices} is not bounded."
-                )
+            # compute t0, t1: instruction interval
+            # since this is alap scheduling, node is scheduled in reversed topological ordering
+            # and nodes are packed from the very end of the circuit.
+            # the physical meaning of t0 and t1 is flipped here.
+            if isinstance(node.op, Measure):
+                # clbit time is always right (alap) justified
+                t0 = max(idle_before[bit] for bit in node.qargs + node.cargs)
+                t1 = t0 + op_duration
+                #
+                #       t1 = t0 + duration
+                # Q ░░░░|▒▒▒▒▒▒▒▒▒▒▒
+                # C ░░░░░░░░|▒▒▒▒▒▒▒
+                #           t0 + (duration - clbit_write_latency)
+                #
+                for clbit in node.cargs:
+                    idle_before[clbit] = t0 + (op_duration - self.clbit_write_latency)
+            elif isinstance(node.op, Gate):
+                t0q = max(idle_before[q] for q in node.qargs)
+                if node.op.condition_bits:
+                    # conditional is bit tricky due to conditional_latency
+                    t0c = max(idle_before[c] for c in node.op.condition_bits)
+                    if t0c > t0q:
+                        # this is situation something like below
+                        #
+                        #              t0q
+                        # Q ░░░░░░░░░░░|▒▒▒▒
+                        # C ░░░░░░|▒▒▒▒▒▒▒▒▒
+                        #         t0c
+                        #
+                        # In this case, there is no actual clbit read before gate.
+                        #
+                        #         t1 = t0c
+                        # Q ░░░░░░|▒▒▒||▒▒▒▒
+                        # C ░░░|▒▒|▒▒▒▒▒▒▒▒▒
+                        #      t1 + conditional_latency
+                        #
+                        # rather than naively doing
+                        #
+                        #     t1 = t0c + duration
+                        # Q ░░|▒▒▒|░░░░|▒▒▒▒
+                        # C |▒▒|░░|▒▒▒▒▒▒▒▒▒
+                        #   t0c + duration + conditional_latency
+                        #
+                        t0 = max(t0q, t0c - op_duration)
+                    else:
+                        t0 = t0q
+                    t1 = t0 + op_duration
+                    for clbit in node.op.condition_bits:
+                        idle_before[clbit] = t1 + self.conditional_latency
+                else:
+                    t0 = t0q
+                    t1 = t0 + op_duration
+            else:
+                # It happens to be Barrier
+                t0 = max(idle_before[bit] for bit in node.qargs + node.cargs)
+                t1 = t0 + op_duration
 
-            this_t0 = max(idle_before[q] for q in node.qargs + node.cargs + node.op.condition_bits)
-            this_t1 = this_t0 + node.op.duration
-
-            for prev_node in dag.predecessors(node):
-                if isinstance(prev_node, DAGInNode):
-                    continue
-                # Keep current bit status until operation complete
-                for blocked_bit in set(node.op.condition_bits) & set(prev_node.cargs):
-                    idle_before[blocked_bit] = this_t1
-
-            for bit in node.qargs + node.cargs:
-                before = idle_before[bit]
-                delta = this_t0 - before
-                if before > 0 and delta > 0 and isinstance(bit, Qubit):
+            for bit in node.qargs:
+                delta = t0 - idle_before[bit]
+                if delta > 0:
                     new_dag.apply_operation_front(Delay(delta, time_unit), [bit], [])
-                idle_before[bit] = this_t1
+                idle_before[bit] = t1
 
             new_dag.apply_operation_front(node.op, node.qargs, node.cargs)
 
