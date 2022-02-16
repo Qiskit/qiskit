@@ -47,7 +47,7 @@ class Counts(dict):
                        kwargs don't work and :meth:`hex_outcomes` and
                        :meth:`int_outcomes` also do not work.
 
-            time_taken (float): Time in seconds that the QPU was running the 
+            time_taken (float): Time in seconds that the QPU was running the
                 experiment to generate the counts (only QPU time)
             creg_sizes (list): a nested list where the inner element is a list
                 of tuples containing both the classical register name and
