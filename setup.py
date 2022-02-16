@@ -16,6 +16,7 @@ import os
 import re
 import sys
 from setuptools import setup, find_packages, Extension
+from setuptools_rust import Binding, RustExtension
 
 try:
     from Cython.Build import cythonize
@@ -25,13 +26,6 @@ except ImportError:
     subprocess.call([sys.executable, "-m", "pip", "install", "Cython>=0.27.1"])
     from Cython.Build import cythonize
 
-try:
-    from setuptools_rust import Binding, RustExtension
-except ImportError:
-    import subprocess
-
-    subprocess.call([sys.executable, "-m", "pip", "install", "setuptools-rust"])
-    from setuptools_rust import Binding, RustExtension
 
 with open("requirements.txt") as f:
     REQUIREMENTS = f.read().splitlines()
@@ -142,7 +136,7 @@ setup(
     },
     ext_modules=cythonize(EXT_MODULES),
     rust_extensions=[
-        RustExtension("qiskit.stochastic_swap_rs", "Cargo.toml", binding=Binding.PyO3)
+        RustExtension("qiskit._accelerate", "Cargo.toml", binding=Binding.PyO3)
     ],
     zip_safe=False,
     entry_points={

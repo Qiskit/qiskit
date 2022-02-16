@@ -11,19 +11,17 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
+use pyo3::wrap_pymodule;
 use pyo3::Python;
 
 mod edge_collections;
 mod nlayout;
 mod stochastic_swap;
 
-use stochastic_swap::*;
+use crate::stochastic_swap::PyInit_stochastic_swap;
 
 #[pymodule]
-fn stochastic_swap_rs(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
-    m.add_class::<edge_collections::EdgeCollection>()?;
-    m.add_class::<nlayout::NLayout>()?;
-    m.add_wrapped(wrap_pyfunction!(swap_trials))?;
+fn _accelerate(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+    m.add_wrapped(wrap_pymodule!(stochastic_swap))?;
     Ok(())
 }

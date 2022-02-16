@@ -23,6 +23,9 @@ use numpy::{PyReadonlyArray1, PyReadonlyArray2};
 use rayon::prelude::*;
 
 use pyo3::prelude::*;
+use pyo3::wrap_pyfunction;
+use pyo3::Python;
+
 use rand::prelude::*;
 use rand_distr::{Distribution, Normal};
 use rand_pcg::Pcg64Mcg;
@@ -254,4 +257,12 @@ pub fn swap_trials<'p>(
             Ok((best_edges, best_layout, best_depth))
         }
     }
+}
+
+#[pymodule]
+pub fn stochastic_swap(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_wrapped(wrap_pyfunction!(swap_trials))?;
+    m.add_class::<NLayout>()?;
+    m.add_class::<EdgeCollection>()?;
+    Ok(())
 }

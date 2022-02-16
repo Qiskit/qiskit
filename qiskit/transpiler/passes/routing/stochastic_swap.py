@@ -24,7 +24,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.layout import Layout
 
-from qiskit import stochastic_swap_rs
+from qiskit._accelerate import stochastic_swap as stochastic_swap_rs
 
 logger = logging.getLogger(__name__)
 
