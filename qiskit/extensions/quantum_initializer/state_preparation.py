@@ -174,7 +174,7 @@ class StatePreparation(Instruction):
             raise QiskitError(
                 "StatePreparation parameter vector has %d elements, therefore expects %s "
                 "qubits. However, %s were provided."
-                % (2 ** self.num_qubits, self.num_qubits, len(flat_qargs))
+                % (2**self.num_qubits, self.num_qubits, len(flat_qargs))
             )
         yield flat_qargs, []
 
@@ -284,7 +284,7 @@ class StatePreparation(Instruction):
         a_complex = complex(a_complex)
         b_complex = complex(b_complex)
         mag_a = np.absolute(a_complex)
-        final_r = float(np.sqrt(mag_a ** 2 + np.absolute(b_complex) ** 2))
+        final_r = float(np.sqrt(mag_a**2 + np.absolute(b_complex) ** 2))
         if final_r < _EPS:
             theta = 0
             phi = 0
@@ -419,7 +419,7 @@ def prepare_state(self, state, qubits=None):
         output:
 
         .. parsed-literal::
-        
+
                 ┌─────────────────────────┐
             q_0: ┤0                        ├
                 │  State_preparation(0,1) │
