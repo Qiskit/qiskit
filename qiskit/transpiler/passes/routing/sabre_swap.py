@@ -133,8 +133,7 @@ class SabreSwap(TransformationPass):
 
         self.distance = None
         if properties:
-            self.distance = weighted_distance(len(properties.qubits),
-                                              coupling_map, properties)
+            self.distance = weighted_distance(len(properties.qubits), coupling_map, properties)
         else:
             coupling_map._compute_distance_matrix()
             self.distance = coupling_map._dist_matrix
@@ -227,11 +226,17 @@ class SabreSwap(TransformationPass):
                 )
                 logger.debug(
                     "front_layer: %s",
-                    [(n.name if isinstance(n,
-
-
-
-                                          ) else None, n.qargs) for n in front_layer],
+                    [
+                        (
+                            n.name
+                            if isinstance(
+                                n,
+                            )
+                            else None,
+                            n.qargs,
+                        )
+                        for n in front_layer
+                    ],
                 )
 
                 continue
@@ -364,8 +369,8 @@ class SabreSwap(TransformationPass):
         first_cost = self._compute_cost(front_layer, layout)
         if heuristic == "basic":
             return first_cost
-        elif heuristic == 'lookahead':
-            first_cost = self._score_heuristic('basic', front_layer, [], layout)
+        elif heuristic == "lookahead":
+            first_cost = self._score_heuristic("basic", front_layer, [], layout)
             first_cost /= len(front_layer)
 
         first_cost /= len(front_layer)
