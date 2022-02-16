@@ -200,16 +200,16 @@ fn swap_trial(
 
 #[pyfunction]
 #[pyo3(text_signature = "(graph, weight_fn, /)")]
-pub fn swap_trials<'p>(
+pub fn swap_trials(
     num_trials: u64,
     num_qubits: usize,
     num_gates: usize,
     int_layout: &NLayout,
-    int_qubit_subset: PyReadonlyArray1<'p, usize>,
-    int_gates: PyReadonlyArray1<'p, usize>,
-    cdist: PyReadonlyArray2<'p, f64>,
-    cdist2: PyReadonlyArray2<'p, f64>,
-    edges: PyReadonlyArray1<'p, usize>,
+    int_qubit_subset: PyReadonlyArray1<usize>,
+    int_gates: PyReadonlyArray1<usize>,
+    cdist: PyReadonlyArray2<f64>,
+    cdist2: PyReadonlyArray2<f64>,
+    edges: PyReadonlyArray1<usize>,
     seed: Option<u64>,
 ) -> PyResult<(Option<EdgeCollection>, Option<NLayout>, usize)> {
     let int_qubit_subset_arr = int_qubit_subset.as_slice()?;
