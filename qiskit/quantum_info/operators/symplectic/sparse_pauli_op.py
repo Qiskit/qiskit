@@ -410,36 +410,37 @@ class SparsePauliOp(LinearOp):
         )
 
     def chop(self, tol=1e-14):
-        """Remove real and imaginary parts of the coefficients that are close to 0.
+        """Set real and imaginary parts of the coefficients to 0 if ``< tol`` in magnitude.
 
         For example, the operator representing ``1+1e-17j X + 1e-17 Y`` with a tolerance larger
         than ``1e-17`` will be reduced to ``1 X`` whereas :meth:`.SparsePauliOp.simplify` would
         return ``1+1e-17j X``.
 
+        If a both the real and imaginary part of a coefficient is 0 after chopping, the
+        corresponding Pauli is removed from the operator.
+
         Args:
-            tol (float): The absolute tolerance to check whether a real or imaginary part is 0.
+            tol (float): The absolute tolerance to check whether a real or imaginary part should
+                be set to 0.
 
         Returns:
             SparsePauliOp: This operator with chopped coefficients.
         """
-        # Remove real (resp. imaginary) parts that are close to 0. This part for instance
-        # truncates 1+1e-17j to 1.0. Note that all coefficients that are left at this point
-        # are guaranteed to have a value above tolerance due to the previous is_zero check.
-        realpart_nonzero = np.logical_not(np.isclose(self.coeffs.real, 0, atol=tol))
-        imagpart_nonzero = np.logical_not(np.isclose(self.coeffs.imag, 0, atol=tol))
+        realpart_nonzero = np.abs(self.coeffs.real) > tol
+        imagpart_nonzero = np.abs(self.coeffs.imag) > tol
 
         remaining_indices = np.logical_or(realpart_nonzero, imagpart_nonzero)
         remaining_real = realpart_nonzero[remaining_indices]
         remaining_imag = imagpart_nonzero[remaining_indices]
 
-        if not np.any(remaining_indices):
+        if len(remaining_real) == 0:  # if no Paulis are left
             x = np.zeros((1, self.num_qubits), dtype=bool)
             z = np.zeros((1, self.num_qubits), dtype=bool)
             coeffs = np.array([0j], dtype=complex)
         else:
-            coeffs = np.zeros(sum(remaining_indices), dtype=complex)
-            coeffs[remaining_real] += self.coeffs.real[realpart_nonzero]
-            coeffs[remaining_imag] += 1j * self.coeffs.imag[imagpart_nonzero]
+            coeffs = np.zeros(np.count_nonzero(remaining_indices), dtype=complex)
+            coeffs.real[remaining_real] = self.coeffs.real[realpart_nonzero]
+            coeffs.imag[remaining_imag] = self.coeffs.imag[imagpart_nonzero]
 
             x = self.paulis.x[remaining_indices]
             z = self.paulis.z[remaining_indices]

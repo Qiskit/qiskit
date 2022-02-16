@@ -466,11 +466,13 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         """Test chop, which individually truncates real and imaginary parts of the coeffs."""
         eps = 1e-10
         op = SparsePauliOp(
-            ["Z", "Z", "X", "Y"], coeffs=[eps + 1j * eps, 1 + 1j * eps, eps + 1j, 1 + 1j]
+            ["XYZ", "ZII", "ZII", "YZY"], coeffs=[eps + 1j * eps, 1 + 1j * eps, eps + 1j, 1 + 1j]
         )
         simplified = op.chop(tol=eps)
         expected_coeffs = [1, 1j, 1 + 1j]
+        expected_paulis = ["ZII", "ZII", "YZY"]
         self.assertListEqual(simplified.coeffs.tolist(), expected_coeffs)
+        self.assertListEqual(simplified.paulis.to_labels(), expected_paulis)
 
     def test_chop_all(self):
         """Test that chop returns an identity operator with coeff 0 if all coeffs are chopped."""
