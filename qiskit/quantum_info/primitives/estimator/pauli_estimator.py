@@ -25,7 +25,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
-from qiskit.opflow import AbelianGrouper, PauliSumOp
+from qiskit.opflow import PauliSumOp
 from qiskit.providers import BackendV1 as Backend
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -190,8 +190,7 @@ class PauliEstimator(BaseEstimator):
             observable = self._observables[group.observable_index]
             diff_circuits: list[QuantumCircuit] = []
             if self._measurement_strategy:
-                for sumop in AbelianGrouper().convert(PauliSumOp(observable)).oplist:  # type: ignore
-                    op = cast(SparsePauliOp, sumop.primitive)
+                for op in observable.grouping():
                     coeff_dict = {
                         key: val.real.item() if np.isreal(val) else val.item()
                         for key, val in op.label_iter()
