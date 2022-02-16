@@ -1,7 +1,11 @@
 ---
 features:
   - |
-    This change introduces the unified framework for Quantum Time Evolution for imaginary and real
-    case. This contribution includes relevant interfaces that will be implement by many algorithms.
-    It covers any time evolution algorithm for evolving quantum states or observables, including
-    time-dependent Hamiltonians.
+    Interfaces for the unified framework for Quantum Time Evolution are introduced.
+    :py:class:`~qiskit.algorithms.time_evolution.evolution_base` interface serves as a base for
+    any time evolution algorithm for evolving quantum states or observables, including
+    time-dependent Hamiltonians. :py:class:`~qiskit.algorithms.time_evolution.imaginary.qite` and
+    :py:class:`~qiskit.algorithms.time_evolution.imaginary.qrte` are derived interfaces for
+    imaginary and real time evolution cases respectively.
+    :py:class:`~qiskit.algorithms.time_evolution.evolution_result` is introduced as a result object
+    for quantum time evolution algorithms.
