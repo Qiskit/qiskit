@@ -318,7 +318,7 @@ class TemplateSubstitution:
 
             # Fake bind any parameters in the template
             template = self._attempt_bind(template_sublist, circuit_sublist)
-            if template is None or self._incr_num_parameters():
+            if template is None or self._incr_num_parameters(template):
                 continue
 
             template_list = range(0, self.template_dag_dep.size())
@@ -547,13 +547,13 @@ class TemplateSubstitution:
 
         return template_dag_dep
 
-    def _incr_num_parameters(self):
+    def _incr_num_parameters(self, template):
         """
         Checks if template substitution would increase the number of
         parameters in the circuit.
         """
         template_params = set()
-        for param_list in (node.op.params for node in self.template_dag_dep.get_nodes()):
+        for param_list in (node.op.params for node in template.get_nodes()):
             for param_exp in param_list:
                 if isinstance(param_exp, ParameterExpression):
                     template_params.update(param_exp.parameters)

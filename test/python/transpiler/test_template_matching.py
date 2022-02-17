@@ -19,6 +19,7 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import Parameter, Gate
 from qiskit.extensions import UnitaryGate
 from qiskit.quantum_info import Operator
+from qiskit.circuit.library import CUGate
 from qiskit.circuit.library.templates import template_nct_2a_2, template_nct_5a_3
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
@@ -250,28 +251,27 @@ class TestTemplateMatching(QiskitTestCase):
               └──────┘                          └───┘└──────┘└───┘
         """
 
-        class CZp(Gate):
-            """CZ gates used for the test."""
+        #class CZp(Gate):
+        #     """CZ gates used for the test."""
+        #
+        #     def __init__(self, num_qubits, params):
+        #         super().__init__("cz", num_qubits, params)
+        #
+        #     def inverse(self):
+        #         #inverse = UnitaryGate(np.diag([1.0, 1.0, 1.0, np.exp(-2.0j * self.params[0])]))
+        #         inverse = CUGate(0, 0, 0, -2.0j * self.params[0])
+        #         inverse.name = "icz"
+        #         return inverse
 
-            def __init__(self, num_qubits, params):
-                super().__init__("cz", num_qubits, params)
 
-            def inverse(self):
-                inverse = UnitaryGate(np.diag([1.0, 1.0, 1.0, np.exp(-2.0j * self.params[0])]))
-                inverse.name = "icz"
-                return inverse
-
-        def template_czp2():
-            beta = Parameter("β")
-            qc = QuantumCircuit(2)
-            qc.p(-beta, 0)
-            qc.p(-beta, 1)
-            qc.cx(0, 1)
-            qc.p(beta, 1)
-            qc.cx(0, 1)
-            qc.append(CZp(2, [beta]), [0, 1])
-
-            return qc
+        beta = Parameter("β")
+        template = QuantumCircuit(2)
+        template.p(-beta, 0)
+        template.p(-beta, 1)
+        template.cx(0, 1)
+        template.p(beta, 1)
+        template.cx(0, 1)
+        template.cu(0, 0, 0, beta, 0, 1)
 
         def count_cx(qc):
             """Counts the number of CX gates for testing."""
@@ -289,9 +289,13 @@ class TestTemplateMatching(QiskitTestCase):
         circuit_in.p(3, 2)
         circuit_in.cx(1, 2)
 
-        pass_ = TemplateOptimization(template_list=[template_czp2()])
+        pass_ = TemplateOptimization(
+            template_list=[template],
+            user_cost_dict={"cx": 6, "p": 0, "cu": 8},
+        )
         circuit_out = PassManager(pass_).run(circuit_in)
 
+        #import pdb; pdb.set_trace()
         np.testing.assert_almost_equal(Operator(circuit_out).data[3, 3], np.exp(-4.0j))
         np.testing.assert_almost_equal(Operator(circuit_out).data[7, 7], np.exp(-10.0j))
         self.assertEqual(count_cx(circuit_out), 0)  # Two matches => no CX gates.
@@ -309,7 +313,10 @@ class TestTemplateMatching(QiskitTestCase):
         circuit_in.p(3, 2)
         circuit_in.cx(1, 2)
 
-        pass_ = TemplateOptimization(template_list=[template_czp2()])
+        pass_ = TemplateOptimization(
+            template_list=[template],
+            user_cost_dict={"cx": 6, "p": 0, "cu": 8},
+        )
         circuit_out = PassManager(pass_).run(circuit_in)
 
         self.assertEqual(count_cx(circuit_out), 2)  # One match => two CX gates.
@@ -359,17 +366,14 @@ class TestTemplateMatching(QiskitTestCase):
         pass_ = TemplateOptimization(**rzx_templates(["zz2"]))
         circuit_out = PassManager(pass_).run(circuit_in)
 
-        # this is FALSE if template optimization works
-        circuit_equiv = circuit_in == circuit_out
+        # these are NOT equal if template optimization works
+        self.assertNotEqual(circuit_in, circuit_out)
 
-        # however this is TRUE if the operators are the same
+        # however these are equivalent if the operators are the same
         phi_set = 0.42
-        op_equiv = Operator(circuit_in.bind_parameters({phi: phi_set})).equiv(
+        self.assertTrue(Operator(circuit_in.bind_parameters({phi: phi_set})).equiv(
             circuit_out.bind_parameters({phi: phi_set})
-        )
-
-        self.assertEqual(op_equiv and not circuit_equiv, True)
-
+        ))
 
 if __name__ == "__main__":
     unittest.main()

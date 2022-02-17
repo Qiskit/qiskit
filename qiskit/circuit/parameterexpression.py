@@ -25,9 +25,9 @@ from qiskit.utils import optionals as _optionals
 try:
     import symengine
 
-    HAS_SYMENGINE = True
+    _optionals.HAS_SYMENGINE = True
 except ImportError:
-    HAS_SYMENGINE = False
+    _optionals.HAS_SYMENGINE = False
 
 # This type is redefined at the bottom to insert the full reference to "ParameterExpression", so it
 # can safely be used by runtime type-checkers like Sphinx.  Mypy does not need this because it
@@ -72,8 +72,6 @@ class ParameterExpression:
     def conjugate(self) -> "ParameterExpression":
         """Return the conjugate."""
         if _optionals.HAS_SYMENGINE:
-            import symengine
-
             conjugated = ParameterExpression(
                 self._parameter_symbols, symengine.conjugate(self._symbol_expr)
             )
@@ -173,8 +171,6 @@ class ParameterExpression:
         self._raise_if_passed_unknown_parameters(parameter_map.keys())
         self._raise_if_parameter_names_conflict(inbound_names, parameter_map.keys())
         if _optionals.HAS_SYMENGINE:
-            import symengine
-
             new_parameter_symbols = {p: symengine.Symbol(p.name) for p in inbound_parameters}
         else:
             from sympy import Symbol
@@ -297,8 +293,6 @@ class ParameterExpression:
         # Compute the gradient of the parameter expression w.r.t. param
         key = self._parameter_symbols[param]
         if _optionals.HAS_SYMENGINE:
-            import symengine
-
             expr_grad = symengine.Derivative(self._symbol_expr, key)
         else:
             # TODO enable nth derivative
@@ -358,8 +352,6 @@ class ParameterExpression:
     def sin(self):
         """Sine of a ParameterExpression"""
         if _optionals.HAS_SYMENGINE:
-            import symengine
-
             return self._call(symengine.sin)
         else:
             from sympy import sin as _sin
@@ -369,8 +361,6 @@ class ParameterExpression:
     def cos(self):
         """Cosine of a ParameterExpression"""
         if _optionals.HAS_SYMENGINE:
-            import symengine
-
             return self._call(symengine.cos)
         else:
             from sympy import cos as _cos
@@ -380,8 +370,6 @@ class ParameterExpression:
     def tan(self):
         """Tangent of a ParameterExpression"""
         if _optionals.HAS_SYMENGINE:
-            import symengine
-
             return self._call(symengine.tan)
         else:
             from sympy import tan as _tan
@@ -391,8 +379,6 @@ class ParameterExpression:
     def arcsin(self):
         """Arcsin of a ParameterExpression"""
         if _optionals.HAS_SYMENGINE:
-            import symengine
-
             return self._call(symengine.asin)
         else:
             from sympy import asin as _asin
@@ -402,8 +388,6 @@ class ParameterExpression:
     def arccos(self):
         """Arccos of a ParameterExpression"""
         if _optionals.HAS_SYMENGINE:
-            import symengine
-
             return self._call(symengine.acos)
         else:
             from sympy import acos as _acos
@@ -413,8 +397,6 @@ class ParameterExpression:
     def arctan(self):
         """Arctan of a ParameterExpression"""
         if _optionals.HAS_SYMENGINE:
-            import symengine
-
             return self._call(symengine.atan)
         else:
             from sympy import atan as _atan
@@ -424,7 +406,6 @@ class ParameterExpression:
     def exp(self):
         """Exponential of a ParameterExpression"""
         if _optionals.HAS_SYMENGINE:
-            import symengine
 
             return self._call(symengine.exp)
         else:
@@ -435,7 +416,6 @@ class ParameterExpression:
     def log(self):
         """Logarithm of a ParameterExpression"""
         if _optionals.HAS_SYMENGINE:
-            import symengine
 
             return self._call(symengine.log)
         else:
@@ -529,7 +509,6 @@ class ParameterExpression:
 
     def __setstate__(self, state):
         if state["type"] == "symengine":
-            import symengine
 
             self._symbol_expr = symengine.sympify(state["expr"])
             self._parameter_symbols = {k: symengine.sympify(v) for k, v in state["symbols"].items()}
@@ -558,7 +537,7 @@ class ParameterExpression:
 
     def to_simplify_expression(self):
         """Return symbolic expression from sympy/symengine"""
-        if HAS_SYMENGINE:
+        if _optionals.HAS_SYMENGINE:
             return symengine.sympify(self._symbol_expr)
         else:
             from sympy import sympify
