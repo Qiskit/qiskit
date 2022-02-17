@@ -1035,6 +1035,8 @@ class TextDrawing:
         ctrl_qubits = node.qargs[:num_ctrl_qubits]
         cstate = f"{op.ctrl_state:b}".rjust(num_ctrl_qubits, "0")[::-1]
         for i in range(len(ctrl_qubits)):
+            # For sidetext gate alignment, need to set every Bullet with conditional
+            # on if there's a condition.
             if op.condition is not None:
                 conditional = True
             if cstate[i] == "1":
