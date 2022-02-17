@@ -95,13 +95,7 @@ class TestReadoutMitigation(QiskitTestCase):
     @staticmethod
     def assignment_matrices():
         """A 3-qubit readout noise assignment matrices"""
-        # from FakeYorktown
-        assignment_matrices = [
-            np.array([[0.98828125, 0.04003906], [0.01171875, 0.95996094]]),
-            np.array([[0.99023438, 0.02929688], [0.00976562, 0.97070312]]),
-            np.array([[0.984375, 0.02441406], [0.015625, 0.97558594]]),
-        ]
-        return assignment_matrices
+        return LocalReadoutMitigator(backend=FakeYorktown())._assignment_mats[0:3]
 
     @staticmethod
     def counts_data(circuit, assignment_matrices, shots=1024):
