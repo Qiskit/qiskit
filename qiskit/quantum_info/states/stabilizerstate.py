@@ -257,6 +257,7 @@ class StabilizerState(QuantumState):
             phase += 2 * np.count_nonzero(pauli_z & stab.X[p])
             pauli_z = pauli_z ^ stab.Z[p]
 
+        # For valid stabilizers, `phase` can only be 0 (= 1) or 2 (= -1) at this point.
         if phase % 4 != 0:
             return -pauli_phase
 
