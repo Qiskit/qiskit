@@ -199,12 +199,47 @@ fn swap_trial(
     Some((dist, opt_edges, trial_layout, depth_step))
 }
 
+/// Run the random trials as part of the layer permutation used internally for
+/// the stochastic swap algorithm.
+///
+/// This function is multithreaded and will spawn a thread pool as part of its
+/// execution. By default the number of threads will be equal to the number of
+/// CPUs. You can tune the number of threads with the RAYON_NUM_THREADS
+/// environment variable. For example, setting RAYON_NUM_THREADS=4 would limit
+/// the thread pool to 4 threads.
+///
+/// Args:
+///     num_trials (int): The number of random trials to attempt
+///     num_qubits (int): The number of qubits
+///     int_layout (NLayout): The initial layout for the layer. The layout is a mapping
+///         of virtual qubits to physical qubits in the coupling graph
+///     int_qubit_subset (ndarray): A 1D array of qubit indices for the set of qubits in the
+///         coupling map that we've chosen to map into.
+///     int_gates (ndarray): A 1D array of qubit pairs that each 2 qubit gate operates on.
+///         The pairs are flattened on the array so that each pair in the list of 2q gates
+///         are adjacent in the array. For example, if the 2q interaction list was
+///         ``[(0, 1), (2, 1), (3, 2)]``, the input here would be ``[0, 1, 2, 1, 3, 2]``.
+///     cdist (ndarray): The distance matrix for the coupling graph of the target
+///         backend
+///     cdist2 (ndarray): The distance matrix squared for the coupling graph of the
+///         target backend
+///     edges (ndarray): A flattened 1d array of the edge list of the coupling graph.
+///         The pairs are flattened on the array so that each node pair in the edge are
+///         adjacent in the array. For example, if the edge list were ``[(0, 1), (1, 2), (2, 3)]``
+///         the input array here would be ``[0, 1, 1, 2, 2, 3]``.
+///     seed (int): An optional seed for the rng used to generate the random perturbation
+///         matrix used in each trial
+/// Returns:
+///     tuple: If a valid layout permutation is found a tuple of the form:
+///         ``(edges, layout, depth)`` is returned. If a solution is not found the output
+///         will be ``(None, None, max int)``.
 #[pyfunction]
-#[pyo3(text_signature = "(graph, weight_fn, /)")]
+#[pyo3(
+    text_signature = "(num_trials, num_qubits, int_layout, int_gates, cdist, cdist2, edges, /, seed)"
+)]
 pub fn swap_trials(
     num_trials: u64,
     num_qubits: usize,
-    num_gates: usize,
     int_layout: &NLayout,
     int_qubit_subset: PyReadonlyArray1<usize>,
     int_gates: PyReadonlyArray1<usize>,
@@ -218,9 +253,11 @@ pub fn swap_trials(
     let cdist_arr = cdist.as_array();
     let cdist2_arr = cdist2.as_array();
     let edges_arr = edges.as_slice()?;
+    let num_gates: usize = int_gates.len() / 2;
     let mut best_possible: Option<(f64, EdgeCollection, NLayout, usize)> = None;
     let locked_best_possible: RwLock<&mut Option<(f64, EdgeCollection, NLayout, usize)>> =
         RwLock::new(&mut best_possible);
+
     let result: Vec<Option<(f64, EdgeCollection, NLayout, usize)>> = (0..num_trials)
         .into_par_iter()
         .map(|trial_num| {

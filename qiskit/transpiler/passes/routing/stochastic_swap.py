@@ -189,14 +189,13 @@ class StochasticSwap(TransformationPass):
         best_edges, best_layout, best_depth = stochastic_swap_rs.swap_trials(
             trials,
             num_qubits,
-            len(gates),
             int_layout,
             int_qubit_subset,
             int_gates,
             cdist,
             cdist2,
             edges,
-            self.seed,
+            seed=self.seed,
         )
         # If we have no best circuit for this layer, all of the
         # trials have failed
