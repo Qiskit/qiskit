@@ -1438,6 +1438,40 @@ class TestQFI(QiskitOpflowTestCase):
         with self.assertRaises(NotImplementedError):
             _ = QFI("overlap_diag").convert(StateFn(circuit), [x])
 
+    @data((-1j) * Y, Y, X)
+    def test_unsupported_aux_meas_op(self, aux_meas_op):
+        """Test error raised for unsupported auxiliary measurement operator in LinComb Gradient
+
+        dp0/da = cos(a)sin(b) / 2
+        dp1/da = - cos(a)sin(b) / 2
+        dp0/db = sin(a)cos(b) / 2
+        dp1/db = - sin(a)cos(b) / 2
+        """
+
+        a = Parameter("a")
+        b = Parameter("b")
+        params = [a, b]
+
+        q = QuantumRegister(1)
+        qc = QuantumCircuit(q)
+        qc.h(q)
+        qc.rz(params[0], q[0])
+        qc.rx(params[1], q[0])
+
+        op = CircuitStateFn(primitive=qc, coeff=1.0)
+
+        shots = 8000
+
+        prob_grad = LinComb().convert(operator=op, params=params, aux_meas_op=aux_meas_op)
+        value_dict = {a: [np.pi / 4], b: [0]}
+
+        backend = BasicAer.get_backend("qasm_simulator")
+        q_instance = QuantumInstance(backend=backend, shots=shots)
+
+        with self.assertRaises(ValueError):  # or what error type you expect
+            CircuitSampler(backend=q_instance).convert(prob_grad, params=value_dict).eval()
+
+
 
 if __name__ == "__main__":
     unittest.main()
