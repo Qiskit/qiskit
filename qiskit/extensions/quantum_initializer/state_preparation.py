@@ -38,20 +38,29 @@ class StatePreparation(Instruction):
         """Prepare state
 
         Args:
-        params (str, list, int or Statevector):
-            * Statevector: Statevector to initialize to.
-            * list: vector of complex amplitudes to initialize to.
-            * string: labels of basis states of the Pauli eigenstates Z, X, Y. See
-                :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
+            params (str, list, int or Statevector):
+                * Statevector: Statevector to initialize to.
+                * list: vector of complex amplitudes to initialize to.
+                * string: labels of basis states of the Pauli eigenstates Z, X, Y. See
+                :meth:`.Statevector.from_label`.
                 Notice the order of the labels is reversed with respect to the qubit index to
-                be applied to. Example label '01' initializes the qubit zero to `|1>` and the
-                qubit one to `|0>`.
-            * int: an integer that is used as a bitmap indicating which qubits to initialize
-                to `|1>`. Example: setting params to 5 would initialize qubit 0 and qubit 2
-                to `|1>` and qubit 1 to `|0>`.
+                be applied to. Example label '01' initializes the qubit zero to :math:`\ket{1}` and the
+                qubit one to :math:`\ket{0}`.
 
-        synthesis (str): the preferred synthesis method for preparing the state
+                * int: an integer that is used as a bitmap indicating which qubits to initialize
+                to :math:`\ket{1}`. Example: setting params to 5 would initialize qubit 0 and qubit 2
+                to :math:`\ket{1}` and qubit 1 to :math:`\ket{0}`.
+            qubits (QuantumRegister or int):
+                * QuantumRegister: A list of qubits to be initialized [Default: None].
+                * int: Index of qubit to be initialized [Default: None].
+        
+        Raises:
+            QiskitError: num_qubits parameter used when params is not an integer
 
+        When a Statevector argument is passed the state is prepare using a recursive
+        initialization algorithm, including optimizations, from "Synthesis of Quantum Logic
+        Circuits" Shende, Bullock, Markov (https://arxiv.org/abs/quant-ph/0406176v5), as well
+        as some additional optimizations including removing zero rotations and double cnots.
         """
         # pylint: disable=cyclic-import
         from qiskit.quantum_info import Statevector
@@ -64,10 +73,10 @@ class StatePreparation(Instruction):
                 "The num_qubits parameter to StatePreparation should only be"
                 " used when params is an integer"
             )
-        self._from_label = True if isinstance(params, str) else False
-        self._from_int = True if isinstance(params, int) else False
+        self._from_label = isinstance(params, str)
+        self._from_int = isinstance(params, int)
 
-        num_qubits = self.get_num_qubits(num_qubits, params)
+        num_qubits = self._get_num_qubits(num_qubits, params)
 
         params = [params] if isinstance(params, int) else params
 
@@ -146,8 +155,8 @@ class StatePreparation(Instruction):
 
         return initialize_circuit
 
-    @staticmethod
-    def get_num_qubits(num_qubits, params):
+    def _get_num_qubits(self, num_qubits, params):
+        """Get number of qubits needed for state preparation"""
         if isinstance(params, str):
             num_qubits = len(params)
         elif isinstance(params, int):
@@ -178,10 +187,10 @@ class StatePreparation(Instruction):
             )
         yield flat_qargs, []
 
-    def validate_parameter(self, parameter):  # ??? move to StatePrep?
+    def validate_parameter(self, parameter):
         """StatePreparation instruction parameter can be str, int, float, and complex."""
 
-        # Initialize instruction parameter can be str
+        # StatePreparation instruction parameter can be str
         if isinstance(parameter, str):
             if parameter in ["0", "1", "+", "-", "l", "r"]:
                 return parameter
@@ -190,7 +199,7 @@ class StatePreparation(Instruction):
                 "0, 1, +, -, l, or r ".format(type(parameter), self.name)
             )
 
-        # Initialize instruction parameter can be int, float, and complex.
+        # StatePreparation instruction parameter can be int, float, and complex.
         if isinstance(parameter, (int, float, complex)):
             return complex(parameter)
         elif isinstance(parameter, np.number):
@@ -283,15 +292,15 @@ class StatePreparation(Instruction):
         # Force a and b to be complex, as otherwise numpy.angle might fail.
         a_complex = complex(a_complex)
         b_complex = complex(b_complex)
-        mag_a = np.absolute(a_complex)
-        final_r = float(np.sqrt(mag_a**2 + np.absolute(b_complex) ** 2))
+        mag_a = abs(a_complex)
+        final_r = np.sqrt(mag_a**2 + np.absolute(b_complex) ** 2)
         if final_r < _EPS:
             theta = 0
             phi = 0
             final_r = 0
             final_t = 0
         else:
-            theta = float(2 * np.arccos(mag_a / final_r))
+            theta = 2 * np.arccos(mag_a / final_r)
             a_arg = np.angle(a_complex)
             b_arg = np.angle(b_complex)
             final_t = a_arg + b_arg
@@ -320,7 +329,7 @@ class StatePreparation(Instruction):
         local_num_qubits = int(math.log2(list_len)) + 1
 
         q = QuantumRegister(local_num_qubits)
-        circuit = QuantumCircuit(q, name="multiplex" + local_num_qubits.__str__())
+        circuit = QuantumCircuit(q, name="multiplex" + str(local_num_qubits))
 
         lsb = q[0]
         msb = q[local_num_qubits - 1]
@@ -361,19 +370,21 @@ class StatePreparation(Instruction):
 
 
 def prepare_state(self, state, qubits=None):
-    r"""Prpare qubits in a specific state.
+    r"""Prepare qubits in a specific state.
 
     Args:
-        params (str or list or int):
+        state (str or list or int):
             * str: labels of basis states of the Pauli eigenstates Z, X, Y. See
-                :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
-                Notice the order of the labels is reversed with respect to the qubit index to
-                be applied to. Example label '01' initializes the qubit zero to `|1>` and the
-                qubit one to `|0>`.
+            :meth:`.Statevector.from_label`.
+            Notice the order of the labels is reversed with respect to the qubit index to
+            be applied to. Example label '01' initializes the qubit zero to :math:`\ket{1}` and the
+            qubit one to :math:`\ket{0}`.
+
             * list: vector of complex amplitudes to initialize to.
+
             * int: an integer that is used as a bitmap indicating which qubits to initialize
-               to `|1>`. Example: setting params to 5 would initialize qubit 0 and qubit 2
-               to `|1>` and qubit 1 to `|0>`.
+            to :math:`\ket{1}`. Example: setting params to 5 would initialize qubit 0 and qubit 2
+            to :math:`\ket{1}` and qubit 1 to :math:`\ket{0}`.
         qubits (QuantumRegister or int):
             * QuantumRegister: A list of qubits to be initialized [Default: None].
             * int: Index of qubit to be initialized [Default: None].
@@ -397,15 +408,15 @@ def prepare_state(self, state, qubits=None):
 
         .. parsed-literal::
 
-                ┌─────────────────────────────────────┐
+                 ┌─────────────────────────────────────┐
             q_0: ┤ State_preparation(0.70711,-0.70711) ├
-                └─────────────────────────────────────┘
+                 └─────────────────────────────────────┘
 
 
-        Prepare from a string two qubits in the state `|10>`.
+        Prepare from a string two qubits in the state :math:`\ket{10}`.
         The order of the labels is reversed with respect to qubit index.
         More information about labels for basis states are in
-        :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
+        :meth:`.Statevector.from_label`.
 
         .. jupyter-execute::
 
@@ -420,11 +431,11 @@ def prepare_state(self, state, qubits=None):
 
         .. parsed-literal::
 
-                ┌─────────────────────────┐
+                 ┌─────────────────────────┐
             q_0: ┤0                        ├
-                │  State_preparation(0,1) │
+                 │  State_preparation(0,1) │
             q_1: ┤1                        ├
-                └─────────────────────────┘
+                 └─────────────────────────┘
 
 
         Initialize two qubits from an array of complex amplitudes
@@ -441,11 +452,11 @@ def prepare_state(self, state, qubits=None):
 
         .. parsed-literal::
 
-                ┌───────────────────────────────────────────┐
+                 ┌───────────────────────────────────────────┐
             q_0: ┤0                                          ├
-                │  State_preparation(0,0.70711,-0.70711j,0) │
+                 │  State_preparation(0,0.70711,-0.70711j,0) │
             q_1: ┤1                                          ├
-                └───────────────────────────────────────────┘
+                 └───────────────────────────────────────────┘
     """
 
     if qubits is None:
