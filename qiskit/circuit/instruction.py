@@ -87,7 +87,7 @@ class Instruction:
         #       already set is a temporary work around that can be removed after
         #       the next stable qiskit-aer release
         if not hasattr(self, "_label"):
-            if not isinstance(label, (str, type(None))):
+            if label is not None and not isinstance(label, str):
                 raise TypeError("label expects a string or None")
             self._label = label
         # tuple (ClassicalRegister, int), tuple (Clbit, bool) or tuple (Clbit, int)
