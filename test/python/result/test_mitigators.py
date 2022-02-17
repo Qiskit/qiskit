@@ -135,16 +135,16 @@ class TestReadoutMitigation(QiskitTestCase):
                 )
             )
             mitigated_error = self.compare_results(counts_ideal, mitigated_probs)
-            self.assertTrue(
-                mitigated_error < unmitigated_error * 0.8,
+            self.assertLess(
+                mitigated_error, unmitigated_error * 0.8,
                 "Mitigator {} did not improve circuit {} measurements".format(
                     mitigator, circuit_name
                 ),
             )
             mitigated_stddev_upper_bound = mitigated_quasi_probs._stddev_upper_bound
             max_unmitigated_stddev = max(unmitigated_stddev.values())
-            self.assertTrue(
-                mitigated_stddev_upper_bound >= max_unmitigated_stddev,
+            self.assertGreaterEqual(
+                mitigated_stddev_upper_bound, max_unmitigated_stddev,
                 "Mitigator {} on circuit {} gave stddev upper bound {} "
                 "while unmitigated stddev maximum is {}".format(
                     mitigator,
@@ -185,8 +185,8 @@ class TestReadoutMitigation(QiskitTestCase):
                     counts_noise, diagonal
                 )
                 mitigated_error = np.abs(ideal_expectation - mitigated_expectation)
-                self.assertTrue(
-                    mitigated_error < unmitigated_error,
+                self.assertLess(
+                    mitigated_error, unmitigated_error,
                     "Mitigator {} did not improve circuit {} expectation computation for diagonal {} "
                     "ideal: {}, unmitigated: {} mitigated: {}".format(
                         mitigator,
@@ -197,8 +197,8 @@ class TestReadoutMitigation(QiskitTestCase):
                         mitigated_expectation,
                     ),
                 )
-                self.assertTrue(
-                    mitigated_stddev >= unmitigated_stddev,
+                self.assertGreaterEqual(
+                    mitigated_stddev, unmitigated_stddev,
                     "Mitigator {} did not increase circuit {} the standard deviation".format(
                         mitigator, circuit_name
                     ),
@@ -221,8 +221,8 @@ class TestReadoutMitigation(QiskitTestCase):
                 .binary_probabilities(num_bits=2)
             )
             mitigated_error = self.compare_results(counts_ideal_12, mitigated_probs_12)
-            self.assertTrue(
-                mitigated_error < 0.001,
+            self.assertLess(
+                mitigated_error, 0.001,
                 "Mitigator {} did not correctly marganalize for qubits 1,2".format(mitigator),
             )
 
@@ -232,8 +232,8 @@ class TestReadoutMitigation(QiskitTestCase):
                 .binary_probabilities(num_bits=2)
             )
             mitigated_error = self.compare_results(counts_ideal_02, mitigated_probs_02)
-            self.assertTrue(
-                mitigated_error < 0.001,
+            self.assertLess(
+                mitigated_error, 0.001,
                 "Mitigator {} did not correctly marganalize for qubits 0,2".format(mitigator),
             )
 
@@ -255,8 +255,8 @@ class TestReadoutMitigation(QiskitTestCase):
                 .binary_probabilities(num_bits=3)
             )
             mitigated_error = self.compare_results(counts_ideal_012, mitigated_probs_012)
-            self.assertTrue(
-                mitigated_error < 0.001,
+            self.assertLess(
+                mitigated_error, 0.001,
                 "Mitigator {} did not correctly handle qubit order 0, 1, 2".format(mitigator),
             )
 
@@ -266,8 +266,8 @@ class TestReadoutMitigation(QiskitTestCase):
                 .binary_probabilities(num_bits=3)
             )
             mitigated_error = self.compare_results(counts_ideal_210, mitigated_probs_210)
-            self.assertTrue(
-                mitigated_error < 0.001,
+            self.assertLess(
+                mitigated_error, 0.001,
                 "Mitigator {} did not correctly handle qubit order 2, 1, 0".format(mitigator),
             )
 
@@ -277,8 +277,8 @@ class TestReadoutMitigation(QiskitTestCase):
                 .binary_probabilities(num_bits=3)
             )
             mitigated_error = self.compare_results(counts_ideal_102, mitigated_probs_102)
-            self.assertTrue(
-                mitigated_error < 0.001,
+            self.assertLess(
+                mitigated_error, 0.001,
                 "Mitigator {} did not correctly handle qubit order 1, 0, 2".format(mitigator),
             )
 
@@ -299,8 +299,8 @@ class TestReadoutMitigation(QiskitTestCase):
                 .binary_probabilities(num_bits=3)
             )
             mitigated_error = self.compare_results(counts_ideal_210, mitigated_probs_210)
-            self.assertTrue(
-                mitigated_error < 0.001,
+            self.assertLess(
+                mitigated_error, 0.001,
                 "Mitigator {} did not correctly handle qubit order 2,1,0".format(mitigator),
             )
 
@@ -311,8 +311,8 @@ class TestReadoutMitigation(QiskitTestCase):
                 .binary_probabilities(num_bits=3)
             )
             mitigated_error = self.compare_results(counts_ideal_012, mitigated_probs_012)
-            self.assertTrue(
-                mitigated_error < 0.001,
+            self.assertLess(
+                mitigated_error, 0.001,
                 "Mitigator {} did not correctly handle qubit order 0,1,2 (the expected default)".format(
                     mitigator
                 ),
@@ -336,8 +336,8 @@ class TestReadoutMitigation(QiskitTestCase):
                 .binary_probabilities(num_bits=1)
             )
             mitigated_error = self.compare_results(counts_ideal_2, mitigated_probs_2)
-            self.assertTrue(
-                mitigated_error < 0.01,
+            self.assertLess(
+                mitigated_error, 0.01,
                 "Mitigator {} did not correctly handle qubit subset".format(mitigator),
             )
 
@@ -347,8 +347,8 @@ class TestReadoutMitigation(QiskitTestCase):
                 .binary_probabilities(num_bits=1)
             )
             mitigated_error = self.compare_results(counts_ideal_6, mitigated_probs_6)
-            self.assertTrue(
-                mitigated_error < 0.001,
+            self.assertLess(
+                mitigated_error, 0.001,
                 "Mitigator {} did not correctly handle qubit subset".format(mitigator),
             )
             diagonal = str2diag("ZZ")
@@ -357,8 +357,8 @@ class TestReadoutMitigation(QiskitTestCase):
                 counts_noise, diagonal, qubits=[2, 6]
             )
             mitigated_error = np.abs(ideal_expectation - mitigated_expectation)
-            self.assertTrue(
-                mitigated_error < 0.1,
+            self.assertLess(
+                mitigated_error, 0.1,
                 "Mitigator {} did not improve circuit expectation".format(mitigator),
             )
 
