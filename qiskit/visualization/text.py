@@ -430,9 +430,8 @@ class Bullet(DirectOnQuWire):
 
     def __init__(self, top_connect="", bot_connect="", conditional=False, label=None, bottom=False):
         super().__init__("■")
+        self.conditional = conditional
         self.top_connect = top_connect
-        #if conditional:
-        #    self._mid_padding = "──"
         self.bot_connect = "║" if conditional else bot_connect
         if label and bottom:
             self.bot_connect = label
@@ -453,6 +452,7 @@ class OpenBullet(DirectOnQuWire):
 
     def __init__(self, top_connect="", bot_connect="", conditional=False, label=None, bottom=False):
         super().__init__("o")
+        self.conditional = conditional
         self.top_connect = top_connect
         self.bot_connect = "║" if conditional else bot_connect
         if label and bottom:
@@ -1035,6 +1035,8 @@ class TextDrawing:
         ctrl_qubits = node.qargs[:num_ctrl_qubits]
         cstate = f"{op.ctrl_state:b}".rjust(num_ctrl_qubits, "0")[::-1]
         for i in range(len(ctrl_qubits)):
+            if op.condition is not None:
+                conditional = True
             if cstate[i] == "1":
                 gates.append(Bullet(conditional=conditional, label=ctrl_text, bottom=bottom))
             else:
@@ -1193,10 +1195,8 @@ class TextDrawing:
 
             for node in node_layer:
                 layer, current_connections, connection_label = self._node_to_gate(node, layer)
-                print(connection_label)
 
                 layer.connections.append((connection_label, current_connections))
-            print(layer.connections)
             layer.connect_with("│")
             layers.append(layer.full_layer)
 
@@ -1505,6 +1505,6 @@ class Layer:
 
             if label:
                 for affected_bit in affected_bits:
-                    print(affected_bit)
-                    print(label, len(label), affected_bit.mid, len(affected_bit.mid))
                     affected_bit.right_fill = len(label) + len(affected_bit.mid)
+                    if isinstance(affected_bit, (Bullet, OpenBullet)) and affected_bit.conditional:
+                        affected_bit.left_fill = len(label) + len(affected_bit.mid)

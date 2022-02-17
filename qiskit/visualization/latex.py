@@ -191,7 +191,6 @@ class QCircuitImage:
 
         self._wire_map = get_wire_map(circuit, qubits + clbits, self._cregbundle)
         self._img_width = len(self._wire_map)
-        self._layer_widths = {}
 
         self._style, _ = load_style(style)
 
@@ -349,12 +348,11 @@ class QCircuitImage:
                 # all gates take up 1 column except from those with side labels (ie cu1, cp, rzz)
                 # which take 4 columns
                 base_type = None if not hasattr(op, "base_gate") else op.base_gate
-                #if isinstance(op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate, RZZGate)):
-                #    column_width = 4
+                if isinstance(op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate, RZZGate)):
+                    column_width = 4
             max_column_widths.append(current_max)
             columns += column_width
 
-        self._layer_widths[layer] = columns
         # every 3 characters is roughly one extra 'unit' of width in the cell
         # the gate name is 1 extra 'unit'
         # the qubit/cbit labels plus initial states is 2 more
@@ -447,7 +445,7 @@ class QCircuitImage:
                         self._latex[wire_list[0]][column] = "\\gate{%s}" % gate_text
 
                     elif isinstance(op, ControlledGate):
-                        num_cols_op = self._build_ctrl_gate(op, gate_text, wire_list, column, layer)
+                        num_cols_op = self._build_ctrl_gate(op, gate_text, wire_list, column)
                     else:
                         num_cols_op = self._build_multi_gate(
                             op, gate_text, wire_list, cwire_list, column
@@ -491,7 +489,7 @@ class QCircuitImage:
                     self._latex[wire][col] = ghost_box
         return num_cols_op
 
-    def _build_ctrl_gate(self, op, gate_text, wire_list, col, layer):
+    def _build_ctrl_gate(self, op, gate_text, wire_list, col):
         """Add a gate with multiple controls to the _latex list"""
         num_cols_op = 1
         num_ctrl_qubits = op.num_ctrl_qubits
@@ -511,7 +509,7 @@ class QCircuitImage:
             elif isinstance(op.base_gate, ZGate):
                 self._latex[wireqargs[0]][col] = "\\control\\qw"
             elif isinstance(op.base_gate, (U1Gate, PhaseGate)):
-                num_cols_op = self._build_symmetric_gate(op, gate_text, wire_list, col, layer)
+                num_cols_op = self._build_symmetric_gate(op, gate_text, wire_list, col)
             else:
                 self._latex[wireqargs[0]][col] = "\\gate{%s}" % gate_text
         else:
@@ -532,7 +530,7 @@ class QCircuitImage:
                 self._build_multi_gate(op, gate_text, wireqargs, [], col)
         return num_cols_op
 
-    def _build_symmetric_gate(self, op, gate_text, wire_list, col, max_gate_text, layer):
+    def _build_symmetric_gate(self, op, gate_text, wire_list, col):
         """Add symmetric gates for cu1, cp, swap, and rzz"""
         wire_max = max(wire_list)
         # The last and next to last in the wire list are the gate wires without added controls
@@ -557,10 +555,7 @@ class QCircuitImage:
         self._latex[wire_last][col] = "\\control \\qw"
         # Put side text to the right between bottom wire in wire_list and the one above it
         self._latex[wire_max - 1][col + 1] = "\\dstick{\\hspace{2.0em}%s} \\qw" % gate_text
-        layer_diff = gate_text - self._layer_widths[layer]
-        if layer_diff > 0:
-            col_add = layer_diff
-        return col_add  # num_cols for side text gates
+        return 4  # num_cols for side text gates
 
     def _build_measure(self, node, col):
         """Build a meter and the lines to the creg"""
