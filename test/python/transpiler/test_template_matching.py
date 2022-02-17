@@ -16,10 +16,8 @@
 import unittest
 import numpy as np
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit import Parameter, Gate
-from qiskit.extensions import UnitaryGate
+from qiskit.circuit import Parameter
 from qiskit.quantum_info import Operator
-from qiskit.circuit.library import CUGate
 from qiskit.circuit.library.templates import template_nct_2a_2, template_nct_5a_3
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
@@ -230,7 +228,7 @@ class TestTemplateMatching(QiskitTestCase):
         Check matching where template has parameters.
              ┌───────────┐                  ┌────────┐
         q_0: ┤ P(-1.0*β) ├──■────────────■──┤0       ├
-             ├───────────┤┌─┴─┐┌──────┐┌─┴─┐│  CZ(β) │
+             ├───────────┤┌─┴─┐┌──────┐┌─┴─┐│  CU(2β)│
         q_1: ┤ P(-1.0*β) ├┤ X ├┤ P(β) ├┤ X ├┤1       ├
              └───────────┘└───┘└──────┘└───┘└────────┘
         First test try match on
@@ -251,7 +249,7 @@ class TestTemplateMatching(QiskitTestCase):
               └──────┘                          └───┘└──────┘└───┘
         """
 
-        #class CZp(Gate):
+        # class CZp(Gate):
         #     """CZ gates used for the test."""
         #
         #     def __init__(self, num_qubits, params):
@@ -263,7 +261,6 @@ class TestTemplateMatching(QiskitTestCase):
         #         inverse.name = "icz"
         #         return inverse
 
-
         beta = Parameter("β")
         template = QuantumCircuit(2)
         template.p(-beta, 0)
@@ -271,7 +268,7 @@ class TestTemplateMatching(QiskitTestCase):
         template.cx(0, 1)
         template.p(beta, 1)
         template.cx(0, 1)
-        template.cu(0, 0, 0, beta, 0, 1)
+        template.cu(0, 2.0 * beta, 0, 0, 0, 1)
 
         def count_cx(qc):
             """Counts the number of CX gates for testing."""
@@ -295,7 +292,7 @@ class TestTemplateMatching(QiskitTestCase):
         )
         circuit_out = PassManager(pass_).run(circuit_in)
 
-        #import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         np.testing.assert_almost_equal(Operator(circuit_out).data[3, 3], np.exp(-4.0j))
         np.testing.assert_almost_equal(Operator(circuit_out).data[7, 7], np.exp(-10.0j))
         self.assertEqual(count_cx(circuit_out), 0)  # Two matches => no CX gates.
@@ -371,9 +368,12 @@ class TestTemplateMatching(QiskitTestCase):
 
         # however these are equivalent if the operators are the same
         phi_set = 0.42
-        self.assertTrue(Operator(circuit_in.bind_parameters({phi: phi_set})).equiv(
-            circuit_out.bind_parameters({phi: phi_set})
-        ))
+        self.assertTrue(
+            Operator(circuit_in.bind_parameters({phi: phi_set})).equiv(
+                circuit_out.bind_parameters({phi: phi_set})
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
