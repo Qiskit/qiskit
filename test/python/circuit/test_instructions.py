@@ -696,7 +696,7 @@ class TestInstructions(QiskitTestCase):
         """Test instruction label type enforcement."""
         with self.subTest("accepts string labels"):
             instruction = Instruction("h", 1, 0, [], label="label")
-            self.assertIs(instruction.label, "label")
+            self.assertEqual(instruction.label, "label")
         with self.subTest("raises when a non-string label is provided to constructor"):
             with self.assertRaisesRegex(TypeError, r"label expects a string or None"):
                 Instruction("h", 1, 0, [], label=0)
