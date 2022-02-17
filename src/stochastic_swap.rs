@@ -14,7 +14,6 @@
 // closures don't work because of recurssion
 #![allow(clippy::too_many_arguments)]
 
-use std::env;
 use std::sync::RwLock;
 
 use hashbrown::HashSet;
@@ -200,44 +199,12 @@ fn swap_trial(
     Some((dist, opt_edges, trial_layout, depth_step))
 }
 
-/// Run the random trials as part of the layer permutation used internally for
-/// the stochastic swap algorithm.
-///
-/// This function is multithreaded and will spawn a thread pool as part of its
-/// execution. By default the number of threads will be equal to the number of
-/// CPUs. You can tune the number of threads with the RAYON_NUM_THREADS
-/// environment variable. For example, setting RAYON_NUM_THREADS=4 would limit
-/// the thread pool to 4 threads.
-///
-/// Args:
-///     num_trials (int): The number of random trials to attempt
-///     num_qubits (int): The number of qubits
-///     num_gates (int): The number of agest in the layer
-///     int_layout (NLayout): The initial layout for the layer. The layout is a mapping
-///         of virtual qubits to physical qubits in the coupling graph
-///     int_qubit_subset (ndarray):
-///     int_gates (ndarray):
-///     cdist (ndarray): The distance matrix for the coupling graph of the target
-///         backend
-///     cdist2 (ndarray): The distance matrix squared for the coupling graph of the
-///         target backend
-///     edges (ndarray): The
-///     seed (int): An optional seed for the rng used to generate the random perturbation
-///         matrix used in each trial
-///     parallel_threshold (int): The number of qubits to start running in parallel. If
-///         num_qubits is less than this value the function will be single threaded. By
-///         default this value is 10.
-/// Returns:
-///     tuple: If a valid layout permutation is found a tuple of the form:
-///         ``(edges, layout, depth)`` is returned. If a solution is not found the output
-///         will be None
-#[pyfunction(parallel_threshold = 10)]
-#[pyo3(
-    text_signature = "(num_trials, num_qubits, int_layout, int_gates, cdist, cdist2, edges, /, seed, parallel_threshold)"
-)]
+#[pyfunction]
+#[pyo3(text_signature = "(graph, weight_fn, /)")]
 pub fn swap_trials(
     num_trials: u64,
     num_qubits: usize,
+    num_gates: usize,
     int_layout: &NLayout,
     int_qubit_subset: PyReadonlyArray1<usize>,
     int_gates: PyReadonlyArray1<usize>,
@@ -245,26 +212,19 @@ pub fn swap_trials(
     cdist2: PyReadonlyArray2<f64>,
     edges: PyReadonlyArray1<usize>,
     seed: Option<u64>,
-    parallel_threshold: usize,
-) -> PyResult<Option<(EdgeCollection, NLayout, usize)>> {
+) -> PyResult<(Option<EdgeCollection>, Option<NLayout>, usize)> {
     let int_qubit_subset_arr = int_qubit_subset.as_slice()?;
     let int_gates_arr = int_gates.as_slice()?;
     let cdist_arr = cdist.as_array();
     let cdist2_arr = cdist2.as_array();
     let edges_arr = edges.as_slice()?;
-    let parallel_context = env::var("QISKIT_IN_PARALLEL").unwrap_or_else(|_| "FALSE".to_string());
-    let parallel = parallel_context != "TRUE" && num_qubits < parallel_threshold;
     let mut best_possible: Option<(f64, EdgeCollection, NLayout, usize)> = None;
     let locked_best_possible: RwLock<&mut Option<(f64, EdgeCollection, NLayout, usize)>> =
         RwLock::new(&mut best_possible);
-    let mut best_depth = std::usize::MAX;
-    let mut best_edges: Option<EdgeCollection> = None;
-    let mut best_layout: Option<NLayout> = None;
-    let num_gates: usize = int_gates.len() / 2;
-
-    if !parallel {
-        for trial_num in 0..num_trials {
-            let result = swap_trial(
+    let result: Vec<Option<(f64, EdgeCollection, NLayout, usize)>> = (0..num_trials)
+        .into_par_iter()
+        .map(|trial_num| {
+            swap_trial(
                 num_qubits,
                 int_layout,
                 int_qubit_subset_arr,
@@ -275,59 +235,23 @@ pub fn swap_trials(
                 seed,
                 trial_num,
                 &locked_best_possible,
-            );
-            if result.is_none() {
-                continue;
-            }
-            let (dist, edges, layout, depth) = result.unwrap();
-
-            if locked_best_possible.read().unwrap().is_some() {
-                let (_dist, edges, layout, depth) = best_possible.unwrap();
-                return Ok(Some((edges, layout, depth)));
-            }
-            if dist as usize == num_gates && depth < best_depth {
-                best_edges = Some(edges);
-                best_layout = Some(layout);
-                best_depth = depth;
-            }
-        }
-        match best_layout {
-            Some(layout) => Ok(Some((best_edges.unwrap(), layout, best_depth))),
-            None => Ok(None),
-        }
-    } else {
-        let result: Vec<Option<(f64, EdgeCollection, NLayout, usize)>> = (0..num_trials)
-            .into_par_iter()
-            .map(|trial_num| {
-                swap_trial(
-                    num_qubits,
-                    int_layout,
-                    int_qubit_subset_arr,
-                    int_gates_arr,
-                    cdist_arr,
-                    cdist2_arr,
-                    edges_arr,
-                    seed,
-                    trial_num,
-                    &locked_best_possible,
-                )
-            })
-            .collect();
-        match best_possible {
-            Some((_dist, edges, layout, depth)) => Ok(Some((edges, layout, depth))),
-            None => {
-                for (dist, edges, layout, depth) in result.into_iter().flatten() {
-                    if dist as usize == num_gates && depth < best_depth {
-                        best_edges = Some(edges);
-                        best_layout = Some(layout);
-                        best_depth = depth;
-                    }
-                }
-                match best_layout {
-                    Some(layout) => Ok(Some((best_edges.unwrap(), layout, best_depth))),
-                    None => Ok(None),
+            )
+        })
+        .collect();
+    match best_possible {
+        Some((_dist, edges, layout, depth)) => Ok((Some(edges), Some(layout), depth)),
+        None => {
+            let mut best_depth = std::usize::MAX;
+            let mut best_edges: Option<EdgeCollection> = None;
+            let mut best_layout: Option<NLayout> = None;
+            for (dist, edges, layout, depth) in result.into_iter().flatten() {
+                if dist as usize == num_gates && depth < best_depth {
+                    best_edges = Some(edges);
+                    best_layout = Some(layout);
+                    best_depth = depth;
                 }
             }
+            Ok((best_edges, best_layout, best_depth))
         }
     }
 }
