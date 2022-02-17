@@ -74,9 +74,8 @@ class Unroller(TransformationPass):
                 rule = node.op.definition.data
             except (TypeError, AttributeError) as err:
                 raise QiskitError(
-                    f"Error decomposing node of instruction '{node.name}': "
-                    f"{err}. Unable to define instruction '{node.name}' in the"
-                    f" given basis."
+                    f"Error decomposing node of instruction '{node.name}': {err}. "
+                    f"Unable to define instruction '{node.name}' in the given basis."
                 ) from err
 
             # Isometry gates definitions can have widths smaller than that of the
@@ -93,9 +92,8 @@ class Unroller(TransformationPass):
                     rule = rule[0][0].definition.data
                 except (TypeError, AttributeError) as err:
                     raise QiskitError(
-                        f"Error decomposing node of instruction '{node.name}': "
-                        f"{err}. Unable to define instruction '{rule[0][0].name}'"
-                        f" in the given basis."
+                        f"Error decomposing node of instruction '{node.name}': {err}. "
+                        f"Unable to define instruction '{rule[0][0].name}' in the given basis."
                     ) from err
 
             else:

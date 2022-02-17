@@ -76,9 +76,9 @@ class Instruction:
             raise CircuitError(
                 "bad instruction dimensions: %d qubits, %d clbits." % num_qubits, num_clbits
             )
-        self.name = name
-        self.num_qubits = num_qubits
-        self.num_clbits = num_clbits
+        self._name = name
+        self._num_qubits = num_qubits
+        self._num_clbits = num_clbits
 
         self._params = []  # a list of gate params stored
         # Custom instruction label
@@ -404,7 +404,14 @@ class Instruction:
         return inverse_gate
 
     def c_if(self, classical, val):
-        """Add classical condition on register or cbit classical and value val."""
+        """Set a classical equality condition on this instruction between the register or cbit
+        ``classical`` and value ``val``.
+
+        .. note::
+
+            This is a setter method, not an additive one.  Calling this multiple times will silently
+            override any previously set condition; it does not stack.
+        """
         if not isinstance(classical, (ClassicalRegister, Clbit)):
             raise CircuitError("c_if must be used with a classical register or classical bit")
         if val < 0:
@@ -539,3 +546,33 @@ class Instruction:
             return [self.condition[0]]
         else:  # ClassicalRegister
             return list(self.condition[0])
+
+    @property
+    def name(self):
+        """Return the name."""
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        """Set the name."""
+        self._name = name
+
+    @property
+    def num_qubits(self):
+        """Return the number of qubits."""
+        return self._num_qubits
+
+    @num_qubits.setter
+    def num_qubits(self, num_qubits):
+        """Set num_qubits."""
+        self._num_qubits = num_qubits
+
+    @property
+    def num_clbits(self):
+        """Return the number of clbits."""
+        return self._num_clbits
+
+    @num_clbits.setter
+    def num_clbits(self, num_clbits):
+        """Set num_clbits."""
+        self._num_clbits = num_clbits

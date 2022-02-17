@@ -42,13 +42,12 @@ from typing import Any, Dict, Optional, Union
 import math
 import numpy as np
 
-from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library import continuous
 from qiskit.pulse.library.discrete import gaussian, gaussian_square, drag, constant
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
-from qiskit.pulse.utils import format_parameter_value, deprecated_functionality
 
 
 class ParametricPulse(Pulse):
@@ -94,39 +93,6 @@ class ParametricPulse(Pulse):
         """Return True iff the instruction is parameterized."""
         return any(_is_parameterized(val) for val in self.parameters.values())
 
-    @deprecated_functionality
-    def assign(
-        self, parameter: ParameterExpression, value: ParameterValueType
-    ) -> "ParametricPulse":
-        """Assign one parameter to a value, which can either be numeric or another parameter
-        expression.
-        """
-        return self.assign_parameters({parameter: value})
-
-    @deprecated_functionality
-    def assign_parameters(
-        self, value_dict: Dict[ParameterExpression, ParameterValueType]
-    ) -> "ParametricPulse":
-        """Return a new ParametricPulse with parameters assigned.
-
-        Args:
-            value_dict: A mapping from Parameters to either numeric values or another
-                Parameter expression.
-
-        Returns:
-            New pulse with updated parameters.
-        """
-        if not self.is_parameterized():
-            return self
-
-        new_parameters = {}
-        for op, op_value in self.parameters.items():
-            for parameter, value in value_dict.items():
-                if _is_parameterized(op_value) and parameter in op_value.parameters:
-                    op_value = format_parameter_value(op_value.assign(parameter, value))
-                new_parameters[op] = op_value
-        return type(self)(**new_parameters, name=self.name)
-
     def __eq__(self, other: Pulse) -> bool:
         return super().__eq__(other) and self.parameters == other.parameters
 
@@ -135,12 +101,18 @@ class ParametricPulse(Pulse):
 
 
 class Gaussian(ParametricPulse):
-    """A truncated pulse envelope shaped according to the Gaussian function whose mean is centered
-    at the center of the pulse (duration / 2):
+    r"""A lifted and truncated pulse envelope shaped according to the Gaussian function whose
+    mean is centered at the center of the pulse (duration / 2):
 
     .. math::
 
-        f(x) = amp * exp( -(1/2) * (x - duration/2)^2 / sigma^2 )  ,  0 <= x < duration
+        f'(x) &= \exp\Bigl( -\frac12 \frac{{(x - \text{duration}/2)}^2}{\text{sigma}^2} \Bigr)\\
+        f(x) &= \text{amp} \times \frac{f'(x) - f'(-1)}{1-f'(-1)}, \quad 0 \le x < \text{duration}
+
+    where :math:`f'(x)` is the gaussian waveform without lifting or amplitude scaling.
+
+    This pulse would be more accurately named as ``LiftedGaussian``, however, for historical
+    and practical DSP reasons it has the name ``Gaussian``.
     """
 
     def __init__(
@@ -206,36 +178,45 @@ class Gaussian(ParametricPulse):
 
 
 class GaussianSquare(ParametricPulse):
-    """A square pulse with a Gaussian shaped risefall on both sides. Either risefall_sigma_ratio
-     or width parameter has to be specified.
+    # Not a raw string because we need to be able to split lines.
+    """A square pulse with a Gaussian shaped risefall on both sides lifted such that
+    its first sample is zero.
 
-    If risefall_sigma_ratio is not None and width is None:
+    Either the ``risefall_sigma_ratio`` or ``width`` parameter has to be specified.
 
-    :math:`risefall = risefall` _ :math:`to` _ :math:`sigma * sigma`
-
-    :math:`width = duration - 2 * risefall`
-
-    If width is not None and risefall_sigma_ratio is None:
+    If ``risefall_sigma_ratio`` is not None and ``width`` is None:
 
     .. math::
 
-        risefall = (duration - width) / 2
+        \\text{risefall} &= \\text{risefall_sigma_ratio} \\times \\text{sigma}\\\\
+        \\text{width} &= \\text{duration} - 2 \\times \\text{risefall}
 
-    In both cases, the pulse is defined as:
+    If ``width`` is not None and ``risefall_sigma_ratio`` is None:
+
+    .. math:: \\text{risefall} = \\frac{\\text{duration} - \\text{width}}{2}
+
+    In both cases, the lifted gaussian square pulse :math:`f'(x)` is defined as:
 
     .. math::
 
-        0 <= x < risefall
+        f'(x) &= \\begin{cases}\
+            \\exp\\biggl(-\\frac12 \\frac{(x - \\text{risefall})^2}{\\text{sigma}^2}\\biggr)\
+                & x < \\text{risefall}\\\\
+            1\
+                & \\text{risefall} \\le x < \\text{risefall} + \\text{width}\\\\
+            \\exp\\biggl(-\\frac12\
+                    \\frac{{\\bigl(x - (\\text{risefall} + \\text{width})\\bigr)}^2}\
+                          {\\text{sigma}^2}\
+                    \\biggr)\
+                & \\text{risefall} + \\text{width} \\le x\
+        \\end{cases}\\\\
+        f(x) &= \\text{amp} \\times \\frac{f'(x) - f'(-1)}{1-f'(-1)},\
+            \\quad 0 \\le x < \\text{duration}
 
-        f(x) = amp * exp( -(1/2) * (x - risefall)^2 / sigma^2 )
+    where :math:`f'(x)` is the gaussian square waveform without lifting or amplitude scaling.
 
-        risefall <= x < risefall + width
-
-        f(x) = amp
-
-        risefall + width <= x < duration
-
-        f(x) = amp * exp( -(1/2) * (x - (risefall + width))^2 / sigma^2 )
+    This pulse would be more accurately named as ``LiftedGaussianSquare``, however, for historical
+    and practical DSP reasons it has the name ``GaussianSquare``.
     """
 
     def __init__(
@@ -357,21 +338,26 @@ class GaussianSquare(ParametricPulse):
 
 
 class Drag(ParametricPulse):
-    r"""The Derivative Removal by Adiabatic Gate (DRAG) pulse is a standard Gaussian pulse
-    with an additional Gaussian derivative component. It is designed to reduce the frequency
-    spectrum of a normal gaussian pulse near the :math:`|1\rangle` - :math:`|2\rangle` transition,
-    reducing the chance of leakage to the :math:`|2\rangle` state.
+    """The Derivative Removal by Adiabatic Gate (DRAG) pulse is a standard Gaussian pulse
+    with an additional Gaussian derivative component and lifting applied.
+
+    It is designed to reduce the frequency spectrum of a normal gaussian pulse near
+    the :math:`|1\\rangle\\leftrightarrow|2\\rangle` transition,
+    reducing the chance of leakage to the :math:`|2\\rangle` state.
 
     .. math::
 
-        f(x) = Gaussian + 1j * beta * d/dx [Gaussian]
-             = Gaussian + 1j * beta * (-(x - duration/2) / sigma^2) [Gaussian]
+        g(x) &= \\exp\\Bigl(-\\frac12 \\frac{(x - \\text{duration}/2)^2}{\\text{sigma}^2}\\Bigr)\\\\
+        f'(x) &= g(x) + 1j \\times \\text{beta} \\times \\frac{\\mathrm d}{\\mathrm{d}x} g(x)\\\\
+              &= g(x) + 1j \\times \\text{beta} \\times\
+                    \\Bigl(-\\frac{x - \\text{duration}/2}{\\text{sigma}^2}\\Bigr)g(x)\\\\
+        f(x) &= \\text{amp}\\times\\frac{f'(x)-f'(-1)}{1-f'(-1)}, \\quad 0 \\le x < \\text{duration}
 
-    where 'Gaussian' is:
+    where :math:`g(x)` is a standard unlifted gaussian waveform and
+    :math:`f'(x)` is the DRAG waveform without lifting or amplitude scaling.
 
-    .. math::
-
-        Gaussian(x, amp, sigma) = amp * exp( -(1/2) * (x - duration/2)^2 / sigma^2 )
+    This pulse would be more accurately named as ``LiftedDrag``, however, for historical
+    and practical DSP reasons it has the name ``Drag``.
 
     References:
         1. |citation1|_
@@ -464,7 +450,7 @@ class Drag(ParametricPulse):
             #    There is a second maxima mirrored around the center of the pulse with the same
             #    norm as the first, so checking the value at the first x maxima is sufficient.
             argmax_x = self.duration / 2 - (self.sigma / self.beta) * math.sqrt(
-                self.beta ** 2 - self.sigma ** 2
+                self.beta**2 - self.sigma**2
             )
             # If the max point is out of range, either end of the pulse will do
             argmax_x = max(argmax_x, 0)

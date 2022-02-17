@@ -83,8 +83,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
 
         if confint_method not in {"chernoff", "beta"}:
             raise ValueError(
-                "The confidence interval method must be chernoff or beta, but "
-                f"is {confint_method}."
+                f"The confidence interval method must be chernoff or beta, but is {confint_method}."
             )
 
         super().__init__()

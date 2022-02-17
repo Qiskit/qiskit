@@ -52,10 +52,6 @@ class TestMonodromyWeyl(unittest.TestCase):
             original_matrix = canonical_matrix(*coordinate)
             reflected_matrix = canonical_matrix(*reflected_coordinate)
             reflect_matrix = Operator(reflection_circuit).data
-            with np.printoptions(precision=3, suppress=True):
-                print(name)
-                print(reflect_matrix.conjugate().transpose(1, 0) @ original_matrix @ reflect_matrix)
-                print(reflected_matrix * reflection_phase)
             self.assertTrue(
                 np.all(
                     np.abs(
@@ -76,10 +72,6 @@ class TestMonodromyWeyl(unittest.TestCase):
             original_matrix = canonical_matrix(*coordinate)
             shifted_matrix = canonical_matrix(*shifted_coordinate)
             shift_matrix = Operator(shift_circuit).data
-            with np.printoptions(precision=3, suppress=True):
-                print(name)
-                print(original_matrix @ shift_matrix)
-                print(shifted_matrix * shift_phase)
             self.assertTrue(
                 np.all(
                     np.abs(original_matrix @ shift_matrix - shifted_matrix * shift_phase) < EPSILON

@@ -125,6 +125,11 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             self._op_shape.dims_l(),
         )
 
+    @property
+    def settings(self):
+        """Return settings."""
+        return {"data": self.data, "dims": self._op_shape.dims_l()}
+
     def draw(self, output=None, **drawer_args):
         """Return a visualization of the Statevector.
 
@@ -587,7 +592,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             instruction = instruction.to_instruction()
         # Initialize an the statevector in the all |0> state
         num_qubits = instruction.num_qubits
-        init = np.zeros((2 ** num_qubits, 2 ** num_qubits), dtype=complex)
+        init = np.zeros((2**num_qubits, 2**num_qubits), dtype=complex)
         init[0, 0] = 1
         vec = DensityMatrix(init, dims=num_qubits * (2,))
         vec._append_instruction(instruction)

@@ -118,6 +118,7 @@ class UnitarySynthesis(TransformationPass):
         synth_gates: Union[List[str], None] = None,
         method: str = "default",
         min_qubits: int = None,
+        plugin_config: dict = None,
     ):
         """Synthesize unitaries over some basis gates.
 
@@ -161,6 +162,11 @@ class UnitarySynthesis(TransformationPass):
             min_qubits: The minimum number of qubits in the unitary to synthesize. If this is set
                 and the unitary is less than the specified number of qubits it will not be
                 synthesized.
+            plugin_config: Optional extra configuration arguments (as a dict)
+                which are passed directly to the specified unitary synthesis
+                plugin. By default this will have no effect as the default
+                plugin has no extra arguments. Refer to the documentation of
+                your unitary synthesis plugin on how to use this.
         """
         super().__init__()
         self._basis_gates = set(basis_gates or ())
@@ -172,6 +178,7 @@ class UnitarySynthesis(TransformationPass):
         self._backend_props = backend_props
         self._pulse_optimize = pulse_optimize
         self._natural_direction = natural_direction
+        self._plugin_config = plugin_config
         if synth_gates:
             self._synth_gates = synth_gates
         else:
@@ -205,7 +212,7 @@ class UnitarySynthesis(TransformationPass):
             return dag
 
         plugin_method = self.plugins.ext_plugins[self.method].obj
-        plugin_kwargs = {}
+        plugin_kwargs = {"config": self._plugin_config}
         _gate_lengths = _gate_errors = None
         dag_bit_indices = {}
 

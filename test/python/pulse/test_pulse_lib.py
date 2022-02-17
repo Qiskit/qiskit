@@ -179,7 +179,7 @@ class TestParametricPulses(QiskitTestCase):
         wf = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
         samples = wf.get_waveform().samples
         self.assertTrue(max(np.abs(samples)) <= 1)
-        beta = sigma ** 2
+        beta = sigma**2
         with self.assertRaises(PulseError):
             wf = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
         # If sigma is high enough, side peaks fall out of range and norm restriction is met
@@ -278,6 +278,40 @@ class TestParametricPulses(QiskitTestCase):
 
         self.assertListEqual(test_hash, ref_hash)
 
+    def test_gaussian_limit_amplitude(self):
+        """Test that the check for amplitude less than or equal to 1 can be disabled."""
+        waveform = Gaussian(duration=100, sigma=1.0, amp=1.1 + 0.8j, limit_amplitude=False)
+        self.assertGreater(np.abs(waveform.amp), 1.0)
+
+        with self.assertRaises(PulseError):
+            Gaussian(duration=100, sigma=1.0, amp=1.1 + 0.8j, limit_amplitude=True)
+
+    def test_gaussian_square_limit_amplitude(self):
+        """Test that the check for amplitude less than or equal to 1 can be disabled."""
+        waveform = GaussianSquare(
+            duration=100, sigma=1.0, amp=1.1 + 0.8j, width=10, limit_amplitude=False
+        )
+        self.assertGreater(np.abs(waveform.amp), 1.0)
+
+        with self.assertRaises(PulseError):
+            GaussianSquare(duration=100, sigma=1.0, amp=1.1 + 0.8j, width=10, limit_amplitude=True)
+
+    def test_drag_limit_amplitude(self):
+        """Test that the check for amplitude less than or equal to 1 can be disabled."""
+        waveform = Drag(duration=100, sigma=1.0, beta=1.0, amp=1.1 + 0.8j, limit_amplitude=False)
+        self.assertGreater(np.abs(waveform.amp), 1.0)
+
+        with self.assertRaises(PulseError):
+            Drag(duration=100, sigma=1.0, beta=1.0, amp=1.1 + 0.8j, limit_amplitude=True)
+
+    def test_constant_limit_amplitude(self):
+        """Test that the check for amplitude less than or equal to 1 can be disabled."""
+        waveform = Constant(duration=100, amp=1.1 + 0.8j, limit_amplitude=False)
+        self.assertGreater(np.abs(waveform.amp), 1.0)
+
+        with self.assertRaises(PulseError):
+            Constant(duration=100, amp=1.1 + 0.8j, limit_amplitude=True)
+
 
 # pylint: disable=invalid-name,unexpected-keyword-arg
 
@@ -291,10 +325,10 @@ class TestFunctionalPulse(QiskitTestCase):
         @functional_pulse
         def local_gaussian(duration, amp, t0, sig):
             x = np.linspace(0, duration - 1, duration)
-            return amp * np.exp(-((x - t0) ** 2) / sig ** 2)
+            return amp * np.exp(-((x - t0) ** 2) / sig**2)
 
         pulse_wf_inst = local_gaussian(duration=10, amp=1, t0=5, sig=1, name="test_pulse")
-        _y = 1 * np.exp(-((np.linspace(0, 9, 10) - 5) ** 2) / 1 ** 2)
+        _y = 1 * np.exp(-((np.linspace(0, 9, 10) - 5) ** 2) / 1**2)
 
         self.assertListEqual(list(pulse_wf_inst.samples), list(_y))
 
@@ -310,7 +344,7 @@ class TestFunctionalPulse(QiskitTestCase):
         @functional_pulse
         def local_gaussian(duration, amp, t0, sig):
             x = np.linspace(0, duration - 1, duration)
-            return amp * np.exp(-((x - t0) ** 2) / sig ** 2)
+            return amp * np.exp(-((x - t0) ** 2) / sig**2)
 
         _durations = np.arange(10, 15, 1)
 

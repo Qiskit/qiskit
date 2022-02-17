@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=cell-var-from-loop
-
 """Replace each block of consecutive gates by a single Unitary node."""
 
 from qiskit.circuit.classicalregister import ClassicalRegister

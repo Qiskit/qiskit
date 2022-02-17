@@ -13,6 +13,7 @@
 """A gate to implement time-evolution of operators."""
 
 from typing import Union, Optional
+import numpy as np
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -51,7 +52,7 @@ class PauliEvolutionGate(Gate):
     def __init__(
         self,
         operator,
-        time: Union[float, ParameterExpression] = 1.0,
+        time: Union[int, float, ParameterExpression] = 1.0,
         label: Optional[str] = None,
         synthesis: Optional[EvolutionSynthesis] = None,
     ) -> None:
@@ -79,16 +80,39 @@ class PauliEvolutionGate(Gate):
         num_qubits = operator[0].num_qubits if isinstance(operator, list) else operator.num_qubits
         super().__init__(name=name, num_qubits=num_qubits, params=[time], label=label)
 
-        self.time = time
         self.operator = operator
         self.synthesis = synthesis
+
+    @property
+    def time(self) -> Union[float, ParameterExpression]:
+        """Return the evolution time as stored in the gate parameters.
+
+        Returns:
+            The evolution time.
+        """
+        return self.params[0]
+
+    @time.setter
+    def time(self, time: Union[float, ParameterExpression]) -> None:
+        """Set the evolution time.
+
+        Args:
+            time: The evolution time.
+        """
+        self.params = [time]
 
     def _define(self):
         """Unroll, where the default synthesis is matrix based."""
         self.definition = self.synthesis.synthesize(self)
 
-    def inverse(self) -> "PauliEvolutionGate":
-        return PauliEvolutionGate(operator=self.operator, time=-self.time, synthesis=self.synthesis)
+    def validate_parameter(
+        self, parameter: Union[int, float, ParameterExpression]
+    ) -> Union[float, ParameterExpression]:
+        """Gate parameters should be int, float, or ParameterExpression"""
+        if isinstance(parameter, int):
+            parameter = float(parameter)
+
+        return super().validate_parameter(parameter)
 
 
 def _to_sparse_pauli_op(operator):
@@ -104,14 +128,17 @@ def _to_sparse_pauli_op(operator):
     if isinstance(operator, PauliSumOp):
         sparse_pauli = operator.primitive
         sparse_pauli._coeffs *= operator.coeff
-        return sparse_pauli
-    if isinstance(operator, PauliOp):
+    elif isinstance(operator, PauliOp):
         sparse_pauli = SparsePauliOp(operator.primitive)
         sparse_pauli._coeffs *= operator.coeff
-        return sparse_pauli
-    if isinstance(operator, Pauli):
-        return SparsePauliOp(operator)
-    if isinstance(operator, SparsePauliOp):
-        return operator
+    elif isinstance(operator, Pauli):
+        sparse_pauli = SparsePauliOp(operator)
+    elif isinstance(operator, SparsePauliOp):
+        sparse_pauli = operator
+    else:
+        raise ValueError(f"Unsupported operator type for evolution: {type(operator)}.")
 
-    raise ValueError(f"Unsupported operator type for evolution: {type(operator)}.")
+    if any(np.iscomplex(sparse_pauli.coeffs)):
+        raise ValueError("Operator contains complex coefficients, which are not supported.")
+
+    return sparse_pauli

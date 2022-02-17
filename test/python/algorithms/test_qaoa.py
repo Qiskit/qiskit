@@ -109,8 +109,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
     def test_qaoa_qc_mixer(self, w, prob, solutions, convert_to_matrix_op):
         """QAOA test with a mixer as a parameterized circuit"""
         self.log.debug(
-            "Testing %s-step QAOA with MaxCut on graph with "
-            "a mixer as a parameterized circuit\n%s",
+            "Testing %s-step QAOA with MaxCut on graph with a mixer as a parameterized circuit\n%s",
             prob,
             w,
         )

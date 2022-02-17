@@ -18,8 +18,7 @@ from collections import Counter, OrderedDict
 import functools
 import numpy as np
 
-from qiskit.exceptions import MissingOptionalLibraryError
-from .matplotlib import HAS_MATPLOTLIB
+from qiskit.utils import optionals as _optionals
 from .exceptions import VisualizationError
 from .utils import matplotlib_close_if_inline
 
@@ -44,6 +43,7 @@ VALID_SORTS = ["asc", "desc", "hamming", "value", "value_desc"]
 DIST_MEAS = {"hamming": hamming_distance}
 
 
+@_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_histogram(
     data,
     figsize=(7, 5),
@@ -108,12 +108,6 @@ def plot_histogram(
            job = execute(qc, backend)
            plot_histogram(job.result().get_counts(), color='midnightblue', title="New Histogram")
     """
-    if not HAS_MATPLOTLIB:
-        raise MissingOptionalLibraryError(
-            libname="Matplotlib",
-            name="plot_histogram",
-            pip_install="pip install matplotlib",
-        )
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
 
@@ -123,7 +117,7 @@ def plot_histogram(
             "valid choice. Must be 'asc', "
             "'desc', 'hamming', 'value', 'value_desc'"
         )
-    if sort in DIST_MEAS.keys() and target_string is None:
+    if sort in DIST_MEAS and target_string is None:
         err_msg = "Must define target_string when using distance measure."
         raise VisualizationError(err_msg)
 
@@ -151,7 +145,7 @@ def plot_histogram(
     if number_to_keep is not None:
         labels.append("rest")
 
-    if sort in DIST_MEAS.keys():
+    if sort in DIST_MEAS:
         dist = []
         for item in labels:
             dist.append(DIST_MEAS[sort](item, target_string))

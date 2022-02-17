@@ -65,19 +65,19 @@ class FullAncillaAllocation(AnalysisPass):
         if layout is None:
             raise TranspilerError('FullAncillaAllocation pass requires property_set["layout"].')
 
+        virtual_bits = layout.get_virtual_bits()
+        physical_bits = layout.get_physical_bits()
         if layout:
-            FullAncillaAllocation.validate_layout(layout.get_virtual_bits(), set(dag.qubits))
-            layout_physical_qubits = list(range(max(layout.get_physical_bits()) + 1))
+            FullAncillaAllocation.validate_layout(virtual_bits, set(dag.qubits))
+            layout_physical_qubits = list(range(max(physical_bits) + 1))
         else:
             layout_physical_qubits = []
 
-        idle_physical_qubits = [
-            q for q in layout_physical_qubits if q not in layout.get_physical_bits()
-        ]
+        idle_physical_qubits = [q for q in layout_physical_qubits if q not in physical_bits]
 
         if self.coupling_map:
             idle_physical_qubits = [
-                q for q in self.coupling_map.physical_qubits if q not in layout.get_physical_bits()
+                q for q in self.coupling_map.physical_qubits if q not in physical_bits
             ]
 
         if idle_physical_qubits:
