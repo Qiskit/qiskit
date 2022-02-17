@@ -70,8 +70,9 @@ def initialize(self, params, qubits=None):
     """Initialize qubits in a specific state.
 
     Qubit initialization is done by first resetting the qubits to :math:`|0\rangle`
-    followed by calling the StatePreparation class to prepare the qubits in a specified state.
-    Both these steps are included in the 
+    followed by calling :class:`~.qiskit.extensions.quantum_initializer.StatePreparation`
+    class to prepare the qubits in a specified state.
+    Both these steps are included in the
     :class:`~.qiskit.extensions.quantum_initializer.Initialize` instruction.
 
     Args:
@@ -81,15 +82,16 @@ def initialize(self, params, qubits=None):
             Notice the order of the labels is reversed with respect to the qubit index to
             be applied to. Example label '01' initializes the qubit zero to :math:`\ket{1}` and the
             qubit one to :math:`\ket{0}`.
-            
+
             * list: vector of complex amplitudes to initialize to.
-            
+
             * int: an integer that is used as a bitmap indicating which qubits to initialize
             to :math:`\ket{1}`. Example: setting params to 5 would initialize qubit 0 and qubit 2
             to :math:`\ket{1}` and qubit 1 to :math:`\ket{0}`.
         qubits (QuantumRegister or int):
             * QuantumRegister: A list of qubits to be initialized [Default: None].
             * int: Index of qubit to be initialized [Default: None].
+            * list: Indexes of qubits to be initialized [Default: None].
 
     Returns:
         qiskit.circuit.Instruction: a handle to the instruction that was just initialized

@@ -504,7 +504,7 @@ class TestInitialize(QiskitTestCase):
         self.assertEqual(dag2.op_nodes()[0].name, "reset")
         self.assertEqual(dag2.op_nodes()[1].name, "reset")
         self.assertEqual(dag2.op_nodes()[2].name, "disentangler_dg")
-        
+
 
 class TestInstructionParam(QiskitTestCase):
     """Test conversion of numpy type parameters."""

@@ -50,10 +50,11 @@ class StatePreparation(Instruction):
                 * int: an integer that is used as a bitmap indicating which qubits to initialize
                 to :math:`\ket{1}`. Example: setting params to 5 would initialize qubit 0 and qubit 2
                 to :math:`\ket{1}` and qubit 1 to :math:`\ket{0}`.
-            qubits (QuantumRegister or int):
-                * QuantumRegister: A list of qubits to be initialized [Default: None].
-                * int: Index of qubit to be initialized [Default: None].
-        
+            num_qubits (int): This parameter is only used if params is an int. Indicates the total
+                number of qubits in the `initialize` call. Example: `initialize` covers 5 qubits
+                and params is 3. This allows qubits 0 and 1 to be initialized to :math:`\ket{1}` and the
+                remaining 3 qubits to be initialized to :math:`\ket{0}`.
+
         Raises:
             QiskitError: num_qubits parameter used when params is not an integer
 
@@ -372,6 +373,9 @@ class StatePreparation(Instruction):
 def prepare_state(self, state, qubits=None):
     r"""Prepare qubits in a specific state.
 
+    This class implements a state preparing unitary. Unlike
+    :class:`~.qiskit.extensions.quantum_initializer.Initialize` it does not reset the qubits first.
+
     Args:
         state (str or list or int):
             * str: labels of basis states of the Pauli eigenstates Z, X, Y. See
@@ -388,6 +392,7 @@ def prepare_state(self, state, qubits=None):
         qubits (QuantumRegister or int):
             * QuantumRegister: A list of qubits to be initialized [Default: None].
             * int: Index of qubit to be initialized [Default: None].
+            * list: Indexes of qubits to be initialized [Default: None].
 
     Returns:
         qiskit.circuit.Instruction: a handle to the instruction that was just initialized

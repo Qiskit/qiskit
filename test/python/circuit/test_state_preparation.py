@@ -22,6 +22,7 @@ from qiskit.quantum_info import Statevector
 from qiskit.test import QiskitTestCase
 from qiskit.converters import circuit_to_dag
 
+
 class TestStatePreparation(QiskitTestCase):
     """Test initialization with StatePreparation class"""
 
@@ -40,7 +41,7 @@ class TestStatePreparation(QiskitTestCase):
         qc.prepare_state(53, range(6))
         actual_sv = Statevector.from_instruction(qc)
         self.assertTrue(desired_sv == actual_sv)
-    
+
     def test_prepare_from_list(self):
         """Prepare state from list."""
         desired_sv = Statevector([1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)])
@@ -48,7 +49,7 @@ class TestStatePreparation(QiskitTestCase):
         qc.prepare_state([1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)])
         actual_sv = Statevector.from_instruction(qc)
         self.assertTrue(desired_sv == actual_sv)
-    
+
     def test_decompose_with_int(self):
         """Test prepare_state with int arg decomposes to a StatePreparation and reset"""
         qc = QuantumCircuit(2)
@@ -83,6 +84,7 @@ class TestStatePreparation(QiskitTestCase):
         self.assertEqual(len(dag.op_nodes()), 1)
         self.assertIsNot(dag.op_nodes()[0].name, "reset")
         self.assertEqual(dag.op_nodes()[0].name, "disentangler_dg")
+
 
 if __name__ == "__main__":
     unittest.main()
