@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`~qiskit.result.LocalReadoutMitigator` where `assignment_matrix` would fail if
+    the qubits were not [0, 1, 2, ..., n-1].
