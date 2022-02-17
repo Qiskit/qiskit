@@ -38,43 +38,43 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
 
     def __init__(
         self,
-        amats: Optional[List[np.ndarray]] = None,
+        assignment_matrices: Optional[List[np.ndarray]] = None,
         qubits: Optional[Iterable[int]] = None,
         backend=None,
     ):
         """Initialize a LocalReadoutMitigator
 
         Args:
-            amats: Optional, list of single-qubit readout error assignment matrices.
+            assignment_matrices: Optional, list of single-qubit readout error assignment matrices.
             qubits: Optional, the measured physical qubits for mitigation.
             backend: Optional, backend name.
 
         Raises:
             QiskitError: matrices sizes do not agree with number of qubits
         """
-        if amats is None:
-            amats = self._from_backend(backend, qubits)
+        if assignment_matrices is None:
+            assignment_matrices = self._from_backend(backend, qubits)
         else:
-            amats = [np.asarray(amat, dtype=float) for amat in amats]
-        for amat in amats:
+            assignment_matrices = [np.asarray(amat, dtype=float) for amat in assignment_matrices]
+        for amat in assignment_matrices:
             if np.any(amat < 0) or not np.allclose(np.sum(amat, axis=0), 1):
                 raise QiskitError(
                     "Assignment matrix columns must be valid probability distributions"
                 )
         if qubits is None:
-            self._num_qubits = len(amats)
+            self._num_qubits = len(assignment_matrices)
             self._qubits = range(self._num_qubits)
         else:
-            if len(qubits) != len(amats):
+            if len(qubits) != len(assignment_matrices):
                 raise QiskitError(
                     "The number of given qubits ({}) is different than the number of qubits "
-                    "inferred from the matrices ({})".format(len(qubits), len(amats))
+                    "inferred from the matrices ({})".format(len(qubits), len(assignment_matrices))
                 )
             self._qubits = qubits
             self._num_qubits = len(self._qubits)
 
         self._qubit_index = dict(zip(self._qubits, range(self._num_qubits)))
-        self._assignment_mats = amats
+        self._assignment_mats = assignment_matrices
         self._mitigation_mats = np.zeros([self._num_qubits, 2, 2], dtype=float)
         self._gammas = np.zeros(self._num_qubits, dtype=float)
 

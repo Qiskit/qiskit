@@ -33,20 +33,20 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
     :math:`2^N x 2^N` so the mitigation complexity is :math:`O(4^N)`.
     """
 
-    def __init__(self, amat: np.ndarray, qubits: Optional[Iterable[int]] = None):
+    def __init__(self, assignment_matrix: np.ndarray, qubits: Optional[Iterable[int]] = None):
         """Initialize a CorrelatedReadoutMitigator
 
         Args:
-            amat: readout error assignment matrix.
+            assignment_matrix: readout error assignment matrix.
             qubits: Optional, the measured physical qubits for mitigation.
 
         Raises:
             QiskitError: matrix size does not agree with number of qubits
         """
-        if np.any(amat < 0) or not np.allclose(np.sum(amat, axis=0), 1):
+        if np.any(assignment_matrix < 0) or not np.allclose(np.sum(assignment_matrix, axis=0), 1):
             raise QiskitError("Assignment matrix columns must be valid probability distributions")
-        amat = np.asarray(amat, dtype=float)
-        matrix_qubits_num = int(np.log2(amat.shape[0]))
+        assignment_matrix = np.asarray(assignment_matrix, dtype=float)
+        matrix_qubits_num = int(np.log2(assignment_matrix.shape[0]))
         if qubits is None:
             self._num_qubits = matrix_qubits_num
             self._qubits = range(self._num_qubits)
@@ -59,7 +59,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
             self._qubits = qubits
             self._num_qubits = len(self._qubits)
         self._qubit_index = dict(zip(self._qubits, range(self._num_qubits)))
-        self._assignment_mat = amat
+        self._assignment_mat = assignment_matrix
         self._mitigation_mats = {}
 
     @property
