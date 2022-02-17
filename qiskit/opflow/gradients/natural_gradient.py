@@ -123,12 +123,12 @@ class NaturalGradient(GradientBase):
     @staticmethod
     def nat_grad_combo_fn(x, regularization=None):
         """
-        Natural Gradient Function Implementation
+        Natural Gradient Function Implementation.
         Args:
-            x: Iterable consisting of Gradient, Quantum Geometric Tensor
-            regularization: Regularization method
+            x: Iterable consisting of Gradient, Quantum Geometric Tensor.
+            regularization: Regularization method.
 
-        Returns: Natural Gradient
+        Returns: Natural Gradient.
 
         """
         gradient = x[0]
