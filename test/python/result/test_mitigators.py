@@ -166,7 +166,6 @@ class TestReadoutMitigation(QiskitTestCase):
         diagonals = []
         diagonals.append(z_diagonal(2**num_qubits))
         diagonals.append("IZ0")
-        diagonals.append("ZZZ")
         diagonals.append("101")
         diagonals.append("IZZ")
         qubit_index = {i: i for i in range(num_qubits)}
@@ -175,8 +174,10 @@ class TestReadoutMitigation(QiskitTestCase):
         probs_ideal, _ = counts_probability_vector(counts_ideal, qubit_index=qubit_index)
         probs_noise, _ = counts_probability_vector(counts_noise, qubit_index=qubit_index)
         for diagonal in diagonals:
+            print(diagonal)
             if isinstance(diagonal, str):
                 diagonal = str2diag(diagonal)
+            print(diagonal)
             unmitigated_expectation, unmitigated_stddev = expval_with_stddev(
                 diagonal, probs_noise, shots=counts_noise.shots()
             )
