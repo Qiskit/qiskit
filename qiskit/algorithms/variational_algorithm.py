@@ -27,7 +27,6 @@ overridden to opt-out of this infrastructure but still meet the interface requir
 """
 
 from typing import Optional, Dict
-from abc import abstractmethod
 import numpy as np
 
 from .algorithm_result import AlgorithmResult
@@ -36,26 +35,15 @@ from .algorithm_result import AlgorithmResult
 class VariationalAlgorithm:
     """The Variational Algorithm Base Class."""
 
-    @abstractmethod
-    def get_optimal_cost(self):
-        """get optimal cost"""
-        raise NotImplementedError()
-
-    @abstractmethod
-    def get_optimal_circuit(self):
-        """get optimal circuit"""
-        raise NotImplementedError()
-
-    @abstractmethod
-    def get_optimal_vector(self):
-        """get optimal vector"""
-        raise NotImplementedError()
-
     @property
-    @abstractmethod
-    def optimal_params(self):
-        """returns optimal parameters"""
-        raise NotImplementedError()
+    def initial_point(self) -> Optional[np.ndarray]:
+        """Returns initial point."""
+        return self._initial_point
+
+    @initial_point.setter
+    def initial_point(self, initial_point: Optional[np.ndarray]) -> None:
+        """Sets initial point."""
+        self._initial_point = initial_point
 
 
 class VariationalResult(AlgorithmResult):
