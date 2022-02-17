@@ -125,10 +125,10 @@ class NaturalGradient(GradientBase):
         """
         Natural Gradient Function Implementation
         Args:
-            x: Iterable consisting of Gradient, Quantum Geometric Tensor
-            regularization: Regularization method
+            x: Iterable consisting of Gradient, Quantum Geometric Tensor.
+            regularization: Regularization method.
 
-        Returns: Natural Gradient
+        Returns: Natural Gradient.
 
         """
         c = x[0]
