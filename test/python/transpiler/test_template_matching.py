@@ -315,46 +315,34 @@ class TestTemplateMatching(QiskitTestCase):
         self.assertEqual(count_cx(circuit_out), 2)  # One match => two CX gates.
         np.testing.assert_almost_equal(Operator(circuit_in).data, Operator(circuit_out).data)
 
-    def test_unbound_parameters(self):
+    def test_optimizer_does_not_replace_unbound_partial_match(self):
         """
         Test that partial matches with parameters will not raise errors.
         This tests that if parameters are still in the temporary template after
         _attempt_bind then they will not be used.
         """
 
-        class PhaseSwap(Gate):
-            """CZ gates used for the test."""
-
-            def __init__(self, num_qubits, params):
-                super().__init__("p", num_qubits, params)
-
-            def inverse(self):
-                inverse = UnitaryGate(
-                    np.diag(
-                        [1.0, 1.0, np.exp(-1.0j * self.params[0]), np.exp(-1.0j * self.params[0])]
-                    )
-                )
-                inverse.name = "p"
-                return inverse
-
-        def template():
-            beta = Parameter("β")
-            qc = QuantumCircuit(2)
-            qc.cx(1, 0)
-            qc.cx(1, 0)
-            qc.p(beta, 1)
-            qc.append(PhaseSwap(2, [beta]), [0, 1])
-
-            return qc
+        beta = Parameter("β")
+        template = QuantumCircuit(2)
+        template.cx(1, 0)
+        template.cx(1, 0)
+        template.p(beta, 1)
+        template.cu(0, 0, 0, -beta, 0, 1)
 
         circuit_in = QuantumCircuit(2)
         circuit_in.cx(1, 0)
         circuit_in.cx(1, 0)
+        pass_ = TemplateOptimization(
+            template_list=[template],
+            user_cost_dict={"cx": 6, "p": 0, "cu": 8},
+        )
 
-        pass_ = TemplateOptimization(template_list=[template()])
         circuit_out = PassManager(pass_).run(circuit_in)
 
-        self.assertEqual(circuit_out.count_ops().get("cx", 0), 0)
+        # The template optimisation should not have replaced anything, because
+        # that would require it to leave dummy parameters in place without
+        # binding them.
+        self.assertEqual(circuit_in, circuit_out)
 
     def test_unbound_parameters_in_rzx_template(self):
         """
@@ -371,7 +359,16 @@ class TestTemplateMatching(QiskitTestCase):
         pass_ = TemplateOptimization(**rzx_templates(["zz2"]))
         circuit_out = PassManager(pass_).run(circuit_in)
 
-        self.assertEqual(circuit_out.count_ops().get("cx", 0), 0)
+        # this is FALSE if template optimization works
+        circuit_equiv = circuit_in == circuit_out
+
+        # however this is TRUE if the operators are the same
+        phi_set = 0.42
+        op_equiv = Operator(circuit_in.bind_parameters({phi: phi_set})).equiv(
+            circuit_out.bind_parameters({phi: phi_set})
+        )
+
+        self.assertEqual(op_equiv and not circuit_equiv, True)
 
 
 if __name__ == "__main__":

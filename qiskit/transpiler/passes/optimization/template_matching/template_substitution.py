@@ -175,7 +175,6 @@ class TemplateSubstitution:
         Returns:
             bool: True if the match respects the given rule for replacement, False otherwise.
         """
-
         if self._quantum_cost(template_sublist, template_complement):
             for elem in circuit_sublist:
                 for config in self.substitution_list:
@@ -319,8 +318,7 @@ class TemplateSubstitution:
 
             # Fake bind any parameters in the template
             template = self._attempt_bind(template_sublist, circuit_sublist)
-
-            if template is None:
+            if template is None or self._incr_num_parameters():
                 continue
 
             template_list = range(0, self.template_dag_dep.size())
@@ -548,3 +546,22 @@ class TemplateSubstitution:
             node.op.params = bound_params
 
         return template_dag_dep
+
+    def _incr_num_parameters(self):
+        """
+        Checks if template substitution would increase the number of
+        parameters in the circuit.
+        """
+        template_params = set()
+        for param_list in (node.op.params for node in self.template_dag_dep.get_nodes()):
+            for param_exp in param_list:
+                if isinstance(param_exp, ParameterExpression):
+                    template_params.update(param_exp.parameters)
+
+        circuit_params = set()
+        for param_list in (node.op.params for node in self.circuit_dag_dep.get_nodes()):
+            for param_exp in param_list:
+                if isinstance(param_exp, ParameterExpression):
+                    circuit_params.update(param_exp.parameters)
+
+        return len(template_params) > len(circuit_params)

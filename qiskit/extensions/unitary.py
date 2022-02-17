@@ -30,7 +30,6 @@ from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import two_qubit_cnot_decompose
 from qiskit.extensions.exceptions import ExtensionError
-from qiskit.circuit.exceptions import ParameterTypeError
 
 _DECOMPOSER1Q = OneQubitEulerDecomposer("U3")
 
@@ -47,7 +46,6 @@ class UnitaryGate(Gate):
 
         Raises:
             ExtensionError: if input data is not an N-qubit unitary operator.
-            ParameterTypeError: if parameter is unbound so that type cannot be determined.
         """
         if hasattr(data, "to_matrix"):
             # If input is Gate subclass or some other class object that has
@@ -59,17 +57,11 @@ class UnitaryGate(Gate):
             # numpy matrix from `Operator.data`.
             data = data.to_operator().data
 
-        # Check if there is any unbound parameter in array
-        try:
-            # Convert to numpy array in case not already an array
-            data = numpy.array(data, dtype=complex)
-
-            # Check input is unitary
-            if not is_unitary_matrix(data):
-                raise ExtensionError("Input matrix is not unitary.")
-        except ParameterTypeError:
-            print("Type of unbound Parameter cannot be determined to ensure unitarity.")
-            pass
+        # Convert to numpy array in case not already an array
+        data = numpy.array(data, dtype=complex)
+        # Check input is unitary
+        if not is_unitary_matrix(data):
+            raise ExtensionError("Input matrix is not unitary.")
 
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
