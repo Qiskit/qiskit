@@ -186,10 +186,9 @@ class StochasticSwap(TransformationPass):
 
         edges = np.asarray(coupling.get_edges(), dtype=np.uint64).ravel()
         cdist = coupling._dist_matrix
-        best_edges, best_layout, best_depth = stochastic_swap_rs.swap_trials(
+        result = stochastic_swap_rs.swap_trials(
             trials,
             num_qubits,
-            len(gates),
             int_layout,
             int_qubit_subset,
             int_gates,
@@ -198,11 +197,14 @@ class StochasticSwap(TransformationPass):
             edges,
             self.seed,
         )
+
         # If we have no best circuit for this layer, all of the
         # trials have failed
-        if best_layout is None:
+        if result is None:
             logger.debug("layer_permutation: failed!")
             return False, None, None, None
+
+        best_edges, best_layout, best_depth = result
 
         edges = best_edges.edges()
         for idx in range(len(edges) // 2):
