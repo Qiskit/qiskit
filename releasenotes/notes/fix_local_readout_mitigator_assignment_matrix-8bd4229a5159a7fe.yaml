@@ -1,5 +1,5 @@
 ---
 fixes:
   - |
-    Fixed a bug in :meth:`~LocalReadoutMitigator.assignment_matrix`` where it
-    would fail if the qubits were not ``[0, 1, 2, ..., n-1]``.
+    :meth:`.LocalReadoutMitigator.assignment_matrix` will now accept lists of
+    qubits beyond the trivial ``[0, 1, 2, ..., n-1]``.
