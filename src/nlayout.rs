@@ -51,7 +51,7 @@ impl NLayout {
 
     fn layout_mapping(&self) -> Vec<[usize; 2]> {
         (0..self.logic_to_phys.len())
-            .map(|i| [self.logic_to_phys[i], self.phys_to_logic[i]])
+            .map(|i| [i, self.logic_to_phys[i]])
             .collect()
     }
 }
