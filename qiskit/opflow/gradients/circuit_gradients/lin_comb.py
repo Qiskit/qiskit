@@ -194,7 +194,7 @@ class LinComb(CircuitGradient):
                     state_op = operator[1]
                     if not isinstance(state_op, StateFn):
                         raise TypeError(
-                            "The StateFn representing the quantum state could not be" "extracted."
+                            "The StateFn representing the quantum state could not be extracted."
                         )
                     if isinstance(params, (ParameterExpression, ParameterVector)) or (
                         isinstance(params, list)
@@ -220,7 +220,7 @@ class LinComb(CircuitGradient):
                     state_op.oplist.pop(0)
                     if not isinstance(state_op, StateFn):
                         raise TypeError(
-                            "The StateFn representing the quantum state could not be" "extracted."
+                            "The StateFn representing the quantum state could not be extracted."
                         )
 
                     if isinstance(params, (ParameterExpression, ParameterVector)) or (
@@ -298,7 +298,7 @@ class LinComb(CircuitGradient):
                 # TODO Generalize
                 if aux_meas_op != Z:
                     raise Warning(
-                        "Currently only Z measurements are supported for the chosen " "backend."
+                        "Currently only Z measurements are supported for the chosen backend."
                     )
                 # Generate the operator which computes the linear combination
                 trace = _z_exp(item)
