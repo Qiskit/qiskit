@@ -275,13 +275,13 @@ class FakeBackendV2(BackendV2):
     """This is a dummy bakend just for resting purposes. the FakeBackendV2 builds on top of the BackendV2 base class."""
 
     def __init__(self):
-        configuration = self._get_conf_from_json()
+        self._configuration = self._get_conf_from_json()
         super().__init__(
             provider=None,
-            name=configuration.backend_name,
-            description=configuration.description,
-            online_date=configuration.online_date,
-            backend_version=configuration.backend_version
+            name=self._configuration.backend_name,
+            description=self._configuration.description,
+            online_date=self._configuration.online_date,
+            backend_version=self._configuration.backend_version
         )
         self._properties = None
         self._qubit_properties = None
