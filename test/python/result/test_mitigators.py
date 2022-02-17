@@ -25,7 +25,6 @@ from qiskit.result import CorrelatedReadoutMitigator
 from qiskit.result import LocalReadoutMitigator
 from qiskit.result.utils import marginal_counts
 from qiskit.result.mitigation.utils import (
-    z_diagonal,
     counts_probability_vector,
     str2diag,
     expval_with_stddev,
