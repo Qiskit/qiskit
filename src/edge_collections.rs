@@ -16,7 +16,7 @@ use pyo3::Python;
 
 /// A simple container that contains a vector representing edges in the
 /// coupling map that are found to be optimal by the swap mapper.
-#[pyclass(module = "_accelerate")]
+#[pyclass(module = "qiskit._accelerate.stochastic_swap")]
 #[pyo3(text_signature = "(/)")]
 #[derive(Clone, Debug)]
 pub struct EdgeCollection {
