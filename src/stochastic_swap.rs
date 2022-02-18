@@ -14,6 +14,8 @@
 // closures don't work because of recurssion
 #![allow(clippy::too_many_arguments)]
 
+use std::sync::RwLock;
+
 use hashbrown::HashSet;
 
 use ndarray::prelude::*;
@@ -81,7 +83,19 @@ fn swap_trial(
     cdist2: ArrayView2<f64>,
     edges: &[usize],
     seed: u64,
+    trial_num: u64,
+    locked_best_possible: &RwLock<&mut Option<(u64, f64, EdgeCollection, NLayout)>>,
 ) -> Option<(f64, EdgeCollection, NLayout, usize)> {
+    {
+        // Return fast if a depth == 1 solution was already found in another parallel
+        // trial. However for deterministic results in cases of multiple depth == 1
+        // solutions still search for a solution if this trial number is less than
+        // the found solution (this mirrors the previous behavior of a serial loop).
+        let best_possible = locked_best_possible.read().unwrap();
+        if best_possible.is_some() && best_possible.as_ref().unwrap().0 < trial_num {
+            return None;
+        }
+    }
     let mut opt_edges = EdgeCollection::new();
     let mut trial_layout = int_layout.clone();
     let mut optimal_layout = int_layout.clone();
@@ -169,6 +183,16 @@ fn swap_trial(
     }
     // Either we have succeeded at some depth d < d_max or failed
     dist = compute_cost(&cdist, &trial_layout, gates, num_gates);
+    if dist as usize == num_gates && depth_step == 1 {
+        let mut best_possible = locked_best_possible.write().unwrap();
+        // In the case a ideal solution has already been found to pr
+        // behavior consistent with the single threaded predecessor to this function
+        // we defer to the earlier trial
+        if best_possible.is_none() || best_possible.as_ref().unwrap().0 > trial_num {
+            **best_possible = Some((trial_num, dist, opt_edges, trial_layout));
+        }
+        return None;
+    }
     Some((dist, opt_edges, trial_layout, depth_step))
 }
 
@@ -227,6 +251,9 @@ pub fn swap_trials(
     let cdist2_arr = cdist2.as_array();
     let edges_arr = edges.as_slice()?;
     let num_gates: usize = int_gates.len() / 2;
+    let mut best_possible: Option<(u64, f64, EdgeCollection, NLayout)> = None;
+    let locked_best_possible: RwLock<&mut Option<(u64, f64, EdgeCollection, NLayout)>> =
+        RwLock::new(&mut best_possible);
     let outer_rng: Pcg64Mcg = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
         None => Pcg64Mcg::from_entropy(),
@@ -247,23 +274,27 @@ pub fn swap_trials(
                 cdist2_arr,
                 edges_arr,
                 seed_vec[trial_num as usize],
+                trial_num,
+                &locked_best_possible,
             )
         })
         .collect();
-    let mut best_depth = std::usize::MAX;
-    let mut best_edges: Option<EdgeCollection> = None;
-    let mut best_layout: Option<NLayout> = None;
-    for (dist, edges, layout, depth) in result.into_iter().flatten() {
-        if dist as usize == num_gates && depth < best_depth {
-            best_edges = Some(edges);
-            best_layout = Some(layout);
-            best_depth = depth;
-            if depth == 1 {
-                break;
+    match best_possible {
+        Some((_trial_num, _dist, edges, layout)) => Ok((Some(edges), Some(layout), 1)),
+        None => {
+            let mut best_depth = std::usize::MAX;
+            let mut best_edges: Option<EdgeCollection> = None;
+            let mut best_layout: Option<NLayout> = None;
+            for (dist, edges, layout, depth) in result.into_iter().flatten() {
+                if dist as usize == num_gates && depth < best_depth {
+                    best_edges = Some(edges);
+                    best_layout = Some(layout);
+                    best_depth = depth;
+                }
             }
+            Ok((best_edges, best_layout, best_depth))
         }
     }
-    Ok((best_edges, best_layout, best_depth))
 }
 
 #[pymodule]
