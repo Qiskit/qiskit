@@ -1530,7 +1530,7 @@ class TestQFI(QiskitOpflowTestCase):
         grad = NaturalGradient(grad_method=method).gradient_wrapper(
             operator=op, bind_params=params, backend=q_instance
         )
-        with self.assertRaises(ValueError):  # or what error type you expect
+        with self.assertRaises(ValueError):
             grad(value)
 
 

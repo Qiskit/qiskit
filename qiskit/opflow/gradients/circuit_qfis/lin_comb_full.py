@@ -205,5 +205,24 @@ class LinCombFull(CircuitQFI):
                     qfi_ops += [SummedOp(qfi_op)]
 
             qfi_operators.append(ListOp(qfi_ops))
+
+        def check_and_realpart(qfi):
+            """
+            Check for non-negligible imaginary values and remove negligible imaginary parts from
+            the QFI estimate. A QFI is by definition positive semi-definite.
+            Args:
+                qfi: Quantum Fisher Information
+
+            Returns:
+                Real part of the QFI estimate
+            Raises:
+                ValueError: If ``qfi`` has non-negligible imaginary components
+
+            """
+            if np.any([[np.abs(np.imag(a_item)) > 1e-8 for a_item in a_row] for a_row in qfi]):
+                raise ValueError("The imaginary part of the metric are non-negligible. Please "
+                                 "increase the number of backend shots.")
+            return np.real(qfi)
+
         # Return the full QFI
-        return ListOp(qfi_operators, combo_fn=triu_to_dense)
+        return ListOp(qfi_operators, combo_fn=lambda x: check_and_realpart(triu_to_dense))

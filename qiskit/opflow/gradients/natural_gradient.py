@@ -136,7 +136,7 @@ class NaturalGradient(GradientBase):
         if any(np.abs(np.imag(c_item)) > 1e-8 for c_item in gradient):
             raise ValueError("The imaginary part of the gradient are non-negligible.")
         if np.any([[np.abs(np.imag(a_item)) > 1e-8 for a_item in a_row] for a_row in metric]):
-            raise ValueError("The imaginary part of the gradient are non-negligible.")
+            raise ValueError("The imaginary part of the metric are non-negligible.")
         gradient = np.real(gradient)
         metric = np.real(metric)
 
@@ -151,8 +151,9 @@ class NaturalGradient(GradientBase):
 
             if not all(ew >= -1e-8 for ew in w):
                 raise ValueError(
-                    "The underlying metric has ein Eigenvalue < -1e-8,"
-                    ". Please use a regularized least-square solver for this " "problem.",
+                    "The underlying metric has ein Eigenvalue < -1e-8. "
+                    "Please use a regularized least-square solver for this problem or"
+                    "increase the number of backend shots.",
                 )
             if not all(ew >= 0 for ew in w):
                 # If not all eigenvalues are non-negative, set them to a small positive
