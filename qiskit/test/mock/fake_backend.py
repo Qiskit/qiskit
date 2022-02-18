@@ -21,9 +21,11 @@ import warnings
 import json
 import os
 
+from typing import List, Union
+
 from qiskit import circuit
 from qiskit.providers.models import BackendProperties, PulseBackendConfiguration, PulseDefaults
-from qiskit.providers import BackendV1, BackendV2, BaseBackend
+from qiskit.providers import BackendV1, BackendV2, BaseBackend, QubitProperties
 from qiskit.providers.options import Options
 from qiskit import pulse
 from qiskit.circuit.parameter import Parameter
@@ -338,6 +340,35 @@ class FakeBackendV2(BackendV2):
             dtm: The output signal timestep in seconds.
         """
         return self._configuration.dtm
+
+    @property
+    def meas_map(self) -> List[List[int]]:
+        """Return the grouping of measurements which are multiplexed
+        This is required to be implemented if the backend supports Pulse
+        scheduling.
+        Returns:
+            meas_map: The grouping of measurements which are multiplexed
+        """
+        return self._configuration.meas_map
+
+    def qubit_properties(
+        self, qubit: Union[int, List[int]]
+    ) -> Union[QubitProperties, List[QubitProperties]]:
+        """Return QubitProperties for a given qubit.
+        Args:
+            qubit: The qubit to get the
+                :class:`~qiskit.provider.QubitProperties` object for. This can
+                be a single integer for 1 qubit or a list of qubits and a list
+                of :class:`~qiskit.provider.QubitProperties` objects will be
+                returned in the same order
+        """
+        if not self._qubit_properties:
+            self._qubit_properties = qubit_props_dict_from_props(self._properties)
+        if isinstance(qubit, int):  # type: ignore[unreachable]
+            return self._qubit_properties.get(qubit)
+        if isinstance(qubit, List):
+            return [self._qubit_properties.get(q) for q in qubit]
+        return None
 
     @property
     def target(self) -> Target:
