@@ -117,8 +117,6 @@ class PauliEvolutionGate(Gate):
         """
         if isinstance(parameter, int):
             parameter = float(parameter)
-        if isinstance(parameter, ParameterExpression) and len(parameter.parameters) == 0:
-            parameter = float(parameter)
 
         return super().validate_parameter(parameter)
 

@@ -13,6 +13,7 @@
 """Exact synthesis of operator evolution via (exponentially expensive) matrix exponentiation."""
 
 from scipy.linalg import expm
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 from .evolution_synthesis import EvolutionSynthesis
@@ -31,6 +32,13 @@ class MatrixExponential(EvolutionSynthesis):
         # get operators and time to evolve
         operators = evolution.operator
         time = evolution.time
+
+        if isinstance(time, ParameterExpression):
+            if len(time.parameters) > 0:
+                raise ValueError(
+                    "A matrix based synthesis can only be called on a fully bound evolution gate."
+                )
+            time = float(time)
 
         # construct the evolution circuit
         evolution_circuit = QuantumCircuit(operators[0].num_qubits)
