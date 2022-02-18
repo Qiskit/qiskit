@@ -25,7 +25,7 @@ from qiskit.quantum_info.primitives.framework.base_primitive import (
     BasePrimitive,
     PreprocessedCircuits,
 )
-from qiskit.result import Result
+from qiskit.result import BaseReadoutMitigator, Result
 from qiskit.transpiler import PassManager
 
 from ..framework.utils import Group, PauliSumOp, init_circuit, init_observable
@@ -43,12 +43,14 @@ class BaseEstimator(BasePrimitive, ABC):
         circuits: Union[QuantumCircuit, list[Union[QuantumCircuit]]],
         observables: Union[BaseOperator, PauliSumOp, list[Union[BaseOperator, PauliSumOp]]],
         backend: Backend,
+        mitigator: Optional[BaseReadoutMitigator] = None,
         transpile_options: Optional[dict] = None,
         bound_pass_manager: Optional[PassManager] = None,
     ):
         """ """
         super().__init__(
             backend=backend,
+            mitigator=mitigator,
             transpile_options=transpile_options,
             bound_pass_manager=bound_pass_manager,
         )

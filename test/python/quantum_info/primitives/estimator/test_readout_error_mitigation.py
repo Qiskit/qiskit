@@ -20,10 +20,10 @@ from ddt import ddt
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info.primitives import PauliEstimator
-from qiskit.quantum_info.primitives.backends import ReadoutErrorMitigation
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeBogota
 from qiskit.utils import has_aer
+from qiskit.result.mitigation.local_readout_mitigator import LocalReadoutMitigator
 
 if has_aer():
     from qiskit import Aer
@@ -52,14 +52,10 @@ class TestReadoutErrorMitigation(QiskitTestCase):
         """test for readout error mitigation"""
         backend = Aer.get_backend("aer_simulator").from_backend(FakeBogota())
         backend.set_options(seed_simulator=15)
-        mit = ReadoutErrorMitigation(
-            backend,
-            method=method,
-            refresh=600,
-            shots=1000,
-            qubits=[0, 1],
-        )
-        with PauliEstimator([self.ansatz], [self.observable], backend=mit) as est:
+        mitigator = LocalReadoutMitigator(backend=backend, qubits=[0, 1])
+        with PauliEstimator(
+            [self.ansatz], [self.observable], backend=backend, mitigator=mitigator
+        ) as est:
             est.set_transpile_options(seed_transpiler=15)
             est.set_run_options(seed_simulator=15)
             result = est([0, 1, 1, 2, 3, 5])

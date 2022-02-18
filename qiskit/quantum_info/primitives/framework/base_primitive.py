@@ -48,8 +48,8 @@ class BasePrimitive(ABC):
         Args:
             backend: backend
         """
-        self._backend: Union[Backend, BaseReadoutMitigator] = backend
-        self._mitigator: Optional[BaseReadoutMitigator] = mitigator
+        self._backend = backend
+        self._mitigator = mitigator
         self._run_options = Options()
         self._is_closed = False
 
@@ -119,7 +119,7 @@ class BasePrimitive(ABC):
         Returns:
             backend
         """
-        return self._backend.backend
+        return self._backend
 
     @property
     def preprocessed_circuits(self) -> Optional[PreprocessedCircuits]:

@@ -28,11 +28,11 @@ from qiskit.compiler import transpile
 from qiskit.providers import BackendV1 as Backend
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.result import QuasiDistribution, Result
+from qiskit.result import BaseReadoutMitigator, QuasiDistribution, Result
 from qiskit.transpiler import PassManager
 
-from ..results import EstimatorResult, SamplerResult
-from ..results.base_result import BaseResult
+from ..framework.utils import PauliSumOp
+from ..results import BaseResult, EstimatorResult, SamplerResult
 from ..sampler import Sampler
 from .base_estimator import BaseEstimator, Group
 
@@ -49,6 +49,7 @@ class PauliEstimator(BaseEstimator):
         circuits: Union[QuantumCircuit, list[Union[QuantumCircuit]]],
         observables: Union[BaseOperator, PauliSumOp, list[Union[BaseOperator, PauliSumOp]]],
         backend: Union[Backend, Sampler],
+        mitigator: Optional[BaseReadoutMitigator] = None,
         strategy: bool = True,  # To be str like TPB
         transpile_options: Optional[dict] = None,
         bound_pass_manager: Optional[PassManager] = None,
@@ -57,11 +58,12 @@ class PauliEstimator(BaseEstimator):
             circuits=circuits,
             observables=observables,
             backend=backend.backend if isinstance(backend, Sampler) else backend,
+            mitigator=mitigator,
             transpile_options=transpile_options,
             bound_pass_manager=bound_pass_manager,
         )
         self._measurement_strategy = strategy
-        self._sampler = backend if isinstance(backend, Sampler) else Sampler.from_backend(backend)
+        self._sampler = backend if isinstance(backend, Sampler) else Sampler(backend)
 
     @property
     def preprocessed_circuits(
@@ -234,12 +236,14 @@ class PauliEstimator(BaseEstimator):
 
         data = result.quasi_dists
         metadata = result.metadata
+        counts = result.raw_results.get_counts()
+        counts_list = counts if isinstance(counts, list) else [counts]
 
         combined_expval = 0.0
         combined_variance = 0.0
         combined_stderr = 0.0
 
-        for datum, meta in zip(data, metadata):
+        for datum, meta, counts in zip(data, metadata, counts_list):
             basis = meta.get("basis", None)
             coeff = meta.get("coeff", 1)
             basis_coeff = coeff if isinstance(coeff, dict) else {basis: coeff}
@@ -249,7 +253,10 @@ class PauliEstimator(BaseEstimator):
                 shots = sum(datum.values())
 
                 # Compute expval component
-                expval, var = _expval_with_variance(datum, diagonal=diagonal)
+                if self._mitigator is None:
+                    expval, var = _expval_with_variance(datum, diagonal=diagonal)
+                else:
+                    expval, var = self._mitigator.expectation_value(counts, diagonal)
                 # Accumulate
                 combined_expval += expval * coeff
                 combined_variance += var * coeff**2
