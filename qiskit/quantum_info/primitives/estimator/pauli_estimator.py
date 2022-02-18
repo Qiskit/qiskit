@@ -31,6 +31,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.result import QuasiDistribution, Result
 from qiskit.transpiler import PassManager
 
+from ..framework.utils import PauliSumOp
 from ..results import EstimatorResult, SamplerResult
 from ..results.base_result import BaseResult
 from ..sampler import Sampler

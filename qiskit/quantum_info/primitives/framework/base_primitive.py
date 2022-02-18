@@ -24,7 +24,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers import Options
 from qiskit.quantum_info.primitives.results.base_result import BaseResult
-from qiskit.result import Result, BaseReadoutMitigator
+from qiskit.result import BaseReadoutMitigator, Result
 from qiskit.transpiler import PassManager
 
 PreprocessedCircuits = Union[
@@ -48,8 +48,8 @@ class BasePrimitive(ABC):
         Args:
             backend: backend
         """
-        self._backend: Union[Backend, BaseReadoutMitigator] = backend
-        self._mitigator: Optional[BaseReadoutMitigator] = mitigator
+        self._backend = backend
+        self._mitigator = mitigator
         self._run_options = Options()
         self._is_closed = False
 
@@ -119,7 +119,7 @@ class BasePrimitive(ABC):
         Returns:
             backend
         """
-        return self._backend.backend
+        return self._backend
 
     @property
     def preprocessed_circuits(self) -> Optional[PreprocessedCircuits]:
