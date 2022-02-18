@@ -41,7 +41,6 @@ fn compute_cost(
     num_gates: usize,
 ) -> f64 {
     (0..num_gates)
-        .into_par_iter()
         .map(|kk| {
             let ii = layout.logic_to_phys[gates[2 * kk]];
             let jj = layout.logic_to_phys[gates[2 * kk + 1]];
