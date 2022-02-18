@@ -149,19 +149,19 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         """
         backend_prop = self.backend_prop
         for qid in range(len(backend_prop.qubits)):
-            self.bp_t1_time[qid] = int(backend_prop.t1(qid) * 10 ** 9)
-            self.bp_t2_time[qid] = int(backend_prop.t2(qid) * 10 ** 9)
-            self.bp_u1_dur[qid] = int(backend_prop.gate_length("u1", qid)) * 10 ** 9
+            self.bp_t1_time[qid] = int(backend_prop.t1(qid) * 10**9)
+            self.bp_t2_time[qid] = int(backend_prop.t2(qid) * 10**9)
+            self.bp_u1_dur[qid] = int(backend_prop.gate_length("u1", qid)) * 10**9
             u1_err = backend_prop.gate_error("u1", qid)
             if u1_err == 1.0:
                 u1_err = 0.9999
             self.bp_u1_err = round(u1_err, NUM_PREC)
-            self.bp_u2_dur[qid] = int(backend_prop.gate_length("u2", qid)) * 10 ** 9
+            self.bp_u2_dur[qid] = int(backend_prop.gate_length("u2", qid)) * 10**9
             u2_err = backend_prop.gate_error("u2", qid)
             if u2_err == 1.0:
                 u2_err = 0.9999
             self.bp_u2_err = round(u2_err, NUM_PREC)
-            self.bp_u3_dur[qid] = int(backend_prop.gate_length("u3", qid)) * 10 ** 9
+            self.bp_u3_dur[qid] = int(backend_prop.gate_length("u3", qid)) * 10**9
             u3_err = backend_prop.gate_error("u3", qid)
             if u3_err == 1.0:
                 u3_err = 0.9999
@@ -171,7 +171,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
                 q_0 = ginfo.qubits[0]
                 q_1 = ginfo.qubits[1]
                 cx_tup = (min(q_0, q_1), max(q_0, q_1))
-                self.bp_cx_dur[cx_tup] = int(backend_prop.gate_length("cx", cx_tup)) * 10 ** 9
+                self.bp_cx_dur[cx_tup] = int(backend_prop.gate_length("cx", cx_tup)) * 10**9
                 cx_err = backend_prop.gate_error("cx", cx_tup)
                 if cx_err == 1.0:
                     cx_err = 0.9999

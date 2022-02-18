@@ -356,7 +356,7 @@ class TensoredFilter:
         from scipy import linalg as la
 
         all_states = count_keys(self.nqubits)
-        num_of_states = 2 ** self.nqubits
+        num_of_states = 2**self.nqubits
 
         if meas_layout is None:
             meas_layout = []

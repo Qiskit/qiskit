@@ -218,7 +218,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
                     if 2 ** (j + 1) * theta_ci[1] >= 3 * np.pi / 8 and j < self._maxiter:
                         j_0 = j
-                        v = 2 ** j * np.sum(theta_ci)
+                        v = 2**j * np.sum(theta_ci)
                         first_stage = False
                 else:
                     cos = cos_estimate(2 ** (j - 1), self._shots[1])

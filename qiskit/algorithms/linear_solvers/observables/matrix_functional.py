@@ -153,8 +153,8 @@ class MatrixFunctional(LinearSystemObservable):
         # Calculate the value from the off-diagonal elements
         off_val = 0
         for i in range(1, len(solution), 2):
-            off_val += (solution[i] - solution[i + 1]) / (scaling ** 2)
-        main_val = solution[0] / (scaling ** 2)
+            off_val += (solution[i] - solution[i + 1]) / (scaling**2)
+        main_val = solution[0] / (scaling**2)
         return np.real(self._main_diag * main_val + self._off_diag * off_val)
 
     def evaluate_classically(self, solution: Union[np.array, QuantumCircuit]) -> float:
