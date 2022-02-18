@@ -14,18 +14,17 @@
 
 import unittest
 
-from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (
-    VarQteLinearSolver,
-)
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
+from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (
+    VarQteLinearSolver,
+)
 from qiskit.algorithms.time_evolution.variational.solvers.ode.ode_function_generator import (
     OdeFunctionGenerator,
 )
 from qiskit import Aer
-from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary\
-    .implementations.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.circuit import Parameter
@@ -67,16 +66,21 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
 
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
 
-        # for the purpose of the test we invoke lazy_init
-        var_principle._lazy_init(observable, ansatz, parameters)
+        metric_tensor = var_principle._get_metric_tensor(ansatz, parameters)
+        evolution_grad = var_principle._get_evolution_grad(observable, ansatz, parameters)
+
         time = 2
 
         linear_solver = VarQteLinearSolver(
-            CircuitSampler(backend), CircuitSampler(backend), CircuitSampler(backend)
+            metric_tensor,
+            evolution_grad,
+            CircuitSampler(backend),
+            CircuitSampler(backend),
+            CircuitSampler(backend),
         )
 
         ode_function_generator = OdeFunctionGenerator(regularization=None)
-        ode_function_generator._lazy_init(None, var_principle, None, param_dict, linear_solver)
+        ode_function_generator._lazy_init(None, None, param_dict, linear_solver)
 
         qte_ode_function = ode_function_generator.var_qte_ode_function(time, param_dict.values())
         # TODO check if values correct
@@ -121,15 +125,21 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         backend = Aer.get_backend("statevector_simulator")
 
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
-        # for the purpose of the test we invoke lazy_init
-        var_principle._lazy_init(observable, ansatz, parameters)
+
+        metric_tensor = var_principle._get_metric_tensor(ansatz, parameters)
+        evolution_grad = var_principle._get_evolution_grad(observable, ansatz, parameters)
+
         time = 2
 
         ode_function_generator = OdeFunctionGenerator(regularization=None)
         linear_solver = VarQteLinearSolver(
-            CircuitSampler(backend), CircuitSampler(backend), CircuitSampler(backend)
+            metric_tensor,
+            evolution_grad,
+            CircuitSampler(backend),
+            CircuitSampler(backend),
+            CircuitSampler(backend),
         )
-        ode_function_generator._lazy_init(None, var_principle, t_param, param_dict, linear_solver)
+        ode_function_generator._lazy_init(None, t_param, param_dict, linear_solver)
 
         qte_ode_function = ode_function_generator.var_qte_ode_function(time, param_dict.values())
 

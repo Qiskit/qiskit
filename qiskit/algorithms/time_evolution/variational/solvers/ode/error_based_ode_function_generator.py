@@ -17,8 +17,7 @@ from typing import Union, List, Iterable, Optional
 import numpy as np
 from scipy.optimize import minimize
 
-from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator \
-    import (
+from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
     AbstractOdeFunctionGenerator,
 )
 
@@ -48,7 +47,6 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
         super().__init__(regularization)
 
         self._error_calculator = None
-        self._variational_principle = None
         self._t_param = None
 
         self._optimizer = optimizer
@@ -70,7 +68,6 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
         current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
 
         nat_grad_res, metric_res, grad_res = self._linear_solver._solve_sle(
-            self._variational_principle,
             current_param_dict,
             self._t_param,
             time,

@@ -17,12 +17,10 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from ddt import ddt
 
-from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
-    .imaginary_error_calculator import (
+from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
     ImaginaryErrorCalculator,
 )
-from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary\
-    .implementations.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (
@@ -84,12 +82,15 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
             backend=backend,
         )
 
-        linear_solver = VarQteLinearSolver(circuit_sampler, circuit_sampler, circuit_sampler)
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
-        # for the purpose of the test we invoke lazy_init
-        var_principle._lazy_init(observable, ansatz, parameters)
+        metric_tensor = var_principle._get_metric_tensor(ansatz, parameters)
+        evolution_grad = var_principle._get_evolution_grad(observable, ansatz, parameters)
 
-        ng_res, metric_res, grad_res = linear_solver._solve_sle(var_principle, param_dict)
+        linear_solver = VarQteLinearSolver(
+            metric_tensor, evolution_grad, circuit_sampler, circuit_sampler, circuit_sampler
+        )
+
+        ng_res, metric_res, grad_res = linear_solver._solve_sle(param_dict)
 
         eps_squared, dtdt_state, regrad2 = imaginary_error_calculator._calc_single_step_error(
             ng_res, grad_res, metric_res, param_dict
@@ -141,12 +142,15 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
             backend=backend,
         )
 
-        linear_solver = VarQteLinearSolver(circuit_sampler, circuit_sampler, circuit_sampler)
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
-        # for the purpose of the test we invoke lazy_init
-        var_principle._lazy_init(observable, ansatz, parameters)
+        metric_tensor = var_principle._get_metric_tensor(ansatz, parameters)
+        evolution_grad = var_principle._get_evolution_grad(observable, ansatz, parameters)
 
-        ng_res, metric_res, grad_res = linear_solver._solve_sle(var_principle, param_dict)
+        linear_solver = VarQteLinearSolver(
+            metric_tensor, evolution_grad, circuit_sampler, circuit_sampler, circuit_sampler
+        )
+
+        ng_res, metric_res, grad_res = linear_solver._solve_sle(param_dict)
 
         eps_squared = imaginary_error_calculator._calc_single_step_error_gradient(
             ng_res, grad_res, metric_res

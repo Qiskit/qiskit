@@ -15,8 +15,7 @@
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
-from qiskit.algorithms.time_evolution.variational.variational_principles.real.implementations\
-    .real_time_dependent_variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.real.implementations.real_time_dependent_variational_principle import (
     RealTimeDependentVariationalPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
@@ -47,10 +46,7 @@ class TestRealTimeDependentVariationalPrinciple(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = RealTimeDependentVariationalPrinciple()
 
-        # for the purpose of the test we invoke lazy_init
-        var_principle._lazy_init(observable, ansatz, parameters)
-
-        metric_tensor = var_principle._raw_metric_tensor
+        metric_tensor = var_principle._get_metric_tensor(ansatz, parameters)
 
         bound_metric_tensor = metric_tensor.bind_parameters(param_dict)
 
@@ -249,10 +245,7 @@ class TestRealTimeDependentVariationalPrinciple(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = RealTimeDependentVariationalPrinciple()
 
-        # for the purpose of the test we invoke lazy_init
-        var_principle._lazy_init(observable, ansatz, parameters)
-
-        evolution_grad = var_principle._raw_evolution_grad
+        evolution_grad = var_principle._get_evolution_grad(observable, ansatz, parameters)
 
         bound_raw_evolution_grad = evolution_grad.bind_parameters(param_dict)
 

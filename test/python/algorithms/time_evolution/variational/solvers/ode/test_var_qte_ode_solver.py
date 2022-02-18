@@ -14,12 +14,12 @@
 
 import unittest
 
-from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (
-    VarQteLinearSolver,
-)
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
+from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (
+    VarQteLinearSolver,
+)
 from qiskit.algorithms.time_evolution.variational.solvers.ode.var_qte_ode_solver import (
     VarQteOdeSolver,
 )
@@ -27,8 +27,7 @@ from qiskit.algorithms.time_evolution.variational.solvers.ode.ode_function_gener
     OdeFunctionGenerator,
 )
 from qiskit import Aer
-from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary\
-    .implementations.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
@@ -75,17 +74,23 @@ class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
 
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
 
-        # for the purpose of the test we invoke lazy_init
-        var_principle._lazy_init(observable, ansatz, parameters)
         time = 1
 
         reg = "ridge"
 
         ode_function_generator = OdeFunctionGenerator(regularization=reg)
+
+        metric_tensor = var_principle._get_metric_tensor(ansatz, parameters)
+        evolution_grad = var_principle._get_evolution_grad(observable, ansatz, parameters)
+
         linear_solver = VarQteLinearSolver(
-            CircuitSampler(backend), CircuitSampler(backend), CircuitSampler(backend)
+            metric_tensor,
+            evolution_grad,
+            CircuitSampler(backend),
+            CircuitSampler(backend),
+            CircuitSampler(backend),
         )
-        ode_function_generator._lazy_init(None, var_principle, None, param_dict, linear_solver)
+        ode_function_generator._lazy_init(None, None, param_dict, linear_solver)
 
         var_qte_ode_solver = VarQteOdeSolver(
             list(param_dict.values()),

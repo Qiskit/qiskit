@@ -47,7 +47,6 @@ from qiskit.opflow import (
     ComposedOp,
     PauliExpectation,
     OperatorBase,
-    CircuitStateFn,
 )
 
 
@@ -85,12 +84,6 @@ class VarQte(EvolutionBase, ABC):
         # we define separate instances of CircuitSamplers as it caches aggressively according
         # to its documentation
         self._init_samplers()
-        self._linear_solver = VarQteLinearSolver(
-            self._grad_circ_sampler,
-            self._metric_circ_sampler,
-            self._energy_sampler,
-            allowed_imaginary_part,
-        )
 
         self._ode_function_generator = ode_function_generator
         self._ode_solver_callable = ode_solver_callable
@@ -101,6 +94,7 @@ class VarQte(EvolutionBase, ABC):
         self._initial_state = None
         self._hamiltonian = None
         self._hamiltonian_squared = None
+        self._linear_solver = None
 
     def _evolve_helper(
         self,
@@ -109,7 +103,7 @@ class VarQte(EvolutionBase, ABC):
         time: float,
         t_param: Parameter,
         error_calculator: ErrorCalculator,
-        initial_state: Optional[OperatorBase] = None,
+        initial_state: Optional[Union[OperatorBase, QuantumCircuit]] = None,
         observable: Optional[OperatorBase] = None,
     ) -> OperatorBase:
         """
@@ -145,10 +139,25 @@ class VarQte(EvolutionBase, ABC):
         init_state_parameters = list(init_state_param_dict.keys())
         init_state_parameters_values = list(init_state_param_dict.values())
 
+        metric_tensor = self._variational_principle._get_metric_tensor(
+            initial_state, init_state_parameters
+        )
+        evolution_grad = self._variational_principle._get_evolution_grad(
+            hamiltonian, initial_state, init_state_parameters
+        )
+
+        self._linear_solver = VarQteLinearSolver(
+            metric_tensor,
+            evolution_grad,
+            self._grad_circ_sampler,
+            self._metric_circ_sampler,
+            self._energy_sampler,
+            self._allowed_imaginary_part,
+        )
+
         # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator
         self._ode_function_generator._lazy_init(
             error_calculator,
-            self._variational_principle,
             t_param,
             init_state_param_dict,
             self._linear_solver,
@@ -158,9 +167,6 @@ class VarQte(EvolutionBase, ABC):
             init_state_parameters_values, self._ode_function_generator, self._ode_solver_callable
         )
         parameter_values = ode_solver._run(time)
-        # return evolved
-        # initial state here is not with self because we need a parametrized state (input to this
-        # method)
         param_dict_from_ode = dict(zip(init_state_parameters, parameter_values))
 
         # if self._state_circ_sampler:
@@ -195,14 +201,12 @@ class VarQte(EvolutionBase, ABC):
         self._metric_circ_sampler = CircuitSampler(self._backend) if self._backend else None
         self._energy_sampler = CircuitSampler(self._backend) if self._backend else None
 
-    def _init_ham_objects(self) -> None:
+    def _init_ham_objects(self, hamiltonian: OperatorBase, ansatz) -> None:
         """Initialize the gradient objects needed to perform VarQTE."""
-        self._operator = self._variational_principle._operator
-        self._validate_operator(self._operator)
-        self._hamiltonian = self._operator.oplist[0].primitive * self._operator.oplist[0].coeff
-        self._hamiltonian_squared = self._hamiltonian_power(2)
+        self._operator = ~StateFn(hamiltonian) @ StateFn(ansatz)
+        self._hamiltonian_squared = self._hamiltonian_power(hamiltonian, 2)
 
-    def _hamiltonian_power(self, power: int) -> OperatorBase:
+    def _hamiltonian_power(self, hamiltonian: OperatorBase, power: int) -> OperatorBase:
         """
         Calculates a Hamiltonian raised to a given power.
 
@@ -212,7 +216,7 @@ class VarQte(EvolutionBase, ABC):
         Returns:
             Hamiltonian raised to a given power.
         """
-        h_power = self._hamiltonian**power
+        h_power = hamiltonian**power
         h_power = ComposedOp([~StateFn(h_power.reduce()), StateFn(self._initial_state)])
         h_power = PauliExpectation().convert(h_power)
         # TODO Include Sampler here if backend is given
@@ -246,24 +250,3 @@ class VarQte(EvolutionBase, ABC):
                     init_state_parameter_values.append(hamiltonian_value_dict[param])
         init_state_param_dict = dict(zip(init_state_parameters, init_state_parameter_values))
         return init_state_param_dict
-
-    def _validate_operator(self, operator) -> None:
-        """
-        Validates a constructed operator to make sure that it includes an ansatz and that it is
-        an ComposedOp or a ListOp.
-
-        Args:
-            operator: Operator to be validated.
-
-        Raises:
-            TypeError: In case an operator provided is not valid.
-        """
-        if not isinstance(operator[-1], CircuitStateFn):
-            raise TypeError("Please provide the respective ansatz as a CircuitStateFn.")
-        if not isinstance(operator, ComposedOp) and not all(
-            isinstance(op, CircuitStateFn) for op in operator.oplist
-        ):
-            raise TypeError(
-                "Please provide the operator either as ComposedOp or as ListOp of a "
-                "CircuitStateFn potentially with a combo function."
-            )

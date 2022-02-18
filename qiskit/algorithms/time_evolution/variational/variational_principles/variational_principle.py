@@ -43,41 +43,6 @@ class VariationalPrinciple(ABC):
         """
         self._qfi_method = qfi_method
         self._grad_method = grad_method
-        # variables below are initialized lazily in methods below
-        self._hamiltonian = None
-        self._ansatz = None
-        self._operator = None
-        self._params = None
-        self._raw_evolution_grad = None
-        self._raw_metric_tensor = None
-
-    def _lazy_init(
-        self,
-        hamiltonian: OperatorBase,
-        ansatz: Union[StateFn, QuantumCircuit],
-        parameters: List[Parameter],
-    ) -> None:
-        """
-        Initiates a variational principle object with data provided in evolve() or gradient()
-        methods.
-
-        Args:
-            hamiltonian:
-                Operator used vor Variational Quantum Time Evolution (VarQTE).
-                The coefficient of the operator (operator.coeff) determines the evolution time.
-                The operator may be given either as a composed op consisting of a Hermitian
-                observable and a CircuitStateFn or a ListOp of a CircuitStateFn with a ComboFn.
-            ansatz: Quantum state to be evolved.
-            parameters: Parameters present in an ansatz.
-        """
-
-        self._hamiltonian = hamiltonian
-        self._ansatz = ansatz
-        self._operator = ~StateFn(hamiltonian) @ StateFn(ansatz)
-        self._params = parameters
-
-        self._raw_evolution_grad = self._get_evolution_grad(hamiltonian, ansatz, parameters)
-        self._raw_metric_tensor = self._get_metric_tensor(ansatz, parameters)
 
     @abstractmethod
     def _get_metric_tensor(

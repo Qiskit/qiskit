@@ -22,9 +22,6 @@ from qiskit.algorithms.time_evolution.variational.calculators.metric_tensor_calc
 from qiskit.algorithms.time_evolution.variational.calculators.evolution_grad_calculator import (
     eval_grad_result,
 )
-from qiskit.algorithms.time_evolution.variational.variational_principles.variational_principle import (
-    VariationalPrinciple,
-)
 from qiskit.opflow.gradients.natural_gradient import NaturalGradient
 from qiskit.circuit import Parameter
 from qiskit.opflow import CircuitSampler
@@ -35,6 +32,8 @@ class VarQteLinearSolver:
 
     def __init__(
         self,
+        metric_tensor,
+        evolution_grad,
         grad_circ_sampler: Optional[CircuitSampler] = None,
         metric_circ_sampler: Optional[CircuitSampler] = None,
         energy_sampler: Optional[CircuitSampler] = None,
@@ -42,6 +41,7 @@ class VarQteLinearSolver:
     ):
         """
         Args:
+            : # TODO
             grad_circ_sampler: CircuitSampler for evolution gradients.
             metric_circ_sampler: CircuitSampler for metric tensors.
             energy_sampler: CircuitSampler for energy.
@@ -49,6 +49,8 @@ class VarQteLinearSolver:
                 imaginary part is expected.
         """
 
+        self._metric_tensor = metric_tensor
+        self._evolution_grad = evolution_grad
         self._grad_circ_sampler = grad_circ_sampler
         self._metric_circ_sampler = metric_circ_sampler
         self._energy_sampler = energy_sampler
@@ -56,7 +58,6 @@ class VarQteLinearSolver:
 
     def _solve_sle(
         self,
-        var_principle: VariationalPrinciple,
         param_dict: Dict[Parameter, Union[float, complex]],
         t_param: Optional[Parameter] = None,
         time_value: Optional[float] = None,
@@ -67,7 +68,6 @@ class VarQteLinearSolver:
         calculation without error bounds.
 
         Args:
-            var_principle: Variational Principle to be used.
             param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
             time_value: Time value that will be bound to t_param. It is required if t_param is
@@ -83,8 +83,8 @@ class VarQteLinearSolver:
             dω/dt, 2Re⟨dψ(ω)/dω|H|ψ(ω) for VarQITE/ 2Im⟨dψ(ω)/dω|H|ψ(ω) for VarQRTE, Fubini-Study
             Metric.
         """
-        grad = var_principle._raw_evolution_grad
-        metric = var_principle._raw_metric_tensor
+        grad = self._evolution_grad
+        metric = self._metric_tensor
 
         if t_param is not None:
             time_dict = {t_param: time_value}
@@ -94,8 +94,8 @@ class VarQteLinearSolver:
             # grad
             # natural gradient with nat_grad_combo_fn(x, regularization=None)
             # TODO raw_evolution_grad might be passed as a callback
-            grad = var_principle._raw_evolution_grad.bind_parameters(time_dict)
-            metric = var_principle._raw_metric_tensor.bind_parameters(time_dict)
+            grad = self._evolution_grad.bind_parameters(time_dict)
+            metric = self._metric_tensor.bind_parameters(time_dict)
 
         grad_result = eval_grad_result(
             grad,

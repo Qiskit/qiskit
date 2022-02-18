@@ -17,8 +17,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
 from qiskit import Aer
-from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary\
-    .implementations.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (
@@ -35,11 +34,6 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
     def test_solve_sle_no_backend(self):
         """Test SLE solver with no backend."""
         backend = Aer.get_backend("statevector_simulator")
-        linear_solver = VarQteLinearSolver(
-            CircuitSampler(backend),
-            CircuitSampler(backend),
-            CircuitSampler(backend),
-        )
 
         # Define the Hamiltonian for the simulation
         observable = SummedOp(
@@ -69,10 +63,18 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
 
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
 
-        # for the purpose of the test we invoke lazy_init
-        var_principle._lazy_init(observable, ansatz, parameters)
+        metric_tensor = var_principle._get_metric_tensor(ansatz, parameters)
+        evolution_grad = var_principle._get_evolution_grad(observable, ansatz, parameters)
 
-        nat_grad_res, metric_res, grad_res = linear_solver._solve_sle(var_principle, param_dict)
+        linear_solver = VarQteLinearSolver(
+            metric_tensor,
+            evolution_grad,
+            CircuitSampler(backend),
+            CircuitSampler(backend),
+            CircuitSampler(backend),
+        )
+
+        nat_grad_res, metric_res, grad_res = linear_solver._solve_sle(param_dict)
 
         # TODO verify all values below if correct
         expected_nat_grad_res = [

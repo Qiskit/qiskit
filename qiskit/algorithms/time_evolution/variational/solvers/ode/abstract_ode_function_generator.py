@@ -15,12 +15,9 @@
 from abc import ABC, abstractmethod
 from typing import Iterable, Union, Dict, Optional
 
-from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors \
-    .error_calculator import \
-    ErrorCalculator
-from qiskit.algorithms.time_evolution.variational.variational_principles.variational_principle \
-    import (
-    VariationalPrinciple,
+from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
+    .error_calculator import (
+    ErrorCalculator,
 )
 from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (
     VarQteLinearSolver,
@@ -46,16 +43,19 @@ class AbstractOdeFunctionGenerator(ABC):
         """
         self._regularization = regularization
 
+        self._error_calculator = None
+        self._t_param = None
+        self._param_dict = None
+        self._linear_solver = None
+
     def _lazy_init(
         self,
         error_calculator: ErrorCalculator,
-        variational_principle: VariationalPrinciple,
         t_param: Parameter,
         param_dict: Dict[Parameter, Union[float, complex]],
         linear_solver: VarQteLinearSolver,
     ):
         self._error_calculator = error_calculator
-        self._variational_principle = variational_principle
         self._t_param = t_param
         self._param_dict = param_dict
         self._linear_solver = linear_solver

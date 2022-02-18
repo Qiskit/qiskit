@@ -12,7 +12,7 @@
 
 """Class for generating ODE functions based on natural gradients."""
 
-from typing import Iterable, Optional
+from typing import Iterable
 
 from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
     AbstractOdeFunctionGenerator,
@@ -21,22 +21,6 @@ from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_funct
 
 class OdeFunctionGenerator(AbstractOdeFunctionGenerator):
     """Class for generating ODE functions based on natural gradients."""
-
-    def __init__(
-        self,
-        regularization: Optional[str] = None,
-    ):
-        """
-        Args:
-            regularization: Use the following regularization with a least square method to solve the
-                underlying system of linear equations. Can be either None or ``'ridge'`` or
-                ``'lasso'`` or ``'perturb_diag'``. ``'ridge'`` and ``'lasso'`` use an automatic
-                optimal parameter search. If regularization is None but the metric is
-                ill-conditioned or singular then a least square solver is used without
-                regularization.
-        """
-
-        super().__init__(regularization)
 
     def var_qte_ode_function(self, time: float, parameters_values: Iterable) -> Iterable:
         """
@@ -53,7 +37,6 @@ class OdeFunctionGenerator(AbstractOdeFunctionGenerator):
         current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
 
         nat_grad_res, _, _ = self._linear_solver._solve_sle(
-            self._variational_principle,
             current_param_dict,
             self._t_param,
             time,

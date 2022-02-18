@@ -19,19 +19,16 @@ from scipy.integrate import OdeSolver
 from qiskit.algorithms.time_evolution.evolution_result import EvolutionResult
 from qiskit.algorithms.time_evolution.imaginary.qite import Qite
 
-from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
-    .imaginary_error_calculator import (
+from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
     ImaginaryErrorCalculator,
 )
-from qiskit.algorithms.time_evolution.variational.solvers.ode.error_based_ode_function_generator \
-    import \
-    ErrorBasedOdeFunctionGenerator
-from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary\
-    .imaginary_variational_principle import (
+from qiskit.algorithms.time_evolution.variational.solvers.ode.error_based_ode_function_generator import (
+    ErrorBasedOdeFunctionGenerator,
+)
+from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary.imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
-from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator \
-    import (
+from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
     AbstractOdeFunctionGenerator,
 )
 from qiskit.circuit import Parameter
@@ -116,10 +113,8 @@ class VarQite(Qite, VarQte):
         init_state_param_dict = self._create_init_state_param_dict(
             hamiltonian_value_dict, list(initial_state.parameters)
         )
-        init_state_parameters = list(init_state_param_dict.keys())  # TODO
-        self._variational_principle._lazy_init(hamiltonian, initial_state, init_state_parameters)
         self.bind_initial_state(StateFn(initial_state), init_state_param_dict)
-        self._init_ham_objects()
+        self._init_ham_objects(hamiltonian, initial_state)
 
         error_calculator = None
         if isinstance(self._ode_function_generator, ErrorBasedOdeFunctionGenerator):

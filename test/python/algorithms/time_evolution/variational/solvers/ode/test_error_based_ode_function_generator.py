@@ -14,24 +14,21 @@
 
 import unittest
 
-from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (
-    VarQteLinearSolver,
-)
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from numpy import array
 
-from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
-    .imaginary_error_calculator import (
+from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (
+    VarQteLinearSolver,
+)
+from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
     ImaginaryErrorCalculator,
 )
-from qiskit.algorithms.time_evolution.variational.solvers.ode.error_based_ode_function_generator \
-    import (
+from qiskit.algorithms.time_evolution.variational.solvers.ode.error_based_ode_function_generator import (
     ErrorBasedOdeFunctionGenerator,
 )
 from qiskit import Aer
-from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary\
-    .implementations.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
@@ -86,16 +83,14 @@ class TestErrorBasedOdeFunctionGenerator(QiskitAlgorithmsTestCase):
 
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
 
-        # for the purpose of the test we invoke lazy_init
-        var_principle._lazy_init(observable, ansatz, parameters)
+        metric_tensor = var_principle._get_metric_tensor(ansatz, parameters)
+        evolution_grad = var_principle._get_evolution_grad(hamiltonian, ansatz, parameters)
 
         ode_function_generator = ErrorBasedOdeFunctionGenerator(regularization=None)
         time = 0.1
-        linear_solver = VarQteLinearSolver()
+        linear_solver = VarQteLinearSolver(metric_tensor, evolution_grad)
 
-        ode_function_generator._lazy_init(
-            error_calculator, var_principle, None, param_dict, linear_solver
-        )
+        ode_function_generator._lazy_init(error_calculator, None, param_dict, linear_solver)
         qte_ode_function = ode_function_generator.var_qte_ode_function(time, param_dict.values())
 
         # TODO verify values if correct
