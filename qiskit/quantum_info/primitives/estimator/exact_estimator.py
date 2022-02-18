@@ -23,7 +23,6 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import MissingOptionalLibraryError
-from qiskit.opflow import PauliSumOp
 from qiskit.providers import BackendV1 as Backend
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -31,6 +30,7 @@ from qiskit.result import Result
 from qiskit.transpiler import PassManager
 from qiskit.utils import optionals as _optionals
 
+from ..framework.utils import PauliSumOp
 from ..results import EstimatorResult
 from ..results.base_result import BaseResult
 from .base_estimator import BaseEstimator
