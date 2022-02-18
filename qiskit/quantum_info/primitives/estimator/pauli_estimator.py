@@ -32,7 +32,6 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.result import QuasiDistribution, Result
 from qiskit.transpiler import PassManager
 
-from ..backends import BackendWrapper
 from ..results import EstimatorResult, SamplerResult
 from ..results.base_result import BaseResult
 from ..sampler import Sampler
@@ -50,7 +49,7 @@ class PauliEstimator(BaseEstimator):
         self,
         circuits: Union[QuantumCircuit, list[Union[QuantumCircuit]]],
         observables: Union[BaseOperator, PauliSumOp, list[Union[BaseOperator, PauliSumOp]]],
-        backend: Union[Backend, BackendWrapper, Sampler],
+        backend: Union[Backend, Sampler],
         strategy: bool = True,  # To be str like TPB
         transpile_options: Optional[dict] = None,
         bound_pass_manager: Optional[PassManager] = None,

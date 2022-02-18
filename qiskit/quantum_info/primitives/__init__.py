@@ -17,5 +17,5 @@ It contains evaluator primitives.
 """
 
 from .estimator import ExactEstimator, PauliEstimator
-from .sampler import AppendableSampler, Sampler
+from .sampler import Sampler
 from .framework import Group

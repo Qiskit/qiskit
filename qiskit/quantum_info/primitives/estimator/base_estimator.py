@@ -29,7 +29,6 @@ from qiskit.quantum_info.primitives.framework.base_primitive import (
 from qiskit.result import Result
 from qiskit.transpiler import PassManager
 
-from ..backends import BackendWrapper
 from ..results import EstimatorResult
 from ..results.base_result import BaseResult
 from ..framework.utils import Group, init_circuit, init_observable
@@ -44,7 +43,7 @@ class BaseEstimator(BasePrimitive, ABC):
         self,
         circuits: Union[QuantumCircuit, list[Union[QuantumCircuit]]],
         observables: Union[BaseOperator, PauliSumOp, list[Union[BaseOperator, PauliSumOp]]],
-        backend: Union[Backend, BackendWrapper],
+        backend: Backend,
         transpile_options: Optional[dict] = None,
         bound_pass_manager: Optional[PassManager] = None,
     ):
