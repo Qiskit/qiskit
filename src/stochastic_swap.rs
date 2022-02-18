@@ -98,14 +98,12 @@ fn swap_trial(
         }
     }
     let mut opt_edges = EdgeCollection::new();
-    let mut new_layout = int_layout.clone();
     let mut trial_layout = int_layout.clone();
     let mut optimal_layout = int_layout.clone();
 
     let num_gates: usize = gates.len() / 2;
     let num_edges: usize = edges.len() / 2;
 
-    let mut need_copy;
     let mut cost_reduced;
     let mut depth_step: usize = 1;
     let depth_max: usize = 2 * num_qubits + 1;
@@ -137,8 +135,6 @@ fn swap_trial(
             min_cost = compute_cost(&scale.view(), &trial_layout, gates, num_gates);
             // Try to decrease the objective function
             cost_reduced = false;
-            // Loop over edges of coupling graph
-            need_copy = true;
             for idx in 0..num_edges {
                 let start_edge = edges[2 * idx];
                 let end_edge = edges[2 * idx + 1];
@@ -259,13 +255,13 @@ pub fn swap_trials(
     let mut best_possible: Option<(u64, f64, EdgeCollection, NLayout)> = None;
     let locked_best_possible: RwLock<&mut Option<(u64, f64, EdgeCollection, NLayout)>> =
         RwLock::new(&mut best_possible);
-    let mut outer_rng: Pcg64Mcg = match seed {
+    let outer_rng: Pcg64Mcg = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
         None => Pcg64Mcg::from_entropy(),
     };
     let seed_vec: Vec<u64> = outer_rng
         .sample_iter(&rand::distributions::Standard)
-        .take(num_trials)
+        .take(num_trials as usize)
         .collect();
     let result: Vec<Option<(f64, EdgeCollection, NLayout, usize)>> = (0..num_trials)
         .into_par_iter()
