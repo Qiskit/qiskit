@@ -14,5 +14,4 @@
 Sampler
 """
 
-from .appendable_sampler import AppendableSampler
 from .sampler import Sampler

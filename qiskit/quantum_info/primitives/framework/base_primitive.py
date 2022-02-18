@@ -23,9 +23,8 @@ from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers import Options
-from qiskit.quantum_info.primitives.backends import BackendWrapper
 from qiskit.quantum_info.primitives.results.base_result import BaseResult
-from qiskit.result import Result
+from qiskit.result import Result, BaseReadoutMitigator
 from qiskit.transpiler import PassManager
 
 PreprocessedCircuits = Union[
@@ -40,7 +39,8 @@ class BasePrimitive(ABC):
 
     def __init__(
         self,
-        backend: Union[Backend, BackendWrapper],
+        backend: Backend,
+        mitigator: Optional[BaseReadoutMitigator] = None,
         transpile_options: Optional[dict] = None,
         bound_pass_manager: Optional[PassManager] = None,
     ):
@@ -48,8 +48,8 @@ class BasePrimitive(ABC):
         Args:
             backend: backend
         """
-        self._backend: BackendWrapper
-        self._backend = BackendWrapper.from_backend(backend)
+        self._backend: Union[Backend, BaseReadoutMitigator] = backend
+        self._mitigator: Optional[BaseReadoutMitigator] = mitigator
         self._run_options = Options()
         self._is_closed = False
 
@@ -188,9 +188,9 @@ class BasePrimitive(ABC):
         # Run
         run_opts = copy.copy(self.run_options)
         run_opts.update_options(**run_options)
-        results = self._backend.run(circuits=bound_circuits, **run_opts.__dict__)
+        result = self._backend.run(bound_circuits, **run_opts.__dict__).result()
 
-        return self._postprocessing(results)
+        return self._postprocessing(result)
 
     def _transpile(self):
         self._transpiled_circuits = cast(

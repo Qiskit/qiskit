@@ -14,21 +14,18 @@ Sampler class
 """
 from __future__ import annotations
 
-from collections import Counter
 from typing import Optional, Union, cast
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
-from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import BackendV1 as Backend
-from qiskit.result import QuasiDistribution, Result
+from qiskit.result import BaseReadoutMitigator, QuasiDistribution, Result
 from qiskit.transpiler import PassManager
 
-from ..backends import BackendWrapper
 from ..framework.base_primitive import BasePrimitive
+from ..framework.utils import init_circuit
 from ..results import SamplerResult
 from ..results.base_result import BaseResult
-from ..framework.utils import init_circuit
 
 
 class Sampler(BasePrimitive):
@@ -38,7 +35,8 @@ class Sampler(BasePrimitive):
 
     def __init__(
         self,
-        backend: Union[Backend, BackendWrapper],
+        backend: Backend,
+        mitigator: Optional[BaseReadoutMitigator] = None,
         circuits: Optional[Union[QuantumCircuit, list[QuantumCircuit]]] = None,
         transpile_options: Optional[dict] = None,
         bound_pass_manager: Optional[PassManager] = None,
@@ -50,6 +48,7 @@ class Sampler(BasePrimitive):
         """
         super().__init__(
             backend=backend,
+            mitigator=mitigator,
             transpile_options=transpile_options,
             bound_pass_manager=bound_pass_manager,
         )
@@ -63,7 +62,7 @@ class Sampler(BasePrimitive):
         self._skip_transpilation = False
 
     @classmethod
-    def from_backend(cls, backend: Union[Backend, BackendWrapper, Sampler]) -> "Sampler":
+    def from_backend(cls, backend: Union[Backend, Sampler]) -> "Sampler":
         """Generates a Sampler based on a backend
 
         Args:
@@ -81,7 +80,7 @@ class Sampler(BasePrimitive):
         """A list of quantum circuits to be executed
 
         Returns:
-            a list of quatum circuits
+            a list of quantum circuits
         """
         return self._circuits
 
@@ -106,52 +105,35 @@ class Sampler(BasePrimitive):
         Returns:
             The backend which this sampler object based on
         """
-        return self._backend.backend
+        return self._backend
 
     def set_skip_transpilation(self):
         """Once the method is called, the transpilation will be skiped."""
         self._skip_transpilation = True
 
-    def _get_quasis(
-        self, results: list[Result], num_circuits: int
-    ) -> tuple[list[QuasiDistribution], float]:
-        """Converts a list of results to quasi-probabilities and the total number of shots
-
-        Args:
-            results: a list of results
-            num_circuits: the number of circuits.
-
-        Returns:
-            a list of quasi-probabilities and the total number of shots
-
-        Raises:
-            QiskitError: if inputs are empty
-        """
-        if len(results) == 0:
-            raise QiskitError("Empty result")
-        list_counts = self._backend.get_counts(results)
-        counters: list[Counter] = [Counter() for _ in range(num_circuits)]
-        i = 0
-        for counts in list_counts:
-            for count in counts:
-                counters[i % num_circuits].update(count)
-                i += 1
-        shots = sum(counters[0].values())
-        quasis = [QuasiDistribution({k: v / shots for k, v in c.items()}) for c in counters]
-        return quasis, shots
-
     def _postprocessing(self, result: Union[Result, BaseResult, dict]) -> SamplerResult:
         if not isinstance(result, Result):
             raise TypeError("result must be an instance of Result.")
 
-        raw_results = [result]
-        quasis, shots = self._get_quasis(raw_results, len(result.results))
-        metadata = [res.header.metadata for result in raw_results for res in result.results]
+        counts = result.get_counts()
+        if not isinstance(counts, list):
+            counts = [counts]
+
+        shots = sum(counts[0].values())
+
+        quasis = []
+        for c in counts:
+            if self._mitigator is None:
+                quasis.append(QuasiDistribution({k: v / shots for k, v in c.items()}))
+            else:
+                quasis.append(self._mitigator.quasi_probabilities(c))
+
+        metadata = [res.header.metadata for res in result.results]
 
         return SamplerResult(
             quasi_dists=quasis,
             shots=shots,
-            raw_results=raw_results,
+            raw_results=result,
             metadata=metadata,
         )
 
