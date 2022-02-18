@@ -46,6 +46,7 @@ class Initialize(Instruction, Operation):
                 * int: an integer that is used as a bitmap indicating which qubits to initialize
                 to :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit 2
                 to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
+
             num_qubits (int): This parameter is only used if params is an int. Indicates the total
                 number of qubits in the `initialize` call. Example: `initialize` covers 5 qubits
                 and params is 3. This allows qubits 0 and 1 to be initialized to :math:`|1\rangle` and the

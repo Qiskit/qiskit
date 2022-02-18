@@ -20,7 +20,7 @@ import unittest
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import Statevector
 from qiskit.test import QiskitTestCase
-from qiskit.converters import circuit_to_dag
+from qiskit.exceptions import QiskitError
 
 
 class TestStatePreparation(QiskitTestCase):
@@ -50,40 +50,22 @@ class TestStatePreparation(QiskitTestCase):
         actual_sv = Statevector.from_instruction(qc)
         self.assertTrue(desired_sv == actual_sv)
 
-    def test_decompose_with_int(self):
-        """Test prepare_state with int arg decomposes to a StatePreparation and reset"""
-        qc = QuantumCircuit(2)
-        qc.prepare_state(2)
-        decom_circ = qc.decompose()
-        dag = circuit_to_dag(decom_circ)
+    def test_nonzero_state_incorrect(self):
+        """Test final state incorrect if initial state not zero"""
+        # ???
 
-        self.assertEqual(len(dag.op_nodes()), 1)
-        self.assertIsNot(dag.op_nodes()[0].name, "reset")
-        self.assertEqual(dag.op_nodes()[0].name, "x")
+    def test_inverse(self):
+        """Test inverse of StatePreparation"""
+        # ???
 
-    def test_decompose_with_string(self):
-        """Test prepare_state with string arg decomposes to a StatePreparation without resets"""
-        qc = QuantumCircuit(2)
-        qc.prepare_state("11")
-        decom_circ = qc.decompose()
-        dag = circuit_to_dag(decom_circ)
-
-        self.assertEqual(len(dag.op_nodes()), 2)
-        self.assertIsNot(dag.op_nodes()[0].name, "reset")
-        self.assertEqual(dag.op_nodes()[0].name, "x")
-        self.assertIsNot(dag.op_nodes()[1].name, "reset")
-        self.assertEqual(dag.op_nodes()[1].name, "x")
-
-    def test_decompose_with_statevector(self):
-        """Test prepare_state with statevector arg decomposes to a StatePreparation without resets"""
-        qc = QuantumCircuit(2)
-        qc.prepare_state([1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)])
-        decom_circ = qc.decompose()
-        dag = circuit_to_dag(decom_circ)
-
-        self.assertEqual(len(dag.op_nodes()), 1)
-        self.assertIsNot(dag.op_nodes()[0].name, "reset")
-        self.assertEqual(dag.op_nodes()[0].name, "disentangler_dg")
+    def test_incompatible_state_and_qubit_args(self):
+        """Test error raised if number of qubits not compatible with state arg"""
+        qc = QuantumCircuit(3)
+        with self.assertRaisesRegex(
+            QiskitError,
+            "StatePreparation parameter vector has 4 elements, therefore expects 2 qubits. However, 3 were provided.",
+        ):
+            qc.prepare_state("11")
 
 
 if __name__ == "__main__":

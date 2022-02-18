@@ -15,7 +15,8 @@ import math
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import Instruction, QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.gate import Gate
 from qiskit.circuit.library.standard_gates.x import CXGate, XGate
 from qiskit.circuit.library.standard_gates.h import HGate
 from qiskit.circuit.library.standard_gates.s import SGate, SdgGate
@@ -26,7 +27,7 @@ from qiskit.circuit.exceptions import CircuitError
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class StatePreparation(Instruction):
+class StatePreparation(Gate):
     """Complex amplitude state preparation.
 
     Class that implements the (complex amplitude) state preparation of some
@@ -41,14 +42,14 @@ class StatePreparation(Instruction):
                 * Statevector: Statevector to initialize to.
                 * list: vector of complex amplitudes to initialize to.
                 * string: labels of basis states of the Pauli eigenstates Z, X, Y. See
-                :meth:`.Statevector.from_label`.
-                Notice the order of the labels is reversed with respect to the qubit index to
-                be applied to. Example label '01' initializes the qubit zero to :math:`|1\rangle` and the
-                qubit one to :math:`|0\rangle`.
+                    :meth:`.Statevector.from_label`.
+                    Notice the order of the labels is reversed with respect to the qubit index to
+                    be applied to. Example label '01' initializes the qubit zero to :math:`|1\rangle` and the
+                    qubit one to :math:`|0\rangle`.
 
                 * int: an integer that is used as a bitmap indicating which qubits to initialize
-                to :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit 2
-                to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
+                    to :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit 2
+                    to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
             num_qubits (int): This parameter is only used if params is an int. Indicates the total
                 number of qubits in the `initialize` call. Example: `initialize` covers 5 qubits
                 and params is 3. This allows qubits 0 and 1 to be initialized to :math:`|1\rangle` and the
@@ -80,7 +81,7 @@ class StatePreparation(Instruction):
 
         params = [params] if isinstance(params, int) else params
 
-        super().__init__("state_preparation", num_qubits, 0, params)
+        super().__init__("state_preparation", num_qubits, params)
 
     def _define(self):
         if self._from_label:
@@ -378,10 +379,9 @@ def prepare_state(self, state, qubits=None):
     Args:
         state (str or list or int):
             * str: labels of basis states of the Pauli eigenstates Z, X, Y. See
-            :meth:`.Statevector.from_label`.
-            Notice the order of the labels is reversed with respect to the qubit index to
-            be applied to. Example label '01' initializes the qubit zero to :math:`|1\rangle` and the
-            qubit one to :math:`|0\rangle`.
+            :meth:`.Statevector.from_label`. Notice the order of the labels is reversed with respect
+            to the qubit index to be applied to. Example label '01' initializes the qubit zero to
+            :math:`|1\rangle` and the qubit one to :math:`|0\rangle`.
 
             * list: vector of complex amplitudes to initialize to.
 
