@@ -1,0 +1,27 @@
+---
+features:
+  - |
+    The internals of the :class:`.StochasticSwap` algorithm has be reimplmented
+    to be multithreaded and is now written in the
+    `Rust <https://www.rust-lang.org/>`__ programming language instead of Cython.
+    This significantly increases the run time performance of the compiler pass
+    and by extension :func:`~.transpile` when run with ``optimization_level`` 0,
+    1, and 2. By default the pass will use up to the number of logical CPUs on your
+    local system but you can control the number of threads used by the pass by setting
+    the ``RAYON_NUM_THREADS`` environment variable to an integer value. For example,
+    setting ``RAYON_NUM_THREADS=4`` will run the :class:`.StochasticSwap` with 4 
+    threads.
+upgrade:
+  - |
+    The :class:`.StochasticSwap` transpiler pass may return different results with
+    the same seed value set. This is due to the internal rewrite of the transpiler
+    pass to improve runtime performance. However, this means that if you ran
+    :func:`~.transpile` with ``optimization_level`` 0, 1 (the default), or 2 with a
+    value set for ``seed_transpiler`` you may get an output with different swap
+    mapping present after upgrading to Qiskit Terra 0.20.0.
+  - |
+    To build Qiskit Terra from source a `Rust <https://www.rust-lang.org/>`__
+    compiler is now needed. This is due to the internal rewrite of the
+    :class:`.StochasticSwap` transpiler pass which greatly improves the runtime
+    performance of the transpiler. The rust compiler can easily be installed
+    using rustup, which can be found here: https://rustup.rs/

@@ -24,7 +24,7 @@ use hashbrown::HashMap;
 ///         physical qubit index on the coupling graph.
 ///     logical_qubits (int): The number of logical qubits in the layout
 ///     physical_qubits (int): The number of physical qubits in the layout
-#[pyclass(module = "stoachstic_swap")]
+#[pyclass(module = "_accelerate")]
 #[pyo3(text_signature = "(qubit_indices, logical_qubits, physical_qubits, /)")]
 #[derive(Clone, Debug)]
 pub struct NLayout {
@@ -58,6 +58,16 @@ impl NLayout {
         }
         res
     }
+
+    fn __getstate__(&self) -> [Vec<usize>; 2] {
+        [self.logic_to_phys.clone(), self.phys_to_logic.clone()]
+    }
+
+    fn __setstate__(&mut self, state: [Vec<usize>; 2]) {
+        self.logic_to_phys = state[0].clone();
+        self.phys_to_logic = state[1].clone();
+    }
+
 
     /// Return the layout mapping
     ///

@@ -16,7 +16,7 @@ use pyo3::Python;
 
 /// A simple container that contains a vector representing edges in the
 /// coupling map that are found to be optimal by the swap mapper.
-#[pyclass(module = "stoachstic_swap")]
+#[pyclass(module = "_accelerate")]
 #[pyo3(text_signature = "(/)")]
 #[derive(Clone, Debug)]
 pub struct EdgeCollection {
@@ -55,5 +55,13 @@ impl EdgeCollection {
     #[pyo3(text_signature = "(self, /)")]
     pub fn edges(&self, py: Python) -> PyObject {
         self.edges.clone().into_pyarray(py).into()
+    }
+
+    fn __getstate__(&self) -> Vec<usize> {
+        self.edges.clone()
+    }
+
+    fn __setstate__(&mut self, state: Vec<usize>) {
+        self.edges = state.clone()
     }
 }
