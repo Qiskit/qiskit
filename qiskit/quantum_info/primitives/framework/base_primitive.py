@@ -24,7 +24,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers import Options
 from qiskit.quantum_info.primitives.results.base_result import BaseResult
-from qiskit.result import Result, BaseReadoutMitigator
+from qiskit.result import BaseReadoutMitigator, Result
 from qiskit.transpiler import PassManager
 
 PreprocessedCircuits = Union[

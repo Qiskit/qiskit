@@ -32,7 +32,8 @@ from qiskit.result import BaseReadoutMitigator, QuasiDistribution, Result
 from qiskit.transpiler import PassManager
 
 from ..framework.utils import PauliSumOp
-from ..results import BaseResult, EstimatorResult, SamplerResult
+from ..results import EstimatorResult, SamplerResult
+from ..results.base_result import BaseResult
 from ..sampler import Sampler
 from .base_estimator import BaseEstimator, Group
 
