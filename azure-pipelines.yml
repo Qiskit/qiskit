@@ -316,7 +316,6 @@ stages:
             set -e
             python -m pip install --upgrade pip setuptools wheel
             pip install -U tox
-            python setup.py build_ext --inplace
             sudo apt-get update
             sudo apt-get install -y graphviz
           displayName: 'Install dependencies'
