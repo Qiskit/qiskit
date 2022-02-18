@@ -13,7 +13,7 @@
 """Abstract class for generating ODE functions."""
 
 from abc import ABC, abstractmethod
-from typing import Iterable, Union, Dict
+from typing import Iterable, Union, Dict, Optional
 
 from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors \
     .error_calculator import \

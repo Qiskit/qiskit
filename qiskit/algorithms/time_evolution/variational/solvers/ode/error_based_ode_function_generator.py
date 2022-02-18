@@ -12,7 +12,7 @@
 
 """Class for generating error-based ODE functions."""
 
-from typing import Union, List, Iterable
+from typing import Union, List, Iterable, Optional
 
 import numpy as np
 from scipy.optimize import minimize
