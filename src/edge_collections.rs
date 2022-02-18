@@ -17,7 +17,7 @@ use pyo3::Python;
 /// A simple container that contains a vector representing edges in the
 /// coupling map that are found to be optimal by the swap mapper.
 #[pyclass(module = "stoachstic_swap")]
-#[pyo3(text_signature = "(/")]
+#[pyo3(text_signature = "(/)")]
 #[derive(Clone, Debug)]
 pub struct EdgeCollection {
     pub edges: Vec<usize>,
@@ -41,11 +41,18 @@ impl EdgeCollection {
     /// Args:
     ///     edge_start (int): The beginning edge.
     ///     edge_end (int): The end of the edge.
+    #[pyo3(text_signature = "(self, edge_start, edge_end, /)")]
     pub fn add(&mut self, edge_start: usize, edge_end: usize) {
         self.edges.push(edge_start);
         self.edges.push(edge_end);
     }
 
+    /// Return the numpy array of edges
+    ///
+    /// The out array is the flattened edge list from the coupling graph.
+    /// For example, if the edge list were ``[(0, 1), (1, 2), (2, 3)]`` the
+    /// output array here would be ``[0, 1, 1, 2, 2, 3]``.
+    #[pyo3(text_signature = "(self, /)")]
     pub fn edges(&self, py: Python) -> PyObject {
         self.edges.clone().into_pyarray(py).into()
     }

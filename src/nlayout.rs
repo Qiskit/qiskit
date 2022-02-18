@@ -14,8 +14,18 @@ use pyo3::prelude::*;
 
 use hashbrown::HashMap;
 
+/// An unsigned integer Vector based layout class
+///
+/// This class tracks the layout (or mapping between virtual qubits in the the
+/// circuit and physical qubits on the physical device) efficiently
+///
+/// Args:
+///     qubit_indices (dict): A dictionary mapping the virtual qubit index in the circuit to the
+///         physical qubit index on the coupling graph.
+///     logical_qubits (int): The number of logical qubits in the layout
+///     physical_qubits (int): The number of physical qubits in the layout
 #[pyclass(module = "stoachstic_swap")]
-#[pyo3(text_signature = "(/")]
+#[pyo3(text_signature = "(qubit_indices, logical_qubits, physical_qubits, /)")]
 #[derive(Clone, Debug)]
 pub struct NLayout {
     pub logic_to_phys: Vec<usize>,
@@ -49,6 +59,19 @@ impl NLayout {
         res
     }
 
+    /// Return the layout mapping
+    ///
+    /// .. note::
+    ///
+    ///     this copies the data from Rust to Python and has linear
+    ///     overhead based on the number of qubits.
+    ///
+    /// Returns:
+    ///     list: A list of 2 element lists in the form:
+    ///     ``[[logical_qubit, physical_qubit], ...]``. Where the logical qubit
+    ///     is the index in the qubit index in the circuit.
+    ///
+    #[pyo3(text_signature = "(self, /)")]
     fn layout_mapping(&self) -> Vec<[usize; 2]> {
         (0..self.logic_to_phys.len())
             .map(|i| [i, self.logic_to_phys[i]])
