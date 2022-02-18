@@ -32,11 +32,13 @@ from qiskit.circuit import Parameter, Gate, Qubit, Clbit
 from qiskit.compiler import transpile
 from qiskit.dagcircuit import DAGOutNode
 from qiskit.converters import circuit_to_dag
-from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate, RXGate, RYGate, RZGate
+from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate, RXGate, RYGate, RZGate, UGate
+from qiskit.circuit.measure import Measure
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeMelbourne, FakeRueschlikon, FakeAlmaden
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler import PassManager
+from qiskit.transpiler.target import Target
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection
 from qiskit.quantum_info import Operator, random_unitary
@@ -77,7 +79,6 @@ class TestTranspile(QiskitTestCase):
             backend=backend,
             coupling_map=coupling_map,
             basis_gates=basis_gates,
-            pass_manager=None,
         )
 
         circuit3 = transpile(
@@ -105,13 +106,18 @@ class TestTranspile(QiskitTestCase):
         """Transpile pipeline can handle manual layout on non-adjacent qubits.
 
         circuit:
-        qr0:-[H]--.------------  -> 1
-                  |
-        qr1:-----(+)--.--------  -> 2
-                      |
-        qr2:---------(+)--.----  -> 3
-                          |
-        qr3:-------------(+)---  -> 5
+
+        .. parsed-literal::
+
+                  ┌───┐
+            qr_0: ┤ H ├──■──────────── -> 1
+                  └───┘┌─┴─┐
+            qr_1: ─────┤ X ├──■─────── -> 2
+                       └───┘┌─┴─┐
+            qr_2: ──────────┤ X ├──■── -> 3
+                            └───┘┌─┴─┐
+            qr_3: ───────────────┤ X ├ -> 5
+                                 └───┘
 
         device:
         0  -  1  -  2  -  3  -  4  -  5  -  6
@@ -204,6 +210,35 @@ class TestTranspile(QiskitTestCase):
         """Test that a manual layout that satisfies a coupling map does not get altered.
 
         See: https://github.com/Qiskit/qiskit-terra/issues/2036
+
+        circuit:
+
+        .. parsed-literal::
+
+                  ┌───┐                  ┌───┐ ░ ┌─┐
+            qn_0: ┤ H ├──■────────────■──┤ H ├─░─┤M├─── -> 9
+                  └───┘  │            │  └───┘ ░ └╥┘
+            qn_1: ───────┼────────────┼────────░──╫──── -> 6
+                         │            │        ░  ║
+            qn_2: ───────┼────────────┼────────░──╫──── -> 5
+                         │            │        ░  ║
+            qn_3: ───────┼────────────┼────────░──╫──── -> 0
+                         │            │        ░  ║
+            qn_4: ───────┼────────────┼────────░──╫──── -> 1
+                  ┌───┐┌─┴─┐┌──────┐┌─┴─┐┌───┐ ░  ║ ┌─┐
+            qn_5: ┤ H ├┤ X ├┤ P(2) ├┤ X ├┤ H ├─░──╫─┤M├ -> 4
+                  └───┘└───┘└──────┘└───┘└───┘ ░  ║ └╥┘
+            cn: 2/════════════════════════════════╩══╩═
+                                                  0  1
+
+        device:
+        0 -- 1 -- 2 -- 3 -- 4
+        |                   |
+        5 -- 6 -- 7 -- 8 -- 9
+        |                   |
+        10 - 11 - 12 - 13 - 14
+        |                   |
+        15 - 16 - 17 - 18 - 19
         """
         basis_gates = ["u1", "u2", "u3", "cx", "id"]
         coupling_map = [
@@ -627,7 +662,13 @@ class TestTranspile(QiskitTestCase):
 
     def test_optimize_to_nothing(self):
         """Optimize gates up to fixed point in the default pipeline
-        See https://github.com/Qiskit/qiskit-terra/issues/2035"""
+        See https://github.com/Qiskit/qiskit-terra/issues/2035
+        """
+        #       ┌───┐     ┌───┐┌───┐┌───┐     ┌───┐
+        # q0_0: ┤ H ├──■──┤ X ├┤ Y ├┤ Z ├──■──┤ H ├──■────■──
+        #       └───┘┌─┴─┐└───┘└───┘└───┘┌─┴─┐└───┘┌─┴─┐┌─┴─┐
+        # q0_1: ─────┤ X ├───────────────┤ X ├─────┤ X ├┤ X ├
+        #            └───┘               └───┘     └───┘└───┘
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)
         circ.h(qr[0])
@@ -1376,6 +1417,29 @@ class TestTranspile(QiskitTestCase):
         else:
             # Optimization level 3 eliminates the pointless swap
             self.assertEqual(res, QuantumCircuit(2))
+
+    @data(0, 1, 2, 3)
+    def test_target_ideal_gates(self, opt_level):
+        """Test that transpile() with a custom ideal sim target works."""
+        theta = Parameter("θ")
+        phi = Parameter("ϕ")
+        lam = Parameter("λ")
+        target = Target()
+        target.add_instruction(UGate(theta, phi, lam))
+        target.add_instruction(CXGate())
+        target.add_instruction(Measure())
+        qubit_reg = QuantumRegister(2, name="q")
+        clbit_reg = ClassicalRegister(2, name="c")
+        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
+        qc.h(qubit_reg[0])
+        qc.cx(qubit_reg[0], qubit_reg[1])
+        qc.measure(qubit_reg, clbit_reg)
+        result = transpile(qc, target=target, optimization_level=opt_level)
+        expected = QuantumCircuit(qubit_reg, clbit_reg)
+        expected.u(np.pi / 2, 0, np.pi, qubit_reg[0])
+        expected.cx(qubit_reg[0], qubit_reg[1])
+        expected.measure(qubit_reg, clbit_reg)
+        self.assertEqual(result, expected)
 
 
 class StreamHandlerRaiseException(StreamHandler):

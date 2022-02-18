@@ -25,6 +25,7 @@ import numpy as np
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.operation import Operation
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.exceptions import QiskitError
@@ -35,7 +36,7 @@ from qiskit.extensions.quantum_initializer.mcg_up_to_diagonal import MCGupDiag
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class Isometry(Instruction):
+class Isometry(Instruction, Operation):
     """
     Decomposition of arbitrary isometries from m to n qubits. In particular, this allows to
     decompose unitaries (m=n) and to do state preparation (m=0).
@@ -134,7 +135,7 @@ class Isometry(Instruction):
         # Return the isometry that is left to decompose, where the columns up to index column_index
         # correspond to the firstfew columns of the identity matrix up to diag, and hence we only
         # have to save a list containing them.
-        for column_index in range(2 ** m):
+        for column_index in range(2**m):
             self._decompose_column(circuit, q, diag, remaining_isometry, column_index)
             # extract phase of the state that was sent to the basis state ket(column_index)
             diag.append(remaining_isometry[column_index, 0])
@@ -166,8 +167,8 @@ class Isometry(Instruction):
         n = int(np.log2(self.params[0].shape[0]))
 
         # MCG to set one entry to zero (preparation for disentangling with UCGate):
-        index1 = 2 * _a(k, s + 1) * 2 ** s + _b(k, s + 1)
-        index2 = (2 * _a(k, s + 1) + 1) * 2 ** s + _b(k, s + 1)
+        index1 = 2 * _a(k, s + 1) * 2**s + _b(k, s + 1)
+        index2 = (2 * _a(k, s + 1) + 1) * 2**s + _b(k, s + 1)
         target_label = n - s - 1
         # Check if a MCG is required
         if _k_s(k, s) == 0 and _b(k, s + 1) != 0 and np.abs(v[index2, k_prime]) > self._epsilon:
@@ -224,8 +225,8 @@ class Isometry(Instruction):
         squs = [
             _reverse_qubit_state(
                 [
-                    v[2 * i * 2 ** s + _b(k, s), k_prime],
-                    v[(2 * i + 1) * 2 ** s + _b(k, s), k_prime],
+                    v[2 * i * 2**s + _b(k, s), k_prime],
+                    v[(2 * i + 1) * 2**s + _b(k, s), k_prime],
                 ],
                 _k_s(k, s),
                 self._epsilon,
@@ -503,11 +504,11 @@ def _merge_UCGate_and_diag(single_qubit_gates, diag):
 
 
 def _a(k, s):
-    return k // 2 ** s
+    return k // 2**s
 
 
 def _b(k, s):
-    return k - (_a(k, s) * 2 ** s)
+    return k - (_a(k, s) * 2**s)
 
 
 # given a binary representation of k with binary digits [k_{n-1},..,k_1,k_0],

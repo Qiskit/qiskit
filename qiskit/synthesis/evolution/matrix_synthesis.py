@@ -29,6 +29,8 @@ class MatrixExponential(EvolutionSynthesis):
     """
 
     def synthesize(self, evolution):
+        from scipy.linalg import expm
+
         # get operators and time to evolve
         operators = evolution.operator
         time = evolution.time
