@@ -9,9 +9,8 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-Prepare desired state
-"""
+"""Prepare a quantum state from the state where all qubits are 0."""
+
 import math
 import numpy as np
 
@@ -35,7 +34,7 @@ class StatePreparation(Instruction):
     """
 
     def __init__(self, params, num_qubits=None):
-        """Prepare state
+        r"""Prepare state
 
         Args:
             params (str, list, int or Statevector):
@@ -44,16 +43,16 @@ class StatePreparation(Instruction):
                 * string: labels of basis states of the Pauli eigenstates Z, X, Y. See
                 :meth:`.Statevector.from_label`.
                 Notice the order of the labels is reversed with respect to the qubit index to
-                be applied to. Example label '01' initializes the qubit zero to :math:`\ket{1}` and the
-                qubit one to :math:`\ket{0}`.
+                be applied to. Example label '01' initializes the qubit zero to :math:`|1\rangle` and the
+                qubit one to :math:`|0\rangle`.
 
                 * int: an integer that is used as a bitmap indicating which qubits to initialize
-                to :math:`\ket{1}`. Example: setting params to 5 would initialize qubit 0 and qubit 2
-                to :math:`\ket{1}` and qubit 1 to :math:`\ket{0}`.
+                to :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit 2
+                to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
             num_qubits (int): This parameter is only used if params is an int. Indicates the total
                 number of qubits in the `initialize` call. Example: `initialize` covers 5 qubits
-                and params is 3. This allows qubits 0 and 1 to be initialized to :math:`\ket{1}` and the
-                remaining 3 qubits to be initialized to :math:`\ket{0}`.
+                and params is 3. This allows qubits 0 and 1 to be initialized to :math:`|1\rangle` and the
+                remaining 3 qubits to be initialized to :math:`|0\rangle`.
 
         Raises:
             QiskitError: num_qubits parameter used when params is not an integer
@@ -89,7 +88,7 @@ class StatePreparation(Instruction):
         elif self._from_int:
             self.definition = self._define_from_int()
         else:
-            self.definition = self._default_synthesis()
+            self.definition = self._define_synthesis()
 
     def _define_from_label(self):
         q = QuantumRegister(self.num_qubits, "q")
@@ -133,7 +132,7 @@ class StatePreparation(Instruction):
 
         return initialize_circuit
 
-    def _default_synthesis(self):
+    def _define_synthesis(self):
         """Calculate a subcircuit that implements this initialization
 
         Implements a recursive initialization algorithm, including optimizations,
@@ -374,21 +373,21 @@ def prepare_state(self, state, qubits=None):
     r"""Prepare qubits in a specific state.
 
     This class implements a state preparing unitary. Unlike
-    :class:`~.qiskit.extensions.quantum_initializer.Initialize` it does not reset the qubits first.
+    :class:`qiskit.extensions.Initialize` it does not reset the qubits first.
 
     Args:
         state (str or list or int):
             * str: labels of basis states of the Pauli eigenstates Z, X, Y. See
             :meth:`.Statevector.from_label`.
             Notice the order of the labels is reversed with respect to the qubit index to
-            be applied to. Example label '01' initializes the qubit zero to :math:`\ket{1}` and the
-            qubit one to :math:`\ket{0}`.
+            be applied to. Example label '01' initializes the qubit zero to :math:`|1\rangle` and the
+            qubit one to :math:`|0\rangle`.
 
             * list: vector of complex amplitudes to initialize to.
 
             * int: an integer that is used as a bitmap indicating which qubits to initialize
-            to :math:`\ket{1}`. Example: setting params to 5 would initialize qubit 0 and qubit 2
-            to :math:`\ket{1}` and qubit 1 to :math:`\ket{0}`.
+            to :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit 2
+            to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
         qubits (QuantumRegister or int):
             * QuantumRegister: A list of qubits to be initialized [Default: None].
             * int: Index of qubit to be initialized [Default: None].
@@ -418,7 +417,7 @@ def prepare_state(self, state, qubits=None):
                  └─────────────────────────────────────┘
 
 
-        Prepare from a string two qubits in the state :math:`\ket{10}`.
+        Prepare from a string two qubits in the state :math:`|10\rangle`.
         The order of the labels is reversed with respect to qubit index.
         More information about labels for basis states are in
         :meth:`.Statevector.from_label`.
