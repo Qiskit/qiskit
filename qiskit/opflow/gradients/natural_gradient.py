@@ -143,8 +143,9 @@ class NaturalGradient(GradientBase):
         if regularization:
             # If a regularization method is chosen then use a regularized solver to
             # construct the natural gradient.
-            nat_grad = NaturalGradient._regularized_sle_solver(metric, gradient,
-                                                               regularization=regularization)
+            nat_grad = NaturalGradient._regularized_sle_solver(
+                metric, gradient, regularization=regularization
+            )
         else:
             # Check if numerical instabilities lead to a metric which is not positive semidefinite
             w, v = np.linalg.eigh(metric)
@@ -223,8 +224,9 @@ class NaturalGradient(GradientBase):
                 try:
                     eps.append(np.log(np.linalg.norm(np.matmul(metric, x) - gradient) ** 2))
                 except ValueError:
-                    eps.append(np.log(np.linalg.norm(np.matmul(metric, np.transpose(x)) -
-                                                     gradient) ** 2))
+                    eps.append(
+                        np.log(np.linalg.norm(np.matmul(metric, np.transpose(x)) - gradient) ** 2)
+                    )
                 eta.append(np.log(max(np.linalg.norm(x) ** 2, 1e-6)))
             p_temp = 1
             c_k = 0
@@ -464,8 +466,9 @@ class NaturalGradient(GradientBase):
             while np.linalg.cond(metric + alpha * np.eye(len(gradient))) > tol_cond_a:
                 alpha *= 10
             # include perturbation in A to avoid singularity
-            x, _, _, _ = np.linalg.lstsq(metric + alpha * np.eye(len(gradient)), gradient,
-                                         rcond=None)
+            x, _, _, _ = np.linalg.lstsq(
+                metric + alpha * np.eye(len(gradient)), gradient, rcond=None
+            )
         else:
             # include perturbation in A to avoid singularity
             x, _, _, _ = np.linalg.lstsq(metric, gradient, rcond=None)
@@ -492,7 +495,8 @@ class NaturalGradient(GradientBase):
                     alpha *= 10
                 while np.linalg.cond(metric + alpha * np.eye(len(gradient))) > tol_cond_a:
                     # include perturbation in A to avoid singularity
-                    x, _, _, _ = np.linalg.lstsq(metric + alpha * np.eye(len(gradient)), gradient,
-                                                 rcond=None)
+                    x, _, _, _ = np.linalg.lstsq(
+                        metric + alpha * np.eye(len(gradient)), gradient, rcond=None
+                    )
                     alpha *= 10
         return x

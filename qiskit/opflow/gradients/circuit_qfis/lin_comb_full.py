@@ -62,9 +62,7 @@ class LinCombFull(CircuitQFI):
             TypeError: If ``operator`` is an unsupported type.
         """
         # QFI & phase fix observable
-        qfi_observable = StateFn(
-            4 * aux_meas_op ^ (I ^ operator.num_qubits), is_measurement=True
-        )
+        qfi_observable = StateFn(4 * aux_meas_op ^ (I ^ operator.num_qubits), is_measurement=True)
         if phase_fix:
             phase_fix_observable = SummedOp(
                 [Z ^ (I ^ operator.num_qubits), -1j * Y ^ (I ^ operator.num_qubits)]
@@ -220,9 +218,11 @@ class LinCombFull(CircuitQFI):
 
             """
             if np.any([[np.abs(np.imag(a_item)) > 1e-8 for a_item in a_row] for a_row in qfi]):
-                raise ValueError("The imaginary part of the metric are non-negligible. Please "
-                                 "increase the number of backend shots.")
+                raise ValueError(
+                    "The imaginary part of the metric are non-negligible. Please "
+                    "increase the number of backend shots."
+                )
             return np.real(qfi)
 
         # Return the full QFI
-        return ListOp(qfi_operators, combo_fn=lambda x: check_and_realpart(triu_to_dense))
+        return ListOp(qfi_operators, combo_fn=lambda x: check_and_realpart(triu_to_dense(x)))

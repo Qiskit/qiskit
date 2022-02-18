@@ -262,13 +262,15 @@ class LinComb(CircuitGradient):
                     isinstance(params, list)
                     and all(isinstance(param, ParameterExpression) for param in params)
                 ):
-                    return self._gradient_states(operator, target_params=params,
-                                                 aux_meas_op=aux_meas_op)
+                    return self._gradient_states(
+                        operator, target_params=params, aux_meas_op=aux_meas_op
+                    )
                 elif isinstance(params, tuple) or (
                     isinstance(params, list) and all(isinstance(param, tuple) for param in params)
                 ):
-                    return self._hessian_states(operator, target_params=params,
-                                                aux_meas_op=aux_meas_op)  #type: ignore
+                    return self._hessian_states(
+                        operator, target_params=params, aux_meas_op=aux_meas_op
+                    )  # type: ignore
                 else:
                     raise OpflowError(
                         "The linear combination gradient does only support the computation "
@@ -317,6 +319,7 @@ class LinComb(CircuitGradient):
                 raise TypeError(
                     "The state result should be either a DictStateFn or a VectorStateFn."
                 )
+
         if not isinstance(x, Iterable):
             return get_result(x)
         elif len(x) == 1:
