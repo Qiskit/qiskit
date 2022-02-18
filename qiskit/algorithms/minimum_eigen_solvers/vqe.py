@@ -213,6 +213,16 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         )
 
     @property
+    def initial_point(self) -> Optional[np.ndarray]:
+        """Returns initial point"""
+        return self._initial_point
+
+    @initial_point.setter
+    def initial_point(self, initial_point: np.ndarray):
+        """Sets initial point"""
+        self._initial_point = initial_point
+
+    @property
     def max_evals_grouped(self) -> int:
         """Returns max_evals_grouped"""
         return self._max_evals_grouped
