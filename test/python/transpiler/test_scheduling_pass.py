@@ -557,14 +557,14 @@ class TestSchedulingPass(QiskitTestCase):
         «c: 1/╡ c_0=0x0 ╞══════════════════╡ c_0=0x0 ╞══════════════════»
         «     └─────────┘                  └─────────┘                  »
         «           ┌───┐                  ┌────────────────┐
-        «q_0: ──────┤ X ├────────────■─────┤ Delay(400[dt]) ├
+        «q_0: ──────┤ X ├────────────■─────┤ Delay(700[dt]) ├
         «     ┌─────┴───┴──────┐   ┌─┴─┐   ├────────────────┤
-        «q_1: ┤ Delay(400[dt]) ├───┤ X ├───┤ Delay(400[dt]) ├
-        «     └──────┬─┬───────┘   └─╥─┘   └────────────────┘
-        «q_2: ───────┤M├─────────────╫───────────────────────
-        «            └╥┘        ┌────╨────┐
-        «c: 1/════════╩═════════╡ c_0=0x0 ╞══════════════════
-        «             0         └─────────┘
+        «q_1: ┤ Delay(400[dt]) ├───┤ X ├───┤ Delay(700[dt]) ├
+        «     ├────────────────┤   └─╥─┘   └──────┬─┬───────┘
+        «q_2: ┤ Delay(300[dt]) ├─────╫────────────┤M├────────
+        «     └────────────────┘┌────╨────┐       └╥┘
+        «c: 1/══════════════════╡ c_0=0x0 ╞════════╩═════════
+        «                       └─────────┘        0
 
         (ALAP scheduled) duration = 3100
              ┌────────────────┐┌────────────────┐   ┌───┐    ░ ┌─────────────────┐»
@@ -638,11 +638,12 @@ class TestSchedulingPass(QiskitTestCase):
         expected_asap.cx(1, 2)
         expected_asap.delay(400, 1)
         expected_asap.cx(0, 1).c_if(0, 0)
+        expected_asap.delay(700, 0)  # creg is released at t0 of cx(0,1).c_if(0,0)
+        expected_asap.delay(700, 1)  # no creg write until 100dt. thus measure can move left by 300dt.
+        expected_asap.delay(300, 2)
         expected_asap.measure(2, 0)
-        expected_asap.delay(400, 0)
-        expected_asap.delay(400, 1)
         self.assertEqual(expected_asap, actual_asap)
-        self.assertEqual(actual_asap.duration, 2800)
+        self.assertEqual(actual_asap.duration, 3100)
 
         expected_alap = QuantumCircuit(3, 1)
         expected_alap.delay(100, 0)
@@ -668,6 +669,52 @@ class TestSchedulingPass(QiskitTestCase):
         expected_alap.delay(700, 1)
         self.assertEqual(expected_alap, actual_alap)
         self.assertEqual(actual_alap.duration, 3100)
+
+    def test_dag_introduces_extra_dependency_between_conditionals(self):
+        """Test dependency between conditional operations in the scheduling.
+
+        In the below example circuit, the conditional x on q1 could start at time 0,
+        however it must be scheduled after the conditional x on q0 in ASAP scheduling.
+        That is because circuit model used in the transpiler passes (DAGCircuit)
+        interprets instructions acting on common clbits must be run in the order
+        given by the original circuit (QuantumCircuit).
+
+        (input)
+             ┌────────────────┐   ┌───┐
+        q_0: ┤ Delay(100[dt]) ├───┤ X ├───
+             └─────┬───┬──────┘   └─╥─┘
+        q_1: ──────┤ X ├────────────╫─────
+                   └─╥─┘            ║
+                ┌────╨────┐    ┌────╨────┐
+        c: 1/═══╡ c_0=0x1 ╞════╡ c_0=0x1 ╞
+                └─────────┘    └─────────┘
+
+        (ASAP scheduled)
+             ┌────────────────┐   ┌───┐
+        q_0: ┤ Delay(100[dt]) ├───┤ X ├──────────────
+             ├────────────────┤   └─╥─┘      ┌───┐
+        q_1: ┤ Delay(100[dt]) ├─────╫────────┤ X ├───
+             └────────────────┘     ║        └─╥─┘
+                               ┌────╨────┐┌────╨────┐
+        c: 1/══════════════════╡ c_0=0x1 ╞╡ c_0=0x1 ╞
+                               └─────────┘└─────────┘
+        """
+        qc = QuantumCircuit(2, 1)
+        qc.delay(100, 0)
+        qc.x(0).c_if(0, True)
+        qc.x(1).c_if(0, True)
+
+        durations = InstructionDurations([("x", None, 160)])
+        pm = PassManager(ASAPSchedule(durations))
+        scheduled = pm.run(qc)
+
+        expected = QuantumCircuit(2, 1)
+        expected.delay(100, 0)
+        expected.delay(100, 1)  # due to extra dependency on clbits
+        expected.x(0).c_if(0, True)
+        expected.x(1).c_if(0, True)
+
+        self.assertEqual(expected, scheduled)
 
 
 if __name__ == "__main__":

@@ -91,6 +91,22 @@ class ASAPSchedule(BaseScheduler):
                 if node.op.condition_bits:
                     # Conditional gate
                     t0c = max(idle_after[bit] for bit in node.op.condition_bits)
+                    if t0q > t0c:
+                        # This is situation something like below
+                        #
+                        #           t0q
+                        # Q ▒▒▒▒▒▒▒▒|░░
+                        # C ▒▒▒|░░░░░░░
+                        #      t0c
+                        #
+                        # In this case, you can insert readout access before tq0
+                        #
+                        #           t0q
+                        # Q ▒▒▒▒▒▒▒▒|▒▒
+                        # C ▒▒▒|░░|▒|░░
+                        #         t0q - conditional_latency
+                        #
+                        t0c = max(t0q - self.conditional_latency, t0c)
                     t1c = t0c + self.conditional_latency
                     for bit in node.op.condition_bits:
                         # Lock clbit until state is read
