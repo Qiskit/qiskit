@@ -93,7 +93,7 @@ class StochasticSwap(TransformationPass):
         self._qubit_indices = {bit: idx for idx, bit in enumerate(dag.qubits)}
 
         self.qregs = dag.qregs
-        logger.debug("StochasticSwap default_rng seeded with seed=%s", self.seed)
+        logger.debug("StochasticSwap rng seeded with seed=%s", self.seed)
         self.coupling_map.compute_distance_matrix()
         new_dag = self._mapper(dag, self.coupling_map, trials=self.trials)
         return new_dag

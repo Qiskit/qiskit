@@ -39,8 +39,8 @@ impl NLayout {
         physical_qubits: usize,
     ) -> Self {
         let mut res = NLayout {
-            logic_to_phys: vec![0; logical_qubits],
-            phys_to_logic: vec![0; physical_qubits],
+            logic_to_phys: vec![std::usize::MAX; logical_qubits],
+            phys_to_logic: vec![std::usize::MAX; physical_qubits],
         };
         for (key, value) in qubit_indices {
             res.logic_to_phys[key] = value;

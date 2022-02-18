@@ -83,12 +83,19 @@ fn swap_trial(
     cdist: ArrayView2<f64>,
     cdist2: ArrayView2<f64>,
     edges: &[usize],
-    seed: Option<u64>,
+    seed: u64,
     trial_num: u64,
-    locked_best_possible: &RwLock<&mut Option<(f64, EdgeCollection, NLayout, usize)>>,
+    locked_best_possible: &RwLock<&mut Option<(u64, f64, EdgeCollection, NLayout)>>,
 ) -> Option<(f64, EdgeCollection, NLayout, usize)> {
-    if locked_best_possible.read().unwrap().is_some() {
-        return None;
+    {
+        // Return fast if a depth == 1 solution was already found in another parallel
+        // trial. However for deterministic results in cases of multiple depth == 1
+        // solutions still search for a solution if this trial number is less than
+        // the found solution (this mirrors the previous behavior of a serial loop).
+        let best_possible = locked_best_possible.read().unwrap();
+        if best_possible.is_some() && best_possible.as_ref().unwrap().0 > trial_num {
+            return None;
+        }
     }
     let mut opt_edges = EdgeCollection::new();
     let mut new_layout = int_layout.clone();
@@ -114,22 +121,18 @@ fn swap_trial(
     let mut scale = Array2::zeros((num_qubits, num_qubits));
 
     let distribution = Normal::new(1.0, 1.0 / num_qubits as f64).unwrap();
-    let mut rng: Pcg64Mcg = match seed {
-        Some(seed) => Pcg64Mcg::seed_from_u64(seed + trial_num),
-        None => Pcg64Mcg::from_entropy(),
-    };
-    let rand: Vec<f64> = distribution
+    let mut rng: Pcg64Mcg = Pcg64Mcg::seed_from_u64(seed);
+    let rand_arr: Vec<f64> = distribution
         .sample_iter(&mut rng)
         .take(num_qubits * (num_qubits + 1) / 2)
         .collect();
 
-    compute_random_scaling(&mut scale, &cdist2, &rand, num_qubits);
+    compute_random_scaling(&mut scale, &cdist2, &rand_arr, num_qubits);
 
-    let mut qubit_set: HashSet<usize>;
     let input_qubit_set: HashSet<usize> = int_qubit_subset.iter().copied().collect();
 
     while depth_step < depth_max {
-        qubit_set = input_qubit_set.clone();
+        let mut qubit_set = input_qubit_set.clone();
         while !qubit_set.is_empty() {
             min_cost = compute_cost(&scale.view(), &trial_layout, gates, num_gates);
             // Try to decrease the objective function
@@ -193,7 +196,12 @@ fn swap_trial(
     dist = compute_cost(&cdist, &trial_layout, gates, num_gates);
     if dist as usize == num_gates && depth_step == 1 {
         let mut best_possible = locked_best_possible.write().unwrap();
-        **best_possible = Some((dist, opt_edges, trial_layout, depth_step));
+        // In the case a ideal solution has already been found to pr
+        // behavior consistent with the single threaded predecessor to this function
+        // we defer to the earlier trial
+        if best_possible.is_none() || best_possible.as_ref().unwrap().0 > trial_num {
+            **best_possible = Some((trial_num, dist, opt_edges, trial_layout));
+        }
         return None;
     }
     Some((dist, opt_edges, trial_layout, depth_step))
@@ -254,10 +262,14 @@ pub fn swap_trials(
     let cdist2_arr = cdist2.as_array();
     let edges_arr = edges.as_slice()?;
     let num_gates: usize = int_gates.len() / 2;
-    let mut best_possible: Option<(f64, EdgeCollection, NLayout, usize)> = None;
-    let locked_best_possible: RwLock<&mut Option<(f64, EdgeCollection, NLayout, usize)>> =
+    let mut best_possible: Option<(u64, f64, EdgeCollection, NLayout)> = None;
+    let locked_best_possible: RwLock<&mut Option<(u64, f64, EdgeCollection, NLayout)>> =
         RwLock::new(&mut best_possible);
-
+    let mut outer_rng: Pcg64Mcg = match seed {
+        Some(seed) => Pcg64Mcg::seed_from_u64(seed),
+        None => Pcg64Mcg::from_entropy(),
+    };
+    let seed_vec: Vec<u64> = vec![outer_rng.gen(); num_trials as usize];
     let result: Vec<Option<(f64, EdgeCollection, NLayout, usize)>> = (0..num_trials)
         .into_par_iter()
         .map(|trial_num| {
@@ -269,14 +281,14 @@ pub fn swap_trials(
                 cdist_arr,
                 cdist2_arr,
                 edges_arr,
-                seed,
+                seed_vec[trial_num as usize],
                 trial_num,
                 &locked_best_possible,
             )
         })
         .collect();
     match best_possible {
-        Some((_dist, edges, layout, depth)) => Ok((Some(edges), Some(layout), depth)),
+        Some((_trial_num, _dist, edges, layout)) => Ok((Some(edges), Some(layout), 1)),
         None => {
             let mut best_depth = std::usize::MAX;
             let mut best_edges: Option<EdgeCollection> = None;
