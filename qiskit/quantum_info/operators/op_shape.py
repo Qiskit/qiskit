@@ -332,7 +332,7 @@ class OpShape:
         )
 
     def remove(self, qargs=None, qargs_l=None, qargs_r=None):
-        """Return the reduced OpShape with specified qargs removed"""
+        """Return a new :class:`OpShape` with the specified qargs removed"""
         if qargs:
             # Convert qargs to left and right qargs
             if qargs_l or qargs_r:
@@ -342,7 +342,7 @@ class OpShape:
             if self._num_qargs_r:
                 qargs_r = qargs
         if qargs_l is None and qargs_r is None:
-            return self
+            return self.copy()
 
         # Format integer qargs
         if isinstance(qargs_l, Integral):
