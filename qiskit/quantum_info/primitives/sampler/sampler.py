@@ -61,20 +61,6 @@ class Sampler(BasePrimitive):
 
         self._skip_transpilation = False
 
-    @classmethod
-    def from_backend(cls, backend: Union[Backend, Sampler]) -> "Sampler":
-        """Generates a Sampler based on a backend
-
-        Args:
-            backend: a backend, a backend wrapper, or a sampler
-
-        Returns:
-            a sampler
-        """
-        if not isinstance(backend, Sampler):
-            return cls(backend=backend)
-        return backend
-
     @property
     def circuits(self) -> list[QuantumCircuit]:
         """A list of quantum circuits to be executed
