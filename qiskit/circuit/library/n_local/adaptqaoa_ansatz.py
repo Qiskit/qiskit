@@ -17,17 +17,15 @@
 import itertools
 from typing import List, Optional, Tuple, Union
 import numpy as np
-from functools import reduce
 from itertools import combinations_with_replacement, permutations, product
 
-from sympy.logic.boolalg import Not
-from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz, _is_pauli_identity
 from qiskit.circuit.library.n_local import QAOAAnsatz
+from qiskit.circuit.library.evolved_operator_ansatz import _is_pauli_identity
 from qiskit.circuit.parametervector import ParameterVector
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumCircuit
 from qiskit.opflow import PauliSumOp, PauliOp, OperatorBase
-from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.quantum_info import Pauli, SparsePauliOp, Operator
+from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 
 
 def _reorder_parameters(num_mixer: Union[int, List], num_cost: int, reps: int):
@@ -76,8 +74,8 @@ def adapt_mixer_pool(
             add_multi, add_single = False, False
         else:
             raise ValueError(
-                "Unrecognised mixer pool type {}, modify this input to the available presets"
-                " 'single', 'singular' or 'multi'."
+                "Unrecognised mixer pool type '{}', modify this input to the available presets"
+                " 'single', 'singular' or 'multi'.".format(pool_type)
             )
 
     # always include the all x's:
@@ -152,10 +150,6 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
         self._initial_state = initial_state
         self._mixer_pool_type = mixer_pool_type
         self._mixer_pool = mixer_operators
-        # if mixer_operators is not None:
-        #     self.mixer_operators = mixer_operators
-        # if mixer_pool_type is not None:
-        #     self.mixer_pool_type = mixer_pool_type
         # set this circuit as a not-built circuit
         self._bounds = None
 
@@ -187,10 +181,19 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
                     f"does not match the number of qubits of the cost operator {self.num_qubits}"
                 )
         if self.mixer_operators is not None:
+            if self._mixer_pool_type is not None:
+                raise AttributeError(
+                    "Either a custom mixer pool or mixer pool type may be specified but not both."
+                )
             # Check that the dimensionality of the mixer operator pool is equal to the cost operator
-            n_mixer_qubits = np.array([mixer.num_qubits for mixer in self.mixer_operators])
-            check_mixer_qubits = np.argwhere(n_mixer_qubits != self.num_qubits)
-            if len(check_mixer_qubits):
+            n_mixer_qubits, mixer_operators = [], []
+            for mixer in self.mixer_operators:  
+                n_mixer_qubits.append(mixer.num_qubits) #
+                if isinstance(mixer, QuantumCircuit): # For the purposes of efficient energy gradient computation 
+                    mixer = PrimitiveOp(Operator(mixer)) # (i.e. the commutator) we must convert mixer circuits
+                mixer_operators.append(mixer)           # to opreators here
+            check_mixer_qubits = np.where(np.array(n_mixer_qubits) != self.num_qubits)[0]
+            if bool(sum(check_mixer_qubits)):
                 valid = False
                 err_str = str(tuple(set(check_mixer_qubits)))
                 if raise_on_failure:
@@ -199,6 +202,7 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
                         f" have an unequal number of qubits {n_mixer_qubits[check_mixer_qubits]}"
                         f" to the cost operator {self.num_qubits}."
                     )
+            self._mixer_operators = mixer_operators
         return valid
 
     @property
@@ -268,10 +272,11 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
 
     @property
     def mixer_operators(self):
-        """Returns an optional mixer operator expressed as an operator or a quantum circuit.
-
+        """Creates the mixer pool if not already defined
         Returns:
-            OperatorBase or QuantumCircuit, optional: mixer operator or circuit.
+            List of mixers that make up the mixer pool.
+        Raises:
+            AttributeError: If operator and thus num_qubits has not yet been defined.
         """
         if self._mixer_pool is not None:
             return self._mixer_pool
@@ -283,30 +288,38 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
                 )
                 self._mixer_pool = mixer_pool
                 return mixer_pool
-        return None
+        # return None
+        return self._mixer_operators
 
     @mixer_operators.setter
     def mixer_operators(self, mixer_operators) -> None:
         """Sets mixer pool.
-
         Args:
-            mixer_operator (OperatorBase or QuantumCircuit, optional): mixer operator or circuit
-                to set.
+            mixer_operator: a list of operators or circuits to set.
         """
         self._mixer_pool = mixer_operators
         self._invalidate()
 
     @property 
     def mixer_pool_type(self) -> str:
-        if self._mixer_pool_type is None:
+        """Returns the class of mixer pool if specified; otherwise will return a multi-qubit
+            mixer pool as a default.
+        Returns:
+            str: mixer pool type"""
+        if self._mixer_pool_type is None:  
             self._mixer_pool_type = 'multi'
         return self._mixer_pool_type
 
     @mixer_pool_type.setter
     def mixer_pool_type(self, mixer_pool_type: str):
+        """Sets the mixer pool type.
+        Args:
+            mixer_pool_type: A string that represents the preset mixer pool classes.
+        Raises:
+            KeyError: If mixer pool type is not in the set of presets.
+        """
         self._mixer_pool_type = mixer_pool_type
     
-
     def _build(self):
         if self._data is not None:
             return
@@ -314,8 +327,9 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
         super(QAOAAnsatz, self)._build()
 
     # keep old parameter order: first cost operator, then mixer operators
+        reps = 0
         num_cost = 0 if _is_pauli_identity(self.cost_operator) else 1
-        if isinstance(self.mixer_operators, list):
+        if isinstance(self.mixer_operators, list):                                  
             num_mixer = []
             for reps, mix in enumerate(self.operators[1:][::2], 1):
                 if isinstance(mix, QuantumCircuit):
@@ -328,6 +342,6 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
                 num_mixer = self.mixer_pool.num_parameters
             else:
                 num_mixer = 0 if _is_pauli_identity(self.mixer_pool) else 1
-
-        reordered = _reorder_parameters(num_mixer=num_mixer, num_cost=num_cost, reps=reps)
+    #TODO: Make a callback to initial_point here; the user should be able to specify the ordered list of initial points with operator/ circuit mixer variations
+        reordered = _reorder_parameters(num_mixer=num_mixer, num_cost=num_cost, reps=reps)  #TODO: i.e. the number of initial points needs to change based on number of parameters
         self.assign_parameters(dict(zip(self.ordered_parameters, reordered)), inplace=True)
