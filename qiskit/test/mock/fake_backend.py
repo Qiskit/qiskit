@@ -332,6 +332,14 @@ class FakeBackendV2(BackendV2):
         return the_json
 
     @property
+    def dtm(self) -> float:
+        """Return the system time resolution of output signals
+        Returns:
+            dtm: The output signal timestep in seconds.
+        """
+        return self._configuration.dtm
+
+    @property
     def target(self) -> Target:
         self._convert_to_target()
         return self._target
