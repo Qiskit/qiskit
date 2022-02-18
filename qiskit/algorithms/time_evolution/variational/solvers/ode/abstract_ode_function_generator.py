@@ -15,8 +15,7 @@
 from abc import ABC, abstractmethod
 from typing import Iterable, Union, Dict, Optional
 
-from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
-    .error_calculator import (
+from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
     ErrorCalculator,
 )
 from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (

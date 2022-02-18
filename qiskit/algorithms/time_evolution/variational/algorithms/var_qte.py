@@ -20,19 +20,16 @@ from scipy.integrate import RK45, OdeSolver
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.time_evolution.evolution_base import EvolutionBase
-from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
-    .error_calculator import (
+from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
     ErrorCalculator,
 )
 from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (
     VarQteLinearSolver,
 )
-from qiskit.algorithms.time_evolution.variational.variational_principles.variational_principle \
-    import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.variational_principle import (
     VariationalPrinciple,
 )
-from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator \
-    import (
+from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
     AbstractOdeFunctionGenerator,
 )
 from qiskit.algorithms.time_evolution.variational.solvers.ode.var_qte_ode_solver import (
@@ -90,12 +87,6 @@ class VarQte(EvolutionBase, ABC):
         self._allowed_imaginary_part = allowed_imaginary_part
         self._allowed_num_instability_error = allowed_num_instability_error
 
-        self._operator = None
-        self._initial_state = None
-        self._hamiltonian = None
-        self._hamiltonian_squared = None
-        self._linear_solver = None
-
     def _evolve_helper(
         self,
         init_state_param_dict: Dict[Parameter, Union[float, complex]],
@@ -146,7 +137,7 @@ class VarQte(EvolutionBase, ABC):
             hamiltonian, initial_state, init_state_parameters
         )
 
-        self._linear_solver = VarQteLinearSolver(
+        linear_solver = VarQteLinearSolver(
             metric_tensor,
             evolution_grad,
             self._grad_circ_sampler,
@@ -160,7 +151,7 @@ class VarQte(EvolutionBase, ABC):
             error_calculator,
             t_param,
             init_state_param_dict,
-            self._linear_solver,
+            linear_solver,
         )
 
         ode_solver = VarQteOdeSolver(
@@ -187,10 +178,10 @@ class VarQte(EvolutionBase, ABC):
             param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
         """
         if self._state_circ_sampler:
-            self._initial_state = self._state_circ_sampler.convert(state, param_dict)
+            initial_state = self._state_circ_sampler.convert(state, param_dict)
         else:
-            self._initial_state = state.assign_parameters(param_dict)
-        self._initial_state = self._initial_state.eval().primitive.data
+            initial_state = state.assign_parameters(param_dict)
+        return initial_state.eval().primitive.data
 
     def _init_samplers(self) -> None:
         """Creates all possible samplers if a backend is present."""
@@ -201,12 +192,9 @@ class VarQte(EvolutionBase, ABC):
         self._metric_circ_sampler = CircuitSampler(self._backend) if self._backend else None
         self._energy_sampler = CircuitSampler(self._backend) if self._backend else None
 
-    def _init_ham_objects(self, hamiltonian: OperatorBase, ansatz) -> None:
-        """Initialize the gradient objects needed to perform VarQTE."""
-        self._operator = ~StateFn(hamiltonian) @ StateFn(ansatz)
-        self._hamiltonian_squared = self._hamiltonian_power(hamiltonian, 2)
-
-    def _hamiltonian_power(self, hamiltonian: OperatorBase, power: int) -> OperatorBase:
+    def _hamiltonian_power(
+        self, hamiltonian: OperatorBase, initial_state, power: int
+    ) -> OperatorBase:
         """
         Calculates a Hamiltonian raised to a given power.
 
@@ -217,7 +205,7 @@ class VarQte(EvolutionBase, ABC):
             Hamiltonian raised to a given power.
         """
         h_power = hamiltonian**power
-        h_power = ComposedOp([~StateFn(h_power.reduce()), StateFn(self._initial_state)])
+        h_power = ComposedOp([~StateFn(h_power.reduce()), StateFn(initial_state)])
         h_power = PauliExpectation().convert(h_power)
         # TODO Include Sampler here if backend is given
         return h_power

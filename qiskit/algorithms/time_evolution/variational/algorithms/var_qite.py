@@ -114,13 +114,14 @@ class VarQite(Qite, VarQte):
             hamiltonian_value_dict, list(initial_state.parameters)
         )
         self.bind_initial_state(StateFn(initial_state), init_state_param_dict)
-        self._init_ham_objects(hamiltonian, initial_state)
+        operator = ~StateFn(hamiltonian) @ StateFn(initial_state)
+        hamiltonian_squared = self._hamiltonian_power(hamiltonian, initial_state, 2)
 
         error_calculator = None
         if isinstance(self._ode_function_generator, ErrorBasedOdeFunctionGenerator):
             error_calculator = ImaginaryErrorCalculator(
-                self._hamiltonian_squared,
-                self._operator,
+                hamiltonian_squared,
+                operator,
                 self._h_squared_circ_sampler,
                 self._operator_circ_sampler,
                 self._backend,
