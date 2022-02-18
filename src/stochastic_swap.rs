@@ -146,26 +146,20 @@ fn swap_trial(
                 let end_qubit = trial_layout.phys_to_logic[end_edge];
                 if qubit_set.contains(&start_qubit) && qubit_set.contains(&end_qubit) {
                     // Try this edge to reduce cost
-                    if need_copy {
-                        new_layout = trial_layout.clone();
-                        need_copy = false;
-                    }
-                    new_layout.swap(start_edge, end_edge);
+                    trial_layout.swap(start_edge, end_edge);
                     // compute objective function
-                    new_cost = compute_cost(&scale.view(), &new_layout, gates, num_gates);
+                    new_cost = compute_cost(&scale.view(), &trial_layout, gates, num_gates);
                     // record progress if we succeed
                     if new_cost < min_cost {
                         cost_reduced = true;
                         min_cost = new_cost;
-                        optimal_layout = new_layout.clone();
+                        optimal_layout = trial_layout.clone();
                         optimal_start = start_edge;
                         optimal_end = end_edge;
                         optimal_start_qubit = start_qubit;
                         optimal_end_qubit = end_qubit;
-                        need_copy = true;
-                    } else {
-                        new_layout.swap(start_edge, end_edge);
                     }
+                    trial_layout.swap(start_edge, end_edge);
                 }
             }
             // After going over all edges
@@ -243,7 +237,7 @@ fn swap_trial(
 ///         will be ``(None, None, max int)``.
 #[pyfunction]
 #[pyo3(
-    text_signature = "(num_trials, num_qubits, int_layout, int_gates, cdist, cdist2, edges, /, seed)"
+    text_signature = "(num_trials, num_qubits, int_layout, int_qubit_subset, int_gates, cdist, cdist2, edges, /, seed)"
 )]
 pub fn swap_trials(
     num_trials: u64,
@@ -269,7 +263,10 @@ pub fn swap_trials(
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
         None => Pcg64Mcg::from_entropy(),
     };
-    let seed_vec: Vec<u64> = vec![outer_rng.gen(); num_trials as usize];
+    let seed_vec: Vec<u64> = outer_rng
+        .sample_iter(&rand::distributions::Standard)
+        .take(num_trials)
+        .collect();
     let result: Vec<Option<(f64, EdgeCollection, NLayout, usize)>> = (0..num_trials)
         .into_par_iter()
         .map(|trial_num| {
