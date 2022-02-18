@@ -18,7 +18,6 @@ from abc import ABC, abstractmethod
 from typing import Optional, Union, cast
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.opflow import PauliSumOp
 from qiskit.providers import BackendV1 as Backend
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -30,9 +29,9 @@ from qiskit.result import Result
 from qiskit.transpiler import PassManager
 
 from ..backends import BackendWrapper
+from ..framework.utils import Group, PauliSumOp, init_circuit, init_observable
 from ..results import EstimatorResult
 from ..results.base_result import BaseResult
-from ..framework.utils import Group, init_circuit, init_observable
 
 
 class BaseEstimator(BasePrimitive, ABC):

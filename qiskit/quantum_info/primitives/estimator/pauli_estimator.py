@@ -25,7 +25,6 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
-from qiskit.opflow import PauliSumOp
 from qiskit.providers import BackendV1 as Backend
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -33,6 +32,7 @@ from qiskit.result import QuasiDistribution, Result
 from qiskit.transpiler import PassManager
 
 from ..backends import BackendWrapper
+from ..framework.utils import PauliSumOp
 from ..results import EstimatorResult, SamplerResult
 from ..results.base_result import BaseResult
 from ..sampler import Sampler
@@ -157,7 +157,7 @@ class PauliEstimator(BaseEstimator):
         # Bind parameters
         # TODO: support Aer parameter bind after https://github.com/Qiskit/qiskit-aer/pull/1317
         bound_circuits = [
-            transpiled_circuits[circuit_index].bind_parameters(p)
+            transpiled_circuits[circuit_index].bind_parameters(p)  # type: ignore
             for i, (p, n) in enumerate(zip(parameters, num_observables))
             for circuit_index in range(accum[i], accum[i] + n)
         ]

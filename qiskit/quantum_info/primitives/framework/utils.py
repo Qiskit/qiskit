@@ -13,14 +13,44 @@
 Utility funtions for expectation value classes
 """
 
+import sys
 from dataclasses import dataclass
 from typing import Union
 
 from qiskit.circuit import ParameterExpression, QuantumCircuit
 from qiskit.extensions import Initialize
-from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+
+if sys.version_info >= (3, 8):
+    from typing import Protocol, runtime_checkable
+else:
+    from typing_extensions import Protocol, runtime_checkable
+
+
+@runtime_checkable
+class PauliSumOp(Protocol):
+    """Protocol for opflow.PauliSumOp."""
+
+    @property
+    def primitive(self) -> SparsePauliOp:
+        """
+        The SparsePauliOp which defines the behavior of the underlying function.
+
+        Returns:
+             The primitive SparsePauliOp.
+        """
+        ...
+
+    @property
+    def coeff(self) -> Union[complex, ParameterExpression]:
+        """
+        The scalar coefficient multiplying the Operator.
+
+        Returns:
+              The coefficient.
+        """
+        ...
 
 
 def init_circuit(state: Union[QuantumCircuit, Statevector]) -> QuantumCircuit:
