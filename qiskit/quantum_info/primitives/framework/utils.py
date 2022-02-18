@@ -23,6 +23,7 @@ from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 if sys.version_info >= (3, 8):
+    # pylint: disable=no-name-in-module
     from typing import Protocol, runtime_checkable
 else:
     from typing_extensions import Protocol, runtime_checkable
