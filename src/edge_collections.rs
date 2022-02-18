@@ -62,6 +62,6 @@ impl EdgeCollection {
     }
 
     fn __setstate__(&mut self, state: Vec<usize>) {
-        self.edges = state.clone()
+        self.edges = state
     }
 }

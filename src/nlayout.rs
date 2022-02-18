@@ -68,7 +68,6 @@ impl NLayout {
         self.phys_to_logic = state[1].clone();
     }
 
-
     /// Return the layout mapping
     ///
     /// .. note::
