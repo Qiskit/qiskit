@@ -151,8 +151,7 @@ class NaturalGradient(GradientBase):
 
             if not all(ew >= -1e-8 for ew in w):
                 raise ValueError(
-                    "The underlying metric has ein Eigenvalue < ",
-                    -1e-8,
+                    "The underlying metric has ein Eigenvalue < -1e-8,"
                     ". Please use a regularized least-square solver for this " "problem.",
                 )
             if not all(ew >= 0 for ew in w):

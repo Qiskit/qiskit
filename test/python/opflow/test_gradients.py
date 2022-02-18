@@ -1279,6 +1279,29 @@ class TestQFI(QiskitOpflowTestCase):
             actual = qfi.assign_parameters(value_dict).eval()
             np.testing.assert_array_almost_equal(actual, correct_values[i], decimal=1)
 
+    def test_QFI_phase_fix(self):
+        """Test the phase-fix argument in a QFI calculation
+
+        QFI = [[1, 0], [0, 1]]
+        """
+        # create the circuit
+        a, b = Parameter("a"), Parameter("b")
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.rz(a, 0)
+        qc.rx(b, 0)
+
+        # convert the circuit to a QFI object
+        op = CircuitStateFn(qc)
+        qfi = LinCombFull().convert(operator=op, params=[a, b], phase_fix=False)
+
+        # test for different values
+        value_dict = {a: np.pi / 4, b: 0.1}
+        correct_values = [[1, 0], [0, 1]]
+
+        actual = qfi.assign_parameters(value_dict).eval()
+        np.testing.assert_array_almost_equal(actual, correct_values, decimal=2)
+
     def test_qfi_maxcut(self):
         """Test the QFI for a simple MaxCut problem.
 
@@ -1468,9 +1491,47 @@ class TestQFI(QiskitOpflowTestCase):
         backend = BasicAer.get_backend("qasm_simulator")
         q_instance = QuantumInstance(backend=backend, shots=shots)
 
-        with self.assertRaises(ValueError):  # or what error type you expect
+        with self.assertRaises(ValueError):
             CircuitSampler(backend=q_instance).convert(prob_grad, params=value_dict).eval()
 
+    def test_nat_grad_error(self):
+        """Test the NaturalGradient throws an Error
+
+        dp0/da = cos(a)sin(b) / 2
+        dp1/da = - cos(a)sin(b) / 2
+        dp0/db = sin(a)cos(b) / 2
+        dp1/db = - sin(a)cos(b) / 2
+        """
+        method = "lin_comb"
+        a = Parameter("a")
+        b = Parameter("b")
+        params = [a, b]
+
+        qc = QuantumCircuit(2)
+        qc.h(1)
+        qc.h(0)
+        qc.sdg(1)
+        qc.cz(0, 1)
+        qc.ry(params[0], 0)
+        qc.rz(params[1], 0)
+        qc.h(1)
+
+        obs = (Z ^ X) - (Y ^ Y)
+        op = StateFn(obs, is_measurement=True) @ CircuitStateFn(primitive=qc)
+
+        backend_type = "qasm_simulator"
+        shots = 1
+        value = [0, np.pi / 2]
+
+        backend = BasicAer.get_backend(backend_type)
+        q_instance = QuantumInstance(
+            backend=backend, shots=shots, seed_simulator=2, seed_transpiler=2
+        )
+        grad = NaturalGradient(grad_method=method).gradient_wrapper(
+            operator=op, bind_params=params, backend=q_instance
+        )
+        with self.assertRaises(ValueError):  # or what error type you expect
+            grad(value)
 
 
 if __name__ == "__main__":
