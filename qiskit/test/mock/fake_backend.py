@@ -37,7 +37,7 @@ from qiskit.test.mock.utils.json_decoder import (
 )
 from qiskit.test.mock.utils.backend_converter import (
     convert_to_target,
-    qubit_properties_dict_from_properties
+    qubit_props_dict_from_props
 )
 from qiskit.utils import optionals as _optionals
 from qiskit.providers import basicaer
@@ -340,9 +340,9 @@ class FakeBackendV2(BackendV2):
         """Converts backend configuration, properties and defaults to Target object"""
         if not self._target:
             self._target = convert_to_target(
-                configuration=self._configuration.to_dict(),
-                properties=self._properties.to_dict() if self._properties else None,
-                defaults=self._defaults.to_dict() if self._defaults else None,
+                configuration=self._configuration,
+                properties=self._properties,
+                defaults=self._defaults,
             )
 
     @property
