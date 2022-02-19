@@ -25,3 +25,19 @@ upgrade:
     :class:`.StochasticSwap` transpiler pass which greatly improves the runtime
     performance of the transpiler. The rust compiler can easily be installed
     using rustup, which can be found here: https://rustup.rs/
+issues:
+  - |
+    When running :func:`.parallel_map` (which is done internally by
+    performance sensitive functions such as :func:`.transpile` and
+    :func:`.assemble`) in a subprocess launched outside of
+    :func:`.parallel_map` it is possible that the parallel dispatch performed
+    inside :func:`.parallel_map` will hang and never return.
+    This is due to upstream issues in cpython (see:
+    https://bugs.python.org/issue40379 for more details) around the default
+    method to launch subprocesses on Linux and macOS (with Python 3.7). If you
+    encounter this you have two options you can either remove the nested
+    parallel processes as calling :func:`.parallel_map` from a main process
+    should work fine or you can manually call the cPython standard library
+    ``multiprocessing`` module to perform similar parallel dispatch from a
+    subprocess but use the ``"spawn"`` or ``"forkserver"`` launch methods to
+    avoid the potential to have things get stuck and never return.

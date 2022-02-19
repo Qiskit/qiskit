@@ -195,6 +195,8 @@ stages:
             stestr run
             popd
           displayName: 'Run tests'
+          env:
+            QISKIT_PARALLEL: FALSE
         - task: CopyFiles@2
           condition: failed()
           displayName: 'Copy images'
@@ -386,6 +388,8 @@ stages:
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
           displayName: 'Run tests'
+          env:
+            QISKIT_PARALLEL: FALSE
         - task: CopyFiles@2
           condition: failed()
           displayName: 'Copy images'
@@ -632,6 +636,8 @@ stages:
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
           displayName: 'Run tests'
+          env:
+            QISKIT_PARALLEL=FALSE
         - task: CopyFiles@2
           condition: failed()
           displayName: 'Copy images'
