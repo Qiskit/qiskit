@@ -180,6 +180,7 @@ stages:
             pip install -U "cplex" "qiskit-aer" "z3-solver" -c constraints.txt
             mkdir -p /tmp/terra-tests
             cp -r test /tmp/terra-tests/.
+            cp tools/verify_parallel_map.py /tmp/terra-tests/.
             cp .stestr.conf /tmp/terra-tests/.
             cp -r .stestr /tmp/terra-tests/. || :
             sudo apt-get update
@@ -193,6 +194,7 @@ stages:
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
+            python ./verify_parallel_map.py
             popd
           displayName: 'Run tests'
           env:
@@ -386,6 +388,7 @@ stages:
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
+            python ./tools/verify_parallel_map.py
           displayName: 'Run tests'
           env:
             QISKIT_PARALLEL: FALSE
@@ -458,6 +461,7 @@ stages:
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 1024))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
+            python ./tools/verify_parallel_map.py
           displayName: 'Run tests'
           env:
             LANG: 'C.UTF-8'
@@ -542,6 +546,7 @@ stages:
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 1024))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
+            python ./tools/verify_parallel_map.py
           env:
             LANG: 'C.UTF-8'
             PYTHONIOENCODING: 'utf-8:backslashreplace'
@@ -634,6 +639,7 @@ stages:
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
+            python ./tools/verify_parallel_map.py
           displayName: 'Run tests'
           env:
             QISKIT_PARALLEL: FALSE
@@ -718,6 +724,7 @@ stages:
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
+            python ./tools/verify_parallel_map.py
           displayName: 'Run tests'
         - task: CopyFiles@2
           condition: failed()
