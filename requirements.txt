@@ -1,4 +1,4 @@
-retworkx>=0.10.1
+retworkx>=0.11.0
 numpy>=1.17
 ply>=3.10
 psutil>=5
