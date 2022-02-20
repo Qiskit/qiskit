@@ -637,7 +637,7 @@ stages:
             stestr run
           displayName: 'Run tests'
           env:
-            QISKIT_PARALLEL=FALSE
+            QISKIT_PARALLEL: FALSE
         - task: CopyFiles@2
           condition: failed()
           displayName: 'Copy images'
