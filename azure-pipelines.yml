@@ -241,7 +241,6 @@ stages:
             virtualenv image_tests
             image_tests/bin/pip install -U -r requirements.txt -c constraints.txt
             image_tests/bin/pip install -U -c constraints.txt -e ".[visualization]"
-            image_tests/bin/python setup.py build_ext --inplace
             sudo apt-get update
             sudo apt-get install -y graphviz pandoc
             image_tests/bin/pip check
