@@ -36,6 +36,7 @@ class ASAPSchedule(BaseScheduler):
 
         Raises:
             TranspilerError: if the circuit is not mapped on physical qubits.
+            TranspilerError: if conditional bit is added to non-supported instruction.
         """
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("ASAP schedule runs on physical circuits only")
@@ -56,41 +57,9 @@ class ASAPSchedule(BaseScheduler):
             # compute t0, t1: instruction interval, note that
             # t0: start time of instruction
             # t1: end time of instruction
-            if isinstance(node.op, Measure):
-                # measure instruction handling is bit tricky due to clbit_write_latency
-                t0q = max(idle_after[q] for q in node.qargs)
-                t0c = max(idle_after[c] for c in node.cargs)
-                # Assume following case (t0c > t0q)
-                #
-                #       |t0q
-                # Q ▒▒▒▒░░░░░░░░░░░░
-                # C ▒▒▒▒▒▒▒▒░░░░░░░░
-                #           |t0c
-                #
-                # In this case, there is no actual clbit access until clbit_write_latency.
-                # The node t0 can be push backward by this amount.
-                #
-                #         |t0q' = t0c - clbit_write_latency
-                # Q ▒▒▒▒░░▒▒▒▒▒▒▒▒▒▒
-                # C ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-                #           |t0c' = t0c
-                #
-                # rather than naively doing
-                #
-                #           |t0q' = t0c
-                # Q ▒▒▒▒░░░░▒▒▒▒▒▒▒▒
-                # C ▒▒▒▒▒▒▒▒░░░▒▒▒▒▒
-                #              |t0c' = t0c + clbit_write_latency
-                #
-                t0 = max(t0q, t0c - self.clbit_write_latency)
-                t1 = t0 + op_duration
-                for clbit in node.cargs:
-                    idle_after[clbit] = t1
-            elif isinstance(node.op, Gate):
+            if isinstance(node.op, self.__condition_supported):
                 t0q = max(idle_after[q] for q in node.qargs)
                 if node.op.condition_bits:
-                    # TODO consider conditional ops for non-gate instruction, if necessary
-
                     # conditional is bit tricky due to conditional_latency
                     t0c = max(idle_after[bit] for bit in node.op.condition_bits)
                     if t0q > t0c:
@@ -119,9 +88,45 @@ class ASAPSchedule(BaseScheduler):
                     t0 = t0q
                 t1 = t0 + op_duration
             else:
-                # It happens to be Barrier
-                t0 = max(idle_after[bit] for bit in node.qargs + node.cargs)
-                t1 = t0 + op_duration
+                if node.op.condition_bits:
+                    raise TranspilerError(
+                        f"Conditional instruction {node.op.name} is not supported in ASAP scheduler."
+                    )
+
+                if isinstance(node.op, Measure):
+                    # measure instruction handling is bit tricky due to clbit_write_latency
+                    t0q = max(idle_after[q] for q in node.qargs)
+                    t0c = max(idle_after[c] for c in node.cargs)
+                    # Assume following case (t0c > t0q)
+                    #
+                    #       |t0q
+                    # Q ▒▒▒▒░░░░░░░░░░░░
+                    # C ▒▒▒▒▒▒▒▒░░░░░░░░
+                    #           |t0c
+                    #
+                    # In this case, there is no actual clbit access until clbit_write_latency.
+                    # The node t0 can be push backward by this amount.
+                    #
+                    #         |t0q' = t0c - clbit_write_latency
+                    # Q ▒▒▒▒░░▒▒▒▒▒▒▒▒▒▒
+                    # C ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+                    #           |t0c' = t0c
+                    #
+                    # rather than naively doing
+                    #
+                    #           |t0q' = t0c
+                    # Q ▒▒▒▒░░░░▒▒▒▒▒▒▒▒
+                    # C ▒▒▒▒▒▒▒▒░░░▒▒▒▒▒
+                    #              |t0c' = t0c + clbit_write_latency
+                    #
+                    t0 = max(t0q, t0c - self.clbit_write_latency)
+                    t1 = t0 + op_duration
+                    for clbit in node.cargs:
+                        idle_after[clbit] = t1
+                else:
+                    # It happens to be directives such as barrier
+                    t0 = max(idle_after[bit] for bit in node.qargs + node.cargs)
+                    t1 = t0 + op_duration
 
             # Add delay to qubit wire
             for bit in node.qargs:

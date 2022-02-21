@@ -17,6 +17,7 @@ from qiskit.transpiler import InstructionDurations
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
 from qiskit.dagcircuit import DAGOpNode, DAGCircuit
+from qiskit.circuit import Delay, Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -169,6 +170,7 @@ class BaseScheduler(TransformationPass):
         See https://arxiv.org/abs/2102.01682 for more details.
 
     """
+    __condition_supported = [Gate, Delay]
 
     def __init__(
         self,

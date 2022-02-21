@@ -36,6 +36,7 @@ class ALAPSchedule(BaseScheduler):
 
         Raises:
             TranspilerError: if the circuit is not mapped on physical qubits.
+            TranspilerError: if conditional bit is added to non-supported instruction.
         """
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("ALAP schedule runs on physical circuits only")
@@ -59,23 +60,9 @@ class ALAPSchedule(BaseScheduler):
             # since this is alap scheduling, node is scheduled in reversed topological ordering
             # and nodes are packed from the very end of the circuit.
             # the physical meaning of t0 and t1 is flipped here.
-            if isinstance(node.op, Measure):
-                # clbit time is always right (alap) justified
-                t0 = max(idle_before[bit] for bit in node.qargs + node.cargs)
-                t1 = t0 + op_duration
-                #
-                #        |t1 = t0 + duration
-                # Q ░░░░░▒▒▒▒▒▒▒▒▒▒▒
-                # C ░░░░░░░░░▒▒▒▒▒▒▒
-                #            |t0 + (duration - clbit_write_latency)
-                #
-                for clbit in node.cargs:
-                    idle_before[clbit] = t0 + (op_duration - self.clbit_write_latency)
-            elif isinstance(node.op, Gate):
+            if isinstance(node.op, self.__condition_supported):
                 t0q = max(idle_before[q] for q in node.qargs)
                 if node.op.condition_bits:
-                    # TODO consider conditional ops for non-gate instruction, if necessary
-
                     # conditional is bit tricky due to conditional_latency
                     t0c = max(idle_before[c] for c in node.op.condition_bits)
                     # Assume following case (t0c > t0q):
@@ -107,9 +94,27 @@ class ALAPSchedule(BaseScheduler):
                     t0 = t0q
                     t1 = t0 + op_duration
             else:
-                # It happens to be Barrier
-                t0 = max(idle_before[bit] for bit in node.qargs + node.cargs)
-                t1 = t0 + op_duration
+                if node.op.condition_bits:
+                    raise TranspilerError(
+                        f"Conditional instruction {node.op.name} is not supported in ALAP scheduler."
+                    )
+
+                if isinstance(node.op, Measure):
+                    # clbit time is always right (alap) justified
+                    t0 = max(idle_before[bit] for bit in node.qargs + node.cargs)
+                    t1 = t0 + op_duration
+                    #
+                    #        |t1 = t0 + duration
+                    # Q ░░░░░▒▒▒▒▒▒▒▒▒▒▒
+                    # C ░░░░░░░░░▒▒▒▒▒▒▒
+                    #            |t0 + (duration - clbit_write_latency)
+                    #
+                    for clbit in node.cargs:
+                        idle_before[clbit] = t0 + (op_duration - self.clbit_write_latency)
+                else:
+                    # It happens to be directives such as barrier
+                    t0 = max(idle_before[bit] for bit in node.qargs + node.cargs)
+                    t1 = t0 + op_duration
 
             for bit in node.qargs:
                 delta = t0 - idle_before[bit]
