@@ -21,8 +21,6 @@ from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_funct
     import (
     AbstractOdeFunctionGenerator,
 )
-from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import \
-    VarQteLinearSolver
 
 
 class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
@@ -30,20 +28,17 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
 
     def __init__(
         self,
-        lse_solver_callable: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
         optimizer: str = "COBYLA",
         optimizer_tolerance: float = 1e-6,
     ):
         """
         Args:
-            lse_solver_callable: Linear system of equations solver that follows a NumPy
-            np.linalg.lstsq interface.
             optimizer: Optimizer used in case error_based_ode is true.
             optimizer_tolerance: Numerical tolerance of an optimizer used for convergence to a
                 minimum.
         """
 
-        super().__init__(lse_solver_callable)
+        super().__init__()
 
         self._error_calculator = None
         self._t_param = None

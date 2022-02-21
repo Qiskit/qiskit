@@ -12,8 +12,9 @@
 
 """Variational Quantum Imaginary Time Evolution algorithm."""
 
-from typing import Optional, Union, Dict, List
+from typing import Optional, Union, Dict, List, Callable
 
+import numpy as np
 from scipy.integrate import OdeSolver
 
 from qiskit.algorithms.time_evolution.evolution_result import EvolutionResult
@@ -51,6 +52,7 @@ class VarQite(Qite, VarQte):
         ode_function_generator: AbstractOdeFunctionGenerator,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         ode_solver_callable: OdeSolver = "RK45",
+        lse_solver_callable: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
         allowed_imaginary_part: float = 1e-7,
         allowed_num_instability_error: float = 1e-7,
     ):
@@ -58,9 +60,9 @@ class VarQite(Qite, VarQte):
         Args:
             variational_principle: Variational Principle to be used.
             backend: Backend used to evaluate the quantum circuit outputs
-
-                             If True use the argument that minimizes the error.
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
+            lse_solver_callable: Linear system of equations solver that follows a NumPy
+                np.linalg.lstsq interface.
             allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
                                     imaginary part is expected.
             allowed_num_instability_error: The amount of negative value that is allowed to be
@@ -72,6 +74,7 @@ class VarQite(Qite, VarQte):
             ode_function_generator,
             backend,
             ode_solver_callable,
+            lse_solver_callable,
             allowed_imaginary_part,
             allowed_num_instability_error,
         )

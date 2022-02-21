@@ -30,17 +30,15 @@ class AbstractOdeFunctionGenerator(ABC):
 
     def __init__(
         self,
-        lse_solver_callable: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
         optimizer: str = "COBYLA",
         optimizer_tolerance: float = 1e-6,
     ):
         """
         Args:
-            lse_solver_callable: Linear system of equations solver that follows a NumPy
-            np.linalg.lstsq interface.
+            optimizer:
+            optimizer_tolerance:
         """
 
-        self._lse_solver_callable = lse_solver_callable
         self._optimizer = optimizer
         self._optimizer_tolerance = optimizer_tolerance
 

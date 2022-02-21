@@ -14,8 +14,7 @@
 from typing import Iterable
 
 from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator \
-    import (
-    AbstractOdeFunctionGenerator,
+    import (AbstractOdeFunctionGenerator,
 )
 
 
