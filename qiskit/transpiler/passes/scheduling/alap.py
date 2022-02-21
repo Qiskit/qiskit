@@ -52,7 +52,10 @@ class ALAPSchedule(BaseScheduler):
         for node in reversed(list(dag.topological_op_nodes())):
             op_duration = self._get_node_duration(node, bit_indices, dag)
 
-            # compute t0, t1: instruction interval
+            # compute t0, t1: instruction interval, note that
+            # t0: start time of instruction
+            # t1: end time of instruction
+
             # since this is alap scheduling, node is scheduled in reversed topological ordering
             # and nodes are packed from the very end of the circuit.
             # the physical meaning of t0 and t1 is flipped here.
@@ -61,10 +64,10 @@ class ALAPSchedule(BaseScheduler):
                 t0 = max(idle_before[bit] for bit in node.qargs + node.cargs)
                 t1 = t0 + op_duration
                 #
-                #       t1 = t0 + duration
-                # Q ░░░░|▒▒▒▒▒▒▒▒▒▒▒
-                # C ░░░░░░░░|▒▒▒▒▒▒▒
-                #           t0 + (duration - clbit_write_latency)
+                #        |t1 = t0 + duration
+                # Q ░░░░░▒▒▒▒▒▒▒▒▒▒▒
+                # C ░░░░░░░░░▒▒▒▒▒▒▒
+                #            |t0 + (duration - clbit_write_latency)
                 #
                 for clbit in node.cargs:
                     idle_before[clbit] = t0 + (op_duration - self.clbit_write_latency)
@@ -73,31 +76,28 @@ class ALAPSchedule(BaseScheduler):
                 if node.op.condition_bits:
                     # conditional is bit tricky due to conditional_latency
                     t0c = max(idle_before[c] for c in node.op.condition_bits)
-                    if t0c > t0q:
-                        # this is situation something like below
-                        #
-                        #              t0q
-                        # Q ░░░░░░░░░░░|▒▒▒▒
-                        # C ░░░░░░|▒▒▒▒▒▒▒▒▒
-                        #         t0c
-                        #
-                        # In this case, there is no actual clbit read before gate.
-                        #
-                        #         t1 = t0c
-                        # Q ░░░░░░|▒▒▒||▒▒▒▒
-                        # C ░░░|▒▒|▒▒▒▒▒▒▒▒▒
-                        #      t1 + conditional_latency
-                        #
-                        # rather than naively doing
-                        #
-                        #     t1 = t0c + duration
-                        # Q ░░|▒▒▒|░░░░|▒▒▒▒
-                        # C |▒▒|░░|▒▒▒▒▒▒▒▒▒
-                        #   t0c + duration + conditional_latency
-                        #
-                        t0 = max(t0q, t0c - op_duration)
-                    else:
-                        t0 = t0q
+                    # Assume following case (t0c > t0q):
+                    #
+                    #                |t0q
+                    # Q ░░░░░░░░░░░░░▒▒▒
+                    # C ░░░░░░░░▒▒▒▒▒▒▒▒
+                    #           |t0c
+                    #
+                    # In this case, there is no actual clbit read before gate.
+                    #
+                    #             |t0q' = t0c - conditional_latency
+                    # Q ░░░░░░░░▒▒▒░░▒▒▒
+                    # C ░░░░░░▒▒▒▒▒▒▒▒▒▒
+                    #         |t1c' = t0c + conditional_latency
+                    #
+                    # rather than naively doing
+                    #
+                    #        |t1q' = t0c + duration
+                    # Q ░░░░░▒▒▒░░░░░▒▒▒
+                    # C ░░▒▒░░░░▒▒▒▒▒▒▒▒
+                    #     |t1c' = t0c + duration + conditional_latency
+                    #
+                    t0 = max(t0q, t0c - op_duration)
                     t1 = t0 + op_duration
                     for clbit in node.op.condition_bits:
                         idle_before[clbit] = t1 + self.conditional_latency

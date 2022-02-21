@@ -53,36 +53,36 @@ class ASAPSchedule(BaseScheduler):
         for node in dag.topological_op_nodes():
             op_duration = self._get_node_duration(node, bit_indices, dag)
 
-            # compute t0, t1: instruction interval
+            # compute t0, t1: instruction interval, note that
+            # t0: start time of instruction
+            # t1: end time of instruction
             if isinstance(node.op, Measure):
                 # measure instruction handling is bit tricky due to clbit_write_latency
                 t0q = max(idle_after[q] for q in node.qargs)
                 t0c = max(idle_after[c] for c in node.cargs)
-                if t0q > t0c:
-                    t0 = t0q
-                else:
-                    # This is situation something like below
-                    #
-                    #       t0q
-                    # Q ▒▒▒▒|░░░░░░░░░░░
-                    # C ▒▒▒▒▒▒▒▒|░░░░░░░
-                    #           t0c
-                    #
-                    # In this case, there is no actual clbit access until clbit_write_latency.
-                    # The node t0 can be push backward by this amount.
-                    #
-                    #         t0 = t0c - clbit_write_latency
-                    # Q ▒▒▒▒|░▒▒▒▒▒▒▒▒▒▒
-                    # C ▒▒▒▒▒▒▒▒|▒▒▒▒▒▒▒
-                    #           t0c
-                    #
-                    # rather than naively doing
-                    #
-                    #           t0 = t0c
-                    # Q ▒▒▒▒|░░░|▒▒▒▒▒▒▒
-                    # C ▒▒▒▒▒▒▒▒|░░▒▒▒▒▒
-                    #
-                    t0 = max(t0q, t0c - self.clbit_write_latency)
+                # Assume following case (t0c > t0q)
+                #
+                #       |t0q
+                # Q ▒▒▒▒░░░░░░░░░░░░
+                # C ▒▒▒▒▒▒▒▒░░░░░░░░
+                #           |t0c
+                #
+                # In this case, there is no actual clbit access until clbit_write_latency.
+                # The node t0 can be push backward by this amount.
+                #
+                #         |t0q' = t0c - clbit_write_latency
+                # Q ▒▒▒▒░░▒▒▒▒▒▒▒▒▒▒
+                # C ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+                #           |t0c' = t0c
+                #
+                # rather than naively doing
+                #
+                #           |t0q' = t0c
+                # Q ▒▒▒▒░░░░▒▒▒▒▒▒▒▒
+                # C ▒▒▒▒▒▒▒▒░░░▒▒▒▒▒
+                #              |t0c' = t0c + clbit_write_latency
+                #
+                t0 = max(t0q, t0c - self.clbit_write_latency)
                 t1 = t0 + op_duration
                 for clbit in node.cargs:
                     idle_after[clbit] = t1
@@ -94,17 +94,17 @@ class ASAPSchedule(BaseScheduler):
                     if t0q > t0c:
                         # This is situation something like below
                         #
-                        #           t0q
-                        # Q ▒▒▒▒▒▒▒▒|░░
-                        # C ▒▒▒|░░░░░░░
-                        #      t0c
+                        #           |t0q
+                        # Q ▒▒▒▒▒▒▒▒▒░░
+                        # C ▒▒▒░░░░░░░░
+                        #     |t0c
                         #
                         # In this case, you can insert readout access before tq0
                         #
-                        #           t0q
-                        # Q ▒▒▒▒▒▒▒▒|▒▒
-                        # C ▒▒▒|░░|▒|░░
-                        #         t0q - conditional_latency
+                        #           |t0q
+                        # Q ▒▒▒▒▒▒▒▒▒▒▒
+                        # C ▒▒▒░░░▒▒░░░
+                        #         |t0q - conditional_latency
                         #
                         t0c = max(t0q - self.conditional_latency, t0c)
                     t1c = t0c + self.conditional_latency

@@ -73,8 +73,8 @@ class BaseScheduler(TransformationPass):
             c: 1/════════╩═════════╡ c_0=0x1 ╞
                          0         └─────────┘
 
-        It looks like the topological order of nodes is inverted. This behavior can be
-        understood by considering the control flow model described above,
+        It looks like the ordering of nodes is inverted (actually not).
+        This behavior can be understood by considering the control flow model described above,
 
         .. parsed-literal::
 

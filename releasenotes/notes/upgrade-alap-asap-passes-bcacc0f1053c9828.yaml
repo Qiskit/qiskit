@@ -18,7 +18,7 @@ upgrade:
     To reproduce conventional behavior, create a pass manager with one of
     scheduling passes with ``clbit_write_latency`` identical to the measurement instruction length.
 
-    The followign example may clearly explain the change of scheduler spec.
+    The following example may clearly explain the change of scheduler spec.
 
     .. parsed-literal::
 

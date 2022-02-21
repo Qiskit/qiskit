@@ -639,7 +639,9 @@ class TestSchedulingPass(QiskitTestCase):
         expected_asap.delay(400, 1)
         expected_asap.cx(0, 1).c_if(0, 0)
         expected_asap.delay(700, 0)  # creg is released at t0 of cx(0,1).c_if(0,0)
-        expected_asap.delay(700, 1)  # no creg write until 100dt. thus measure can move left by 300dt.
+        expected_asap.delay(
+            700, 1
+        )  # no creg write until 100dt. thus measure can move left by 300dt.
         expected_asap.delay(300, 2)
         expected_asap.measure(2, 0)
         self.assertEqual(expected_asap, actual_asap)
