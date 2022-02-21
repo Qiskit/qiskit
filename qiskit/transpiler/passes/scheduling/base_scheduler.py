@@ -25,7 +25,44 @@ from qiskit.transpiler.exceptions import TranspilerError
 class BaseScheduler(TransformationPass):
     """Base scheduler pass.
 
-    Classical register lock for control flow operations
+    Policy of topological node ordering in scheduling
+
+        The DAG representation of ``QuantumCircuit`` respects the node ordering also in the
+        classical register wires, though theoretically two conditional instructions
+        conditioned on the same register are commute, i.e. read-access to the
+        classical register doesn't change its state.
+
+        .. parsed-literal::
+
+                 ┌────────────────┐   ┌───┐
+            q_0: ┤ Delay(100[dt]) ├───┤ X ├───
+                 └─────┬───┬──────┘   └─╥─┘
+            q_1: ──────┤ X ├────────────╫─────
+                       └─╥─┘            ║
+                    ┌────╨────┐    ┌────╨────┐
+            c: 1/═══╡ c_0=0x1 ╞════╡ c_0=0x1 ╞
+                    └─────────┘    └─────────┘
+
+        The scheduler SHOULD comply with above topological ordering policy of the DAG circuit.
+        Accordingly, the `asap`-scheduled circuit will become
+
+        .. parsed-literal::
+
+                 ┌────────────────┐   ┌───┐
+            q_0: ┤ Delay(100[dt]) ├───┤ X ├──────────────
+                 ├────────────────┤   └─╥─┘      ┌───┐
+            q_1: ┤ Delay(100[dt]) ├─────╫────────┤ X ├───
+                 └────────────────┘     ║        └─╥─┘
+                                   ┌────╨────┐┌────╨────┐
+            c: 1/══════════════════╡ c_0=0x1 ╞╡ c_0=0x1 ╞
+                                   └─────────┘└─────────┘
+
+        Note that this scheduling might be inefficient in some cases,
+        because the second conditional operation can start without waiting the delay of 100 dt.
+        However, such optimization should be done by another pass,
+        otherwise scheduling may break topological ordering of the original circuit.
+
+    Realistic control flow scheduling respecting for microarcitecture
 
         In the dispersive QND readout scheme, qubit is measured with microwave stimulus to qubit (Q)
         followed by resonator ring-down (depopulation). This microwave signal is recorded
