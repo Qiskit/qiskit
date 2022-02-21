@@ -15,7 +15,7 @@ import unittest
 from qiskit import QuantumCircuit, transpile
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeAthens
-from qiskit.utils.backend_utils import has_aer
+from qiskit.utils import optionals as _optionals
 from qiskit.providers.fake_provider import FakePulseBackend
 
 
@@ -28,7 +28,7 @@ class FakePulseBackendConfigError(FakePulseBackend):
 class FakePulseBackendsTest(QiskitTestCase):
     """Tests for FakePulseBackend"""
 
-    @unittest.skipUnless(has_aer(), "qiskit-aer is required to run this test")
+    @unittest.skipUnless(_optionals.HAS_AER, "qiskit-aer is required to run this test")
     def test_fake_pulse_backend_configured(self):
         """Fake backends honor kwargs passed."""
         backend = FakeAthens()  # this is a FakePulseBackend implementation

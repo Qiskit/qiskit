@@ -20,20 +20,20 @@ testing local timeouts, arbitrary responses or behavior, etc.
 The mock devices are mainly for testing the compiler.
 """
 
-from ...test.mock.fake_provider import FakeProvider, FakeLegacyProvider
-from ...test.mock.fake_provider import FakeProviderFactory
-from ...test.mock.fake_backend import FakeBackend, FakeLegacyBackend
-from ...test.mock.fake_pulse_backend import FakePulseBackend, FakePulseLegacyBackend
-from ...test.mock.fake_qasm_backend import FakeQasmBackend, FakeQasmLegacyBackend
-from ...test.mock.utils.configurable_backend import ConfigurableFakeBackend
-from ...test.mock.fake_backend_v2 import FakeBackendV2, FakeBackend5QV2
-from ...test.mock.fake_mumbai_v2 import FakeMumbaiV2
-from ...test.mock.fake_job import FakeJob, FakeLegacyJob
-from ...test.mock.fake_qobj import FakeQobj
+from qiskit.test.mock.fake_provider import FakeProvider, FakeLegacyProvider
+from qiskit.test.mock.fake_provider import FakeProviderFactory
+from qiskit.test.mock.fake_backend import FakeBackend, FakeLegacyBackend
+from qiskit.test.mock.fake_pulse_backend import FakePulseBackend, FakePulseLegacyBackend
+from qiskit.test.mock.fake_qasm_backend import FakeQasmBackend, FakeQasmLegacyBackend
+from qiskit.test.mock.utils.configurable_backend import ConfigurableFakeBackend
+from qiskit.test.mock.fake_backend_v2 import FakeBackendV2, FakeBackend5QV2
+from qiskit.test.mock.fake_mumbai_v2 import FakeMumbaiV2
+from qiskit.test.mock.fake_job import FakeJob, FakeLegacyJob
+from qiskit.test.mock.fake_qobj import FakeQobj
 
-from ...test.mock.backends import *
+from qiskit.test.mock.backends import *
 
-from ...test.mock.fake_qasm_simulator import FakeQasmSimulator
-from ...test.mock.fake_openpulse_2q import FakeOpenPulse2Q
-from ...test.mock.fake_openpulse_3q import FakeOpenPulse3Q
-from ...test.mock.fake_1q import Fake1Q
+from qiskit.test.mock.fake_qasm_simulator import FakeQasmSimulator
+from qiskit.test.mock.fake_openpulse_2q import FakeOpenPulse2Q
+from qiskit.test.mock.fake_openpulse_3q import FakeOpenPulse3Q
+from qiskit.test.mock.fake_1q import Fake1Q
