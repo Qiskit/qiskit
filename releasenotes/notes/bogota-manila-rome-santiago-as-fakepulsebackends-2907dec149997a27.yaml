@@ -1,6 +1,4 @@
 ---
-prelude: >
-    FakeBogota, FakeManila, FakeRome, and FakeSantiago can now be used as fake backends in Pulse experiments.
 features:
   - |
     FakeBogota, FakeManila, FakeRome, and FakeSantiago can now be used as fake backends in Pulse experiments.
