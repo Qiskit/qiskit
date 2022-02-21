@@ -31,13 +31,6 @@ class SamplerResult(BaseResult):
     metadata: list[dict]
 
     def __getitem__(self, key):
-        raw = self.raw_results
-        new_result = Result(
-            backend_name=raw.backend_name,
-            backend_version=raw.backend_version,
-            qobj_id=raw.qobj_id,
-            job_id=raw.job_id,
-            success=raw.success,
-            results=raw.results[key],
+        return SamplerResult(
+            self.quasi_dists[key], self.shots, self.raw_results, self.metadata[key]
         )
-        return SamplerResult(self.quasi_dists[key], self.shots, new_result, self.metadata[key])
