@@ -255,7 +255,8 @@ class PauliEstimator(BaseEstimator):
                     if self._mitigator is None:
                         expval, var = _expval_with_variance(count, diagonal)
                     else:
-                        expval, var = self._mitigator.expectation_value(count, diagonal)
+                        expval, stddev = self._mitigator.expectation_value(counts, diagonal)
+                        var = stddev ** 2 * sum(counts.values())
                     # Accumulate
                     combined_expval += expval * coeff
                     combined_var += var * coeff**2
