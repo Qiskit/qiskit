@@ -66,16 +66,18 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
         metric_tensor = var_principle._get_metric_tensor(ansatz, parameters)
         evolution_grad = var_principle._get_evolution_grad(observable, ansatz, parameters)
 
+        linear_solver_callable = np.linalg.lstsq
         linear_solver = VarQteLinearSolver(
             metric_tensor,
             evolution_grad,
+            linear_solver_callable,
             CircuitSampler(backend),
             CircuitSampler(backend),
             CircuitSampler(backend),
         )
 
-        linear_solver_callable = np.linalg.lstsq
-        nat_grad_res, metric_res, grad_res = linear_solver._solve_sle(linear_solver_callable,param_dict)
+
+        nat_grad_res, metric_res, grad_res = linear_solver._solve_sle(param_dict)
 
         # TODO verify all values below if correct
         expected_nat_grad_res = [

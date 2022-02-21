@@ -22,7 +22,6 @@ from qiskit.algorithms.time_evolution.variational.calculators.metric_tensor_calc
 from qiskit.algorithms.time_evolution.variational.calculators.evolution_grad_calculator import (
     eval_grad_result,
 )
-from qiskit.opflow.gradients.natural_gradient import NaturalGradient
 from qiskit.circuit import Parameter
 from qiskit.opflow import CircuitSampler
 
@@ -34,6 +33,7 @@ class VarQteLinearSolver:
         self,
         metric_tensor,
         evolution_grad,
+        lse_solver_callable: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
         grad_circ_sampler: Optional[CircuitSampler] = None,
         metric_circ_sampler: Optional[CircuitSampler] = None,
         energy_sampler: Optional[CircuitSampler] = None,
@@ -43,6 +43,8 @@ class VarQteLinearSolver:
         Args:
             metric_tensor:
             evolution_grad:
+            lse_solver_callable: Linear system of equations solver that follows a NumPy
+                np.linalg.lstsq interface.
             grad_circ_sampler: CircuitSampler for evolution gradients.
             metric_circ_sampler: CircuitSampler for metric tensors.
             energy_sampler: CircuitSampler for energy.
@@ -52,6 +54,7 @@ class VarQteLinearSolver:
 
         self._metric_tensor = metric_tensor
         self._evolution_grad = evolution_grad
+        self._lse_solver_callable = lse_solver_callable
         self._grad_circ_sampler = grad_circ_sampler
         self._metric_circ_sampler = metric_circ_sampler
         self._energy_sampler = energy_sampler
@@ -59,7 +62,6 @@ class VarQteLinearSolver:
 
     def _solve_sle(
         self,
-        lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray],
         param_dict: Dict[Parameter, Union[float, complex]],
         t_param: Optional[Parameter] = None,
         time_value: Optional[float] = None,
@@ -69,8 +71,6 @@ class VarQteLinearSolver:
         calculation without error bounds.
 
         Args:
-            lse_solver: Linear system of equations solver that follows a NumPy
-            np.linalg.lstsq interface.
             param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
             time_value: Time value that will be bound to t_param. It is required if t_param is
@@ -86,7 +86,8 @@ class VarQteLinearSolver:
 
         # TODO not all solvers will have rcond param. Keeping for now to keep the same results in
         #  unit tests.
-        x = lse_solver(metric_tensor_lse_lhs, evolution_grad_lse_rhs, rcond=1e-2)[0]
+        print(callable(self._lse_solver_callable))
+        x = self._lse_solver_callable(metric_tensor_lse_lhs, evolution_grad_lse_rhs, rcond=1e-2)[0]
 
         return np.real(x), metric_tensor_lse_lhs, evolution_grad_lse_rhs
 

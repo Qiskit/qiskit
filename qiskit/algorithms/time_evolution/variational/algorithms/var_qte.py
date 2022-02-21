@@ -20,16 +20,19 @@ from scipy.integrate import RK45, OdeSolver
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.time_evolution.evolution_base import EvolutionBase
-from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
+from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
+    .error_calculator import (
     ErrorCalculator,
 )
 from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (
     VarQteLinearSolver,
 )
-from qiskit.algorithms.time_evolution.variational.variational_principles.variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.variational_principle \
+    import (
     VariationalPrinciple,
 )
-from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
+from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator \
+    import (
     AbstractOdeFunctionGenerator,
 )
 from qiskit.algorithms.time_evolution.variational.solvers.ode.var_qte_ode_solver import (
@@ -140,6 +143,9 @@ class VarQte(EvolutionBase, ABC):
         linear_solver = VarQteLinearSolver(
             metric_tensor,
             evolution_grad,
+            self._ode_function_generator._lse_solver_callable,
+            # TODO the only place where lse_solver_callable is used via
+            #  abstract_ode_function_generator. Consider passing this param directly to VarQte.
             self._grad_circ_sampler,
             self._metric_circ_sampler,
             self._energy_sampler,
@@ -204,7 +210,7 @@ class VarQte(EvolutionBase, ABC):
         Returns:
             Hamiltonian raised to a given power.
         """
-        h_power = hamiltonian**power
+        h_power = hamiltonian ** power
         h_power = ComposedOp([~StateFn(h_power.reduce()), StateFn(initial_state)])
         h_power = PauliExpectation().convert(h_power)
         # TODO Include Sampler here if backend is given

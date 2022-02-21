@@ -73,15 +73,17 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
 
         time = 2
 
+        linear_solver_callable = np.linalg.lstsq
         linear_solver = VarQteLinearSolver(
             metric_tensor,
             evolution_grad,
+            linear_solver_callable,
             CircuitSampler(backend),
             CircuitSampler(backend),
             CircuitSampler(backend),
         )
 
-        linear_solver_callable = np.linalg.lstsq
+
         ode_function_generator = OdeFunctionGenerator(linear_solver_callable)
         ode_function_generator._lazy_init(linear_solver, error_calculator=None, t_param=None, param_dict=param_dict)
 
@@ -139,6 +141,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         linear_solver = VarQteLinearSolver(
             metric_tensor,
             evolution_grad,
+            linear_solver_callable,
             CircuitSampler(backend),
             CircuitSampler(backend),
             CircuitSampler(backend),

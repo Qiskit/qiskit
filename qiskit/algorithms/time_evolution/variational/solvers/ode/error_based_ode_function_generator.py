@@ -67,7 +67,6 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
         current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
 
         nat_grad_res, metric_res, grad_res = self._varqte_linear_solver._solve_sle(
-            self._lse_solver_callable,
             current_param_dict,
             self._t_param,
             time,
