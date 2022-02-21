@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """ALAP Scheduling."""
-from qiskit.circuit import Delay, Qubit, Measure, Gate
+from qiskit.circuit import Delay, Qubit, Measure
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -60,7 +60,7 @@ class ALAPSchedule(BaseScheduler):
             # since this is alap scheduling, node is scheduled in reversed topological ordering
             # and nodes are packed from the very end of the circuit.
             # the physical meaning of t0 and t1 is flipped here.
-            if isinstance(node.op, self.__condition_supported):
+            if isinstance(node.op, self.CONDITIONAL_SUPPORTED):
                 t0q = max(idle_before[q] for q in node.qargs)
                 if node.op.condition_bits:
                     # conditional is bit tricky due to conditional_latency

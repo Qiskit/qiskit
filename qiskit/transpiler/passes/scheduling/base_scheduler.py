@@ -203,7 +203,8 @@ class BaseScheduler(TransformationPass):
         See https://arxiv.org/abs/2102.01682 for more details.
 
     """
-    __condition_supported = [Gate, Delay]
+
+    CONDITIONAL_SUPPORTED = (Gate, Delay)
 
     def __init__(
         self,

@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """ASAP Scheduling."""
-from qiskit.circuit import Delay, Qubit, Measure, Gate
+from qiskit.circuit import Delay, Qubit, Measure
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -57,7 +57,7 @@ class ASAPSchedule(BaseScheduler):
             # compute t0, t1: instruction interval, note that
             # t0: start time of instruction
             # t1: end time of instruction
-            if isinstance(node.op, self.__condition_supported):
+            if isinstance(node.op, self.CONDITIONAL_SUPPORTED):
                 t0q = max(idle_after[q] for q in node.qargs)
                 if node.op.condition_bits:
                     # conditional is bit tricky due to conditional_latency
