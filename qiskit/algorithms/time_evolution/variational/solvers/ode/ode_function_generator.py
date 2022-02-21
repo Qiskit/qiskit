@@ -11,10 +11,10 @@
 # that they have been altered from the originals.
 
 """Class for generating ODE functions based on natural gradients."""
-
 from typing import Iterable
 
-from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
+from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator \
+    import (
     AbstractOdeFunctionGenerator,
 )
 
@@ -36,11 +36,11 @@ class OdeFunctionGenerator(AbstractOdeFunctionGenerator):
         """
         current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
 
-        nat_grad_res, _, _ = self._linear_solver._solve_sle(
+        nat_grad_res, _, _ = self._varqte_linear_solver._solve_sle(
+            self._lse_solver_callable,
             current_param_dict,
             self._t_param,
             time,
-            self._regularization,
         )
 
         return nat_grad_res

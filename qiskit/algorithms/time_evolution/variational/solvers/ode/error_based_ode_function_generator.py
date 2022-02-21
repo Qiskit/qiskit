@@ -12,14 +12,17 @@
 
 """Class for generating error-based ODE functions."""
 
-from typing import Union, List, Iterable, Optional
+from typing import Union, List, Iterable, Callable
 
 import numpy as np
 from scipy.optimize import minimize
 
-from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
+from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator \
+    import (
     AbstractOdeFunctionGenerator,
 )
+from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import \
+    VarQteLinearSolver
 
 
 class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
@@ -27,24 +30,20 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
 
     def __init__(
         self,
-        regularization: Optional[str] = None,
+        lse_solver_callable: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
         optimizer: str = "COBYLA",
         optimizer_tolerance: float = 1e-6,
     ):
         """
         Args:
-            regularization: Use the following regularization with a least square method to solve the
-                underlying system of linear equations. Can be either None or ``'ridge'`` or
-                ``'lasso'`` or ``'perturb_diag'``. ``'ridge'`` and ``'lasso'`` use an automatic
-                optimal parameter search. If regularization is None but the metric is
-                ill-conditioned or singular then a least square solver is used without
-                regularization.
+            lse_solver_callable: Linear system of equations solver that follows a NumPy
+            np.linalg.lstsq interface.
             optimizer: Optimizer used in case error_based_ode is true.
             optimizer_tolerance: Numerical tolerance of an optimizer used for convergence to a
                 minimum.
         """
 
-        super().__init__(regularization)
+        super().__init__(lse_solver_callable)
 
         self._error_calculator = None
         self._t_param = None
@@ -67,11 +66,11 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
         """
         current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
 
-        nat_grad_res, metric_res, grad_res = self._linear_solver._solve_sle(
+        nat_grad_res, metric_res, grad_res = self._varqte_linear_solver._solve_sle(
+            self._lse_solver_callable,
             current_param_dict,
             self._t_param,
             time,
-            self._regularization,
         )
 
         def argmin_fun(dt_param_values: Union[List, np.ndarray]) -> float:

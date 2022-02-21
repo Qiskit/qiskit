@@ -67,10 +67,9 @@ class TestVarQite(QiskitAlgorithmsTestCase):
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
 
         param_dict = dict(zip(parameters, init_param_values))
-        reg = None
         backend = Aer.get_backend("statevector_simulator")
 
-        ode_function = OdeFunctionGenerator(regularization=reg)
+        ode_function = OdeFunctionGenerator()
         var_qite = VarQite(var_principle, ode_function, backend=backend)
         time = 1
 
@@ -132,10 +131,9 @@ class TestVarQite(QiskitAlgorithmsTestCase):
 
         param_dict = dict(zip(parameters, init_param_values))
 
-        reg = None
         backend = Aer.get_backend("statevector_simulator")
 
-        ode_function = OdeFunctionGenerator(regularization=reg)
+        ode_function = OdeFunctionGenerator()
         var_qite = VarQite(var_principle, ode_function, backend=backend)
         time = 7
 
@@ -197,10 +195,9 @@ class TestVarQite(QiskitAlgorithmsTestCase):
 
         param_dict = dict(zip(parameters, init_param_values))
 
-        reg = None
         backend = Aer.get_backend("statevector_simulator")
 
-        ode_function = OdeFunctionGenerator(regularization=reg)
+        ode_function = OdeFunctionGenerator()
         var_qite = VarQite(var_principle, ode_function, backend=backend)
         time = 1
 

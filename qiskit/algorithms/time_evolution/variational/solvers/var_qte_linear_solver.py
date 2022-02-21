@@ -59,18 +59,18 @@ class VarQteLinearSolver:
 
     def _solve_sle(
         self,
+        lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray],
         param_dict: Dict[Parameter, Union[float, complex]],
         t_param: Optional[Parameter] = None,
         time_value: Optional[float] = None,
-        regularization: Optional[str] = None,
     ) -> (Union[List, np.ndarray], Union[List, np.ndarray], np.ndarray):
         """
         Solve the system of linear equations underlying McLachlan's variational principle for the
         calculation without error bounds.
 
         Args:
-            lse_solver: Linear system of equations solver that follows a SciPy scipy.linalg.solve
-                interface.
+            lse_solver: Linear system of equations solver that follows a NumPy
+            np.linalg.lstsq interface.
             param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
             time_value: Time value that will be bound to t_param. It is required if t_param is
@@ -83,17 +83,16 @@ class VarQteLinearSolver:
 
         metric_tensor_lse_lhs = self._calc_lse_lhs(param_dict, t_param, time_value)
         evolution_grad_lse_rhs = self._calc_lse_rhs(param_dict, t_param, time_value)
-        #x = lse_solver(metric_tensor_lse_lhs, evolution_grad_lse_rhs, rcond=1e-2)[0]
 
-        nat_grad_result = NaturalGradient().nat_grad_combo_fn(
-            [evolution_grad_lse_rhs, metric_tensor_lse_lhs]
-        )
+        # TODO not all solvers will have rcond param. Keeping for now to keep the same results in
+        #  unit tests.
+        x = lse_solver(metric_tensor_lse_lhs, evolution_grad_lse_rhs, rcond=1e-2)[0]
 
-        return np.real(nat_grad_result), metric_tensor_lse_lhs, evolution_grad_lse_rhs
+        return np.real(x), metric_tensor_lse_lhs, evolution_grad_lse_rhs
 
     def _calc_lse_lhs(self, param_dict: Dict[Parameter, Union[float, complex]],
                       t_param: Optional[Parameter] = None, time_value: Optional[float] = None) -> \
-    Union[List, np.ndarray]:
+        Union[List, np.ndarray]:
 
         metric = self._metric_tensor
 

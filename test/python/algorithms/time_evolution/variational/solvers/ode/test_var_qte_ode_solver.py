@@ -27,7 +27,8 @@ from qiskit.algorithms.time_evolution.variational.solvers.ode.ode_function_gener
     OdeFunctionGenerator,
 )
 from qiskit import Aer
-from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary\
+    .implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
@@ -76,9 +77,7 @@ class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
 
         time = 1
 
-        reg = "ridge"
-
-        ode_function_generator = OdeFunctionGenerator(regularization=reg)
+        ode_function_generator = OdeFunctionGenerator()
 
         metric_tensor = var_principle._get_metric_tensor(ansatz, parameters)
         evolution_grad = var_principle._get_evolution_grad(observable, ansatz, parameters)
@@ -90,7 +89,7 @@ class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
             CircuitSampler(backend),
             CircuitSampler(backend),
         )
-        ode_function_generator._lazy_init(None, None, param_dict, linear_solver)
+        ode_function_generator._lazy_init(linear_solver, None, None, param_dict)
 
         var_qte_ode_solver = VarQteOdeSolver(
             list(param_dict.values()),
@@ -99,16 +98,9 @@ class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
 
         result = var_qte_ode_solver._run(time)
 
-        expected_result = [
-            -0.334644,
-            -0.790279,
-            -0.021695,
-            -0.002949,
-            2.503808,
-            1.147496,
-            -0.008201,
-            -0.003358,
-        ]
+        expected_result = [-0.30076755873631345, -0.8032811383782005, 1.1674108371914734e-15,
+                           3.2293849116821145e-16, 2.541585055586039, 1.155475184255733,
+                           -2.966331417968169e-16, 9.604292449638343e-17]
 
         # TODO check if values correct
         np.testing.assert_array_almost_equal(result, expected_result, decimal=4)

@@ -13,14 +13,15 @@
 """Abstract class for generating ODE functions."""
 
 from abc import ABC, abstractmethod
-from typing import Iterable, Union, Dict, Optional
+from typing import Iterable, Union, Dict, Callable
 
-from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
-    ErrorCalculator,
-)
-from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (
-    VarQteLinearSolver,
-)
+import numpy as np
+
+from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
+    .error_calculator import \
+    ErrorCalculator
+from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import \
+    VarQteLinearSolver
 from qiskit.circuit import Parameter
 
 
@@ -29,35 +30,35 @@ class AbstractOdeFunctionGenerator(ABC):
 
     def __init__(
         self,
-        regularization: Optional[str] = None,
+        lse_solver_callable: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
+        optimizer: str = "COBYLA",
+        optimizer_tolerance: float = 1e-6,
     ):
         """
         Args:
-            regularization: Use the following regularization with a least square method to solve the
-                underlying system of linear equations. Can be either None or ``'ridge'`` or
-                ``'lasso'`` or ``'perturb_diag'``. ``'ridge'`` and ``'lasso'`` use an automatic
-                optimal parameter search. If regularization is None but the metric is
-                ill-conditioned or singular then a least square solver is used without
-                regularization.
+            lse_solver_callable: Linear system of equations solver that follows a NumPy
+            np.linalg.lstsq interface.
         """
-        self._regularization = regularization
 
-        self._error_calculator = None
+        self._lse_solver_callable = lse_solver_callable
+        self._optimizer = optimizer
+        self._optimizer_tolerance = optimizer_tolerance
+
+        self._varqte_linear_solver = None
         self._t_param = None
         self._param_dict = None
-        self._linear_solver = None
 
     def _lazy_init(
         self,
+        varqte_linear_solver: VarQteLinearSolver,
         error_calculator: ErrorCalculator,
         t_param: Parameter,
         param_dict: Dict[Parameter, Union[float, complex]],
-        linear_solver: VarQteLinearSolver,
     ):
+        self._varqte_linear_solver = varqte_linear_solver
         self._error_calculator = error_calculator
         self._t_param = t_param
         self._param_dict = param_dict
-        self._linear_solver = linear_solver
 
     @abstractmethod
     def var_qte_ode_function(self, time: float, parameters_values: Iterable) -> Iterable:
@@ -68,9 +69,9 @@ class AbstractOdeFunctionGenerator(ABC):
         Args:
             time: Current time of evolution.
             parameters_values: Current values of parameters.
-        Returns:
 
-            Tuple containing natural gradient, metric tensor and evolution gradient results
-            arising from solving a system of linear equations.
+        Returns:
+            Natural gradient arising from solving a system of linear equations.
         """
         pass
+

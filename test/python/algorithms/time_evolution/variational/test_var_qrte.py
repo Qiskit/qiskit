@@ -17,14 +17,16 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
-from qiskit.algorithms.time_evolution.variational.solvers.ode.error_based_ode_function_generator import (
+from qiskit.algorithms.time_evolution.variational.solvers.ode.error_based_ode_function_generator \
+    import (
     ErrorBasedOdeFunctionGenerator,
 )
 from qiskit.algorithms.time_evolution.variational.solvers.ode.ode_function_generator import (
     OdeFunctionGenerator,
 )
 from qiskit.quantum_info import state_fidelity, Statevector
-from qiskit.algorithms.time_evolution.variational.variational_principles.real.implementations.real_mc_lachlan_variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.real.implementations \
+    .real_mc_lachlan_variational_principle import (
     RealMcLachlanVariationalPrinciple,
 )
 from qiskit import Aer
@@ -71,10 +73,9 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
 
         param_dict = dict(zip(parameters, init_param_values))
 
-        reg = None
         backend = Aer.get_backend("statevector_simulator")
 
-        ode_function = OdeFunctionGenerator(regularization=reg)
+        ode_function = OdeFunctionGenerator()
         var_qrte = VarQrte(var_principle, ode_function, backend=backend)
         time = 0.1
 
@@ -137,10 +138,9 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
 
         param_dict = dict(zip(parameters, init_param_values))
 
-        reg = None
         backend = Aer.get_backend("statevector_simulator")
 
-        ode_function = OdeFunctionGenerator(regularization=reg)
+        ode_function = OdeFunctionGenerator()
         var_qrte = VarQrte(var_principle, ode_function, backend=backend)
         time = 1
 
@@ -205,10 +205,9 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
 
         param_dict = dict(zip(parameters, init_param_values))
 
-        reg = "ridge"
         backend = Aer.get_backend("statevector_simulator")
 
-        ode_function = ErrorBasedOdeFunctionGenerator(regularization=reg)
+        ode_function = ErrorBasedOdeFunctionGenerator()
         var_qrte = VarQrte(var_principle, ode_function, backend=backend)
         time = 0.1
 
@@ -221,16 +220,14 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
 
         evolved_state = evolution_result.evolved_object
 
-        thetas_expected = [
-            0.786375454622673,
-            0.804937305358425,
-            0.761665661438113,
-            0.778186095742013,
-            0.772144156895339,
-            0.760968727936418,
-            0.796310620813093,
-            0.771127803805238,
-        ]
+        thetas_expected = [0.783578928073624,
+                           0.807255533617568,
+                           0.761122019699115,
+                           0.788369068426996,
+                           0.776954788767305,
+                           0.765106574528069,
+                           0.800433546217618,
+                           0.76337420800012]
 
         parameter_values = evolved_state.data[0][0].params
         print(
@@ -269,10 +266,9 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
 
         param_dict = dict(zip(parameters, init_param_values))
 
-        reg = "ridge"
         backend = Aer.get_backend("statevector_simulator")
 
-        ode_function = ErrorBasedOdeFunctionGenerator(regularization=reg)
+        ode_function = ErrorBasedOdeFunctionGenerator()
         var_qrte = VarQrte(var_principle, ode_function, backend=backend)
         time = 0.06
 
@@ -285,18 +281,17 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
 
         evolved_state = evolution_result.evolved_object
 
-        thetas_expected = [
-            0.786456906200498,
-            0.797872720168642,
-            0.773226603015659,
-            0.779454661903583,
-            0.776903078181533,
-            0.768915102073136,
-            0.790069607759744,
-            0.777629466133638,
-        ]
+        thetas_expected = [0.783035949545233,
+                           0.796167505260614,
+                           0.76613369542262,
+                           0.787741644881619,
+                           0.781150720947269,
+                           0.776456587548626,
+                           0.797639502402221,
+                           0.772549623754242]
 
         parameter_values = evolved_state.data[0][0].params
+
         print(
             state_fidelity(
                 Statevector(evolved_state),

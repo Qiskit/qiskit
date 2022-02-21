@@ -148,10 +148,10 @@ class VarQte(EvolutionBase, ABC):
 
         # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator
         self._ode_function_generator._lazy_init(
+            linear_solver,
             error_calculator,
             t_param,
             init_state_param_dict,
-            linear_solver,
         )
 
         ode_solver = VarQteOdeSolver(

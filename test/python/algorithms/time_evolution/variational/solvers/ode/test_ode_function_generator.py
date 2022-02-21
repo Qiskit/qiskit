@@ -14,6 +14,8 @@
 
 import unittest
 
+from scipy import linalg
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
@@ -79,8 +81,9 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
             CircuitSampler(backend),
         )
 
-        ode_function_generator = OdeFunctionGenerator(regularization=None)
-        ode_function_generator._lazy_init(None, None, param_dict, linear_solver)
+        linear_solver_callable = np.linalg.lstsq
+        ode_function_generator = OdeFunctionGenerator(linear_solver_callable)
+        ode_function_generator._lazy_init(linear_solver, error_calculator=None, t_param=None, param_dict=param_dict)
 
         qte_ode_function = ode_function_generator.var_qte_ode_function(time, param_dict.values())
         # TODO check if values correct
@@ -131,7 +134,8 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
 
         time = 2
 
-        ode_function_generator = OdeFunctionGenerator(regularization=None)
+        linear_solver_callable = np.linalg.lstsq
+        ode_function_generator = OdeFunctionGenerator(linear_solver_callable)
         linear_solver = VarQteLinearSolver(
             metric_tensor,
             evolution_grad,
@@ -139,7 +143,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
             CircuitSampler(backend),
             CircuitSampler(backend),
         )
-        ode_function_generator._lazy_init(None, t_param, param_dict, linear_solver)
+        ode_function_generator._lazy_init(linear_solver, error_calculator=None, t_param=t_param, param_dict=param_dict)
 
         qte_ode_function = ode_function_generator.var_qte_ode_function(time, param_dict.values())
 

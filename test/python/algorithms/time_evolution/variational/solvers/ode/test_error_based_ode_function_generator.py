@@ -14,6 +14,8 @@
 
 import unittest
 
+from scipy import linalg
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from numpy import array
@@ -86,11 +88,12 @@ class TestErrorBasedOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         metric_tensor = var_principle._get_metric_tensor(ansatz, parameters)
         evolution_grad = var_principle._get_evolution_grad(hamiltonian, ansatz, parameters)
 
-        ode_function_generator = ErrorBasedOdeFunctionGenerator(regularization=None)
+        varqte_linear_solver = VarQteLinearSolver(metric_tensor, evolution_grad)
+        linear_solver_callable = np.linalg.lstsq
+        ode_function_generator = ErrorBasedOdeFunctionGenerator(linear_solver_callable)
         time = 0.1
-        linear_solver = VarQteLinearSolver(metric_tensor, evolution_grad)
 
-        ode_function_generator._lazy_init(error_calculator, None, param_dict, linear_solver)
+        ode_function_generator._lazy_init(varqte_linear_solver, error_calculator, None, param_dict)
         qte_ode_function = ode_function_generator.var_qte_ode_function(time, param_dict.values())
 
         # TODO verify values if correct
