@@ -12,7 +12,7 @@
 
 """Class for solving linear equations for Quantum Time Evolution."""
 
-from typing import Union, List, Dict, Optional
+from typing import Union, List, Dict, Optional, Callable
 
 import numpy as np
 
@@ -41,7 +41,8 @@ class VarQteLinearSolver:
     ):
         """
         Args:
-            : # TODO
+            metric_tensor:
+            evolution_grad:
             grad_circ_sampler: CircuitSampler for evolution gradients.
             metric_circ_sampler: CircuitSampler for metric tensors.
             energy_sampler: CircuitSampler for energy.
@@ -68,36 +69,57 @@ class VarQteLinearSolver:
         calculation without error bounds.
 
         Args:
+            lse_solver: Linear system of equations solver that follows a SciPy scipy.linalg.solve
+                interface.
             param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
             time_value: Time value that will be bound to t_param. It is required if t_param is
                 not None.
-            regularization: Use the following regularization with a least square method to solve the
-                underlying system of linear equations. Can be either None or ``'ridge'`` or
-                ``'lasso'`` or ``'perturb_diag'``. ``'ridge'`` and ``'lasso'`` use an automatic
-                optimal parameter search, or a penalty term given as Callable.
-                If regularization is None but the metric is ill-conditioned or singular then a
-                least square solver is used without regularization.
 
         Returns:
             dω/dt, 2Re⟨dψ(ω)/dω|H|ψ(ω) for VarQITE/ 2Im⟨dψ(ω)/dω|H|ψ(ω) for VarQRTE, Fubini-Study
             Metric.
         """
-        grad = self._evolution_grad
+
+        metric_tensor_lse_lhs = self._calc_lse_lhs(param_dict, t_param, time_value)
+        evolution_grad_lse_rhs = self._calc_lse_rhs(param_dict, t_param, time_value)
+        #x = lse_solver(metric_tensor_lse_lhs, evolution_grad_lse_rhs, rcond=1e-2)[0]
+
+        nat_grad_result = NaturalGradient().nat_grad_combo_fn(
+            [evolution_grad_lse_rhs, metric_tensor_lse_lhs]
+        )
+
+        return np.real(nat_grad_result), metric_tensor_lse_lhs, evolution_grad_lse_rhs
+
+    def _calc_lse_lhs(self, param_dict: Dict[Parameter, Union[float, complex]],
+                      t_param: Optional[Parameter] = None, time_value: Optional[float] = None) -> \
+    Union[List, np.ndarray]:
+
         metric = self._metric_tensor
 
         if t_param is not None:
             time_dict = {t_param: time_value}
-            # TODO
-            # Use var_principle to understand type and get gradient
-            # bind parameters to H(t)
-            # grad
-            # natural gradient with nat_grad_combo_fn(x, regularization=None)
-            # TODO raw_evolution_grad might be passed as a callback
-            grad = self._evolution_grad.bind_parameters(time_dict)
             metric = self._metric_tensor.bind_parameters(time_dict)
 
-        grad_result = eval_grad_result(
+        metric_tensor_lse_lhs = eval_metric_result(
+            metric,
+            param_dict,
+            self._metric_circ_sampler,
+        )
+
+        return metric_tensor_lse_lhs
+
+    def _calc_lse_rhs(self, param_dict: Dict[Parameter, Union[float, complex]],
+                      t_param: Optional[Parameter] = None,
+                      time_value: Optional[float] = None) -> np.ndarray:
+
+        grad = self._evolution_grad
+
+        if t_param is not None:
+            time_dict = {t_param: time_value}
+            grad = self._evolution_grad.bind_parameters(time_dict)
+
+        evolution_grad_lse_rhs = eval_grad_result(
             grad,
             param_dict,
             self._grad_circ_sampler,
@@ -105,15 +127,4 @@ class VarQteLinearSolver:
             self._allowed_imaginary_part,
         )
 
-        metric_result = eval_metric_result(
-            metric,
-            param_dict,
-            self._metric_circ_sampler,
-        )
-
-        nat_grad_result = NaturalGradient().nat_grad_combo_fn(
-            [grad_result, metric_result], regularization=regularization
-        )
-
-        # error-based needs all three, non-error-based needs only nat_grad_result
-        return np.real(nat_grad_result), metric_result, grad_result
+        return evolution_grad_lse_rhs
