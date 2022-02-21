@@ -34,14 +34,10 @@ class BaseScheduler(TransformationPass):
 
         .. parsed-literal::
 
-                 ┌────────────────┐   ┌───┐
-            q_0: ┤ Delay(100[dt]) ├───┤ X ├───
-                 └─────┬───┬──────┘   └─╥─┘
-            q_1: ──────┤ X ├────────────╫─────
-                       └─╥─┘            ║
-                    ┌────╨────┐    ┌────╨────┐
-            c: 1/═══╡ c_0=0x1 ╞════╡ c_0=0x1 ╞
-                    └─────────┘    └─────────┘
+            qc = QuantumCircuit(2, 1)
+            qc.delay(100, 0)
+            qc.x(0).c_if(0, True)
+            qc.x(1).c_if(0, True)
 
         The scheduler SHOULD comply with above topological ordering policy of the DAG circuit.
         Accordingly, the `asap`-scheduled circuit will become
