@@ -48,7 +48,6 @@ class ExactEstimator(BaseEstimator):
         circuits: Union[QuantumCircuit, list[Union[QuantumCircuit]]],
         observables: Union[BaseOperator, PauliSumOp, list[Union[BaseOperator, PauliSumOp]]],
         backend: Backend,
-        transpile_options: Optional[dict] = None,
         bound_pass_manager: Optional[PassManager] = None,
     ):
         if not _optionals.HAS_AER:
@@ -62,7 +61,6 @@ class ExactEstimator(BaseEstimator):
             circuits=circuits,
             observables=observables,
             backend=backend,
-            transpile_options=transpile_options,
             bound_pass_manager=bound_pass_manager,
         )
 

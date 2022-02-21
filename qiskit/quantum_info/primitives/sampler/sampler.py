@@ -37,7 +37,6 @@ class Sampler(BasePrimitive):
         backend: Backend,
         mitigator: Optional[BaseReadoutMitigator] = None,
         circuits: Optional[Union[QuantumCircuit, list[QuantumCircuit]]] = None,
-        transpile_options: Optional[dict] = None,
         bound_pass_manager: Optional[PassManager] = None,
     ):
         """
@@ -48,7 +47,6 @@ class Sampler(BasePrimitive):
         super().__init__(
             backend=backend,
             mitigator=mitigator,
-            transpile_options=transpile_options,
             bound_pass_manager=bound_pass_manager,
         )
         if circuits is None:

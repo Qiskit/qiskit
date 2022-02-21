@@ -41,7 +41,6 @@ class BasePrimitive(ABC):
         self,
         backend: Backend,
         mitigator: Optional[BaseReadoutMitigator] = None,
-        transpile_options: Optional[dict] = None,
         bound_pass_manager: Optional[PassManager] = None,
     ):
         """
@@ -54,8 +53,6 @@ class BasePrimitive(ABC):
         self._is_closed = False
 
         self._transpile_options = Options()
-        if transpile_options is not None:
-            self.set_transpile_options(**transpile_options)
         self._bound_pass_manager = bound_pass_manager
 
         self._preprocessed_circuits: Optional[PreprocessedCircuits] = None

@@ -52,7 +52,6 @@ class PauliEstimator(BaseEstimator):
         backend: Backend,
         mitigator: Optional[BaseReadoutMitigator] = None,
         strategy: bool = True,  # To be str like TPB
-        transpile_options: Optional[dict] = None,
         bound_pass_manager: Optional[PassManager] = None,
     ):
         super().__init__(
@@ -60,7 +59,6 @@ class PauliEstimator(BaseEstimator):
             observables=observables,
             backend=backend,
             mitigator=mitigator,
-            transpile_options=transpile_options,
             bound_pass_manager=bound_pass_manager,
         )
         self._measurement_strategy = strategy

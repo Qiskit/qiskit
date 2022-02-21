@@ -43,14 +43,12 @@ class BaseEstimator(BasePrimitive, ABC):
         observables: Union[BaseOperator, PauliSumOp, list[Union[BaseOperator, PauliSumOp]]],
         backend: Backend,
         mitigator: Optional[BaseReadoutMitigator] = None,
-        transpile_options: Optional[dict] = None,
         bound_pass_manager: Optional[PassManager] = None,
     ):
         """ """
         super().__init__(
             backend=backend,
             mitigator=mitigator,
-            transpile_options=transpile_options,
             bound_pass_manager=bound_pass_manager,
         )
 
