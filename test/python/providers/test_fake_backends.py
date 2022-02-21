@@ -25,7 +25,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.execute_function import execute
 from qiskit.test.base import QiskitTestCase
 from qiskit.test.mock import FakeProvider, FakeLegacyProvider
-from qiskit.test.mock.fake_backend import HAS_AER
+from qiskit.utils import optionals
 
 
 FAKE_PROVIDER = FakeProvider()
@@ -51,7 +51,7 @@ class TestFakeBackends(QiskitTestCase):
         optimization_level=[0, 1, 2, 3],
     )
     def test_circuit_on_fake_backend(self, backend, optimization_level):
-        if not HAS_AER and backend.configuration().num_qubits > 20:
+        if not optionals.HAS_AER and backend.configuration().num_qubits > 20:
             self.skipTest(
                 "Unable to run fake_backend %s without qiskit-aer"
                 % backend.configuration().backend_name
@@ -73,7 +73,7 @@ class TestFakeBackends(QiskitTestCase):
         optimization_level=[0, 1, 2, 3],
     )
     def test_circuit_on_fake_legacy_backend(self, backend, optimization_level):
-        if not HAS_AER and backend.configuration().num_qubits > 20:
+        if not optionals.HAS_AER and backend.configuration().num_qubits > 20:
             self.skipTest(
                 "Unable to run fake_backend %s without qiskit-aer"
                 % backend.configuration().backend_name

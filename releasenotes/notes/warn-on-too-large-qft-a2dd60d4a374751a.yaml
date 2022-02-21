@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    :class:`.QFT` will now warn if it is instantiated or built with settings
+    that will cause it to lose precision, rather than raising an
+    ``OverflowError``.  This can happen if the number of qubits is very large
+    (slightly over 1000) without the approximation degree being similarly large.
+    The circuit will now build successfully, but some angles might be
+    indistinguishable from zero, due to limitations in double-precision
+    floating-point numbers.
