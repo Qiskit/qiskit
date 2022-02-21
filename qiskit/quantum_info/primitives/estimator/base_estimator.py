@@ -30,7 +30,6 @@ from qiskit.transpiler import PassManager
 
 from ..framework.utils import Group, PauliSumOp, init_circuit, init_observable
 from ..results import EstimatorResult
-from ..results.base_result import BaseResult
 
 
 class BaseEstimator(BasePrimitive, ABC):
@@ -146,7 +145,7 @@ class BaseEstimator(BasePrimitive, ABC):
         return NotImplemented
 
     @abstractmethod
-    def _postprocessing(self, result: Union[dict, BaseResult, Result]) -> EstimatorResult:
+    def _postprocessing(self, result: Result) -> EstimatorResult:
         return NotImplemented
 
     def _transpile(self):

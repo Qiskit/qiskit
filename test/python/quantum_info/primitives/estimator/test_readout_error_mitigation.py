@@ -13,7 +13,6 @@
 """Tests for ReadoutErrorMitigation."""
 
 import unittest
-from test import combine
 
 from ddt import ddt
 
@@ -47,8 +46,7 @@ class TestReadoutErrorMitigation(QiskitTestCase):
         )
 
     @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
-    @combine(method=["local", "correlated", "mthree"])
-    def test_readout_error_mitigation(self, method):
+    def test_readout_error_mitigation(self):
         """test for readout error mitigation"""
         backend = Aer.get_backend("aer_simulator").from_backend(FakeBogota())
         backend.set_options(seed_simulator=15)

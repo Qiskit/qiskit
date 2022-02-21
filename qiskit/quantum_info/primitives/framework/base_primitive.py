@@ -67,12 +67,9 @@ class BasePrimitive(ABC):
     def __exit__(self, ex_type, ex_value, trace):
         self._is_closed = True
 
-    def __call__(
-        self,
-        parameters: Optional[Union[list[float], list[list[float]]]] = None,
-        **run_options,
-    ) -> BaseResult:
-        return self.run(parameters, **run_options)
+    def __init_subclass__(cls):
+        super().__init_subclass__()
+        cls.__call__ = cls.run
 
     @property
     def run_options(self) -> Options:
@@ -203,7 +200,7 @@ class BasePrimitive(ABC):
         )
 
     @abstractmethod
-    def _postprocessing(self, result: Union[Result, BaseResult, dict]) -> BaseResult:
+    def _postprocessing(self, result: Result) -> BaseResult:
         return NotImplemented
 
     def _check_is_closed(self):

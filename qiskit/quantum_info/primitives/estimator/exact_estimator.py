@@ -32,7 +32,6 @@ from qiskit.utils import optionals as _optionals
 
 from ..framework.utils import PauliSumOp
 from ..results import EstimatorResult
-from ..results.base_result import BaseResult
 from .base_estimator import BaseEstimator
 
 if _optionals.HAS_AER:
@@ -80,7 +79,7 @@ class ExactEstimator(BaseEstimator):
             preprocessed_circuits.append(circuit_copy)
         return preprocessed_circuits
 
-    def _postprocessing(self, result: Union[Result, BaseResult, dict]) -> EstimatorResult:
+    def _postprocessing(self, result: Result) -> EstimatorResult:
 
         # TODO: validate
 

@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import copy
 import logging
-from functools import reduce
 from itertools import accumulate
 from typing import Optional, Union, cast
 
@@ -28,13 +27,12 @@ from qiskit.compiler import transpile
 from qiskit.providers import BackendV1 as Backend
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.result import BaseReadoutMitigator, QuasiDistribution, Result
+from qiskit.result import BaseReadoutMitigator, Counts, Result
+from qiskit.result.mitigation.utils import str2diag
 from qiskit.transpiler import PassManager
 
 from ..framework.utils import PauliSumOp
-from ..results import EstimatorResult, SamplerResult
-from ..results.base_result import BaseResult
-from ..sampler import Sampler
+from ..results import EstimatorResult
 from .base_estimator import BaseEstimator, Group
 
 logger = logging.getLogger(__name__)
@@ -45,11 +43,13 @@ class PauliEstimator(BaseEstimator):
     Evaluates expectation value using pauli rotation gates.
     """
 
+    _trans = str.maketrans({"X": "Z", "Y": "Z"})
+
     def __init__(
         self,
         circuits: Union[QuantumCircuit, list[Union[QuantumCircuit]]],
         observables: Union[BaseOperator, PauliSumOp, list[Union[BaseOperator, PauliSumOp]]],
-        backend: Union[Backend, Sampler],
+        backend: Backend,
         mitigator: Optional[BaseReadoutMitigator] = None,
         strategy: bool = True,  # To be str like TPB
         transpile_options: Optional[dict] = None,
@@ -58,13 +58,12 @@ class PauliEstimator(BaseEstimator):
         super().__init__(
             circuits=circuits,
             observables=observables,
-            backend=backend.backend if isinstance(backend, Sampler) else backend,
+            backend=backend,
             mitigator=mitigator,
             transpile_options=transpile_options,
             bound_pass_manager=bound_pass_manager,
         )
         self._measurement_strategy = strategy
-        self._sampler = backend if isinstance(backend, Sampler) else Sampler(backend)
 
     @property
     def preprocessed_circuits(
@@ -162,22 +161,15 @@ class PauliEstimator(BaseEstimator):
             for i, (p, n) in enumerate(zip(parameters, num_observables))
             for circuit_index in range(accum[i], accum[i] + n)
         ]
-
         bound_circuits = self._bound_pass_manager_run(bound_circuits)
 
         # Run
         run_opts = copy.copy(self.run_options)
         run_opts.update_options(**run_options)
+        results = self._backend.run(bound_circuits, **run_opts.__dict__).result()
 
-        self._sampler.set_skip_transpilation()
-        results = self._sampler.run(circuits=bound_circuits, **run_opts.__dict__)
-
-        postprocessed = [
-            self._postprocessing(results[accum[i] : accum[i + 1]])
-            for i in range(len(num_observables))
-        ]
-
-        return reduce(lambda a, b: a + b, postprocessed)
+        results.num_observables = num_observables
+        return self._postprocessing(results)
 
     def _preprocessing(
         self, circuits: list[QuantumCircuit], observables: list[SparsePauliOp]
@@ -228,49 +220,56 @@ class PauliEstimator(BaseEstimator):
             preprocessed_circuits.append((circuit.copy(), diff_circuits))
         return preprocessed_circuits
 
-    def _postprocessing(self, result: Union[Result, BaseResult, dict]) -> EstimatorResult:
+    def _postprocessing(self, result: Result) -> EstimatorResult:
         """
         Postprocessing for evaluation of expectation value using pauli rotation gates.
         """
-        if not isinstance(result, SamplerResult):
-            raise TypeError(f"result must be SamplerResult, not {type(result)}.")
 
-        data = result.quasi_dists
-        metadata = result.metadata
-        counts = result.raw_results.get_counts()
-        counts_list = counts if isinstance(counts, list) else [counts]
+        counts = result.get_counts()
+        metadata = [res.header.metadata for res in result.results]
+        num_observables = result.num_observables
+        accum = [0] + list(accumulate(num_observables))
+        expval_list = []
+        var_list = []
 
-        combined_expval = 0.0
-        combined_variance = 0.0
-        combined_stderr = 0.0
+        for i in range(len(num_observables)):
 
-        for datum, meta, counts in zip(data, metadata, counts_list):
-            basis = meta.get("basis", None)
-            coeff = meta.get("coeff", 1)
-            basis_coeff = coeff if isinstance(coeff, dict) else {basis: coeff}
-            for basis, coeff in basis_coeff.items():
-                diagonal = _pauli_diagonal(basis) if basis is not None else None
-                # qubits = meta.get("qubits", None)
-                shots = sum(datum.values())
+            combined_expval = 0.0
+            combined_var = 0.0
+            combined_stderr = 0.0
 
-                # Compute expval component
-                if self._mitigator is None:
-                    expval, var = _expval_with_variance(datum, diagonal=diagonal)
-                else:
-                    expval, var = self._mitigator.expectation_value(counts, diagonal)
-                # Accumulate
-                combined_expval += expval * coeff
-                combined_variance += var * coeff**2
-                combined_stderr += np.sqrt(max(var * coeff**2 / shots, 0.0))
+            for count, meta in zip(
+                counts[accum[i] : accum[i + 1]], metadata[accum[i] : accum[i + 1]]
+            ):
+                basis = meta.get("basis", None)
+                coeff = meta.get("coeff", 1)
+                basis_coeff = coeff if isinstance(coeff, dict) else {basis: coeff}
+                for basis, coeff in basis_coeff.items():
+                    diagonal = (
+                        str2diag(reversed(basis.translate(self._trans)))
+                        if basis is not None
+                        else None
+                    )
+                    # qubits = meta.get("qubits", None)
+                    shots = sum(count.values())
 
-        return EstimatorResult(
-            np.array([combined_expval], np.float64),
-            np.array([combined_variance], np.float64),
-        )
+                    # Compute expval component
+                    if self._mitigator is None:
+                        expval, var = _expval_with_variance(count, diagonal)
+                    else:
+                        expval, var = self._mitigator.expectation_value(count, diagonal)
+                    # Accumulate
+                    combined_expval += expval * coeff
+                    combined_var += var * coeff**2
+                    combined_stderr += np.sqrt(max(var * coeff**2 / shots, 0.0))
+            expval_list.append(combined_expval)
+            var_list.append(combined_var)
+
+        return EstimatorResult(np.array(expval_list, np.float64), np.array(var_list, np.float64))
 
 
 def _expval_with_variance(
-    quasi: QuasiDistribution,
+    counts: Counts,
     diagonal: Optional[np.ndarray] = None,
     # clbits: Optional[list[int]] = None,
 ) -> tuple[float, float]:
@@ -279,17 +278,16 @@ def _expval_with_variance(
     # if clbits is not None:
     #    counts = marginal_counts(counts, meas_qubits=clbits)
 
-    probs = np.fromiter(quasi.values(), dtype=float)
+    probs = np.fromiter(counts.values(), dtype=float)
     shots = probs.sum()
     probs = probs / shots
 
     # Get diagonal operator coefficients
     if diagonal is None:
-        coeffs = np.array(
-            [(-1) ** (bin(key).count("1") % 2) for key in quasi.keys()], dtype=probs.dtype
-        )
+        coeffs = np.array([(-1) ** key.count("1") for key in counts.keys()], dtype=probs.dtype)
     else:
-        coeffs = np.asarray(diagonal[list(quasi.keys())], dtype=probs.dtype)
+        keys = [int("0b" + key, 0) for key in counts.keys()]
+        coeffs = np.asarray(diagonal[keys], dtype=probs.dtype)
 
     # Compute expval
     expval = coeffs.dot(probs)
@@ -312,26 +310,3 @@ def _expval_with_variance(
             )
         variance = np.float64(0.0)
     return expval.item(), variance.item()
-
-
-def _pauli_diagonal(pauli: str) -> np.ndarray:
-    """Return diagonal for given Pauli.
-
-    Args:
-        pauli: a pauli string.
-
-    Returns:
-        np.ndarray: The diagonal vector for converting the Pauli basis
-                    measurement into an expectation value.
-    """
-    if pauli[0] in ["+", "-"]:
-        pauli = pauli[1:]
-
-    diag = np.array([1])
-    for i in reversed(pauli):
-        if i == "I":
-            tmp = np.array([1, 1])
-        else:
-            tmp = np.array([1, -1])
-        diag = np.kron(tmp, diag)
-    return diag

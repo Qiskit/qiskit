@@ -25,7 +25,6 @@ from qiskit.transpiler import PassManager
 from ..framework.base_primitive import BasePrimitive
 from ..framework.utils import init_circuit
 from ..results import SamplerResult
-from ..results.base_result import BaseResult
 
 
 class Sampler(BasePrimitive):
@@ -93,11 +92,7 @@ class Sampler(BasePrimitive):
         """
         return self._backend
 
-    def set_skip_transpilation(self):
-        """Once the method is called, the transpilation will be skiped."""
-        self._skip_transpilation = True
-
-    def _postprocessing(self, result: Union[Result, BaseResult, dict]) -> SamplerResult:
+    def _postprocessing(self, result: Result) -> SamplerResult:
         if not isinstance(result, Result):
             raise TypeError("result must be an instance of Result.")
 
@@ -124,15 +119,11 @@ class Sampler(BasePrimitive):
         )
 
     def _transpile(self):
-        if self._skip_transpilation:
-            self._transpiled_circuits = self.preprocessed_circuits
-
-        else:
-            self._transpiled_circuits = cast(
-                "list[QuantumCircuit]",
-                transpile(
-                    self.preprocessed_circuits,
-                    self.backend,
-                    **self.transpile_options.__dict__,
-                ),
-            )
+        self._transpiled_circuits = cast(
+            "list[QuantumCircuit]",
+            transpile(
+                self.preprocessed_circuits,
+                self.backend,
+                **self.transpile_options.__dict__,
+            ),
+        )
