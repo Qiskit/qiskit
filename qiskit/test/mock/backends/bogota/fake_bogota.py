@@ -28,7 +28,7 @@ class FakeBogota(fake_pulse_backend.FakePulseBackend):
     backend_name = "fake_bogota"
 
 
-class FakeLegacyBogota(fake_pulse_backend.FakePulseBackend):
+class FakeLegacyBogota(fake_pulse_backend.FakePulseLegacyBackend):
     """A fake 5 qubit backend."""
 
     dirname = os.path.dirname(__file__)
