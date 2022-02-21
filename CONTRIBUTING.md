@@ -197,8 +197,8 @@ fixes:
 
 #### Generating the release notes
 
-After release notes have been added if you want to see what the full output of
-the release notes. In general the output from reno that we'll get is a rst
+After release notes have been added, you can use reno to see what the full output
+of the release notes is. In general the output from reno that we'll get is a rst
 (ReStructuredText) file that can be compiled by
 [sphinx](https://www.sphinx-doc.org/en/master/). To generate the rst file you
 use the ``reno report`` command. If you want to generate the full terra release
