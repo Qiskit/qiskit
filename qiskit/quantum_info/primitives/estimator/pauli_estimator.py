@@ -224,6 +224,8 @@ class PauliEstimator(BaseEstimator):
         """
 
         counts = result.get_counts()
+        if not isinstance(counts, list):
+            counts = [counts]
         metadata = [res.header.metadata for res in result.results]
         num_observables = result.num_observables
         accum = [0] + list(accumulate(num_observables))
@@ -256,7 +258,7 @@ class PauliEstimator(BaseEstimator):
                         expval, var = _expval_with_variance(count, diagonal)
                     else:
                         expval, stddev = self._mitigator.expectation_value(count, diagonal)
-                        var = stddev ** 2 * shots
+                        var = stddev**2 * shots
                     # Accumulate
                     combined_expval += expval * coeff
                     combined_var += var * coeff**2
