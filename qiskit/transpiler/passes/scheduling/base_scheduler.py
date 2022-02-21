@@ -66,14 +66,16 @@ class BaseScheduler(TransformationPass):
         .. parsed-literal::
 
                  ┌────────────────┐   ┌───┐
-            q_0: ┤ Delay(500[dt]) ├───┤ X ├───
-                 └──────┬─┬───────┘   └─╥─┘
-            q_1: ───────┤M├─────────────╫─────
-                        └╥┘        ┌────╨────┐
-            c: 1/════════╩═════════╡ c_0=0x1 ╞
-                         0         └─────────┘
+            q_0: ┤ Delay(500[dt]) ├───┤ X ├──────
+                 └────────────────┘   └─╥─┘   ┌─┐
+            q_1: ───────────────────────╫─────┤M├
+                                   ┌────╨────┐└╥┘
+            c: 1/══════════════════╡ c_0=0x1 ╞═╩═
+                                   └─────────┘ 0
 
-        It looks like the ordering of nodes is inverted (actually not).
+        Note that there is no delay on ``q_1`` wire, and the measure instruction immediately
+        start after t=0, while the conditional gate starts after the delay.
+        It looks like the topological ordering between the nodes are flipped in the scheduled view.
         This behavior can be understood by considering the control flow model described above,
 
         .. parsed-literal::

@@ -89,7 +89,9 @@ class ASAPSchedule(BaseScheduler):
             elif isinstance(node.op, Gate):
                 t0q = max(idle_after[q] for q in node.qargs)
                 if node.op.condition_bits:
-                    # Conditional gate
+                    # TODO consider conditional ops for non-gate instruction, if necessary
+
+                    # conditional is bit tricky due to conditional_latency
                     t0c = max(idle_after[bit] for bit in node.op.condition_bits)
                     if t0q > t0c:
                         # This is situation something like below

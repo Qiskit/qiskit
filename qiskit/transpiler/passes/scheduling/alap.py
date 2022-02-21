@@ -74,6 +74,8 @@ class ALAPSchedule(BaseScheduler):
             elif isinstance(node.op, Gate):
                 t0q = max(idle_before[q] for q in node.qargs)
                 if node.op.condition_bits:
+                    # TODO consider conditional ops for non-gate instruction, if necessary
+
                     # conditional is bit tricky due to conditional_latency
                     t0c = max(idle_before[c] for c in node.op.condition_bits)
                     # Assume following case (t0c > t0q):
