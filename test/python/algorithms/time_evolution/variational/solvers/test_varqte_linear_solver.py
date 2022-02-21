@@ -76,7 +76,6 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
             CircuitSampler(backend),
         )
 
-
         nat_grad_res, metric_res, grad_res = linear_solver._solve_sle(param_dict)
 
         # TODO verify all values below if correct

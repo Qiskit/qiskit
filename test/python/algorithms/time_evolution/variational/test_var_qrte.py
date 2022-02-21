@@ -17,16 +17,14 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
-from qiskit.algorithms.time_evolution.variational.solvers.ode.error_based_ode_function_generator \
-    import (
+from qiskit.algorithms.time_evolution.variational.solvers.ode.error_based_ode_function_generator import (
     ErrorBasedOdeFunctionGenerator,
 )
 from qiskit.algorithms.time_evolution.variational.solvers.ode.ode_function_generator import (
     OdeFunctionGenerator,
 )
 from qiskit.quantum_info import state_fidelity, Statevector
-from qiskit.algorithms.time_evolution.variational.variational_principles.real.implementations \
-    .real_mc_lachlan_variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.real.implementations.real_mc_lachlan_variational_principle import (
     RealMcLachlanVariationalPrinciple,
 )
 from qiskit import Aer
@@ -220,14 +218,16 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
 
         evolved_state = evolution_result.evolved_object
 
-        thetas_expected = [0.783578928073624,
-                           0.807255533617568,
-                           0.761122019699115,
-                           0.788369068426996,
-                           0.776954788767305,
-                           0.765106574528069,
-                           0.800433546217618,
-                           0.76337420800012]
+        thetas_expected = [
+            0.783578928073624,
+            0.807255533617568,
+            0.761122019699115,
+            0.788369068426996,
+            0.776954788767305,
+            0.765106574528069,
+            0.800433546217618,
+            0.76337420800012,
+        ]
 
         parameter_values = evolved_state.data[0][0].params
         print(
@@ -281,14 +281,16 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
 
         evolved_state = evolution_result.evolved_object
 
-        thetas_expected = [0.783035949545233,
-                           0.796167505260614,
-                           0.76613369542262,
-                           0.787741644881619,
-                           0.781150720947269,
-                           0.776456587548626,
-                           0.797639502402221,
-                           0.772549623754242]
+        thetas_expected = [
+            0.783035949545233,
+            0.796167505260614,
+            0.76613369542262,
+            0.787741644881619,
+            0.781150720947269,
+            0.776456587548626,
+            0.797639502402221,
+            0.772549623754242,
+        ]
 
         parameter_values = evolved_state.data[0][0].params
 

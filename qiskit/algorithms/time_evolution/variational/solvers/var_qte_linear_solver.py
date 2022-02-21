@@ -91,9 +91,12 @@ class VarQteLinearSolver:
 
         return np.real(x), metric_tensor_lse_lhs, evolution_grad_lse_rhs
 
-    def _calc_lse_lhs(self, param_dict: Dict[Parameter, Union[float, complex]],
-                      t_param: Optional[Parameter] = None, time_value: Optional[float] = None) -> \
-        Union[List, np.ndarray]:
+    def _calc_lse_lhs(
+        self,
+        param_dict: Dict[Parameter, Union[float, complex]],
+        t_param: Optional[Parameter] = None,
+        time_value: Optional[float] = None,
+    ) -> Union[List, np.ndarray]:
 
         metric = self._metric_tensor
 
@@ -109,9 +112,12 @@ class VarQteLinearSolver:
 
         return metric_tensor_lse_lhs
 
-    def _calc_lse_rhs(self, param_dict: Dict[Parameter, Union[float, complex]],
-                      t_param: Optional[Parameter] = None,
-                      time_value: Optional[float] = None) -> np.ndarray:
+    def _calc_lse_rhs(
+        self,
+        param_dict: Dict[Parameter, Union[float, complex]],
+        t_param: Optional[Parameter] = None,
+        time_value: Optional[float] = None,
+    ) -> np.ndarray:
 
         grad = self._evolution_grad
 

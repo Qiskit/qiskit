@@ -17,8 +17,7 @@ from typing import Union, List, Iterable, Callable
 import numpy as np
 from scipy.optimize import minimize
 
-from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator \
-    import (
+from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
     AbstractOdeFunctionGenerator,
 )
 

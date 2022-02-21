@@ -89,8 +89,12 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
 
         linear_solver_callable = np.linalg.lstsq
         linear_solver = VarQteLinearSolver(
-            metric_tensor, evolution_grad, linear_solver_callable, circuit_sampler, circuit_sampler,
-            circuit_sampler
+            metric_tensor,
+            evolution_grad,
+            linear_solver_callable,
+            circuit_sampler,
+            circuit_sampler,
+            circuit_sampler,
         )
         ng_res, metric_res, grad_res = linear_solver._solve_sle(param_dict)
 
@@ -151,8 +155,12 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
 
         linear_solver_callable = np.linalg.lstsq
         linear_solver = VarQteLinearSolver(
-            metric_tensor, evolution_grad, linear_solver_callable, circuit_sampler, circuit_sampler,
-            circuit_sampler
+            metric_tensor,
+            evolution_grad,
+            linear_solver_callable,
+            circuit_sampler,
+            circuit_sampler,
+            circuit_sampler,
         )
         ng_res, metric_res, grad_res = linear_solver._solve_sle(param_dict)
         eps_squared = imaginary_error_calculator._calc_single_step_error_gradient(

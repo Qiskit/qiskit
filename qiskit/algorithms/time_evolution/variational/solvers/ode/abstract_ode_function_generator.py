@@ -17,11 +17,12 @@ from typing import Iterable, Union, Dict, Callable
 
 import numpy as np
 
-from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
-    .error_calculator import \
-    ErrorCalculator
-from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import \
-    VarQteLinearSolver
+from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
+    ErrorCalculator,
+)
+from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (
+    VarQteLinearSolver,
+)
 from qiskit.circuit import Parameter
 
 
@@ -72,4 +73,3 @@ class AbstractOdeFunctionGenerator(ABC):
             Natural gradient arising from solving a system of linear equations.
         """
         pass
-

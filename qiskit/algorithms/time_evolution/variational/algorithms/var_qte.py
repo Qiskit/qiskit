@@ -20,19 +20,16 @@ from scipy.integrate import RK45, OdeSolver
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.time_evolution.evolution_base import EvolutionBase
-from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
-    .error_calculator import (
+from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
     ErrorCalculator,
 )
 from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (
     VarQteLinearSolver,
 )
-from qiskit.algorithms.time_evolution.variational.variational_principles.variational_principle \
-    import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.variational_principle import (
     VariationalPrinciple,
 )
-from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator \
-    import (
+from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
     AbstractOdeFunctionGenerator,
 )
 from qiskit.algorithms.time_evolution.variational.solvers.ode.var_qte_ode_solver import (
@@ -212,7 +209,7 @@ class VarQte(EvolutionBase, ABC):
         Returns:
             Hamiltonian raised to a given power.
         """
-        h_power = hamiltonian ** power
+        h_power = hamiltonian**power
         h_power = ComposedOp([~StateFn(h_power.reduce()), StateFn(initial_state)])
         h_power = PauliExpectation().convert(h_power)
         # TODO Include Sampler here if backend is given
