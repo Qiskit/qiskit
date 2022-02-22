@@ -18,7 +18,7 @@ from qiskit.opflow import OperatorBase
 class EvolutionResult(AlgorithmResult):
     """Class for holding evolution result and relevant metadata."""
 
-    def __init__(self, evolved_state: OperatorBase = None, evolved_observable: OperatorBase = None):
+    def __init__(self, evolved_state: Optional[OperatorBase] = None, evolved_observable: Optional[OperatorBase] = None):
         """
         Args:
             evolved_state: An evolved quantum state; mutually exclusive with evolved_observable.
@@ -29,11 +29,11 @@ class EvolutionResult(AlgorithmResult):
         self._evolved_observable = evolved_observable
 
     @property
-    def evolved_state(self) -> OperatorBase:
+    def evolved_state(self) -> Optional[OperatorBase]:
         """Returns an evolved quantum state."""
         return self._evolved_state
 
     @property
-    def evolved_observable(self) -> OperatorBase:
+    def evolved_observable(self) -> Optional[OperatorBase]:
         """Returns an evolved quantum observable."""
         return self._evolved_observable
