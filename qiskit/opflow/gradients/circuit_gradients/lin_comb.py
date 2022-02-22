@@ -635,8 +635,8 @@ class LinComb(CircuitGradient):
         state_qc = QuantumCircuit(*state_op.primitive.qregs, qr_superpos)
         state_qc.h(qr_superpos)
 
-        if meas_op is not None:
-            meas_op = meas_op.reduce()
+        # if meas_op is not None:
+        #     meas_op = meas_op.reduce()
 
         state_qc.compose(unrolled, inplace=True)
 

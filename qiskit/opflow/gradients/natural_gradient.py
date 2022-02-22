@@ -135,8 +135,6 @@ class NaturalGradient(GradientBase):
         metric = x[1]
         if any(np.abs(np.imag(c_item)) > 1e-8 for c_item in gradient):
             raise ValueError("The imaginary part of the gradient are non-negligible.")
-        if np.any([[np.abs(np.imag(a_item)) > 1e-8 for a_item in a_row] for a_row in metric]):
-            raise ValueError("The imaginary part of the metric are non-negligible.")
         gradient = np.real(gradient)
         metric = np.real(metric)
 
