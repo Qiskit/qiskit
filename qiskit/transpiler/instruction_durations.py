@@ -29,6 +29,9 @@ class InstructionDurations:
     It can be constructed from ``backend`` or ``instruction_durations``,
     which is an argument of :func:`transpile`. The duration of an instruction depends on the
     instruction (given by name), the qubits, and optionally the parameters of the instruction.
+    Note that these fields are used as keys in dictionaries that are used to retrieve the
+    instruction durations. Therefore, users must use the exact same parameter value to retrieve
+    an instruction duration as the value with which it was added.
     """
 
     def __init__(
