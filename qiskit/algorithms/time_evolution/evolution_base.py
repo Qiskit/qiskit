@@ -37,7 +37,7 @@ class EvolutionBase(ABC):
         Evolves an initial state or an observable according to a Hamiltonian provided.
 
         Args:
-            hamiltonian: Operator used for variational time evolution.
+            hamiltonian: The Hamiltonian under which to evolve the system.
             time: Total time of evolution.
             initial_state: Quantum state to be evolved.
             observable: Observable to be evolved.
