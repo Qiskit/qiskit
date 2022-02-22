@@ -1,0 +1,91 @@
+---
+upgrade:
+  - |
+    The circuit scheduling passes
+    :class:`~qiskit.transpiler.passes.scheduling.asap.ASAPSchedule` and
+    :class:`~qiskit.transpiler.passes.scheduling.alap.ALAPSchedule` have been upgraded.
+    Now these passes can be instantiated with two new parameters
+    ``clbit_write_latency`` and ``conditional_latency``, which allows scheduler to
+    more carefully schedule instructions with classical feedback.
+    The former option represents a latency of clbit access from the begging of the
+    measurement instruction, and the other represents a latency of the
+    conditional gate operation from the first conditional clbit read-access.
+
+    The standard behavior of these passes has been also upgraded to align
+    timing ordering with the topological ordering of the DAG nodes.
+    This change may affect the scheduling outcome if it includes conditional operations,
+    or simultaneously measuring two qubits with the same classical register (edge-case).
+    To reproduce conventional behavior, create a pass manager with one of
+    scheduling passes with ``clbit_write_latency`` identical to the measurement instruction length.
+
+    The following example may clearly explain the change of scheduler spec.
+
+    .. parsed-literal::
+
+           ┌───┐┌─┐
+      q_0: ┤ X ├┤M├──────────────
+           └───┘└╥┘   ┌───┐
+      q_1: ──────╫────┤ X ├──────
+                 ║    └─╥─┘   ┌─┐
+      q_2: ──────╫──────╫─────┤M├
+                 ║ ┌────╨────┐└╥┘
+      c: 1/══════╩═╡ c_0=0x1 ╞═╩═
+                 0 └─────────┘ 0
+
+    The conventional behavior is as follows.
+
+    .. jupyter-execute::
+
+      from qiskit import QuantumCircuit
+      from qiskit.transpiler import InstructionDurations, PassManager
+      from qiskit.transpiler.passes import ALAPSchedule
+      from qiskit.visualization.timeline import draw
+
+      circuit = QuantumCircuit(3, 1)
+      circuit.x(0)
+      circuit.measure(0, 0)
+      circuit.x(1).c_if(0, 1)
+      circuit.measure(2, 0)
+
+      durations = InstructionDurations([("x", None, 160), ("measure", None, 800)])
+
+      pm = PassManager(
+          ALAPSchedule(durations, clbit_write_latency=800, conditional_latency=0)
+      )
+      draw(pm.run(circuit))
+
+    As you can see in the timeline view, the measurement on ``q_2`` starts before
+    the conditional X gate on the ``q_1``, which seems to be opposite to the
+    topological ordering of the node. This is also expected behavior
+    because clbit write-access happens at the end edge of the measure instruction,
+    and the read-access of the conditional gate happens the begin edge of the instruction.
+    Thus topological ordering is preserved on the timeslot of the classical register,
+    which is not captured by the timeline view.
+    However, this assumes a paticular microarchitecture design, and the circuit is
+    not necessary scheduled like this.
+
+    By using the default configuration of passes, the circuit is schedule like below.
+
+    .. jupyter-execute::
+
+      from qiskit import QuantumCircuit
+      from qiskit.transpiler import InstructionDurations, PassManager
+      from qiskit.transpiler.passes import ALAPSchedule
+      from qiskit.visualization.timeline import draw
+
+      circuit = QuantumCircuit(3, 1)
+      circuit.x(0)
+      circuit.measure(0, 0)
+      circuit.x(1).c_if(0, 1)
+      circuit.measure(2, 0)
+
+      durations = InstructionDurations([("x", None, 160), ("measure", None, 800)])
+
+      pm = PassManager(ALAPSchedule(durations))
+      draw(pm.run(circuit))
+
+    Note that clbit is locked throughout the measurement instruction interval.
+    This behavior is designed based on the Qiskit Pulse, in which the acquire instruction takes
+    ``AcquireChannel`` and ``MemorySlot`` which are not allowed to overlap with other instructions,
+    i.e. simultaneous memory access from the different instructions is prohibited.
+    This also always aligns the timing ordering with the topological node ordering.
