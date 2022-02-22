@@ -42,14 +42,13 @@ class StatePreparation(Gate):
                 * Statevector: Statevector to initialize to.
                 * list: vector of complex amplitudes to initialize to.
                 * string: labels of basis states of the Pauli eigenstates Z, X, Y. See
-                    :meth:`.Statevector.from_label`.
-                    Notice the order of the labels is reversed with respect to the qubit index to
-                    be applied to. Example label '01' initializes the qubit zero to :math:`|1\rangle` and the
-                    qubit one to :math:`|0\rangle`.
-
+                  :meth:`.Statevector.from_label`.
+                  Notice the order of the labels is reversed with respect to the qubit index to
+                  be applied to. Example label '01' initializes the qubit zero to :math:`|1\rangle` and the
+                  qubit one to :math:`|0\rangle`.
                 * int: an integer that is used as a bitmap indicating which qubits to initialize
-                    to :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit 2
-                    to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
+                  to :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit 2
+                  to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
             num_qubits (int): This parameter is only used if params is an int. Indicates the total
                 number of qubits in the `initialize` call. Example: `initialize` covers 5 qubits
                 and params is 3. This allows qubits 0 and 1 to be initialized to :math:`|1\rangle` and the
@@ -58,7 +57,7 @@ class StatePreparation(Gate):
         Raises:
             QiskitError: num_qubits parameter used when params is not an integer
 
-        When a Statevector argument is passed the state is prepare using a recursive
+        When a Statevector argument is passed the state is prepared using a recursive
         initialization algorithm, including optimizations, from "Synthesis of Quantum Logic
         Circuits" Shende, Bullock, Markov (https://arxiv.org/abs/quant-ph/0406176v5), as well
         as some additional optimizations including removing zero rotations and double cnots.
@@ -379,15 +378,14 @@ def prepare_state(self, state, qubits=None):
     Args:
         state (str or list or int):
             * str: labels of basis states of the Pauli eigenstates Z, X, Y. See
-            :meth:`.Statevector.from_label`. Notice the order of the labels is reversed with respect
-            to the qubit index to be applied to. Example label '01' initializes the qubit zero to
-            :math:`|1\rangle` and the qubit one to :math:`|0\rangle`.
-
+              :meth:`.Statevector.from_label`. Notice the order of the labels is reversed with respect
+              to the qubit index to be applied to. Example label '01' initializes the qubit zero to
+              :math:`|1\rangle` and the qubit one to :math:`|0\rangle`.
             * list: vector of complex amplitudes to initialize to.
-
             * int: an integer that is used as a bitmap indicating which qubits to initialize
-            to :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit 2
-            to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
+              to :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit 2
+              to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
+
         qubits (QuantumRegister or int):
             * QuantumRegister: A list of qubits to be initialized [Default: None].
             * int: Index of qubit to be initialized [Default: None].
