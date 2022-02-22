@@ -13,37 +13,24 @@
 """Base class for quantum time evolution."""
 
 from abc import ABC, abstractmethod
-from typing import Union, List, Optional, Dict
 
+from qiskit.algorithms.time_evolution.problems.evolution_problem import EvolutionProblem
 from qiskit.algorithms.time_evolution.evolution_result import EvolutionResult
-from qiskit.circuit import Parameter
-from qiskit.opflow import OperatorBase, StateFn, Gradient
+from qiskit.algorithms.time_evolution.problems.gradient_evolution_problem import \
+    GradientEvolutionProblem
 
 
 class EvolutionBase(ABC):
     """Base class for quantum time evolution."""
 
     @abstractmethod
-    def evolve(
-        self,
-        hamiltonian: OperatorBase,
-        time: float,
-        initial_state: Optional[StateFn] = None,
-        observable: Optional[OperatorBase] = None,
-        t_param: Optional[Parameter] = None,
-        hamiltonian_value_dict: Optional[Dict[Parameter, Union[float, complex]]] = None,
-    ) -> EvolutionResult:
+    def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
         """
         Evolves an initial state or an observable according to a Hamiltonian provided.
 
         Args:
-            hamiltonian: Operator used for variational time evolution.
-            time: Total time of evolution.
-            initial_state: Quantum state to be evolved; mutually exclusive with observable.
-            observable: Observable to be evolved; mutually exclusive with initial_state.
-            t_param: Time parameter in case of a time-dependent Hamiltonian.
-            hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to certain
-                values, including the t_param.
+            evolution_problem: EvolutionProblem instance that includes definition of an evolution
+                problem.
 
         Returns:
             Evolution result which includes an evolved gradient of quantum state or an observable
@@ -52,32 +39,13 @@ class EvolutionBase(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def gradient(
-        self,
-        hamiltonian: OperatorBase,
-        time: float,
-        initial_state: StateFn,
-        gradient_object: Gradient,
-        observable: Optional[OperatorBase] = None,
-        t_param: Optional[Parameter] = None,
-        hamiltonian_value_dict: Optional[Dict[Parameter, Union[float, complex]]] = None,
-        gradient_params: Optional[List[Parameter]] = None,
-    ) -> EvolutionResult:
+    def gradient(self, gradient_evolution_problem: GradientEvolutionProblem) -> EvolutionResult:
         """
         Performs Quantum Time Evolution of gradient expressions.
 
         Args:
-            hamiltonian: Operator used for variational time evolution.
-            time: Total time of evolution.
-            initial_state: Quantum state to be evolved.
-            gradient_object: Gradient object which defines a method for computing desired
-                gradients.
-            observable: Observable to be evolved.
-            t_param: Time parameter in case of a time-dependent Hamiltonian.
-            hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
-                certain values, including the t_param.
-            gradient_params: List of parameters that indicates with respect to which parameters
-                gradients shall be computed.
+            gradient_evolution_problem: GradientEvolutionProblem instance that includes definition
+                of a gradient evolution problem.
 
         Returns:
             Evolution result which includes an evolved gradient of quantum state or an observable
