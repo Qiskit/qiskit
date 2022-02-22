@@ -49,6 +49,8 @@ class TestFakeBackends(QiskitTestCase):
     @combine(
         backend=[be for be in FAKE_PROVIDER.backends() if be.configuration().num_qubits > 1],
         optimization_level=[0, 1, 2, 3],
+        dsc="Test execution path on {backend} with optimization level {optimization_level}",
+        name="{backend}_opt_level_{optimization_level}",
     )
     def test_circuit_on_fake_backend(self, backend, optimization_level):
         if not optionals.HAS_AER and backend.configuration().num_qubits > 20:
@@ -71,6 +73,8 @@ class TestFakeBackends(QiskitTestCase):
     @combine(
         backend=[be for be in FAKE_LEGACY_PROVIDER.backends() if be.configuration().num_qubits > 1],
         optimization_level=[0, 1, 2, 3],
+        dsc="Test execution path on {backend} with optimization level {optimization_level}",
+        name="{backend}_opt_level_{optimization_level}",
     )
     def test_circuit_on_fake_legacy_backend(self, backend, optimization_level):
         if not optionals.HAS_AER and backend.configuration().num_qubits > 20:

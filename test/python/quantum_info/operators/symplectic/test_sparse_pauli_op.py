@@ -462,6 +462,26 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         np.testing.assert_array_equal(spp_op.paulis.phase, np.zeros(spp_op.size))
         np.testing.assert_array_equal(simplified_op.paulis.phase, np.zeros(simplified_op.size))
 
+    def test_chop(self):
+        """Test chop, which individually truncates real and imaginary parts of the coeffs."""
+        eps = 1e-10
+        op = SparsePauliOp(
+            ["XYZ", "ZII", "ZII", "YZY"], coeffs=[eps + 1j * eps, 1 + 1j * eps, eps + 1j, 1 + 1j]
+        )
+        simplified = op.chop(tol=eps)
+        expected_coeffs = [1, 1j, 1 + 1j]
+        expected_paulis = ["ZII", "ZII", "YZY"]
+        self.assertListEqual(simplified.coeffs.tolist(), expected_coeffs)
+        self.assertListEqual(simplified.paulis.to_labels(), expected_paulis)
+
+    def test_chop_all(self):
+        """Test that chop returns an identity operator with coeff 0 if all coeffs are chopped."""
+        eps = 1e-10
+        op = SparsePauliOp(["X", "Z"], coeffs=[eps, eps])
+        simplified = op.chop(tol=eps)
+        expected = SparsePauliOp(["I"], coeffs=[0.0])
+        self.assertEqual(simplified, expected)
+
     @combine(num_qubits=[1, 2, 3, 4], num_ops=[1, 2, 3, 4])
     def test_sum(self, num_qubits, num_ops):
         """Test sum method for {num_qubits} qubits with {num_ops} operators."""

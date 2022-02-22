@@ -1,0 +1,15 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :func:`~qiskit.visualization.circuit_drawer`
+    function and :meth:`~qiskit.circuit.QuantumCircuit.draw` method of
+    :class:`~qiskit.circuit.QuantumCircuit`. When using the ``reverse_bits``
+    option with the ``mpl``, ``latex``, or ``text`` options, bits without
+    registers did not display in the correct order.
+deprecations:
+  - |
+    The ``qregs``, ``cregs``, ``layout``, and ``global_phase`` kwargs to
+    the :class:`.MatplotlibDrawer`, :class:`.TextDrawing`, and
+    :class:`.QCircuitImage`, and the ``calibrations`` kwarg to the
+    :class:`.MatplotlibDrawer`, are being deprecated in 0.20.0 and will be
+    removed no earlier than 3 months after the release date.
