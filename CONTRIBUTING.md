@@ -112,12 +112,12 @@ workflow for writing and compiling release notes.
 #### Adding a new release note
 
 Making a new release note is quite straightforward. Ensure that you have reno
-installed with::
+installed with:
 
     pip install -U reno
 
 Once you have reno installed you can make a new release note by running in
-your local repository checkout's root::
+your local repository checkout's root:
 
     reno new short-description-string
 
@@ -134,7 +134,7 @@ changes. When you open the newly created file it will be a full template of
 the different categories with a description of a category as a single entry
 in each category. You'll want to delete all the sections you aren't using and
 update the contents for those you are. For example, the end result should
-look something like::
+look something like:
 
 ```yaml
 features:
@@ -202,12 +202,12 @@ of the release notes is. In general the output from reno that we'll get is a rst
 (ReStructuredText) file that can be compiled by
 [sphinx](https://www.sphinx-doc.org/en/master/). To generate the rst file you
 use the ``reno report`` command. If you want to generate the full terra release
-notes for all releases (since we started using reno during 0.9) you just run::
+notes for all releases (since we started using reno during 0.9) you just run:
 
     reno report
 
 but you can also use the ``--version`` argument to view a single release (after
-it has been tagged::
+it has been tagged:
 
     reno report --version 0.9.0
 
