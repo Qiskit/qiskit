@@ -196,15 +196,21 @@ class StabilizerState(QuantumState):
         return ret
 
     def expectation_value(self, oper, qargs=None):
-        """Compute the expectation value of an operator.
+        """Compute the expectation value of a Pauli operator.
 
         Args:
-            oper (BaseOperator): an operator to evaluate expval.
+            oper (Pauli): a Pauli operator to evaluate expval.
             qargs (None or list): subsystems to apply the operator on.
 
         Returns:
-            complex: the expectation value (only 0 or 1 or -1).
+            complex: the expectation value (only 0 or 1 or -1 or i or -i).
+
+        Raises:
+            QiskitError: if oper is not a Pauli operator.
         """
+        if not isinstance(oper, Pauli):
+            raise QiskitError("Operator for expectation value is not a Pauli operator.")
+
         num_qubits = self.clifford.num_qubits
         if qargs is None:
             qubits = range(num_qubits)
@@ -214,19 +220,12 @@ class StabilizerState(QuantumState):
         # Construct Pauli on num_qubits
         pauli = Pauli(num_qubits * "I")
         phase = 0
+        pauli_phase = (-1j) ** oper.phase if oper.phase else 1
 
         for pos, qubit in enumerate(qubits):
-            pauli_pos = (oper.to_label())[len(oper) - 1 - pos]
-            if pauli_pos == "X":
-                pauli.x[qubit] = 1
-            elif pauli_pos == "Y":
-                pauli.x[qubit] = 1
-                pauli.z[qubit] = 1
-                phase += 1
-            elif pauli_pos == "Z":
-                pauli.z[qubit] = 1
-            else:
-                pass
+            pauli.x[qubit] = oper.x[pos]
+            pauli.z[qubit] = oper.z[pos]
+            phase += pauli.x[qubit] & pauli.z[qubit]
 
         # Check if there is a stabilizer that anti-commutes with an odd number of qubits
         # If so the expectation value is 0
@@ -258,10 +257,11 @@ class StabilizerState(QuantumState):
             phase += 2 * np.count_nonzero(pauli_z & stab.X[p])
             pauli_z = pauli_z ^ stab.Z[p]
 
+        # For valid stabilizers, `phase` can only be 0 (= 1) or 2 (= -1) at this point.
         if phase % 4 != 0:
-            return -1
+            return -pauli_phase
 
-        return 1
+        return pauli_phase
 
     def probabilities(self, qargs=None, decimals=None):
         """Return the subsystem measurement probability vector.
