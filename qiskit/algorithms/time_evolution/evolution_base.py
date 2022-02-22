@@ -39,8 +39,8 @@ class EvolutionBase(ABC):
         Args:
             hamiltonian: Operator used for variational time evolution.
             time: Total time of evolution.
-            initial_state: Quantum state to be evolved.
-            observable: Observable to be evolved.
+            initial_state: Quantum state to be evolved; mutually exclusive with observable.
+            observable: Observable to be evolved; mutually exclusive with initial_state.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
             hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to certain
                 values, including the t_param.

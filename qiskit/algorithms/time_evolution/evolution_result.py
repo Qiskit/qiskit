@@ -10,30 +10,30 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """Class for holding evolution result and relevant metadata."""
-from typing import Dict, Any, Optional, Union
 
+from qiskit.algorithms import AlgorithmResult
 from qiskit.opflow import OperatorBase
 
 
-class EvolutionResult:
+class EvolutionResult(AlgorithmResult):
     """Class for holding evolution result and relevant metadata."""
 
-    def __init__(self, evolved_object: OperatorBase, metadata: Optional[Dict[str, Any]] = None):
+    def __init__(self, evolved_state: OperatorBase = None, evolved_observable: OperatorBase = None):
         """
         Args:
-            evolved_object: An evolved quantum state or an evolved quantum observable.
-            metadata: A dictionary with algorithm-specific metadata. Keys contain strings that name
-                data stores as a corresponding value.
+            evolved_state: An evolved quantum state; mutually exclusive with evolved_observable.
+            evolved_observable: An evolved quantum observable; mutually exclusive with
+                evolved_state.
         """
-        self._evolved_object = evolved_object
-        self._metadata = metadata
+        self._evolved_state = evolved_state
+        self._evolved_observable = evolved_observable
 
     @property
-    def evolved_object(self) -> OperatorBase:
-        """Returns an evolved quantum state or an evolved quantum observable."""
-        return self._evolved_object
+    def evolved_state(self) -> OperatorBase:
+        """Returns an evolved quantum state."""
+        return self._evolved_state
 
     @property
-    def metadata(self) -> Union[Dict[str, Any], None]:
-        """Returns a dictionary with algorithm-specific metadata."""
-        return self._metadata
+    def evolved_observable(self) -> OperatorBase:
+        """Returns an evolved quantum observable."""
+        return self._evolved_observable
