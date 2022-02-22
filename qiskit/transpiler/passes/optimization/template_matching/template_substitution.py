@@ -455,19 +455,27 @@ class TemplateSubstitution:
         i.e. attempts to solve for a valid parameter assignment.
         template_sublist and circuit_sublist match up to the
         assignment of the parameters. For example the template
-             ┌───────────┐                  ┌────────┐
-        q_0: ┤ P(-1.0*β) ├──■────────────■──┤0       ├
-             ├───────────┤┌─┴─┐┌──────┐┌─┴─┐│  CZ(β) │
-        q_1: ┤ P(-1.0*β) ├┤ X ├┤ P(β) ├┤ X ├┤1       ├
-             └───────────┘└───┘└──────┘└───┘└────────┘
+
+        .. parsed-literal::
+
+                 ┌───────────┐                  ┌────────┐
+            q_0: ┤ P(-1.0*β) ├──■────────────■──┤0       ├
+                 ├───────────┤┌─┴─┐┌──────┐┌─┴─┐│  CZ(β) │
+            q_1: ┤ P(-1.0*β) ├┤ X ├┤ P(β) ├┤ X ├┤1       ├
+                 └───────────┘└───┘└──────┘└───┘└────────┘
+
         should only maximally match once in the circuit
-             ┌───────┐
-        q_0: ┤ P(-2) ├──■────────────■────────────────────────────
-             ├───────┤┌─┴─┐┌──────┐┌─┴─┐┌──────┐
-        q_1: ┤ P(-2) ├┤ X ├┤ P(2) ├┤ X ├┤ P(3) ├──■────────────■──
-             └┬──────┤└───┘└──────┘└───┘└──────┘┌─┴─┐┌──────┐┌─┴─┐
-        q_2: ─┤ P(3) ├──────────────────────────┤ X ├┤ P(3) ├┤ X ├
-              └──────┘                          └───┘└──────┘└───┘
+
+        .. parsed-literal::
+
+                 ┌───────┐
+            q_0: ┤ P(-2) ├──■────────────■────────────────────────────
+                 ├───────┤┌─┴─┐┌──────┐┌─┴─┐┌──────┐
+            q_1: ┤ P(-2) ├┤ X ├┤ P(2) ├┤ X ├┤ P(3) ├──■────────────■──
+                 └┬──────┤└───┘└──────┘└───┘└──────┘┌─┴─┐┌──────┐┌─┴─┐
+            q_2: ─┤ P(3) ├──────────────────────────┤ X ├┤ P(3) ├┤ X ├
+                  └──────┘                          └───┘└──────┘└───┘
+
         However, up until attempt bind is called, the soft matching
         will have found two matches due to the parameters.
         The first match can be satisfied with β=2. However, the

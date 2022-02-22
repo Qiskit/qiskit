@@ -114,7 +114,7 @@ class MatrixOp(PrimitiveOp):
         return self.coeff * self.primitive == other.coeff * other.primitive
 
     def _expand_dim(self, num_qubits: int) -> "MatrixOp":
-        identity = np.identity(2 ** num_qubits, dtype=complex)
+        identity = np.identity(2**num_qubits, dtype=complex)
         return MatrixOp(self.primitive.tensor(Operator(identity)), coeff=self.coeff)
 
     def tensor(self, other: OperatorBase) -> Union["MatrixOp", TensoredOp]:

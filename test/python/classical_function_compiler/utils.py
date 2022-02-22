@@ -20,7 +20,7 @@ def get_truthtable_from_function(function):
     """Runs an classicalfunction function (on python) and generates a truthtable from it."""
     amount_bit_input = len(getfullargspec(function).args)
     result = ""
-    for decimal in range(2 ** amount_bit_input):
+    for decimal in range(2**amount_bit_input):
         entry = bin(decimal)[2:].rjust(amount_bit_input, "0")
         result += str(int(function(*(i == "1" for i in entry[::-1]))))
     return result[::-1]
