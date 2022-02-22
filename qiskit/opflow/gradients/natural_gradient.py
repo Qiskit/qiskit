@@ -138,7 +138,6 @@ class NaturalGradient(GradientBase):
         if np.any([[np.abs(np.imag(a_item)) > 1e-8 for a_item in a_row] for a_row in metric]):
             raise ValueError("The imaginary part of the metric are non-negligible.")
         gradient = np.real(gradient)
-        metric = np.real(metric)
 
         if regularization is not None:
             # If a regularization method is chosen then use a regularized solver to
