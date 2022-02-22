@@ -506,34 +506,6 @@ class ParameterExpression:
             return len(self.parameters) == 0 and complex(self._symbol_expr) == other
         return False
 
-    def __getstate__(self):
-        if _optionals.HAS_SYMENGINE:
-            from sympy import sympify
-
-            symbols = {k: sympify(v) for k, v in self._parameter_symbols.items()}
-            expr = sympify(self._symbol_expr)
-            return {"type": "symengine", "symbols": symbols, "expr": expr, "names": self._names}
-        else:
-            return {
-                "type": "sympy",
-                "symbols": self._parameter_symbols,
-                "expr": self._symbol_expr,
-                "names": self._names,
-            }
-
-    def __setstate__(self, state):
-        if state["type"] == "symengine":
-            import symengine
-
-            self._symbol_expr = symengine.sympify(state["expr"])
-            self._parameter_symbols = {k: symengine.sympify(v) for k, v in state["symbols"].items()}
-            self._parameters = set(self._parameter_symbols)
-        else:
-            self._symbol_expr = state["expr"]
-            self._parameter_symbols = state["symbols"]
-            self._parameters = set(self._parameter_symbols)
-        self._name_map = state["names"]
-
     def is_real(self):
         """Return whether the expression is real"""
 

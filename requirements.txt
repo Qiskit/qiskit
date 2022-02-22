@@ -8,5 +8,5 @@ dill>=0.3
 python-constraint>=1.4
 python-dateutil>=2.8.0
 stevedore>=3.0.0
-symengine>=0.8 ; platform_machine == 'x86_64' or platform_machine == 'aarch64' or platform_machine == 'ppc64le' or platform_machine == 'amd64' or platform_machine == 'arm64'
+symengine>=0.9 ; platform_machine == 'x86_64' or platform_machine == 'aarch64' or platform_machine == 'ppc64le' or platform_machine == 'amd64' or platform_machine == 'arm64'
 tweedledum>=1.1,<2.0
