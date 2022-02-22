@@ -32,7 +32,7 @@ class EvolutionProblem:
     ):
         """
         Args:
-            hamiltonian: Operator used for variational time evolution.
+            hamiltonian: The Hamiltonian under which to evolve the system.
             time: Total time of evolution.
             initial_state: Quantum state to be evolved; mutually exclusive with observable.
             observable: Observable to be evolved; mutually exclusive with initial_state.

@@ -35,7 +35,7 @@ class GradientEvolutionProblem(EvolutionProblem):
     ):
         """
         Args:
-            hamiltonian: Operator used for variational time evolution.
+            hamiltonian: The Hamiltonian under which to evolve the system.
             time: Total time of evolution.
             initial_state: Quantum state to be evolved.
             gradient_object: Gradient object which defines a method for computing desired
