@@ -219,7 +219,7 @@ def check_and_realpart(x):
         ValueError: If ``x`` has non-negligible imaginary components
 
     """
-    if np.any([[np.abs(np.imag(x_item)) > 1e-8 for x_item in x_row] for a_row in x]):
+    if np.any([[np.abs(np.imag(x_item)) > 1e-8 for x_item in x_row] for x_row in x]):
         raise ValueError(
             "The imaginary parts are non-negligible. Please "
             "increase the number of backend shots."
