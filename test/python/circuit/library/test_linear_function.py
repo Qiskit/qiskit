@@ -29,8 +29,6 @@ from qiskit.quantum_info.operators import Operator
 def random_linear_circuit(num_qubits, num_gates, seed=None):
     """Generate a pseudo random linear circuit."""
 
-    gates = ["cx", "swap"]
-
     instructions = {
         "cx": (CXGate(), 2),
         "swap": (SwapGate(), 2),
@@ -41,11 +39,11 @@ def random_linear_circuit(num_qubits, num_gates, seed=None):
     else:
         rng = np.random.default_rng(seed)
 
-    samples = rng.choice(gates, num_gates)
+    name_samples = rng.choice(tuple(instructions), num_gates)
 
     circ = QuantumCircuit(num_qubits)
 
-    for name in samples:
+    for name in name_samples:
         gate, nqargs = instructions[name]
         qargs = rng.choice(range(num_qubits), nqargs, replace=False).tolist()
         circ.append(gate, qargs)

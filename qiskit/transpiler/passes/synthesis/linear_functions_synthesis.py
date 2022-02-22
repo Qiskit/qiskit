@@ -52,7 +52,7 @@ class LinearFunctionsToPermutations(TransformationPass):
 
         for node in dag.named_nodes("linear_function"):
             try:
-                pattern = node.op.get_permutation_pattern()
+                pattern = node.op.permutation_pattern()
             except CircuitError:
                 continue
 

@@ -13,7 +13,6 @@
 
 """Replace each sequence of CX and SWAP gates by a single LinearFunction gate."""
 
-from qiskit.circuit.library.standard_gates import CXGate, SwapGate
 from qiskit.circuit.library.generalized_gates import LinearFunction
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit import QuantumCircuit
@@ -29,12 +28,10 @@ class CollectLinearFunctions(TransformationPass):
     # Called when reached the end of the linear block (either the next gate
     # is not linear, or no more nodes)
     @staticmethod
-    def _finalize_processing_block(cur_nodes, cur_qubits, blocks):
+    def _finalize_processing_block(cur_nodes, blocks):
         # Collect only blocks comprising at least 2 gates.
-        # ToDo: possibly make the minimum number of gates as a parameter
         if len(cur_nodes) >= 2:
-            cur_wire_pos_map = dict((qb, ix) for ix, qb in enumerate(cur_qubits))
-            blocks.append((cur_nodes, cur_wire_pos_map))
+            blocks.append(cur_nodes)
 
     # For now, we implement the naive greedy algorithm that makes a linear sweep over
     # nodes in DAG (using the topological order) and collects blocks of linear gates.
@@ -47,37 +44,47 @@ class CollectLinearFunctions(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-
         blocks = []
 
         cur_nodes = []
-        cur_qubits = set(())
-
         for node in dag.topological_op_nodes():
             # If the current gate is not linear, we are done processing the current block
             if not self._is_linear_gate(node.op):
-                self._finalize_processing_block(cur_nodes, cur_qubits, blocks)
+                self._finalize_processing_block(cur_nodes, blocks)
                 cur_nodes = []
-                cur_qubits = set(())
 
             else:
                 # This is a linear gate, we add the node and its qubits
                 cur_nodes.append(node)
-                cur_qubits.update(node.qargs)
 
         # Last block
-        self._finalize_processing_block(cur_nodes, cur_qubits, blocks)
+        self._finalize_processing_block(cur_nodes, blocks)
 
         # Replace every discovered block by a linear function
-        for block, wire_pos_map in blocks:
-            qc = QuantumCircuit(len(wire_pos_map))
-            for node in block:
-                if isinstance(node.op, CXGate):
+        global_index_map = {wire: idx for idx, wire in enumerate(dag.qubits)}
+        print(global_index_map)
+        for cur_nodes in blocks:
+            # Find the set of all qubits used in this block
+            cur_qubits = set()
+            for node in cur_nodes:
+                cur_qubits.update(node.qargs)
+
+            # For reproducibility, order these qubits compatibly with the global order
+            sorted_qubits = sorted(cur_qubits, key=lambda x: global_index_map[x])
+            wire_pos_map = dict((qb, ix) for ix, qb in enumerate(sorted_qubits))
+
+            # Construct a linear circuit
+            qc = QuantumCircuit(len(cur_qubits))
+            for node in cur_nodes:
+                if node.op.name == "cx":
                     qc.cx(wire_pos_map[node.qargs[0]], wire_pos_map[node.qargs[1]])
-                elif isinstance(node.op, SwapGate):
+                elif node.op.name == "swap":
                     qc.swap(wire_pos_map[node.qargs[0]], wire_pos_map[node.qargs[1]])
 
+            # Create a linear function from this quantum circuit
             op = LinearFunction(qc)
-            dag.replace_block_with_op(block, op, wire_pos_map, cycle_check=False)
+
+            # Replace the block by the constructed circuit
+            dag.replace_block_with_op(cur_nodes, op, wire_pos_map, cycle_check=False)
 
         return dag

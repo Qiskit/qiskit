@@ -88,19 +88,19 @@ class LinearFunction(Gate):
 
         if isinstance(linear, QuantumCircuit):
             # The following function will raise a CircuitError if there are nonlinear gates.
-            self._linear = _linear_quantum_circuit_to_mat(linear)
+            linear = _linear_quantum_circuit_to_mat(linear)
 
         else:
             # Normalize to numpy array (coercing entries to 0s and 1s)
             try:
-                self._linear = np.array(linear, dtype=bool, copy=True)
+                linear = np.array(linear, dtype=bool, copy=True)
             except ValueError:
                 raise CircuitError(
                     "A linear function must be represented by a square matrix."
                 ) from None
 
             # Check that the matrix is square
-            if not len(self._linear.shape) == 2 or self._linear.shape[0] != self._linear.shape[1]:
+            if len(linear.shape) != 2 or linear.shape[0] != linear.shape[1]:
                 raise CircuitError("A linear function must be represented by a square matrix.")
 
             # Optionally, check that the matrix is invertible
@@ -111,7 +111,11 @@ class LinearFunction(Gate):
                         "A linear function must be represented by an invertible matrix."
                     )
 
-        super().__init__(name="linear_function", num_qubits=len(self._linear), params=[])
+        super().__init__(name="linear_function", num_qubits=len(linear), params=[linear])
+
+    def validate_parameter(self, parameter):
+        """Parameter validation"""
+        return parameter
 
     def _define(self):
         """Populates self.definition with a decomposition of this gate."""
@@ -125,32 +129,32 @@ class LinearFunction(Gate):
         """
         from qiskit.transpiler.synthesis import cnot_synth
 
-        return cnot_synth(self._linear)
+        return cnot_synth(self.linear)
 
     @property
     def linear(self):
         """Returns the n x n matrix representing this linear function"""
-        return self._linear
+        return self.params[0]
 
     def is_permutation(self) -> bool:
         """Returns whether this linear function is a permutation,
         that is whether every row and every column of the n x n matrix
         has exactly one 1.
         """
-        ones = np.ones([self._linear.shape[0]], dtype=int)
-        perm = np.all(np.sum(self._linear, axis=0) == ones) and np.all(
-            np.sum(self._linear, axis=1) == ones
-        )
+        linear = self.linear
+        perm = np.all(np.sum(linear, axis=0) == 1) and np.all(np.sum(linear, axis=1) == 1)
         return perm
 
-    def get_permutation_pattern(self):
+    def permutation_pattern(self):
         """This method first checks if a linear function is a permutation and raises a
         `qiskit.circuit.exceptions.CircuitError` if not. In the case that this linear function
         is a permutation, returns the permutation pattern.
         """
         if not self.is_permutation():
             raise CircuitError("The linear function is not a permutation")
-        locs = np.where(self._linear == 1)
+
+        linear = self.linear
+        locs = np.where(linear == 1)
         return locs[1]
 
 
