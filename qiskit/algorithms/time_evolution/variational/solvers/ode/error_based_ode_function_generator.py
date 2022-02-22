@@ -12,38 +12,18 @@
 
 """Class for generating error-based ODE functions."""
 
-from typing import Union, List, Iterable, Callable
+from typing import Union, List, Iterable
 
 import numpy as np
-from scipy.optimize import minimize
 
-from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
+from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator \
+    import (
     AbstractOdeFunctionGenerator,
 )
 
 
 class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
     """Class for generating error-based ODE functions."""
-
-    def __init__(
-        self,
-        optimizer: str = "COBYLA",
-        optimizer_tolerance: float = 1e-6,
-    ):
-        """
-        Args:
-            optimizer: Optimizer used in case error_based_ode is true.
-            optimizer_tolerance: Numerical tolerance of an optimizer used for convergence to a
-                minimum.
-        """
-
-        super().__init__()
-
-        self._error_calculator = None
-        self._t_param = None
-
-        self._optimizer = optimizer
-        self._optimizer_tolerance = optimizer_tolerance
 
     def var_qte_ode_function(self, time: float, parameters_values: Iterable) -> float:
         """
@@ -83,8 +63,8 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
             return et_squared
 
         # Use the natural gradient result as initial point for least squares solver
-        argmin = minimize(
-            fun=argmin_fun, x0=nat_grad_res, method=self._optimizer, tol=self._optimizer_tolerance
+        argmin = self._optimizer.minimize(
+            fun=argmin_fun, x0=nat_grad_res
         )
 
         # self._et = argmin_fun(argmin.x)

@@ -15,7 +15,7 @@
 from typing import Optional, Union, Dict, List, Callable
 
 import numpy as np
-from scipy.integrate import OdeSolver
+from scipy.integrate import OdeSolver, RK45
 
 from qiskit.algorithms.time_evolution.evolution_result import EvolutionResult
 from qiskit.algorithms.time_evolution.imaginary.qite import Qite
@@ -51,7 +51,7 @@ class VarQite(Qite, VarQte):
         variational_principle: ImaginaryVariationalPrinciple,
         ode_function_generator: AbstractOdeFunctionGenerator,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
-        ode_solver_callable: OdeSolver = "RK45",
+        ode_solver_callable: OdeSolver = RK45,
         lse_solver_callable: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
         allowed_imaginary_part: float = 1e-7,
         allowed_num_instability_error: float = 1e-7,

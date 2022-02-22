@@ -17,6 +17,7 @@ from typing import Iterable, Union, Dict, Callable
 
 import numpy as np
 
+from qiskit.algorithms.optimizers import COBYLA
 from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
     ErrorCalculator,
 )
@@ -31,16 +32,17 @@ class AbstractOdeFunctionGenerator(ABC):
 
     def __init__(
         self,
-        optimizer: str = "COBYLA",
+        optimizer: Callable = COBYLA,
         optimizer_tolerance: float = 1e-6,
     ):
         """
         Args:
-            optimizer:
-            optimizer_tolerance:
+            optimizer: Qiskit optimizer callable used in an error-based ODE function.
+            optimizer_tolerance: Numerical tolerance of an optimizer used for convergence to a
+                minimum.
         """
 
-        self._optimizer = optimizer
+        self._optimizer = optimizer(tol=optimizer_tolerance)
         self._optimizer_tolerance = optimizer_tolerance
 
         self._varqte_linear_solver = None
