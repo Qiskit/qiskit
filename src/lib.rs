@@ -10,18 +10,36 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::env;
+
 use pyo3::prelude::*;
 use pyo3::wrap_pymodule;
 use pyo3::Python;
 
 mod edge_collections;
 mod nlayout;
+mod pauli_exp_val;
 mod stochastic_swap;
 
+use crate::pauli_exp_val::PyInit_pauli_expval;
 use crate::stochastic_swap::PyInit_stochastic_swap;
+
+#[inline]
+pub fn eval_parallel_env() -> bool {
+    let parallel_context = env::var("QISKIT_IN_PARALLEL")
+        .unwrap_or_else(|_| "FALSE".to_string())
+        .to_uppercase()
+        == "TRUE";
+    let force_threads = env::var("QISKIT_FORCE_THREADS")
+        .unwrap_or_else(|_| "FALSE".to_string())
+        .to_uppercase()
+        == "TRUE";
+    !parallel_context || force_threads
+}
 
 #[pymodule]
 fn _accelerate(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(stochastic_swap))?;
+    m.add_wrapped(wrap_pymodule!(pauli_expval))?;
     Ok(())
 }
