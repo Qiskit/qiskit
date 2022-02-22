@@ -21,13 +21,19 @@ import warnings
 import json
 import os
 
-from typing import List, Union
+from typing import Iterable, List, Union
 
 from qiskit import circuit
 from qiskit.providers.models import BackendProperties, PulseBackendConfiguration, PulseDefaults
 from qiskit.providers import BackendV1, BackendV2, BaseBackend, QubitProperties
 from qiskit.providers.options import Options
 from qiskit import pulse
+from qiskit.pulse.channels import (
+    AcquireChannel,
+    ControlChannel,
+    DriveChannel,
+    MeasureChannel,
+)
 from qiskit.circuit.parameter import Parameter
 from qiskit.transpiler import Target, InstructionProperties
 from qiskit.exceptions import QiskitError
@@ -441,3 +447,37 @@ class FakeBackendV2(BackendV2):
             sim = basicaer.BasicAer.get_backend("qasm_simulator")
             job = sim.run(circuits, **kwargs)
         return job
+
+    def drive_channel(self, qubit: int) -> DriveChannel:
+        """Return the drive channel for the given qubit.
+        Returns:
+            DriveChannel: The Qubit drive channel
+        """
+        return self._configuration.drive(qubit=qubit)
+
+    def measure_channel(self, qubit: int) -> MeasureChannel:
+        """Return the measure stimulus channel for the given qubit.
+        Returns:
+            MeasureChannel: The Qubit measurement stimulus line
+        """
+        return self._configuration.measure(qubit=qubit)
+
+    def acquire_channel(self, qubit: int) -> AcquireChannel:
+        """Return the acquisition channel for the given qubit.
+        Returns:
+            AcquireChannel: The Qubit measurement acquisition line.
+        """
+        return self._configuration.acquire(qubit=qubit)
+
+    def control_channel(self, qubits: Iterable[int]) -> List[ControlChannel]:
+        """Return the secondary drive channel for the given qubit
+        This is typically utilized for controlling multiqubit interactions.
+        This channel is derived from other channels.
+        Args:
+            qubits: Tuple or list of qubits of the form
+                ``(control_qubit, target_qubit)``.
+        Returns:
+            List[ControlChannel]: The Qubit measurement acquisition line.
+        """
+        return self._configuration.control(qubits=qubits)
+
