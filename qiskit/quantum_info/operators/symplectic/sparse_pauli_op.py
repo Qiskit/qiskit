@@ -404,6 +404,47 @@ class SparsePauliOp(LinearOp):
             x = self.paulis.x[non_zero_indexes]
             z = self.paulis.z[non_zero_indexes]
             coeffs = coeffs[non_zero]
+
+        return SparsePauliOp(
+            PauliList.from_symplectic(z, x), coeffs, ignore_pauli_phase=True, copy=False
+        )
+
+    def chop(self, tol=1e-14):
+        """Set real and imaginary parts of the coefficients to 0 if ``< tol`` in magnitude.
+
+        For example, the operator representing ``1+1e-17j X + 1e-17 Y`` with a tolerance larger
+        than ``1e-17`` will be reduced to ``1 X`` whereas :meth:`.SparsePauliOp.simplify` would
+        return ``1+1e-17j X``.
+
+        If a both the real and imaginary part of a coefficient is 0 after chopping, the
+        corresponding Pauli is removed from the operator.
+
+        Args:
+            tol (float): The absolute tolerance to check whether a real or imaginary part should
+                be set to 0.
+
+        Returns:
+            SparsePauliOp: This operator with chopped coefficients.
+        """
+        realpart_nonzero = np.abs(self.coeffs.real) > tol
+        imagpart_nonzero = np.abs(self.coeffs.imag) > tol
+
+        remaining_indices = np.logical_or(realpart_nonzero, imagpart_nonzero)
+        remaining_real = realpart_nonzero[remaining_indices]
+        remaining_imag = imagpart_nonzero[remaining_indices]
+
+        if len(remaining_real) == 0:  # if no Paulis are left
+            x = np.zeros((1, self.num_qubits), dtype=bool)
+            z = np.zeros((1, self.num_qubits), dtype=bool)
+            coeffs = np.array([0j], dtype=complex)
+        else:
+            coeffs = np.zeros(np.count_nonzero(remaining_indices), dtype=complex)
+            coeffs.real[remaining_real] = self.coeffs.real[realpart_nonzero]
+            coeffs.imag[remaining_imag] = self.coeffs.imag[imagpart_nonzero]
+
+            x = self.paulis.x[remaining_indices]
+            z = self.paulis.z[remaining_indices]
+
         return SparsePauliOp(
             PauliList.from_symplectic(z, x), coeffs, ignore_pauli_phase=True, copy=False
         )
@@ -484,7 +525,7 @@ class SparsePauliOp(LinearOp):
         # Non-zero coefficients
         coeffs = []
         # Non-normalized basis factor
-        denom = 2 ** num_qubits
+        denom = 2**num_qubits
         # Compute coefficients from basis
         basis = pauli_basis(num_qubits, pauli_list=True)
         for i, mat in enumerate(basis.matrix_iter()):

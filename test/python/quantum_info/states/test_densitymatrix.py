@@ -1016,7 +1016,7 @@ class TestDensityMatrix(QiskitTestCase):
         """Test expectation_value method for Pauli op"""
         seed = 1020
         op = Pauli(pauli)
-        rho = random_density_matrix(2 ** op.num_qubits, seed=seed)
+        rho = random_density_matrix(2**op.num_qubits, seed=seed)
         rho._data = np.reshape(rho.data.flatten(order="F"), rho.data.shape, order="F")
         target = rho.expectation_value(op.to_matrix())
         expval = rho.expectation_value(op)
@@ -1092,7 +1092,7 @@ class TestDensityMatrix(QiskitTestCase):
         """Test expectation_value method for Pauli op"""
         seed = 1020
         op = Pauli(pauli)
-        rho = random_density_matrix(2 ** op.num_qubits, seed=seed)
+        rho = random_density_matrix(2**op.num_qubits, seed=seed)
         rho._data = np.reshape(rho.data.flatten(order="C"), rho.data.shape, order="C")
         target = rho.expectation_value(op.to_matrix())
         expval = rho.expectation_value(op)
@@ -1103,7 +1103,7 @@ class TestDensityMatrix(QiskitTestCase):
         """Test expectation_value method for Pauli op"""
         seed = 1020
         op = random_pauli(2, seed=seed)
-        state = random_density_matrix(2 ** 3, seed=seed)
+        state = random_density_matrix(2**3, seed=seed)
         target = state.expectation_value(op.to_matrix(), qubits)
         expval = state.expectation_value(op, qubits)
         self.assertAlmostEqual(expval, target)

@@ -539,7 +539,7 @@ class TestCliffordDecomposition(QiskitTestCase):
             circ = random_clifford_circuit(num_qubits, num_gates, gates=gates, seed=seed + i)
             mat = Clifford(circ).to_matrix()
             self.assertIsInstance(mat, np.ndarray)
-            self.assertEqual(mat.shape, 2 * (2 ** num_qubits,))
+            self.assertEqual(mat.shape, 2 * (2**num_qubits,))
             value = Operator(mat)
             target = Operator(circ)
             self.assertTrue(value.equiv(target))
