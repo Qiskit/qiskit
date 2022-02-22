@@ -129,6 +129,7 @@ Synthesis
 
    UnitarySynthesis
    LinearFunctionsSynthesis
+   LinearFunctionsToPermutations
 
 Additional Passes
 =================

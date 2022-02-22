@@ -1,4 +1,5 @@
 ---
+
 features:
   - |
     Added a new gate :class:`.LinearFunction` that efficiently encodes a linear function (that is,
