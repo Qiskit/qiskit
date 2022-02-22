@@ -92,14 +92,14 @@ class TestFakeBackends(QiskitTestCase):
         self.assertEqual(max_count, "11")
 
     @combine(
-        backend=[be for be in FAKE_PROVIDER_V2.backends() if be.configuration().num_qubits > 1],
+        backend=[be for be in FAKE_PROVIDER_V2.backends() if be.num_qubits > 1],
         optimization_level=[0, 1, 2, 3],
     )
-    def test_circuit_on_fake_backend(self, backend, optimization_level):
-        if not optionals.HAS_AER and backend.configuration().num_qubits > 20:
+    def test_circuit_on_fake_backend_v2(self, backend, optimization_level):
+        if not optionals.HAS_AER and backend.num_qubits > 20:
             self.skipTest(
                 "Unable to run fake_backend %s without qiskit-aer"
-                % backend.configuration().backend_name
+                % backend.backend_name
             )
         job = execute(
             self.circuit,
