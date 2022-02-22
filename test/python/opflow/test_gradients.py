@@ -1279,7 +1279,7 @@ class TestQFI(QiskitOpflowTestCase):
             actual = qfi.assign_parameters(value_dict).eval()
             np.testing.assert_array_almost_equal(actual, correct_values[i], decimal=1)
 
-    def test_QFI_phase_fix(self):
+    def test_qfi_phase_fix(self):
         """Test the phase-fix argument in a QFI calculation
 
         QFI = [[1, 0], [0, 1]]

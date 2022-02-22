@@ -92,7 +92,6 @@ class LinCombFull(CircuitQFI):
                 open_ctrl=True,
                 trim_after_grad_gate=True,
             )
-            # if type(gradient_states) in [ListOp, SummedOp]:  # pylint: disable=unidiomatic-typecheck
 
             if type(gradient_states) == ListOp:
                 phase_fix_states = gradient_states.oplist

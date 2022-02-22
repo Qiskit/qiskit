@@ -136,9 +136,8 @@ class NaturalGradient(GradientBase):
         if any(np.abs(np.imag(c_item)) > 1e-8 for c_item in gradient):
             raise ValueError("The imaginary part of the gradient are non-negligible.")
         gradient = np.real(gradient)
-        metric = np.real(metric)
 
-        if regularization:
+        if regularization is not None:
             # If a regularization method is chosen then use a regularized solver to
             # construct the natural gradient.
             nat_grad = NaturalGradient._regularized_sle_solver(
