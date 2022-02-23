@@ -69,15 +69,19 @@ Optimizations
    Optimize1qGatesDecomposition
    Collect1qRuns
    Collect2qBlocks
+   CollectMultiQBlocks
    ConsolidateBlocks
    CXCancellation
+   InverseCancellation
    CommutationAnalysis
    CommutativeCancellation
    Optimize1qGatesSimpleCommutation
    RemoveDiagonalGatesBeforeMeasure
    RemoveResetInZeroState
    CrosstalkAdaptiveSchedule
+   HoareOptimizer
    TemplateOptimization
+   EchoRZXWeylDecomposition
 
 Calibration
 =============
@@ -191,6 +195,7 @@ from .optimization import CrosstalkAdaptiveSchedule
 from .optimization import HoareOptimizer
 from .optimization import TemplateOptimization
 from .optimization import InverseCancellation
+from .optimization import EchoRZXWeylDecomposition
 
 # circuit analysis
 from .analysis import ResourceEstimation

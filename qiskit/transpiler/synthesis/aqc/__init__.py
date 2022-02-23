@@ -9,8 +9,38 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 r"""
+=====================================================================
+Approximate Quantum Compiler (:mod:`qiskit.transpiler.synthesis.aqc`)
+=====================================================================
+
+.. currentmodule:: qiskit.transpiler.synthesis.aqc
+
 Implementation of Approximate Quantum Compiler as described in the paper [1].
+
+Interface
+=========
+
+The main public interface of this module is reached by passing ``unitary_synthesis_method='aqc'`` to
+:obj:`~.compiler.transpile`.  This will swap the synthesis method to use :obj:`AQCSynthesisPlugin`.
+The individual classes are:
+
+.. autosummary::
+    :toctree: ../stubs
+    :template: autosummary/class_no_inherited_members.rst
+
+    AQC
+    AQCSynthesisPlugin
+    ApproximateCircuit
+    ApproximatingObjective
+    CNOTUnitCircuit
+    CNOTUnitObjective
+    DefaultCNOTUnitObjective
+
+
+Mathematical Detail
+===================
 
 We are interested in compiling a quantum circuit, which we formalize as finding the best
 circuit representation in terms of an ordered gate sequence of a target unitary matrix
@@ -118,6 +148,10 @@ A basic usage of the AQC algorithm should consist of the following steps::
 
 Now ``approximate_circuit`` is a circuit that approximates the target unitary to a certain
 degree and can be used instead of the original matrix.
+
+This uses a helper function, :obj:`make_cnot_network`.
+
+.. autofunction:: make_cnot_network
 
 References:
 

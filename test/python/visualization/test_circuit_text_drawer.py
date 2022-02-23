@@ -45,7 +45,6 @@ from qiskit.circuit.library import (
     CPhaseGate,
 )
 from qiskit.transpiler.passes import ApplyLayout
-from qiskit.visualization.exceptions import VisualizationError
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
 
 
@@ -3089,6 +3088,43 @@ class TestTextConditional(QiskitTestCase):
             str(_text_circuit_drawer(circuit, cregbundle=False, reverse_bits=True)), expected
         )
 
+    def test_text_condition_bits_reverse(self):
+        """Condition and measure on single bits cregbundle true and reverse_bits true"""
+
+        bits = [Qubit(), Qubit(), Clbit(), Clbit()]
+        cr = ClassicalRegister(2, "cr")
+        crx = ClassicalRegister(3, "cs")
+        circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
+        circuit.x(0).c_if(bits[3], 0)
+
+        expected = "\n".join(
+            [
+                "           ",
+                "   1: ─────",
+                "      ┌───┐",
+                "   0: ┤ X ├",
+                "      └─╥─┘",
+                "cs: 3/══╬══",
+                "        ║  ",
+                "   4: ══╬══",
+                "        ║  ",
+                "cr: 2/══╬══",
+                "        ║  ",
+                "   1: ══o══",
+                "           ",
+                "   0: ═════",
+                "           ",
+            ]
+        )
+        self.assertEqual(
+            str(
+                _text_circuit_drawer(
+                    circuit, cregbundle=True, initial_state=False, reverse_bits=True
+                )
+            ),
+            expected,
+        )
+
 
 class TestTextIdleWires(QiskitTestCase):
     """The idle_wires option"""
@@ -4864,16 +4900,6 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
             self.fail("_text_circuit_drawer() should be cp437.")
         self.assertFilesAreEqual(filename, self.text_reference_cp437, "cp437")
         os.remove(filename)
-
-    def test_filename_extension_error_message(self):
-        """Test that the error message shown for wrong file extension is correct."""
-        circuit = self.sample_circuit()
-        with self.assertRaises(VisualizationError) as ve:
-            _text_circuit_drawer(circuit, filename="file.spooky")
-            self.assertEqual(
-                str(ve.exception),
-                "ERROR: filename parameter does not use .txt extension.",
-            )
 
 
 if __name__ == "__main__":
