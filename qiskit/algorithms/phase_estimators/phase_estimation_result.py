@@ -160,7 +160,7 @@ def _bit_string_to_phase(binary_string: str) -> float:
         A phase scaled to :math:`[0,1)`.
     """
     n_qubits = len(binary_string)
-    return int(binary_string, 2) / (2 ** n_qubits)
+    return int(binary_string, 2) / (2**n_qubits)
 
 
 def _sort_phases(phases: Dict) -> Dict:

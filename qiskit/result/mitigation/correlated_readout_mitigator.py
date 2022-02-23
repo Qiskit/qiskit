@@ -13,7 +13,7 @@
 Readout mitigator class based on the A-matrix inversion method
 """
 
-from typing import Optional, List, Tuple, Iterable, Callable, Union
+from typing import Optional, List, Tuple, Iterable, Callable, Union, Dict
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -33,20 +33,20 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
     :math:`2^N x 2^N` so the mitigation complexity is :math:`O(4^N)`.
     """
 
-    def __init__(self, amat: np.ndarray, qubits: Optional[Iterable[int]] = None):
+    def __init__(self, assignment_matrix: np.ndarray, qubits: Optional[Iterable[int]] = None):
         """Initialize a CorrelatedReadoutMitigator
 
         Args:
-            amat: readout error assignment matrix.
+            assignment_matrix: readout error assignment matrix.
             qubits: Optional, the measured physical qubits for mitigation.
 
         Raises:
             QiskitError: matrix size does not agree with number of qubits
         """
-        if np.any(amat < 0) or not np.allclose(np.sum(amat, axis=0), 1):
+        if np.any(assignment_matrix < 0) or not np.allclose(np.sum(assignment_matrix, axis=0), 1):
             raise QiskitError("Assignment matrix columns must be valid probability distributions")
-        amat = np.asarray(amat, dtype=float)
-        matrix_qubits_num = int(np.log2(amat.shape[0]))
+        assignment_matrix = np.asarray(assignment_matrix, dtype=float)
+        matrix_qubits_num = int(np.log2(assignment_matrix.shape[0]))
         if qubits is None:
             self._num_qubits = matrix_qubits_num
             self._qubits = range(self._num_qubits)
@@ -59,8 +59,13 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
             self._qubits = qubits
             self._num_qubits = len(self._qubits)
         self._qubit_index = dict(zip(self._qubits, range(self._num_qubits)))
-        self._assignment_mat = amat
+        self._assignment_mat = assignment_matrix
         self._mitigation_mats = {}
+
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {"assignment_matrix": self._assignment_mat, "qubits": self._qubits}
 
     def expectation_value(
         self,
@@ -112,7 +117,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
 
         # Get operator coeffs
         if diagonal is None:
-            diagonal = z_diagonal(2 ** self._num_qubits)
+            diagonal = z_diagonal(2**self._num_qubits)
         elif isinstance(diagonal, str):
             diagonal = str2diag(diagonal)
 
@@ -222,10 +227,10 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         )
         num_qubits = len(qubits)
 
-        new_amat = np.zeros(2 * [2 ** num_qubits], dtype=float)
+        new_amat = np.zeros(2 * [2**num_qubits], dtype=float)
         for i, col in enumerate(self._assignment_mat.T[self._keep_indexes(qubit_indices)]):
             new_amat[i] = (
-                np.reshape(col, self._num_qubits * [2]).sum(axis=axis).reshape([2 ** num_qubits])
+                np.reshape(col, self._num_qubits * [2]).sum(axis=axis).reshape([2**num_qubits])
             )
         new_amat = new_amat.T
         return new_amat

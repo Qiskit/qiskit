@@ -197,6 +197,11 @@ class CU1Gate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate  # pylint: disable=cyclic-import
 
+        #      ┌─────────┐
+        # q_0: ┤ U1(λ/2) ├──■────────────────■─────────────
+        #      └─────────┘┌─┴─┐┌──────────┐┌─┴─┐┌─────────┐
+        # q_1: ───────────┤ X ├┤ U1(-λ/2) ├┤ X ├┤ U1(λ/2) ├
+        #                 └───┘└──────────┘└───┘└─────────┘
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [

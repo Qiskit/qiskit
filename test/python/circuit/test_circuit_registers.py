@@ -487,7 +487,7 @@ class TestCircuitRegisters(QiskitTestCase):
         See https://github.com/Qiskit/qiskit-terra/issues/2508"""
         qr = QuantumRegister(4)
         circ = QuantumCircuit(qr)
-        circ.unitary(np.eye(2 ** 4), [qr[0], qr[1], qr[2], qr[3]])
+        circ.unitary(np.eye(2**4), [qr[0], qr[1], qr[2], qr[3]])
 
         self.assertEqual(len(circ.data), 1)
         (gate, qargs, _) = circ.data[0]
@@ -503,7 +503,7 @@ class TestCircuitRegisters(QiskitTestCase):
         qr4 = QuantumRegister(4)
 
         circ = QuantumCircuit(qr1, qr2, qr3, qr4)
-        circ.unitary(np.eye(2 ** 4), [qr1, qr2, qr3, qr4])
+        circ.unitary(np.eye(2**4), [qr1, qr2, qr3, qr4])
 
         self.assertEqual(len(circ.data), 4)
         for (gate, qargs, _) in circ.data:
