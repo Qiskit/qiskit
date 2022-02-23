@@ -79,7 +79,6 @@ class TestTranspile(QiskitTestCase):
             backend=backend,
             coupling_map=coupling_map,
             basis_gates=basis_gates,
-            pass_manager=None,
         )
 
         circuit3 = transpile(
