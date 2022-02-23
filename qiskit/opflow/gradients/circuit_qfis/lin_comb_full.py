@@ -207,7 +207,8 @@ class LinCombFull(CircuitQFI):
         return ListOp(qfi_operators, combo_fn=lambda x: check_and_realpart(triu_to_dense(x)))
 
 
-def check_and_realpart(x):
+def check_and_realpart(x: Union[List[float], np.ndarray]
+                       ) -> np.ndarray:
     """
     Check for non-negligible imaginary values and remove negligible imaginary parts from x.
     Args:
