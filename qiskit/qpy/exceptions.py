@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,18 +10,18 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=wrong-import-position, unused-import
+"""Exception for errors raised by the pulse module."""
+from qiskit.exceptions import QiskitError
 
-"""Alias for Qiskit QPY import."""
 
-# TODO deprecate this in 0.21.0
-from qiskit.qpy import dump, load
+class QpyError(QiskitError):
+    """Errors raised by the qpy module."""
 
-# For backward compatibility. Provide, Runtime, Experiment call these private functions.
-from qiskit.qpy import (
-    _write_instruction,
-    _read_instruction,
-    _write_parameter_expression,
-    _read_parameter_expression,
-    _read_parameter_expression_v3,
-)
+    def __init__(self, *message):
+        """Set the error message."""
+        super().__init__(*message)
+        self.message = " ".join(message)
+
+    def __str__(self):
+        """Return the message."""
+        return repr(self.message)
