@@ -17,7 +17,7 @@ Mocked versions of real quantum backends.
 
 # BackendV2 Backends
 from .almaden import FakeAlmadenV2
-from .armonk import FakeArmonk
+from .armonk import FakeArmonkV2
 from .athens import FakeAthens
 from .belem import FakeBelem
 from .boeblingen import FakeBoeblingen
