@@ -227,7 +227,7 @@ class FakeProviderV2(ProviderV1):
             FakeArmonkV2(),
             FakeAthensV2(),
             FakeBelemV2(),
-            # FakeBoeblingen(),
+            FakeBoeblingenV2(),
             # FakeBogota(),
             # FakeBrooklyn(),
             # FakeBurlington(),

@@ -20,7 +20,7 @@ from .almaden import FakeAlmadenV2
 from .armonk import FakeArmonkV2
 from .athens import FakeAthensV2
 from .belem import FakeBelemV2
-from .boeblingen import FakeBoeblingen
+from .boeblingen import FakeBoeblingenV2
 from .bogota import FakeBogota
 from .brooklyn import FakeBrooklyn
 from .burlington import FakeBurlington
