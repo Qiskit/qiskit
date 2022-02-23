@@ -1,8 +1,8 @@
 ---
 features:
   - |
-    The internals of the :class:`.StochasticSwap` algorithm has be reimplmented
-    to be multithreaded and is now written in the
+    The internals of the :class:`.StochasticSwap` algorithm have been reimplemented
+    to be multithreaded and are now written in the
     `Rust <https://www.rust-lang.org/>`__ programming language instead of Cython.
     This significantly increases the run time performance of the compiler pass
     and by extension :func:`~.transpile` when run with ``optimization_level`` 0,
@@ -25,7 +25,7 @@ features:
     :func:`~.parallel_map` the :class:`~.StochasticSwap` will not use multiple
     threads to avoid potentially oversubscribing CPU resources. However, if you'd
     like to use multiple threads in the pass along with multiple processes you
-    can set ``QISKIT_FORCE_THREADS=TRUE`` it will.
+    can set ``QISKIT_FORCE_THREADS=TRUE``.
 upgrade:
   - |
     The :class:`.StochasticSwap` transpiler pass may return different results with

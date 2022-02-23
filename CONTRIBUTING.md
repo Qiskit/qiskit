@@ -232,8 +232,7 @@ language to improve the runtime performance. For the released versions of
 qiskit-terra we publish precompiled binaries on the
 [Python Package Index](https://pypi.org/) for all the supported platforms
 which only requires a functional Python environment to install. However, when
-building and installing from source you will need a rust compiler installed
-to be able to build and install qiskit from source. You can do this very easily
+building and installing from source you will need a rust compiler installed. You can do this very easily
 using rustup: https://rustup.rs/ which provides a single tool to install and
 configure the latest version of the rust compiler.
 [Other installation methods](https://forge.rust-lang.org/infra/other-installation-methods.html)
@@ -247,7 +246,7 @@ Once you have a rust compiler installed you can rely on the normal Python
 build/install steps to install Qiskit Terra. This means you just run
 `pip install .` in your local git clone to build and install Qiskit Terra.
 
-Do note that if you do use develop mode/edittable install (via `python setup.py develop` or `pip install -e .`) The rust extension will be built in debug mode
+Do note that if you do use develop mode/editable install (via `python setup.py develop` or `pip install -e .`) the Rust extension will be built in debug mode
 without any optimizations enabled. This will result in poor runtime performance.
 
 ## Test
