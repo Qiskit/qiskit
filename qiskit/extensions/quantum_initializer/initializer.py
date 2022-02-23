@@ -40,16 +40,16 @@ class Initialize(Instruction, Operation):
                 * string: labels of basis states of the Pauli eigenstates Z, X, Y. See
                   :meth:`.Statevector.from_label`.
                   Notice the order of the labels is reversed with respect to the qubit index to
-                  be applied to. Example label '01' initializes the qubit zero to :math:`|1\rangle` and the
-                  qubit one to :math:`|0\rangle`.
+                  be applied to. Example label '01' initializes the qubit zero to :math:`|1\rangle`
+                  and the qubit one to :math:`|0\rangle`.
                 * int: an integer that is used as a bitmap indicating which qubits to initialize
                   to :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit 2
                   to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
 
             num_qubits (int): This parameter is only used if params is an int. Indicates the total
                 number of qubits in the `initialize` call. Example: `initialize` covers 5 qubits
-                and params is 3. This allows qubits 0 and 1 to be initialized to :math:`|1\rangle` and the
-                remaining 3 qubits to be initialized to :math:`|0\rangle`.
+                and params is 3. This allows qubits 0 and 1 to be initialized to :math:`|1\rangle`
+                and the remaining 3 qubits to be initialized to :math:`|0\rangle`.
         """
         self._stateprep = StatePreparation(params, num_qubits)
 
@@ -63,6 +63,11 @@ class Initialize(Instruction, Operation):
         self.definition = initialize_circuit
 
     def gates_to_uncompute(self):
+        """Call to create a circuit with gates that take the desired vector to zero.
+
+        Returns:
+            QuantumCircuit: circuit to take self.params vector to :math:`|{00\\ldots0}\\rangle`
+        """
         return self._stateprep.gates_to_uncompute()
 
 

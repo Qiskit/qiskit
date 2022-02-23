@@ -63,7 +63,8 @@ class TestStatePreparation(QiskitTestCase):
         qc = QuantumCircuit(3)
         with self.assertRaisesRegex(
             QiskitError,
-            "StatePreparation parameter vector has 4 elements, therefore expects 2 qubits. However, 3 were provided.",
+            """StatePreparation parameter vector has 4 elements, therefore expects 2 qubits.
+            However, 3 were provided.""",
         ):
             qc.prepare_state("11")
 
