@@ -225,7 +225,7 @@ class FakeProviderV2(ProviderV1):
         self._backends = [
             FakeAlmadenV2(),
             FakeArmonkV2(),
-            # FakeAthens(),
+            FakeAthensV2(),
             # FakeBelem(),
             # FakeBoeblingen(),
             # FakeBogota(),
