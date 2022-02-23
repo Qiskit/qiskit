@@ -132,7 +132,7 @@ Synthesis
    LinearFunctionsToPermutations
 
 Additional Passes
-=================
+==p===============
 
 .. autosummary::
    :toctree: ../stubs/

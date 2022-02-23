@@ -19,7 +19,8 @@ from qiskit.circuit import QuantumCircuit
 
 
 class CollectLinearFunctions(TransformationPass):
-    """Collect blocks of linear gates (CX and SWAP) and replace them by linear functions."""
+    """Collect blocks of linear gates (:class:`.CXGate` and :class:`.SwapGate` gates)
+    and replaces them by linear functions (:class:`.LinearFunction`)."""
 
     @staticmethod
     def _is_linear_gate(op):
