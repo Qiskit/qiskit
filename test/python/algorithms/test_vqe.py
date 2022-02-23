@@ -18,7 +18,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 
 from functools import partial
 import numpy as np
-import scipy
+from scipy.optimize import minimize as scipy_minimize
 from ddt import data, ddt, unpack
 
 from qiskit import BasicAer, QuantumCircuit
@@ -522,7 +522,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
     def test_optimizer_scipy_callable(self):
         """Test passing a SciPy optimizer directly as callable."""
         vqe = VQE(
-            optimizer=partial(scipy.optimize.minimize, method="L-BFGS-B", options={"maxiter": 2}),
+            optimizer=partial(scipy_minimize, method="L-BFGS-B", options={"maxiter": 2}),
             quantum_instance=self.statevector_simulator,
         )
         result = vqe.compute_minimum_eigenvalue(Z)

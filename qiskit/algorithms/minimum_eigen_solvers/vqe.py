@@ -101,11 +101,17 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     The optimizer can either be one of Qiskit's optimizers, such as
     :class:`~qiskit.algorithms.optimizers.SPSA` or a callable with the following signature:
 
+    .. note::
+
+        The callable _must_ have the argument names ``fun, x0, jac, bounds`` as indicated
+        in the following code block.
+
     .. code-block::python
 
         from qiskit.algorithms.optimizers import OptimizerResult
 
         def my_minimizer(fun, x0, jac=None, bounds=None) -> OptimizerResult:
+            # Note that the callable *must* have these argument names!
             # Args:
             #     fun (callable): the function to minimize
             #     x0 (np.ndarray): the initial point for the optimization
@@ -382,7 +388,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             ret += "ansatz has not been set"
         ret += "===============================================================\n"
         if callable(self.optimizer):
-            ret += "Optimizer is custom callble"
+            ret += "Optimizer is custom callable\n"
         else:
             ret += f"{self._optimizer.setting}"
         ret += "===============================================================\n"
