@@ -12,12 +12,12 @@
 
 """Test gradient evolution problem class."""
 
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit.algorithms.time_evolution.problems.gradient_evolution_problem import (
     GradientEvolutionProblem,
 )
 from qiskit.circuit import Parameter
 from qiskit.opflow import Y, Z, One, Gradient
-from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
 class TestGradientEvolutionProblem(QiskitAlgorithmsTestCase):

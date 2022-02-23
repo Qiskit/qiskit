@@ -11,9 +11,9 @@
 # that they have been altered from the originals.
 """Class for testing evolution result."""
 
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit.algorithms.time_evolution.evolution_result import EvolutionResult
 from qiskit.opflow import Zero, X
-from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
 class TestEvolutionResult(QiskitAlgorithmsTestCase):

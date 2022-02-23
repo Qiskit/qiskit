@@ -12,10 +12,10 @@
 
 """Test evolution problem class."""
 
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit.algorithms.time_evolution.problems.evolution_problem import EvolutionProblem
 from qiskit.circuit import Parameter
 from qiskit.opflow import Y, Z, One
-from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
 class TestEvolutionProblem(QiskitAlgorithmsTestCase):
