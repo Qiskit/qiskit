@@ -82,7 +82,7 @@ class TestLinearFunctions(QiskitTestCase):
             for num_gates in [0, 5, 5 * num_qubits]:
                 # create a random linear circuit
                 linear_circuit = random_linear_circuit(num_qubits, num_gates, seed=rng)
-                self.assertTrue(isinstance(linear_circuit, QuantumCircuit))
+                self.assertIsInstance(linear_circuit, QuantumCircuit)
 
                 # convert it to a linear function
                 linear_function = LinearFunction(linear_circuit, validate_input=True)
@@ -92,11 +92,11 @@ class TestLinearFunctions(QiskitTestCase):
 
                 # synthesize linear function
                 synthesized_linear_function = linear_function.definition
-                self.assertTrue(isinstance(synthesized_linear_function, QuantumCircuit))
+                self.assertIsInstance(synthesized_linear_function, QuantumCircuit)
 
                 # check that the synthesized linear function only contains CX and SWAP gates
                 for inst, _, _ in synthesized_linear_function.data:
-                    self.assertTrue(isinstance(inst, (CXGate, SwapGate)))
+                    self.assertIsInstance(inst, (CXGate, SwapGate))
 
                 # check equivalence to the original function
                 self.assertEqual(Operator(linear_circuit), Operator(synthesized_linear_function))
@@ -117,11 +117,11 @@ class TestLinearFunctions(QiskitTestCase):
 
             # synthesize linear function
             synthesized_circuit = linear_function.definition
-            self.assertTrue(isinstance(synthesized_circuit, QuantumCircuit))
+            self.assertIsInstance(synthesized_circuit, QuantumCircuit)
 
             # check that the synthesized linear function only contains CX and SWAP gates
             for inst, _, _ in synthesized_circuit.data:
-                self.assertTrue(isinstance(inst, (CXGate, SwapGate)))
+                self.assertIsInstance(inst, (CXGate, SwapGate))
 
             # construct a linear function out of this linear circuit
             synthesized_linear_function = LinearFunction(synthesized_circuit, validate_input=True)
@@ -178,22 +178,26 @@ class TestLinearFunctions(QiskitTestCase):
     def test_bad_matrix_non_rectangular(self):
         """Tests that an error is raised if the matrix is not rectangular."""
         mat = [[1, 1, 0, 0], [1, 0, 0], [0, 1, 0, 0], [1, 1, 1, 1]]
-        self.assertRaises(CircuitError, LinearFunction, mat)
+        with self.assertRaises(CircuitError):
+            LinearFunction(mat)
 
     def test_bad_matrix_non_square(self):
         """Tests that an error is raised if the matrix is not square."""
         mat = [[1, 1, 0], [1, 0, 0], [0, 1, 0], [1, 1, 1]]
-        self.assertRaises(CircuitError, LinearFunction, mat)
+        with self.assertRaises(CircuitError):
+            LinearFunction(mat)
 
     def test_bad_matrix_non_two_dimensional(self):
         """Tests that an error is raised if the matrix is not two-dimensional."""
         mat = [1, 0, 0, 1, 0]
-        self.assertRaises(CircuitError, LinearFunction, mat)
+        with self.assertRaises(CircuitError):
+            LinearFunction(mat)
 
     def test_bad_matrix_non_invertible(self):
         """Tests that an error is raised if the matrix is not invertible."""
         mat = [[1, 0, 0], [0, 1, 1], [1, 1, 1]]
-        self.assertRaises(CircuitError, LinearFunction, mat, True)
+        with self.assertRaises(CircuitError):
+            LinearFunction(mat, validate_input=True)
 
     def test_bad_circuit_non_linear(self):
         """Tests that an error is raised if a circuit is not linear."""
@@ -203,7 +207,8 @@ class TestLinearFunctions(QiskitTestCase):
         non_linear_circuit.h(2)
         non_linear_circuit.swap(1, 2)
         non_linear_circuit.cx(1, 3)
-        self.assertRaises(CircuitError, LinearFunction, non_linear_circuit)
+        with self.assertRaises(CircuitError):
+            LinearFunction(non_linear_circuit)
 
     def test_is_permutation(self):
         """Tests that a permutation is detected correctly."""
@@ -211,11 +216,27 @@ class TestLinearFunctions(QiskitTestCase):
         linear_function = LinearFunction(mat)
         self.assertTrue(linear_function.is_permutation())
 
+    def test_permutation_pattern(self):
+        """Tests that a permutation pattern is returned correctly when
+        the linear function is a permutation."""
+        mat = [[1, 0, 0, 0], [0, 0, 0, 1], [0, 1, 0, 0], [0, 0, 1, 0]]
+        linear_function = LinearFunction(mat)
+        pattern = linear_function.permutation_pattern()
+        self.assertIsInstance(pattern, np.ndarray)
+
     def test_is_not_permutation(self):
         """Tests that a permutation is detected correctly."""
         mat = [[1, 0, 0, 0], [0, 0, 0, 1], [0, 1, 0, 1], [0, 0, 1, 0]]
         linear_function = LinearFunction(mat)
         self.assertFalse(linear_function.is_permutation())
+
+    def test_no_permutation_pattern(self):
+        """Tests that an error is raised when when
+        the linear function is not a permutation."""
+        mat = [[1, 0, 0, 0], [0, 0, 0, 1], [0, 1, 0, 1], [0, 0, 1, 0]]
+        linear_function = LinearFunction(mat)
+        with self.assertRaises(CircuitError):
+            linear_function.permutation_pattern()
 
 
 if __name__ == "__main__":

@@ -54,7 +54,7 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         self.assertTrue("linear_function" in optimized_circuit.count_ops().keys())
         self.assertTrue(len(optimized_circuit.data) == 1)
         inst1, _, _ = optimized_circuit.data[0]
-        self.assertTrue(isinstance(inst1, LinearFunction))
+        self.assertIsInstance(inst1, LinearFunction)
 
         # construct a circuit with linear function directly, without the transpiler pass
         expected_circuit = QuantumCircuit(4)
@@ -92,8 +92,8 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         self.assertTrue(len(circuit2.data) == 3)
         inst1, qargs1, cargs1 = circuit2.data[0]
         inst2, qargs2, cargs2 = circuit2.data[2]
-        self.assertTrue(isinstance(inst1, LinearFunction))
-        self.assertTrue(isinstance(inst2, LinearFunction))
+        self.assertIsInstance(inst1, LinearFunction)
+        self.assertIsInstance(inst2, LinearFunction)
 
         # Check that the first linear function represents the subcircuit before h
         resulting_subcircuit1 = QuantumCircuit(4)
@@ -154,6 +154,65 @@ class TestLinearFunctionsPasses(QiskitTestCase):
 
         # check that the final circuit is still equivalent to the original circuit
         self.assertEqual(Operator(circuit1), Operator(circuit3))
+
+    def xtest_multiple_non_linear_blocks(self):
+        """Test that extracting linear functions and synthesizing them back
+        results in an equivalent circuit when there are multiple non-linear blocks."""
+        # Create a circuit with a nonlinear gate (h) cleanly separating it into two linear blocks.
+        circuit1 = QuantumCircuit(3)
+        circuit1.h(0)
+        circuit1.s(1)
+        circuit1.h(0)
+        circuit1.cx(0, 1)
+        circuit1.cx(0, 2)
+        circuit1.swap(1, 2)
+        circuit1.h(1)
+        circuit1.sdg(2)
+        circuit1.cx(1, 0)
+        circuit1.cx(1, 2)
+        circuit1.h(2)
+        circuit1.cx(1, 2)
+        circuit1.cx(0, 1)
+
+        print(circuit1)
+        # new circuit with linear functions extracted using transpiler pass
+        circuit2 = PassManager(CollectLinearFunctions()).run(circuit1)
+
+        # We expect to see 3 gates (linear, h, linear)
+        self.assertTrue(len(circuit2.data) == 3)
+        inst1, qargs1, cargs1 = circuit2.data[0]
+        inst2, qargs2, cargs2 = circuit2.data[2]
+        self.assertIsInstance(inst1, LinearFunction)
+        self.assertIsInstance(inst2, LinearFunction)
+
+        # Check that the first linear function represents the subcircuit before h
+        resulting_subcircuit1 = QuantumCircuit(4)
+        resulting_subcircuit1.append(inst1, qargs1, cargs1)
+
+        expected_subcircuit1 = QuantumCircuit(4)
+        expected_subcircuit1.cx(0, 1)
+        expected_subcircuit1.cx(0, 2)
+        expected_subcircuit1.cx(0, 3)
+        self.assertEqual(Operator(resulting_subcircuit1), Operator(expected_subcircuit1))
+
+        # Check that the second linear function represents the subcircuit after h
+        resulting_subcircuit2 = QuantumCircuit(4)
+        resulting_subcircuit2.append(inst2, qargs2, cargs2)
+
+        expected_subcircuit2 = QuantumCircuit(4)
+        expected_subcircuit2.swap(2, 3)
+        expected_subcircuit2.cx(1, 2)
+        expected_subcircuit2.cx(0, 1)
+        self.assertEqual(Operator(resulting_subcircuit2), Operator(expected_subcircuit2))
+
+        # now a circuit with linear functions synthesized
+        synthesized_circuit = PassManager(LinearFunctionsSynthesis()).run(circuit2)
+
+        # check that there are no LinearFunctions present in synthesized_circuit
+        self.assertFalse("linear_function" in synthesized_circuit.count_ops().keys())
+
+        # check that we have an equivalent circuit
+        self.assertEqual(Operator(circuit2), Operator(synthesized_circuit))
 
 
 if __name__ == "__main__":
