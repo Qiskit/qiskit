@@ -196,7 +196,7 @@ class EquivalenceLibrary:
             svg = dot.create_svg(prog="dot")
             return SVG(svg)
 
-        png = dot.create_png(prog="dot", encoding="utf-8")
+        png = dot.create_png(prog="dot")
         return Image.open(io.BytesIO(png))
 
     def _build_basis_graph(self):
