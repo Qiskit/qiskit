@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes a problem in the ``mpl`` circuit drawer when gates with
+    conditions would not display properly when a sufficient number
+    of gates caused the drawer to fold over to a second set of wires.
