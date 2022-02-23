@@ -16,8 +16,9 @@ from abc import ABC, abstractmethod
 
 from qiskit.algorithms.time_evolution.problems.evolution_problem import EvolutionProblem
 from qiskit.algorithms.time_evolution.evolution_result import EvolutionResult
-from qiskit.algorithms.time_evolution.problems.gradient_evolution_problem import \
-    GradientEvolutionProblem
+from qiskit.algorithms.time_evolution.problems.gradient_evolution_problem import (
+    GradientEvolutionProblem,
+)
 
 
 class EvolutionBase(ABC):

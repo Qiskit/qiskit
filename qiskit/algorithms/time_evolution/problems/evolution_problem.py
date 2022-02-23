@@ -39,7 +39,14 @@ class EvolutionProblem:
             t_param: Time parameter in case of a time-dependent Hamiltonian.
             hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to certain
                 values, including the t_param.
+
+        Raises:
+            ValueError: if both initial_state and observable are provided.
         """
+
+        if initial_state is not None and observable is not None:
+            raise ValueError("initial_state and observable are mutually exclusive; both provided.")
+
         self.hamiltonian = hamiltonian
         self.time = time
         self.initial_state = initial_state

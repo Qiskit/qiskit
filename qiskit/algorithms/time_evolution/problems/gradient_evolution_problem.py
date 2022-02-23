@@ -26,8 +26,8 @@ class GradientEvolutionProblem(EvolutionProblem):
         self,
         hamiltonian: OperatorBase,
         time: float,
-        initial_state: StateFn,
         gradient_object: Gradient,
+        initial_state: Optional[StateFn] = None,
         observable: Optional[OperatorBase] = None,
         t_param: Optional[Parameter] = None,
         hamiltonian_value_dict: Optional[Dict[Parameter, Union[float, complex]]] = None,
@@ -37,9 +37,9 @@ class GradientEvolutionProblem(EvolutionProblem):
         Args:
             hamiltonian: The Hamiltonian under which to evolve the system.
             time: Total time of evolution.
-            initial_state: Quantum state to be evolved.
             gradient_object: Gradient object which defines a method for computing desired
                 gradients.
+            initial_state: Quantum state to be evolved.
             observable: Observable to be evolved.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
             hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
