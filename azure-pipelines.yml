@@ -466,6 +466,7 @@ stages:
           env:
             LANG: 'C.UTF-8'
             PYTHONIOENCODING: 'utf-8:backslashreplace'
+            QISKIT_PARALLEL: FALSE
         - task: CopyFiles@2
           condition: failed()
           displayName: 'Copy images'

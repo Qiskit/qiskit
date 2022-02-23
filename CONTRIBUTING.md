@@ -238,9 +238,8 @@ configure the latest version of the rust compiler.
 [Other installation methods](https://forge.rust-lang.org/infra/other-installation-methods.html)
 exist too. For windows users besides rustup you will also need install
 the Visual C++ build tools so that rust can link against the system c/c++
-libraries. You can see more details on this in the rustup documentation:
-
-https://rust-lang.github.io/rustup/installation/windows.html
+libraries. You can see more details on this in the
+[rustup documentation](https://rust-lang.github.io/rustup/installation/windows.html).
 
 Once you have a rust compiler installed you can rely on the normal Python
 build/install steps to install Qiskit Terra. This means you just run
@@ -248,6 +247,10 @@ build/install steps to install Qiskit Terra. This means you just run
 
 Do note that if you do use develop mode/editable install (via `python setup.py develop` or `pip install -e .`) the Rust extension will be built in debug mode
 without any optimizations enabled. This will result in poor runtime performance.
+If you'd like to use an editable install with an optimized binary you can
+run `python setup.py build_rust --release --inplace` after you install in
+editable mode to recompile the rust extensions in release mode.
+
 
 ## Test
 

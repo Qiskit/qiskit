@@ -188,7 +188,7 @@ fn swap_trial(
     if let Some(locked_best_possible) = locked_best_possible {
         if dist as usize == num_gates && depth_step == 1 {
             let mut best_possible = locked_best_possible.write().unwrap();
-            // In the case a ideal solution has already been found to pr
+            // In the case an ideal solution has already been found to preserve
             // behavior consistent with the single threaded predecessor to this function
             // we defer to the earlier trial
             if best_possible.is_none() || best_possible.as_ref().unwrap().0 > trial_num {
