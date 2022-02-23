@@ -59,6 +59,7 @@ class LinearFunction(Gate):
     Quantum Inf. Comput. 8(3) (2008).
     `Online at umich.edu. <https://web.eecs.umich.edu/~imarkov/pubs/jour/qic08-cnot.pdf>`_
     """
+
     def __init__(
         self,
         linear: Union[List[List[int]], np.ndarray, QuantumCircuit],

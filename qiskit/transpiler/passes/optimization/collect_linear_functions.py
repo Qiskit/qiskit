@@ -63,7 +63,6 @@ class CollectLinearFunctions(TransformationPass):
 
         # Replace every discovered block by a linear function
         global_index_map = {wire: idx for idx, wire in enumerate(dag.qubits)}
-        print(global_index_map)
         for cur_nodes in blocks:
             # Find the set of all qubits used in this block
             cur_qubits = set()
