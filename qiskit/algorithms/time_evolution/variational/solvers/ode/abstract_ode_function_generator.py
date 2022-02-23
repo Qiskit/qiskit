@@ -31,19 +31,8 @@ class AbstractOdeFunctionGenerator(ABC):
     """Abstract class for generating ODE functions."""
 
     def __init__(
-        self,
-        optimizer: Callable = COBYLA,
-        optimizer_tolerance: float = 1e-6,
+        self
     ):
-        """
-        Args:
-            optimizer: Qiskit optimizer callable used in an error-based ODE function.
-            optimizer_tolerance: Numerical tolerance of an optimizer used for convergence to a
-                minimum.
-        """
-
-        self._optimizer = optimizer(tol=optimizer_tolerance)
-        self._optimizer_tolerance = optimizer_tolerance
 
         self._varqte_linear_solver = None
         self._t_param = None

@@ -12,10 +12,11 @@
 
 """Class for generating error-based ODE functions."""
 
-from typing import Union, List, Iterable
+from typing import Union, List, Iterable, Callable
 
 import numpy as np
 
+from qiskit.algorithms.optimizers import COBYLA
 from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator \
     import (
     AbstractOdeFunctionGenerator,
@@ -24,6 +25,21 @@ from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_funct
 
 class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
     """Class for generating error-based ODE functions."""
+
+    def __init__(
+        self,
+        optimizer: Callable = COBYLA,
+        optimizer_tolerance: float = 1e-6,
+    ):
+        """
+        Args:
+            optimizer: Qiskit optimizer callable used in an error-based ODE function.
+            optimizer_tolerance: Numerical tolerance of an optimizer used for convergence to a
+                minimum.
+        """
+        super().__init__()
+        self._optimizer = optimizer(tol=optimizer_tolerance)
+        self._optimizer_tolerance = optimizer_tolerance
 
     def var_qte_ode_function(self, time: float, parameters_values: Iterable) -> float:
         """
