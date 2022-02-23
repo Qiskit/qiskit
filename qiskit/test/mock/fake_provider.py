@@ -223,7 +223,7 @@ class FakeProviderV2(ProviderV1):
 
     def __init__(self):
         self._backends = [
-            # FakeAlmaden(),
+            FakeAlmadenV2(),
             # FakeArmonk(),
             # FakeAthens(),
             # FakeBelem(),
