@@ -1,0 +1,19 @@
+---
+upgrade:
+  - |
+    The minimum supported version of ``symengine`` is now 0.9.0. This was
+    necessary to improve compatibility with Python's ``pickle`` module which
+    is used internally as part of parallel dispatch with :func:`.parallel_map`.
+  - |
+    The default value of ``QISKIT_PARALLEL`` when running with Python 3.9 on
+    Linux is now set to ``TRUE``. This means when running :func:`.parallel_map`
+    or functions that call it internally such as :func:`.transpile` and
+    :func:`.assemble` the function will be executed in multiple processes and
+    should have better run time performance. This change was made because the
+    issues with reliability of parallel dispatch appear to have been resolved
+    (see `#6188 <https://github.com/Qiskit/qiskit-terra/issues/6188>`__ for
+    more details). If you still encounter issues because of this you can disable
+    multiprocessing and revert to the previous default behavior by setting the
+    ``QISKIT_PARALLEL`` environment variable to ``FALSE`` or setting the
+    ``parallel`` option to ``False`` in your user config file (also please file
+    an issue so we can track any issues related to multiprocessing).
