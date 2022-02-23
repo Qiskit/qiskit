@@ -640,7 +640,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
     @data((CU1Gate, "U1"), (RZZGate, "ZZ"))
     @unpack
     def test_text_cu1_rzz_condition(self, gate, gname):
-        """Test cu1 and rzz with a condition"""
+        """Test cu1 and rzz gates with a condition"""
         expected = "\n".join(
             [
                 "                      ",
