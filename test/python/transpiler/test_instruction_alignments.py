@@ -44,7 +44,13 @@ class TestAlignMeasures(QiskitTestCase):
             ]
         )
         self.time_conversion_pass = TimeUnitConversion(inst_durations=instruction_durations)
-        self.scheduling_pass = ALAPSchedule(durations=instruction_durations)
+        # reproduce old behavior of 0.20.0 before #7655
+        # currently default write latency is 0
+        self.scheduling_pass = ALAPSchedule(
+            durations=instruction_durations,
+            clbit_write_latency=1600,
+            conditional_latency=0,
+        )
         self.align_measure_pass = AlignMeasures(alignment=16)
 
     def test_t1_experiment_type(self):

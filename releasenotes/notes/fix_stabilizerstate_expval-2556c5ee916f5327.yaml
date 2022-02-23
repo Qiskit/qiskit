@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fix a bug in :class:`~qiskit.quantum_info.StabilizerState` expectation value calculation,
+    that occured when the Pauli operator has a non-trivial phase.
