@@ -25,7 +25,7 @@ from qiskit.algorithms.time_evolution.variational.variational_principles.real.re
 from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
     AbstractOdeFunctionGenerator,
 )
-from qiskit.algorithms.time_evolution.variational.algorithms.var_qte import VarQte
+from qiskit.algorithms.time_evolution.variational.algorithms.var_qte import VarQTE
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
     OperatorBase,
@@ -36,7 +36,7 @@ from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 
 
-class VarQrte(VarQte, Qrte):
+class VarQRTE(VarQTE, Qrte):
     """Variational Quantum Real Time Evolution algorithm."""
 
     def __init__(
@@ -52,6 +52,7 @@ class VarQrte(VarQte, Qrte):
         r"""
         Args:
             variational_principle: Variational Principle to be used.
+            ode_function_generator: Generator for a function that ODE will use.
             backend: Backend used to evaluate the quantum circuit outputs.
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
             lse_solver_callable: Linear system of equations solver that follows a NumPy
@@ -87,7 +88,7 @@ class VarQrte(VarQte, Qrte):
 
         Args:
             hamiltonian:
-                Operator used vor Variational Quantum Imaginary Time Evolution (VarQITE)
+                Operator used for Variational Quantum Imaginary Time Evolution (VarQITE)
                 The coefficient of the operator (operator.coeff) determines the evolution
                 time.
                 The operator may be given either as a composed op consisting of a Hermitian
@@ -96,7 +97,7 @@ class VarQrte(VarQte, Qrte):
                 The latter case enables the evaluation of a Quantum Natural Gradient.
             time: Total time of evolution.
             initial_state: Quantum state to be evolved.
-            observable: Observable to be evolved. Not supported by VarQite.
+            observable: Observable to be evolved. Not supported by VarQITE.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
             hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
                 certain values, including the t_param. If no state parameters

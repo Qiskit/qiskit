@@ -29,7 +29,7 @@ from qiskit.opflow import StateFn, OperatorBase, ListOp
 class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
     """Class for an Imaginary McLachlan's Variational Principle."""
 
-    def _get_metric_tensor(
+    def calc_metric_tensor(
         self,
         ansatz: Union[StateFn, QuantumCircuit],
         parameters: List[Parameter],
@@ -50,7 +50,7 @@ class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
 
         return metric_tensor_real * 0.25
 
-    def _get_evolution_grad(
+    def calc_evolution_grad(
         self,
         hamiltonian: OperatorBase,
         ansatz: Union[StateFn, QuantumCircuit],

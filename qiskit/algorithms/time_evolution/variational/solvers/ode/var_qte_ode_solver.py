@@ -22,7 +22,7 @@ from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_funct
 )
 
 
-class VarQteOdeSolver:
+class VarQTEOdeSolver:
     """Class for solving ODEs for Quantum Time Evolution."""
 
     def __init__(
@@ -43,7 +43,7 @@ class VarQteOdeSolver:
         self._ode_function = ode_function_generator.var_qte_ode_function
         self._ode_solver_callable = ode_solver_callable
 
-    def _run(self, evolution_time: float) -> List[Union[float, complex]]:
+    def run(self, evolution_time: float) -> List[Union[float, complex]]:
         """
         Find numerical solution with ODE Solver.
 

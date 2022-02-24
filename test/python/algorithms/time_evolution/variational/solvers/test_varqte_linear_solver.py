@@ -21,13 +21,13 @@ from qiskit.algorithms.time_evolution.variational.variational_principles.imagina
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (
-    VarQteLinearSolver,
+    VarQTELinearSolver,
 )
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import SummedOp, X, Y, I, Z, CircuitSampler
 
 
-class TestLinearSolver(QiskitAlgorithmsTestCase):
+class TestVarQTELinearSolver(QiskitAlgorithmsTestCase):
     """Test solver of linear equations."""
 
     # TODO use ddt
@@ -63,11 +63,11 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
 
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
 
-        metric_tensor = var_principle._get_metric_tensor(ansatz, parameters)
-        evolution_grad = var_principle._get_evolution_grad(observable, ansatz, parameters)
+        metric_tensor = var_principle.calc_metric_tensor(ansatz, parameters)
+        evolution_grad = var_principle.calc_evolution_grad(observable, ansatz, parameters)
 
         linear_solver_callable = np.linalg.lstsq
-        linear_solver = VarQteLinearSolver(
+        linear_solver = VarQTELinearSolver(
             metric_tensor,
             evolution_grad,
             linear_solver_callable,
@@ -288,7 +288,7 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
     # # TODO causes bad eigenvalue with backend
     # def test_solve_sle_with_backend(self):
     #     backend = Aer.get_backend("qasm_simulator")
-    #     linear_solver = VarQteLinearSolver(CircuitSampler(backend), CircuitSampler(backend),
+    #     linear_solver = VarQTELinearSolver(CircuitSampler(backend), CircuitSampler(backend),
     #                                        CircuitSampler(backend), backend=backend)
     #
     #     # Define the Hamiltonian for the simulation

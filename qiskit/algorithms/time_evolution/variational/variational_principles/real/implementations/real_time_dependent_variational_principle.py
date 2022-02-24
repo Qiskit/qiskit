@@ -29,7 +29,7 @@ from qiskit.opflow import Y, OperatorBase, ListOp, StateFn
 class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
     """Class for a Real Time Dependent Variational Principle."""
 
-    def _get_metric_tensor(
+    def calc_metric_tensor(
         self,
         ansatz: QuantumCircuit,
         parameters: List[Parameter],
@@ -50,7 +50,7 @@ class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
 
         return raw_metric_tensor_imag * 0.25
 
-    def _get_evolution_grad(
+    def calc_evolution_grad(
         self,
         hamiltonian: OperatorBase,
         ansatz: Union[StateFn, QuantumCircuit],

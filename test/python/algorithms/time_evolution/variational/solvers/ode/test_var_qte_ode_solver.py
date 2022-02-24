@@ -18,10 +18,10 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
 from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (
-    VarQteLinearSolver,
+    VarQTELinearSolver,
 )
 from qiskit.algorithms.time_evolution.variational.solvers.ode.var_qte_ode_solver import (
-    VarQteOdeSolver,
+    VarQTEOdeSolver,
 )
 from qiskit.algorithms.time_evolution.variational.solvers.ode.ode_function_generator import (
     OdeFunctionGenerator,
@@ -41,7 +41,7 @@ from qiskit.opflow import (
 )
 
 
-class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
+class TestVarQTEOdeSolver(QiskitAlgorithmsTestCase):
     """Test solver of ODEs."""
 
     # TODO runs slowly
@@ -78,11 +78,11 @@ class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
 
         ode_function_generator = OdeFunctionGenerator()
 
-        metric_tensor = var_principle._get_metric_tensor(ansatz, parameters)
-        evolution_grad = var_principle._get_evolution_grad(observable, ansatz, parameters)
+        metric_tensor = var_principle.calc_metric_tensor(ansatz, parameters)
+        evolution_grad = var_principle.calc_evolution_grad(observable, ansatz, parameters)
 
         linear_solver_callable = np.linalg.lstsq
-        linear_solver = VarQteLinearSolver(
+        linear_solver = VarQTELinearSolver(
             metric_tensor,
             evolution_grad,
             linear_solver_callable,
@@ -92,12 +92,12 @@ class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
         )
         ode_function_generator._lazy_init(linear_solver, None, None, param_dict)
 
-        var_qte_ode_solver = VarQteOdeSolver(
+        var_qte_ode_solver = VarQTEOdeSolver(
             list(param_dict.values()),
             ode_function_generator,
         )
 
-        result = var_qte_ode_solver._run(time)
+        result = var_qte_ode_solver.run(time)
 
         expected_result = [
             -0.30076755873631345,

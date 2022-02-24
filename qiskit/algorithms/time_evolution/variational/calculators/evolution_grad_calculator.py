@@ -59,7 +59,8 @@ def eval_grad_result(
     energy_sampler: Optional[CircuitSampler] = None,
     allowed_imaginary_part: float = 1e-7,
 ) -> OperatorBase:
-    """Binds a parametrized evolution grad object to parameters values provided. Uses circuit
+    """
+    Binds a parametrized evolution grad object to parameters values provided. Uses circuit
     samplers if available.
 
     Args:

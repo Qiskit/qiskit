@@ -45,7 +45,7 @@ class VariationalPrinciple(ABC):
         self._grad_method = grad_method
 
     @abstractmethod
-    def _get_metric_tensor(
+    def calc_metric_tensor(
         self,
         ansatz: QuantumCircuit,
         parameters: List[Parameter],
@@ -63,7 +63,7 @@ class VariationalPrinciple(ABC):
         pass
 
     @abstractmethod
-    def _get_evolution_grad(
+    def calc_evolution_grad(
         self,
         hamiltonian: OperatorBase,
         ansatz: Union[StateFn, QuantumCircuit],

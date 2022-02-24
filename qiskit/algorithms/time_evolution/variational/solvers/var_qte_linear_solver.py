@@ -27,14 +27,14 @@ from qiskit.opflow import CircuitSampler, OperatorBase
 
 
 #  TODO this might potentially be exposed to the user to instantiate (only with
-#   lse_solver_callable in the init; now the callable is passed by the user through VarQte class)
-class VarQteLinearSolver:
+#   lse_solver_callable in the init; now the callable is passed by the user through VarQTE class)
+class VarQTELinearSolver:
     """Class for solving linear equations for Quantum Time Evolution."""
 
     def __init__(
         self,
-        metric_tensor,
-        evolution_grad,
+        metric_tensor: OperatorBase,
+        evolution_grad: OperatorBase,
         lse_solver_callable: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
         grad_circ_sampler: Optional[CircuitSampler] = None,
         metric_circ_sampler: Optional[CircuitSampler] = None,
@@ -43,8 +43,8 @@ class VarQteLinearSolver:
     ):
         """
         Args:
-            metric_tensor:
-            evolution_grad:
+            metric_tensor: A parametrized operator that represents the left-hand side of an ODE.
+            evolution_grad: A parametrized operator that represents the right-hand side of an ODE.
             lse_solver_callable: Linear system of equations solver that follows a NumPy
                 np.linalg.lstsq interface.
             grad_circ_sampler: CircuitSampler for evolution gradients.

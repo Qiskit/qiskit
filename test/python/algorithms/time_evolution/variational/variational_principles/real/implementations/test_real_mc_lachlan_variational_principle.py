@@ -46,7 +46,7 @@ class TestRealMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = RealMcLachlanVariationalPrinciple()
 
-        metric_tensor = var_principle._get_metric_tensor(ansatz, parameters)
+        metric_tensor = var_principle.calc_metric_tensor(ansatz, parameters)
 
         bound_metric_tensor = metric_tensor.bind_parameters(param_dict)
 
@@ -246,7 +246,7 @@ class TestRealMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = RealMcLachlanVariationalPrinciple()
 
-        evolution_grad = var_principle._get_evolution_grad(observable, ansatz, parameters)
+        evolution_grad = var_principle.calc_evolution_grad(observable, ansatz, parameters)
         sampler = None
         evolution_grad = evolution_grad(param_dict, sampler)
 

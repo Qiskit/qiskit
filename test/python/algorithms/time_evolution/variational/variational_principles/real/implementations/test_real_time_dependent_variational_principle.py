@@ -46,7 +46,7 @@ class TestRealTimeDependentVariationalPrinciple(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = RealTimeDependentVariationalPrinciple()
 
-        metric_tensor = var_principle._get_metric_tensor(ansatz, parameters)
+        metric_tensor = var_principle.calc_metric_tensor(ansatz, parameters)
 
         bound_metric_tensor = metric_tensor.bind_parameters(param_dict)
 
@@ -245,7 +245,7 @@ class TestRealTimeDependentVariationalPrinciple(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = RealTimeDependentVariationalPrinciple()
 
-        evolution_grad = var_principle._get_evolution_grad(observable, ansatz, parameters)
+        evolution_grad = var_principle.calc_evolution_grad(observable, ansatz, parameters)
 
         bound_raw_evolution_grad = evolution_grad.bind_parameters(param_dict)
 

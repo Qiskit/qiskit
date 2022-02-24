@@ -25,7 +25,7 @@ from qiskit.algorithms.time_evolution.variational.variational_principles.real.im
     RealMcLachlanVariationalPrinciple,
 )
 from qiskit import Aer
-from qiskit.algorithms.time_evolution.variational.algorithms.var_qrte import VarQrte
+from qiskit.algorithms.time_evolution.variational.algorithms.var_qrte import VarQRTE
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import (
     SummedOp,
@@ -36,7 +36,7 @@ from qiskit.opflow import (
 )
 
 
-class TestVarQrte(QiskitAlgorithmsTestCase):
+class TestVarQRTE(QiskitAlgorithmsTestCase):
     """Test Variational Quantum Real Time Evolution algorithm."""
 
     def setUp(self):
@@ -44,7 +44,7 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
         np.random.seed(11)
 
     def test_run_d_1(self):
-        """Test VarQrte for d = 1 and t = 0.1."""
+        """Test VarQRTE for d = 1 and t = 0.1."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),
@@ -71,7 +71,7 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
         backend = Aer.get_backend("statevector_simulator")
 
         ode_function = OdeFunctionGenerator()
-        var_qrte = VarQrte(var_principle, ode_function, backend=backend)
+        var_qrte = VarQRTE(var_principle, ode_function, backend=backend)
         time = 0.1
 
         evolution_result = var_qrte.evolve(
@@ -109,7 +109,7 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=3)
 
     def test_run_d_2(self):
-        """Test VarQrte for d = 2 and t = 1."""
+        """Test VarQRTE for d = 2 and t = 1."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),
@@ -136,7 +136,7 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
         backend = Aer.get_backend("statevector_simulator")
 
         ode_function = OdeFunctionGenerator()
-        var_qrte = VarQrte(var_principle, ode_function, backend=backend)
+        var_qrte = VarQRTE(var_principle, ode_function, backend=backend)
         time = 1
 
         evolution_result = var_qrte.evolve(

@@ -38,7 +38,7 @@ from qiskit.opflow import (
 class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
     """Class for a Real McLachlan's Variational Principle."""
 
-    def _get_metric_tensor(
+    def calc_metric_tensor(
         self,
         ansatz: QuantumCircuit,
         parameters: List[Parameter],
@@ -59,9 +59,9 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
 
         return raw_metric_tensor_real * 0.25  # QFI/4
 
-    def _get_evolution_grad(
+    def calc_evolution_grad(
         self,
-        hamiltonian,
+        hamiltonian: OperatorBase,
         ansatz: Union[StateFn, QuantumCircuit],
         parameters: List[Parameter],
     ) -> Callable:

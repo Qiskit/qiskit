@@ -21,7 +21,7 @@ from scipy.integrate import RK45, OdeSolver
 from qiskit import QuantumCircuit
 from qiskit.algorithms.time_evolution.evolution_base import EvolutionBase
 from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (
-    VarQteLinearSolver,
+    VarQTELinearSolver,
 )
 from qiskit.algorithms.time_evolution.variational.variational_principles.variational_principle import (
     VariationalPrinciple,
@@ -30,7 +30,7 @@ from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_funct
     AbstractOdeFunctionGenerator,
 )
 from qiskit.algorithms.time_evolution.variational.solvers.ode.var_qte_ode_solver import (
-    VarQteOdeSolver,
+    VarQTEOdeSolver,
 )
 from qiskit.circuit import Parameter
 from qiskit.providers import BaseBackend
@@ -44,7 +44,7 @@ from qiskit.opflow import (
 )
 
 
-class VarQte(EvolutionBase, ABC):
+class VarQTE(EvolutionBase, ABC):
     """Variational Quantum Time Evolution.
        https://doi.org/10.22331/q-2019-10-07-191
     Algorithms that use variational variational_principles to compute a time evolution for a given
@@ -64,6 +64,7 @@ class VarQte(EvolutionBase, ABC):
         r"""
         Args:
             variational_principle: Variational Principle to be used.
+            ode_function_generator: Generator for a function that ODE will use.
             backend: Backend used to evaluate the quantum circuit outputs.
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
             lse_solver_callable: Linear system of equations solver that follows a NumPy
@@ -105,7 +106,7 @@ class VarQte(EvolutionBase, ABC):
             init_state_param_dict: Parameter dictionary with initial values for a given
                 parametrized state/ansatz.
             hamiltonian:
-                Operator used vor Variational Quantum Imaginary Time Evolution (VarQte)
+                Operator used for Variational Quantum Imaginary Time Evolution (VarQTE)
                 The coefficient of the operator (operator.coeff) determines the evolution
                 time.
                 The operator may be given either as a composed op consisting of a Hermitian
@@ -114,7 +115,7 @@ class VarQte(EvolutionBase, ABC):
                 The latter case enables the evaluation of a Quantum Natural Gradient.
             time: Total time of evolution.
             initial_state: Quantum state to be evolved.
-            observable: Observable to be evolved. Not supported by VarQte.
+            observable: Observable to be evolved. Not supported by VarQTE.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
 
         Returns:
@@ -126,19 +127,19 @@ class VarQte(EvolutionBase, ABC):
         """
         if observable is not None:
             raise TypeError(
-                "Observable argument provided. Observable evolution not supported by VarQte."
+                "Observable argument provided. Observable evolution not supported by VarQTE."
             )
         init_state_parameters = list(init_state_param_dict.keys())
         init_state_parameters_values = list(init_state_param_dict.values())
 
-        metric_tensor = self._variational_principle._get_metric_tensor(
+        metric_tensor = self._variational_principle.calc_metric_tensor(
             initial_state, init_state_parameters
         )
-        evolution_grad = self._variational_principle._get_evolution_grad(
+        evolution_grad = self._variational_principle.calc_evolution_grad(
             hamiltonian, initial_state, init_state_parameters
         )
 
-        linear_solver = VarQteLinearSolver(
+        linear_solver = VarQTELinearSolver(
             metric_tensor,
             evolution_grad,
             self._lse_solver_callable,
@@ -156,10 +157,10 @@ class VarQte(EvolutionBase, ABC):
             init_state_param_dict,
         )
 
-        ode_solver = VarQteOdeSolver(
+        ode_solver = VarQTEOdeSolver(
             init_state_parameters_values, self._ode_function_generator, self._ode_solver_callable
         )
-        parameter_values = ode_solver._run(time)
+        parameter_values = ode_solver.run(time)
         param_dict_from_ode = dict(zip(init_state_parameters, parameter_values))
 
         # if self._state_circ_sampler:

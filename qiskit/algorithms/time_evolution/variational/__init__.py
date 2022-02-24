@@ -15,9 +15,9 @@ Variational Quantum Time Evolutions (:mod:`qiskit.algorithms.time_evolution.vari
 =====================================================
 
 Algorithms for performing Variational Quantum Time Evolution of quantum states and their
-gradients which might be suitable for NISQ devices. VarQte base class exposes an interface,
+gradients which might be suitable for NISQ devices. VarQTE base class exposes an interface,
 compliant with the Quantum Time Evolution Framework in Qiskit Terra, that is implemented by
-VarQrte and VarQite classes for real and imaginary time evolution respectively. The variational
+VarQRTE and VarQITE classes for real and imaginary time evolution respectively. The variational
 approach is taken according to a variational principle chosen by a user.
 
 **Examples**
@@ -54,7 +54,7 @@ approach is taken according to a variational principle chosen by a user.
     backend = Aer.get_backend("statevector_simulator")
 
     # instantiate the algorithm
-    var_qite = VarQite(
+    var_qite = VarQITE(
         var_principle, backend=backend, error_based_ode=False
     )
 
@@ -71,7 +71,7 @@ approach is taken according to a variational principle chosen by a user.
 
 .. currentmodule:: qiskit.algorithms.time_evolution.variational
 
-VarQite
+VarQITE
 --------------------
 
 Algorithm that performs Variational Quantum Imaginary Time Evolution.
@@ -80,9 +80,9 @@ Algorithm that performs Variational Quantum Imaginary Time Evolution.
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
-   VarQite
+   VarQITE
 
-VarQrte
+VarQRTE
 --------------------
 
 Algorithm that performs Variational Quantum Real Time Evolution.
@@ -91,7 +91,7 @@ Algorithm that performs Variational Quantum Real Time Evolution.
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
-   VarQrte
+   VarQRTE
 
 VariationalPrinciples
 ----------
@@ -114,12 +114,12 @@ from qiskit.algorithms.time_evolution.variational.variational_principles.real.im
 from qiskit.algorithms.time_evolution.variational.variational_principles.real.implementations.real_time_dependent_variational_principle import (
     RealTimeDependentVariationalPrinciple,
 )
-from qiskit.algorithms.time_evolution.variational.algorithms.var_qite import VarQite
-from qiskit.algorithms.time_evolution.variational.algorithms.var_qrte import VarQrte
+from qiskit.algorithms.time_evolution.variational.algorithms.var_qite import VarQITE
+from qiskit.algorithms.time_evolution.variational.algorithms.var_qrte import VarQRTE
 
 __all__ = [
-    "VarQite",
-    "VarQrte",
+    "VarQITE",
+    "VarQRTE",
     "RealMcLachlanVariationalPrinciple",
     "RealTimeDependentVariationalPrinciple",
     "ImaginaryMcLachlanVariationalPrinciple",

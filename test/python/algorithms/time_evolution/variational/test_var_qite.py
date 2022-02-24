@@ -24,7 +24,7 @@ from qiskit import Aer
 from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
-from qiskit.algorithms.time_evolution.variational.algorithms.var_qite import VarQite
+from qiskit.algorithms.time_evolution.variational.algorithms.var_qite import VarQITE
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import (
     SummedOp,
@@ -36,7 +36,7 @@ from qiskit.opflow import (
 from qiskit.quantum_info import state_fidelity, Statevector
 
 
-class TestVarQite(QiskitAlgorithmsTestCase):
+class TestVarQITE(QiskitAlgorithmsTestCase):
     """Test Variational Quantum Imaginary Time Evolution algorithm."""
 
     def setUp(self):
@@ -44,7 +44,7 @@ class TestVarQite(QiskitAlgorithmsTestCase):
         np.random.seed(11)
 
     def test_run_d_1(self):
-        """Test VarQite for d = 1 and t = 1."""
+        """Test VarQITE for d = 1 and t = 1."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),
@@ -70,7 +70,7 @@ class TestVarQite(QiskitAlgorithmsTestCase):
         backend = Aer.get_backend("statevector_simulator")
 
         ode_function = OdeFunctionGenerator()
-        var_qite = VarQite(var_principle, ode_function, backend=backend)
+        var_qite = VarQITE(var_principle, ode_function, backend=backend)
         time = 1
 
         evolution_result = var_qite.evolve(
@@ -107,7 +107,7 @@ class TestVarQite(QiskitAlgorithmsTestCase):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=3)
 
     def test_run_d_1_t_7(self):
-        """Test VarQite for d = 1 and t = 7."""
+        """Test VarQITE for d = 1 and t = 7."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),
@@ -134,7 +134,7 @@ class TestVarQite(QiskitAlgorithmsTestCase):
         backend = Aer.get_backend("statevector_simulator")
 
         ode_function = OdeFunctionGenerator()
-        var_qite = VarQite(var_principle, ode_function, backend=backend)
+        var_qite = VarQITE(var_principle, ode_function, backend=backend)
         time = 7
 
         evolution_result = var_qite.evolve(
@@ -171,7 +171,7 @@ class TestVarQite(QiskitAlgorithmsTestCase):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=2)
 
     def test_run_d_2(self):
-        """Test VarQite for d = 2 and t = 1."""
+        """Test VarQITE for d = 2 and t = 1."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),
@@ -198,7 +198,7 @@ class TestVarQite(QiskitAlgorithmsTestCase):
         backend = Aer.get_backend("statevector_simulator")
 
         ode_function = OdeFunctionGenerator()
-        var_qite = VarQite(var_principle, ode_function, backend=backend)
+        var_qite = VarQITE(var_principle, ode_function, backend=backend)
         time = 1
 
         evolution_result = var_qite.evolve(

@@ -23,7 +23,7 @@ Systems of Linear Equations Solver
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
-    VarQteLinearSolver
+    VarQTELinearSolver
 
 ODE Solver
 ================
@@ -31,5 +31,5 @@ ODE Solver
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
-    VarQteOdeSolver
+    VarQTEOdeSolver
 """
