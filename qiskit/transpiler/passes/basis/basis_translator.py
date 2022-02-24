@@ -122,7 +122,11 @@ class BasisTranslator(TransformationPass):
             target_basis = set(self._target_basis)
             source_basis = set()
             for node in dag.op_nodes():
-                if not dag.has_calibration_for(node):
+                if (
+                    not dag.has_calibration_for(node)
+                    and not node.name in target_basis
+                    and not node.name in basic_instrs
+                ):
                     source_basis.add((node.name, node.op.num_qubits))
             qargs_local_source_basis = {}
         else:
@@ -142,7 +146,7 @@ class BasisTranslator(TransformationPass):
                 # do an extra non-local search for this op to ensure we include any
                 # single qubit operation for (1,) as valid. This pattern also holds
                 # true for > 2q ops too (so for 4q operations we need to check for 3q, 2q,
-                # and 1q opertaions in the same manner)
+                # and 1q operations in the same manner)
                 if qargs in self._qargs_with_non_global_operation or any(
                     frozenset(qargs).issuperset(incomplete_qargs)
                     for incomplete_qargs in self._qargs_with_non_global_operation
@@ -165,7 +169,7 @@ class BasisTranslator(TransformationPass):
 
         qarg_local_basis_transforms = {}
         for qarg, local_source_basis in qargs_local_source_basis.items():
-            expanded_target = target_basis | self._qargs_with_non_global_operation[qarg]
+            expanded_target = set(target_basis)
             # For any multiqubit operation that contains a subset of qubits that
             # has a non-local operation, include that non-local operation in the
             # search. This matches with the check we did above to include those
@@ -174,6 +178,8 @@ class BasisTranslator(TransformationPass):
                 for non_local_qarg, local_basis in self._qargs_with_non_global_operation.items():
                     if qarg.issuperset(non_local_qarg):
                         expanded_target |= local_basis
+            else:
+                expanded_target |= self._qargs_with_non_global_operation[tuple(qarg)]
 
             logger.info(
                 "Performing BasisTranslator search from source basis %s to target "
@@ -182,9 +188,19 @@ class BasisTranslator(TransformationPass):
                 expanded_target,
                 qarg,
             )
-            qarg_local_basis_transforms[qarg] = _basis_search(
+            local_basis_transforms = _basis_search(
                 self._equiv_lib, local_source_basis, expanded_target
             )
+
+            if local_basis_transforms is None:
+                raise TranspilerError(
+                    "Unable to map source basis {} to target basis {} on qarg {} "
+                    "over library {}.".format(
+                        local_source_basis, expanded_target, qarg, self._equiv_lib
+                    )
+                )
+
+            qarg_local_basis_transforms[qarg] = local_basis_transforms
 
         search_end_time = time.time()
         logger.info(
