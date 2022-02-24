@@ -94,7 +94,7 @@ class VarQte(EvolutionBase, ABC):
         hamiltonian: OperatorBase,
         time: float,
         t_param: Parameter,
-        error_calculator = None, # TODO will be supported in another PR
+        error_calculator=None,  # TODO will be supported in another PR
         initial_state: Optional[Union[OperatorBase, QuantumCircuit]] = None,
         observable: Optional[OperatorBase] = None,
     ) -> OperatorBase:

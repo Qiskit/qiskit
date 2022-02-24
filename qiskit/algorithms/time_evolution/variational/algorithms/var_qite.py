@@ -112,7 +112,7 @@ class VarQite(Qite, VarQte):
         )
         self.bind_initial_state(StateFn(initial_state), init_state_param_dict)
 
-        error_calculator = None # TODO will be supported in another PR
+        error_calculator = None  # TODO will be supported in another PR
 
         evolved_object = super()._evolve_helper(
             init_state_param_dict,

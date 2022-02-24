@@ -24,9 +24,7 @@ from qiskit.circuit import Parameter
 class AbstractOdeFunctionGenerator(ABC):
     """Abstract class for generating ODE functions."""
 
-    def __init__(
-        self
-    ):
+    def __init__(self):
 
         self._varqte_linear_solver = None
         self._t_param = None
@@ -35,7 +33,7 @@ class AbstractOdeFunctionGenerator(ABC):
     def _lazy_init(
         self,
         varqte_linear_solver: VarQteLinearSolver,
-        error_calculator, # TODO will be supported in another PR
+        error_calculator,  # TODO will be supported in another PR
         t_param: Parameter,
         param_dict: Dict[Parameter, Union[float, complex]],
     ):

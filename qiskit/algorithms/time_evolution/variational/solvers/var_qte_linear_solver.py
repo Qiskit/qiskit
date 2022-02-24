@@ -23,9 +23,11 @@ from qiskit.algorithms.time_evolution.variational.calculators.evolution_grad_cal
     eval_grad_result,
 )
 from qiskit.circuit import Parameter
-from qiskit.opflow import CircuitSampler
+from qiskit.opflow import CircuitSampler, OperatorBase
 
 
+#  TODO this might potentially be exposed to the user to instantiate (only with
+#   lse_solver_callable in the init; now the callable is passed by the user through VarQte class)
 class VarQteLinearSolver:
     """Class for solving linear equations for Quantum Time Evolution."""
 
@@ -86,7 +88,6 @@ class VarQteLinearSolver:
 
         # TODO not all solvers will have rcond param. Keeping for now to keep the same results in
         #  unit tests.
-        print(callable(self._lse_solver_callable))
         x = self._lse_solver_callable(metric_tensor_lse_lhs, evolution_grad_lse_rhs, rcond=1e-2)[0]
 
         return np.real(x), metric_tensor_lse_lhs, evolution_grad_lse_rhs
@@ -96,7 +97,7 @@ class VarQteLinearSolver:
         param_dict: Dict[Parameter, Union[float, complex]],
         t_param: Optional[Parameter] = None,
         time_value: Optional[float] = None,
-    ) -> Union[List, np.ndarray]:
+    ) -> OperatorBase:
 
         metric = self._metric_tensor
 
@@ -117,7 +118,7 @@ class VarQteLinearSolver:
         param_dict: Dict[Parameter, Union[float, complex]],
         t_param: Optional[Parameter] = None,
         time_value: Optional[float] = None,
-    ) -> np.ndarray:
+    ) -> OperatorBase:
 
         grad = self._evolution_grad
 
