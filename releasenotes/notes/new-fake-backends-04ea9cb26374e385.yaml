@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    New fake backend classes are available under ``qiskit.test.mock``. These
+    include mocked versions of ``ibm_cairo``, ``ibm_hanoi``,
+    ``ibmq_kolkata``, ``ibm_nairobi``, and ``ibm_washington``. As with the other fake backends,
+    these include snapshots of calibration and error data taken from the real
+    system, and can be used for local testing, compilation and simulation.

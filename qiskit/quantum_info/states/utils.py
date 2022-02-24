@@ -60,6 +60,9 @@ def partial_trace(state, qargs):
         return DensityMatrix(rho, dims=traced_shape._dims_l)
 
     # Density matrix case
+    # Empty partial trace case.
+    if not qargs:
+        return state.copy()
     # Trace first subsystem to avoid coping whole density matrix
     dims = state.dims(qargs)
     tr_op = SuperOp(np.eye(dims[0]).reshape(1, dims[0] ** 2), input_dims=[dims[0]], output_dims=[1])
