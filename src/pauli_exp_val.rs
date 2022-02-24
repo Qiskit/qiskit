@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::convert::TryInto;
+
 use num_complex::Complex64;
 use numpy::PyReadonlyArray1;
 use pyo3::prelude::*;
@@ -17,6 +19,29 @@ use pyo3::wrap_pyfunction;
 use rayon::prelude::*;
 
 use crate::eval_parallel_env;
+
+const LANES: usize = 8;
+
+#[inline]
+fn fast_sum(values: &[f64]) -> f64 {
+    let chunks = values.chunks_exact(LANES);
+    let remainder = chunks.remainder();
+
+    let sum = chunks.fold([0.; LANES], |mut acc, chunk| {
+        let chunk: [f64; LANES] = chunk.try_into().unwrap();
+        for i in 0..LANES {
+            acc[i] += chunk[i];
+        }
+        acc
+    });
+    let remainder: f64 = remainder.iter().copied().sum();
+
+    let mut reduced = 0.;
+    for val in sum.iter().take(LANES) {
+        reduced += val;
+    }
+    reduced + remainder
+}
 
 #[pyfunction]
 pub fn expval_pauli_no_x(
@@ -35,8 +60,8 @@ pub fn expval_pauli_no_x(
         val
     };
 
-    if num_qubits < 15 || !run_in_parallel {
-        Ok((0..size).map(map_fn).sum())
+    if num_qubits < 19 || !run_in_parallel {
+        Ok(fast_sum(&(0..size).map(map_fn).collect::<Vec<f64>>()))
     } else {
         Ok((0..size).into_par_iter().map(map_fn).sum())
     }
@@ -86,8 +111,8 @@ pub fn expval_pauli_with_x(
         }
         val
     };
-    if num_qubits < 15 || !run_in_parallel {
-        Ok((0..size).map(map_fn).sum())
+    if num_qubits < 19 || !run_in_parallel {
+        Ok(fast_sum(&(0..size).map(map_fn).collect::<Vec<f64>>()))
     } else {
         Ok((0..size).into_par_iter().map(map_fn).sum())
     }
@@ -111,8 +136,8 @@ pub fn density_expval_pauli_no_x(
         }
         val
     };
-    if num_qubits < 15 || !run_in_parallel {
-        Ok((0..num_rows).map(map_fn).sum())
+    if num_qubits < 19 || !run_in_parallel {
+        Ok(fast_sum(&(0..num_rows).map(map_fn).collect::<Vec<f64>>()))
     } else {
         Ok((0..num_rows).into_par_iter().map(map_fn).sum())
     }
@@ -141,8 +166,10 @@ pub fn density_expval_pauli_with_x(
         }
         val
     };
-    if num_qubits < 15 || !run_in_parallel {
-        Ok((0..num_rows >> 1).map(map_fn).sum())
+    if num_qubits < 19 || !run_in_parallel {
+        Ok(fast_sum(
+            &(0..num_rows >> 1).map(map_fn).collect::<Vec<f64>>(),
+        ))
     } else {
         Ok((0..num_rows >> 1).into_par_iter().map(map_fn).sum())
     }
