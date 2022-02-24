@@ -61,7 +61,6 @@ class UnitaryGate(Gate):
         # Check input is unitary
         if not is_unitary_matrix(data):
             raise ExtensionError("Input matrix is not unitary.")
-
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
         num_qubits = int(numpy.log2(input_dim))
