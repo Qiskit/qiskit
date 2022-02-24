@@ -12,6 +12,6 @@
 
 """Mock tokyo backend"""
 
-from .fake_tokyo import FakeTokyoV2
+# from .fake_tokyo import FakeTokyoV2
 from .fake_tokyo import FakeTokyo
 from .fake_tokyo import FakeLegacyTokyo

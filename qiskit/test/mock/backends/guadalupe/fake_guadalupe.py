@@ -19,7 +19,7 @@ import os
 from qiskit.test.mock import fake_pulse_backend, fake_backend
 
 
-class FakeGuadalupeV2(fake_backend.FakeBakcendV2):
+class FakeGuadalupeV2(fake_backend.FakeBackendV2):
     """A fake 16 qubit backend."""
 
     dirname = os.path.dirname(__file__)
