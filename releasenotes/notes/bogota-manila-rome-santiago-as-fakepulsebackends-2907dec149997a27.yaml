@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The ``FakeBogota``, ``FakeManila``, ``FakeRome``, and ``FakeSantiago`` fake backends which can be found
+    in the ``qiskit.test.mock`` module can now be used as backends in Pulse experiments as they now include
+    a :class:`~qiskit.providers.models.PulseDefaults` created from a snapshot of the IBM Quantum's properties.

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,19 +10,18 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Fake Manila device (5 qubit).
-"""
-
-import os
-from qiskit.test.mock import fake_pulse_backend
+"""Exception for errors raised by the pulse module."""
+from qiskit.exceptions import QiskitError
 
 
-class FakeManila(fake_pulse_backend.FakePulseBackend):
-    """A fake 5 qubit backend."""
+class QpyError(QiskitError):
+    """Errors raised by the qpy module."""
 
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_manila.json"
-    props_filename = "props_manila.json"
-    defs_filename = "defs_manila.json"
-    backend_name = "fake_manila"
+    def __init__(self, *message):
+        """Set the error message."""
+        super().__init__(*message)
+        self.message = " ".join(message)
+
+    def __str__(self):
+        """Return the message."""
+        return repr(self.message)
