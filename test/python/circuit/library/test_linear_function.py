@@ -113,7 +113,7 @@ class TestLinearFunctions(QiskitTestCase):
 
             # create a linear function with this matrix
             linear_function = LinearFunction(binary_matrix, validate_input=True)
-            self.assertEqual(np.all(linear_function.linear, binary_matrix))
+            self.assertTrue(np.all(linear_function.linear == binary_matrix))
 
             # synthesize linear function
             synthesized_circuit = linear_function.definition
