@@ -13,14 +13,8 @@
 """Abstract class for generating ODE functions."""
 
 from abc import ABC, abstractmethod
-from typing import Iterable, Union, Dict, Callable
+from typing import Iterable, Union, Dict
 
-import numpy as np
-
-from qiskit.algorithms.optimizers import COBYLA
-from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
-    ErrorCalculator,
-)
 from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (
     VarQteLinearSolver,
 )
@@ -41,7 +35,7 @@ class AbstractOdeFunctionGenerator(ABC):
     def _lazy_init(
         self,
         varqte_linear_solver: VarQteLinearSolver,
-        error_calculator: ErrorCalculator,
+        error_calculator, # TODO will be supported in another PR
         t_param: Parameter,
         param_dict: Dict[Parameter, Union[float, complex]],
     ):

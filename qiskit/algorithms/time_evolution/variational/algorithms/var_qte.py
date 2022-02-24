@@ -20,9 +20,6 @@ from scipy.integrate import RK45, OdeSolver
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.time_evolution.evolution_base import EvolutionBase
-from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
-    ErrorCalculator,
-)
 from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (
     VarQteLinearSolver,
 )
@@ -97,7 +94,7 @@ class VarQte(EvolutionBase, ABC):
         hamiltonian: OperatorBase,
         time: float,
         t_param: Parameter,
-        error_calculator: ErrorCalculator,
+        error_calculator = None, # TODO will be supported in another PR
         initial_state: Optional[Union[OperatorBase, QuantumCircuit]] = None,
         observable: Optional[OperatorBase] = None,
     ) -> OperatorBase:

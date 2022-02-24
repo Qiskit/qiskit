@@ -14,8 +14,6 @@
 
 import unittest
 
-from scipy import linalg
-
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 

@@ -20,12 +20,6 @@ from scipy.integrate import OdeSolver, RK45
 from qiskit.algorithms.time_evolution.evolution_result import EvolutionResult
 from qiskit.algorithms.time_evolution.imaginary.qite import Qite
 
-from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
-    ImaginaryErrorCalculator,
-)
-from qiskit.algorithms.time_evolution.variational.solvers.ode.error_based_ode_function_generator import (
-    ErrorBasedOdeFunctionGenerator,
-)
 from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary.imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
@@ -117,20 +111,8 @@ class VarQite(Qite, VarQte):
             hamiltonian_value_dict, list(initial_state.parameters)
         )
         self.bind_initial_state(StateFn(initial_state), init_state_param_dict)
-        operator = ~StateFn(hamiltonian) @ StateFn(initial_state)
-        hamiltonian_squared = self._hamiltonian_power(hamiltonian, initial_state, 2)
 
-        error_calculator = None
-        if isinstance(self._ode_function_generator, ErrorBasedOdeFunctionGenerator):
-            error_calculator = ImaginaryErrorCalculator(
-                hamiltonian_squared,
-                operator,
-                self._h_squared_circ_sampler,
-                self._operator_circ_sampler,
-                self._backend,
-                self._allowed_imaginary_part,
-                self._allowed_num_instability_error,
-            )
+        error_calculator = None # TODO will be supported in another PR
 
         evolved_object = super()._evolve_helper(
             init_state_param_dict,
