@@ -20,6 +20,7 @@ from qiskit.test.mock import fake_pulse_backend, fake_backend
 
 class FakeJakartaV2(fake_backend.FakeBackendV2):
     """A fake 7 qubit V2 backend."""
+
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_jakarta.json"
     props_filename = "props_jakarta.json"
