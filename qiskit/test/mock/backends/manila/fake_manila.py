@@ -24,6 +24,7 @@ class FakeManilaV2(fake_backend.FakeBackendV2):
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_manila.json"
     props_filename = "props_manila.json"
+    defs_filename = "defs_manila.json"
     backend_name = "fake_manila_v2"
 
 

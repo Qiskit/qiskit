@@ -28,6 +28,7 @@ class FakePoughkeepsieV2(fake_backend.FakeBackendV2):
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_poughkeepsie.json"
     props_filename = "props_poughkeepsie.json"
+    defs_filename = "defs_poughkeepsie.json"
     backend_name = "fake_poughkeepsie_v2"
 
 

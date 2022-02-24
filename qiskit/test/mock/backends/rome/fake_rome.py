@@ -24,6 +24,7 @@ class FakeRomeV2(fake_backend.FakeBackendV2):
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_rome.json"
     props_filename = "props_rome.json"
+    defs_filename = "defs_rome.json"
     backend_name = "fake_rome_v2"
 
 
