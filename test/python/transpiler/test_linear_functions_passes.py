@@ -51,8 +51,8 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         optimized_circuit = PassManager(CollectLinearFunctions()).run(circuit)
 
         # check that this circuit consists of a single LinearFunction
-        self.assertTrue("linear_function" in optimized_circuit.count_ops().keys())
-        self.assertTrue(len(optimized_circuit.data) == 1)
+        self.assertIn("linear_function", optimized_circuit.count_ops().keys())
+        self.assertEqual(len(optimized_circuit.data), 1)
         inst1, _, _ = optimized_circuit.data[0]
         self.assertIsInstance(inst1, LinearFunction)
 
@@ -67,7 +67,7 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         synthesized_circuit = PassManager(LinearFunctionsSynthesis()).run(optimized_circuit)
 
         # check that there are no LinearFunctions present in synthesized_circuit
-        self.assertFalse("linear_function" in synthesized_circuit.count_ops().keys())
+        self.assertNotIn("linear_function", synthesized_circuit.count_ops().keys())
 
         # check that we have an equivalent circuit
         self.assertEqual(Operator(optimized_circuit), Operator(synthesized_circuit))
@@ -89,7 +89,7 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         circuit2 = PassManager(CollectLinearFunctions()).run(circuit1)
 
         # We expect to see 3 gates (linear, h, linear)
-        self.assertTrue(len(circuit2.data) == 3)
+        self.assertEqual(len(circuit2.data), 3)
         inst1, qargs1, cargs1 = circuit2.data[0]
         inst2, qargs2, cargs2 = circuit2.data[2]
         self.assertIsInstance(inst1, LinearFunction)
@@ -119,7 +119,7 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         synthesized_circuit = PassManager(LinearFunctionsSynthesis()).run(circuit2)
 
         # check that there are no LinearFunctions present in synthesized_circuit
-        self.assertFalse("linear_function" in synthesized_circuit.count_ops().keys())
+        self.assertNotIn("linear_function", synthesized_circuit.count_ops().keys())
 
         # check that we have an equivalent circuit
         self.assertEqual(Operator(circuit2), Operator(synthesized_circuit))
@@ -143,15 +143,15 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         circuit2 = PassManager(CollectLinearFunctions()).run(circuit1)
 
         # check that we have two blocks of linear functions
-        self.assertTrue(circuit2.count_ops()["linear_function"] == 2)
+        self.assertEqual(circuit2.count_ops()["linear_function"], 2)
 
         # new circuit with linear functions converted to permutations
         # (the first linear function should not be converted, the second should)
         circuit3 = PassManager(LinearFunctionsToPermutations()).run(circuit2)
 
         # check that there is one linear function and one permutation
-        self.assertTrue(circuit3.count_ops()["linear_function"] == 1)
-        self.assertTrue(circuit3.count_ops()["permutation_[2,0,1]"] == 1)
+        self.assertEqual(circuit3.count_ops()["linear_function"], 1)
+        self.assertEqual(circuit3.count_ops()["permutation_[2,0,1]"], 1)
 
         # check that the final circuit is still equivalent to the original circuit
         self.assertEqual(Operator(circuit1), Operator(circuit3))
