@@ -37,11 +37,10 @@ class BasisTranslator(TransformationPass):
     This pass operates in several steps:
 
     * Determine the source basis from the input circuit.
-    * Perform an A* search over basis sets, starting from the source basis and
-      targeting the device's target_basis, with edges discovered from the
-      provided EquivalenceLibrary. The heuristic used by the A* search is the
-      number of distinct circuit basis gates not in the target_basis, plus the
-      number of distinct device basis gates not used in the current basis.
+    * Perform a Dijkstra search over basis sets, starting from the the device's
+      target_basis new gates are being generated using the rules from the provided
+      EquivalenceLibrary and the search stops if all gates in the source basis have
+      been generated.
     * The found path, as a set of rules from the EquivalenceLibrary, is composed
       into a set of gate replacement rules.
     * The composed replacement rules are applied in-place to each op node which
@@ -323,6 +322,12 @@ class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):
         self._opt_cost_map[gate] = score
         rule = self._predecessors.get(gate, None)
         if rule is not None:
+            logger.debug(
+                "Gate %s generated using rule \n%s\n with total cost of %s.",
+                gate.name,
+                rule.circuit,
+                score,
+            )
             self._basis_transforms.append((gate.name, gate.num_qubits, rule.params, rule.circuit))
         # we can stop the search if we have found all gates in the original ciruit.
         if not self._source_gates_remain:
