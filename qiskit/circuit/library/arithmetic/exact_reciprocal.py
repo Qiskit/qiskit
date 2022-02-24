@@ -49,7 +49,7 @@ class ExactReciprocal(QuantumCircuit):
         circuit = QuantumCircuit(qr_state, qr_flag, name=name)
 
         angles = [0.0]
-        nl = 2 ** (num_state_qubits - 1) if neg_vals else 2 ** num_state_qubits
+        nl = 2 ** (num_state_qubits - 1) if neg_vals else 2**num_state_qubits
 
         # Angles to rotate by scaling / x, where x = i / nl
         for i in range(1, nl):
