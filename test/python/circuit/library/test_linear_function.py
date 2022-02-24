@@ -88,7 +88,7 @@ class TestLinearFunctions(QiskitTestCase):
                 linear_function = LinearFunction(linear_circuit, validate_input=True)
 
                 # check that the internal matrix has right dimensions
-                self.assertTrue(linear_function.linear.shape == (num_qubits, num_qubits))
+                self.assertEqual(linear_function.linear.shape, (num_qubits, num_qubits))
 
                 # synthesize linear function
                 synthesized_linear_function = linear_function.definition
@@ -113,7 +113,7 @@ class TestLinearFunctions(QiskitTestCase):
 
             # create a linear function with this matrix
             linear_function = LinearFunction(binary_matrix, validate_input=True)
-            self.assertTrue(np.all(linear_function.linear == binary_matrix))
+            self.assertEqual(np.all(linear_function.linear, binary_matrix))
 
             # synthesize linear function
             synthesized_circuit = linear_function.definition
