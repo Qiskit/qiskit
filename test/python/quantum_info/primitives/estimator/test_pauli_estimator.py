@@ -23,9 +23,9 @@ from qiskit.quantum_info import Operator, Statevector
 from qiskit.quantum_info.primitives import PauliEstimator
 from qiskit.quantum_info.primitives.results import EstimatorResult
 from qiskit.test import QiskitTestCase
-from qiskit.utils import has_aer
+from qiskit.utils import optionals
 
-if has_aer():
+if optionals.HAS_AER:
     from qiskit import Aer
 
 
@@ -45,7 +45,7 @@ class TestPauliEstimator(QiskitTestCase):
             ]
         )
 
-    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer doesn't appear to be installed.")
     def test_init_from_statevector(self):
         """test initialization from statevector"""
         vector = [1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)]
@@ -62,7 +62,7 @@ class TestPauliEstimator(QiskitTestCase):
         self.assertIsInstance(result.variances[0], float)
         self.assertAlmostEqual(result.variances[0], 0.316504211)
 
-    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer doesn't appear to be installed.")
     def test_init_observable_from_operator(self):
         """test for evaluate without parameters"""
         circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
@@ -98,7 +98,7 @@ class TestPauliEstimator(QiskitTestCase):
         self.assertIsInstance(result.variances[0], float)
         self.assertAlmostEqual(result.variances[0], 0.2992945988106311)
 
-    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer doesn't appear to be installed.")
     def test_evaluate(self):
         """test for evaluate with Aer"""
         backend = Aer.get_backend("aer_simulator")
@@ -113,7 +113,7 @@ class TestPauliEstimator(QiskitTestCase):
         self.assertIsInstance(result.variances[0], float)
         self.assertAlmostEqual(result.variances[0], 0.29089871458670)
 
-    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer doesn't appear to be installed.")
     def test_evaluate_without_grouping(self):
         """test for evaluate without grouping"""
         backend = Aer.get_backend("aer_simulator")
@@ -130,7 +130,7 @@ class TestPauliEstimator(QiskitTestCase):
         self.assertIsInstance(result.variances[0], float)
         self.assertAlmostEqual(result.variances[0], 0.29068761565451)
 
-    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer doesn't appear to be installed.")
     def test_evaluate_multi_params(self):
         """test for evaluate with multiple parameters"""
         backend = Aer.get_backend("aer_simulator")
@@ -144,7 +144,7 @@ class TestPauliEstimator(QiskitTestCase):
         self.assertEqual(result.variances.dtype, np.float64)
         np.testing.assert_allclose(result.variances, [0.290899, 0.24758], rtol=1e-05)
 
-    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer doesn't appear to be installed.")
     def test_evaluate_no_params(self):
         """test for evaluate without parameters"""
         backend = Aer.get_backend("aer_simulator")
@@ -158,3 +158,22 @@ class TestPauliEstimator(QiskitTestCase):
         self.assertAlmostEqual(result.values[0], -1.3138315875089022)
         self.assertIsInstance(result.variances[0], float)
         self.assertAlmostEqual(result.variances[0], 0.2908987145867)
+
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer doesn't appear to be installed.")
+    def test_run_with_multiple_observables_and_none_parameters(self):
+        """test for evaluate without parameters"""
+        backend = Aer.get_backend("aer_simulator")
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.cx(1, 2)
+        with PauliEstimator(circuit, ["ZZZ", "III"], backend=backend) as est:
+            est.set_transpile_options(seed_transpiler=15)
+            est.set_run_options(seed_simulator=15)
+            result = est()
+        self.assertIsInstance(result, EstimatorResult)
+        self.assertEqual(result.values.dtype, np.float64)
+        np.testing.assert_allclose(result.values, [0.00390625, 1.0])
+        self.assertEqual(result.variances.dtype, np.float64)
+        print(result.variances[0])
+        np.testing.assert_allclose(result.variances, [0.999984712, 0.0])

@@ -136,7 +136,7 @@ class PauliEstimator(BaseEstimator):
 
         # parameters: NoneType
         if parameters is None:
-            parameters = cast("list[list[float]]", [[]])
+            parameters = cast("list[list[float]]", [[] for _ in self._grouping])
 
         # parameters: list[float]
         elif isinstance(parameters[0], (int, float)):
