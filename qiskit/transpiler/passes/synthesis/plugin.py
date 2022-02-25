@@ -134,6 +134,16 @@ include as long as each plugin has a unique name. So a single package can
 expose multiple plugins if necessary. The name ``default`` is used by Qiskit
 itself and can't be used in a plugin.
 
+Unitary Synthesis Plugin Configuration
+''''''''''''''''''''''''''''''''''''''
+
+For some unitary synthesis plugins that expose multiple options and tunables
+the plugin interface has an option for users to provide a free form
+configuration dictionary. This will be passed through to the ``run()`` method
+as the ``config`` kwarg. If your plugin has these configuration options you
+should clearly document how a user should specify these configuration options
+and how they're used as it's a free form field.
+
 Using Plugins
 =============
 

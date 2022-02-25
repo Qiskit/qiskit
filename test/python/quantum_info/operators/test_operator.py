@@ -25,6 +25,7 @@ from qiskit import QiskitError
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.library import HGate, CHGate, CXGate, QFT
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler.layout import Layout
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
@@ -335,11 +336,9 @@ class TestOperator(OperatorTestCase):
 
         targ = Operator(np.dot(self.UY, self.UX))
         self.assertEqual(op1.dot(op2), targ)
-        self.assertEqual(op1 * op2, targ)
 
         targ = Operator(np.dot(self.UX, self.UY))
         self.assertEqual(op2.dot(op1), targ)
-        self.assertEqual(op2 * op1, targ)
 
     def test_compose_front(self):
         """Test front compose method."""
@@ -666,6 +665,178 @@ class TestOperator(OperatorTestCase):
         state1 = Operator(circ1)
         state2 = Operator(circ2)
         self.assertEqual(state1.reverse_qargs(), state2)
+
+    def test_from_circuit_constructor_no_layout(self):
+        """Test initialization from a circuit using the from_circuit constructor."""
+        # Test tensor product of 1-qubit gates
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.x(1)
+        circuit.ry(np.pi / 2, 2)
+        op = Operator.from_circuit(circuit)
+        y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
+        target = np.kron(y90, np.kron(self.UX, self.UH))
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+        # Test decomposition of Controlled-Phase gate
+        lam = np.pi / 4
+        circuit = QuantumCircuit(2)
+        circuit.cp(lam, 0, 1)
+        op = Operator.from_circuit(circuit)
+        target = np.diag([1, 1, 1, np.exp(1j * lam)])
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+        # Test decomposition of controlled-H gate
+        circuit = QuantumCircuit(2)
+        circuit.ch(0, 1)
+        op = Operator.from_circuit(circuit)
+        target = np.kron(self.UI, np.diag([1, 0])) + np.kron(self.UH, np.diag([0, 1]))
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+    def test_from_circuit_constructor_reverse_embedded_layout(self):
+        """Test initialization from a circuit with an embedded reverse layout."""
+        # Test tensor product of 1-qubit gates
+        circuit = QuantumCircuit(3)
+        circuit.h(2)
+        circuit.x(1)
+        circuit.ry(np.pi / 2, 0)
+        circuit._layout = Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2})
+        op = Operator.from_circuit(circuit)
+        y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
+        target = np.kron(y90, np.kron(self.UX, self.UH))
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+        # Test decomposition of Controlled-Phase gate
+        lam = np.pi / 4
+        circuit = QuantumCircuit(2)
+        circuit.cp(lam, 1, 0)
+        circuit._layout = Layout({circuit.qubits[1]: 0, circuit.qubits[0]: 1})
+        op = Operator.from_circuit(circuit)
+        target = np.diag([1, 1, 1, np.exp(1j * lam)])
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+        # Test decomposition of controlled-H gate
+        circuit = QuantumCircuit(2)
+        circuit.ch(1, 0)
+        circuit._layout = Layout({circuit.qubits[1]: 0, circuit.qubits[0]: 1})
+        op = Operator.from_circuit(circuit)
+        target = np.kron(self.UI, np.diag([1, 0])) + np.kron(self.UH, np.diag([0, 1]))
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+    def test_from_circuit_constructor_reverse_embedded_layout_ignore_set_layout(self):
+        """Test initialization from a circuit with an ignored embedded reverse layout."""
+        # Test tensor product of 1-qubit gates
+        circuit = QuantumCircuit(3)
+        circuit.h(2)
+        circuit.x(1)
+        circuit.ry(np.pi / 2, 0)
+        circuit._layout = Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2})
+        op = Operator.from_circuit(circuit, ignore_set_layout=True).reverse_qargs()
+        y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
+        target = np.kron(y90, np.kron(self.UX, self.UH))
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+        # Test decomposition of Controlled-Phase gate
+        lam = np.pi / 4
+        circuit = QuantumCircuit(2)
+        circuit.cp(lam, 1, 0)
+        circuit._layout = Layout({circuit.qubits[1]: 0, circuit.qubits[0]: 1})
+        op = Operator.from_circuit(circuit, ignore_set_layout=True).reverse_qargs()
+        target = np.diag([1, 1, 1, np.exp(1j * lam)])
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+        # Test decomposition of controlled-H gate
+        circuit = QuantumCircuit(2)
+        circuit.ch(1, 0)
+        circuit._layout = Layout({circuit.qubits[1]: 0, circuit.qubits[0]: 1})
+        op = Operator.from_circuit(circuit, ignore_set_layout=True).reverse_qargs()
+        target = np.kron(self.UI, np.diag([1, 0])) + np.kron(self.UH, np.diag([0, 1]))
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+    def test_from_circuit_constructor_reverse_user_specified_layout(self):
+        """Test initialization from a circuit with a user specified reverse layout."""
+        # Test tensor product of 1-qubit gates
+        circuit = QuantumCircuit(3)
+        circuit.h(2)
+        circuit.x(1)
+        circuit.ry(np.pi / 2, 0)
+        layout = Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2})
+        op = Operator.from_circuit(circuit, layout=layout)
+        y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
+        target = np.kron(y90, np.kron(self.UX, self.UH))
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+        # Test decomposition of Controlled-Phase gate
+        lam = np.pi / 4
+        circuit = QuantumCircuit(2)
+        circuit.cp(lam, 1, 0)
+        layout = Layout({circuit.qubits[1]: 0, circuit.qubits[0]: 1})
+        op = Operator.from_circuit(circuit, layout=layout)
+        target = np.diag([1, 1, 1, np.exp(1j * lam)])
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+        # Test decomposition of controlled-H gate
+        circuit = QuantumCircuit(2)
+        circuit.ch(1, 0)
+        layout = Layout({circuit.qubits[1]: 0, circuit.qubits[0]: 1})
+        op = Operator.from_circuit(circuit, layout=layout)
+        target = np.kron(self.UI, np.diag([1, 0])) + np.kron(self.UH, np.diag([0, 1]))
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+    def test_from_circuit_constructor_ghz_out_of_order_layout(self):
+        """Test an out of order ghz state with a layout set."""
+        circuit = QuantumCircuit(5)
+        circuit.h(3)
+        circuit.cx(3, 4)
+        circuit.cx(3, 2)
+        circuit.cx(3, 0)
+        circuit.cx(3, 1)
+        circuit._layout = Layout(
+            {
+                circuit.qubits[3]: 0,
+                circuit.qubits[4]: 1,
+                circuit.qubits[2]: 2,
+                circuit.qubits[0]: 3,
+                circuit.qubits[1]: 4,
+            }
+        )
+        result = Operator.from_circuit(circuit)
+        expected = QuantumCircuit(5)
+        expected.h(0)
+        expected.cx(0, 1)
+        expected.cx(0, 2)
+        expected.cx(0, 3)
+        expected.cx(0, 4)
+        expected_op = Operator(expected)
+        self.assertTrue(expected_op.equiv(result))
+
+    def test_from_circuit_empty_circuit_empty_layout(self):
+        """Test an out of order ghz state with a layout set."""
+        circuit = QuantumCircuit()
+        circuit._layout = Layout()
+        op = Operator.from_circuit(circuit)
+        self.assertEqual(Operator([1]), op)
+
+    def test_from_circuit_constructor_empty_layout(self):
+        """Test an out of order ghz state with a layout set."""
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        layout = Layout()
+        with self.assertRaises(KeyError):
+            Operator.from_circuit(circuit, layout=layout)
 
 
 if __name__ == "__main__":

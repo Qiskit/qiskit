@@ -20,7 +20,7 @@ from typing import Dict
 
 import numpy as np
 
-from qiskit.circuit import Instruction, QuantumCircuit
+from qiskit.circuit import Instruction, QuantumCircuit, Operation
 from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
@@ -31,7 +31,7 @@ from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
 from qiskit.utils.deprecation import deprecate_function
 
 
-class Pauli(BasePauli):
+class Pauli(BasePauli, Operation):
     r"""N-qubit Pauli operator.
 
     This class represents an operator :math:`P` from the full :math:`n`-qubit
@@ -178,8 +178,7 @@ class Pauli(BasePauli):
         elif isinstance(data, tuple):
             if len(data) not in [2, 3]:
                 raise QiskitError(
-                    "Invalid input tuple for Pauli, input tuple must be"
-                    " `(z, x, phase)` or `(z, x)`"
+                    "Invalid input tuple for Pauli, input tuple must be `(z, x, phase)` or `(z, x)`"
                 )
             base_z, base_x, base_phase = self._from_array(*data)
         elif isinstance(data, str):
@@ -202,6 +201,16 @@ class Pauli(BasePauli):
         if base_z.shape[0] != 1:
             raise QiskitError("Input is not a single Pauli")
         super().__init__(base_z, base_x, base_phase)
+
+    @property
+    def name(self):
+        """Unique string identifier for operation type."""
+        return "pauli"
+
+    @property
+    def num_clbits(self):
+        """Number of classical bits."""
+        return 0
 
     def __repr__(self):
         """Display representation."""
@@ -601,20 +610,12 @@ class Pauli(BasePauli):
         phase = 0 if not coeff else _phase_from_label(coeff)
 
         # Convert to Symplectic representation
-        num_qubits = len(pauli)
-        base_z = np.zeros((1, num_qubits), dtype=bool)
-        base_x = np.zeros((1, num_qubits), dtype=bool)
-        base_phase = np.array([phase], dtype=int)
-        for i, char in enumerate(pauli):
-            if char == "X":
-                base_x[0, num_qubits - 1 - i] = True
-            elif char == "Z":
-                base_z[0, num_qubits - 1 - i] = True
-            elif char == "Y":
-                base_x[0, num_qubits - 1 - i] = True
-                base_z[0, num_qubits - 1 - i] = True
-                base_phase += 1
-        return base_z, base_x, base_phase % 4
+        pauli_bytes = np.frombuffer(pauli.encode("ascii"), dtype=np.uint8)[::-1]
+        ys = pauli_bytes == ord("Y")
+        base_x = np.logical_or(pauli_bytes == ord("X"), ys).reshape(1, -1)
+        base_z = np.logical_or(pauli_bytes == ord("Z"), ys).reshape(1, -1)
+        base_phase = np.array([(phase + np.count_nonzero(ys)) % 4], dtype=int)
+        return base_z, base_x, base_phase
 
     @classmethod
     def _from_scalar_op(cls, op):

@@ -22,6 +22,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister, Qubit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit._utils import _compute_control_matrix
+from qiskit.circuit.quantumcircuit import _qasm_escape_gate_name
 from qiskit.circuit.library.standard_gates import U3Gate
 from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.operators.predicates import matrix_equal
@@ -63,7 +64,7 @@ class UnitaryGate(Gate):
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
         num_qubits = int(numpy.log2(input_dim))
-        if input_dim != output_dim or 2 ** num_qubits != input_dim:
+        if input_dim != output_dim or 2**num_qubits != input_dim:
             raise ExtensionError("Input matrix is not an N-qubit operator.")
 
         self._qasm_name = None
@@ -167,7 +168,9 @@ class UnitaryGate(Gate):
         """
 
         # give this unitary a name
-        self._qasm_name = self.label if self.label else "unitary" + str(id(self))
+        self._qasm_name = (
+            _qasm_escape_gate_name(self.label) if self.label else "unitary" + str(id(self))
+        )
 
         # map from gates in the definition to params in the method
         reg_to_qasm = OrderedDict()

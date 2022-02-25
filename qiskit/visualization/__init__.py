@@ -40,6 +40,7 @@ Device Visualizations
    plot_gate_map
    plot_error_map
    plot_circuit_layout
+   plot_coupling_map
 
 Circuit Visualizations
 ======================
@@ -126,11 +127,13 @@ from qiskit.visualization.state_visualization import (
 from qiskit.visualization.transition_visualization import visualize_transition
 from qiskit.visualization.array import array_to_latex
 
-from .circuit_visualization import circuit_drawer, HAS_PIL, HAS_PDFLATEX, HAS_PDFTOCAIRO
+# NOTE (Jake Lishman, 2022-01-12): for backwards compatibility. Deprecate these paths in Terra 0.21.
+from qiskit.utils.optionals import HAS_MATPLOTLIB, HAS_PYLATEX, HAS_PIL, HAS_PDFTOCAIRO
+
+from .circuit_visualization import circuit_drawer
 from .dag_visualization import dag_drawer
 from .exceptions import VisualizationError
-from .gate_map import plot_gate_map, plot_circuit_layout, plot_error_map
-from .matplotlib import HAS_MATPLOTLIB, HAS_PYLATEX
+from .gate_map import plot_gate_map, plot_circuit_layout, plot_error_map, plot_coupling_map
 from .pass_manager_visualization import pass_manager_drawer
 from .pulse.interpolation import step_wise, linear, cubic_spline
 from .pulse.qcstyle import PulseStyle, SchedStyle

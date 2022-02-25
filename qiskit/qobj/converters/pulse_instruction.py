@@ -637,7 +637,6 @@ class QobjToInstructionConverter:
         Args:
             pulse (PulseLibraryItem): Pulse to bind
         """
-        # pylint: disable=unused-variable
         pulse = library.Waveform(pulse.samples, pulse.name)
 
         @self.bind_name(pulse.name)

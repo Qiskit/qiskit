@@ -206,8 +206,8 @@ class CXGate(ControlledGate):
         call = QuantumGateCall(
             Identifier("U"),
             [control, target],
-            parameters=[Constant.pi, Integer(0), Constant.pi],
-            modifiers=[QuantumGateModifier(QuantumGateModifierName.ctrl)],
+            parameters=[Constant.PI, Integer(0), Constant.PI],
+            modifiers=[QuantumGateModifier(QuantumGateModifierName.CTRL)],
         )
         return QuantumGateDefinition(
             QuantumGateSignature(Identifier("cx"), [control, target]),
@@ -335,6 +335,13 @@ class CCXGate(ControlledGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
+        #                                                        ┌───┐
+        # q_0: ───────────────────■─────────────────────■────■───┤ T ├───■──
+        #                         │             ┌───┐   │  ┌─┴─┐┌┴───┴┐┌─┴─┐
+        # q_1: ───────■───────────┼─────────■───┤ T ├───┼──┤ X ├┤ Tdg ├┤ X ├
+        #      ┌───┐┌─┴─┐┌─────┐┌─┴─┐┌───┐┌─┴─┐┌┴───┴┐┌─┴─┐├───┤└┬───┬┘└───┘
+        # q_2: ┤ H ├┤ X ├┤ Tdg ├┤ X ├┤ T ├┤ X ├┤ Tdg ├┤ X ├┤ T ├─┤ H ├──────
+        #      └───┘└───┘└─────┘└───┘└───┘└───┘└─────┘└───┘└───┘ └───┘
         q = QuantumRegister(3, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
@@ -511,19 +518,19 @@ class C3SXGate(ControlledGate):
         """
         gate c3sqrtx a,b,c,d
         {
-            h d; cu1(-pi/8) a,d; h d;
-            cx a,b;
-            h d; cu1(pi/8) b,d; h d;
+            h d; cu1(pi/8) a,d; h d;
             cx a,b;
             h d; cu1(-pi/8) b,d; h d;
+            cx a,b;
+            h d; cu1(pi/8) b,d; h d;
             cx b,c;
-            h d; cu1(pi/8) c,d; h d;
-            cx a,c;
             h d; cu1(-pi/8) c,d; h d;
+            cx a,c;
+            h d; cu1(pi/8) c,d; h d;
             cx b,c;
-            h d; cu1(pi/8) c,d; h d;
-            cx a,c;
             h d; cu1(-pi/8) c,d; h d;
+            cx a,c;
+            h d; cu1(pi/8) c,d; h d;
         }
         """
         # pylint: disable=cyclic-import
@@ -534,31 +541,31 @@ class C3SXGate(ControlledGate):
         # pylint: disable=invalid-unary-operand-type
         rules = [
             (HGate(), [q[3]], []),
-            (CU1Gate(-self._angle), [q[0], q[3]], []),
-            (HGate(), [q[3]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (HGate(), [q[3]], []),
-            (CU1Gate(self._angle), [q[1], q[3]], []),
+            (CU1Gate(self._angle), [q[0], q[3]], []),
             (HGate(), [q[3]], []),
             (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[3]], []),
             (CU1Gate(-self._angle), [q[1], q[3]], []),
             (HGate(), [q[3]], []),
-            (CXGate(), [q[1], q[2]], []),
+            (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[3]], []),
-            (CU1Gate(self._angle), [q[2], q[3]], []),
-            (HGate(), [q[3]], []),
-            (CXGate(), [q[0], q[2]], []),
-            (HGate(), [q[3]], []),
-            (CU1Gate(-self._angle), [q[2], q[3]], []),
+            (CU1Gate(self._angle), [q[1], q[3]], []),
             (HGate(), [q[3]], []),
             (CXGate(), [q[1], q[2]], []),
             (HGate(), [q[3]], []),
-            (CU1Gate(self._angle), [q[2], q[3]], []),
+            (CU1Gate(-self._angle), [q[2], q[3]], []),
             (HGate(), [q[3]], []),
             (CXGate(), [q[0], q[2]], []),
             (HGate(), [q[3]], []),
+            (CU1Gate(self._angle), [q[2], q[3]], []),
+            (HGate(), [q[3]], []),
+            (CXGate(), [q[1], q[2]], []),
+            (HGate(), [q[3]], []),
             (CU1Gate(-self._angle), [q[2], q[3]], []),
+            (HGate(), [q[3]], []),
+            (CXGate(), [q[0], q[2]], []),
+            (HGate(), [q[3]], []),
+            (CU1Gate(self._angle), [q[2], q[3]], []),
             (HGate(), [q[3]], []),
         ]
         qc = QuantumCircuit(q)
@@ -834,25 +841,25 @@ class C4XGate(ControlledGate):
         """
         gate c3sqrtx a,b,c,d
         {
-            h d; cu1(-pi/8) a,d; h d;
-            cx a,b;
-            h d; cu1(pi/8) b,d; h d;
+            h d; cu1(pi/8) a,d; h d;
             cx a,b;
             h d; cu1(-pi/8) b,d; h d;
+            cx a,b;
+            h d; cu1(pi/8) b,d; h d;
             cx b,c;
-            h d; cu1(pi/8) c,d; h d;
-            cx a,c;
             h d; cu1(-pi/8) c,d; h d;
+            cx a,c;
+            h d; cu1(pi/8) c,d; h d;
             cx b,c;
-            h d; cu1(pi/8) c,d; h d;
-            cx a,c;
             h d; cu1(-pi/8) c,d; h d;
+            cx a,c;
+            h d; cu1(pi/8) c,d; h d;
         }
         gate c4x a,b,c,d,e
         {
-            h e; cu1(-pi/2) d,e; h e;
+            h e; cu1(pi/2) d,e; h e;
             rc3x a,b,c,d;
-            h e; cu1(pi/4) d,e; h e;
+            h e; cu1(-pi/2) d,e; h e;
             rc3x a,b,c,d;
             c3sqrtx a,b,c,e;
         }
@@ -865,11 +872,11 @@ class C4XGate(ControlledGate):
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (HGate(), [q[4]], []),
-            (CU1Gate(-numpy.pi / 2), [q[3], q[4]], []),
+            (CU1Gate(numpy.pi / 2), [q[3], q[4]], []),
             (HGate(), [q[4]], []),
             (RC3XGate(), [q[0], q[1], q[2], q[3]], []),
             (HGate(), [q[4]], []),
-            (CU1Gate(numpy.pi / 2), [q[3], q[4]], []),
+            (CU1Gate(-numpy.pi / 2), [q[3], q[4]], []),
             (HGate(), [q[4]], []),
             (RC3XGate().inverse(), [q[0], q[1], q[2], q[3]], []),
             (C3SXGate(), [q[0], q[1], q[2], q[4]], []),
@@ -933,7 +940,7 @@ class MCXGate(ControlledGate):
         # The CXGate and CCXGate will be implemented for all modes of the MCX, and
         # the C3XGate and C4XGate will be implemented in the MCXGrayCode class.
         explicit = {1: CXGate, 2: CCXGate}
-        if num_ctrl_qubits in explicit.keys():
+        if num_ctrl_qubits in explicit:
             gate_class = explicit[num_ctrl_qubits]
             gate = gate_class.__new__(gate_class, label=label, ctrl_state=ctrl_state)
             # if __new__ does not return the same type as cls, init is not called
@@ -1036,7 +1043,7 @@ class MCXGrayCode(MCXGate):
         """Create a new MCXGrayCode instance"""
         # if 1 to 4 control qubits, create explicit gates
         explicit = {1: CXGate, 2: CCXGate, 3: C3XGate, 4: C4XGate}
-        if num_ctrl_qubits in explicit.keys():
+        if num_ctrl_qubits in explicit:
             gate_class = explicit[num_ctrl_qubits]
             gate = gate_class.__new__(gate_class, label=label, ctrl_state=ctrl_state)
             # if __new__ does not return the same type as cls, init is not called

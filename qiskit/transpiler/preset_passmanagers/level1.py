@@ -27,11 +27,13 @@ from qiskit.transpiler.passes import CXCancellation
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import GateDirection
 from qiskit.transpiler.passes import SetLayout
+from qiskit.transpiler.passes import VF2Layout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
 from qiskit.transpiler.passes import SabreLayout
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
+from qiskit.transpiler.passes import Layout2qDistance
 from qiskit.transpiler.passes import BasicSwap
 from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.transpiler.passes import StochasticSwap
@@ -44,7 +46,6 @@ from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckGateDirection
-from qiskit.transpiler.passes import Layout2qDistance
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
@@ -56,6 +57,7 @@ from qiskit.transpiler.passes import ValidatePulseGates
 from qiskit.transpiler.passes import PulseGates
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import ContainsInstruction
+from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 
 from qiskit.transpiler import TranspilerError
 
@@ -98,20 +100,76 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     backend_properties = pass_manager_config.backend_properties
     approximation_degree = pass_manager_config.approximation_degree
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
+    unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
+    target = pass_manager_config.target
 
-    # 1. Use trivial layout if no layout given
+    # 1. Use trivial layout if no layout given if that isn't perfect use vf2 layout
     _given_layout = SetLayout(initial_layout)
-
-    _choose_layout_and_score = [
-        TrivialLayout(coupling_map),
-        Layout2qDistance(coupling_map, property_name="trivial_layout_score"),
-    ]
 
     def _choose_layout_condition(property_set):
         return not property_set["layout"]
 
-    # 2. Use a better layout on densely connected qubits, if circuit needs swaps
+    def _trivial_not_perfect(property_set):
+        # Verify that a trivial layout is perfect. If trivial_layout_score > 0
+        # the layout is not perfect. The layout is unconditionally set by trivial
+        # layout so we need to clear it before contuing.
+        if (
+            property_set["trivial_layout_score"] is not None
+            and property_set["trivial_layout_score"] != 0
+        ):
+            return True
+        return False
+
+    def _vf2_match_not_found(property_set):
+        # If a layout hasn't been set by the time we run vf2 layout we need to
+        # run layout
+        if property_set["layout"] is None:
+            return True
+        # if VF2 layout stopped for any reason other than solution found we need
+        # to run layout since VF2 didn't converge.
+        if (
+            property_set["VF2Layout_stop_reason"] is not None
+            and property_set["VF2Layout_stop_reason"] is not VF2LayoutStopReason.SOLUTION_FOUND
+        ):
+            return True
+        return False
+
+    _choose_layout_0 = (
+        []
+        if pass_manager_config.layout_method
+        else [
+            TrivialLayout(coupling_map),
+            Layout2qDistance(coupling_map, property_name="trivial_layout_score"),
+        ]
+    )
+
+    _choose_layout_1 = (
+        []
+        if pass_manager_config.layout_method
+        else VF2Layout(
+            coupling_map,
+            seed=seed_transpiler,
+            call_limit=int(5e4),  # Set call limit to ~100ms with retworkx 0.10.2
+            time_limit=0.1,
+            properties=backend_properties,
+        )
+    )
+
+    # 2. Decompose so only 1-qubit and 2-qubit gates remain
+    _unroll3q = [
+        # Use unitary synthesis for basis aware decomposition of UnitaryGates
+        UnitarySynthesis(
+            basis_gates,
+            approximation_degree=approximation_degree,
+            method=unitary_synthesis_method,
+            min_qubits=3,
+            plugin_config=unitary_synthesis_plugin_config,
+        ),
+        Unroll3qOrMore(),
+    ]
+
+    # 3. Use a better layout on densely connected qubits, if circuit needs swaps
     if layout_method == "trivial":
         _improve_layout = TrivialLayout(coupling_map)
     elif layout_method == "dense":
@@ -123,28 +181,8 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
 
-    def _not_perfect_yet(property_set):
-        return (
-            property_set["trivial_layout_score"] is not None
-            and property_set["trivial_layout_score"] != 0
-        )
-
-    # 3. Extend dag/layout with ancillas using the full coupling map
+    # 4. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
-
-    # 4. Decompose so only 1-qubit and 2-qubit gates remain
-    _unroll3q = [
-        # Use unitary synthesis for basis aware decomposition of UnitaryGates
-        UnitarySynthesis(
-            basis_gates,
-            approximation_degree=approximation_degree,
-            coupling_map=coupling_map,
-            method=unitary_synthesis_method,
-            backend_props=backend_properties,
-            min_qubits=3,
-        ),
-        Unroll3qOrMore(),
-    ]
 
     # 5. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
@@ -164,8 +202,10 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     elif routing_method == "none":
         _swap += [
             Error(
-                msg="No routing method selected, but circuit is not routed to device. "
-                "CheckMap Error: {check_map_msg}",
+                msg=(
+                    "No routing method selected, but circuit is not routed to device. "
+                    "CheckMap Error: {check_map_msg}"
+                ),
                 action="raise",
             )
         ]
@@ -187,9 +227,10 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 coupling_map=coupling_map,
                 method=unitary_synthesis_method,
                 backend_props=backend_properties,
+                plugin_config=unitary_synthesis_plugin_config,
             ),
             UnrollCustomDefinitions(sel, basis_gates),
-            BasisTranslator(sel, basis_gates),
+            BasisTranslator(sel, basis_gates, target),
         ]
     elif translation_method == "synthesis":
         _unroll = [
@@ -212,18 +253,19 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 coupling_map=coupling_map,
                 method=unitary_synthesis_method,
                 backend_props=backend_properties,
+                plugin_config=unitary_synthesis_plugin_config,
             ),
         ]
     else:
         raise TranspilerError("Invalid translation method %s." % translation_method)
 
     # 7. Fix any bad CX directions
-    _direction_check = [CheckGateDirection(coupling_map)]
+    _direction_check = [CheckGateDirection(coupling_map, target)]
 
     def _direction_condition(property_set):
         return not property_set["is_direction_mapped"]
 
-    _direction = [GateDirection(coupling_map)]
+    _direction = [GateDirection(coupling_map, target)]
 
     # 8. Remove zero-state reset
     _reset = RemoveResetInZeroState()
@@ -273,14 +315,17 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     pm1 = PassManager()
     if coupling_map or initial_layout:
         pm1.append(_given_layout)
-        pm1.append(_choose_layout_and_score, condition=_choose_layout_condition)
-        pm1.append(_improve_layout, condition=_not_perfect_yet)
-        pm1.append(_embed)
         pm1.append(_unroll3q)
+        pm1.append(_choose_layout_0, condition=_choose_layout_condition)
+        pm1.append(_choose_layout_1, condition=_trivial_not_perfect)
+        pm1.append(_improve_layout, condition=_vf2_match_not_found)
+        pm1.append(_embed)
         pm1.append(_swap_check)
         pm1.append(_swap, condition=_swap_condition)
     pm1.append(_unroll)
-    if coupling_map and not coupling_map.is_symmetric:
+    if (coupling_map and not coupling_map.is_symmetric) or (
+        target is not None and target.get_non_global_operation_names(strict_direction=True)
+    ):
         pm1.append(_direction_check)
         pm1.append(_direction, condition=_direction_condition)
     pm1.append(_reset)

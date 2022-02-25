@@ -21,7 +21,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import InverseCancellation
 from qiskit.transpiler import PassManager
 from qiskit.test import QiskitTestCase
-from qiskit.circuit.library import RXGate, HGate, CXGate, PhaseGate, XGate
+from qiskit.circuit.library import RXGate, HGate, CXGate, PhaseGate, XGate, TGate, TdgGate
 
 
 class TestInverseCancellation(QiskitTestCase):
@@ -164,3 +164,15 @@ class TestInverseCancellation(QiskitTestCase):
         gates_after = new_circ.count_ops()
         self.assertNotIn("x", gates_after)
         self.assertEqual(gates_after["h"], 2)
+
+    def test_inverse_with_different_names(self):
+        """Test that inverse gates that have different names."""
+        qc = QuantumCircuit(2, 2)
+        qc.t(0)
+        qc.tdg(0)
+        pass_ = InverseCancellation([(TGate(), TdgGate())])
+        pm = PassManager(pass_)
+        new_circ = pm.run(qc)
+        gates_after = new_circ.count_ops()
+        self.assertNotIn("t", gates_after)
+        self.assertNotIn("tdg", gates_after)

@@ -13,7 +13,7 @@
 """The Phase Estimator interface."""
 
 from typing import Optional
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 from qiskit.circuit import QuantumCircuit
 from qiskit.algorithms.algorithm_result import AlgorithmResult
 
@@ -44,7 +44,8 @@ class PhaseEstimator(ABC):
 class PhaseEstimatorResult(AlgorithmResult):
     """Phase Estimator Result."""
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def phase(self) -> float:
         r"""Return the estimated phase as a number in :math:`[0.0, 1.0)`.
 

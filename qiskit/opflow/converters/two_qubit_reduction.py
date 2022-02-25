@@ -68,8 +68,7 @@ class TwoQubitReduction(ConverterBase):
 
         if operator.is_zero():
             logger.info(
-                "Operator is empty, can not do two qubit reduction. "
-                "Return the empty operator back."
+                "Operator is empty, can not do two qubit reduction. Return the empty operator back."
             )
             return PauliSumOp.from_list([("I" * (operator.num_qubits - 2), 0)])
 

@@ -35,7 +35,7 @@ class TestEvolve(ChannelTestCase):
     def _unitary_to_other(self, rep, qubits_test_cases, repetitions):
         """Test Operator to Other evolution."""
         for nq in qubits_test_cases:
-            dim = 2 ** nq
+            dim = 2**nq
             for _ in range(repetitions):
                 rho = self.rand_rho(dim)
                 mat = self.rand_matrix(dim, dim)
@@ -47,7 +47,7 @@ class TestEvolve(ChannelTestCase):
     def _other_to_operator(self, rep, qubits_test_cases, repetitions):
         """Test Other to Operator evolution."""
         for nq in qubits_test_cases:
-            dim = 2 ** nq
+            dim = 2**nq
             for _ in range(repetitions):
                 rho = self.rand_rho(dim)
                 mat = self.rand_matrix(dim, dim)
@@ -59,10 +59,10 @@ class TestEvolve(ChannelTestCase):
     def _choi_to_other_cp(self, rep, qubits_test_cases, repetitions):
         """Test CP Choi to Other evolution."""
         for nq in qubits_test_cases:
-            dim = 2 ** nq
+            dim = 2**nq
             for _ in range(repetitions):
                 rho = self.rand_rho(dim)
-                mat = dim * self.rand_rho(dim ** 2)
+                mat = dim * self.rand_rho(dim**2)
                 chan = Choi(mat)
                 rho1 = DensityMatrix(rho).evolve(chan).data
                 rho2 = DensityMatrix(rho).evolve(rep(chan)).data
@@ -71,10 +71,10 @@ class TestEvolve(ChannelTestCase):
     def _choi_to_other_noncp(self, rep, qubits_test_cases, repetitions):
         """Test CP Choi to Other evolution."""
         for nq in qubits_test_cases:
-            dim = 2 ** nq
+            dim = 2**nq
             for _ in range(repetitions):
                 rho = self.rand_rho(dim)
-                mat = self.rand_matrix(dim ** 2, dim ** 2)
+                mat = self.rand_matrix(dim**2, dim**2)
                 chan = Choi(mat)
                 rho1 = DensityMatrix(rho).evolve(chan).data
                 rho2 = DensityMatrix(rho).evolve(rep(chan)).data
@@ -83,10 +83,10 @@ class TestEvolve(ChannelTestCase):
     def _superop_to_other(self, rep, qubits_test_cases, repetitions):
         """Test SuperOp to Other evolution."""
         for nq in qubits_test_cases:
-            dim = 2 ** nq
+            dim = 2**nq
             for _ in range(repetitions):
                 rho = self.rand_rho(dim)
-                mat = self.rand_matrix(dim ** 2, dim ** 2)
+                mat = self.rand_matrix(dim**2, dim**2)
                 chan = SuperOp(mat)
                 rho1 = DensityMatrix(rho).evolve(chan).data
                 rho2 = DensityMatrix(rho).evolve(rep(chan)).data
@@ -95,10 +95,10 @@ class TestEvolve(ChannelTestCase):
     def _kraus_to_other_single(self, rep, qubits_test_cases, repetitions):
         """Test single Kraus to Other evolution."""
         for nq in qubits_test_cases:
-            dim = 2 ** nq
+            dim = 2**nq
             for _ in range(repetitions):
                 rho = self.rand_rho(dim)
-                kraus = self.rand_kraus(dim, dim, dim ** 2)
+                kraus = self.rand_kraus(dim, dim, dim**2)
                 chan = Kraus(kraus)
                 rho1 = DensityMatrix(rho).evolve(chan).data
                 rho2 = DensityMatrix(rho).evolve(rep(chan)).data
@@ -107,11 +107,11 @@ class TestEvolve(ChannelTestCase):
     def _kraus_to_other_double(self, rep, qubits_test_cases, repetitions):
         """Test double Kraus to Other evolution."""
         for nq in qubits_test_cases:
-            dim = 2 ** nq
+            dim = 2**nq
             for _ in range(repetitions):
                 rho = self.rand_rho(dim)
-                kraus_l = self.rand_kraus(dim, dim, dim ** 2)
-                kraus_r = self.rand_kraus(dim, dim, dim ** 2)
+                kraus_l = self.rand_kraus(dim, dim, dim**2)
+                kraus_r = self.rand_kraus(dim, dim, dim**2)
                 chan = Kraus((kraus_l, kraus_r))
                 rho1 = DensityMatrix(rho).evolve(chan).data
                 rho2 = DensityMatrix(rho).evolve(rep(chan)).data
@@ -120,10 +120,10 @@ class TestEvolve(ChannelTestCase):
     def _stinespring_to_other_single(self, rep, qubits_test_cases, repetitions):
         """Test single Stinespring to Other evolution."""
         for nq in qubits_test_cases:
-            dim = 2 ** nq
+            dim = 2**nq
             for _ in range(repetitions):
                 rho = self.rand_rho(dim)
-                mat = self.rand_matrix(dim ** 2, dim)
+                mat = self.rand_matrix(dim**2, dim)
                 chan = Stinespring(mat)
                 rho1 = DensityMatrix(rho).evolve(chan).data
                 rho2 = DensityMatrix(rho).evolve(rep(chan)).data
@@ -132,11 +132,11 @@ class TestEvolve(ChannelTestCase):
     def _stinespring_to_other_double(self, rep, qubits_test_cases, repetitions):
         """Test double Stinespring to Other evolution."""
         for nq in qubits_test_cases:
-            dim = 2 ** nq
+            dim = 2**nq
             for _ in range(repetitions):
                 rho = self.rand_rho(dim)
-                mat_l = self.rand_matrix(dim ** 2, dim)
-                mat_r = self.rand_matrix(dim ** 2, dim)
+                mat_l = self.rand_matrix(dim**2, dim)
+                mat_r = self.rand_matrix(dim**2, dim)
                 chan = Stinespring((mat_l, mat_r))
                 rho1 = DensityMatrix(rho).evolve(chan).data
                 rho2 = DensityMatrix(rho).evolve(rep(chan)).data
@@ -145,10 +145,10 @@ class TestEvolve(ChannelTestCase):
     def _chi_to_other(self, rep, qubits_test_cases, repetitions):
         """Test Chi to Other evolution."""
         for nq in qubits_test_cases:
-            dim = 2 ** nq
+            dim = 2**nq
             for _ in range(repetitions):
                 rho = self.rand_rho(dim)
-                mat = self.rand_matrix(dim ** 2, dim ** 2, real=True)
+                mat = self.rand_matrix(dim**2, dim**2, real=True)
                 chan = Chi(mat)
                 rho1 = DensityMatrix(rho).evolve(chan).data
                 rho2 = DensityMatrix(rho).evolve(rep(chan)).data
@@ -157,10 +157,10 @@ class TestEvolve(ChannelTestCase):
     def _ptm_to_other(self, rep, qubits_test_cases, repetitions):
         """Test PTM to Other evolution."""
         for nq in qubits_test_cases:
-            dim = 2 ** nq
+            dim = 2**nq
             for _ in range(repetitions):
                 rho = self.rand_rho(dim)
-                mat = self.rand_matrix(dim ** 2, dim ** 2, real=True)
+                mat = self.rand_matrix(dim**2, dim**2, real=True)
                 chan = PTM(mat)
                 rho1 = DensityMatrix(rho).evolve(chan).data
                 rho2 = DensityMatrix(rho).evolve(rep(chan)).data
