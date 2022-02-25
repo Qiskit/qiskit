@@ -33,7 +33,7 @@ class VariationalPrinciple(ABC):
         self,
         qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
         grad_method: Union[str, CircuitGradient] = "lin_comb",
-    ):
+    ) -> None:
         """
         Args:
             grad_method: The method used to compute the state gradient. Can be either

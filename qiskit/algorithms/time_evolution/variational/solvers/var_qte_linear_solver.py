@@ -40,7 +40,7 @@ class VarQTELinearSolver:
         metric_circ_sampler: Optional[CircuitSampler] = None,
         energy_sampler: Optional[CircuitSampler] = None,
         allowed_imaginary_part: float = 1e-7,
-    ):
+    ) -> None:
         """
         Args:
             metric_tensor: A parametrized operator that represents the left-hand side of an ODE.

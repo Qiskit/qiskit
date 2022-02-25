@@ -29,7 +29,7 @@ class RealVariationalPrinciple(VariationalPrinciple, ABC):
     def __init__(
         self,
         qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
-    ):
+    ) -> None:
         """
         Args:
             qfi_method: The method used to compute the QFI. Can be either ``'lin_comb_full'`` or

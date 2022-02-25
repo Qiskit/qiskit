@@ -30,7 +30,7 @@ class VarQTEOdeSolver:
         init_params: List[Union[float, complex]],
         ode_function_generator: AbstractOdeFunctionGenerator,
         ode_solver_callable: OdeSolver = RK45,
-    ):
+    ) -> None:
         """
         Initialize ODE Solver.
 

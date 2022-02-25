@@ -60,7 +60,7 @@ class VarQTE(EvolutionBase, ABC):
         lse_solver_callable: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
         allowed_imaginary_part: float = 1e-7,
         allowed_num_instability_error: float = 1e-7,
-    ):
+    ) -> None:
         r"""
         Args:
             variational_principle: Variational Principle to be used.
