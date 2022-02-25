@@ -192,7 +192,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
     def _truncated_str(self, show_class):
         stop = self._num_paulis
-        if self.__truncate__:
+        if self.__truncate__ and self.num_qubits > 0:
             max_paulis = self.__truncate__ // self.num_qubits
             if self._num_paulis > max_paulis:
                 stop = max_paulis
