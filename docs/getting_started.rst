@@ -25,9 +25,9 @@ Installation
     version of Python and set of libraries. Open a terminal window in the directory
     where you want to work.
 
-    It is preferred that you use Anaconda prompt installed with the Anaconda.
+    It is preferred that you use the Anaconda prompt installed with Anaconda.
     All you have to do is create a virtual environment inside Anaconda and activate the environment.
-    These commands can be run in Anaconda prompt irrespective of Windows or Linux machine.
+    These commands can be run in the Anaconda prompt irrespective of Windows or Linux machine.
 
     Create a minimal environment with only Python installed in it.
 
