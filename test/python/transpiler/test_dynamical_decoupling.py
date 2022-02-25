@@ -20,7 +20,7 @@ from qiskit.circuit import QuantumCircuit, Delay
 from qiskit.circuit.library import XGate, YGate, RXGate, UGate
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.instruction_durations import InstructionDurations
-from qiskit.transpiler.passes import ASAPSchedule, ALAPSchedule, DynamicalDecoupling
+from qiskit.transpiler.passes import ASAPSchedule, ALAPSchedule, DynamicalDecoupling, PadDelay
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -108,7 +108,11 @@ class TestDynamicalDecoupling(QiskitTestCase):
         """
         dd_sequence = [XGate(), XGate()]
         pm = PassManager(
-            [ALAPSchedule(self.durations), DynamicalDecoupling(self.durations, dd_sequence)]
+            [
+                ALAPSchedule(self.durations),
+                PadDelay(),  # TODO DD pass will be a subclass of BasePadding, this can be removed
+                DynamicalDecoupling(self.durations, dd_sequence),
+            ]
         )
 
         ghz4_dd = pm.run(self.ghz4)
@@ -162,6 +166,7 @@ class TestDynamicalDecoupling(QiskitTestCase):
         pm = PassManager(
             [
                 ALAPSchedule(self.durations),
+                PadDelay(),  # TODO DD pass will be a subclass of BasePadding, this can be removed
                 DynamicalDecoupling(self.durations, dd_sequence, qubits=[0]),
             ]
         )
@@ -211,6 +216,7 @@ class TestDynamicalDecoupling(QiskitTestCase):
         pm = PassManager(
             [
                 ALAPSchedule(self.durations),
+                PadDelay(),  # TODO DD pass will be a subclass of BasePadding, this can be removed
                 DynamicalDecoupling(self.durations, dd_sequence, skip_reset_qubits=False),
             ]
         )
@@ -278,7 +284,11 @@ class TestDynamicalDecoupling(QiskitTestCase):
         """
         dd_sequence = [XGate(), YGate(), XGate(), YGate()]
         pm = PassManager(
-            [ALAPSchedule(self.durations), DynamicalDecoupling(self.durations, dd_sequence)]
+            [
+                ALAPSchedule(self.durations),
+                PadDelay(),  # TODO DD pass will be a subclass of BasePadding, this can be removed
+                DynamicalDecoupling(self.durations, dd_sequence),
+            ]
         )
 
         ghz4_dd = pm.run(self.ghz4)
@@ -334,7 +344,11 @@ class TestDynamicalDecoupling(QiskitTestCase):
         """
         dd_sequence = [XGate()]
         pm = PassManager(
-            [ALAPSchedule(self.durations), DynamicalDecoupling(self.durations, dd_sequence)]
+            [
+                ALAPSchedule(self.durations),
+                PadDelay(),  # TODO DD pass will be a subclass of BasePadding, this can be removed
+                DynamicalDecoupling(self.durations, dd_sequence),
+            ]
         )
 
         midmeas_dd = pm.run(self.midmeas)
@@ -384,7 +398,11 @@ class TestDynamicalDecoupling(QiskitTestCase):
         """
         dd_sequence = [RXGate(pi / 4)]
         pm = PassManager(
-            [ASAPSchedule(self.durations), DynamicalDecoupling(self.durations, dd_sequence)]
+            [
+                ASAPSchedule(self.durations),
+                PadDelay(),  # TODO DD pass will be a subclass of BasePadding, this can be removed
+                DynamicalDecoupling(self.durations, dd_sequence),
+            ]
         )
 
         midmeas_dd = pm.run(self.midmeas)
@@ -463,6 +481,7 @@ class TestDynamicalDecoupling(QiskitTestCase):
         pm = PassManager(
             [
                 ALAPSchedule(self.durations),
+                PadDelay(),  # TODO DD pass will be a subclass of BasePadding, this can be removed
                 DynamicalDecoupling(self.durations, dd_sequence, qubits=[0], spacing=spacing),
             ]
         )
@@ -512,6 +531,7 @@ class TestDynamicalDecoupling(QiskitTestCase):
         pm = PassManager(
             [
                 ALAPSchedule(self.durations),
+                PadDelay(),  # TODO DD pass will be a subclass of BasePadding, this can be removed
                 DynamicalDecoupling(self.durations, dd_sequence, spacing=spacing),
             ]
         )
@@ -555,6 +575,7 @@ class TestDynamicalDecoupling(QiskitTestCase):
         pm = PassManager(
             [
                 ALAPSchedule(self.durations),
+                PadDelay(),  # TODO DD pass will be a subclass of BasePadding, this can be removed
                 DynamicalDecoupling(
                     self.durations, dd_sequence, spacing=spacing, skip_reset_qubits=True
                 ),
@@ -588,6 +609,7 @@ class TestDynamicalDecoupling(QiskitTestCase):
         pm = PassManager(
             [
                 ALAPSchedule(self.durations),
+                PadDelay(),  # TODO DD pass will be a subclass of BasePadding, this can be removed
                 DynamicalDecoupling(self.durations, dd_sequence),
             ]
         )

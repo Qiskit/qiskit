@@ -223,6 +223,7 @@ from .scheduling import ASAPSchedule
 from .scheduling import DynamicalDecoupling
 from .scheduling import AlignMeasures
 from .scheduling import ValidatePulseGates
+from .scheduling import PadDelay
 
 # additional utility passes
 from .utils import CheckMap

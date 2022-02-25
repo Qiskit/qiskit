@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test the Scheduling passes"""
+"""Test the Scheduling/PadDelay passes"""
 
 import unittest
 
@@ -18,12 +18,13 @@ from ddt import ddt, data, unpack
 from qiskit import QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.instruction_durations import InstructionDurations
-from qiskit.transpiler.passes import ASAPSchedule, ALAPSchedule
+from qiskit.transpiler.passes import ASAPSchedule, ALAPSchedule, PadDelay, Unroller
 from qiskit.transpiler.passmanager import PassManager
+from qiskit.transpiler.exceptions import TranspilerError
 
 
 @ddt
-class TestSchedulingPass(QiskitTestCase):
+class TestSchedulingAndPaddingPass(QiskitTestCase):
     """Tests the Scheduling passes"""
 
     def test_alap_agree_with_reverse_asap_reverse(self):
@@ -38,10 +39,10 @@ class TestSchedulingPass(QiskitTestCase):
             [("h", 0, 200), ("cx", [0, 1], 700), ("measure", None, 1000)]
         )
 
-        pm = PassManager(ALAPSchedule(durations))
+        pm = PassManager([ALAPSchedule(durations), PadDelay()])
         alap_qc = pm.run(qc)
 
-        pm = PassManager(ASAPSchedule(durations))
+        pm = PassManager([ASAPSchedule(durations), PadDelay()])
         new_qc = pm.run(qc.reverse_ops())
         new_qc = new_qc.reverse_ops()
         new_qc.name = new_qc.name
@@ -78,7 +79,7 @@ class TestSchedulingPass(QiskitTestCase):
         qc.x(1).c_if(0, True)
 
         durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
-        pm = PassManager(schedule_pass(durations))
+        pm = PassManager([schedule_pass(durations), PadDelay()])
         scheduled = pm.run(qc)
 
         expected = QuantumCircuit(2, 1)
@@ -118,7 +119,7 @@ class TestSchedulingPass(QiskitTestCase):
         qc.measure(1, 0)
 
         durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
-        pm = PassManager(schedule_pass(durations))
+        pm = PassManager([schedule_pass(durations), PadDelay()])
         scheduled = pm.run(qc)
 
         expected = QuantumCircuit(2, 1)
@@ -165,7 +166,7 @@ class TestSchedulingPass(QiskitTestCase):
         qc.x(2).c_if(0, True)
 
         durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
-        pm = PassManager(schedule_pass(durations))
+        pm = PassManager([schedule_pass(durations), PadDelay()])
         scheduled = pm.run(qc)
 
         expected = QuantumCircuit(3, 1)
@@ -205,7 +206,7 @@ class TestSchedulingPass(QiskitTestCase):
         qc.measure(1, 0)
 
         durations = InstructionDurations([("measure", [0], 1000), ("measure", [1], 700)])
-        pm = PassManager(schedule_pass(durations))
+        pm = PassManager([schedule_pass(durations), PadDelay()])
         scheduled = pm.run(qc)
 
         expected = QuantumCircuit(2, 1)
@@ -248,7 +249,7 @@ class TestSchedulingPass(QiskitTestCase):
         qc.measure(2, 0)
 
         durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
-        pm = PassManager(schedule_pass(durations))
+        pm = PassManager([schedule_pass(durations), PadDelay()])
         scheduled = pm.run(qc)
 
         expected = QuantumCircuit(3, 1)
@@ -302,7 +303,7 @@ class TestSchedulingPass(QiskitTestCase):
         durations = InstructionDurations(
             [("x", [0], 200), ("x", [1], 400), ("measure", None, 1000)]
         )
-        pm = PassManager(ALAPSchedule(durations))
+        pm = PassManager([ALAPSchedule(durations), PadDelay()])
         qc_alap = pm.run(qc)
 
         alap_expected = QuantumCircuit(2, 2)
@@ -314,7 +315,7 @@ class TestSchedulingPass(QiskitTestCase):
 
         self.assertEqual(qc_alap, alap_expected)
 
-        pm = PassManager(ASAPSchedule(durations))
+        pm = PassManager([ASAPSchedule(durations), PadDelay()])
         qc_asap = pm.run(qc)
 
         asap_expected = QuantumCircuit(2, 2)
@@ -366,7 +367,7 @@ class TestSchedulingPass(QiskitTestCase):
         durations = InstructionDurations(
             [("x", [0], 200), ("x", [1], 400), ("measure", None, 1000)]
         )
-        pm = PassManager(ALAPSchedule(durations))
+        pm = PassManager([ALAPSchedule(durations), PadDelay()])
         qc_alap = pm.run(qc)
 
         alap_expected = QuantumCircuit(2, 2)
@@ -379,7 +380,7 @@ class TestSchedulingPass(QiskitTestCase):
 
         self.assertEqual(qc_alap, alap_expected)
 
-        pm = PassManager(ASAPSchedule(durations))
+        pm = PassManager([ASAPSchedule(durations), PadDelay()])
         qc_asap = pm.run(qc)
 
         asap_expected = QuantumCircuit(2, 2)
@@ -441,8 +442,12 @@ class TestSchedulingPass(QiskitTestCase):
         durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
 
         # lock at the end edge
-        actual_asap = PassManager(ASAPSchedule(durations, clbit_write_latency=1000)).run(qc)
-        actual_alap = PassManager(ALAPSchedule(durations, clbit_write_latency=1000)).run(qc)
+        actual_asap = PassManager(
+            [ASAPSchedule(durations, clbit_write_latency=1000), PadDelay()]
+        ).run(qc)
+        actual_alap = PassManager(
+            [ALAPSchedule(durations, clbit_write_latency=1000), PadDelay()]
+        ).run(qc)
 
         # start times of 2nd measure depends on ASAP/ALAP
         expected_asap = QuantumCircuit(3, 1)
@@ -491,10 +496,20 @@ class TestSchedulingPass(QiskitTestCase):
 
         durations = InstructionDurations([("x", None, 100), ("measure", None, 1000)])
         actual_asap = PassManager(
-            ASAPSchedule(durations, clbit_write_latency=write_lat, conditional_latency=cond_lat)
+            [
+                ASAPSchedule(
+                    durations, clbit_write_latency=write_lat, conditional_latency=cond_lat
+                ),
+                PadDelay(),
+            ]
         ).run(qc)
         actual_alap = PassManager(
-            ALAPSchedule(durations, clbit_write_latency=write_lat, conditional_latency=cond_lat)
+            [
+                ALAPSchedule(
+                    durations, clbit_write_latency=write_lat, conditional_latency=cond_lat
+                ),
+                PadDelay(),
+            ]
         ).run(qc)
 
         expected = QuantumCircuit(1, 1)
@@ -538,62 +553,62 @@ class TestSchedulingPass(QiskitTestCase):
         «                         0  └─────────┘
 
         (ASAP scheduled) duration = 2800 dt
-             ┌────────────────┐┌────────────────┐   ┌───┐    ░ ┌─────────────────┐»
-        q_0: ┤ Delay(100[dt]) ├┤ Delay(100[dt]) ├───┤ X ├────░─┤ Delay(1400[dt]) ├»
-             ├────────────────┤└────────────────┘   └─╥─┘    ░ ├─────────────────┤»
-        q_1: ┤ Delay(300[dt]) ├───────────────────────╫──────░─┤ Delay(1200[dt]) ├»
-             ├────────────────┤                       ║      ░ └───────┬─┬───────┘»
-        q_2: ┤ Delay(300[dt]) ├───────────────────────╫──────░─────────┤M├────────»
-             └────────────────┘                  ┌────╨────┐ ░         └╥┘        »
-        c: 1/════════════════════════════════════╡ c_0=0x1 ╞════════════╩═════════»
-                                                 └─────────┘            0         »
-        «                                     ┌───┐   ┌────────────────┐»
-        «q_0: ────────────────────────────────┤ X ├───┤ Delay(300[dt]) ├»
-        «        ┌───┐                        └─╥─┘   └────────────────┘»
-        «q_1: ───┤ X ├──────────────────────────╫─────────────■─────────»
-        «        └─╥─┘   ┌────────────────┐     ║           ┌─┴─┐       »
-        «q_2: ─────╫─────┤ Delay(300[dt]) ├─────╫───────────┤ X ├───────»
-        «     ┌────╨────┐└────────────────┘┌────╨────┐      └───┘       »
-        «c: 1/╡ c_0=0x0 ╞══════════════════╡ c_0=0x0 ╞══════════════════»
-        «     └─────────┘                  └─────────┘                  »
-        «           ┌───┐                  ┌────────────────┐
-        «q_0: ──────┤ X ├────────────■─────┤ Delay(700[dt]) ├
-        «     ┌─────┴───┴──────┐   ┌─┴─┐   ├────────────────┤
-        «q_1: ┤ Delay(400[dt]) ├───┤ X ├───┤ Delay(700[dt]) ├
-        «     ├────────────────┤   └─╥─┘   └──────┬─┬───────┘
-        «q_2: ┤ Delay(300[dt]) ├─────╫────────────┤M├────────
-        «     └────────────────┘┌────╨────┐       └╥┘
-        «c: 1/══════════════════╡ c_0=0x0 ╞════════╩═════════
-        «                       └─────────┘        0
+             ┌────────────────┐   ┌───┐    ░ ┌─────────────────┐           »
+        q_0: ┤ Delay(200[dt]) ├───┤ X ├────░─┤ Delay(1400[dt]) ├───────────»
+             ├────────────────┤   └─╥─┘    ░ ├─────────────────┤   ┌───┐   »
+        q_1: ┤ Delay(300[dt]) ├─────╫──────░─┤ Delay(1200[dt]) ├───┤ X ├───»
+             ├────────────────┤     ║      ░ └───────┬─┬───────┘   └─╥─┘   »
+        q_2: ┤ Delay(300[dt]) ├─────╫──────░─────────┤M├─────────────╫─────»
+             └────────────────┘┌────╨────┐ ░         └╥┘        ┌────╨────┐»
+        c: 1/══════════════════╡ c_0=0x1 ╞════════════╩═════════╡ c_0=0x0 ╞»
+                               └─────────┘            0         └─────────┘»
+        «                          ┌───┐   ┌────────────────┐      ┌───┐       »
+        «q_0: ─────────────────────┤ X ├───┤ Delay(300[dt]) ├──────┤ X ├───────»
+        «                          └─╥─┘   └────────────────┘┌─────┴───┴──────┐»
+        «q_1: ───────────────────────╫─────────────■─────────┤ Delay(400[dt]) ├»
+        «     ┌────────────────┐     ║           ┌─┴─┐       ├────────────────┤»
+        «q_2: ┤ Delay(300[dt]) ├─────╫───────────┤ X ├───────┤ Delay(300[dt]) ├»
+        «     └────────────────┘┌────╨────┐      └───┘       └────────────────┘»
+        «c: 1/══════════════════╡ c_0=0x0 ╞════════════════════════════════════»
+        «                       └─────────┘                                    »
+        «                ┌────────────────┐
+        «q_0: ─────■─────┤ Delay(700[dt]) ├
+        «        ┌─┴─┐   ├────────────────┤
+        «q_1: ───┤ X ├───┤ Delay(700[dt]) ├
+        «        └─╥─┘   └──────┬─┬───────┘
+        «q_2: ─────╫────────────┤M├────────
+        «     ┌────╨────┐       └╥┘
+        «c: 1/╡ c_0=0x0 ╞════════╩═════════
+        «     └─────────┘        0
 
         (ALAP scheduled) duration = 3100
-             ┌────────────────┐┌────────────────┐   ┌───┐    ░ ┌─────────────────┐»
-        q_0: ┤ Delay(100[dt]) ├┤ Delay(100[dt]) ├───┤ X ├────░─┤ Delay(1400[dt]) ├»
-             ├────────────────┤└────────────────┘   └─╥─┘    ░ ├─────────────────┤»
-        q_1: ┤ Delay(300[dt]) ├───────────────────────╫──────░─┤ Delay(1200[dt]) ├»
-             ├────────────────┤                       ║      ░ └───────┬─┬───────┘»
-        q_2: ┤ Delay(300[dt]) ├───────────────────────╫──────░─────────┤M├────────»
-             └────────────────┘                  ┌────╨────┐ ░         └╥┘        »
-        c: 1/════════════════════════════════════╡ c_0=0x1 ╞════════════╩═════════»
-                                                 └─────────┘            0         »
-        «                                     ┌───┐   ┌────────────────┐»
-        «q_0: ────────────────────────────────┤ X ├───┤ Delay(300[dt]) ├»
-        «        ┌───┐   ┌────────────────┐   └─╥─┘   └────────────────┘»
-        «q_1: ───┤ X ├───┤ Delay(300[dt]) ├─────╫─────────────■─────────»
-        «        └─╥─┘   ├────────────────┤     ║           ┌─┴─┐       »
-        «q_2: ─────╫─────┤ Delay(600[dt]) ├─────╫───────────┤ X ├───────»
-        «     ┌────╨────┐└────────────────┘┌────╨────┐      └───┘       »
-        «c: 1/╡ c_0=0x0 ╞══════════════════╡ c_0=0x0 ╞══════════════════»
-        «     └─────────┘                  └─────────┘                  »
-        «           ┌───┐                  ┌────────────────┐
-        «q_0: ──────┤ X ├────────────■─────┤ Delay(700[dt]) ├
-        «     ┌─────┴───┴──────┐   ┌─┴─┐   ├────────────────┤
-        «q_1: ┤ Delay(100[dt]) ├───┤ X ├───┤ Delay(700[dt]) ├
-        «     └──────┬─┬───────┘   └─╥─┘   └────────────────┘
-        «q_2: ───────┤M├─────────────╫───────────────────────
-        «            └╥┘        ┌────╨────┐
-        «c: 1/════════╩═════════╡ c_0=0x0 ╞══════════════════
-        «             0         └─────────┘
+             ┌────────────────┐   ┌───┐    ░ ┌─────────────────┐           »
+        q_0: ┤ Delay(200[dt]) ├───┤ X ├────░─┤ Delay(1400[dt]) ├───────────»
+             ├────────────────┤   └─╥─┘    ░ ├─────────────────┤   ┌───┐   »
+        q_1: ┤ Delay(300[dt]) ├─────╫──────░─┤ Delay(1200[dt]) ├───┤ X ├───»
+             ├────────────────┤     ║      ░ └───────┬─┬───────┘   └─╥─┘   »
+        q_2: ┤ Delay(300[dt]) ├─────╫──────░─────────┤M├─────────────╫─────»
+             └────────────────┘┌────╨────┐ ░         └╥┘        ┌────╨────┐»
+        c: 1/══════════════════╡ c_0=0x1 ╞════════════╩═════════╡ c_0=0x0 ╞»
+                               └─────────┘            0         └─────────┘»
+        «                          ┌───┐   ┌────────────────┐      ┌───┐       »
+        «q_0: ─────────────────────┤ X ├───┤ Delay(300[dt]) ├──────┤ X ├───────»
+        «     ┌────────────────┐   └─╥─┘   └────────────────┘┌─────┴───┴──────┐»
+        «q_1: ┤ Delay(300[dt]) ├─────╫─────────────■─────────┤ Delay(100[dt]) ├»
+        «     ├────────────────┤     ║           ┌─┴─┐       └──────┬─┬───────┘»
+        «q_2: ┤ Delay(600[dt]) ├─────╫───────────┤ X ├──────────────┤M├────────»
+        «     └────────────────┘┌────╨────┐      └───┘              └╥┘        »
+        «c: 1/══════════════════╡ c_0=0x0 ╞══════════════════════════╩═════════»
+        «                       └─────────┘                          0         »
+        «                ┌────────────────┐
+        «q_0: ─────■─────┤ Delay(700[dt]) ├
+        «        ┌─┴─┐   ├────────────────┤
+        «q_1: ───┤ X ├───┤ Delay(700[dt]) ├
+        «        └─╥─┘   └────────────────┘
+        «q_2: ─────╫───────────────────────
+        «     ┌────╨────┐
+        «c: 1/╡ c_0=0x0 ╞══════════════════
+        «     └─────────┘
 
         """
         qc = QuantumCircuit(3, 1)
@@ -614,15 +629,14 @@ class TestSchedulingPass(QiskitTestCase):
         )
 
         actual_asap = PassManager(
-            ASAPSchedule(durations, clbit_write_latency=100, conditional_latency=200)
+            [ASAPSchedule(durations, clbit_write_latency=100, conditional_latency=200), PadDelay()]
         ).run(qc)
         actual_alap = PassManager(
-            ALAPSchedule(durations, clbit_write_latency=100, conditional_latency=200)
+            [ALAPSchedule(durations, clbit_write_latency=100, conditional_latency=200), PadDelay()]
         ).run(qc)
 
         expected_asap = QuantumCircuit(3, 1)
-        expected_asap.delay(100, 0)
-        expected_asap.delay(100, 0)  # due to conditional latency of 200dt
+        expected_asap.delay(200, 0)  # due to conditional latency of 200dt
         expected_asap.delay(300, 1)
         expected_asap.delay(300, 2)
         expected_asap.x(0).c_if(0, 1)
@@ -648,8 +662,7 @@ class TestSchedulingPass(QiskitTestCase):
         self.assertEqual(actual_asap.duration, 3100)
 
         expected_alap = QuantumCircuit(3, 1)
-        expected_alap.delay(100, 0)
-        expected_alap.delay(100, 0)  # due to conditional latency of 200dt
+        expected_alap.delay(200, 0)  # due to conditional latency of 200dt
         expected_alap.delay(300, 1)
         expected_alap.delay(300, 2)
         expected_alap.x(0).c_if(0, 1)
@@ -707,7 +720,7 @@ class TestSchedulingPass(QiskitTestCase):
         qc.x(1).c_if(0, True)
 
         durations = InstructionDurations([("x", None, 160)])
-        pm = PassManager(ASAPSchedule(durations))
+        pm = PassManager([ASAPSchedule(durations), PadDelay()])
         scheduled = pm.run(qc)
 
         expected = QuantumCircuit(2, 1)
@@ -717,6 +730,62 @@ class TestSchedulingPass(QiskitTestCase):
         expected.x(1).c_if(0, True)
 
         self.assertEqual(expected, scheduled)
+
+    def test_padding_not_working_without_scheduling(self):
+        """Test padding fails when un-scheduled DAG is input."""
+        qc = QuantumCircuit(1, 1)
+        qc.delay(100, 0)
+        qc.x(0)
+        qc.measure(0, 0)
+
+        with self.assertRaises(TranspilerError):
+            PassManager(PadDelay()).run(qc)
+
+    def test_padding_not_working_after_dag_updated(self):
+        """Test padding fails when DAG is transformed after scheduling."""
+        qc = QuantumCircuit(1)
+        qc.delay(100, 0)
+        qc.h(0)
+
+        durations = InstructionDurations([("h", None, 160)])
+
+        with self.assertRaises(TranspilerError):
+            PassManager(
+                [
+                    ALAPSchedule(durations),
+                    Unroller(basis=["u2"]),
+                    PadDelay(),
+                ]
+            ).run(qc)
+
+    def test_no_pad_very_end_of_circuit(self):
+        """Test padding option that inserts no delay at the very end of circuit.
+
+        This circuit will be unchanged after ASAP-schedule/padding.
+
+             ┌────────────────┐┌─┐
+        q_0: ┤ Delay(100[dt]) ├┤M├
+             └─────┬───┬──────┘└╥┘
+        q_1: ──────┤ X ├────────╫─
+                   └───┘        ║
+        c: 1/═══════════════════╩═
+                                0
+        """
+        qc = QuantumCircuit(2, 1)
+        qc.delay(100, 0)
+        qc.x(1)
+        qc.measure(0, 0)
+
+        durations = InstructionDurations([("x", None, 160), ("measure", None, 1000)])
+
+        scheduled = PassManager(
+            [
+                ASAPSchedule(durations),
+                PadDelay(fill_very_end=False),
+            ]
+        ).run(qc)
+
+        self.assertEqual(scheduled, qc)
 
 
 if __name__ == "__main__":

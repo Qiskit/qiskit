@@ -12,9 +12,11 @@
 
 """Base circuit scheduling pass."""
 
+import warnings
+
 from typing import Dict
 from qiskit.transpiler import InstructionDurations
-from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
 from qiskit.dagcircuit import DAGOpNode, DAGCircuit
 from qiskit.circuit import Delay, Gate
@@ -22,7 +24,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.transpiler.exceptions import TranspilerError
 
 
-class BaseScheduler(TransformationPass):
+class BaseScheduler(AnalysisPass):
     """Base scheduler pass.
 
     Policy of topological node ordering in scheduling
@@ -238,6 +240,16 @@ class BaseScheduler(TransformationPass):
 
         # Ensure op node durations are attached and in consistent unit
         self.requires.append(TimeUnitConversion(durations))
+
+        # Initialize timeslot
+        if "time_slot" in self.property_set:
+            warnings.warn(
+                "This circuit has been already scheduled. "
+                "The output of previous scheduling pass will be overridden.",
+                UserWarning,
+            )
+        self.property_set["time_slot"] = dict()
+        self.property_set["duration"] = None
 
     @staticmethod
     def _get_node_duration(

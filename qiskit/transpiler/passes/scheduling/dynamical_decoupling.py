@@ -50,7 +50,7 @@ class DynamicalDecoupling(TransformationPass):
         from qiskit.circuit import QuantumCircuit
         from qiskit.circuit.library import XGate
         from qiskit.transpiler import PassManager, InstructionDurations
-        from qiskit.transpiler.passes import ALAPSchedule, DynamicalDecoupling
+        from qiskit.transpiler.passes import ALAPSchedule, DynamicalDecoupling, PadDelay
         from qiskit.visualization import timeline_drawer
         circ = QuantumCircuit(4)
         circ.h(0)
@@ -69,6 +69,7 @@ class DynamicalDecoupling(TransformationPass):
         # balanced X-X sequence on all qubits
         dd_sequence = [XGate(), XGate()]
         pm = PassManager([ALAPSchedule(durations),
+                          PadDelay(),
                           DynamicalDecoupling(durations, dd_sequence)])
         circ_dd = pm.run(circ)
         timeline_drawer(circ_dd)
