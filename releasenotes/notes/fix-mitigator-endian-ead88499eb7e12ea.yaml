@@ -1,7 +1,7 @@
 ---
 fixes:
   - |
-    Fixed the bug in :meth:`~qiskit.result.BaseReadoutMitigator.expectation_value`
-    where the endian was reversed when a string `diagonal` is passed.
-    It used to be interpreted as big endian, but now it will be interpreted as little endian,
-    which is the default for Qiskit.
+    Fixed an endianness bug in :meth:`.BaseReadoutMitigator.expectation_value`
+    when a string ``diagonal`` was passed.  It will now correctly be interpreted
+    as little endian in the same manner as the rest of Qiskit Terra, instead of
+    big endian.
