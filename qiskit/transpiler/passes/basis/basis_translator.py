@@ -121,11 +121,7 @@ class BasisTranslator(TransformationPass):
             target_basis = set(self._target_basis)
             source_basis = set()
             for node in dag.op_nodes():
-                if (
-                    not dag.has_calibration_for(node)
-                    and not node.name in target_basis
-                    and not node.name in basic_instrs
-                ):
+                if not dag.has_calibration_for(node):
                     source_basis.add((node.name, node.op.num_qubits))
             qargs_local_source_basis = {}
         else:
@@ -403,6 +399,12 @@ def _basis_search(equiv_lib, source_basis, target_basis):
     """
 
     logger.debug("Begining basis search from %s to %s.", source_basis, target_basis)
+
+    source_basis = {
+        (gate_name, gate_num_qubits)
+        for gate_name, gate_num_qubits in source_basis
+        if gate_name not in target_basis
+    }
 
     # if source basis is empty, no work to be done.
     if not source_basis:
