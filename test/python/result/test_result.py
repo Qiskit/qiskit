@@ -194,7 +194,8 @@ class TestResultOperations(QiskitTestCase):
     def test_marginal_counts_result_memory(self):
         """Test that a Result object containing memory marginalizes correctly."""
         memory = [hex(ii) for ii in range(8)]
-        data_1 = models.ExperimentResultData(counts=None, memory=memory)
+        counts = {m: 1 for m in memory}
+        data_1 = models.ExperimentResultData(counts=counts, memory=memory)
         exp_result_header_1 = QobjExperimentHeader(creg_sizes=[["c0", 4]], memory_slots=4)
         exp_result_1 = models.ExperimentResult(
             shots=8, success=True, data=data_1, header=exp_result_header_1
