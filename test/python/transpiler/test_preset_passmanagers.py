@@ -552,59 +552,36 @@ class TestFinalLayouts(QiskitTestCase):
             19: Qubit(QuantumRegister(15, "ancilla"), 14),
         }
 
-        dense_layout = {
-            2: Qubit(QuantumRegister(3, "qr1"), 0),
-            6: Qubit(QuantumRegister(3, "qr1"), 1),
-            1: Qubit(QuantumRegister(3, "qr1"), 2),
-            5: Qubit(QuantumRegister(2, "qr2"), 0),
-            0: Qubit(QuantumRegister(2, "qr2"), 1),
-            3: Qubit(QuantumRegister(15, "ancilla"), 0),
-            4: Qubit(QuantumRegister(15, "ancilla"), 1),
-            7: Qubit(QuantumRegister(15, "ancilla"), 2),
-            8: Qubit(QuantumRegister(15, "ancilla"), 3),
-            9: Qubit(QuantumRegister(15, "ancilla"), 4),
-            10: Qubit(QuantumRegister(15, "ancilla"), 5),
-            11: Qubit(QuantumRegister(15, "ancilla"), 6),
-            12: Qubit(QuantumRegister(15, "ancilla"), 7),
-            13: Qubit(QuantumRegister(15, "ancilla"), 8),
-            14: Qubit(QuantumRegister(15, "ancilla"), 9),
-            15: Qubit(QuantumRegister(15, "ancilla"), 10),
-            16: Qubit(QuantumRegister(15, "ancilla"), 11),
-            17: Qubit(QuantumRegister(15, "ancilla"), 12),
-            18: Qubit(QuantumRegister(15, "ancilla"), 13),
-            19: Qubit(QuantumRegister(15, "ancilla"), 14),
-        }
-
-        csp_layout = {
-            13: Qubit(QuantumRegister(3, "qr1"), 0),
-            19: Qubit(QuantumRegister(3, "qr1"), 1),
-            14: Qubit(QuantumRegister(3, "qr1"), 2),
-            18: Qubit(QuantumRegister(2, "qr2"), 0),
-            17: Qubit(QuantumRegister(2, "qr2"), 1),
+        vf2_layout = {
             0: Qubit(QuantumRegister(15, "ancilla"), 0),
             1: Qubit(QuantumRegister(15, "ancilla"), 1),
             2: Qubit(QuantumRegister(15, "ancilla"), 2),
             3: Qubit(QuantumRegister(15, "ancilla"), 3),
-            4: Qubit(QuantumRegister(15, "ancilla"), 4),
-            5: Qubit(QuantumRegister(15, "ancilla"), 5),
-            6: Qubit(QuantumRegister(15, "ancilla"), 6),
-            7: Qubit(QuantumRegister(15, "ancilla"), 7),
-            8: Qubit(QuantumRegister(15, "ancilla"), 8),
-            9: Qubit(QuantumRegister(15, "ancilla"), 9),
-            10: Qubit(QuantumRegister(15, "ancilla"), 10),
-            11: Qubit(QuantumRegister(15, "ancilla"), 11),
-            12: Qubit(QuantumRegister(15, "ancilla"), 12),
-            15: Qubit(QuantumRegister(15, "ancilla"), 13),
-            16: Qubit(QuantumRegister(15, "ancilla"), 14),
+            4: Qubit(QuantumRegister(3, "qr1"), 0),
+            5: Qubit(QuantumRegister(15, "ancilla"), 4),
+            6: Qubit(QuantumRegister(15, "ancilla"), 5),
+            7: Qubit(QuantumRegister(15, "ancilla"), 6),
+            8: Qubit(QuantumRegister(3, "qr1"), 1),
+            9: Qubit(QuantumRegister(15, "ancilla"), 7),
+            10: Qubit(QuantumRegister(15, "ancilla"), 8),
+            11: Qubit(QuantumRegister(15, "ancilla"), 9),
+            12: Qubit(QuantumRegister(15, "ancilla"), 10),
+            13: Qubit(QuantumRegister(3, "qr1"), 2),
+            14: Qubit(QuantumRegister(2, "qr2"), 0),
+            15: Qubit(QuantumRegister(15, "ancilla"), 11),
+            16: Qubit(QuantumRegister(15, "ancilla"), 12),
+            17: Qubit(QuantumRegister(15, "ancilla"), 13),
+            18: Qubit(QuantumRegister(15, "ancilla"), 14),
+            19: Qubit(QuantumRegister(2, "qr2"), 1),
         }
 
         # Trivial layout
         expected_layout_level0 = trivial_layout
         # Dense layout
-        expected_layout_level1 = dense_layout
+        expected_layout_level1 = vf2_layout
         # CSP layout
-        expected_layout_level2 = csp_layout
-        expected_layout_level3 = csp_layout
+        expected_layout_level2 = vf2_layout
+        expected_layout_level3 = vf2_layout
 
         expected_layouts = [
             expected_layout_level0,
@@ -751,12 +728,12 @@ class TestFinalLayouts(QiskitTestCase):
             18: Qubit(QuantumRegister(20, "q"), 18),
             19: Qubit(QuantumRegister(20, "q"), 19),
         }
-        trans_qc = transpile(qc, backend, optimization_level=level)
+        trans_qc = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
         self.assertEqual(trans_qc._layout._p2v, expected)
 
-    @data(0, 1)
+    @data(0)
     def test_trivial_layout(self, level):
-        """Test that trivial layout is preferred in level 0 and 1
+        """Test that trivial layout is preferred in level 0
         See: https://github.com/Qiskit/qiskit-terra/pull/3657#pullrequestreview-342012465
         """
         qr = QuantumRegister(10, "qr")
