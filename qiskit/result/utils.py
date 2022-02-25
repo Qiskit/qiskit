@@ -63,7 +63,7 @@ def marginal_counts(
             csize = experiment_result.header.creg_sizes
             experiment_result.header.creg_sizes = _adjust_creg_sizes(csize, indices)
 
-            if experiment_result.data.memory is not None:
+            if getattr(experiment_result.data, "memory") is not None:
                 sorted_indices = sorted(indices, reverse=True)  # same convention as for the counts
                 n = experiment_result.header.n_qubits
                 bit_strings = [_hex_to_bin(s).zfill(n) for s in experiment_result.data.memory]
