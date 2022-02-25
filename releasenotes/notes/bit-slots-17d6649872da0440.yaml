@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The classes :class:`.Qubit`, :class:`.Clbit` and :class:`.AncillaQubit` now
+    the ``__slots__`` attribute.  This is to reduce their memory usage.  As a
+    side effect, they can no longer have arbitrary data attached as attributes
+    to them.  This is very unlikely to have any effect on downstream code other
+    than performance benefits.
