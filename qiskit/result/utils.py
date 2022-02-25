@@ -12,26 +12,32 @@
 
 """Utility functions for working with Results."""
 
+from typing import List, Union, Optional, Dict
 from collections import Counter
 from copy import deepcopy
 
 from qiskit.exceptions import QiskitError
 from qiskit.result.result import Result
-from qiskit.result.postprocess import _bin_to_hex
+from qiskit.result.postprocess import _bin_to_hex, _hex_to_bin
 
 
-def marginal_counts(result, indices=None, inplace=False, format_marginal=False):
+def marginal_counts(
+    result: Union[dict, Result],
+    indices: Optional[List[int]] = None,
+    inplace: bool = False,
+    format_marginal: bool = False,
+) -> Union[Dict[str, int], Result]:
     """Marginalize counts from an experiment over some indices of interest.
 
     Args:
-        result (dict or Result): result to be marginalized
+        result: result to be marginalized
             (a Result object or a dict(str, int) of counts).
-        indices (list(int) or None): The bit positions of interest
+        indices: The bit positions of interest
             to marginalize over. If ``None`` (default), do not marginalize at all.
-        inplace (bool): Default: False. Operates on the original Result
+        inplace: Default: False. Operates on the original Result
             argument if True, leading to loss of original Job Result.
             It has no effect if ``result`` is a dict.
-        format_marginal (bool): Default: False. If True, takes the output of
+        format_marginal: Default: False. If True, takes the output of
             marginalize and formats it with placeholders between cregs and
             for non-indices.
 
@@ -56,6 +62,15 @@ def marginal_counts(result, indices=None, inplace=False, format_marginal=False):
             experiment_result.header.memory_slots = len(indices)
             csize = experiment_result.header.creg_sizes
             experiment_result.header.creg_sizes = _adjust_creg_sizes(csize, indices)
+
+            if experiment_result.data.memory is not None:
+                sorted_indices = sorted(indices, reverse=True)  # same convention as for the counts
+                n = experiment_result.header.n_qubits
+                bit_strings = [_hex_to_bin(s).zfill(n) for s in experiment_result.data.memory]
+                marginal_bit_strings = [
+                    "".join([s[-idx - 1] for idx in sorted_indices]) for s in bit_strings
+                ]
+                experiment_result.data.memory = [_bin_to_hex(s) for s in marginal_bit_strings]
         return result
     else:
         marg_counts = _marginalize(result, indices)
