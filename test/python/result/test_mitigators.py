@@ -440,7 +440,6 @@ class TestReadoutMitigation(QiskitTestCase):
         counts = Counts({"10": 3, "11": 24, "00": 74, "01": 923})
         for mitigator in mitigators:
             expval, _ = mitigator.expectation_value(counts, diagonal="IZ", qubits=[0, 1])
-            print(expval)
             self.assertAlmostEqual(expval, -1.0, places=0)
 
 
