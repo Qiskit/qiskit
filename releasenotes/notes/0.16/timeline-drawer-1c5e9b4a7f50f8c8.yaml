@@ -15,4 +15,4 @@ features:
       qc = QuantumCircuit(2)
       qc.h(0)
       qc.cx(0,1)
-      timeline_drawer(transpile(qc, FakeAthens(), scheduling_method='alap'))
+      timeline_drawer(transpile(qc, FakeAthens(), scheduling_method='alap', layout_method="trivial"))
