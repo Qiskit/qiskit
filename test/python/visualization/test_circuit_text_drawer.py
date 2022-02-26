@@ -636,7 +636,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_text_cu1_condition(self):
-        """Test cu1 with a condition"""
+        """Test cu1 with condition"""
         expected = "\n".join(
             [
                 "                      ",
@@ -661,7 +661,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
 
     def test_text_rzz_condition(self):
-        """Test rzz with a condition"""
+        """Test rzz with condition"""
         expected = "\n".join(
             [
                 "                      ",
@@ -686,7 +686,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
 
     def test_text_cp_condition(self):
-        """Test cp with a condition"""
+        """Test cp with condition"""
         expected = "\n".join(
             [
                 "                    ",
