@@ -16,7 +16,6 @@ import os
 import unittest
 from codecs import encode
 from math import pi
-from ddt import ddt, data, unpack
 
 import numpy
 
@@ -155,7 +154,6 @@ class TestTextDrawerElement(QiskitTestCase):
         self.assertEqual(amount_of_lines, 2)
 
 
-@ddt
 class TestTextDrawerGatesInCircuit(QiskitTestCase):
     """Gate by gate checks in different settings."""
 
@@ -637,15 +635,13 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.append(CPhaseGate(pi / 2), [qr[2], qr[0]])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
-    @data((CU1Gate, "U1"), (RZZGate, "ZZ"))
-    @unpack
-    def test_text_cu1_rzz_condition(self, gate, gname):
-        """Test cu1 and rzz gates with a condition"""
+    def test_text_cu1_condition(self):
+        """Test cu1 with a condition"""
         expected = "\n".join(
             [
                 "                      ",
                 "q_0: ────────■────────",
-                "             │" + gname + "(π/2) ",
+                "             │U1(π/2) ",
                 "q_1: ────────■────────",
                 "             ║        ",
                 "q_2: ────────╫────────",
@@ -661,7 +657,32 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         qr = QuantumRegister(3, "q")
         cr = ClassicalRegister(3, "c")
         circuit = QuantumCircuit(qr, cr)
-        circuit.append(gate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
+        circuit.append(CU1Gate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
+        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
+
+    def test_text_rzz_condition(self):
+        """Test rzz with a condition"""
+        expected = "\n".join(
+            [
+                "                      ",
+                "q_0: ────────■────────",
+                "             │ZZ(π/2) ",
+                "q_1: ────────■────────",
+                "             ║        ",
+                "q_2: ────────╫────────",
+                "             ║        ",
+                "c_0: ════════╬════════",
+                "             ║        ",
+                "c_1: ════════■════════",
+                "                      ",
+                "c_2: ═════════════════",
+                "                      ",
+            ]
+        )
+        qr = QuantumRegister(3, "q")
+        cr = ClassicalRegister(3, "c")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.append(RZZGate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
         self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
 
     def test_text_cp_condition(self):
