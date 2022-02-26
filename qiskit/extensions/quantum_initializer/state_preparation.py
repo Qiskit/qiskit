@@ -34,7 +34,7 @@ class StatePreparation(Gate):
     flexible collection of qubit registers.
     """
 
-    def __init__(self, params, num_qubits=None):
+    def __init__(self, params, num_qubits=None, inverse: bool = False):
         r"""Prepare state
 
         Args:
@@ -65,6 +65,10 @@ class StatePreparation(Gate):
         # pylint: disable=cyclic-import
         from qiskit.quantum_info import Statevector
 
+        self._params_arg = params
+        self._inverse = inverse
+        self._name = "state_preparation_dg" if self._inverse else "state_preparation"
+
         if isinstance(params, Statevector):
             params = params.data
 
@@ -80,7 +84,7 @@ class StatePreparation(Gate):
 
         params = [params] if isinstance(params, int) else params
 
-        super().__init__("state_preparation", num_qubits, params)
+        super().__init__(self._name, num_qubits, params)
 
     def _define(self):
         if self._from_label:
@@ -109,6 +113,8 @@ class StatePreparation(Gate):
                 initialize_circuit.append(HGate(), [q[qubit]])
                 initialize_circuit.append(SdgGate(), [q[qubit]])
 
+        initialize_circuit = initialize_circuit.inverse()
+
         return initialize_circuit
 
     def _define_from_int(self):
@@ -129,6 +135,8 @@ class StatePreparation(Gate):
         for qubit, bit in enumerate(intstr):
             if bit == "1":
                 initialize_circuit.append(XGate(), [q[qubit]])
+
+        initialize_circuit = initialize_circuit.inverse()
 
         return initialize_circuit
 
@@ -153,6 +161,8 @@ class StatePreparation(Gate):
         initialize_circuit = QuantumCircuit(q, name="init_def")
         initialize_circuit.append(initialize_instr, q[:])
 
+        initialize_circuit = initialize_circuit.inverse()
+
         return initialize_circuit
 
     def _get_num_qubits(self, num_qubits, params):
@@ -175,6 +185,10 @@ class StatePreparation(Gate):
 
             num_qubits = int(num_qubits)
         return num_qubits
+
+    def inverse(self):
+        """Return inverted StatePreparation"""
+        return StatePreparation(self._params_arg, inverse=True)
 
     def broadcast_arguments(self, qargs, cargs):
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]

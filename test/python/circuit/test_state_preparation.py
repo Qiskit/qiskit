@@ -16,6 +16,7 @@ StatePreparation test.
 
 import math
 import unittest
+from ddt import ddt, data
 
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import Statevector
@@ -23,6 +24,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
 
 
+@ddt
 class TestStatePreparation(QiskitTestCase):
     """Test initialization with StatePreparation class"""
 
@@ -52,11 +54,19 @@ class TestStatePreparation(QiskitTestCase):
 
     def test_nonzero_state_incorrect(self):
         """Test final state incorrect if initial state not zero"""
-        # ???
+        desired_sv = Statevector([1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)])
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.prepare_state([1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)])
+        actual_sv = Statevector.from_instruction(qc)
+        self.assertFalse(desired_sv == actual_sv)
 
-    def test_inverse(self):
+    @data(2, "11", [1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)])
+    def test_inverse(self, state):
         """Test inverse of StatePreparation"""
-        # ???
+        qc = QuantumCircuit(2)
+        qc.prepare_state(state)
+        qc_dg = qc.inverse()
 
     def test_incompatible_state_and_qubit_args(self):
         """Test error raised if number of qubits not compatible with state arg"""
