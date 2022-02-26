@@ -70,6 +70,16 @@ class Initialize(Instruction, Operation):
         """
         return self._stateprep.gates_to_uncompute()
 
+    @property
+    def params(self):
+        """Return initialize params."""
+        return self._stateprep.params
+
+    @params.setter
+    def params(self, parameters):
+        """Set initialize params."""
+        self._stateprep.params = parameters
+
 
 def initialize(self, params, qubits=None):
     r"""Initialize qubits in a specific state.

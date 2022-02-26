@@ -27,7 +27,7 @@ from qiskit import execute, assemble, BasicAer
 from qiskit.quantum_info import state_fidelity, Statevector, Operator
 from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase
-from qiskit.converters import circuit_to_dag
+from qiskit.extensions.quantum_initializer import Initialize
 
 
 @ddt
@@ -455,12 +455,22 @@ class TestInitialize(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.initialize(state)
         decom_circ = qc.decompose()
-        dag = circuit_to_dag(decom_circ)
 
-        self.assertEqual(len(dag.op_nodes()), 3)
-        self.assertEqual(dag.op_nodes()[0].name, "reset")
-        self.assertEqual(dag.op_nodes()[1].name, "reset")
-        self.assertEqual(dag.op_nodes()[2].name, "state_preparation")
+        self.assertEqual(decom_circ.data[0][0].name, "reset")
+        self.assertEqual(decom_circ.data[1][0].name, "reset")
+        self.assertEqual(decom_circ.data[2][0].name, "state_preparation")
+
+    def test_mutating_params(self):
+        """Test mutating Initialize params correctly updates StatePreparation params"""
+        init = Initialize("11")
+        init.params = "00"
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr)
+        qc.append(init, qr)
+        decom_circ = qc.decompose()
+
+        self.assertEqual(decom_circ.data[2][0].name, "state_preparation")
+        self.assertEqual(decom_circ.data[2][0].params, ["0", "0"])
 
 
 class TestInstructionParam(QiskitTestCase):
