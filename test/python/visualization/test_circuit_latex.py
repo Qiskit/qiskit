@@ -22,7 +22,7 @@ import numpy as np
 from qiskit.visualization import circuit_drawer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.test.mock import FakeTenerife
-from qiskit.circuit.library import XGate, MCXGate, RZZGate, SwapGate, DCXGate
+from qiskit.circuit.library import XGate, MCXGate, RZZGate, SwapGate, DCXGate, CPhaseGate
 from qiskit.extensions import HamiltonianGate
 from qiskit.circuit import Parameter, Qubit, Clbit
 from qiskit.circuit.library import IQP
@@ -643,6 +643,16 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit_drawer(
             circuit, cregbundle=False, reverse_bits=True, filename=filename, output="latex_source"
         )
+        self.assertEqualToReference(filename)
+
+    def test_sidetext_with_condition(self):
+        """Test that sidetext gates align properly with a condition"""
+        filename = self._get_resource_path("test_latex_sidetext_condition.tex")
+        qr = QuantumRegister(2, "q")
+        cr = ClassicalRegister(2, "c")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.append(CPhaseGate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
+        circuit_drawer(circuit, cregbundle=False, filename=filename, output="latex_source")
         self.assertEqualToReference(filename)
 
 
