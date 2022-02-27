@@ -14,7 +14,7 @@ features:
       from qiskit.transpiler.passes import TemplateOptimization
       
       # New contributions to the template optimization
-      from qiskit.transpiler.passes.scheduling import RZXCalibrationBuilder, rzx_templates
+      from qiskit.transpiler.passes.calibration import RZXCalibrationBuilder, rzx_templates
       
       from qiskit.test.mock import FakeCasablanca
       backend = FakeCasablanca()

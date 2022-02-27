@@ -21,6 +21,7 @@ from qiskit.quantum_info import Operator
 from qiskit.circuit.library.templates import template_nct_2a_2, template_nct_5a_3
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
+from qiskit.qasm import pi
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import TemplateOptimization
 from qiskit.transpiler.passes.calibration.rzx_templates import rzx_templates
@@ -249,18 +250,6 @@ class TestTemplateMatching(QiskitTestCase):
               └──────┘                          └───┘└──────┘└───┘
         """
 
-        # class CZp(Gate):
-        #     """CZ gates used for the test."""
-        #
-        #     def __init__(self, num_qubits, params):
-        #         super().__init__("cz", num_qubits, params)
-        #
-        #     def inverse(self):
-        #         #inverse = UnitaryGate(np.diag([1.0, 1.0, 1.0, np.exp(-2.0j * self.params[0])]))
-        #         inverse = CUGate(0, 0, 0, -2.0j * self.params[0])
-        #         inverse.name = "icz"
-        #         return inverse
-
         beta = Parameter("β")
         template = QuantumCircuit(2)
         template.p(-beta, 0)
@@ -292,7 +281,6 @@ class TestTemplateMatching(QiskitTestCase):
         )
         circuit_out = PassManager(pass_).run(circuit_in)
 
-        # import pdb; pdb.set_trace()
         np.testing.assert_almost_equal(Operator(circuit_out).data[3, 3], np.exp(-4.0j))
         np.testing.assert_almost_equal(Operator(circuit_out).data[7, 7], np.exp(-10.0j))
         self.assertEqual(count_cx(circuit_out), 0)  # Two matches => no CX gates.
@@ -351,13 +339,15 @@ class TestTemplateMatching(QiskitTestCase):
     def test_unbound_parameters_in_rzx_template(self):
         """
         Test that rzx template ('zz2') functions correctly for a simple
-        circuit with an unbound ParameterExpression.
+        circuit with an unbound ParameterExpression. This uses the same
+        Parameter (theta) as the template, so this also checks that template
+        substitution handle this correctly.
         """
 
-        phi = Parameter("$\\phi$")
+        theta = Parameter("ϴ")
         circuit_in = QuantumCircuit(2)
         circuit_in.cx(0, 1)
-        circuit_in.p(2 * phi, 1)
+        circuit_in.p(2 * theta, 1)
         circuit_in.cx(0, 1)
 
         pass_ = TemplateOptimization(**rzx_templates(["zz2"]))
@@ -367,10 +357,97 @@ class TestTemplateMatching(QiskitTestCase):
         self.assertNotEqual(circuit_in, circuit_out)
 
         # however these are equivalent if the operators are the same
-        phi_set = 0.42
+        theta_set = 0.42
         self.assertTrue(
-            Operator(circuit_in.bind_parameters({phi: phi_set})).equiv(
-                circuit_out.bind_parameters({phi: phi_set})
+            Operator(circuit_in.bind_parameters({theta: theta_set})).equiv(
+                circuit_out.bind_parameters({theta: theta_set})
+            )
+        )
+
+    def test_two_parameter_template(self):
+        """
+        Test a two-Parameter template based on rzx_templates(["zz3"]),
+
+                                ┌───┐┌───────┐┌───┐┌────────────┐»
+        q_0: ──■─────────────■──┤ X ├┤ Rz(φ) ├┤ X ├┤ Rz(-1.0*φ) ├»
+             ┌─┴─┐┌───────┐┌─┴─┐└─┬─┘└───────┘└─┬─┘└────────────┘»
+        q_1: ┤ X ├┤ Rz(θ) ├┤ X ├──■─────────────■────────────────»
+             └───┘└───────┘└───┘
+        «     ┌─────────┐┌─────────┐┌─────────┐┌───────────┐┌──────────────┐»
+        «q_0: ┤ Rz(π/2) ├┤ Rx(π/2) ├┤ Rz(π/2) ├┤ Rx(1.0*φ) ├┤1             ├»
+        «     └─────────┘└─────────┘└─────────┘└───────────┘│  Rzx(-1.0*φ) │»
+        «q_1: ──────────────────────────────────────────────┤0             ├»
+        «                                                   └──────────────┘»
+        «      ┌─────────┐  ┌─────────┐┌─────────┐                        »
+        «q_0: ─┤ Rz(π/2) ├──┤ Rx(π/2) ├┤ Rz(π/2) ├────────────────────────»
+        «     ┌┴─────────┴─┐├─────────┤├─────────┤┌─────────┐┌───────────┐»
+        «q_1: ┤ Rz(-1.0*θ) ├┤ Rz(π/2) ├┤ Rx(π/2) ├┤ Rz(π/2) ├┤ Rx(1.0*θ) ├»
+        «     └────────────┘└─────────┘└─────────┘└─────────┘└───────────┘»
+        «     ┌──────────────┐
+        «q_0: ┤0             ├─────────────────────────────────
+        «     │  Rzx(-1.0*θ) │┌─────────┐┌─────────┐┌─────────┐
+        «q_1: ┤1             ├┤ Rz(π/2) ├┤ Rx(π/2) ├┤ Rz(π/2) ├
+        «     └──────────────┘└─────────┘└─────────┘└─────────┘
+
+        correctly template matches into a unique circuit, but that it is
+        equivalent to the input circuit when the Parameters are bound to floats
+        and checked with Operator equivalence.
+        """
+        theta = Parameter("θ")
+        phi = Parameter("φ")
+
+        template = QuantumCircuit(2)
+        template.cx(0, 1)
+        template.rz(theta, 1)
+        template.cx(0, 1)
+        template.cx(1, 0)
+        template.rz(phi, 0)
+        template.cx(1, 0)
+        template.rz(-phi, 0)
+        template.rz(pi / 2, 0)
+        template.rx(pi / 2, 0)
+        template.rz(pi / 2, 0)
+        template.rx(phi, 0)
+        template.rzx(-phi, 1, 0)
+        template.rz(pi / 2, 0)
+        template.rz(-theta, 1)
+        template.rx(pi / 2, 0)
+        template.rz(pi / 2, 1)
+        template.rz(pi / 2, 0)
+        template.rx(pi / 2, 1)
+        template.rz(pi / 2, 1)
+        template.rx(theta, 1)
+        template.rzx(-theta, 0, 1)
+        template.rz(pi / 2, 1)
+        template.rx(pi / 2, 1)
+        template.rz(pi / 2, 1)
+
+        alpha = Parameter("$\\alpha$")
+        beta = Parameter("$\\beta$")
+
+        circuit_in = QuantumCircuit(2)
+        circuit_in.cx(0, 1)
+        circuit_in.rz(2 * alpha, 1)
+        circuit_in.cx(0, 1)
+        circuit_in.cx(1, 0)
+        circuit_in.rz(3 * beta, 0)
+        circuit_in.cx(1, 0)
+
+        pass_ = TemplateOptimization(
+            [template],
+            user_cost_dict={"cx": 6, "rz": 0, "rx": 1, "rzx": 0},
+        )
+        circuit_out = PassManager(pass_).run(circuit_in)
+
+        # these are NOT equal if template optimization works
+        self.assertNotEqual(circuit_in, circuit_out)
+
+        # however these are equivalent if the operators are the same
+        alpha_set = 0.39
+        beta_set = 0.42
+        self.assertTrue(
+            Operator(circuit_in.bind_parameters({alpha: alpha_set, beta: beta_set})).equiv(
+                circuit_out.bind_parameters({alpha: alpha_set, beta: beta_set})
             )
         )
 

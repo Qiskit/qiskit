@@ -15,8 +15,10 @@ Template matching substitution, given a list of maximal matches it substitutes
 them in circuit and creates a new optimized dag version of the circuit.
 """
 import copy
+import random
+import string
 
-from qiskit.circuit import ParameterExpression
+from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit.dagdependency import DAGDependency
 from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
@@ -425,7 +427,6 @@ class TemplateSubstitution:
                         cargs = []
                     node = group.template_dag_dep.get_node(index)
                     inst = node.op.copy()
-
                     dag_dep_opt.add_op_node(inst.inverse(), qargs, cargs)
 
             # Add the unmatched gates.
@@ -492,13 +493,59 @@ class TemplateSubstitution:
         from sympy.parsing.sympy_parser import parse_expr
 
         circuit_params, template_params = [], []
+        circ_param_str = ""
+        sub_params = {}
 
         template_dag_dep = copy.deepcopy(self.template_dag_dep)
 
+        # add parameters from circuit to circuit_params, as well as a
+        # string containing parameters to check for duplicates from the template
         for idx, t_idx in enumerate(template_sublist):
             qc_idx = circuit_sublist[idx]
             circuit_params += self.circuit_dag_dep.get_node(qc_idx).op.params
-            template_params += template_dag_dep.get_node(t_idx).op.params
+            for param_exp in self.circuit_dag_dep.get_node(qc_idx).op.params:
+                if isinstance(param_exp, ParameterExpression):
+                    circ_param_str += str(param_exp)
+
+        # add parameters from template to template_params, as well as replace
+        # node parameters that have duplicate names in the circuit params
+        # create a dict of sub_params to substitute remaining nodes not in
+        # the template sublist
+        for idx, t_idx in enumerate(template_sublist):
+            node = template_dag_dep.get_node(t_idx)
+            sub_node_params = []
+            for t_param_exp in node.op.params:
+                if isinstance(t_param_exp, ParameterExpression):
+                    for t_param in t_param_exp.parameters:
+                        if t_param.name in circ_param_str:
+                            new_param_name = "".join(
+                                random.choice(string.ascii_lowercase) for i in range(8)
+                            )
+                            sub_params[t_param] = Parameter(new_param_name)
+                            t_param_exp = t_param_exp.assign(t_param, sub_params[t_param])
+                            sub_node_params.append(t_param_exp)
+                            template_params.append(t_param_exp)
+                        else:
+                            sub_node_params.append(t_param_exp)
+                            template_params.append(t_param_exp)
+
+            node.op.params = sub_node_params
+
+        for node in template_dag_dep.get_nodes():
+            sub_node_params = []
+            for param_exp in node.op.params:
+                if isinstance(param_exp, ParameterExpression):
+                    for param in param_exp.parameters:
+                        if param in sub_params:
+                            sub_node_params.append(
+                                param_exp.subs(sub_params)
+                            )  # prolly need to specify exact entry
+                        else:
+                            sub_node_params.append(param_exp)
+                else:
+                    sub_node_params.append(param_exp)
+
+            node.op.params = sub_node_params
 
         # Create the fake binding dict and check
         equations, circ_dict, temp_symbols, sol, fake_bind = [], {}, {}, {}, {}
@@ -536,12 +583,14 @@ class TemplateSubstitution:
 
         for node in template_dag_dep.get_nodes():
             bound_params = []
-            for param in node.op.params:
-                if isinstance(param, ParameterExpression):
-                    for key in fake_bind:
-                        bound_params.append(param.assign(key, fake_bind[key]))
+            for param_exp in node.op.params:
+                if isinstance(param_exp, ParameterExpression):
+                    for param in param_exp.parameters:
+                        if param in fake_bind:
+                            if fake_bind[param] not in bound_params:
+                                bound_params.append(param_exp.assign(param, fake_bind[param]))
                 else:
-                    bound_params.append(param)
+                    bound_params.append(float(param_exp))
 
             node.op.params = bound_params
 
