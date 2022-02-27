@@ -15,23 +15,26 @@
 
 import unittest
 from collections import Counter
+
 import numpy as np
-from qiskit import QiskitError
-from qiskit import QuantumCircuit
-from qiskit.test import QiskitTestCase
+
+from qiskit import QiskitError, QuantumCircuit
 from qiskit.quantum_info import Statevector
-from qiskit.result import Counts
-from qiskit.result import CorrelatedReadoutMitigator
-from qiskit.result import LocalReadoutMitigator
-from qiskit.result.utils import marginal_counts
+from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.result import (
+    CorrelatedReadoutMitigator,
+    Counts,
+    LocalReadoutMitigator,
+)
 from qiskit.result.mitigation.utils import (
     counts_probability_vector,
-    str2diag,
     expval_with_stddev,
     stddev,
+    str2diag,
 )
+from qiskit.result.utils import marginal_counts
+from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeYorktown
-from qiskit.quantum_info.operators.predicates import matrix_equal
 
 
 class TestReadoutMitigation(QiskitTestCase):
@@ -430,6 +433,14 @@ class TestReadoutMitigation(QiskitTestCase):
             cm.exception.message,
             "Assignment matrix columns must be valid probability distributions",
         )
+
+    def test_expectation_value_endian(self):
+        """Test that endian for expval is little."""
+        mitigators = self.mitigators(self.assignment_matrices())
+        counts = Counts({"10": 3, "11": 24, "00": 74, "01": 923})
+        for mitigator in mitigators:
+            expval, _ = mitigator.expectation_value(counts, diagonal="IZ", qubits=[0, 1])
+            self.assertAlmostEqual(expval, -1.0, places=0)
 
 
 class TestLocalReadoutMitigation(QiskitTestCase):
