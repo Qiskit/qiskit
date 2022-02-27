@@ -18,18 +18,15 @@ import warnings
 
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.operation import Operation
+from .argumentsbroadcaster import ArgumentsBroadcasterReset
 
 
-class Reset(Instruction, Operation):
+class Reset(ArgumentsBroadcasterReset, Instruction, Operation):
     """Qubit reset."""
 
     def __init__(self):
         """Create new reset instruction."""
         super().__init__("reset", 1, 0, [])
-
-    def broadcast_arguments(self, qargs, cargs):
-        for qarg in qargs[0]:
-            yield [qarg], []
 
 
 def reset(circuit, qubit):

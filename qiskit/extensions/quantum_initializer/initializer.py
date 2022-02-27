@@ -28,11 +28,12 @@ from qiskit.circuit.library.standard_gates.s import SGate, SdgGate
 from qiskit.circuit.library.standard_gates.ry import RYGate
 from qiskit.circuit.library.standard_gates.rz import RZGate
 from qiskit.circuit.reset import Reset
+from qiskit.circuit.argumentsbroadcaster import ArgumentsBroadcasterInitializer
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class Initialize(Instruction, Operation):
+class Initialize(ArgumentsBroadcasterInitializer, Instruction, Operation):
     """Complex amplitude initialization.
 
     Class that implements the (complex amplitude) initialization of some
@@ -333,17 +334,6 @@ class Initialize(Instruction, Operation):
             circuit.append(CXGate(), [msb, lsb])
 
         return circuit
-
-    def broadcast_arguments(self, qargs, cargs):
-        flat_qargs = [qarg for sublist in qargs for qarg in sublist]
-
-        if self.num_qubits != len(flat_qargs):
-            raise QiskitError(
-                "Initialize parameter vector has %d elements, therefore expects %s "
-                "qubits. However, %s were provided."
-                % (2**self.num_qubits, self.num_qubits, len(flat_qargs))
-            )
-        yield flat_qargs, []
 
     def validate_parameter(self, parameter):
         """Initialize instruction parameter can be str, int, float, and complex."""
