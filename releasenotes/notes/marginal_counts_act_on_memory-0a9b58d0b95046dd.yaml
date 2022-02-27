@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Update the `marginal_counts` method to marginalize the memory field of the data.
