@@ -65,10 +65,10 @@ def marginal_counts(
 
             if getattr(experiment_result.data, "memory") is not None:
                 sorted_indices = sorted(indices, reverse=True)  # same convention as for the counts
-                n = experiment_result.header.n_qubits
-                bit_strings = [_hex_to_bin(s).zfill(n) for s in experiment_result.data.memory]
+                bit_strings = [_hex_to_bin(s) for s in experiment_result.data.memory]
                 marginal_bit_strings = [
-                    "".join([s[-idx - 1] for idx in sorted_indices]) for s in bit_strings
+                    "".join([s[-idx - 1] for idx in sorted_indices if idx < len(s)])
+                    for s in bit_strings
                 ]
                 experiment_result.data.memory = [_bin_to_hex(s) for s in marginal_bit_strings]
         return result
