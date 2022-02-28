@@ -25,6 +25,8 @@ from qiskit.transpiler.passes.optimization import Optimize1qGates
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
+from .padding import PadDelay
+
 
 class DynamicalDecoupling(TransformationPass):
     """Dynamical decoupling insertion pass.
@@ -50,7 +52,7 @@ class DynamicalDecoupling(TransformationPass):
         from qiskit.circuit import QuantumCircuit
         from qiskit.circuit.library import XGate
         from qiskit.transpiler import PassManager, InstructionDurations
-        from qiskit.transpiler.passes import ALAPSchedule, DynamicalDecoupling, PadDelay
+        from qiskit.transpiler.passes import ALAPSchedule, DynamicalDecoupling
         from qiskit.visualization import timeline_drawer
         circ = QuantumCircuit(4)
         circ.h(0)
@@ -69,7 +71,6 @@ class DynamicalDecoupling(TransformationPass):
         # balanced X-X sequence on all qubits
         dd_sequence = [XGate(), XGate()]
         pm = PassManager([ALAPSchedule(durations),
-                          PadDelay(),
                           DynamicalDecoupling(durations, dd_sequence)])
         circ_dd = pm.run(circ)
         timeline_drawer(circ_dd)
@@ -119,6 +120,9 @@ class DynamicalDecoupling(TransformationPass):
         self._qubits = qubits
         self._spacing = spacing
         self._skip_reset_qubits = skip_reset_qubits
+
+        # temporary code until DD pass is updated
+        self.requires = [PadDelay()]
 
     def run(self, dag):
         """Run the DynamicalDecoupling pass on dag.
