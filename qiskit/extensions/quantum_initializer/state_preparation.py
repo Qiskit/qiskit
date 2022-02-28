@@ -477,13 +477,11 @@ def prepare_state(self, state, qubits=None):
 
     if qubits is None:
         qubits = self.qubits
-    else:
-        if isinstance(qubits, int):
-            qubits = [qubits]
-        qubits = self._bit_argument_conversion(qubits, self.qubits)
+    elif isinstance(qubits, (int, np.integer, slice)):
+        qubits = [qubits]
 
-    num_qubits = None if not isinstance(state, int) else len(qubits)
+    num_qubits = len(qubits) if isinstance(state, int) else None
+
     return self.append(StatePreparation(state, num_qubits), qubits)
-
 
 QuantumCircuit.prepare_state = prepare_state

@@ -13,6 +13,8 @@
 """
 Initialize qubit registers to desired arbitrary state.
 """
+import numpy as np
+
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import Instruction, Operation
