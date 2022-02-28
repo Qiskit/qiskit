@@ -21,7 +21,7 @@ from qiskit.algorithms.time_evolution.problems.gradient_evolution_problem import
 from qiskit.opflow import EvolutionBase
 
 
-class GradientEvolutionBase(ABC, EvolutionBase):
+class GradientEvolutionBase(EvolutionBase, ABC):
     """Base class for quantum time evolution and gradient evolution."""
 
     @abstractmethod
