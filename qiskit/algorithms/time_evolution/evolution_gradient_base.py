@@ -10,25 +10,28 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Base class for quantum time evolution."""
+"""Base class for quantum time evolution and gradient evolution."""
 
 from abc import ABC, abstractmethod
 
-from qiskit.algorithms.time_evolution.problems.evolution_problem import EvolutionProblem
 from qiskit.algorithms.time_evolution.evolution_result import EvolutionResult
+from qiskit.algorithms.time_evolution.problems.gradient_evolution_problem import (
+    GradientEvolutionProblem,
+)
+from qiskit.opflow import EvolutionBase
 
 
-class EvolutionBase(ABC):
-    """Base class for quantum time evolution."""
+class GradientEvolutionBase(ABC, EvolutionBase):
+    """Base class for quantum time evolution and gradient evolution."""
 
     @abstractmethod
-    def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
+    def gradient(self, gradient_evolution_problem: GradientEvolutionProblem) -> EvolutionResult:
         """
-        Evolves an initial state or an observable according to a Hamiltonian provided.
+        Performs Quantum Time Evolution of gradient expressions.
 
         Args:
-            evolution_problem: EvolutionProblem instance that includes definition of an evolution
-                problem.
+            gradient_evolution_problem: GradientEvolutionProblem instance that includes definition
+                of a gradient evolution problem.
 
         Returns:
             Evolution result which includes an evolved gradient of quantum state or an observable

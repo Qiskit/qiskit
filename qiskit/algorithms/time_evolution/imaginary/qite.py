@@ -17,5 +17,5 @@ from abc import ABC
 from qiskit.algorithms.time_evolution.evolution_base import EvolutionBase
 
 
-class QITE(EvolutionBase, ABC):
+class QITE(ABC):
     """Interface for Quantum Imaginary Time Evolution."""

@@ -17,5 +17,5 @@ from abc import ABC
 from qiskit.algorithms.time_evolution.evolution_base import EvolutionBase
 
 
-class QRTE(EvolutionBase, ABC):
+class QRTE(ABC):
     """Base class for quantum real time evolution."""
