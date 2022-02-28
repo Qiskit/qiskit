@@ -70,6 +70,7 @@ Optimizations
    Collect1qRuns
    Collect2qBlocks
    CollectMultiQBlocks
+   CollectLinearFunctions
    ConsolidateBlocks
    CXCancellation
    InverseCancellation
@@ -127,6 +128,8 @@ Synthesis
    :toctree: ../stubs/
 
    UnitarySynthesis
+   LinearFunctionsSynthesis
+   LinearFunctionsToPermutations
 
 Additional Passes
 =================
@@ -196,6 +199,7 @@ from .optimization import HoareOptimizer
 from .optimization import TemplateOptimization
 from .optimization import InverseCancellation
 from .optimization import EchoRZXWeylDecomposition
+from .optimization import CollectLinearFunctions
 
 # circuit analysis
 from .analysis import ResourceEstimation
@@ -210,6 +214,8 @@ from .analysis import DAGLongestPath
 # synthesis
 from .synthesis import UnitarySynthesis
 from .synthesis import unitary_synthesis_plugin_names
+from .synthesis import LinearFunctionsSynthesis
+from .synthesis import LinearFunctionsToPermutations
 
 # calibration
 from .calibration import PulseGates
