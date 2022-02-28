@@ -28,7 +28,7 @@ from qiskit.providers.models import BackendProperties
 from qiskit.providers.models.backendproperties import Gate
 from qiskit.pulse import Schedule, InstructionScheduleMap
 from qiskit.tools.parallel import parallel_map
-from qiskit.transpiler import Layout, CouplingMap, PropertySet, PassManager
+from qiskit.transpiler import Layout, CouplingMap, PropertySet
 from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations, InstructionDurationsType
@@ -64,7 +64,6 @@ def transpile(
     timing_constraints: Optional[Dict[str, int]] = None,
     seed_transpiler: Optional[int] = None,
     optimization_level: Optional[int] = None,
-    pass_manager: Optional[PassManager] = None,
     callback: Optional[Callable[[BasePass, DAGCircuit, float, PropertySet, int], Any]] = None,
     output_name: Optional[Union[str, List[str]]] = None,
     unitary_synthesis_method: str = "default",
@@ -190,10 +189,6 @@ def transpile(
             * 2: heavy optimization
             * 3: even heavier optimization
             If ``None``, level 1 will be chosen as default.
-        pass_manager: The pass manager to use for a custom pipeline of transpiler passes.
-            If this arg is present, all other args will be ignored and the
-            pass manager will be used directly (Qiskit will not attempt to
-            auto-select a pass manager based on transpile options).
         callback: A callback function that will be called after each
             pass execution. The function will be called with 5 keyword
             arguments,
@@ -260,32 +255,6 @@ def transpile(
         else:
             return circuits[0]
 
-    if pass_manager is not None:
-        _check_conflicting_argument(
-            optimization_level=optimization_level,
-            basis_gates=basis_gates,
-            coupling_map=coupling_map,
-            seed_transpiler=seed_transpiler,
-            backend_properties=backend_properties,
-            initial_layout=initial_layout,
-            layout_method=layout_method,
-            routing_method=routing_method,
-            translation_method=translation_method,
-            approximation_degree=approximation_degree,
-            unitary_synthesis_method=unitary_synthesis_method,
-            backend=backend,
-            target=target,
-        )
-
-        warnings.warn(
-            "The parameter pass_manager in transpile is being deprecated. "
-            "The preferred way to tranpile a circuit using a custom pass manager is"
-            " pass_manager.run(circuit)",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return pass_manager.run(circuits, output_name=output_name, callback=callback)
-
     if optimization_level is None:
         # Take optimization level from the configuration or 1 as default.
         config = user_config.get_config()
@@ -341,15 +310,6 @@ def transpile(
         return circuits
     else:
         return circuits[0]
-
-
-def _check_conflicting_argument(**kargs):
-    conflicting_args = [arg for arg, value in kargs.items() if value]
-    if conflicting_args:
-        raise TranspilerError(
-            "The parameters pass_manager conflicts with the following "
-            "parameter(s): {}.".format(", ".join(conflicting_args))
-        )
 
 
 def _check_circuits_coupling_map(circuits, transpile_args, backend):
@@ -988,8 +948,8 @@ def _parse_instruction_durations(backend, inst_durations, dt, circuits):
         if circ.calibrations:
             cal_durations = []
             for gate, gate_cals in circ.calibrations.items():
-                for (qubits, _), schedule in gate_cals.items():
-                    cal_durations.append((gate, qubits, schedule.duration))
+                for (qubits, parameters), schedule in gate_cals.items():
+                    cal_durations.append((gate, qubits, parameters, schedule.duration))
             circ_durations.update(cal_durations, circ_durations.dt)
 
         if inst_durations:
@@ -1038,12 +998,6 @@ def _parse_optimization_level(optimization_level, num_circuits):
     if not isinstance(optimization_level, list):
         optimization_level = [optimization_level] * num_circuits
     return optimization_level
-
-
-def _parse_pass_manager(pass_manager, num_circuits):
-    if not isinstance(pass_manager, list):
-        pass_manager = [pass_manager] * num_circuits
-    return pass_manager
 
 
 def _parse_callback(callback, num_circuits):
