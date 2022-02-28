@@ -26,8 +26,10 @@ from qiskit.opflow import (
 
 def _is_op_bound(operator: Union[SummedOp, PauliOp, OperatorBase]) -> None:
     """Checks if an operator provided has all parameters bound.
+
     Args:
         operator: Operator to be checked.
+
     Raises:
         ValueError: If an operator has unbound parameters.
     """
@@ -39,7 +41,13 @@ def _is_op_bound(operator: Union[SummedOp, PauliOp, OperatorBase]) -> None:
 
 
 def _validate_input(initial_state: StateFn, observable: OperatorBase) -> None:
-    """Validates if one and only one among initial_state and observable is provided."""
+    """
+    Validates if one and only one among initial_state and observable is provided.
+
+    Args:
+        initial_state: A variable potentially holding a quantum state.
+        observable: A variable potentially holding a quantum observable.
+    """
     if initial_state is None and observable is None:
         raise ValueError(
             "TrotterQrte requires an initial state or an observable to be evolved; None "
@@ -55,8 +63,10 @@ def _validate_input(initial_state: StateFn, observable: OperatorBase) -> None:
 def _validate_hamiltonian_form(hamiltonian: Union[SummedOp, PauliOp, OperatorBase]):
     """Validates that a Hamiltonian is of a correct type and with expected dependence on
     parameters.
+
     Args:
         hamiltonian: Hamiltonian to be validated.
+
     Raises:
         ValueError: if an invalid Hamiltonian is provided.
     """
@@ -84,11 +94,14 @@ def _validate_hamiltonian_form(hamiltonian: Union[SummedOp, PauliOp, OperatorBas
 
 def _is_linear_with_single_param(operator: OperatorBase) -> bool:
     """Checks if an operator provided is linear w.r.t. one and only one parameter.
+
     Args:
         operator: Operator to be checked.
+
     Returns:
         True or False depending on whether an operator is linear in a single param and only contains'
         a single param.
+
     Raises:
         ValueError: If an operator contains more than 1 parameter.
     """

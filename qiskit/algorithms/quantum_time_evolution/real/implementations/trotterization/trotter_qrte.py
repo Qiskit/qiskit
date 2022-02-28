@@ -16,7 +16,8 @@ from collections import defaultdict
 from itertools import product
 from typing import Union, List, Dict, Optional
 
-from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.trotter_ops_validator import (
+from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.\
+    trotter_ops_validator import (
     _validate_hamiltonian_form,
     _validate_input,
     _is_op_bound,
@@ -58,7 +59,7 @@ class TrotterQrte(Qrte):
             evolved_state = trotter_qrte.evolve(operator, time, initial_state)
     """
 
-    def __init__(self, product_formula: ProductFormula = LieTrotter()):
+    def __init__(self, product_formula: ProductFormula = LieTrotter()) -> None:
         """
         Args:
             product_formula: A Lie-Trotter-Suzuki product formula. The default is the Lie-Trotter
@@ -79,6 +80,7 @@ class TrotterQrte(Qrte):
         Evolves a quantum state or an observable for a given time using the Trotterization method
         based on a product formula provided.
         Time-dependent Hamiltonians are not yet supported.
+
         Args:
             hamiltonian:
                 The operator to evolve. Can also be provided as list of non-commuting
@@ -86,12 +88,12 @@ class TrotterQrte(Qrte):
                 For example: ``[XY + YX, ZZ + ZI + IZ, YY]``.
             time: Total time of evolution.
             initial_state: If interested in a quantum state time evolution, a quantum state to be
-                            evolved.
+                evolved.
             observable: If interested in a quantum observable time evolution, a quantum observable
-                        to be evolved.
+                to be evolved.
             t_param: Not supported by this algorithm.
             hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
-                                    certain values.
+                certain values.
 
         Returns:
             The evolved hamiltonian applied to either an initial state or an observable.
@@ -130,13 +132,14 @@ class TrotterQrte(Qrte):
     ) -> Union[SummedOp, PauliOp, OperatorBase]:
         """
         Tries binding parameters in a Hamiltonian.
+
         Args:
             hamiltonian:
                 The operator to evolve. Can also be provided as list of non-commuting
                 operators where the elements are sums of commuting operators.
                 For example: ``[XY + YX, ZZ + ZI + IZ, YY]``.
             hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
-                                    certain values.
+                certain values.
 
         Returns:
             Bound Hamiltonian.
@@ -186,20 +189,21 @@ class TrotterQrte(Qrte):
         """
         Computes gradients of a quantum state evolved according to a given Hamiltonian and w.r.t.
         observable and parameters provided.
+
         Args:
             hamiltonian: The operator to evolve. Can also be provided as list of non-commuting
-                        operators where the elements are sums of commuting operators.
-                        For example: ``[XY + YX, ZZ + ZI + IZ, YY]``.
+                operators where the elements are sums of commuting operators.
+                For example: ``[XY + YX, ZZ + ZI + IZ, YY]``.
             time: Total time of evolution.
             initial_state: If interested in a quantum state time evolution, a quantum state to be
-                            evolved.
+                evolved.
             gradient_object: TrotterQrte does not support custom Gradient method. Provided Gradient
-                            object is ignored.
+                object is ignored.
             observable: If interested in a quantum observable time evolution, a quantum observable
-                        to be evolved.
+                to be evolved.
             t_param: Not supported by this algorithm.
             hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
-                                    certain values.
+                certain values.
             gradient_params: Parameters w.r.t. which gradients shall be computed.
 
         Returns:
@@ -312,16 +316,17 @@ class TrotterQrte(Qrte):
     ) -> float:
         """Calculates a gradient using the finite difference method. It is used for gradients
         w.r.t. a potential time parameter.
+
         Args:
             hamiltonian: The operator to evolve. Can also be provided as list of non-commuting
-                        operators where the elements are sums of commuting operators.
-                        For example: ``[XY + YX, ZZ + ZI + IZ, YY]``.
+                operators where the elements are sums of commuting operators.
+                For example: ``[XY + YX, ZZ + ZI + IZ, YY]``.
             hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
-                                    certain values.
+                certain values.
             initial_state: If interested in a quantum state time evolution, a quantum state to be
-                            evolved.
+                evolved.
             observable: If interested in a quantum observable time evolution, a quantum observable
-                        to be evolved.
+                to be evolved.
             t_param: Not supported by this algorithm.
             time: Total time of evolution.
             epsilon: Size of a finite difference interval.
@@ -349,19 +354,21 @@ class TrotterQrte(Qrte):
     ) -> float:
         """Calculates a gradient of a Hamiltonian term (a single summand) with respect to
         parameters given.
+
         Args:
             hamiltonian: The operator to evolve. Can also be provided as list of non-commuting
-                            operators where the elements are sums of commuting operators.
-                            For example: ``[XY + YX, ZZ + ZI + IZ, YY]``.
+                operators where the elements are sums of commuting operators.
+                For example: ``[XY + YX, ZZ + ZI + IZ, YY]``.
             hamiltonian_term: One of the terms (summands) from a Hamiltonian.
             initial_state: If interested in a quantum state time evolution, a quantum state to be
-                            evolved.
+                evolved.
             observable: If interested in a quantum observable time evolution, a quantum observable
-                        to be evolved.
+                to be evolved.
             t_param: Not supported by this algorithm.
             time: Total time of evolution.
             hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
-                                    certain values.
+                certain values.
+
         Returns:
             Gradient of an evolved state w.r.t. parameters from a hamiltonian_value_dict.
         """
