@@ -127,13 +127,15 @@ class NaturalGradient(GradientBase):
 
     @staticmethod
     def nat_grad_combo_fn(x: tuple, regularization: Optional[str] = None) -> np.ndarray:
-        """
+        r"""
         Natural Gradient Function Implementation.
         Args:
             x: Iterable consisting of Gradient, Quantum Geometric Tensor.
             regularization: Regularization method.
-
-        Returns: Natural Gradient.
+        Returns:
+            Natural Gradient.
+        Raises:
+            ValueError: If the gradient has imaginary components that are non-negligible.
 
         """
         gradient = x[0]
