@@ -126,7 +126,9 @@ class NaturalGradient(GradientBase):
         return ListOp([grad, metric], combo_fn=combo_fn)
 
     @staticmethod
-    def nat_grad_combo_fn(x, regularization=None):
+    def nat_grad_combo_fn(x: tuple,
+                          regularization: Optional[str] = None
+                          ) -> np.ndarray:
         """
         Natural Gradient Function Implementation.
         Args:

@@ -37,7 +37,6 @@ from qiskit.opflow import (
     CircuitSampler,
     TensoredOp,
     SummedOp,
-    ComposedOp,
 )
 from qiskit.opflow.gradients import Gradient, NaturalGradient, Hessian
 from qiskit.opflow.gradients.qfi import QFI
