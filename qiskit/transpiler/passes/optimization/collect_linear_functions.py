@@ -37,9 +37,11 @@ class CollectLinearFunctions(TransformationPass):
     def _order_nodes(self, dag):
         """Adjusts the order of nodes in order to maximize blocks of linear gates."""
         # Starting with the topologically ordered nodes, we first try to move
-        # all non-linear gates upfront, then all linear gates, then all non-linear gates, and so on.
+        # all non-linear gates upfront, then all linear gates, then all non-linear gates,
+        # and so on.
         # For now, we allow swapping nodes when they are defined over different sets of qubits
-        # (hence the nodes commute), but it might be even more powerful to use a real commutation analysis.
+        # (hence the nodes commute), but it might be even more powerful to use a real
+        # commutation analysis.
         num_qubits = len(dag.qubits)
         initial_order = []  # initial (topological) order
         new_order = []  # adjusted order
@@ -75,7 +77,7 @@ class CollectLinearFunctions(TransformationPass):
                 if collected_flag[i]:
                     continue
                 node = initial_order[i]
-                collectable = not (self._is_linear_gate(node.op) ^ collect_linear)
+                collectable = not self._is_linear_gate(node.op) ^ collect_linear
 
                 if not collectable or not postponed_qubits.isdisjoint(node.qargs):
                     postponed_qubits.update(node.qargs)
