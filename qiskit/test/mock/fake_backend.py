@@ -26,6 +26,7 @@ from typing import Iterable, List, Union
 from qiskit import circuit
 from qiskit.providers.models import BackendProperties, PulseBackendConfiguration, PulseDefaults
 from qiskit.providers import BackendV1, BackendV2, BaseBackend, QubitProperties
+from qiskit.providers.models.backendconfiguration import QasmBackendConfiguration
 from qiskit.providers.options import Options
 from qiskit import pulse
 from qiskit.pulse.channels import (
@@ -282,6 +283,12 @@ class FakeLegacyBackend(BaseBackend):
 class FakeBackendV2(BackendV2):
     """This is a dummy bakend just for resting purposes. the FakeBackendV2 builds on top of the BackendV2 base class."""
 
+    dirname = None
+    conf_filename = None
+    props_filename = None
+    defs_filename = None
+    backend_name = None
+
     def __init__(self):
         self._configuration = self._get_conf_from_json()
         super().__init__(
@@ -318,7 +325,11 @@ class FakeBackendV2(BackendV2):
         return configuration
 
     def _get_config_from_dict(self, conf):
-        return PulseBackendConfiguration.from_dict(conf)
+        try:
+            configuration = PulseBackendConfiguration.from_dict(conf)
+        except:
+            configuration = QasmBackendConfiguration.from_dict(conf)
+        return configuration
 
     def _set_props_from_json(self):
         if not self.props_filename:
@@ -328,8 +339,8 @@ class FakeBackendV2(BackendV2):
         self._properties = BackendProperties.from_dict(props)
 
     def _set_defaults_from_json(self):
-        if not self.props_filename:
-            raise QiskitError("No properties file has been defined")
+        if not self.defs_filename:
+            raise QiskitError("No pulse defaults file has been defined")
         defs = self._load_json(self.defs_filename)
         decode_pulse_defaults(defs)
         self._defaults = PulseDefaults.from_dict(defs)
