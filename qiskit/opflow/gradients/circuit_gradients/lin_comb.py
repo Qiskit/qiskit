@@ -61,7 +61,6 @@ from ...state_fns.dict_state_fn import DictStateFn
 from ...state_fns.vector_state_fn import VectorStateFn
 from ...state_fns.sparse_vector_state_fn import SparseVectorStateFn
 from ...exceptions import OpflowError
-from ...expectations import PauliExpectation
 from .circuit_gradient import CircuitGradient
 
 
@@ -635,9 +634,6 @@ class LinComb(CircuitGradient):
         state_qc = QuantumCircuit(*state_op.primitive.qregs, qr_superpos)
         state_qc.h(qr_superpos)
 
-        # if meas_op is not None:
-        #     meas_op = meas_op.reduce()
-
         state_qc.compose(unrolled, inplace=True)
 
         # Define the working qubit to realize the linear combination of unitaries
@@ -678,7 +674,6 @@ class LinComb(CircuitGradient):
 
                         if isinstance(meas_op, OperatorBase):
                             state = StateFn(meas_op, is_measurement=True) @ state
-                            state = PauliExpectation().convert(state).reduce()
 
                         else:
                             state = ListOp(
@@ -739,9 +734,6 @@ class LinComb(CircuitGradient):
         # add hadamards
         state_qc.h(qr_add0)
         state_qc.h(qr_add1)
-
-        if meas_op is not None:
-            meas_op = meas_op.reduce()
 
         # compose with the original circuit
         state_qc.compose(state_op.primitive, inplace=True)

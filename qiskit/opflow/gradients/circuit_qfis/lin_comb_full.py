@@ -89,7 +89,7 @@ class LinCombFull(CircuitQFI):
                 operator,
                 meas_op=phase_fix_observable,
                 target_params=params,
-                open_ctrl=True,
+                open_ctrl=False,
                 trim_after_grad_gate=True,
             )
 

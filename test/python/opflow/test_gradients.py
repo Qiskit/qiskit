@@ -37,6 +37,7 @@ from qiskit.opflow import (
     CircuitSampler,
     TensoredOp,
     SummedOp,
+    ComposedOp,
 )
 from qiskit.opflow.gradients import Gradient, NaturalGradient, Hessian
 from qiskit.opflow.gradients.qfi import QFI
@@ -1427,9 +1428,11 @@ class TestQFI(QiskitOpflowTestCase):
         for i, (circuit_set, list_op) in enumerate(zip(circuit_sets, list_ops)):
             for j, (reference, composed_op) in enumerate(zip(circuit_set, list_op)):
                 with self.subTest(f"set {i} circuit {j}"):
+                    primitive = composed_op[1].primitive
                     self.assertEqual(
-                        base.compose(composed_op[1].primitive), base.compose(reference)
+                        base.compose(primitive), base.compose(reference)
                     )
+
 
     def test_overlap_qfi_bound_parameters(self):
         """Test the overlap QFI works on a circuit with multi-parameter bound gates."""
