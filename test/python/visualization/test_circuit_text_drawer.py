@@ -649,7 +649,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                 "c_0: ════════╬════════",
                 "             ║        ",
                 "c_1: ════════■════════",
-                "                      ",
+                "            0x1       ",
                 "c_2: ═════════════════",
                 "                      ",
             ]
@@ -674,7 +674,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                 "c_0: ════════╬════════",
                 "             ║        ",
                 "c_1: ════════■════════",
-                "                      ",
+                "            0x1       ",
                 "c_2: ═════════════════",
                 "                      ",
             ]
@@ -699,7 +699,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                 "c_0: ═══════╬═══════",
                 "            ║       ",
                 "c_1: ═══════■═══════",
-                "                    ",
+                "           0x1      ",
                 "c_2: ═══════════════",
                 "                    ",
             ]
