@@ -22,6 +22,7 @@ from qiskit.circuit import Qubit, Clbit, ClassicalRegister, QuantumRegister, Qua
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import Reset
 from qiskit.circuit import Measure
+from qiskit.circuit import MeasureX
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.visualization.utils import (
@@ -215,12 +216,18 @@ class MeasureFrom(BoxOnQuWire):
         bot: └╥┘    └╥┘
     """
 
-    def __init__(self):
+    def __init__(self, basis="Z"):
         super().__init__()
         self.top_format = self.mid_format = self.bot_format = "%s"
-        self.top_connect = "┌─┐"
-        self.mid_content = "┤M├"
-        self.bot_connect = "└╥┘"
+
+        if basis == "Z":
+            self.top_connect = "┌─┐"
+            self.mid_content = "┤M├"
+            self.bot_connect = "└╥┘"
+        else:
+            self.top_connect = "┌───┐"
+            self.mid_content = "┤M_{}├".format(basis)
+            self.bot_connect = "└─╥─┘"
 
         self.top_pad = self.bot_pad = " "
         self._mid_padding = "─"
@@ -1055,7 +1062,7 @@ class TextDrawing:
         base_gate = getattr(op, "base_gate", None)
 
         params = get_param_str(op, "text", ndigits=5)
-        if not isinstance(op, (Measure, SwapGate, Reset)) and not op._directive:
+        if not isinstance(op, (Measure, MeasureX, SwapGate, Reset)) and not op._directive:
             gate_text, ctrl_text, _ = get_gate_ctrl_text(op, "text")
             gate_text = TextDrawing.special_label(op) or gate_text
             gate_text = gate_text + params
@@ -1073,8 +1080,12 @@ class TextDrawing:
                     layer.set_qubit(node.qargs[i], gate)
                     current_cons.append((actual_index, gate))
 
-        if isinstance(op, Measure):
-            gate = MeasureFrom()
+        if isinstance(op, (Measure, MeasureX)):
+            if isinstance(op ,Measure):
+                gate = MeasureFrom()
+            if isinstance(op ,MeasureX):
+                gate = MeasureFrom()
+                
             layer.set_qubit(node.qargs[0], gate)
             register, _, reg_index = get_bit_reg_index(
                 self._circuit, node.cargs[0], self.reverse_bits

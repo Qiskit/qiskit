@@ -20,7 +20,7 @@ from warnings import warn
 import numpy as np
 
 from qiskit.circuit import ControlledGate, Qubit, Clbit, ClassicalRegister
-from qiskit.circuit import Measure, QuantumCircuit, QuantumRegister
+from qiskit.circuit import Measure, MeasureX, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import (
     SwapGate,
     RZZGate,
@@ -403,7 +403,7 @@ class MatplotlibDrawer:
             widest_box = WID
             for node in layer:
                 op = node.op
-                if self._cregbundle and node.cargs and not isinstance(op, Measure):
+                if self._cregbundle and node.cargs and not isinstance(op, (Measure, MeasureX)):
                     self._cregbundle = False
                     warn(
                         "Cregbundle set to False since an instruction needs to refer"
@@ -414,7 +414,7 @@ class MatplotlibDrawer:
                 self._data[node] = {}
                 self._data[node]["width"] = WID
                 num_ctrl_qubits = 0 if not hasattr(op, "num_ctrl_qubits") else op.num_ctrl_qubits
-                if op._directive or isinstance(op, Measure):
+                if op._directive or isinstance(op, (Measure, MeasureX)):
                     self._data[node]["raw_gate_text"] = op.name
                     continue
 
@@ -807,6 +807,8 @@ class MatplotlibDrawer:
                 # draw measure
                 if isinstance(op, Measure):
                     self._measure(node)
+                if isinstance(op, MeasureX):
+                    self._measure(node, basis="X")
 
                 # draw barriers, snapshots, etc.
                 elif op._directive:
@@ -933,7 +935,7 @@ class MatplotlibDrawer:
 
         # display the label at the bottom of the lowest conditional and draw the double line
         xpos, ypos = clbit_b
-        if isinstance(node.op, Measure):
+        if isinstance(node.op, (Measure, MeasureX)):
             xpos += 0.3
         self._ax.text(
             xpos,
@@ -948,7 +950,7 @@ class MatplotlibDrawer:
         )
         self._line(qubit_b, clbit_b, lc=self._style["cc"], ls=self._style["cline"])
 
-    def _measure(self, node):
+    def _measure(self, node, basis="Z"):
         """Draw the measure symbol and the line to the clbit"""
         qx, qy = self._data[node]["q_xy"][0]
         cx, cy = self._data[node]["c_xy"][0]
@@ -1006,6 +1008,19 @@ class MatplotlibDrawer:
                 color=self._style["tc"],
                 clip_on=True,
                 zorder=PORDER_TEXT,
+            )
+
+        # measurement basis label
+        if basis != "z":
+            self._ax.text(
+                qx - 0.4 * WID,
+                qy + 0.25 * HIG,
+                basis.upper(),
+                color=self._style["lc"],
+                clip_on=True,
+                zorder=PORDER_TEXT,
+                fontsize=0.5 * self._style["fs"],
+                fontweight="bold",
             )
 
     def _barrier(self, node):

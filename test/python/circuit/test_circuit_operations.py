@@ -628,6 +628,19 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(len(circuit.cregs[0]), 2)  # Both length 2
         self.assertEqual(len(circuit.cregs[1]), 2)
 
+    def test_measure_x(self):
+        """Test measurements in X basis."""
+        circuit = QuantumCircuit(1, 1)
+        circuit.measure_x(0, 0)
+
+        expected = QuantumCircuit(2, 2)
+        # measurement in X basis
+        expected.h(0)
+        expected.measure(0, 0)
+        expected.h(0)
+
+        self.assertEqual(expected, circuit.decompose())
+
     def test_remove_final_measurements(self):
         """Test remove_final_measurements
         Removes all measurements at end of circuit.

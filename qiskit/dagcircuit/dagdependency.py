@@ -379,7 +379,7 @@ class DAGDependency:
             qargs (list[Qubit]): list of qubits on which the operation acts
             cargs (list[Clbit]): list of classical wires to attach to.
         """
-        directives = ["measure"]
+        directives = ["measure", "measure_x"]
         if not operation._directive and operation.name not in directives:
             qindices_list = []
             for elem in qargs:
@@ -590,7 +590,7 @@ def _does_commute(node1, node2):
     # Commutation for non-unitary or parameterized or opaque ops
     # (e.g. measure, reset, directives or pulse gates)
     # if and only if the qubits and clbits are different.
-    non_unitaries = ["measure", "reset", "initialize", "delay"]
+    non_unitaries = ["measure", "measure_x", "reset", "initialize", "delay"]
 
     def _unknown_commutator(n):
         return n.op._directive or n.name in non_unitaries or n.op.is_parameterized()

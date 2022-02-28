@@ -57,6 +57,7 @@ from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData
 from .delay import Delay
 from .measure import Measure
+from .measure import MeasureX
 from .reset import Reset
 
 try:
@@ -2171,6 +2172,21 @@ class QuantumCircuit:
             CircuitError: if arguments have bad format.
         """
         return self.append(Measure(), [qubit], [cbit])
+
+    def measure_x(self, qubit: QubitSpecifier, cbit: ClbitSpecifier) -> InstructionSet:
+        """Measure quantum bit into classical bit (tuples), in the X basis.
+
+        Args:
+            qubit: qubit to measure.
+            cbit: classical bit to place the measurement in.
+
+        Returns:
+            qiskit.circuit.InstructionSet: handle to the added instructions.
+
+        Raises:
+            CircuitError: if arguments have bad format.
+        """
+        return self.append(MeasureX(), [qubit], [cbit])
 
     def measure_active(self, inplace: bool = True) -> Optional["QuantumCircuit"]:
         """Adds measurement to all non-idle qubits. Creates a new ClassicalRegister with

@@ -89,13 +89,23 @@ class TestTextDrawerElement(QiskitTestCase):
 
     def test_measure_from(self):
         """MeasureFrom element."""
-        element = elements.MeasureFrom()
-        # fmt: off
-        expected = ["┌─┐",
-                    "┤M├",
-                    "└╥┘"]
-        # fmt: on
-        self.assertEqualElement(expected, element)
+        with self.subTest(msg="standard measure"):
+            element = elements.MeasureFrom()
+            # fmt: off
+            expected = ["┌─┐",
+                        "┤M├",
+                        "└╥┘"]
+            # fmt: on
+            self.assertEqualElement(expected, element)
+
+        with self.subTest(msg="measure X basis"):
+            element = elements.MeasureFrom(basis="X")
+            # fmt: off
+            expected = ["┌───┐",
+                        "┤M_X├",
+                        "└─╥─┘"]
+            # fmt: on
+            self.assertEqualElement(expected, element)
 
     def test_text_empty(self):
         """The empty circuit."""

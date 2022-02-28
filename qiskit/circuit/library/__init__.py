@@ -90,6 +90,7 @@ Standard Directives
 
    ~qiskit.circuit.Barrier
    ~qiskit.circuit.Measure
+   ~qiskit.circuit.MeasureX
    ~qiskit.circuit.Reset
 
 Generalized Gates
@@ -362,6 +363,7 @@ from .standard_gates import *
 from .templates import *
 from ..barrier import Barrier
 from ..measure import Measure
+from ..measure_x import MeasureX
 from ..reset import Reset
 
 from .blueprintcircuit import BlueprintCircuit
