@@ -57,7 +57,7 @@ from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData
 from .delay import Delay
 from .measure import Measure
-from .measure import MeasureX
+from .measure_x import MeasureX
 from .reset import Reset
 
 try:

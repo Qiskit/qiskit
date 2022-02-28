@@ -1085,7 +1085,7 @@ class TextDrawing:
                 gate = MeasureFrom()
             if isinstance(op ,MeasureX):
                 gate = MeasureFrom()
-                
+
             layer.set_qubit(node.qargs[0], gate)
             register, _, reg_index = get_bit_reg_index(
                 self._circuit, node.cargs[0], self.reverse_bits
