@@ -1605,6 +1605,7 @@ class TestReplaceBlock(QiskitTestCase):
         expected_dag.apply_operation_back(XGate(), [qr[0]])
 
         self.assertEqual(expected_dag, dag)
+        self.assertEqual(expected_dag.count_ops(), dag.count_ops())
 
 
 class TestDagProperties(QiskitTestCase):

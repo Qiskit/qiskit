@@ -65,9 +65,6 @@ else:
     # Default False on Windows
     if sys.platform == "win32":
         PARALLEL_DEFAULT = False
-    # On python 3.9 default false to avoid deadlock issues
-    elif sys.version_info[0] == 3 and sys.version_info[1] == 9:
-        PARALLEL_DEFAULT = False
     # On macOS default false on Python >=3.8
     elif sys.platform == "darwin":
         if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
