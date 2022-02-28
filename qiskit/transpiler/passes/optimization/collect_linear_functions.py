@@ -50,10 +50,11 @@ class CollectLinearFunctions(TransformationPass):
             initial_order.append(node)
             collected_flag.append(False)
 
-        collect_linear = (
-            False  # stores whether the current pass collects linear or non-linear blocks
-        )
-        first_idx = 0  # optimization to store first unprocessed index
+        # stores whether the current pass collects linear or non-linear blocks
+        collect_linear = False
+
+        # optimization to store first unprocessed index
+        first_idx = 0
 
         while len(new_order) < len(initial_order):
             # update first unprocessed
