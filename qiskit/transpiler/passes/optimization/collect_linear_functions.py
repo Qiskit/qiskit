@@ -34,6 +34,60 @@ class CollectLinearFunctions(TransformationPass):
         if len(cur_nodes) >= 2:
             blocks.append(cur_nodes)
 
+    def _order_nodes(self, dag):
+        """Adjusts the order of nodes in order to maximize blocks of linear gates."""
+        # Starting with the topologically ordered nodes, we first try to move
+        # all non-linear gates upfront, then all linear gates, then all non-linear gates, and so on.
+        # For now, we allow swapping nodes when they are defined over different sets of qubits
+        # (hence the nodes commute), but it might be even more powerful to use a real commutation analysis.
+        num_qubits = len(dag.qubits)
+        initial_order = []  # initial (topological) order
+        new_order = []  # adjusted order
+        collected_flag = []  # stores whether node is already collected (i.e. in new_order)
+
+        # create initial order and initialize collected_flag
+        for node in dag.topological_op_nodes():
+            initial_order.append(node)
+            collected_flag.append(False)
+
+        collect_linear = (
+            False  # stores whether the current pass collects linear or non-linear blocks
+        )
+        first_idx = 0  # optimization to store first unprocessed index
+
+        while len(new_order) < len(initial_order):
+            # update first unprocessed
+            have_unprocessed = False
+            for i in range(first_idx, len(initial_order)):
+                if not collected_flag[i]:
+                    first_idx = i
+                    have_unprocessed = True
+                    break
+
+            # if no unprocessed nodes, done
+            if not have_unprocessed:
+                break
+
+            # collect the required set of nodes, keeping track of support sets
+            postponed_qubits = set()
+            for i in range(first_idx, len(initial_order)):
+                if collected_flag[i]:
+                    continue
+                node = initial_order[i]
+                collectable = not (self._is_linear_gate(node.op) ^ collect_linear)
+
+                if not collectable or not postponed_qubits.isdisjoint(node.qargs):
+                    postponed_qubits.update(node.qargs)
+                    if len(postponed_qubits) == num_qubits:
+                        break
+                else:
+                    new_order.append(node)
+                    collected_flag[i] = True
+
+            collect_linear = not collect_linear
+
+        return new_order
+
     # For now, we implement the naive greedy algorithm that makes a linear sweep over
     # nodes in DAG (using the topological order) and collects blocks of linear gates.
     def run(self, dag):
@@ -48,7 +102,9 @@ class CollectLinearFunctions(TransformationPass):
         blocks = []
 
         cur_nodes = []
-        for node in dag.topological_op_nodes():
+        ordered_nodes = self._order_nodes(dag)
+
+        for node in ordered_nodes:
             # If the current gate is not linear, we are done processing the current block
             if not self._is_linear_gate(node.op):
                 self._finalize_processing_block(cur_nodes, blocks)
