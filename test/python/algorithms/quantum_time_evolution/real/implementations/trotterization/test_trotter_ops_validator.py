@@ -19,7 +19,9 @@ import numpy as np
 
 from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.trotter_ops_validator import (
     _validate_hamiltonian_form,
+    _is_pauli_linear_with_single_param,
 )
+from qiskit.circuit.library import EfficientSU2
 from test.python.opflow import QiskitOpflowTestCase
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
@@ -38,7 +40,10 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         (Parameter("theta") * Y, True),
         (Parameter("theta") * Parameter("gamma") * Z, False),
         (Parameter("theta") * X + Parameter("gamma") * Y, True),
+        (Parameter("theta") * X + Y, True),
+        (X + Parameter("gamma") * Y, True),
         (Parameter("theta1") * Parameter("theta2") * X + Parameter("gamma") * Y, False),
+        (EfficientSU2, False),
     )
     @unpack
     def test_validate_hamiltonian_form(self, hamiltonian, expected):
@@ -49,6 +54,26 @@ class TestTrotterQrte(QiskitOpflowTestCase):
             valid = False
 
         np.testing.assert_equal(valid, expected)
+
+    @data(
+        (X, True),
+        (X + Y, False),
+        (-5 * X, True),
+        (5j * Y, True),
+        (X + Parameter("theta1") * Parameter("theta2") * Y, False),
+        (Parameter("theta") * Y, True),
+        (Parameter("theta") * Parameter("gamma") * Z, False),
+        (5 * Parameter("theta") * X, True),
+        (Parameter("theta1") * Parameter("theta2") * X, False),
+    )
+    @unpack
+    def test_is_pauli_linear_with_single_param(self, operator, expected):
+        try:
+            linear_with_single_param = _is_pauli_linear_with_single_param(operator)
+        except ValueError:
+            linear_with_single_param = False
+
+        np.testing.assert_equal(linear_with_single_param, expected)
 
 
 if __name__ == "__main__":

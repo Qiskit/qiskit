@@ -16,8 +16,7 @@ from collections import defaultdict
 from itertools import product
 from typing import Union, List, Dict, Optional
 
-from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.\
-    trotter_ops_validator import (
+from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.trotter_ops_validator import (
     _validate_hamiltonian_form,
     _validate_input,
     _is_op_bound,

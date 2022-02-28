@@ -77,22 +77,22 @@ def _validate_hamiltonian_form(hamiltonian: Union[SummedOp, PauliOp, OperatorBas
                 "ParameterExpression."
             )
         for op in hamiltonian.oplist:
-            if not _is_linear_with_single_param(op):
+            if not _is_pauli_linear_with_single_param(op):
                 raise ValueError(
                     "Hamiltonian term has a coefficient that is not a linear function of a "
                     "single parameter. It is not supported."
                 )
     elif isinstance(hamiltonian, (PauliOp, OperatorBase)):
-        if not _is_linear_with_single_param(hamiltonian):
+        if not _is_pauli_linear_with_single_param(hamiltonian):
             raise ValueError(
                 "Hamiltonian term has a coefficient that is not a linear function of a "
                 "single parameter. It is not supported."
             )
     else:
-        raise ValueError("Hamiltonian not a SummedOp which is the only option supported.")
+        raise ValueError("Hamiltonian not a SummedOp/PauliOp which are the only options supported.")
 
 
-def _is_linear_with_single_param(operator: OperatorBase) -> bool:
+def _is_pauli_linear_with_single_param(operator: PauliOp) -> bool:
     """Checks if an operator provided is linear w.r.t. one and only one parameter.
 
     Args:
@@ -105,18 +105,49 @@ def _is_linear_with_single_param(operator: OperatorBase) -> bool:
     Raises:
         ValueError: If an operator contains more than 1 parameter.
     """
-    if (
-        not isinstance(operator.coeff, ParameterExpression)
-        and not isinstance(operator.coeff, Parameter)
-        or len(operator.coeff.parameters) == 0
-    ):
+    if not isinstance(operator, PauliOp):
+        raise ValueError(f"Only PauliOp expected. {type(operator)} provided")
+    if _is_operator_no_parameters(operator):
         return True
     if len(operator.coeff.parameters) > 1:
         raise ValueError(
             "Term of a Hamiltonian has a coefficient that depends on several "
             "parameters. Only dependence on a single parameter is allowed."
         )
+    gradient = _operator_derivative(operator)
+    return isinstance(gradient, numbers.Number)
+
+
+def _operator_derivative(
+    operator: PauliOp,
+) -> Union[numbers.Number, Parameter, ParameterExpression]:
+    """
+    Calculates the gradient of an operator coefficient.
+
+    Args:
+        operator: PauliOp.
+
+    Returns:
+          Gradient of a PauliOp coefficient.
+    """
     single_parameter_expression = operator.coeff
     parameter = list(single_parameter_expression.parameters)[0]
     gradient = single_parameter_expression.gradient(parameter)
-    return isinstance(gradient, numbers.Number)
+    return gradient
+
+
+def _is_operator_no_parameters(operator: PauliOp) -> bool:
+    """
+    Checks if an operator is parametrized.
+
+    Args:
+        operator: PauliOp.
+
+    Returns:
+        Boolean flag indicating whether the PauliOp is parametrized or not.
+    """
+    return (
+        not isinstance(operator.coeff, ParameterExpression)
+        and not isinstance(operator.coeff, Parameter)
+        or len(operator.coeff.parameters) == 0
+    )
