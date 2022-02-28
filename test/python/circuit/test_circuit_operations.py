@@ -633,7 +633,7 @@ class TestCircuitOperations(QiskitTestCase):
         circuit = QuantumCircuit(1, 1)
         circuit.measure_x(0, 0)
 
-        expected = QuantumCircuit(2, 2)
+        expected = QuantumCircuit(1, 1)
         # measurement in X basis
         expected.h(0)
         expected.measure(0, 0)

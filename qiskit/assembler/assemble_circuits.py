@@ -129,7 +129,7 @@ def _assemble_circuit(
             # If the experiment has conditional instructions, assume every
             # measurement result may be needed for a conditional gate.
             if (
-                instruction.name == "measure" or instruction.name == "mesaure_x"
+                instruction.name == "measure" or instruction.name == "measure_x"
             ) and is_conditional_experiment:
                 instruction.register = [clbit_indices[clbit] for clbit in cargs]
 
