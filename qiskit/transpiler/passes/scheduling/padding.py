@@ -25,7 +25,7 @@ class BasePadding(TransformationPass):
     This pass requires one of scheduling passes to be executed before itself.
     Since there are multiple scheduling strategies, the selection of scheduling
     pass is left in the hands of one designs the pass manager.
-    Once schedule pass is called on the DAG circuit, ``time_slot`` is generated
+    Once schedule pass is called on the DAG circuit, ``node_start_time`` is generated
     in the :attr:`property_set`.  The time slot is the dictionary of
     the expected instruction execution times keyed on the node instances.
     Entries in the dictionary are only created for non-delay nodes.
@@ -51,12 +51,12 @@ class BasePadding(TransformationPass):
         Raises:
             TranspilerError: If the whole circuit or instruction is not scheduled.
         """
-        if "time_slot" not in self.property_set:
+        if "node_start_time" not in self.property_set:
             raise TranspilerError(
                 f"The input circuit {dag.name} is not scheduled. Call one of scheduling passes "
                 f"before running the {self.__class__.__name__} pass."
             )
-        time_slot = self.property_set["time_slot"]
+        node_start_time = self.property_set["node_start_time"]
 
         new_dag = DAGCircuit()
 
@@ -78,8 +78,8 @@ class BasePadding(TransformationPass):
             # The duration of delays might be corrected by alignment passes.
             # We don't keep user input delays.
             key = node.name, node.sort_key, getattr(node, "_node_id")
-            if key in time_slot:
-                t0 = time_slot[key]
+            if key in node_start_time:
+                t0 = node_start_time[key]
                 t1 = t0 + node.op.duration
 
                 for bit in node.qargs:

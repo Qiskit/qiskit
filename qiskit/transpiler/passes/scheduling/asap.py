@@ -40,7 +40,7 @@ class ASAPSchedule(BaseScheduler):
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("ASAP schedule runs on physical circuits only")
 
-        time_slot = dict()
+        node_start_time = dict()
         idle_after = {q: 0 for q in dag.qubits + dag.clbits}
         bit_indices = {q: index for index, q in enumerate(dag.qubits)}
         for node in dag.topological_op_nodes():
@@ -129,11 +129,11 @@ class ASAPSchedule(BaseScheduler):
                 # without breaking the reference to object. However, once operation is updated,
                 # there is no guarantee that the duration of node is unchanged.
                 key = node.name, node.sort_key, getattr(node, "_node_id")
-                time_slot[key] = t0
+                node_start_time[key] = t0
 
         # Compute maximum instruction available time, i.e. the latest t1
         circuit_duration = max(idle_after.values())
 
         # Sort time slot by t0. ASAP is straight forward.
-        self.property_set["time_slot"] = dict(sorted(time_slot.items(), key=lambda kv: kv[1]))
+        self.property_set["node_start_time"] = node_start_time
         self.property_set["duration"] = circuit_duration

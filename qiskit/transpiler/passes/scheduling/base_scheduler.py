@@ -242,13 +242,13 @@ class BaseScheduler(AnalysisPass):
         self.requires.append(TimeUnitConversion(durations))
 
         # Initialize timeslot
-        if "time_slot" in self.property_set:
+        if "node_start_time" in self.property_set:
             warnings.warn(
                 "This circuit has been already scheduled. "
                 "The output of previous scheduling pass will be overridden.",
                 UserWarning,
             )
-        self.property_set["time_slot"] = dict()
+        self.property_set["node_start_time"] = dict()
         self.property_set["duration"] = None
 
     @staticmethod

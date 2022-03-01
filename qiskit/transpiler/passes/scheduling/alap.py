@@ -40,7 +40,7 @@ class ALAPSchedule(BaseScheduler):
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("ALAP schedule runs on physical circuits only")
 
-        time_slot = dict()
+        node_start_time = dict()
         idle_before = {q: 0 for q in dag.qubits + dag.clbits}
         bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for node in reversed(list(dag.topological_op_nodes())):
@@ -118,15 +118,14 @@ class ALAPSchedule(BaseScheduler):
                 # without breaking the reference to object. However, once operation is updated,
                 # there is no guarantee that the duration of node is unchanged.
                 key = node.name, node.sort_key, getattr(node, "_node_id")
-                time_slot[key] = t1
+                node_start_time[key] = t1
 
         # Compute maximum instruction available time, i.e. very end of t1
         circuit_duration = max(idle_before.values())
 
         # Sort time slot by t0. Note that ALAP pass is inversely schedule, thus
         # t0 is computed by subtracting entire circuit duration from t1.
-        self.property_set["time_slot"] = {
-            n: circuit_duration - t1
-            for n, t1 in sorted(time_slot.items(), key=lambda kv: kv[1], reverse=True)
+        self.property_set["node_start_time"] = {
+            n: circuit_duration - t1 for n, t1 in node_start_time.items()
         }
         self.property_set["duration"] = circuit_duration
