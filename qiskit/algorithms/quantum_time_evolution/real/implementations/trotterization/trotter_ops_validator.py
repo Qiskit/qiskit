@@ -110,7 +110,7 @@ def _is_pauli_lin_single_param(operator: PauliOp) -> bool:
     """
     if not isinstance(operator, PauliOp):
         raise ValueError(f"Only PauliOp expected. {type(operator)} provided")
-    if _is_operator_no_parameters(operator):
+    if _is_operator_parametrized(operator):
         return True
     if len(operator.coeff.parameters) > 1:
         raise ValueError(
@@ -139,7 +139,7 @@ def _operator_derivative(
     return gradient
 
 
-def _is_operator_no_parameters(operator: PauliOp) -> bool:
+def _is_operator_parametrized(operator: PauliOp) -> bool:
     """
     Checks if an operator is parametrized.
 
