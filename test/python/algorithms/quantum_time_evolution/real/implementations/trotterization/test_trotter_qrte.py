@@ -20,7 +20,8 @@ import numpy as np
 from numpy.testing import assert_raises
 from scipy.linalg import expm
 
-from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.trotter_qrte import (
+from qiskit.algorithms.quantum_time_evolution.real.implementations.\
+    trotterization.trotter_qrte import (
     TrotterQrte,
 )
 from qiskit.quantum_info import Statevector
