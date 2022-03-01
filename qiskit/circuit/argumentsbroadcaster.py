@@ -13,26 +13,49 @@
 """Arguments Broadcaster Mixin."""
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Union, Tuple
-from qiskit.circuit.exceptions import CircuitError
-
-# Questions:
-# - Is this the right way to extract the argument broadcasting functionality?
-# - What is the best way to organize the hierarchy of different classes?
-#   - Do we need inheritance from the base class?
-#   - Should the base class be abstract or should it implement the functionality from Instruction?
-# - Should the classes such as Clifford, CNOTDihedral, etc. already include some broadcaster mixin?
-# - Should the code for individual broadcasting classes appear in one file (as now), or should each
-#     class appear in its respective file (e.g., broadcasting for measure in measure.py)?
+from typing import List, Tuple
+from qiskit.circuit.exceptions import CircuitError, QiskitError
 
 
 class ArgumentsBroadcaster(ABC):
     """
-    This should be a mixin because we dont need any internals
+    A mixin for argument broadcasting.
     """
 
+    @abstractmethod
     def broadcast_arguments(self, qargs, cargs):
         pass
+
+
+class ArgumentsBroadcasterGeneric(ArgumentsBroadcaster):
+    def broadcast_arguments(self, qargs, cargs):
+        """
+        Validation of the arguments.
+
+        Args:
+            qargs (List): List of quantum bit arguments.
+            cargs (List): List of classical bit arguments.
+
+        Yields:
+            Tuple(List, List): A tuple with single arguments.
+
+        Raises:
+            CircuitError: If the input is not valid. For example, the number of
+                arguments does not match the gate expectation.
+        """
+        # This is the "generic" method, formerly implemented by Instruction class.
+        print("In AB: generic")
+        if len(qargs) != self.num_qubits:
+            raise CircuitError(
+                f"The amount of qubit arguments {len(qargs)} does not match"
+                f" the instruction expectation ({self.num_qubits})."
+            )
+
+        #  [[q[0], q[1]], [c[0], c[1]]] -> [q[0], c[0]], [q[1], c[1]]
+        flat_qargs = [qarg for sublist in qargs for qarg in sublist]
+        flat_cargs = [carg for sublist in cargs for carg in sublist]
+
+        yield flat_qargs, flat_cargs
 
 
 class ArgumentsBroadcasterBarrier(ArgumentsBroadcaster):
@@ -179,37 +202,10 @@ class ArgumentsBroadcasterReset(ArgumentsBroadcaster):
             yield [qarg], []
 
 
-class ArgumentsBroadcasterInstruction(ArgumentsBroadcaster):
-    def broadcast_arguments(self, qargs, cargs):
-        """
-        Validation of the arguments.
-
-        Args:
-            qargs (List): List of quantum bit arguments.
-            cargs (List): List of classical bit arguments.
-
-        Yields:
-            Tuple(List, List): A tuple with single arguments.
-
-        Raises:
-            CircuitError: If the input is not valid. For example, the number of
-                arguments does not match the gate expectation.
-        """
-        print("In AB: instruction")
-        if len(qargs) != self.num_qubits:
-            raise CircuitError(
-                f"The amount of qubit arguments {len(qargs)} does not match"
-                f" the instruction expectation ({self.num_qubits})."
-            )
-
-        #  [[q[0], q[1]], [c[0], c[1]]] -> [q[0], c[0]], [q[1], c[1]]
-        flat_qargs = [qarg for sublist in qargs for qarg in sublist]
-        flat_cargs = [carg for sublist in cargs for carg in sublist]
-        yield flat_qargs, flat_cargs
-
-
 class ArgumentsBroadcasterInitializer(ArgumentsBroadcaster):
     def broadcast_arguments(self, qargs, cargs):
+        print("In AB: initializer")
+
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]
 
         if self.num_qubits != len(flat_qargs):

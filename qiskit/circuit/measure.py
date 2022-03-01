@@ -18,7 +18,6 @@ import warnings
 
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.operation import Operation
-from qiskit.circuit.exceptions import CircuitError
 from .argumentsbroadcaster import ArgumentsBroadcasterMeasure
 
 

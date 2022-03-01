@@ -13,8 +13,8 @@
 
 """Test Qiskit's Arguments Broadcaster."""
 
-from qiskit.circuit import QuantumCircuit, Barrier
-from qiskit.circuit.argumentsbroadcaster import ArgumentsBroadcasterBarrier
+import math
+from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.quantum_info.operators import Clifford
 
 
@@ -35,12 +35,24 @@ def test_delay():
 
 def test_gates():
     qc = QuantumCircuit(5)
+
+    # variants for 1q
     qc.h(0)
     qc.s([0, 1, 2])
+    qc.y([4])
+
+    # variants for 2q
     qc.cx(2, 3)
     qc.cx([2, 3, 4], [1])
     qc.cx([1], [2, 3, 4])
     qc.cx([1, 2], [3, 4])
+    qc.ccx(1, 2, 3)
+    qc.cx([0, 0, 0], [1, 1, 1])
+
+    # variants for 3q
+    qc.ccx([1], [2], [3])
+    qc.ccx([0, 0, 0], [1, 1, 1], [2, 3, 4])
+
     print(qc)
 
 
@@ -50,6 +62,16 @@ def test_measure():
     qc.s(1)
     qc.cx(0, 2)
     qc.measure([0, 1, 2], [0, 1, 2])
+    print(qc)
+
+
+def test_measure2():
+    qc = QuantumCircuit(3, 3)
+    qc.h(0)
+    qc.s(1)
+    qc.cx(0, 2)
+    qc.measure(0, [0, 1, 2])
+    qc.measure([1], [0, 1, 2])
     print(qc)
 
 
@@ -73,6 +95,20 @@ def test_clifford():
     print(qc2)
 
 
+def test_clifford2():
+    # Do we really need this functionality?
+
+    qc1 = QuantumCircuit(3)
+    qc1.h(0)
+    qc1.s(1)
+    qc1.cx(0, 2)
+    cliff1 = Clifford(qc1)
+
+    qc3 = QuantumCircuit(6)
+    qc3.append(cliff1, [[0, 3], [1, 4], [2, 5]])
+    print(qc3)
+
+
 # appending one qc to another
 def test_quantum_circuit():
     qc1 = QuantumCircuit(3)
@@ -80,16 +116,29 @@ def test_quantum_circuit():
     qc1.s(1)
     qc1.cx(0, 2)
 
-    qc2 = QuantumCircuit(5)
-    qc2.append(qc1, [1, 3, 4])
+    qc2 = QuantumCircuit(6)
+    qc2.append(qc1, [0, 2, 4])
     print(qc2)
+
+def test_initializer():
+    """Combining two circuits containing initialize."""
+    desired_vector_1 = [1.0 / math.sqrt(2), 1.0 / math.sqrt(2)]
+    desired_vector_2 = [1.0 / math.sqrt(2), -1.0 / math.sqrt(2)]
+    qr = QuantumRegister(1, "qr")
+    cr = ClassicalRegister(1, "cr")
+    qc1 = QuantumCircuit(qr, cr)
+    qc1.initialize(desired_vector_1, [qr[0]])
+    print(qc1)
 
 
 if __name__ == "__main__":
     test_barrier()
-    #test_delay()
-    #test_gates()
-    #test_measure()
-    #test_reset()
-    #test_clifford()
-    #test_quantum_circuit()
+    test_delay()
+    test_gates()
+    test_measure()
+    test_measure2()
+    test_reset()
+    test_clifford()
+    test_clifford2()
+    test_quantum_circuit()
+    test_initializer()
