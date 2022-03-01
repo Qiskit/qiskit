@@ -85,8 +85,10 @@ class NaturalGradient(GradientBase):
             operator: The operator we are taking the gradient of.
             params: The parameters we are taking the gradient with respect to. If not explicitly
                 passed, they are inferred from the operator and sorted by name.
+
         Returns:
             An operator whose evaluation yields the NaturalGradient.
+
         Raises:
             TypeError: If ``operator`` does not represent an expectation value or the quantum
                 state is not ``CircuitStateFn``.
@@ -126,14 +128,19 @@ class NaturalGradient(GradientBase):
         return ListOp([grad, metric], combo_fn=combo_fn)
 
     @staticmethod
-    def nat_grad_combo_fn(x: tuple, regularization: Optional[str] = None) -> np.ndarray:
+    def nat_grad_combo_fn(x: tuple,
+                          regularization: Optional[str] = None
+                          ) -> np.ndarray:
         r"""
         Natural Gradient Function Implementation.
+
         Args:
             x: Iterable consisting of Gradient, Quantum Geometric Tensor.
             regularization: Regularization method.
+
         Returns:
             Natural Gradient.
+
         Raises:
             ValueError: If the gradient has imaginary components that are non-negligible.
 
@@ -172,6 +179,7 @@ class NaturalGradient(GradientBase):
     @property
     def qfi_method(self) -> CircuitQFI:
         """Returns ``CircuitQFI``.
+
         Returns: ``CircuitQFI``
         """
         return self._qfi_method.qfi_method
@@ -179,6 +187,7 @@ class NaturalGradient(GradientBase):
     @property
     def regularization(self) -> Optional[str]:
         """Returns the regularization option.
+
         Returns: the regularization option.
         """
         return self._regularization
@@ -194,12 +203,13 @@ class NaturalGradient(GradientBase):
     ) -> Tuple[float, np.ndarray]:
         """
         This method implements a search for a regularization parameter lambda by finding for the
-        corner of the L-curve
+        corner of the L-curve.
         More explicitly, one has to evaluate a suitable lambda by finding a compromise between
         the error in the solution and the norm of the regularization.
         This function implements a method presented in
         `A simple algorithm to find the L-curve corner in the regularization of inverse problems
          <https://arxiv.org/pdf/1608.04571.pdf>`
+
         Args:
             metric: see (1) and (2)
             gradient: see (1) and (2)
@@ -209,6 +219,7 @@ class NaturalGradient(GradientBase):
             lambda1: left starting point for L-curve corner search
             lambda4: right starting point for L-curve corner search
             tol: termination threshold
+
         Returns:
             regularization coefficient, solution to the regularization inverse problem
         """
@@ -216,9 +227,11 @@ class NaturalGradient(GradientBase):
         def _get_curvature(x_lambda: List) -> float:
             """Calculate Menger curvature
             Menger, K. (1930).  Untersuchungen  ̈uber Allgemeine Metrik. Math. Ann.,103(1), 466–501
+
             Args:
                 x_lambda: [[x_lambdaj], [x_lambdak], [x_lambdal]]
                     lambdaj < lambdak < lambdal
+
             Returns:
                 Menger Curvature
             """
@@ -312,6 +325,7 @@ class NaturalGradient(GradientBase):
         x_lambda = arg min{||Ax-C||^2 + lambda*||x||_2^2} (3)
         `Scikit Learn Ridge Regression
         <https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Ridge.html>`
+
         Args:
             metric: see (1) and (2)
             gradient: see (1) and (2)
@@ -326,8 +340,10 @@ class NaturalGradient(GradientBase):
             tol: precision of the regression solution
             solver: solver {‘auto’, ‘svd’, ‘cholesky’, ‘lsqr’, ‘sparse_cg’, ‘sag’, ‘saga’}
             random_state: seed for the pseudo random number generator used when data is shuffled
+
         Returns:
            regularization coefficient, solution to the regularization inverse problem
+
         Raises:
             MissingOptionalLibraryError: scikit-learn not installed
         """
@@ -379,6 +395,7 @@ class NaturalGradient(GradientBase):
         x_lambda = arg min{||Ax-C||^2/(2*n_samples) + lambda*||x||_1} (4)
         `Scikit Learn Lasso Regression
         <https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Lasso.html>`
+
         Args:
             metric: mxn matrix
             gradient: m vector
@@ -397,8 +414,10 @@ class NaturalGradient(GradientBase):
             positive: if True force positive coefficients
             random_state: seed for the pseudo random number generator used when data is shuffled
             selection: {'cyclic', 'random'}
+
         Returns:
             regularization coefficient, solution to the regularization inverse problem
+
         Raises:
             MissingOptionalLibraryError: scikit-learn not installed
         """
@@ -442,6 +461,7 @@ class NaturalGradient(GradientBase):
     ) -> np.ndarray:
         """
         Solve a linear system of equations with a regularization method and automatic lambda fitting
+
         Args:
             metric: mxn matrix
             gradient: m vector
@@ -452,6 +472,7 @@ class NaturalGradient(GradientBase):
             alpha: perturbation coefficient for 'perturb_diag_elements' and 'perturb_diag'
             tol_norm_x: tolerance for the norm of x
             tol_cond_a: tolerance for the condition number of A
+            
         Returns:
             solution to the regularized system of linear equations
         """

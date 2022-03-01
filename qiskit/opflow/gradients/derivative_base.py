@@ -35,12 +35,15 @@ OperatorType = Union[StateFn, PrimitiveOp, ListOp]
 
 class DerivativeBase(ConverterBase):
     r"""Base class for differentiating opflow objects.
+
     Converter for differentiating opflow objects and handling
     things like properly differentiating combo_fn's and enforcing product rules
     when operator coefficients are parameterized.
+
     This is distinct from CircuitGradient converters which use quantum
     techniques such as parameter shifts and linear combination of unitaries
     to compute derivatives of circuits.
+
     CircuitGradient - uses quantum techniques to get derivatives of circuits
     DerivativeBase - uses classical techniques to differentiate opflow data structures
     """
@@ -58,8 +61,10 @@ class DerivativeBase(ConverterBase):
         Args:
             operator: The operator we are taking the gradient, Hessian or QFI of
             params: The parameters we are taking the gradient, Hessian or QFI with respect to.
+
         Returns:
             An operator whose evaluation yields the gradient, Hessian or QFI.
+
         Raises:
             ValueError: If ``params`` contains a parameter not present in ``operator``.
         """
@@ -125,9 +130,11 @@ class DerivativeBase(ConverterBase):
         param_expr: ParameterExpression, param: ParameterExpression
     ) -> Union[ParameterExpression, float]:
         """Get the derivative of a parameter expression w.r.t. the given parameter.
+
         Args:
             param_expr: The Parameter Expression for which we compute the derivative
             param: Parameter w.r.t. which we want to take the derivative
+
         Returns:
             ParameterExpression representing the gradient of param_expr w.r.t. param
         """
@@ -144,11 +151,14 @@ class DerivativeBase(ConverterBase):
     @classmethod
     def _erase_operator_coeffs(cls, operator: OperatorBase) -> OperatorBase:
         """This method traverses an input operator and deletes all of the coefficients
+
         Args:
             operator: An operator type object.
+
         Returns:
             An operator which is equal to the input operator but whose coefficients
             have all been set to 1.0
+
         Raises:
             TypeError: If unknown operator type is reached.
         """
@@ -160,6 +170,7 @@ class DerivativeBase(ConverterBase):
     @classmethod
     def _factor_coeffs_out_of_composed_op(cls, operator: OperatorBase) -> OperatorBase:
         """Factor all coefficients of ComposedOp out into a single global coefficient.
+
         Part of the automatic differentiation logic inside of Gradient and Hessian
         counts on the fact that no product or chain rules need to be computed between
         operators or coefficients within a ComposedOp. To ensure this condition is met,
@@ -167,11 +178,14 @@ class DerivativeBase(ConverterBase):
         ComposedOp, but where all coefficients have been factored out and placed onto the
         ComposedOp. Note that this cannot be done properly if an OperatorMeasurement contains
         a SummedOp as it's primitive.
+
         Args:
             operator: The operator whose coefficients are being re-organized
+
         Returns:
             An operator equivalent to the input operator, but whose coefficients have been
             reorganized
+
         Raises:
             ValueError: If an element within a ComposedOp has a primitive of type ListOp,
                         then it is not possible to factor all coefficients out of the ComposedOp.

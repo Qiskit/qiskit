@@ -30,12 +30,13 @@ from .circuit_qfi import CircuitQFI
 
 class LinCombFull(CircuitQFI):
     r"""Compute the full Quantum Fisher Information (QFI).
+
     Given a pure, parameterized quantum state this class uses the linear combination of unitaries
-    approach, requiring one additional working qubit.
     See also :class:`~qiskit.opflow.QFI`.
     """
 
     # pylint: disable=signature-differs
+    # pylint: disable=arguments-differ
     def convert(
         self,
         operator: CircuitStateFn,
@@ -58,6 +59,7 @@ class LinCombFull(CircuitQFI):
         Returns:
             A ``ListOp[ListOp]`` where the operator at position ``[k][l]`` corresponds to the matrix
             element :math:`k, l` of the QFI.
+
         Raises:
             TypeError: If ``operator`` is an unsupported type.
         """
@@ -93,6 +95,7 @@ class LinCombFull(CircuitQFI):
                 trim_after_grad_gate=True,
             )
 
+            # pylint: disable=unidiomatic-typecheck
             if type(gradient_states) == ListOp:
                 phase_fix_states = gradient_states.oplist
             else:

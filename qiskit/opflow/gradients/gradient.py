@@ -47,8 +47,10 @@ class Gradient(GradientBase):
             operator: The operator we are taking the gradient of.
             params: The parameters we are taking the gradient with respect to. If not
                 explicitly passed, they are inferred from the operator and sorted by name.
+
         Returns:
             An operator whose evaluation yields the Gradient.
+
         Raises:
             ValueError: If ``params`` contains a parameter not present in ``operator``.
             ValueError: If ``operator`` is not parameterized.
@@ -85,8 +87,10 @@ class Gradient(GradientBase):
         Args:
             operator: Operator w.r.t. which we take the gradient.
             params: Parameters w.r.t. which we compute the gradient.
+
         Returns:
             Operator which represents the gradient w.r.t. the given params.
+
         Raises:
             ValueError: If ``params`` contains a parameter not present in ``operator``.
             OpflowError: If the coefficient of the operator could not be reduced to 1.
