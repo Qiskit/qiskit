@@ -21,7 +21,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.providers import BackendV1 as Backend
 from qiskit.quantum_info import SparsePauliOp
 
-from .results import EstimatorResult
+from .estimator_result import EstimatorResult
 
 
 class BaseEstimator(ABC):

@@ -14,4 +14,5 @@
 
 from .base_estimator import BaseEstimator
 from .base_sampler import BaseSampler
-from .results import EstimatorResult, SamplerResult
+from .estimator_result import EstimatorResult
+from .sampler_result import SamplerResult

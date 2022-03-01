@@ -20,7 +20,7 @@ from typing import Optional, Union
 from qiskit.circuit import QuantumCircuit
 from qiskit.providers.backend import BackendV1 as Backend
 
-from .results import SamplerResult
+from .sampler_result import SamplerResult
 
 
 class BaseSampler(ABC):
