@@ -28,7 +28,6 @@ class BaseSampler(ABC):
     Sampler base class
     """
 
-    @abstractmethod
     def __init__(
         self,
         circuits: list[QuantumCircuit],
@@ -39,7 +38,8 @@ class BaseSampler(ABC):
             circuits: circuits to be executed
             backend: a backend or a backend wrapper
         """
-        ...
+        self._circuits = circuits
+        self._backend = backend
 
     @abstractmethod
     def __enter__(self):
@@ -54,23 +54,21 @@ class BaseSampler(ABC):
         cls.__call__ = cls.run
 
     @property
-    @abstractmethod
     def circuits(self) -> list[QuantumCircuit]:
         """A list of quantum circuits to be executed
 
         Returns:
             a list of quantum circuits
         """
-        ...
+        return self._circuits
 
     @property
-    @abstractmethod
     def backend(self) -> Backend:
         """
         Returns:
             The backend which this sampler object based on
         """
-        ...
+        return self._backend
 
     @abstractmethod
     def run(

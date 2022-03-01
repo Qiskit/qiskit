@@ -15,6 +15,7 @@ Estimator base class
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Optional, Union
 
 from qiskit.circuit import QuantumCircuit
@@ -24,19 +25,28 @@ from qiskit.quantum_info import SparsePauliOp
 from .estimator_result import EstimatorResult
 
 
+@dataclass(frozen=True)
+class Group:
+    """The dataclass represents indices of circuit and observable."""
+
+    circuit_index: int
+    observable_index: int
+
+
 class BaseEstimator(ABC):
     """
     Estimator base class.
     """
 
-    @abstractmethod
     def __init__(
         self,
         circuits: list[QuantumCircuit],
         observables: list[SparsePauliOp],
         backend: Backend,
     ):
-        ...
+        self._circuits = circuits
+        self._observables = observables
+        self._backend = backend
 
     @abstractmethod
     def __enter__(self):
@@ -50,7 +60,6 @@ class BaseEstimator(ABC):
         super().__init_subclass__()
         cls.__call__ = cls.run
 
-    @abstractmethod
     @property
     def circuits(self) -> list[QuantumCircuit]:
         """Quantum Circuits that represents quantum states.
@@ -58,9 +67,8 @@ class BaseEstimator(ABC):
         Returns:
             quantum states
         """
-        ...
+        return self._circuits
 
-    @abstractmethod
     @property
     def observables(self) -> list[SparsePauliOp]:
         """
@@ -69,21 +77,21 @@ class BaseEstimator(ABC):
         Returns:
             observable
         """
-        ...
+        return self._observables
 
     @property
-    @abstractmethod
     def backend(self) -> Backend:
         """
         Returns:
             The backend which this sampler object based on
         """
-        ...
+        return self._backend
 
     @abstractmethod
     def run(
         self,
         parameters: Optional[Union[list[float], list[list[float]]]] = None,
+        grouping: Optional[list[Union[Group, tuple[int, int]]]] = None,
         **run_options,
     ) -> EstimatorResult:
         """
@@ -92,6 +100,7 @@ class BaseEstimator(ABC):
         Args:
             parameters: parameters to be bound.
             run_options: backend runtime options used for circuit execution.
+            grouping: the list of Group or tuple of circuit index and observable index.
 
         Returns:
             The result of Estimator.
