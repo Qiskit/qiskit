@@ -11,13 +11,16 @@
 # that they have been altered from the originals.
 
 """Test evolution problem class."""
+import unittest
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
+from ddt import data, unpack, ddt
 from qiskit.algorithms.time_evolution.problems.evolution_problem import EvolutionProblem
 from qiskit.circuit import Parameter
 from qiskit.opflow import Y, Z, One
 
 
+@ddt
 class TestEvolutionProblem(QiskitAlgorithmsTestCase):
     """Test evolution problem class."""
 
@@ -25,12 +28,13 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
         """Tests that all default fields are initialized correctly."""
         hamiltonian = Y
         time = 2.5
+        initial_state = One
 
-        evo_problem = EvolutionProblem(hamiltonian, time)
+        evo_problem = EvolutionProblem(hamiltonian, time, initial_state)
 
         expected_hamiltonian = Y
         expected_time = 2.5
-        expected_initial_state = None
+        expected_initial_state = One
         expected_observable = None
         expected_t_param = None
         expected_hamiltonian_value_dict = None
@@ -69,16 +73,20 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
         self.assertEqual(evo_problem.t_param, expected_t_param)
         self.assertEqual(evo_problem.hamiltonian_value_dict, expected_hamiltonian_value_dict)
 
-    def test_init_error(self):
-        """Tests that an error is raised when both initial_state and observable provided."""
+    @data((One, Y), (None, None))
+    @unpack
+    def test_init_error(self, initial_state, observable):
+        """Tests that an error is raised when both or none initial_state and observable provided."""
         t_parameter = Parameter("t")
         hamiltonian = t_parameter * Z + Y
         time = 2
-        initial_state = One
-        observable = Y
         hamiltonian_value_dict = {t_parameter: 3.2}
 
         with self.assertRaises(ValueError):
             _ = EvolutionProblem(
                 hamiltonian, time, initial_state, observable, t_parameter, hamiltonian_value_dict
             )
+
+
+if __name__ == "__main__":
+    unittest.main()

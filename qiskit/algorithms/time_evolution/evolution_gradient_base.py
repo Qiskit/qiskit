@@ -25,7 +25,7 @@ class GradientEvolutionBase(EvolutionBase, ABC):
     """Base class for quantum time evolution and gradient evolution."""
 
     @abstractmethod
-    def gradient(self, gradient_evolution_problem: GradientEvolutionProblem) -> EvolutionResult:
+    def evolve_gradient(self, gradient_evolution_problem: GradientEvolutionProblem) -> EvolutionResult:
         """
         Performs Quantum Time Evolution of gradient expressions.
 

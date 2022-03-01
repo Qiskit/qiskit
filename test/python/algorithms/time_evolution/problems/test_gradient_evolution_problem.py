@@ -11,15 +11,18 @@
 # that they have been altered from the originals.
 
 """Test gradient evolution problem class."""
+import unittest
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
+from ddt import ddt, data, unpack
 from qiskit.algorithms.time_evolution.problems.gradient_evolution_problem import (
     GradientEvolutionProblem,
 )
 from qiskit.circuit import Parameter
-from qiskit.opflow import Y, Z, One, Gradient
+from qiskit.opflow import Y, Z, One, Gradient, Zero
 
 
+@ddt
 class TestGradientEvolutionProblem(QiskitAlgorithmsTestCase):
     """Test gradient evolution problem class."""
 
@@ -28,13 +31,14 @@ class TestGradientEvolutionProblem(QiskitAlgorithmsTestCase):
         hamiltonian = Y
         time = 2.5
         gradient_object = Gradient()
+        initial_state = Zero
 
-        evo_problem = GradientEvolutionProblem(hamiltonian, time, gradient_object)
+        evo_problem = GradientEvolutionProblem(hamiltonian, time, gradient_object, initial_state)
 
         expected_hamiltonian = Y
         expected_time = 2.5
         expected_gradient_object = gradient_object
-        expected_initial_state = None
+        expected_initial_state = Zero
         expected_observable = None
         expected_t_param = None
         expected_hamiltonian_value_dict = None
@@ -91,16 +95,20 @@ class TestGradientEvolutionProblem(QiskitAlgorithmsTestCase):
         self.assertEqual(evo_problem.hamiltonian_value_dict, expected_hamiltonian_value_dict)
         self.assertEqual(evo_problem.gradient_params, expected_gradient_params)
 
-    def test_init_error(self):
-        """Tests that an error is raised when both initial_state and observable provided."""
+    @data((One, Y), (None, None))
+    @unpack
+    def test_init_error(self, initial_state, observable):
+        """Tests that an error is raised when both or none initial_state and observable provided."""
         t_parameter = Parameter("t")
         hamiltonian = t_parameter * Z + Y
         time = 2
         gradient_object = Gradient()
-        initial_state = One
-        observable = Y
 
         with self.assertRaises(ValueError):
             _ = GradientEvolutionProblem(
                 hamiltonian, time, gradient_object, initial_state, observable
             )
+
+
+if __name__ == "__main__":
+    unittest.main()

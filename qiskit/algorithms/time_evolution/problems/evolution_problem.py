@@ -41,11 +41,14 @@ class EvolutionProblem:
                 values, including the t_param.
 
         Raises:
-            ValueError: if both initial_state and observable are provided.
+            ValueError: If both or none initial_state and observable are provided.
         """
 
         if initial_state is not None and observable is not None:
             raise ValueError("initial_state and observable are mutually exclusive; both provided.")
+
+        if initial_state is None and observable is None:
+            raise ValueError("One of initial_state or observable must be provided; none provided.")
 
         self.hamiltonian = hamiltonian
         self.time = time

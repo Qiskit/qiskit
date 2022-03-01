@@ -17,7 +17,7 @@ from qiskit.opflow import OperatorBase
 
 
 class EvolutionResult(AlgorithmResult):
-    """Class for holding evolution result and relevant metadata."""
+    """Class for holding evolution result."""
 
     def __init__(
         self,
@@ -29,6 +29,20 @@ class EvolutionResult(AlgorithmResult):
             evolved_state: An evolved quantum state; mutually exclusive with evolved_observable.
             evolved_observable: An evolved quantum observable; mutually exclusive with
                 evolved_state.
+
+        Raises:
+            ValueError: If both or none evolved_state and evolved_observable are provided.
         """
+
+        if evolved_state is not None and evolved_observable is not None:
+            raise ValueError(
+                "evolved_state and evolved_observable are mutually exclusive; both provided."
+            )
+
+        if evolved_state is None and evolved_observable is None:
+            raise ValueError(
+                "One of evolved_state or evolved_observable must be provided; none provided."
+            )
+
         self.evolved_state = evolved_state
         self.evolved_observable = evolved_observable
