@@ -205,7 +205,6 @@ class DAGCircuit:
         Raises:
             Exception: if the gate is of type string and params is None.
         """
-
         if isinstance(gate, Gate):
             self._calibrations[gate.name][
                 (tuple(qubits), tuple(float(p) for p in gate.params))

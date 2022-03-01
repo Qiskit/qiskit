@@ -56,13 +56,11 @@ class UnitaryGate(Gate):
             # the object to an Operator so that we can extract the underlying
             # numpy matrix from `Operator.data`.
             data = data.to_operator().data
-
         # Convert to numpy array in case not already an array
         data = numpy.array(data, dtype=complex)
         # Check input is unitary
         if not is_unitary_matrix(data):
             raise ExtensionError("Input matrix is not unitary.")
-
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
         num_qubits = int(numpy.log2(input_dim))
