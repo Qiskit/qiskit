@@ -480,6 +480,15 @@ class TemplateSubstitution:
         solution is found then the match is valid and the parameters
         are assigned. If not, None is returned.
 
+        In order to resolve the conflict of the same parameter names in the
+        circuit and template, each variable in the template sublist is
+        checked against circ_param_str (the string of all combined
+        parameter expressions in the circuit sublist). If a Parameter from
+        the template sublist has the same name, a new Parameter with a
+        random name is created and assigned to the template sublist and added
+        to a dictionary of substituted params (sub_params), so that the
+        substituted Parameter can be replaced in every tempalte node.
+
         Args:
             template_sublist (list): part of the matched template.
             circuit_sublist (list): part of the matched circuit.
@@ -552,17 +561,17 @@ class TemplateSubstitution:
         for circuit_param, template_param in zip(circuit_params, template_params):
             if isinstance(template_param, ParameterExpression):
                 if isinstance(circuit_param, ParameterExpression):
-                    circ_param_sym = circuit_param.to_simplify_expression()
+                    circ_param_sym = circuit_param.to_sympify_expression()
                 else:
                     circ_param_sym = parse_expr(str(circuit_param))
-                equations.append(sym.Eq(template_param.to_simplify_expression(), circ_param_sym))
+                equations.append(sym.Eq(template_param.to_sympify_expression(), circ_param_sym))
 
                 for param in template_param.parameters:
-                    temp_symbols[param] = param.to_simplify_expression()
+                    temp_symbols[param] = param.to_sympify_expression()
 
                 if isinstance(circuit_param, ParameterExpression):
                     for param in circuit_param.parameters:
-                        circ_dict[param] = param.to_simplify_expression()
+                        circ_dict[param] = param.to_sympify_expression()
 
         if not temp_symbols:
             return template_dag_dep

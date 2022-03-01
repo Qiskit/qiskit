@@ -19,15 +19,11 @@ import operator
 
 import numpy
 
-from qiskit.circuit.exceptions import CircuitError, ParameterTypeError
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils import optionals as _optionals
 
-try:
+if _optionals.HAS_SYMENGINE:
     import symengine
-
-    _optionals.HAS_SYMENGINE = True
-except ImportError:
-    _optionals.HAS_SYMENGINE = False
 
 # This type is redefined at the bottom to insert the full reference to "ParameterExpression", so it
 # can safely be used by runtime type-checkers like Sphinx.  Mypy does not need this because it
@@ -436,7 +432,7 @@ class ParameterExpression:
             return complex(self._symbol_expr)
         # TypeError is for sympy, RuntimeError for symengine
         except (TypeError, RuntimeError) as exc:
-            raise ParameterTypeError(
+            raise TypeError(
                 "ParameterExpression with unbound parameters ({}) "
                 "cannot be cast to a complex.".format(self.parameters)
             ) from exc
@@ -446,7 +442,7 @@ class ParameterExpression:
             return float(self._symbol_expr)
         # TypeError is for sympy, RuntimeError for symengine
         except (TypeError, RuntimeError) as exc:
-            raise ParameterTypeError(
+            raise TypeError(
                 "ParameterExpression with unbound parameters ({}) "
                 "cannot be cast to a float.".format(self.parameters)
             ) from exc
@@ -535,14 +531,9 @@ class ParameterExpression:
                 return False
         return True
 
-    def to_simplify_expression(self):
+    def to_sympify_expression(self):
         """Return symbolic expression from sympy/symengine"""
-        if _optionals.HAS_SYMENGINE:
-            return symengine.sympify(self._symbol_expr)
-        else:
-            from sympy import sympify
-
-            return sympify(self._symbol_expr)
+        return self._symbol_expr
 
 
 # Redefine the type so external imports get an evaluated reference; Sphinx needs this to understand
