@@ -14,15 +14,15 @@
 
 import unittest
 
+from test.python.opflow import QiskitOpflowTestCase
 from ddt import ddt, data, unpack
 import numpy as np
 
 from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.trotter_ops_validator import (
     _validate_hamiltonian_form,
-    _is_pauli_linear_with_single_param,
+    _is_pauli_lin_single_param,
 )
 from qiskit.circuit.library import EfficientSU2
-from test.python.opflow import QiskitOpflowTestCase
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
     X,
@@ -47,6 +47,7 @@ class TestTrotterQrte(QiskitOpflowTestCase):
     )
     @unpack
     def test_validate_hamiltonian_form(self, hamiltonian, expected):
+        """Tests that a Hamiltonian is of a valid form supported by the TrotterQrte algorithm."""
         valid = True
         try:
             _validate_hamiltonian_form(hamiltonian)
@@ -67,9 +68,10 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         (Parameter("theta1") * Parameter("theta2") * X, False),
     )
     @unpack
-    def test_is_pauli_linear_with_single_param(self, operator, expected):
+    def test_is_pauli_lin_single_param(self, operator, expected):
+        """Tests that operator is validated to be linearly dependent on a single parameter."""
         try:
-            linear_with_single_param = _is_pauli_linear_with_single_param(operator)
+            linear_with_single_param = _is_pauli_lin_single_param(operator)
         except ValueError:
             linear_with_single_param = False
 

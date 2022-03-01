@@ -47,6 +47,9 @@ def _validate_input(initial_state: StateFn, observable: OperatorBase) -> None:
     Args:
         initial_state: A variable potentially holding a quantum state.
         observable: A variable potentially holding a quantum observable.
+
+    Raises:
+        ValueError: If both initial_state and observable are provided or none of them.
     """
     if initial_state is None and observable is None:
         raise ValueError(
@@ -77,13 +80,13 @@ def _validate_hamiltonian_form(hamiltonian: Union[SummedOp, PauliOp, OperatorBas
                 "ParameterExpression."
             )
         for op in hamiltonian.oplist:
-            if not _is_pauli_linear_with_single_param(op):
+            if not _is_pauli_lin_single_param(op):
                 raise ValueError(
                     "Hamiltonian term has a coefficient that is not a linear function of a "
                     "single parameter. It is not supported."
                 )
     elif isinstance(hamiltonian, (PauliOp, OperatorBase)):
-        if not _is_pauli_linear_with_single_param(hamiltonian):
+        if not _is_pauli_lin_single_param(hamiltonian):
             raise ValueError(
                 "Hamiltonian term has a coefficient that is not a linear function of a "
                 "single parameter. It is not supported."
@@ -92,7 +95,7 @@ def _validate_hamiltonian_form(hamiltonian: Union[SummedOp, PauliOp, OperatorBas
         raise ValueError("Hamiltonian not a SummedOp/PauliOp which are the only options supported.")
 
 
-def _is_pauli_linear_with_single_param(operator: PauliOp) -> bool:
+def _is_pauli_lin_single_param(operator: PauliOp) -> bool:
     """Checks if an operator provided is linear w.r.t. one and only one parameter.
 
     Args:

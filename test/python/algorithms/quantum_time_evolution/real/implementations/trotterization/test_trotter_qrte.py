@@ -14,12 +14,12 @@
 
 import unittest
 
+from test.python.opflow import QiskitOpflowTestCase
 from ddt import ddt, data
 import numpy as np
 from numpy.testing import assert_raises
 from scipy.linalg import expm
 
-from test.python.opflow import QiskitOpflowTestCase
 from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.trotter_qrte import (
     TrotterQrte,
 )
@@ -188,8 +188,8 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         )
         expected_gradient = {theta1: 0j, theta2: 0j}
         np.testing.assert_equal(expected_gradient.keys(), gradient.keys())
-        for key in expected_gradient.keys():
-            np.testing.assert_almost_equal(gradient[key], expected_gradient[key])
+        for key, expected_gradient_value in expected_gradient.items():
+            np.testing.assert_almost_equal(gradient[key], expected_gradient_value)
 
     def test_trotter_qrte_gradient_summed_op_qdrift_3(self):
         """Test for trotter qrte gradient with SummedOp and QDrift with commuting operators."""
@@ -214,8 +214,8 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         )
         expected_gradient = {theta1: 0j, theta2: 0j}
         np.testing.assert_equal(expected_gradient.keys(), gradient.keys())
-        for key in expected_gradient.keys():
-            np.testing.assert_almost_equal(gradient[key], expected_gradient[key])
+        for key, expected_gradient_value in expected_gradient.items():
+            np.testing.assert_almost_equal(gradient[key], expected_gradient_value)
 
     # TODO fix problem with randomness causing different results
     def test_trotter_qrte_gradient_summed_op_qdrift_4(self):
@@ -242,8 +242,8 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         )
         expected_gradient = {theta1: 10.938002663771012 + 0j, theta2: 9.745099298494452 + 0j}
         np.testing.assert_equal(expected_gradient.keys(), gradient.keys())
-        for key in expected_gradient.keys():
-            np.testing.assert_almost_equal(gradient[key], expected_gradient[key])
+        for key, expected_gradient_value in expected_gradient.items():
+            np.testing.assert_almost_equal(gradient[key], expected_gradient_value)
 
     def test_trotter_qrte_gradient_summed_op_qdrift_no_param(self):
         """Test for trotter qrte gradient with SummedOp and QDrift; missing param."""
@@ -267,9 +267,6 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         )
         expected_gradient = {theta1: 0j}
         np.testing.assert_equal(gradient, expected_gradient)
-
-    # TODO unit tests for _try_binding_params, def _validate_hamiltonian_form(self, hamiltonian:
-    #  SummedOp), _is_linear_with_single_param
 
 
 if __name__ == "__main__":
