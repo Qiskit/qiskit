@@ -380,7 +380,7 @@ class FakeBackendV2(BackendV2):
                 returned in the same order
         """
         if not self._qubit_properties:
-            self._qubit_properties = qubit_props_dict_from_props(self._properties)
+            self._qubit_properties = qubit_props_dict_from_props(self.properties())
         if isinstance(qubit, int):  # type: ignore[unreachable]
             return self._qubit_properties.get(qubit)
         if isinstance(qubit, List):
