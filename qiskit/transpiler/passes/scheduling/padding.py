@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -171,7 +171,7 @@ class PadDelay(BasePadding):
         q_1: ──────┤ X ├───────┤ X ├
                    └───┘       └───┘
 
-    Note that the idle time of 60dt on the ``q_0`` wire coming from the duration difference
+    Note that the additional idle time of 60dt on the ``q_0`` wire coming from the duration difference
     between ``Delay`` of 100dt (``q_0``) and ``XGate`` of 160 dt (``q_1``) is absorbed in
     the delay instruction on the ``q_0`` wire, i.e. in total 160 dt.
 
