@@ -578,7 +578,11 @@ class TestUnitarySynthesis(QiskitTestCase):
         circ.append(random_unitary(4, seed=1), [1, 0])
         backend = FakeVigo()
         tqc = transpile(
-            circ, backend=backend, optimization_level=opt, translation_method="synthesis"
+            circ,
+            backend=backend,
+            optimization_level=opt,
+            translation_method="synthesis",
+            layout_method="trivial",
         )
         tqc_index = {qubit: index for index, qubit in enumerate(tqc.qubits)}
         self.assertTrue(
