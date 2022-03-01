@@ -31,7 +31,11 @@ from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
-from qiskit._accelerate.pauli_expval import expval_pauli_no_x, expval_pauli_with_x
+# pylint: disable=import-error
+from qiskit._accelerate.pauli_expval import (
+    expval_pauli_no_x,
+    expval_pauli_with_x,
+)
 
 
 class Statevector(QuantumState, TolerancesMixin):
