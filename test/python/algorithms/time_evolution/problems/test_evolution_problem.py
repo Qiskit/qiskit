@@ -14,13 +14,11 @@
 import unittest
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from ddt import data, unpack, ddt
 from qiskit.algorithms.time_evolution.problems.evolution_problem import EvolutionProblem
 from qiskit.circuit import Parameter
-from qiskit.opflow import Y, Z, One
+from qiskit.opflow import Y, Z, One, X
 
 
-@ddt
 class TestEvolutionProblem(QiskitAlgorithmsTestCase):
     """Test evolution problem class."""
 
@@ -35,14 +33,14 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
         expected_hamiltonian = Y
         expected_time = 2.5
         expected_initial_state = One
-        expected_observable = None
+        expected_aux_operators = None
         expected_t_param = None
         expected_hamiltonian_value_dict = None
 
         self.assertEqual(evo_problem.hamiltonian, expected_hamiltonian)
         self.assertEqual(evo_problem.time, expected_time)
         self.assertEqual(evo_problem.initial_state, expected_initial_state)
-        self.assertEqual(evo_problem.observable, expected_observable)
+        self.assertEqual(evo_problem.aux_operators, expected_aux_operators)
         self.assertEqual(evo_problem.t_param, expected_t_param)
         self.assertEqual(evo_problem.hamiltonian_value_dict, expected_hamiltonian_value_dict)
 
@@ -52,40 +50,26 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
         hamiltonian = t_parameter * Z + Y
         time = 2
         initial_state = One
-        observable = None
+        aux_operators = [X, Y]
         hamiltonian_value_dict = {t_parameter: 3.2}
 
         evo_problem = EvolutionProblem(
-            hamiltonian, time, initial_state, observable, t_parameter, hamiltonian_value_dict
+            hamiltonian, time, initial_state, aux_operators, t_parameter, hamiltonian_value_dict
         )
 
         expected_hamiltonian = Y + t_parameter * Z
         expected_time = 2
         expected_initial_state = One
-        expected_observable = None
+        expected_aux_operators = [X, Y]
         expected_t_param = t_parameter
         expected_hamiltonian_value_dict = {t_parameter: 3.2}
 
         self.assertEqual(evo_problem.hamiltonian, expected_hamiltonian)
         self.assertEqual(evo_problem.time, expected_time)
         self.assertEqual(evo_problem.initial_state, expected_initial_state)
-        self.assertEqual(evo_problem.observable, expected_observable)
+        self.assertEqual(evo_problem.aux_operators, expected_aux_operators)
         self.assertEqual(evo_problem.t_param, expected_t_param)
         self.assertEqual(evo_problem.hamiltonian_value_dict, expected_hamiltonian_value_dict)
-
-    @data((One, Y), (None, None))
-    @unpack
-    def test_init_error(self, initial_state, observable):
-        """Tests that an error is raised when both or none initial_state and observable provided."""
-        t_parameter = Parameter("t")
-        hamiltonian = t_parameter * Z + Y
-        time = 2
-        hamiltonian_value_dict = {t_parameter: 3.2}
-
-        with self.assertRaises(ValueError):
-            _ = EvolutionProblem(
-                hamiltonian, time, initial_state, observable, t_parameter, hamiltonian_value_dict
-            )
 
 
 if __name__ == "__main__":

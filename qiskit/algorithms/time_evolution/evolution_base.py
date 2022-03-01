@@ -24,14 +24,13 @@ class EvolutionBase(ABC):
     @abstractmethod
     def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
         """
-        Evolves an initial state or an observable according to a Hamiltonian provided.
+        Evolves an initial state in the evolution_problem according to a Hamiltonian provided.
 
         Args:
             evolution_problem: EvolutionProblem instance that includes definition of an evolution
                 problem.
 
         Returns:
-            Evolution result which includes an evolved gradient of quantum state or an observable
-                and metadata.
+            Evolution result which includes an evolved quantum state.
         """
         raise NotImplementedError()

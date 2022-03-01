@@ -9,11 +9,13 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Class for holding evolution result and relevant metadata."""
-from typing import Optional
+"""Class for holding evolution result."""
+from typing import Optional, Union, Tuple
 
+from qiskit import QuantumCircuit
 from qiskit.algorithms import AlgorithmResult
-from qiskit.opflow import OperatorBase
+from qiskit.algorithms.eigen_solvers.eigen_solver import ListOrDict
+from qiskit.opflow import StateFn
 
 
 class EvolutionResult(AlgorithmResult):
@@ -21,28 +23,16 @@ class EvolutionResult(AlgorithmResult):
 
     def __init__(
         self,
-        evolved_state: Optional[OperatorBase] = None,
-        evolved_observable: Optional[OperatorBase] = None,
+        evolved_state: Union[StateFn, QuantumCircuit],
+        aux_ops_evaluated: Optional[ListOrDict[Tuple[complex, complex]]] = None
     ):
         """
         Args:
-            evolved_state: An evolved quantum state; mutually exclusive with evolved_observable.
-            evolved_observable: An evolved quantum observable; mutually exclusive with
-                evolved_state.
-
-        Raises:
-            ValueError: If both or none evolved_state and evolved_observable are provided.
+            evolved_state: An evolved quantum state.
+            aux_ops_evaluated: Optional list of observables for which expected values on an evolved
+                state are calculated. These values are in fact tuples formatted as (mean, standard
+                deviation).
         """
 
-        if evolved_state is not None and evolved_observable is not None:
-            raise ValueError(
-                "evolved_state and evolved_observable are mutually exclusive; both provided."
-            )
-
-        if evolved_state is None and evolved_observable is None:
-            raise ValueError(
-                "One of evolved_state or evolved_observable must be provided; none provided."
-            )
-
         self.evolved_state = evolved_state
-        self.evolved_observable = evolved_observable
+        self.aux_ops_evaluated = aux_ops_evaluated
