@@ -1081,9 +1081,9 @@ class TextDrawing:
                     current_cons.append((actual_index, gate))
 
         if isinstance(op, (Measure, MeasureX)):
-            if isinstance(op ,Measure):
+            if isinstance(op, Measure):
                 gate = MeasureFrom()
-            if isinstance(op ,MeasureX):
+            if isinstance(op, MeasureX):
                 gate = MeasureFrom()
 
             layer.set_qubit(node.qargs[0], gate)
