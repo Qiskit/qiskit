@@ -77,7 +77,7 @@ class TestBackendV2(QiskitTestCase):
                 "invalid output"
             ],
         )
-        self.assertTrue(Operator(tqc).equiv(qc))
+        self.assertTrue(Operator.from_circuit(tqc).equiv(qc))
         self.assertMatchesTargetConstraints(tqc, self.backend.target)
 
     @combine(
@@ -99,7 +99,8 @@ class TestBackendV2(QiskitTestCase):
         getattr(qc, gate)(2, 3)
         getattr(qc, gate)(4, 3)
         tqc = transpile(qc, backend, optimization_level=opt_level)
-        self.assertTrue(Operator(tqc).equiv(qc))
+        t_op = Operator.from_circuit(tqc)
+        self.assertTrue(t_op.equiv(qc))
         self.assertMatchesTargetConstraints(tqc, backend.target)
 
     def test_transpile_respects_arg_constraints(self):
@@ -109,7 +110,7 @@ class TestBackendV2(QiskitTestCase):
         qc.h(0)
         qc.cx(1, 0)
         tqc = transpile(qc, self.backend)
-        self.assertTrue(Operator(tqc).equiv(qc))
+        self.assertTrue(Operator.from_circuit(tqc).equiv(qc))
         # Below is done to check we're decomposing cx(1, 0) with extra
         # rotations to correct for direction. However because of fp
         # differences between windows and other platforms the optimization
@@ -125,7 +126,7 @@ class TestBackendV2(QiskitTestCase):
         qc.h(0)
         qc.ecr(0, 1)
         tqc = transpile(qc, self.backend)
-        self.assertTrue(Operator(tqc).equiv(qc))
+        self.assertTrue(Operator.from_circuit(tqc).equiv(qc))
         self.assertEqual(tqc.count_ops(), {"ecr": 1, "u": 4})
         self.assertMatchesTargetConstraints(tqc, self.backend.target)
 
@@ -141,7 +142,7 @@ class TestBackendV2(QiskitTestCase):
         expected.ecr(1, 0)
         expected.u(math.pi / 2, 0, -math.pi, 0)
         expected.u(math.pi / 2, 0, -math.pi, 1)
-        self.assertTrue(Operator(tqc).equiv(qc))
+        self.assertTrue(Operator.from_circuit(tqc).equiv(qc))
         self.assertEqual(tqc.count_ops(), {"ecr": 1, "u": 4})
         self.assertMatchesTargetConstraints(tqc, self.backend.target)
 
