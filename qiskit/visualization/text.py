@@ -430,6 +430,7 @@ class Bullet(DirectOnQuWire):
 
     def __init__(self, top_connect="", bot_connect="", conditional=False, label=None, bottom=False):
         super().__init__("■")
+        self.conditional = conditional
         self.top_connect = top_connect
         self.bot_connect = "║" if conditional else bot_connect
         if label and bottom:
@@ -451,6 +452,7 @@ class OpenBullet(DirectOnQuWire):
 
     def __init__(self, top_connect="", bot_connect="", conditional=False, label=None, bottom=False):
         super().__init__("o")
+        self.conditional = conditional
         self.top_connect = top_connect
         self.bot_connect = "║" if conditional else bot_connect
         if label and bottom:
@@ -1033,6 +1035,10 @@ class TextDrawing:
         ctrl_qubits = node.qargs[:num_ctrl_qubits]
         cstate = f"{op.ctrl_state:b}".rjust(num_ctrl_qubits, "0")[::-1]
         for i in range(len(ctrl_qubits)):
+            # For sidetext gate alignment, need to set every Bullet with
+            # conditional on if there's a condition.
+            if op.condition is not None:
+                conditional = True
             if cstate[i] == "1":
                 gates.append(Bullet(conditional=conditional, label=ctrl_text, bottom=bottom))
             else:
@@ -1502,3 +1508,5 @@ class Layer:
             if label:
                 for affected_bit in affected_bits:
                     affected_bit.right_fill = len(label) + len(affected_bit.mid)
+                    if isinstance(affected_bit, (Bullet, OpenBullet)) and affected_bit.conditional:
+                        affected_bit.left_fill = len(label) + len(affected_bit.mid)
