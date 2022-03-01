@@ -425,6 +425,7 @@ class NaturalGradient(GradientBase):
 
         Raises:
             MissingOptionalLibraryError: scikit-learn not installed
+
         """
         from sklearn.linear_model import Lasso
 
@@ -477,7 +478,7 @@ class NaturalGradient(GradientBase):
             alpha: perturbation coefficient for 'perturb_diag_elements' and 'perturb_diag'
             tol_norm_x: tolerance for the norm of x
             tol_cond_a: tolerance for the condition number of A
-            
+
         Returns:
             solution to the regularized system of linear equations
 
