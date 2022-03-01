@@ -14,23 +14,27 @@
 """Tests for error mitigation routines."""
 
 import unittest
+
 import numpy as np
 from numpy import array
 from ddt import ddt, data, unpack
+
 from qiskit import QiskitError
-from qiskit.test import QiskitTestCase
-from qiskit.result import Counts
-from qiskit.result import CorrelatedReadoutMitigator
-from qiskit.result import LocalReadoutMitigator
+from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.result import (
+    CorrelatedReadoutMitigator,
+    Counts,
+    LocalReadoutMitigator,
+)
 from qiskit.result.mitigation.utils import (
     z_diagonal,
     counts_probability_vector,
-    str2diag,
     expval_with_stddev,
     stddev,
+    str2diag,
 )
+from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeYorktown
-from qiskit.quantum_info.operators.predicates import matrix_equal
 
 
 @ddt
@@ -489,6 +493,20 @@ class TestReadoutMitigation(QiskitTestCase):
             cm.exception.message,
             "Assignment matrix columns must be valid probability distributions",
         )
+
+    def test_expectation_value_endian(self):
+        """Test that endian for expval is little."""
+        assignment_matrices = LocalReadoutMitigator(backend=FakeYorktown())._assignment_mats[0:3]
+        full_assignment_matrix = assignment_matrices[0]
+        for m in assignment_matrices[1:]:
+            full_assignment_matrix = np.kron(full_assignment_matrix, m)
+        CRM = CorrelatedReadoutMitigator(full_assignment_matrix)
+        LRM = LocalReadoutMitigator(assignment_matrices)
+        mitigators = [CRM, LRM]
+        counts = Counts({"10": 3, "11": 24, "00": 74, "01": 923})
+        for mitigator in mitigators:
+            expval, _ = mitigator.expectation_value(counts, diagonal="IZ", qubits=[0, 1])
+            self.assertAlmostEqual(expval, -1.0, places=0)
 
 
 if __name__ == "__main__":

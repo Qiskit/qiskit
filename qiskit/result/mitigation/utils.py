@@ -77,7 +77,7 @@ def str2diag(string):
         "1": np.array([0, 1], dtype=float),
     }
     ret = np.array([1], dtype=float)
-    for i in string:
+    for i in reversed(string):
         if i not in chars:
             raise QiskitError(f"Invalid diagonal string character {i}")
         ret = np.kron(chars[i], ret)
