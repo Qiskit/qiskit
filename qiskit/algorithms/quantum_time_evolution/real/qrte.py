@@ -37,17 +37,3 @@ class Qrte(EvolutionBase):
         """
         raise NotImplementedError()
 
-    @abstractmethod
-    def gradient(
-        self,
-        hamiltonian: OperatorBase,
-        time: float,
-        initial_state: StateFn,
-        gradient_object: Gradient,
-        observable: OperatorBase = None,
-        t_param=None,
-        hamiltonian_value_dict=None,
-        gradient_params=None,
-    ):
-        """Performs Quantum Real Time Evolution of gradient expressions."""
-        raise NotImplementedError()

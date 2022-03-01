@@ -48,17 +48,3 @@ class EvolutionBase(ABC):
         """
         raise NotImplementedError()
 
-    @abstractmethod
-    def gradient(
-        self,
-        hamiltonian: OperatorBase,
-        time: float,
-        initial_state: StateFn,
-        gradient_object: Gradient,
-        observable: OperatorBase = None,
-        t_param: Parameter = None,
-        hamiltonian_value_dict: [Parameter, Union[float, complex]] = None,
-        gradient_params: List[Parameter] = None,
-    ):
-        """Performs Quantum Time Evolution of gradient expressions."""
-        raise NotImplementedError()
