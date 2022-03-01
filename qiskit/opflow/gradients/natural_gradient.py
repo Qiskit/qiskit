@@ -180,7 +180,8 @@ class NaturalGradient(GradientBase):
     def qfi_method(self) -> CircuitQFI:
         """Returns ``CircuitQFI``.
 
-        Returns: ``CircuitQFI``
+        Returns: ``CircuitQFI``.
+
         """
         return self._qfi_method.qfi_method
 
@@ -189,6 +190,7 @@ class NaturalGradient(GradientBase):
         """Returns the regularization option.
 
         Returns: the regularization option.
+
         """
         return self._regularization
 
@@ -226,6 +228,7 @@ class NaturalGradient(GradientBase):
 
         def _get_curvature(x_lambda: List) -> float:
             """Calculate Menger curvature
+
             Menger, K. (1930).  Untersuchungen  ̈uber Allgemeine Metrik. Math. Ann.,103(1), 466–501
 
             Args:
@@ -234,6 +237,7 @@ class NaturalGradient(GradientBase):
 
             Returns:
                 Menger Curvature
+
             """
             eps = []
             eta = []
@@ -346,6 +350,7 @@ class NaturalGradient(GradientBase):
 
         Raises:
             MissingOptionalLibraryError: scikit-learn not installed
+
         """
         from sklearn.linear_model import Ridge
 
@@ -475,6 +480,7 @@ class NaturalGradient(GradientBase):
             
         Returns:
             solution to the regularized system of linear equations
+
         """
         if regularization == "ridge":
             _, x = NaturalGradient._ridge(metric, gradient, lambda1=lambda1)

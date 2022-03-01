@@ -84,6 +84,7 @@ class Gradient(GradientBase):
         params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]],
     ) -> OperatorBase:
         """Get the gradient for the given operator w.r.t. the given parameters
+
         Args:
             operator: Operator w.r.t. which we take the gradient.
             params: Parameters w.r.t. which we compute the gradient.

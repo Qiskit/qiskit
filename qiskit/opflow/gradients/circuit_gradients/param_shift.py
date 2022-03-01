@@ -56,7 +56,6 @@ class ParamShift(CircuitGradient):
 
         Raises:
             ValueError: If method != ``fin_diff`` and ``epsilon`` is not None.
-
         """
 
         self._analytic = analytic
@@ -155,7 +154,6 @@ class ParamShift(CircuitGradient):
         Raises:
             ValueError: If the given parameters do not occur in the provided operator
             TypeError: If the operator has more than one circuit representing the quantum state
-
         """
         if isinstance(params, (ParameterVector, list)):
             param_grads = [self._parameter_shift(operator, param) for param in params]
