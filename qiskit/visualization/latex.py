@@ -25,6 +25,7 @@ from qiskit.circuit.measure import Measure
 from qiskit.visualization.qcstyle import load_style
 from qiskit.circuit.tools.pi_check import pi_check
 from .utils import (
+    check_cregbundle,
     get_gate_ctrl_text,
     get_param_str,
     get_wire_map,
@@ -182,38 +183,8 @@ class QCircuitImage:
         self._cregbundle = cregbundle
         self._global_phase = circuit.global_phase
 
-        # If there is any custom instruction that uses classical bits
-        # or a condition on a gate contains a register bit in a list,
-        # then cregbundle is forced to be False.
-        for layer in self._nodes:
-            for node in layer:
-                if node.op.name not in {"measure"} and node.cargs:
-                    self._cregbundle = False
-                    warn(
-                        "cregbundle set to False since an instruction needs to refer"
-                        " to individual classical wire",
-                        RuntimeWarning,
-                        2,
-                    )
-                if (
-                    node.op.condition is not None
-                    and isinstance(node.op.condition[0], list)
-                    and len(node.op.condition[0]) > 1
-                    and self._cregbundle
-                ):
-                    for bit in node.op.condition[0]:
-                        register = get_bit_register(self._circuit, bit)
-                        if register is not None:
-                            self._cregbundle = False
-                            warn(
-                                "cregbundle set to False since there is a gate in the circuit"
-                                " with a classical condition on a list of bits and at least one"
-                                " of those bits belongs to a register",
-                                RuntimeWarning,
-                                2,
-                            )
-                            break
-
+        if self._cregbundle:
+            self._cregbundle = check_cregbundle(nodes, self._circuit)
         self._wire_map = get_wire_map(circuit, qubits + clbits, self._cregbundle)
         self._img_width = len(self._wire_map)
         self._style, _ = load_style(style)

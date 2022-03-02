@@ -25,6 +25,7 @@ from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.visualization.utils import (
+    check_cregbundle,
     get_gate_ctrl_text,
     get_param_str,
     get_wire_map,
@@ -678,28 +679,7 @@ class TextDrawing:
         self.cregbundle = cregbundle
 
         if self.cregbundle:
-            for layer in nodes:
-                for node in layer:
-                    if (
-                        node.op.condition is not None
-                        and isinstance(node.op.condition[0], list)
-                        and len(node.op.condition[0]) > 1
-                        and self.cregbundle
-                    ):
-                        for bit in node.op.condition[0]:
-                            register = get_bit_register(self._circuit, bit)
-                            if register is not None:
-                                self.cregbundle = False
-                                warn(
-                                    "cregbundle set to False since there is a gate in the circuit"
-                                    " with a classical condition on a list of bits and at least one"
-                                    " of those bits belongs to a register",
-                                    RuntimeWarning,
-                                    2,
-                                )
-                                break
-                if not self.cregbundle:
-                    break
+            self.cregbundle = check_cregbundle(nodes, self._circuit)
 
         self.global_phase = circuit.global_phase
         self.plotbarriers = plotbarriers
@@ -782,18 +762,7 @@ class TextDrawing:
 
         noqubits = len(self.qubits)
 
-        try:
-            layers = self.build_layers()
-        except TextDrawerCregBundle:
-            self.cregbundle = False
-            warn(
-                'The parameter "cregbundle" was disabled, since an instruction needs to refer to '
-                "individual classical wires",
-                RuntimeWarning,
-                2,
-            )
-            layers = self.build_layers()
-
+        layers = self.build_layers()
         layer_groups = [[]]
         rest_of_the_line = line_length
         for layerno, layer in enumerate(layers):
@@ -1180,8 +1149,6 @@ class TextDrawing:
             layer.set_qu_multibox(node.qargs, gate_text, conditional=conditional)
 
         elif node.qargs and node.cargs:
-            if self.cregbundle and node.cargs:
-                raise TextDrawerCregBundle("TODO")
             layer._set_multibox(
                 gate_text,
                 qubits=node.qargs,

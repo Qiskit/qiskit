@@ -32,6 +32,7 @@ from qiskit.circuit.library.standard_gates import (
 from qiskit.extensions import Initialize
 from qiskit.visualization.qcstyle import load_style
 from qiskit.visualization.utils import (
+    check_cregbundle,
     get_gate_ctrl_text,
     get_param_str,
     get_wire_map,
@@ -191,6 +192,8 @@ class MatplotlibDrawer:
 
         self._initial_state = initial_state
         self._cregbundle = cregbundle
+        if self._cregbundle:
+            self._cregbundle = check_cregbundle(nodes, self._circuit)
         self._global_phase = self._circuit.global_phase
         self._calibrations = self._circuit.calibrations
 
@@ -403,32 +406,6 @@ class MatplotlibDrawer:
             widest_box = WID
             for node in layer:
                 op = node.op
-                if self._cregbundle and node.cargs and not isinstance(op, Measure):
-                    self._cregbundle = False
-                    warn(
-                        "cregbundle set to False since an instruction needs to refer"
-                        " to individual classical wire",
-                        RuntimeWarning,
-                        2,
-                    )
-                if (
-                    op.condition is not None
-                    and isinstance(op.condition[0], list)
-                    and len(op.condition[0]) > 1
-                    and self._cregbundle
-                ):
-                    for bit in op.condition[0]:
-                        register = get_bit_register(self._circuit, bit)
-                        if register is not None:
-                            self._cregbundle = False
-                            warn(
-                                "cregbundle set to False since there is a gate in the circuit"
-                                " with a classical condition on a list of bits and at least one"
-                                " of those bits belongs to a register",
-                                RuntimeWarning,
-                                2,
-                            )
-                            break
                 self._data[node] = {}
                 self._data[node]["width"] = WID
                 num_ctrl_qubits = 0 if not hasattr(op, "num_ctrl_qubits") else op.num_ctrl_qubits
