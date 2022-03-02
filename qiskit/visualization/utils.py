@@ -71,6 +71,7 @@ def check_cregbundle(nodes, circuit):
                         return False
     return True
 
+
 def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
     """Load the gate_text and ctrl_text strings based on names and labels"""
     op_label = getattr(op, "label", None)
