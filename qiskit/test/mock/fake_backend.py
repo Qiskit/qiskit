@@ -288,6 +288,7 @@ class FakeBackendV2(BackendV2):
     props_filename = None
     defs_filename = None
     backend_name = None
+    pulse_enabled = True
 
     def __init__(self):
         self._configuration = self._get_conf_from_json()
@@ -311,6 +312,9 @@ class FakeBackendV2(BackendV2):
 
     def defaults(self):
         """Returns a snapshot of device defaults"""
+        if not self.pulse_enabled:
+            return None
+
         if not self._defaults:
             self._set_defaults_from_json()
         return self._defaults
@@ -329,6 +333,7 @@ class FakeBackendV2(BackendV2):
             configuration = PulseBackendConfiguration.from_dict(conf)
         except:
             configuration = QasmBackendConfiguration.from_dict(conf)
+            self.pulse_enabled = False
         return configuration
 
     def _set_props_from_json(self):
