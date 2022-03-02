@@ -131,9 +131,5 @@ class ASAPSchedule(BaseScheduler):
                 key = node.name, node.sort_key, getattr(node, "_node_id")
                 node_start_time[key] = t0
 
-        # Compute maximum instruction available time, i.e. the latest t1
-        circuit_duration = max(idle_after.values())
-
         # Sort time slot by t0. ASAP is straight forward.
         self.property_set["node_start_time"] = node_start_time
-        self.property_set["duration"] = circuit_duration

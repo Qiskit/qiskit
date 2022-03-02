@@ -128,4 +128,3 @@ class ALAPSchedule(BaseScheduler):
         self.property_set["node_start_time"] = {
             n: circuit_duration - t1 for n, t1 in node_start_time.items()
         }
-        self.property_set["duration"] = circuit_duration

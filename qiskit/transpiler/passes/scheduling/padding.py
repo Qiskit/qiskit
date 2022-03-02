@@ -26,17 +26,24 @@ class BasePadding(TransformationPass):
     Since there are multiple scheduling strategies, the selection of scheduling
     pass is left in the hands of one designs the pass manager.
     Once schedule pass is called on the DAG circuit, ``node_start_time`` is generated
-    in the :attr:`property_set`.  The time slot is the dictionary of
+    in the :attr:`property_set`.  This information is represented by a python dictionary of
     the expected instruction execution times keyed on the node instances.
     Entries in the dictionary are only created for non-delay nodes.
-    The padding pass expects all ``DAGOpNode`` in the circuit to be scheduled in the time slot.
+    The padding pass expects all ``DAGOpNode`` in the circuit to be scheduled.
 
-    This pass doesn't define any sequence to interleave, but the pass manages
-    the location where the sequence is inserted, and provides set of information necessary
+    This base class doesn't define any sequence to interleave, but it manages
+    the location where the sequence is inserted, and provides a set of information necessary
     to construct the proper sequence. Thus, a subclass of this pass just need to implement
     :meth:`_pad` method, in which the subclass constructs a circuit block to insert.
-
     This mechanism removes lots of boilerplate logic to manage whole DAG circuits.
+
+    Note that padding pass subclasses should define interleaving sequences satisfying:
+
+        - Interleaved sequence does not change start time of other nodes
+        - Interleaved sequence should have total duration of the provided ``time_interval``.
+
+    Any manipulation of these properties may cause collapsing of instructions in the
+    low-level pulse program, or violation of hardware alignment constraints.
     """
 
     def run(self, dag: DAGCircuit):
@@ -67,8 +74,6 @@ class BasePadding(TransformationPass):
 
         new_dag.name = dag.name
         new_dag.metadata = dag.metadata
-        new_dag.duration = dag.duration
-        new_dag.duration = self.property_set["duration"]
         new_dag.unit = self.property_set["time_unit"]
         new_dag.calibrations = dag.calibrations
 
@@ -124,6 +129,12 @@ class BasePadding(TransformationPass):
                     next_node=node,
                     prev_node=prev_node,
                 )
+
+        # Compute fresh circuit duration from the node start time dictionary.
+        # Note that scheduled duration may change with alignment passes, i.e.
+        # if some instruction time t0 violates the hardware alignment constraint,
+        # the alignment pass may delay t0 and accordingly the circuit duration changes.
+        new_dag.duration = max(idle_after.values())
 
         return new_dag
 

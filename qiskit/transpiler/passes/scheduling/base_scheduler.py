@@ -249,7 +249,6 @@ class BaseScheduler(AnalysisPass):
                 UserWarning,
             )
         self.property_set["node_start_time"] = dict()
-        self.property_set["duration"] = None
 
     @staticmethod
     def _get_node_duration(
