@@ -556,7 +556,7 @@ class Pauli(BasePauli, Operation):
         """
         return np.logical_not(self.commutes(other, qargs=qargs))
 
-    def evolve(self, other, qargs=None, frame='h'):
+    def evolve(self, other, qargs=None, frame="h"):
         r"""Heisenberg picture evolution of a Pauli by a Clifford.
 
         This returns the Pauli :math:`P^\prime = C^\dagger.P.C`.

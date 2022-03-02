@@ -222,7 +222,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         b_dot_a = np.mod(np.sum(np.logical_and(z1, other._x), axis=1), 2)
         return a_dot_b == b_dot_a
 
-    def evolve(self, other, qargs=None, frame='h'):
+    def evolve(self, other, qargs=None, frame="h"):
         r"""Heisenberg picture evolution of a Pauli by a Clifford.
 
         This returns the Pauli :math:`P^\prime = C^\dagger.P.C`.
@@ -254,7 +254,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
         # Evolve via Pauli
         if isinstance(other, BasePauli):
-            if frame == 's':
+            if frame == "s":
                 ret = self.compose(other, qargs=qargs)
                 ret = ret.compose(other.adjoint(), front=True, qargs=qargs)
             else:
@@ -270,11 +270,11 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             return self._evolve_clifford(other, qargs=qargs, frame=frame)
 
         # Otherwise evolve by the inverse circuit to compute C^dg.P.C
-        if frame == 's':
+        if frame == "s":
             return self.copy()._append_circuit(other, qargs=qargs)
         return self.copy()._append_circuit(other.inverse(), qargs=qargs)
 
-    def _evolve_clifford(self, other, qargs=None, frame='h'):
+    def _evolve_clifford(self, other, qargs=None, frame="h"):
         """Heisenberg picture evolution of a Pauli by a Clifford."""
         if qargs is None:
             idx = slice(None)
@@ -293,7 +293,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 
         # Get action of Pauli's from Clifford
-        if frame == 's':
+        if frame == "s":
             adj = other.copy()
         else:
             adj = other.adjoint()

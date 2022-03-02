@@ -867,7 +867,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             inds = inds[new_inds]
         return inds
 
-    def evolve(self, other, qargs=None, frame='h'):
+    def evolve(self, other, qargs=None, frame="h"):
         r"""Evolve the Pauli by a Clifford.
 
         This returns the Pauli :math:`P^\prime = C.P.C^\dagger`.
