@@ -17,7 +17,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Optional, Union
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, Parameter
+from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers.backend import BackendV1 as Backend
 
 from .sampler_result import SamplerResult
@@ -31,6 +32,7 @@ class BaseSampler(ABC):
     def __init__(
         self,
         circuits: list[QuantumCircuit],
+        parameters: Union[ParameterView, list[Parameter]],
         backend: Backend,
     ):
         """
@@ -39,6 +41,7 @@ class BaseSampler(ABC):
             backend: a backend or a backend wrapper
         """
         self._circuits = circuits
+        self._parameters = parameters
         self._backend = backend
 
     @abstractmethod
@@ -61,6 +64,14 @@ class BaseSampler(ABC):
             a list of quantum circuits
         """
         return self._circuits
+
+    @property
+    def parameters(self) -> Union[ParameterView, list[Parameter]]:
+        """
+        Returns:
+            Parameter list of the quantum circuits
+        """
+        return self._parameters
 
     @property
     def backend(self) -> Backend:

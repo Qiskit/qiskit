@@ -9,8 +9,78 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
+r"""
 Estimator base class
+
+Estimator class estimates expectation values of quantum circuits and observables.
+The input consists of following elements.
+
+* quantum circuits ($\psi_i(\theta)$): list of (parametrized) quantum circuits or
+state vectors to be converted into quantum circuits.
+(a list of :class:`~qiskit.circuit.QuantumCircuit`))
+
+* observables ($H_j$): a list of :class:`~qiskit.quantum_info.SparsePauliOp`.
+
+* grouping: a list of pairs :class:`~qiskit.primitive.Group` of an
+    index of the quantum circuits and an index of the observable.
+    A tuple of two integers can be used as alternative of :class:`~qiskit.primitive.Group`.
+
+* parameters: a list of parameters of the quantum circuits.
+    (:class:`~qiskit.circuit.parametertable.ParameterView` or
+    a list of :class:`~qiskit.circuit.Parameter`).
+
+* parameter values ($\theta_k$): 1-dimensional or 2-dimensional array of values
+    to be bound to the parameters of the quantum circuits.
+    (list of float or list of list of float)
+
+* backend: a backend to executes quantum circuits.
+
+The estimator object is expected to be initialized with "with" statement
+and the objects are called with parameter values and run options
+(e.g., ``shots`` or number of shots).
+
+Here is an example of how estimator is used.
+
+.. code-block:: python
+    from qiskit import Aer
+    from qiskit.circuit.library import RealAmplitude
+    from qiskit.quantum_info import SparsePauliOp
+
+    psi1 = RealAmplitudes(num_qubits=2, reps=2)
+    psi2 = RealAmplitudes(num_qubits=2, reps=3)
+
+    params1 = psi1.parameters
+    params2 = psi2.parameters
+
+    H1 = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)]) 
+    H2 = SparsePauliOp.from_list([("IZ", 1)])
+    H3 = SparsePauliOp.from_list([("ZI", 1), ("ZZ", 1)])
+
+    backend = Aer.get_simulator("aer_simulator")
+
+    with Estimator([psi1, psi2], [op1, op2, op3], list(params1) + list(params2), backend) as est:
+        # first 6 values correspond to the parameters of psi1
+        # last 8 values correspond to the parameters of psi2
+        theta1 = [0, 1, 1, 2, 3, 5] + [0] * 8
+        theta2 = [0] * 6 + [0, 1, 1, 2, 3, 5, 8, 13]
+        theta3 = [1, 2, 3, 4, 5, 6] + [0] * 8
+
+        # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
+        H1_result = e(theta1, shots=1024, grouping=[(0, 0)])
+        print(H1_result)
+
+        # calculate [ <psi1(theta1)|H2|psi1(theta1)>, <psi1(theta1)|H3|psi1(theta1)> ]
+        H23_result = e(theta1, shots=1024, grouping=[(0, 1), (0, 2)])
+        print(H23_result)
+
+        # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]
+        H1_result2 = e(theta2, shots=1024, grouping=[(1, 1)])
+        print(H1_result2)
+
+        # calculate [ <psi1(theta1)|H1|psi1(theta1)>, <psi1(theta3)|H1|psi1(theta3)> ]
+        H1_result2 = e([theta1, theta3], shots=1024, grouping=[(0, 0)])
+        print(H1_result2)
+
 """
 from __future__ import annotations
 
@@ -18,7 +88,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional, Union
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, Parameter
+from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import BackendV1 as Backend
 from qiskit.quantum_info import SparsePauliOp
 
@@ -34,18 +105,28 @@ class Group:
 
 
 class BaseEstimator(ABC):
-    """
-    Estimator base class.
+    """Estimator base class.
+
+    Base class for Estimator that estimates expectation values of quantum circuits and observables.
     """
 
     def __init__(
         self,
         circuits: list[QuantumCircuit],
         observables: list[SparsePauliOp],
+        parameters: Union[ParameterView, list[Parameter]],
         backend: Backend,
     ):
+        """
+        Args:
+            circuits (list[QuantumCircuit])
+            observables (list[SparsePauliOp])
+            parameters (Union[ParameterView, list[Parameter]])
+            backend (Backend)
+        """
         self._circuits = circuits
         self._observables = observables
+        self._parameters = parameters
         self._backend = backend
 
     @abstractmethod
@@ -62,10 +143,10 @@ class BaseEstimator(ABC):
 
     @property
     def circuits(self) -> list[QuantumCircuit]:
-        """Quantum Circuits that represents quantum states.
+        """Quantum circuits that represents quantum states.
 
         Returns:
-            quantum states
+            quantum circuits
         """
         return self._circuits
 
@@ -75,9 +156,17 @@ class BaseEstimator(ABC):
         SparsePauliOp that represents observable
 
         Returns:
-            observable
+            observables
         """
         return self._observables
+
+    @property
+    def parameters(self) -> Union[ParameterView, list[Parameter]]:
+        """
+        Returns:
+            Parameter list of the quantum circuits
+        """
+        return self._parameters
 
     @property
     def backend(self) -> Backend:
