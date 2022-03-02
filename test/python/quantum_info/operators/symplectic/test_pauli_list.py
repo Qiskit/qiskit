@@ -45,7 +45,7 @@ from qiskit.quantum_info.operators import (
 from qiskit.quantum_info.random import random_clifford, random_pauli_list
 from qiskit.test import QiskitTestCase
 
-from test.python.quantum_info.operators.symplectic.test_pauli import pauli_group_labels
+from .test_pauli import pauli_group_labels
 
 
 def pauli_mat(label):
