@@ -42,18 +42,19 @@ class BasePadding(TransformationPass):
         - Interleaved sequence does not change start time of other nodes
         - Interleaved sequence should have total duration of the provided ``time_interval``.
 
-    Any manipulation of these properties may cause collapsing of instructions in the
-    low-level pulse program, or violation of hardware alignment constraints.
+    Any manipulation violating these constraints may prevent this base pass from correctly
+    tracking the start time of each instruction,
+    which may result in violation of hardware alignment constraints.
     """
 
     def run(self, dag: DAGCircuit):
-        """Run the measurement alignment pass on `dag`.
+        """Run the padding pass on ``dag``.
 
         Args:
             dag (DAGCircuit): DAG to be checked.
 
         Returns:
-            DAGCircuit: DAG with consistent timing and op nodes annotated with duration.
+            DAGCircuit: DAG with idle time filled with instructions.
 
         Raises:
             TranspilerError: If the whole circuit or instruction is not scheduled.

@@ -131,5 +131,4 @@ class ASAPSchedule(BaseScheduler):
                 key = node.name, node.sort_key, getattr(node, "_node_id")
                 node_start_time[key] = t0
 
-        # Sort time slot by t0. ASAP is straight forward.
         self.property_set["node_start_time"] = node_start_time

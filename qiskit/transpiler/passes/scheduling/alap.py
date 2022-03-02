@@ -123,7 +123,7 @@ class ALAPSchedule(BaseScheduler):
         # Compute maximum instruction available time, i.e. very end of t1
         circuit_duration = max(idle_before.values())
 
-        # Sort time slot by t0. Note that ALAP pass is inversely schedule, thus
+        # Note that ALAP pass is inversely schedule, thus
         # t0 is computed by subtracting entire circuit duration from t1.
         self.property_set["node_start_time"] = {
             n: circuit_duration - t1 for n, t1 in node_start_time.items()

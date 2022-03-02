@@ -10,7 +10,7 @@ upgrade:
     :class:`~qiskit.transpiler.passes.scheduling.alap.ALAPSchedule` have been turned into
     analysis pass that does not modify the input DAG circuit.
     Now these passes just analyze the time slot allocation of every ``DAGOpNode``s and
-    create a ``time_slot`` dictionary in the pass manager property set,
+    create a ``node_start_time`` dictionary in the pass manager property set,
     instead of immediately injecting delays in between nodes with idle time.
 
     Note that one directly assembles own pass manager with these passes should add
