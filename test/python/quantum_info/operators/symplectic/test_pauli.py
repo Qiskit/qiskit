@@ -375,8 +375,13 @@ class TestPauli(QiskitTestCase):
         op = Operator(gate)
         pauli = Pauli(label)
         value = Operator(pauli.evolve(gate))
+        value_h = Operator(pauli.evolve(gate, frame="h"))
+        value_s = Operator(pauli.evolve(gate, frame="s"))
+        value_inv = Operator(pauli.evolve(gate.inverse()))
         target = op.adjoint().dot(pauli).dot(op)
         self.assertEqual(value, target)
+        self.assertEqual(value, value_h)
+        self.assertEqual(value_inv, value_s)
 
     @data(*it.product((CXGate(), CYGate(), CZGate(), SwapGate()), pauli_group_labels(2, False)))
     @unpack
@@ -385,8 +390,13 @@ class TestPauli(QiskitTestCase):
         op = Operator(gate)
         pauli = Pauli(label)
         value = Operator(pauli.evolve(gate))
+        value_h = Operator(pauli.evolve(gate, frame="h"))
+        value_s = Operator(pauli.evolve(gate, frame="s"))
+        value_inv = Operator(pauli.evolve(gate.inverse()))
         target = op.adjoint().dot(pauli).dot(op)
         self.assertEqual(value, target)
+        self.assertEqual(value, value_h)
+        self.assertEqual(value_inv, value_s)
 
     def test_evolve_clifford_qargs(self):
         """Test evolve method for random Clifford"""
@@ -395,8 +405,13 @@ class TestPauli(QiskitTestCase):
         pauli = random_pauli(5, seed=10)
         qargs = [3, 0, 1]
         value = Operator(pauli.evolve(cliff, qargs=qargs))
+        value_h = Operator(pauli.evolve(cliff, qargs=qargs, frame="h"))
+        value_s = Operator(pauli.evolve(cliff, qargs=qargs, frame="s"))
+        value_inv = Operator(pauli.evolve(cliff.adjoint(), qargs=qargs))
         target = Operator(pauli).compose(op.adjoint(), qargs=qargs).dot(op, qargs=qargs)
         self.assertEqual(value, target)
+        self.assertEqual(value, value_h)
+        self.assertEqual(value_inv, value_s)
 
 
 if __name__ == "__main__":
