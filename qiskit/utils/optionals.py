@@ -292,3 +292,9 @@ HAS_PDFTOCAIRO = _LazySubprocessTester(
     ("pdftocairo", "-v"),
     msg="This is part of the 'poppler' set of PDF utilities",
 )
+
+HAS_CONSTRAINT = _LazyImportTester(
+    "constraint",
+    name="python-constraint",
+    install="pip install python-constraint",
+)
