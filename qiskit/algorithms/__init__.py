@@ -92,6 +92,22 @@ knowledge to do this in that application domain.
    NumPyEigensolver
 
 
+Evolvers
+--------
+
+Algorithms to evolve quantum states in time. Both real and imaginary time evolution is possible
+with algorithms that support them. For machine learning, Quantum Imaginary Time Evolution might be
+used to train Quantum Boltzmann Machine Neural Networks for example.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+    EvolverProblem
+    EvolverResult
+    Evolver
+
+
 Factorizers
 -----------
 
