@@ -443,37 +443,3 @@ class FakeBackendV2(BackendV2):
             sim = basicaer.BasicAer.get_backend("qasm_simulator")
             job = sim.run(circuits, **kwargs)
         return job
-
-    def drive_channel(self, qubit: int) -> DriveChannel:
-        """Return the drive channel for the given qubit.
-        Returns:
-            DriveChannel: The Qubit drive channel
-        """
-        return self._conf_dict.drive(qubit=qubit)
-
-    def measure_channel(self, qubit: int) -> MeasureChannel:
-        """Return the measure stimulus channel for the given qubit.
-        Returns:
-            MeasureChannel: The Qubit measurement stimulus line
-        """
-        return self._conf_dict.measure(qubit=qubit)
-
-    def acquire_channel(self, qubit: int) -> AcquireChannel:
-        """Return the acquisition channel for the given qubit.
-        Returns:
-            AcquireChannel: The Qubit measurement acquisition line.
-        """
-        return self._conf_dict.acquire(qubit=qubit)
-
-    def control_channel(self, qubits: Iterable[int]) -> List[ControlChannel]:
-        """Return the secondary drive channel for the given qubit
-        This is typically utilized for controlling multiqubit interactions.
-        This channel is derived from other channels.
-        Args:
-            qubits: Tuple or list of qubits of the form
-                ``(control_qubit, target_qubit)``.
-        Returns:
-            List[ControlChannel]: The Qubit measurement acquisition line.
-        """
-        return self._conf_dict.control(qubits=qubits)
-
