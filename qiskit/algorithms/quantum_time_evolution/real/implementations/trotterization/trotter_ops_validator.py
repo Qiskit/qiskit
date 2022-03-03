@@ -18,7 +18,6 @@ from typing import Union
 from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.opflow import (
     OperatorBase,
-    StateFn,
     SummedOp,
     PauliOp,
 )
@@ -37,29 +36,6 @@ def _is_op_bound(operator: Union[SummedOp, PauliOp, OperatorBase]) -> None:
         raise ValueError(
             f"Did not manage to bind all parameters in the Hamiltonian, "
             f"these parameters encountered: {operator.parameters}."
-        )
-
-
-def _validate_input(initial_state: StateFn, observable: OperatorBase) -> None:
-    """
-    Validates if one and only one among initial_state and observable is provided.
-
-    Args:
-        initial_state: A variable potentially holding a quantum state.
-        observable: A variable potentially holding a quantum observable.
-
-    Raises:
-        ValueError: If both initial_state and observable are provided or none of them.
-    """
-    if initial_state is None and observable is None:
-        raise ValueError(
-            "TrotterQrte requires an initial state or an observable to be evolved; None "
-            "provided."
-        )
-    if initial_state is not None and observable is not None:
-        raise ValueError(
-            "TrotterQrte requires an initial state or an observable to be evolved; both "
-            "provided."
         )
 
 
