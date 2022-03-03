@@ -288,67 +288,45 @@ class FakeBackendV2(BackendV2):
     props_filename = None
     defs_filename = None
     backend_name = None
-    pulse_enabled = True
 
     def __init__(self):
-        self._configuration = self._get_conf_from_json()
+        self._conf_dict = self._get_conf_dict_from_json()
+        self._props_dict = self._set_props_dict_from_json()
+        self._defs_dict = self._set_defs_dict_from_json()
         super().__init__(
             provider=None,
-            name=self._configuration.backend_name,
-            description=self._configuration.description,
-            online_date=self._configuration.online_date,
-            backend_version=self._configuration.backend_version
+            name=self._conf_dict["backend_name"],
+            description=self._conf_dict["description"],
+            online_date=self._conf_dict["online_date"],
+            backend_version=self._conf_dict["backend_version"]
         )
-        self._properties = None
-        self._qubit_properties = None
-        self._defaults = None
         self._target = None
+        self._qubit_properties = None
 
-    def properties(self):
-        """Returns a snapshot of device properties"""
-        if not self._properties:
-            self._set_props_from_json()
-        return self._properties
-
-    def defaults(self):
-        """Returns a snapshot of device defaults"""
-        if not self.pulse_enabled:
-            return None
-
-        if not self._defaults:
-            self._set_defaults_from_json()
-        return self._defaults
-
-    def _get_conf_from_json(self):
+    def _get_conf_dict_from_json(self):
         if not self.conf_filename:
-            raise QiskitError("No configuration file has been defined")
-        conf = self._load_json(self.conf_filename)
-        decode_backend_configuration(conf)
-        configuration = self._get_config_from_dict(conf)
-        configuration.backend_name = self.backend_name
-        return configuration
+            warnings.warn("No configuration file has been defined", UserWarning)
+            return None
+        conf_dict = self._load_json(self.conf_filename)
+        decode_backend_configuration(conf_dict)
+        conf_dict["backend_name"] = self.backend_name
+        return conf_dict
 
-    def _get_config_from_dict(self, conf):
-        try:
-            configuration = PulseBackendConfiguration.from_dict(conf)
-        except:
-            configuration = QasmBackendConfiguration.from_dict(conf)
-            self.pulse_enabled = False
-        return configuration
-
-    def _set_props_from_json(self):
+    def _set_props_dict_from_json(self):
         if not self.props_filename:
-            raise QiskitError("No properties file has been defined")
-        props = self._load_json(self.props_filename)
-        decode_backend_properties(props)
-        self._properties = BackendProperties.from_dict(props)
+            warnings.warn("No properties file has been defined", UserWarning)
+            return None
+        props_dict = self._load_json(self.props_filename)
+        decode_backend_properties(props_dict)
+        return props_dict
 
-    def _set_defaults_from_json(self):
+    def _set_defs_dict_from_json(self):
         if not self.defs_filename:
-            raise QiskitError("No pulse defaults file has been defined")
-        defs = self._load_json(self.defs_filename)
-        decode_pulse_defaults(defs)
-        self._defaults = PulseDefaults.from_dict(defs)
+            warnings.warn("No pulse defaults file has been defined", UserWarning)
+            return None
+        defs_dict = self._load_json(self.defs_filename)
+        decode_pulse_defaults(defs_dict)
+        return defs_dict
 
     def _load_json(self, filename):
         with open(os.path.join(self.dirname, filename)) as f_json:
@@ -361,7 +339,7 @@ class FakeBackendV2(BackendV2):
         Returns:
             dtm: The output signal timestep in seconds.
         """
-        return self._configuration.dtm
+        return self._conf_dict["dtm"]
 
     @property
     def meas_map(self) -> List[List[int]]:
@@ -371,7 +349,7 @@ class FakeBackendV2(BackendV2):
         Returns:
             meas_map: The grouping of measurements which are multiplexed
         """
-        return self._configuration.meas_map
+        return self._conf_dict["meas_map"]
 
     def qubit_properties(
         self, qubit: Union[int, List[int]]
@@ -385,7 +363,9 @@ class FakeBackendV2(BackendV2):
                 returned in the same order
         """
         if not self._qubit_properties:
-            self._qubit_properties = qubit_props_dict_from_props(self.properties())
+            self._qubit_properties = qubit_properties_dict_from_properties(
+                self._props_dict
+            )
         if isinstance(qubit, int):  # type: ignore[unreachable]
             return self._qubit_properties.get(qubit)
         if isinstance(qubit, List):
@@ -401,9 +381,9 @@ class FakeBackendV2(BackendV2):
         """Converts backend configuration, properties and defaults to Target object"""
         if not self._target:
             self._target = convert_to_target(
-                configuration=self._configuration.to_dict(),
-                properties=self._properties.to_dict() if self._properties else None,
-                defaults=self._defaults.to_dict() if self._defaults else None,
+                configuration=self._conf_dict,
+                properties=self._props_dict,
+                defaults=self._defs_dict,
             )
 
     @property
@@ -469,21 +449,21 @@ class FakeBackendV2(BackendV2):
         Returns:
             DriveChannel: The Qubit drive channel
         """
-        return self._configuration.drive(qubit=qubit)
+        return self._conf_dict.drive(qubit=qubit)
 
     def measure_channel(self, qubit: int) -> MeasureChannel:
         """Return the measure stimulus channel for the given qubit.
         Returns:
             MeasureChannel: The Qubit measurement stimulus line
         """
-        return self._configuration.measure(qubit=qubit)
+        return self._conf_dict.measure(qubit=qubit)
 
     def acquire_channel(self, qubit: int) -> AcquireChannel:
         """Return the acquisition channel for the given qubit.
         Returns:
             AcquireChannel: The Qubit measurement acquisition line.
         """
-        return self._configuration.acquire(qubit=qubit)
+        return self._conf_dict.acquire(qubit=qubit)
 
     def control_channel(self, qubits: Iterable[int]) -> List[ControlChannel]:
         """Return the secondary drive channel for the given qubit
@@ -495,5 +475,5 @@ class FakeBackendV2(BackendV2):
         Returns:
             List[ControlChannel]: The Qubit measurement acquisition line.
         """
-        return self._configuration.control(qubits=qubits)
+        return self._conf_dict.control(qubits=qubits)
 
