@@ -48,7 +48,7 @@ Results
    SamplerResult
 """
 
-from .base_estimator import BaseEstimator
-from .base_sampler import BaseSampler
+from .base_estimator import BaseEstimator, EstimatorFactory
+from .base_sampler import BaseSampler, SamplerFactory
 from .estimator_result import EstimatorResult
 from .sampler_result import SamplerResult

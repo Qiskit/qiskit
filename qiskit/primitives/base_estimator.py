@@ -23,7 +23,6 @@ to estimate the expectation values.
 The input consists of following elements.
 
 * quantum circuits (:math:`\psi_i(\theta)`): list of (parametrized) quantum circuits
-  or state vectors to be converted into quantum circuits.
   (a list of :class:`~qiskit.circuit.QuantumCircuit`))
 
 * observables (:math:`H_j`): a list of :class:`~qiskit.quantum_info.SparsePauliOp`.
@@ -37,18 +36,19 @@ The input consists of following elements.
   (:class:`~qiskit.circuit.parametertable.ParameterView` or
   a list of :class:`~qiskit.circuit.Parameter`).
 
-* parameter values (:math:`\theta_k`): 1-dimensional or 2-dimensional array of values
+* parameter values (:math:`\theta_k`): list of sets of values
   to be bound to the parameters of the quantum circuits.
-  (list of float or list of list of float)
+  (list of list of float)
 
-The output is the expectation value or a list of expectation values.
+The output is the list of expectation values.
 
 .. math::
 
     \Braket{\psi_i(\theta_k)|H_j|\psi_i(\theta_k)}
 
 
-The estimator object is expected to be initialized with "with" statement
+The estimator object is expected to be close()d after use or
+accessed inside "with" context
 and the objects are called with parameter values and run options
 (e.g., ``shots`` or number of shots).
 
@@ -69,31 +69,31 @@ Here is an example of how estimator is used.
     H2 = SparsePauliOp.from_list([("IZ", 1)])
     H3 = SparsePauliOp.from_list([("ZI", 1), ("ZZ", 1)])
 
-    with Estimator([psi1, psi2], [H1, H2, H3], list(params1) + list(params2)) as e:
-        # first 6 values correspond to the parameters of psi1
-        # last 8 values correspond to the parameters of psi2
-        theta1 = [0, 1, 1, 2, 3, 5] + [0] * 8
-        theta2 = [0] * 6 + [0, 1, 1, 2, 3, 5, 8, 13]
-        theta3 = [1, 2, 3, 4, 5, 6] + [0] * 8
+    with Estimator([psi1, psi2], [H1, H2, H3], [params1, params2] as e:
+        theta1 = [0, 1, 1, 2, 3, 5]
+        theta2 = [0, 1, 1, 2, 3, 5, 8, 13]
+        theta3 = [1, 2, 3, 4, 5, 6]
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
-        psi1_H1_result = e(theta1, shots=1024, grouping=[(0, 0)])
+        psi1_H1_result = e([theta1], grouping=[(0, 0)])
         print(psi1_H1_result)
 
         # calculate [ <psi1(theta1)|H2|psi1(theta1)>, <psi1(theta1)|H3|psi1(theta1)> ]
-        psi1_H23_result = e(theta1, shots=1024, grouping=[(0, 1), (0, 2)])
+        psi1_H23_result = e([theta1]*2, grouping=[(0, 1), (0, 2)])
         print(psi1_H23_result)
 
         # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]
-        psi2_H2_result = e(theta2, shots=1024, grouping=[(1, 1)])
+        psi2_H2_result = e([theta2], grouping=[(1, 1)])
         print(psi2_H2_result)
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)>, <psi1(theta3)|H1|psi1(theta3)> ]
-        psi1_H1_result2 = e([theta1, theta3], shots=1024, grouping=[(0, 0)])
+        psi1_H1_result2 = e([theta1, theta3], grouping=[(0, 0), (0, 0)])
         print(psi1_H1_result2)
 
-        # calculate [ <psi1(theta1)|H1|psi1(theta1)>, <psi2(theta2)|H2|psi2(theta2)>, <psi1(theta3)|H3|psi1(theta3)> ]
-        psi12_H23_result = e([theta1, theta2, theta3], shots=1024, grouping=[(0, 0), (1, 1), (0, 2)])
+        # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
+        #               psi2(theta2)|H2|psi2(theta2)>,
+        #               <psi1(theta3)|H3|psi1(theta3)> ]
+        psi12_H23_result = e([theta1, theta2, theta3], grouping=[(0, 0), (1, 1), (0, 2)])
         print(psi12_H23_result)
 
 """
@@ -101,10 +101,11 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional, Union
+from typing import Callable, Iterable, Optional, Sequence, Union
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.parametertable import ParameterView
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import SparsePauliOp
 
 from .estimator_result import EstimatorResult
@@ -118,6 +119,9 @@ class Group:
     observable_index: int
 
 
+GroupLike = Union[Group, tuple[int, int]]
+
+
 class BaseEstimator(ABC):
     """Estimator base class.
 
@@ -126,74 +130,110 @@ class BaseEstimator(ABC):
 
     def __init__(
         self,
-        circuits: list[QuantumCircuit],
-        observables: list[SparsePauliOp],
-        parameters: Union[ParameterView, list[Parameter]],
+        circuits: Iterable[QuantumCircuit],
+        observables: Iterable[SparsePauliOp],
+        parameters: Iterable[Iterable[Parameter]] | None = None,
     ):
         """
         Args:
-            circuits (list[QuantumCircuit]): quantum circuits that represents quantum states
-            observables (list[SparsePauliOp]): observables
-            parameters (Union[ParameterView, list[Parameter]]): parameters of quantum circuits
+            circuits (Iterable[QuantumCircuit]): quantum circuits that represents quantum states
+            observables (Iterable[SparsePauliOp]): observables
+            parameters (Iterable[Iterable[Parameter]]): parameters of quantum circuits.
+                Defaults to `[circ.parameters for circ in circuits]`
+
+        Raises:
+            QiskitError: for mismatch of circuits and parameters list.
+
+        The indexing is such that `parameters[i, j]` is the j-th formal parameter of `circuits[i]`.
+
+        Creating an instance of an Estimator, or using one in a `with` context opens a session that
+        holds resources until the instance is `close()`ed or the context is exited.
         """
-        self._circuits = circuits
-        self._observables = observables
-        self._parameters = parameters
+        self._circuits = tuple(circuits)
+        self._observables = tuple(observables)
+        if parameters is None:
+            self._parameters = tuple(circ.parameters for circ in circuits)
+        else:
+            if len(parameters) != len(circuits):
+                raise QiskitError(
+                    f"Different number of parameters ({len(parameters)} and circuits ({len(circuits)}"
+                )
+            self._parameters = tuple(ParameterView(par) for par in parameters)
 
-    @abstractmethod
     def __enter__(self):
-        ...
+        return self
+
+    def __exit__(self, *exc_info):
+        self.close()
 
     @abstractmethod
-    def __exit__(self, ex_type, ex_value, trace):
+    def close(self):
+        """Close the session and free resources"""
         ...
-
-    def __init_subclass__(cls):
-        super().__init_subclass__()
-        cls.__call__ = cls.run
 
     @property
-    def circuits(self) -> list[QuantumCircuit]:
+    def circuits(self) -> tuple[QuantumCircuit]:
         """Quantum circuits that represents quantum states.
 
         Returns:
-            list[QuantumCircuit]: quantum circuits
+            tuple[QuantumCircuit]: quantum circuits
         """
         return self._circuits
 
     @property
-    def observables(self) -> list[SparsePauliOp]:
+    def observables(self) -> tuple[SparsePauliOp]:
         """Observables
 
         Returns:
-            list[SparsePauliOp]: observables
+            tuple[SparsePauliOp]: observables
         """
         return self._observables
 
     @property
-    def parameters(self) -> Union[ParameterView, list[Parameter]]:
+    def parameters(self) -> tuple[ParameterView]:
         """Parameters of quantum circuits
 
         Returns:
-            Union[ParameterView, list[Parameter]]: Parameter list of the quantum circuits
+            tuple[ParameterView]: parameters[i, j] is the j-th parameter of the i-th circuit.
         """
         return self._parameters
 
     @abstractmethod
     def run(
         self,
-        parameters: Optional[Union[list[float], list[list[float]]]] = None,
-        grouping: Optional[list[Union[Group, tuple[int, int]]]] = None,
+        parameters: Sequence[Sequence[float]],
+        grouping: Sequence[GroupLike],
         **run_options,
     ) -> EstimatorResult:
         """Run the estimation of expectation value(s).
 
         Args:
-            parameters (Optional[Union[list[float], list[list[float]]]]): parameters to be bound.
-            grouping (Optional[list[Union[Group, tuple[int, int]]]]): the list of Group or tuple of circuit index and observable index.
-            run_options: backend runtime options used for circuit execution.
+            parameters (Sequence[Sequence[float]]): concrete parameters to be bound.
+            grouping (Sequence[Group | tuple[int, int]]): the list of Group or tuple of circuit
+                index and observable index.
+            run_options: runtime options used for circuit execution.
 
         Returns:
             EstimatorResult: the result of Estimator.
+
+        `parameters` and `grouping` should have the same length. The i-th element of the result
+        is the expectation of observable
+            obs = self.observables(grouping[i].observable_index)
+        for the state prepared by
+            circ = self.circuits[grouping[i].circuit_index]
+        with bound parameters
+            values = parameters[i]
+        obs.expectation()
         """
         ...
+
+    def __call__(
+        self,
+        parameters: Sequence[Sequence[float]],
+        grouping: Optional[Sequence[GroupLike]] = None,
+        **run_options,
+    ) -> EstimatorResult:
+        return self.run(parameters, grouping, **run_options)
+
+
+EstimatorFactory = Callable[..., BaseEstimator]

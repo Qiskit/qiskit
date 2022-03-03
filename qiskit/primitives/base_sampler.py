@@ -25,13 +25,16 @@ The input consists of following elements.
   (:class:`~qiskit.circuit.parametertable.ParameterView` or
   a list of :class:`~qiskit.circuit.Parameter`).
 
-* parameter values (:math:`\theta_k`): 1-dimensional or 2-dimensional array of values
+* circuit indexes: a list of indices of the circuits to evaluate.
+
+* parameter values (:math:`\theta_k`): list of sets of parameter values
   to be bound to the parameters of the quantum circuits.
-  (list of float or list of list of float)
+  (list of list of float)
 
 The output is the quasi-probabilities of bitstrings.
 
-The sampler object is expected to be initialized with "with" statement
+The sampler object is expected to be closed after use or
+accessed within "with" context
 and the objects are called with parameter values and run options
 (e.g., ``shots`` or number of shots).
 
@@ -49,13 +52,13 @@ Here is an example of how sampler is used.
     bell.measure(1, 1)
 
     # executes a Bell circuit
-    with Sampler(circuits=bell) as sampler:
-        result = sampler(shots=1000)
+    with Sampler(circuits=[bell], parameters=[[]]) as sampler:
+        result = sampler([[]])
         print([q.binary_probabilities() for q in result.quasi_dists])
 
     # executes three Bell circuits
-    with Sampler(circuits=[bell, bell, bell], backend=aer_simulator) as sampler:
-        result = sampler(shots=1000)
+    with Sampler(circuits=[bell]*3) as sampler:
+        result = sampler([[]]*3)
         print([q.binary_probabilities() for q in result.quasi_dists])
 
     # parametrized circuit
@@ -67,8 +70,8 @@ Here is an example of how sampler is used.
     theta1 = [0, 1, 1, 2, 3, 5]
     theta2 = [1, 2, 3, 4, 5, 6]
 
-    with Sampler(circuits=pqc, backend=aer_simulator) as sampler:
-        result1 = sampler([theta1, theta2], shots=3000)
+    with Sampler(circuits=[pqc], parameters=[pcq.parameters]) as sampler:
+        result1 = sampler([theta1, theta2], [0, 0])
 
         # result of pqc(theta1)
         print([q.binary_probabilities() for q in result[0].quasi_dists])
@@ -80,47 +83,58 @@ Here is an example of how sampler is used.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional, Union
+from typing import Callable, Sequence, Iterable
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.parametertable import ParameterView
+from qiskit.exceptions import QiskitError
 
 from .sampler_result import SamplerResult
 
 
 class BaseSampler(ABC):
-    """ Sampler base class
+    """Sampler base class
 
     Base class of Sampler that calculates quasi-probabilities of bitstrings from quantum circuits.
     """
 
     def __init__(
         self,
-        circuits: list[QuantumCircuit],
-        parameters: Union[ParameterView, list[Parameter]],
+        circuits: Iterable[QuantumCircuit],
+        parameters: Iterable[Iterable[Parameter]] | None = None,
     ):
         """
         Args:
             circuits (list[QuantumCircuit]): quantum circuits to be executed
             parameters (Union[ParameterView, list[Parameter]]): parameters of quantum circuits
+                Defaults to `[circ.parameters for circ in circuits]`
+
+        Raises:
+            QiskitError: for mismatch of circuits and parameters list.
         """
-        self._circuits = circuits
-        self._parameters = parameters
+        self._circuits = tuple(circuits)
+        if parameters is None:
+            self._parameters = tuple(circ.parameters for circ in circuits)
+        else:
+            if len(parameters) != len(circuits):
+                raise QiskitError(
+                    f"Different number of parameters ({len(parameters)} and circuits ({len(circuits)}"
+                )
+            self._parameters = tuple(ParameterView(par) for par in parameters)
 
-    @abstractmethod
     def __enter__(self):
-        ...
+        return self
+
+    def __exit__(self, *exc_info):
+        self.close()
 
     @abstractmethod
-    def __exit__(self, ex_type, ex_value, trace):
+    def close(self):
+        """Close the session and free resources"""
         ...
-
-    def __init_subclass__(cls):
-        super().__init_subclass__()
-        cls.__call__ = cls.run
 
     @property
-    def circuits(self) -> list[QuantumCircuit]:
+    def circuits(self) -> tuple[QuantumCircuit]:
         """Quantum circuits
 
         Returns:
@@ -129,27 +143,54 @@ class BaseSampler(ABC):
         return self._circuits
 
     @property
-    def parameters(self) -> Union[ParameterView, list[Parameter]]:
+    def parameters(self) -> tuple(ParameterView):
         """Parameters of quantum circuits
 
         Returns:
-            Union[ParameterView, list[Parameter]]: Parameter list of the quantum circuits
+            tuple[ParameterView]: Parameter list of the quantum circuits
         """
         return self._parameters
 
     @abstractmethod
     def run(
         self,
-        parameters: Optional[Union[list[float], list[list[float]]]] = None,
+        circuits: Sequence[int],
+        parameters: Sequence[Sequence[float]],
         **run_options,
     ) -> SamplerResult:
         """Run the sampling of bitstrings.
 
         Args:
             parameters (Optional[Union[list[float], list[list[float]]]]): parameters to be bound.
+            circuits (Sequence[int]): indexes of the circuits to evaluate.
             run_options: backend runtime options used for circuit execution.
 
         Returns:
-            SamplerResult: the result of Sampler.
+            SamplerResult: the result of Sampler. The i-th result corresponds to
+                self.circuits[circuits[i]]
+            evaluated with parameters bound as parameters[i]
         """
         ...
+
+    def __call__(
+        self,
+        circuits: Sequence[int],
+        parameters: Sequence[Sequence[float]],
+        **run_options,
+    ) -> SamplerResult:
+        """Run the sampling of bitstrings.
+
+        Args:
+            parameters (Optional[Union[list[float], list[list[float]]]]): parameters to be bound.
+            circuits (Sequence[int]): indexes of the circuits to evaluate.
+            run_options: backend runtime options used for circuit execution.
+
+        Returns:
+            SamplerResult: the result of Sampler. The i-th result corresponds to
+                self.circuits[circuits[i]]
+            evaluated with parameters bound as parameters[i]
+        """
+        return self.run(circuits, parameters, **run_options)
+
+
+SamplerFactory = Callable[..., BaseSampler]
