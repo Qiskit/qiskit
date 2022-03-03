@@ -26,6 +26,8 @@ import qiskit._accelerate
 # qiskit._accelerate.* submodules and not have to rely on attribute access
 sys.modules["qiskit._accelerate.stochastic_swap"] = qiskit._accelerate.stochastic_swap
 
+sys.modules["qiskit._accelerate.array_unique"] = qiskit._accelerate.array_unique
+
 
 # qiskit errors operator
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError

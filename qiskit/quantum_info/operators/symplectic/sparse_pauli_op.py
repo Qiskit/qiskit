@@ -28,6 +28,7 @@ from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.symplectic.pauli_utils import pauli_basis
 from qiskit.utils.deprecation import deprecate_function
+from qiskit._accelerate.array_unique import unique
 
 
 class SparsePauliOp(LinearOp):
@@ -403,11 +404,13 @@ class SparsePauliOp(LinearOp):
                     indexes.append(i)
             return indexes, inverses
 
-        indexes, inverses = _unique(array)
+        indexes, inverses = unique(array)
+        # _, indexes, inverses = np.unique(array, return_index=True, return_inverse=True, axis=0)
+
         if len(indexes) == array.shape[0]:
             # No duplicate operator
             return self.copy()
-        indexes = np.array(indexes)
+        indexes = np.asarray(indexes)
 
         coeffs = np.zeros(indexes.shape[0], dtype=complex)
         np.add.at(coeffs, inverses, self.coeffs)
