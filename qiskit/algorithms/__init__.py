@@ -191,6 +191,7 @@ Exceptions
 """
 
 from .algorithm_result import AlgorithmResult
+from .evolvers import EvolverProblem, EvolverResult, Evolver
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
 from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem
 from .amplitude_estimators import (
@@ -246,6 +247,9 @@ __all__ = [
     "MaximumLikelihoodAmplitudeEstimationResult",
     "EstimationProblem",
     "NumPyEigensolver",
+    "EvolverProblem",
+    "EvolverResult",
+    "Evolver",
     "LinearSolverResult",
     "Eigensolver",
     "EigensolverResult",
