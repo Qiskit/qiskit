@@ -1226,6 +1226,6 @@ class TestCircuitPrivateOperations(QiskitTestCase):
         last_instructions = test.u(x, y, 0, 0)
         self.assertEqual({x, y}, set(test.parameters))
 
-        instruction, _, _ = test._pop_previous_instruction_in_scope()
+        instruction = test._pop_previous_instruction_in_scope()
         self.assertEqual(list(last_instructions), [instruction])
         self.assertEqual({y}, set(test.parameters))

@@ -335,14 +335,22 @@ class Instruction:
             qiskit.circuit.Instruction: a new instruction with
                 sub-instructions reversed.
         """
+        from qiskit.circuit import QuantumCircuit  # pylint: disable=cyclic-import
+
         if not self._definition:
             return self.copy()
 
         reverse_inst = self.copy(name=self.name + "_reverse")
-        reverse_inst.definition._data = [
-            (inst.reverse_ops(), qargs, cargs) for inst, qargs, cargs in reversed(self._definition)
-        ]
-
+        reversed_definition = QuantumCircuit(
+            self._definition.qubits,
+            self._definition.clbits,
+            *self._definition.qregs,
+            *self._definition.cregs,
+            global_phase=self.definition.global_phase,
+        )
+        for inst in reversed(self._definition):
+            reversed_definition.append(inst.operation.reverse_ops(), inst.qubits, inst.clbits)
+        reverse_inst.definition = reversed_definition
         return reverse_inst
 
     def inverse(self):
@@ -381,15 +389,16 @@ class Instruction:
         else:
             inverse_gate = Gate(name=name, num_qubits=self.num_qubits, params=self.params.copy())
 
-        inverse_gate.definition = QuantumCircuit(
+        inverse_definition = QuantumCircuit(
+            self.definition.qubits,
+            self.definition.clbits,
             *self.definition.qregs,
             *self.definition.cregs,
             global_phase=-self.definition.global_phase,
         )
-        inverse_gate.definition._data = [
-            (inst.inverse(), qargs, cargs) for inst, qargs, cargs in reversed(self._definition)
-        ]
-
+        for inst in reversed(self._definition):
+            inverse_definition._append(inst.operation.inverse(), inst.qubits, inst.clbits)
+        inverse_gate.definition = inverse_definition
         return inverse_gate
 
     def c_if(self, classical, val):

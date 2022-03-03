@@ -160,20 +160,7 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         g2 = qc.cx(0, 1)
         g3 = qc.h(1)
 
-        self.assertEqual(
-            repr(qc.data),
-            "[({}, {}, {}), ({}, {}, {}), ({}, {}, {})]".format(
-                repr(g1.instructions[0]),
-                repr(g1.qargs[0]),
-                repr(g1.cargs[0]),
-                repr(g2.instructions[0]),
-                repr(g2.qargs[0]),
-                repr(g2.cargs[0]),
-                repr(g3.instructions[0]),
-                repr(g3.qargs[0]),
-                repr(g3.cargs[0]),
-            ),
-        )
+        self.assertEqual(repr(qc.data), repr([g1[0], g2[0], g3[0]]))
 
     def test_str(self):
         """Verify circuit.data string representation."""
@@ -184,20 +171,7 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         g2 = qc.cx(0, 1)
         g3 = qc.h(1)
 
-        self.assertEqual(
-            str(qc.data),
-            "[({}, {}, {}), ({}, {}, {}), ({}, {}, {})]".format(
-                repr(g1.instructions[0]),
-                repr(g1.qargs[0]),
-                repr(g1.cargs[0]),
-                repr(g2.instructions[0]),
-                repr(g2.qargs[0]),
-                repr(g2.cargs[0]),
-                repr(g3.instructions[0]),
-                repr(g3.qargs[0]),
-                repr(g3.cargs[0]),
-            ),
-        )
+        self.assertEqual(str(qc.data), str([g1[0], g2[0], g3[0]]))
 
     def test_remove_gate(self):
         """Verify removing a gate via circuit.data.remove."""
