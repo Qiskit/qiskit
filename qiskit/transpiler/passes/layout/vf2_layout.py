@@ -23,7 +23,6 @@ from retworkx import PyGraph, PyDiGraph, vf2_mapping
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.providers.exceptions import BackendPropertyError
-from qiskit.circuit.library import CXGate
 
 DEFAULT_CX_ERROR = 5 * 10 ** (-2)
 
@@ -65,7 +64,7 @@ class VF2Layout(AnalysisPass):
         time_limit=None,
         properties=None,
         max_trials=None,
-        scoring_function=None
+        scoring_function=None,
     ):
         """Initialize a ``VF2Layout`` pass instance
 
@@ -208,8 +207,11 @@ def two_q_score(dag, layout, properties, coupling_map):
     Args:
         dag (DAGCircuit): DAG to evaluate
         layout (Layout): Layout to evaluate
+        properties (BackendProperties): The properties of the backend
+        coupling_map (CouplingMap): The backend coupling map
+
     Return:
-        layout_fidelity (float): The score of the layout
+        float: the layout fidelity estimation.
     """
     layout_fidelity = 1.0
     for node in dag.op_nodes():
@@ -270,9 +272,7 @@ def readout_error_score(_, layout, properties, coupling_map):
     if properties is None:
         # Sum qubit degree for each qubit in chosen layout as really rough estimate of error
         for bit in bits:
-            score += coupling_map.graph.out_degree(
-                bit
-            ) + coupling_map.graph.in_degree(bit)
+            score += coupling_map.graph.out_degree(bit) + coupling_map.graph.in_degree(bit)
         return score
     for bit in bits:
         try:
@@ -280,7 +280,7 @@ def readout_error_score(_, layout, properties, coupling_map):
         # If readout error can't be found in properties fallback to degree
         # divided by number of qubits as a terrible approximation
         except BackendPropertyError:
-            score += (
-                coupling_map.graph.out_degree(bit) + coupling_map.graph.in_degree(bit)
-            ) / len(coupling_map.graph)
+            score += (coupling_map.graph.out_degree(bit) + coupling_map.graph.in_degree(bit)) / len(
+                coupling_map.graph
+            )
     return score

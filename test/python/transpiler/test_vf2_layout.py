@@ -18,7 +18,12 @@ import retworkx
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import CouplingMap, Layout
-from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout, VF2LayoutStopReason, readout_error_score, two_q_score
+from qiskit.transpiler.passes.layout.vf2_layout import (
+    VF2Layout,
+    VF2LayoutStopReason,
+    readout_error_score,
+    two_q_score,
+)
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeTenerife, FakeRueschlikon, FakeManhattan, FakeYorktown
@@ -366,26 +371,26 @@ class TestScoreHeuristic(QiskitTestCase):
     def test_no_properties(self):
         """Test scores with no properties."""
         cmap = CouplingMap(
-                [
-                    (0, 1),
-                    (0, 2),
-                    (0, 3),
-                    (1, 0),
-                    (1, 2),
-                    (1, 3),
-                    (2, 0),
-                    (2, 1),
-                    (2, 2),
-                    (2, 3),
-                    (3, 0),
-                    (3, 1),
-                    (3, 2),
-                    (4, 0),
-                    (0, 4),
-                    (5, 1),
-                    (1, 5),
-                ]
-            )
+            [
+                (0, 1),
+                (0, 2),
+                (0, 3),
+                (1, 0),
+                (1, 2),
+                (1, 3),
+                (2, 0),
+                (2, 1),
+                (2, 2),
+                (2, 3),
+                (3, 0),
+                (3, 1),
+                (3, 2),
+                (4, 0),
+                (0, 4),
+                (5, 1),
+                (1, 5),
+            ]
+        )
         qr = QuantumRegister(2)
         layout = Layout({qr[0]: 0, qr[1]: 1})
         score = readout_error_score(None, layout, None, cmap)
@@ -399,7 +404,6 @@ class TestScoreHeuristic(QiskitTestCase):
         backend = FakeYorktown()
         cmap = CouplingMap(backend.configuration().coupling_map)
         properties = backend.properties()
-        vf2_pass = VF2Layout(cmap, properties=properties)
         qr = QuantumRegister(2)
         layout = Layout({qr[0]: 4, qr[1]: 2})
         bad_score = readout_error_score(None, layout, properties, cmap)
@@ -411,6 +415,7 @@ class TestScoreHeuristic(QiskitTestCase):
 
 class TestScore2qubit(QiskitTestCase):
     """VF2Layout test with scoring_function=two_q_score"""
+
     def test_single_cx(self):
         """Test scoring_function=two_q_score with a single CX in a 2qubit circuit."""
         qr = QuantumRegister(2)
