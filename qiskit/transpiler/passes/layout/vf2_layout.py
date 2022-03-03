@@ -211,7 +211,7 @@ def two_q_score(dag, layout, properties, coupling_map):
         coupling_map (CouplingMap): The backend coupling map
 
     Return:
-        float: the layout fidelity estimation.
+        float: the layout fidelity estimation
     """
     layout_fidelity = 1.0
     for node in dag.op_nodes():
@@ -233,9 +233,9 @@ def _calculate_2q_fidelity(qubits, backend_properties, coupling_map):
 
     def cx_fid(qubits):
         if backend_properties:
-            return 1 - backend_properties.gate_error("cx", qubits)
+            return backend_properties.gate_error("cx", qubits)
         else:
-            return 1 - DEFAULT_CX_ERROR
+            return DEFAULT_CX_ERROR
 
     cplpath = coupling_map.shortest_undirected_path(*qubits)
     cplpath_length = len(cplpath) - 1
