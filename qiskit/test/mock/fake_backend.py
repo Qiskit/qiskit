@@ -296,10 +296,10 @@ class FakeBackendV2(BackendV2):
         self._defs_dict = self._set_defs_dict_from_json()
         super().__init__(
             provider=None,
-            name=self._conf_dict["backend_name"],
-            description=self._conf_dict["description"],
-            online_date=self._conf_dict["online_date"],
-            backend_version=self._conf_dict["backend_version"]
+            name=self._conf_dict.get("backend_name"),
+            description=self._conf_dict.get("description"),
+            online_date=self._conf_dict.get("online_date"),
+            backend_version=self._conf_dict.get("backend_version")
         )
         self._target = None
         self._qubit_properties = None
@@ -340,7 +340,7 @@ class FakeBackendV2(BackendV2):
         Returns:
             dtm: The output signal timestep in seconds.
         """
-        return self._conf_dict["dtm"]
+        return self._conf_dict.get("dtm")
 
     @property
     def meas_map(self) -> List[List[int]]:
@@ -350,7 +350,7 @@ class FakeBackendV2(BackendV2):
         Returns:
             meas_map: The grouping of measurements which are multiplexed
         """
-        return self._conf_dict["meas_map"]
+        return self._conf_dict.get("meas_map")
 
     def qubit_properties(
         self, qubit: Union[int, List[int]]
