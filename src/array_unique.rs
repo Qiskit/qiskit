@@ -12,23 +12,21 @@
 
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
+use pyo3::Python;
 
 use hashbrown::HashMap;
-use numpy::PyReadonlyArray2;
+use ndarray::{ArrayView1, Axis};
+use numpy::{IntoPyArray, PyReadonlyArray2};
 
 #[pyfunction]
-#[pyo3(text_signature = "(array)")]
-pub fn unique(array: PyReadonlyArray2<u16>) -> PyResult<(Vec<usize>, Vec<usize>)> {
+#[pyo3(text_signature = "(array, /)")]
+pub fn unique(array: PyReadonlyArray2<u16>, py: Python) -> (PyObject, PyObject) {
     let array = array.as_array();
     let shape = array.shape();
-    let mut table = HashMap::<Vec<u16>, usize>::new();
-    let mut indexes = vec![0; 0];
+    let mut table = HashMap::<ArrayView1<u16>, usize>::with_capacity(shape[0]);
+    let mut indexes = Vec::new();
     let mut inverses = vec![0; shape[0]];
-    for i in 0..shape[0] {
-        let mut v = vec![0u16; shape[1]];
-        for j in 0..shape[1] {
-            v[j] = array[(i, j)];
-        }
+    for (i, v) in array.axis_iter(Axis(0)).enumerate() {
         match table.get(&v) {
             Some(id) => inverses[i] = *id,
             None => {
@@ -39,7 +37,10 @@ pub fn unique(array: PyReadonlyArray2<u16>) -> PyResult<(Vec<usize>, Vec<usize>)
             }
         }
     }
-    Ok((indexes, inverses))
+    (
+        indexes.into_pyarray(py).into(),
+        inverses.into_pyarray(py).into(),
+    )
 }
 
 #[pymodule]
