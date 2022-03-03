@@ -14,7 +14,7 @@
 import unittest
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from qiskit.algorithms.time_evolution.problems.evolver_problem import EvolverProblem
+from qiskit.algorithms.evolvers.evolver_problem import EvolverProblem
 from qiskit.circuit import Parameter
 from qiskit.opflow import Y, Z, One, X
 

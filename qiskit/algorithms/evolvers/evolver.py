@@ -10,16 +10,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Base class for quantum time evolution."""
+"""Interface for quantum time evolution."""
 
 from abc import ABC, abstractmethod
 
-from qiskit.algorithms.time_evolution.problems.evolver_problem import EvolverProblem
-from qiskit.algorithms.time_evolution.evolver_result import EvolverResult
+from qiskit.algorithms.evolvers.evolver_problem import EvolverProblem
+from qiskit.algorithms.evolvers.evolver_result import EvolverResult
 
 
 class Evolver(ABC):
-    """Base class for quantum time evolution."""
+    """Interface class for quantum time evolution."""
 
     @abstractmethod
     def evolve(self, evolver_problem: EvolverProblem) -> EvolverResult:

@@ -9,4 +9,11 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-""" Quantum Time Evolution package """
+
+"""Base class for Quantum Imaginary Time Evolution used for typing purposes."""
+
+from abc import ABC
+
+
+class QITE(ABC):
+    """Base class for Quantum Imaginary Time Evolution used for typing purposes."""

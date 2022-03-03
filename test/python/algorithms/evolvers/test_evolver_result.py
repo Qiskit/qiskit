@@ -13,7 +13,7 @@
 import unittest
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from qiskit.algorithms.time_evolution.evolver_result import EvolverResult
+from qiskit.algorithms.evolvers.evolver_result import EvolverResult
 from qiskit.opflow import Zero
 
 

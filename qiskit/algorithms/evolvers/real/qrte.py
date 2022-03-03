@@ -10,10 +10,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Interface for Quantum Imaginary Time Evolution."""
+"""Base class for Quantum Real Time Evolution used for typing purposes."""
 
 from abc import ABC
 
 
-class QITE(ABC):
-    """Interface for Quantum Imaginary Time Evolution."""
+class QRTE(ABC):
+    """Base class for Quantum Real Time Evolution used for typing purposes."""
