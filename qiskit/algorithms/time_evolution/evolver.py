@@ -14,23 +14,23 @@
 
 from abc import ABC, abstractmethod
 
-from qiskit.algorithms.time_evolution.problems.evolution_problem import EvolutionProblem
-from qiskit.algorithms.time_evolution.evolution_result import EvolutionResult
+from qiskit.algorithms.time_evolution.problems.evolver_problem import EvolverProblem
+from qiskit.algorithms.time_evolution.evolver_result import EvolverResult
 
 
-class EvolutionBase(ABC):
+class Evolver(ABC):
     """Base class for quantum time evolution."""
 
     @abstractmethod
-    def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
+    def evolve(self, evolver_problem: EvolverProblem) -> EvolverResult:
         """
         Evolves an initial state in the evolution_problem according to a Hamiltonian provided.
 
         Args:
-            evolution_problem: EvolutionProblem instance that includes definition of an evolution
+            evolver_problem: EvolverProblem instance that includes definition of an evolution
                 problem.
 
         Returns:
-            Evolution result which includes an evolved quantum state.
+            Evolver result which includes an evolved quantum state.
         """
         raise NotImplementedError()

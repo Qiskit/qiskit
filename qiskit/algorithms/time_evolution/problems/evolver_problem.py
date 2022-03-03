@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Evolution problem class."""
+"""Evolver problem class."""
 
 from typing import Union, Optional, Dict
 
@@ -20,8 +20,8 @@ from qiskit.circuit import Parameter
 from qiskit.opflow import OperatorBase, StateFn
 
 
-class EvolutionProblem:
-    """Evolution problem class."""
+class EvolverProblem:
+    """Evolver problem class."""
 
     def __init__(
         self,

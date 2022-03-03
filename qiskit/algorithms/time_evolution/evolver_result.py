@@ -18,13 +18,13 @@ from qiskit.algorithms.eigen_solvers.eigen_solver import ListOrDict
 from qiskit.opflow import StateFn
 
 
-class EvolutionResult(AlgorithmResult):
+class EvolverResult(AlgorithmResult):
     """Class for holding evolution result."""
 
     def __init__(
         self,
         evolved_state: Union[StateFn, QuantumCircuit],
-        aux_ops_evaluated: Optional[ListOrDict[Tuple[complex, complex]]] = None
+        aux_ops_evaluated: Optional[ListOrDict[Tuple[complex, complex]]] = None,
     ):
         """
         Args:

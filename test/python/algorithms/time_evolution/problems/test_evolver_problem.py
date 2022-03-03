@@ -10,17 +10,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test evolution problem class."""
+"""Test evolver problem class."""
 import unittest
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from qiskit.algorithms.time_evolution.problems.evolution_problem import EvolutionProblem
+from qiskit.algorithms.time_evolution.problems.evolver_problem import EvolverProblem
 from qiskit.circuit import Parameter
 from qiskit.opflow import Y, Z, One, X
 
 
-class TestEvolutionProblem(QiskitAlgorithmsTestCase):
-    """Test evolution problem class."""
+class TestEvolverProblem(QiskitAlgorithmsTestCase):
+    """Test evolver problem class."""
 
     def test_init_default(self):
         """Tests that all default fields are initialized correctly."""
@@ -28,7 +28,7 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
         time = 2.5
         initial_state = One
 
-        evo_problem = EvolutionProblem(hamiltonian, time, initial_state)
+        evo_problem = EvolverProblem(hamiltonian, time, initial_state)
 
         expected_hamiltonian = Y
         expected_time = 2.5
@@ -53,7 +53,7 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
         aux_operators = [X, Y]
         hamiltonian_value_dict = {t_parameter: 3.2}
 
-        evo_problem = EvolutionProblem(
+        evo_problem = EvolverProblem(
             hamiltonian, time, initial_state, aux_operators, t_parameter, hamiltonian_value_dict
         )
 
