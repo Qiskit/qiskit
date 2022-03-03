@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """ASAP Scheduling."""
-from qiskit.circuit import Delay, Measure
+from qiskit.circuit import Measure
 from qiskit.transpiler.exceptions import TranspilerError
 
 from .base_scheduler import BaseScheduler

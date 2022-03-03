@@ -79,21 +79,22 @@ class BasePadding(TransformationPass):
         new_dag.calibrations = dag.calibrations
 
         idle_after = {bit: 0 for bit in dag.qubits}
+
+        # Compute fresh circuit duration from the node start time dictionary and op duration.
+        # Note that pre-scheduled duration may change within the alignment passes, i.e.
+        # if some instruction time t0 violating the hardware alignment constraint,
+        # the alignment pass may delay t0 and accordingly the circuit duration changes.
         circuit_duration = 0
         for node in dag.topological_op_nodes():
             if node in node_start_time:
                 t0 = node_start_time[node]
                 t1 = t0 + node.op.duration
+                circuit_duration = max(circuit_duration, t1)
 
                 if isinstance(node.op, Delay):
                     # The padding class considers a delay instruction as idle time
                     # rather than instruction. Delay node is removed so that
                     # we can extract non-delay predecessors.
-                    next_node = next(dag.successors(node))
-                    if isinstance(next_node, DAGOutNode):
-                        # If user intentionally insert delay at the very end of circuit,
-                        # this should override maximum cirucit duration.
-                        circuit_duration = max(circuit_duration, t1)
                     dag.remove_op_node(node)
                     continue
 
@@ -122,15 +123,9 @@ class BasePadding(TransformationPass):
                     "Schedule the circuit again if you transformed it."
                 )
 
-        # Compute fresh circuit duration from the node start time dictionary.
-        # Note that scheduled duration may change with alignment passes, i.e.
-        # if some instruction time t0 violates the hardware alignment constraint,
-        # the alignment pass may delay t0 and accordingly the circuit duration changes.
-        new_dag.duration = max(circuit_duration, *idle_after.values())
-
         # Add delays until the end of circuit.
         for bit in new_dag.qubits:
-            idle_time = new_dag.duration - idle_after[bit]
+            idle_time = circuit_duration - idle_after[bit]
             node = new_dag.output_map[bit]
             prev_node = next(new_dag.predecessors(node))
             if idle_time > 0:
@@ -141,6 +136,8 @@ class BasePadding(TransformationPass):
                     next_node=node,
                     prev_node=prev_node,
                 )
+
+        new_dag.duration = circuit_duration
 
         return new_dag
 
