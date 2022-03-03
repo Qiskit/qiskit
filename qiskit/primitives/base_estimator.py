@@ -10,30 +10,43 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 r"""
-Estimator base class
+=========
+Estimator
+=========
 
 Estimator class estimates expectation values of quantum circuits and observables.
+
+An estimator object is initialized with multiple quantum circuits and observables
+and users can specify pairs of quantum circuits and observables
+to estimate the expectation values.
+
 The input consists of following elements.
 
-* quantum circuits ($\psi_i(\theta)$): list of (parametrized) quantum circuits or
-state vectors to be converted into quantum circuits.
-(a list of :class:`~qiskit.circuit.QuantumCircuit`))
+* quantum circuits (:math:`\psi_i(\theta)`): list of (parametrized) quantum circuits
+  or state vectors to be converted into quantum circuits.
+  (a list of :class:`~qiskit.circuit.QuantumCircuit`))
 
-* observables ($H_j$): a list of :class:`~qiskit.quantum_info.SparsePauliOp`.
+* observables (:math:`H_j`): a list of :class:`~qiskit.quantum_info.SparsePauliOp`.
 
 * grouping: a list of pairs :class:`~qiskit.primitive.Group` of an
-    index of the quantum circuits and an index of the observable.
-    A tuple of two integers can be used as alternative of :class:`~qiskit.primitive.Group`.
+  index of the quantum circuits and an index of the observable.
+  A tuple of two integers can be used as alternative of :class:`~qiskit.primitive.Group`.
+  For example, ``Group(i, j)`` or ``(i, j)`` corresponds to a pair :math:`\psi_i` and :math:`H_j`.
 
 * parameters: a list of parameters of the quantum circuits.
-    (:class:`~qiskit.circuit.parametertable.ParameterView` or
-    a list of :class:`~qiskit.circuit.Parameter`).
+  (:class:`~qiskit.circuit.parametertable.ParameterView` or
+  a list of :class:`~qiskit.circuit.Parameter`).
 
-* parameter values ($\theta_k$): 1-dimensional or 2-dimensional array of values
-    to be bound to the parameters of the quantum circuits.
-    (list of float or list of list of float)
+* parameter values (:math:`\theta_k`): 1-dimensional or 2-dimensional array of values
+  to be bound to the parameters of the quantum circuits.
+  (list of float or list of list of float)
 
-* backend: a backend to executes quantum circuits.
+The output is the expectation value or a list of expectation values.
+
+.. math::
+
+    \Braket{\psi_i(\theta_k)|H_j|\psi_i(\theta_k)}
+
 
 The estimator object is expected to be initialized with "with" statement
 and the objects are called with parameter values and run options
@@ -42,8 +55,8 @@ and the objects are called with parameter values and run options
 Here is an example of how estimator is used.
 
 .. code-block:: python
-    from qiskit import Aer
-    from qiskit.circuit.library import RealAmplitude
+
+    from qiskit.circuit.library import RealAmplitudes
     from qiskit.quantum_info import SparsePauliOp
 
     psi1 = RealAmplitudes(num_qubits=2, reps=2)
@@ -52,13 +65,11 @@ Here is an example of how estimator is used.
     params1 = psi1.parameters
     params2 = psi2.parameters
 
-    H1 = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)]) 
+    H1 = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
     H2 = SparsePauliOp.from_list([("IZ", 1)])
     H3 = SparsePauliOp.from_list([("ZI", 1), ("ZZ", 1)])
 
-    backend = Aer.get_simulator("aer_simulator")
-
-    with Estimator([psi1, psi2], [op1, op2, op3], list(params1) + list(params2), backend) as est:
+    with Estimator([psi1, psi2], [H1, H2, H3], list(params1) + list(params2)) as e:
         # first 6 values correspond to the parameters of psi1
         # last 8 values correspond to the parameters of psi2
         theta1 = [0, 1, 1, 2, 3, 5] + [0] * 8
@@ -66,20 +77,24 @@ Here is an example of how estimator is used.
         theta3 = [1, 2, 3, 4, 5, 6] + [0] * 8
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
-        H1_result = e(theta1, shots=1024, grouping=[(0, 0)])
-        print(H1_result)
+        psi1_H1_result = e(theta1, shots=1024, grouping=[(0, 0)])
+        print(psi1_H1_result)
 
         # calculate [ <psi1(theta1)|H2|psi1(theta1)>, <psi1(theta1)|H3|psi1(theta1)> ]
-        H23_result = e(theta1, shots=1024, grouping=[(0, 1), (0, 2)])
-        print(H23_result)
+        psi1_H23_result = e(theta1, shots=1024, grouping=[(0, 1), (0, 2)])
+        print(psi1_H23_result)
 
         # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]
-        H1_result2 = e(theta2, shots=1024, grouping=[(1, 1)])
-        print(H1_result2)
+        psi2_H2_result = e(theta2, shots=1024, grouping=[(1, 1)])
+        print(psi2_H2_result)
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)>, <psi1(theta3)|H1|psi1(theta3)> ]
-        H1_result2 = e([theta1, theta3], shots=1024, grouping=[(0, 0)])
-        print(H1_result2)
+        psi1_H1_result2 = e([theta1, theta3], shots=1024, grouping=[(0, 0)])
+        print(psi1_H1_result2)
+
+        # calculate [ <psi1(theta1)|H1|psi1(theta1)>, <psi2(theta2)|H2|psi2(theta2)>, <psi1(theta3)|H3|psi1(theta3)> ]
+        psi12_H23_result = e([theta1, theta2, theta3], shots=1024, grouping=[(0, 0), (1, 1), (0, 2)])
+        print(psi12_H23_result)
 
 """
 from __future__ import annotations
@@ -90,7 +105,6 @@ from typing import Optional, Union
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.parametertable import ParameterView
-from qiskit.providers import BackendV1 as Backend
 from qiskit.quantum_info import SparsePauliOp
 
 from .estimator_result import EstimatorResult
@@ -115,19 +129,16 @@ class BaseEstimator(ABC):
         circuits: list[QuantumCircuit],
         observables: list[SparsePauliOp],
         parameters: Union[ParameterView, list[Parameter]],
-        backend: Backend,
     ):
         """
         Args:
-            circuits (list[QuantumCircuit])
-            observables (list[SparsePauliOp])
-            parameters (Union[ParameterView, list[Parameter]])
-            backend (Backend)
+            circuits (list[QuantumCircuit]): quantum circuits that represents quantum states
+            observables (list[SparsePauliOp]): observables
+            parameters (Union[ParameterView, list[Parameter]]): parameters of quantum circuits
         """
         self._circuits = circuits
         self._observables = observables
         self._parameters = parameters
-        self._backend = backend
 
     @abstractmethod
     def __enter__(self):
@@ -146,35 +157,27 @@ class BaseEstimator(ABC):
         """Quantum circuits that represents quantum states.
 
         Returns:
-            quantum circuits
+            list[QuantumCircuit]: quantum circuits
         """
         return self._circuits
 
     @property
     def observables(self) -> list[SparsePauliOp]:
-        """
-        SparsePauliOp that represents observable
+        """Observables
 
         Returns:
-            observables
+            list[SparsePauliOp]: observables
         """
         return self._observables
 
     @property
     def parameters(self) -> Union[ParameterView, list[Parameter]]:
-        """
+        """Parameters of quantum circuits
+
         Returns:
-            Parameter list of the quantum circuits
+            Union[ParameterView, list[Parameter]]: Parameter list of the quantum circuits
         """
         return self._parameters
-
-    @property
-    def backend(self) -> Backend:
-        """
-        Returns:
-            The backend which this sampler object based on
-        """
-        return self._backend
 
     @abstractmethod
     def run(
@@ -183,15 +186,14 @@ class BaseEstimator(ABC):
         grouping: Optional[list[Union[Group, tuple[int, int]]]] = None,
         **run_options,
     ) -> EstimatorResult:
-        """
-        Run the estimation.
+        """Run the estimation of expectation value(s).
 
         Args:
-            parameters: parameters to be bound.
+            parameters (Optional[Union[list[float], list[list[float]]]]): parameters to be bound.
+            grouping (Optional[list[Union[Group, tuple[int, int]]]]): the list of Group or tuple of circuit index and observable index.
             run_options: backend runtime options used for circuit execution.
-            grouping: the list of Group or tuple of circuit index and observable index.
 
         Returns:
-            The result of Estimator.
+            EstimatorResult: the result of Estimator.
         """
         ...

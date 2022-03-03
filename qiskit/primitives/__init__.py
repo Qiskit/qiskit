@@ -10,7 +10,43 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Primitive."""
+"""
+=====================================
+Primitives (:mod:`qiskit.primitives`)
+=====================================
+
+.. currentmodule:: qiskit.primitives
+
+.. automodule:: qiskit.primitives.base_estimator
+.. automodule:: qiskit.primitives.base_sampler
+
+.. currentmodule:: qiskit.primitives
+
+Estimator
+=========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   BaseEstimator
+
+Sampler
+=======
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   BaseSampler
+
+Results
+=======
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   EstimatorResult
+   SamplerResult
+"""
 
 from .base_estimator import BaseEstimator
 from .base_sampler import BaseSampler
