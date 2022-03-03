@@ -18,7 +18,7 @@ import retworkx
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import CouplingMap, Layout
-from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout, VF2LayoutStopReason
+from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout, VF2LayoutStopReason, readout_error_score, two_q_score
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeTenerife, FakeRueschlikon, FakeManhattan, FakeYorktown
@@ -365,8 +365,7 @@ class TestScoreHeuristic(QiskitTestCase):
 
     def test_no_properties(self):
         """Test scores with no properties."""
-        vf2_pass = VF2Layout(
-            CouplingMap(
+        cmap = CouplingMap(
                 [
                     (0, 1),
                     (0, 2),
@@ -387,13 +386,12 @@ class TestScoreHeuristic(QiskitTestCase):
                     (1, 5),
                 ]
             )
-        )
         qr = QuantumRegister(2)
         layout = Layout({qr[0]: 0, qr[1]: 1})
-        score = vf2_pass._score_layout(layout)
+        score = readout_error_score(None, layout, None, cmap)
         self.assertEqual(score, 16)
         better_layout = Layout({qr[0]: 4, qr[1]: 5})
-        better_score = vf2_pass._score_layout(better_layout)
+        better_score = readout_error_score(None, better_layout, None, cmap)
         self.assertEqual(4, better_score)
 
     def test_with_properties(self):
@@ -404,11 +402,29 @@ class TestScoreHeuristic(QiskitTestCase):
         vf2_pass = VF2Layout(cmap, properties=properties)
         qr = QuantumRegister(2)
         layout = Layout({qr[0]: 4, qr[1]: 2})
-        bad_score = vf2_pass._score_layout(layout)
+        bad_score = readout_error_score(None, layout, properties, cmap)
         self.assertAlmostEqual(0.4075, bad_score)
         better_layout = Layout({qr[0]: 1, qr[1]: 3})
-        better_score = vf2_pass._score_layout(better_layout)
+        better_score = readout_error_score(None, better_layout, properties, cmap)
         self.assertAlmostEqual(0.0588, better_score)
+
+
+class TestScore2qubit(QiskitTestCase):
+    """VF2Layout test with scoring_function=two_q_score"""
+    def test_single_cx(self):
+        """Test scoring_function=two_q_score with a single CX in a 2qubit circuit."""
+        qr = QuantumRegister(2)
+        expected = Layout({qr[0]: 2, qr[1]: 4})
+
+        backend = FakeYorktown()
+        cmap = CouplingMap(backend.configuration().coupling_map)
+        properties = backend.properties()
+        vf2_pass = VF2Layout(cmap, properties=properties, scoring_function=two_q_score, seed=42)
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[0], qr[1])
+        dag = circuit_to_dag(circuit)
+        vf2_pass.run(dag)
+        self.assertEqual(vf2_pass.property_set["layout"], expected)
 
 
 class TestMultipleTrials(QiskitTestCase):

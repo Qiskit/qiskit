@@ -14,14 +14,18 @@
 from enum import Enum
 import logging
 import random
+from itertools import combinations
 import time
+import numpy as np
 
 from retworkx import PyGraph, PyDiGraph, vf2_mapping
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.providers.exceptions import BackendPropertyError
+from qiskit.circuit.library import CXGate
 
+DEFAULT_CX_ERROR = 5 * 10 ** (-2)
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +65,7 @@ class VF2Layout(AnalysisPass):
         time_limit=None,
         properties=None,
         max_trials=None,
+        scoring_function=None
     ):
         """Initialize a ``VF2Layout`` pass instance
 
@@ -89,6 +94,7 @@ class VF2Layout(AnalysisPass):
         self.time_limit = time_limit
         self.properties = properties
         self.max_trials = max_trials
+        self.scoring_function = scoring_function
 
     def run(self, dag):
         """run the layout method"""
@@ -143,6 +149,7 @@ class VF2Layout(AnalysisPass):
         )
         chosen_layout = None
         chosen_layout_score = None
+        scoring_function = self.scoring_function or readout_error_score
         start_time = time.time()
         trials = 0
         for mapping in mappings:
@@ -156,7 +163,7 @@ class VF2Layout(AnalysisPass):
             if len(cm_graph) == len(im_graph):
                 chosen_layout = layout
                 break
-            layout_score = self._score_layout(layout)
+            layout_score = scoring_function(dag, layout, self.properties, self.coupling_map)
             logger.debug("Trial %s has score %s", trials, layout_score)
             if chosen_layout is None:
                 chosen_layout = layout
@@ -191,26 +198,89 @@ class VF2Layout(AnalysisPass):
 
         self.property_set["VF2Layout_stop_reason"] = stop_reason
 
-    def _score_layout(self, layout):
-        """Score heurstic to determine the quality of the layout by looking at the readout fidelity
-        on the chosen qubits. If BackendProperties are not available it uses the coupling map degree
-        to weight against higher connectivity qubits."""
-        bits = layout.get_physical_bits()
-        score = 0
-        if self.properties is None:
-            # Sum qubit degree for each qubit in chosen layout as really rough estimate of error
-            for bit in bits:
-                score += self.coupling_map.graph.out_degree(
-                    bit
-                ) + self.coupling_map.graph.in_degree(bit)
-            return score
+
+def two_q_score(dag, layout, properties, coupling_map):
+    """Evaluate the score on a layout and dag.
+    Calculate the score as the product of all two qubit gate fidelities.
+    Assign an artificial fidelity to virtual gates that require swap
+    operations in the implementation.
+
+    Args:
+        dag (DAGCircuit): DAG to evaluate
+        layout (Layout): Layout to evaluate
+    Return:
+        layout_fidelity (float): The score of the layout
+    """
+    layout_fidelity = 1.0
+    for node in dag.op_nodes():
+        physical_qubits = [layout[qubit] for qubit in node.qargs]
+        if len(physical_qubits) == 2:
+            layout_fidelity *= _calculate_2q_fidelity(physical_qubits, properties, coupling_map)
+    return layout_fidelity
+
+
+def _calculate_2q_fidelity(qubits, backend_properties, coupling_map):
+    """Calculate the 2q fidelity
+    Depending on the distance of the qubits, there are different options
+    for introducing the additional swaps. Therefore the average over all paths is used.
+    See also Arxiv 2103.15695 on page 5 as a reference.
+
+    As an example the fidelity for a cx-gate between qb1 and qb4 in a chain is given as:
+    f_14 = 1/3 * f_12 f_23 f_34 (f_12^5 f_23^5 + f_23^5 f_34^5 f_12^5 f_34^5)
+    """
+
+    def cx_fid(qubits):
+        if backend_properties:
+            return 1 - backend_properties.gate_error("cx", qubits)
+        else:
+            return 1 - DEFAULT_CX_ERROR
+
+    cplpath = coupling_map.shortest_undirected_path(*qubits)
+    cplpath_length = len(cplpath) - 1
+    cplpath_edges = [[cplpath[k], cplpath[k + 1]] for k in range(cplpath_length)]
+
+    path_fid = 1.0
+    path_fid *= np.sum(
+        [
+            np.prod([cx_fid(qubits) ** 5 for qubits in qubits_subset])
+            for qubits_subset in combinations(cplpath_edges, cplpath_length - 1)
+        ]
+    )
+    path_fid *= np.prod([cx_fid(qubits) for qubits in cplpath_edges]) / cplpath_length
+
+    return path_fid
+
+
+def readout_error_score(_, layout, properties, coupling_map):
+    """Score heurstic to determine the quality of the layout by looking at the readout fidelity
+    on the chosen qubits. If BackendProperties are not available it uses the coupling map degree
+    to weight against higher connectivity qubits.
+
+    Args:
+        dag:
+        layout:
+        properties:
+        coupling_map:
+
+    Returns:
+        int: Score
+    """
+    bits = layout.get_physical_bits()
+    score = 0
+    if properties is None:
+        # Sum qubit degree for each qubit in chosen layout as really rough estimate of error
         for bit in bits:
-            try:
-                score += self.properties.readout_error(bit)
-            # If readout error can't be found in properties fallback to degree
-            # divided by number of qubits as a terrible approximation
-            except BackendPropertyError:
-                score += (
-                    self.coupling_map.graph.out_degree(bit) + self.coupling_map.graph.in_degree(bit)
-                ) / len(self.coupling_map.graph)
+            score += coupling_map.graph.out_degree(
+                bit
+            ) + coupling_map.graph.in_degree(bit)
         return score
+    for bit in bits:
+        try:
+            score += properties.readout_error(bit)
+        # If readout error can't be found in properties fallback to degree
+        # divided by number of qubits as a terrible approximation
+        except BackendPropertyError:
+            score += (
+                coupling_map.graph.out_degree(bit) + coupling_map.graph.in_degree(bit)
+            ) / len(coupling_map.graph)
+    return score
