@@ -768,23 +768,6 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         with self.assertRaises(TranspilerError):
             PassManager(PadDelay()).run(qc)
 
-    def test_padding_not_working_after_dag_updated(self):
-        """Test padding fails when DAG is transformed after scheduling."""
-        qc = QuantumCircuit(1)
-        qc.delay(100, 0)
-        qc.h(0)
-
-        durations = InstructionDurations([("h", None, 160)])
-
-        with self.assertRaises(TranspilerError):
-            PassManager(
-                [
-                    ALAPSchedule(durations),
-                    Unroller(basis=["u2"]),
-                    PadDelay(),
-                ]
-            ).run(qc)
-
     def test_no_pad_very_end_of_circuit(self):
         """Test padding option that inserts no delay at the very end of circuit.
 

@@ -123,12 +123,6 @@ class ASAPSchedule(BaseScheduler):
             for bit in node.qargs:
                 idle_after[bit] = t1
 
-            # Place the node in time slot. Ignore delay since this is identical to empty.
-            if not isinstance(node.op, Delay):
-                # Note that some transformation pass can override .op attribute of DAGOpNode
-                # without breaking the reference to object. However, once operation is updated,
-                # there is no guarantee that the duration of node is unchanged.
-                key = node.name, node.sort_key, getattr(node, "_node_id")
-                node_start_time[key] = t0
+            node_start_time[node] = t0
 
         self.property_set["node_start_time"] = node_start_time

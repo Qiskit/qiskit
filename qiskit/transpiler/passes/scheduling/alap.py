@@ -112,13 +112,7 @@ class ALAPSchedule(BaseScheduler):
             for bit in node.qargs:
                 idle_before[bit] = t1
 
-            # Place the node in time slot. Ignore delay since this is identical to empty.
-            if not isinstance(node.op, Delay):
-                # Note that some transformation pass can override .op attribute of DAGOpNode
-                # without breaking the reference to object. However, once operation is updated,
-                # there is no guarantee that the duration of node is unchanged.
-                key = node.name, node.sort_key, getattr(node, "_node_id")
-                node_start_time[key] = t1
+            node_start_time[node] = t1
 
         # Compute maximum instruction available time, i.e. very end of t1
         circuit_duration = max(idle_before.values())

@@ -79,14 +79,23 @@ class BasePadding(TransformationPass):
         new_dag.calibrations = dag.calibrations
 
         idle_after = {bit: 0 for bit in dag.qubits}
+        circuit_duration = 0
         for node in dag.topological_op_nodes():
-            # Delays are ignored. Delays are not explicitly stored in the time slot.
-            # The duration of delays might be corrected by alignment passes.
-            # We don't keep user input delays.
-            key = node.name, node.sort_key, getattr(node, "_node_id")
-            if key in node_start_time:
-                t0 = node_start_time[key]
+            if node in node_start_time:
+                t0 = node_start_time[node]
                 t1 = t0 + node.op.duration
+
+                if isinstance(node.op, Delay):
+                    # The padding class considers a delay instruction as idle time
+                    # rather than instruction. Delay node is removed so that
+                    # we can extract non-delay predecessors.
+                    next_node = next(dag.successors(node))
+                    if isinstance(next_node, DAGOutNode):
+                        # If user intentionally insert delay at the very end of circuit,
+                        # this should override maximum cirucit duration.
+                        circuit_duration = max(circuit_duration, t1)
+                    dag.remove_op_node(node)
+                    continue
 
                 for bit in node.qargs:
                     # Find idle time from the latest instruction on the wire
@@ -108,14 +117,16 @@ class BasePadding(TransformationPass):
 
                 new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
             else:
-                # Note that delay is not scheduled in the scheduling pass.
-                # Delay node is removed so that we can extract non-delay predecessors.
-                if not isinstance(node.op, Delay):
-                    raise TranspilerError(
-                        f"Operation {repr(node)} is likely added after the circuit is scheduled. "
-                        "Schedule the circuit again if you transformed it."
-                    )
-                dag.remove_op_node(node)
+                raise TranspilerError(
+                    f"Operation {repr(node)} is likely added after the circuit is scheduled. "
+                    "Schedule the circuit again if you transformed it."
+                )
+
+        # Compute fresh circuit duration from the node start time dictionary.
+        # Note that scheduled duration may change with alignment passes, i.e.
+        # if some instruction time t0 violates the hardware alignment constraint,
+        # the alignment pass may delay t0 and accordingly the circuit duration changes.
+        new_dag.duration = max(circuit_duration, *idle_after.values())
 
         # Add delays until the end of circuit.
         for bit in new_dag.qubits:
@@ -130,12 +141,6 @@ class BasePadding(TransformationPass):
                     next_node=node,
                     prev_node=prev_node,
                 )
-
-        # Compute fresh circuit duration from the node start time dictionary.
-        # Note that scheduled duration may change with alignment passes, i.e.
-        # if some instruction time t0 violates the hardware alignment constraint,
-        # the alignment pass may delay t0 and accordingly the circuit duration changes.
-        new_dag.duration = max(idle_after.values())
 
         return new_dag
 
