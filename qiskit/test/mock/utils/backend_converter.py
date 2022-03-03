@@ -107,12 +107,23 @@ def convert_to_target(
         target.min_length = conf_dict["timing_constraints"].get("min_length")
         target.pulse_alignment = conf_dict["timing_constraints"].get("pulse_alignment")
         target.aquire_alignment = conf_dict["timing_constraints"].get("aquire_alignment")
-    # If a pulse defaults exists use that as the source of truth
-    # TODO: uncomment when measurement qargs fix is applied
-    #    if defaults is not None:
-    #        decode_pulse_defaults(defaults)
-    #        pulse_defs = PulseDefaults.from_dict(defaults)
-    #        target.update_from_instruction_schedule_map(pulse_defs.instruction_schedule_map)
+    # If pulse defaults exists use that as the source of truth
+    if defs_dict is not None:
+        pulse_defs = PulseDefaults.from_dict(defs_dict)
+        inst_map = pulse_defs.instruction_schedule_map
+        for inst in inst_map.instructions:
+            for qarg in inst_map.qubits_with_instruction(inst):
+                sched = inst_map.get(inst, qarg)
+                if inst in target:
+                    try:
+                        qarg = tuple(qarg)
+                    except TypeError:
+                        qarg = (qarg,)
+                    if inst == "measure":
+                        for qubit in qarg:
+                            target[inst][(qubit,)].calibration = sched
+                    else:
+                        target[inst][qarg].calibration = sched
     return target
 
 
