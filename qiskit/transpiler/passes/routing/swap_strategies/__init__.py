@@ -10,7 +10,15 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module containing swap strategies for blocks of commuting gates."""
+"""Module containing swap strategies for blocks of commuting gates.
+
+Swap routing is, in general, a hard problem. However, this problem is much simpler if
+the gates commute. Many variational algorithms such as QAOA are built with blocks of
+commuting gates. Transpiling such circuits with a general purpose SWAP router typically
+yields sub optimal results or is costly to run. This PR introduces a framework to
+transpile blocks of commuting gates by applying layers of a predefined swap strategy.
+Further details can also be found here: https://arxiv.org/abs/2202.03459.
+"""
 
 from .swap_strategy import SwapStrategy, LineSwapStrategy
 from .evolution_commutation_analysis import CheckCommutingEvolutions
