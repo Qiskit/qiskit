@@ -24,6 +24,7 @@ import os
 from typing import Iterable, List, Union
 
 from qiskit import circuit
+from qiskit.opflow.state_fns import dict_state_fn
 from qiskit.providers.models import BackendProperties, PulseBackendConfiguration, PulseDefaults
 from qiskit.providers import BackendV1, BackendV2, BaseBackend, QubitProperties
 from qiskit.providers.models.backendconfiguration import QasmBackendConfiguration
@@ -303,7 +304,7 @@ class FakeBackendV2(BackendV2):
         self._target = None
         self._qubit_properties = None
 
-    def _get_conf_dict_from_json(self):
+    def _get_conf_dict_from_json(self) -> dict:
         if not self.conf_filename:
             warnings.warn("No configuration file has been defined", UserWarning)
             return None
@@ -312,7 +313,7 @@ class FakeBackendV2(BackendV2):
         conf_dict["backend_name"] = self.backend_name
         return conf_dict
 
-    def _set_props_dict_from_json(self):
+    def _set_props_dict_from_json(self) -> dict:
         if not self.props_filename:
             warnings.warn("No properties file has been defined", UserWarning)
             return None
@@ -320,7 +321,7 @@ class FakeBackendV2(BackendV2):
         decode_backend_properties(props_dict)
         return props_dict
 
-    def _set_defs_dict_from_json(self):
+    def _set_defs_dict_from_json(self) -> dict:
         if not self.defs_filename:
             warnings.warn("No pulse defaults file has been defined", UserWarning)
             return None
@@ -328,7 +329,7 @@ class FakeBackendV2(BackendV2):
         decode_pulse_defaults(defs_dict)
         return defs_dict
 
-    def _load_json(self, filename):
+    def _load_json(self, filename: str) -> dict:
         with open(os.path.join(self.dirname, filename)) as f_json:
             the_json = json.load(f_json)
         return the_json
