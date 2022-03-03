@@ -14,12 +14,12 @@
 import unittest
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from qiskit.algorithms.evolvers.evolver_problem import EvolverProblem
+from qiskit.algorithms.evolvers.evolution_problem import EvolutionProblem
 from qiskit.circuit import Parameter
 from qiskit.opflow import Y, Z, One, X
 
 
-class TestEvolverProblem(QiskitAlgorithmsTestCase):
+class TestEvolutionProblem(QiskitAlgorithmsTestCase):
     """Test evolver problem class."""
 
     def test_init_default(self):
@@ -28,7 +28,7 @@ class TestEvolverProblem(QiskitAlgorithmsTestCase):
         time = 2.5
         initial_state = One
 
-        evo_problem = EvolverProblem(hamiltonian, time, initial_state)
+        evo_problem = EvolutionProblem(hamiltonian, time, initial_state)
 
         expected_hamiltonian = Y
         expected_time = 2.5
@@ -53,7 +53,7 @@ class TestEvolverProblem(QiskitAlgorithmsTestCase):
         aux_operators = [X, Y]
         hamiltonian_value_dict = {t_parameter: 3.2}
 
-        evo_problem = EvolverProblem(
+        evo_problem = EvolutionProblem(
             hamiltonian, time, initial_state, aux_operators, t_parameter, hamiltonian_value_dict
         )
 

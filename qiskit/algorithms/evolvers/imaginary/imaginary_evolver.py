@@ -15,5 +15,5 @@
 from abc import ABC
 
 
-class QITE(ABC):
+class ImaginaryEvolver(ABC):
     """Base class for Quantum Imaginary Time Evolution used for typing purposes."""

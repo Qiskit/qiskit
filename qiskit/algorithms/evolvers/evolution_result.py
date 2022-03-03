@@ -18,7 +18,7 @@ from qiskit.algorithms.eigen_solvers.eigen_solver import ListOrDict
 from qiskit.opflow import StateFn
 
 
-class EvolverResult(AlgorithmResult):
+class EvolutionResult(AlgorithmResult):
     """Class for holding evolution result."""
 
     def __init__(

@@ -12,17 +12,17 @@
 """ Quantum Time Evolution package """
 
 from qiskit.algorithms.evolvers.evolver import Evolver
-from qiskit.algorithms.evolvers.evolver_result import EvolverResult
-from qiskit.algorithms.evolvers.imaginary.qite import QITE
+from qiskit.algorithms.evolvers.evolution_result import EvolutionResult
+from qiskit.algorithms.evolvers.imaginary.imaginary_evolver import ImaginaryEvolver
 
-from qiskit.algorithms.evolvers.real.qrte import QRTE
+from qiskit.algorithms.evolvers.real.real_evolver import RealEvolver
 
-from qiskit.algorithms.evolvers.evolver_problem import EvolverProblem
+from qiskit.algorithms.evolvers.evolution_problem import EvolutionProblem
 
 __all__ = [
-    "EvolverProblem",
-    "EvolverResult",
+    "EvolutionProblem",
+    "EvolutionResult",
     "Evolver",
-    "QRTE",
-    "QITE",
+    "RealEvolver",
+    "ImaginaryEvolver",
 ]

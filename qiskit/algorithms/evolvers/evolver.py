@@ -14,20 +14,20 @@
 
 from abc import ABC, abstractmethod
 
-from qiskit.algorithms.evolvers.evolver_problem import EvolverProblem
-from qiskit.algorithms.evolvers.evolver_result import EvolverResult
+from qiskit.algorithms.evolvers.evolution_problem import EvolutionProblem
+from qiskit.algorithms.evolvers.evolution_result import EvolutionResult
 
 
 class Evolver(ABC):
     """Interface class for quantum time evolution."""
 
     @abstractmethod
-    def evolve(self, evolver_problem: EvolverProblem) -> EvolverResult:
+    def evolve(self, evolver_problem: EvolutionProblem) -> EvolutionResult:
         """
         Evolves an initial state in the evolution_problem according to a Hamiltonian provided.
 
         Args:
-            evolver_problem: EvolverProblem instance that includes definition of an evolution
+            evolver_problem: EvolutionProblem instance that includes definition of an evolution
                 problem.
 
         Returns:

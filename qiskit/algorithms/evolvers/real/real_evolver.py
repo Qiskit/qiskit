@@ -15,5 +15,5 @@
 from abc import ABC
 
 
-class QRTE(ABC):
+class RealEvolver(ABC):
     """Base class for Quantum Real Time Evolution used for typing purposes."""
