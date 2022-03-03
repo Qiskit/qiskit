@@ -2,11 +2,6 @@
 # https://github.com/Qiskit/qiskit-terra/pull/4544/
 # See https://mybinder.readthedocs.io/en/latest/config_files.html?#postbuild-run-code-after-installing-the-environment
 
-# Install rust compiler to build compiled extensions
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup.sh
-bash ./rustup.sh -y
-source $HOME/.cargo/env
-
 # Dependencies
 # - matplotlib: for MPL drawer
 # - pylatexenc: for MPL drawer
