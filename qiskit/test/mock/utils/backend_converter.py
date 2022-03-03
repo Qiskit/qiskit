@@ -1,7 +1,19 @@
-import pprint
-import sys
-import json
-import warnings
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2022.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""
+Utilities for constructing Target object from configuration, properties and
+pulse defaults json files
+"""
 
 from qiskit.transpiler.target import Target, InstructionProperties
 from qiskit.providers.backend import QubitProperties
@@ -15,7 +27,14 @@ from qiskit.providers.models.pulsedefaults import PulseDefaults
 from qiskit.test.mock.utils.json_decoder import decode_pulse_defaults
 
 
-def convert_to_target(configuration, properties=None, defaults=None):
+def convert_to_target(
+        conf_dict: dict,
+        props_dict: dict = None,
+        defs_dict: dict = None
+    ) -> Target:
+    """Uses configuration, properties and pulse defaults dicts
+    to construct and return Target class.
+    """
     name_mapping = {
         "id": IGate(),
         "sx": SXGate(),
@@ -27,10 +46,10 @@ def convert_to_target(configuration, properties=None, defaults=None):
     custom_gates = {}
     target = Target()
     # Parse from properties if it exsits
-    if properties is not None:
+    if props_dict is not None:
         # Parse instructions
         gates = {}
-        for gate in properties["gates"]:
+        for gate in props_dict["gates"]:
             name = gate["gate"]
             if name in name_mapping:
                 if name not in gates:
@@ -57,7 +76,7 @@ def convert_to_target(configuration, properties=None, defaults=None):
         # Create measurement instructions:
         measure_props = {}
         count = 0
-        for qubit in properties["qubits"]:
+        for qubit in props_dict["qubits"]:
             qubit_prop = {}
             for prop in qubit:
                 if prop["name"] == "readout_length":
@@ -69,7 +88,7 @@ def convert_to_target(configuration, properties=None, defaults=None):
         target.add_instruction(Measure(), measure_props)
     # Parse from configuration because properties doesn't exist
     else:
-        for gate in configuration["gates"]:
+        for gate in conf_dict["gates"]:
             name = gate["name"]
             gate_props = {tuple(x): None for x in gate["coupling_map"]}
             if name in name_mapping:
@@ -77,17 +96,17 @@ def convert_to_target(configuration, properties=None, defaults=None):
             else:
                 custom_gate = Gate(name, len(gate["coupling_map"][0]))
                 target.add_instruction(custom_gate, gate_props)
-        measure_props = {(n,): None for n in range(configuration["n_qubits"])}
+        measure_props = {(n,): None for n in range(conf_dict["n_qubits"])}
         target.add_instruction(Measure(), measure_props)
     # parse global configuration properties
-    dt = configuration.get("dt")
+    dt = conf_dict.get("dt")
     if dt:
-        target.dt = dt ** 1e-6
-    if "timing_constraints" in configuration:
-        target.granularity = configuration["timing_constraints"].get("granularity")
-        target.min_length = configuration["timing_constraints"].get("min_length")
-        target.pulse_alignment = configuration["timing_constraints"].get("pulse_alignment")
-        target.aquire_alignment = configuration["timing_constraints"].get("aquire_alignment")
+        target.dt = dt
+    if "timing_constraints" in conf_dict:
+        target.granularity = conf_dict["timing_constraints"].get("granularity")
+        target.min_length = conf_dict["timing_constraints"].get("min_length")
+        target.pulse_alignment = conf_dict["timing_constraints"].get("pulse_alignment")
+        target.aquire_alignment = conf_dict["timing_constraints"].get("aquire_alignment")
     # If a pulse defaults exists use that as the source of truth
     # TODO: uncomment when measurement qargs fix is applied
     #    if defaults is not None:
@@ -97,9 +116,9 @@ def convert_to_target(configuration, properties=None, defaults=None):
     return target
 
 
-def qubit_properties_dict_from_properties(properties: dict):
+def qubit_props_dict_from_props_dict(properties: dict) -> dict:
     count = 0
-    qubit_props = {}
+    qubit_props_dict = {}
     for qubit in properties["qubits"]:
         qubit_properties = {}
         for prop_dict in qubit:
@@ -111,37 +130,6 @@ def qubit_properties_dict_from_properties(properties: dict):
                 qubit_properties["frequency"] = apply_prefix(
                     prop_dict["value"], prop_dict["unit"]
                 )
-        qubit_props[count] = QubitProperties(**qubit_properties)
+        qubit_props_dict[count] = QubitProperties(**qubit_properties)
         count += 1
-    return qubit_props
-
-
-def main():
-    conf_path = sys.argv[1]
-    properties_path = None
-    if len(sys.argv) > 2:
-        properties_path = sys.argv[2]
-    defaults_path = None
-    if len(sys.argv) > 3:
-        defaults_path = sys.argv[3]
-    with open(conf_path, "r") as fd:
-        conf_dict = json.load(fd)
-    defaults_dict = None
-    if defaults_path:
-        with open(defaults_path, "r") as fd:
-            defaults_dict = json.load(fd)
-    properties_dict = None
-    if properties_path:
-        with open(properties_path, "r") as fd:
-            properties_dict = json.load(fd)
-    target = convert_to_target(conf_dict, properties_dict, defaults_dict)
-    if properties_dict is not None:
-        qubit_properties = qubit_properties_dict_from_properties(properties_dict)
-    else:
-        qubit_properties = {}
-    print(target)
-    pprint.pprint(qubit_properties)
-
-
-if __name__ == "__main__":
-    main()
+    return qubit_props_dict

@@ -47,7 +47,7 @@ from qiskit.test.mock.utils.json_decoder import (
 )
 from qiskit.test.mock.utils.backend_converter import (
     convert_to_target,
-    qubit_properties_dict_from_properties
+    qubit_props_dict_from_props_dict
 )
 from qiskit.utils import optionals as _optionals
 from qiskit.providers import basicaer
@@ -364,9 +364,9 @@ class FakeBackendV2(BackendV2):
                 returned in the same order
         """
         if not self._qubit_properties:
-            self._qubit_properties = qubit_properties_dict_from_properties(
+            self._qubit_properties = qubit_props_dict_from_props_dict(
                 self._props_dict
-            )
+                )
         if isinstance(qubit, int):  # type: ignore[unreachable]
             return self._qubit_properties.get(qubit)
         if isinstance(qubit, List):
@@ -382,9 +382,9 @@ class FakeBackendV2(BackendV2):
         """Converts backend configuration, properties and defaults to Target object"""
         if not self._target:
             self._target = convert_to_target(
-                configuration=self._conf_dict,
-                properties=self._props_dict,
-                defaults=self._defs_dict,
+                conf_dict=self._conf_dict,
+                props_dict=self._props_dict,
+                defs_dict=self._defs_dict,
             )
 
     @property
