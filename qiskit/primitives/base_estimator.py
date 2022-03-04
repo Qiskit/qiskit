@@ -27,11 +27,6 @@ The input consists of following elements.
 
 * observables (:math:`H_j`): a list of :class:`~qiskit.quantum_info.SparsePauliOp`.
 
-* grouping: a list of pairs :class:`~qiskit.primitive.Group` of an
-  index of the quantum circuits and an index of the observable.
-  A tuple of two integers can be used as alternative of :class:`~qiskit.primitive.Group`.
-  For example, ``Group(i, j)`` or ``(i, j)`` corresponds to a pair :math:`\psi_i` and :math:`H_j`.
-
 * parameters: a list of parameters of the quantum circuits.
   (:class:`~qiskit.circuit.parametertable.ParameterView` or
   a list of :class:`~qiskit.circuit.Parameter`).
@@ -75,25 +70,25 @@ Here is an example of how estimator is used.
         theta3 = [1, 2, 3, 4, 5, 6]
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
-        psi1_H1_result = e([(0, 0)], [theta1])
+        psi1_H1_result = e([0], [0], [theta1])
         print(psi1_H1_result)
 
         # calculate [ <psi1(theta1)|H2|psi1(theta1)>, <psi1(theta1)|H3|psi1(theta1)> ]
-        psi1_H23_result = e([(0, 1), (0, 2)], [theta1]*2)
+        psi1_H23_result = e([0, 0], [1, 2], [theta1]*2)
         print(psi1_H23_result)
 
         # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]
-        psi2_H2_result = e([(1, 1)], [theta2])
+        psi2_H2_result = e([1], [1], [theta2])
         print(psi2_H2_result)
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)>, <psi1(theta3)|H1|psi1(theta3)> ]
-        psi1_H1_result2 = e([(0, 0)]*2, [theta1, theta3])
+        psi1_H1_result2 = e([0, 0], [0, 0], [theta1, theta3])
         print(psi1_H1_result2)
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
         #             <psi2(theta2)|H2|psi2(theta2)>,
         #             <psi1(theta3)|H3|psi1(theta3)> ]
-        psi12_H23_result = e([(0, 0), (1, 1), (0, 2)], [theta1, theta2, theta3])
+        psi12_H23_result = e([0, 0, 0], [0, 1, 2], [theta1, theta2, theta3])
         print(psi12_H23_result)
 """
 from __future__ import annotations
@@ -108,14 +103,6 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import SparsePauliOp
 
 from .estimator_result import EstimatorResult
-
-
-@dataclass(frozen=True)
-class Group:
-    """The dataclass represents indices of circuit and observable."""
-
-    circuit_index: int
-    observable_index: int
 
 
 class BaseEstimator(ABC):
@@ -198,29 +185,29 @@ class BaseEstimator(ABC):
     @abstractmethod
     def __call__(
         self,
-        grouping: Sequence[Group | tuple[int, int]],
+        circuits: Sequence[int],
+        observables: Sequence[int],
         parameters: Sequence[Sequence[float]],
         **run_options,
     ) -> EstimatorResult:
         """Run the estimation of expectation value(s).
 
-        `parameters` and `grouping` should have the same length. The i-th element of the result
-        is the expectation of observable
+        `circuits`, `observables`, and `parameters` should have the same length.
+        The i-th element of the result is the expectation of observable
 
-            obs = self.observables(grouping[i].observable_index)
+            obs = self.observables[observables[i]]
 
         for the state prepared by
 
-            circ = self.circuits[grouping[i].circuit_index]
+            circ = self.circuits[circuits[i]]
 
         with bound parameters
 
-            values = parameters[i]
-
-        obs.expectation()
+            values = parameters[i].
 
         Args:
-            grouping (list[Group | tuple[int, int]]): the list of Group or tuple of circuit
+            circuits (list[int]): the list of circuit indices.
+            observables (list[int]): the list of observable indices.
             parameters (list[list[float]]): concrete parameters to be bound.
             run_options: runtime options used for circuit execution.
 
