@@ -36,4 +36,5 @@ class EstimatorResult:
     def __add__(self, other: EstimatorResult):
         values = np.concatenate([self.values, other.values])
         variances = np.concatenate([self.variances, other.variances])
-        return EstimatorResult(values, variances)
+        metadata = self.metadata + other.metadata
+        return EstimatorResult(values, variances, metadata)

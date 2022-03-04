@@ -101,9 +101,9 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Callable, Iterable, Sequence
+from typing import Callable, Sequence
 
-from qiskit.circuit import QuantumCircuit, Parameter
+from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import SparsePauliOp
@@ -127,15 +127,15 @@ class BaseEstimator(ABC):
 
     def __init__(
         self,
-        circuits: Iterable[QuantumCircuit],
-        observables: Iterable[SparsePauliOp],
-        parameters: Iterable[Iterable[Parameter]] | None = None,
+        circuits: Sequence[QuantumCircuit],
+        observables: Sequence[SparsePauliOp],
+        parameters: Sequence[Sequence[Parameter]] | None = None,
     ):
         """
         Args:
-            circuits (Iterable[QuantumCircuit]): quantum circuits that represents quantum states
-            observables (Iterable[SparsePauliOp]): observables
-            parameters (Iterable[Iterable[Parameter]]): parameters of quantum circuits.
+            circuits (list[QuantumCircuit]): quantum circuits that represents quantum states
+            observables (list[SparsePauliOp]): observables
+            parameters (list[list[Parameter]]): parameters of quantum circuits.
                 Defaults to `[circ.parameters for circ in circuits]`
 
         Raises:
@@ -169,7 +169,7 @@ class BaseEstimator(ABC):
         ...
 
     @property
-    def circuits(self) -> tuple[QuantumCircuit]:
+    def circuits(self) -> tuple[QuantumCircuit, ...]:
         """Quantum circuits that represents quantum states.
 
         Returns:
@@ -178,7 +178,7 @@ class BaseEstimator(ABC):
         return self._circuits
 
     @property
-    def observables(self) -> tuple[SparsePauliOp]:
+    def observables(self) -> tuple[SparsePauliOp, ...]:
         """Observables
 
         Returns:
@@ -187,7 +187,7 @@ class BaseEstimator(ABC):
         return self._observables
 
     @property
-    def parameters(self) -> tuple[ParameterView]:
+    def parameters(self) -> tuple[ParameterView, ...]:
         """Parameters of quantum circuits
 
         Returns:
@@ -205,8 +205,8 @@ class BaseEstimator(ABC):
         """Run the estimation of expectation value(s).
 
         Args:
-            parameters (Sequence[Sequence[float]]): concrete parameters to be bound.
-            grouping (Sequence[Group | tuple[int, int]]): the list of Group or tuple of circuit
+            parameters (list[list[float]]): concrete parameters to be bound.
+            grouping (list[Group | tuple[int, int]]): the list of Group or tuple of circuit
                 index and observable index.
             run_options: runtime options used for circuit execution.
 

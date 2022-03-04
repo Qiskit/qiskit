@@ -83,9 +83,9 @@ Here is an example of how sampler is used.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Callable, Sequence, Iterable
+from typing import Callable, Sequence
 
-from qiskit.circuit import QuantumCircuit, Parameter
+from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
 
@@ -100,13 +100,13 @@ class BaseSampler(ABC):
 
     def __init__(
         self,
-        circuits: Iterable[QuantumCircuit],
-        parameters: Iterable[Iterable[Parameter]] | None = None,
+        circuits: Sequence[QuantumCircuit],
+        parameters: Sequence[Sequence[Parameter]] | None = None,
     ):
         """
         Args:
             circuits (list[QuantumCircuit]): quantum circuits to be executed
-            parameters (Union[ParameterView, list[Parameter]]): parameters of quantum circuits
+            parameters (list[list[Parameter]]): parameters of quantum circuits
                 Defaults to `[circ.parameters for circ in circuits]`
 
         Raises:
@@ -134,16 +134,16 @@ class BaseSampler(ABC):
         ...
 
     @property
-    def circuits(self) -> tuple[QuantumCircuit]:
+    def circuits(self) -> tuple[QuantumCircuit, ...]:
         """Quantum circuits
 
         Returns:
-            list[QuantumCircuit]: quantum circuits
+            tuple[QuantumCircuit]: quantum circuits
         """
         return self._circuits
 
     @property
-    def parameters(self) -> tuple(ParameterView):
+    def parameters(self) -> tuple[ParameterView, ...]:
         """Parameters of quantum circuits
 
         Returns:
@@ -161,8 +161,8 @@ class BaseSampler(ABC):
         """Run the sampling of bitstrings.
 
         Args:
-            parameters (Optional[Union[list[float], list[list[float]]]]): parameters to be bound.
-            circuits (Sequence[int]): indexes of the circuits to evaluate.
+            parameters (list[list[float]]): parameters to be bound.
+            circuits (list[int]): indexes of the circuits to evaluate.
             run_options: backend runtime options used for circuit execution.
 
         Returns:
@@ -181,8 +181,8 @@ class BaseSampler(ABC):
         """Run the sampling of bitstrings.
 
         Args:
-            parameters (Optional[Union[list[float], list[list[float]]]]): parameters to be bound.
-            circuits (Sequence[int]): indexes of the circuits to evaluate.
+            parameters (list[list[float]]): parameters to be bound.
+            circuits (list[int]): indexes of the circuits to evaluate.
             run_options: backend runtime options used for circuit execution.
 
         Returns:
