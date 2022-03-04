@@ -183,7 +183,7 @@ class BaseEstimator(ABC):
         """Parameters of quantum circuits
 
         Returns:
-            ``parameters[i, j]`` is the j-th parameter of the i-th circuit.
+            parameters, where ``parameters[i][j]`` is the j-th parameter of the i-th circuit.
         """
         return self._parameters
 
