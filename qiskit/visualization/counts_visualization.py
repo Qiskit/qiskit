@@ -64,8 +64,11 @@ def plot_histogram(
             dict containing the values to represent (ex {'001': 130})
         figsize (tuple): Figure size in inches.
         color (list or str): String or list of strings for histogram bar colors.
-        number_to_keep (int): The number of terms to plot and rest
-            is made into a single bar called 'rest'.
+        number_to_keep (int): The number of terms to plot per dataset.  The rest is made into a
+            single bar called 'rest'.  If multiple datasets are given, the ``number_to_keep``
+            applies to each dataset individually, which may result in more bars than
+            ``number_to_keep + 1``.  The ``number_to_keep`` applies to the total values, rather than
+            the x-axis sort.
         sort (string): Could be `'asc'`, `'desc'`, `'hamming'`, `'value'`, or
             `'value_desc'`. If set to `'value'` or `'value_desc'` the x axis
             will be sorted by the maximum probability for each bitstring.
