@@ -419,28 +419,32 @@ class FakeBackendV2(BackendV2):
                 "Invalid input object %s, must be either a "
                 "QuantumCircuit, Schedule, or a list of either" % circuits
             )
-        if _optionals.HAS_AER:
-            from qiskit.providers import aer
+        # if _optionals.HAS_AER:
+        #     from qiskit.providers import aer
 
-            if pulse_job:
-                from qiskit.providers.aer.pulse import PulseSystemModel
+        #     if pulse_job:
+        #         from qiskit.providers.aer.pulse import PulseSystemModel
 
-                system_model = PulseSystemModel.from_backend(self)
-                sim = aer.Aer.get_backend("pulse_simulator")
-                job = sim.run(circuits, system_model=system_model, **kwargs)
-            else:
-                sim = aer.Aer.get_backend("qasm_simulator")
-                if self.properties():
-                    from qiskit.providers.aer.noise import NoiseModel
+        #         system_model = PulseSystemModel.from_backend(self)
+        #         sim = aer.Aer.get_backend("pulse_simulator")
+        #         job = sim.run(circuits, system_model=system_model, **kwargs)
+        #     else:
+        #         sim = aer.Aer.get_backend("qasm_simulator")
+        #         if self.properties():
+        #             from qiskit.providers.aer.noise import NoiseModel
 
-                    noise_model = NoiseModel.from_backend(self, warnings=False)
-                    job = sim.run(circuits, noise_model=noise_model, **kwargs)
-                else:
-                    job = sim.run(circuits, **kwargs)
-        else:
-            if pulse_job:
-                raise QiskitError("Unable to run pulse schedules without qiskit-aer installed")
-            warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
-            sim = basicaer.BasicAer.get_backend("qasm_simulator")
-            job = sim.run(circuits, **kwargs)
+        #             noise_model = NoiseModel.from_backend(self, warnings=False)
+        #             job = sim.run(circuits, noise_model=noise_model, **kwargs)
+        #         else:
+        #             job = sim.run(circuits, **kwargs)
+        # else:
+        #     if pulse_job:
+        #         raise QiskitError("Unable to run pulse schedules without qiskit-aer installed")
+        #     warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
+        #     sim = basicaer.BasicAer.get_backend("qasm_simulator")
+        #     job = sim.run(circuits, **kwargs)
+
+        warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
+        sim = basicaer.BasicAer.get_backend("qasm_simulator")
+        job = sim.run(circuits, **kwargs)
         return job
