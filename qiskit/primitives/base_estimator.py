@@ -150,11 +150,11 @@ class BaseEstimator(ABC):
         if parameters is None:
             self._parameters = tuple(circ.parameters for circ in circuits)
         else:
-            if len(parameters) != len(circuits):
-                raise QiskitError(
-                    f"Different number of parameters ({len(parameters)} and circuits ({len(circuits)}"
-                )
             self._parameters = tuple(ParameterView(par) for par in parameters)
+            if len(self._parameters) != len(self._circuits):
+                raise QiskitError(
+                    f"Different number of parameters ({len(self._parameters)} and circuits ({len(self._circuits)}"
+                )
 
     def __enter__(self):
         return self
