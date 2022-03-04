@@ -29,10 +29,10 @@ class EstimatorResult:
 
     .. code-block:: python
 
-        result = estimator(grouping, params)
+        result = estimator(circuits, observables, params)
 
     where the i-th elements of `result` correspond to the expectation using the circuit and
-    observable given by `grouping[i]` and the parameters bounds by `params[i]`
+    observable given by `circuits[i]`, `observables[i]`, and the parameters bounds by `params[i]`.
 
     Args:
         values (np.ndarray): the array of the expectation values.
