@@ -44,10 +44,10 @@ The output is the list of expectation values.
 
 .. math::
 
-    \Braket{\psi_i(\theta_k)|H_j|\psi_i(\theta_k)}
+    \langle\psi_i(\theta_k)|H_j|\psi_i(\theta_k)\rangle
 
 
-The estimator object is expected to be close()d after use or
+The estimator object is expected to be `close()` d after use or
 accessed inside "with" context
 and the objects are called with parameter values and run options
 (e.g., ``shots`` or number of shots).
@@ -69,33 +69,32 @@ Here is an example of how estimator is used.
     H2 = SparsePauliOp.from_list([("IZ", 1)])
     H3 = SparsePauliOp.from_list([("ZI", 1), ("ZZ", 1)])
 
-    with Estimator([psi1, psi2], [H1, H2, H3], [params1, params2] as e:
+    with Estimator([psi1, psi2], [H1, H2, H3], [params1, params2]) as e:
         theta1 = [0, 1, 1, 2, 3, 5]
         theta2 = [0, 1, 1, 2, 3, 5, 8, 13]
         theta3 = [1, 2, 3, 4, 5, 6]
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
-        psi1_H1_result = e([theta1], grouping=[(0, 0)])
+        psi1_H1_result = e([(0, 0)], [theta1])
         print(psi1_H1_result)
 
         # calculate [ <psi1(theta1)|H2|psi1(theta1)>, <psi1(theta1)|H3|psi1(theta1)> ]
-        psi1_H23_result = e([theta1]*2, grouping=[(0, 1), (0, 2)])
+        psi1_H23_result = e([(0, 1), (0, 2)], [theta1]*2)
         print(psi1_H23_result)
 
         # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]
-        psi2_H2_result = e([theta2], grouping=[(1, 1)])
+        psi2_H2_result = e([(1, 1)], [theta2])
         print(psi2_H2_result)
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)>, <psi1(theta3)|H1|psi1(theta3)> ]
-        psi1_H1_result2 = e([theta1, theta3], grouping=[(0, 0), (0, 0)])
+        psi1_H1_result2 = e([(0, 0)]*2, [theta1, theta3])
         print(psi1_H1_result2)
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
         #               psi2(theta2)|H2|psi2(theta2)>,
         #               <psi1(theta3)|H3|psi1(theta3)> ]
-        psi12_H23_result = e([theta1, theta2, theta3], grouping=[(0, 0), (1, 1), (0, 2)])
+        psi12_H23_result = e([(0, 0), (1, 1), (0, 2)], [theta1, theta2, theta3])
         print(psi12_H23_result)
-
 """
 from __future__ import annotations
 
@@ -144,7 +143,7 @@ class BaseEstimator(ABC):
         The indexing is such that `parameters[i, j]` is the j-th formal parameter of `circuits[i]`.
 
         Creating an instance of an Estimator, or using one in a `with` context opens a session that
-        holds resources until the instance is `close()`ed or the context is exited.
+        holds resources until the instance is `close()` ed or the context is exited.
         """
         self._circuits = tuple(circuits)
         self._observables = tuple(observables)
@@ -196,18 +195,18 @@ class BaseEstimator(ABC):
         return self._parameters
 
     @abstractmethod
-    def run(
+    def __call__(
         self,
-        parameters: Sequence[Sequence[float]],
         grouping: Sequence[Group | tuple[int, int]],
+        parameters: Sequence[Sequence[float]],
         **run_options,
     ) -> EstimatorResult:
         """Run the estimation of expectation value(s).
 
         Args:
-            parameters (Sequence[Sequence[float]]): concrete parameters to be bound.
             grouping (Sequence[Group | tuple[int, int]]): the list of Group or tuple of circuit
                 index and observable index.
+            parameters (Sequence[Sequence[float]]): concrete parameters to be bound.
             run_options: runtime options used for circuit execution.
 
         Returns:
@@ -215,22 +214,20 @@ class BaseEstimator(ABC):
 
         `parameters` and `grouping` should have the same length. The i-th element of the result
         is the expectation of observable
+
             obs = self.observables(grouping[i].observable_index)
+
         for the state prepared by
+
             circ = self.circuits[grouping[i].circuit_index]
+
         with bound parameters
+
             values = parameters[i]
+
         obs.expectation()
         """
         ...
-
-    def __call__(
-        self,
-        parameters: Sequence[Sequence[float]],
-        grouping: Sequence[Group | tuple[int, int]],
-        **run_options,
-    ) -> EstimatorResult:
-        return self.run(parameters, grouping, **run_options)
 
 
 EstimatorFactory = Callable[..., BaseEstimator]

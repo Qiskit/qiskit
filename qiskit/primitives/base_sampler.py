@@ -57,8 +57,8 @@ Here is an example of how sampler is used.
         print([q.binary_probabilities() for q in result.quasi_dists])
 
     # executes three Bell circuits
-    with Sampler(circuits=[bell]*3) as sampler:
-        result = sampler([[]]*3)
+    with Sampler([bell]*3, [[]]) as sampler:
+        result = sampler([0, 1, 2], [[]]*3)
         print([q.binary_probabilities() for q in result.quasi_dists])
 
     # parametrized circuit
@@ -70,15 +70,14 @@ Here is an example of how sampler is used.
     theta1 = [0, 1, 1, 2, 3, 5]
     theta2 = [1, 2, 3, 4, 5, 6]
 
-    with Sampler(circuits=[pqc], parameters=[pcq.parameters]) as sampler:
-        result1 = sampler([theta1, theta2], [0, 0])
+    with Sampler(pqc], [pcq.parameters]) as sampler:
+        result1 = sampler([0, 0], [theta1, theta2])
 
         # result of pqc(theta1)
         print([q.binary_probabilities() for q in result[0].quasi_dists])
 
         # result of pqc(theta2)
         print([q.binary_probabilities() for q in result[1].quasi_dists])
-
 """
 from __future__ import annotations
 
@@ -152,30 +151,10 @@ class BaseSampler(ABC):
         return self._parameters
 
     @abstractmethod
-    def run(
-        self,
-        circuits: Sequence[int],
-        parameters: Sequence[Sequence[float]],
-        **run_options,
-    ) -> SamplerResult:
-        """Run the sampling of bitstrings.
-
-        Args:
-            parameters (Optional[Union[list[float], list[list[float]]]]): parameters to be bound.
-            circuits (Sequence[int]): indexes of the circuits to evaluate.
-            run_options: backend runtime options used for circuit execution.
-
-        Returns:
-            SamplerResult: the result of Sampler. The i-th result corresponds to
-                self.circuits[circuits[i]]
-            evaluated with parameters bound as parameters[i]
-        """
-        ...
-
     def __call__(
         self,
-        circuits: Sequence[int],
         parameters: Sequence[Sequence[float]],
+        circuits: Sequence[int],
         **run_options,
     ) -> SamplerResult:
         """Run the sampling of bitstrings.
@@ -187,10 +166,9 @@ class BaseSampler(ABC):
 
         Returns:
             SamplerResult: the result of Sampler. The i-th result corresponds to
-                self.circuits[circuits[i]]
-            evaluated with parameters bound as parameters[i]
+                self.circuits[circuits[i]] evaluated with parameters bound as parameters[i].
         """
-        return self.run(circuits, parameters, **run_options)
+        ...
 
 
 SamplerFactory = Callable[..., BaseSampler]

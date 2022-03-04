@@ -25,15 +25,16 @@ import numpy as np
 class EstimatorResult:
     """
     Result of ExpectationValue
-    #TODO doc
+
+    .. code-block:: python
+
+        result = estimator(grouping, params)
+
+    where the i-th elements of `result` correspond to the expectation using the circuit and
+    observable given by `grouping[i]` and the parameters bounds by `params[i]`
     """
 
     values: "np.ndarray[Any, np.dtype[np.float64]]"
     variances: "np.ndarray[Any, np.dtype[np.float64]]"
     # standard_errors: np.ndarray[Any, np.dtype[np.float64]]
     metadata: list[dict[str, Any]]
-
-    def __add__(self, other: EstimatorResult):
-        values = np.concatenate([self.values, other.values])
-        variances = np.concatenate([self.variances, other.variances])
-        return EstimatorResult(values, variances)

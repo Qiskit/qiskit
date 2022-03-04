@@ -25,10 +25,14 @@ from qiskit.result import QuasiDistribution
 class SamplerResult:
     """
     Result of Sampler
+
+    .. code-block:: python
+
+        result = sampler(params, grouping)
+
+    where the i-th elements of `result` correspond to the expectation using the circuit and
+    observable given by `grouping[i]` and the parameters bounds by `params[i]`
     """
 
     quasi_dists: list[QuasiDistribution]
     metadata: list[dict[str, Any]]
-
-    def __getitem__(self, key):
-        return SamplerResult(self.quasi_dists[key], self.metadata[key])
