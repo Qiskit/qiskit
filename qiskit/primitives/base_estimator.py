@@ -121,16 +121,16 @@ class BaseEstimator(ABC):
         parameters: Optional[Iterable[Iterable[Parameter]]] = None,
     ):
         """
-        Creating an instance of an Estimator, or using one in a `with` context opens a session that
-        holds resources until the instance is `close()` ed or the context is exited.
+        Creating an instance of an Estimator, or using one in a ``with`` context opens a session that
+        holds resources until the instance is ``close()`` ed or the context is exited.
 
         Args:
             circuits: quantum circuits that represents quantum states
             observables: observables
             parameters: parameters of quantum circuits.
-                Defaults to `[circ.parameters for circ in circuits]`
-                The indexing is such that `parameters[i, j]` is the j-th formal parameter of
-                `circuits[i]`.
+                Defaults to ``[circ.parameters for circ in circuits]``
+                The indexing is such that ``parameters[i, j]`` is the j-th formal parameter of
+                ``circuits[i]``.
 
         Raises:
             QiskitError: for mismatch of circuits and parameters list.
@@ -181,7 +181,7 @@ class BaseEstimator(ABC):
         """Parameters of quantum circuits
 
         Returns:
-            parameters[i, j] is the j-th parameter of the i-th circuit.
+            ``parameters[i, j]`` is the j-th parameter of the i-th circuit.
         """
         return self._parameters
 
@@ -195,16 +195,22 @@ class BaseEstimator(ABC):
     ) -> EstimatorResult:
         """Run the estimation of expectation value(s).
 
-        `circuits`, `observables`, and `parameters` should have the same length.
+        ``circuits``, ``observables``, and ``parameters`` should have the same length.
         The i-th element of the result is the expectation of observable
+
+        .. code-block:: python
 
             obs = self.observables[observables[i]]
 
         for the state prepared by
 
+        .. code-block:: python
+
             circ = self.circuits[circuits[i]]
 
         with bound parameters
+
+        .. code-block:: python
 
             values = parameters[i].
 
