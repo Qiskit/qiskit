@@ -98,8 +98,7 @@ Here is an example of how estimator is used.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import Callable, Iterable, Sequence
+from typing import Callable, Iterable, Optional, Sequence
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
@@ -119,16 +118,16 @@ class BaseEstimator(ABC):
         self,
         circuits: Iterable[QuantumCircuit],
         observables: Iterable[SparsePauliOp],
-        parameters: Iterable[Iterable[Parameter]] | None = None,
+        parameters: Optional[Iterable[Iterable[Parameter]]] = None,
     ):
         """
         Creating an instance of an Estimator, or using one in a `with` context opens a session that
         holds resources until the instance is `close()` ed or the context is exited.
 
         Args:
-            circuits (list[QuantumCircuit]): quantum circuits that represents quantum states
-            observables (list[SparsePauliOp]): observables
-            parameters (list[list[Parameter]]): parameters of quantum circuits.
+            circuits: quantum circuits that represents quantum states
+            observables: observables
+            parameters: parameters of quantum circuits.
                 Defaults to `[circ.parameters for circ in circuits]`
                 The indexing is such that `parameters[i, j]` is the j-th formal parameter of
                 `circuits[i]`.
@@ -139,7 +138,7 @@ class BaseEstimator(ABC):
         self._circuits = tuple(circuits)
         self._observables = tuple(observables)
         if parameters is None:
-            self._parameters = tuple(circ.parameters for circ in circuits)
+            self._parameters = tuple(circ.parameters for circ in self._circuits)
         else:
             self._parameters = tuple(ParameterView(par) for par in parameters)
             if len(self._parameters) != len(self._circuits):
@@ -164,7 +163,7 @@ class BaseEstimator(ABC):
         """Quantum circuits that represents quantum states.
 
         Returns:
-            tuple[QuantumCircuit]: quantum circuits
+            quantum circuits
         """
         return self._circuits
 
@@ -173,7 +172,7 @@ class BaseEstimator(ABC):
         """Observables
 
         Returns:
-            tuple[SparsePauliOp]: observables
+            observables
         """
         return self._observables
 
@@ -182,7 +181,7 @@ class BaseEstimator(ABC):
         """Parameters of quantum circuits
 
         Returns:
-            tuple[ParameterView]: parameters[i, j] is the j-th parameter of the i-th circuit.
+            parameters[i, j] is the j-th parameter of the i-th circuit.
         """
         return self._parameters
 
@@ -210,9 +209,9 @@ class BaseEstimator(ABC):
             values = parameters[i].
 
         Args:
-            circuits (list[int]): the list of circuit indices.
-            observables (list[int]): the list of observable indices.
-            parameters (list[list[float]]): concrete parameters to be bound.
+            circuits: the list of circuit indices.
+            observables: the list of observable indices.
+            parameters: concrete parameters to be bound.
             run_options: runtime options used for circuit execution.
 
         Returns:

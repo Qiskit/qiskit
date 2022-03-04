@@ -108,8 +108,8 @@ class BaseSampler(ABC):
     ):
         """
         Args:
-            circuits (list[QuantumCircuit]): quantum circuits to be executed
-            parameters (list[list[Parameter]]): parameters of quantum circuits
+            circuits: quantum circuits to be executed
+            parameters: parameters of quantum circuits
                 Defaults to `[circ.parameters for circ in circuits]`
 
         Raises:
@@ -117,7 +117,7 @@ class BaseSampler(ABC):
         """
         self._circuits = tuple(circuits)
         if parameters is None:
-            self._parameters = tuple(circ.parameters for circ in circuits)
+            self._parameters = tuple(circ.parameters for circ in self._circuits)
         else:
             self._parameters = tuple(ParameterView(par) for par in parameters)
             if len(self._parameters) != len(self._circuits):
@@ -142,7 +142,7 @@ class BaseSampler(ABC):
         """Quantum circuits
 
         Returns:
-            tuple[QuantumCircuit]: quantum circuits
+            quantum circuits
         """
         return self._circuits
 
@@ -151,7 +151,7 @@ class BaseSampler(ABC):
         """Parameters of quantum circuits
 
         Returns:
-            tuple[ParameterView]: Parameter list of the quantum circuits
+            Parameter list of the quantum circuits
         """
         return self._parameters
 
@@ -165,13 +165,13 @@ class BaseSampler(ABC):
         """Run the sampling of bitstrings.
 
         Args:
-            circuits (list[int]): indexes of the circuits to evaluate.
-            parameters (list[list[float]]): parameters to be bound.
+            circuits: indexes of the circuits to evaluate.
+            parameters: parameters to be bound.
             run_options: backend runtime options used for circuit execution.
 
         Returns:
-            SamplerResult: the result of Sampler. The i-th result corresponds to
-                self.circuits[circuits[i]] evaluated with parameters bound as parameters[i].
+            the result of Sampler. The i-th result corresponds to
+            self.circuits[circuits[i]] evaluated with parameters bound as parameters[i].
         """
         ...
 
