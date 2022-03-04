@@ -69,7 +69,7 @@ Here is an example of how estimator is used.
     H2 = SparsePauliOp.from_list([("IZ", 1)])
     H3 = SparsePauliOp.from_list([("ZI", 1), ("ZZ", 1)])
 
-    with Estimator([psi1, psi2], [H1, H2, H3], [params1, params2] as e:
+    with Estimator([psi1, psi2], [H1, H2, H3], [params1, params2]) as e:
         theta1 = [0, 1, 1, 2, 3, 5]
         theta2 = [0, 1, 1, 2, 3, 5, 8, 13]
         theta3 = [1, 2, 3, 4, 5, 6]
