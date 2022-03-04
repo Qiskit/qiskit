@@ -71,7 +71,7 @@ Here is an example of how sampler is used.
     theta3 = [0, 1, 2, 3, 4, 5, 6, 7]
 
     with Sampler(circuits=[pqc, pqc2], parameters=[pqc.parameters, pqc2.parameters]) as sampler:
-        result1 = sampler([0, 0], [theta1, theta2])
+        result = sampler([0, 0, 1], [theta1, theta2, theta3])
 
         # result of pqc(theta1)
         print([q.binary_probabilities() for q in result[0].quasi_dists])
