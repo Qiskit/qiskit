@@ -27,6 +27,10 @@ The input consists of following elements.
 
 * observables (:math:`H_j`): a list of :class:`~qiskit.quantum_info.SparsePauliOp`.
 
+* circuit indexes: a list of indexes of the quantum circuits.
+
+* observable indexes: a list of indexes of the observables.
+
 * parameters: a list of parameters of the quantum circuits.
   (:class:`~qiskit.circuit.parametertable.ParameterView` or
   a list of :class:`~qiskit.circuit.Parameter`).
