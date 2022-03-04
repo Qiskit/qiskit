@@ -287,12 +287,15 @@ def _plot_histogram_data(data, labels, number_to_keep):
             execution = data_temp
         values = []
         for key in labels:
-            if (
-                key not in execution or key in multiple_exec_keys_dict
-            ):  # save label only if the key is present in other execution
+            if key not in execution:
                 if number_to_keep is None:
                     labels_dict[key] = 1
                     values.append(0)
+                else:
+                    if key in multiple_exec_keys_dict:
+                        # save label only if the key is present in other execution
+                        labels_dict[key] = 1
+                        values.append(0)
             else:
                 labels_dict[key] = 1
                 values.append(execution[key])
