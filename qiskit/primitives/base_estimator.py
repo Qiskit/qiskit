@@ -94,8 +94,8 @@ Here is an example of how estimator is used.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
+from typing import Callable, Iterable, Sequence
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
