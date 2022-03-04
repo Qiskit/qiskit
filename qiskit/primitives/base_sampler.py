@@ -122,6 +122,26 @@ class BaseSampler(ABC):
                 )
             self._parameters = tuple(ParameterView(par) for par in parameters)
 
+    def __call__(
+        self,
+        circuits: Sequence[int],
+        parameters: Sequence[Sequence[float]],
+        **run_options,
+    ) -> SamplerResult:
+        """Run the sampling of bitstrings.
+
+        Args:
+            parameters (list[list[float]]): parameters to be bound.
+            circuits (list[int]): indexes of the circuits to evaluate.
+            run_options: backend runtime options used for circuit execution.
+
+        Returns:
+            SamplerResult: the result of Sampler. The i-th result corresponds to
+                self.circuits[circuits[i]]
+            evaluated with parameters bound as parameters[i]
+        """
+        return self.run(circuits, parameters, **run_options)
+
     def __enter__(self):
         return self
 
@@ -170,26 +190,6 @@ class BaseSampler(ABC):
                 self.circuits[circuits[i]] evaluated with parameters bound as parameters[i]
         """
         ...
-
-    def __call__(
-        self,
-        circuits: Sequence[int],
-        parameters: Sequence[Sequence[float]],
-        **run_options,
-    ) -> SamplerResult:
-        """Run the sampling of bitstrings.
-
-        Args:
-            parameters (list[list[float]]): parameters to be bound.
-            circuits (list[int]): indexes of the circuits to evaluate.
-            run_options: backend runtime options used for circuit execution.
-
-        Returns:
-            SamplerResult: the result of Sampler. The i-th result corresponds to
-                self.circuits[circuits[i]]
-            evaluated with parameters bound as parameters[i]
-        """
-        return self.run(circuits, parameters, **run_options)
 
 
 SamplerFactory = Callable[..., BaseSampler]

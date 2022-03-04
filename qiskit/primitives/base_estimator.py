@@ -140,7 +140,8 @@ class BaseEstimator(ABC):
             observables (list[SparsePauliOp]): observables
             parameters (list[list[Parameter]]): parameters of quantum circuits.
                 Defaults to `[circ.parameters for circ in circuits]`
-                The indexing is such that `parameters[i, j]` is the j-th formal parameter of `circuits[i]`.
+                The indexing is such that `parameters[i, j]` is the j-th formal parameter of
+                `circuits[i]`.
 
         Raises:
             QiskitError: for mismatch of circuits and parameters list.
@@ -155,6 +156,14 @@ class BaseEstimator(ABC):
                     f"Different number of parameters ({len(parameters)} and circuits ({len(circuits)}"
                 )
             self._parameters = tuple(ParameterView(par) for par in parameters)
+
+    def __call__(
+        self,
+        parameters: Sequence[Sequence[float]],
+        grouping: Sequence[Group | tuple[int, int]],
+        **run_options,
+    ) -> EstimatorResult:
+        return self.run(parameters, grouping, **run_options)
 
     def __enter__(self):
         return self
@@ -217,14 +226,6 @@ class BaseEstimator(ABC):
             EstimatorResult: the result of Estimator.
         """
         ...
-
-    def __call__(
-        self,
-        parameters: Sequence[Sequence[float]],
-        grouping: Sequence[Group | tuple[int, int]],
-        **run_options,
-    ) -> EstimatorResult:
-        return self.run(parameters, grouping, **run_options)
 
 
 EstimatorFactory = Callable[..., BaseEstimator]
