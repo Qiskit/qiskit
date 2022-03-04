@@ -57,7 +57,7 @@ Here is an example of how sampler is used.
         print([q.binary_probabilities() for q in result.quasi_dists])
 
     # executes three Bell circuits
-    with Sampler(circuits=[bell]*3) as sampler:
+    with Sampler(circuits=[bell]*3, parameters=[[],[],[]]) as sampler:
         result = sampler([[]]*3)
         print([q.binary_probabilities() for q in result.quasi_dists])
 
@@ -70,7 +70,7 @@ Here is an example of how sampler is used.
     theta1 = [0, 1, 1, 2, 3, 5]
     theta2 = [1, 2, 3, 4, 5, 6]
 
-    with Sampler(circuits=[pqc], parameters=[pcq.parameters]) as sampler:
+    with Sampler(circuits=[pqc], parameters=[pqc.parameters]) as sampler:
         result1 = sampler([theta1, theta2], [0, 0])
 
         # result of pqc(theta1)
