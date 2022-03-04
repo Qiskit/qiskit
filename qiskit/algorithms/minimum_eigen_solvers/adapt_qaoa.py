@@ -131,7 +131,6 @@ class AdaptQAOA(QAOA):
             AttributeError: If both a mixer pool and mixer pool type has been defined.
         """
         self.max_reps = max_reps
-        self._reps = 1
         self._initial_state = initial_state
         self._cost_operator = None
         self.__ansatz = False
@@ -149,13 +148,11 @@ class AdaptQAOA(QAOA):
         )
 
         self.name = "AdaptQAOA"
-        self._optimal_parameters = {}
         self.threshold = threshold
         self.solution_tolerance = solution_tolerance
 
     def _check_operator_ansatz(self, operator: OperatorBase) -> OperatorBase:
         # Initialises the algorithms necessary operators 
-        print("158, _check_operator_ansatz!!")
         if operator != self._cost_operator:
             self._cost_operator = operator
             adaptansatz = AdaptQAOAAnsatz(
@@ -164,7 +161,7 @@ class AdaptQAOA(QAOA):
             )   # AdaptQAOAAnsatz will construct the mixer_pool if one was not already provided.
             adaptansatz._check_configuration()
             self.__mixer_pool = adaptansatz._mixer_operators    # mixer pool composed entirely of OperatorBase types
-            if self.mixer_pool is None:     # set the mixer_pool from the ansatz if not already specified.
+            if self.mixer_pool is None or len(self.__mixer_pool)!=len(self.mixer_pool):     # set the mixer_pool from the ansatz if not already specified.
                 self.mixer_pool = adaptansatz.mixer_operators
             self.__ansatz = adaptansatz.initial_state            # store initial state as private variable of _ansatz_step
 
@@ -238,11 +235,10 @@ class AdaptQAOA(QAOA):
     ):
         """Runs ADAPT-QAOA for each iteration"""
         self._check_operator_ansatz(operator)
+        self._optimal_parameters, self.mixer_operators = {}, []
+        self._reps  = 1
         while self._reps <= self.max_reps:  # loop over number of maximum reps
             energy_norm = self._test_mixer_pool(operator=operator)
-            logger.info(f"Circuit depth: {self._reps}")
-            logger.info(f"Current energy norm: {energy_norm}")
-            logger.info(f"Best mixer: {self.mixer_operators[-1]}")
             self.ansatz = self.__ansatz
             if energy_norm < self.threshold:  # Threshold stoppage condition
                 break
@@ -250,9 +246,12 @@ class AdaptQAOA(QAOA):
                 operator=operator, aux_operators=aux_operators
             )
             self._optimal_parameters = result.optimal_parameters
+
             if np.abs(result.optimal_value - self.ground_state_energy) <= self.solution_tolerance:
                 break     # Stop the algorithm if the ansatz groundstate sufficiently approximates the true groundstate
-            
+            logger.info(f"Circuit depth: {self._reps}")
+            logger.info(f"Current energy norm: {energy_norm}")
+            logger.info(f"Best mixer: {self.mixer_operators[-1]}")
             self._reps += 1
             # logger.info(f"Initial point: {self.initial_point}")
             # logger.info(f"Optimal parameters: {result.optimal_parameters}")
@@ -299,6 +298,7 @@ class AdaptQAOA(QAOA):
                 mixer_pool_type=self.mixer_pool_type,          
                 name=self.name
             )
+            ansatz._current_qubit_count = self._cost_operator.num_qubits
             ansatz._build()
             if hasattr(ansatz,'_num_mixer'):
                 num_beta, num_gamma =  ansatz._num_mixer, ansatz._num_cost
@@ -335,16 +335,6 @@ class AdaptQAOA(QAOA):
         """
 
         self._mixer_pool = mixer_pool
-
-    @property
-    def mixer_operators(self) -> List:
-        if not hasattr(self,'_mixer_operators'):
-            self._mixer_operators = []
-        return self._mixer_operators
-
-    @mixer_operators.setter
-    def mixer_operators(self, mixer_operators) -> List:
-        self._mixer_operators = mixer_operators
 
     @property
     def ground_state_energy(self) -> float:

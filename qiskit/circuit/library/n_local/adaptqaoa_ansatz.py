@@ -184,7 +184,6 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
                 )
         # if self.mixer_operators is not None:
         if self.mixer_operators is not None:
-            print('185, CHECKING CONFIGURATION OF MIXER_OPERATORS')
             # if self._mixer_pool_type is not None:
             #     raise AttributeError(
             #         "Either a custom mixer pool or mixer pool type may be specified but not both."
@@ -268,11 +267,10 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
         Raises:
             AttributeError: If operator and thus num_qubits has not yet been defined.
         """
-        if self._mixer_pool is not None:
+        if self._mixer_pool is not None:        #TODO: if hasattr(self,_mixer_operators): something
             return self._mixer_pool
         # if no mixer is passed and we know the number of qubits, then initialize it.
         if self.cost_operator is not None:
-            print('273, Building mixer pool!')
             mixer_pool = adapt_mixer_pool(
                 num_qubits=self.num_qubits, pool_type=self._mixer_pool_type
             )
@@ -314,7 +312,7 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
         if self._cost_operator is None:
             return 0
         num_qubits = self._cost_operator.num_qubits
-        if hasattr(self, '_mixer_pool') and not hasattr(self,'_current_qubit_count'):
+        if hasattr(self, '_mixer_pool_type') and not hasattr(self,'_current_qubit_count'):
             self._mixer_pool = adapt_mixer_pool(
                 num_qubits=num_qubits, pool_type=self.mixer_pool_type
             )
@@ -335,10 +333,10 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
                 else:
                     num_mixer.append(0 if _is_pauli_identity(mix) else 1)
         else:
-            if isinstance(self.mixer_pool, QuantumCircuit):
-                num_mixer = self.mixer_pool.num_parameters
+            if isinstance(self.mixer_operators, QuantumCircuit):
+                num_mixer = self.mixer_operators.num_parameters
             else:
-                num_mixer = 0 if _is_pauli_identity(self.mixer_pool) else 1
+                num_mixer = 0 if _is_pauli_identity(self.mixer_operators) else 1
         self._num_mixer = num_mixer
         self._num_cost = 0 if _is_pauli_identity(self.cost_operator) else len(num_mixer)
         reordered = _reorder_bounds_parameters(num_mixer=self._num_mixer, num_cost=self._num_cost)
