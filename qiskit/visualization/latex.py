@@ -182,6 +182,7 @@ class QCircuitImage:
         self._initial_state = initial_state
         self._cregbundle = cregbundle
         self._global_phase = circuit.global_phase
+        self._wire_map = {}
 
         self._style, _ = load_style(style)
 
