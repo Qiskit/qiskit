@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes a problem in the ``text`` circuit drawer when gates that
+    use side text, such as the ``CPhaseGate`` and ``RZZGate``, when
+    displayed with conditions would not display properly.

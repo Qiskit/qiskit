@@ -1,0 +1,14 @@
+---
+other:
+  - |
+    Remove the following methods that have been deprecated in Qiskit Terra 0.18.0.
+
+    * `qiskit.algorithms.VQE.get_optimal_cost`
+    * `qiskit.algorithms.VQE.get_optimal_circuit`
+    * `qiskit.algorithms.VQE.get_optimal_vector`
+    * `qiskit.algorithms.VQE.optimal_params`
+    * `qiskit.algorithms.HamiltonianPhaseEstimationResult.most_likely_phase`
+    * `qiskit.algorithms.PhaseEstimationResult.most_likely_phase`
+
+    and the class :class:`~qiskit.algorithms.VariationalAlgorithm` is reduced to
+    an abstract interface.
