@@ -259,6 +259,9 @@ class AdaptQAOA(QAOA):
 
             print('-----------------------------------------------------------------')
             print('Depth: {}, Energy: {}'.format(self._reps-1,np.abs(result.optimal_value - self.ground_state_energy)))
+            # print('Depth: {}, Energy: {}'.format(self._reps-1,np.abs(result.optimal_value - self.ground_state_energy)))
+            print('Depth: {}, Energy: {}'.format(self._reps-1,result.optimal_value))
+
             print('Initial points: ', self.initial_point)
             print('Optimal parameters: ', self._optimal_parameters)
             print('Best mixer: ', self.mixer_operators[-1])  
