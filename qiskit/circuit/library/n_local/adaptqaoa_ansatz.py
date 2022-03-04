@@ -28,20 +28,25 @@ from qiskit.quantum_info import Pauli, SparsePauliOp, Operator
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 
 
-def _reorder_parameters(num_mixer: Union[int, List], num_cost: int, reps: int):
-    if not isinstance(num_mixer, list):
-        num_mixer = [num_mixer] * reps
-    num_beta_params = sum(num_mixer)
-    betas = ParameterVector("β", num_beta_params)
-    gammas = ParameterVector("γ", reps * num_cost)
+def _reorder_bounds_parameters(num_mixer, num_cost: int, return_bounds: Union[np.array, List] = False):
+    if return_bounds:
+        betas = len(num_mixer) * [(-0.5 * np.pi - 1e-6, 0.5 * np.pi + 1e-6)]
+        gammas = num_cost * [(-2 * np.pi - 1e-6, 2 * np.pi + 1e-6)]
+        return gammas + betas
+    else:
+        betas = ParameterVector("β", sum(num_mixer))
+        gammas = ParameterVector("γ", num_cost)
+
     # Create a permutation to take us from (cost_1, mixer_1, cost_2, mixer_2, ...)
     # to (cost_1, cost_2, ..., mixer_1, mixer_2, ...), or if the mixer is a circuit
     # with more than 1 parameters, from (cost_1, mixer_1a, mixer_1b, cost_2, ...)
     # to (cost_1, cost_2, ..., mixer_1a, mixer_1b, mixer_2a, mixer_2b, ...)
-    reordered = []
-    for rep in range(reps):
-        reordered.extend(gammas[rep * num_cost : (rep + 1) * num_cost])
-        reordered.extend(betas[rep * num_mixer[rep] : (rep + 1) * num_mixer[rep]])
+    reordered, prev_mix = [], 0
+    for rep, nmix in enumerate(num_mixer):
+        reordered.extend(gammas[rep: (rep + 1)])
+        for i in range(prev_mix, prev_mix + nmix):
+            reordered.extend(betas[i : i + 1])
+            prev_mix+=1
     return reordered
 
 
@@ -153,9 +158,6 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
         # set this circuit as a not-built circuit
         self._bounds = None
 
-        # store cost operator and set the registers if the operator is not None
-        # self.cost_operator = super().cost_operator
-
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         valid = True
         if not isinstance(self.mixer_operators, list):
@@ -214,25 +216,13 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
             parameter in the corresponding direction. If None is returned, problem is fully
             unbounded.
         """
-        if self._bounds is not None:
-            return self._bounds
-
-        # if the mixer is a circuit, we set no bounds
-        if isinstance(self.mixer_operators, QuantumCircuit):     #TODO: FIX THIS!
-            return None
-        # default bounds: None for gamma (cost operator), [-pi/2, pi/2] for gamma (mixer operator)
-        beta_bounds = (-0.5 * np.pi, 0.5 * np.pi)
-        gamma_bounds = (None, None)
-        bounds = []
-
-        if not _is_pauli_identity(self.mixer_operators): #TODO: Fix this!
-            bounds += self.reps * [beta_bounds]
-
-        if not _is_pauli_identity(self.cost_operator):
-            bounds += self.reps * [gamma_bounds]
-
-        return bounds
-
+        if self._bounds is None:
+            if self._is_built:          #TODO: Parameter bounds are not correctly ordered?
+                self._bounds = _reorder_bounds_parameters(
+                    num_cost = self._num_cost, 
+                    num_mixer = self._num_mixer,
+                    return_bounds = True)
+        return self._bounds
     @parameter_bounds.setter
     def parameter_bounds(
         self, bounds: Optional[List[Tuple[Optional[float], Optional[float]]]]
@@ -288,7 +278,6 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
                 )
                 self._mixer_pool = mixer_pool
                 return mixer_pool
-        # return None
         return self._mixer_operators
 
     @mixer_operators.setter
@@ -321,27 +310,24 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
         self._mixer_pool_type = mixer_pool_type
     
     def _build(self):
-        if self._data is not None:
+        if self._is_built:
             return
-
         super(QAOAAnsatz, self)._build()
 
     # keep old parameter order: first cost operator, then mixer operators
-        reps = 0
-        num_cost = 0 if _is_pauli_identity(self.cost_operator) else 1
         if isinstance(self.mixer_operators, list):                                  
             num_mixer = []
-            for reps, mix in enumerate(self.operators[1:][::2], 1):
+            for mix in self.operators[1:][::2]:
                 if isinstance(mix, QuantumCircuit):
                     num_mixer.append(mix.num_parameters)
                 else:
                     num_mixer.append(0 if _is_pauli_identity(mix) else 1)
         else:
-            reps = self.reps
             if isinstance(self.mixer_pool, QuantumCircuit):
                 num_mixer = self.mixer_pool.num_parameters
             else:
                 num_mixer = 0 if _is_pauli_identity(self.mixer_pool) else 1
-    #TODO: Make a callback to initial_point here; the user should be able to specify the ordered list of initial points with operator/ circuit mixer variations
-        reordered = _reorder_parameters(num_mixer=num_mixer, num_cost=num_cost, reps=reps)  #TODO: i.e. the number of initial points needs to change based on number of parameters
+        self._num_mixer = num_mixer
+        self._num_cost = 0 if _is_pauli_identity(self.cost_operator) else len(num_mixer)
+        reordered = _reorder_bounds_parameters(num_mixer=self._num_mixer, num_cost=self._num_cost)
         self.assign_parameters(dict(zip(self.ordered_parameters, reordered)), inplace=True)

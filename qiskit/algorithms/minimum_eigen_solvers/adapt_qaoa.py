@@ -13,6 +13,8 @@
 """ The Adaptive Derivative Assembled Problem Tailored - Quantum Approximate Optimization Algorithm. """
 
 import logging
+from math import gamma
+from pickle import FALSE, NONE
 from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
@@ -163,7 +165,7 @@ class AdaptQAOA(QAOA):
             self.__mixer_pool = adaptansatz._mixer_operators    # mixer pool composed entirely of OperatorBase types
             if self.mixer_pool is None:     # set the mixer_pool from the ansatz if not already specified.
                 self.mixer_pool = adaptansatz.mixer_operators
-            self.ansatz = adaptansatz.initial_state            # store initial state as private variable of _ansatz_step
+            self.__ansatz = adaptansatz.initial_state            # store initial state as private variable of _ansatz_step
 
     def compute_energy_gradient(
         self, 
@@ -181,8 +183,8 @@ class AdaptQAOA(QAOA):
         """
 
         from qiskit.opflow import commutator
-
-        if not isinstance(operator, MatrixOp):
+        #TODO: What if mixer/ operator are parameterised circuits??
+        if not isinstance(operator, MatrixOp):  
             operator = MatrixOp(Operator(operator.to_matrix()))
 
         if parameters is None:
@@ -190,7 +192,11 @@ class AdaptQAOA(QAOA):
 
         wave_function = ansatz.assign_parameters(self._optimal_parameters)
         # construct expectation operator
-        exp_hc = (self.initial_point[self._reps:][0] * operator).exp_i()  # Use first gamma hyperparameter
+        if self.__user_specified_ip:    # if user specified initial pts choose
+            gamma_k = self.__user_specified_ip[self._reps]  # next gamma in sequence
+        else:
+            gamma_k = 0.01  # otherwise use preset value
+        exp_hc = (gamma_k * operator).exp_i()  # Use first gamma hyperparameter
         exp_hc_ad = exp_hc.adjoint().to_matrix()
         exp_hc = exp_hc.to_matrix()
         energy_grad_op = (              # compute the energy gradient with respect to the current mixer
@@ -212,7 +218,7 @@ class AdaptQAOA(QAOA):
     def _test_mixer_pool(self, operator: OperatorBase):
         energy_gradients = []
         for mixer in self.__mixer_pool:
-            expect_op = self.compute_energy_gradient(mixer, operator, ansatz=self.ansatz)
+            expect_op = self.compute_energy_gradient(mixer, operator, ansatz=self.__ansatz)
             # run expectation circuit
             sampled_expect_op = self._circuit_sampler.convert(
                 expect_op, params=self._optimal_parameters
@@ -236,49 +242,36 @@ class AdaptQAOA(QAOA):
             logger.info(f"Circuit depth: {self._reps}")
             logger.info(f"Current energy norm: {energy_norm}")
             logger.info(f"Best mixer: {self.mixer_operators[-1]}")
-            self.ansatz = self.__ansatz     # make property call to update the ansatz mixer oeprators
+            self.ansatz = self.__ansatz
             if energy_norm < self.threshold:  # Threshold stoppage condition
                 break
             result = super().compute_minimum_eigenvalue(
                 operator=operator, aux_operators=aux_operators
             )
             self._optimal_parameters = result.optimal_parameters
-            # print('-----------------------------------------------------------------')
-            # print('Depth: {}, Energy: {}'.format(self._reps,np.abs(result.optimal_value - self.ground_state_energy)))
-            # print('Initial points: ', self.initial_point)
-            # print('Optimal parameters: ', self._optimal_parameters)
-            # print('Best mixer: ', self.optimal_mixer_list[-1])
-            # print()
-            # print(self.get_optimal_circuit().decompose().draw())
-            # print()
-            # print('-----------------------------------------------------------------')
             if np.abs(result.optimal_value - self.ground_state_energy) <= self.solution_tolerance:
                 break     # Stop the algorithm if the ansatz groundstate sufficiently approximates the true groundstate
-
+            
+            self._reps += 1
             logger.info(f"Initial point: {self.initial_point}")
             logger.info(f"Optimal parameters: {result.optimal_parameters}")
             logger.info(f"Relative Energy: {result.optimal_value - self.ground_state_energy}")
 
-            self._reps += 1
+            print('-----------------------------------------------------------------')
+            print('Depth: {}, Energy: {}'.format(self._reps-1,np.abs(result.optimal_value - self.ground_state_energy)))
+            print('Initial points: ', self.initial_point)
+            print('Optimal parameters: ', self._optimal_parameters)
+            print('Best mixer: ', self.mixer_operators[-1])  
+            print()
+            print(self.get_optimal_circuit().decompose().draw())
+            print()
+            print('-----------------------------------------------------------------')
         return result
 
 #TODO: Check that you need ansatz property/ setter
     @property
     def ansatz(self) -> QuantumCircuit:
         """Returns the ansatz for the current circuit depth"""
-        if (self.__ansatz == self._ansatz):# and self.mixer_operators:
-            # If optimal mixers exist and the algorithm has not completed
-            self._ansatz = AdaptQAOAAnsatz(   # update the ansatz to include the optimal mixers
-                cost_operator=self._cost_operator,
-                initial_state=self._initial_state,
-                mixer_operators=self.mixer_operators,
-                mixer_pool_type=self.mixer_pool_type,          
-                name=self.name
-            )
-            beta_bounds = self._reps * [(-2 * np.pi, 2 * np.pi)]
-            gamma_bounds = self._reps * [(-0.5 * np.pi, 0.5 * np.pi)]
-            self._ansatz.parameter_bounds = beta_bounds + gamma_bounds
-            self._ansatz_params = list(self._ansatz.parameters) #TODO: Can we take this out of condition?
         return self._ansatz
 
         
@@ -291,14 +284,31 @@ class AdaptQAOA(QAOA):
             If None is passed, RealAmplitudes is used by default.
 
         """
-        if not self.__ansatz:
-            self.__ansatz = ansatz
-
         if ansatz is None:
             ansatz = RealAmplitudes()  
 
+        if (self.__ansatz == ansatz):
+            ansatz = AdaptQAOAAnsatz(   # update the ansatz to include the optimal mixers
+                cost_operator=self._cost_operator,
+                initial_state=self._initial_state,
+                mixer_operators=self.mixer_operators,
+                mixer_pool_type=self.mixer_pool_type,          
+                name=self.name
+            )
+            ansatz._build()
+            if hasattr(ansatz,'_num_mixer'):
+                num_beta, num_gamma =  ansatz._num_mixer, ansatz._num_cost
+                points = self._update_initial_points(
+                                                    num_gamma = num_gamma, 
+                                                    num_beta = num_beta
+                                                    )
+                ansatz.initial_point = points
+                self.__ansatz = ansatz
+
 #TODO: Make a callback to initial_point here; the user should be able to specify the ordered list of initial points with operator/ circuit mixer variations
         self._ansatz = ansatz
+        self._ansatz_params = list(ansatz.parameters)
+
 
     @property
     def mixer_pool(self) -> List:
@@ -371,10 +381,8 @@ class AdaptQAOA(QAOA):
             Numpy array of intial points for iterative layers.
 
         """
-        # print('initial_point_prop_call!',self._ansatz_params,len(self._initial_point) != len(self._ansatz_params),len(self._initial_point) != 2 * self._reps)
-        if self._ansatz_params:
-            if len(self._initial_point) != 2 * self._reps:#len(self._ansatz_params):
-                self._update_initial_point()
+        if self.mixer_operators:
+            return self.__ansatz.initial_point
         return self._initial_point
 
     @initial_point.setter
@@ -385,9 +393,10 @@ class AdaptQAOA(QAOA):
             AttributeError: If number of initial points dont match the current circuit depth.
         """
         if initial_point is None:
-            self.__user_specified_ip = None
-            initial_point = self._generate_initial_point()
+            self.__user_specified_ip = False
         else:
+            if not isinstance(initial_point, list):
+                initial_point = list(initial_point)
             self.__user_specified_ip = initial_point
             if len(initial_point) != 2 * self.max_reps:
                 raise AttributeError(
@@ -396,7 +405,6 @@ class AdaptQAOA(QAOA):
                         len(initial_point), 2 * self.max_reps
                     )
                 )
-            initial_point = [initial_point[0], initial_point[self.max_reps]]
         self._initial_point = initial_point
 
     @property
@@ -416,6 +424,7 @@ class AdaptQAOA(QAOA):
 
         optimizer.set_max_evals_grouped(self.max_evals_grouped)
         self._optimizer = optimizer
+
     @property 
     def mixer_pool_type(self) -> str:
         """Returns the class of mixer pool type.
@@ -433,31 +442,17 @@ class AdaptQAOA(QAOA):
         """
         self._mixer_pool_type = mixer_pool_type
 
+    def _update_initial_points(self, num_gamma: int, num_beta: list):
+        if self.__user_specified_ip:
+           gamma_ip = self.__user_specified_ip[:self._reps]
+           beta_ip = self.__user_specified_ip[self.max_reps: self.max_reps + self._reps]
 
-    def _generate_initial_point(
-        self,
-    ):  # set initial value for gamma according to https://arxiv.org/abs/2005.10258
-        gamma_ip = 0.01
-        beta_ip = -0.25 * np.pi
-        return beta_ip, gamma_ip
+        else:   # set initial value for gamma according to https://arxiv.org/abs/2005.10258
+            gamma_ip, beta_ip  = [0.01] * num_gamma, [-0.25 * np.pi] * len(num_beta)
 
-    def _update_initial_point(self):
-        # print('updating!!!')
-        ordered_initial_points = np.zeros(2 * len(self._ansatz_params))
-        if self.__user_specified_ip is not None:
-            ordered_initial_points[: self._reps] = self.__user_specified_ip[: self.max_reps][
-                : self._reps
-            ]
-            ordered_initial_points[self._reps :] = self.__user_specified_ip[self.max_reps :][
-                : self._reps
-            ]
-        else:
-            new_beta, new_gamma = self._generate_initial_point()
-            ordered_initial_points[self._reps :] = np.append(
-                self._initial_point[self._reps - 1 :], new_gamma
-            )
-            ordered_initial_points[: self._reps] = np.append(
-                self._initial_point[: self._reps - 1], new_beta
-            )
-
-        self._initial_point = ordered_initial_points
+        updated_points = []
+        for rep, nbeta in enumerate(num_beta):
+            updated_points.extend(beta_ip[rep : rep + 1] * nbeta)
+        updated_points += gamma_ip
+        return updated_points
+        
