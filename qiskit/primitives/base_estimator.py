@@ -91,8 +91,8 @@ Here is an example of how estimator is used.
         print(psi1_H1_result2)
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
-        #               psi2(theta2)|H2|psi2(theta2)>,
-        #               <psi1(theta3)|H3|psi1(theta3)> ]
+        #             <psi2(theta2)|H2|psi2(theta2)>,
+        #             <psi1(theta3)|H3|psi1(theta3)> ]
         psi12_H23_result = e([theta1, theta2, theta3], grouping=[(0, 0), (1, 1), (0, 2)])
         print(psi12_H23_result)
 
