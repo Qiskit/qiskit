@@ -103,6 +103,8 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
    :toctree: ../stubs/
    :nosignatures:
 
+    RealEvolver
+    ImaginaryEvolver
     EvolutionResult
     EvolutionProblem
 
@@ -189,7 +191,7 @@ Exceptions
 """
 
 from .algorithm_result import AlgorithmResult
-from .evolvers import EvolutionResult, EvolutionProblem
+from .evolvers import EvolutionResult, EvolutionProblem, RealEvolver, ImaginaryEvolver
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
 from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem
 from .amplitude_estimators import (
@@ -245,6 +247,8 @@ __all__ = [
     "MaximumLikelihoodAmplitudeEstimationResult",
     "EstimationProblem",
     "NumPyEigensolver",
+    "RealEvolver",
+    "ImaginaryEvolver",
     "EvolutionResult",
     "EvolutionProblem",
     "LinearSolverResult",
