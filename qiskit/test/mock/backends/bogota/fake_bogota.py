@@ -15,23 +15,24 @@ Fake Bogota device (5 qubit).
 """
 
 import os
+from qiskit.test.mock import fake_pulse_backend
 
-from qiskit.test.mock import fake_qasm_backend
 
-
-class FakeBogota(fake_qasm_backend.FakeQasmBackend):
+class FakeBogota(fake_pulse_backend.FakePulseBackend):
     """A fake 5 qubit backend."""
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_bogota.json"
     props_filename = "props_bogota.json"
+    defs_filename = "defs_bogota.json"
     backend_name = "fake_bogota"
 
 
-class FakeLegacyBogota(fake_qasm_backend.FakeQasmLegacyBackend):
+class FakeLegacyBogota(fake_pulse_backend.FakePulseLegacyBackend):
     """A fake 5 qubit backend."""
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_bogota.json"
     props_filename = "props_bogota.json"
+    defs_filename = "defs_bogota.json"
     backend_name = "fake_bogota"
