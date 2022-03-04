@@ -28,10 +28,10 @@ class SamplerResult:
 
     .. code-block:: python
 
-        result = sampler(params, grouping)
+        result = sampler(circuits, params)
 
-    where the i-th elements of `result` correspond to the expectation using the circuit and
-    observable given by `grouping[i]` and the parameters bounds by `params[i]`
+    where the i-th elements of `result` correspond to the expectation using the circuit
+    given by `circuits[i]` and the parameters bounds by `params[i]`.
     """
 
     quasi_dists: list[QuasiDistribution]
