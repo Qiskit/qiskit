@@ -201,32 +201,14 @@ class TestVQE(QiskitAlgorithmsTestCase):
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.86823, places=2)
 
-    def test_qasm_aux_operators_normalized(self):
-        """Test VQE with qasm_simulator returns normalized aux_operator eigenvalues."""
+    def test_qasm_eigenvector_normalized(self):
+        """Test VQE with qasm_simulator returns normalized eigenvector."""
         wavefunction = self.ry_wavefunction
         vqe = VQE(ansatz=wavefunction, quantum_instance=self.qasm_simulator)
-        _ = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
+        result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
-        opt_params = [
-            3.50437328,
-            3.87415376,
-            0.93684363,
-            5.92219622,
-            -1.53527887,
-            1.87941418,
-            -4.5708326,
-            0.70187027,
-        ]
-
-        vqe._ret.optimal_point = opt_params
-        vqe._ret.optimal_parameters = dict(
-            zip(sorted(wavefunction.parameters, key=lambda p: p.name), opt_params)
-        )
-
-        with self.assertWarns(DeprecationWarning):
-            optimal_vector = vqe.get_optimal_vector()
-
-        self.assertAlmostEqual(sum(v**2 for v in optimal_vector.values()), 1.0, places=4)
+        amplitudes = list(result.eigenstate.values())
+        self.assertAlmostEqual(np.linalg.norm(amplitudes), 1.0, places=4)
 
     @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
     def test_with_aer_statevector(self):
