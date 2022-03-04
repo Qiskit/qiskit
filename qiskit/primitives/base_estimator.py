@@ -20,7 +20,7 @@ An estimator object is initialized with multiple quantum circuits and observable
 and users can specify pairs of quantum circuits and observables
 to estimate the expectation values.
 
-The input consists of following elements.
+An estimator is initialized with the following elements.
 
 * quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits
   (a list of :class:`~qiskit.circuit.QuantumCircuit`))
