@@ -74,13 +74,13 @@ Here is an example of how sampler is used.
         result = sampler([0, 0, 1], [theta1, theta2, theta3])
 
         # result of pqc(theta1)
-        print([q.binary_probabilities() for q in result[0].quasi_dists])
+        print([q.binary_probabilities() for q in result.quasi_dists[0]])
 
         # result of pqc(theta2)
-        print([q.binary_probabilities() for q in result[1].quasi_dists])
+        print([q.binary_probabilities() for q in result.quasi_dists[1]])
 
         # result of pqc2(theta3)
-        print([q.binary_probabilities() for q in result[2].quasi_dists])
+        print([q.binary_probabilities() for q in result.quasi_dists[2]])
 
 """
 from __future__ import annotations
@@ -110,7 +110,7 @@ class BaseSampler(ABC):
         Args:
             circuits: quantum circuits to be executed
             parameters: parameters of quantum circuits
-                Defaults to `[circ.parameters for circ in circuits]`
+                Defaults to ``[circ.parameters for circ in circuits]``
 
         Raises:
             QiskitError: for mismatch of circuits and parameters list.
@@ -171,7 +171,7 @@ class BaseSampler(ABC):
 
         Returns:
             the result of Sampler. The i-th result corresponds to
-            self.circuits[circuits[i]] evaluated with parameters bound as parameters[i].
+            ``self.circuits[circuits[i]]`` evaluated with parameters bound as ``parameters[i]``.
         """
         ...
 
