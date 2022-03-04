@@ -86,7 +86,7 @@ Here is an example of how sampler is used.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Iterable, Sequence
+from typing import Callable, Iterable, Sequence
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
