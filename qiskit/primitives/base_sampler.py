@@ -14,7 +14,7 @@ r"""
 Sampler
 =======
 
-Sampler class estimates quasi-probabilities of bitstrings from quantum circuits.
+Sampler class calculates probabilities or quasi-probabilities of bitstrings from quantum circuits.
 
 The input consists of following elements.
 
@@ -31,7 +31,7 @@ The input consists of following elements.
   to be bound to the parameters of the quantum circuits.
   (list of list of float)
 
-The output is the quasi-probabilities of bitstrings.
+The output is the probabilities or quasi-probabilities of bitstrings.
 
 The sampler object is expected to be closed after use or
 accessed within "with" context
@@ -45,39 +45,42 @@ Here is an example of how sampler is used.
     from qiskit import QuantumCircuit
     from qiskit.circuit.library import RealAmplitudes
 
-    bell = QuantumCircuit(2, 2)
+    bell = QuantumCircuit(2)
     bell.h(0)
     bell.cx(0, 1)
-    bell.measure(0, 0)
-    bell.measure(1, 1)
+    bell.measure_all()
 
     # executes a Bell circuit
     with Sampler(circuits=[bell], parameters=[[]]) as sampler:
-        result = sampler([[]])
+        result = sampler(parameters=[[]], circuits=[0])
         print([q.binary_probabilities() for q in result.quasi_dists])
 
     # executes three Bell circuits
     with Sampler(circuits=[bell]*3, parameters=[[],[],[]]) as sampler:
-        result = sampler([[]]*3)
+        result = sampler(parameters=[[]]*3, circuits=[0, 1, 2])
         print([q.binary_probabilities() for q in result.quasi_dists])
 
     # parametrized circuit
-    pqc = QuantumCircuit(2, 2)
-    pqc.compose(RealAmplitudes(num_qubits=2, reps=2), inplace=True)
-    pqc.measure(0, 0)
-    pqc.measure(1, 1)
+    pqc = RealAmplitudes(num_qubits=2, reps=2)
+    pqc.measure_all()
+    pqc2 = RealAmplitudes(num_qubits=2, reps=3)
+    pqc2.measure_all()
 
     theta1 = [0, 1, 1, 2, 3, 5]
     theta2 = [1, 2, 3, 4, 5, 6]
+    theta3 = [0, 1, 2, 3, 4, 5, 6, 7]
 
-    with Sampler(circuits=[pqc], parameters=[pqc.parameters]) as sampler:
-        result1 = sampler([theta1, theta2], [0, 0])
+    with Sampler(circuits=[pqc, pqc2], parameters=[pqc.parameters, pqc2.parameters]) as sampler:
+        result = sampler(parameters=[theta1, theta2, theta3], circuits=[0, 0])
 
         # result of pqc(theta1)
         print([q.binary_probabilities() for q in result[0].quasi_dists])
 
         # result of pqc(theta2)
         print([q.binary_probabilities() for q in result[1].quasi_dists])
+
+        # result of pqc2(theta3)
+        print([q.binary_probabilities() for q in result[2].quasi_dists])
 
 """
 from __future__ import annotations
