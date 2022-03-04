@@ -51,11 +51,7 @@ def check_cregbundle(node, circuit):
             2,
         )
         return False
-    if (
-        op.condition is not None
-        and isinstance(op.condition[0], list)
-        and len(op.condition[0]) > 1
-    ):
+    if op.condition is not None and isinstance(op.condition[0], list) and len(op.condition[0]) > 1:
         for bit in op.condition[0]:
             register = get_bit_register(circuit, bit)
             if register is not None:
