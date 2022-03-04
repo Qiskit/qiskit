@@ -101,7 +101,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Callable, Iterable, Optional, Sequence, Union
+from typing import Callable, Iterable, Sequence
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.parametertable import ParameterView
@@ -117,9 +117,6 @@ class Group:
 
     circuit_index: int
     observable_index: int
-
-
-GroupLike = Union[Group, tuple[int, int]]
 
 
 class BaseEstimator(ABC):
@@ -202,7 +199,7 @@ class BaseEstimator(ABC):
     def run(
         self,
         parameters: Sequence[Sequence[float]],
-        grouping: Sequence[GroupLike],
+        grouping: Sequence[Group | tuple[int, int]],
         **run_options,
     ) -> EstimatorResult:
         """Run the estimation of expectation value(s).
@@ -230,7 +227,7 @@ class BaseEstimator(ABC):
     def __call__(
         self,
         parameters: Sequence[Sequence[float]],
-        grouping: Optional[Sequence[GroupLike]] = None,
+        grouping: Sequence[Group | tuple[int, int]],
         **run_options,
     ) -> EstimatorResult:
         return self.run(parameters, grouping, **run_options)
