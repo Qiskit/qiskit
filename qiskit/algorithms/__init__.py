@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2021.
+# (C) Copyright IBM 2018, 2021, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -103,10 +103,8 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
    :toctree: ../stubs/
    :nosignatures:
 
-    EvolutionProblem
     EvolutionResult
-    Evolver
-
+    EvolutionProblem
 
 Factorizers
 -----------
@@ -191,7 +189,7 @@ Exceptions
 """
 
 from .algorithm_result import AlgorithmResult
-from .evolvers import EvolutionProblem, EvolutionResult, Evolver
+from .evolvers import EvolutionResult, EvolutionProblem
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
 from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem
 from .amplitude_estimators import (
@@ -247,9 +245,8 @@ __all__ = [
     "MaximumLikelihoodAmplitudeEstimationResult",
     "EstimationProblem",
     "NumPyEigensolver",
-    "EvolutionProblem",
     "EvolutionResult",
-    "Evolver",
+    "EvolutionProblem",
     "LinearSolverResult",
     "Eigensolver",
     "EigensolverResult",

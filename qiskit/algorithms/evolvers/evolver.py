@@ -14,8 +14,8 @@
 
 from abc import ABC, abstractmethod
 
-from qiskit.algorithms.evolvers.evolution_problem import EvolutionProblem
-from qiskit.algorithms.evolvers.evolution_result import EvolutionResult
+from .evolution_problem import EvolutionProblem
+from .evolution_result import EvolutionResult
 
 
 class Evolver(ABC):

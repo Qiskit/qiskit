@@ -13,9 +13,9 @@
 from typing import Optional, Union, Tuple
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms import AlgorithmResult
-from qiskit.algorithms.eigen_solvers.eigen_solver import ListOrDict
 from qiskit.opflow import StateFn
+from qiskit.algorithms.algorithm_result import AlgorithmResult
+from ..eigen_solvers.eigen_solver import ListOrDict
 
 
 class EvolutionResult(AlgorithmResult):
