@@ -673,9 +673,7 @@ def _parse_inst_map(inst_map, backend, num_circuits):
             if hasattr(backend, "defaults"):
                 inst_map = getattr(backend.defaults(), "instruction_schedule_map", None)
         else:
-            # BackendV2 always have `defaults` attribute
-            if backend.defaults():
-                inst_map = getattr(backend.defaults(), "instruction_schedule_map", None)
+            inst_map = backend.target.instruction_schedule_map()
 
     # inst_maps could be None, or single entry
     if inst_map is None or isinstance(inst_map, InstructionScheduleMap):
