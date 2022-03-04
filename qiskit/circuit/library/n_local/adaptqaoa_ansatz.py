@@ -28,9 +28,9 @@ from qiskit.quantum_info import Pauli, SparsePauliOp, Operator
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 
 
-def _reorder_bounds_parameters(num_mixer, num_cost: int, return_bounds: Union[np.array, List] = False):
+def _reorder_bounds_parameters(num_mixer, num_cost: int, return_bounds: bool = False):
     if return_bounds:
-        betas = len(num_mixer) * [(-0.5 * np.pi - 1e-6, 0.5 * np.pi + 1e-6)]
+        betas = sum(num_mixer) * [(-0.5 * np.pi - 1e-6, 0.5 * np.pi + 1e-6)]
         gammas = num_cost * [(-2 * np.pi - 1e-6, 2 * np.pi + 1e-6)]
         return gammas + betas
     else:
