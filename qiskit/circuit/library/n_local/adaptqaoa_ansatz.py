@@ -24,6 +24,7 @@ from qiskit.circuit.library.evolved_operator_ansatz import _is_pauli_identity
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.circuit import QuantumCircuit
 from qiskit.opflow import PauliSumOp, PauliOp, OperatorBase
+from qiskit.pulse.builder import num_qubits
 from qiskit.quantum_info import Pauli, SparsePauliOp, Operator
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 
@@ -164,7 +165,6 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
             self.mixer_operator = self.mixer_operators
             return super()._check_configuration()
 
-
         if not super(QAOAAnsatz, self)._check_configuration(raise_on_failure):
             return False
 
@@ -182,11 +182,13 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
                     f"The number of qubits of the initial state {self.initial_state.num_qubits}"
                     f"does not match the number of qubits of the cost operator {self.num_qubits}"
                 )
+        # if self.mixer_operators is not None:
         if self.mixer_operators is not None:
-            if self._mixer_pool_type is not None:
-                raise AttributeError(
-                    "Either a custom mixer pool or mixer pool type may be specified but not both."
-                )
+            print('185, CHECKING CONFIGURATION OF MIXER_OPERATORS')
+            # if self._mixer_pool_type is not None:
+            #     raise AttributeError(
+            #         "Either a custom mixer pool or mixer pool type may be specified but not both."
+            #     )
             # Check that the dimensionality of the mixer operator pool is equal to the cost operator
             n_mixer_qubits, mixer_operators = [], []
             for mixer in self.mixer_operators:  
@@ -201,10 +203,10 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
                 if raise_on_failure:
                     raise AttributeError(
                         f"Operators at index location(s) {err_str} in the specified mixer pool"
-                        f" have an unequal number of qubits {n_mixer_qubits[check_mixer_qubits]}"
+                        f" have an unequal number of qubits {[n_mixer_qubits[i] for i in check_mixer_qubits]}"
                         f" to the cost operator {self.num_qubits}."
                     )
-            self._mixer_operators = mixer_operators
+            self._mixer_operators = mixer_operators # set self._mixer_operators as the operator representation
         return valid
 
     @property
@@ -223,6 +225,7 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
                     num_mixer = self._num_mixer,
                     return_bounds = True)
         return self._bounds
+
     @parameter_bounds.setter
     def parameter_bounds(
         self, bounds: Optional[List[Tuple[Optional[float], Optional[float]]]]
@@ -243,16 +246,13 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
                 in this ansatz.
         """
         if self._operators is None:
-            if isinstance(self.mixer_operators, list):
+            if isinstance(self.mixer_operators, list):      #TODO: and self._mixer_operators is None?
                 varied_operators = list(
                     itertools.chain.from_iterable(
                         [[self.cost_operator, mixer] for mixer in self.mixer_operators]
                     )
                 )
                 self._operators = varied_operators
-        #TODO: see if a condition can be placed here to return nothing when doing check_operator_ansatz: e.g.
-        if self._mixer_pool==self.mixer_operators:
-            pass      # this will prevent an ansatz of the full mixer pool from being constructed
         return self._operators
     
     @operators.setter
@@ -270,15 +270,15 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
         """
         if self._mixer_pool is not None:
             return self._mixer_pool
-        else:
         # if no mixer is passed and we know the number of qubits, then initialize it.
-            if self.cost_operator is not None:
-                mixer_pool = adapt_mixer_pool(
-                    num_qubits=self.num_qubits, pool_type=self._mixer_pool_type
-                )
-                self._mixer_pool = mixer_pool
-                return mixer_pool
-        return self._mixer_operators
+        if self.cost_operator is not None:
+            print('273, Building mixer pool!')
+            mixer_pool = adapt_mixer_pool(
+                num_qubits=self.num_qubits, pool_type=self._mixer_pool_type
+            )
+            self._mixer_pool = mixer_pool
+            return mixer_pool
+        return None
 
     @mixer_operators.setter
     def mixer_operators(self, mixer_operators) -> None:
@@ -308,6 +308,18 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
             KeyError: If mixer pool type is not in the set of presets.
         """
         self._mixer_pool_type = mixer_pool_type
+
+    @property
+    def num_qubits(self) -> int:
+        if self._cost_operator is None:
+            return 0
+        num_qubits = self._cost_operator.num_qubits
+        if hasattr(self, '_mixer_pool') and not hasattr(self,'_current_qubit_count'):
+            self._mixer_pool = adapt_mixer_pool(
+                num_qubits=num_qubits, pool_type=self.mixer_pool_type
+            )
+            self._current_qubit_count = num_qubits
+        return num_qubits
     
     def _build(self):
         if self._is_built:

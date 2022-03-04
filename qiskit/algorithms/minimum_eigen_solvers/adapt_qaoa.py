@@ -155,10 +155,11 @@ class AdaptQAOA(QAOA):
 
     def _check_operator_ansatz(self, operator: OperatorBase) -> OperatorBase:
         # Initialises the algorithms necessary operators 
+        print("158, _check_operator_ansatz!!")
         if operator != self._cost_operator:
             self._cost_operator = operator
             adaptansatz = AdaptQAOAAnsatz(
-                operator, self._reps, initial_state=self.initial_state, mixer_operators=self.mixer_pool,
+                operator, self._reps, initial_state=self.initial_state, mixer_operators=self._mixer_pool,
                 mixer_pool_type=self._mixer_pool_type          
             )   # AdaptQAOAAnsatz will construct the mixer_pool if one was not already provided.
             adaptansatz._check_configuration()
@@ -253,22 +254,22 @@ class AdaptQAOA(QAOA):
                 break     # Stop the algorithm if the ansatz groundstate sufficiently approximates the true groundstate
             
             self._reps += 1
-            logger.info(f"Initial point: {self.initial_point}")
-            logger.info(f"Optimal parameters: {result.optimal_parameters}")
-            logger.info(f"Relative Energy: {result.optimal_value - self.ground_state_energy}")
+            # logger.info(f"Initial point: {self.initial_point}")
+            # logger.info(f"Optimal parameters: {result.optimal_parameters}")
+            # logger.info(f"Relative Energy: {result.optimal_value - self.ground_state_energy}")
 
-            print('-----------------------------------------------------------------')
-            print('Depth: {}, Energy: {}'.format(self._reps-1,np.abs(result.optimal_value - self.ground_state_energy)))
+            # print('-----------------------------------------------------------------')
             # print('Depth: {}, Energy: {}'.format(self._reps-1,np.abs(result.optimal_value - self.ground_state_energy)))
-            print('Depth: {}, Energy: {}'.format(self._reps-1,result.optimal_value))
+            # # print('Depth: {}, Energy: {}'.format(self._reps-1,np.abs(result.optimal_value - self.ground_state_energy)))
+            # print('Depth: {}, Energy: {}'.format(self._reps-1,result.optimal_value))
 
-            print('Initial points: ', self.initial_point)
-            print('Optimal parameters: ', self._optimal_parameters)
-            print('Best mixer: ', self.mixer_operators[-1])  
-            print()
-            print(self.get_optimal_circuit().decompose().draw())
-            print()
-            print('-----------------------------------------------------------------')
+            # print('Initial points: ', self.initial_point)
+            # print('Optimal parameters: ', self._optimal_parameters)
+            # print('Best mixer: ', self.mixer_operators[-1])  
+            # print()
+            # print(self.get_optimal_circuit().decompose().draw())
+            # print()
+            # print('-----------------------------------------------------------------')
         return result
 
 #TODO: Check that you need ansatz property/ setter
