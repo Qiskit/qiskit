@@ -15,7 +15,7 @@
 from typing import Union, Optional, Dict
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.eigen_solvers.eigen_solver import ListOrDict
+from qiskit.algorithms.list_or_dict import ListOrDict
 from qiskit.circuit import Parameter
 from qiskit.opflow import OperatorBase, StateFn
 
