@@ -118,6 +118,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "indexmap"
+version = "1.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "282a6247722caba404c065016bbfa522806e51714c34f5dfc3e4a3a46fcb4223"
+dependencies = [
+ "autocfg",
+ "hashbrown",
+]
+
+[[package]]
 name = "indoc"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -385,7 +395,9 @@ dependencies = [
 name = "qiskit-terra"
 version = "0.20.0"
 dependencies = [
+ "ahash",
  "hashbrown",
+ "indexmap",
  "ndarray",
  "numpy",
  "pyo3",

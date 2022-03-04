@@ -14,14 +14,17 @@ use pyo3::prelude::*;
 use pyo3::wrap_pymodule;
 use pyo3::Python;
 
+mod dense_layout;
 mod edge_collections;
 mod nlayout;
 mod stochastic_swap;
 
+use crate::dense_layout::PyInit_dense_layout;
 use crate::stochastic_swap::PyInit_stochastic_swap;
 
 #[pymodule]
 fn _accelerate(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(stochastic_swap))?;
+    m.add_wrapped(wrap_pymodule!(dense_layout))?;
     Ok(())
 }
