@@ -78,6 +78,10 @@ Here is an example of how sampler is used.
 
         # result of pqc(theta2)
         print([q.binary_probabilities() for q in result[1].quasi_dists])
+        
+        # result of pqc2(theta3)
+        print([q.binary_probabilities() for q in result[2].quasi_dists])
+        
 """
 from __future__ import annotations
 
