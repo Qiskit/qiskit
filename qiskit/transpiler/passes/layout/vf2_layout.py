@@ -54,13 +54,14 @@ class VF2Layout(AnalysisPass):
 
     def __init__(
         self,
-        coupling_map,
+        coupling_map=None,
         strict_direction=False,
         seed=None,
         call_limit=None,
         time_limit=None,
         properties=None,
         max_trials=None,
+        target=None,
     ):
         """Initialize a ``VF2Layout`` pass instance
 
@@ -80,14 +81,26 @@ class VF2Layout(AnalysisPass):
                 based on the number of edges in the interaction graph or the coupling graph
                 (whichever is larger). If set to a value <= 0 no limit on the number of trials
                 will be set.
+            target (Target): A target representing the backend device to run vf2layout on.
+                If specified it will supersede a set value for ``properties`` and
+                ``coupling_map``.
+
+        Raises:
+            TypeError: If neither ``coupling_map`` or ``target`` are provided.
         """
         super().__init__()
-        self.coupling_map = coupling_map
+        self.target = target
+        if target is not None:
+            self.coupling_map = self.target.build_coupling_map()
+        elif coupling_map is not None:
+            self.coupling_map = coupling_map
+        else:
+            raise TypeError("coupling_map or target must be specified.")
+        self.properties = properties
         self.strict_direction = strict_direction
         self.seed = seed
         self.call_limit = call_limit
         self.time_limit = time_limit
-        self.properties = properties
         self.max_trials = max_trials
 
     def run(self, dag):
@@ -197,20 +210,33 @@ class VF2Layout(AnalysisPass):
         to weight against higher connectivity qubits."""
         bits = layout.get_physical_bits()
         score = 0
-        if self.properties is None:
-            # Sum qubit degree for each qubit in chosen layout as really rough estimate of error
+        if self.target:
+            if "measure" in self.target:
+                for bit in bits:
+                    props = self.target["measure"].get((bit,))
+                    if props is None or props.error is None:
+                        score += (
+                            self.coupling_map.graph.out_degree(bit)
+                            + self.coupling_map.graph.in_degree(bit)
+                        ) / len(self.coupling_map.graph)
+                    else:
+                        score += props.error
+        else:
+            if self.properties is None:
+                # Sum qubit degree for each qubit in chosen layout as really rough estimate of error
+                for bit in bits:
+                    score += self.coupling_map.graph.out_degree(
+                        bit
+                    ) + self.coupling_map.graph.in_degree(bit)
+                return score
             for bit in bits:
-                score += self.coupling_map.graph.out_degree(
-                    bit
-                ) + self.coupling_map.graph.in_degree(bit)
-            return score
-        for bit in bits:
-            try:
-                score += self.properties.readout_error(bit)
-            # If readout error can't be found in properties fallback to degree
-            # divided by number of qubits as a terrible approximation
-            except BackendPropertyError:
-                score += (
-                    self.coupling_map.graph.out_degree(bit) + self.coupling_map.graph.in_degree(bit)
-                ) / len(self.coupling_map.graph)
+                try:
+                    score += self.properties.readout_error(bit)
+                # If readout error can't be found in properties fallback to degree
+                # divided by number of qubits as a terrible approximation
+                except BackendPropertyError:
+                    score += (
+                        self.coupling_map.graph.out_degree(bit)
+                        + self.coupling_map.graph.in_degree(bit)
+                    ) / len(self.coupling_map.graph)
         return score
