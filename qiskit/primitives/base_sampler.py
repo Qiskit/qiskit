@@ -86,7 +86,7 @@ Here is an example of how sampler is used.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
@@ -103,8 +103,8 @@ class BaseSampler(ABC):
 
     def __init__(
         self,
-        circuits: Sequence[QuantumCircuit],
-        parameters: Sequence[Sequence[Parameter]] | None = None,
+        circuits: Iterable[QuantumCircuit],
+        parameters: Iterable[Iterable[Parameter]] | None = None,
     ):
         """
         Args:
@@ -119,11 +119,12 @@ class BaseSampler(ABC):
         if parameters is None:
             self._parameters = tuple(circ.parameters for circ in circuits)
         else:
-            if len(parameters) != len(circuits):
-                raise QiskitError(
-                    f"Different number of parameters ({len(parameters)} and circuits ({len(circuits)}"
-                )
             self._parameters = tuple(ParameterView(par) for par in parameters)
+            if len(self._parameters) != len(self._circuits):
+                raise QiskitError(
+                    f"Different number of parameters ({len(self._parameters)} "
+                    f"and circuits ({len(self._circuits)}"
+                )
 
     def __enter__(self):
         return self

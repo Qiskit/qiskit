@@ -99,8 +99,8 @@ Here is an example of how estimator is used.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
-from typing import Callable, Sequence
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
@@ -126,9 +126,9 @@ class BaseEstimator(ABC):
 
     def __init__(
         self,
-        circuits: Sequence[QuantumCircuit],
-        observables: Sequence[SparsePauliOp],
-        parameters: Sequence[Sequence[Parameter]] | None = None,
+        circuits: Iterable[QuantumCircuit],
+        observables: Iterable[SparsePauliOp],
+        parameters: Iterable[Iterable[Parameter]] | None = None,
     ):
         """
         Creating an instance of an Estimator, or using one in a `with` context opens a session that
@@ -153,7 +153,8 @@ class BaseEstimator(ABC):
             self._parameters = tuple(ParameterView(par) for par in parameters)
             if len(self._parameters) != len(self._circuits):
                 raise QiskitError(
-                    f"Different number of parameters ({len(self._parameters)} and circuits ({len(self._circuits)}"
+                    f"Different number of parameters ({len(self._parameters)} and "
+                    f"circuits ({len(self._circuits)}"
                 )
 
     def __enter__(self):
