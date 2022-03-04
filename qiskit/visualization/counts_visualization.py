@@ -151,7 +151,7 @@ def plot_histogram(
     if sort in DIST_MEAS:
         dist = []
         for item in labels:
-            dist.append(DIST_MEAS[sort](item, target_string))
+            dist.append(DIST_MEAS[sort](item, target_string) if item != "rest" else 0)
 
         labels = [list(x) for x in zip(*sorted(zip(dist, labels), key=lambda pair: pair[0]))][1]
     elif "value" in sort:
