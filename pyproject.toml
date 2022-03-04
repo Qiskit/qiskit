@@ -1,5 +1,6 @@
 [build-system]
-requires = ["Cython>=0.27.1", "setuptools", "wheel"]
+requires = ["Cython>=0.27.1", "setuptools", "wheel", "setuptools-rust"]
+build-backend = "setuptools.build_meta"
 
 [tool.black]
 line-length = 100
@@ -16,3 +17,7 @@ test-command = "python {project}/examples/python/stochastic_swap.py"
 # Numpy 1.22 there are no i686 wheels, so we force pip to use older ones without
 # restricting any dependencies that Numpy and Scipy might have.
 before-test = "pip install --only-binary=numpy,scipy numpy scipy"
+
+[tool.cibuildwheel.linux]
+before-all = "yum install -y wget && {package}/tools/install_rust.sh"
+environment = 'PATH="$PATH:$HOME/.cargo/bin"'
