@@ -56,8 +56,8 @@ Here is an example of how sampler is used.
         print([q.binary_probabilities() for q in result.quasi_dists])
 
     # executes three Bell circuits
-    with Sampler(circuits=[bell]*3, parameters=[[],[],[]]) as sampler:
-        result = sampler(parameters=[[]]*3, circuits=[0, 1, 2])
+    with Sampler([bell]*3, [[]]) as sampler:
+        result = sampler([0, 1, 2], [[]]*3)
         print([q.binary_probabilities() for q in result.quasi_dists])
 
     # parametrized circuit
@@ -71,17 +71,17 @@ Here is an example of how sampler is used.
     theta3 = [0, 1, 2, 3, 4, 5, 6, 7]
 
     with Sampler(circuits=[pqc, pqc2], parameters=[pqc.parameters, pqc2.parameters]) as sampler:
-        result = sampler(parameters=[theta1, theta2, theta3], circuits=[0, 0])
+        result = sampler([0, 0, 1], [theta1, theta2, theta3])
 
         # result of pqc(theta1)
         print([q.binary_probabilities() for q in result[0].quasi_dists])
 
         # result of pqc(theta2)
         print([q.binary_probabilities() for q in result[1].quasi_dists])
-
+        
         # result of pqc2(theta3)
         print([q.binary_probabilities() for q in result[2].quasi_dists])
-
+        
 """
 from __future__ import annotations
 
@@ -175,7 +175,7 @@ class BaseSampler(ABC):
         return self._parameters
 
     @abstractmethod
-    def run(
+    def __call__(
         self,
         circuits: Sequence[int],
         parameters: Sequence[Sequence[float]],
@@ -184,13 +184,13 @@ class BaseSampler(ABC):
         """Run the sampling of bitstrings.
 
         Args:
-            parameters (list[list[float]]): parameters to be bound.
             circuits (list[int]): indexes of the circuits to evaluate.
+            parameters (list[list[float]]): parameters to be bound.
             run_options: backend runtime options used for circuit execution.
 
         Returns:
             SamplerResult: the result of Sampler. The i-th result corresponds to
-                self.circuits[circuits[i]] evaluated with parameters bound as parameters[i]
+                self.circuits[circuits[i]] evaluated with parameters bound as parameters[i].
         """
         ...
 
