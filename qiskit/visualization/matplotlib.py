@@ -192,8 +192,6 @@ class MatplotlibDrawer:
 
         self._initial_state = initial_state
         self._cregbundle = cregbundle
-        if self._cregbundle:
-            self._cregbundle = check_cregbundle(nodes, self._circuit)
         self._global_phase = self._circuit.global_phase
         self._calibrations = self._circuit.calibrations
 
@@ -406,6 +404,8 @@ class MatplotlibDrawer:
             widest_box = WID
             for node in layer:
                 op = node.op
+                if self._cregbundle:
+                    self._cregbundle = check_cregbundle(node, self._circuit)
                 self._data[node] = {}
                 self._data[node]["width"] = WID
                 num_ctrl_qubits = 0 if not hasattr(op, "num_ctrl_qubits") else op.num_ctrl_qubits

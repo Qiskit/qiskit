@@ -183,10 +183,6 @@ class QCircuitImage:
         self._cregbundle = cregbundle
         self._global_phase = circuit.global_phase
 
-        if self._cregbundle:
-            self._cregbundle = check_cregbundle(nodes, self._circuit)
-        self._wire_map = get_wire_map(circuit, qubits + clbits, self._cregbundle)
-        self._img_width = len(self._wire_map)
         self._style, _ = load_style(style)
 
     def latex(self):
@@ -294,6 +290,8 @@ class QCircuitImage:
             current_max = 0
             for node in layer:
                 op = node.op
+                if self._cregbundle:
+                    self._cregbundle = check_cregbundle(node, self._circuit)
                 # useful information for determining wire spacing
                 boxed_gates = [
                     "u1",
@@ -354,6 +352,8 @@ class QCircuitImage:
         # the wires poking out at the ends is 2 more
         sum_column_widths = sum(1 + v / 3 for v in max_column_widths)
 
+        self._wire_map = get_wire_map(self._circuit, self._qubits + self._clbits, self._cregbundle)
+        self._img_width = len(self._wire_map)
         max_wire_name = 3
         for wire in self._wire_map:
             if isinstance(wire, (Qubit, Clbit)):

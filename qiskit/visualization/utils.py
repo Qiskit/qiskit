@@ -38,37 +38,35 @@ from qiskit.utils import optionals as _optionals
 from qiskit.visualization.exceptions import VisualizationError
 
 
-def check_cregbundle(nodes, circuit):
+def check_cregbundle(node, circuit):
     """Check if node has cargs or if node has a condition with a list
     and one of the bits in the list is a register bit"""
 
-    for layer in nodes:
-        for node in layer:
-            op = node.op
-            if node.cargs and not isinstance(op, Measure):
+    op = node.op
+    if node.cargs and not isinstance(op, Measure):
+        warn(
+            "cregbundle set to False since an instruction needs to refer"
+            " to individual classical wire",
+            RuntimeWarning,
+            2,
+        )
+        return False
+    if (
+        op.condition is not None
+        and isinstance(op.condition[0], list)
+        and len(op.condition[0]) > 1
+    ):
+        for bit in op.condition[0]:
+            register = get_bit_register(circuit, bit)
+            if register is not None:
                 warn(
-                    "cregbundle set to False since an instruction needs to refer"
-                    " to individual classical wire",
+                    "cregbundle set to False since there is a gate in the circuit"
+                    " with a classical condition on a list of bits and at least one"
+                    " of those bits belongs to a register",
                     RuntimeWarning,
                     2,
                 )
                 return False
-            if (
-                op.condition is not None
-                and isinstance(op.condition[0], list)
-                and len(op.condition[0]) > 1
-            ):
-                for bit in op.condition[0]:
-                    register = get_bit_register(circuit, bit)
-                    if register is not None:
-                        warn(
-                            "cregbundle set to False since there is a gate in the circuit"
-                            " with a classical condition on a list of bits and at least one"
-                            " of those bits belongs to a register",
-                            RuntimeWarning,
-                            2,
-                        )
-                        return False
     return True
 
 

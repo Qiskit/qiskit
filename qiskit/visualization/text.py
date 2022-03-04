@@ -679,7 +679,14 @@ class TextDrawing:
         self.cregbundle = cregbundle
 
         if self.cregbundle:
-            self.cregbundle = check_cregbundle(nodes, self._circuit)
+            for layer in nodes:
+                for node in layer:
+                    if self.cregbundle:
+                        self.cregbundle = check_cregbundle(node, self._circuit)
+                    else:
+                        break
+                if not self.cregbundle:
+                    break
 
         self.global_phase = circuit.global_phase
         self.plotbarriers = plotbarriers
