@@ -22,10 +22,12 @@ to estimate the expectation values.
 
 The input consists of following elements.
 
-* quantum circuits (:math:`\psi_i(\theta)`): list of (parametrized) quantum circuits
+* quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits
   (a list of :class:`~qiskit.circuit.QuantumCircuit`))
 
 * observables (:math:`H_j`): a list of :class:`~qiskit.quantum_info.SparsePauliOp`.
+
+The estimator is called with the following inputs.
 
 * circuit indexes: a list of indexes of the quantum circuits.
 
@@ -39,7 +41,7 @@ The input consists of following elements.
   to be bound to the parameters of the quantum circuits.
   (list of list of float)
 
-The output is the list of expectation values.
+The output is an EstimatorResult which contains a list of expectation values plus optional metadata like confidence intervals for the estimation.
 
 .. math::
 
@@ -127,7 +129,7 @@ class BaseEstimator(ABC):
         Args:
             circuits: quantum circuits that represents quantum states
             observables: observables
-            parameters: parameters of quantum circuits.
+            parameters: parameters of quantum circuits, specifying the order in which values will be bound.
                 Defaults to ``[circ.parameters for circ in circuits]``
                 The indexing is such that ``parameters[i, j]`` is the j-th formal parameter of
                 ``circuits[i]``.
@@ -169,7 +171,7 @@ class BaseEstimator(ABC):
 
     @property
     def observables(self) -> tuple[SparsePauliOp, ...]:
-        """Observables
+        """Observables to be estimated
 
         Returns:
             observables

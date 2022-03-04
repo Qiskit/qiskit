@@ -16,14 +16,16 @@ Sampler
 
 Sampler class calculates probabilities or quasi-probabilities of bitstrings from quantum circuits.
 
-The input consists of following elements.
+A sampler is initialized with the following elements.
 
-* quantum circuits (:math:`\psi_i(\theta)`): list of (parametrized) quantum circuits.
+* quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits.
   (a list of :class:`~qiskit.circuit.QuantumCircuit`))
 
 * parameters: a list of parameters of the quantum circuits.
   (:class:`~qiskit.circuit.parametertable.ParameterView` or
   a list of :class:`~qiskit.circuit.Parameter`).
+
+The estimator is run with the following inputs.
 
 * circuit indexes: a list of indices of the circuits to evaluate.
 
@@ -31,7 +33,7 @@ The input consists of following elements.
   to be bound to the parameters of the quantum circuits.
   (list of list of float)
 
-The output is the probabilities or quasi-probabilities of bitstrings.
+The output is a SamplerResult which contains probabilities or quasi-probabilities of bitstrings, plus optional metadata like error bars in the samples.
 
 The sampler object is expected to be closed after use or
 accessed within "with" context
