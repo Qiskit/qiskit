@@ -17,13 +17,11 @@ from io import BytesIO
 from collections import Counter
 from PIL import Image
 from qiskit.tools.visualization import plot_histogram, HAS_MATPLOTLIB
+from qiskit.utils import optionals as _optionals
 from .visualization import QiskitVisualizationTestCase
 
 
-if HAS_MATPLOTLIB:
-    import matplotlib as mpl
-
-
+@_optionals.HAS_MATPLOTLIB.require_in_instance
 class TestPlotHistogram(QiskitVisualizationTestCase):
     """Qiskit plot_histogram tests."""
 
@@ -111,6 +109,8 @@ class TestPlotHistogram(QiskitVisualizationTestCase):
         }
 
         fig = plot_histogram([raw_dist, exact_dist])
+        import matplotlib as mpl
+
         self.assertIsInstance(fig, mpl.figure.Figure)
 
     @unittest.skipIf(not HAS_MATPLOTLIB, "matplotlib not available.")
@@ -118,6 +118,8 @@ class TestPlotHistogram(QiskitVisualizationTestCase):
         """Test plotting using number_to_keep"""
         dist = {"00": 3, "01": 5, "11": 8, "10": 11}
         fig = plot_histogram(dist, number_to_keep=2)
+        import matplotlib as mpl
+
         self.assertIsInstance(fig, mpl.figure.Figure)
 
     @unittest.skipIf(not HAS_MATPLOTLIB, "matplotlib not available.")
@@ -125,6 +127,8 @@ class TestPlotHistogram(QiskitVisualizationTestCase):
         """Test plotting using number_to_keep with multiple executions"""
         dist = [{"00": 3, "01": 5, "11": 8, "10": 11}, {"00": 3, "01": 7, "10": 11}]
         fig = plot_histogram(dist, number_to_keep=2)
+        import matplotlib as mpl
+
         self.assertIsInstance(fig, mpl.figure.Figure)
 
     @unittest.skipIf(not HAS_MATPLOTLIB, "matplotlib not available.")
@@ -211,6 +215,8 @@ class TestPlotHistogram(QiskitVisualizationTestCase):
                 figure_truncated.savefig(img_buffer, format="png")
                 img_buffer.seek(0)
                 self.assertImagesAreEqual(Image.open(img_buffer_ref), Image.open(img_buffer), 0.2)
+        import matplotlib as mpl
+
         mpl.pyplot.close(figure_ref)
         mpl.pyplot.close(figure_truncated)
 
