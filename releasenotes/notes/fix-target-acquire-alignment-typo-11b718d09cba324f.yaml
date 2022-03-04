@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed the typo for :attr:`.transpiler.Target.acquire_alignment` attribute of the
+    :class:`.transpiler.Target` class. Previsouly it was mispelled as `aquire_alignment`.
