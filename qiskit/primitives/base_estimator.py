@@ -156,14 +156,6 @@ class BaseEstimator(ABC):
                 )
             self._parameters = tuple(ParameterView(par) for par in parameters)
 
-    def __call__(
-        self,
-        parameters: Sequence[Sequence[float]],
-        grouping: Sequence[Group | tuple[int, int]],
-        **run_options,
-    ) -> EstimatorResult:
-        return self.run(parameters, grouping, **run_options)
-
     def __enter__(self):
         return self
 

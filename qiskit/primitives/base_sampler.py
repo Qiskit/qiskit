@@ -78,10 +78,10 @@ Here is an example of how sampler is used.
 
         # result of pqc(theta2)
         print([q.binary_probabilities() for q in result[1].quasi_dists])
-        
+
         # result of pqc2(theta3)
         print([q.binary_probabilities() for q in result[2].quasi_dists])
-        
+
 """
 from __future__ import annotations
 
@@ -124,26 +124,6 @@ class BaseSampler(ABC):
                     f"Different number of parameters ({len(parameters)} and circuits ({len(circuits)}"
                 )
             self._parameters = tuple(ParameterView(par) for par in parameters)
-
-    def __call__(
-        self,
-        circuits: Sequence[int],
-        parameters: Sequence[Sequence[float]],
-        **run_options,
-    ) -> SamplerResult:
-        """Run the sampling of bitstrings.
-
-        Args:
-            parameters (list[list[float]]): parameters to be bound.
-            circuits (list[int]): indexes of the circuits to evaluate.
-            run_options: backend runtime options used for circuit execution.
-
-        Returns:
-            SamplerResult: the result of Sampler. The i-th result corresponds to
-                self.circuits[circuits[i]]
-            evaluated with parameters bound as parameters[i]
-        """
-        return self.run(circuits, parameters, **run_options)
 
     def __enter__(self):
         return self

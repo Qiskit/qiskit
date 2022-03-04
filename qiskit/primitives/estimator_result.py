@@ -16,9 +16,10 @@ Estimator result class
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import numpy as np
+if TYPE_CHECKING:
+    import numpy as np
 
 
 @dataclass(frozen=True)
@@ -32,9 +33,11 @@ class EstimatorResult:
 
     where the i-th elements of `result` correspond to the expectation using the circuit and
     observable given by `grouping[i]` and the parameters bounds by `params[i]`
+
+    Args:
+        values (np.ndarray): the array of the expectation values.
+        metadata (list[dict]): list of the metadata.
     """
 
     values: "np.ndarray[Any, np.dtype[np.float64]]"
-    variances: "np.ndarray[Any, np.dtype[np.float64]]"
-    # standard_errors: np.ndarray[Any, np.dtype[np.float64]]
     metadata: list[dict[str, Any]]
