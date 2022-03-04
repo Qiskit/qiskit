@@ -167,8 +167,7 @@ class BaseSampler(ABC):
 
         Returns:
             SamplerResult: the result of Sampler. The i-th result corresponds to
-                self.circuits[circuits[i]]
-            evaluated with parameters bound as parameters[i]
+                self.circuits[circuits[i]] evaluated with parameters bound as parameters[i]
         """
         ...
 

@@ -132,19 +132,18 @@ class BaseEstimator(ABC):
         parameters: Sequence[Sequence[Parameter]] | None = None,
     ):
         """
+        Creating an instance of an Estimator, or using one in a `with` context opens a session that
+        holds resources until the instance is `close()` ed or the context is exited.
+
         Args:
             circuits (list[QuantumCircuit]): quantum circuits that represents quantum states
             observables (list[SparsePauliOp]): observables
             parameters (list[list[Parameter]]): parameters of quantum circuits.
                 Defaults to `[circ.parameters for circ in circuits]`
+                The indexing is such that `parameters[i, j]` is the j-th formal parameter of `circuits[i]`.
 
         Raises:
             QiskitError: for mismatch of circuits and parameters list.
-
-        The indexing is such that `parameters[i, j]` is the j-th formal parameter of `circuits[i]`.
-
-        Creating an instance of an Estimator, or using one in a `with` context opens a session that
-        holds resources until the instance is `close()`ed or the context is exited.
         """
         self._circuits = tuple(circuits)
         self._observables = tuple(observables)
@@ -203,6 +202,10 @@ class BaseEstimator(ABC):
         **run_options,
     ) -> EstimatorResult:
         """Run the estimation of expectation value(s).
+        `parameters` and `grouping` should have the same length. The i-th element of the result
+        is the expectation of observable `obs = self.observables(grouping[i].observable_index)`
+        for the state prepared by `circ = self.circuits[grouping[i].circuit_index]`
+        with bound parameters `values = parameters[i]`.
 
         Args:
             parameters (list[list[float]]): concrete parameters to be bound.
@@ -212,15 +215,6 @@ class BaseEstimator(ABC):
 
         Returns:
             EstimatorResult: the result of Estimator.
-
-        `parameters` and `grouping` should have the same length. The i-th element of the result
-        is the expectation of observable
-            obs = self.observables(grouping[i].observable_index)
-        for the state prepared by
-            circ = self.circuits[grouping[i].circuit_index]
-        with bound parameters
-            values = parameters[i]
-        obs.expectation()
         """
         ...
 
