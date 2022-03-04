@@ -155,4 +155,3 @@ test/ipynb/mpl/graph/result_test.json
 # Added by cargo
 
 /target
-Cargo.lock

@@ -38,7 +38,6 @@ from qiskit.opflow import (
 from qiskit.opflow.gradients import GradientBase
 from qiskit.utils.validation import validate_min
 from qiskit.utils.backend_utils import is_aer_provider
-from qiskit.utils.deprecation import deprecate_function
 from qiskit.utils import QuantumInstance, algorithm_globals
 from ..optimizers import Optimizer, SLSQP
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
@@ -648,51 +647,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         return energy_evaluation
 
-    @deprecate_function(
-        """
-The VQE.get_optimal_cost method is deprecated as of Qiskit Terra 0.18.0
-and will be removed no sooner than 3 months after the releasedate.
-This information is part of the returned result object and can be
-queried as VQEResult.eigenvalue."""
-    )
-    def get_optimal_cost(self) -> float:
-        """Get the minimal cost or energy found by the VQE."""
-        if self._ret.optimal_point is None:
-            raise AlgorithmError(
-                "Cannot return optimal cost before running the algorithm to find optimal params."
-            )
-        return self._ret.optimal_value
-
-    @deprecate_function(
-        """
-The VQE.get_optimal_circuit method is deprecated as of Qiskit Terra
-0.18.0 and will be removed no sooner than 3 months after the releasedate.
-This information is part of the returned result object and can be
-queried as VQEResult.ansatz.bind_parameters(VQEResult.optimal_point)."""
-    )
-    def get_optimal_circuit(self) -> QuantumCircuit:
-        """Get the circuit with the optimal parameters."""
-        if self._ret.optimal_point is None:
-            raise AlgorithmError(
-                "Cannot find optimal circuit before running the algorithm to find optimal params."
-            )
-        return self.ansatz.assign_parameters(self._ret.optimal_parameters)
-
-    @deprecate_function(
-        """
-The VQE.get_optimal_vector method is deprecated as of Qiskit Terra 0.18.0
-and will be removed no sooner than 3 months after the releasedate.
-This information is part of the returned result object and can be
-queried as VQEResult.eigenvector."""
-    )
-    def get_optimal_vector(self) -> Union[List[float], Dict[str, int]]:
-        """Get the simulation outcome of the optimal circuit."""
-        if self._ret.optimal_parameters is None:
-            raise AlgorithmError(
-                "Cannot find optimal circuit before running the algorithm to find optimal vector."
-            )
-        return self._get_eigenstate(self._ret.optimal_parameters)
-
     def _get_eigenstate(self, optimal_parameters) -> Union[List[float], Dict[str, int]]:
         """Get the simulation outcome of the ansatz, provided with parameters."""
         optimal_circuit = self.ansatz.bind_parameters(optimal_parameters)
@@ -703,20 +657,6 @@ queried as VQEResult.eigenvector."""
             state = state_fn.to_dict_fn().primitive  # SparseVectorStateFn -> DictStateFn -> dict
 
         return state
-
-    @property
-    @deprecate_function(
-        """
-The VQE.optimal_params property is deprecated as of Qiskit Terra 0.18.0
-and will be removed no sooner than 3 months after the releasedate.
-This information is part of the returned result object and can be
-queried as VQEResult.optimal_point."""
-    )
-    def optimal_params(self) -> np.ndarray:
-        """The optimal parameters for the ansatz."""
-        if self._ret.optimal_point is None:
-            raise AlgorithmError("Cannot find optimal params before running the algorithm.")
-        return self._ret.optimal_point
 
 
 class VQEResult(VariationalResult, MinimumEigensolverResult):

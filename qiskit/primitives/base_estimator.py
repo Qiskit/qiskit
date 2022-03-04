@@ -91,8 +91,8 @@ Here is an example of how estimator is used.
         print(psi1_H1_result2)
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
-        #               psi2(theta2)|H2|psi2(theta2)>,
-        #               <psi1(theta3)|H3|psi1(theta3)> ]
+        #             <psi2(theta2)|H2|psi2(theta2)>,
+        #             <psi1(theta3)|H3|psi1(theta3)> ]
         psi12_H23_result = e([(0, 0), (1, 1), (0, 2)], [theta1, theta2, theta3])
         print(psi12_H23_result)
 """
@@ -100,9 +100,9 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Callable, Iterable, Sequence
+from typing import Callable, Sequence
 
-from qiskit.circuit import QuantumCircuit, Parameter
+from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import SparsePauliOp
@@ -126,24 +126,24 @@ class BaseEstimator(ABC):
 
     def __init__(
         self,
-        circuits: Iterable[QuantumCircuit],
-        observables: Iterable[SparsePauliOp],
-        parameters: Iterable[Iterable[Parameter]] | None = None,
+        circuits: Sequence[QuantumCircuit],
+        observables: Sequence[SparsePauliOp],
+        parameters: Sequence[Sequence[Parameter]] | None = None,
     ):
         """
+        Creating an instance of an Estimator, or using one in a `with` context opens a session that
+        holds resources until the instance is `close()` ed or the context is exited.
+
         Args:
-            circuits (Iterable[QuantumCircuit]): quantum circuits that represents quantum states
-            observables (Iterable[SparsePauliOp]): observables
-            parameters (Iterable[Iterable[Parameter]]): parameters of quantum circuits.
+            circuits (list[QuantumCircuit]): quantum circuits that represents quantum states
+            observables (list[SparsePauliOp]): observables
+            parameters (list[list[Parameter]]): parameters of quantum circuits.
                 Defaults to `[circ.parameters for circ in circuits]`
+                The indexing is such that `parameters[i, j]` is the j-th formal parameter of
+                `circuits[i]`.
 
         Raises:
             QiskitError: for mismatch of circuits and parameters list.
-
-        The indexing is such that `parameters[i, j]` is the j-th formal parameter of `circuits[i]`.
-
-        Creating an instance of an Estimator, or using one in a `with` context opens a session that
-        holds resources until the instance is `close()` ed or the context is exited.
         """
         self._circuits = tuple(circuits)
         self._observables = tuple(observables)
@@ -155,6 +155,14 @@ class BaseEstimator(ABC):
                     f"Different number of parameters ({len(parameters)} and circuits ({len(circuits)}"
                 )
             self._parameters = tuple(ParameterView(par) for par in parameters)
+
+    def __call__(
+        self,
+        parameters: Sequence[Sequence[float]],
+        grouping: Sequence[Group | tuple[int, int]],
+        **run_options,
+    ) -> EstimatorResult:
+        return self.run(parameters, grouping, **run_options)
 
     def __enter__(self):
         return self
@@ -168,7 +176,7 @@ class BaseEstimator(ABC):
         ...
 
     @property
-    def circuits(self) -> tuple[QuantumCircuit]:
+    def circuits(self) -> tuple[QuantumCircuit, ...]:
         """Quantum circuits that represents quantum states.
 
         Returns:
@@ -177,7 +185,7 @@ class BaseEstimator(ABC):
         return self._circuits
 
     @property
-    def observables(self) -> tuple[SparsePauliOp]:
+    def observables(self) -> tuple[SparsePauliOp, ...]:
         """Observables
 
         Returns:
@@ -186,7 +194,7 @@ class BaseEstimator(ABC):
         return self._observables
 
     @property
-    def parameters(self) -> tuple[ParameterView]:
+    def parameters(self) -> tuple[ParameterView, ...]:
         """Parameters of quantum circuits
 
         Returns:
@@ -203,15 +211,6 @@ class BaseEstimator(ABC):
     ) -> EstimatorResult:
         """Run the estimation of expectation value(s).
 
-        Args:
-            grouping (Sequence[Group | tuple[int, int]]): the list of Group or tuple of circuit
-                index and observable index.
-            parameters (Sequence[Sequence[float]]): concrete parameters to be bound.
-            run_options: runtime options used for circuit execution.
-
-        Returns:
-            EstimatorResult: the result of Estimator.
-
         `parameters` and `grouping` should have the same length. The i-th element of the result
         is the expectation of observable
 
@@ -226,6 +225,14 @@ class BaseEstimator(ABC):
             values = parameters[i]
 
         obs.expectation()
+
+        Args:
+            grouping (list[Group | tuple[int, int]]): the list of Group or tuple of circuit
+            parameters (list[list[float]]): concrete parameters to be bound.
+            run_options: runtime options used for circuit execution.
+
+        Returns:
+            EstimatorResult: the result of Estimator.
         """
         ...
 

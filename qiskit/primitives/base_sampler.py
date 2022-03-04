@@ -14,7 +14,7 @@ r"""
 Sampler
 =======
 
-Sampler class estimates quasi-probabilities of bitstrings from quantum circuits.
+Sampler class calculates probabilities or quasi-probabilities of bitstrings from quantum circuits.
 
 The input consists of following elements.
 
@@ -31,7 +31,7 @@ The input consists of following elements.
   to be bound to the parameters of the quantum circuits.
   (list of list of float)
 
-The output is the quasi-probabilities of bitstrings.
+The output is the probabilities or quasi-probabilities of bitstrings.
 
 The sampler object is expected to be closed after use or
 accessed within "with" context
@@ -45,15 +45,14 @@ Here is an example of how sampler is used.
     from qiskit import QuantumCircuit
     from qiskit.circuit.library import RealAmplitudes
 
-    bell = QuantumCircuit(2, 2)
+    bell = QuantumCircuit(2)
     bell.h(0)
     bell.cx(0, 1)
-    bell.measure(0, 0)
-    bell.measure(1, 1)
+    bell.measure_all()
 
     # executes a Bell circuit
     with Sampler(circuits=[bell], parameters=[[]]) as sampler:
-        result = sampler([[]])
+        result = sampler(parameters=[[]], circuits=[0])
         print([q.binary_probabilities() for q in result.quasi_dists])
 
     # executes three Bell circuits
@@ -62,15 +61,16 @@ Here is an example of how sampler is used.
         print([q.binary_probabilities() for q in result.quasi_dists])
 
     # parametrized circuit
-    pqc = QuantumCircuit(2, 2)
-    pqc.compose(RealAmplitudes(num_qubits=2, reps=2), inplace=True)
-    pqc.measure(0, 0)
-    pqc.measure(1, 1)
+    pqc = RealAmplitudes(num_qubits=2, reps=2)
+    pqc.measure_all()
+    pqc2 = RealAmplitudes(num_qubits=2, reps=3)
+    pqc2.measure_all()
 
     theta1 = [0, 1, 1, 2, 3, 5]
     theta2 = [1, 2, 3, 4, 5, 6]
+    theta3 = [0, 1, 2, 3, 4, 5, 6, 7]
 
-    with Sampler(pqc], [pcq.parameters]) as sampler:
+    with Sampler(circuits=[pqc, pqc2], parameters=[pqc.parameters, pqc2.parameters]) as sampler:
         result1 = sampler([0, 0], [theta1, theta2])
 
         # result of pqc(theta1)
@@ -82,9 +82,9 @@ Here is an example of how sampler is used.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Callable, Sequence, Iterable
+from typing import Callable, Sequence
 
-from qiskit.circuit import QuantumCircuit, Parameter
+from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
 
@@ -99,13 +99,13 @@ class BaseSampler(ABC):
 
     def __init__(
         self,
-        circuits: Iterable[QuantumCircuit],
-        parameters: Iterable[Iterable[Parameter]] | None = None,
+        circuits: Sequence[QuantumCircuit],
+        parameters: Sequence[Sequence[Parameter]] | None = None,
     ):
         """
         Args:
             circuits (list[QuantumCircuit]): quantum circuits to be executed
-            parameters (Union[ParameterView, list[Parameter]]): parameters of quantum circuits
+            parameters (list[list[Parameter]]): parameters of quantum circuits
                 Defaults to `[circ.parameters for circ in circuits]`
 
         Raises:
@@ -121,6 +121,26 @@ class BaseSampler(ABC):
                 )
             self._parameters = tuple(ParameterView(par) for par in parameters)
 
+    def __call__(
+        self,
+        circuits: Sequence[int],
+        parameters: Sequence[Sequence[float]],
+        **run_options,
+    ) -> SamplerResult:
+        """Run the sampling of bitstrings.
+
+        Args:
+            parameters (list[list[float]]): parameters to be bound.
+            circuits (list[int]): indexes of the circuits to evaluate.
+            run_options: backend runtime options used for circuit execution.
+
+        Returns:
+            SamplerResult: the result of Sampler. The i-th result corresponds to
+                self.circuits[circuits[i]]
+            evaluated with parameters bound as parameters[i]
+        """
+        return self.run(circuits, parameters, **run_options)
+
     def __enter__(self):
         return self
 
@@ -133,16 +153,16 @@ class BaseSampler(ABC):
         ...
 
     @property
-    def circuits(self) -> tuple[QuantumCircuit]:
+    def circuits(self) -> tuple[QuantumCircuit, ...]:
         """Quantum circuits
 
         Returns:
-            list[QuantumCircuit]: quantum circuits
+            tuple[QuantumCircuit]: quantum circuits
         """
         return self._circuits
 
     @property
-    def parameters(self) -> tuple(ParameterView):
+    def parameters(self) -> tuple[ParameterView, ...]:
         """Parameters of quantum circuits
 
         Returns:
@@ -153,15 +173,15 @@ class BaseSampler(ABC):
     @abstractmethod
     def __call__(
         self,
-        parameters: Sequence[Sequence[float]],
         circuits: Sequence[int],
+        parameters: Sequence[Sequence[float]],
         **run_options,
     ) -> SamplerResult:
         """Run the sampling of bitstrings.
 
         Args:
-            parameters (Optional[Union[list[float], list[list[float]]]]): parameters to be bound.
-            circuits (Sequence[int]): indexes of the circuits to evaluate.
+            circuits (list[int]): indexes of the circuits to evaluate.
+            parameters (list[list[float]]): parameters to be bound.
             run_options: backend runtime options used for circuit execution.
 
         Returns:
