@@ -237,6 +237,12 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
                 MatrixFunctional(1, 1 / 2),
             ],
             [
+                np.array([[82, 34], [34, 58]]),
+                np.array([[1], [0]]),
+                AbsoluteAverage(),
+                3,
+            ],
+            [
                 TridiagonalToeplitz(3, 1, -1 / 2, trotter_steps=2),
                 [-9 / 4, -0.3, 8 / 7, 10, -5, 11.1, 13 / 11, -27 / 12],
                 AbsoluteAverage(),
@@ -244,7 +250,7 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
         ]
     )
     @unpack
-    def test_hhl(self, matrix, right_hand_side, observable):
+    def test_hhl(self, matrix, right_hand_side, observable, decimal=1):
         """Test the HHL class."""
         if isinstance(matrix, QuantumCircuit):
             num_qubits = matrix.num_state_qubits
@@ -272,7 +278,7 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
             exact_x = np.dot(np.linalg.inv(matrix), rhs)
         exact_result = observable.evaluate_classically(exact_x)
 
-        np.testing.assert_almost_equal(approx_result, exact_result, decimal=1)
+        np.testing.assert_almost_equal(approx_result, exact_result, decimal=decimal)
 
     def test_hhl_qi(self):
         """Test the HHL quantum instance getter and setter."""
