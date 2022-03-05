@@ -81,6 +81,7 @@ pub fn best_subset(
     let coupling_adj_mat = coupling_adjacency.as_array();
     let coupling_shape = coupling_adj_mat.shape();
     let err = error_matrix.as_array();
+    let avg_meas_err = err.diag().mean().unwrap();
     let best_result = (0..coupling_shape[0])
         .into_par_iter()
         .map(|k| {
@@ -108,9 +109,15 @@ pub fn best_subset(
             }
             let error = if use_error {
                 let mut ret_error = 0.;
-                let avg_meas_err = err.diag().mean().unwrap();
-                let meas_sum: f64 = bfs.iter().map(|i| err[[*i, *i]]).sum::<f64>();
-                let meas_avg: f64 = meas_sum / bfs.len() as f64;
+                let meas_avg = bfs
+                    .iter()
+                    .take(num_qubits)
+                    .map(|i| {
+                        let idx = *i;
+                        err[[idx, idx]]
+                    })
+                    .sum::<f64>()
+                    / num_qubits as f64;
                 let meas_diff = meas_avg - avg_meas_err;
                 if meas_diff > 0. {
                     ret_error += num_meas as f64 * meas_diff;
