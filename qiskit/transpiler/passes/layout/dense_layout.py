@@ -20,7 +20,7 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 
-from qiskit._accelerate.dense_layout import best_subset
+from qiskit._accelerate.dense_layout import best_subset  # pylint: disable=import-error
 
 
 class DenseLayout(AnalysisPass):
@@ -74,8 +74,6 @@ class DenseLayout(AnalysisPass):
         Raises:
             TranspilerError: if dag wider than self.coupling_map
         """
-        from scipy.sparse import coo_matrix
-
         num_dag_qubits = sum(qreg.size for qreg in dag.qregs.values())
         if num_dag_qubits > self.coupling_map.size():
             raise TranspilerError("Number of qubits greater than device.")
@@ -88,9 +86,6 @@ class DenseLayout(AnalysisPass):
             num_cx = ops["cx"]
         if "measure" in ops.keys():
             num_meas = ops["measure"]
-
-        # Compute the sparse cx_err matrix and meas array
-        device_qubits = self.coupling_map.size()
 
         best_sub = self._best_subset(num_dag_qubits, num_meas, num_cx)
         layout = Layout()
