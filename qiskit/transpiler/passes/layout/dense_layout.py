@@ -46,8 +46,10 @@ class DenseLayout(AnalysisPass):
         self.coupling_map = coupling_map
         self.backend_prop = backend_prop
         num_qubits = 0
+        self.adjacency_matrix = None
         if self.coupling_map:
             num_qubits = self.coupling_map.size()
+            self.adjacency_matrix = retworkx.adjacency_matrix(self.coupling_map.graph)
         self.error_mat = np.zeros((num_qubits, num_qubits))
         if self.backend_prop and self.coupling_map:
             for edge in self.coupling_map.get_edges():
@@ -115,7 +117,7 @@ class DenseLayout(AnalysisPass):
 
         rows, cols, best_map = best_subset(
             num_qubits,
-            retworkx.adjacency_matrix(self.coupling_map.graph),
+            self.adjacency_matrix,
             num_meas,
             num_cx,
             bool(self.backend_prop),
