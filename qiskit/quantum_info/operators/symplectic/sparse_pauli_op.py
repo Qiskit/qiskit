@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -286,7 +286,9 @@ class SparsePauliOp(LinearOp):
             z4[:, qargs] = z3
             pauli_list = PauliList(BasePauli(z4, x4, phase))
 
-        coeffs = np.kron(self.coeffs, other.coeffs)
+        # note: equivalent to `coeffs = np.kron(self.coeffs, other.coeffs)`
+        # since `self.coeffs` and `other.coeffs` are both 1d arrays.
+        coeffs = np.ravel(self.coeffs[:, np.newaxis] @ other.coeffs[np.newaxis])
         return SparsePauliOp(pauli_list, coeffs, copy=False)
 
     def tensor(self, other):
