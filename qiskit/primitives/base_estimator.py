@@ -41,7 +41,8 @@ The estimator is called with the following inputs.
   to be bound to the parameters of the quantum circuits.
   (list of list of float)
 
-The output is an EstimatorResult which contains a list of expectation values plus optional metadata like confidence intervals for the estimation.
+The output is an EstimatorResult which contains a list of expectation values plus
+optional metadata like confidence intervals for the estimation.
 
 .. math::
 
@@ -129,7 +130,8 @@ class BaseEstimator(ABC):
         Args:
             circuits: quantum circuits that represents quantum states
             observables: observables
-            parameters: parameters of quantum circuits, specifying the order in which values will be bound.
+            parameters: parameters of quantum circuits, specifying the order in which values
+            will be bound.
                 Defaults to ``[circ.parameters for circ in circuits]``
                 The indexing is such that ``parameters[i, j]`` is the j-th formal parameter of
                 ``circuits[i]``.

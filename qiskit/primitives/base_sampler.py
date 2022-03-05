@@ -33,7 +33,8 @@ The estimator is run with the following inputs.
   to be bound to the parameters of the quantum circuits.
   (list of list of float)
 
-The output is a SamplerResult which contains probabilities or quasi-probabilities of bitstrings, plus optional metadata like error bars in the samples.
+The output is a SamplerResult which contains probabilities or quasi-probabilities of bitstrings,
+plus optional metadata like error bars in the samples.
 
 The sampler object is expected to be closed after use or
 accessed within "with" context
