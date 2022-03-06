@@ -185,21 +185,21 @@ class TestReciprocal(QiskitAlgorithmsTestCase):
         qc.append(reciprocal, list(range(num_qubits + 1 + neg_vals)))
 
         # Create the operator 0
-        state_vec = quantum_info.Statevector.from_instruction(qc).data[-(2 ** num_qubits) :]
+        state_vec = quantum_info.Statevector.from_instruction(qc).data[-(2**num_qubits) :]
 
         # Remove the factor from the hadamards
         state_vec *= np.sqrt(2) ** num_qubits
 
         # Analytic value
         exact = []
-        for i in range(0, 2 ** num_qubits):
+        for i in range(0, 2**num_qubits):
             if i == 0:
                 exact.append(0)
             else:
                 if neg_vals:
-                    exact.append(-scaling / (1 - i / (2 ** num_qubits)))
+                    exact.append(-scaling / (1 - i / (2**num_qubits)))
                 else:
-                    exact.append(scaling * (2 ** num_qubits) / i)
+                    exact.append(scaling * (2**num_qubits) / i)
 
         np.testing.assert_array_almost_equal(state_vec, exact, decimal=2)
 

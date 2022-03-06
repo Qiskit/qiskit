@@ -113,14 +113,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
         if condition:
             reg, val = condition
             if isinstance(reg, Clbit):
-                idx = 0
-                for creg in circuit.cregs:
-                    if reg not in creg:
-                        idx += creg.size
-                    else:
-                        cond_reg = creg
-                        break
-                rule[0].condition = (c[idx + list(cond_reg).index(reg)], val)
+                rule[0].condition = (clbit_map[reg], val)
             elif reg.size == c.size:
                 rule[0].condition = (c, val)
             else:

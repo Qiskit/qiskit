@@ -1,0 +1,14 @@
+deprecations:
+  - |
+    The ``max_credits`` argument to :func:`~.execute_function.execute`, and all
+    of the ``Qobj`` configurations (e.g. :class:`.QasmQobjConfig` and
+    :class:`.PulseQobjConfig`), is deprecated and will be removed in a future
+    release.  The credit system has not been in use on IBM Quantum backends for
+    two years, and the option has no effect.  No alternative is necessary.
+    For example, if you were calling :func:`~.execute_function.execute` as::
+
+        job = execute(qc, backend, shots=4321, max_credits=10)
+
+    you can simply omit the ``max_credits`` argument::
+
+        job = execute(qc, backend, shots=4321)
