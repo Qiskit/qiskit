@@ -17,7 +17,7 @@ rand_pcg = "0.3"
 rand_distr = "0.4.3"
 
 [dependencies.pyo3]
-version = "0.16.0"
+version = "0.16.1"
 features = ["extension-module", "hashbrown"]
 
 [dependencies.ndarray]
