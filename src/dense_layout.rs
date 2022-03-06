@@ -146,7 +146,7 @@ pub fn best_subset(
                 error: std::f64::INFINITY,
                 subgraph: Vec::new(),
             },
-            |curr, best| {
+            |best, curr| {
                 if use_error {
                     if curr.count >= best.count && curr.error < best.error {
                         curr
