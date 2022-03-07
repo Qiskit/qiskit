@@ -128,7 +128,7 @@ class BaseEstimator(ABC):
         holds resources until the instance is ``close()`` ed or the context is exited.
 
         Args:
-            circuits: quantum circuits that represents quantum states
+            circuits: quantum circuits that represent quantum states
             observables: observables
             parameters: parameters of quantum circuits, specifying the order in which values
             will be bound.
