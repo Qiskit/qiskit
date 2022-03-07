@@ -53,7 +53,7 @@ from ...operator_base import OperatorBase
 from ...list_ops.list_op import ListOp
 from ...list_ops.composed_op import ComposedOp
 from ...list_ops.summed_op import SummedOp
-from ...operator_globals import Z, I, One, Zero
+from ...operator_globals import Z, I, Y, One, Zero
 from ...primitive_ops.primitive_op import PrimitiveOp
 from ...state_fns.state_fn import StateFn
 from ...state_fns.circuit_state_fn import CircuitStateFn
@@ -62,6 +62,7 @@ from ...state_fns.vector_state_fn import VectorStateFn
 from ...state_fns.sparse_vector_state_fn import SparseVectorStateFn
 from ...exceptions import OpflowError
 from .circuit_gradient import CircuitGradient
+from ...converters import PauliBasisChange
 
 
 class LinComb(CircuitGradient):
@@ -123,19 +124,19 @@ class LinComb(CircuitGradient):
                     is given, then the 2nd order derivative of the operator is calculated.
 
             aux_meas_op: The operator that the auxiliary qubit is measured with respect to.
-                For ``aux_meas_op = Z`` we compute Re[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉] and
-                for ``aux_meas_op = -Y`` we compute Im[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉].
+                For ``aux_meas_op = Z`` we compute Re[⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉],
+                for ``aux_meas_op = -Y`` we compute Im[⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉], and.
+                for ``aux_meas_op = Z-1jY`` we compute ⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω),
         Returns:
             An operator corresponding to the gradient resp. Hessian. The order is in accordance with
             the order of the given parameters.
         Raises:
-            ValueError: If the provided auxiliary measurement operator acts on more that 1 qubit.
+            ValueError: If the provided auxiliary measurement operator is not supported.
         """
-        if aux_meas_op.num_qubits != 1:
+        if aux_meas_op != Z and aux_meas_op != -Y and aux_meas_op != (Z-1j*Y):
             raise ValueError(
-                "The auxiliary measurement operator is only used to evaluate an "
-                "expectation value on one auxiliary qubit. Please define it "
-                "accordingly. "
+                "This auxiliary measurement operator is currently not supported please choose "
+                "either Z, -Y, or Z-1jY. "
             )
         return self._prepare_operator(operator, params, aux_meas_op)
 
@@ -288,12 +289,13 @@ class LinComb(CircuitGradient):
         return operator
 
     @staticmethod
-    def _grad_combo_fn(x, state_op, aux_meas_op):
+    def _grad_combo_fn(x, state_op):
         def get_result(item):
             if isinstance(item, (DictStateFn, SparseVectorStateFn)):
                 item = item.primitive
             if isinstance(item, VectorStateFn):
                 item = item.primitive.data
+
             if isinstance(item, dict):
                 prob_dict = {}
                 for key, val in item.items():
@@ -306,17 +308,12 @@ class LinComb(CircuitGradient):
                     prob_dict[key] *= 2
                 return prob_dict
             elif isinstance(item, scipy.sparse.spmatrix):
-                # TODO Generalize
-                if aux_meas_op != Z:
-                    raise ValueError(
-                        "Currently only Z measurements are supported for the chosen backend."
-                    )
                 # Generate the operator which computes the linear combination
                 trace = _z_exp(item)
                 return trace
             elif isinstance(item, Iterable):
                 # Generate the operator which computes the linear combination
-                lin_comb_op = 2 * aux_meas_op ^ (I ^ state_op.num_qubits)
+                lin_comb_op = 2 * Z ^ (I ^ state_op.num_qubits)
                 lin_comb_op = lin_comb_op.to_matrix()
                 outer = np.outer(item, item.conj())
                 return list(
@@ -353,6 +350,16 @@ class LinComb(CircuitGradient):
                         partial_trace(lin_comb_op.dot(np.outer(item, np.conj(item))), [0, 1]).data
                     )
                 )
+            elif isinstance(item, scipy.sparse.spmatrix):
+                # TODO Generalize
+                # if aux_meas_op != Z:
+                #     raise ValueError(
+                #         "Currently only Z measurements are supported for the chosen backend."
+                #     )
+                print('aux meas op sparse', aux_meas_op)
+                # Generate the operator which computes the linear combination
+                trace = _z_exp(item)
+                return trace
             elif isinstance(item, dict):
                 prob_dict = {}
                 for key, val in item.values():
@@ -693,12 +700,36 @@ class LinComb(CircuitGradient):
                             state = StateFn(meas_op, is_measurement=True) @ state
 
                         else:
-                            state = ListOp(
-                                [state],
-                                combo_fn=partial(
-                                    self._grad_combo_fn, state_op=state_op, aux_meas_op=aux_meas_op
-                                ),
-                            )
+                            if aux_meas_op == Z-1j*Y:
+                                state_z = ListOp([state], combo_fn=partial(self._grad_combo_fn,
+                                                                         state_op=state_op),
+                                               )
+                                pbc = PauliBasisChange(replacement_fn=
+                                                       PauliBasisChange.measurement_replacement_fn)
+                                pbc = pbc.convert(-Y ^ (I ^ (state.num_qubits - 1))
+                                                  )
+                                state_y = pbc[-1] @ state
+                                state_y = ListOp([state_y], combo_fn=partial(self._grad_combo_fn,
+                                                                         state_op=state_op),
+                                               )
+                                state = state_z - 1j * state_y
+
+                            elif aux_meas_op == -Y:
+                                pbc = PauliBasisChange(replacement_fn=
+                                                       PauliBasisChange.measurement_replacement_fn)
+                                pbc = pbc.convert(aux_meas_op ^ (I ^ (state.num_qubits - 1))
+                                                          )
+                                state = pbc[-1] @ state
+                                state = -1 * ListOp([state], combo_fn=partial(self._grad_combo_fn,
+                                                                         state_op=state_op),
+                                               )
+                            elif aux_meas_op == Z:
+                                state = ListOp([state], combo_fn=partial(self._grad_combo_fn,
+                                                                         state_op=state_op),
+                                               )
+                            else:
+                                raise ValueError('The decomposition of the auxiliary measurement '
+                                                 'operator went wrong.')
 
                         if param_expression != param:  # parameter is not identity, apply chain rule
                             param_grad = param_expression.gradient(param)
@@ -795,16 +826,44 @@ class LinComb(CircuitGradient):
                                 if meas_op is not None:
                                     state = StateFn(meas_op, is_measurement=True) @ state
                                 else:
-                                    # special operator for probability gradients
-                                    # uses combo_fn on list op with a single operator
-                                    state = ListOp(
-                                        [state],
-                                        combo_fn=partial(
-                                            self._hess_combo_fn,
-                                            state_op=state_op,
-                                            aux_meas_op=aux_meas_op,
-                                        ),
-                                    )
+                                    if aux_meas_op == Z - 1j * Y:
+                                        state_z = ListOp([state],
+                                                         combo_fn=partial(self._grad_combo_fn,
+                                                                          state_op=state_op),
+                                                         )
+                                        pbc = PauliBasisChange(replacement_fn=
+                                                               PauliBasisChange.measurement_replacement_fn)
+                                        pbc = pbc.convert(-Y ^ (I ^ (state.num_qubits - 1))
+                                                          )
+                                        state_y = pbc[-1] @ state
+                                        state_y = ListOp([state_y],
+                                                         combo_fn=partial(self._grad_combo_fn,
+                                                                          state_op=state_op),
+                                                         )
+                                        state = state_z - 1j * state_y
+
+                                    elif aux_meas_op == -Y:
+                                        pbc = PauliBasisChange(replacement_fn=
+                                                               PauliBasisChange.measurement_replacement_fn)
+                                        pbc = pbc.convert(aux_meas_op ^ (I ^ (state.num_qubits - 1))
+                                                          )
+                                        print(state)
+                                        state = pbc[-1] @ state
+                                        print('after')
+                                        print(state)
+                                        state = -1 * ListOp([state],
+                                                            combo_fn=partial(self._grad_combo_fn,
+                                                                             state_op=state_op),
+                                                            )
+                                    elif aux_meas_op == Z:
+                                        state = ListOp([state],
+                                                       combo_fn=partial(self._grad_combo_fn,
+                                                                        state_op=state_op),
+                                                       )
+                                    else:
+                                        raise ValueError(
+                                            'The decomposition of the auxiliary measurement '
+                                            'operator went wrong.')
 
                                 # Chain Rule Parameter Expression
                                 param_grad = 1
