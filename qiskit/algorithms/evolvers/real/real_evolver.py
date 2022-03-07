@@ -14,8 +14,8 @@
 
 from abc import ABC
 
-from qiskit.algorithms.evolvers import Evolver
+from .. import Evolver
 
 
-class RealEvolver(ABC, Evolver):
+class RealEvolver(Evolver, ABC):
     """Base class for Quantum Real Time Evolution used for typing purposes."""
