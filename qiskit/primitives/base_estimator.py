@@ -95,13 +95,13 @@ Here is an example of how estimator is used.
         # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
         #             <psi2(theta2)|H2|psi2(theta2)>,
         #             <psi1(theta3)|H3|psi1(theta3)> ]
-        psi12_H23_result = e([0, 0, 0], [0, 1, 2], [theta1, theta2, theta3])
+        psi12_H123_result = e([0, 0, 0], [0, 1, 2], [theta1, theta2, theta3])
         print(psi12_H23_result)
 """
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Callable, Iterable, Optional, Sequence
+from typing import Iterable, Optional, Sequence
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
@@ -128,7 +128,7 @@ class BaseEstimator(ABC):
         holds resources until the instance is ``close()`` ed or the context is exited.
 
         Args:
-            circuits: quantum circuits that represents quantum states
+            circuits: quantum circuits that represent quantum states
             observables: observables
             parameters: parameters of quantum circuits, specifying the order in which values
             will be bound.
@@ -228,6 +228,3 @@ class BaseEstimator(ABC):
             EstimatorResult: the result of Estimator.
         """
         ...
-
-
-EstimatorFactory = Callable[..., BaseEstimator]
