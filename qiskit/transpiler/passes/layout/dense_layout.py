@@ -52,10 +52,15 @@ class DenseLayout(AnalysisPass):
             self.adjacency_matrix = retworkx.adjacency_matrix(self.coupling_map.graph)
         self.error_mat = np.zeros((num_qubits, num_qubits))
         if self.backend_prop and self.coupling_map:
+            error_dict = {
+                tuple(gate.qubits): gate.parameters[0].value
+                for gate in self.backend_prop.gates
+                if len(gate.qubits) == 2
+            }
             for edge in self.coupling_map.get_edges():
-                for gate in self.backend_prop.gates:
-                    if gate.qubits == edge:
-                        self.error_mat[edge[0]][edge[1]] = gate.parameters[0].value
+                gate_error = error_dict.get(edge)
+                if gate_error is not None:
+                    self.error_mat[edge[0]][edge[1]] = gate_error
             for index, qubit_data in enumerate(self.backend_prop.qubits):
                 # Handle faulty qubits edge case
                 if index >= num_qubits:
