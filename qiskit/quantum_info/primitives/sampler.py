@@ -14,114 +14,65 @@ Sampler class
 """
 from __future__ import annotations
 
-from typing import Optional, Union, cast
+from collections.abc import Iterable, Sequence
+from typing import Optional
 
-from qiskit.circuit import QuantumCircuit
-from qiskit.compiler import transpile
-from qiskit.providers.backend import BackendV1 as Backend
-from qiskit.result import BaseReadoutMitigator, QuasiDistribution, Result
-from qiskit.transpiler import PassManager
+from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.exceptions import QiskitError
+from qiskit.primitives import BaseSampler, SamplerResult
+from qiskit.quantum_info import Statevector
+from qiskit.result import QuasiDistribution
 
-from ..framework.base_primitive import BasePrimitive
-from ..framework.utils import init_circuit
-from ..results import SamplerResult
+from .utils import init_circuit
 
 
-class Sampler(BasePrimitive):
+class Sampler(BaseSampler):
     """
     Sampler class
     """
 
     def __init__(
         self,
-        backend: Backend,
-        mitigator: Optional[BaseReadoutMitigator] = None,
-        circuits: Optional[Union[QuantumCircuit, list[QuantumCircuit]]] = None,
-        bound_pass_manager: Optional[PassManager] = None,
+        circuits: QuantumCircuit | Iterable[QuantumCircuit],
+        parameters: Optional[Iterable[Iterable[Parameter]]] = None,
     ):
         """
         Args:
-            backend: a backend or a backend wrapper
             circuits: circuits to be executed
         """
-        super().__init__(
-            backend=backend,
-            mitigator=mitigator,
-            bound_pass_manager=bound_pass_manager,
-        )
-        if circuits is None:
-            self._circuits = None
-        elif isinstance(circuits, list):
-            self._circuits = [init_circuit(circuit) for circuit in circuits]
-        else:
-            self._circuits = [init_circuit(circuits)]
+        if isinstance(circuits, QuantumCircuit):
+            circuits = [circuits]
+        circuits = [init_circuit(circuit).remove_final_measurements(False) for circuit in circuits]
+        super().__init__(circuits, parameters)
+        self._is_closed = False
 
-        self._skip_transpilation = False
-
-    @property
-    def circuits(self) -> list[QuantumCircuit]:
-        """A list of quantum circuits to be executed
-
-        Returns:
-            a list of quantum circuits
-        """
-        return self._circuits
-
-    @property
-    def preprocessed_circuits(self) -> Optional[list[QuantumCircuit]]:
-        return self._circuits
-
-    # pylint: disable=arguments-differ
-    def run(
+    def __call__(
         self,
-        parameters: Optional[Union[list[float], list[list[float]]]] = None,
-        circuits: Optional[list[QuantumCircuit]] = None,
+        circuits: Optional[Sequence[int]] = None,
+        parameters: Optional[Sequence[Sequence[float]]] = None,
         **run_options,
     ) -> SamplerResult:
-        if circuits is not None:
-            self._circuits = circuits
-        return cast(SamplerResult, super().run(parameters, **run_options))
+        if self._is_closed:
+            raise QiskitError("The primitive has been closed.")
 
-    @property
-    def backend(self) -> Backend:
-        """
-        Returns:
-            The backend which this sampler object based on
-        """
-        return self._backend
+        if circuits is None and parameters is not None and len(self._circuits) == 1:
+            circuits = [0] * len(parameters)
+        if circuits is None:
+            circuits = list(range(len(self._circuits)))
+        if parameters is None:
+            parameters = [[] for _ in self._circuits]
 
-    def _postprocessing(self, result: Result) -> SamplerResult:
-        if not isinstance(result, Result):
-            raise TypeError("result must be an instance of Result.")
-
-        counts = result.get_counts()
-        if not isinstance(counts, list):
-            counts = [counts]
-
-        shots = sum(counts[0].values())
-
-        quasis = []
-        for c in counts:
-            if self._mitigator is None:
-                quasis.append(QuasiDistribution({k: v / shots for k, v in c.items()}))
-            else:
-                quasis.append(self._mitigator.quasi_probabilities(c))
-
-        metadata = [res.header.metadata for res in result.results]
+        bound_circuits = [
+            self._circuits[i].bind_parameters((dict(zip(self._parameters[i], value))))
+            for i, value in zip(circuits, parameters)
+        ]
+        probabilities = [Statevector(circ).probabilities() for circ in bound_circuits]
+        quasis = [QuasiDistribution(dict(enumerate(p))) for p in probabilities]
 
         return SamplerResult(
             quasi_dists=quasis,
-            shots=shots,
-            raw_results=result,
-            metadata=metadata,
+            metadata={},
         )
 
-    def _transpile(self):
-        self._transpiled_circuits = cast(
-            "list[QuantumCircuit]",
-            transpile(
-                self.preprocessed_circuits,
-                self.backend,
-                **self.transpile_options.__dict__,
-            ),
-        )
+    def close(self):
+        self._is_closed = True
