@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed empty string :class:'PauliList' initialization 
+    For example::
+      from qiskit.quantum_info.operators import PauliList
+
+      pauli_list = PauliList(" ")
+      

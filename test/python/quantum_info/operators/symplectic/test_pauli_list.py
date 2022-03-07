@@ -98,6 +98,11 @@ class TestPauliListInit(QiskitTestCase):
     def test_string_init(self):
         """Test string initialization."""
         # String initialization
+        with self.subTest(msg='Test Empty String'):
+            pauli_list = PauliList(" ")
+            np.testing.assert_equal(pauli_list.z, np.empty)
+            np.testing.assert_equal(pauli_list.x, np.empty)
+
         with self.subTest(msg='str init "I"'):
             pauli_list = PauliList("I")
             z = np.array([[False]])
