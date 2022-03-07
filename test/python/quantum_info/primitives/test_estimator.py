@@ -12,8 +12,6 @@
 
 """Tests for ExpectationValue."""
 
-import unittest
-
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
@@ -39,14 +37,6 @@ class TestEstimator(QiskitTestCase):
                 ("XX", 0.18093119978423156),
             ]
         )
-
-    def test_evaluate(self):
-        """test for evaluate"""
-        observable = PauliSumOp.from_list([("XX", 1), ("YY", 2), ("ZZ", 3)])
-        ansatz = RealAmplitudes(num_qubits=2, reps=2)
-        with Estimator([ansatz], [observable]) as est:
-            result = est([0, 1, 1, 2, 3, 5])
-        self.assertAlmostEqual(result.values[0], 1.84209213)
 
     def test_init_from_statevector(self):
         """test initialization from statevector"""

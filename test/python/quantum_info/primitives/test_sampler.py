@@ -12,7 +12,6 @@
 
 """Tests for Sampler."""
 
-import unittest
 from test import combine
 
 from ddt import ddt
