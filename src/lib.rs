@@ -21,9 +21,6 @@ mod nlayout;
 mod pauli_exp_val;
 mod stochastic_swap;
 
-use crate::pauli_exp_val::PyInit_pauli_expval;
-use crate::stochastic_swap::PyInit_stochastic_swap;
-
 #[inline]
 pub fn eval_parallel_env() -> bool {
     let parallel_context = env::var("QISKIT_IN_PARALLEL")
@@ -39,7 +36,7 @@ pub fn eval_parallel_env() -> bool {
 
 #[pymodule]
 fn _accelerate(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
-    m.add_wrapped(wrap_pymodule!(stochastic_swap))?;
-    m.add_wrapped(wrap_pymodule!(pauli_expval))?;
+    m.add_wrapped(wrap_pymodule!(stochastic_swap::stochastic_swap))?;
+    m.add_wrapped(wrap_pymodule!(pauli_exp_val::pauli_expval))?;
     Ok(())
 }
