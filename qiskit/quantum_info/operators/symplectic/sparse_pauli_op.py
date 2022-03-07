@@ -13,12 +13,10 @@
 N-Qubit Sparse Pauli Operator class.
 """
 
-from collections import defaultdict
 from numbers import Number
 from typing import Dict
 
 import numpy as np
-import retworkx as rx
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
