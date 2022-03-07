@@ -18,9 +18,11 @@ use hashbrown::HashMap;
 use ndarray::{ArrayView1, Axis};
 use numpy::{IntoPyArray, PyReadonlyArray2};
 
+/// TODO
+/// Args:
+///     array (ndarray):
 #[pyfunction]
-#[pyo3(text_signature = "(array, /)")]
-pub fn unique(array: PyReadonlyArray2<u16>, py: Python) -> (PyObject, PyObject) {
+pub fn unordered_unique(py: Python, array: PyReadonlyArray2<u16>) -> (PyObject, PyObject) {
     let array = array.as_array();
     let shape = array.shape();
     let mut table = HashMap::<ArrayView1<u16>, usize>::with_capacity(shape[0]);
@@ -44,7 +46,7 @@ pub fn unique(array: PyReadonlyArray2<u16>, py: Python) -> (PyObject, PyObject) 
 }
 
 #[pymodule]
-pub fn array_unique(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(unique))?;
+pub fn sparse_pauli_op(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_wrapped(wrap_pyfunction!(unordered_unique))?;
     Ok(())
 }

@@ -28,7 +28,7 @@ from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.symplectic.pauli_utils import pauli_basis
 from qiskit.utils.deprecation import deprecate_function
-from qiskit._accelerate.array_unique import unique
+from qiskit._accelerate.sparse_pauli_op import unordered_unique
 
 
 class SparsePauliOp(LinearOp):
@@ -386,31 +386,11 @@ class SparsePauliOp(LinearOp):
 
         # Pack bool vectors into np.uint8 vectors by np.packbits
         array = np.packbits(self.paulis.x, axis=1) * 256 + np.packbits(self.paulis.z, axis=1)
+        indexes, inverses = unordered_unique(array)
 
-        def _unique(array):
-            # This function corresponds to
-            # _, indexes, inverses = np.unique(array, return_index=True, return_inverse=True, axis=0)
-            #
-            # But, note that this does not sort the array while np.unique sorts the array.
-            table = {}
-            indexes = []
-            inverses = np.empty(array.shape[0], dtype=int)
-            for i, ary in enumerate(array):
-                b = ary.data.tobytes()
-                if b in table:
-                    inverses[i] = table[b]
-                else:
-                    inverses[i] = table[b] = len(table)
-                    indexes.append(i)
-            return indexes, inverses
-
-        indexes, inverses = unique(array)
-        # _, indexes, inverses = np.unique(array, return_index=True, return_inverse=True, axis=0)
-
-        if len(indexes) == array.shape[0]:
+        if indexes.shape[0] == array.shape[0]:
             # No duplicate operator
             return self.copy()
-        indexes = np.asarray(indexes)
 
         coeffs = np.zeros(indexes.shape[0], dtype=complex)
         np.add.at(coeffs, inverses, self.coeffs)
