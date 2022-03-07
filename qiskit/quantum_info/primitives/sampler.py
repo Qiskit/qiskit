@@ -20,7 +20,7 @@ from typing import Optional
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.primitives import BaseSampler, SamplerResult
-from qiskit.quantum_info import Statevector
+from qiskit.quantum_info.operators import Statevector
 from qiskit.result import QuasiDistribution
 
 from .utils import init_circuit
@@ -34,7 +34,7 @@ class Sampler(BaseSampler):
     def __init__(
         self,
         circuits: QuantumCircuit | Iterable[QuantumCircuit],
-        parameters: Optional[Iterable[Iterable[Parameter]]] = None,
+        parameters: Iterable[Iterable[Parameter]] | None = None,
     ):
         """
         Args:

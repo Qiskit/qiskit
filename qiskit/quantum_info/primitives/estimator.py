@@ -23,7 +23,7 @@ import numpy as np
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.primitives import BaseEstimator, EstimatorResult
-from qiskit.quantum_info import Statevector
+from qiskit.quantum_info.operators import Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .utils import PauliSumOp, init_circuit, init_observable
