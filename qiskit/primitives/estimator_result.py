@@ -40,4 +40,4 @@ class EstimatorResult:
     """
 
     values: "np.ndarray[Any, np.dtype[np.float64]]"
-    metadata: list[dict[str, Any]]
+    metadata: list[dict[str, Any]] | None = None

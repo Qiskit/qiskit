@@ -101,7 +101,7 @@ Here is an example of how estimator is used.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Iterable, Optional, Sequence
+from collections.abc import Iterable, Sequence
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
@@ -121,7 +121,7 @@ class BaseEstimator(ABC):
         self,
         circuits: Iterable[QuantumCircuit],
         observables: Iterable[SparsePauliOp],
-        parameters: Optional[Iterable[Iterable[Parameter]]] = None,
+        parameters: Iterable[Iterable[Parameter]] | None = None,
     ):
         """
         Creating an instance of an Estimator, or using one in a ``with`` context opens a session that

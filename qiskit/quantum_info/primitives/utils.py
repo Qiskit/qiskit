@@ -14,7 +14,6 @@ Utility funtions for expectation value classes
 """
 
 import sys
-from dataclasses import dataclass
 from typing import Union
 
 from qiskit.circuit import ParameterExpression, QuantumCircuit

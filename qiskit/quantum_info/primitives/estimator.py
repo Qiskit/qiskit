@@ -94,7 +94,7 @@ class Estimator(BaseEstimator):
         ]
         expectation_values = np.real_if_close(expectation_values)
 
-        return EstimatorResult(expectation_values, metadata={})
+        return EstimatorResult(np.array(expectation_values, np.float64))
 
     def close(self):
         self._is_closed = True

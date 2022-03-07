@@ -69,10 +69,7 @@ class Sampler(BaseSampler):
         probabilities = [Statevector(circ).probabilities() for circ in bound_circuits]
         quasis = [QuasiDistribution(dict(enumerate(p))) for p in probabilities]
 
-        return SamplerResult(
-            quasi_dists=quasis,
-            metadata={},
-        )
+        return SamplerResult(quasi_dists=quasis)
 
     def close(self):
         self._is_closed = True
