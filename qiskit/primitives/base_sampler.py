@@ -59,7 +59,7 @@ Here is an example of how sampler is used.
         print([q.binary_probabilities() for q in result.quasi_dists])
 
     # executes three Bell circuits
-    with Sampler([bell]*3, [[]]) as sampler:
+    with Sampler([bell]*3, [[]] * 3) as sampler:
         result = sampler([0, 1, 2], [[]]*3)
         print([q.binary_probabilities() for q in result.quasi_dists])
 
