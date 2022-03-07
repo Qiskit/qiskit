@@ -286,9 +286,10 @@ class SparsePauliOp(LinearOp):
             z4[:, qargs] = z3
             pauli_list = PauliList(BasePauli(z4, x4, phase))
 
-        # note: equivalent to `coeffs = np.kron(self.coeffs, other.coeffs)`
+        # note: the following is a faster code equivalent to
+        # `coeffs = np.kron(self.coeffs, other.coeffs)`
         # since `self.coeffs` and `other.coeffs` are both 1d arrays.
-        coeffs = np.ravel(self.coeffs[:, np.newaxis] @ other.coeffs[np.newaxis])
+        coeffs = np.multiply.outer(self.coeffs, other.coeffs).ravel()
         return SparsePauliOp(pauli_list, coeffs, copy=False)
 
     def tensor(self, other):
