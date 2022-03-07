@@ -14,6 +14,8 @@
 
 from abc import ABC
 
+from qiskit.algorithms.evolvers import Evolver
 
-class ImaginaryEvolver(ABC):
+
+class ImaginaryEvolver(ABC, Evolver):
     """Base class for Quantum Imaginary Time Evolution used for typing purposes."""
