@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2021.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -32,6 +32,8 @@ from qiskit.utils.backend_utils import (
     is_aer_qasm,
     is_basicaer_provider,
     support_backend_options,
+    _get_backend_provider,
+    _get_backend_interface_version,
 )
 from qiskit.utils.mitigation import (
     CompleteMeasFitter,
@@ -148,7 +150,7 @@ class QuantumInstance:
         # run config
         shots: Optional[int] = None,
         seed_simulator: Optional[int] = None,
-        max_credits: int = 10,
+        max_credits: int = None,
         # backend properties
         basis_gates: Optional[List[str]] = None,
         coupling_map=None,
@@ -183,7 +185,9 @@ class QuantumInstance:
             shots: Number of repetitions of each circuit, for sampling. If None, the shots are
                 extracted from the backend. If the backend has none set, the default is 1024.
             seed_simulator: Random seed for simulators
-            max_credits: Maximum credits to use
+            max_credits: DEPRECATED This parameter is deprecated as of
+                Qiskit Terra 0.20.0, and will be removed in a future release. This parameter has
+                no effect on modern IBM Quantum systems, and no alternative is necessary.
             basis_gates: List of basis gate names supported by the
                 target. Defaults to basis gates of the backend.
             coupling_map (Optional[Union['CouplingMap', List[List]]]):
@@ -237,15 +241,16 @@ class QuantumInstance:
             QiskitError: set backend_options but the backend does not support that
         """
         self._backend = backend
+        self._backend_interface_version = _get_backend_interface_version(self._backend)
         self._pass_manager = pass_manager
         self._bound_pass_manager = bound_pass_manager
 
         # if the shots are none, try to get them from the backend
         if shots is None:
             from qiskit.providers.basebackend import BaseBackend  # pylint: disable=cyclic-import
-            from qiskit.providers.backend import BackendV1  # pylint: disable=cyclic-import
+            from qiskit.providers.backend import Backend  # pylint: disable=cyclic-import
 
-            if isinstance(backend, (BaseBackend, BackendV1)):
+            if isinstance(backend, (BaseBackend, Backend)):
                 if hasattr(backend, "options"):  # should always be true for V1
                     backend_shots = backend.options.get("shots", 1024)
                     if shots != backend_shots:
@@ -262,6 +267,15 @@ class QuantumInstance:
         # pylint: disable=cyclic-import
         from qiskit.assembler.run_config import RunConfig
 
+        if max_credits is not None:
+            warnings.warn(
+                "The `max_credits` parameter is deprecated as of Qiskit Terra 0.20.0, "
+                "and will be removed in a future release. This parameter has no effect on "
+                "modern IBM Quantum systems, and no alternative is necessary.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         run_config = RunConfig(shots=shots, max_credits=max_credits)
         if seed_simulator is not None:
             run_config.seed_simulator = seed_simulator
@@ -269,9 +283,12 @@ class QuantumInstance:
         self._run_config = run_config
 
         # setup backend config
-        basis_gates = basis_gates or backend.configuration().basis_gates
-        coupling_map = coupling_map or getattr(backend.configuration(), "coupling_map", None)
-        self._backend_config = {"basis_gates": basis_gates, "coupling_map": coupling_map}
+        if self._backend_interface_version <= 1:
+            basis_gates = basis_gates or backend.configuration().basis_gates
+            coupling_map = coupling_map or getattr(backend.configuration(), "coupling_map", None)
+            self._backend_config = {"basis_gates": basis_gates, "coupling_map": coupling_map}
+        else:
+            self._backend_config = {}
 
         # setup compile config
         self._compile_config = {
@@ -295,7 +312,7 @@ class QuantumInstance:
                     "The noise model is not supported "
                     "on the selected backend {} ({}) "
                     "only certain backends, such as Aer qasm simulator "
-                    "support noise.".format(self.backend_name, self._backend.provider())
+                    "support noise.".format(self.backend_name, _get_backend_provider(self._backend))
                 )
 
         # setup backend options for run
@@ -363,7 +380,7 @@ class QuantumInstance:
         info = f"\nQiskit Terra version: {terra_version}\n"
         info += "Backend: '{} ({})', with following setting:\n{}\n{}\n{}\n{}\n{}\n{}".format(
             self.backend_name,
-            self._backend.provider(),
+            _get_backend_provider(self._backend),
             self._backend_config,
             self._compile_config,
             self._run_config,
@@ -480,14 +497,24 @@ class QuantumInstance:
             build_measurement_error_mitigation_qobj,
         )
 
-        # maybe compile
-        if not had_transpiled:
+        if had_transpiled:
+            # Convert to a list or make a copy.
+            # The measurement mitigation logic expects a list and
+            # may change it in place. This makes sure that logic works
+            # and any future logic that may change the input.
+            # It also makes the code easier: it will always deal with a list.
+            if isinstance(circuits, list):
+                circuits = circuits.copy()
+            else:
+                circuits = [circuits]
+        else:
+            # transpile here, the method always returns a copied list
             circuits = self.transpile(circuits)
 
-        from qiskit.providers import BackendV1
+        from qiskit.providers import Backend
 
-        circuit_job = isinstance(self._backend, BackendV1)
-        if self.is_statevector and self._backend.name() == "aer_simulator_statevector":
+        circuit_job = isinstance(self._backend, Backend)
+        if self.is_statevector and self.backend_name == "aer_simulator_statevector":
             try:
                 from qiskit.providers.aer.library import SaveStatevector
 
@@ -815,7 +842,7 @@ class QuantumInstance:
                 if not support_backend_options(self._backend):
                     raise QiskitError(
                         "backend_options can not be used with this backend "
-                        "{} ({}).".format(self.backend_name, self._backend.provider())
+                        "{} ({}).".format(self.backend_name, _get_backend_provider(self._backend))
                     )
 
                 if k in QuantumInstance._BACKEND_OPTIONS_QASM_ONLY and self.is_statevector:
@@ -832,7 +859,7 @@ class QuantumInstance:
                     raise QiskitError(
                         "The noise model is not supported on the selected backend {} ({}) "
                         "only certain backends, such as Aer qasm support "
-                        "noise.".format(self.backend_name, self._backend.provider())
+                        "noise.".format(self.backend_name, _get_backend_provider(self._backend))
                     )
 
                 self._noise_config[k] = v
@@ -946,7 +973,10 @@ class QuantumInstance:
     @property
     def backend_name(self):
         """Return backend name."""
-        return self._backend.name()
+        if self._backend_interface_version <= 1:
+            return self._backend.name()
+        else:
+            return self._backend.name
 
     @property
     def is_statevector(self):

@@ -15,14 +15,14 @@
 from warnings import warn
 from typing import List, Optional, Union, Tuple
 import numpy as np
-from scipy.linalg import schur
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
 from .instruction import Instruction
+from .operation import Operation
 
 
-class Gate(Instruction):
+class Gate(Instruction, Operation):
     """Unitary gate."""
 
     def __init__(
@@ -71,6 +71,7 @@ class Gate(Instruction):
         """
         from qiskit.quantum_info.operators import Operator  # pylint: disable=cyclic-import
         from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
+        from scipy.linalg import schur
 
         # Should be diagonalized because it's a unitary.
         decomposition, unitary = schur(Operator(self).data, output="complex")
