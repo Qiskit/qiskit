@@ -430,10 +430,8 @@ class FakeBackendV2(BackendV2):
                 job = sim.run(circuits, system_model=system_model, **kwargs)
             else:
                 sim = aer.Aer.get_backend("qasm_simulator")
-                if self.properties():
-                    from qiskit.providers.aer.noise import NoiseModel
-
-                    noise_model = NoiseModel.from_backend(self, warnings=False)
+                if self._props_dict:
+                    noise_model = self._get_noise_model_from_backend_v2(self, warnings=False)
                     job = sim.run(circuits, noise_model=noise_model, **kwargs)
                 else:
                     job = sim.run(circuits, **kwargs)
@@ -471,7 +469,7 @@ class FakeBackendV2(BackendV2):
         )
         from qiskit.providers.aer.noise.passes import RelaxationNoisePass
 
-        properties = self.properties()
+        properties = BackendProperties.from_dict(self._props_dict)
         basis_gates = self.operation_names
         num_qubits = self.num_qubits
         dt = self.dt
