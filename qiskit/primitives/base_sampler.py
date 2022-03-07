@@ -63,7 +63,7 @@ Here is an example of how sampler is used.
         result = sampler([0, 1, 2], [[]]*3)
         print([q.binary_probabilities() for q in result.quasi_dists])
 
-    # parametrized circuit
+    # parameterized circuit
     pqc = RealAmplitudes(num_qubits=2, reps=2)
     pqc.measure_all()
     pqc2 = RealAmplitudes(num_qubits=2, reps=3)
