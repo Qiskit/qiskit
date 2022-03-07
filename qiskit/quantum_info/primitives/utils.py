@@ -78,11 +78,3 @@ def init_observable(observable: Union[BaseOperator, PauliSumOp]) -> SparsePauliO
     if isinstance(observable, BaseOperator):
         return SparsePauliOp.from_operator(observable)
     return SparsePauliOp(observable)
-
-
-@dataclass(frozen=True)
-class Group:
-    """The dataclass represents indices of circuit and observable."""
-
-    circuit_index: int
-    observable_index: int
