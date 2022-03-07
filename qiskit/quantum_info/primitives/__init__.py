@@ -16,6 +16,5 @@ Evaluators (:mod:`qiskit.evaluators`)
 It contains evaluator primitives.
 """
 
-from .estimator import ExactEstimator, PauliEstimator
+from .estimator import Estimator
 from .sampler import Sampler
-from .framework import Group

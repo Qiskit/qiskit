@@ -38,7 +38,7 @@ from .base_estimator import BaseEstimator, Group
 logger = logging.getLogger(__name__)
 
 
-class PauliEstimator(BaseEstimator):
+class Estimator(BaseEstimator):
     """
     Evaluates expectation value using pauli rotation gates.
     """
