@@ -16,15 +16,15 @@ Expectation value class
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import Optional
+from typing import Optional, cast
 
 import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.primitives import BaseEstimator, EstimatorResult
-from qiskit.quantum_info.states import Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.states import Statevector
 
 from .utils import PauliSumOp, init_circuit, init_observable
 
@@ -66,6 +66,7 @@ class Estimator(BaseEstimator):
             raise QiskitError("The primitive has been closed.")
 
         if parameters and not isinstance(parameters[0], Sequence):
+            parameters = cast("Sequence[float]", parameters)
             parameters = [parameters]
         if (
             circuits is None
@@ -94,7 +95,7 @@ class Estimator(BaseEstimator):
         ]
         expectation_values = np.real_if_close(expectation_values)
 
-        return EstimatorResult(np.array(expectation_values, np.float64))
+        return EstimatorResult(np.array(expectation_values, np.float64), [])
 
     def close(self):
         self._is_closed = True

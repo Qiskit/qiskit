@@ -35,4 +35,4 @@ class SamplerResult:
     """
 
     quasi_dists: list[QuasiDistribution]
-    metadata: list[dict[str, Any]] | None = None
+    metadata: list[dict[str, Any]]
