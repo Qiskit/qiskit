@@ -18,7 +18,7 @@ Gradients are taken w.r.t. to a time parameter using the finite difference metho
 a Hamiltonian is time-dependent via t_param = Parameter("t")) and/or w.r.t. parameters present in a
 Hamiltonian using an expectation value through a custom observable."""
 
-from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.trotter_qrte import (
+from qiskit.algorithms.evolvers.real.trotterization.trotter_qrte import (
     TrotterQrte,
 )
 

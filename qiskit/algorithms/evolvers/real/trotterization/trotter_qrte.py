@@ -14,27 +14,22 @@
 
 from typing import Union, Dict
 
-from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization\
-    .trotter_ops_validator import (
-    _validate_input,
+from ... import EvolutionProblem, EvolutionResult, RealEvolver
+from trotter_ops_validator import (
     _is_op_bound,
 )
-from qiskit.algorithms.quantum_time_evolution.real.qrte import Qrte
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
     OperatorBase,
-    StateFn,
     SummedOp,
-    PauliSumOp,
     PauliOp,
     CircuitOp,
 )
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.quantum_info import Pauli
 from qiskit.synthesis import ProductFormula, LieTrotter
 
 
-class TrotterQrte(Qrte):
+class TrotterQrte(RealEvolver):
     """ Class for performing Quantum Real Time Evolution using Trotterization.
     Type of Trotterization is defined by a ProductFormula provided.
 
@@ -43,15 +38,17 @@ class TrotterQrte(Qrte):
         .. jupyter-execute::
 
             from qiskit.opflow import X, Y, Zero
-            from qiskit.algorithms.quantum_time_evolution.real.implementations.\
+            from qiskit.algorithms import EvolutionProblem, EvolutionResult
+            from qiskit.algorithms.evolvers.real.implementations.\
                 trotterization.trotter_qrte import TrotterQrte
 
             operator = X + Z
-            # LieTrotter with 1 rep
-            trotter_qrte = TrotterQrte()
             initial_state = Zero
             time = 1
-            evolved_state = trotter_qrte.evolve(operator, time, initial_state)
+            evolution_problem = EvolutionProblem(operator, 1, initial_state)
+            # LieTrotter with 1 rep
+            trotter_qrte = TrotterQrte(evolution_problem)
+            evolved_state = trotter_qrte.evolve().evolved_state
     """
 
     def __init__(self, product_formula: ProductFormula = LieTrotter()) -> None:
@@ -62,63 +59,41 @@ class TrotterQrte(Qrte):
         """
         self.product_formula = product_formula
 
-    def evolve(
-        self,
-        hamiltonian: Union[Pauli, PauliOp, PauliSumOp],
-        time: float,
-        initial_state: StateFn = None,
-        observable: OperatorBase = None,
-        t_param: Parameter = None,
-        hamiltonian_value_dict: Dict[Parameter, Union[float, complex]] = None,
-    ) -> StateFn:
+    # TODO aux ops
+    def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
         """
-        Evolves a quantum state or an observable for a given time using the Trotterization method
+        Evolves a quantum state for a given time using the Trotterization method
         based on a product formula provided.
         Time-dependent Hamiltonians are not yet supported.
 
         Args:
-            hamiltonian:
-                The operator to evolve. Can also be provided as list of non-commuting
-                operators where the elements are sums of commuting operators.
-                For example: ``[XY + YX, ZZ + ZI + IZ, YY]``.
-            time: Total time of evolution.
-            initial_state: If interested in a quantum state time evolution, a quantum state to be
-                evolved.
-            observable: If interested in a quantum observable time evolution, a quantum observable
-                to be evolved.
-            t_param: Not supported by this algorithm.
-            hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
-                certain values.
+            evolution_problem: Instance defining evolution problem.
 
         Returns:
-            The evolved hamiltonian applied to either an initial state or an observable.
+            Evolution result that includes an evolved state.
 
         Raises:
             ValueError: If t_param is not set to None (feature not currently supported).
         """
-        if t_param is not None:
+        if evolution_problem.t_param is not None:
             raise ValueError(
                 "TrotterQrte does not accept a time dependent hamiltonian,"
                 "t_param should be set to None."
             )
 
-        hamiltonian = self._try_binding_params(hamiltonian, hamiltonian_value_dict)
-        _validate_input(initial_state, observable)
+        hamiltonian = self._try_binding_params(
+            evolution_problem.hamiltonian, evolution_problem.hamiltonian_value_dict
+        )
         # the evolution gate
         evolution_gate = CircuitOp(
-            PauliEvolutionGate(hamiltonian, time, synthesis=self.product_formula)
+            PauliEvolutionGate(hamiltonian, evolution_problem.time, synthesis=self.product_formula)
         )
 
-        if initial_state is not None:
-            return (evolution_gate @ initial_state).eval()
-        if observable is not None:
-            # TODO Temporary patch due to terra bug
-            evolution_gate_adjoint = CircuitOp(
-                PauliEvolutionGate(hamiltonian[::-1], -time, synthesis=self.product_formula)
-            )
-            return evolution_gate_adjoint @ observable @ evolution_gate
+        if evolution_problem.initial_state is not None:
+            evolved_state = (evolution_gate @ evolution_problem.initial_state).eval()
+            return EvolutionResult(evolved_state)
 
-        raise ValueError("Either initial_state or observable must be provided.")
+        raise ValueError("initial_state must be provided.")
 
     @staticmethod
     def _try_binding_params(
@@ -169,4 +144,3 @@ class TrotterQrte(Qrte):
                 f"Provided a Hamiltonian of an unsupported type: {type(hamiltonian)}. Only "
                 f"SummedOp, PauliOp, and OperatorBase base are supported by TrotterQrte."
             )
-

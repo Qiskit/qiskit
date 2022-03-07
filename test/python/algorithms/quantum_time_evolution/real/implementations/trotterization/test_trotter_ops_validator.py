@@ -18,8 +18,7 @@ from test.python.opflow import QiskitOpflowTestCase
 from ddt import ddt, data, unpack
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.\
-    trotter_ops_validator import (
+from qiskit.algorithms.evolvers.real.trotterization.trotter_ops_validator import (
     _validate_hamiltonian_form,
     _is_pauli_lin_single_param,
 )

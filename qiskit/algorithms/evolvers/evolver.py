@@ -14,8 +14,8 @@
 
 from abc import ABC, abstractmethod
 
-from .evolution_problem import EvolutionProblem
-from .evolution_result import EvolutionResult
+from . import EvolutionProblem
+from . import EvolutionResult
 
 
 class Evolver(ABC):
