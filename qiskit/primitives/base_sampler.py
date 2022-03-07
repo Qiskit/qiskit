@@ -89,7 +89,7 @@ Here is an example of how sampler is used.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Callable, Iterable, Sequence
+from typing import Iterable, Sequence
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
@@ -177,6 +177,3 @@ class BaseSampler(ABC):
             ``self.circuits[circuits[i]]`` evaluated with parameters bound as ``parameters[i]``.
         """
         ...
-
-
-SamplerFactory = Callable[..., BaseSampler]

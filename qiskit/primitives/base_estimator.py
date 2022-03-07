@@ -101,7 +101,7 @@ Here is an example of how estimator is used.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Callable, Iterable, Optional, Sequence
+from typing import Iterable, Optional, Sequence
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
@@ -228,6 +228,3 @@ class BaseEstimator(ABC):
             EstimatorResult: the result of Estimator.
         """
         ...
-
-
-EstimatorFactory = Callable[..., BaseEstimator]
