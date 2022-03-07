@@ -77,13 +77,13 @@ Here is an example of how sampler is used.
         result = sampler([0, 0, 1], [theta1, theta2, theta3])
 
         # result of pqc(theta1)
-        print([q.binary_probabilities() for q in result.quasi_dists[0]])
+        print(result.quasi_dists[0].binary_probabilities())
 
         # result of pqc(theta2)
-        print([q.binary_probabilities() for q in result.quasi_dists[1]])
+        print(result.quasi_dists[1].binary_probabilities())
 
         # result of pqc2(theta3)
-        print([q.binary_probabilities() for q in result.quasi_dists[2]])
+        print(result.quasi_dists[2].binary_probabilities())
 
 """
 from __future__ import annotations
