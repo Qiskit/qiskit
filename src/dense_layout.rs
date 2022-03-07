@@ -67,6 +67,31 @@ fn bfs_sort(adj_matrix: ArrayView2<f64>, start: usize) -> Vec<usize> {
     bfs_order
 }
 
+/// Find the best subset in the coupling graph
+///
+/// This function will find the best densely connected subgraph in the
+/// coupling graph to run the circuit on. It factors in measurement error and
+/// cx error if specified.
+///
+/// Args:
+///
+///     num_qubits (int): The number of circuit qubits
+///     coupling_adjacency (numpy.ndarray): An adjacency matrix for the
+///         coupling graph.
+///     num_meas (int): The number of measurement operations in the circuit
+///     num_cx (int): The number of CXGates that are in the circuit
+///     use_error (bool): Set to True to use the error
+///     symmetric_coupling_map (bool): Is the coupling graph symmetric
+///     error_matrix (numpy.ndarray): A 2D array that represents the error
+///         rates on the target device. The diagonal is the measurement error
+///         error rate on that qubit and then the other positions are the
+///         2q/cx error rate between the 2 indices.
+///
+/// Returns:
+///     (rows, cols, best_map): A tuple of the rows, columns and the best
+///     mapping found by the function. This can be used to efficiently create
+///     a sparse matrix that maps the layout of virtual qubits
+///     (0 to ``num_qubits``) to the physical qubits on the coupling graph.
 #[pyfunction]
 pub fn best_subset(
     py: Python,
