@@ -656,24 +656,6 @@ class SparsePauliOp(LinearOp):
 
         return MatrixIterator(self)
 
-    def grouping(self):
-        """Partition a SparsePauliOp into sets of commuting Pauli strings.
-
-        Returns:
-            List[SparsePauliOp]: List of SparsePauliOp where each SparsePauliOp contains commutable
-                Pauli operators.
-        """
-        edges = self.paulis._noncommutation_graph()
-        graph = rx.PyGraph()
-        graph.add_nodes_from(range(self.size))
-        graph.add_edges_from_no_data(edges)
-        # Keys in coloring_dict are nodes, values are colors
-        coloring_dict = rx.graph_greedy_color(graph)
-        groups = defaultdict(list)
-        for idx, color in coloring_dict.items():
-            groups[color].append(idx)
-        return [self[group] for group in groups.values()]
-
 
 # Update docstrings for API docs
 generate_apidocs(SparsePauliOp)
