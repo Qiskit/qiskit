@@ -14,10 +14,6 @@
 
 from typing import Union, Dict
 
-from ... import EvolutionProblem, EvolutionResult, RealEvolver
-from trotter_ops_validator import (
-    _is_op_bound,
-)
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
     OperatorBase,
@@ -27,6 +23,8 @@ from qiskit.opflow import (
 )
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.synthesis import ProductFormula, LieTrotter
+from .trotter_ops_validator import _is_op_bound
+from ... import EvolutionProblem, EvolutionResult, RealEvolver
 
 
 class TrotterQrte(RealEvolver):

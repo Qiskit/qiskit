@@ -32,7 +32,6 @@ from qiskit.opflow import (
     Zero,
     VectorStateFn,
     StateFn,
-    MatrixOp,
     I,
     Y,
 )
