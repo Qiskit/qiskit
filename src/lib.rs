@@ -19,12 +19,9 @@ mod nlayout;
 mod sparse_pauli_op;
 mod stochastic_swap;
 
-use crate::sparse_pauli_op::PyInit_sparse_pauli_op;
-use crate::stochastic_swap::PyInit_stochastic_swap;
-
 #[pymodule]
 fn _accelerate(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
-    m.add_wrapped(wrap_pymodule!(stochastic_swap))?;
-    m.add_wrapped(wrap_pymodule!(sparse_pauli_op))?;
+    m.add_wrapped(wrap_pymodule!(stochastic_swap::stochastic_swap))?;
+    m.add_wrapped(wrap_pymodule!(sparse_pauli_op::sparse_pauli_op))?;
     Ok(())
 }
