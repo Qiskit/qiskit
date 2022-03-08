@@ -40,19 +40,31 @@ class TestEstimator(QiskitTestCase):
 
     def test_estimator(self):
         """test for a simple use case"""
-        observable = SparsePauliOp.from_list([("XX", 1), ("YY", 2), ("ZZ", 3)])
-        ansatz = RealAmplitudes(num_qubits=2, reps=2)
-        with Estimator([ansatz], [observable]) as est:
-            result = est([0, 1, 1, 2, 3, 5])
-        self.assertAlmostEqual(result.values[0], 1.84209213)
+        lst = [("XX", 1), ("YY", 2), ("ZZ", 3)]
+        with self.subTest("PauliSumOp"):
+            observable = PauliSumOp.from_list(lst)
+            ansatz = RealAmplitudes(num_qubits=2, reps=2)
+            with Estimator([ansatz], [observable]) as est:
+                result = est(parameters=[0, 1, 1, 2, 3, 5])
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [1.84209213])
+
+        with self.subTest("SparsePauliOp"):
+            observable = SparsePauliOp.from_list(lst)
+            ansatz = RealAmplitudes(num_qubits=2, reps=2)
+            with Estimator([ansatz], [observable]) as est:
+                result = est(parameters=[0, 1, 1, 2, 3, 5])
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [1.84209213])
 
     def test_estimator_param_reverse(self):
         """test for the reverse parameter"""
-        observable = SparsePauliOp.from_list([("XX", 1), ("YY", 2), ("ZZ", 3)])
+        observable = PauliSumOp.from_list([("XX", 1), ("YY", 2), ("ZZ", 3)])
         ansatz = RealAmplitudes(num_qubits=2, reps=2)
         with Estimator([ansatz], [observable], [ansatz.parameters[::-1]]) as est:
             result = est(parameters=[0, 1, 1, 2, 3, 5][::-1])
-        self.assertAlmostEqual(result.values[0], 1.84209213)
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [1.84209213])
 
     def test_init_from_statevector(self):
         """test initialization from statevector"""
@@ -63,7 +75,7 @@ class TestEstimator(QiskitTestCase):
             np.testing.assert_allclose(est.circuits[0][0][0].params, vector)
             result = est()
         self.assertIsInstance(result, EstimatorResult)
-        self.assertAlmostEqual(result.values[0], -0.88272215)
+        np.testing.assert_allclose(result.values, [-0.88272215])
 
     def test_init_observable_from_operator(self):
         """test for evaluate without parameters"""
@@ -79,14 +91,14 @@ class TestEstimator(QiskitTestCase):
         with Estimator([circuit], [matrix]) as est:
             result = est()
         self.assertIsInstance(result, EstimatorResult)
-        self.assertAlmostEqual(result.values[0], -1.284366511861733)
+        np.testing.assert_allclose(result.values, [-1.284366511861733])
 
     def test_evaluate(self):
         """test for evaluate"""
         with Estimator([self.ansatz], [self.observable]) as est:
             result = est(parameters=[0, 1, 1, 2, 3, 5])
         self.assertIsInstance(result, EstimatorResult)
-        self.assertAlmostEqual(result.values[0], -1.284366511861733)
+        np.testing.assert_allclose(result.values, [-1.284366511861733])
 
     def test_evaluate_multi_params(self):
         """test for evaluate with multiple parameters"""
@@ -101,7 +113,7 @@ class TestEstimator(QiskitTestCase):
         with Estimator([circuit], [self.observable]) as est:
             result = est()
         self.assertIsInstance(result, EstimatorResult)
-        self.assertAlmostEqual(result.values[0], -1.284366511861733)
+        np.testing.assert_allclose(result.values, [-1.284366511861733])
 
     def test_run_with_multiple_observables_and_none_parameters(self):
         """test for evaluate without parameters"""
@@ -132,29 +144,30 @@ class TestEstimator(QiskitTestCase):
             theta3 = [1, 2, 3, 4, 5, 6]
 
             # calculate [ <psi1(theta1)|op1|psi1(theta1)> ]
-            psi1_op1_result = est([0], [0], [theta1])
-            self.assertIsInstance(psi1_op1_result, EstimatorResult)
-            np.testing.assert_array_almost_equal(psi1_op1_result.values, [])
+            result = est([0], [0], [theta1])
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [1.5555572817900956])
 
             # calculate [ <psi1(theta1)|op2|psi1(theta1)>, <psi1(theta1)|op3|psi1(theta1)> ]
-            psi1_op23_result = est([0, 0], [1, 2], [theta1] * 2)
-            self.assertIsInstance(psi1_op23_result, EstimatorResult)
-            np.testing.assert_array_almost_equal(psi1_op23_result.values, [])
+            result = est([0, 0], [1, 2], [theta1] * 2)
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [-0.5516530027638437, 0.07535238795415422])
 
             # calculate [ <psi2(theta2)|op2|psi2(theta2)> ]
-            psi2_op2_result = est([1], [1], [theta2])
-            self.assertIsInstance(psi2_op2_result, EstimatorResult)
-            np.testing.assert_array_almost_equal(psi2_op2_result.values, [])
+            result = est([1], [1], [theta2])
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [0.17849238433885167])
 
             # calculate [ <psi1(theta1)|op1|psi1(theta1)>, <psi1(theta3)|op1|psi1(theta3)> ]
-            psi1_op1_result2 = est([0, 0], [0, 0], [theta1, theta3])
-            self.assertIsInstance(psi1_op1_result2, EstimatorResult)
-            np.testing.assert_array_almost_equal(psi1_op1_result2.values, [])
+            result = est([0, 0], [0, 0], [theta1, theta3])
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [1.5555572817900956, 1.0656325933346835])
 
             # calculate [ <psi1(theta1)|op1|psi1(theta1)>,
             #             <psi2(theta2)|op2|psi2(theta2)>,
             #             <psi1(theta3)|op3|psi1(theta3)> ]
-            psi12_op123_result = est([0, 0, 0], [0, 1, 2], [theta1, theta2, theta3])
-            self.assertIsInstance(psi12_op123_result, EstimatorResult)
-            np.testing.assert_array_almost_equal(psi12_op123_result.values, [])
-
+            result = est([0, 1, 0], [0, 1, 2], [theta1, theta2, theta3])
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(
+                result.values, [1.5555572817900956, 0.17849238433885167, -1.0876631752254926]
+            )
