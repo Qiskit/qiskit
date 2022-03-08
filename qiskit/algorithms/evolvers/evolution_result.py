@@ -15,7 +15,7 @@ from typing import Optional, Union, Tuple
 from qiskit import QuantumCircuit
 from qiskit.algorithms.list_or_dict import ListOrDict
 from qiskit.opflow import StateFn
-from qiskit.algorithms.algorithm_result import AlgorithmResult
+from ..algorithm_result import AlgorithmResult
 
 
 class EvolutionResult(AlgorithmResult):

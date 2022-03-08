@@ -14,7 +14,7 @@
 
 from abc import ABC
 
-from .. import Evolver
+from ..evolver import Evolver
 
 
 class ImaginaryEvolver(Evolver, ABC):

@@ -2,13 +2,13 @@
 features:
   - |
     Interfaces for the unified framework for Quantum Time Evolution are introduced.
-    :class:`~qiskit.algorithms.time_evolution.EvolutionProblem` defines an evolution problem and
+    :class:`~qiskit.algorithms.evolvers.EvolutionProblem` defines an evolution problem and
     can be passed to any evolution algorithm available in the framework.
-    :class:`~qiskit.algorithms.time_evolution.Evolver` interface serves as a base for
+    :class:`~qiskit.algorithms.evolvers.Evolver` interface serves as a base for
     any time evolution algorithm for evolving quantum states, including evolutions based on
     time-dependent Hamiltonians.
-    :class:`~qiskit.algorithms.time_evolution.imaginary.ImaginaryEvolver` and
-    :class:`~qiskit.algorithms.time_evolution.real.RealEvolver` are derived interfaces for
+    :class:`~qiskit.algorithms.evolvers.imaginary.ImaginaryEvolver` and
+    :class:`~qiskit.algorithms.evolvers.real.RealEvolver` are derived interfaces for
     imaginary and real time evolution cases respectively.
-    :class:`~qiskit.algorithms.time_evolution.EvolutionResult` is introduced as a result object
+    :class:`~qiskit.algorithms.evolvers.EvolutionResult` is introduced as a result object
     for quantum time evolution algorithms.

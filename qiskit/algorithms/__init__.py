@@ -191,7 +191,9 @@ Exceptions
 """
 
 from .algorithm_result import AlgorithmResult
-from .evolvers import EvolutionResult, EvolutionProblem, RealEvolver, ImaginaryEvolver
+from .evolvers import EvolutionResult, EvolutionProblem
+from .evolvers.real.real_evolver import RealEvolver
+from .evolvers.imaginary.imaginary_evolver import ImaginaryEvolver
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
 from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem
 from .amplitude_estimators import (

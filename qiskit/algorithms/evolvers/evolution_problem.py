@@ -15,9 +15,9 @@
 from typing import Union, Optional, Dict
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.list_or_dict import ListOrDict
 from qiskit.circuit import Parameter
 from qiskit.opflow import OperatorBase, StateFn
+from ..list_or_dict import ListOrDict
 
 
 class EvolutionProblem:
