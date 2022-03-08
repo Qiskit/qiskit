@@ -17,7 +17,7 @@ import sys
 from typing import Union
 
 from qiskit.circuit import ParameterExpression, QuantumCircuit
-from qiskit.extensions import Initialize
+from qiskit.extensions.quantum_initializer.initializer import Initialize
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.states import Statevector
