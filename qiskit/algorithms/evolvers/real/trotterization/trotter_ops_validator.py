@@ -126,7 +126,7 @@ def _is_operator_parametrized(operator: PauliOp) -> bool:
         Boolean flag indicating whether the PauliOp is parametrized or not.
     """
     return (
-        not isinstance(operator.coeff, ParameterExpression)
-        and not isinstance(operator.coeff, Parameter)
-        or len(operator.coeff.parameters) == 0
+        not isinstance(operator.coeff, Parameter)
+        if not isinstance(operator.coeff, ParameterExpression)
+        else len(operator.coeff.parameters) == 0
     )
