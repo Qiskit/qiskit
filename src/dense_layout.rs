@@ -30,11 +30,11 @@ struct SubsetResult {
     pub subgraph: Vec<[usize; 2]>,
 }
 
-fn bfs_sort(adj_matrix: ArrayView2<f64>, start: usize) -> Vec<usize> {
+fn bfs_sort(adj_matrix: ArrayView2<f64>, start: usize, num_qubits: usize) -> Vec<usize> {
     let n = adj_matrix.shape()[0];
     let mut next_level: IndexSet<usize, RandomState> =
         IndexSet::with_hasher(RandomState::default());
-    let mut bfs_order = Vec::with_capacity(n);
+    let mut bfs_order = Vec::with_capacity(num_qubits);
     let mut seen: HashSet<usize> = HashSet::with_capacity(n);
     next_level.insert(start);
     while !next_level.is_empty() {
@@ -46,6 +46,9 @@ fn bfs_sort(adj_matrix: ArrayView2<f64>, start: usize) -> Vec<usize> {
                 seen.insert(v);
                 found.push(v);
                 bfs_order.push(v);
+                if bfs_order.len() == num_qubits {
+                    return bfs_order;
+                }
             }
         }
         if seen.len() == n {
@@ -112,8 +115,7 @@ pub fn best_subset(
         .into_par_iter()
         .map(|k| {
             let mut subgraph: Vec<[usize; 2]> = Vec::with_capacity(num_qubits);
-            let mut bfs = bfs_sort(coupling_adj_mat, k);
-            bfs.truncate(num_qubits);
+            let bfs = bfs_sort(coupling_adj_mat, k, num_qubits);
             let bfs_set: HashSet<usize> = bfs.iter().copied().collect();
             let mut connection_count = 0;
             for node_idx in &bfs {
