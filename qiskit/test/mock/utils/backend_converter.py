@@ -27,11 +27,7 @@ from qiskit.providers.models.pulsedefaults import PulseDefaults
 from qiskit.test.mock.utils.json_decoder import decode_pulse_defaults
 
 
-def convert_to_target(
-        conf_dict: dict,
-        props_dict: dict = None,
-        defs_dict: dict = None
-    ) -> Target:
+def convert_to_target(conf_dict: dict, props_dict: dict = None, defs_dict: dict = None) -> Target:
     """Uses configuration, properties and pulse defaults dicts
     to construct and return Target class.
     """
@@ -138,9 +134,7 @@ def qubit_props_dict_from_props_dict(properties: dict) -> dict:
             elif prop_dict["name"] == "T2":
                 qubit_properties["t2"] = apply_prefix(prop_dict["value"], prop_dict["unit"])
             elif prop_dict["name"] == "frequency":
-                qubit_properties["frequency"] = apply_prefix(
-                    prop_dict["value"], prop_dict["unit"]
-                )
+                qubit_properties["frequency"] = apply_prefix(prop_dict["value"], prop_dict["unit"])
         qubit_props_dict[count] = QubitProperties(**qubit_properties)
         count += 1
     return qubit_props_dict

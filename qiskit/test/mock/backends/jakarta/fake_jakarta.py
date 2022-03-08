@@ -27,6 +27,7 @@ class FakeJakartaV2(fake_backend.FakeBackendV2):
     defs_filename = "defs_jakarta.json"
     backend_name = "fake_jakarta_v2"
 
+
 class FakeJakarta(fake_pulse_backend.FakePulseBackend):
     """A fake 7 qubit backend."""
 

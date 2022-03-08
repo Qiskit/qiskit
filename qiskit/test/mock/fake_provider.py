@@ -94,6 +94,7 @@ class FakeProvider(ProviderV1):
             FakeValencia(),
             FakeVigo(),
             FakeWashington(),
+            # FakeCairo(),
             FakeYorktown(),
         ]
 

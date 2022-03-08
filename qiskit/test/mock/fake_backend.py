@@ -43,11 +43,11 @@ from qiskit.test.mock import fake_job
 from qiskit.test.mock.utils.json_decoder import (
     decode_backend_configuration,
     decode_backend_properties,
-    decode_pulse_defaults
+    decode_pulse_defaults,
 )
 from qiskit.test.mock.utils.backend_converter import (
     convert_to_target,
-    qubit_props_dict_from_props_dict
+    qubit_props_dict_from_props_dict,
 )
 from qiskit.utils import optionals as _optionals
 from qiskit.providers import basicaer
@@ -281,6 +281,7 @@ class FakeLegacyBackend(BaseBackend):
             out_job.submit()
         return out_job
 
+
 class FakeBackendV2(BackendV2):
     """This is a dummy bakend just for resting purposes. the FakeBackendV2 builds on top of the BackendV2 base class."""
 
@@ -299,7 +300,7 @@ class FakeBackendV2(BackendV2):
             name=self._conf_dict.get("backend_name"),
             description=self._conf_dict.get("description"),
             online_date=self._conf_dict.get("online_date"),
-            backend_version=self._conf_dict.get("backend_version")
+            backend_version=self._conf_dict.get("backend_version"),
         )
         self._target = None
         self._qubit_properties = None
@@ -364,9 +365,7 @@ class FakeBackendV2(BackendV2):
                 returned in the same order
         """
         if not self._qubit_properties:
-            self._qubit_properties = qubit_props_dict_from_props_dict(
-                self._props_dict
-                )
+            self._qubit_properties = qubit_props_dict_from_props_dict(self._props_dict)
         if isinstance(qubit, int):  # type: ignore[unreachable]
             return self._qubit_properties.get(qubit)
         if isinstance(qubit, List):
@@ -450,9 +449,9 @@ class FakeBackendV2(BackendV2):
         thermal_relaxation=True,
         temperature=0,
         gate_lengths=None,
-        gate_length_units='ns',
+        gate_length_units="ns",
         standard_gates=None,
-        warnings=True
+        warnings=True,
     ):
         """Build noise model from BackendV2.
         This is a temporary fix until Aer supports V2 backends.
@@ -465,7 +464,7 @@ class FakeBackendV2(BackendV2):
         from qiskit.providers.aer.noise.device.models import (
             _excited_population,
             basic_device_gate_errors,
-            basic_device_readout_errors
+            basic_device_readout_errors,
         )
         from qiskit.providers.aer.noise.passes import RelaxationNoisePass
 
@@ -484,14 +483,16 @@ class FakeBackendV2(BackendV2):
         if standard_gates is not None:
             warn(
                 '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
-                ' and will be removed no earlier than 3 months from that release date.',
-                DeprecationWarning, stacklevel=2)
+                " and will be removed no earlier than 3 months from that release date.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         # Add gate errors
         with catch_warnings():
             filterwarnings(
                 "ignore",
                 category=DeprecationWarning,
-                module="qiskit.providers.aer.noise.device.models"
+                module="qiskit.providers.aer.noise.device.models",
             )
             gate_errors = basic_device_gate_errors(
                 properties,
@@ -501,7 +502,8 @@ class FakeBackendV2(BackendV2):
                 gate_length_units=gate_length_units,
                 temperature=temperature,
                 standard_gates=standard_gates,
-                warnings=warnings)
+                warnings=warnings,
+            )
         for name, qubits, error in gate_errors:
             noise_model.add_quantum_error(error, name, qubits, warnings=warnings)
 
@@ -509,9 +511,9 @@ class FakeBackendV2(BackendV2):
             # Add delay errors via RelaxationNiose pass
             try:
                 excited_state_populations = [
-                    _excited_population(
-                        freq=properties.frequency(q), temperature=temperature
-                    ) for q in range(num_qubits)]
+                    _excited_population(freq=properties.frequency(q), temperature=temperature)
+                    for q in range(num_qubits)
+                ]
             except BackendPropertyError:
                 excited_state_populations = None
             try:
@@ -520,7 +522,7 @@ class FakeBackendV2(BackendV2):
                     t2s=[properties.t2(q) for q in range(num_qubits)],
                     dt=dt,
                     op_types=Delay,
-                    excited_state_populations=excited_state_populations
+                    excited_state_populations=excited_state_populations,
                 )
                 noise_model._custom_noise_passes.append(delay_pass)
             except BackendPropertyError:

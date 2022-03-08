@@ -101,10 +101,7 @@ class TestFakeBackends(QiskitTestCase):
     )
     def test_circuit_on_fake_backend_v2(self, backend, optimization_level):
         if not optionals.HAS_AER and backend.num_qubits > 20:
-            self.skipTest(
-                "Unable to run fake_backend %s without qiskit-aer"
-                % backend.backend_name
-            )
+            self.skipTest("Unable to run fake_backend %s without qiskit-aer" % backend.backend_name)
         job = execute(
             self.circuit,
             backend,
