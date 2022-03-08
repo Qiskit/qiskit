@@ -123,12 +123,16 @@ pub fn best_subset(
                     .index_axis(Axis(0), *node_idx)
                     .into_iter()
                     .enumerate()
-                    .filter(|(_node, j)| *j != &0.)
-                    .for_each(|(node, _j)| {
-                        if bfs_set.contains(&node) {
-                            connection_count += 1;
-                            subgraph.push([*node_idx, node]);
+                    .filter_map(|(node, j)| {
+                        if *j != 0. && bfs_set.contains(&node) {
+                            Some(node)
+                        } else {
+                            None
                         }
+                    })
+                    .for_each(|node| {
+                        connection_count += 1;
+                        subgraph.push([*node_idx, node]);
                     });
             }
             let error = if use_error {
