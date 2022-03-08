@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -123,3 +123,44 @@ class TestSampler(QiskitTestCase):
             sampler = Sampler(circuits=circs)
             result = sampler(parameters=params)
             self._compare_probs(result.quasi_dists, target)
+
+    def test_sampler_example(self):
+        """test for Sampler example"""
+
+        bell = QuantumCircuit(2)
+        bell.h(0)
+        bell.cx(0, 1)
+        bell.measure_all()
+
+        # executes a Bell circuit
+        with Sampler(circuits=[bell], parameters=[[]]) as sampler:
+            result = sampler(parameters=[[]], circuits=[0])
+            self.assertIsInstance(result, SamplerResult)
+            print([q.binary_probabilities() for q in result.quasi_dists])
+
+        # executes three Bell circuits
+        with Sampler([bell] * 3, [[]]) as sampler:
+            result = sampler([0, 1, 2], [[]] * 3)
+            print([q.binary_probabilities() for q in result.quasi_dists])
+
+        # parametrized circuit
+        pqc = RealAmplitudes(num_qubits=2, reps=2)
+        pqc.measure_all()
+        pqc2 = RealAmplitudes(num_qubits=2, reps=3)
+        pqc2.measure_all()
+
+        theta1 = [0, 1, 1, 2, 3, 5]
+        theta2 = [1, 2, 3, 4, 5, 6]
+        theta3 = [0, 1, 2, 3, 4, 5, 6, 7]
+
+        with Sampler(circuits=[pqc, pqc2], parameters=[pqc.parameters, pqc2.parameters]) as sampler:
+            result = sampler([0, 0, 1], [theta1, theta2, theta3])
+
+            # result of pqc(theta1)
+            print([q.binary_probabilities() for q in result.quasi_dists[0]])
+
+            # result of pqc(theta2)
+            print([q.binary_probabilities() for q in result.quasi_dists[1]])
+
+            # result of pqc2(theta3)
+            print([q.binary_probabilities() for q in result.quasi_dists[2]])
