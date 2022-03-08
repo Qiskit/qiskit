@@ -56,10 +56,9 @@ class VarQITE(ImaginaryEvolver, VarQTE):
             lse_solver_callable: Linear system of equations solver that follows a NumPy
                 np.linalg.lstsq interface.
             allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
-                                    imaginary part is expected.
+                imaginary part is expected.
             allowed_num_instability_error: The amount of negative value that is allowed to be
-                                           rounded up to 0 for quantities that are expected to be
-                                           non-negative.
+                rounded up to 0 for quantities that are expected to be non-negative.
         """
         super().__init__(
             variational_principle,
