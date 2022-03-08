@@ -23,7 +23,7 @@ from qiskit.opflow import (
 )
 
 
-def _is_op_bound(operator: Union[SummedOp, PauliOp, OperatorBase]) -> None:
+def is_op_bound(operator: Union[SummedOp, PauliOp, OperatorBase]) -> None:
     """Checks if an operator provided has all parameters bound.
 
     Args:
@@ -39,7 +39,7 @@ def _is_op_bound(operator: Union[SummedOp, PauliOp, OperatorBase]) -> None:
         )
 
 
-def _validate_hamiltonian_form(hamiltonian: Union[SummedOp, PauliOp, OperatorBase]):
+def validate_hamiltonian_form(hamiltonian: Union[SummedOp, PauliOp, OperatorBase]):
     """Validates that a Hamiltonian is of a correct type and with expected dependence on
     parameters.
 
@@ -78,7 +78,7 @@ def _is_pauli_lin_single_param(operator: PauliOp) -> bool:
         operator: Operator to be checked.
 
     Returns:
-        True or False depending on whether an operator is linear in a single param and only contains'
+        True or False depending on whether an operator is linear in a single param and only contains
         a single param.
 
     Raises:

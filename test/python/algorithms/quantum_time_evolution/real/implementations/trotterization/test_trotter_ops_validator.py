@@ -19,7 +19,7 @@ from ddt import ddt, data, unpack
 import numpy as np
 
 from qiskit.algorithms.evolvers.real.trotterization.trotter_ops_validator import (
-    _validate_hamiltonian_form,
+    validate_hamiltonian_form,
     _is_pauli_lin_single_param,
 )
 from qiskit.circuit.library import EfficientSU2
@@ -50,7 +50,7 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         """Tests that a Hamiltonian is of a valid form supported by the TrotterQrte algorithm."""
         valid = True
         try:
-            _validate_hamiltonian_form(hamiltonian)
+            validate_hamiltonian_form(hamiltonian)
         except ValueError:
             valid = False
 

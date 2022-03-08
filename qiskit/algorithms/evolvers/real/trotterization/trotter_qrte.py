@@ -24,7 +24,7 @@ from qiskit.opflow import (
 )
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.synthesis import ProductFormula, LieTrotter
-from .trotter_ops_validator import _is_op_bound
+from .trotter_ops_validator import is_op_bound
 
 
 class TrotterQrte(RealEvolver):
@@ -53,7 +53,7 @@ class TrotterQrte(RealEvolver):
         """
         Args:
             product_formula: A Lie-Trotter-Suzuki product formula. The default is the Lie-Trotter
-                            first order product formula with a single repetition.
+                first order product formula with a single repetition.
         """
         self.product_formula = product_formula
 
@@ -102,9 +102,8 @@ class TrotterQrte(RealEvolver):
         Tries binding parameters in a Hamiltonian.
 
         Args:
-            hamiltonian:
-                The operator to evolve. Can also be provided as list of non-commuting
-                operators where the elements are sums of commuting operators.
+            hamiltonian: The Hamiltonian of that defines an evolution. Can also be provided as list
+                of non-commuting operators where the elements are sums of commuting operators.
                 For example: ``[XY + YX, ZZ + ZI + IZ, YY]``.
             hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
                 certain values.
@@ -124,7 +123,7 @@ class TrotterQrte(RealEvolver):
                     op_bound = op.bind_parameters(hamiltonian_value_dict)
                 else:
                     op_bound = op
-                _is_op_bound(op_bound)
+                is_op_bound(op_bound)
                 op_list.append(op_bound)
             return sum(op_list)
         elif isinstance(
@@ -135,7 +134,7 @@ class TrotterQrte(RealEvolver):
             else:
                 op_bound = hamiltonian
 
-            _is_op_bound(op_bound)
+            is_op_bound(op_bound)
             return op_bound
         else:
             raise ValueError(
