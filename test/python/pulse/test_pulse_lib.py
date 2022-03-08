@@ -179,7 +179,7 @@ class TestParametricPulses(QiskitTestCase):
         wf = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
         samples = wf.get_waveform().samples
         self.assertTrue(max(np.abs(samples)) <= 1)
-        beta = sigma ** 2
+        beta = sigma**2
         with self.assertRaises(PulseError):
             wf = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
         # If sigma is high enough, side peaks fall out of range and norm restriction is met
@@ -325,10 +325,10 @@ class TestFunctionalPulse(QiskitTestCase):
         @functional_pulse
         def local_gaussian(duration, amp, t0, sig):
             x = np.linspace(0, duration - 1, duration)
-            return amp * np.exp(-((x - t0) ** 2) / sig ** 2)
+            return amp * np.exp(-((x - t0) ** 2) / sig**2)
 
         pulse_wf_inst = local_gaussian(duration=10, amp=1, t0=5, sig=1, name="test_pulse")
-        _y = 1 * np.exp(-((np.linspace(0, 9, 10) - 5) ** 2) / 1 ** 2)
+        _y = 1 * np.exp(-((np.linspace(0, 9, 10) - 5) ** 2) / 1**2)
 
         self.assertListEqual(list(pulse_wf_inst.samples), list(_y))
 
@@ -344,7 +344,7 @@ class TestFunctionalPulse(QiskitTestCase):
         @functional_pulse
         def local_gaussian(duration, amp, t0, sig):
             x = np.linspace(0, duration - 1, duration)
-            return amp * np.exp(-((x - t0) ** 2) / sig ** 2)
+            return amp * np.exp(-((x - t0) ** 2) / sig**2)
 
         _durations = np.arange(10, 15, 1)
 

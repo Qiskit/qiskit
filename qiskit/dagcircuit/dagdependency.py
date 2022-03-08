@@ -612,7 +612,7 @@ def _does_commute(node1, node2):
     qarg1 = [qarg.index(q) for q in node1.qargs]
     qarg2 = [qarg.index(q) for q in node2.qargs]
 
-    dim = 2 ** qbit_num
+    dim = 2**qbit_num
     id_op = np.reshape(np.eye(dim), (2, 2) * qbit_num)
 
     op1 = np.reshape(node1.op.to_matrix(), (2, 2) * len(qarg1))

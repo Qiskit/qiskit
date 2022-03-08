@@ -23,8 +23,6 @@ import io
 import warnings
 
 import numpy as np
-import scipy.sparse as sp
-import scipy.sparse.csgraph as cs
 import retworkx as rx
 
 from qiskit.transpiler.exceptions import CouplingError
@@ -264,6 +262,8 @@ class CouplingMap:
         Raises:
             CouplingError: Reduced coupling map must be connected.
         """
+        from scipy.sparse import coo_matrix, csgraph
+
         reduced_qubits = len(mapping)
         inv_map = [None] * (max(mapping) + 1)
         for idx, val in enumerate(mapping):
@@ -280,9 +280,9 @@ class CouplingMap:
         cols = np.array([edge[1] for edge in reduced_cmap], dtype=int)
         data = np.ones_like(rows)
 
-        mat = sp.coo_matrix((data, (rows, cols)), shape=(reduced_qubits, reduced_qubits)).tocsr()
+        mat = coo_matrix((data, (rows, cols)), shape=(reduced_qubits, reduced_qubits)).tocsr()
 
-        if cs.connected_components(mat)[0] != 1:
+        if csgraph.connected_components(mat)[0] != 1:
             raise CouplingError("coupling_map must be connected.")
 
         return CouplingMap(reduced_cmap)

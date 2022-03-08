@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug, where the :class:`~qiskit.opflow.CVaRMeasurement` attempted to convert a
+    :class:`~qiskit.opflow.PauliSumOp` to a dense matrix to check whether it is diagonal.
+    For large operators (> 16 qubits) this computation is extremely expensive and raised
+    an error if not explicitly enabled using ``qiskit.utils.algorithm_globals.massive = True``.
