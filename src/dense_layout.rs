@@ -83,9 +83,10 @@ fn bfs_sort(adj_matrix: ArrayView2<f64>, start: usize) -> Vec<usize> {
 ///     use_error (bool): Set to True to use the error
 ///     symmetric_coupling_map (bool): Is the coupling graph symmetric
 ///     error_matrix (numpy.ndarray): A 2D array that represents the error
-///         rates on the target device. The diagonal is the measurement error
-///         error rate on that qubit and then the other positions are the
-///         2q/cx error rate between the 2 indices.
+///         rates on the target device, where the indices are physical qubits.
+///         The diagonal (i.e. ``error_matrix[i][i]``) is the measurement error rate
+///         for each qubit (``i``) and the positions where the indices differ are the
+///         2q/cx error rate for the corresponding qubit pair.
 ///
 /// Returns:
 ///     (rows, cols, best_map): A tuple of the rows, columns and the best
