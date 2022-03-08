@@ -14,6 +14,7 @@
 
 import unittest
 
+from test.python.opflow import QiskitOpflowTestCase
 from ddt import ddt, data
 import numpy as np
 from numpy.testing import assert_raises
@@ -36,7 +37,6 @@ from qiskit.opflow import (
     Y,
 )
 from qiskit.synthesis import SuzukiTrotter, QDrift
-from test.python.opflow import QiskitOpflowTestCase
 
 
 @ddt
