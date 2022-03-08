@@ -106,7 +106,7 @@ from collections.abc import Iterable, Sequence
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import SparsePauliOp
+from qiskit.quantum_info.operators import SparsePauliOp
 
 from .estimator_result import EstimatorResult
 
