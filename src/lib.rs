@@ -19,12 +19,9 @@ mod edge_collections;
 mod nlayout;
 mod stochastic_swap;
 
-use crate::dense_layout::PyInit_dense_layout;
-use crate::stochastic_swap::PyInit_stochastic_swap;
-
 #[pymodule]
 fn _accelerate(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
-    m.add_wrapped(wrap_pymodule!(stochastic_swap))?;
-    m.add_wrapped(wrap_pymodule!(dense_layout))?;
+    m.add_wrapped(wrap_pymodule!(stochastic_swap::stochastic_swap))?;
+    m.add_wrapped(wrap_pymodule!(dense_layout::dense_layout))?;
     Ok(())
 }
