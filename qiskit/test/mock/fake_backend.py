@@ -116,6 +116,33 @@ class FakeBackendV2(BackendV2):
         return the_json
 
     @property
+    def target(self) -> Target:
+        self._convert_to_target()
+        return self._target
+
+    def _convert_to_target(self) -> None:
+        """Converts backend configuration, properties and defaults to Target object"""
+        if not self._target:
+            self._target = convert_to_target(
+                conf_dict=self._conf_dict,
+                props_dict=self._props_dict,
+                defs_dict=self._defs_dict,
+            )
+
+    @property
+    def max_circuits(self):
+        return None
+
+    @classmethod
+    def _default_options(cls):
+        if _optionals.HAS_AER:
+            from qiskit.providers import aer
+
+            return aer.QasmSimulator._default_options()
+        else:
+            return basicaer.QasmSimulatorPy._default_options()
+
+    @property
     def dtm(self) -> float:
         """Return the system time resolution of output signals
         Returns:
@@ -151,33 +178,6 @@ class FakeBackendV2(BackendV2):
         if isinstance(qubit, List):
             return [self._qubit_properties.get(q) for q in qubit]
         return None
-
-    @property
-    def target(self) -> Target:
-        self._convert_to_target()
-        return self._target
-
-    def _convert_to_target(self) -> None:
-        """Converts backend configuration, properties and defaults to Target object"""
-        if not self._target:
-            self._target = convert_to_target(
-                conf_dict=self._conf_dict,
-                props_dict=self._props_dict,
-                defs_dict=self._defs_dict,
-            )
-
-    @property
-    def max_circuits(self):
-        return None
-
-    @classmethod
-    def _default_options(cls):
-        if _optionals.HAS_AER:
-            from qiskit.providers import aer
-
-            return aer.QasmSimulator._default_options()
-        else:
-            return basicaer.QasmSimulatorPy._default_options()
 
     def run(self, run_input, **kwargs):
         """Main job in simulator"""
