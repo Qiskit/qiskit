@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -86,17 +86,15 @@ def _eval_observabless(
 
     # Return None eigenvalues for None operators if observables is a list.
     # None operators are already dropped in compute_minimum_eigenvalue if observables is a dict.
-    observables_eigenvalues = _prepare_result(observables_results, observables)
 
-    return observables_eigenvalues
+    return _prepare_result(observables_results, observables)
 
 
 def _prepare_list_op(observables: ListOrDict[OperatorBase]) -> ListOp[OperatorBase]:
     if isinstance(observables, dict):
-        list_op = ListOp(list(observables.values()))
-    else:
-        list_op = ListOp(observables)
-    return list_op
+        return ListOp(list(observables.values()))
+
+    return ListOp(observables)
 
 
 def _prepare_result(
