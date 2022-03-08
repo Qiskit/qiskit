@@ -22,15 +22,15 @@ class Evolver(ABC):
     """Interface class for quantum time evolution."""
 
     @abstractmethod
-    def evolve(self, evolver_problem: EvolutionProblem) -> EvolutionResult:
+    def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
         """
         Evolves an initial state in the evolution_problem according to a Hamiltonian provided.
 
         Args:
-            evolver_problem: EvolutionProblem instance that includes definition of an evolution
+            evolution_problem: ``EvolutionProblem`` instance that includes definition of an evolution
                 problem.
 
         Returns:
-            Evolver result which includes an evolved quantum state.
+            Evolution result which includes an evolved quantum state.
         """
         raise NotImplementedError()
