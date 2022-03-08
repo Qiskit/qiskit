@@ -56,14 +56,14 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
     `VQD <https://arxiv.org/abs/1805.08138>`__ is a quantum algorithm that uses a
     variational technique to find
-    the kth excited eigenvalue of the Hamiltonian :math:`H` of a given system.
+    the k eigenvalues of the Hamiltonian :math:`H` of a given system.
 
-    An instance of VQD requires defining two algorithmic sub-components:
-    a trial state (a.k.a. ansatz) which is a :class:`QuantumCircuit`, and one of the classical
+    An instance of VQD requires defining three algorithmic sub-components:
+    integer k denoting the number of eigenstates to calculate, a trial state (a.k.a. ansatz) which is a :class:`QuantumCircuit`, and one of the classical
     :mod:`~qiskit.algorithms.optimizers`. The ansatz is varied, via its set of parameters, by the
     optimizer, such that it works towards a state, as determined by the parameters applied to the
     ansatz, that will result in the minimum expectation value being measured of the input operator
-    (Hamiltonian).
+    (Hamiltonian). The algorithm does this by iteratively refining each excited state to be orthogonal to all the previous excited states
 
     An optional array of parameter values, via the *initial_point*, may be provided as the
     starting point for the search of the minimum eigenvalue. This feature is particularly useful
