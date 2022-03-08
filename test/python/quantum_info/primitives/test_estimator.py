@@ -18,7 +18,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import EstimatorResult
-from qiskit.quantum_info import Estimator, Operator, Statevector, SparsePauliOp
+from qiskit.quantum_info import Estimator, Operator, SparsePauliOp, Statevector
 from qiskit.test import QiskitTestCase
 
 
