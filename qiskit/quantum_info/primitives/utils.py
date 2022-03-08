@@ -18,8 +18,9 @@ from typing import Union
 
 from qiskit.circuit import ParameterExpression, QuantumCircuit
 from qiskit.extensions import Initialize
-from qiskit.quantum_info import SparsePauliOp, Statevector
+from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.states import Statevector
 
 if sys.version_info >= (3, 8):
     # pylint: disable=no-name-in-module
