@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Calculators (:mod:`qiskit.algorithms.time_evolution.variational.calculators`)
+Calculators (:mod:`qiskit.algorithms.evolvers.variational.calculators`)
 =====================================================
 The calculators include helper functions to evaluate the quantities which define the ordinary
 differential equations underlying the variational quantum time evolution, i.e., the

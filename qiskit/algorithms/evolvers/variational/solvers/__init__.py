@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Solvers (:mod:`qiskit.algorithms.time_evolution.variational.solvers`)
+Solvers (:mod:`qiskit.algorithms.evolvers.variational.solvers`)
 =====================================================
 This package contains the necessary classes to solve systems of equations arising in the
 Variational Quantum Time Evolution. They include ordinary differential equations (ODE) which

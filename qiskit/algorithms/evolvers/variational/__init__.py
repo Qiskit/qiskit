@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Variational Quantum Time Evolutions (:mod:`qiskit.algorithms.time_evolution.variational`)
+Variational Quantum Time Evolutions (:mod:`qiskit.algorithms.evolvers.variational`)
 =====================================================
 
 Algorithms for performing Variational Quantum Time Evolution of quantum states and their
@@ -53,23 +53,21 @@ approach is taken according to a variational principle chosen by a user.
     # optionally define a backend
     backend = Aer.get_backend("statevector_simulator")
 
+    # define evolution time
+    time = 1
+
+    # define evolution problem
+    evolution_problem = EvolutionProblem(observable, time, ansatz, hamiltonian_value_dict=param_dict)
+
     # instantiate the algorithm
     var_qite = VarQITE(
         var_principle, backend=backend, error_based_ode=False
     )
 
-    # define evolution time
-    time = 1
-
     # run the algorithm/evolve the state
-    evolution_result = var_qite.evolve(
-        observable,
-        time,
-        ansatz,
-        hamiltonian_value_dict=param_dict,
-    )
+    evolution_result = var_qite.evolve(evolution_problem)
 
-.. currentmodule:: qiskit.algorithms.time_evolution.variational
+.. currentmodule:: qiskit.algorithms.evolvers.variational
 
 VarQITE
 --------------------
@@ -105,17 +103,17 @@ VariationalPrinciples
     ImaginaryMcLachlanVariationalPrinciple
 """
 
-from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.evolvers.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
-from qiskit.algorithms.time_evolution.variational.variational_principles.real.implementations.real_mc_lachlan_variational_principle import (
+from qiskit.algorithms.evolvers.variational.variational_principles.real.implementations.real_mc_lachlan_variational_principle import (
     RealMcLachlanVariationalPrinciple,
 )
-from qiskit.algorithms.time_evolution.variational.variational_principles.real.implementations.real_time_dependent_variational_principle import (
+from qiskit.algorithms.evolvers.variational.variational_principles.real.implementations.real_time_dependent_variational_principle import (
     RealTimeDependentVariationalPrinciple,
 )
-from qiskit.algorithms.time_evolution.variational.algorithms.var_qite import VarQITE
-from qiskit.algorithms.time_evolution.variational.algorithms.var_qrte import VarQRTE
+from qiskit.algorithms.evolvers.variational.algorithms.var_qite import VarQITE
+from qiskit.algorithms.evolvers.variational.algorithms.var_qrte import VarQRTE
 
 __all__ = [
     "VarQITE",

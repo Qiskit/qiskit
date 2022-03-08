@@ -12,32 +12,29 @@
 
 """Variational Quantum Imaginary Time Evolution algorithm."""
 
-from typing import Optional, Union, Dict, List, Callable
+from typing import Optional, Union, Callable
 
 import numpy as np
 from scipy.integrate import OdeSolver, RK45
 
-from qiskit.algorithms.time_evolution.evolution_result import EvolutionResult
-from qiskit.algorithms.time_evolution.imaginary.qite import Qite
-
-from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary.imaginary_variational_principle import (
+from qiskit.algorithms import ImaginaryEvolver, EvolutionProblem
+from qiskit.algorithms.evolvers.evolution_result import EvolutionResult
+from qiskit.algorithms.evolvers.variational.variational_principles.imaginary\
+    .imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
-from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
+from qiskit.algorithms.evolvers.variational.solvers.ode.abstract_ode_function_generator import (
     AbstractOdeFunctionGenerator,
 )
-from qiskit.circuit import Parameter
 from qiskit.opflow import (
-    OperatorBase,
-    Gradient,
     StateFn,
 )
-from qiskit.algorithms.time_evolution.variational.algorithms.var_qte import VarQTE
+from qiskit.algorithms.evolvers.variational.algorithms.var_qte import VarQTE
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 
 
-class VarQITE(Qite, VarQTE):
+class VarQITE(ImaginaryEvolver, VarQTE):
     """Variational Quantum Imaginary Time Evolution algorithm."""
 
     def __init__(
@@ -74,69 +71,33 @@ class VarQITE(Qite, VarQTE):
             allowed_num_instability_error,
         )
 
-    def evolve(
-        self,
-        hamiltonian: OperatorBase,
-        time: float,
-        initial_state: Optional[StateFn] = None,
-        observable: Optional[OperatorBase] = None,
-        t_param: Optional[Parameter] = None,
-        hamiltonian_value_dict: Optional[Dict[Parameter, Union[float, complex]]] = None,
-    ) -> EvolutionResult:
+    def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
         """
         Apply Variational Quantum Imaginary Time Evolution (VarQITE) w.r.t. the given
         operator.
 
         Args:
-            hamiltonian:
-                Operator used for Variational Quantum Imaginary Time Evolution (VarQITE)
-                The coefficient of the operator (operator.coeff) determines the evolution
-                time.
-                The operator may be given either as a composed op consisting of a Hermitian
-                observable and a CircuitStateFn or a ListOp of a CircuitStateFn with a
-                ComboFn.
-                The latter case enables the evaluation of a Quantum Natural Gradient.
-            time: Total time of evolution.
-            initial_state: Quantum state to be evolved.
-            observable: Observable to be evolved. Not supported by VarQITE.
-            t_param: Time parameter in case of a time-dependent Hamiltonian.
-            hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
-                certain values, including the t_param. If no state parameters
-                are provided, they are generated randomly.
+            evolution_problem: Instance defining evolution problem.
 
         Returns:
             StateFn (parameters are bound) which represents an approximation to the
             respective time evolution.
         """
         init_state_param_dict = self._create_init_state_param_dict(
-            hamiltonian_value_dict, list(initial_state.parameters)
+            evolution_problem.hamiltonian_value_dict,
+            list(evolution_problem.initial_state.parameters),
         )
-        self.bind_initial_state(StateFn(initial_state), init_state_param_dict)
+        self.bind_initial_state(StateFn(evolution_problem.initial_state), init_state_param_dict)
 
         error_calculator = None  # TODO will be supported in another PR
 
         evolved_object = super()._evolve_helper(
             init_state_param_dict,
-            hamiltonian,
-            time,
-            t_param,
+            evolution_problem.hamiltonian,
+            evolution_problem.time,
+            evolution_problem.t_param,
             error_calculator,
-            initial_state,
-            observable,
+            evolution_problem.initial_state,
         )
 
         return EvolutionResult(evolved_object)
-
-    def gradient(
-        self,
-        hamiltonian: OperatorBase,
-        time: float,
-        initial_state: StateFn,
-        gradient_object: Gradient,
-        observable: Optional[OperatorBase] = None,
-        t_param: Optional[Parameter] = None,
-        hamiltonian_value_dict: Optional[Dict[Parameter, Union[float, complex]]] = None,
-        gradient_params: Optional[List[Parameter]] = None,
-    ):
-        """Performs Variational Quantum Imaginary Time Evolution of gradient expressions."""
-        raise NotImplementedError()

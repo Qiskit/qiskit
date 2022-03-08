@@ -16,10 +16,10 @@ from typing import Union, List, Dict, Optional, Callable
 
 import numpy as np
 
-from qiskit.algorithms.time_evolution.variational.calculators.metric_tensor_calculator import (
+from qiskit.algorithms.evolvers.variational.calculators.metric_tensor_calculator import (
     eval_metric_result,
 )
-from qiskit.algorithms.time_evolution.variational.calculators.evolution_grad_calculator import (
+from qiskit.algorithms.evolvers.variational.calculators.evolution_grad_calculator import (
     eval_grad_result,
 )
 from qiskit.circuit import Parameter

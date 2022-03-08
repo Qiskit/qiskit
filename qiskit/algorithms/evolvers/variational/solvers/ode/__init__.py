@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Solvers (:mod:`qiskit.algorithms.time_evolution.variational.solvers.ode`)
+Solvers (:mod:`qiskit.algorithms.evolvers.variational.solvers.ode`)
 =====================================================
 This package contains the necessary classes to solve ordinary differential equations (ODE) which
 describe ansatz parameter propagation that implements a variational time evolution. An ODE salver

@@ -10,12 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Interface for Quantum Real Time Evolution."""
+"""Abstract class for an Imaginary Variational Principle."""
 
 from abc import ABC
 
-from qiskit.algorithms.time_evolution.evolution_base import EvolutionBase
+from qiskit.algorithms.evolvers.variational.variational_principles.variational_principle import (
+    VariationalPrinciple,
+)
 
 
-class Qrte(EvolutionBase, ABC):
-    """Base class for quantum real time evolution."""
+class ImaginaryVariationalPrinciple(VariationalPrinciple, ABC):
+    """Abstract class for an Imaginary Variational Principle."""

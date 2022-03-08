@@ -15,7 +15,7 @@
 from abc import ABC, abstractmethod
 from typing import Iterable, Union, Dict
 
-from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (
+from qiskit.algorithms.evolvers.variational.solvers.var_qte_linear_solver import (
     VarQTELinearSolver,
 )
 from qiskit.circuit import Parameter

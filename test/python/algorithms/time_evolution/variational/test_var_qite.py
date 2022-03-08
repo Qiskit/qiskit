@@ -17,14 +17,14 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
-from qiskit.algorithms.time_evolution.variational.solvers.ode.ode_function_generator import (
+from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_generator import (
     OdeFunctionGenerator,
 )
 from qiskit import Aer
-from qiskit.algorithms.time_evolution.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.evolvers.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
-from qiskit.algorithms.time_evolution.variational.algorithms.var_qite import VarQITE
+from qiskit.algorithms.evolvers.variational.algorithms.var_qite import VarQITE
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import (
     SummedOp,

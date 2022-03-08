@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Principles (:mod:`qiskit.algorithms.time_evolution.variational.variational_principles`)
+Principles (:mod:`qiskit.algorithms.evolvers.variational.variational_principles`)
 =====================================================
 
 It  contains a variety of variational variational_principles which can be used to simulate quantum
@@ -25,7 +25,7 @@ These variational variational_principles can be divided into two categories:
   Given a Hamiltonian, a time and a variational ansatz, the variational principle describes a
   variational principle according to the Schroedinger equation.
 
-.. currentmodule:: qiskit.algorithms.time_evolution.variational.variational_principles
+.. currentmodule:: qiskit.algorithms.evolvers.variational.variational_principles
 
 Variational Principle Base Classes
 ====================

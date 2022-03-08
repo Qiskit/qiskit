@@ -16,7 +16,7 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
-from qiskit.algorithms.time_evolution.variational.calculators.evolution_grad_calculator import (
+from qiskit.algorithms.evolvers.variational.calculators.evolution_grad_calculator import (
     calculate,
 )
 from qiskit.circuit.library import EfficientSU2

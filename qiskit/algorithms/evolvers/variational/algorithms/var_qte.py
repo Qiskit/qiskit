@@ -19,17 +19,18 @@ import numpy as np
 from scipy.integrate import RK45, OdeSolver
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.time_evolution.evolution_base import EvolutionBase
-from qiskit.algorithms.time_evolution.variational.solvers.var_qte_linear_solver import (
+
+from qiskit.algorithms.evolvers.evolver import Evolver
+from qiskit.algorithms.evolvers.variational.solvers.var_qte_linear_solver import (
     VarQTELinearSolver,
 )
-from qiskit.algorithms.time_evolution.variational.variational_principles.variational_principle import (
+from qiskit.algorithms.evolvers.variational.variational_principles.variational_principle import (
     VariationalPrinciple,
 )
-from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
+from qiskit.algorithms.evolvers.variational.solvers.ode.abstract_ode_function_generator import (
     AbstractOdeFunctionGenerator,
 )
-from qiskit.algorithms.time_evolution.variational.solvers.ode.var_qte_ode_solver import (
+from qiskit.algorithms.evolvers.variational.solvers.ode.var_qte_ode_solver import (
     VarQTEOdeSolver,
 )
 from qiskit.circuit import Parameter
@@ -44,7 +45,7 @@ from qiskit.opflow import (
 )
 
 
-class VarQTE(EvolutionBase, ABC):
+class VarQTE(Evolver, ABC):
     """Variational Quantum Time Evolution.
        https://doi.org/10.22331/q-2019-10-07-191
     Algorithms that use variational variational_principles to compute a time evolution for a given
@@ -97,7 +98,6 @@ class VarQTE(EvolutionBase, ABC):
         t_param: Parameter,
         error_calculator=None,  # TODO will be supported in another PR
         initial_state: Optional[Union[OperatorBase, QuantumCircuit]] = None,
-        observable: Optional[OperatorBase] = None,
     ) -> OperatorBase:
         """
         Helper method for performing time evolution. Works both for imaginary and real case.
@@ -115,7 +115,6 @@ class VarQTE(EvolutionBase, ABC):
                 The latter case enables the evaluation of a Quantum Natural Gradient.
             time: Total time of evolution.
             initial_state: Quantum state to be evolved.
-            observable: Observable to be evolved. Not supported by VarQTE.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
 
         Returns:
@@ -125,10 +124,7 @@ class VarQTE(EvolutionBase, ABC):
         Raises:
             TypeError: If observable is provided - not supported by this algorithm.
         """
-        if observable is not None:
-            raise TypeError(
-                "Observable argument provided. Observable evolution not supported by VarQTE."
-            )
+
         init_state_parameters = list(init_state_param_dict.keys())
         init_state_parameters_values = list(init_state_param_dict.values())
 
@@ -230,7 +226,8 @@ class VarQTE(EvolutionBase, ABC):
             hamiltonian_value_dict: Dictionary which relates parameter values to the parameters.
             init_state_parameters: Parameters present in a quantum state.
 
-        Returns: Dictionary that maps parameters of an initial state to some values.
+        Returns:
+            Dictionary that maps parameters of an initial state to some values.
         """
         if hamiltonian_value_dict is None:
             init_state_parameter_values = np.random.random(len(init_state_parameters))

@@ -17,7 +17,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from numpy import array
 
-from qiskit.algorithms.time_evolution.variational.calculators.metric_tensor_calculator import (
+from qiskit.algorithms.evolvers.variational.calculators.metric_tensor_calculator import (
     calculate,
 )
 from qiskit.circuit.library import EfficientSU2
