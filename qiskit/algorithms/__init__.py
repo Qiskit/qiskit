@@ -248,7 +248,6 @@ __all__ = [
     "HamiltonianPhaseEstimation",
     "HamiltonianPhaseEstimationResult",
     "VQD",
-    "kVQEResult",
     "PhaseEstimationScale",
     "PhaseEstimation",
     "PhaseEstimationResult",
