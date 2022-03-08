@@ -112,32 +112,27 @@ pub fn best_subset(
         .into_par_iter()
         .map(|k| {
             let mut subgraph: Vec<[usize; 2]> = Vec::with_capacity(num_qubits);
-            let bfs = bfs_sort(coupling_adj_mat, k);
+            let mut bfs = bfs_sort(coupling_adj_mat, k);
+            bfs.truncate(num_qubits);
+            let bfs_set: HashSet<usize> = bfs.iter().copied().collect();
             let mut connection_count = 0;
-            for i in 0..num_qubits {
-                let node_idx = bfs[i];
-                for (node, j) in coupling_adj_mat
-                    .index_axis(Axis(0), node_idx)
-                    .iter()
+            for node_idx in &bfs {
+                coupling_adj_mat
+                    .index_axis(Axis(0), *node_idx)
+                    .into_iter()
                     .enumerate()
-                {
-                    if *j == 0. {
-                        continue;
-                    }
-                    for counter in bfs.iter().take(num_qubits) {
-                        if node == *counter {
+                    .filter(|(_node, j)| *j != &0.)
+                    .for_each(|(node, _j)| {
+                        if bfs_set.contains(&node) {
                             connection_count += 1;
-                            subgraph.push([node_idx, node]);
-                            break;
+                            subgraph.push([*node_idx, node]);
                         }
-                    }
-                }
+                    });
             }
             let error = if use_error {
                 let mut ret_error = 0.;
                 let meas_avg = bfs
                     .iter()
-                    .take(num_qubits)
                     .map(|i| {
                         let idx = *i;
                         err[[idx, idx]]
@@ -186,7 +181,7 @@ pub fn best_subset(
                 }
             },
         );
-    let best_map: Vec<usize> = best_result.map[0..num_qubits].to_vec();
+    let best_map: Vec<usize> = best_result.map;
     let mapping: HashMap<usize, usize> = best_map
         .iter()
         .enumerate()
