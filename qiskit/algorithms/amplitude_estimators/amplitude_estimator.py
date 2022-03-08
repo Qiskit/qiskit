@@ -12,7 +12,7 @@
 
 """The Amplitude Estimation interface."""
 
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from typing import Union, Optional, Dict, Callable, Tuple
 import numpy as np
 
@@ -20,7 +20,7 @@ from .estimation_problem import EstimationProblem
 from ..algorithm_result import AlgorithmResult
 
 
-class AmplitudeEstimator:
+class AmplitudeEstimator(ABC):
     """The Amplitude Estimation interface."""
 
     @abstractmethod
