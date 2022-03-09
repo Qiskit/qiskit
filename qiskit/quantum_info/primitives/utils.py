@@ -13,8 +13,9 @@
 Utility functions for primitives
 """
 
+from __future__ import annotations
+
 import sys
-from typing import Union
 
 from qiskit.circuit import ParameterExpression, QuantumCircuit
 from qiskit.extensions.quantum_initializer.initializer import Initialize
@@ -44,7 +45,7 @@ class PauliSumOp(Protocol):
         ...
 
     @property
-    def coeff(self) -> Union[complex, ParameterExpression]:
+    def coeff(self) -> complex | ParameterExpression:
         """
         The scalar coefficient multiplying the Operator.
 
@@ -54,7 +55,7 @@ class PauliSumOp(Protocol):
         ...
 
 
-def init_circuit(state: Union[QuantumCircuit, Statevector]) -> QuantumCircuit:
+def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:
     """Initialize state."""
     if isinstance(state, QuantumCircuit):
         return state
@@ -65,7 +66,7 @@ def init_circuit(state: Union[QuantumCircuit, Statevector]) -> QuantumCircuit:
     return qc
 
 
-def init_observable(observable: Union[BaseOperator, PauliSumOp]) -> SparsePauliOp:
+def init_observable(observable: BaseOperator | PauliSumOp) -> SparsePauliOp:
     """Initialize observable"""
     if isinstance(observable, SparsePauliOp):
         return observable
