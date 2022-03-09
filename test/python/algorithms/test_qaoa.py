@@ -15,12 +15,12 @@
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
+from functools import partial
 import math
 import numpy as np
-import retworkx as rx
-from functools import partial
 from scipy.optimize import minimize as scipy_minimize
 from ddt import ddt, idata, unpack
+import retworkx as rx
 
 from qiskit.algorithms import QAOA
 from qiskit.algorithms.optimizers import COBYLA, NELDER_MEAD
