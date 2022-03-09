@@ -18,6 +18,8 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 import math
 import numpy as np
 import retworkx as rx
+from functools import partial
+from scipy.optimize import minimize as scipy_minimize
 from ddt import ddt, idata, unpack
 
 from qiskit.algorithms import QAOA
@@ -308,6 +310,15 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         self.assertNotEqual(circ3, ref)
         circ4 = qaoa.construct_circuit([0, 0], I ^ Z)[0]
         self.assertEqual(circ4, ref)
+
+    def test_optimizer_scipy_callable(self):
+        """Test passing a SciPy optimizer directly as callable."""
+        qaoa = QAOA(
+            optimizer=partial(scipy_minimize, method="Nelder-Mead", options={"maxiter": 2}),
+            quantum_instance=self.statevector_simulator,
+        )
+        result = qaoa.compute_minimum_eigenvalue(Z)
+        self.assertEqual(result.cost_function_evals, 4)
 
     def _get_operator(self, weight_matrix):
         """Generate Hamiltonian for the max-cut problem of a graph.
