@@ -35,6 +35,10 @@ class TestOptimize1qSimpleCommutation(QiskitTestCase):
         """
         Check that Optimize1qGatesSimpleCommutation correctly moves 1Q gates later.
         """
+        # q_0: ────────■─────────────────────────
+        #      ┌────┐┌─┴─┐┌───────┐┌────┐┌──────┐
+        # q_1: ┤ √X ├┤ X ├┤ P(-π) ├┤ √X ├┤ P(π) ├
+        #      └────┘└───┘└───────┘└────┘└──────┘
         qc = QuantumCircuit(2)
         qc.sx(1)
         qc.cx(0, 1)
@@ -54,6 +58,10 @@ class TestOptimize1qSimpleCommutation(QiskitTestCase):
         """
         Check that Optimize1qGatesSimpleCommutation correctly moves 1Q gates earlier.
         """
+        # q_0: ─────────────────────────■────────
+        #      ┌───────┐┌────┐┌──────┐┌─┴─┐┌────┐
+        # q_1: ┤ P(-π) ├┤ √X ├┤ P(π) ├┤ X ├┤ √X ├
+        #      └───────┘└────┘└──────┘└───┘└────┘
         qc = QuantumCircuit(2)
         qc.p(-np.pi, 1)
         qc.sx(1)
@@ -73,6 +81,11 @@ class TestOptimize1qSimpleCommutation(QiskitTestCase):
         """
         Check that Optimize1qGatesSimpleCommutation can perform several steps without fumbling.
         """
+        #      ┌────────┐┌────┐┌────────┐     ┌────────┐┌────┐┌────────┐
+        # q_0: ┤ P(π/8) ├┤ √X ├┤ P(π/7) ├──■──┤ P(π/7) ├┤ √X ├┤ P(π/8) ├
+        #      ├────────┤├────┤└────────┘┌─┴─┐├───────┬┘├────┤├───────┬┘
+        # q_1: ┤ P(π/4) ├┤ √X ├──────────┤ X ├┤ P(-π) ├─┤ √X ├┤ P(-π) ├─
+        #      └────────┘└────┘          └───┘└───────┘ └────┘└───────┘
         qc = QuantumCircuit(2)
 
         qc.p(np.pi / 8, 0)
@@ -95,6 +108,12 @@ class TestOptimize1qSimpleCommutation(QiskitTestCase):
         optimize_pass = Optimize1qGatesSimpleCommutation(basis=["sx", "p"], run_to_completion=True)
         result = optimize_pass(qc)
 
+        # global phase: π/2
+        #      ┌────────┐┌────┐     ┌─────────┐┌────┐┌────────┐
+        # q_0: ┤ P(π/8) ├┤ √X ├──■──┤ P(2π/7) ├┤ √X ├┤ P(π/8) ├
+        #      ├────────┤└────┘┌─┴─┐└─────────┘└────┘└────────┘
+        # q_1: ┤ P(π/4) ├──────┤ X ├───────────────────────────
+        #      └────────┘      └───┘
         expected = QuantumCircuit(2, global_phase=np.pi / 2)
         expected.p(np.pi / 8, 0)
         expected.sx(0)
@@ -115,6 +134,21 @@ class TestOptimize1qSimpleCommutation(QiskitTestCase):
         Check that Optimize1qGatesSimpleCommutation can push gates forward and backward out of a run
         in the middle of a circuit.
         """
+        #       ┌──────────┐┌────┐┌───────────┐┌────┐┌───────────┐┌───┐┌────┐┌──────────┐»
+        # q_0: ─┤ Rz(2.15) ├┤ √X ├┤ Rz(-2.75) ├┤ √X ├┤ Rz(0.255) ├┤ X ├┤ √X ├┤ Rz(1.03) ├»
+        #      ┌┴──────────┤├────┤├───────────┤├────┤└┬──────────┤└─┬─┘├────┤├──────────┤»
+        # q_1: ┤ Rz(0.138) ├┤ √X ├┤ Rz(-2.87) ├┤ √X ├─┤ Rz(-2.1) ├──■──┤ √X ├┤ Rz(1.45) ├»
+        #      └───────────┘└────┘└───────────┘└────┘ └──────────┘     └────┘└──────────┘»
+        # «     ┌────┐            ┌───┐ ┌──────────┐ ┌────┐┌───────────┐┌────┐»
+        # «q_0: ┤ √X ├────────────┤ X ├─┤ Rz(2.01) ├─┤ √X ├┤ Rz(-1.62) ├┤ √X ├»
+        # «     ├────┤┌──────────┐└─┬─┘┌┴──────────┴┐├────┤├───────────┤├────┤»
+        # «q_1: ┤ √X ├┤ Rz(1.33) ├──■──┤ Rz(-0.732) ├┤ √X ├┤ Rz(-2.65) ├┤ √X ├»
+        # «     └────┘└──────────┘     └────────────┘└────┘└───────────┘└────┘»
+        # «     ┌───────────┐
+        # «q_0: ┤ Rz(-1.16) ├
+        # «     └┬──────────┤
+        # «q_1: ─┤ Rz(2.17) ├
+        # «      └──────────┘
         qc = QuantumCircuit(2)
 
         qc.rz(2.15, 0)  # this block will get modified by resynthesis

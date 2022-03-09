@@ -72,9 +72,9 @@ class SineIntegral(QuantumCircuit):
         self.h(qr_state)
 
         # apply the sine/cosine term
-        self.ry(2 * 1 / 2 / 2 ** num_qubits, qr_objective[0])
+        self.ry(2 * 1 / 2 / 2**num_qubits, qr_objective[0])
         for i, qubit in enumerate(qr_state):
-            self.cry(2 * 2 ** i / 2 ** num_qubits, qubit, qr_objective[0])
+            self.cry(2 * 2**i / 2**num_qubits, qubit, qr_objective[0])
 
 
 @ddt
@@ -197,7 +197,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
             if efficient_circuit:
                 qae.grover_operator = BernoulliGrover(prob)
                 for power in range(m):
-                    circuit.cry(2 * 2 ** power * angle, qr_eval[power], qr_objective[0])
+                    circuit.cry(2 * 2**power * angle, qr_eval[power], qr_objective[0])
             else:
                 oracle = QuantumCircuit(1)
                 oracle.z(0)
@@ -207,7 +207,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
                 grover_op = GroverOperator(oracle, state_preparation)
                 for power in range(m):
                     circuit.compose(
-                        grover_op.power(2 ** power).control(),
+                        grover_op.power(2**power).control(),
                         qubits=[qr_eval[power], qr_objective[0]],
                         inplace=True,
                     )
@@ -286,7 +286,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
                 # Q^(2^j) operator
                 if efficient_circuit:
                     qae.grover_operator = BernoulliGrover(prob)
-                    circuit.ry(2 * 2 ** power * angle, q_objective[0])
+                    circuit.ry(2 * 2**power * angle, q_objective[0])
 
                 else:
                     oracle = QuantumCircuit(1)
@@ -294,7 +294,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
                     state_preparation = QuantumCircuit(1)
                     state_preparation.ry(angle, 0)
                     grover_op = GroverOperator(oracle, state_preparation)
-                    for _ in range(2 ** power):
+                    for _ in range(2**power):
                         circuit.compose(grover_op, inplace=True)
                 circuits += [circuit]
 

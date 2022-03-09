@@ -259,7 +259,7 @@ class QuantumCircuit:
         self._qubits = []
         self._clbits = []
 
-        # Dict mapping Qubt or Clbit instances to tuple comprised of 0) the
+        # Dict mapping Qubit or Clbit instances to tuple comprised of 0) the
         # corresponding index in circuit.{qubits,clbits} and 1) a list of
         # Register-int pairs for each Register containing the Bit and its index
         # within that register.
@@ -425,18 +425,24 @@ class QuantumCircuit:
         Examples:
 
             input:
-                 ┌───┐
-            q_0: ┤ H ├─────■──────
-                 └───┘┌────┴─────┐
-            q_1: ─────┤ RX(1.57) ├
-                      └──────────┘
+
+            .. parsed-literal::
+
+                     ┌───┐
+                q_0: ┤ H ├─────■──────
+                     └───┘┌────┴─────┐
+                q_1: ─────┤ RX(1.57) ├
+                          └──────────┘
 
             output:
-                             ┌───┐
-            q_0: ─────■──────┤ H ├
-                 ┌────┴─────┐└───┘
-            q_1: ┤ RX(1.57) ├─────
-                 └──────────┘
+
+            .. parsed-literal::
+
+                                 ┌───┐
+                q_0: ─────■──────┤ H ├
+                     ┌────┴─────┐└───┘
+                q_1: ┤ RX(1.57) ├─────
+                     └──────────┘
         """
         reverse_circ = QuantumCircuit(
             self.qubits, self.clbits, *self.qregs, *self.cregs, name=self.name + "_reverse"
@@ -465,18 +471,24 @@ class QuantumCircuit:
         Examples:
 
             input:
-                 ┌───┐
-            q_0: ┤ H ├─────■──────
-                 └───┘┌────┴─────┐
-            q_1: ─────┤ RX(1.57) ├
-                      └──────────┘
+
+            .. parsed-literal::
+
+                     ┌───┐
+                q_0: ┤ H ├─────■──────
+                     └───┘┌────┴─────┐
+                q_1: ─────┤ RX(1.57) ├
+                          └──────────┘
 
             output:
-                      ┌──────────┐
-            q_0: ─────┤ RX(1.57) ├
-                 ┌───┐└────┬─────┘
-            q_1: ┤ H ├─────■──────
-                 └───┘
+
+            .. parsed-literal::
+
+                          ┌──────────┐
+                q_0: ─────┤ RX(1.57) ├
+                     ┌───┐└────┬─────┘
+                q_1: ┤ H ├─────■──────
+                     └───┘
         """
         circ = QuantumCircuit(
             *reversed(self.qregs),
@@ -511,18 +523,24 @@ class QuantumCircuit:
         Examples:
 
             input:
-                 ┌───┐
-            q_0: ┤ H ├─────■──────
-                 └───┘┌────┴─────┐
-            q_1: ─────┤ RX(1.57) ├
-                      └──────────┘
+
+            .. parsed-literal::
+
+                     ┌───┐
+                q_0: ┤ H ├─────■──────
+                     └───┘┌────┴─────┐
+                q_1: ─────┤ RX(1.57) ├
+                          └──────────┘
 
             output:
-                              ┌───┐
-            q_0: ──────■──────┤ H ├
-                 ┌─────┴─────┐└───┘
-            q_1: ┤ RX(-1.57) ├─────
-                 └───────────┘
+
+            .. parsed-literal::
+
+                                  ┌───┐
+                q_0: ──────■──────┤ H ├
+                     ┌─────┴─────┐└───┘
+                q_1: ┤ RX(-1.57) ├─────
+                     └───────────┘
         """
         inverse_circ = QuantumCircuit(
             self.qubits,
@@ -910,11 +928,11 @@ class QuantumCircuit:
 
         .. parsed-literal::
 
-                 ┌────────┐        ┌─────┐          ┌─────┐
+                 ┌────────┐         ┌─────┐          ┌─────┐
             q_0: ┤ bottom ├ ⊗ q_0: ┤ top ├  = q_0: ─┤ top ├──
-                 └────────┘        └─────┘         ┌┴─────┴─┐
-                                              q_1: ┤ bottom ├
-                                                   └────────┘
+                 └────────┘         └─────┘         ┌┴─────┴─┐
+                                               q_1: ┤ bottom ├
+                                                    └────────┘
 
         Args:
             other (QuantumCircuit): The other circuit to tensor this circuit with.
@@ -1070,46 +1088,6 @@ class QuantumCircuit:
         except (ValueError, TypeError):
             return value
 
-    @staticmethod
-    def _bit_argument_conversion(bit_representation, in_array: Sequence[BitType]) -> List[BitType]:
-        try:
-            if isinstance(bit_representation, Bit):
-                # circuit.h(qr[0]) -> circuit.h([qr[0]])
-                ret = [bit_representation]
-            elif isinstance(bit_representation, Register):
-                # circuit.h(qr) -> circuit.h([qr[0], qr[1]])
-                ret = bit_representation[:]
-            elif isinstance(QuantumCircuit.cast(bit_representation, int), int):
-                # circuit.h(0) -> circuit.h([qr[0]])
-                ret = [in_array[bit_representation]]
-            elif isinstance(bit_representation, slice):
-                # circuit.h(slice(0,2)) -> circuit.h([qr[0], qr[1]])
-                ret = in_array[bit_representation]
-            elif isinstance(bit_representation, list) and all(
-                isinstance(bit, Bit) for bit in bit_representation
-            ):
-                # circuit.h([qr[0], qr[1]]) -> circuit.h([qr[0], qr[1]])
-                ret = bit_representation
-            elif isinstance(QuantumCircuit.cast(bit_representation, list), (range, list)):
-                # circuit.h([0, 1])     -> circuit.h([qr[0], qr[1]])
-                # circuit.h(range(0,2)) -> circuit.h([qr[0], qr[1]])
-                # circuit.h([qr[0],1])  -> circuit.h([qr[0], qr[1]])
-                ret = [
-                    index if isinstance(index, Bit) else in_array[index]
-                    for index in bit_representation
-                ]
-            else:
-                raise CircuitError(
-                    f"Not able to expand a {bit_representation} ({type(bit_representation)})"
-                )
-        except IndexError as ex:
-            raise CircuitError("Index out of range.") from ex
-        except TypeError as ex:
-            raise CircuitError(
-                f"Type error handling {bit_representation} ({type(bit_representation)})"
-            ) from ex
-        return ret
-
     def qbit_argument_conversion(self, qubit_representation: QubitSpecifier) -> List[Qubit]:
         """
         Converts several qubit representations (such as indexes, range, etc.)
@@ -1121,7 +1099,9 @@ class QuantumCircuit:
         Returns:
             List(Qubit): the resolved instances of the qubits.
         """
-        return QuantumCircuit._bit_argument_conversion(qubit_representation, self.qubits)
+        return _bit_argument_conversion(
+            qubit_representation, self.qubits, self._qubit_indices, Qubit
+        )
 
     def cbit_argument_conversion(self, clbit_representation: ClbitSpecifier) -> List[Clbit]:
         """
@@ -1134,7 +1114,9 @@ class QuantumCircuit:
         Returns:
             List(tuple): Where each tuple is a classical bit.
         """
-        return QuantumCircuit._bit_argument_conversion(clbit_representation, self.clbits)
+        return _bit_argument_conversion(
+            clbit_representation, self.clbits, self._clbit_indices, Clbit
+        )
 
     def _resolve_classical_resource(self, specifier):
         """Resolve a single classical resource specifier into a concrete resource, raising an error
@@ -1210,6 +1192,8 @@ class QuantumCircuit:
             )
         if not isinstance(instruction, Instruction) and hasattr(instruction, "to_instruction"):
             instruction = instruction.to_instruction()
+        if not isinstance(instruction, Instruction):
+            raise CircuitError("object is not an Instruction.")
 
         # Make copy of parameterized gate instances
         if hasattr(instruction, "params"):
@@ -1228,14 +1212,24 @@ class QuantumCircuit:
             requester = self._resolve_classical_resource
         instructions = InstructionSet(resource_requester=requester)
         for qarg, carg in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
+            self._check_dups(qarg)
             instructions.add(appender(instruction, qarg, carg), qarg, carg)
         return instructions
 
     def _append(
-        self, instruction: Instruction, qargs: Sequence[Qubit], cargs: Sequence[Clbit]
+        self,
+        instruction: Instruction,
+        qargs: Sequence[Qubit],
+        cargs: Sequence[Clbit],
     ) -> Instruction:
-        """Append an instruction to the end of the circuit, modifying
-        the circuit in place.
+        """Append an instruction to the end of the circuit, modifying the circuit in place.
+
+        .. warning::
+
+            This is an internal fast-path function, and it is the responsibility of the caller to
+            ensure that all the arguments are valid; there is no error checking here.  In
+            particular, all the qubits and clbits must already exist in the circuit and there can be
+            no duplicates in the list.
 
         .. note::
 
@@ -1249,28 +1243,16 @@ class QuantumCircuit:
 
         Args:
             instruction: Instruction instance to append
-            qargs: qubits to attach instruction to
-            cargs: clbits to attach instruction to
+            qargs: Qubits to attach the instruction to.
+            cargs: Clbits to attach the instruction to.
 
         Returns:
             Instruction: a handle to the instruction that was just added
 
-        Raises:
-            CircuitError: if the gate is of a different shape than the wires
-                it is being attached to.
+        :meta public:
         """
-        if not isinstance(instruction, Instruction):
-            raise CircuitError("object is not an Instruction.")
 
-        # do some compatibility checks
-        self._check_dups(qargs)
-        self._check_qargs(qargs)
-        self._check_cargs(cargs)
-
-        # add the instruction onto the given wires
-        instruction_context = instruction, qargs, cargs
-        self._data.append(instruction_context)
-
+        self._data.append((instruction, qargs, cargs))
         self._update_parameter_table(instruction)
 
         # mark as normal circuit if a new instruction is added
@@ -1352,7 +1334,9 @@ class QuantumCircuit:
                 raise CircuitError('register name "%s" already exists' % register.name)
 
             if isinstance(register, AncillaRegister):
-                self._ancillas.extend(register)
+                for bit in register:
+                    if bit not in self._qubit_indices:
+                        self._ancillas.append(bit)
 
             if isinstance(register, QuantumRegister):
                 self.qregs.append(register)
@@ -1444,20 +1428,6 @@ class QuantumCircuit:
         squbits = set(qubits)
         if len(squbits) != len(qubits):
             raise CircuitError("duplicate qubit arguments")
-
-    def _check_qargs(self, qargs: Sequence[Qubit]) -> None:
-        """Raise exception if a qarg is not in this circuit or bad format."""
-        if not all(isinstance(i, Qubit) for i in qargs):
-            raise CircuitError("qarg is not a Qubit")
-        if not set(qargs) <= self._qubit_indices.keys():
-            raise CircuitError("qargs not in this circuit")
-
-    def _check_cargs(self, cargs: Sequence[Clbit]) -> None:
-        """Raise exception if clbit is not in this circuit or bad format."""
-        if not all(isinstance(i, Clbit) for i in cargs):
-            raise CircuitError("carg is not a Clbit")
-        if not set(cargs) <= self._clbit_indices.keys():
-            raise CircuitError("cargs not in this circuit")
 
     def to_instruction(
         self,
@@ -3135,7 +3105,7 @@ class QuantumCircuit:
         return self.append(RYYGate(theta), [qubit1, qubit2], [])
 
     def rz(self, phi: ParameterValueType, qubit: QubitSpecifier) -> InstructionSet:
-        """Apply :class:`~qiskit.circuit.library.RYGate`.
+        """Apply :class:`~qiskit.circuit.library.RZGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
 
@@ -3217,6 +3187,30 @@ class QuantumCircuit:
         from .library.standard_gates.rzz import RZZGate
 
         return self.append(RZZGate(theta), [qubit1, qubit2], [])
+
+    def xy(
+        self,
+        theta: ParameterValueType,
+        qubit1: QubitSpecifier,
+        qubit2: QubitSpecifier,
+        beta: Optional[ParameterValueType] = 0,
+    ) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.library.XYGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Args:
+            theta: The rotation angle of the gate.
+            beta: The phase angle of the gate.
+            qubit1: The qubit(s) to apply the gate to.
+            qubit2: The qubit(s) to apply the gate to.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.xy import XYGate
+
+        return self.append(XYGate(theta, beta), [qubit1, qubit2], [])
 
     def ecr(self, qubit1: QubitSpecifier, qubit2: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.ECRGate`.
@@ -4052,7 +4046,11 @@ class QuantumCircuit:
         return self.append(PauliGate(pauli_string), qubits, [])
 
     def _push_scope(
-        self, qubits: Iterable[Qubit] = (), clbits: Iterable[Clbit] = (), allow_jumps: bool = True
+        self,
+        qubits: Iterable[Qubit] = (),
+        clbits: Iterable[Clbit] = (),
+        registers: Iterable[Register] = (),
+        allow_jumps: bool = True,
     ):
         """Add a scope for collecting instructions into this circuit.
 
@@ -4067,11 +4065,19 @@ class QuantumCircuit:
         # pylint: disable=cyclic-import
         from qiskit.circuit.controlflow.builder import ControlFlowBuilderBlock
 
+        # Chain resource requests so things like registers added to inner scopes via conditions are
+        # requested in the outer scope as well.
+        if self._control_flow_scopes:
+            resource_requester = self._control_flow_scopes[-1].request_classical_resource
+        else:
+            resource_requester = self._resolve_classical_resource
+
         self._control_flow_scopes.append(
             ControlFlowBuilderBlock(
                 qubits,
                 clbits,
-                resource_requester=self._resolve_classical_resource,
+                resource_requester=resource_requester,
+                registers=registers,
                 allow_jumps=allow_jumps,
             )
         )
@@ -4277,7 +4283,7 @@ class QuantumCircuit:
                 qc.h(0)
                 qc.cx(0, 1)
                 qc.measure(0, 0)
-                qc.break_loop().c_if(0)
+                qc.break_loop().c_if(0, True)
 
         Args:
             indexset (Iterable[int]): A collection of integers to loop over.  Always necessary.
@@ -4516,7 +4522,8 @@ class QuantumCircuit:
 
         if self._control_flow_scopes:
             operation = BreakLoopPlaceholder()
-            return self.append(operation, *operation.placeholder_resources())
+            resources = operation.placeholder_resources()
+            return self.append(operation, resources.qubits, resources.clbits)
         return self.append(BreakLoopOp(self.num_qubits, self.num_clbits), self.qubits, self.clbits)
 
     def continue_loop(self) -> InstructionSet:
@@ -4545,7 +4552,8 @@ class QuantumCircuit:
 
         if self._control_flow_scopes:
             operation = ContinueLoopPlaceholder()
-            return self.append(operation, *operation.placeholder_resources())
+            resources = operation.placeholder_resources()
+            return self.append(operation, resources.qubits, resources.clbits)
         return self.append(
             ContinueLoopOp(self.num_qubits, self.num_clbits), self.qubits, self.clbits
         )
@@ -4801,3 +4809,69 @@ def _insert_composite_gate_definition_qasm(
 
     string_temp = string_temp.replace(extension_lib, f"{extension_lib}{gate_definition_string}")
     return string_temp
+
+
+def _bit_argument_conversion(specifier, bit_sequence, bit_set, type_):
+    """Get the list of bits referred to by the specifier ``specifier``.
+
+    Valid types for ``specifier`` are integers, bits of the correct type (as given in ``type_``), or
+    iterables of one of those two scalar types.  Integers are interpreted as indices into the
+    sequence ``bit_sequence``.  All allowed bits must be in ``bit_set`` (which should implement
+    fast lookup), which is assumed to contain the same bits as ``bit_sequence``.
+
+    Returns:
+        List[Bit]: a list of the specified bits from ``bits``.
+
+    Raises:
+        CircuitError: if an incorrect type or index is encountered, if the same bit is specified
+            more than once, or if the specifier is to a bit not in the ``bit_set``.
+    """
+    # The duplication between this function and `_bit_argument_conversion_scalar` is so that fast
+    # paths return as quickly as possible, and all valid specifiers will resolve without needing to
+    # try/catch exceptions (which is too slow for inner-loop code).
+    if isinstance(specifier, type_):
+        if specifier in bit_set:
+            return [specifier]
+        raise CircuitError(f"Bit '{specifier}' is not in the circuit.")
+    if isinstance(specifier, (int, np.integer)):
+        try:
+            return [bit_sequence[specifier]]
+        except IndexError as ex:
+            raise CircuitError(
+                f"Index {specifier} out of range for size {len(bit_sequence)}."
+            ) from ex
+    # Slices can't raise IndexError - they just return an empty list.
+    if isinstance(specifier, slice):
+        return bit_sequence[specifier]
+    try:
+        return [
+            _bit_argument_conversion_scalar(index, bit_sequence, bit_set, type_)
+            for index in specifier
+        ]
+    except TypeError as ex:
+        message = (
+            f"Incorrect bit type: expected '{type_.__name__}' but got '{type(specifier).__name__}'"
+            if isinstance(specifier, Bit)
+            else f"Invalid bit index: '{specifier}' of type '{type(specifier)}'"
+        )
+        raise CircuitError(message) from ex
+
+
+def _bit_argument_conversion_scalar(specifier, bit_sequence, bit_set, type_):
+    if isinstance(specifier, type_):
+        if specifier in bit_set:
+            return specifier
+        raise CircuitError(f"Bit '{specifier}' is not in the circuit.")
+    if isinstance(specifier, (int, np.integer)):
+        try:
+            return bit_sequence[specifier]
+        except IndexError as ex:
+            raise CircuitError(
+                f"Index {specifier} out of range for size {len(bit_sequence)}."
+            ) from ex
+    message = (
+        f"Incorrect bit type: expected '{type_.__name__}' but got '{type(specifier).__name__}'"
+        if isinstance(specifier, Bit)
+        else f"Invalid bit index: '{specifier}' of type '{type(specifier)}'"
+    )
+    raise CircuitError(message)

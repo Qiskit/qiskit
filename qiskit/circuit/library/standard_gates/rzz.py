@@ -94,6 +94,10 @@ class RZZGate(Gate):
         from .x import CXGate
         from .rz import RZGate
 
+        # q_0: ──■─────────────■──
+        #      ┌─┴─┐┌───────┐┌─┴─┐
+        # q_1: ┤ X ├┤ Rz(0) ├┤ X ├
+        #      └───┘└───────┘└───┘
         q = QuantumRegister(2, "q")
         theta = self.params[0]
         qc = QuantumCircuit(q, name=self.name)

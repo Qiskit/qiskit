@@ -16,7 +16,7 @@ import unittest
 
 from qiskit.converters import circuit_to_instruction
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit import Qubit, Clbit
+from qiskit.circuit import Qubit, Clbit, Instruction
 from qiskit.circuit import Parameter
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
@@ -185,6 +185,23 @@ class TestCircuitToInstruction(QiskitTestCase):
         self.assertEqual(inst.definition[1][0].params, [phi])
         self.assertEqual(inst.definition[2][0].params, [gamma, phi, 0])
         self.assertEqual(str(inst.definition[3][0].params[0]), "gamma + phi")
+
+    def test_registerless_classical_bits(self):
+        """Test that conditions on registerless classical bits can be handled during the conversion.
+
+        Regression test of gh-7394."""
+        expected = QuantumCircuit([Qubit(), Clbit()])
+        expected.h(0).c_if(expected.clbits[0], 0)
+        test = circuit_to_instruction(expected)
+
+        self.assertIsInstance(test, Instruction)
+        self.assertIsInstance(test.definition, QuantumCircuit)
+
+        self.assertEqual(len(test.definition.data), 1)
+        test_instruction, _, _ = test.definition.data[0]
+        expected_instruction, _, _ = expected.data[0]
+        self.assertIs(type(test_instruction), type(expected_instruction))
+        self.assertEqual(test_instruction.condition, (test.definition.clbits[0], 0))
 
 
 if __name__ == "__main__":

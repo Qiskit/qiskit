@@ -1,0 +1,33 @@
+---
+upgrade:
+  - |
+    The resolver used by :meth:`.QuantumCircuit.append` (and consequently all
+    methods that add an instruction onto a :class:`.QuantumCircuit`) to convert
+    bit specifiers has changed to make it faster and more reliable.  Certain
+    constructs like::
+
+        import numpy as np
+        from qiskit import QuantumCircuit
+
+        qc = QuantumCircuit(1, 1)
+        qc.measure(np.array([0]), np.array([0]))
+
+    will now work where they previously would incorrectly raise an error, but
+    certain pathological inputs such as::
+
+        from sympy import E, I, pi
+        qc.x(E ** (I * pi))
+
+    will now raise errors where they may have occasionally (erroneously)
+    succeeded before.  For almost all correct uses, there should be no
+    noticeable change except for a general speed-up.
+  - |
+    The semi-public internal method :meth:`.QuantumCircuit._append` no longer
+    checks the types of its inputs, and assumes that there are no invalid
+    duplicates in its argument lists.  This function is used by certain internal
+    parts of Qiskit and other libraries to build up :class:`.QuantumCircuit`
+    instances as quickly as possible by skipping the error checking when the
+    data is already *known* to be correct.  In general, users or functions
+    taking in user data should use the public :meth:`.QuantumCircuit.append`
+    method, which resolves integer bit specifiers, broadcasts its arguments and
+    checks the inputs for correctness.

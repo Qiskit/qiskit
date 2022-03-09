@@ -465,7 +465,8 @@ class QASM3Builder:
             # the definition.
             raise QASM3ExporterError(
                 "Exporting subroutines with parameters is not yet supported by the OpenQASM 3"
-                " exporter. Received this instruction, which appears parameterized:\n{instruction}"
+                " exporter. Received this instruction, which appears parameterized:"
+                f"\n{instruction}"
             )
         name = self.global_namespace[instruction]
         self.push_context(instruction.definition)
