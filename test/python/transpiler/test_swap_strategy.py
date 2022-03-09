@@ -259,3 +259,8 @@ class TestLineSwapStrategy(QiskitTestCase):
         self.assertEqual(strategy.swap_layer(2), [(0, 1), (2, 3)])
 
         self.assertTrue(strategy.reaches_full_connectivity)
+
+    def test_repr(self):
+        """The the representation."""
+        expected = "LineSwapStrategy with swap layers:\n[(0, 1)],\non [0, 1, 2] coupling map."
+        self.assertEqual(repr(LineSwapStrategy([0, 1, 2])), expected)
