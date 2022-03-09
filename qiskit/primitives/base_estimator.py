@@ -10,9 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 r"""
-=========
-Estimator
-=========
+=====================
+Overview of Estimator
+=====================
 
 Estimator class estimates expectation values of quantum circuits and observables.
 
@@ -41,15 +41,15 @@ The estimator is called with the following inputs.
   to be bound to the parameters of the quantum circuits.
   (list of list of float)
 
-The output is an EstimatorResult which contains a list of expectation values plus
-optional metadata like confidence intervals for the estimation.
+The output is an :class:`~qiskit.primitives.EstimatorResult` which contains a list of
+expectation values plus optional metadata like confidence intervals for the estimation.
 
 .. math::
 
     \langle\psi_i(\theta_k)|H_j|\psi_i(\theta_k)\rangle
 
 
-The estimator object is expected to be `close()` d after use or
+The estimator object is expected to be ``close()`` d after use or
 accessed inside "with" context
 and the objects are called with parameter values and run options
 (e.g., ``shots`` or number of shots).
