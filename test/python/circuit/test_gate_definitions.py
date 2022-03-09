@@ -238,7 +238,6 @@ class TestStandardGates(QiskitTestCase):
 
         from qiskit.quantum_info.operators.predicates import is_identity_matrix
 
-        print(gate)
         self.assertTrue(is_identity_matrix(Operator(gate).dot(gate.inverse()).data))
 
         if gate.definition is not None:
