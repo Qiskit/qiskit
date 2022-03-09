@@ -50,7 +50,7 @@ from qiskit.quantum_info import Statevector
 from qiskit.transpiler import PassManager, PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import level_1_pass_manager
 from qiskit.utils import QuantumInstance, algorithm_globals, has_aer
-from ..transpiler._dummy_passes import DummyAP
+from test.python.transpiler._dummy_passes import DummyAP
 
 if has_aer():
     from qiskit import Aer
