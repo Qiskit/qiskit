@@ -71,21 +71,37 @@ class CollectLinearFunctions(TransformationPass):
             if not have_unprocessed:
                 break
 
-            # collect the required set of nodes, keeping track of support sets
-            postponed_qubits = set()
+            # cut-off heuristic: if number of steps without progress exceeds a certain threshold,
+            # we stop the search; this keeps the algorithm to be linear in the worst-case
+            num_current_steps = 0
+
+            # collect the required set of nodes, keeping track of "contaminated qubits"
+            # (e.g., when we collect linear gates, qubits belonging to non-linear gates
+            # are "contaminated")
+            contaminated_qubits = set()
             for i in range(first_idx, len(initial_order)):
+
+                # cut-off heuristic
+                num_current_steps = num_current_steps + 1
+                if num_current_steps >= num_qubits + 5:
+                    break
+
                 if collected_flag[i]:
                     continue
                 node = initial_order[i]
                 collectable = not self._is_linear_gate(node.op) ^ collect_linear
 
-                if not collectable or not postponed_qubits.isdisjoint(node.qargs):
-                    postponed_qubits.update(node.qargs)
-                    if len(postponed_qubits) == num_qubits:
+                if not collectable or not contaminated_qubits.isdisjoint(node.qargs):
+                    # cannot add this node to the current block
+                    contaminated_qubits.update(node.qargs)
+                    # optimization to stop search if all qubits are "contaminated"
+                    if len(contaminated_qubits) == num_qubits:
                         break
                 else:
+                    # found a new node to add to the current block
                     new_order.append(node)
                     collected_flag[i] = True
+                    num_current_steps = 0
 
             collect_linear = not collect_linear
 
