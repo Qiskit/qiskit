@@ -12,6 +12,7 @@
 
 """Tests for Sampler."""
 
+import unittest
 from test import combine
 
 import numpy as np
@@ -245,4 +246,8 @@ class TestSampler(QiskitTestCase):
             # qc({x: 0, y: pi/2})
             keys, values = zip(*sorted(result.quasi_dists[3].items()))
             self.assertTupleEqual(keys, tuple(range(8)))
-            np.testing.assert_allclose(values, [0, 0.5, 0.5, 0, 0, 0, 0, 0])
+            np.testing.assert_allclose(values, [0, 0.5, 0, 0.5, 0, 0, 0, 0])
+
+
+if __name__ == "__main__":
+    unittest.main()

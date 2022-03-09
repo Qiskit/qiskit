@@ -12,6 +12,7 @@
 """
 Sampler class
 """
+
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
@@ -23,7 +24,7 @@ from qiskit.primitives import BaseSampler, SamplerResult
 from qiskit.quantum_info.states import Statevector
 from qiskit.result import QuasiDistribution
 
-from .utils import init_circuit
+from .utils import init_circuit, final_measurement_mapping
 
 
 class Sampler(BaseSampler):
@@ -39,10 +40,25 @@ class Sampler(BaseSampler):
         """
         Args:
             circuits: circuits to be executed
+
+        Raises:
+            QiskitError: if some classical bits are not used for measurements.
         """
         if isinstance(circuits, QuantumCircuit):
             circuits = [circuits]
-        circuits = [init_circuit(circuit).remove_final_measurements(False) for circuit in circuits]
+        circuits = [init_circuit(circuit) for circuit in circuits]
+        q_c_mappings = [final_measurement_mapping(circuit) for circuit in circuits]
+        self._qargs_list = []
+        for circuit, q_c_mapping in zip(circuits, q_c_mappings):
+            if set(range(circuit.num_clbits)) != set(q_c_mapping.values()):
+                raise QiskitError(
+                    "some classical bits are not used for measurements."
+                    f" the number of classical bits {circuit.num_clbits},"
+                    f" the used classical bits {set(q_c_mapping.values())}."
+                )
+            c_q_mapping = sorted((c, q) for q, c in q_c_mapping.items())
+            self._qargs_list.append([q for _, q in c_q_mapping])
+        circuits = [circuit.remove_final_measurements(inplace=False) for circuit in circuits]
         super().__init__(circuits, parameters)
         self._is_closed = False
 
@@ -61,12 +77,28 @@ class Sampler(BaseSampler):
             circuits = list(range(len(self._circuits)))
         if parameters is None:
             parameters = [[] for _ in self._circuits]
+        if len(circuits) != len(parameters):
+            raise QiskitError(
+                f"The number of circuits ({len(circuits)}) does not match "
+                f"the number of ({len(parameters)})."
+            )
 
-        bound_circuits = [
-            self._circuits[i].bind_parameters((dict(zip(self._parameters[i], value))))
-            for i, value in zip(circuits, parameters)
+        bound_circuits_qargs = []
+        for i, value in zip(circuits, parameters):
+            if len(value) != len(self._parameters[i]):
+                raise QiskitError(
+                    f"The number of values ({len(value)}) does not match "
+                    f"the number of parameters ({len(self._parameters[i])})."
+                )
+            bound_circuits_qargs.append(
+                (
+                    self._circuits[i].bind_parameters(dict(zip(self._parameters[i], value))),
+                    self._qargs_list[i],
+                )
+            )
+        probabilities = [
+            Statevector(circ).probabilities(qargs=qargs) for circ, qargs in bound_circuits_qargs
         ]
-        probabilities = [Statevector(circ).probabilities() for circ in bound_circuits]
         quasis = [QuasiDistribution(dict(enumerate(p))) for p in probabilities]
 
         return SamplerResult(quasis, [])

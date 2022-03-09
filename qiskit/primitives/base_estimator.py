@@ -95,18 +95,18 @@ Here is an example of how estimator is used.
         # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
         #             <psi2(theta2)|H2|psi2(theta2)>,
         #             <psi1(theta3)|H3|psi1(theta3)> ]
-        psi121_H123_result = e([0, 1, 0], [0, 1, 2], [theta1, theta2, theta3])
-        print(psi121_H123_result)
+        psi12_H123_result = e([0, 0, 0], [0, 1, 2], [theta1, theta2, theta3])
+        print(psi12_H23_result)
 """
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Sequence
+from typing import Iterable, Optional, Sequence
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.operators import SparsePauliOp
+from qiskit.quantum_info import SparsePauliOp
 
 from .estimator_result import EstimatorResult
 
@@ -121,7 +121,7 @@ class BaseEstimator(ABC):
         self,
         circuits: Iterable[QuantumCircuit],
         observables: Iterable[SparsePauliOp],
-        parameters: Iterable[Iterable[Parameter]] | None = None,
+        parameters: Optional[Iterable[Iterable[Parameter]]] = None,
     ):
         """
         Creating an instance of an Estimator, or using one in a ``with`` context opens a session that
