@@ -49,7 +49,6 @@ Standard Gates
    MCXGrayCode
    MCXRecursive
    MCXVChain
-   Measure
    PhaseGate
    RCCXGate
    RC3XGate

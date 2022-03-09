@@ -12,7 +12,6 @@
 
 """Unitary gate."""
 
-from warnings import warn
 from typing import List, Optional, Union, Tuple
 import numpy as np
 

@@ -230,10 +230,6 @@ class TestStandardGates(QiskitTestCase):
             num_ctrl_qubits = 3
             float_vector = float_vector[:-1]
             gate = gate_class(num_ctrl_qubits, *float_vector)
-        elif class_name == "MSGate":
-            num_qubits = 3
-            float_vector = float_vector[:-1]
-            gate = gate_class(num_qubits, *float_vector)
         elif class_name == "PauliGate":
             pauli_string = "IXYZ"
             gate = gate_class(pauli_string)
@@ -242,6 +238,7 @@ class TestStandardGates(QiskitTestCase):
 
         from qiskit.quantum_info.operators.predicates import is_identity_matrix
 
+        print(gate)
         self.assertTrue(is_identity_matrix(Operator(gate).dot(gate.inverse()).data))
 
         if gate.definition is not None:

@@ -14,7 +14,6 @@
 """Piecewise-linearly-controlled rotation."""
 
 from typing import List, Optional
-import warnings
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit

@@ -555,10 +555,6 @@ class C3SXGate(ControlledGate):
 
         self.definition = qc
 
-    def inverse(self):
-        """Invert this gate. The C3X is its own inverse."""
-        return C3SXGate(ctrl_state=self.ctrl_state)
-
 
 class C3XGate(ControlledGate):
     r"""The X gate controlled on 3 qubits.
