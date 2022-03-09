@@ -173,6 +173,67 @@ class TestEstimator(QiskitTestCase):
                 result.values, [1.5555572817900956, 0.17849238433885167, -1.0876631752254926]
             )
 
+    def test_1qubit(self):
+        """Test for 1-qubit cases"""
+        qc = QuantumCircuit(1)
+        qc2 = QuantumCircuit(1)
+        qc2.x(0)
+
+        op = SparsePauliOp.from_list([("I", 1)])
+        op2 = SparsePauliOp.from_list([("Z", 1)])
+
+        with Estimator([qc, qc2], [op, op2], [[]] * 2) as est:
+            result = est([0], [0], [[]])
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [1])
+
+            result = est([0], [1], [[]])
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [1])
+
+            result = est([1], [0], [[]])
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [1])
+
+            result = est([1], [1], [[]])
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [-1])
+
+    def test_2qubits(self):
+        """Test for 2-qubit cases (to check endian)"""
+        qc = QuantumCircuit(2)
+        qc2 = QuantumCircuit(2)
+        qc2.x(0)
+
+        op = SparsePauliOp.from_list([("II", 1)])
+        op2 = SparsePauliOp.from_list([("ZI", 1)])
+        op3 = SparsePauliOp.from_list([("IZ", 1)])
+
+        with Estimator([qc, qc2], [op, op2, op3], [[]] * 2) as est:
+            result = est([0], [0], [[]])
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [1])
+
+            result = est([1], [0], [[]])
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [1])
+
+            result = est([0], [1], [[]])
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [1])
+
+            result = est([1], [1], [[]])
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [1])
+
+            result = est([0], [2], [[]])
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [1])
+
+            result = est([1], [2], [[]])
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [-1])
+
 
 if __name__ == "__main__":
     unittest.main()
