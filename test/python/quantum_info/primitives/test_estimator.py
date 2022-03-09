@@ -10,8 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests for ExpectationValue."""
+"""Tests for Estimator."""
 
+import unittest
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
@@ -171,3 +172,7 @@ class TestEstimator(QiskitTestCase):
             np.testing.assert_allclose(
                 result.values, [1.5555572817900956, 0.17849238433885167, -1.0876631752254926]
             )
+
+
+if __name__ == "__main__":
+    unittest.main()

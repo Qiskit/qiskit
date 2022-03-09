@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Expectation value class
+Estimator class
 """
 
 from __future__ import annotations
@@ -83,11 +83,22 @@ class Estimator(BaseEstimator):
             observables = list(range(len(self._observables)))
         if parameters is None:
             parameters = [[]] * len(circuits)
+        if len(circuits) != len(parameters):
+            raise QiskitError(
+                f"The number of circuits ({len(circuits)}) does not match "
+                f"the number of ({len(parameters)})."
+            )
 
-        bound_circuits = [
-            self._circuits[i].bind_parameters((dict(zip(self._parameters[i], value))))
-            for i, value in zip(circuits, parameters)
-        ]
+        bound_circuits = []
+        for i, value in zip(circuits, parameters):
+            if len(value) != len(self._parameters[i]):
+                raise QiskitError(
+                    f"The number of values ({len(value)}) does not match "
+                    f"the number of parameters ({len(self._parameters[i])})."
+                )
+            bound_circuits.append(
+                self._circuits[i].bind_parameters(dict(zip(self._parameters[i], value)))
+            )
         sorted_observables = [self._observables[i] for i in observables]
         expectation_values = [
             Statevector(circ).expectation_value(obs)

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,9 +11,9 @@
 # that they have been altered from the originals.
 
 """
-Evaluators (:mod:`qiskit.evaluators`)
-==========================================
-It contains evaluator primitives.
+Primitives (:mod:`qiskit.quantum_info.primitives`)
+==================================================
+It contains a reference implementation of the primitives.
 """
 
 from .estimator import Estimator
