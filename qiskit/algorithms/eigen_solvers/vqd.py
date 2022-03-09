@@ -59,21 +59,20 @@ class VQD(VariationalAlgorithm, Eigensolver):
     the k eigenvalues of the Hamiltonian :math:`H` of a given system.
 
     An instance of VQD requires defining three algorithmic sub-components:
-    integer k denoting the number of eigenstates to calculate, a trial state (a.k.a. ansatz) which is a :class:`QuantumCircuit`, and one of the classical
-    :mod:`~qiskit.algorithms.optimizers`. The ansatz is varied, via its set of parameters, by the
-    optimizer, such that it works towards a state, as determined by the parameters applied to the
-    ansatz, that will result in the minimum expectation value being measured of the input operator
-    (Hamiltonian). The algorithm does this by iteratively refining each excited state to be orthogonal to all the previous excited states
+    integer k denoting the number of eigenstates to calculate, a trial
+    state (a.k.a. ansatz)which is a :class:`QuantumCircuit`,
+    and one of the classical :mod:`~qiskit.algorithms.optimizers`.
+    The ansatz is varied, via its set of parameters, by the optimizer,
+    such that it works towards a state, as determined by the parameters
+    applied to the ansatz, that will result in the minimum expectation values
+    being measured of the input operator (Hamiltonian). The algorithm does
+    this by iteratively refining each excited state to be orthogonal to all
+    the previous excited states.
 
     An optional array of parameter values, via the *initial_point*, may be provided as the
     starting point for the search of the minimum eigenvalue. This feature is particularly useful
     such as when there are reasons to believe that the solution point is close to a particular
-    point.  As an example, when building the dissociation profile of a molecule,
-    it is likely that using the previous computed optimal solution as the starting
-    initial point for the next interatomic distance is going to reduce the number of iterations
-    necessary for the variational algorithm to converge.  It provides an
-    `initial point tutorial <https://github.com/Qiskit/qiskit-tutorials-community/blob/master
-    /chemistry/h2_vqe_initial_point.ipynb>`__ detailing this use case.
+    point.
 
     The length of the *initial_point* list value must match the number of the parameters
     expected by the ansatz being used. If the *initial_point* is left at the default
@@ -111,8 +110,8 @@ class VQD(VariationalAlgorithm, Eigensolver):
             initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
-            gradient: An optional gradient function or operator for optimizer. Only used to compute the ground
-                state at the moment.
+            gradient: An optional gradient function or operator for optimizer.
+                Only used to compute the ground state at the moment.
             expectation: The Expectation converter for taking the average value of the
                 Observable over the ansatz state function. When ``None`` (the default) an
                 :class:`~qiskit.opflow.expectations.ExpectationFactory` is used to select
@@ -533,7 +532,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         if self.betas is None:
             upper_bound = (
                 abs(operator.coeff)
-                if type(operator) == PauliOp
+                if isinstance(operator,PauliOp)
                 else abs(operator.coeff) * sum(abs(operation.coeff) for operation in operator)
             )
             self.betas = [upper_bound * 10] * (self.k)
@@ -627,14 +626,14 @@ class VQD(VariationalAlgorithm, Eigensolver):
             if step == 0:
 
                 logger.info(
-                    " Ground state optimization complete in %s seconds.\nFound opt_params %s in %s evals",
+                    "Ground state optimization complete in %s seconds.\nFound opt_params %s in %s evals",
                     eval_time,
                     result.optimal_point,
                     self._eval_count,
                 )
             else:
                 logger.info(
-                    " %s excited state optimization complete in %s seconds.\nFound opt_params %s in %s evals",
+                    ("%s excited state optimization complete in %s s.\nFound opt_params %s in %s evals"),
                     str(step),
                     eval_time,
                     result.optimal_point,
@@ -662,7 +661,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         step: int,
         operator: OperatorBase,
         return_expectation: bool = False,
-        prev_states: List[float] = [],
+        prev_states: List[float] =  None,
     ) -> Callable[[np.ndarray], Union[float, List[float]]]:
         """Returns a function handle to evaluates the energy at given parameters for the ansatz.
 

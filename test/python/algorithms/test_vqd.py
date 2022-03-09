@@ -142,7 +142,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
             quantum_instance=self.statevector_simulator,
         )
         with self.assertRaises(AlgorithmError):
-            result = vqd.compute_eigenvalues(operator=self.h2_op)
+            _ = vqd.compute_eigenvalues(operator=self.h2_op)
 
     @data(
         (MatrixExpectation(), 1),
