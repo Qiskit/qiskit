@@ -31,8 +31,11 @@ class EstimatorResult:
 
         result = estimator(circuits, observables, params)
 
-    where the i-th elements of `result` correspond to the expectation using the circuit and
-    observable given by `circuits[i]`, `observables[i]`, and the parameters bounds by `params[i]`.
+    where the i-th element of ``result.values`` corresponds to the expectation value using the circuit
+    and observable given by ``circuits[i]``, ``observables[i]``, and the parameters bounds by
+    ``params[i]``.
+    The i-th element of ``result.metadata`` corresponds to the metadata of the experiment using
+    ``circuits[i]``, ``observables[i]``, and ``params[i]``.
 
     Args:
         values (np.ndarray): the array of the expectation values.

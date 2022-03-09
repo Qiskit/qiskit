@@ -77,36 +77,36 @@ Here is an example of how estimator is used.
         theta3 = [1, 2, 3, 4, 5, 6]
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
-        psi1_H1_result = e([0], [0], [theta1])
+        result = e([0], [0], [theta1])
         print(psi1_H1_result)
 
         # calculate [ <psi1(theta1)|H2|psi1(theta1)>, <psi1(theta1)|H3|psi1(theta1)> ]
-        psi1_H23_result = e([0, 0], [1, 2], [theta1]*2)
-        print(psi1_H23_result)
+        result2 = e([0, 0], [1, 2], [theta1]*2)
+        print(result2)
 
         # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]
-        psi2_H2_result = e([1], [1], [theta2])
-        print(psi2_H2_result)
+        result3 = e([1], [1], [theta2])
+        print(result3)
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)>, <psi1(theta3)|H1|psi1(theta3)> ]
-        psi1_H1_result2 = e([0, 0], [0, 0], [theta1, theta3])
-        print(psi1_H1_result2)
+        result4 = e([0, 0], [0, 0], [theta1, theta3])
+        print(result4)
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
         #             <psi2(theta2)|H2|psi2(theta2)>,
         #             <psi1(theta3)|H3|psi1(theta3)> ]
-        psi12_H123_result = e([0, 0, 0], [0, 1, 2], [theta1, theta2, theta3])
-        print(psi12_H23_result)
+        result5 = e([0, 1, 0], [0, 1, 2], [theta1, theta2, theta3])
+        print(result5)
 """
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Iterable, Optional, Sequence
+from collections.abc import Iterable, Sequence
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import SparsePauliOp
+from qiskit.quantum_info.operators import SparsePauliOp
 
 from .estimator_result import EstimatorResult
 
@@ -121,7 +121,7 @@ class BaseEstimator(ABC):
         self,
         circuits: Iterable[QuantumCircuit],
         observables: Iterable[SparsePauliOp],
-        parameters: Optional[Iterable[Iterable[Parameter]]] = None,
+        parameters: Iterable[Iterable[Parameter]] | None = None,
     ):
         """
         Creating an instance of an Estimator, or using one in a ``with`` context opens a session that
