@@ -20,6 +20,7 @@ from retworkx import PyGraph, PyDiGraph, vf2_mapping
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.providers.exceptions import BackendPropertyError
 
 
@@ -92,10 +93,8 @@ class VF2Layout(AnalysisPass):
         self.target = target
         if target is not None:
             self.coupling_map = self.target.build_coupling_map()
-        elif coupling_map is not None:
-            self.coupling_map = coupling_map
         else:
-            raise TypeError("coupling_map or target must be specified.")
+            self.coupling_map = coupling_map
         self.properties = properties
         self.strict_direction = strict_direction
         self.seed = seed
@@ -105,6 +104,9 @@ class VF2Layout(AnalysisPass):
 
     def run(self, dag):
         """run the layout method"""
+        if self.coupling_map is None:
+            raise TranspilerError("coupling_map or target must be specified.")
+
         qubits = dag.qubits
         qubit_indices = {qubit: index for index, qubit in enumerate(qubits)}
 
