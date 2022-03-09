@@ -458,12 +458,9 @@ def initialize(self, params, qubits=None):
     """
     if qubits is None:
         qubits = self.qubits
-    else:
-        if isinstance(qubits, int):
-            qubits = [qubits]
-        qubits = self._bit_argument_conversion(qubits, self.qubits)
-
-    num_qubits = None if not isinstance(params, int) else len(qubits)
+    elif isinstance(qubits, (int, np.integer, slice)):
+        qubits = [qubits]
+    num_qubits = len(qubits) if isinstance(params, int) else None
     return self.append(Initialize(params, num_qubits), qubits)
 
 

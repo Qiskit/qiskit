@@ -32,6 +32,7 @@ class TestStateUtils(QiskitTestCase):
         self.assertEqual(partial_trace(psi, [0]), DensityMatrix.from_label("10"))
         self.assertEqual(partial_trace(psi, [1]), DensityMatrix.from_label("1+"))
         self.assertEqual(partial_trace(psi, [2]), DensityMatrix.from_label("0+"))
+        self.assertEqual(partial_trace(psi, []), DensityMatrix(psi))
 
     def test_density_matrix_partial_trace(self):
         """Test partial_trace function on density matrices"""
@@ -42,6 +43,7 @@ class TestStateUtils(QiskitTestCase):
         self.assertEqual(partial_trace(rho, [0]), DensityMatrix.from_label("10"))
         self.assertEqual(partial_trace(rho, [1]), DensityMatrix.from_label("1+"))
         self.assertEqual(partial_trace(rho, [2]), DensityMatrix.from_label("0+"))
+        self.assertEqual(partial_trace(rho, []), rho)
 
     def test_shannon_entropy(self):
         """Test shannon_entropy function"""
