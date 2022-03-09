@@ -69,13 +69,6 @@ class FindCommutingPauliEvolutions(AnalysisPass):
         Returns:
             True if all summands commute, False otherwise.
         """
-
-        if not isinstance(operator, SparsePauliOp):
-            warnings.warn(
-                "PauliEvolutionGate does not only contain SparsePauliOp -- not checking commutativity."
-            )
-            return False
-
         # get a list of summands that commute
         commuting_subparts = operator.paulis.group_qubit_wise_commuting()
 
