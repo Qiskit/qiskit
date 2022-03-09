@@ -11,10 +11,10 @@ upgrade:
 
     * ``mirror`` in :class:`~qiskit.circuit.Instruction`, use
       :meth:`~qiskit.circuit.Instruction.reverse_ops` instead.
-    * ``num_ancilla_qubits`` in :class:qiskit.circuit.library.PiecewiseLinearPauliRotations`
+    * ``num_ancilla_qubits`` in :class:`qiskit.circuit.library.PiecewiseLinearPauliRotations`
       use :meth:`~qiskit.circuit.library.PiecewiseLinearPauliRotations.num_ancillas`
       instead.
-    * ``num_ancilla_qubits`` in :class:qiskit.circuit.library.WeightedAdder`
+    * ``num_ancilla_qubits`` in :class:`qiskit.circuit.library.WeightedAdder`
       use :meth:`~qiskit.circuit.library.WeightedAdder.num_ancillas`
       instead.
 
@@ -28,4 +28,4 @@ upgrade:
   - |
     Passing ``np.ndarray``s into the :meth:`qiskit.circuit.Gate.validate` parameters
     has been deprecated since Qiskit Terra 0.16.0 and is now unsupported. Instead,
-    one has to create a new subclass and explicitly allow ``np.ndarray``s as input.
+    one has to create a new subclass and explicitly allow ``np.ndarray`` as input.
