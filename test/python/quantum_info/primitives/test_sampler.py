@@ -248,6 +248,64 @@ class TestSampler(QiskitTestCase):
             self.assertTupleEqual(keys, tuple(range(8)))
             np.testing.assert_allclose(values, [0, 0.5, 0, 0.5, 0, 0, 0, 0])
 
+    def test_1qubit(self):
+        """test for 1-qubit cases"""
+        qc = QuantumCircuit(1)
+        qc.measure_all()
+        qc2 = QuantumCircuit(1)
+        qc2.x(0)
+        qc2.measure_all()
+
+        with Sampler([qc, qc2], [qc.parameters, qc2.parameters]) as sampler:
+            result = sampler([0, 1], [[]] * 2)
+            self.assertIsInstance(result, SamplerResult)
+            self.assertEqual(len(result.quasi_dists), 2)
+
+            keys, values = zip(*sorted(result.quasi_dists[0].items()))
+            self.assertTupleEqual(keys, tuple(range(2)))
+            np.testing.assert_allclose(values, [1, 0])
+
+            keys, values = zip(*sorted(result.quasi_dists[1].items()))
+            self.assertTupleEqual(keys, tuple(range(2)))
+            np.testing.assert_allclose(values, [0, 1])
+
+    def test_2qubit(self):
+        """test for 2-qubit cases"""
+        qc0 = QuantumCircuit(2)
+        qc0.measure_all()
+        qc1 = QuantumCircuit(2)
+        qc1.x(0)
+        qc1.measure_all()
+        qc2 = QuantumCircuit(2)
+        qc2.x(1)
+        qc2.measure_all()
+        qc3 = QuantumCircuit(2)
+        qc3.x([0, 1])
+        qc3.measure_all()
+
+        with Sampler(
+            [qc0, qc1, qc2, qc3], [qc0.parameters, qc1.parameters, qc2.parameters, qc3.parameters]
+        ) as sampler:
+            result = sampler([0, 1, 2, 3], [[]] * 4)
+            self.assertIsInstance(result, SamplerResult)
+            self.assertEqual(len(result.quasi_dists), 4)
+
+            keys, values = zip(*sorted(result.quasi_dists[0].items()))
+            self.assertTupleEqual(keys, tuple(range(4)))
+            np.testing.assert_allclose(values, [1, 0, 0, 0])
+
+            keys, values = zip(*sorted(result.quasi_dists[1].items()))
+            self.assertTupleEqual(keys, tuple(range(4)))
+            np.testing.assert_allclose(values, [0, 1, 0, 0])
+
+            keys, values = zip(*sorted(result.quasi_dists[2].items()))
+            self.assertTupleEqual(keys, tuple(range(4)))
+            np.testing.assert_allclose(values, [0, 0, 1, 0])
+
+            keys, values = zip(*sorted(result.quasi_dists[3].items()))
+            self.assertTupleEqual(keys, tuple(range(4)))
+            np.testing.assert_allclose(values, [0, 0, 0, 1])
+
 
 if __name__ == "__main__":
     unittest.main()
