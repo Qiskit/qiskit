@@ -50,7 +50,6 @@ Standard Gates
    MCXRecursive
    MCXVChain
    Measure
-   MSGate
    PhaseGate
    RCCXGate
    RC3XGate
@@ -197,7 +196,7 @@ Functions on binary variables
 
 .. autosummary::
    :toctree: ../stubs/
-:template: autosummary/class_no_inherited_members.rst
+   :template: autosummary/class_no_inherited_members.rst
 
    QuadraticForm
 
