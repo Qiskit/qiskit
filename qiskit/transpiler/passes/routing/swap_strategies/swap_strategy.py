@@ -91,7 +91,8 @@ class SwapStrategy:
             idx: The index of the returned swap layer.
 
         Returns:
-            The swap layer at ``idx``.
+            A copy of the swap layer at ``idx`` to avoid any unintentional modification to
+            the swap strategy.
         """
         return list(swap for swap in self._swap_layers[idx])
 
