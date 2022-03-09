@@ -29,26 +29,35 @@ from qiskit.quantum_info import Pauli, SparsePauliOp, Operator
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 
 
-def _reorder_bounds_parameters(num_mixer, num_cost: int, return_bounds: bool = False):
-    if return_bounds:
-        betas = sum(num_mixer) * [(-0.5 * np.pi - 1e-6, 0.5 * np.pi + 1e-6)]
-        gammas = num_cost * [(-2 * np.pi - 1e-6, 2 * np.pi + 1e-6)]
-        return gammas + betas
-    else:
-        betas = ParameterVector("β", sum(num_mixer))
-        gammas = ParameterVector("γ", num_cost)
-
-    # Create a permutation to take us from (cost_1, mixer_1, cost_2, mixer_2, ...)
+def _reordered_indices(num_cost: int, num_mixer: list, opt_inputs: bool = False):
+    # Create a permutation of indices to take us from (cost_1, mixer_1, cost_2, mixer_2, ...)
     # to (cost_1, cost_2, ..., mixer_1, mixer_2, ...), or if the mixer is a circuit
     # with more than 1 parameters, from (cost_1, mixer_1a, mixer_1b, cost_2, ...)
     # to (cost_1, cost_2, ..., mixer_1a, mixer_1b, mixer_2a, mixer_2b, ...)
-    reordered, prev_mix = [], 0
-    for rep, nmix in enumerate(num_mixer):
-        reordered.extend(gammas[rep: (rep + 1)])
-        for i in range(prev_mix, prev_mix + nmix):
-            reordered.extend(betas[i : i + 1])
-            prev_mix+=1
-    return reordered
+    gamma_indices, beta_indices = [], []
+    if opt_inputs:
+        cost_p, mix_p, p = 0, 0, 0
+        while p < num_cost + len(num_mixer):
+            if mix_p < len(num_mixer):
+                p_beta = num_mixer[mix_p] + p
+                beta_indices.extend(list(range(p, p_beta)))
+                p += num_mixer[cost_p]
+            gamma_indices.extend(list(range(p, p + 1)))
+            mix_p += 1
+            cost_p += 1
+            p += 1
+    else:
+        rep = 0
+        for rep_cost in range(num_cost):
+            if num_cost>0:
+                gamma_indices.extend(list(range(rep,rep+1)))
+            rep+=1
+            if rep_cost < len(num_mixer):
+                rep_mix = num_mixer[rep_cost]
+                beta_indices.extend(list(range(rep,rep_mix+rep)))
+            rep+=rep_mix
+
+    return gamma_indices, beta_indices
 
 
 def adapt_mixer_pool(
@@ -174,6 +183,7 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
                 raise ValueError(
                     "The operator representing the cost of the optimization problem is not set"
                 )
+        self._num_gamma = 0 if _is_pauli_identity(self.cost_operator) else 1
 
         if self.initial_state is not None and self.initial_state.num_qubits != self.num_qubits:
             valid = False
@@ -182,30 +192,37 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
                     f"The number of qubits of the initial state {self.initial_state.num_qubits}"
                     f"does not match the number of qubits of the cost operator {self.num_qubits}"
                 )
-        # if self.mixer_operators is not None:
-        if self.mixer_operators is not None:
-            # if self._mixer_pool_type is not None:
-            #     raise AttributeError(
-            #         "Either a custom mixer pool or mixer pool type may be specified but not both."
-            #     )
+        if self.mixer_operators is not None and not hasattr(self,'_config_check'):
             # Check that the dimensionality of the mixer operator pool is equal to the cost operator
-            n_mixer_qubits, mixer_operators = [], []
-            for mixer in self.mixer_operators:  
-                n_mixer_qubits.append(mixer.num_qubits) #
+            nmix_qubits, nmix_params, mixer_operators = [], [], []
+            for mixer in self.mixer_operators: 
+                nmix_qubits.append(mixer.num_qubits) #
                 if isinstance(mixer, QuantumCircuit): # For the purposes of efficient energy gradient computation 
-                    mixer = PrimitiveOp(Operator(mixer)) # (i.e. the commutator) we must convert mixer circuits
+                    nmix_params.append(mixer.num_parameters)
+                    if not nmix_params[-1]:
+                        mixer = PrimitiveOp(Operator(mixer)) # (i.e. the commutator) we must convert mixer circuits
+                else:
+                    nmix_params.append(0 if _is_pauli_identity(mixer) else 1)
                 mixer_operators.append(mixer)           # to opreators here
-            check_mixer_qubits = np.where(np.array(n_mixer_qubits) != self.num_qubits)[0]
-            if bool(sum(check_mixer_qubits)):
+            if len(set(nmix_params))>1:
                 valid = False
-                err_str = str(tuple(set(check_mixer_qubits)))
+                if raise_on_failure:
+                    raise ValueError(
+                        f"Inconsistent number of optimisable parameters in the mixer pool."
+                    )
+            self._num_beta = nmix_params[-1:]
+            _config_check = np.where(np.array(nmix_qubits) != self.num_qubits)[0]
+            if bool(sum(_config_check)):
+                valid = False
+                err_str = str(tuple(set(_config_check)))
                 if raise_on_failure:
                     raise AttributeError(
                         f"Operators at index location(s) {err_str} in the specified mixer pool"
-                        f" have an unequal number of qubits {[n_mixer_qubits[i] for i in check_mixer_qubits]}"
+                        f" have an unequal number of qubits {[nmix_qubits[i] for i in _config_check]}"
                         f" to the cost operator {self.num_qubits}."
                     )
             self._mixer_operators = mixer_operators # set self._mixer_operators as the operator representation
+            self._config_check = True   # set class attribute to avoid doing this check twice
         return valid
 
     @property
@@ -217,12 +234,13 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
             parameter in the corresponding direction. If None is returned, problem is fully
             unbounded.
         """
-        if self._bounds is None:
-            if self._is_built:          #TODO: Parameter bounds are not correctly ordered?
-                self._bounds = _reorder_bounds_parameters(
-                    num_cost = self._num_cost, 
-                    num_mixer = self._num_mixer,
-                    return_bounds = True)
+        
+        if hasattr(self,'_num_cost'):
+            # self._bounds = [(-0.5 * np.pi, 0.5 * np.pi)] * sum(self._num_mixer)
+            # self._bounds += [(-2 * np.pi, 2 * np.pi)] * self._num_cost
+            self._bounds = [(-0.5 * np.pi, 0.5 * np.pi)] * sum(self._num_mixer)
+            self._bounds += [(-2 * np.pi, 2 * np.pi)] * self._num_cost
+
         return self._bounds
 
     @parameter_bounds.setter
@@ -245,13 +263,15 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
                 in this ansatz.
         """
         if self._operators is None:
-            if isinstance(self.mixer_operators, list):      #TODO: and self._mixer_operators is None?
+            if isinstance(self.mixer_operators, list) and hasattr(self,'_config_check'):
                 varied_operators = list(
                     itertools.chain.from_iterable(
                         [[self.cost_operator, mixer] for mixer in self.mixer_operators]
                     )
                 )
                 self._operators = varied_operators
+            else:
+                return [self.cost_operator, self.mixer_operator]
         return self._operators
     
     @operators.setter
@@ -267,7 +287,7 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
         Raises:
             AttributeError: If operator and thus num_qubits has not yet been defined.
         """
-        if self._mixer_pool is not None:        #TODO: if hasattr(self,_mixer_operators): something
+        if self._mixer_pool is not None:
             return self._mixer_pool
         # if no mixer is passed and we know the number of qubits, then initialize it.
         if self.cost_operator is not None:
@@ -306,38 +326,26 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
             KeyError: If mixer pool type is not in the set of presets.
         """
         self._mixer_pool_type = mixer_pool_type
-
-    @property
-    def num_qubits(self) -> int:
-        if self._cost_operator is None:
-            return 0
-        num_qubits = self._cost_operator.num_qubits
-        if hasattr(self, '_mixer_pool_type') and not hasattr(self,'_current_qubit_count'):
-            self._mixer_pool = adapt_mixer_pool(
-                num_qubits=num_qubits, pool_type=self.mixer_pool_type
-            )
-            self._current_qubit_count = num_qubits
-        return num_qubits
     
     def _build(self):
         if self._is_built:
             return
         super(QAOAAnsatz, self)._build()
 
-    # keep old parameter order: first cost operator, then mixer operators
-        if isinstance(self.mixer_operators, list):                                  
-            num_mixer = []
-            for mix in self.operators[1:][::2]:
-                if isinstance(mix, QuantumCircuit):
-                    num_mixer.append(mix.num_parameters)
-                else:
-                    num_mixer.append(0 if _is_pauli_identity(mix) else 1)
-        else:
-            if isinstance(self.mixer_operators, QuantumCircuit):
-                num_mixer = self.mixer_operators.num_parameters
+        num_mixer = []
+        for mix in self.mixer_operators:
+            if isinstance(mix, QuantumCircuit):
+                num_mixer.append(mix.num_parameters)
             else:
-                num_mixer = 0 if _is_pauli_identity(self.mixer_operators) else 1
+                num_mixer.append(0 if _is_pauli_identity(mix) else 1)
         self._num_mixer = num_mixer
         self._num_cost = 0 if _is_pauli_identity(self.cost_operator) else len(num_mixer)
-        reordered = _reorder_bounds_parameters(num_mixer=self._num_mixer, num_cost=self._num_cost)
+
+        betas = ParameterVector("β", sum(self._num_mixer))
+        gammas = ParameterVector("γ", self._num_cost)
+        gamma_index, beta_index = _reordered_indices(num_mixer=self._num_mixer, #TODO: Order is reversed here!!
+                                                    num_cost=self._num_cost)
+        reordered = np.array([None]*(sum(self._num_mixer)+self._num_cost))
+        reordered[gamma_index] = [_ for _ in gammas]
+        reordered[beta_index] = [_ for _ in betas]
         self.assign_parameters(dict(zip(self.ordered_parameters, reordered)), inplace=True)
