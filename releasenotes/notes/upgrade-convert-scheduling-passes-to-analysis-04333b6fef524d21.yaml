@@ -13,9 +13,9 @@ upgrade:
     create a ``node_start_time`` dictionary in the pass manager property set,
     instead of immediately injecting delays in between nodes with idle time.
 
-    Note that one directly assembles own pass manager with these passes should add
+    Note that when directly assembling one's own pass manager, one should add
     :class:`~qiskit.transpiler.passes.scheduling.padding.PadDelay` pass after the
-    scheduling pass for backward compatibility.
+    scheduling pass for the delays to be applied to the circuit.
 
     In Qiskit Terra < 0.20
 
