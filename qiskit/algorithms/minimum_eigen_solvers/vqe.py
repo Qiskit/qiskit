@@ -39,7 +39,7 @@ from qiskit.opflow.gradients import GradientBase
 from qiskit.utils.validation import validate_min
 from qiskit.utils.backend_utils import is_aer_provider
 from qiskit.utils import QuantumInstance, algorithm_globals
-from ..aux_ops_evaluator import _eval_aux_ops
+from ..aux_ops_evaluator import eval_observables
 from ..optimizers import Optimizer, SLSQP
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult, ListOrDict
@@ -524,7 +524,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._ret = result
 
         if aux_operators is not None:
-            aux_values = _eval_aux_ops(self.quantum_instance, self.ansatz, opt_result.x,
+            aux_values = eval_observables(self.quantum_instance, self.ansatz, opt_result.x,
                                        aux_operators, expectation=expectation)
             result.aux_operator_eigenvalues = aux_values
 

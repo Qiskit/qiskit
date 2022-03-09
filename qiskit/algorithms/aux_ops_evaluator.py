@@ -9,6 +9,8 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Evaluator of auxiliary operators for algorithms."""
+
 from typing import Tuple, Union, List
 
 import numpy as np
@@ -26,7 +28,7 @@ from qiskit.providers import BaseBackend, Backend
 from qiskit.utils import QuantumInstance
 
 
-def _eval_observabless(
+def eval_observables(
     quantum_instance: Union[QuantumInstance, BaseBackend, Backend],
     ansatz: OperatorBase,
     parameters: np.ndarray,
@@ -90,7 +92,7 @@ def _eval_observabless(
     return _prepare_result(observables_results, observables)
 
 
-def _prepare_list_op(observables: ListOrDict[OperatorBase]) -> ListOp[OperatorBase]:
+def _prepare_list_op(observables: ListOrDict[OperatorBase]) -> ListOp:
     if isinstance(observables, dict):
         return ListOp(list(observables.values()))
 
