@@ -210,6 +210,11 @@ class TestSwapStrategyExceptions(QiskitTestCase):
 class TestLineSwapStrategy(QiskitTestCase):
     """A class to test the line swap strategy."""
 
+    def test_invalid_line(self):
+        """Test that lines should be longer than 1."""
+        with self.assertRaises(ValueError):
+            LineSwapStrategy([1], 0)
+
     def test_full_line(self):
         """Test that we reach full connectivity on a line."""
 
