@@ -44,6 +44,12 @@ class QNSPSA(SPSA):
     increasing the number of ``resamplings``. This leads to a Monte Carlo-style convergence to
     the exact, analytic value.
 
+    .. note::
+
+        This component has some function that is normally random. If you want to reproduce behavior
+        then you should set the random number generator seed in the algorithm_globals
+        (``qiskit.utils.algorithm_globals.random_seed = seed``).
+
     Examples:
 
         This short example runs QN-SPSA for the ground state calculation of the ``Z ^ Z``
@@ -189,7 +195,7 @@ class QNSPSA(SPSA):
         # compute the preconditioner point estimate
         diff = fidelity_values[2] - fidelity_values[0]
         diff -= fidelity_values[3] - fidelity_values[1]
-        diff /= 2 * eps ** 2
+        diff /= 2 * eps**2
 
         rank_one = np.outer(delta1, delta2)
         # -0.5 factor comes from the fact that we need -0.5 * fidelity

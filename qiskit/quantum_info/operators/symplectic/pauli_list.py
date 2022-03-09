@@ -74,7 +74,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         z = np.array([[True, True], [False, False]])
         x = np.array([[False, True], [True, False]])
         phase = np.array([0, 1])
-        pauli_list = PauliList.from_symplectic(z, x)
+        pauli_list = PauliList.from_symplectic(z, x, phase)
         print("4. ", pauli_list)
 
     **Data Access**
@@ -135,12 +135,13 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
     @property
     def settings(self):
+        """Return settings."""
         return {"data": self.to_labels()}
 
     def __array__(self, dtype=None):
         """Convert to numpy array"""
         # pylint: disable=unused-argument
-        shape = (len(self),) + 2 * (2 ** self.num_qubits,)
+        shape = (len(self),) + 2 * (2**self.num_qubits,)
         ret = np.zeros(shape, dtype=complex)
         for i, mat in enumerate(self.matrix_iter()):
             ret[i] = mat
@@ -722,7 +723,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
                                   (Default: None)
 
         Returns:
-            PauliList: the concatinated list self + other.
+            PauliList: the concatenated list self + other.
         """
         if qargs is None:
             qargs = getattr(other, "qargs", None)
@@ -740,9 +741,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         else:
             # Pad other with identity and then add
             padded = BasePauli(
-                np.zeros((self.size, self.num_qubits), dtype=bool),
-                np.zeros((self.size, self.num_qubits), dtype=bool),
-                np.zeros(self.size, dtype=int),
+                np.zeros((other.size, self.num_qubits), dtype=bool),
+                np.zeros((other.size, self.num_qubits), dtype=bool),
+                np.zeros(other.size, dtype=int),
             )
             padded = padded.compose(other, qargs=qargs, inplace=True)
             base_z = np.vstack([self._z, padded._z])
@@ -984,7 +985,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         # For efficiency we also allow returning a single rank-3
         # array where first index is the Pauli row, and second two
         # indices are the matrix indices
-        dim = 2 ** self.num_qubits
+        dim = 2**self.num_qubits
         ret = np.zeros((self.size, dim, dim), dtype=complex)
         iterator = self.matrix_iter(sparse=sparse)
         for i in range(self.size):

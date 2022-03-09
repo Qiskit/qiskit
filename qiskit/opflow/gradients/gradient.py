@@ -17,8 +17,8 @@ import functools
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import _compare_parameters
-from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.circuit import ParameterExpression, ParameterVector
+from qiskit.utils import optionals as _optionals
 from ..expectations.pauli_expectation import PauliExpectation
 from .gradient_base import GradientBase
 from .derivative_base import _coeff_derivative
@@ -31,18 +31,10 @@ from ..operator_globals import Zero, One
 from ..state_fns.circuit_state_fn import CircuitStateFn
 from ..exceptions import OpflowError
 
-try:
-    from jax import grad, jit
-
-    _HAS_JAX = True
-except ImportError:
-    _HAS_JAX = False
-
 
 class Gradient(GradientBase):
     """Convert an operator expression to the first-order gradient."""
 
-    # pylint: disable=signature-differs
     def convert(
         self,
         operator: OperatorBase,
@@ -200,16 +192,10 @@ class Gradient(GradientBase):
             if operator.grad_combo_fn:
                 grad_combo_fn = operator.grad_combo_fn
             else:
-                if _HAS_JAX:
-                    grad_combo_fn = jit(grad(operator.combo_fn, holomorphic=True))
-                else:
-                    raise MissingOptionalLibraryError(
-                        libname="jax",
-                        name="get_gradient",
-                        msg="This automatic differentiation function is based on JAX. "
-                        "Please install jax and use `import jax.numpy as jnp` instead "
-                        "of `import numpy as np` when defining a combo_fn.",
-                    )
+                _optionals.HAS_JAX.require_now("automatic differentiation")
+                from jax import jit, grad  # pylint: disable=import-error
+
+                grad_combo_fn = jit(grad(operator.combo_fn, holomorphic=True))
 
             def chain_rule_combo_fn(x):
                 result = np.dot(x[1], x[0])

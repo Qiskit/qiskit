@@ -26,6 +26,7 @@ from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.measures import process_fidelity
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
+from qiskit.transpiler.passes import Collect1qRuns
 from qiskit.transpiler.passes import Collect2qBlocks
 
 
@@ -101,6 +102,13 @@ class TestConsolidateBlocks(QiskitTestCase):
 
     def test_3q_blocks(self):
         """blocks of more than 2 qubits work."""
+
+        #             ┌────────┐
+        # qr_0: ──────┤ P(0.5) ├────────────■──
+        #       ┌─────┴────────┴────┐┌───┐┌─┴─┐
+        # qr_1: ┤ U(1.5708,0.2,0.6) ├┤ X ├┤ X ├
+        #       └───────────────────┘└─┬─┘└───┘
+        # qr_2: ───────────────────────■───────
         qr = QuantumRegister(3, "qr")
         qc = QuantumCircuit(qr)
         qc.p(0.5, qr[0])
@@ -120,6 +128,12 @@ class TestConsolidateBlocks(QiskitTestCase):
 
     def test_block_spanning_two_regs(self):
         """blocks spanning wires on different quantum registers work."""
+
+        #            ┌────────┐
+        # qr0: ──────┤ P(0.5) ├───────■──
+        #      ┌─────┴────────┴────┐┌─┴─┐
+        # qr1: ┤ U(1.5708,0.2,0.6) ├┤ X ├
+        #      └───────────────────┘└───┘
         qr0 = QuantumRegister(1, "qr0")
         qr1 = QuantumRegister(1, "qr1")
         qc = QuantumCircuit(qr0, qr1)
@@ -167,14 +181,13 @@ class TestConsolidateBlocks(QiskitTestCase):
         first node in the block was seen.
 
         blocks = [['id', 'cx', 'id']]
-
-                ┌────┐┌───┐
-        q_0: |0>┤ Id ├┤ X ├──────
-                └┬─┬─┘└─┬─┘┌────┐
-        q_1: |0>─┤M├────■──┤ Id ├
-                 └╥┘       └────┘
-        c_0:  0 ══╩══════════════
         """
+        #         ┌────┐┌───┐
+        # q_0: |0>┤ Id ├┤ X ├──────
+        #         └┬─┬─┘└─┬─┘┌────┐
+        # q_1: |0>─┤M├────■──┤ Id ├
+        #          └╥┘       └────┘
+        # c_0:  0 ══╩══════════════
         qc = QuantumCircuit(2, 1)
         qc.i(0)
         qc.measure(1, 0)
@@ -194,13 +207,12 @@ class TestConsolidateBlocks(QiskitTestCase):
     def test_consolidate_blocks_big(self):
         """Test ConsolidateBlocks with U2(<big numbers>)
         https://github.com/Qiskit/qiskit-terra/issues/3637#issuecomment-612954865
-
-             ┌────────────────┐     ┌───┐
-        q_0: ┤ U2(-804.15,pi) ├──■──┤ X ├
-             ├────────────────┤┌─┴─┐└─┬─┘
-        q_1: ┤ U2(-6433.2,pi) ├┤ X ├──■──
-             └────────────────┘└───┘
         """
+        #      ┌────────────────┐     ┌───┐
+        # q_0: ┤ U2(-804.15,pi) ├──■──┤ X ├
+        #      ├────────────────┤┌─┴─┐└─┬─┘
+        # q_1: ┤ U2(-6433.2,pi) ├┤ X ├──■──
+        #      └────────────────┘└───┘
         circuit = QuantumCircuit(2)
         circuit.append(U2Gate(-804.15, np.pi), [0])
         circuit.append(U2Gate(-6433.2, np.pi), [1])
@@ -280,6 +292,36 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc1 = pass_manager.run(qc)
 
         self.assertEqual(qc, qc1)
+
+    def test_overlapping_block_and_run(self):
+        """Test that an overlapping block and run only consolidate once"""
+
+        #      ┌───┐┌───┐┌─────┐
+        # q_0: ┤ H ├┤ T ├┤ Sdg ├──■────────────────────────
+        #      └───┘└───┘└─────┘┌─┴─┐┌───┐┌─────┐┌───┐┌───┐
+        # q_1: ─────────────────┤ X ├┤ T ├┤ Sdg ├┤ Z ├┤ I ├
+        #                       └───┘└───┘└─────┘└───┘└───┘
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.t(0)
+        qc.sdg(0)
+        qc.cx(0, 1)
+        qc.t(1)
+        qc.sdg(1)
+        qc.z(1)
+        qc.i(1)
+
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(Collect1qRuns())
+        pass_manager.append(ConsolidateBlocks(force_consolidate=True))
+        result = pass_manager.run(qc)
+        expected = Operator(qc)
+        # Assert output circuit is a single unitary gate equivalent to
+        # unitary of original circuit
+        self.assertEqual(len(result), 1)
+        self.assertIsInstance(result.data[0][0], UnitaryGate)
+        self.assertTrue(np.allclose(result.data[0][0].to_matrix(), expected))
 
     def test_classical_conditions_maintained(self):
         """Test that consolidate blocks doesn't drop the classical conditions

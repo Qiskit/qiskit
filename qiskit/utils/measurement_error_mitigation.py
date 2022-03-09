@@ -14,12 +14,19 @@
 
 import copy
 from typing import List, Optional, Tuple, Dict, Callable
+
 from qiskit import compiler
 from qiskit.providers import BaseBackend
 from qiskit.circuit import QuantumCircuit
 from qiskit.qobj import QasmQobj
 from qiskit.assembler.run_config import RunConfig
-from ..exceptions import QiskitError, MissingOptionalLibraryError
+from qiskit.exceptions import QiskitError
+from qiskit.utils.mitigation import (
+    complete_meas_cal,
+    tensored_meas_cal,
+    CompleteMeasFitter,
+    TensoredMeasFitter,
+)
 
 # pylint: disable=invalid-name
 
@@ -135,37 +142,43 @@ def build_measurement_error_mitigation_circuits(
         the labels of the calibration circuits
     Raises:
         QiskitError: when the fitter_cls is not recognizable.
-        MissingOptionalLibraryError: Qiskit-Ignis not installed
     """
-    try:
-        from qiskit.ignis.mitigation.measurement import (
-            complete_meas_cal,
-            tensored_meas_cal,
-            CompleteMeasFitter,
-            TensoredMeasFitter,
-        )
-    except ImportError as ex:
-        raise MissingOptionalLibraryError(
-            libname="qiskit-ignis",
-            name="build_measurement_error_mitigation_qobj",
-            pip_install="pip install qiskit-ignis",
-        ) from ex
-
     circlabel = "mcal"
 
     if not qubit_list:
         raise QiskitError("The measured qubit list can not be [].")
 
+    run = False
     if fitter_cls == CompleteMeasFitter:
         meas_calibs_circuits, state_labels = complete_meas_cal(
             qubit_list=range(len(qubit_list)), circlabel=circlabel
         )
+        run = True
     elif fitter_cls == TensoredMeasFitter:
         meas_calibs_circuits, state_labels = tensored_meas_cal(
             mit_pattern=mit_pattern, circlabel=circlabel
         )
-    else:
-        raise QiskitError(f"Unknown fitter {fitter_cls}")
+        run = True
+    if not run:
+        try:
+            from qiskit.ignis.mitigation.measurement import (
+                CompleteMeasFitter as CompleteMeasFitter_IG,
+                TensoredMeasFitter as TensoredMeasFitter_IG,
+            )
+        except ImportError as ex:
+            # If ignis can't be imported we don't have a valid fitter
+            # class so just fail here with an appropriate error message
+            raise QiskitError(f"Unknown fitter {fitter_cls}") from ex
+        if fitter_cls == CompleteMeasFitter_IG:
+            meas_calibs_circuits, state_labels = complete_meas_cal(
+                qubit_list=range(len(qubit_list)), circlabel=circlabel
+            )
+        elif fitter_cls == TensoredMeasFitter_IG:
+            meas_calibs_circuits, state_labels = tensored_meas_cal(
+                mit_pattern=mit_pattern, circlabel=circlabel
+            )
+        else:
+            raise QiskitError(f"Unknown fitter {fitter_cls}")
 
     # the provided `qubit_list` would be used as the initial layout to
     # assure the consistent qubit mapping used in the main circuits.
@@ -209,19 +222,6 @@ def build_measurement_error_mitigation_qobj(
         QiskitError: when the fitter_cls is not recognizable.
         MissingOptionalLibraryError: Qiskit-Ignis not installed
     """
-    try:
-        from qiskit.ignis.mitigation.measurement import (
-            complete_meas_cal,
-            tensored_meas_cal,
-            CompleteMeasFitter,
-            TensoredMeasFitter,
-        )
-    except ImportError as ex:
-        raise MissingOptionalLibraryError(
-            libname="qiskit-ignis",
-            name="build_measurement_error_mitigation_qobj",
-            pip_install="pip install qiskit-ignis",
-        ) from ex
 
     circlabel = "mcal"
 

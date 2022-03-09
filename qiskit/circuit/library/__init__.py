@@ -24,7 +24,6 @@ Standard Gates
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
-   Barrier
    C3XGate
    C3SXGate
    C4XGate
@@ -51,10 +50,10 @@ Standard Gates
    MCXRecursive
    MCXVChain
    Measure
+   MSGate
    PhaseGate
    RCCXGate
    RC3XGate
-   Reset
    RGate
    RXGate
    RXXGate
@@ -63,6 +62,7 @@ Standard Gates
    RZGate
    RZZGate
    RZXGate
+   XYGate
    ECRGate
    SGate
    SdgGate
@@ -79,6 +79,19 @@ Standard Gates
    XGate
    YGate
    ZGate
+
+Standard Directives
+===================
+
+..
+    This summary table deliberately does not generate toctree entries; these directives are "owned"
+    by ``qiskit.circuit``.
+
+.. autosummary::
+
+   ~qiskit.circuit.Barrier
+   ~qiskit.circuit.Measure
+   ~qiskit.circuit.Reset
 
 Generalized Gates
 =================
@@ -99,6 +112,7 @@ Generalized Gates
    GRZ
    RVGate
    PauliGate
+   LinearFunction
 
 Boolean Logic Circuits
 ======================
@@ -187,6 +201,15 @@ Functions on binary variables
 
    QuadraticForm
 
+Other arithmetic functions
+--------------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   ExactReciprocal
+
 Amplitude Functions
 ===================
 
@@ -212,6 +235,7 @@ Particular Quantum Circuits
    GroverOperator
    PhaseOracle
    EvolvedOperatorAnsatz
+   PauliEvolutionGate
 
 
 N-local circuits
@@ -356,7 +380,9 @@ from .generalized_gates import (
     GRZ,
     RVGate,
     PauliGate,
+    LinearFunction,
 )
+from .pauli_evolution import PauliEvolutionGate
 from .boolean_logic import (
     AND,
     OR,
@@ -380,6 +406,7 @@ from .arithmetic import (
     PiecewiseChebyshev,
     HRSCumulativeMultiplier,
     RGQFTMultiplier,
+    ExactReciprocal,
 )
 
 from .n_local import (

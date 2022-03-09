@@ -1,16 +1,37 @@
-# This file defines the persons who will be assigned as reviewers for PRs that
-# modify particular files in the repo. The PR can be merged when approved by at 
-# least one codeowner. However, all Qiskit team members can (and should!) review the PRs.
+# This file defines the set of people responsible for different sections of the
+# Qiskit code.
+#
+# Being listed as a code owner on a section here means that user is empowered
+# to approve and merge pull requests for that section of code. It also comes
+# with an expected responsibility to review and maintain those subsections of
+# the repository.
+#
+# The @Qiskit/terra-core team is the group who're responsible for the
+# entire qiskit-terra project and are empowered to approve merge code in any
+# part of the repository. Any member of the terra-core group should not be
+# listed in this file as it's redudant.
+#
+# A PR can be merged when approved by at least one codeowner. For PRs that touch
+# more than one section with non-overlapping codeowners more than one codeowner
+# may be required to approve a PR.
+#
+# However, every contributor to Qiskit can (and should!) review open PRs. This
+# file is just about outlining responsiblity for maintainership and final
+# review/merging of PRs in different subsections of the repository.
 
 # Global rule, unless specialized by a later one
 * @Qiskit/terra-core
 
 # Qiskit folders (also their corresponding tests)
 algorithms/           @Qiskit/terra-core @manoelmarques @woodsp-ibm
-opflow/               @Qiskit/terra-core @manoelmarques @woodsp-ibm
+opflow/               @Qiskit/terra-core @manoelmarques @woodsp-ibm @ikkoham
 qiskit/utils/         @Qiskit/terra-core @manoelmarques @woodsp-ibm
-providers/            @Qiskit/terra-core @jyu00 @chriseclectic
-quantum_info/         @Qiskit/terra-core @chriseclectic
-pulse/                @Qiskit/terra-core @eggerdj @nkanazawa1989 @danpuzzuoli @taalexander @lcapelluto
-scheduler/            @Qiskit/terra-core @eggerdj @nkanazawa1989 @danpuzzuoli @taalexander @lcapelluto
-visualization/        @Qiskit/terra-core @nonhermitian @maddy-tod @nkanazawa1989
+providers/            @Qiskit/terra-core @jyu00
+quantum_info/         @Qiskit/terra-core @ikkoham
+qpy/                  @Qiskit/terra-core @nkanazawa1989
+pulse/                @Qiskit/terra-core @eggerdj @nkanazawa1989 @danpuzzuoli
+scheduler/            @Qiskit/terra-core @eggerdj @nkanazawa1989 @danpuzzuoli
+visualization/        @Qiskit/terra-core @nonhermitian @nkanazawa1989
+# Override the release notes directories to have _no_ code owners, so any review
+# from somebody with write access is acceptable.
+/releasenotes/notes

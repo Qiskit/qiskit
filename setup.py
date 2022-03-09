@@ -16,6 +16,7 @@ import os
 import re
 import sys
 from setuptools import setup, find_packages, Extension
+from setuptools_rust import Binding, RustExtension
 
 try:
     from Cython.Build import cythonize
@@ -25,17 +26,12 @@ except ImportError:
     subprocess.call([sys.executable, "-m", "pip", "install", "Cython>=0.27.1"])
     from Cython.Build import cythonize
 
+
 with open("requirements.txt") as f:
     REQUIREMENTS = f.read().splitlines()
 
 # Add Cython extensions here
 CYTHON_EXTS = {
-    "qiskit/transpiler/passes/routing/cython/stochastic_swap/utils": (
-        "qiskit.transpiler.passes.routing.cython.stochastic_swap.utils"
-    ),
-    "qiskit/transpiler/passes/routing/cython/stochastic_swap/swap_trial": (
-        "qiskit.transpiler.passes.routing.cython.stochastic_swap.swap_trial"
-    ),
     "qiskit/quantum_info/states/cython/exp_value": "qiskit.quantum_info.states.cython.exp_value",
 }
 
@@ -79,7 +75,7 @@ with open(README_PATH) as readme_file:
 
 
 visualization_extras = [
-    "matplotlib>=2.1",
+    "matplotlib>=3.3",
     "ipywidgets>=7.3.0",
     "pydot",
     "pillow>=4.2.1",
@@ -95,7 +91,7 @@ bip_requirements = ["cplex", "docplex"]
 
 setup(
     name="qiskit-terra",
-    version="0.19.0",
+    version="0.20.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -112,10 +108,10 @@ setup(
         "Operating System :: MacOS",
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Topic :: Scientific/Engineering",
     ],
     keywords="qiskit sdk quantum",
@@ -123,7 +119,7 @@ setup(
     install_requires=REQUIREMENTS,
     setup_requires=["Cython>=0.27.1"],
     include_package_data=True,
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     extras_require={
         "visualization": visualization_extras,
         "bip-mapper": bip_requirements,
@@ -139,5 +135,12 @@ setup(
         "Source Code": "https://github.com/Qiskit/qiskit-terra",
     },
     ext_modules=cythonize(EXT_MODULES),
+    rust_extensions=[RustExtension("qiskit._accelerate", "Cargo.toml", binding=Binding.PyO3)],
     zip_safe=False,
+    entry_points={
+        "qiskit.unitary_synthesis": [
+            "default = qiskit.transpiler.passes.synthesis.unitary_synthesis:DefaultUnitarySynthesis",
+            "aqc = qiskit.transpiler.synthesis.aqc.aqc_plugin:AQCSynthesisPlugin",
+        ]
+    },
 )

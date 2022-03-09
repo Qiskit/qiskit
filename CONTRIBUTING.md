@@ -10,6 +10,32 @@ https://qiskit.org/documentation/contributing_to_qiskit.html
 In addition to the general guidelines there are specific details for
 contributing to terra, these are documented below.
 
+### Contents
+* [Choose an issue to work on](#Choose-an-issue-to-work-on)
+* [Pull request checklist](#pull-request-checklist)
+* [Changelog generation](#changelog-generation)
+* [Release Notes](#release-notes)
+* [Installing Qiskit Terra from source](#installing-qiskit-terra-from-source)
+* [Test](#test)
+  * [Snapshot testing for visualizations](#snapshot-testing-for-visualizations)
+* [Style and Lint](#style-and-lint)
+* [Development Cycle](#development-cycle)
+  * [Branches](#branches)
+  * [Release Cycle](#release-cycle)
+* [Adding deprecation warnings](#adding-deprecation-warnings)
+* [Using dependencies](#using-dependencies)
+  * [Adding a requirement](#adding-a-requirement)
+  * [Adding an optional dependency](#adding-an-optional-dependency)
+  * [Checking for optionals](#checking-for-optionals)
+* [Dealing with git blame ignore list](#dealing-with-the-git-blame-ignore-list)
+
+### Choose an issue to work on
+Qiskit Terra uses the following labels to help non-maintainers find issues best suited to their interests and experience level:
+
+* [good first issue](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) - these issues are typically the simplest available to work on, perfect for newcomers. They should already be fully scoped, with a clear approach outlined in the descriptions.
+* [help wanted](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22) - these issues are generally more complex than good first issues. They typically cover work that core maintainers don't currently have capacity to implement and may require more investigation/discussion. These are a great option for experienced contributors looking for something a bit more challenging.
+* [short project](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22short+project%22) - these issues are bigger pieces of work that require greater time commitment. Good options for hackathons, internship projects etc.
+
 ### Pull request checklist
 
 When submitting a pull request and you feel it is ready for review,
@@ -199,9 +225,32 @@ build all the documentation into `docs/_build/html` and the release notes in
 particular will be located at `docs/_build/html/release_notes.html`
 
 ## Installing Qiskit Terra from source
-Please see the [Installing Qiskit Terra from
-Source](https://qiskit.org/documentation/contributing_to_qiskit.html#installing-terra-from-source)
-section of the Qiskit documentation.
+
+Qiskit Terra is primarily written in Python but there are some core routines
+that are written in the [Rust](https://www.rust-lang.org/) programming
+language to improve the runtime performance. For the released versions of
+qiskit-terra we publish precompiled binaries on the
+[Python Package Index](https://pypi.org/) for all the supported platforms
+which only requires a functional Python environment to install. However, when
+building and installing from source you will need a rust compiler installed. You can do this very easily
+using rustup: https://rustup.rs/ which provides a single tool to install and
+configure the latest version of the rust compiler.
+[Other installation methods](https://forge.rust-lang.org/infra/other-installation-methods.html)
+exist too. For windows users besides rustup you will also need install
+the Visual C++ build tools so that rust can link against the system c/c++
+libraries. You can see more details on this in the
+[rustup documentation](https://rust-lang.github.io/rustup/installation/windows.html).
+
+Once you have a rust compiler installed you can rely on the normal Python
+build/install steps to install Qiskit Terra. This means you just run
+`pip install .` in your local git clone to build and install Qiskit Terra.
+
+Do note that if you do use develop mode/editable install (via `python setup.py develop` or `pip install -e .`) the Rust extension will be built in debug mode
+without any optimizations enabled. This will result in poor runtime performance.
+If you'd like to use an editable install with an optimized binary you can
+run `python setup.py build_rust --release --inplace` after you install in
+editable mode to recompile the rust extensions in release mode.
+
 
 ## Test
 
@@ -455,6 +504,37 @@ def test_method2(self):
 ```
 
 `test_method1_deprecated` can be removed after `Obj.method1` is removed (following the [Qiskit Deprecation Policy](https://qiskit.org/documentation/contributing_to_qiskit.html#deprecation-policy)).
+
+## Using dependencies
+
+We distinguish between "requirements" and "optional dependencies" in qiskit-terra.
+A requirement is a package that is absolutely necessary for core functionality in qiskit-terra, such as Numpy or Scipy.
+An optional dependency is a package that is used for specialized functionality, which might not be needed by all users.
+If a new feature has a new dependency, it is almost certainly optional.
+
+### Adding a requirement
+
+Any new requirement must have broad system support; it needs to be supported on all the Python versions and operating systems that qiskit-terra supports.
+It also cannot impose many version restrictions on other packages.
+Users often install qiskit-terra into virtual environments with many different packages in, and we need to ensure that neither we, nor any of our requirements, conflict with their other packages.
+When adding a new requirement, you must add it to [`requirements.txt`](requirements.txt) with as loose a constraint on the allowed versions as possible.
+
+### Adding an optional dependency
+
+New features can also use optional dependencies, which might be used only in very limited parts of qiskit-terra.
+These are not required to use the rest of the package, and so should not be added to `requirements.txt`.
+Instead, if several optional dependencies are grouped together to provide one feature, you can consider adding an "extra" to the package metadata, such as the `visualization` extra that installs Matplotlib and Seaborn (amongst others).
+To do this, modify the [`setup.py`](setup.py) file, adding another entry in the `extras_require` keyword argument to `setup()` at the bottom of the file.
+You do not need to be quite as accepting of all versions here, but it is still a good idea to be as permissive as you possibly can be.
+You should also add a new "tester" to [`qiskit.utils.optionals`](qiskit/utils/optionals.py), for use in the next section.
+
+### Checking for optionals
+
+You cannot `import` an optional dependency at the top of a file, because if it is not installed, it will raise an error and qiskit-terra will be unusable.
+We also largely want to avoid importing packages until they are actually used; if we import a lot of packages during `import qiskit`, it becomes sluggish for the user if they have a large environment.
+Instead, you should use [one of the "lazy testers" for optional dependencies](https://qiskit.org/documentation/apidoc/utils.html#module-qiskit.utils.optionals), and import your optional dependency inside the function or class that uses it, as in the examples within that link.
+Very lightweight _requirements_ can be imported at the tops of files, but even this should be limited; it's always ok to `import numpy`, but Scipy modules are relatively heavy, so only import them within functions that use them.
+
 
 ## Dealing with the git blame ignore list
 

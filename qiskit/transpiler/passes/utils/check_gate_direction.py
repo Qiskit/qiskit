@@ -21,14 +21,17 @@ class CheckGateDirection(AnalysisPass):
     respect to the coupling map.
     """
 
-    def __init__(self, coupling_map):
+    def __init__(self, coupling_map, target=None):
         """CheckGateDirection initializer.
 
         Args:
             coupling_map (CouplingMap): Directed graph representing a coupling map.
+            target (Target): The backend target to use for this pass. If this is specified
+                it will be used instead of the coupling map
         """
         super().__init__()
         self.coupling_map = coupling_map
+        self.target = target
 
     def run(self, dag):
         """Run the CheckGateDirection pass on `dag`.
@@ -41,13 +44,20 @@ class CheckGateDirection(AnalysisPass):
         """
         self.property_set["is_direction_mapped"] = True
         edges = self.coupling_map.get_edges()
-
         trivial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
+        if self.target is None:
+            for gate in dag.two_qubit_ops():
+                physical_q0 = trivial_layout[gate.qargs[0]]
+                physical_q1 = trivial_layout[gate.qargs[1]]
 
-        for gate in dag.two_qubit_ops():
-            physical_q0 = trivial_layout[gate.qargs[0]]
-            physical_q1 = trivial_layout[gate.qargs[1]]
+                if (physical_q0, physical_q1) not in edges:
+                    self.property_set["is_direction_mapped"] = False
+                    return
+        else:
+            for gate in dag.two_qubit_ops():
+                physical_q0 = trivial_layout[gate.qargs[0]]
+                physical_q1 = trivial_layout[gate.qargs[1]]
 
-            if (physical_q0, physical_q1) not in edges:
-                self.property_set["is_direction_mapped"] = False
-                return
+                if (physical_q0, physical_q1) not in self.target[gate.op.name]:
+                    self.property_set["is_direction_mapped"] = False
+                    return
