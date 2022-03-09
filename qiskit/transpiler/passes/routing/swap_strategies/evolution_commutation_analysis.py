@@ -20,7 +20,7 @@ from qiskit.transpiler import AnalysisPass
 from qiskit.quantum_info import SparsePauliOp
 
 
-class CheckCommutingEvolutions(AnalysisPass):
+class FindCommutingPauliEvolutions(AnalysisPass):
     """Finds PauliEvolutionGates where the operators, that are evolved, all commute."""
 
     def run(self, dag: DAGCircuit) -> None:
