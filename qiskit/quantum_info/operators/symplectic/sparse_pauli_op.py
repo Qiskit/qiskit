@@ -548,7 +548,7 @@ class SparsePauliOp(LinearOp):
 
         .. math::
 
-            H = X_0 Z_3 + 2 Y_1 Y_4
+            H = Z_1 X_4 + 2 Y_0 Y_3
 
         can be constructed as
 
@@ -595,14 +595,17 @@ class SparsePauliOp(LinearOp):
 
         .. math::
 
-            H = X_0 Z_3 + 2 Y_1 Y_4
+            H = Z_1 X_4 + 2 Y_0 Y_3
 
         can be constructed as
 
         .. code-block:: python
 
             # via triples and local Paulis with indices
-            op = SparsePauliOp.from_list([("XZ", [0, 3], 1), ("YY", [1, 4], 2)], num_qubits=5)
+            op = SparsePauliOp.from_sparse_list([("ZX", [1, 4], 1), ("YY", [0, 3], 2)], num_qubits=5)
+
+            # equals the following construction from "dense" Paulis
+            op = SparsePauliOp.from_list([("XIIZI", 1), ("IYIIY", 2)])
 
         Args:
             obj (Iterable[Tuple[str, List[int], complex]]): The list 3-tuples specifying the Paulis.
@@ -632,7 +635,7 @@ class SparsePauliOp(LinearOp):
                     raise QiskitError(
                         f"The number of qubits ({num_qubits}) is smaller than a required index {index}."
                     )
-                label[index] = pauli
+                label[~index] = pauli
 
             labels[i] = "".join(label)
             coeffs[i] = item[2]
