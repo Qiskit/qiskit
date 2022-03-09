@@ -627,10 +627,10 @@ class SparsePauliOp(LinearOp):
         coeffs = np.zeros(size, dtype=complex)
         labels = np.zeros(size, dtype=f"<U{num_qubits}")
 
-        for i, item in enumerate(obj):
+        for i, (paulis, indices, coeff) in enumerate(obj):
             # construct the full label based off the non-trivial Paulis and indices
             label = ["I"] * num_qubits
-            for pauli, index in zip(item[0], item[1]):
+            for pauli, index in zip(paulis, indices):
                 if index >= num_qubits:
                     raise QiskitError(
                         f"The number of qubits ({num_qubits}) is smaller than a required index {index}."
@@ -638,7 +638,7 @@ class SparsePauliOp(LinearOp):
                 label[~index] = pauli
 
             labels[i] = "".join(label)
-            coeffs[i] = item[2]
+            coeffs[i] = coeff
 
         paulis = PauliList(labels)
         return SparsePauliOp(paulis, coeffs, copy=False)

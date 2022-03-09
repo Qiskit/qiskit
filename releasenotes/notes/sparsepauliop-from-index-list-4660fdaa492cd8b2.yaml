@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    The :meth:`.SparsePauliOp.from_list` constructor can now take an iterable where
+    Add a new :meth:`.SparsePauliOp.from_sparse_list` constructor can now take an iterable where
     the elements represent Pauli terms that are themselves sparse, so that
     `"XIIIIIIIIIIIIIIIIX"` can now be written as `("XX", [0, 16])`. For example, the operator
 
@@ -13,7 +13,10 @@ features:
 
     .. code-block:: python
 
-      op = SparsePauliOp.from_list([("XZ", [0, 3], 1), ("YY", [1, 4], 2)], num_qubits=5)
+      op = SparsePauliOp.from_sparse_list([("XZ", [0, 3], 1), ("YY", [1, 4], 2)], num_qubits=5)
+
+      # or equivalently, as previously
+      op = SparsePauliOp.from_list([("IZIIX", 1), ("YIIYI", 2)])
 
     This greatly facilitates the construction of very sparse operators on many qubits, as
     is often the case for Ising Hamiltonians.
