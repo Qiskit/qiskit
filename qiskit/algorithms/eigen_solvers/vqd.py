@@ -532,7 +532,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         if self.betas is None:
             upper_bound = (
                 abs(operator.coeff)
-                if isinstance(operator,PauliOp)
+                if isinstance(operator, PauliOp)
                 else abs(operator.coeff) * sum(abs(operation.coeff) for operation in operator)
             )
             self.betas = [upper_bound * 10] * (self.k)
@@ -623,7 +623,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
                     self._eval_aux_ops(opt_result.x, aux_operators, expectation=expectation)
                 )
 
-            if step == 0:
+            if step == 1:
 
                 logger.info(
                     "Ground state optimization complete in %s seconds.\nFound opt_params %s in %s evals",
@@ -633,8 +633,10 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 )
             else:
                 logger.info(
-                    ("%s excited state optimization complete in %s s.\nFound opt_params %s in %s evals"),
-                    str(step),
+                    (
+                        "%s excited state optimization complete in %s s.\nFound opt_parms %s in %s evals"
+                    ),
+                    str(step - 1),
                     eval_time,
                     result.optimal_point,
                     self._eval_count,
@@ -661,7 +663,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         step: int,
         operator: OperatorBase,
         return_expectation: bool = False,
-        prev_states: List[float] =  None,
+        prev_states: List[float] = None,
     ) -> Callable[[np.ndarray], Union[float, List[float]]]:
         """Returns a function handle to evaluates the energy at given parameters for the ansatz.
 
@@ -692,6 +694,12 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         if operator is None:
             raise AlgorithmError("The operator was never provided.")
+
+        if step > 1 and (len(prev_states) + 1) != step:
+            raise RuntimeError(
+                "Passed previous states of the wrong size. Passed array has length "
+                + str(len(prev_states))
+            )
 
         self._check_operator_ansatz(operator)
         overlap_op = []
