@@ -33,7 +33,7 @@ class BasePadding(TransformationPass):
 
     This base class doesn't define any sequence to interleave, but it manages
     the location where the sequence is inserted, and provides a set of information necessary
-    to construct the proper sequence. Thus, a subclass of this pass just need to implement
+    to construct the proper sequence. Thus, a subclass of this pass just needs to implement
     :meth:`_pad` method, in which the subclass constructs a circuit block to insert.
     This mechanism removes lots of boilerplate logic to manage whole DAG circuits.
 
