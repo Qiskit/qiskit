@@ -112,7 +112,7 @@ class SwapStrategyRouter(TransformationPass):
     # The node(s) that will be mapped must be of this type. Subclasses must specify this.
     __instruction_type__ = type(None)
 
-    def __init__(self, swap_strategy: Optional[SwapStrategy] = None):
+    def __init__(self, swap_strategy: Optional[SwapStrategy] = None) -> None:
         """
         Args:
             swap_strategy: An instance of a SwapStrategy that holds the swap layers that
@@ -191,7 +191,7 @@ class SwapStrategyRouter(TransformationPass):
                 using swap strategies.
 
         Returns:
-            A new accumulator with the same registers as `new_dag`.
+            A new accumulator with the same registers as ``new_dag``.
         """
         # Add all the non-swap strategy nodes that we have accumulated up to now.
         order = layout.reorder_bits(new_dag.qubits)

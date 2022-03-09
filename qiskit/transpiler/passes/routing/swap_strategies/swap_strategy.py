@@ -31,7 +31,7 @@ class SwapStrategy:
     algorithms.
     """
 
-    def __init__(self, coupling_map: CouplingMap, swap_layers: List[List[Tuple[int, int]]]):
+    def __init__(self, coupling_map: CouplingMap, swap_layers: List[List[Tuple[int, int]]]) -> None:
         """
         Args:
             coupling_map: The coupling map the strategy is implemented for.
@@ -61,11 +61,19 @@ class SwapStrategy:
                     )
 
     def __len__(self) -> int:
-        """Return the length of the strategy as the number of layers."""
+        """Return the length of the strategy as the number of layers.
+
+        Returns:
+            The number of layers of the swap strategy.
+        """
         return len(self._swap_layers)
 
     def __repr__(self) -> str:
-        """Representation of the swap strategy."""
+        """Representation of the swap strategy.
+
+        Returns:
+            The represenation of the swap strategy.
+        """
         description = [f"{self.__class__.__name__} with swap layers:\n"]
 
         for layer in self._swap_layers:
@@ -76,8 +84,15 @@ class SwapStrategy:
 
         return description
 
-    def swap_layer(self, idx: int):
-        """Return the layer of swaps at the given index."""
+    def swap_layer(self, idx: int) -> List[Tuple[int, int]]:
+        """Return the layer of swaps at the given index.
+
+        Args:
+            idx: The index of the returned swap layer.
+
+        Returns:
+            The swap layer at ``idx``.
+        """
         return list(swap for swap in self._swap_layers[idx])
 
     @property
@@ -105,17 +120,18 @@ class SwapStrategy:
 
         return self._distance_matrix
 
-    def new_connections(self, idx: int) -> List[Set]:
+    def new_connections(self, idx: int) -> List[Set[int]]:
         """
         Returns the new connections obtained after applying the SWAP layer specified by idx, i.e.
         a list of qubit pairs that are adjacent to one another after idx steps of the SWAP strategy.
 
         Args:
             idx: The index of the SWAP layer. 1 refers to the first SWAP layer
-                whereas idx = 0 will return the connections present in the original coupling map.
+                whereas an ``idx`` of 0 will return the connections present in the original coupling
+                map.
 
         Returns:
-            A set of edges representing the new qubit connections.
+            A list of edges representing the new qubit connections.
         """
         connections = []
         for i in range(self._num_vertices):
@@ -138,7 +154,11 @@ class SwapStrategy:
 
     @property
     def possible_edges(self) -> Set[Tuple[int, int]]:
-        """Return the qubit connections that can be generated."""
+        """Return the qubit connections that can be generated.
+
+        Returns:
+            The qubit connections that can be accomodated by the swap strategy.
+        """
         if self._possible_edges is None:
             self._possible_edges = self._build_edges()
 
@@ -167,11 +187,15 @@ class SwapStrategy:
 
     @property
     def reaches_full_connectivity(self) -> bool:
-        """Return True if the swap strategy reaches full connectivity."""
+        """Returns whether the swap strategy reaches full connectivity.
+
+        Returns:
+            True if the swap strategy reaches full connectivity and False otherwise.
+        """
         return len(self.missing_couplings()) == 0
 
     def swapped_coupling_map(self, idx: int) -> CouplingMap:
-        """Returns the coupling map after applying :code:`idx` swap layers of strategy.
+        """Returns the coupling map after applying ``idx`` swap layers of strategy.
 
         Args:
             idx: The number of swap layers to apply. For idx = 0, the original coupling
@@ -187,7 +211,7 @@ class SwapStrategy:
         return CouplingMap(couplinglist=edges)
 
     def apply_swap_layer(self, list_to_swap: List[Any], idx: int) -> List[Any]:
-        """Permute the elements of :code:`list_to_swap` based on layer indexed by :code:`idx`.
+        """Permute the elements of ``list_to_swap`` based on layer indexed by ``idx``.
 
         Args:
             list_to_swap: The list of elements to swap.
@@ -204,7 +228,7 @@ class SwapStrategy:
         return x
 
     def composed_permutation(self, idx: int) -> List[int]:
-        """Returns the composed permutation of all swap layers applied up to index :code:`idx`.
+        """Returns the composed permutation of all swap layers applied up to index ``idx``.
 
         Permutations are represented by list of integers where the ith element
         corresponds to the mapping of i under the permutation.
@@ -220,7 +244,7 @@ class SwapStrategy:
     def inverse_composed_permutation(self, idx: int) -> List[int]:
         """
         Returns the inversed composed permutation of all swap layers applied up to layer
-        :code:`idx`. Permutations are represented by list of integers where the ith element
+        ``idx``. Permutations are represented by list of integers where the ith element
         corresponds to the mapping of i under the permutation.
 
         Args:
@@ -241,9 +265,8 @@ class SwapStrategy:
 class LineSwapStrategy(SwapStrategy):
     """An optimal SWAP strategy for a line."""
 
-    def __init__(self, line: List[int], num_swap_layers: Optional[int] = None):
-        """Create a swap strategy for a line graph.
-
+    def __init__(self, line: List[int], num_swap_layers: Optional[int] = None) -> None:
+        """
         Creates a swap strategy for a line graph with the specified number of SWAP layers.
         This SWAP strategy will use the full line if instructed to do so (i.e. num_variables
         is None or equal to num_vertices). If instructed otherwise then the first num_variables
@@ -255,7 +278,10 @@ class LineSwapStrategy(SwapStrategy):
 
         Raises:
             ValueError: If the ``num_swap_layers`` is negative.
+            ValueError: If the ``line`` has less than 2 elements and no swap strategy can be applied.
         """
+        if len(line) < 2:
+            raise ValueError(f"The line cannot have less than two elements, but is {line}")
 
         if num_swap_layers is None:
             num_swap_layers = len(line) - 2
