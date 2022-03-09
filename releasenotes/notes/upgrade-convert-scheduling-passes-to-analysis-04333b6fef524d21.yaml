@@ -35,7 +35,7 @@ upgrade:
 
       pm = PassManager([ASAPSchedule(durations), PadDelay()])
 
-    This upgrade improves the performance of entire pass manager, especially with
-    one of alignment passes, or with a dynamical decoupling pass since
+    This upgrade improves the performance of the entire pass manager, especially with
+    one of the alignment passes, or with a dynamical decoupling pass since
     input DAG circuit is regenerated only once after the scheduling,
     and the instruction start time is explicitly tracked in the pass manager.
