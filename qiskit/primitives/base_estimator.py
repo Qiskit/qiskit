@@ -78,7 +78,7 @@ Here is an example of how estimator is used.
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
         result = e([0], [0], [theta1])
-        print(psi1_H1_result)
+        print(result)
 
         # calculate [ <psi1(theta1)|H2|psi1(theta1)>, <psi1(theta1)|H3|psi1(theta1)> ]
         result2 = e([0, 0], [1, 2], [theta1]*2)

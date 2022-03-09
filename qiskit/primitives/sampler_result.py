@@ -30,11 +30,10 @@ class SamplerResult:
 
         result = sampler(circuits, params)
 
-    where the i-th element of ``result.quasi_dists`` corresponds to the probabilities
-    or the quasi-probabilities of bitstrings using the circuit given by ``circuits[i]``
+    where the i-th elements of ``result`` corresponds to the circuit given by ``circuits[i]``,
     and the parameters bounds by ``params[i]``.
-    The i-th element of ``result.metadata`` corresponds to the metadata of the experiment
-    using ``circuits[i]`` and ``params[i]``.
+    For example, ``results.quasi_dists[i]`` gives the quasi-probabilities of bitstrings, and ``result.metadata[i]``
+    is a metadata dictionary for this circuit and parameters.
 
     Args:
         quasi_dists (list[QuasiDistribution]): list of the quasi-probabilities.
