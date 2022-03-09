@@ -23,6 +23,7 @@ import random
 import numpy as np
 import networkx as nx
 import retworkx as rx
+from qiskit.circuit import Parameter
 from ddt import ddt, idata, unpack
 from qiskit import BasicAer, QuantumCircuit, QuantumRegister
 from qiskit.algorithms import AdaptQAOA
@@ -68,13 +69,12 @@ def _create_mixer_pool(num_q, add_multi, circ):
     for mix_str in mixer_pool:
         if circ:
             qr = QuantumRegister(num_q)
-            qc = QuantumCircuit(qr)
+            op = QuantumCircuit(qr)
             for i, mix in enumerate(mix_str):
                 qiskit_dict = {"I": IGate(), "X": XGate(), "Y": YGate(), "Z": ZGate()}
 
                 mix_qis_gate = qiskit_dict[mix]
-                qc.append(mix_qis_gate, [i])
-                mixer_circ_list.append(qc)
+                op.append(mix_qis_gate, [i])
         else:
             if mix_str == len(mix_str) * mix_str[0]:
                 gate = mix_str[0]
@@ -85,7 +85,7 @@ def _create_mixer_pool(num_q, add_multi, circ):
                 op = PauliSumOp(SparsePauliOp.from_list(op_list))
             else:
                 op = PauliOp(Pauli(mix_str))
-            mixer_circ_list.append(op)
+        mixer_circ_list.append(op)
     return mixer_circ_list
 
 W1 = np.array([[0, 1, 0, 1], [1, 0, 1, 0], [0, 1, 0, 1], [1, 0, 1, 0]])
@@ -160,9 +160,9 @@ class TestAdaptQAOA(QiskitTestCase):
 
     @idata(
         [
-            [W1, P1, S1, False],
-            [W2, P2, S2, False],
-            [W1, P1, S1, True],
+            [W1, P1, S1, False],    #TODO: mismatch err
+            [W2, P2, S2, False],    
+            [W1, P1, S1, True], 
             [W2, P2, S2, True],
         ]
     )
@@ -219,7 +219,13 @@ class TestAdaptQAOA(QiskitTestCase):
         num_qubits = qubit_op.num_qubits
         # TODO: differentiate between this function (>1 params) and
         # prev function (=1 params) or delete one
-        mixer = _create_mixer_pool(num_qubits, add_multi=True, circ=True)
+        _mixer = _create_mixer_pool(num_qubits, add_multi=True, circ=True)
+        mixer = []
+        for mix in _mixer:
+            for i in range(num_qubits):
+                theta = Parameter("θ" + str(i))
+                mix.rx(theta, range(num_qubits))
+            mixer.append(mix)
 
         adapt_qaoa = AdaptQAOA(
             optimizer=OPTIMIZER,
@@ -350,10 +356,9 @@ class TestAdaptQAOA(QiskitTestCase):
             quantum_instance=self.statevector_simulator,
         )
 
-        cost_op = self._max_cut_hamiltonian(D=3, nq=4)
 
-        adapt_qaoa.compute_minimum_eigenvalue(cost_op)
-        adapt_qaoa_zero_init_state.compute_minimum_eigenvalue(cost_op)
+        adapt_qaoa.compute_minimum_eigenvalue(qubit_op)
+        adapt_qaoa_zero_init_state.compute_minimum_eigenvalue(qubit_op)
 
         zero_circuits = adapt_qaoa_zero_init_state.construct_circuit(init_pt, qubit_op)
         custom_circuits = adapt_qaoa.construct_circuit(init_pt, qubit_op)
@@ -366,24 +371,16 @@ class TestAdaptQAOA(QiskitTestCase):
             c_length = len(custom_circ.data)
 
             self.assertGreaterEqual(c_length, z_length)
-            self.assertTrue(zero_circ.data == custom_circ.data[-z_length:])
+            for i,j in zip(zero_circ.data, custom_circ.data[-z_length:]):
+                for ii, jj in zip(i,j):
+                    if isinstance(ii, list):
+                        self.assertEqual(ii, jj)
+                    else:
+                        zero_circ_dict, custom_circ_dict = dict(ii.__dict__), dict(jj.__dict__)
+                        for k in zero_circ_dict.keys():
+                            if k != '_definition':  # if its a circuit they wont be equal due to varied mixers.
+                                self.assertEqual(zero_circ_dict[k],custom_circ_dict[k])
 
-            custom_init_qc = QuantumCircuit(custom_circ.num_qubits)
-            custom_init_qc.data = custom_circ.data[0 : c_length - z_length]
-
-            if initial_state is None:
-                original_init_qc = QuantumCircuit(qubit_op.num_qubits)
-                original_init_qc.h(range(qubit_op.num_qubits))
-            else:
-                original_init_qc = initial_state
-
-            job_init_state = self.statevector_simulator.execute(original_init_qc)
-            job_qaoa_init_state = self.statevector_simulator.execute(custom_init_qc)
-
-            statevector_original = job_init_state.get_statevector(original_init_qc)
-            statevector_custom = job_qaoa_init_state.get_statevector(custom_init_qc)
-
-            self.assertListEqual(statevector_original.tolist(), statevector_custom.tolist())
 
     def test_adapt_qaoa_random_initial_point(self):
         """AdaptQAOA random initial point"""
