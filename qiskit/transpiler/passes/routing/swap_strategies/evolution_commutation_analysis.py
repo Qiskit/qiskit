@@ -24,7 +24,11 @@ class CheckCommutingEvolutions(AnalysisPass):
     """Finds PauliEvolutionGates where the operators, that are evolved, all commute."""
 
     def run(self, dag: DAGCircuit) -> None:
-        """Check for PauliEvolutionGates where the summands all commute."""
+        """Check for ``PauliEvolutionGate``s where the summands all commute.
+
+        Args:
+            The DAG circuit in which to look for the commuting evolutions.
+        """
         self.property_set["commuting_blocks"] = set()
         self.property_set["1q_blocks"] = set()
 
@@ -38,7 +42,15 @@ class CheckCommutingEvolutions(AnalysisPass):
 
     @staticmethod
     def single_qubit_terms_only(operator: SparsePauliOp) -> bool:
-        """Determine if the Paulis are made of single qubit terms only."""
+        """Determine if the Paulis are made of single qubit terms only.
+
+        Args:
+            operator: The operator to check if it consists only of single qubit terms.
+
+        Returns:
+            True if the operator consists of only single qubit terms (like ``IIX + IZI``),
+            and False otherwise.
+        """
 
         for pauli in operator.paulis:
             num_terms = sum([char != "I" for char in str(pauli)])
@@ -49,7 +61,14 @@ class CheckCommutingEvolutions(AnalysisPass):
 
     @staticmethod
     def summands_commute(operator: SparsePauliOp) -> bool:
-        """Check if all summands in the operator we evolve commute."""
+        """Check if all summands in the operator we evolve commute.
+
+        Args:
+            operator: The operator on which we check if all summands commute.
+
+        Returns:
+            True if all summands commute, False otherwise.
+        """
 
         if not isinstance(operator, SparsePauliOp):
             warnings.warn(
