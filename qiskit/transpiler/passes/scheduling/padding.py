@@ -25,7 +25,7 @@ class BasePadding(TransformationPass):
     This pass requires one of scheduling passes to be executed before itself.
     Since there are multiple scheduling strategies, the selection of scheduling
     pass is left in the hands of one designs the pass manager.
-    Once schedule pass is called on the DAG circuit, ``node_start_time`` is generated
+    Once a scheduling analysis pass is run, ``node_start_time`` is generated
     in the :attr:`property_set`.  This information is represented by a python dictionary of
     the expected instruction execution times keyed on the node instances.
     Entries in the dictionary are only created for non-delay nodes.
