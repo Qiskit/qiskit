@@ -1,15 +1,16 @@
 ---
-
 features:
   - |
-    The algorithm iteratively computes each eigenstate by starting from the ground state (which is computed as in VQE) and then optimising a modified cost function that tries to compute eigen states that are orthogonal to the states computed in the previous iterations and have the lowest energy when computed over the ansatz.
+    The algorithm iteratively computes each eigenstate by starting from the ground 
+    state (which is computed as in VQE) and then optimising a modified cost function 
+    that tries to compute eigen states that are orthogonal to the states computed in 
+    the previous iterations and have the lowest energy when computed over the ansatz.
     The interface implemented is very similar to that of VQE and is of the form:
-    ```
-    from qiskit.algorithms import VQD
+    
+      from qiskit.algorithms import VQD
 
-    vqd = VQD(ansatz = ansatz, k = 2, optimizer = opt, quantum_instance = qi)
-    vqd_res = vqd.compute_eigenvalues(op)
-    ```
+      vqd = VQD(ansatz = ansatz, k = 2, optimizer = opt, quantum_instance = qi)
+      vqd_res = vqd.compute_eigenvalues(op)
+    
+    This particular code snippet generates 2 eigenvalues (ground and 1st excited state)
     Tests have also been implemented.
-
-
