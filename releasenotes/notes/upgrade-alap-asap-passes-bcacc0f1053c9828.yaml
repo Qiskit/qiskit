@@ -38,7 +38,7 @@ upgrade:
 
       from qiskit import QuantumCircuit
       from qiskit.transpiler import InstructionDurations, PassManager
-      from qiskit.transpiler.passes import ALAPSchedule
+      from qiskit.transpiler.passes import ALAPSchedule, PadDelay
       from qiskit.visualization.timeline import draw
 
       circuit = QuantumCircuit(3, 1)
@@ -50,7 +50,10 @@ upgrade:
       durations = InstructionDurations([("x", None, 160), ("measure", None, 800)])
 
       pm = PassManager(
-          ALAPSchedule(durations, clbit_write_latency=800, conditional_latency=0)
+          [
+            ALAPSchedule(durations, clbit_write_latency=800, conditional_latency=0),
+            PadDelay(),
+          ]
       )
       draw(pm.run(circuit))
 
@@ -70,7 +73,7 @@ upgrade:
 
       from qiskit import QuantumCircuit
       from qiskit.transpiler import InstructionDurations, PassManager
-      from qiskit.transpiler.passes import ALAPSchedule
+      from qiskit.transpiler.passes import ALAPSchedule, PadDelay
       from qiskit.visualization.timeline import draw
 
       circuit = QuantumCircuit(3, 1)
@@ -81,7 +84,7 @@ upgrade:
 
       durations = InstructionDurations([("x", None, 160), ("measure", None, 800)])
 
-      pm = PassManager(ALAPSchedule(durations))
+      pm = PassManager([ALAPSchedule(durations), PadDelay()])
       draw(pm.run(circuit))
 
     Note that clbit is locked throughout the measurement instruction interval.
