@@ -56,7 +56,7 @@ pub fn expval_pauli_no_x(
     z_mask: usize,
 ) -> PyResult<f64> {
     let data_arr = data.as_slice()?;
-    let size: usize = 1 << num_qubits;
+    let size = 1usize << num_qubits;
     let run_in_parallel = getenv_use_multiple_threads();
     let map_fn = |i: usize| -> f64 {
         let mut val: f64 = data_arr[i].re * data_arr[i].re + data_arr[i].im * data_arr[i].im;
@@ -87,7 +87,7 @@ pub fn expval_pauli_with_x(
     let data_arr = data.as_slice()?;
     let mask_u = !(2_usize.pow(x_max + 1) - 1);
     let mask_l = 2_usize.pow(x_max) - 1;
-    let size = 1 << (num_qubits - 1);
+    let size = 1usize << (num_qubits - 1);
     let run_in_parallel = getenv_use_multiple_threads();
     let map_fn = |i: usize| -> f64 {
         let index_0 = ((i << 1) & mask_u) | (i & mask_l);
@@ -135,7 +135,7 @@ pub fn density_expval_pauli_no_x(
     z_mask: usize,
 ) -> PyResult<f64> {
     let data_arr = data.as_slice()?;
-    let num_rows = 1 << num_qubits;
+    let num_rows = 1usize << num_qubits;
     let stride = 1 + num_rows;
     let run_in_parallel = getenv_use_multiple_threads();
     let map_fn = |i: usize| -> f64 {
@@ -167,7 +167,7 @@ pub fn density_expval_pauli_with_x(
     let data_arr = data.as_slice()?;
     let mask_u = !(2_usize.pow(x_max + 1) - 1);
     let mask_l = 2_usize.pow(x_max) - 1;
-    let num_rows = 1 << num_qubits;
+    let num_rows = 1usize << num_qubits;
     let run_in_parallel = getenv_use_multiple_threads();
     let map_fn = |i: usize| -> f64 {
         let index_vec = ((i << 1) & mask_u) | (i & mask_l);
