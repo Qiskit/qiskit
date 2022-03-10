@@ -14,6 +14,7 @@ use std::convert::TryInto;
 
 use num_complex::Complex64;
 use numpy::PyReadonlyArray1;
+use pyo3::exceptions::PyOverflowError;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use rayon::prelude::*;
@@ -55,8 +56,14 @@ pub fn expval_pauli_no_x(
     num_qubits: usize,
     z_mask: usize,
 ) -> PyResult<f64> {
+    if num_qubits >= usize::BITS as usize {
+        return Err(PyOverflowError::new_err(format!(
+            "The value for num_qubits, {}, is too larget and would overflow",
+            num_qubits
+        )));
+    }
     let data_arr = data.as_slice()?;
-    let size = 1usize << num_qubits;
+    let size = 1_usize << num_qubits;
     let run_in_parallel = getenv_use_multiple_threads();
     let map_fn = |i: usize| -> f64 {
         let mut val: f64 = data_arr[i].re * data_arr[i].re + data_arr[i].im * data_arr[i].im;
@@ -84,10 +91,16 @@ pub fn expval_pauli_with_x(
     phase: Complex64,
     x_max: u32,
 ) -> PyResult<f64> {
+    if num_qubits > usize::BITS as usize {
+        return Err(PyOverflowError::new_err(format!(
+            "The value for num_qubits, {}, is too larget and would overflow",
+            num_qubits
+        )));
+    }
     let data_arr = data.as_slice()?;
     let mask_u = !(2_usize.pow(x_max + 1) - 1);
     let mask_l = 2_usize.pow(x_max) - 1;
-    let size = 1usize << (num_qubits - 1);
+    let size = 1_usize << (num_qubits - 1);
     let run_in_parallel = getenv_use_multiple_threads();
     let map_fn = |i: usize| -> f64 {
         let index_0 = ((i << 1) & mask_u) | (i & mask_l);
@@ -134,8 +147,14 @@ pub fn density_expval_pauli_no_x(
     num_qubits: usize,
     z_mask: usize,
 ) -> PyResult<f64> {
+    if num_qubits >= usize::BITS as usize {
+        return Err(PyOverflowError::new_err(format!(
+            "The value for num_qubits, {}, is too larget and would overflow",
+            num_qubits
+        )));
+    }
     let data_arr = data.as_slice()?;
-    let num_rows = 1usize << num_qubits;
+    let num_rows = 1_usize << num_qubits;
     let stride = 1 + num_rows;
     let run_in_parallel = getenv_use_multiple_threads();
     let map_fn = |i: usize| -> f64 {
@@ -164,10 +183,16 @@ pub fn density_expval_pauli_with_x(
     phase: Complex64,
     x_max: u32,
 ) -> PyResult<f64> {
+    if num_qubits >= usize::BITS as usize {
+        return Err(PyOverflowError::new_err(format!(
+            "The value for num_qubits, {}, is too larget and would overflow",
+            num_qubits
+        )));
+    }
     let data_arr = data.as_slice()?;
     let mask_u = !(2_usize.pow(x_max + 1) - 1);
     let mask_l = 2_usize.pow(x_max) - 1;
-    let num_rows = 1usize << num_qubits;
+    let num_rows = 1_usize << num_qubits;
     let run_in_parallel = getenv_use_multiple_threads();
     let map_fn = |i: usize| -> f64 {
         let index_vec = ((i << 1) & mask_u) | (i & mask_l);
