@@ -85,6 +85,15 @@ def eval_observables(
 
 
 def _prepare_list_op(observables: ListOrDict[OperatorBase]) -> ListOp:
+    """
+    Accepts a list or a dictionary of operators and converts them to a ``ListOp``.
+
+    Args:
+        observables: A list or a dictionary of operators.
+
+    Returns:
+        A ``ListOp`` that includes all provided observables.
+    """
     if isinstance(observables, dict):
         return ListOp(list(observables.values()))
 
@@ -92,9 +101,21 @@ def _prepare_list_op(observables: ListOrDict[OperatorBase]) -> ListOp:
 
 
 def _prepare_result(
-    observables_results,
+    observables_results: List[Tuple[complex, complex]],
     observables: ListOrDict[OperatorBase],
 ) -> ListOrDict[Tuple[complex, complex]]:
+    """
+    Prepares a list or a dictionary of eigenvalues from ``observables_results`` and
+    ``observables``.
+
+    Args:
+        observables_results: A list of of tuples (mean, standard deviation).
+        observables: A list or a dictionary of operators whose expectation values are to be
+            calculated.
+
+    Returns:
+        A list or a dictionary of tuples (mean, standard deviation).
+    """
     if isinstance(observables, list):
         observables_eigenvalues = [None] * len(observables)
         key_value_iterator = enumerate(observables_results)
@@ -108,11 +129,25 @@ def _prepare_result(
 
 
 def _compute_std_devs(
-    observables_expect_sampled,
+    observables_expect_sampled: OperatorBase,
     observables: ListOrDict[OperatorBase],
     expectation: ExpectationBase,
     quantum_instance: Union[QuantumInstance, BaseBackend, Backend],
 ) -> List[complex]:
+    """
+    Calculates a list of standard deviations from expectation values of observables provided.
+
+    Args:
+        observables_expect_sampled: Expected values of observables.
+        observables: A list or a dictionary of operators whose expectation values are to be
+            calculated.
+        expectation: An instance of ExpectationBase which defines a method for calculating
+            expectation values.
+        quantum_instance: A quantum instance used for calculations.
+
+    Returns:
+        A list of standard deviations.
+    """
     variances = np.real(expectation.compute_variance(observables_expect_sampled))
     if not isinstance(variances, np.ndarray) and variances == 0.0:
         # when `variances` is a single value equal to 0., our expectation value is exact and we
