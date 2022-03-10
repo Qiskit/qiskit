@@ -118,7 +118,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "282a6247722caba404c065016bbfa522806e51714c34f5dfc3e4a3a46fcb4223"
 dependencies = [
  "autocfg",
- "hashbrown 0.11.2",
+ "hashbrown",
 ]
 
 [[package]]
@@ -303,9 +303,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c00e5e97bb258ac0fcea67da5e845aae5f7e6fb4f723ec94a503a6d0a541ccb7"
 dependencies = [
  "cfg-if",
- "hashbrown 0.12.0",
+ "hashbrown",
  "indoc",
  "libc",
+ "num-complex",
  "parking_lot",
  "pyo3-build-config",
  "pyo3-ffi",
@@ -361,9 +362,10 @@ name = "qiskit-terra"
 version = "0.20.0"
 dependencies = [
  "ahash",
- "hashbrown 0.12.0",
+ "hashbrown",
  "indexmap",
  "ndarray",
+ "num-complex",
  "numpy",
  "pyo3",
  "rand",
