@@ -137,6 +137,8 @@ class TestPauliSumOp(QiskitOpflowTestCase):
 
         self.assertNotEqual((X ^ X) + (Y ^ Y), X + Y)
         self.assertEqual((X ^ X) + (Y ^ Y), (Y ^ Y) + (X ^ X))
+        self.assertEqual(0 * X + I, I)
+        self.assertEqual(I, 0 * X + I)
 
         theta = ParameterVector("theta", 2)
         pauli_sum0 = theta[0] * (X + Z)
