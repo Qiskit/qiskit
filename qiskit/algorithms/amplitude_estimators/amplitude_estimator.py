@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,7 +12,7 @@
 
 """The Amplitude Estimation interface."""
 
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from typing import Union, Optional, Dict, Callable, Tuple
 import numpy as np
 
@@ -20,7 +20,7 @@ from .estimation_problem import EstimationProblem
 from ..algorithm_result import AlgorithmResult
 
 
-class AmplitudeEstimator:
+class AmplitudeEstimator(ABC):
     """The Amplitude Estimation interface."""
 
     @abstractmethod
