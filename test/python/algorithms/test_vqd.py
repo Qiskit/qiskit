@@ -241,7 +241,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         result = vqd.compute_eigenvalues(operator=self.h2_op)
 
         np.testing.assert_array_almost_equal(
-            result.eigenvalues.real, self.h2_energy_excited, decimal=2
+            result.eigenvalues.real, self.h2_energy_excited, decimal=1
         )
 
     @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
