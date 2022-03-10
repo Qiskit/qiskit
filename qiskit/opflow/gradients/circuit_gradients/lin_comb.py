@@ -133,9 +133,7 @@ class LinComb(CircuitGradient):
         Raises:
             ValueError: If the provided auxiliary measurement operator is not supported.
         """
-        if aux_meas_op == Z or aux_meas_op == -Y or aux_meas_op == (Z - 1j * Y):
-            pass
-        else:
+        if aux_meas_op not in [Z, -Y, (Z - 1j * Y)]:
             raise ValueError(
                 "This auxiliary measurement operator is currently not supported please choose "
                 "either Z, -Y, or Z-1jY. "
