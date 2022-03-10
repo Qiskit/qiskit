@@ -67,9 +67,7 @@ class LinCombFull(CircuitQFI):
         """
         # QFI & phase fix observable
         qfi_observable = StateFn(4 * aux_meas_op ^ (I ^ operator.num_qubits), is_measurement=True)
-        if aux_meas_op == Z or aux_meas_op == -Y or aux_meas_op == (Z - 1j * Y):
-            pass
-        else:
+        if aux_meas_op not in [Z, -Y, (Z - 1j * Y)]:
             raise ValueError(
                 "This auxiliary measurement operator is currently not supported please choose "
                 "either Z, -Y, or Z-1jY. "
