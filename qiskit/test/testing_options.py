@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -27,7 +27,13 @@ def get_test_options(option_var="QISKIT_TESTS"):
     Returns:
         dict: A dictionary with the format {<option>: (bool)<activated>}.
     """
-    tests_options = {"skip_online": False, "mock_online": False, "run_slow": False, "rec": False}
+    tests_options = {
+        "skip_online": False,
+        "mock_online": False,
+        "run_slow": False,
+        "rec": False,
+        "gpu": False,
+    }
 
     def turn_false(option):
         """Turn an option to False.

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -94,6 +94,27 @@ def slow_test(func):
         skip_slow = not TEST_OPTIONS["run_slow"]
         if skip_slow:
             raise unittest.SkipTest("Skipping slow tests")
+
+        return func(*args, **kwargs)
+
+    return _wrapper
+
+
+def gpu(func):
+    """Decorator that signals that the test needs GPU to run.
+
+    Args:
+        func (callable): test function to be decorated.
+
+    Returns:
+        callable: the decorated function.
+    """
+
+    @functools.wraps(func)
+    def _wrapper(*args, **kwargs):
+        skip_gpu = not TEST_OPTIONS["gpu"]
+        if skip_gpu:
+            raise unittest.SkipTest("Skipping gpu tests")
 
         return func(*args, **kwargs)
 
