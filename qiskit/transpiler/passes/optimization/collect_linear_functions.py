@@ -13,102 +13,70 @@
 
 """Replace each sequence of CX and SWAP gates by a single LinearFunction gate."""
 
+from collections import deque
 from qiskit.circuit.library.generalized_gates import LinearFunction
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit import QuantumCircuit
+from qiskit.dagcircuit import DAGOpNode
+
+
+def collect_linear_blocks(dag):
+    """Collect blocks of linear gates."""
+
+    blocks = []
+
+    in_degree = dict()
+    pending_linear_ops = deque()
+    pending_non_linear_ops = deque()
+
+    def process_node(node):
+        for suc in dag.successors(node):
+            if not isinstance(suc, DAGOpNode):
+                continue
+            in_degree[suc] -= 1
+            if in_degree[suc] > 0:
+                continue
+
+            if suc.name in ["cx", "swap"]:
+                pending_linear_ops.append(suc)
+            else:
+                pending_non_linear_ops.append(suc)
+
+    for node in dag.op_nodes():
+        deg = sum(1 for op in dag.predecessors(node) if isinstance(op, DAGOpNode))
+        if deg > 0:
+            in_degree[node] = deg
+            continue
+
+        if node.name in ["cx", "swap"]:
+            pending_linear_ops.append(node)
+        else:
+            pending_non_linear_ops.append(node)
+
+    while pending_non_linear_ops or pending_linear_ops:
+
+        # first collect as many non linear gates as possible
+        while pending_non_linear_ops:
+            node = pending_non_linear_ops.popleft()
+            process_node(node)
+
+        # now collect as many linear gates as possible
+        cur_block = []
+        while pending_linear_ops:
+            node = pending_linear_ops.popleft()
+            process_node(node)
+            cur_block.append(node)
+
+        if cur_block:
+            blocks.append(cur_block)
+
+    return blocks
 
 
 class CollectLinearFunctions(TransformationPass):
     """Collect blocks of linear gates (:class:`.CXGate` and :class:`.SwapGate` gates)
     and replaces them by linear functions (:class:`.LinearFunction`)."""
 
-    @staticmethod
-    def _is_linear_gate(op):
-        return op.name in ("cx", "swap") and op.condition is None
-
-    # Called when reached the end of the linear block (either the next gate
-    # is not linear, or no more nodes)
-    @staticmethod
-    def _finalize_processing_block(cur_nodes, blocks):
-        # Collect only blocks comprising at least 2 gates.
-        if len(cur_nodes) >= 2:
-            blocks.append(cur_nodes)
-
-    def _order_nodes(self, dag):
-        """Adjusts the order of nodes in order to maximize blocks of linear gates."""
-        # Starting with the topologically ordered nodes, we first try to move
-        # all non-linear gates upfront, then all linear gates, then all non-linear gates,
-        # and so on.
-        # For now, we allow swapping nodes when they are defined over different sets of qubits
-        # (hence the nodes commute), but it might be even more powerful to use a real
-        # commutation analysis.
-        num_qubits = len(dag.qubits)
-        initial_order = []  # initial (topological) order
-        new_order = []  # adjusted order
-        collected_flag = []  # stores whether node is already collected (i.e. in new_order)
-
-        # create initial order and initialize collected_flag
-        for node in dag.topological_op_nodes():
-            initial_order.append(node)
-            collected_flag.append(False)
-
-        # stores whether the current pass collects linear or non-linear blocks
-        collect_linear = False
-
-        # optimization to store first unprocessed index
-        first_idx = 0
-
-        while len(new_order) < len(initial_order):
-            # update first unprocessed
-            have_unprocessed = False
-            for i in range(first_idx, len(initial_order)):
-                if not collected_flag[i]:
-                    first_idx = i
-                    have_unprocessed = True
-                    break
-
-            # if no unprocessed nodes, done
-            if not have_unprocessed:
-                break
-
-            # cut-off heuristic: if number of steps without progress exceeds a certain threshold,
-            # we stop the search; this keeps the algorithm to be linear in the worst-case
-            num_current_steps = 0
-
-            # collect the required set of nodes, keeping track of "contaminated qubits"
-            # (e.g., when we collect linear gates, qubits belonging to non-linear gates
-            # are "contaminated")
-            contaminated_qubits = set()
-            for i in range(first_idx, len(initial_order)):
-
-                # cut-off heuristic
-                num_current_steps = num_current_steps + 1
-                if num_current_steps >= num_qubits + 5:
-                    break
-
-                if collected_flag[i]:
-                    continue
-                node = initial_order[i]
-                collectable = not self._is_linear_gate(node.op) ^ collect_linear
-
-                if not collectable or not contaminated_qubits.isdisjoint(node.qargs):
-                    # cannot add this node to the current block
-                    contaminated_qubits.update(node.qargs)
-                    # optimization to stop search if all qubits are "contaminated"
-                    if len(contaminated_qubits) == num_qubits:
-                        break
-                else:
-                    # found a new node to add to the current block
-                    new_order.append(node)
-                    collected_flag[i] = True
-                    num_current_steps = 0
-
-            collect_linear = not collect_linear
-
-        return new_order
-
-    # For now, we implement the naive greedy algorithm that makes a linear sweep over
-    # nodes in DAG (using the topological order) and collects blocks of linear gates.
     def run(self, dag):
         """Run the CollectLinearFunctions pass on `dag`.
 
@@ -118,23 +86,7 @@ class CollectLinearFunctions(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        blocks = []
-
-        cur_nodes = []
-        ordered_nodes = self._order_nodes(dag)
-
-        for node in ordered_nodes:
-            # If the current gate is not linear, we are done processing the current block
-            if not self._is_linear_gate(node.op):
-                self._finalize_processing_block(cur_nodes, blocks)
-                cur_nodes = []
-
-            else:
-                # This is a linear gate, we add the node and its qubits
-                cur_nodes.append(node)
-
-        # Last block
-        self._finalize_processing_block(cur_nodes, blocks)
+        blocks = collect_linear_blocks(dag)
 
         # Replace every discovered block by a linear function
         global_index_map = {wire: idx for idx, wire in enumerate(dag.qubits)}
