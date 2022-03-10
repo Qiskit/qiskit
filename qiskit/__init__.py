@@ -25,7 +25,7 @@ import qiskit._accelerate
 # manually define them on import so people can directly import
 # qiskit._accelerate.* submodules and not have to rely on attribute access
 sys.modules["qiskit._accelerate.stochastic_swap"] = qiskit._accelerate.stochastic_swap
-
+sys.modules["qiskit._accelerate.pauli_expval"] = qiskit._accelerate.pauli_expval
 
 # qiskit errors operator
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
