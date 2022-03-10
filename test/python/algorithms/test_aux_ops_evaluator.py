@@ -17,7 +17,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from ddt import ddt, data, unpack
 
-from qiskit.algorithms.aux_ops_evaluator import eval_observables
+from qiskit.algorithms import eval_observables
 from qiskit import BasicAer
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import PauliSumOp, X, Z, I, ExpectationFactory

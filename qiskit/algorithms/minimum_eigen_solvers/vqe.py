@@ -39,12 +39,12 @@ from qiskit.opflow.gradients import GradientBase
 from qiskit.utils.validation import validate_min
 from qiskit.utils.backend_utils import is_aer_provider
 from qiskit.utils import QuantumInstance, algorithm_globals
-from ..aux_ops_evaluator import eval_observables
 from ..list_or_dict import ListOrDict
 from ..optimizers import Optimizer, SLSQP
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 from ..exceptions import AlgorithmError
+from ..aux_ops_evaluator import eval_observables
 
 logger = logging.getLogger(__name__)
 
