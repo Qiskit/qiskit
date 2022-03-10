@@ -16,6 +16,7 @@ use pyo3::prelude::*;
 use pyo3::wrap_pymodule;
 use pyo3::Python;
 
+mod dense_layout;
 mod edge_collections;
 mod nlayout;
 mod pauli_exp_val;
@@ -38,5 +39,6 @@ pub fn getenv_use_multiple_threads() -> bool {
 fn _accelerate(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(stochastic_swap::stochastic_swap))?;
     m.add_wrapped(wrap_pymodule!(pauli_exp_val::pauli_expval))?;
+    m.add_wrapped(wrap_pymodule!(dense_layout::dense_layout))?;
     Ok(())
 }
