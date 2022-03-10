@@ -17,6 +17,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
+from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import EstimatorResult
 from qiskit.quantum_info import Estimator, Operator, SparsePauliOp, Statevector
@@ -233,6 +234,24 @@ class TestEstimator(QiskitTestCase):
             result = est([1], [2], [[]])
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [-1])
+
+    def test_errors(self):
+        """Test for errors"""
+        qc = QuantumCircuit(1)
+        qc2 = QuantumCircuit(2)
+
+        op = SparsePauliOp.from_list([("I", 1)])
+        op2 = SparsePauliOp.from_list([("II", 1)])
+
+        with Estimator([qc, qc2], [op, op2], [[]] * 2) as est:
+            with self.assertRaises(QiskitError):
+                est([0], [1], [[]])
+            with self.assertRaises(QiskitError):
+                est([1], [0], [[]])
+            with self.assertRaises(QiskitError):
+                est([0], [0], [[1e4]])
+            with self.assertRaises(QiskitError):
+                est([1], [1], [[1, 2]])
 
 
 if __name__ == "__main__":
