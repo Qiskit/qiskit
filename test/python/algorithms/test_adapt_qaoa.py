@@ -13,21 +13,17 @@
 """ Test AdaptQAOA """
 
 import math
-from qiskit.algorithms.optimizers.optimizer import Optimizer
 import unittest
-from functools import reduce
-from itertools import combinations_with_replacement, permutations, product
-from qiskit.test import QiskitTestCase  # test.python.algorithms import QiskitAlgorithmsTestCase
-
 import random
+from itertools import combinations_with_replacement, permutations, product
 import numpy as np
 import networkx as nx
 import retworkx as rx
-from qiskit.circuit import Parameter
 from ddt import ddt, idata, unpack
+from qiskit.test import QiskitTestCase  # test.python.algorithms import QiskitAlgorithmsTestCase
+from qiskit.circuit import Parameter
 from qiskit import BasicAer, QuantumCircuit, QuantumRegister
 from qiskit.algorithms import AdaptQAOA
-from qiskit.algorithms.optimizers import COBYLA
 from qiskit.circuit.library import IGate, XGate, YGate, ZGate
 from qiskit.opflow import I, PauliSumOp, X, Y, Z
 from qiskit.opflow.primitive_ops import PauliOp
@@ -162,8 +158,8 @@ class TestAdaptQAOA(QiskitTestCase):
     @idata(
         [
             [W1, P1, S1, False],    #TODO: mismatch err
-            [W2, P2, S2, False],    
-            [W1, P1, S1, True], 
+            [W2, P2, S2, False],
+            [W1, P1, S1, True],
             [W2, P2, S2, True],
         ]
     )
@@ -484,6 +480,4 @@ if __name__ == "__main__":
         - test_adapt_qaoa_qc_mixer:
             - Doesn't like circuits as mixers
         - test_adapt_qaoa_qc_mixer_many_parameters
-    
-    
     """
