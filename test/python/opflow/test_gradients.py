@@ -1460,9 +1460,62 @@ class TestQFI(QiskitOpflowTestCase):
         with self.assertRaises(NotImplementedError):
             _ = QFI("overlap_diag").convert(StateFn(circuit), [x])
 
-    @data((-1j) * Y, Y, X)
-    def test_unsupported_aux_meas_op(self, aux_meas_op):
-        """Test error raised for unsupported auxiliary measurement operator in LinComb Gradient
+    @data(-Y, Z - 1j * Y)
+    def test_aux_meas_op(self, aux_meas_op):
+        """Test various auxiliary measurement operators for probability gradients with LinComb
+        Gradient
+
+        """
+
+        a = Parameter("a")
+        b = Parameter("b")
+        params = [a, b]
+
+        q = QuantumRegister(1)
+        qc = QuantumCircuit(q)
+        qc.h(q)
+        qc.rz(params[0], q[0])
+        qc.rx(params[1], q[0])
+
+        op = CircuitStateFn(primitive=qc, coeff=1.0)
+
+        shots = 10000
+
+        prob_grad = LinComb().convert(operator=op, params=params, aux_meas_op=aux_meas_op)
+        value_dicts = [{a: [np.pi / 4], b: [0]}, {a: [np.pi / 2], b: [np.pi / 4]}]
+        if aux_meas_op == -Y:
+            correct_values = [
+                [[-0.5, 0.5], [-1 / (np.sqrt(2) * 2), -1 / (np.sqrt(2) * 2)]],
+                [[-1 / (np.sqrt(2) * 2), 1 / (np.sqrt(2) * 2)], [0, 0]],
+            ]
+        else:
+            correct_values = [
+                [[-0.5j, 0.5j], [(1 - 1j) / (np.sqrt(2) * 2), (-1 - 1j) / (np.sqrt(2) * 2)]],
+                [
+                    [-1j / (np.sqrt(2) * 2), 1j / (np.sqrt(2) * 2)],
+                    [1 / (np.sqrt(2) * 2), -1 / (np.sqrt(2) * 2)],
+                ],
+            ]
+
+        for backend_type in ["qasm_simulator", "statevector_simulator"]:
+
+            for j, value_dict in enumerate(value_dicts):
+
+                q_instance = QuantumInstance(
+                    backend=BasicAer.get_backend(backend_type), shots=shots
+                )
+                result = (
+                    CircuitSampler(backend=q_instance)
+                    .convert(prob_grad, params=value_dict)
+                    .eval()[0]
+                )
+                if backend_type == "qasm_simulator":  # sparse result
+                    result = [result[0].toarray()[0], result[1].toarray()[0]]
+                for i, item in enumerate(result):
+                    np.testing.assert_array_almost_equal(item, correct_values[j][i], decimal=1)
+
+    def test_unsupported_aux_meas_op(self):
+        """Test error for unsupported auxiliary measurement operator in LinComb Gradient
 
         dp0/da = cos(a)sin(b) / 2
         dp1/da = - cos(a)sin(b) / 2
@@ -1484,13 +1537,14 @@ class TestQFI(QiskitOpflowTestCase):
 
         shots = 8000
 
-        prob_grad = LinComb().convert(operator=op, params=params, aux_meas_op=aux_meas_op)
-        value_dict = {a: [np.pi / 4], b: [0]}
-
-        backend = BasicAer.get_backend("qasm_simulator")
-        q_instance = QuantumInstance(backend=backend, shots=shots)
+        aux_meas_op = X
 
         with self.assertRaises(ValueError):
+            prob_grad = LinComb().convert(operator=op, params=params, aux_meas_op=aux_meas_op)
+            value_dict = {a: [np.pi / 4], b: [0]}
+
+            backend = BasicAer.get_backend("qasm_simulator")
+            q_instance = QuantumInstance(backend=backend, shots=shots)
             CircuitSampler(backend=q_instance).convert(prob_grad, params=value_dict).eval()
 
     def test_nat_grad_error(self):

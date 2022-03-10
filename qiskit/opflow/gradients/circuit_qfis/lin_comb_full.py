@@ -50,9 +50,9 @@ class LinCombFull(CircuitQFI):
                 for which we compute the QFI.
             params: The parameters :math:`\omega` with respect to which we are computing the QFI.
             aux_meas_op: The operator that the auxiliary qubit is measured with respect to.
-                For ``aux_meas_op = Z`` we compute Re[⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉],
-                for ``aux_meas_op = -Y`` we compute Im[⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉], and.
-                for ``aux_meas_op = Z-1jY`` we compute ⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω),
+                For ``aux_meas_op = Z`` we compute 4Re[⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉],
+                for ``aux_meas_op = -Y`` we compute 4Im[⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉], and.
+                for ``aux_meas_op = Z-1jY`` we compute 4⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω),
             phase_fix: Whether or not to compute the additional phase fix term
                 Re[(dω⟨<ψ(ω)|)|ψ(ω)><ψ(ω)|(dω|ψ(ω))>].
 
@@ -67,7 +67,9 @@ class LinCombFull(CircuitQFI):
         """
         # QFI & phase fix observable
         qfi_observable = StateFn(4 * aux_meas_op ^ (I ^ operator.num_qubits), is_measurement=True)
-        if aux_meas_op != Z and aux_meas_op != -Y and aux_meas_op != (Z-1j*Y):
+        if aux_meas_op == Z or aux_meas_op == -Y or aux_meas_op == (Z - 1j * Y):
+            pass
+        else:
             raise ValueError(
                 "This auxiliary measurement operator is currently not supported please choose "
                 "either Z, -Y, or Z-1jY. "
