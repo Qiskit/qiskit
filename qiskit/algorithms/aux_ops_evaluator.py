@@ -31,19 +31,20 @@ from qiskit.utils import QuantumInstance
 
 def eval_observables(
     quantum_instance: Union[QuantumInstance, BaseBackend, Backend],
-    ansatz: QuantumCircuit,
+    quantum_state: QuantumCircuit,
     observables: ListOrDict[OperatorBase],
     expectation: ExpectationBase,
     threshold: float = 1e-12,
 ) -> ListOrDict[Tuple[complex, complex]]:
     """
     Accepts a list or a dictionary of operators and calculates their expectation values - means
-    and standard deviations. They are calculated with respect to an ansatz provided. A user can
-    optionally provide a threshold value which filters mean values falling below the threshold.
+    and standard deviations. They are calculated with respect to a quantum state provided. A user
+    can optionally provide a threshold value which filters mean values falling below the threshold.
 
     Args:
         quantum_instance: A quantum instance used for calculations.
-        ansatz: An unparametrized ansatz that expectation values are computed against.
+        quantum_state: An unparametrized quantum circuit representing a quantum state that
+            expectation values are computed against.
         observables: A list or a dictionary of operators whose expectation values are to be
             calculated.
         expectation: An instance of ExpectationBase which defines a method for calculating
@@ -53,7 +54,16 @@ def eval_observables(
 
     Returns:
         A list or a dictionary of tuples (mean, standard deviation).
+
+    Raises:
+        ValueError: If a ``quantum_state`` with free parameters is provided.
     """
+
+    if len(quantum_state.parameters) > 0:
+        raise ValueError(
+            "A parametrized quantum circuit representing a quantum_state was provided. It is not "
+            "allowed - the circuit cannot have free parameters."
+        )
 
     # Create new CircuitSampler to avoid breaking existing one's caches.
     sampler = CircuitSampler(quantum_instance)
@@ -61,7 +71,7 @@ def eval_observables(
     list_op = _prepare_list_op(observables)
 
     observables_expect = expectation.convert(
-        StateFn(list_op, is_measurement=True).compose(CircuitStateFn(ansatz))
+        StateFn(list_op, is_measurement=True).compose(CircuitStateFn(quantum_state))
     )
     observables_expect_sampled = sampler.convert(observables_expect)
 
