@@ -44,7 +44,7 @@ class ArgumentsBroadcasterGeneric(ArgumentsBroadcaster):
                 arguments does not match the gate expectation.
         """
         # This is the "generic" method, formerly implemented by Instruction class.
-        print("In AB: generic")
+        #print("In AB: generic")
         if len(qargs) != self.num_qubits:
             raise CircuitError(
                 f"The amount of qubit arguments {len(qargs)} does not match"
@@ -61,7 +61,7 @@ class ArgumentsBroadcasterGeneric(ArgumentsBroadcaster):
 class ArgumentsBroadcasterBarrier(ArgumentsBroadcaster):
 
     def broadcast_arguments(self, qargs, cargs):
-        print("In AB: barrier")
+        #print("In AB: barrier")
 
         yield [qarg for sublist in qargs for qarg in sublist], []
 
@@ -69,7 +69,7 @@ class ArgumentsBroadcasterBarrier(ArgumentsBroadcaster):
 class ArgumentsBroadcasterDelay(ArgumentsBroadcaster):
 
     def broadcast_arguments(self, qargs, cargs):
-        print("In AB: delay")
+        #print("In AB: delay")
         yield [qarg for sublist in qargs for qarg in sublist], []
 
 
@@ -154,7 +154,7 @@ class ArgumentsBroadcasterGate(ArgumentsBroadcaster):
                 arguments does not match the gate expectation.
         """
 
-        print("In AB: gate")
+        #print("In AB: gate")
 
         if len(qargs) != self.num_qubits or cargs:
             raise CircuitError(
@@ -179,7 +179,7 @@ class ArgumentsBroadcasterMeasure(ArgumentsBroadcaster):
 
     def broadcast_arguments(self, qargs, cargs):
 
-        print("In AB: measure")
+        #print("In AB: measure")
 
         qarg = qargs[0]
         carg = cargs[0]
@@ -196,7 +196,7 @@ class ArgumentsBroadcasterMeasure(ArgumentsBroadcaster):
 
 class ArgumentsBroadcasterReset(ArgumentsBroadcaster):
     def broadcast_arguments(self, qargs, cargs):
-        print("In AB: reset")
+        #print("In AB: reset")
 
         for qarg in qargs[0]:
             yield [qarg], []
@@ -204,7 +204,7 @@ class ArgumentsBroadcasterReset(ArgumentsBroadcaster):
 
 class ArgumentsBroadcasterInitializer(ArgumentsBroadcaster):
     def broadcast_arguments(self, qargs, cargs):
-        print("In AB: initializer")
+        #print("In AB: initializer")
 
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]
 
