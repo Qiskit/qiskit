@@ -15,13 +15,15 @@ StatePreparation test.
 """
 
 import math
+import numpy as np
 import unittest
 from ddt import ddt, data
 
 from qiskit import QuantumCircuit
-from qiskit.quantum_info import Statevector
+from qiskit.quantum_info import Statevector, Operator
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
+from qiskit.extensions.quantum_initializer import StatePreparation
 
 
 @ddt
@@ -65,8 +67,12 @@ class TestStatePreparation(QiskitTestCase):
     def test_inverse(self, state):
         """Test inverse of StatePreparation"""
         qc = QuantumCircuit(2)
-        qc.prepare_state(state)
-        qc_dg = qc.inverse()
+
+        stateprep = StatePreparation(state)
+        qc.append(stateprep, [0, 1])
+        qc.append(stateprep.inverse(), [0, 1])
+
+        self.assertTrue(np.allclose(Operator(qc).data, np.identity(2**qc.num_qubits)))
 
     def test_incompatible_state_and_qubit_args(self):
         """Test error raised if number of qubits not compatible with state arg"""

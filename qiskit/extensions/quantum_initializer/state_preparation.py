@@ -113,7 +113,8 @@ class StatePreparation(Gate):
                 initialize_circuit.append(HGate(), [q[qubit]])
                 initialize_circuit.append(SdgGate(), [q[qubit]])
 
-        initialize_circuit = initialize_circuit.inverse()
+        if self._inverse:
+            initialize_circuit = initialize_circuit.inverse()
 
         return initialize_circuit
 
@@ -136,7 +137,8 @@ class StatePreparation(Gate):
             if bit == "1":
                 initialize_circuit.append(XGate(), [q[qubit]])
 
-        initialize_circuit = initialize_circuit.inverse()
+        if self._inverse:
+            initialize_circuit = initialize_circuit.inverse()
 
         return initialize_circuit
 
@@ -161,7 +163,8 @@ class StatePreparation(Gate):
         initialize_circuit = QuantumCircuit(q, name="init_def")
         initialize_circuit.append(initialize_instr, q[:])
 
-        initialize_circuit = initialize_circuit.inverse()
+        if self._inverse:
+            initialize_circuit = initialize_circuit.inverse()
 
         return initialize_circuit
 
