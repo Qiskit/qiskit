@@ -76,7 +76,6 @@ setup(
     keywords="qiskit sdk quantum",
     packages=find_packages(exclude=["test*"]),
     install_requires=REQUIREMENTS,
-    setup_requires=["setuptools-rust"],
     include_package_data=True,
     python_requires=">=3.7",
     extras_require={
