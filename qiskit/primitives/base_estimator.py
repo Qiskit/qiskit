@@ -150,6 +150,12 @@ class BaseEstimator(ABC):
                     f"Different number of parameters ({len(self._parameters)} and "
                     f"circuits ({len(self._circuits)}"
                 )
+            for i, (circ, params) in enumerate(zip(self._circuits, self._parameters)):
+                if circ.num_parameters != len(params):
+                    raise QiskitError(
+                        f"Different numbers of parameters of {i}-th circuit: "
+                        f"expected {circ.num_parameters}, actual {len(params)}."
+                    )
 
     def __enter__(self):
         return self
