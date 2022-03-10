@@ -21,8 +21,9 @@ from ddt import ddt
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
+from qiskit.exceptions import QiskitError
 from qiskit.primitives import SamplerResult
-from qiskit.quantum_info import Sampler
+from qiskit.quantum_info.primitives import Sampler
 from qiskit.test import QiskitTestCase
 
 
@@ -305,6 +306,21 @@ class TestSampler(QiskitTestCase):
             keys, values = zip(*sorted(result.quasi_dists[3].items()))
             self.assertTupleEqual(keys, tuple(range(4)))
             np.testing.assert_allclose(values, [0, 0, 0, 1])
+
+    def test_errors(self):
+        """Test for errors"""
+        qc1 = QuantumCircuit(1)
+        qc1.measure_all()
+        qc2 = RealAmplitudes(num_qubits=1, reps=1)
+        qc2.measure_all()
+
+        with Sampler([qc1, qc2], [qc1.parameters, qc2.parameters]) as sampler:
+            with self.assertRaises(QiskitError):
+                sampler([0], [[1e2]])
+            with self.assertRaises(QiskitError):
+                sampler([1], [[]])
+            with self.assertRaises(QiskitError):
+                sampler([1], [[1e2]])
 
 
 if __name__ == "__main__":

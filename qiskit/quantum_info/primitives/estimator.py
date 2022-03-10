@@ -31,7 +31,7 @@ from .utils import PauliSumOp, init_circuit, init_observable
 
 class Estimator(BaseEstimator):
     """
-    Evaluates expectation value using pauli rotation gates.
+    Estimator class
     """
 
     def __init__(
@@ -100,13 +100,16 @@ class Estimator(BaseEstimator):
                 self._circuits[i].bind_parameters(dict(zip(self._parameters[i], value)))
             )
         sorted_observables = [self._observables[i] for i in observables]
-        expectation_values = [
-            Statevector(circ).expectation_value(obs)
-            for circ, obs in zip(bound_circuits, sorted_observables)
-        ]
-        expectation_values = np.real_if_close(expectation_values)
+        expectation_values = []
+        for circ, obs in zip(bound_circuits, sorted_observables):
+            if circ.num_qubits != obs.num_qubits:
+                raise QiskitError(
+                    f"The number of qubits of a circuit ({circ.num_qubits}) does not match "
+                    f"the number of qubits of a observable ({obs.num_qubits})."
+                )
+            expectation_values.append(Statevector(circ).expectation_value(obs))
 
-        return EstimatorResult(np.array(expectation_values, np.float64), [])
+        return EstimatorResult(np.real_if_close(expectation_values), [])
 
     def close(self):
         self._is_closed = True
