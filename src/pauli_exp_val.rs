@@ -23,6 +23,9 @@ use crate::eval_parallel_env;
 const LANES: usize = 8;
 const PARALLEL_THRESHOLD = 19;
 
+// Based on the sum implementation in:
+// https://stackoverflow.com/a/67191480/14033130
+// and adjust for f64 usage
 #[inline]
 fn fast_sum(values: &[f64]) -> f64 {
     let chunks = values.chunks_exact(LANES);
