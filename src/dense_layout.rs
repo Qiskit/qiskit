@@ -23,6 +23,8 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
 
+use crate::getenv_use_multiple_threads;
+
 struct SubsetResult {
     pub count: usize,
     pub error: f64,
@@ -111,82 +113,96 @@ pub fn best_subset(
     let coupling_shape = coupling_adj_mat.shape();
     let err = error_matrix.as_array();
     let avg_meas_err = err.diag().mean().unwrap();
-    let best_result = (0..coupling_shape[0])
-        .into_par_iter()
-        .map(|k| {
-            let mut subgraph: Vec<[usize; 2]> = Vec::with_capacity(num_qubits);
-            let bfs = bfs_sort(coupling_adj_mat, k, num_qubits);
-            let bfs_set: HashSet<usize> = bfs.iter().copied().collect();
-            let mut connection_count = 0;
-            for node_idx in &bfs {
-                coupling_adj_mat
-                    .index_axis(Axis(0), *node_idx)
-                    .into_iter()
-                    .enumerate()
-                    .filter_map(|(node, j)| {
-                        if *j != 0. && bfs_set.contains(&node) {
-                            Some(node)
-                        } else {
-                            None
-                        }
-                    })
-                    .for_each(|node| {
-                        connection_count += 1;
-                        subgraph.push([*node_idx, node]);
-                    });
-            }
-            let error = if use_error {
-                let mut ret_error = 0.;
-                let meas_avg = bfs
-                    .iter()
-                    .map(|i| {
-                        let idx = *i;
-                        err[[idx, idx]]
-                    })
-                    .sum::<f64>()
-                    / num_qubits as f64;
-                let meas_diff = meas_avg - avg_meas_err;
-                if meas_diff > 0. {
-                    ret_error += num_meas as f64 * meas_diff;
-                }
-                let cx_sum: f64 = subgraph.iter().map(|edge| err[[edge[0], edge[1]]]).sum();
-                let mut cx_err = cx_sum / subgraph.len() as f64;
-                if symmetric_coupling_map {
-                    cx_err /= 2.;
-                }
-                ret_error += num_cx as f64 * cx_err;
-                ret_error
-            } else {
-                0.
-            };
-            SubsetResult {
-                count: connection_count,
-                error,
-                map: bfs,
-                subgraph,
-            }
-        })
-        .reduce(
-            || SubsetResult {
-                count: 0,
-                map: Vec::new(),
-                error: std::f64::INFINITY,
-                subgraph: Vec::new(),
-            },
-            |best, curr| {
-                if use_error {
-                    if curr.count >= best.count && curr.error < best.error {
-                        curr
+
+    let map_fn = |k| -> SubsetResult {
+        let mut subgraph: Vec<[usize; 2]> = Vec::with_capacity(num_qubits);
+        let bfs = bfs_sort(coupling_adj_mat, k, num_qubits);
+        let bfs_set: HashSet<usize> = bfs.iter().copied().collect();
+        let mut connection_count = 0;
+        for node_idx in &bfs {
+            coupling_adj_mat
+                .index_axis(Axis(0), *node_idx)
+                .into_iter()
+                .enumerate()
+                .filter_map(|(node, j)| {
+                    if *j != 0. && bfs_set.contains(&node) {
+                        Some(node)
                     } else {
-                        best
+                        None
                     }
-                } else if curr.count > best.count {
-                    curr
-                } else {
-                    best
-                }
-            },
-        );
+                })
+                .for_each(|node| {
+                    connection_count += 1;
+                    subgraph.push([*node_idx, node]);
+                });
+        }
+        let error = if use_error {
+            let mut ret_error = 0.;
+            let meas_avg = bfs
+                .iter()
+                .map(|i| {
+                    let idx = *i;
+                    err[[idx, idx]]
+                })
+                .sum::<f64>()
+                / num_qubits as f64;
+            let meas_diff = meas_avg - avg_meas_err;
+            if meas_diff > 0. {
+                ret_error += num_meas as f64 * meas_diff;
+            }
+            let cx_sum: f64 = subgraph.iter().map(|edge| err[[edge[0], edge[1]]]).sum();
+            let mut cx_err = cx_sum / subgraph.len() as f64;
+            if symmetric_coupling_map {
+                cx_err /= 2.;
+            }
+            ret_error += num_cx as f64 * cx_err;
+            ret_error
+        } else {
+            0.
+        };
+        SubsetResult {
+            count: connection_count,
+            error,
+            map: bfs,
+            subgraph,
+        }
+    };
+
+    let reduce_identity_fn = || -> SubsetResult {
+        SubsetResult {
+            count: 0,
+            map: Vec::new(),
+            error: std::f64::INFINITY,
+            subgraph: Vec::new(),
+        }
+    };
+
+    let reduce_fn = |best: SubsetResult, curr: SubsetResult| -> SubsetResult {
+        if use_error {
+            if curr.count >= best.count && curr.error < best.error {
+                curr
+            } else {
+                best
+            }
+        } else if curr.count > best.count {
+            curr
+        } else {
+            best
+        }
+    };
+
+    let best_result = if getenv_use_multiple_threads() {
+        (0..coupling_shape[0])
+            .into_par_iter()
+            .map(map_fn)
+            .reduce(reduce_identity_fn, reduce_fn)
+    } else {
+        (0..coupling_shape[0])
+            .into_iter()
+            .map(map_fn)
+            .reduce(reduce_fn)
+            .unwrap()
+    };
     let best_map: Vec<usize> = best_result.map;
     let mapping: HashMap<usize, usize> = best_map
         .iter()
