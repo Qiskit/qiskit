@@ -42,7 +42,7 @@ fn fast_sum(values: &[f64]) -> f64 {
     let remainder: f64 = remainder.iter().copied().sum();
 
     let mut reduced = 0.;
-    for val in sum.iter().take(LANES) {
+    for val in sum {
         reduced += val;
     }
     reduced + remainder
