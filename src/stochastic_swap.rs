@@ -32,7 +32,7 @@ use rand_distr::{Distribution, Normal};
 use rand_pcg::Pcg64Mcg;
 
 use crate::edge_collections::EdgeCollection;
-use crate::eval_parallel_env;
+use crate::getenv_use_multiple_threads;
 use crate::nlayout::NLayout;
 
 #[inline]
@@ -268,7 +268,7 @@ pub fn swap_trials(
         .collect();
     // Run in parallel only if we're not already in a multiprocessing context
     // unless force threads is set.
-    let run_in_parallel = eval_parallel_env();
+    let run_in_parallel = getenv_use_multiple_threads();
 
     let mut best_depth = std::usize::MAX;
     let mut best_edges: Option<EdgeCollection> = None;

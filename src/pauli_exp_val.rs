@@ -18,10 +18,10 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use rayon::prelude::*;
 
-use crate::eval_parallel_env;
+use crate::getenv_use_multiple_threads;
 
 const LANES: usize = 8;
-const PARALLEL_THRESHOLD = 19;
+const PARALLEL_THRESHOLD: usize = 19;
 
 // Based on the sum implementation in:
 // https://stackoverflow.com/a/67191480/14033130
@@ -57,7 +57,7 @@ pub fn expval_pauli_no_x(
 ) -> PyResult<f64> {
     let data_arr = data.as_slice()?;
     let size: usize = 1 << num_qubits;
-    let run_in_parallel = eval_parallel_env();
+    let run_in_parallel = getenv_use_multiple_threads();
     let map_fn = |i: usize| -> f64 {
         let mut val: f64 = data_arr[i].re * data_arr[i].re + data_arr[i].im * data_arr[i].im;
         if (i & z_mask).count_ones() & 1 != 0 {
@@ -88,7 +88,7 @@ pub fn expval_pauli_with_x(
     let mask_u = !(2_usize.pow(x_max + 1) - 1);
     let mask_l = 2_usize.pow(x_max) - 1;
     let size = 1 << (num_qubits - 1);
-    let run_in_parallel = eval_parallel_env();
+    let run_in_parallel = getenv_use_multiple_threads();
     let map_fn = |i: usize| -> f64 {
         let index_0 = ((i << 1) & mask_u) | (i & mask_l);
         let index_1 = index_0 ^ x_mask;
@@ -137,7 +137,7 @@ pub fn density_expval_pauli_no_x(
     let data_arr = data.as_slice()?;
     let num_rows = 1 << num_qubits;
     let stride = 1 + num_rows;
-    let run_in_parallel = eval_parallel_env();
+    let run_in_parallel = getenv_use_multiple_threads();
     let map_fn = |i: usize| -> f64 {
         let index = i * stride;
         let mut val = data_arr[index].re;
@@ -168,7 +168,7 @@ pub fn density_expval_pauli_with_x(
     let mask_u = !(2_usize.pow(x_max + 1) - 1);
     let mask_l = 2_usize.pow(x_max) - 1;
     let num_rows = 1 << num_qubits;
-    let run_in_parallel = eval_parallel_env();
+    let run_in_parallel = getenv_use_multiple_threads();
     let map_fn = |i: usize| -> f64 {
         let index_vec = ((i << 1) & mask_u) | (i & mask_l);
         let index_mat = (index_vec ^ x_mask) + num_rows * index_vec;

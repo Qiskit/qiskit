@@ -22,7 +22,7 @@ mod pauli_exp_val;
 mod stochastic_swap;
 
 #[inline]
-pub fn eval_parallel_env() -> bool {
+pub fn getenv_use_multiple_threads() -> bool {
     let parallel_context = env::var("QISKIT_IN_PARALLEL")
         .unwrap_or_else(|_| "FALSE".to_string())
         .to_uppercase()
