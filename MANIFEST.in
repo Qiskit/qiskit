@@ -15,3 +15,7 @@ include test/python/pickles/*.pickle
 include test/python/qasm/*.qasm
 include test/python/visualization/references/*.png
 include test/python/notebooks/*.ipynb
+
+include Cargo.toml
+include Cargo.lock
+recursive-include src *

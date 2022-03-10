@@ -18,6 +18,15 @@ import pkgutil
 import sys
 import warnings
 
+import qiskit._accelerate
+
+# Globally define compiled modules. The normal import mechanism will not
+# find compiled submodules in _accelerate because it relies on file paths
+# manually define them on import so people can directly import
+# qiskit._accelerate.* submodules and not have to rely on attribute access
+sys.modules["qiskit._accelerate.stochastic_swap"] = qiskit._accelerate.stochastic_swap
+
+
 # qiskit errors operator
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 

@@ -35,6 +35,7 @@ from qiskit.circuit.library import (
     ZGate,
     SGate,
     U1Gate,
+    CPhaseGate,
 )
 from qiskit.circuit.library import MCXVChain
 from qiskit.extensions import HamiltonianGate
@@ -862,6 +863,14 @@ class TestMatplotlibDrawer(QiskitTestCase):
         self.circuit_drawer(
             circuit, cregbundle=False, reverse_bits=True, filename="cond_bits_reverse.png"
         )
+
+    def test_sidetext_with_condition(self):
+        """Test that sidetext gates align properly with conditions"""
+        qr = QuantumRegister(2, "q")
+        cr = ClassicalRegister(2, "c")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.append(CPhaseGate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
+        self.circuit_drawer(circuit, cregbundle=False, filename="sidetext_condition.png")
 
     def test_fold_with_conditions(self):
         """Test that gates with conditions draw correctly when folding"""
