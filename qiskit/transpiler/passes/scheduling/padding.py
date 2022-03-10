@@ -421,6 +421,8 @@ class DynamicalDecoupling(BasePadding):
                 except KeyError:
                     gate_length = self._durations.get(gate, physical_index)
                 gate_length_sum += gate_length
+                # Update gate duration. This is necessary for current timeline drawer, i.e. scheduled.
+                gate.duration = gate_length
             self._dd_sequence_lengths[qubit] = gate_length_sum
 
     def _pad(
