@@ -1,0 +1,20 @@
+---
+upgrade:
+  - |
+    :class:`DynamicalDecoupling` has been upgraded to take ``pulse_alignment``
+    which represents a hardware constraint for waveform start timing.
+    The spacing of between gates comprising a dynamical decoupling sequence
+    is now adjusted to satisfy this constraints so that the circuit can be
+    executed on hardware with the constraint.
+    This value is usually found in ``backend.configuration().timing_constraints``.
+  - |
+    Spacing strategy of :class:`DynamicalDecoupling` has been upgraded to
+    evenly split the extra slack, i.e. residual delay coming from rounding or alignment,
+    to the begging and ending of the dynamical decouling sequence,
+    rather than adding it to the interval in the middle of the sequence.
+  - |
+    :class:`DynamicalDecoupling` has been upgraded to be a subclass of
+    :class:`BasePadding`. This means the dynamical decoupling pass is
+    now drop-in-replacement of :class:`PadDelay` pass.
+    The import path has been also updated and now it is placed under
+    :mod:`qiskit.transpiler.passes.scheduling.padding`.
