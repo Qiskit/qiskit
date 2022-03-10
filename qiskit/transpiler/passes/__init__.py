@@ -230,6 +230,7 @@ from .scheduling import DynamicalDecoupling
 from .scheduling import AlignMeasures
 from .scheduling import ValidatePulseGates
 from .scheduling import PadDelay
+from .scheduling import ConstrainedReschedule
 
 # additional utility passes
 from .utils import CheckMap

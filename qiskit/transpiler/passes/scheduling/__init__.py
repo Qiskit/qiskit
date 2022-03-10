@@ -16,5 +16,5 @@ from .alap import ALAPSchedule
 from .asap import ASAPSchedule
 from .time_unit_conversion import TimeUnitConversion
 from .dynamical_decoupling import DynamicalDecoupling
-from .instruction_alignment import AlignMeasures, ValidatePulseGates
+from .instruction_alignment import AlignMeasures, ValidatePulseGates, ConstrainedReschedule
 from .padding import PadDelay

@@ -10,24 +10,23 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Align measurement instructions."""
-import itertools
+"""Analysis passes for hardware alignment constraints."""
+
+from typing import List
+
 import warnings
-from collections import defaultdict
-from typing import List, Union
 
 from qiskit.circuit.delay import Delay
-from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.gate import Gate
 from qiskit.circuit.measure import Measure
-from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGOutNode
 from qiskit.pulse import Play
 from qiskit.transpiler.basepasses import TransformationPass, AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 
 
-class AlignMeasures(TransformationPass):
-    """Measurement alignment.
+class ConstrainedReschedule(AnalysisPass):
+    """Rescheduler pass that updates node start times to conform to the hardware alignments.
 
     This is a control electronics aware optimization pass.
 
@@ -44,21 +43,39 @@ class AlignMeasures(TransformationPass):
     defines a `pulse granularity`, in other words a data chunk, to allow the DAC to
     perform the signal conversion in parallel to gain the bandwidth.
 
-    Measurement alignment is required if a backend only allows triggering ``measure``
-    instructions at a certain multiple value of this pulse granularity.
-    This value is usually provided by ``backend.configuration().timing_constraints``.
+    A control electronics, i.e. micro-architecture, of the real quantum backend may
+    impose some constraints on the start time of microinstructions.
+    In Qiskit SDK, the duration of :class:`qiskit.circuit.Delay` can take arbitrary
+    value in units of dt, thus circuits involving delays may violate the constraints,
+    which may result in failure in the circuit execution on the backend.
 
-    In Qiskit SDK, the duration of delay can take arbitrary value in units of ``dt``,
-    thus circuits involving delays may violate the above alignment constraint (i.e. misalignment).
-    This pass shifts measurement instructions to a new time position to fix the misalignment,
-    by inserting extra delay right before the measure instructions.
-    The input of this pass should be scheduled :class:`~qiskit.dagcircuit.DAGCircuit`,
-    thus one should select one of the scheduling passes
-    (:class:`~qiskit.transpiler.passes.ALAPSchedule` or
-    :class:`~qiskit.trasnpiler.passes.ASAPSchedule`) before calling this.
+    This pass shifts DAG node start times previously scheduled with one of
+    the scheduling passes, e.g. :class:`ASAPSchedule` or :class:`ALAPSchedule`,
+    so that every instruction start time satisfies alignment constraints described below.
+
+    Pulse alignment constraints
+
+        This value is reported by ``timing_constraints["pulse_alignment"]`` in the backend
+        configuration in units of dt. The start time of the all microwave pulses should be
+        multiple of this value. Violation of this constraint may result in the
+        backend execution failure.
+
+        In most of the senarios, the scheduled start time of ``DAGOpNode`` corresponds to the
+        start time of the microwave pulse composing the node operation.
+        However, this assumption can be intentionally broken by defining a pulse gate,
+        i.e. calibration, with the schedule involving pre-buffer, i.e. some random pulse delay
+        followed by a microwave pulse. Because this pass is not aware of such edge case,
+        the user must take special care of pulse gates if any.
+
+    Acquire alignment constraints
+
+        This value is reported by ``timing_constraints["acquire_alignment"]`` in the backend
+        configuration in units of dt. The start time of the :class:`~qiskit.circuit.Measure`
+        instruction should be multiple of this value.
 
     Examples:
-        We assume executing the following circuit on a backend with ``alignment=16``.
+
+        We assume executing the following circuit on a backend with 16 dt of acquire alignment.
 
         .. parsed-literal::
 
@@ -79,117 +96,189 @@ class AlignMeasures(TransformationPass):
             c: 1/════════════════════════╩═
                                          0
 
-        This pass always inserts a positive delay before measurements
-        rather than reducing other delays.
-
     Notes:
-        The Backend may allow users to execute circuits violating the alignment constraint.
-        However, it may return meaningless measurement data mainly due to the phase error.
+
+        Your backend may execute circuits violating these alignment constraints.
+        However, you may obtain erroneous measurement result because of the
+        untracked phase originating in the instruction misalignment.
     """
 
-    def __init__(self, alignment: int = 1):
+    def __init__(
+        self,
+        acquire_alignment: int = 1,
+        pulse_alignment: int = 1,
+    ):
+        """Create new rescheduler pass.
+
+        The alignment values depend on the control electronics of your quantum processor.
+
+        Args:
+            acquire_alignment: Integer number representing the minimum time resolution to
+                trigger acquisition instruction in units of ``dt``.
+            pulse_alignment: Integer number representing the minimum time resolution to
+                trigger gate instruction in units of ``dt``.
+        """
+        super().__init__()
+        self.acquire_align = acquire_alignment
+        self.pulse_align = pulse_alignment
+
+    @classmethod
+    def _get_next_gate(cls, dag: DAGCircuit, node: DAGOpNode) -> List[DAGOpNode]:
+        """Get next non-delay nodes.
+
+        Args:
+            dag: DAG circuit to be rescheduled with constraints.
+            node: Current node.
+
+        Returns:
+            A list of non-delay successors.
+        """
+        op_nodes = []
+        for next_node in dag.successors(node):
+            if isinstance(next_node, DAGOutNode):
+                continue
+            if isinstance(next_node.op, Delay):
+                # Ignore delays. We are only interested in start time of instruction nodes.
+                op_nodes.extend(cls._get_next_gate(dag, next_node))
+            else:
+                op_nodes.append(next_node)
+
+        return op_nodes
+
+    def _push_node_back(self, dag: DAGCircuit, node: DAGOpNode, shift: int):
+        """Update start time of current node. Successors are also shifted to avoid overlap.
+
+        Args:
+            dag: DAG circuit to be rescheduled with constraints.
+            node: Current node.
+            shift: Amount of required time shift.
+        """
+        node_start_time = self.property_set["node_start_time"]
+        new_t1 = node_start_time[node] + node.op.duration + shift
+
+        # Check successors for overlap
+        overlaps = {n: new_t1 - node_start_time[n] for n in self._get_next_gate(dag, node)}
+
+        # Recursively shift next node until overlap is resolved
+        for successor, t_overlap in overlaps.items():
+            if t_overlap > 0:
+                self._push_node_back(dag, successor, t_overlap)
+
+        # Update start time of this node after all overlaps are resolved
+        node_start_time[node] += shift
+
+    def run(self, dag: DAGCircuit):
+        """Run rescheduler.
+
+        This pass should perform rescheduling to satisfy:
+
+            - All DAGOpNode are placed at start time satisfying hardware alignment constraints.
+            - The end time of current does not overlap with the start time of successor nodes.
+            - Compiler directives are not necessary satisfying the constraints.
+
+        Assumptions:
+
+            - Topological order and absolute time order of DAGOpNode are consistent.
+
+        Based on the configurations above, rescheduler pass takes following strategy.
+
+        1. Scan node from the begging, i.e. from left of the circuit. The rescheduler
+            calls ``node_start_time`` from the property set,
+            and retrieve the scheduled start time of current node.
+        2. If the start time of the node violates the alignment constraints,
+            the scheduler increases the start time until it satisfies the constraint.
+        3. Check overlap with successor nodes. If any overlap occurs, the rescheduler
+            recursively pushs the successor nodes backward towards the end of the wire.
+            Note that shifted location doesn't need to satisfy the constraints,
+            thus it will be a minimum delay to resolve the overlap with the ancestor node.
+        4. Repeat 1-3 until the node at the end of the wire. This will resolve
+            all misalignment wihtout inducing the overlap between the node.
+
+        Args:
+            dag: DAG circuit to be rescheduled with constraints.
+
+        Raises:
+            TranspilerError: Alignment is necessary but scheduling is not performed.
+        """
+        # Rescheduling is not necessary
+        if self.acquire_align == 1 and self.pulse_align == 1:
+            return
+
+        run_rescheduler = False
+
+        # Check delay durations
+        for delay_node in dag.op_nodes(Delay):
+            dur = delay_node.op.duration
+            if not (dur % self.acquire_align == 0 and dur % self.pulse_align == 0):
+                run_rescheduler = True
+                break
+
+        # Check custom gate durations
+        for inst_defs in dag.calibrations.values():
+            for caldef in inst_defs.values():
+                dur = caldef.duration
+                if not (dur % self.acquire_align == 0 and dur % self.pulse_align == 0):
+                    run_rescheduler = True
+                    break
+
+        if not run_rescheduler:
+            return
+
+        # Need scheduling for alignment. Error is caused when DAG circuit is not scheduled.
+        # This check should be placed here for backward compatibility.
+        # Now rescheduler pass is set to all preset pass managers,
+        # but scheduling is disabled by default.
+        # If this pass detect any violation risk, it will ask user to schedule the circuit.
+        if "node_start_time" not in self.property_set:
+            raise TranspilerError(
+                f"Input DAG {dag.name} likely need alignment but no scheduling is performed. "
+                "Set scheduling method or add explicit scheduling pass to the pass manager."
+            )
+        node_start_time = self.property_set["node_start_time"]
+
+        for node in dag.topological_op_nodes():
+            if isinstance(node.op, Gate):
+                alignment = self.pulse_align
+            elif isinstance(node.op, Measure):
+                alignment = self.acquire_align
+            else:
+                # Directive or delay. These can be start at arbitrary time.
+                continue
+
+            try:
+                shift = max(0, alignment - node_start_time[node] % alignment)
+            except KeyError as ex:
+                raise TranspilerError(
+                    f"Start time of {repr(node)} is not found. This node is likely added after "
+                    "this circuit is scheduled. Run scheduler again."
+                ) from ex
+            if shift > 0:
+                self._push_node_back(dag, node, shift)
+
+
+class AlignMeasures(TransformationPass):
+    """Deprecated. Measurement alignment."""
+
+    def __new__(cls, alignment: int = 1) -> ConstrainedReschedule:
         """Create new pass.
 
         Args:
             alignment: Integer number representing the minimum time resolution to
                 trigger measure instruction in units of ``dt``. This value depends on
                 the control electronics of your quantum processor.
-        """
-        super().__init__()
-        self.alignment = alignment
-
-    def run(self, dag: DAGCircuit):
-        """Run the measurement alignment pass on `dag`.
-
-        Args:
-            dag (DAGCircuit): DAG to be checked.
 
         Returns:
-            DAGCircuit: DAG with consistent timing and op nodes annotated with duration.
-
-        Raises:
-            TranspilerError: If circuit is not scheduled.
+            ConstrainedReschedule instance that is a drop-in-replacement of this class.
         """
-        time_unit = self.property_set["time_unit"]
+        warnings.warn(
+            f"{cls.__name__} has been deprecated as of Qiskit 20.0. "
+            f"Use ConstrainedReschedule pass instead.",
+            FutureWarning,
+        )
+        return ConstrainedReschedule(acquire_alignment=alignment)
 
-        if not _check_alignment_required(dag, self.alignment, Measure):
-            # return input as-is to avoid unnecessary scheduling.
-            # because following procedure regenerate new DAGCircuit,
-            # we should avoid continuing if not necessary from performance viewpoint.
-            return dag
-
-        # if circuit is not yet scheduled, schedule with ALAP method
-        if dag.duration is None:
-            raise TranspilerError(
-                f"This circuit {dag.name} may involve a delay instruction violating the "
-                "pulse controller alignment. To adjust instructions to "
-                "right timing, you should call one of scheduling passes first. "
-                "This is usually done by calling transpiler with scheduling_method='alap'."
-            )
-
-        # the following lines are basically copied from ASAPSchedule pass
-        #
-        # * some validations for non-scheduled nodes are dropped, since we assume scheduled input
-        # * pad_with_delay is called only with non-delay node to avoid consecutive delay
-        new_dag = dag._copy_circuit_metadata()
-
-        qubit_time_available = defaultdict(int)  # to track op start time
-        qubit_stop_times = defaultdict(int)  # to track delay start time for padding
-        clbit_readable = defaultdict(int)
-        clbit_writeable = defaultdict(int)
-
-        def pad_with_delays(qubits: List[int], until, unit) -> None:
-            """Pad idle time-slots in ``qubits`` with delays in ``unit`` until ``until``."""
-            for q in qubits:
-                if qubit_stop_times[q] < until:
-                    idle_duration = until - qubit_stop_times[q]
-                    new_dag.apply_operation_back(Delay(idle_duration, unit), [q])
-
-        for node in dag.topological_op_nodes():
-            # choose appropriate clbit available time depending on op
-            clbit_time_available = (
-                clbit_writeable if isinstance(node.op, Measure) else clbit_readable
-            )
-            # correction to change clbit start time to qubit start time
-            delta = node.op.duration if isinstance(node.op, Measure) else 0
-            start_time = max(
-                itertools.chain(
-                    (qubit_time_available[q] for q in node.qargs),
-                    (clbit_time_available[c] - delta for c in node.cargs + node.op.condition_bits),
-                )
-            )
-
-            if isinstance(node.op, Measure):
-                if start_time % self.alignment != 0:
-                    start_time = ((start_time // self.alignment) + 1) * self.alignment
-
-            if not isinstance(node.op, Delay):  # exclude delays for combining consecutive delays
-                pad_with_delays(node.qargs, until=start_time, unit=time_unit)
-                new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
-
-            stop_time = start_time + node.op.duration
-            # update time table
-            for q in node.qargs:
-                qubit_time_available[q] = stop_time
-                if not isinstance(node.op, Delay):
-                    qubit_stop_times[q] = stop_time
-            for c in node.cargs:  # measure
-                clbit_writeable[c] = clbit_readable[c] = stop_time
-            for c in node.op.condition_bits:  # conditional op
-                clbit_writeable[c] = max(start_time, clbit_writeable[c])
-
-        working_qubits = qubit_time_available.keys()
-        circuit_duration = max(qubit_time_available[q] for q in working_qubits)
-        pad_with_delays(new_dag.qubits, until=circuit_duration, unit=time_unit)
-
-        new_dag.name = dag.name
-        new_dag.metadata = dag.metadata
-
-        # set circuit duration and unit to indicate it is scheduled
-        new_dag.duration = circuit_duration
-        new_dag.unit = time_unit
-
-        return new_dag
+    def run(self, dag):
+        raise NotImplementedError
 
 
 class ValidatePulseGates(AnalysisPass):
@@ -269,51 +358,3 @@ class ValidatePulseGates(AnalysisPass):
                                 f"which is associated with the gate {gate} of "
                                 "qubit {qubit_param_pair[0]}."
                             )
-
-
-def _check_alignment_required(
-    dag: DAGCircuit,
-    alignment: int,
-    instructions: Union[Instruction, List[Instruction]],
-) -> bool:
-    """Check DAG nodes and return a boolean representing if instruction scheduling is necessary.
-
-    Args:
-        dag: DAG circuit to check.
-        alignment: Instruction alignment condition.
-        instructions: Target instructions.
-
-    Returns:
-        If instruction scheduling is necessary.
-    """
-    if not isinstance(instructions, list):
-        instructions = [instructions]
-
-    if alignment == 1:
-        # disable alignment if arbitrary t0 value can be used
-        return False
-
-    if all(len(dag.op_nodes(inst)) == 0 for inst in instructions):
-        # disable alignment if target instruction is not involved
-        return False
-
-    # check delay durations
-    for delay_node in dag.op_nodes(Delay):
-        duration = delay_node.op.duration
-        if isinstance(duration, ParameterExpression):
-            # duration is parametrized:
-            # raise user warning if backend alignment is not 1.
-            warnings.warn(
-                f"Parametrized delay with {repr(duration)} is found in circuit {dag.name}. "
-                f"This backend requires alignment={alignment}. "
-                "Please make sure all assigned values are multiple values of the alignment.",
-                UserWarning,
-            )
-        else:
-            # duration is bound:
-            # check duration and trigger alignment if it violates constraint
-            if duration % alignment != 0:
-                return True
-
-    # disable alignment if all delays are multiple values of the alignment
-    return False
