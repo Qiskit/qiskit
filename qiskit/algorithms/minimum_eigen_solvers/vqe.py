@@ -524,8 +524,12 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._ret = result
 
         if aux_operators is not None:
-            aux_values = eval_observables(self.quantum_instance, self.ansatz, opt_result.x,
-                                       aux_operators, expectation=expectation)
+            param_dict = dict(zip(self.ansatz.ordered_parameters, opt_result.x))
+            bound_ansatz = self.ansatz.bind_parameters(param_dict)
+
+            aux_values = eval_observables(
+                self.quantum_instance, bound_ansatz, aux_operators, expectation=expectation
+            )
             result.aux_operator_eigenvalues = aux_values
 
         return result

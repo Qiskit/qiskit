@@ -72,9 +72,12 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
             operator=self.h2_op,
             backend=quantum_instance,
         )
+        param_dict = dict(zip(ansatz.ordered_parameters, parameters))
+
+        bound_ansatz = ansatz.bind_parameters(param_dict)
 
         result = eval_observables(
-            quantum_instance, ansatz, parameters, observables, expectation, self.threshold
+            quantum_instance, bound_ansatz, observables, expectation, self.threshold
         )
 
         np.testing.assert_array_almost_equal(result, expected_result)
@@ -108,9 +111,12 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
             operator=self.h2_op,
             backend=quantum_instance,
         )
+        param_dict = dict(zip(ansatz.ordered_parameters, parameters))
+
+        bound_ansatz = ansatz.bind_parameters(param_dict)
 
         result = eval_observables(
-            quantum_instance, ansatz, parameters, observables, expectation, self.threshold
+            quantum_instance, bound_ansatz, observables, expectation, self.threshold
         )
 
         np.testing.assert_array_almost_equal(result, expected_result)

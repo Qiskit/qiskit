@@ -15,6 +15,7 @@ from typing import Tuple, Union, List
 
 import numpy as np
 
+from qiskit import QuantumCircuit
 from qiskit.algorithms.minimum_eigen_solvers.minimum_eigen_solver import ListOrDict
 from qiskit.opflow import (
     CircuitSampler,
@@ -30,23 +31,19 @@ from qiskit.utils import QuantumInstance
 
 def eval_observables(
     quantum_instance: Union[QuantumInstance, BaseBackend, Backend],
-    ansatz: OperatorBase,
-    parameters: np.ndarray,
+    ansatz: QuantumCircuit,
     observables: ListOrDict[OperatorBase],
     expectation: ExpectationBase,
     threshold: float = 1e-12,
 ) -> ListOrDict[Tuple[complex, complex]]:
     """
     Accepts a list or a dictionary of operators and calculates their expectation values - means
-    and standard deviations. They are calculated with respect to a parametrized ansatz provided.
-    An ansatz is bound using the list of parameter values provided. A user can optionally provide a
-    threshold value which filters mean values falling below the threshold.
+    and standard deviations. They are calculated with respect to an ansatz provided. A user can
+    optionally provide a threshold value which filters mean values falling below the threshold.
 
     Args:
         quantum_instance: A quantum instance used for calculations.
-        ansatz: A parametrized ansatz that expectation values are computed against.
-        parameters: An ordered list of parameters values used to bind an ansatz. They must follow an
-            order of parameters in an ansatz (ansatz.ordered_parameters).
+        ansatz: An unparametrized ansatz that expectation values are computed against.
         observables: A list or a dictionary of operators whose expectation values are to be
             calculated.
         expectation: An instance of ExpectationBase which defines a method for calculating
@@ -56,7 +53,6 @@ def eval_observables(
 
     Returns:
         A list or a dictionary of tuples (mean, standard deviation).
-
     """
 
     # Create new CircuitSampler to avoid breaking existing one's caches.
@@ -64,12 +60,8 @@ def eval_observables(
 
     list_op = _prepare_list_op(observables)
 
-    param_dict = dict(zip(ansatz.ordered_parameters, parameters))
-
-    bound_ansatz = ansatz.bind_parameters(param_dict)
-
     observables_expect = expectation.convert(
-        StateFn(list_op, is_measurement=True).compose(CircuitStateFn(bound_ansatz))
+        StateFn(list_op, is_measurement=True).compose(CircuitStateFn(ansatz))
     )
     observables_expect_sampled = sampler.convert(observables_expect)
 
