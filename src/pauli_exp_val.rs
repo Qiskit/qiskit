@@ -58,7 +58,7 @@ pub fn expval_pauli_no_x(
 ) -> PyResult<f64> {
     if num_qubits >= usize::BITS as usize {
         return Err(PyOverflowError::new_err(format!(
-            "The value for num_qubits, {}, is too larget and would overflow",
+            "The value for num_qubits, {}, is too large and would overflow",
             num_qubits
         )));
     }
@@ -93,7 +93,7 @@ pub fn expval_pauli_with_x(
 ) -> PyResult<f64> {
     if num_qubits > usize::BITS as usize {
         return Err(PyOverflowError::new_err(format!(
-            "The value for num_qubits, {}, is too larget and would overflow",
+            "The value for num_qubits, {}, is too large and would overflow",
             num_qubits
         )));
     }
@@ -149,7 +149,7 @@ pub fn density_expval_pauli_no_x(
 ) -> PyResult<f64> {
     if num_qubits >= usize::BITS as usize {
         return Err(PyOverflowError::new_err(format!(
-            "The value for num_qubits, {}, is too larget and would overflow",
+            "The value for num_qubits, {}, is too large and would overflow",
             num_qubits
         )));
     }
@@ -185,7 +185,7 @@ pub fn density_expval_pauli_with_x(
 ) -> PyResult<f64> {
     if num_qubits >= usize::BITS as usize {
         return Err(PyOverflowError::new_err(format!(
-            "The value for num_qubits, {}, is too larget and would overflow",
+            "The value for num_qubits, {}, is too large and would overflow",
             num_qubits
         )));
     }
