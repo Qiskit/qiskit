@@ -17,8 +17,8 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from ddt import ddt, data, unpack
 
-from qiskit import BasicAer
 from qiskit.algorithms.aux_ops_evaluator import eval_observables
+from qiskit import BasicAer
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import PauliSumOp, X, Z, I, ExpectationFactory
 from qiskit.utils import QuantumInstance, algorithm_globals
@@ -57,6 +57,19 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
             ],
             [(-0.4723823368164749, 0.0)],
         ),
+        (
+            {
+                "op1": PauliSumOp.from_list([("II", 2.0)]),
+                "op2": PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)]),
+            },
+            {"op1": (1.9999999999999998, 0.0), "op2": (0.3819044157958812, 0.0)},
+        ),
+        (
+            {
+                "op1": PauliSumOp.from_list([("ZZ", 2.0)]),
+            },
+            {"op1": (-0.4723823368164749, 0.0)},
+        ),
     )
     @unpack
     def test_eval_observables_statevector(self, observables, expected_result):
@@ -88,7 +101,13 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
                     quantum_instance, bound_ansatz, observables, expectation, self.threshold
                 )
 
-                np.testing.assert_array_almost_equal(result, expected_result, decimal=decimal)
+                if isinstance(result, dict):
+                    np.testing.assert_equal(list(result.keys()), list(expected_result.keys()))
+                    np.testing.assert_array_almost_equal(
+                        list(result.values()), list(expected_result.values()), decimal=decimal
+                    )
+                else:
+                    np.testing.assert_array_almost_equal(result, expected_result, decimal=decimal)
 
 
 if __name__ == "__main__":
