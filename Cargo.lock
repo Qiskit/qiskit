@@ -296,6 +296,7 @@ dependencies = [
  "hashbrown",
  "indoc",
  "libc",
+ "num-complex",
  "parking_lot",
  "pyo3-build-config",
  "pyo3-ffi",
@@ -352,6 +353,7 @@ version = "0.20.0"
 dependencies = [
  "hashbrown",
  "ndarray",
+ "num-complex",
  "numpy",
  "pyo3",
  "rand",
