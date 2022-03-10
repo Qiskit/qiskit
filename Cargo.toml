@@ -25,7 +25,7 @@ version = "^0.15.0"
 features = ["rayon"]
 
 [dependencies.hashbrown]
-version = "0.11.2"
+version = "0.12.0"
 features = ["rayon"]
 
 [profile.release]
