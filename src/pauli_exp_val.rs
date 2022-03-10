@@ -21,6 +21,7 @@ use rayon::prelude::*;
 use crate::eval_parallel_env;
 
 const LANES: usize = 8;
+const PARALLEL_THRESHOLD = 19;
 
 #[inline]
 fn fast_sum(values: &[f64]) -> f64 {
@@ -62,7 +63,7 @@ pub fn expval_pauli_no_x(
         val
     };
 
-    if num_qubits < 19 || !run_in_parallel {
+    if num_qubits < PARALLEL_THRESHOLD || !run_in_parallel {
         Ok(fast_sum(&(0..size).map(map_fn).collect::<Vec<f64>>()))
     } else {
         Ok((0..size).into_par_iter().map(map_fn).sum())
@@ -115,7 +116,7 @@ pub fn expval_pauli_with_x(
         }
         val
     };
-    if num_qubits < 19 || !run_in_parallel {
+    if num_qubits < PARALLEL_THRESHOLD || !run_in_parallel {
         Ok(fast_sum(&(0..size).map(map_fn).collect::<Vec<f64>>()))
     } else {
         Ok((0..size).into_par_iter().map(map_fn).sum())
@@ -142,7 +143,7 @@ pub fn density_expval_pauli_no_x(
         }
         val
     };
-    if num_qubits < 19 || !run_in_parallel {
+    if num_qubits < PARALLEL_THRESHOLD || !run_in_parallel {
         Ok(fast_sum(&(0..num_rows).map(map_fn).collect::<Vec<f64>>()))
     } else {
         Ok((0..num_rows).into_par_iter().map(map_fn).sum())
@@ -174,7 +175,7 @@ pub fn density_expval_pauli_with_x(
         }
         val
     };
-    if num_qubits < 19 || !run_in_parallel {
+    if num_qubits < PARALLEL_THRESHOLD || !run_in_parallel {
         Ok(fast_sum(
             &(0..num_rows >> 1).map(map_fn).collect::<Vec<f64>>(),
         ))
