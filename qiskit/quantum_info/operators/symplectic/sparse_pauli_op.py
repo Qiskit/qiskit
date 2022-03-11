@@ -128,7 +128,23 @@ class SparsePauliOp(LinearOp):
         )
 
     def __eq__(self, other):
-        """Check if two SparsePauliOp operators are equal"""
+        """Entrywise comparison of two SparsePauliOp operators"""
+        return (
+            super().__eq__(other)
+            and self.coeffs.shape == other.coeffs.shape
+            and np.allclose(self.coeffs, other.coeffs)
+            and self.paulis == other.paulis
+        )
+
+    def equiv(self, other):
+        """Return True if ``SparsePauliOp``s are equivalent.
+
+        Args:
+            other (SparsePauliOp): an operator object.
+
+        Returns:
+            bool: True if the operator is equivalent to ``self``.
+        """
         if not super().__eq__(other):
             return False
         return np.allclose((self - other).simplify().coeffs, [0])
@@ -387,16 +403,22 @@ class SparsePauliOp(LinearOp):
         if rtol is None:
             rtol = self.rtol
 
+        # Filter non-zero coefficients
+        non_zero = np.logical_not(np.isclose(self.coeffs, 0, atol=atol, rtol=rtol))
+        paulis_x = self.paulis.x[non_zero]
+        paulis_z = self.paulis.z[non_zero]
+        nz_coeffs = self.coeffs[non_zero]
+
         # Pack bool vectors into np.uint8 vectors by np.packbits
-        array = np.packbits(self.paulis.x, axis=1) * 256 + np.packbits(self.paulis.z, axis=1)
+        array = np.packbits(paulis_x, axis=1) * 256 + np.packbits(paulis_z, axis=1)
         indexes, inverses = unordered_unique(array)
 
-        if indexes.shape[0] == array.shape[0]:
-            # No duplicate operator
+        if np.all(non_zero) and indexes.shape[0] == array.shape[0]:
+            # No zero operator or duplicate operator
             return self.copy()
 
         coeffs = np.zeros(indexes.shape[0], dtype=complex)
-        np.add.at(coeffs, inverses, self.coeffs)
+        np.add.at(coeffs, inverses, nz_coeffs)
         # Delete zero coefficient rows
         is_zero = np.isclose(coeffs, 0, atol=atol, rtol=rtol)
         # Check edge case that we deleted all Paulis
@@ -408,8 +430,8 @@ class SparsePauliOp(LinearOp):
         else:
             non_zero = np.logical_not(is_zero)
             non_zero_indexes = indexes[non_zero]
-            x = self.paulis.x[non_zero_indexes]
-            z = self.paulis.z[non_zero_indexes]
+            x = paulis_x[non_zero_indexes]
+            z = paulis_z[non_zero_indexes]
             coeffs = coeffs[non_zero]
 
         return SparsePauliOp(

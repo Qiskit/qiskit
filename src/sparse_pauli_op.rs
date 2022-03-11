@@ -18,15 +18,30 @@ use hashbrown::HashMap;
 use ndarray::{ArrayView1, Axis};
 use numpy::{IntoPyArray, PyReadonlyArray2};
 
-/// TODO
+/// Find the unique elements of an array.
+///
+/// This function is a drop-in replacement of
+/// ``np.unique(array, return_index=True, return_inverse=True, axis=0)``
+/// where ``array`` is a ``numpy.ndarray`` of ``dtype=u16`` and ``ndim=2``.
+///
+/// Note that the order of the output of this function is not sorted while ``numpy.unique``
+/// returns the sorted elements.
+///
 /// Args:
-///     array (ndarray):
+///     array (numpy.ndarray): An array of ``dtype=u16`` and ``ndim=2``
+///
+/// Returns:
+///     (indexes, inverses): A tuple of the following two indices.
+///
+///         - the indices of the input array that give the unique values
+///         - the indices of the unique array that reconstruct the input array
+///
 #[pyfunction]
 pub fn unordered_unique(py: Python, array: PyReadonlyArray2<u16>) -> (PyObject, PyObject) {
     let array = array.as_array();
     let shape = array.shape();
     let mut table = HashMap::<ArrayView1<u16>, usize>::with_capacity(shape[0]);
-    let mut indexes = Vec::new();
+    let mut indices = Vec::new();
     let mut inverses = vec![0; shape[0]];
     for (i, v) in array.axis_iter(Axis(0)).enumerate() {
         match table.get(&v) {
@@ -35,12 +50,12 @@ pub fn unordered_unique(py: Python, array: PyReadonlyArray2<u16>) -> (PyObject, 
                 let new_id = table.len();
                 table.insert(v, new_id);
                 inverses[i] = new_id;
-                indexes.push(i);
+                indices.push(i);
             }
         }
     }
     (
-        indexes.into_pyarray(py).into(),
+        indices.into_pyarray(py).into(),
         inverses.into_pyarray(py).into(),
     )
 }

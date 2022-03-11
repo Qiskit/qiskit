@@ -1,0 +1,31 @@
+---
+features:
+  - |
+    A utility function ``numpy.unique`` to compute unique elements of an array
+    that is used in :meth:`~qiskit.quantum_info.SparsePauliOp.simplify`
+    has been reimplemented in Rust to improve the performance.
+  - |
+    Added :meth:`~qiskit.quantum_info.SparsePauliOp.equiv`.
+    While :meth:`~qiskit.quantum_info.SparsePauliOp.__eq__` compare operartors
+    element-wise, :meth:`~qiskit.quantum_info.SparsePauliOp.equiv` compares
+    wheter two operators are equivalent or not. For example::
+
+        op = SparsePauliOp.from_list([("X", 1), ("Y", 1)])
+        op2 = SparsePauliOp.from_list([("X", 1), ("Y", 1), ("Z", 0)])
+        op3 = SparsePauliOp.from_list([("Y", 1), ("X", 1)])
+
+        print(op == op2)  # False
+        print(op == op3)  # False
+        print(op.equiv(op2))  # True
+        print(op.equiv(op3))  # True
+
+fixes:
+  - |
+    Fixed an issue that :meth:`~qiskit.quantum_info.SparsePauliOp.__eq__` raises
+    an error when two operators have different numbers of coefficients.
+    For example::
+
+        op = SparsePauliOp.from_list([("X", 1), ("Y", 1)])
+        op2 = SparsePauliOp.from_list([("X", 1), ("Y", 1), ("Z", 0)])
+        print(op == op2)
+        #  ValueError: operands could not be broadcast together with shapes (2,) (3,)

@@ -29,7 +29,6 @@ sys.modules["qiskit._accelerate.pauli_expval"] = qiskit._accelerate.pauli_expval
 sys.modules["qiskit._accelerate.dense_layout"] = qiskit._accelerate.dense_layout
 sys.modules["qiskit._accelerate.sparse_pauli_op"] = qiskit._accelerate.sparse_pauli_op
 
-
 # qiskit errors operator
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
