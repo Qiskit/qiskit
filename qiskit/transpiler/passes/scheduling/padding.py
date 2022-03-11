@@ -12,9 +12,11 @@
 
 """Padding pass to fill empty timeslot."""
 
-from qiskit.circuit import Qubit
+from typing import List, Optional, Union
+
+from qiskit.circuit import Qubit, Clbit, Instruction
 from qiskit.circuit.delay import Delay
-from qiskit.dagcircuit import DAGCircuit, DAGNode, DAGOutNode, DAGOpNode
+from qiskit.dagcircuit import DAGCircuit, DAGNode, DAGOutNode
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -118,8 +120,7 @@ class BasePadding(TransformationPass):
 
                     idle_after[bit] = t1
 
-                new_node = new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
-                self._update_start_time(new_node, t0)
+                self._apply_scheduled_op(new_dag, t0, node.op, node.qargs, node.cargs)
             else:
                 raise TranspilerError(
                     f"Operation {repr(node)} is likely added after the circuit is scheduled. "
@@ -159,19 +160,32 @@ class BasePadding(TransformationPass):
                 f"before running the {self.__class__.__name__} pass."
             )
 
-    def _update_start_time(self, node: DAGOpNode, start_time: int):
-        """Update start time dictionary with new node.
+    def _apply_scheduled_op(
+        self,
+        dag: DAGCircuit,
+        t_start: int,
+        oper: Instruction,
+        qubits: Union[Qubit, List[Qubit]],
+        clbits: Optional[Union[Clbit, List[Clbit]]] = None,
+    ):
+        """Add new operation to DAG with scheduled information.
+
+        This is identical to apply_operation_back + updating the node_start_time propety.
 
         Args:
-            node: A new node that is added in the padding sequence.
-            start_time: Start time of the new node.
-
-        Raises:
-            TranspilerError: When the node is already added to the dictionary.
+            dag: DAG circuit on which the sequence is applied.
+            t_start: Start time of new node.
+            oper: New operation that is added to the DAG circuit.
+            qubits: The list of qubits that the operation acts on.
+            clbits: The list of clbits that the operation acts on.
         """
-        if node in self.property_set["node_start_time"]:
-            raise TranspilerError(f"Node {repr(node)} is already scheduled.")
-        self.property_set["node_start_time"][node] = start_time
+        if isinstance(qubits, Qubit):
+            qubits = [qubits]
+        if isinstance(clbits, Clbit):
+            clbits = [clbits]
+
+        new_node = dag.apply_operation_back(oper, qargs=qubits, cargs=clbits)
+        self.property_set["node_start_time"][new_node] = t_start
 
     def _pad(
         self,
@@ -187,6 +201,7 @@ class BasePadding(TransformationPass):
         .. note::
             If a DAGOpNode is added here, it should update node_start_time property
             in the property set so that the added node is also scheduled.
+            This is achieved by adding operation via :meth:`_apply_scheduled_op`.
 
         Args:
             dag: DAG circuit that sequence is applied.
@@ -252,5 +267,4 @@ class PadDelay(BasePadding):
             return
 
         time_interval = t_end - t_start
-        delay_node = dag.apply_operation_back(Delay(time_interval, dag.unit), [qubit])
-        self._update_start_time(delay_node, t_start)
+        self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag.unit), qubit)

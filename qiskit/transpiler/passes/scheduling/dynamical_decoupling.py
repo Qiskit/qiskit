@@ -251,16 +251,14 @@ class DynamicalDecoupling(BasePadding):
 
         if self._qubits and dag.qubits.index(qubit) not in self._qubits:
             # Target physical qubit is not the target of this DD sequence.
-            delay_node = dag.apply_operation_back(Delay(time_interval, dag.unit), [qubit])
-            self._update_start_time(delay_node, t_start)
+            self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag.unit), qubit)
             return
 
         if self._skip_reset_qubits and (
             isinstance(prev_node, DAGInNode) or isinstance(prev_node.op, Reset)
         ):
             # Previous node is the start edge or reset, i.e. qubit is ground state.
-            delay_node = dag.apply_operation_back(Delay(time_interval, dag.unit), [qubit])
-            self._update_start_time(delay_node, t_start)
+            self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag.unit), qubit)
             return
 
         slack = time_interval - np.sum(self._dd_sequence_lengths[qubit])
@@ -268,8 +266,7 @@ class DynamicalDecoupling(BasePadding):
 
         if slack <= 0:
             # Interval too short.
-            delay_node = dag.apply_operation_back(Delay(time_interval, dag.unit), [qubit])
-            self._update_start_time(delay_node, t_start)
+            self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag.unit), qubit)
             return
 
         if len(self._dd_sequence) == 1:
@@ -292,7 +289,7 @@ class DynamicalDecoupling(BasePadding):
                 sequence_gphase += phase
             else:
                 # Don't do anything if there's no single-qubit gate to absorb the inverse
-                dag.apply_operation_back(Delay(time_interval, dag.unit), [qubit])
+                self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag.unit), qubit)
                 return
 
         def _constrained_length(values):
@@ -314,14 +311,12 @@ class DynamicalDecoupling(BasePadding):
             if dd_ind < len(taus):
                 tau = taus[dd_ind]
                 if tau > 0:
-                    delay_node = dag.apply_operation_back(Delay(tau, dag.unit), [qubit])
-                    self._update_start_time(delay_node, idle_after)
+                    self._apply_scheduled_op(dag, idle_after, Delay(tau, dag.unit), qubit)
                     idle_after += tau
             if dd_ind < len(self._dd_sequence):
                 gate = self._dd_sequence[dd_ind]
                 gate_length = self._dd_sequence_lengths[qubit][dd_ind]
-                gate_node = dag.apply_operation_back(gate, [qubit])
-                self._update_start_time(gate_node, idle_after)
+                self._apply_scheduled_op(dag, idle_after, gate, qubit)
                 idle_after += gate_length
 
         dag.global_phase = self._mod_2pi(dag.global_phase + sequence_gphase)
