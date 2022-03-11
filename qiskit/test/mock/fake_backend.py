@@ -40,6 +40,7 @@ from qiskit.test.mock.utils.backend_converter import (
 )
 from qiskit.utils import optionals as _optionals
 from qiskit.providers import basicaer
+from qiskit.transpiler import Target
 
 
 class _Credentials:
@@ -71,7 +72,11 @@ class FakeBackendV2(BackendV2):
             online_date=self._conf_dict.get("online_date"),
             backend_version=self._conf_dict.get("backend_version"),
         )
-        self._target = None
+        self._target = convert_to_target(
+            conf_dict=self._conf_dict,
+            props_dict=self._props_dict,
+            defs_dict=self._defs_dict,
+        )
         self._qubit_properties = None
 
     def _get_conf_dict_from_json(self) -> dict:
@@ -103,17 +108,7 @@ class FakeBackendV2(BackendV2):
 
     @property
     def target(self) -> Target:
-        self._convert_to_target()
         return self._target
-
-    def _convert_to_target(self) -> None:
-        """Converts backend configuration, properties and defaults to Target object"""
-        if not self._target:
-            self._target = convert_to_target(
-                conf_dict=self._conf_dict,
-                props_dict=self._props_dict,
-                defs_dict=self._defs_dict,
-            )
 
     @property
     def max_circuits(self):
