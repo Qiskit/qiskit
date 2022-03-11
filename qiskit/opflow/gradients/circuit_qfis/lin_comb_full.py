@@ -221,7 +221,7 @@ def check_and_realpart(x: Union[List[float], np.ndarray]) -> np.ndarray:
     """
     Check for non-negligible imaginary values and remove negligible imaginary parts from x.
     Args:
-        x: vector or matrix
+        x: Vector or matrix.
     Returns:
         Real part of x
     Raises:
