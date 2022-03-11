@@ -12,10 +12,12 @@
 
 """Unroll a circuit to a given basis."""
 
+import copy
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import ControlledGate
+from qiskit.circuit import ControlledGate, ControlFlowOp, QuantumCircuit, Instruction
 from qiskit.converters.circuit_to_dag import circuit_to_dag
+from qiskit.converters.dag_to_circuit import dag_to_circuit
 
 
 class Unroller(TransformationPass):
@@ -67,6 +69,26 @@ class Unroller(TransformationPass):
                     pass
                 else:
                     continue
+
+            if isinstance(node.op, ControlFlowOp):
+                unrolled_blocks = []
+                # TODO: check whether ControlFlow bodies need unrolling before making new one.
+                new_params = []
+                for param in node.op.params:
+                    if isinstance(param, QuantumCircuit):
+                        # TODO: check whether unrolling is necessary
+                        dag_block = circuit_to_dag(param)
+                        unrolled_dag_block = self.run(dag_block)
+                        unrolled_circ_block = dag_to_circuit(unrolled_dag_block)
+                        new_params.append(unrolled_circ_block)
+                    else:
+                        new_params.append(copy.copy(param))
+                # Instruction.copy is done here so that Instruction determines whether it
+                # needs to be deep or not.
+                new_cf_op = node.op.copy()
+                new_cf_op.params = new_params
+                node.op = new_cf_op
+                continue
 
             # TODO: allow choosing other possible decompositions
             try:

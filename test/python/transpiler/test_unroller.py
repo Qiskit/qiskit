@@ -22,8 +22,8 @@ from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import Parameter
-from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate
+from qiskit.circuit import Parameter, Qubit, Clbit, ControlFlowOp
+from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate                
 
 
 class TestUnroller(QiskitTestCase):
@@ -297,6 +297,83 @@ class TestUnroller(QiskitTestCase):
 
         self.assertEqual(Operator(qc), Operator(qcd))
 
+    def test_if_simple(self):
+        """Test a simple if statement unrolls correctly."""
+        qubits = [Qubit(), Qubit()]
+        clbits = [Clbit(), Clbit()]
+
+        qc = QuantumCircuit(qubits, clbits)
+        qc.h(0)
+        qc.measure(0, 0)
+        with qc.if_test((clbits[0], 0)):
+            qc.x(0)
+        qc.h(0)
+        qc.measure(0, 1)
+        with qc.if_test((clbits[1], 0)):
+            qc.h(1)
+            qc.cx(1, 0)
+        dag = circuit_to_dag(qc)
+        unrolled_dag = Unroller(["u", "cx"]).run(dag)
+        unrolled_circ = dag_to_circuit(unrolled_dag)
+
+        expected = QuantumCircuit(qubits, clbits)
+        expected.u(pi / 2, 0, pi, 0)
+        expected.measure(0, 0)
+        with expected.if_test((clbits[0], 0)):
+            expected.u(pi, 0, pi, 0)
+        expected.u(pi / 2, 0, pi, 0)
+        expected.measure(0, 1)
+        with expected.if_test((clbits[1], 0)):
+            expected.u(pi / 2, 0, pi, 1)
+            expected.cx(1, 0)
+
+        for ic1, ic2 in zip(unrolled_circ.data, expected.data):
+            inst1, inst2 = ic1[0], ic2[0]
+            if isinstance(inst1, ControlFlowOp):
+                for param1, param2 in zip(inst1.params, inst2.params):
+                    if isinstance(param1, QuantumCircuit):
+                        for ic3, ic4 in zip(param1.data, param2.data):
+                            self.assertEqual(ic3[0], ic4[0])
+
+    def test_nested_control_flow(self):
+        """Test unrolling nested control flow blocks."""
+        qr = QuantumRegister(2)
+        cr1 = ClassicalRegister(1)
+        cr2 = ClassicalRegister(1)
+        cr3 = ClassicalRegister(1)        
+        qc = QuantumCircuit(qr, cr1, cr2, cr3)
+        with qc.for_loop(range(3)):
+            with qc.while_loop((cr1, 0)):
+                qc.x(0)
+            with qc.while_loop((cr2, 0)):
+                qc.y(0)
+            with qc.while_loop((cr3, 0)):
+                qc.z(0)
+        dag = circuit_to_dag(qc)
+
+        unrolled_dag = Unroller(["u", "cx"]).run(dag)
+        unrolled_circ = dag_to_circuit(unrolled_dag)
+        
+        expected = QuantumCircuit(qr, cr1, cr2, cr3) 
+        with expected.for_loop(range(3)):
+            with expected.while_loop((cr1, 0)):
+                expected.u(pi, 0, pi, 0)
+            with expected.while_loop((cr2, 0)):
+                expected.u(pi, pi/2, pi/2, 0)
+            with expected.while_loop((cr3, 0)):
+                expected.u(0, 0, pi, 0)
+       
+
+        for ic1, ic2 in zip(unrolled_circ.data, expected.data):
+            inst1, inst2 = ic1[0], ic2[0]
+            if isinstance(inst1, ControlFlowOp):
+                for param1, param2 in zip(inst1.params, inst2.params):
+                    if isinstance(param1, QuantumCircuit):
+                        for ic3, ic4 in zip(param1.data, param2.data):
+                            self.assertEqual(ic3[0], ic4[0])
+            
+            
+            
 
 class TestUnrollAllInstructions(QiskitTestCase):
     """Test unrolling a circuit containing all standard instructions."""
