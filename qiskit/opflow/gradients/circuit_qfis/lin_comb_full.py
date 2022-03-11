@@ -225,7 +225,7 @@ def check_and_realpart(x: Union[List[float], np.ndarray]) -> np.ndarray:
     Returns:
         Real part of x.
     Raises:
-        ValueError: If ``x`` has non-negligible imaginary components
+        ValueError: If ``x`` has non-negligible imaginary components.
 
     """
     if np.any([[np.abs(np.imag(x_item)) > 1e-8 for x_item in x_row] for x_row in x]):
