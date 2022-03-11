@@ -27,10 +27,10 @@ class Evolver(ABC):
         Evolves an initial state in the evolution_problem according to a Hamiltonian provided.
 
         Args:
-            evolution_problem: EvolutionProblem instance that includes definition of an evolution
+            evolution_problem: ``EvolutionProblem`` instance that includes definition of an evolution
                 problem.
 
         Returns:
-            Evolver result which includes an evolved quantum state.
+            Evolution result which includes an evolved quantum state.
         """
         raise NotImplementedError()
