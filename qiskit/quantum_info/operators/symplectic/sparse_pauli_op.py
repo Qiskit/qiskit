@@ -137,7 +137,7 @@ class SparsePauliOp(LinearOp):
         )
 
     def equiv(self, other):
-        """Return True if ``SparsePauliOp``s are equivalent.
+        """Check if two SparsePauliOp operators are equivalent.
 
         Args:
             other (SparsePauliOp): an operator object.
