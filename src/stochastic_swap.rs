@@ -15,7 +15,6 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::type_complexity)]
 
-use std::env;
 use std::sync::RwLock;
 
 use hashbrown::HashSet;
@@ -33,6 +32,7 @@ use rand_distr::{Distribution, Normal};
 use rand_pcg::Pcg64Mcg;
 
 use crate::edge_collections::EdgeCollection;
+use crate::getenv_use_multiple_threads;
 use crate::nlayout::NLayout;
 
 #[inline]
@@ -268,15 +268,7 @@ pub fn swap_trials(
         .collect();
     // Run in parallel only if we're not already in a multiprocessing context
     // unless force threads is set.
-    let parallel_context = env::var("QISKIT_IN_PARALLEL")
-        .unwrap_or_else(|_| "FALSE".to_string())
-        .to_uppercase()
-        == "TRUE";
-    let force_threads = env::var("QISKIT_FORCE_THREADS")
-        .unwrap_or_else(|_| "FALSE".to_string())
-        .to_uppercase()
-        == "TRUE";
-    let run_in_parallel = !parallel_context || force_threads;
+    let run_in_parallel = getenv_use_multiple_threads();
 
     let mut best_depth = std::usize::MAX;
     let mut best_edges: Option<EdgeCollection> = None;
