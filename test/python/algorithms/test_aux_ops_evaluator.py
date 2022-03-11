@@ -101,7 +101,7 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
                     quantum_instance, bound_ansatz, observables, expectation, self.threshold
                 )
 
-                if isinstance(result, dict):
+                if isinstance(observables, dict):
                     np.testing.assert_equal(list(result.keys()), list(expected_result.keys()))
                     np.testing.assert_array_almost_equal(
                         list(result.values()), list(expected_result.values()), decimal=decimal
