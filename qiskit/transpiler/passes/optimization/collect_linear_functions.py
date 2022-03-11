@@ -29,6 +29,9 @@ def collect_linear_blocks(dag):
     pending_linear_ops = deque()
     pending_non_linear_ops = deque()
 
+    def is_linear(op):
+        return op.name in ("cx", "swap") and op.condition is None
+
     def process_node(node):
         for suc in dag.successors(node):
             if not isinstance(suc, DAGOpNode):
@@ -37,7 +40,7 @@ def collect_linear_blocks(dag):
             if in_degree[suc] > 0:
                 continue
 
-            if suc.name in ["cx", "swap"]:
+            if is_linear(suc.op):
                 pending_linear_ops.append(suc)
             else:
                 pending_non_linear_ops.append(suc)
@@ -48,7 +51,7 @@ def collect_linear_blocks(dag):
             in_degree[node] = deg
             continue
 
-        if node.name in ["cx", "swap"]:
+        if is_linear(node.op):
             pending_linear_ops.append(node)
         else:
             pending_non_linear_ops.append(node)
@@ -73,6 +76,57 @@ def collect_linear_blocks(dag):
     return blocks
 
 
+def split_block_into_components(dag, block):
+    """Given a block of gates, splits it into connected components."""
+
+    if len(block) == 0:
+        return block
+
+    nodeset = set(block)
+    colors = dict()
+    color = -1
+
+    def process_node_rec(node):
+        """Given a node, recursively assigns the current color to all of its
+        successors and predecessors."""
+
+        if node not in colors.keys():
+            colors[node] = color
+
+            for pred in dag.predecessors(node):
+                if node not in nodeset or not isinstance(pred, DAGOpNode):
+                    continue
+                process_node_rec(pred)
+
+            for suc in dag.successors(node):
+                if node not in nodeset or not isinstance(suc, DAGOpNode):
+                    continue
+                process_node_rec(suc)
+
+    # Assign colors to nodes, so that nodes are in the same component iff they
+    # have the same color
+    for node in block:
+        if node not in colors.keys():
+            color = color + 1
+            process_node_rec(node)
+
+    # Split blocks based on color
+    split_blocks = [[] for _ in range(color + 1)]
+    for node in block:
+        split_blocks[colors[node]].append(node)
+
+    return split_blocks
+
+
+def split_blocks_into_components(dag, blocks):
+    """Given blocks of gates, splits each block into connected components,
+    and returns a list of all blocks."""
+    split_blocks = []
+    for block in blocks:
+        split_blocks.extend(split_block_into_components(dag, block))
+    return split_blocks
+
+
 class CollectLinearFunctions(TransformationPass):
     """Collect blocks of linear gates (:class:`.CXGate` and :class:`.SwapGate` gates)
     and replaces them by linear functions (:class:`.LinearFunction`)."""
@@ -86,11 +140,20 @@ class CollectLinearFunctions(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
+
+        # collect blocks of linear gates
         blocks = collect_linear_blocks(dag)
+
+        # refine blocks by splitting into disconnected components
+        blocks = split_blocks_into_components(dag, blocks)
 
         # Replace every discovered block by a linear function
         global_index_map = {wire: idx for idx, wire in enumerate(dag.qubits)}
         for cur_nodes in blocks:
+            # Create linear functions only out of blocks with at least 2 gates
+            if len(cur_nodes) == 1:
+                continue
+
             # Find the set of all qubits used in this block
             cur_qubits = set()
             for node in cur_nodes:
