@@ -690,7 +690,7 @@ class TestGradients(QiskitOpflowTestCase):
         """Test the imaginary state gradient for p
         |psi(a)> = 1/sqrt(2)[[1, exp(ia)]]
         <psi(a)|X|da psi(a)> = iexp(-ia)/2 <1|H(|0>+exp(ia)|1>)
-        Im(<psi(a)|X|da psi(a)>) = 0.5 cos(a)
+        Im(<psi(a)|X|da psi(a)>) = 0.5 cos(a).
         """
         ham = X
         a = Parameter("a")
