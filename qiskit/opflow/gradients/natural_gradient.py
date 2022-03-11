@@ -211,10 +211,10 @@ class NaturalGradient(GradientBase):
          <https://arxiv.org/pdf/1608.04571.pdf>`
 
         Args:
-            metric: see (1) and (2)
-            gradient: see (1) and (2)
+            metric: See (1) and (2).
+            gradient: See (1) and (2).
             reg_method: Given the metric, gradient and lambda the regularization method must return
-            x_lambda
+                x_lambda.
             - see (2)
             lambda1: left starting point for L-curve corner search
             lambda4: right starting point for L-curve corner search
