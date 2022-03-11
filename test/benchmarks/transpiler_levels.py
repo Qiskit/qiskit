@@ -19,6 +19,7 @@ import os
 
 from qiskit.compiler import transpile
 from qiskit import QuantumCircuit
+from qiskit.transpiler import InstructionDurations
 
 from .backends.fake_melbourne import FakeMelbourne
 from .utils import build_qv_model_circuit
@@ -155,6 +156,14 @@ class TranspilerLevelBenchmarks:
         large_qasm_path = os.path.join(self.qasm_path, 'test_eoh_qasm.qasm')
         self.large_qasm = QuantumCircuit.from_qasm_file(large_qasm_path)
         self.melbourne = FakeMelbourne()
+        self.durations = InstructionDurations([
+            ("u1", None, 0),
+            ("id", None, 160),
+            ("u2", None, 160),
+            ("u3", None, 320),
+            ("cx", None, 800),
+            ("measure", None, 3200),
+        ], dt=1e-9)
 
     def time_quantum_volume_transpile_50_x_20(self, transpiler_level):
         transpile(self.qv_50_x_20, basis_gates=self.basis_gates,
@@ -197,3 +206,12 @@ class TranspilerLevelBenchmarks:
     def track_depth_transpile_qv_14_x_14(self, transpiler_level):
         return transpile(self.qv_14_x_14, self.melbourne, seed_transpiler=0,
                          optimization_level=transpiler_level).depth()
+
+    def time_schedule_qv_14_x_14(self, transpiler_level):
+        transpile(self.qv_14_x_14, self.melbourne, seed_transpiler=0,
+                  optimization_level=transpiler_level,
+                  scheduling_method="alap",
+                  instruction_durations=self.durations)
+
+    # limit optimization levels to reduce time
+    time_schedule_qv_14_x_14.params = [0, 1]
