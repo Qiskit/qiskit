@@ -155,7 +155,7 @@ class BasePadding(TransformationPass):
         """Extra routine inserted before running the padding pass.
 
         Args:
-            dag: DAG circuit that sequence is applied.
+            dag: DAG circuit on which the sequence is applied.
 
         Raises:
             TranspilerError: If the whole circuit or instruction is not scheduled.
@@ -436,9 +436,9 @@ class DynamicalDecoupling(BasePadding):
     ):
         # This routine takes care of the pulse alignment constraint for the DD sequence.
         # Note that the alignment constraint acts on the t0 of the DAGOpNode.
-        # Now this constarained scheduling problem is simplified to the problem of
-        # finding delay amount which is multiple of the constraint value by assuming
-        # that the duration of every DAGOpNode is also multiple of the constraint value.
+        # Now this constrained scheduling problem is simplified to the problem of
+        # finding a delay amount which is a multiple of the constraint value by assuming
+        # that the duration of every DAGOpNode is also a multiple of the constraint value.
         #
         # For example, given the constraint value of 16 and XY4 with 160 dt gates.
         # Here we assume current interval is 992 dt.

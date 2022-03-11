@@ -622,7 +622,7 @@ class TestDynamicalDecoupling(QiskitTestCase):
 
         self.assertEqual(pm.run(circ).duration, rx_duration + 100 + 300)
 
-    def test_test_insert_dd_ghz_xy4_with_alignment(self):
+    def test_insert_dd_ghz_xy4_with_alignment(self):
         """Test DD with pulse alignment constraints.
 
                    ┌───┐            ┌───────────────┐      ┌───┐      ┌───────────────┐»
