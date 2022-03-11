@@ -12,7 +12,6 @@
 
 """Dynamical Decoupling insertion pass."""
 
-from itertools import zip_longest
 from typing import List, Optional
 
 import numpy as np
@@ -185,7 +184,7 @@ class DynamicalDecoupling(BasePadding):
             if self._qubits and physical_index not in self._qubits:
                 continue
 
-            gate_length_sum = 0
+            sequence_lengths = []
             for gate in self._dd_sequence:
                 try:
                     # Check calibration.
@@ -205,10 +204,10 @@ class DynamicalDecoupling(BasePadding):
                         )
                 except KeyError:
                     gate_length = self._durations.get(gate, physical_index)
-                gate_length_sum += gate_length
+                sequence_lengths.append(gate_length)
                 # Update gate duration. This is necessary for current timeline drawer, i.e. scheduled.
                 gate.duration = gate_length
-            self._dd_sequence_lengths[qubit] = gate_length_sum
+            self._dd_sequence_lengths[qubit] = sequence_lengths
 
     def _pad(
         self,
@@ -252,22 +251,25 @@ class DynamicalDecoupling(BasePadding):
 
         if self._qubits and dag.qubits.index(qubit) not in self._qubits:
             # Target physical qubit is not the target of this DD sequence.
-            dag.apply_operation_back(Delay(time_interval, dag.unit), [qubit])
+            delay_node = dag.apply_operation_back(Delay(time_interval, dag.unit), [qubit])
+            self._update_start_time(delay_node, t_start)
             return
 
         if self._skip_reset_qubits and (
             isinstance(prev_node, DAGInNode) or isinstance(prev_node.op, Reset)
         ):
             # Previous node is the start edge or reset, i.e. qubit is ground state.
-            dag.apply_operation_back(Delay(time_interval, dag.unit), [qubit])
+            delay_node = dag.apply_operation_back(Delay(time_interval, dag.unit), [qubit])
+            self._update_start_time(delay_node, t_start)
             return
 
-        slack = time_interval - self._dd_sequence_lengths[qubit]
+        slack = time_interval - np.sum(self._dd_sequence_lengths[qubit])
         sequence_gphase = self._sequence_phase
 
         if slack <= 0:
             # Interval too short.
-            dag.apply_operation_back(Delay(time_interval, dag.unit), [qubit])
+            delay_node = dag.apply_operation_back(Delay(time_interval, dag.unit), [qubit])
+            self._update_start_time(delay_node, t_start)
             return
 
         if len(self._dd_sequence) == 1:
@@ -306,11 +308,21 @@ class DynamicalDecoupling(BasePadding):
         taus[-1] += extra_slack - to_begin_edge
 
         # (3) Construct DD sequence with delays
-        for tau, gate in zip_longest(taus, self._dd_sequence):
-            if tau > 0:
-                dag.apply_operation_back(Delay(tau, dag.unit), [qubit])
-            if gate is not None:
-                dag.apply_operation_back(gate, [qubit])
+        num_elements = max(len(self._dd_sequence), len(taus))
+        idle_after = t_start
+        for dd_ind in range(num_elements):
+            if dd_ind < len(taus):
+                tau = taus[dd_ind]
+                if tau > 0:
+                    delay_node = dag.apply_operation_back(Delay(tau, dag.unit), [qubit])
+                    self._update_start_time(delay_node, idle_after)
+                    idle_after += tau
+            if dd_ind < len(self._dd_sequence):
+                gate = self._dd_sequence[dd_ind]
+                gate_length = self._dd_sequence_lengths[qubit][dd_ind]
+                gate_node = dag.apply_operation_back(gate, [qubit])
+                self._update_start_time(gate_node, idle_after)
+                idle_after += gate_length
 
         dag.global_phase = self._mod_2pi(dag.global_phase + sequence_gphase)
 

@@ -690,21 +690,33 @@ class TestDynamicalDecoupling(QiskitTestCase):
 
         self.assertEqual(ghz4_dd, expected)
 
-    def test_dd_cannot_called_twice(self):
-        """Calling padding family pass twice is forbidden because insertion of sequence will
-        invalidate previously scheduled node start times.
+    def test_dd_can_sequentially_called(self):
+        """Test if sequentially called DD pass can output the same circuit.
+
+        This test verifies:
+        - if global phase is properly propagated from the previous padding node.
+        - if node_start_time property is properly updated for new dag circuit.
         """
         dd_sequence = [XGate(), YGate(), XGate(), YGate()]
-        pm = PassManager(
+
+        pm1 = PassManager(
             [
                 ALAPSchedule(self.durations),
                 DynamicalDecoupling(self.durations, dd_sequence, qubits=[0]),
                 DynamicalDecoupling(self.durations, dd_sequence, qubits=[1]),
             ]
         )
+        circ1 = pm1.run(self.ghz4)
 
-        with self.assertRaises(TranspilerError):
-            pm.run(self.ghz4)
+        pm2 = PassManager(
+            [
+                ALAPSchedule(self.durations),
+                DynamicalDecoupling(self.durations, dd_sequence, qubits=[0, 1]),
+            ]
+        )
+        circ2 = pm2.run(self.ghz4)
+
+        self.assertEqual(circ1, circ2)
 
 
 if __name__ == "__main__":

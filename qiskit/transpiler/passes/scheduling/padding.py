@@ -14,7 +14,7 @@
 
 from qiskit.circuit import Qubit
 from qiskit.circuit.delay import Delay
-from qiskit.dagcircuit import DAGCircuit, DAGNode, DAGOutNode
+from qiskit.dagcircuit import DAGCircuit, DAGNode, DAGOutNode, DAGOpNode
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -62,7 +62,7 @@ class BasePadding(TransformationPass):
         """
         self._pre_runhook(dag)
 
-        node_start_time = self.property_set["node_start_time"]
+        node_start_time = self.property_set["node_start_time"].copy()
 
         new_dag = DAGCircuit()
         for qreg in dag.qregs.values():
@@ -70,10 +70,16 @@ class BasePadding(TransformationPass):
         for creg in dag.cregs.values():
             new_dag.add_creg(creg)
 
+        # Update start time dictionary for the new_dag.
+        # This information may be used for further scheduling tasks,
+        # but this is immediately invalidated becasue node id is updated in the new_dag.
+        self.property_set["node_start_time"].clear()
+
         new_dag.name = dag.name
         new_dag.metadata = dag.metadata
         new_dag.unit = self.property_set["time_unit"]
         new_dag.calibrations = dag.calibrations
+        new_dag.global_phase = dag.global_phase
 
         idle_after = {bit: 0 for bit in dag.qubits}
 
@@ -112,7 +118,8 @@ class BasePadding(TransformationPass):
 
                     idle_after[bit] = t1
 
-                new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
+                new_node = new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
+                self._update_start_time(new_node, t0)
             else:
                 raise TranspilerError(
                     f"Operation {repr(node)} is likely added after the circuit is scheduled. "
@@ -135,9 +142,6 @@ class BasePadding(TransformationPass):
 
         new_dag.duration = circuit_duration
 
-        # Invalidate old schedule information since delays are filled with sequence.
-        del self.property_set["node_start_time"]
-
         return new_dag
 
     def _pre_runhook(self, dag: DAGCircuit):
@@ -155,6 +159,20 @@ class BasePadding(TransformationPass):
                 f"before running the {self.__class__.__name__} pass."
             )
 
+    def _update_start_time(self, node: DAGOpNode, start_time: int):
+        """Update start time dictionary with new node.
+
+        Args:
+            node: A new node that is added in the padding sequence.
+            start_time: Start time of the new node.
+
+        Raises:
+            TranspilerError: When the node is already added to the dictionary.
+        """
+        if node in self.property_set["node_start_time"]:
+            raise TranspilerError(f"Node {repr(node)} is already scheduled.")
+        self.property_set["node_start_time"][node] = start_time
+
     def _pad(
         self,
         dag: DAGCircuit,
@@ -165,6 +183,10 @@ class BasePadding(TransformationPass):
         prev_node: DAGNode,
     ):
         """Interleave instruction sequence in between two nodes.
+
+        .. note::
+            If a DAGOpNode is added here, it should update node_start_time property
+            in the property set so that the added node is also scheduled.
 
         Args:
             dag: DAG circuit that sequence is applied.
@@ -230,4 +252,5 @@ class PadDelay(BasePadding):
             return
 
         time_interval = t_end - t_start
-        dag.apply_operation_back(Delay(time_interval, dag.unit), [qubit])
+        delay_node = dag.apply_operation_back(Delay(time_interval, dag.unit), [qubit])
+        self._update_start_time(delay_node, t_start)
