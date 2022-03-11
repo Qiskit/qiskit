@@ -8,6 +8,6 @@ features:
     The measurement basis can be set with the ``aux_meas_op`` argument.
 
     For the gradients, ``aux_meas_op = Z`` computes ``0.5Re[(⟨ψ(ω)|)O(θ)|dωψ(ω)〉]``
-    and ``aux_meas_op = -Y`` computes ``0.5Im[(⟨ψ(ω)|)O(θ)|dωψ(ω)〉]``
+    and ``aux_meas_op = -Y`` computes ``0.5Im[(⟨ψ(ω)|)O(θ)|dωψ(ω)〉]``.
     For the QFIs, ``aux_meas_op = Z`` computes ``4Re[(dω⟨<ψ(ω)|)(dω|ψ(ω)〉)]``
     and ``aux_meas_op = -Y`` computes ``4Im[(dω⟨<ψ(ω)|)(dω|ψ(ω)〉)]``. 
