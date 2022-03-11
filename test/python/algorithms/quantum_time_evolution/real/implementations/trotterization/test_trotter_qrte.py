@@ -14,6 +14,7 @@
 
 import unittest
 
+from qiskit import BasicAer
 from test.python.opflow import QiskitOpflowTestCase
 from ddt import ddt, data
 import numpy as np
@@ -25,7 +26,7 @@ from qiskit.algorithms.evolvers.real.trotterization.trotter_qrte import (
     TrotterQrte,
 )
 from qiskit.quantum_info import Statevector
-from qiskit.utils import algorithm_globals
+from qiskit.utils import algorithm_globals, QuantumInstance
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
     X,
@@ -43,11 +44,33 @@ from qiskit.synthesis import SuzukiTrotter, QDrift
 class TestTrotterQrte(QiskitOpflowTestCase):
     """Trotter Qrte tests."""
 
+    def setUp(self):
+        super().setUp()
+        self.seed = 50
+        algorithm_globals.random_seed = self.seed
+        self.h2_op = (
+            -1.052373245772859 * (I ^ I)
+            + 0.39793742484318045 * (I ^ Z)
+            - 0.39793742484318045 * (Z ^ I)
+            - 0.01128010425623538 * (Z ^ Z)
+            + 0.18093119978423156 * (X ^ X)
+        )
+
+        shots = 1
+        backend = BasicAer.get_backend("statevector_simulator")
+        self.quantum_instance = QuantumInstance(
+            backend=backend,
+            shots=shots,
+            seed_simulator=self.seed,
+            seed_transpiler=self.seed,
+        )
+
     def test_trotter_qrte_trotter(self):
         """Test for trotter qrte."""
         operator = X + Z
         # LieTrotter with 1 rep
-        trotter_qrte = TrotterQrte()
+
+        trotter_qrte = TrotterQrte(self.quantum_instance)
         initial_state = Zero
         evolution_problem = EvolutionProblem(operator, 1, initial_state)
         evolution_result = trotter_qrte.evolve(evolution_problem)
@@ -63,7 +86,7 @@ class TestTrotterQrte(QiskitOpflowTestCase):
     def test_trotter_qrte_trotter_2(self, operator):
         """Test for trotter qrte."""
         # LieTrotter with 1 rep
-        trotter_qrte = TrotterQrte()
+        trotter_qrte = TrotterQrte(self.quantum_instance)
         initial_state = StateFn([1, 0, 0, 0])
 
         # Calculate the expected state
@@ -79,7 +102,7 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         """Test for trotter qrte with Suzuki."""
         operator = X + Z
         # 2nd order Suzuki with 1 rep
-        trotter_qrte = TrotterQrte(SuzukiTrotter())
+        trotter_qrte = TrotterQrte(self.quantum_instance, SuzukiTrotter())
         initial_state = Zero
         evolution_problem = EvolutionProblem(operator, 1, initial_state)
         evolution_result = trotter_qrte.evolve(evolution_problem)
@@ -99,7 +122,7 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         algorithm_globals.random_seed = 0
         operator = X + Z
         # QDrift with one repetition
-        trotter_qrte = TrotterQrte(QDrift())
+        trotter_qrte = TrotterQrte(self.quantum_instance, QDrift())
         initial_state = Zero
         evolution_problem = EvolutionProblem(operator, 1, initial_state)
         evolution_result = trotter_qrte.evolve(evolution_problem)
@@ -117,7 +140,7 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         """Test for trotter qrte with binding and missing dictionary.."""
         t_param = Parameter("t")
         operator = X * t_param + Z
-        trotter_qrte = TrotterQrte()
+        trotter_qrte = TrotterQrte(self.quantum_instance)
         initial_state = Zero
         evolution_problem = EvolutionProblem(operator, 1, initial_state, t_param=t_param)
         with assert_raises(ValueError):
@@ -127,7 +150,7 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         """Test for trotter qrte with binding and missing param."""
         t_param = Parameter("t")
         operator = X * t_param + Z
-        trotter_qrte = TrotterQrte()
+        trotter_qrte = TrotterQrte(self.quantum_instance)
         initial_state = Zero
         evolution_problem = EvolutionProblem(operator, 1, initial_state)
         with assert_raises(ValueError):

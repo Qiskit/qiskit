@@ -12,18 +12,21 @@
 
 """An algorithm to implement a Trotterization real time-evolution."""
 
-from typing import Union, Dict
+from typing import Union, Dict, Optional
 
-from qiskit.algorithms import EvolutionProblem, EvolutionResult, RealEvolver
+from qiskit.algorithms import EvolutionProblem, EvolutionResult, RealEvolver, eval_observables
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
     OperatorBase,
     SummedOp,
     PauliOp,
     CircuitOp,
+    ExpectationBase, CircuitSampler,
 )
 from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.providers import Backend, BaseBackend
 from qiskit.synthesis import ProductFormula, LieTrotter
+from qiskit.utils import QuantumInstance
 from .trotter_ops_validator import is_op_bound
 
 
@@ -49,13 +52,21 @@ class TrotterQrte(RealEvolver):
             evolved_state = trotter_qrte.evolve().evolved_state
     """
 
-    def __init__(self, product_formula: ProductFormula = LieTrotter()) -> None:
+    def __init__(
+        self,
+        quantum_instance: Union[QuantumInstance, BaseBackend, Backend],
+        product_formula: ProductFormula = LieTrotter(),
+    ) -> None:
         """
         Args:
+            quantum_instance: A quantum instance used for calculations.
             product_formula: A Lie-Trotter-Suzuki product formula. The default is the Lie-Trotter
                 first order product formula with a single repetition.
         """
         self.product_formula = product_formula
+        self._quantum_instance = quantum_instance
+
+        self._circuit_sampler = CircuitSampler(quantum_instance)
 
     # TODO aux ops
     def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
@@ -88,10 +99,13 @@ class TrotterQrte(RealEvolver):
         )
 
         if evolution_problem.initial_state is not None:
-            evolved_state = (evolution_gate @ evolution_problem.initial_state).eval()
-            return EvolutionResult(evolved_state)
+            quantum_state = evolution_gate @ evolution_problem.initial_state
+            evolved_state = self._circuit_sampler.convert(quantum_state).eval()
 
-        raise ValueError("initial_state must be provided.")
+        else:
+            raise ValueError("initial_state must be provided.")
+
+        return EvolutionResult(evolved_state)
 
     @staticmethod
     def _try_binding_params(
