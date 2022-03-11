@@ -400,8 +400,8 @@ class NaturalGradient(GradientBase):
         <https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Lasso.html>`
 
         Args:
-            metric: mxn matrix
-            gradient: m vector
+            metric: Matrix of size mxn.
+            gradient: Vector of size m.
             lambda_ : regularization parameter used if auto_search = False
             lambda1: left starting point for L-curve corner search
             lambda4: right starting point for L-curve corner search
