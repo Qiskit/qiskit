@@ -239,13 +239,6 @@ class FakeBackendV2(BackendV2):
             for qubits, error in basic_device_readout_errors(properties):
                 noise_model.add_readout_error(error, qubits, warnings=warnings)
 
-        if standard_gates is not None:
-            warn(
-                '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
-                " and will be removed no earlier than 3 months from that release date.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
         # Add gate errors
         with catch_warnings():
             filterwarnings(
