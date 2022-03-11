@@ -256,7 +256,7 @@ class LinComb(CircuitGradient):
 
                     raise OpflowError(
                         "The linear combination gradient does only support the "
-                        "computation of 1st gradients and 2nd order gradients."
+                        "computation of 1st and 2nd order gradients."
                     )
             else:
                 return operator.traverse(partial(self._prepare_operator, params=params))
