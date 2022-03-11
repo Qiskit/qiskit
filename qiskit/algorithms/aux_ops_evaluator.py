@@ -24,6 +24,7 @@ from qiskit.opflow import (
     CircuitStateFn,
     OperatorBase,
     ExpectationBase,
+    VectorStateFn,
 )
 from qiskit.providers import BaseBackend, Backend
 from qiskit.utils import QuantumInstance
@@ -59,19 +60,18 @@ def eval_observables(
         ValueError: If a ``quantum_state`` with free parameters is provided.
     """
 
-    if len(quantum_state.parameters) > 0:
-        raise ValueError(
-            "A parametrized quantum circuit representing a quantum_state was provided. It is not "
-            "allowed - the circuit cannot have free parameters."
-        )
-
     # Create new CircuitSampler to avoid breaking existing one's caches.
     sampler = CircuitSampler(quantum_instance)
 
     list_op = _prepare_list_op(observables)
 
+    if isinstance(quantum_state, VectorStateFn):
+        quantum_state = quantum_state.to_circuit_op()
+    elif isinstance(quantum_state, QuantumCircuit):
+        quantum_state = CircuitStateFn(quantum_state)
+
     observables_expect = expectation.convert(
-        StateFn(list_op, is_measurement=True).compose(CircuitStateFn(quantum_state))
+        StateFn(list_op, is_measurement=True).compose(quantum_state)
     )
     observables_expect_sampled = sampler.convert(observables_expect)
 

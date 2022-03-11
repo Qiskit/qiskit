@@ -21,7 +21,8 @@ from qiskit.opflow import (
     SummedOp,
     PauliOp,
     CircuitOp,
-    ExpectationBase, CircuitSampler,
+    ExpectationBase,
+    CircuitSampler,
 )
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.providers import Backend, BaseBackend
@@ -56,17 +57,25 @@ class TrotterQrte(RealEvolver):
         self,
         quantum_instance: Union[QuantumInstance, BaseBackend, Backend],
         product_formula: ProductFormula = LieTrotter(),
+        expectation: Optional[ExpectationBase] = None,
     ) -> None:
         """
         Args:
             quantum_instance: A quantum instance used for calculations.
             product_formula: A Lie-Trotter-Suzuki product formula. The default is the Lie-Trotter
                 first order product formula with a single repetition.
+            expectation: An instance of ExpectationBase which defines a method for calculating
+                expectation values of EvolutionProblem.aux_operators.
         """
         self.product_formula = product_formula
         self._quantum_instance = quantum_instance
+        self._expectation = expectation
 
         self._circuit_sampler = CircuitSampler(quantum_instance)
+
+    @classmethod
+    def supports_aux_operators(cls) -> bool:
+        return True
 
     # TODO aux ops
     def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
@@ -105,7 +114,22 @@ class TrotterQrte(RealEvolver):
         else:
             raise ValueError("initial_state must be provided.")
 
-        return EvolutionResult(evolved_state)
+        evaluated_aux_ops = None
+        if evolution_problem.aux_operators is not None:
+            if self._quantum_instance is not None and self._expectation is not None:
+                evaluated_aux_ops = eval_observables(
+                    self._quantum_instance,
+                    evolved_state,
+                    evolution_problem.aux_operators,
+                    self._expectation,
+                    1e-8,  # TODO algorithms.global
+                )
+            else:
+                raise ValueError(
+                    "aux_operators where provided for evaluations but no expectation was provided."
+                )
+
+        return EvolutionResult(evolved_state, evaluated_aux_ops)
 
     @staticmethod
     def _try_binding_params(

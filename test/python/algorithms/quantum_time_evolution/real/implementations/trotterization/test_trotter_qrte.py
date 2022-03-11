@@ -36,6 +36,7 @@ from qiskit.opflow import (
     StateFn,
     I,
     Y,
+    MatrixExpectation,
 )
 from qiskit.synthesis import SuzukiTrotter, QDrift
 
@@ -48,14 +49,6 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         super().setUp()
         self.seed = 50
         algorithm_globals.random_seed = self.seed
-        self.h2_op = (
-            -1.052373245772859 * (I ^ I)
-            + 0.39793742484318045 * (I ^ Z)
-            - 0.39793742484318045 * (Z ^ I)
-            - 0.01128010425623538 * (Z ^ Z)
-            + 0.18093119978423156 * (X ^ X)
-        )
-
         shots = 1
         backend = BasicAer.get_backend("statevector_simulator")
         self.quantum_instance = QuantumInstance(
@@ -81,6 +74,28 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         expected_evolved_state = VectorStateFn(Statevector(expected_state, dims=(2,)))
 
         np.testing.assert_equal(evolution_result.evolved_state, expected_evolved_state)
+
+    def test_trotter_qrte_trotter_aux_ops(self):
+        """Test for trotter qrte."""
+        operator = X + Z
+        # LieTrotter with 1 rep
+        aux_ops = [X, Y]
+        expectation = MatrixExpectation()
+        trotter_qrte = TrotterQrte(self.quantum_instance, expectation=expectation)
+        initial_state = Zero
+        evolution_problem = EvolutionProblem(operator, 1, initial_state, aux_ops)
+        evolution_result = trotter_qrte.evolve(evolution_problem)
+        # Calculate the expected state
+        expected_state = (
+            expm(-1j * Z.to_matrix()) @ expm(-1j * X.to_matrix()) @ initial_state.to_matrix()
+        )
+        expected_evolved_state = VectorStateFn(Statevector(expected_state, dims=(2,)))
+        expected_aux_ops_evaluated = [(0.8268218104318058, 0.0), (0.3784012476539641, 0.0)]
+
+        np.testing.assert_equal(evolution_result.evolved_state, expected_evolved_state)
+        np.testing.assert_array_almost_equal(
+            evolution_result.aux_ops_evaluated, expected_aux_ops_evaluated
+        )
 
     @data((X ^ Y) + (Y ^ X), (Z ^ Z) + (Z ^ I) + (I ^ Z), Y ^ Y)
     def test_trotter_qrte_trotter_2(self, operator):
