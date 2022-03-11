@@ -634,8 +634,8 @@ class LinComb(CircuitGradient):
             meas_op: The operator representing the observable for which we compute the gradient.
             target_params: The parameters we are taking the gradient wrt: ω
             aux_meas_op: The operator that the auxiliary qubit is measured with respect to.
-                 for aux_meas_op = Z we compute Re[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]
-                 for aux_meas_op = -Y we compute Im[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]
+                 For aux_meas_op = Z we compute Re[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉].
+                 For aux_meas_op = -Y we compute Im[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉].
 
         Returns:
             ListOp of StateFns as quantum circuits which are the states w.r.t. which we compute the
