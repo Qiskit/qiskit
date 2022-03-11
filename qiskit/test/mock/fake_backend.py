@@ -77,7 +77,7 @@ class FakeBackendV2(BackendV2):
             props_dict=self._props_dict,
             defs_dict=self._defs_dict,
         )
-        self._qubit_properties = None
+        self._qubit_properties = qubit_props_dict_from_props_dict(self._props_dict)
 
     def _get_conf_dict_from_json(self) -> dict:
         if not self.conf_filename:
@@ -152,8 +152,6 @@ class FakeBackendV2(BackendV2):
                 of :class:`~qiskit.provider.QubitProperties` objects will be
                 returned in the same order
         """
-        if not self._qubit_properties:
-            self._qubit_properties = qubit_props_dict_from_props_dict(self._props_dict)
         if isinstance(qubit, int):  # type: ignore[unreachable]
             return self._qubit_properties.get(qubit)
         if isinstance(qubit, List):
