@@ -223,7 +223,7 @@ def check_and_realpart(x: Union[List[float], np.ndarray]) -> np.ndarray:
     Args:
         x: Vector or matrix.
     Returns:
-        Real part of x
+        Real part of x.
     Raises:
         ValueError: If ``x`` has non-negligible imaginary components
 
