@@ -1463,7 +1463,7 @@ class TestQFI(QiskitOpflowTestCase):
     @data(-Y, Z - 1j * Y)
     def test_aux_meas_op(self, aux_meas_op):
         """Test various auxiliary measurement operators for probability gradients with LinComb
-        Gradient
+        Gradient.
 
         """
 
