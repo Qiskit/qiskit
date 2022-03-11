@@ -32,8 +32,8 @@ use rand_distr::{Distribution, Normal};
 use rand_pcg::Pcg64Mcg;
 
 use crate::edge_collections::EdgeCollection;
-use crate::getenv_use_multiple_threads;
 use crate::nlayout::NLayout;
+use crate::{fast_sum, getenv_use_multiple_threads};
 
 #[inline]
 fn compute_cost(
@@ -42,13 +42,14 @@ fn compute_cost(
     gates: &[usize],
     num_gates: usize,
 ) -> f64 {
-    (0..num_gates)
+    let values: Vec<f64> = (0..num_gates)
         .map(|kk| {
             let ii = layout.logic_to_phys[gates[2 * kk]];
             let jj = layout.logic_to_phys[gates[2 * kk + 1]];
             dist[[ii, jj]]
         })
-        .sum()
+        .collect();
+    fast_sum(&values)
 }
 
 /// Computes the symmetric random scaling (perturbation) matrix,
