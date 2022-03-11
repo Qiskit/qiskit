@@ -53,7 +53,8 @@ class _Credentials:
 
 
 class FakeBackendV2(BackendV2):
-    """This is a dummy bakend just for resting purposes. the FakeBackendV2 builds on top of the BackendV2 base class."""
+    """This is a dummy bakend just for resting purposes.
+    The FakeBackendV2 builds on top of the BackendV2 base class."""
 
     dirname = None
     conf_filename = None
@@ -151,6 +152,10 @@ class FakeBackendV2(BackendV2):
                 be a single integer for 1 qubit or a list of qubits and a list
                 of :class:`~qiskit.provider.QubitProperties` objects will be
                 returned in the same order
+        Returns:
+            qubit_properties: The :class:`~qiskit.provider.QubitProperties` object
+            for the specified qubit. If a list of qubits is provided a list will be
+            returned. If properties are missing for a qubit this can be ``None``.
         """
         if isinstance(qubit, int):  # type: ignore[unreachable]
             return self._qubit_properties.get(qubit)
@@ -216,7 +221,7 @@ class FakeBackendV2(BackendV2):
         This is a temporary fix until Aer supports V2 backends.
         """
 
-        from warnings import warn, catch_warnings, filterwarnings
+        from warnings import catch_warnings, filterwarnings
         from qiskit.circuit import Delay
         from qiskit.providers.exceptions import BackendPropertyError
         from qiskit.providers.aer.noise import NoiseModel
