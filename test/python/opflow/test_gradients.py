@@ -1548,7 +1548,7 @@ class TestQFI(QiskitOpflowTestCase):
             CircuitSampler(backend=q_instance).convert(prob_grad, params=value_dict).eval()
 
     def test_nat_grad_error(self):
-        """Test the NaturalGradient throws an Error
+        """Test the NaturalGradient throws an Error.
 
         dp0/da = cos(a)sin(b) / 2
         dp1/da = - cos(a)sin(b) / 2
