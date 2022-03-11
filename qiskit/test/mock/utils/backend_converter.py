@@ -24,7 +24,6 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
 from qiskit.providers.models.pulsedefaults import PulseDefaults
-from qiskit.test.mock.utils.json_decoder import decode_pulse_defaults
 
 
 def convert_to_target(conf_dict: dict, props_dict: dict = None, defs_dict: dict = None) -> Target:
@@ -65,7 +64,7 @@ def convert_to_target(conf_dict: dict, props_dict: dict = None, defs_dict: dict 
             gates[name][qubits] = InstructionProperties(**gate_props)
         for gate, props in gates.items():
             if gate in name_mapping:
-                inst = name_mapping[gate]
+                inst = name_mapping.get(gate)
             else:
                 inst = custom_gates[gate]
             target.add_instruction(inst, props)
@@ -90,7 +89,7 @@ def convert_to_target(conf_dict: dict, props_dict: dict = None, defs_dict: dict 
             if name in name_mapping:
                 target.add_instruction(name_mapping[name], gate_props)
             else:
-                custom_gate = Gate(name, len(gate["coupling_map"][0]))
+                custom_gate = Gate(name, len(gate["coupling_map"][0]), [])
                 target.add_instruction(custom_gate, gate_props)
         measure_props = {(n,): None for n in range(conf_dict["n_qubits"])}
         target.add_instruction(Measure(), measure_props)
@@ -124,6 +123,9 @@ def convert_to_target(conf_dict: dict, props_dict: dict = None, defs_dict: dict 
 
 
 def qubit_props_dict_from_props_dict(properties: dict) -> dict:
+    """Returns a dictionary of `qiskit.providers.backend.QubitProperties` using
+    a backend properties dictionary created by loading props.json payload.
+    """
     count = 0
     qubit_props_dict = {}
     for qubit in properties["qubits"]:
