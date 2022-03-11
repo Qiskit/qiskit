@@ -21,23 +21,12 @@ import warnings
 import json
 import os
 
-from typing import Iterable, List, Union
+from typing import List, Union
 
 from qiskit import circuit
-from qiskit.opflow.state_fns import dict_state_fn
-from qiskit.providers.models import BackendProperties, PulseBackendConfiguration, PulseDefaults
+from qiskit.providers.models import BackendProperties
 from qiskit.providers import BackendV1, BackendV2, BaseBackend, QubitProperties
-from qiskit.providers.models.backendconfiguration import QasmBackendConfiguration
-from qiskit.providers.options import Options
 from qiskit import pulse
-from qiskit.pulse.channels import (
-    AcquireChannel,
-    ControlChannel,
-    DriveChannel,
-    MeasureChannel,
-)
-from qiskit.circuit.parameter import Parameter
-from qiskit.transpiler import Target, InstructionProperties
 from qiskit.exceptions import QiskitError
 from qiskit.test.mock import fake_job
 from qiskit.test.mock.utils.json_decoder import (
