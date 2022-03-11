@@ -16,5 +16,3 @@ upgrade:
     :class:`DynamicalDecoupling` has been upgraded to be a subclass of
     :class:`BasePadding`. This means the dynamical decoupling pass is
     now a drop-in replacement for the :class:`PadDelay` pass.
-    The import path has been also updated and now it is placed under
-    :mod:`qiskit.transpiler.passes.scheduling.padding`.
