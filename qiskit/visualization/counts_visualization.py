@@ -14,7 +14,7 @@
 Visualization functions for measurement counts.
 """
 
-from collections import Counter, OrderedDict
+from collections import OrderedDict
 import functools
 import numpy as np
 
@@ -244,6 +244,26 @@ def plot_histogram(
         return fig.savefig(filename)
 
 
+def _keep_largest_items(execution, number_to_keep):
+    """Keep only the largest values in a dictionary, and sum the rest into a new key 'rest'."""
+    sorted_counts = sorted(execution.items(), key=lambda p: p[1])
+    rest = sum(count for key, count in sorted_counts[:-number_to_keep])
+    return dict(sorted_counts[-number_to_keep:], rest=rest)
+
+
+def _unify_labels(data):
+    """Make all dictionaries in data have the same set of keys, using 0 for missing values."""
+    data = tuple(data)
+    all_labels = set().union(*(execution.keys() for execution in data))
+    base = {label: 0 for label in all_labels}
+    out = []
+    for execution in data:
+        new_execution = base.copy()
+        new_execution.update(execution)
+        out.append(new_execution)
+    return out
+
+
 def _plot_histogram_data(data, labels, number_to_keep):
     """Generate the data needed for plotting counts.
 
@@ -262,40 +282,21 @@ def _plot_histogram_data(data, labels, number_to_keep):
                     experiment.
     """
     labels_dict = OrderedDict()
-
     all_pvalues = []
     all_inds = []
-    # if multiple executions, we consider number_to_keep for each execution
-    # and this may result in more than number_to_keep slots
-    multiple_exec_keys_dict = dict()
-    if len(data) > 1 and number_to_keep is not None:
-        for execution in data:
-            for common_key in dict(Counter(execution).most_common(number_to_keep)):
-                if execution[common_key] > 0:
-                    # add only keys with values
-                    multiple_exec_keys_dict[common_key] = 1
+
+    if isinstance(data, dict):
+        data = [data]
+    if number_to_keep is not None:
+        data = _unify_labels(_keep_largest_items(execution, number_to_keep) for execution in data)
 
     for execution in data:
-        if number_to_keep is not None:
-            # only keys with values > 0
-            data_temp = dict(
-                Counter(
-                    {key: val for key, val in Counter(execution).items() if val > 0}
-                ).most_common(number_to_keep)
-            )
-            data_temp["rest"] = sum(execution.values()) - sum(data_temp.values())
-            execution = data_temp
         values = []
         for key in labels:
             if key not in execution:
                 if number_to_keep is None:
                     labels_dict[key] = 1
                     values.append(0)
-                else:
-                    if key in multiple_exec_keys_dict:
-                        # save label only if the key is present in other execution
-                        labels_dict[key] = 1
-                        values.append(0)
             else:
                 labels_dict[key] = 1
                 values.append(execution[key])

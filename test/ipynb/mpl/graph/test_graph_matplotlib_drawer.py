@@ -171,6 +171,19 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
         self.graph_count_drawer(counts, filename="histogram.png")
 
+    def test_plot_histogram_with_rest(self):
+        """test plot_histogram with 2 datasets and number_to_keep"""
+        data = [{"00": 3, "01": 5, "10": 6, "11": 12}]
+        self.graph_count_drawer(data, number_to_keep=2, filename="histogram_with_rest.png")
+
+    def test_plot_histogram_2_sets_with_rest(self):
+        """test plot_histogram with 2 datasets and number_to_keep"""
+        data = [
+            {"00": 3, "01": 5, "10": 6, "11": 12},
+            {"00": 5, "01": 7, "10": 6, "11": 12},
+        ]
+        self.graph_count_drawer(data, number_to_keep=2, filename="histogram_2_sets_with_rest.png")
+
     def test_plot_histogram_color(self):
         """Test histogram with single color"""
 
