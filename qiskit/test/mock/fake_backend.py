@@ -76,7 +76,6 @@ class FakeBackendV2(BackendV2):
 
     def _get_conf_dict_from_json(self) -> dict:
         if not self.conf_filename:
-            warnings.warn("No configuration file has been defined", UserWarning)
             return None
         conf_dict = self._load_json(self.conf_filename)
         decode_backend_configuration(conf_dict)
@@ -85,7 +84,6 @@ class FakeBackendV2(BackendV2):
 
     def _set_props_dict_from_json(self) -> dict:
         if not self.props_filename:
-            warnings.warn("No properties file has been defined", UserWarning)
             return None
         props_dict = self._load_json(self.props_filename)
         decode_backend_properties(props_dict)
@@ -93,7 +91,6 @@ class FakeBackendV2(BackendV2):
 
     def _set_defs_dict_from_json(self) -> dict:
         if not self.defs_filename:
-            warnings.warn("No pulse defaults file has been defined", UserWarning)
             return None
         defs_dict = self._load_json(self.defs_filename)
         decode_pulse_defaults(defs_dict)
