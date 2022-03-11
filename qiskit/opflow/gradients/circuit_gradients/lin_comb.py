@@ -126,7 +126,7 @@ class LinComb(CircuitGradient):
             aux_meas_op: The operator that the auxiliary qubit is measured with respect to.
                 For ``aux_meas_op = Z`` we compute 2Re[⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉],
                 for ``aux_meas_op = -Y`` we compute 2Im[⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉], and
-                for ``aux_meas_op = Z-1jY`` we compute 2⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω),
+                for ``aux_meas_op = Z-1jY`` we compute 2⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω).
         Returns:
             An operator corresponding to the gradient resp. Hessian. The order is in accordance with
             the order of the given parameters.
