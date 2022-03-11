@@ -1515,7 +1515,7 @@ class TestQFI(QiskitOpflowTestCase):
                     np.testing.assert_array_almost_equal(item, correct_values[j][i], decimal=1)
 
     def test_unsupported_aux_meas_op(self):
-        """Test error for unsupported auxiliary measurement operator in LinComb Gradient
+        """Test error for unsupported auxiliary measurement operator in LinComb Gradient.
 
         dp0/da = cos(a)sin(b) / 2
         dp1/da = - cos(a)sin(b) / 2
