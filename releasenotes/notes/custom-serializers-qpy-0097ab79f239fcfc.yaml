@@ -44,7 +44,7 @@ features:
         class CustomSerializer(json.JSONEncoder):
             """Custom json encoder to handle CustomObject."""
 
-            def default(self, o):  # pylint: disable=invalid-name
+            def default(self, o):
                 if isinstance(o, CustomObject):
                     return {"__type__": "Custom", "value": o.string}
                 return json.JSONEncoder.default(self, o)
@@ -52,7 +52,7 @@ features:
         class CustomDeserializer(json.JSONDecoder):
             """Custom json decoder to handle CustomObject."""
 
-            def object_hook(self, o):  # pylint: disable=invalid-name,method-hidden
+            def object_hook(self, o):
                 """Hook to override default decoder.
                 Normally specified as a kwarg on load() that overloads the
                 default decoder. Done here to avoid reimplementing the
