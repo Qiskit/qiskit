@@ -16,7 +16,7 @@ from typing import List, Optional, Union
 
 from qiskit.circuit import Qubit, Clbit, Instruction
 from qiskit.circuit.delay import Delay
-from qiskit.dagcircuit import DAGCircuit, DAGNode, DAGOutNode
+from qiskit.dagcircuit import DAGCircuit, DAGNode
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -212,59 +212,3 @@ class BasePadding(TransformationPass):
             prev_node: Node ahead of the sequence.
         """
         raise NotImplementedError
-
-
-class PadDelay(BasePadding):
-    """Padding idle time with Delay instructions.
-
-    Consecutive delays will be merged in the output of this pass.
-
-    .. code-block::python
-
-        durations = InstructionDurations([("x", None, 160), ("cx", None, 800)])
-
-        qc = QuantumCircuit(2)
-        qc.delay(100, 0)
-        qc.x(1)
-        qc.cx(0, 1)
-
-    The ASAP-scheduled circuit output may become
-
-    .. parsed-literal::
-
-             ┌────────────────┐
-        q_0: ┤ Delay(160[dt]) ├──■──
-             └─────┬───┬──────┘┌─┴─┐
-        q_1: ──────┤ X ├───────┤ X ├
-                   └───┘       └───┘
-
-    Note that the additional idle time of 60dt on the ``q_0`` wire coming from the duration difference
-    between ``Delay`` of 100dt (``q_0``) and ``XGate`` of 160 dt (``q_1``) is absorbed in
-    the delay instruction on the ``q_0`` wire, i.e. in total 160 dt.
-
-    See :class:`BasePadding` pass for details.
-    """
-
-    def __init__(self, fill_very_end: bool = True):
-        """Create new padding delay pass.
-
-        Args:
-            fill_very_end: Set ``True`` to fill the end of circuit with delay.
-        """
-        super().__init__()
-        self.fill_very_end = fill_very_end
-
-    def _pad(
-        self,
-        dag: DAGCircuit,
-        qubit: Qubit,
-        t_start: int,
-        t_end: int,
-        next_node: DAGNode,
-        prev_node: DAGNode,
-    ):
-        if not self.fill_very_end and isinstance(next_node, DAGOutNode):
-            return
-
-        time_interval = t_end - t_start
-        self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag.unit), qubit)

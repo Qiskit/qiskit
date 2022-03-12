@@ -25,7 +25,7 @@ from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.passes.optimization import Optimize1qGates
-from qiskit.transpiler.passes.scheduling.padding import BasePadding
+from qiskit.transpiler.passes.scheduling.base_padding import BasePadding
 
 
 class DynamicalDecoupling(BasePadding):
