@@ -335,6 +335,54 @@ class TestUnroller(QiskitTestCase):
                         for ic3, ic4 in zip(param1.data, param2.data):
                             self.assertEqual(ic3[0], ic4[0])
 
+    def test_if_else_simple(self):
+        """Test a simple if-else statement unrolls correctly."""
+        qubits = [Qubit(), Qubit()]
+        clbits = [Clbit(), Clbit()]
+
+        qc = QuantumCircuit(qubits, clbits)
+        qc.h(0)
+        qc.measure(0, 0)
+        with qc.if_test((clbits[0], 0)) as else_:
+            qc.x(0)
+        with else_:
+            qc.z(0)
+        qc.h(0)
+        qc.measure(0, 1)
+        with qc.if_test((clbits[1], 0)) as else_:
+            qc.h(1)
+            qc.cx(1, 0)
+        with else_:
+            qc.h(0)
+            qc.cx(0, 1)
+        dag = circuit_to_dag(qc)
+        unrolled_dag = Unroller(["u", "cx"]).run(dag)
+        unrolled_circ = dag_to_circuit(unrolled_dag)
+
+        expected = QuantumCircuit(qubits, clbits)
+        expected.u(pi / 2, 0, pi, 0)
+        expected.measure(0, 0)
+        with expected.if_test((clbits[0], 0)) as else_:
+            expected.u(pi, 0, pi, 0)
+        with else_:
+            expected.u(0, 0, pi, 0)
+        expected.u(pi / 2, 0, pi, 0)
+        expected.measure(0, 1)
+        with expected.if_test((clbits[1], 0)) as else_:
+            expected.u(pi / 2, 0, pi, 1)
+            expected.cx(1, 0)
+        with else_:
+            expected.u(pi / 2, 0, pi, 0)
+            expected.cx(0, 1)
+
+        for ic1, ic2 in zip(unrolled_circ.data, expected.data):
+            inst1, inst2 = ic1[0], ic2[0]
+            if isinstance(inst1, ControlFlowOp):
+                for param1, param2 in zip(inst1.params, inst2.params):
+                    if isinstance(param1, QuantumCircuit):
+                        for ic3, ic4 in zip(param1.data, param2.data):
+                            self.assertEqual(ic3[0], ic4[0])
+                            
     def test_nested_control_flow(self):
         """Test unrolling nested control flow blocks."""
         qr = QuantumRegister(2)
@@ -372,8 +420,31 @@ class TestUnroller(QiskitTestCase):
                         for ic3, ic4 in zip(param1.data, param2.data):
                             self.assertEqual(ic3[0], ic4[0])
             
-            
-            
+    def test_parameterized_angle(self):
+        """Test unrolling with parameterized angle"""
+        qc = QuantumCircuit(1)
+        var = Parameter('x')
+        index = Parameter('index')
+        with qc.for_loop((0, 0.5 * pi), index) as param:
+            qc.rx(param, 0)
+        dag = circuit_to_dag(qc)
+        unrolled_dag = Unroller(["u", "Cx"]).run(dag)
+        unrolled_circ = dag_to_circuit(unrolled_dag)
+
+        for ic1, ic2 in zip(unrolled_circ.data, qc.data):
+            inst1, inst2 = ic1[0], ic2[0]
+            if isinstance(inst1, ControlFlowOp):
+                for param1, param2 in zip(inst1.params, inst2.params):
+                    #breakpoint()
+                    if isinstance(param1, QuantumCircuit):
+                        self.assertEqual(Operator(param1.assign_parameters({index: pi/3})),
+                                         Operator(param2.assign_parameters({index: pi/3})))
+                    else:
+                        self.assertEqual(param1, param2)
+            else:
+                self.assertEqual(inst1, inst2)
+            self.assertEqual(ic1[1], ic1[1])
+            self.assertEqual(ic1[2], ic1[2])            
 
 class TestUnrollAllInstructions(QiskitTestCase):
     """Test unrolling a circuit containing all standard instructions."""
