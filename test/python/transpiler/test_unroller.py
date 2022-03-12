@@ -422,7 +422,6 @@ class TestUnroller(QiskitTestCase):
     def test_parameterized_angle(self):
         """Test unrolling with parameterized angle"""
         qc = QuantumCircuit(1)
-        var = Parameter("x")
         index = Parameter("index")
         with qc.for_loop((0, 0.5 * pi), index) as param:
             qc.rx(param, 0)

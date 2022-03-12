@@ -15,7 +15,7 @@
 import copy
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import ControlledGate, ControlFlowOp, QuantumCircuit, Instruction
+from qiskit.circuit import ControlledGate, ControlFlowOp, QuantumCircuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
 
@@ -71,7 +71,6 @@ class Unroller(TransformationPass):
                     continue
 
             if isinstance(node.op, ControlFlowOp):
-                unrolled_blocks = []
                 # TODO: check whether ControlFlow bodies need unrolling before making new one.
                 new_params = []
                 for param in node.op.params:
