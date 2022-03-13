@@ -109,6 +109,7 @@ class DynamicalDecoupling(BasePadding):
         spacing: Optional[List[float]] = None,
         skip_reset_qubits: bool = True,
         pulse_alignment: int = 1,
+        extra_slack_distribution: str = "middle",
     ):
         """Dynamical decoupling initializer.
 
@@ -129,6 +130,17 @@ class DynamicalDecoupling(BasePadding):
                 This is usually provided from ``backend.configuration().timing_constraints``.
                 If provided, the delay length, i.e. ``spacing``, is implicitly adjusted to
                 satisfy this constraint.
+            extra_slack_distribution: The option to control the behavior of DD sequence generation.
+                The duration of the DD sequence should be identical to an idle time in the
+                scheduled quantum circuit, however, the delay in between gates comprising the sequence
+                should be integer number in units of dt, and it might be furter truncated
+                when ``pulse_alignment`` is specified. This sometimes results in the duration of
+                created sequence is shorter than the idle time that you want to fill with the sequence,
+                i.e. `extra slack`. This option takes following values.
+
+                    - "middle": Put the extra slack to the interval at the middle of the sequence.
+                    - "split_edges": Divide the extra slack as evenly as possible into
+                      intervals at begging and end of the sequence.
 
         Raises:
             TranspilerError: When invalid DD sequence is specified.
@@ -142,6 +154,7 @@ class DynamicalDecoupling(BasePadding):
         self._skip_reset_qubits = skip_reset_qubits
         self._alignment = pulse_alignment
         self._spacing = spacing
+        self._extra_slack_distribution = extra_slack_distribution
 
         self._dd_sequence_lengths = dict()
         self._sequence_phase = 0
@@ -299,10 +312,18 @@ class DynamicalDecoupling(BasePadding):
         taus = _constrained_length(slack * np.asarray(self._spacing))
         extra_slack = slack - np.sum(taus)
 
-        # (2) Distribute extra slack as evenly as possible
-        to_begin_edge = _constrained_length(extra_slack / 2)
-        taus[0] += to_begin_edge
-        taus[-1] += extra_slack - to_begin_edge
+        # (2) Distribute extra slack
+        if self._extra_slack_distribution == "middle":
+            mid_ind = int((len(taus) - 1) / 2)
+            taus[mid_ind] += extra_slack
+        elif self._extra_slack_distribution == "split_edges":
+            to_begin_edge = _constrained_length(extra_slack / 2)
+            taus[0] += to_begin_edge
+            taus[-1] += extra_slack - to_begin_edge
+        else:
+            raise TranspilerError(
+                f"Option extra_slack_distribution = {self._extra_slack_distribution} is invalid."
+            )
 
         # (3) Construct DD sequence with delays
         num_elements = max(len(self._dd_sequence), len(taus))

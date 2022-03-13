@@ -197,9 +197,9 @@ class TestDynamicalDecoupling(QiskitTestCase):
              ┌─────┴───┴─────┐ ┌─┴─┐└────────────────┘└───┘└────────────────┘└───┘»
         q_1: ┤ Delay(50[dt]) ├─┤ X ├───────────────────────────────────────────■──»
              ├───────────────┴┐├───┤┌────────────────┐┌───┐┌────────────────┐┌─┴─┐»
-        q_2: ┤ Delay(162[dt]) ├┤ Y ├┤ Delay(325[dt]) ├┤ Y ├┤ Delay(163[dt]) ├┤ X ├»
+        q_2: ┤ Delay(162[dt]) ├┤ Y ├┤ Delay(326[dt]) ├┤ Y ├┤ Delay(162[dt]) ├┤ X ├»
              ├────────────────┤├───┤├────────────────┤├───┤├────────────────┤└───┘»
-        q_3: ┤ Delay(212[dt]) ├┤ Y ├┤ Delay(425[dt]) ├┤ Y ├┤ Delay(213[dt]) ├─────»
+        q_3: ┤ Delay(212[dt]) ├┤ Y ├┤ Delay(426[dt]) ├┤ Y ├┤ Delay(212[dt]) ├─────»
              └────────────────┘└───┘└────────────────┘└───┘└────────────────┘     »
         «     ┌────────────────┐
         «q_0: ┤ Delay(100[dt]) ├─────────────────────────────────────────────
@@ -224,15 +224,15 @@ class TestDynamicalDecoupling(QiskitTestCase):
         expected = self.ghz4.copy()
         expected = expected.compose(Delay(50), [1], front=True)
 
-        expected = expected.compose(Delay(163), [2], front=True)
+        expected = expected.compose(Delay(162), [2], front=True)
         expected = expected.compose(YGate(), [2], front=True)
-        expected = expected.compose(Delay(325), [2], front=True)
+        expected = expected.compose(Delay(326), [2], front=True)
         expected = expected.compose(YGate(), [2], front=True)
         expected = expected.compose(Delay(162), [2], front=True)
 
-        expected = expected.compose(Delay(213), [3], front=True)
+        expected = expected.compose(Delay(212), [3], front=True)
         expected = expected.compose(YGate(), [3], front=True)
-        expected = expected.compose(Delay(425), [3], front=True)
+        expected = expected.compose(Delay(426), [3], front=True)
         expected = expected.compose(YGate(), [3], front=True)
         expected = expected.compose(Delay(212), [3], front=True)
 
@@ -263,18 +263,18 @@ class TestDynamicalDecoupling(QiskitTestCase):
         q_3: ┤ Delay(950[dt]) ├────────────────────────────┤ X ├───────────────────────»
              └────────────────┘                            └───┘                       »
         «           ┌───┐      ┌───────────────┐      ┌───┐      ┌───────────────┐»
-        «q_0: ──────┤ Y ├──────┤ Delay(75[dt]) ├──────┤ X ├──────┤ Delay(75[dt]) ├»
+        «q_0: ──────┤ Y ├──────┤ Delay(76[dt]) ├──────┤ X ├──────┤ Delay(75[dt]) ├»
         «     ┌─────┴───┴─────┐└─────┬───┬─────┘┌─────┴───┴─────┐└─────┬───┬─────┘»
-        «q_1: ┤ Delay(25[dt]) ├──────┤ Y ├──────┤ Delay(25[dt]) ├──────┤ X ├──────»
+        «q_1: ┤ Delay(25[dt]) ├──────┤ Y ├──────┤ Delay(26[dt]) ├──────┤ X ├──────»
         «     └───────────────┘      └───┘      └───────────────┘      └───┘      »
         «q_2: ────────────────────────────────────────────────────────────────────»
         «                                                                         »
         «q_3: ────────────────────────────────────────────────────────────────────»
         «                                                                         »
         «           ┌───┐      ┌───────────────┐
-        «q_0: ──────┤ Y ├──────┤ Delay(38[dt]) ├─────────────────
+        «q_0: ──────┤ Y ├──────┤ Delay(37[dt]) ├─────────────────
         «     ┌─────┴───┴─────┐└─────┬───┬─────┘┌───────────────┐
-        «q_1: ┤ Delay(25[dt]) ├──────┤ Y ├──────┤ Delay(13[dt]) ├
+        «q_1: ┤ Delay(25[dt]) ├──────┤ Y ├──────┤ Delay(12[dt]) ├
         «     └───────────────┘      └───┘      └───────────────┘
         «q_2: ───────────────────────────────────────────────────
         «
@@ -296,21 +296,21 @@ class TestDynamicalDecoupling(QiskitTestCase):
         expected = expected.compose(XGate(), [0])
         expected = expected.compose(Delay(75), [0])
         expected = expected.compose(YGate(), [0])
-        expected = expected.compose(Delay(75), [0])
+        expected = expected.compose(Delay(76), [0])
         expected = expected.compose(XGate(), [0])
         expected = expected.compose(Delay(75), [0])
         expected = expected.compose(YGate(), [0])
-        expected = expected.compose(Delay(38), [0])
+        expected = expected.compose(Delay(37), [0])
 
         expected = expected.compose(Delay(12), [1])
         expected = expected.compose(XGate(), [1])
         expected = expected.compose(Delay(25), [1])
         expected = expected.compose(YGate(), [1])
-        expected = expected.compose(Delay(25), [1])
+        expected = expected.compose(Delay(26), [1])
         expected = expected.compose(XGate(), [1])
         expected = expected.compose(Delay(25), [1])
         expected = expected.compose(YGate(), [1])
-        expected = expected.compose(Delay(13), [1])
+        expected = expected.compose(Delay(12), [1])
 
         self.assertEqual(ghz4_dd, expected)
 
@@ -424,7 +424,7 @@ class TestDynamicalDecoupling(QiskitTestCase):
         Physical Review Letters 98.10 (2007): 100504.
 
                    ┌───┐            ┌──────────────┐      ┌───┐       ┌──────────────┐┌───┐»
-        q_0: ──────┤ H ├─────────■──┤ Delay(4[dt]) ├──────┤ X ├───────┤ Delay(8[dt]) ├┤ X ├»
+        q_0: ──────┤ H ├─────────■──┤ Delay(3[dt]) ├──────┤ X ├───────┤ Delay(8[dt]) ├┤ X ├»
              ┌─────┴───┴─────┐ ┌─┴─┐└──────────────┘┌─────┴───┴──────┐└──────────────┘└───┘»
         q_1: ┤ Delay(50[dt]) ├─┤ X ├───────■────────┤ Delay(300[dt]) ├─────────────────────»
              ├───────────────┴┐└───┘     ┌─┴─┐      └────────────────┘                     »
@@ -433,7 +433,7 @@ class TestDynamicalDecoupling(QiskitTestCase):
         q_3: ┤ Delay(950[dt]) ├───────────────────────────┤ X ├────────────────────────────»
              └────────────────┘                           └───┘                            »
         «     ┌───────────────┐┌───┐┌───────────────┐┌───┐┌───────────────┐┌───┐┌───────────────┐»
-        «q_0: ┤ Delay(13[dt]) ├┤ X ├┤ Delay(16[dt]) ├┤ X ├┤ Delay(17[dt]) ├┤ X ├┤ Delay(16[dt]) ├»
+        «q_0: ┤ Delay(13[dt]) ├┤ X ├┤ Delay(16[dt]) ├┤ X ├┤ Delay(20[dt]) ├┤ X ├┤ Delay(16[dt]) ├»
         «     └───────────────┘└───┘└───────────────┘└───┘└───────────────┘└───┘└───────────────┘»
         «q_1: ───────────────────────────────────────────────────────────────────────────────────»
         «                                                                                        »
@@ -442,7 +442,7 @@ class TestDynamicalDecoupling(QiskitTestCase):
         «q_3: ───────────────────────────────────────────────────────────────────────────────────»
         «                                                                                        »
         «     ┌───┐┌───────────────┐┌───┐┌──────────────┐┌───┐┌──────────────┐
-        «q_0: ┤ X ├┤ Delay(13[dt]) ├┤ X ├┤ Delay(8[dt]) ├┤ X ├┤ Delay(5[dt]) ├
+        «q_0: ┤ X ├┤ Delay(13[dt]) ├┤ X ├┤ Delay(8[dt]) ├┤ X ├┤ Delay(3[dt]) ├
         «     └───┘└───────────────┘└───┘└──────────────┘└───┘└──────────────┘
         «q_1: ────────────────────────────────────────────────────────────────
         «
@@ -478,7 +478,7 @@ class TestDynamicalDecoupling(QiskitTestCase):
         expected = expected.compose(Delay(750), [2], front=True)
         expected = expected.compose(Delay(950), [3], front=True)
 
-        expected = expected.compose(Delay(4), [0])
+        expected = expected.compose(Delay(3), [0])
         expected = expected.compose(XGate(), [0])
         expected = expected.compose(Delay(8), [0])
         expected = expected.compose(XGate(), [0])
@@ -486,7 +486,7 @@ class TestDynamicalDecoupling(QiskitTestCase):
         expected = expected.compose(XGate(), [0])
         expected = expected.compose(Delay(16), [0])
         expected = expected.compose(XGate(), [0])
-        expected = expected.compose(Delay(17), [0])
+        expected = expected.compose(Delay(20), [0])
         expected = expected.compose(XGate(), [0])
         expected = expected.compose(Delay(16), [0])
         expected = expected.compose(XGate(), [0])
@@ -494,7 +494,7 @@ class TestDynamicalDecoupling(QiskitTestCase):
         expected = expected.compose(XGate(), [0])
         expected = expected.compose(Delay(8), [0])
         expected = expected.compose(XGate(), [0])
-        expected = expected.compose(Delay(5), [0])
+        expected = expected.compose(Delay(3), [0])
 
         expected = expected.compose(Delay(300), [1])
 
@@ -657,7 +657,12 @@ class TestDynamicalDecoupling(QiskitTestCase):
         pm = PassManager(
             [
                 ALAPSchedule(self.durations),
-                DynamicalDecoupling(self.durations, dd_sequence, pulse_alignment=10),
+                DynamicalDecoupling(
+                    self.durations,
+                    dd_sequence,
+                    pulse_alignment=10,
+                    extra_slack_distribution="split_edges",
+                ),
             ]
         )
 
