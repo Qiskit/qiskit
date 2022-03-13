@@ -418,8 +418,8 @@ class TestScore2qubit(QiskitTestCase):
 
     def test_single_cx(self):
         """Test scoring_function=two_q_score with a single CX in a 2qubit circuit."""
-        qr = QuantumRegister(2)
-        expected = Layout({qr[0]: 2, qr[1]: 4})
+        qr = QuantumRegister(2, name='qr')
+        expected = Layout({qr[0]: 4, qr[1]: 3})
 
         backend = FakeYorktown()
         cmap = CouplingMap(backend.configuration().coupling_map)
