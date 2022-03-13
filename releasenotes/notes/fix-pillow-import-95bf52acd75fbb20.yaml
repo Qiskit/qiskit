@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes a problem with importing the `pillow` module that
+    would make several of the drawers fail, including the
+    `dag` drawer` and the `latex` circuit drawer.
