@@ -315,7 +315,13 @@ class DynamicalDecoupling(BasePadding):
         # (2) Distribute extra slack
         if self._extra_slack_distribution == "middle":
             mid_ind = int((len(taus) - 1) / 2)
-            taus[mid_ind] += extra_slack
+            to_middle = _constrained_length(extra_slack)
+            taus[mid_ind] += to_middle
+            if extra_slack - to_middle:
+                # If to_middle is not a multiple value of the pulse alignment,
+                # it is truncated to the nearlest multiple value and
+                # the rest of slack is added to the end.
+                taus[-1] += extra_slack - to_middle
         elif self._extra_slack_distribution == "split_edges":
             to_begin_edge = _constrained_length(extra_slack / 2)
             taus[0] += to_begin_edge
