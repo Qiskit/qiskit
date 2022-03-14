@@ -25,12 +25,17 @@ from qiskit.opflow import (
     ExpectationBase,
 )
 from qiskit.providers import BaseBackend, Backend
+from qiskit.quantum_info import Statevector
 from qiskit.utils import QuantumInstance
 
 
 def eval_observables(
     quantum_instance: Union[QuantumInstance, BaseBackend, Backend],
-    quantum_state: QuantumCircuit,
+    quantum_state: Union[
+        Statevector,
+        QuantumCircuit,
+        OperatorBase,
+    ],
     observables: ListOrDict[OperatorBase],
     expectation: ExpectationBase,
     threshold: float = 1e-12,
@@ -58,6 +63,17 @@ def eval_observables(
         ValueError: If a ``quantum_state`` with free parameters is provided.
     """
 
+    if (
+        isinstance(
+            quantum_state, (QuantumCircuit, OperatorBase)
+        )  # Statevector cannot be parametrized
+        and len(quantum_state.parameters) > 0
+    ):
+        raise ValueError(
+            "A parametrized representation of a quantum_state was provided. It is not "
+            "allowed - it cannot have free parameters."
+        )
+
     # Create new CircuitSampler to avoid breaking existing one's caches.
     sampler = CircuitSampler(quantum_instance)
 
@@ -79,7 +95,7 @@ def eval_observables(
     # Discard values below threshold
     observables_means = values * (np.abs(values) > threshold)
     # zip means and standard deviations into tuples
-    observables_results = zip(observables_means, std_devs)
+    observables_results = list(zip(observables_means, std_devs))
 
     # Return None eigenvalues for None operators if observables is a list.
     # None operators are already dropped in compute_minimum_eigenvalue if observables is a dict.
