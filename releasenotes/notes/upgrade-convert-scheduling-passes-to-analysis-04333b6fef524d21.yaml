@@ -1,0 +1,41 @@
+---
+features:
+  - |
+    New transpiler pass :class:`~qiskit.transpiler.passes.scheduling.padding.PadDelay`
+    has been added. This pass fills idle time on the qubit wire with ``Delay`` instruction.
+    The input DAG should be scheduled in advance.
+upgrade:
+  - |
+    Scheduling passes :class:`~qiskit.transpiler.passes.scheduling.asap.ASAPSchedule` and
+    :class:`~qiskit.transpiler.passes.scheduling.alap.ALAPSchedule` have been turned into
+    analysis pass that does not modify the input DAG circuit.
+    Now these passes just analyze the time slot allocation of every ``DAGOpNode``s and
+    create a ``node_start_time`` dictionary in the pass manager property set,
+    instead of immediately injecting delays in between nodes with idle time.
+
+    Note that when directly assembling one's own pass manager, one should add
+    :class:`~qiskit.transpiler.passes.scheduling.padding.PadDelay` pass after the
+    scheduling pass for the delays to be applied to the circuit.
+
+    In Qiskit Terra < 0.20
+
+    .. code-block::python
+
+      from qiskit.transpiler.passes import ASAPSchedule
+      from qiskit.transpiler.passmanager import PassManager
+
+      pm = PassManager([ASAPSchedule(durations)])
+
+    In Qiskit Terra >= 0.20
+
+    .. code-block::python
+
+      from qiskit.transpiler.passes import ASAPSchedule, PadDelay
+      from qiskit.transpiler.passmanager import PassManager
+
+      pm = PassManager([ASAPSchedule(durations), PadDelay()])
+
+    This upgrade improves the performance of the entire pass manager, especially with
+    one of the alignment passes, or with a dynamical decoupling pass since
+    input DAG circuit is regenerated only once after the scheduling,
+    and the instruction start time is explicitly tracked in the pass manager.

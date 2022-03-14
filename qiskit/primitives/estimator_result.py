@@ -25,14 +25,16 @@ if TYPE_CHECKING:
 @dataclass(frozen=True)
 class EstimatorResult:
     """
-    Result of ExpectationValue
+    Result of Estimator
 
     .. code-block:: python
 
         result = estimator(circuits, observables, params)
 
-    where the i-th elements of `result` correspond to the expectation using the circuit and
-    observable given by `circuits[i]`, `observables[i]`, and the parameters bounds by `params[i]`.
+    where the i-th elements of ``result`` correspond to the circuit and observable given by
+    `circuits[i]`, `observables[i]`, and the parameters bounds by `params[i]`.
+    For example, ``results.values[i]`` gives the expectation value, and ``result.metadata[i]``
+    is a metadata dictionary for this circuit and parameters.
 
     Args:
         values (np.ndarray): the array of the expectation values.
