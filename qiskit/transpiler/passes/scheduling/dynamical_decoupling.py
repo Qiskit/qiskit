@@ -133,14 +133,15 @@ class DynamicalDecoupling(BasePadding):
             extra_slack_distribution: The option to control the behavior of DD sequence generation.
                 The duration of the DD sequence should be identical to an idle time in the
                 scheduled quantum circuit, however, the delay in between gates comprising the sequence
-                should be integer number in units of dt, and it might be furter truncated
+                should be integer number in units of dt, and it might be further truncated
                 when ``pulse_alignment`` is specified. This sometimes results in the duration of
-                created sequence is shorter than the idle time that you want to fill with the sequence,
-                i.e. `extra slack`. This option takes following values.
+                the created sequence being shorter than the idle time
+                that you want to fill with the sequence, i.e. `extra slack`.
+                This option takes following values.
 
                     - "middle": Put the extra slack to the interval at the middle of the sequence.
-                    - "split_edges": Divide the extra slack as evenly as possible into
-                      intervals at begging and end of the sequence.
+                    - "edges": Divide the extra slack as evenly as possible into
+                      intervals at beginning and end of the sequence.
 
         Raises:
             TranspilerError: When invalid DD sequence is specified.
@@ -322,7 +323,7 @@ class DynamicalDecoupling(BasePadding):
                 # it is truncated to the nearlest multiple value and
                 # the rest of slack is added to the end.
                 taus[-1] += extra_slack - to_middle
-        elif self._extra_slack_distribution == "split_edges":
+        elif self._extra_slack_distribution == "edges":
             to_begin_edge = _constrained_length(extra_slack / 2)
             taus[0] += to_begin_edge
             taus[-1] += extra_slack - to_begin_edge

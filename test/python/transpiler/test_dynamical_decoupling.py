@@ -661,7 +661,7 @@ class TestDynamicalDecoupling(QiskitTestCase):
                     self.durations,
                     dd_sequence,
                     pulse_alignment=10,
-                    extra_slack_distribution="split_edges",
+                    extra_slack_distribution="edges",
                 ),
             ]
         )
