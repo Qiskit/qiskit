@@ -21,17 +21,21 @@ from qiskit.opflow import (
     CircuitSampler,
     ListOp,
     StateFn,
-    CircuitStateFn,
     OperatorBase,
     ExpectationBase,
 )
 from qiskit.providers import BaseBackend, Backend
+from qiskit.quantum_info import Statevector
 from qiskit.utils import QuantumInstance
 
 
 def eval_observables(
     quantum_instance: Union[QuantumInstance, BaseBackend, Backend],
-    quantum_state: QuantumCircuit,
+    quantum_state: Union[
+        Statevector,
+        QuantumCircuit,
+        OperatorBase,
+    ],
     observables: ListOrDict[OperatorBase],
     expectation: ExpectationBase,
     threshold: float = 1e-12,
@@ -59,7 +63,12 @@ def eval_observables(
         ValueError: If a ``quantum_state`` with free parameters is provided.
     """
 
-    if len(quantum_state.parameters) > 0:
+    if (
+        isinstance(
+            quantum_state, (QuantumCircuit, OperatorBase)
+        )  # Statevector cannot be parametrized
+        and len(quantum_state.parameters) > 0
+    ):
         raise ValueError(
             "A parametrized quantum circuit representing a quantum_state was provided. It is not "
             "allowed - the circuit cannot have free parameters."
@@ -71,7 +80,7 @@ def eval_observables(
     list_op = _prepare_list_op(observables)
 
     observables_expect = expectation.convert(
-        StateFn(list_op, is_measurement=True).compose(CircuitStateFn(quantum_state))
+        StateFn(list_op, is_measurement=True).compose(StateFn(quantum_state))
     )
     observables_expect_sampled = sampler.convert(observables_expect)
 
@@ -86,7 +95,7 @@ def eval_observables(
     # Discard values below threshold
     observables_means = values * (np.abs(values) > threshold)
     # zip means and standard deviations into tuples
-    observables_results = zip(observables_means, std_devs)
+    observables_results = list(zip(observables_means, std_devs))
 
     # Return None eigenvalues for None operators if observables is a list.
     # None operators are already dropped in compute_minimum_eigenvalue if observables is a dict.
