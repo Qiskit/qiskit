@@ -18,6 +18,8 @@ from qiskit.transpiler import InstructionDurations, PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import (
     AlignMeasures,
+    InstructionDurationCheck,
+    ConstrainedReschedule,
     ValidatePulseGates,
     ALAPSchedule,
     PadDelay,
@@ -80,8 +82,8 @@ class TestAlignMeasures(QiskitTestCase):
                     clbit_write_latency=1600,
                     conditional_latency=0,
                 ),
+                ConstrainedReschedule(acquire_alignment=16),
                 PadDelay(),
-                AlignMeasures(alignment=16),
             ]
         )
 
@@ -134,8 +136,8 @@ class TestAlignMeasures(QiskitTestCase):
                     clbit_write_latency=1600,
                     conditional_latency=0,
                 ),
+                ConstrainedReschedule(acquire_alignment=16),
                 PadDelay(),
-                AlignMeasures(alignment=16),
             ]
         )
 
@@ -192,8 +194,8 @@ class TestAlignMeasures(QiskitTestCase):
                     clbit_write_latency=1600,
                     conditional_latency=0,
                 ),
+                ConstrainedReschedule(acquire_alignment=16),
                 PadDelay(),
-                AlignMeasures(alignment=16),
             ]
         )
 
@@ -261,8 +263,8 @@ class TestAlignMeasures(QiskitTestCase):
                     clbit_write_latency=1600,
                     conditional_latency=0,
                 ),
+                ConstrainedReschedule(acquire_alignment=16),
                 PadDelay(),
-                AlignMeasures(alignment=16),
             ]
         )
 
@@ -295,10 +297,12 @@ class TestAlignMeasures(QiskitTestCase):
 
         # pre scheduling is not necessary because alignment is skipped
         # this is to minimize breaking changes to existing code.
-        pm = PassManager(AlignMeasures(alignment=16))
-        aligned_circuit = pm.run(circuit)
+        pm = PassManager()
 
-        self.assertEqual(aligned_circuit, circuit)
+        pm.append(InstructionDurationCheck(acquire_alignment=16))
+        pm.run(circuit)
+
+        self.assertFalse(pm.property_set["reschedule_required"])
 
     def test_circuit_using_clbit(self):
         """Test a circuit with instructions using a common clbit.
@@ -347,8 +351,8 @@ class TestAlignMeasures(QiskitTestCase):
                     clbit_write_latency=1600,
                     conditional_latency=0,
                 ),
-                PadDelay(),
-                AlignMeasures(alignment=16),
+                ConstrainedReschedule(acquire_alignment=16),
+                PadDelay(fill_very_end=False),
             ]
         )
 
@@ -363,7 +367,6 @@ class TestAlignMeasures(QiskitTestCase):
         ref_circuit.delay(432, 2, unit="dt")  # 2032 - 1600
         ref_circuit.measure(0, 0)
         ref_circuit.x(1).c_if(0, 1)
-        ref_circuit.delay(160, 0, unit="dt")
         ref_circuit.measure(2, 0)
 
         self.assertEqual(aligned_circuit, ref_circuit)
@@ -374,7 +377,6 @@ class TestPulseGateValidation(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.pulse_gate_validation_pass = ValidatePulseGates(granularity=16, min_length=64)
 
     def test_invalid_pulse_duration(self):
         """Kill pass manager if invalid pulse gate is found."""
@@ -390,8 +392,11 @@ class TestPulseGateValidation(QiskitTestCase):
         circuit.x(0)
         circuit.add_calibration("x", qubits=(0,), schedule=custom_gate)
 
+        pm = PassManager(
+            ValidatePulseGates(granularity=16, min_length=64)
+        )
         with self.assertRaises(TranspilerError):
-            self.pulse_gate_validation_pass(circuit)
+            pm.run(circuit)
 
     def test_short_pulse_duration(self):
         """Kill pass manager if invalid pulse gate is found."""
@@ -407,8 +412,11 @@ class TestPulseGateValidation(QiskitTestCase):
         circuit.x(0)
         circuit.add_calibration("x", qubits=(0,), schedule=custom_gate)
 
+        pm = PassManager(
+            ValidatePulseGates(granularity=16, min_length=64)
+        )
         with self.assertRaises(TranspilerError):
-            self.pulse_gate_validation_pass(circuit)
+            pm.run(circuit)
 
     def test_short_pulse_duration_multiple_pulse(self):
         """Kill pass manager if invalid pulse gate is found."""
@@ -428,8 +436,11 @@ class TestPulseGateValidation(QiskitTestCase):
         circuit.x(0)
         circuit.add_calibration("x", qubits=(0,), schedule=custom_gate)
 
+        pm = PassManager(
+            ValidatePulseGates(granularity=16, min_length=64)
+        )
         with self.assertRaises(TranspilerError):
-            self.pulse_gate_validation_pass(circuit)
+            pm.run(circuit)
 
     def test_valid_pulse_duration(self):
         """No error raises if valid calibration is provided."""
@@ -445,7 +456,10 @@ class TestPulseGateValidation(QiskitTestCase):
         circuit.add_calibration("x", qubits=(0,), schedule=custom_gate)
 
         # just not raise an error
-        self.pulse_gate_validation_pass(circuit)
+        pm = PassManager(
+            ValidatePulseGates(granularity=16, min_length=64)
+        )
+        pm.run(circuit)
 
     def test_no_calibration(self):
         """No error raises if no calibration is addedd."""
@@ -454,4 +468,7 @@ class TestPulseGateValidation(QiskitTestCase):
         circuit.x(0)
 
         # just not raise an error
-        self.pulse_gate_validation_pass(circuit)
+        pm = PassManager(
+            ValidatePulseGates(granularity=16, min_length=64)
+        )
+        pm.run(circuit)

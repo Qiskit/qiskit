@@ -90,7 +90,7 @@ class ConstrainedReschedule(AnalysisPass):
             A list of non-delay successors.
         """
         op_nodes = []
-        for next_node in dag.successors(node):
+        for next_node in dag.quantum_successors(node):
             if isinstance(next_node, DAGOutNode):
                 continue
             if isinstance(next_node.op, Delay):
@@ -166,6 +166,10 @@ class ConstrainedReschedule(AnalysisPass):
         node_start_time = self.property_set["node_start_time"]
 
         for node in dag.topological_op_nodes():
+            if node_start_time[node] == 0:
+                # Every instruction can start at t=0
+                continue
+
             if isinstance(node.op, Gate):
                 alignment = self.pulse_align
             elif isinstance(node.op, Measure):
@@ -175,7 +179,10 @@ class ConstrainedReschedule(AnalysisPass):
                 continue
 
             try:
-                shift = max(0, alignment - node_start_time[node] % alignment)
+                misalignment = node_start_time[node] % alignment
+                if misalignment == 0:
+                    continue
+                shift = max(0, alignment - misalignment)
             except KeyError as ex:
                 raise TranspilerError(
                     f"Start time of {repr(node)} is not found. This node is likely added after "
