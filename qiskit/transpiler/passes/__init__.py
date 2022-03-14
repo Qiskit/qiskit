@@ -104,8 +104,10 @@ Scheduling
    ALAPSchedule
    ASAPSchedule
    DynamicalDecoupling
+   ConstrainedReschedule
    AlignMeasures
    ValidatePulseGates
+   InstructionDurationCheck
 
 Circuit Analysis
 ================
@@ -227,7 +229,7 @@ from .scheduling import TimeUnitConversion
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
 from .scheduling import DynamicalDecoupling
-from .scheduling import AlignMeasures
+from .scheduling import AlignMeasures  # Deprecated
 from .scheduling import ValidatePulseGates
 from .scheduling import PadDelay
 from .scheduling import ConstrainedReschedule
