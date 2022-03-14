@@ -122,7 +122,7 @@ def convert_to_target(conf_dict: dict, props_dict: dict = None, defs_dict: dict 
     return target
 
 
-def qubit_props_dict_from_props_dict(properties: dict) -> dict:
+def qubit_props_from_props(properties: dict) -> dict:
     """Returns a dictionary of `qiskit.providers.backend.QubitProperties` using
     a backend properties dictionary created by loading props.json payload.
     """

@@ -36,7 +36,7 @@ from qiskit.test.mock.utils.json_decoder import (
 )
 from qiskit.test.mock.utils.backend_converter import (
     convert_to_target,
-    qubit_props_dict_from_props_dict,
+    qubit_props_from_props,
 )
 from qiskit.utils import optionals as _optionals
 from qiskit.providers import basicaer
@@ -78,7 +78,7 @@ class FakeBackendV2(BackendV2):
             props_dict=self._props_dict,
             defs_dict=self._defs_dict,
         )
-        self._qubit_properties = qubit_props_dict_from_props_dict(self._props_dict)
+        self._qubit_properties = qubit_props_from_props(self._props_dict)
 
     def _get_conf_dict_from_json(self) -> dict:
         if not self.conf_filename:
