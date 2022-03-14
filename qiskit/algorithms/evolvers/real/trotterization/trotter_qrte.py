@@ -119,7 +119,7 @@ class TrotterQrte(RealEvolver):
             if self._quantum_instance is not None and self._expectation is not None:
                 evaluated_aux_ops = eval_observables(
                     self._quantum_instance,
-                    evolved_state,
+                    quantum_state.primitive,
                     evolution_problem.aux_operators,
                     self._expectation,
                     1e-8,  # TODO algorithms.global
@@ -129,7 +129,7 @@ class TrotterQrte(RealEvolver):
                     "aux_operators where provided for evaluations but no expectation was provided."
                 )
 
-        return EvolutionResult(evolved_state, evaluated_aux_ops)
+        return EvolutionResult(evolved_state.eval(), evaluated_aux_ops)
 
     @staticmethod
     def _try_binding_params(

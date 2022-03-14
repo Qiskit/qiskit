@@ -65,13 +65,8 @@ def eval_observables(
 
     list_op = _prepare_list_op(observables)
 
-    if isinstance(quantum_state, VectorStateFn):
-        quantum_state = quantum_state.to_circuit_op()
-    elif isinstance(quantum_state, QuantumCircuit):
-        quantum_state = CircuitStateFn(quantum_state)
-
     observables_expect = expectation.convert(
-        StateFn(list_op, is_measurement=True).compose(quantum_state)
+        StateFn(list_op, is_measurement=True).compose(StateFn(quantum_state))
     )
     observables_expect_sampled = sampler.convert(observables_expect)
 
