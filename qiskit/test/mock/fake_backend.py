@@ -186,11 +186,7 @@ class FakeBackendV2(BackendV2):
             from qiskit.providers import aer
 
             if pulse_job:
-                from qiskit.providers.aer.pulse import PulseSystemModel
-
-                system_model = PulseSystemModel.from_backend(self)
-                sim = aer.Aer.get_backend("pulse_simulator")
-                job = sim.run(circuits, system_model=system_model, **kwargs)
+                raise QiskitError("Pulse simulation is currently not supported for V2 backends.")
             else:
                 sim = aer.Aer.get_backend("qasm_simulator")
                 if self._props_dict:
