@@ -27,6 +27,9 @@ from ...state_fns.circuit_state_fn import CircuitStateFn
 from ..circuit_gradients.lin_comb import LinComb
 from .circuit_qfi import CircuitQFI
 
+# error tolerance variable
+e_tol = 1e-8
+
 
 class LinCombFull(CircuitQFI):
     r"""Compute the full Quantum Fisher Information (QFI).
@@ -69,14 +72,9 @@ class LinCombFull(CircuitQFI):
         qfi_observable = StateFn(4 * aux_meas_op ^ (I ^ operator.num_qubits), is_measurement=True)
         if aux_meas_op not in [Z, -Y, (Z - 1j * Y)]:
             raise ValueError(
-                "This auxiliary measurement operator is currently not supported please choose "
+                "This auxiliary measurement operator is currently not supported. Please choose "
                 "either Z, -Y, or Z-1jY. "
             )
-        if phase_fix:
-            phase_fix_observable = SummedOp(
-                [Z ^ (I ^ operator.num_qubits), -1j * Y ^ (I ^ operator.num_qubits)]
-            )
-        # see https://arxiv.org/pdf/quant-ph/0108146.pdf
 
         # Check if the given operator corresponds to a quantum state given as a circuit.
         if not isinstance(operator, CircuitStateFn):
@@ -94,6 +92,10 @@ class LinCombFull(CircuitQFI):
         if phase_fix:
             # First, the operators are computed which can compensate for a potential phase-mismatch
             # between target and trained state, i.e.〈ψ|∂lψ〉
+            phase_fix_observable = SummedOp(
+                [Z ^ (I ^ operator.num_qubits), -1j * Y ^ (I ^ operator.num_qubits)]
+            )
+            # see https://arxiv.org/pdf/quant-ph/0108146.pdf
             gradient_states = LinComb()._gradient_states(
                 operator,
                 meas_op=phase_fix_observable,
@@ -228,7 +230,7 @@ def check_and_realpart(x: Union[List[float], np.ndarray]) -> np.ndarray:
         ValueError: If ``x`` has non-negligible imaginary components
 
     """
-    if np.any([[np.abs(np.imag(x_item)) > 1e-8 for x_item in x_row] for x_row in x]):
+    if np.any([[np.abs(np.imag(x_item)) > e_tol for x_item in x_row] for x_row in x]):
         raise ValueError(
             "The imaginary parts are non-negligible. Please "
             "increase the number of backend shots."

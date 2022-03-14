@@ -344,7 +344,6 @@ class LinComb(CircuitGradient):
             if isinstance(item, Iterable):
                 # Generate the operator which computes the linear combination
                 lin_comb_op = 4 * (I ^ (state_op.num_qubits + 1)) ^ Z
-                # lin_comb_op = 4 * (I ^ (state_op.num_qubits + 1)) ^ aux_meas_op
                 lin_comb_op = lin_comb_op.to_matrix()
                 return list(
                     np.diag(
