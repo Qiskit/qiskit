@@ -484,6 +484,26 @@ class Target(Mapping):
             raise KeyError(f"{qargs} not in target.")
         return [self._gate_name_map[x] for x in self._qarg_gate_map[qargs]]
 
+    def instruction_supported(self, operation_name, qargs):
+        """Return whether the instruction (operation + qubits) is supported by the target
+
+        Args:
+            operation_name (str): The name of the operation for the instruction
+            qargs (tuple): The tuple of qubit indices for the instruction
+
+        Returns:
+            bool: Returns ``True`` if the instruction is supported and ``False`` if it isn't.
+
+        """
+        if operation_name in self._gate_map:
+            if (
+                qargs not in self._gate_map[operation_name]
+                or self._gate_map[operation_name] is None
+                or None in self._gate_map[operation_name]
+            ):
+                return True
+        return False
+
     @property
     def operation_names(self):
         """Get the operation names in the target."""
