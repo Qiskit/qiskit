@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Primitives (:mod:`qiskit.quantum_info.primitives`)
+Primitives
 ==================================================
 It contains a reference implementation of the primitives.
 """
