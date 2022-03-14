@@ -53,6 +53,7 @@ from qiskit.transpiler.passes import TimeUnitConversion
 from qiskit.transpiler.passes import ALAPSchedule
 from qiskit.transpiler.passes import ASAPSchedule
 from qiskit.transpiler.passes import ConstrainedReschedule
+from qiskit.transpiler.passes import InstructionDurationCheck
 from qiskit.transpiler.passes import ValidatePulseGates
 from qiskit.transpiler.passes import PulseGates
 from qiskit.transpiler.passes import PadDelay
@@ -331,11 +332,22 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         or timing_constraints.pulse_alignment != 1
     ):
         # Run alignment analysis regardless of scheduling.
+
+        def _require_alignment(property_set):
+            return property_set["reschedule_required"]
+
+        pm1.append(
+            InstructionDurationCheck(
+                acquire_alignment=timing_constraints.acquire_alignment,
+                pulse_alignment=timing_constraints.pulse_alignment,
+            )
+        )
         pm1.append(
             ConstrainedReschedule(
                 acquire_alignment=timing_constraints.acquire_alignment,
                 pulse_alignment=timing_constraints.pulse_alignment,
-            )
+            ),
+            condition=_require_alignment,
         )
         pm1.append(
             ValidatePulseGates(

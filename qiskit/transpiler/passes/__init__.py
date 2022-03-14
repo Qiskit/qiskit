@@ -231,6 +231,7 @@ from .scheduling import AlignMeasures
 from .scheduling import ValidatePulseGates
 from .scheduling import PadDelay
 from .scheduling import ConstrainedReschedule
+from .scheduling import InstructionDurationCheck
 
 # additional utility passes
 from .utils import CheckMap
