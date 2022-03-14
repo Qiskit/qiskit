@@ -472,8 +472,8 @@ class NaturalGradient(GradientBase):
         Solve a linear system of equations with a regularization method and automatic lambda fitting
 
         Args:
-            metric: mxn matrix
-            gradient: m vector
+            metric: Matrix of size mxn.
+            gradient: Vector of size m.
             regularization: Regularization scheme to be used: 'ridge', 'lasso',
                 'perturb_diag_elements' or 'perturb_diag'
             lambda1: left starting point for L-curve corner search (for 'ridge' and 'lasso')
