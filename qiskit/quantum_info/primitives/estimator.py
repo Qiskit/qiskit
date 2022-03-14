@@ -36,7 +36,7 @@ class Estimator(BaseEstimator):
 
     def __init__(
         self,
-        circuits: QuantumCircuit | Iterable[QuantumCircuit],
+        circuits: QuantumCircuit | Statevector | Iterable[QuantumCircuit] | Iterable[Statevector],
         observables: BaseOperator | PauliSumOp | Iterable[BaseOperator | PauliSumOp],
         parameters: Optional[Iterable[Iterable[Parameter]]] = None,
     ):

@@ -91,7 +91,7 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     ``_final_measurement_mapping`` of
     `mthree <https://github.com/Qiskit-Partners/mthree>`_.
 
-    Parameters:
+    Args:
         circuit: Input Qiskit QuantumCircuit.
 
     Returns:

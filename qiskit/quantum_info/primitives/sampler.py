@@ -37,13 +37,6 @@ class Sampler(BaseSampler):
         circuits: QuantumCircuit | Iterable[QuantumCircuit],
         parameters: Iterable[Iterable[Parameter]] | None = None,
     ):
-        """
-        Args:
-            circuits: circuits to be executed
-
-        Raises:
-            QiskitError: if some classical bits are not used for measurements.
-        """
         if isinstance(circuits, QuantumCircuit):
             circuits = [circuits]
         circuits = [init_circuit(circuit) for circuit in circuits]
