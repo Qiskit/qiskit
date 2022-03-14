@@ -174,7 +174,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if layout_method == "trivial":
         _improve_layout = TrivialLayout(coupling_map)
     elif layout_method == "dense":
-        _improve_layout = DenseLayout(coupling_map, backend_properties)
+        _improve_layout = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
         _improve_layout = NoiseAdaptiveLayout(backend_properties)
     elif layout_method == "sabre":
