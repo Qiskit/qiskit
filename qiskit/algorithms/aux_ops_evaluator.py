@@ -70,8 +70,8 @@ def eval_observables(
         and len(quantum_state.parameters) > 0
     ):
         raise ValueError(
-            "A parametrized quantum circuit representing a quantum_state was provided. It is not "
-            "allowed - the circuit cannot have free parameters."
+            "A parametrized representation of a quantum_state was provided. It is not "
+            "allowed - it cannot have free parameters."
         )
 
     # Create new CircuitSampler to avoid breaking existing one's caches.
