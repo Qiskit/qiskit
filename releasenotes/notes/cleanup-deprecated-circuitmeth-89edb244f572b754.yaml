@@ -26,6 +26,8 @@ upgrade:
       :class:`~qiskit.circuit.library.C3XGate`.
 
   - |
-    Passing ``np.ndarray``s into the :meth:`qiskit.circuit.Gate.validate` parameters
-    has been deprecated since Qiskit Terra 0.16.0 and is now unsupported. Instead,
-    one has to create a new subclass and explicitly allow ``np.ndarray`` as input.
+    Support for using ``np.ndarray`` objects as part of the :attr:`~qiskit.circuit.Gate.params` attribute
+    of a :class:`~qiskit.circuit.Gate` object has been removed. This has been deprecated
+    since Qiskit Terra 0.16.0 and now will no longer work. Instead one should create a new subclass
+    of :class:`~qiskit.circuit.Gate` and explicitly allow a ``np.ndarray`` input by overloading the
+    :meth:`~.Gate.validate_parameter` method.
