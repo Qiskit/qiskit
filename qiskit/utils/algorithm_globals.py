@@ -35,6 +35,7 @@ class QiskitAlgorithmGlobals:
         self._num_processes = QiskitAlgorithmGlobals.CPU_COUNT
         self._random = None
         self._massive = False
+        self._numerical_tolerance_at_0 = 1e-12
         try:
             settings = get_config()
             self.num_processes = settings.get("num_processes", QiskitAlgorithmGlobals.CPU_COUNT)
@@ -100,6 +101,16 @@ class QiskitAlgorithmGlobals:
     def massive(self, massive: bool) -> None:
         """Set massive to allow processing of large matrices or  vectors."""
         self._massive = massive
+
+    @property
+    def numerical_tolerance_at_0(self) -> float:
+        """Return numerical tolerance."""
+        return self._numerical_tolerance_at_0
+
+    @numerical_tolerance_at_0.setter
+    def numerical_tolerance_at_0(self, numerical_tolerance_at_0: float) -> None:
+        """Set numerical tolerance."""
+        self._numerical_tolerance_at_0 = numerical_tolerance_at_0
 
 
 # Global instance to be used as the entry point for globals.

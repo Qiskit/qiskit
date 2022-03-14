@@ -21,10 +21,8 @@ from qiskit.opflow import (
     CircuitSampler,
     ListOp,
     StateFn,
-    CircuitStateFn,
     OperatorBase,
     ExpectationBase,
-    VectorStateFn,
 )
 from qiskit.providers import BaseBackend, Backend
 from qiskit.utils import QuantumInstance

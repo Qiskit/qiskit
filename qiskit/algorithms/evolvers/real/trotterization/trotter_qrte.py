@@ -23,11 +23,12 @@ from qiskit.opflow import (
     CircuitOp,
     ExpectationBase,
     CircuitSampler,
+    PauliSumOp,
 )
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.providers import Backend, BaseBackend
 from qiskit.synthesis import ProductFormula, LieTrotter
-from qiskit.utils import QuantumInstance
+from qiskit.utils import QuantumInstance, algorithm_globals
 from .trotter_ops_validator import is_op_bound
 
 
@@ -77,7 +78,6 @@ class TrotterQrte(RealEvolver):
     def supports_aux_operators(cls) -> bool:
         return True
 
-    # TODO aux ops
     def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
         """
         Evolves a quantum state for a given time using the Trotterization method
@@ -85,7 +85,8 @@ class TrotterQrte(RealEvolver):
         Time-dependent Hamiltonians are not yet supported.
 
         Args:
-            evolution_problem: Instance defining evolution problem.
+            evolution_problem: Instance defining evolution problem. For the included Hamiltonian,
+                only SummedOp, PauliOp, PauliSumOp are supported by TrotterQrte.
 
         Returns:
             Evolution result that includes an evolved state.
@@ -122,7 +123,7 @@ class TrotterQrte(RealEvolver):
                     quantum_state.primitive,
                     evolution_problem.aux_operators,
                     self._expectation,
-                    1e-8,  # TODO algorithms.global
+                    algorithm_globals.numerical_tolerance_at_0,
                 )
             else:
                 raise ValueError(
@@ -133,16 +134,15 @@ class TrotterQrte(RealEvolver):
 
     @staticmethod
     def _try_binding_params(
-        hamiltonian: Union[SummedOp, PauliOp, OperatorBase],
+        hamiltonian: Union[SummedOp, PauliOp, PauliSumOp],
         hamiltonian_value_dict: Dict[Parameter, Union[float, complex]],
     ) -> Union[SummedOp, PauliOp, OperatorBase]:
         """
         Tries binding parameters in a Hamiltonian.
 
         Args:
-            hamiltonian: The Hamiltonian of that defines an evolution. Can also be provided as list
-                of non-commuting operators where the elements are sums of commuting operators.
-                For example: ``[XY + YX, ZZ + ZI + IZ, YY]``.
+            hamiltonian: The Hamiltonian of that defines an evolution. Only SummedOp, PauliOp,
+                PauliSumOp are supported by TrotterQrte.
             hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
                 certain values.
 
@@ -165,7 +165,7 @@ class TrotterQrte(RealEvolver):
                 op_list.append(op_bound)
             return sum(op_list)
         elif isinstance(
-            hamiltonian, (PauliOp, OperatorBase)
+            hamiltonian, (PauliOp, PauliSumOp)
         ):  # in case there is only a single summand
             if hamiltonian_value_dict is not None:
                 op_bound = hamiltonian.bind_parameters(hamiltonian_value_dict)
@@ -177,5 +177,5 @@ class TrotterQrte(RealEvolver):
         else:
             raise ValueError(
                 f"Provided a Hamiltonian of an unsupported type: {type(hamiltonian)}. Only "
-                f"SummedOp, PauliOp, and OperatorBase base are supported by TrotterQrte."
+                f"SummedOp, PauliOp base are supported by TrotterQrte."
             )
