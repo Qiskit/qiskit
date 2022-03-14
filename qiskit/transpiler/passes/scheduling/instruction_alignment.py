@@ -28,7 +28,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 class ConstrainedReschedule(AnalysisPass):
     """Rescheduler pass that updates node start times to conform to the hardware alignments.
 
-    This is a control electronics aware optimization pass.
+    This is a control electronics aware analysis pass.
 
     In many quantum computing architectures gates (instructions) are implemented with
     shaped analog stimulus signals. These signals are digitally stored in the
@@ -56,15 +56,15 @@ class ConstrainedReschedule(AnalysisPass):
     Pulse alignment constraints
 
         This value is reported by ``timing_constraints["pulse_alignment"]`` in the backend
-        configuration in units of dt. The start time of the all microwave pulses should be
+        configuration in units of dt. The start time of the all pulse instruction should be
         multiple of this value. Violation of this constraint may result in the
         backend execution failure.
 
         In most of the senarios, the scheduled start time of ``DAGOpNode`` corresponds to the
-        start time of the microwave pulse composing the node operation.
+        start time of the underlying pulse instruction composing the node operation.
         However, this assumption can be intentionally broken by defining a pulse gate,
         i.e. calibration, with the schedule involving pre-buffer, i.e. some random pulse delay
-        followed by a microwave pulse. Because this pass is not aware of such edge case,
+        followed by a pulse instruction. Because this pass is not aware of such edge case,
         the user must take special care of pulse gates if any.
 
     Acquire alignment constraints
@@ -182,9 +182,9 @@ class ConstrainedReschedule(AnalysisPass):
 
         Based on the configurations above, rescheduler pass takes following strategy.
 
-        1. Scan node from the begging, i.e. from left of the circuit. The rescheduler
+        1. Scan node from the beginning, i.e. from left of the circuit. The rescheduler
             calls ``node_start_time`` from the property set,
-            and retrieve the scheduled start time of current node.
+            and retrieves the scheduled start time of current node.
         2. If the start time of the node violates the alignment constraints,
             the scheduler increases the start time until it satisfies the constraint.
         3. Check overlap with successor nodes. If any overlap occurs, the rescheduler
@@ -192,7 +192,7 @@ class ConstrainedReschedule(AnalysisPass):
             Note that shifted location doesn't need to satisfy the constraints,
             thus it will be a minimum delay to resolve the overlap with the ancestor node.
         4. Repeat 1-3 until the node at the end of the wire. This will resolve
-            all misalignment wihtout inducing the overlap between the node.
+            all misalignment without creating overlap between the nodes.
 
         Args:
             dag: DAG circuit to be rescheduled with constraints.
@@ -231,7 +231,7 @@ class ConstrainedReschedule(AnalysisPass):
         # If this pass detect any violation risk, it will ask user to schedule the circuit.
         if "node_start_time" not in self.property_set:
             raise TranspilerError(
-                f"Input DAG {dag.name} likely need alignment but no scheduling is performed. "
+                f"Input DAG {dag.name} likely needs alignment but no scheduling is performed. "
                 "Set scheduling method or add explicit scheduling pass to the pass manager."
             )
         node_start_time = self.property_set["node_start_time"]
