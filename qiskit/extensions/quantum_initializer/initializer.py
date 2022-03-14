@@ -19,6 +19,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import Instruction, Operation
 from .state_preparation import StatePreparation
+from qiskit.exceptions import QiskitError
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -81,6 +82,17 @@ class Initialize(Instruction, Operation):
     def params(self, parameters):
         """Set initialize params."""
         self._stateprep.params = parameters
+
+    def broadcast_arguments(self, qargs, cargs):
+        flat_qargs = [qarg for sublist in qargs for qarg in sublist]
+
+        if self.num_qubits != len(flat_qargs):
+            raise QiskitError(
+                "Initialize parameter vector has %d elements, therefore expects %s "
+                "qubits. However, %s were provided."
+                % (2**self.num_qubits, self.num_qubits, len(flat_qargs))
+            )
+        yield flat_qargs, []
 
 
 def initialize(self, params, qubits=None):

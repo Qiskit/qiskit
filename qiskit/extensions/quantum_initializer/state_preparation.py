@@ -487,4 +487,5 @@ def prepare_state(self, state, qubits=None):
 
     return self.append(StatePreparation(state, num_qubits), qubits)
 
+
 QuantumCircuit.prepare_state = prepare_state
