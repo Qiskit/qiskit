@@ -221,7 +221,6 @@ class FakeBackendV2(BackendV2):
         This is a temporary fix until Aer supports V2 backends.
         """
 
-        from warnings import catch_warnings, filterwarnings
         from qiskit.circuit import Delay
         from qiskit.providers.exceptions import BackendPropertyError
         from qiskit.providers.aer.noise import NoiseModel
@@ -245,8 +244,8 @@ class FakeBackendV2(BackendV2):
                 noise_model.add_readout_error(error, qubits, warnings=warnings)
 
         # Add gate errors
-        with catch_warnings():
-            filterwarnings(
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
                 "ignore",
                 category=DeprecationWarning,
                 module="qiskit.providers.aer.noise.device.models",
