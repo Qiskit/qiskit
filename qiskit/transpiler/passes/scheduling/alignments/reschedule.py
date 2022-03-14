@@ -14,14 +14,11 @@
 
 from typing import List
 
-import warnings
-
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.measure import Measure
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGOutNode
-from qiskit.pulse import Play
-from qiskit.transpiler.basepasses import TransformationPass, AnalysisPass
+from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 
 
@@ -162,9 +159,9 @@ class ConstrainedReschedule(AnalysisPass):
 
         if "node_start_time" not in self.property_set:
             raise TranspilerError(
-                 f"The input circuit {dag.name} is not scheduled. Call one of scheduling passes "
-                 f"before running the {self.__class__.__name__} pass."
-             )
+                f"The input circuit {dag.name} is not scheduled. Call one of scheduling passes "
+                f"before running the {self.__class__.__name__} pass."
+            )
 
         node_start_time = self.property_set["node_start_time"]
 

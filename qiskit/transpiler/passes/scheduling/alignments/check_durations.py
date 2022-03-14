@@ -9,7 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
+"""A pass to check if input circuit requires reschedule."""
 
 from qiskit.circuit.delay import Delay
 from qiskit.dagcircuit import DAGCircuit
@@ -19,14 +19,14 @@ from qiskit.transpiler.basepasses import AnalysisPass
 class InstructionDurationCheck(AnalysisPass):
     """Duration validation pass for reschedule.
 
-     This pass investigates the input quantum circuit and checks if the circuit requres
-     rescheduling for execution. Note that this pass can be triggered without scheduling.
-     This pass only checks the duration of delay instructions and user defined pulse gates,
-     which report duration values without pre-scheduling.
+    This pass investigates the input quantum circuit and checks if the circuit requres
+    rescheduling for execution. Note that this pass can be triggered without scheduling.
+    This pass only checks the duration of delay instructions and user defined pulse gates,
+    which report duration values without pre-scheduling.
 
-     This pass assumes backend supported instructions, i.e. basis gates, have no violation
-     of the hardware alignment constraints, which is true in general.
-     """
+    This pass assumes backend supported instructions, i.e. basis gates, have no violation
+    of the hardware alignment constraints, which is true in general.
+    """
 
     def __init__(
         self,

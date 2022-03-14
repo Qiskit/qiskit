@@ -47,12 +47,12 @@ from qiskit.transpiler.passes import TimeUnitConversion
 from qiskit.transpiler.passes import ALAPSchedule
 from qiskit.transpiler.passes import ASAPSchedule
 from qiskit.transpiler.passes import ConstrainedReschedule
+from qiskit.transpiler.passes import InstructionDurationCheck
 from qiskit.transpiler.passes import ValidatePulseGates
 from qiskit.transpiler.passes import PulseGates
 from qiskit.transpiler.passes import PadDelay
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import ContainsInstruction
-from qiskit.transpiler.passes import InstructionDurationCheck
 
 from qiskit.transpiler import TranspilerError
 
