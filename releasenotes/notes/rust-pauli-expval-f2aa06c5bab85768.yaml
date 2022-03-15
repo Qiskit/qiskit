@@ -1,0 +1,16 @@
+---
+features:
+  - |
+    The internal computations of :class:`.Statevector.expectation_value` and
+    :class:`.DensityMatrix.expectation_value methods have been reimplemented
+    in the Rust programming language. This new implementation is multithreaded
+    and by default for a :class:`~.Statevector` or :class:`~.DensityMatrix`
+    >= 19 qubits will spawn a thread pool with the number of logical CPUs
+    available on the local system. You can you can control the number of
+    threads used by setting the ``RAYON_NUM_THREADS`` environment variable to
+    an integer value. For example, setting ``RAYON_NUM_THREADS=4`` will only
+    use 4 threads in the thread pool.
+upgrade:
+  - |
+    Cython is no longer a build dependency of Qiskit Terra and is no longer
+    required to be installed when building Qiskit Terra from source.
