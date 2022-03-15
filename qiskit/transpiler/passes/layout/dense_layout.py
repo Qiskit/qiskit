@@ -147,6 +147,11 @@ def _build_error_matrix(num_qubits, target=None, coupling_map=None, backend_prop
             for op in ops:
                 props = target[op][qargs]
                 if props is not None and props.error is not None:
+                    # Use max error rate to represent operation error
+                    # on a qubit(s). If there is more than 1 operation available
+                    # we don't know what will be used on the qubits eventually
+                    # so we take the highest error operation as a proxy for
+                    # the possible worst case.
                     error = max(error, props.error)
             max_error = error
             # TODO: Factor in T1 and T2 to error matrix after #7736
