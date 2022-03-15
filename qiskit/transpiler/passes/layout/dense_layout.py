@@ -81,12 +81,16 @@ class DenseLayout(AnalysisPass):
         num_cx = 0
         num_meas = 0
 
-        # Get avg number of cx and meas per qubit
-        ops = dag.count_ops()
-        if "cx" in ops.keys():
-            num_cx = ops["cx"]
-        if "measure" in ops.keys():
-            num_meas = ops["measure"]
+        if self.target is not None:
+            num_cx = 1
+            num_meas = 1
+        else:
+            # Get avg number of cx and meas per qubit
+            ops = dag.count_ops()
+            if "cx" in ops.keys():
+                num_cx = ops["cx"]
+            if "measure" in ops.keys():
+                num_meas = ops["measure"]
 
         best_sub = self._best_subset(num_dag_qubits, num_meas, num_cx)
         layout = Layout()
@@ -138,22 +142,20 @@ def _build_error_matrix(num_qubits, target=None, coupling_map=None, backend_prop
             # Ignore gates over 2q DenseLayout only works with 2q
             if len(qargs) > 2:
                 continue
-            count = 0.0
             error = 0.0
             ops = target.operation_names_for_qargs(qargs)
             for op in ops:
                 props = target[op][qargs]
                 if props is not None and props.error is not None:
-                    error += props.error
-                    count += 1.0
-            avg_error = error / count
+                    error = max(error, props.error)
+            max_error = error
             # TODO: Factor in T1 and T2 to error matrix after #7736
             if len(qargs) == 1:
                 qubit = qargs[0]
-                error_mat[qubit][qubit] = avg_error
+                error_mat[qubit][qubit] = max_error
                 use_error = True
             elif len(qargs) == 2:
-                error_mat[qargs[0]][qargs[1]] = avg_error
+                error_mat[qargs[0]][qargs[1]] = max_error
                 use_error = True
     elif backend_prop and coupling_map:
         error_dict = {
