@@ -23,7 +23,6 @@ from qiskit.opflow import (
     CircuitOp,
     ExpectationBase,
     CircuitSampler,
-    PauliSumOp,
 )
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.providers import Backend, BaseBackend
@@ -86,7 +85,7 @@ class TrotterQrte(RealEvolver):
 
         Args:
             evolution_problem: Instance defining evolution problem. For the included Hamiltonian,
-                only SummedOp, PauliOp, PauliSumOp are supported by TrotterQrte.
+                only SummedOp, PauliOp are supported by TrotterQrte.
 
         Returns:
             Evolution result that includes an evolved state.
@@ -134,15 +133,15 @@ class TrotterQrte(RealEvolver):
 
     @staticmethod
     def _try_binding_params(
-        hamiltonian: Union[SummedOp, PauliOp, PauliSumOp],
+        hamiltonian: Union[SummedOp, PauliOp],
         hamiltonian_value_dict: Dict[Parameter, Union[float, complex]],
     ) -> Union[SummedOp, PauliOp, OperatorBase]:
         """
         Tries binding parameters in a Hamiltonian.
 
         Args:
-            hamiltonian: The Hamiltonian of that defines an evolution. Only SummedOp, PauliOp,
-                PauliSumOp are supported by TrotterQrte.
+            hamiltonian: The Hamiltonian of that defines an evolution. Only SummedOp, PauliOp are
+                supported by TrotterQrte.
             hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
                 certain values.
 
@@ -164,9 +163,7 @@ class TrotterQrte(RealEvolver):
                 is_op_bound(op_bound)
                 op_list.append(op_bound)
             return sum(op_list)
-        elif isinstance(
-            hamiltonian, (PauliOp, PauliSumOp)
-        ):  # in case there is only a single summand
+        elif isinstance(hamiltonian, PauliOp):  # in case there is only a single summand
             if hamiltonian_value_dict is not None:
                 op_bound = hamiltonian.bind_parameters(hamiltonian_value_dict)
             else:
@@ -177,5 +174,5 @@ class TrotterQrte(RealEvolver):
         else:
             raise ValueError(
                 f"Provided a Hamiltonian of an unsupported type: {type(hamiltonian)}. Only "
-                f"SummedOp, PauliOp base are supported by TrotterQrte."
+                f"SummedOp, PauliOp are supported by TrotterQrte."
             )

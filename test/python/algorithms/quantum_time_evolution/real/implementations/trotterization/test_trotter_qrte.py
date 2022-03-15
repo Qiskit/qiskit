@@ -14,13 +14,13 @@
 
 import unittest
 
-from qiskit import BasicAer
 from test.python.opflow import QiskitOpflowTestCase
 from ddt import ddt, data
 import numpy as np
 from numpy.testing import assert_raises
 from scipy.linalg import expm
 
+from qiskit import BasicAer
 from qiskit.algorithms import EvolutionProblem
 from qiskit.algorithms.evolvers.real.trotterization.trotter_qrte import (
     TrotterQrte,
@@ -37,6 +37,7 @@ from qiskit.opflow import (
     I,
     Y,
     MatrixExpectation,
+    SummedOp,
 )
 from qiskit.synthesis import SuzukiTrotter, QDrift
 
@@ -60,7 +61,7 @@ class TestTrotterQrte(QiskitOpflowTestCase):
 
     def test_trotter_qrte_trotter(self):
         """Test for trotter qrte."""
-        operator = X + Z
+        operator = SummedOp([X, Z])
         # LieTrotter with 1 rep
 
         trotter_qrte = TrotterQrte(self.quantum_instance)
@@ -77,7 +78,7 @@ class TestTrotterQrte(QiskitOpflowTestCase):
 
     def test_trotter_qrte_trotter_aux_ops(self):
         """Test for trotter qrte."""
-        operator = X + Z
+        operator = SummedOp([X, Z])
         # LieTrotter with 1 rep
         aux_ops = [X, Y]
         expectation = MatrixExpectation()
@@ -97,7 +98,7 @@ class TestTrotterQrte(QiskitOpflowTestCase):
             evolution_result.aux_ops_evaluated, expected_aux_ops_evaluated
         )
 
-    @data((X ^ Y) + (Y ^ X), (Z ^ Z) + (Z ^ I) + (I ^ Z), Y ^ Y)
+    @data(SummedOp([(X ^ Y), (Y ^ X)]), SummedOp([(Z ^ Z), (Z ^ I), (I ^ Z)]), Y ^ Y)
     def test_trotter_qrte_trotter_2(self, operator):
         """Test for trotter qrte."""
         # LieTrotter with 1 rep
@@ -115,7 +116,7 @@ class TestTrotterQrte(QiskitOpflowTestCase):
 
     def test_trotter_qrte_suzuki(self):
         """Test for trotter qrte with Suzuki."""
-        operator = X + Z
+        operator = SummedOp([X, Z])
         # 2nd order Suzuki with 1 rep
         trotter_qrte = TrotterQrte(self.quantum_instance, SuzukiTrotter())
         initial_state = Zero
@@ -135,7 +136,7 @@ class TestTrotterQrte(QiskitOpflowTestCase):
     def test_trotter_qrte_qdrift(self):
         """Test for trotter qrte with QDrift."""
         algorithm_globals.random_seed = 0
-        operator = X + Z
+        operator = SummedOp([X, Z])
         # QDrift with one repetition
         trotter_qrte = TrotterQrte(self.quantum_instance, QDrift())
         initial_state = Zero

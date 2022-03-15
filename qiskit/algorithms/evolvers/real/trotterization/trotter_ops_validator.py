@@ -17,13 +17,12 @@ from typing import Union
 
 from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.opflow import (
-    OperatorBase,
     SummedOp,
     PauliOp,
 )
 
 
-def is_op_bound(operator: Union[SummedOp, PauliOp, OperatorBase]) -> None:
+def is_op_bound(operator: Union[SummedOp, PauliOp]) -> None:
     """Checks if an operator provided has all parameters bound.
 
     Args:
@@ -39,7 +38,7 @@ def is_op_bound(operator: Union[SummedOp, PauliOp, OperatorBase]) -> None:
         )
 
 
-def validate_hamiltonian_form(hamiltonian: Union[SummedOp, PauliOp, OperatorBase]):
+def validate_hamiltonian_form(hamiltonian: Union[SummedOp, PauliOp]):
     """Validates that a Hamiltonian is of a correct type and with expected dependence on
     parameters.
 
@@ -61,7 +60,7 @@ def validate_hamiltonian_form(hamiltonian: Union[SummedOp, PauliOp, OperatorBase
                     "Hamiltonian term has a coefficient that is not a linear function of a "
                     "single parameter. It is not supported."
                 )
-    elif isinstance(hamiltonian, (PauliOp, OperatorBase)):
+    elif isinstance(hamiltonian, PauliOp):
         if not _is_pauli_lin_single_param(hamiltonian):
             raise ValueError(
                 "Hamiltonian term has a coefficient that is not a linear function of a "
