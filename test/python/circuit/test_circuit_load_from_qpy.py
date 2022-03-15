@@ -14,6 +14,7 @@
 """Test cases for the circuit qasm_file and qasm_string method."""
 
 import io
+import json
 import random
 
 import numpy as np
@@ -780,6 +781,59 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
+
+    def test_custom_metadata_serializer_full_path(self):
+        """Test that running with custom metadata serialization works."""
+
+        class CustomObject:
+            """Custom string container object."""
+
+            def __init__(self, string):
+                self.string = string
+
+            def __eq__(self, other):
+                return self.string == other.string
+
+        class CustomSerializer(json.JSONEncoder):
+            """Custom json encoder to handle CustomObject."""
+
+            def default(self, o):  # pylint: disable=invalid-name
+                if isinstance(o, CustomObject):
+                    return {"__type__": "Custom", "value": o.string}
+                return json.JSONEncoder.default(self, o)
+
+        class CustomDeserializer(json.JSONDecoder):
+            """Custom json decoder to handle CustomObject."""
+
+            def object_hook(self, o):  # pylint: disable=invalid-name,method-hidden
+                """Hook to override default decoder.
+
+                Normally specified as a kwarg on load() that overloads the
+                default decoder. Done here to avoid reimplementing the
+                decode method.
+                """
+                if "__type__" in o:
+                    obj_type = o["__type__"]
+                    if obj_type == "Custom":
+                        return CustomObject(o["value"])
+                return o
+
+        theta = Parameter("theta")
+        qc = QuantumCircuit(2, global_phase=theta)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        circuits = [qc, qc.copy()]
+        circuits[0].metadata = {"key": CustomObject("Circuit 1")}
+        circuits[1].metadata = {"key": CustomObject("Circuit 2")}
+        qpy_file = io.BytesIO()
+        dump(circuits, qpy_file, metadata_serializer=CustomSerializer)
+        qpy_file.seek(0)
+        new_circuits = load(qpy_file, metadata_deserializer=CustomDeserializer)
+        self.assertEqual(qc, new_circuits[0])
+        self.assertEqual(circuits[0].metadata["key"], CustomObject("Circuit 1"))
+        self.assertEqual(qc, new_circuits[1])
+        self.assertEqual(circuits[1].metadata["key"], CustomObject("Circuit 2"))
 
     def test_qpy_with_ifelseop(self):
         """Test qpy serialization with an if block."""
