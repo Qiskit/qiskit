@@ -116,7 +116,7 @@ class ConsolidateBlocks(TransformationPass):
         for run in runs:
             if run[0] in all_block_gates:
                 continue
-            if len(run) == 1 and not self._check_in_basis(run[0].name, run[0].qargs):
+            if len(run) == 1 and not self._check_not_in_basis(run[0].name, run[0].qargs):
                 dag.substitute_node(run[0], UnitaryGate(run[0].op.to_matrix()))
             else:
                 qubit = run[0].qargs[0]
