@@ -14,9 +14,9 @@
 StatePreparation test.
 """
 
+import unittest
 import math
 import numpy as np
-import unittest
 from ddt import ddt, data
 
 from qiskit import QuantumCircuit
