@@ -463,38 +463,19 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         ):
             len_0_1 = inf
             len_1_0 = inf
-            twoq_gate_props = None
-            if target is not None:
-                twoq_gate_props = target.get(decomposer2q.gate.name)
-                if twoq_gate_props:
-                    props_0_1 = twoq_gate_props.get((qubits[0], qubits[1]), None)
-                    props_1_0 = twoq_gate_props.get((qubits[1], qubits[0]), None)
-                    len_0_1 = getattr(props_0_1, "duration", inf)
-                    if len_0_1 is None:
-                        len_0_1 = inf
-                    len_1_0 = getattr(props_1_0, "duration", inf)
-                    if len_1_0 is None:
-                        len_1_0 = inf
-            else:
-                twoq_gate_lengths = gate_lengths.get(decomposer2q.gate.name)
-                if twoq_gate_lengths:
-                    len_0_1 = twoq_gate_lengths.get((qubits[0], qubits[1]), inf)
-                    len_1_0 = twoq_gate_lengths.get((qubits[1], qubits[0]), inf)
+            twoq_gate_lengths = gate_lengths.get(decomposer2q.gate.name)
+            if twoq_gate_lengths:
+                len_0_1 = twoq_gate_lengths.get((qubits[0], qubits[1]), inf)
+                len_1_0 = twoq_gate_lengths.get((qubits[1], qubits[0]), inf)
             if len_0_1 < len_1_0:
                 preferred_direction = [0, 1]
             elif len_1_0 < len_0_1:
                 preferred_direction = [1, 0]
             if preferred_direction:
-                if target is not None:
-                    gate_props = twoq_gate_props.get(
-                        (qubits[preferred_direction[0]], qubits[preferred_direction[1]])
-                    )
-                    gate_error = getattr(gate_props, "error")
-                else:
-                    twoq_gate_errors = gate_errors.get("cx")
-                    gate_error = twoq_gate_errors.get(
-                        (qubits[preferred_direction[0]], qubits[preferred_direction[1]])
-                    )
+                twoq_gate_errors = gate_errors.get("cx")
+                gate_error = twoq_gate_errors.get(
+                    (qubits[preferred_direction[0]], qubits[preferred_direction[1]])
+                )
                 if gate_error:
                     physical_gate_fidelity = 1 - gate_error
         if natural_direction is True and preferred_direction is None:
