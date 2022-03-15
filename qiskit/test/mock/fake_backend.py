@@ -25,7 +25,7 @@ from typing import List, Union
 
 from qiskit import circuit
 from qiskit.providers.models import BackendProperties
-from qiskit.providers import BackendV1, BackendV2, BaseBackend, QubitProperties
+from qiskit.providers import BackendV2, BackendV1, BaseBackend, QubitProperties
 from qiskit import pulse
 from qiskit.exceptions import QiskitError
 from qiskit.test.mock import fake_job
