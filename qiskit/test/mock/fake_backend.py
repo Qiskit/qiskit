@@ -211,7 +211,6 @@ class FakeBackendV2(BackendV2):
         gate_lengths=None,
         gate_length_units="ns",
         standard_gates=None,
-        warnings=True,
     ):
         """Build noise model from BackendV2.
         This is a temporary fix until Aer supports V2 backends.
@@ -237,7 +236,7 @@ class FakeBackendV2(BackendV2):
         # Add single-qubit readout errors
         if readout_error:
             for qubits, error in basic_device_readout_errors(properties):
-                noise_model.add_readout_error(error, qubits, warnings=warnings)
+                noise_model.add_readout_error(error, qubits)
 
         # Add gate errors
         with warnings.catch_warnings():
@@ -254,10 +253,9 @@ class FakeBackendV2(BackendV2):
                 gate_length_units=gate_length_units,
                 temperature=temperature,
                 standard_gates=standard_gates,
-                warnings=warnings,
             )
         for name, qubits, error in gate_errors:
-            noise_model.add_quantum_error(error, name, qubits, warnings=warnings)
+            noise_model.add_quantum_error(error, name, qubits)
 
         if thermal_relaxation:
             # Add delay errors via RelaxationNiose pass
