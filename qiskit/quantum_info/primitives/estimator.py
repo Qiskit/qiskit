@@ -57,9 +57,9 @@ class Estimator(BaseEstimator):
 
     def __call__(
         self,
-        circuits: Optional[Sequence[int]] = None,
-        observables: Optional[Sequence[int]] = None,
-        parameters: Optional[Sequence[Sequence[float]] | Sequence[float]] = None,
+        circuits: Sequence[int] | None = None,
+        observables: Sequence[int] | None = None,
+        parameters: Sequence[Sequence[float]] | Sequence[float] | None = None,
         **run_options,
     ) -> EstimatorResult:
         if self._is_closed:
