@@ -140,7 +140,7 @@ look something like:
 features:
   - |
     Introduced a new feature foo, that adds support for doing something to
-    ``QuantumCircuit`` objects. It can be used by using the foo function,
+    :class:`.QuantumCircuit` objects. It can be used by using the foo function,
     for example::
 
       from qiskit import foo
@@ -148,10 +148,10 @@ features:
       foo(QuantumCircuit())
 
   - |
-    The ``qiskit.QuantumCircuit`` module has a new method ``foo()``. This is
-    the equivalent of calling the ``qiskit.foo()`` to do something to your
-    QuantumCircuit. This is the equivalent of running ``qiskit.foo()`` on
-    your circuit, but provides the convenience of running it natively on
+    The :class:`.QuantumCircuit` class has a new method :meth:`~.QuantumCircuit.foo`. 
+    This is the equivalent of calling the :func:`~qiskit.foo` to do something to your
+    :class:`.QuantumCircuit`. This is the equivalent of running :func:`~qiskit.foo` 
+    on your circuit, but provides the convenience of running it natively on
     an object. For example::
 
       from qiskit import QuantumCircuit
@@ -163,14 +163,15 @@ deprecations:
   - |
     The ``qiskit.bar`` module has been deprecated and will be removed in a
     future release. Its sole function, ``foobar()`` has been superseded by the
-    ``qiskit.foo()`` function which provides similar functionality but with
-    more accurate results and better performance. You should update your calls
-    ``qiskit.bar.foobar()`` calls to ``qiskit.foo()``.
+    :func:`~qiskit.foo` function which provides similar functionality but with
+    more accurate results and better performance. You should update your
+    :func:`~qiskit.bar.foobar` calls to :func:`~qiskit.foo`.
 ```
 
-You can also look at other release notes for other examples.
+You can also look at other release notes for other examples. 
 
-You can use any restructured text feature in them (code sections, tables,
+Note that you can use sphinx [restructured text syntax](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html).
+In fact, you can use any restructured text feature in them (code sections, tables,
 enumerated lists, bulleted list, etc) to express what is being changed as
 needed. In general you want the release notes to include as much detail as
 needed so that users will understand what has changed, why it changed, and how
