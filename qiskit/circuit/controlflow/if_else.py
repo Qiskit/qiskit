@@ -91,19 +91,6 @@ class IfElseOp(ControlFlowOp):
 
         self.condition = validate_condition(condition)
 
-    def __copy__(self):
-        """Return a copy with body arguments replaced by empty circuits with
-        the intention that it will be populated by the caller."""
-        true_body = QuantumCircuit(self.params[0].qubits, self.params[0].clbits)
-        if self.params[1]:
-            false_body = QuantumCircuit(self.params[1].qubits, self.params[1].clbits)
-        else:
-            false_body = None
-        return IfElseOp(copy(self.condition),
-                        true_body,
-                        false_body=false_body,
-                        label=self.label)
-
     @property
     def params(self):
         return self._params
@@ -155,6 +142,16 @@ class IfElseOp(ControlFlowOp):
             "IfElseOp cannot be classically controlled through Instruction.c_if. "
             "Please nest it in an IfElseOp instead."
         )
+
+    def copy_no_body(self):
+        """Return a copy with body arguments replaced by empty circuits with
+        the intention that it will be populated by the caller."""
+        true_body = QuantumCircuit(self.params[0].qubits, self.params[0].clbits)
+        if self.params[1]:
+            false_body = QuantumCircuit(self.params[1].qubits, self.params[1].clbits)
+        else:
+            false_body = None
+        return IfElseOp(copy(self.condition), true_body, false_body=false_body, label=self.label)
 
 
 class IfElsePlaceholder(InstructionPlaceholder):
