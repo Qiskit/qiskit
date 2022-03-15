@@ -87,10 +87,6 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     Dict keys label measured qubits, whereas the values indicate the
     classical bit onto which that qubits measurement result is stored.
 
-    Note: this function is a slightly simplified version of a utility function
-    ``_final_measurement_mapping`` of
-    `mthree <https://github.com/Qiskit-Partners/mthree>`_.
-
     Args:
         circuit: Input Qiskit QuantumCircuit.
 
