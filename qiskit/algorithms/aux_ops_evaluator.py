@@ -77,11 +77,12 @@ def eval_observables(
     # Create new CircuitSampler to avoid breaking existing one's caches.
     sampler = CircuitSampler(quantum_instance)
 
-    list_op = _prepare_list_op(observables)
+    list_op = _prepare_list_op(quantum_state, observables)
 
-    observables_expect = expectation.convert(
-        StateFn(list_op, is_measurement=True).compose(StateFn(quantum_state))
-    )
+    # observables_expect = expectation.convert(
+    #     StateFn(list_op, is_measurement=True).compose(StateFn(quantum_state))
+    # )
+    observables_expect = expectation.convert(list_op)
     observables_expect_sampled = sampler.convert(observables_expect)
 
     # compute means
@@ -103,7 +104,7 @@ def eval_observables(
     return _prepare_result(observables_results, observables)
 
 
-def _prepare_list_op(observables: ListOrDict[OperatorBase]) -> ListOp:
+def _prepare_list_op(quantum_state, observables: ListOrDict[OperatorBase]) -> ListOp:
     """
     Accepts a list or a dictionary of operators and converts them to a ``ListOp``.
 
@@ -114,9 +115,11 @@ def _prepare_list_op(observables: ListOrDict[OperatorBase]) -> ListOp:
         A ``ListOp`` that includes all provided observables.
     """
     if isinstance(observables, dict):
-        return ListOp(list(observables.values()))
+        observables = list(observables.values())
+        # return ListOp(list(observables.values()))
 
-    return ListOp(observables)
+    state = StateFn(quantum_state)
+    return ListOp([StateFn(obs, is_measurement=True).compose(state) for obs in observables])
 
 
 def _prepare_result(
