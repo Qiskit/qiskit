@@ -73,6 +73,7 @@ class Unroller(TransformationPass):
             if isinstance(node.op, ControlFlowOp):
                 # TODO: check whether ControlFlow bodies need unrolling before making new one.
                 new_params = []
+                unrolled_blocks = []
                 for param in node.op.params:
                     if isinstance(param, QuantumCircuit):
                         # TODO: check whether unrolling is necessary
@@ -82,9 +83,7 @@ class Unroller(TransformationPass):
                         new_params.append(unrolled_circ_block)
                     else:
                         new_params.append(copy.copy(param))
-                # Instruction.copy is done here so that Instruction determines whether it
-                # needs to be deep or not.
-                new_cf_op = node.op.copy()
+                new_cf_op = copy.copy(node.op)
                 new_cf_op.params = new_params
                 node.op = new_cf_op
                 continue

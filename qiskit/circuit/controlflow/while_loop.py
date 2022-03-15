@@ -13,6 +13,7 @@
 "Circuit operation representing a ``while`` loop."
 
 from typing import Optional, Tuple, Union
+from copy import copy
 
 from qiskit.circuit import Clbit, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
@@ -67,6 +68,14 @@ class WhileLoopOp(ControlFlowOp):
         super().__init__("while_loop", num_qubits, num_clbits, [body], label=label)
         self.condition = validate_condition(condition)
 
+    def __copy__(self):
+        """Return a copy with body arguments replaced by empty circuits with
+        the intention that it will be populated by the caller."""
+        body = QuantumCircuit(self.params[0].qubits, self.params[0].clbits)
+        return WhileLoopOp(copy(self.condition),
+                           body,
+                           label=self.label)
+
     @property
     def params(self):
         return self._params
@@ -88,7 +97,7 @@ class WhileLoopOp(ControlFlowOp):
                 f"WhileLoopOp num_qubits/clbits: {self.num_qubits}/{self.num_clbits} "
                 f"Supplied body num_qubits/clbits: {body.num_qubits}/{body.num_clbits}."
             )
-
+        
         self._params = [body]
 
     @property

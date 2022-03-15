@@ -14,6 +14,7 @@
 
 import warnings
 from typing import Iterable, Optional, Union
+from copy import copy
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
@@ -62,6 +63,15 @@ class ForLoopOp(ControlFlowOp):
         super().__init__(
             "for_loop", num_qubits, num_clbits, [indexset, loop_parameter, body], label=label
         )
+
+    def __copy__(self):
+        """Return a copy with body arguments replaced by empty circuits with
+        the intention that it will be populated by the caller."""
+        body = QuantumCircuit(self.params[2].qubits, self.params[2].clbits)
+        return ForLoopOp(copy(self.params[0]),
+                         copy(self.params[1]),
+                         body,
+                         self.label)
 
     @property
     def params(self):

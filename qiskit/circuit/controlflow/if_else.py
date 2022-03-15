@@ -14,6 +14,7 @@
 
 
 from typing import Optional, Tuple, Union, Iterable, Set
+from copy import copy
 
 from qiskit.circuit import ClassicalRegister, Clbit, QuantumCircuit
 from qiskit.circuit.instructionset import InstructionSet
@@ -89,6 +90,19 @@ class IfElseOp(ControlFlowOp):
         super().__init__("if_else", num_qubits, num_clbits, [true_body, false_body], label=label)
 
         self.condition = validate_condition(condition)
+
+    def __copy__(self):
+        """Return a copy with body arguments replaced by empty circuits with
+        the intention that it will be populated by the caller."""
+        true_body = QuantumCircuit(self.params[0].qubits, self.params[0].clbits)
+        if self.params[1]:
+            false_body = QuantumCircuit(self.params[1].qubits, self.params[1].clbits)
+        else:
+            false_body = None
+        return IfElseOp(copy(self.condition),
+                        true_body,
+                        false_body=false_body,
+                        label=self.label)
 
     @property
     def params(self):
