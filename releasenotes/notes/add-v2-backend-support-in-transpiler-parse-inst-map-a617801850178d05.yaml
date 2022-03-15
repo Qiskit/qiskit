@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed missing support for :class:`~qiskit.providers.backend.BackendV2` in
+    :func:`~qiskit.compiler.transpiler._parse_inst_map()`.
