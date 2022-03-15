@@ -294,7 +294,7 @@ class UnitarySynthesis(TransformationPass):
         return dag
 
 
-def _build_gate_lengths(props, target):
+def _build_gate_lengths(props=None, target=None):
     gate_lengths = {}
     if target is not None:
         for gate, prop_dict in target.items():
@@ -302,7 +302,7 @@ def _build_gate_lengths(props, target):
             for qubit, gate_props in prop_dict.items():
                 if gate_props is not None and gate_props.duration is not None:
                     gate_lengths[gate][qubit] = gate_props.duration
-    elif props:
+    elif props is not None:
         for gate in props._gates:
             gate_lengths[gate] = {}
             for k, v in props._gates[gate].items():
@@ -314,7 +314,7 @@ def _build_gate_lengths(props, target):
     return gate_lengths
 
 
-def _build_gate_errors(props, target):
+def _build_gate_errors(props=None, target=None):
     gate_errors = {}
     if target is not None:
         for gate, prop_dict in target.items():
@@ -322,7 +322,7 @@ def _build_gate_errors(props, target):
             for qubit, gate_props in prop_dict.items():
                 if gate_props is not None and gate_props.error is not None:
                     gate_errors[gate][qubit] = gate_props.error
-    if props:
+    if props is not None:
         for gate in props._gates:
             gate_errors[gate] = {}
             for k, v in props._gates[gate].items():
