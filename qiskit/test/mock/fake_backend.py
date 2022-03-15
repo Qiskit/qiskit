@@ -190,7 +190,7 @@ class FakeBackendV2(BackendV2):
             else:
                 sim = aer.Aer.get_backend("qasm_simulator")
                 if self._props_dict:
-                    noise_model = self._get_noise_model_from_backend_v2(self, warnings=False)
+                    noise_model = self._get_noise_model_from_backend_v2()
                     job = sim.run(circuits, noise_model=noise_model, **kwargs)
                 else:
                     job = sim.run(circuits, **kwargs)
