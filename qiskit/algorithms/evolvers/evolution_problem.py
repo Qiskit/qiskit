@@ -21,7 +21,12 @@ from ..list_or_dict import ListOrDict
 
 
 class EvolutionProblem:
-    """Evolution problem class."""
+    """Evolution problem class.
+
+    This class is the input to time evolution algorithms and contains
+    information on e.g. the total evolution time and under which Hamiltonian
+    the state is evolved.
+    """
 
     def __init__(
         self,
@@ -38,10 +43,11 @@ class EvolutionProblem:
             time: Total time of evolution.
             initial_state: Quantum state to be evolved.
             aux_operators: Optional list of auxiliary operators to be evaluated with the
-                evolved initial_state and their expectation values returned.
-            t_param: Time parameter in case of a time-dependent Hamiltonian.
-            hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to certain
-                values, including the t_param.
+                evolved ``initial_state`` and their expectation values returned.
+            t_param: Time parameter in case of a time-dependent Hamiltonian. This
+                free parameter must be within the ``hamiltonian``.
+            hamiltonian_value_dict: If the Hamiltonian contains free parameters, this
+                dictionary maps all these parameters to values.
         """
 
         self.hamiltonian = hamiltonian
