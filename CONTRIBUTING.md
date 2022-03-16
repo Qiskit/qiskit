@@ -112,12 +112,12 @@ workflow for writing and compiling release notes.
 #### Adding a new release note
 
 Making a new release note is quite straightforward. Ensure that you have reno
-installed with::
+installed with:
 
     pip install -U reno
 
 Once you have reno installed you can make a new release note by running in
-your local repository checkout's root::
+your local repository checkout's root:
 
     reno new short-description-string
 
@@ -134,13 +134,13 @@ changes. When you open the newly created file it will be a full template of
 the different categories with a description of a category as a single entry
 in each category. You'll want to delete all the sections you aren't using and
 update the contents for those you are. For example, the end result should
-look something like::
+look something like:
 
 ```yaml
 features:
   - |
     Introduced a new feature foo, that adds support for doing something to
-    ``QuantumCircuit`` objects. It can be used by using the foo function,
+    :class:`.QuantumCircuit` objects. It can be used by using the foo function,
     for example::
 
       from qiskit import foo
@@ -148,10 +148,10 @@ features:
       foo(QuantumCircuit())
 
   - |
-    The ``qiskit.QuantumCircuit`` module has a new method ``foo()``. This is
-    the equivalent of calling the ``qiskit.foo()`` to do something to your
-    QuantumCircuit. This is the equivalent of running ``qiskit.foo()`` on
-    your circuit, but provides the convenience of running it natively on
+    The :class:`.QuantumCircuit` class has a new method :meth:`~.QuantumCircuit.foo`. 
+    This is the equivalent of calling the :func:`~qiskit.foo` to do something to your
+    :class:`.QuantumCircuit`. This is the equivalent of running :func:`~qiskit.foo` 
+    on your circuit, but provides the convenience of running it natively on
     an object. For example::
 
       from qiskit import QuantumCircuit
@@ -163,14 +163,15 @@ deprecations:
   - |
     The ``qiskit.bar`` module has been deprecated and will be removed in a
     future release. Its sole function, ``foobar()`` has been superseded by the
-    ``qiskit.foo()`` function which provides similar functionality but with
-    more accurate results and better performance. You should update your calls
-    ``qiskit.bar.foobar()`` calls to ``qiskit.foo()``.
+    :func:`~qiskit.foo` function which provides similar functionality but with
+    more accurate results and better performance. You should update your
+    :func:`~qiskit.bar.foobar` calls to :func:`~qiskit.foo`.
 ```
 
-You can also look at other release notes for other examples.
+You can also look at other release notes for other examples. 
 
-You can use any restructured text feature in them (code sections, tables,
+Note that you can use sphinx [restructured text syntax](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html).
+In fact, you can use any restructured text feature in them (code sections, tables,
 enumerated lists, bulleted list, etc) to express what is being changed as
 needed. In general you want the release notes to include as much detail as
 needed so that users will understand what has changed, why it changed, and how
@@ -197,17 +198,17 @@ fixes:
 
 #### Generating the release notes
 
-After release notes have been added if you want to see what the full output of
-the release notes. In general the output from reno that we'll get is a rst
+After release notes have been added, you can use reno to see what the full output
+of the release notes is. In general the output from reno that we'll get is a rst
 (ReStructuredText) file that can be compiled by
 [sphinx](https://www.sphinx-doc.org/en/master/). To generate the rst file you
 use the ``reno report`` command. If you want to generate the full terra release
-notes for all releases (since we started using reno during 0.9) you just run::
+notes for all releases (since we started using reno during 0.9) you just run:
 
     reno report
 
 but you can also use the ``--version`` argument to view a single release (after
-it has been tagged::
+it has been tagged:
 
     reno report --version 0.9.0
 
