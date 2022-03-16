@@ -187,13 +187,12 @@ class FakeBackendV2(BackendV2):
 
             if pulse_job:
                 raise QiskitError("Pulse simulation is currently not supported for V2 backends.")
+            sim = aer.Aer.get_backend("qasm_simulator")
+            if self._props_dict:
+                noise_model = self._get_noise_model_from_backend_v2()
+                job = sim.run(circuits, noise_model=noise_model, **kwargs)
             else:
-                sim = aer.Aer.get_backend("qasm_simulator")
-                if self._props_dict:
-                    noise_model = self._get_noise_model_from_backend_v2()
-                    job = sim.run(circuits, noise_model=noise_model, **kwargs)
-                else:
-                    job = sim.run(circuits, **kwargs)
+                job = sim.run(circuits, **kwargs)
         else:
             if pulse_job:
                 raise QiskitError("Unable to run pulse schedules without qiskit-aer installed")
