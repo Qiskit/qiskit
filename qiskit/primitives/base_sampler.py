@@ -10,9 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 r"""
-=======
-Sampler
-=======
+===================
+Overview of Sampler
+===================
 
 Sampler class calculates probabilities or quasi-probabilities of bitstrings from quantum circuits.
 
@@ -25,7 +25,7 @@ A sampler is initialized with the following elements.
   (:class:`~qiskit.circuit.parametertable.ParameterView` or
   a list of :class:`~qiskit.circuit.Parameter`).
 
-The estimator is run with the following inputs.
+The sampler is run with the following inputs.
 
 * circuit indexes: a list of indices of the circuits to evaluate.
 
@@ -33,7 +33,8 @@ The estimator is run with the following inputs.
   to be bound to the parameters of the quantum circuits.
   (list of list of float)
 
-The output is a SamplerResult which contains probabilities or quasi-probabilities of bitstrings,
+The output is a :class:`~qiskit.primitives.SamplerResult` which contains probabilities
+or quasi-probabilities of bitstrings,
 plus optional metadata like error bars in the samples.
 
 The sampler object is expected to be closed after use or
@@ -89,7 +90,7 @@ Here is an example of how sampler is used.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView

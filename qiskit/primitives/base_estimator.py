@@ -10,9 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 r"""
-=========
-Estimator
-=========
+=====================
+Overview of Estimator
+=====================
 
 Estimator class estimates expectation values of quantum circuits and observables.
 
@@ -41,15 +41,15 @@ The estimator is called with the following inputs.
   to be bound to the parameters of the quantum circuits.
   (list of list of float)
 
-The output is an EstimatorResult which contains a list of expectation values plus
-optional metadata like confidence intervals for the estimation.
+The output is an :class:`~qiskit.primitives.EstimatorResult` which contains a list of
+expectation values plus optional metadata like confidence intervals for the estimation.
 
 .. math::
 
     \langle\psi_i(\theta_k)|H_j|\psi_i(\theta_k)\rangle
 
 
-The estimator object is expected to be `close()` d after use or
+The estimator object is expected to be ``close()`` d after use or
 accessed inside "with" context
 and the objects are called with parameter values and run options
 (e.g., ``shots`` or number of shots).
@@ -77,36 +77,36 @@ Here is an example of how estimator is used.
         theta3 = [1, 2, 3, 4, 5, 6]
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
-        psi1_H1_result = e([0], [0], [theta1])
-        print(psi1_H1_result)
+        result = e([0], [0], [theta1])
+        print(result)
 
         # calculate [ <psi1(theta1)|H2|psi1(theta1)>, <psi1(theta1)|H3|psi1(theta1)> ]
-        psi1_H23_result = e([0, 0], [1, 2], [theta1]*2)
-        print(psi1_H23_result)
+        result2 = e([0, 0], [1, 2], [theta1]*2)
+        print(result2)
 
         # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]
-        psi2_H2_result = e([1], [1], [theta2])
-        print(psi2_H2_result)
+        result3 = e([1], [1], [theta2])
+        print(result3)
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)>, <psi1(theta3)|H1|psi1(theta3)> ]
-        psi1_H1_result2 = e([0, 0], [0, 0], [theta1, theta3])
-        print(psi1_H1_result2)
+        result4 = e([0, 0], [0, 0], [theta1, theta3])
+        print(result4)
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
         #             <psi2(theta2)|H2|psi2(theta2)>,
         #             <psi1(theta3)|H3|psi1(theta3)> ]
-        psi12_H123_result = e([0, 0, 0], [0, 1, 2], [theta1, theta2, theta3])
-        print(psi12_H23_result)
+        result5 = e([0, 1, 0], [0, 1, 2], [theta1, theta2, theta3])
+        print(result5)
 """
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Iterable, Optional, Sequence
+from collections.abc import Iterable, Sequence
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import SparsePauliOp
+from qiskit.quantum_info.operators import SparsePauliOp
 
 from .estimator_result import EstimatorResult
 
@@ -121,7 +121,7 @@ class BaseEstimator(ABC):
         self,
         circuits: Iterable[QuantumCircuit],
         observables: Iterable[SparsePauliOp],
-        parameters: Optional[Iterable[Iterable[Parameter]]] = None,
+        parameters: Iterable[Iterable[Parameter]] | None = None,
     ):
         """
         Creating an instance of an Estimator, or using one in a ``with`` context opens a session that
@@ -150,6 +150,12 @@ class BaseEstimator(ABC):
                     f"Different number of parameters ({len(self._parameters)} and "
                     f"circuits ({len(self._circuits)}"
                 )
+            for i, (circ, params) in enumerate(zip(self._circuits, self._parameters)):
+                if circ.num_parameters != len(params):
+                    raise QiskitError(
+                        f"Different numbers of parameters of {i}-th circuit: "
+                        f"expected {circ.num_parameters}, actual {len(params)}."
+                    )
 
     def __enter__(self):
         return self
