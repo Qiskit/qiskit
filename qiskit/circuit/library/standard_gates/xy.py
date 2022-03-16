@@ -22,7 +22,7 @@ from qiskit.circuit.parameterexpression import ParameterValueType
 class XXPlusYYGate(Gate):
     r"""XX+YY interaction gate.
 
-    A 2-qubit parameterized XX+YY interaction. Its action is to induce
+    A 2-qubit parameterized XX+YY interaction, also known as an XY gate. Its action is to induce
     a coherent rotation by some angle between :math:`|01\rangle` and :math:`|10\rangle`.
 
     **Circuit Symbol:**
