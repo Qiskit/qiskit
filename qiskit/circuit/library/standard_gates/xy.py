@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Two-qubit XY gate."""
+"""Two-qubit XX+YY gate."""
 
 from typing import Optional
 from qiskit.qasm import pi
@@ -19,8 +19,8 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
 
 
-class XYGate(Gate):
-    r"""XY gate.
+class XXPlusYYGate(Gate):
+    r"""XX+YY interaction gate.
 
     A 2-qubit parameterized XX+YY interaction. Its action is to induce
     a coherent rotation by some angle between :math:`|01\rangle` and :math:`|10\rangle`.
@@ -61,11 +61,11 @@ class XYGate(Gate):
 
         .. parsed-literal::
 
-                ┌──────────┐
+                 ┌──────────┐
             q_0: ┤1         ├
-                │  Xy(θ,β) │
+                 │  Xy(θ,β) │
             q_1: ┤0         ├
-                └──────────┘
+                 └──────────┘
 
         .. math::
 
@@ -84,7 +84,7 @@ class XYGate(Gate):
     def __init__(
         self, theta: ParameterValueType, beta: ParameterValueType = 0, label: Optional[str] = None
     ):
-        """Create new XY gate."""
+        """Create new XX+YY gate."""
         super().__init__("xy", 2, [theta, beta], label=label)
 
     def _define(self):
@@ -140,11 +140,11 @@ class XYGate(Gate):
         self.definition = qc
 
     def inverse(self):
-        """Return inverse XY gate (i.e. with the negative rotation angle and same phase angle)."""
-        return XYGate(-self.params[0], self.params[1])
+        """Return inverse XX+YY gate (i.e. with the negative rotation angle and same phase angle)."""
+        return XXPlusYYGate(-self.params[0], self.params[1])
 
     def __array__(self, dtype=None):
-        """Return a numpy.array for the XY gate."""
+        """Return a numpy.array for the XX+YY gate."""
         import numpy
 
         half_theta = float(self.params[0]) / 2

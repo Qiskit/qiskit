@@ -3195,7 +3195,7 @@ class QuantumCircuit:
         qubit2: QubitSpecifier,
         beta: Optional[ParameterValueType] = 0,
     ) -> InstructionSet:
-        """Apply :class:`~qiskit.circuit.library.XYGate`.
+        """Apply :class:`~qiskit.circuit.library.XXPlusYYGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
 
@@ -3208,9 +3208,9 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.xy import XYGate
+        from .library.standard_gates.xy import XXPlusYYGate
 
-        return self.append(XYGate(theta, beta), [qubit1, qubit2], [])
+        return self.append(XXPlusYYGate(theta, beta), [qubit1, qubit2], [])
 
     def ecr(self, qubit1: QubitSpecifier, qubit2: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.ECRGate`.
