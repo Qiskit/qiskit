@@ -18,6 +18,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 
 from functools import partial
 import numpy as np
+from scipy.optimize import minimize as scipy_minimize
 from ddt import data, ddt, unpack
 
 from qiskit import BasicAer, QuantumCircuit
@@ -31,6 +32,7 @@ from qiskit.algorithms.optimizers import (
     SLSQP,
     SPSA,
     TNC,
+    OptimizerResult,
 )
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes, TwoLocal
 from qiskit.exceptions import MissingOptionalLibraryError
@@ -67,6 +69,16 @@ class LogPass(DummyAP):
 
     def run(self, dag):
         logging.getLogger(logger).info(self.message)
+
+
+# pylint: disable=invalid-name, unused-argument
+def _mock_optimizer(fun, x0, jac=None, bounds=None) -> OptimizerResult:
+    """A mock of a callable that can be used as minimizer in the VQE."""
+    result = OptimizerResult()
+    result.x = np.zeros_like(x0)
+    result.fun = fun(result.x)
+    result.nit = 0
+    return result
 
 
 @ddt
@@ -488,6 +500,24 @@ class TestVQE(QiskitAlgorithmsTestCase):
         )
         vqe.optimizer = None
         self.assertIsInstance(vqe.optimizer, SLSQP)
+
+    def test_optimizer_scipy_callable(self):
+        """Test passing a SciPy optimizer directly as callable."""
+        vqe = VQE(
+            optimizer=partial(scipy_minimize, method="L-BFGS-B", options={"maxiter": 2}),
+            quantum_instance=self.statevector_simulator,
+        )
+        result = vqe.compute_minimum_eigenvalue(Z)
+        self.assertEqual(result.cost_function_evals, 20)
+
+    def test_optimizer_callable(self):
+        """Test passing a optimizer directly as callable."""
+        ansatz = RealAmplitudes(1, reps=1)
+        vqe = VQE(
+            ansatz=ansatz, optimizer=_mock_optimizer, quantum_instance=self.statevector_simulator
+        )
+        result = vqe.compute_minimum_eigenvalue(Z)
+        self.assertTrue(np.all(result.optimal_point == np.zeros(ansatz.num_parameters)))
 
     def test_aux_operators_list(self):
         """Test list-based aux_operators."""
