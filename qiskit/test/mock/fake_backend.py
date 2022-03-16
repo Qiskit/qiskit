@@ -53,9 +53,20 @@ class _Credentials:
 
 
 class FakeBackendV2(BackendV2):
-    """This is a dummy bakend just for resting purposes.
-    The FakeBackendV2 builds on top of the BackendV2 base class."""
+    """A fake backend class for testing and noisy simulation using real backend
+    snapshots.
 
+    The class inherits :class:`~qiskit.providers.BackendV2` class. This version
+    differs from earlier :class:`~qiskit.test.mock.FakeBackend` (V1) class in a
+    few aspects. Firstly, configuration attribute no longer exsists. Instead,
+    attributes exposing equivalent required immutable properties of the backend
+    device are added. For example ``fake_backend.configuration().n_qubits`` is
+    accessible from ``fake_backend.num_qubits`` now. Secondly, this version
+    removes extra abstractions :class:`~qiskit.test.mock.FakeQasmBackend` and
+    :class:`~qiskit.test.mock.FakePulseBackend` that were present in V1.
+    """
+
+    # directory and file names for real backend snapshots.
     dirname = None
     conf_filename = None
     props_filename = None
@@ -63,6 +74,7 @@ class FakeBackendV2(BackendV2):
     backend_name = None
 
     def __init__(self):
+        """FakeBackendV2 initializer."""
         self._conf_dict = self._get_conf_dict_from_json()
         self._props_dict = self._set_props_dict_from_json()
         self._defs_dict = self._set_defs_dict_from_json()
@@ -109,6 +121,10 @@ class FakeBackendV2(BackendV2):
 
     @property
     def target(self) -> Target:
+        """A :class:`qiskit.transpiler.Target` object for the backend.
+
+        :rtype: Target
+        """
         return self._target
 
     @property
@@ -117,6 +133,17 @@ class FakeBackendV2(BackendV2):
 
     @classmethod
     def _default_options(cls):
+        """Return the default options
+
+        This method will return a :class:`qiskit.providers.Options`
+        subclass object that will be used for the default options. These
+        should be the default parameters to use for the options of the
+        backend.
+
+        Returns:
+            qiskit.providers.Options: A options object with
+                default values set
+        """
         if _optionals.HAS_AER:
             from qiskit.providers import aer
 
@@ -153,9 +180,10 @@ class FakeBackendV2(BackendV2):
                 of :class:`~qiskit.provider.QubitProperties` objects will be
                 returned in the same order
         Returns:
-            qubit_properties: The :class:`~qiskit.provider.QubitProperties` object
-            for the specified qubit. If a list of qubits is provided a list will be
-            returned. If properties are missing for a qubit this can be ``None``.
+            qubit_properties: The :class:`~qiskit.provider.QubitProperties`
+            object for the specified qubit. If a list of qubits is provided a
+            list will be returned. If properties are missing for a qubit this
+            can be ``None``.
         """
         if isinstance(qubit, int):  # type: ignore[unreachable]
             return self._qubit_properties.get(qubit)
@@ -164,7 +192,37 @@ class FakeBackendV2(BackendV2):
         return None
 
     def run(self, run_input, **kwargs):
-        """Main job in simulator"""
+        """Run on the fake backend using a simulator.
+
+        This method runs circuit jobs (an individual or a list of QuantumCircuit
+        ) and pulse jobs (an individual or a list of Schedule or ScheduleBlock)
+        using BasicAer or Aer simulator and returns a
+        :class:`~qiskit.providers.Job` object.
+
+        If qiskit-aer is installed, jobs will be run using AerSimulator with
+        noise model of the fake backend. Otherwise, jobs will be run using
+        BasicAer simulator without noise.
+
+        Currently noisy simulation of a pulse job is not supported yet in
+        FakeBackendV2.
+
+        Args:
+            run_input (QuantumCircuit or Schedule or ScheduleBlock or list): An
+                individual or a list of
+                :class:`~qiskit.circuits.QuantumCircuit,
+                :class:`~qiskit.pulse.ScheduleBlock`, or
+                :class:`~qiskit.pulse.Schedule` objects to run on the backend.
+            options: Any kwarg options to pass to the backend for running the
+                config. If a key is also present in the options
+                attribute/object then the expectation is that the value
+                specified will be used instead of what's set in the options
+                object.
+        Returns:
+            Job: The job object for the run
+        Raises:
+            QiskitError: If a pulse job is supplied and qiskit-aer is not
+            installed.
+        """
         circuits = run_input
         pulse_job = None
         if isinstance(circuits, (pulse.Schedule, pulse.ScheduleBlock)):
@@ -212,7 +270,9 @@ class FakeBackendV2(BackendV2):
         standard_gates=None,
     ):
         """Build noise model from BackendV2.
-        This is a temporary fix until Aer supports V2 backends.
+
+        This is a temporary fix until qiskit-aer supports building noise model
+        from a BackendV2 object.
         """
 
         from qiskit.circuit import Delay
