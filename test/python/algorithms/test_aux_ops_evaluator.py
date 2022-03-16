@@ -12,16 +12,19 @@
 """Tests evaluator of auxiliary operators for algorithms."""
 
 import unittest
+from typing import Tuple, Union
 
-from qiskit.quantum_info import Statevector
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
-from ddt import ddt, data, unpack
+from ddt import ddt, data
 
+from qiskit.algorithms.list_or_dict import ListOrDict
+from qiskit.providers import BaseBackend, Backend
+from qiskit.quantum_info import Statevector
 from qiskit.algorithms import eval_observables
-from qiskit import BasicAer, Aer
+from qiskit import BasicAer, QuantumCircuit
 from qiskit.circuit.library import EfficientSU2
-from qiskit.opflow import PauliSumOp, X, Z, I, ExpectationFactory, Zero, DictStateFn
+from qiskit.opflow import PauliSumOp, X, Z, I, ExpectationFactory, OperatorBase, ExpectationBase
 from qiskit.utils import QuantumInstance, algorithm_globals
 
 
@@ -44,7 +47,10 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
         self.threshold = 1e-8
         self.backend_names = ["statevector_simulator", "qasm_simulator"]
 
-    def get_exact_expectation(self, ansatz, observables):
+    def get_exact_expectation(self, ansatz: QuantumCircuit, observables: ListOrDict[OperatorBase]):
+        """
+        Calculates the exact expectation to be used as an expected result for unit tests.
+        """
         if isinstance(observables, dict):
             observables_list = list(observables.values())
         else:
@@ -60,6 +66,27 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
             return dict(zip(observables.keys(), exact))
 
         return exact
+
+    def _run_test(
+        self,
+        expected_result: ListOrDict[Tuple[complex, complex]],
+        quantum_state: Union[QuantumCircuit, Statevector],
+        decimal: int,
+        expectation: ExpectationBase,
+        observables: ListOrDict[OperatorBase],
+        quantum_instance: Union[QuantumInstance, BaseBackend, Backend],
+    ):
+        result = eval_observables(
+            quantum_instance, quantum_state, observables, expectation, self.threshold
+        )
+
+        if isinstance(observables, dict):
+            np.testing.assert_equal(list(result.keys()), list(expected_result.keys()))
+            np.testing.assert_array_almost_equal(
+                list(result.values()), list(expected_result.values()), decimal=decimal
+            )
+        else:
+            np.testing.assert_array_almost_equal(result, expected_result, decimal=decimal)
 
     @data(
         [
@@ -77,7 +104,7 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
             "op1": PauliSumOp.from_list([("ZZ", 2.0)]),
         },
     )
-    def test_eval_observables(self, observables):
+    def test_eval_observables(self, observables: ListOrDict[OperatorBase]):
         """Tests evaluator of auxiliary operators for algorithms."""
 
         ansatz = EfficientSU2(2)
@@ -85,7 +112,9 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
             [1.2, 4.2, 1.4, 2.0, 1.2, 4.2, 1.4, 2.0, 1.2, 4.2, 1.4, 2.0, 1.2, 4.2, 1.4, 2.0],
             dtype=float,
         )
+
         bound_ansatz = ansatz.bind_parameters(parameters)
+        expected_result = self.get_exact_expectation(bound_ansatz, observables)
 
         for backend_name in self.backend_names:
             shots = 4096 if backend_name == "qasm_simulator" else 1
@@ -94,33 +123,37 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
             )  # to accommodate for qasm being imperfect
             with self.subTest(msg=f"Test {backend_name} backend."):
                 backend = BasicAer.get_backend(backend_name)
+                quantum_instance = QuantumInstance(
+                    backend=backend,
+                    shots=shots,
+                    seed_simulator=self.seed,
+                    seed_transpiler=self.seed,
+                )
+                expectation = ExpectationFactory.build(
+                    operator=self.h2_op,
+                    backend=quantum_instance,
+                )
 
-                with self.subTest(msg=f"Test QuantumCircuit."):
-                    quantum_instance = QuantumInstance(
-                        backend=backend,
-                        shots=shots,
-                        seed_simulator=self.seed,
-                        seed_transpiler=self.seed,
-                    )
-                    expectation = ExpectationFactory.build(
-                        operator=self.h2_op,
-                        backend=quantum_instance,
-                    )
-                    result = eval_observables(
-                        quantum_instance, bound_ansatz, observables, expectation, self.threshold
+                with self.subTest(msg="Test QuantumCircuit."):
+                    self._run_test(
+                        expected_result,
+                        bound_ansatz,
+                        decimal,
+                        expectation,
+                        observables,
+                        quantum_instance,
                     )
 
-                    expected_result = self.get_exact_expectation(bound_ansatz, observables)
-
-                    if isinstance(observables, dict):
-                        np.testing.assert_equal(list(result.keys()), list(expected_result.keys()))
-                        np.testing.assert_array_almost_equal(
-                            list(result.values()), list(expected_result.values()), decimal=decimal
-                        )
-                    else:
-                        np.testing.assert_array_almost_equal(
-                            result, expected_result, decimal=decimal
-                        )
+                with self.subTest(msg="Test Statevector."):
+                    statevector = Statevector(bound_ansatz)
+                    self._run_test(
+                        expected_result,
+                        statevector,
+                        decimal,
+                        expectation,
+                        observables,
+                        quantum_instance,
+                    )
 
 
 if __name__ == "__main__":

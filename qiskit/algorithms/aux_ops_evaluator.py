@@ -104,11 +104,20 @@ def eval_observables(
     return _prepare_result(observables_results, observables)
 
 
-def _prepare_list_op(quantum_state, observables: ListOrDict[OperatorBase]) -> ListOp:
+def _prepare_list_op(
+    quantum_state: Union[
+        Statevector,
+        QuantumCircuit,
+        OperatorBase,
+    ],
+    observables: ListOrDict[OperatorBase],
+) -> ListOp:
     """
     Accepts a list or a dictionary of operators and converts them to a ``ListOp``.
 
     Args:
+        quantum_state: An unparametrized quantum circuit representing a quantum state that
+            expectation values are computed against.
         observables: A list or a dictionary of operators.
 
     Returns:
@@ -116,7 +125,6 @@ def _prepare_list_op(quantum_state, observables: ListOrDict[OperatorBase]) -> Li
     """
     if isinstance(observables, dict):
         observables = list(observables.values())
-        # return ListOp(list(observables.values()))
 
     state = StateFn(quantum_state)
     return ListOp([StateFn(obs, is_measurement=True).compose(state) for obs in observables])
