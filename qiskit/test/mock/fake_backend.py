@@ -191,7 +191,7 @@ class FakeBackendV2(BackendV2):
             return [self._qubit_properties.get(q) for q in qubit]
         return None
 
-    def run(self, run_input, **kwargs):
+    def run(self, run_input, **options):
         """Run on the fake backend using a simulator.
 
         This method runs circuit jobs (an individual or a list of QuantumCircuit
@@ -248,15 +248,15 @@ class FakeBackendV2(BackendV2):
             sim = aer.Aer.get_backend("qasm_simulator")
             if self._props_dict:
                 noise_model = self._get_noise_model_from_backend_v2()
-                job = sim.run(circuits, noise_model=noise_model, **kwargs)
+                job = sim.run(circuits, noise_model=noise_model, **options)
             else:
-                job = sim.run(circuits, **kwargs)
+                job = sim.run(circuits, **options)
         else:
             if pulse_job:
                 raise QiskitError("Unable to run pulse schedules without qiskit-aer installed")
             warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
             sim = basicaer.BasicAer.get_backend("qasm_simulator")
-            job = sim.run(circuits, **kwargs)
+            job = sim.run(circuits, **options)
         return job
 
     def _get_noise_model_from_backend_v2(
