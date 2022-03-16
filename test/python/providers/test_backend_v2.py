@@ -171,4 +171,4 @@ class TestBackendV2(QiskitTestCase):
     def test_transpile_parse_inst_map(self):
         """Test that transpiler._parse_inst_map() supports BackendV2."""
         inst_map = _parse_inst_map(inst_map=None, backend=self.backend, num_circuits=1)[0]
-        self.assertIsinstance(inst_map, InstructionScheduleMap)
+        self.assertIsInstance(inst_map, InstructionScheduleMap)
