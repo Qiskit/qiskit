@@ -78,10 +78,6 @@ def eval_observables(
     sampler = CircuitSampler(quantum_instance)
 
     list_op = _prepare_list_op(quantum_state, observables)
-
-    # observables_expect = expectation.convert(
-    #     StateFn(list_op, is_measurement=True).compose(StateFn(quantum_state))
-    # )
     observables_expect = expectation.convert(list_op)
     observables_expect_sampled = sampler.convert(observables_expect)
 
