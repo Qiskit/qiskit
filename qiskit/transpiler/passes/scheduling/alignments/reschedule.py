@@ -90,7 +90,7 @@ class ConstrainedReschedule(AnalysisPass):
             A list of non-delay successors.
         """
         op_nodes = []
-        for next_node in dag.quantum_successors(node):
+        for next_node in dag.successors(node):
             if isinstance(next_node, DAGOutNode):
                 continue
             if isinstance(next_node.op, Delay):
@@ -104,21 +104,56 @@ class ConstrainedReschedule(AnalysisPass):
     def _push_node_back(self, dag: DAGCircuit, node: DAGOpNode, shift: int):
         """Update start time of current node. Successors are also shifted to avoid overlap.
 
+        .. note::
+
+            This logic assumes the all bits in the qregs and cregs synchronously start and end,
+            i.e. occupy the same time slot, but qregs and cregs can take
+            different time slot due to classical I/O latencies.
+
         Args:
             dag: DAG circuit to be rescheduled with constraints.
             node: Current node.
             shift: Amount of required time shift.
         """
         node_start_time = self.property_set["node_start_time"]
-        new_t1 = node_start_time[node] + node.op.duration + shift
+        conditional_latency = self.property_set.get("conditional_latency", 0)
+        clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
+
+        # Compute shifted t1 of this node separately for qreg and creg
+        this_t0 = node_start_time[node]
+        new_t1q = this_t0 + node.op.duration + shift
+        if isinstance(node, Measure):
+            # creg access ends at the end of instruction
+            new_t1c = new_t1q
+        else:
+            if node.op.condition_bits:
+                # conditional access ends at the beginning of node start time
+                new_t1c = this_t0 + shift
+            else:
+                new_t1c = None
 
         # Check successors for overlap
-        overlaps = {n: new_t1 - node_start_time[n] for n in self._get_next_gate(dag, node)}
-
-        # Recursively shift next node until overlap is resolved
-        for successor, t_overlap in overlaps.items():
-            if t_overlap > 0:
-                self._push_node_back(dag, successor, t_overlap)
+        for next_node in self._get_next_gate(dag, node):
+            # Compute next node start time separately for qreg and creg
+            next_t0q = node_start_time[next_node]
+            if isinstance(next_node, Measure):
+                # creg access starts after write latency
+                next_t0c = next_t0q + clbit_write_latency
+            else:
+                if node.op.condition_bits:
+                    # conditional access starts before node start time
+                    next_t0c = next_t0q - conditional_latency
+                else:
+                    next_t0c = None
+            # Shift next node if there is finite overlap in either in qregs or cregs
+            qreg_overlap = new_t1q - next_t0q
+            try:
+                creg_overlap = new_t1c - next_t0c
+            except TypeError:
+                creg_overlap = 0
+            overlap = max(qreg_overlap, creg_overlap)
+            if overlap > 0:
+                self._push_node_back(dag, next_node, overlap)
 
         # Update start time of this node after all overlaps are resolved
         node_start_time[node] += shift
