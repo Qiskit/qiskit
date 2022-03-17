@@ -105,8 +105,8 @@ class VQD(VariationalAlgorithm, Eigensolver):
             ansatz: A parameterized circuit used as Ansatz for the wave function.
 
             optimizer: A classical optimizer.
-            k: the number of eigenvalues to return.
-            beta: beta parameter in the VQD paper. Should have same length as
+            k: the number of eigenvalues to return. Returns the lowest k eigenvalues.
+            beta: beta parameter in the VQD paper. Should have size k -1, the number of excited states.
             initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
