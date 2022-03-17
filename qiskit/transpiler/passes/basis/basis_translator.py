@@ -37,7 +37,7 @@ class BasisTranslator(TransformationPass):
     This pass operates in several steps:
 
     * Determine the source basis from the input circuit.
-    * Perform a Dijkstra search over basis sets, starting from the the device's
+    * Perform a Dijkstra search over basis sets, starting from the device's
       target_basis new gates are being generated using the rules from the provided
       EquivalenceLibrary and the search stops if all gates in the source basis have
       been generated.
