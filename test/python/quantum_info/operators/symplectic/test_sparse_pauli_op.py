@@ -584,6 +584,20 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         if not spp_op2.equiv(zero):
             self.assertFalse(spp_op2.equiv(spp_op2 + spp_op2))
 
+    def test_eq_equiv(self):
+        """Test __eq__ and equiv methods with some specific cases."""
+        with self.subTest("shuffled"):
+            spp_op1 = SparsePauliOp.from_list([("X", 1), ("Y", 2)])
+            spp_op2 = SparsePauliOp.from_list([("Y", 2), ("X", 1)])
+            self.assertNotEqual(spp_op1, spp_op2)
+            self.assertTrue(spp_op1.equiv(spp_op2))
+
+        with self.subTest("w/ zero"):
+            spp_op1 = SparsePauliOp.from_list([("X", 1), ("Y", 1)])
+            spp_op2 = SparsePauliOp.from_list([("X", 1), ("Y", 1), ("Z", 0)])
+            self.assertNotEqual(spp_op1, spp_op2)
+            self.assertTrue(spp_op1.equiv(spp_op2))
+
 
 if __name__ == "__main__":
     unittest.main()
