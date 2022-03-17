@@ -102,8 +102,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         """
 
         Args:
-            ansatz: A parameterized circuit used as Ansatz for the wave function.
-
+            ansatz: A parameterized circuit used as ansatz for the wave function.
             optimizer: A classical optimizer.
             k: the number of eigenvalues to return.
             beta: beta parameter in the VQD paper. Should have same length as
