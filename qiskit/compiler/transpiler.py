@@ -15,13 +15,11 @@ import datetime
 import io
 from itertools import cycle
 import logging
-from multiprocessing.shared_memory import SharedMemory
-from multiprocessing.managers import SharedMemoryManager
+import pickle
+import sys
 from time import time
 from typing import List, Union, Dict, Callable, Any, Optional, Tuple, Iterable
 import warnings
-
-import pickle
 
 from qiskit import user_config
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -48,6 +46,12 @@ from qiskit.transpiler.preset_passmanagers import (
 )
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.target import Target
+
+if sys.version_info >= (3, 8):
+    from multiprocessing.shared_memory import SharedMemory
+    from multiprocessing.managers import SharedMemoryManager
+else:
+    from shared_memory import SharedMemory, SharedMemoryManager
 
 logger = logging.getLogger(__name__)
 
