@@ -104,6 +104,7 @@ def convert_to_target(conf_dict: dict, props_dict: dict = None, defs_dict: dict 
         target.aquire_alignment = conf_dict["timing_constraints"].get("acquire_alignment")
     # If pulse defaults exists use that as the source of truth
     if defs_dict is not None:
+        # TODO remove the usage of PulseDefaults as if will be deprecated in the future
         pulse_defs = PulseDefaults.from_dict(defs_dict)
         inst_map = pulse_defs.instruction_schedule_map
         for inst in inst_map.instructions:
