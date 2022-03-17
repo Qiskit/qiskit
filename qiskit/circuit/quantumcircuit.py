@@ -3208,7 +3208,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.xy import XXPlusYYGate
+        from .library.standard_gates.xx_plus_yy import XXPlusYYGate
 
         return self.append(XXPlusYYGate(theta, beta), [qubit1, qubit2], [])
 
