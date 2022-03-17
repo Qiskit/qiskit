@@ -495,17 +495,12 @@ class Target(Mapping):
             bool: Returns ``True`` if the instruction is supported and ``False`` if it isn't.
 
         """
-        return_value = False
         if operation_name in self._gate_map:
             if qargs in self._gate_map[operation_name]:
-                return_value = True
-            elif self._gate_map[operation_name] is None:
-                if all(x < self.num_qubits for x in qargs):
-                    return_value = True
-            elif None in self._gate_map[operation_name]:
-                if all(x < self.num_qubits for x in qargs):
-                    return_value = True
-        return return_value
+                return True
+            if self._gate_map[operation_name] is None or None in self._gate_map[operation_name]:
+                return all(x < self.num_qubits for x in qargs)
+        return False
 
     @property
     def operation_names(self):
