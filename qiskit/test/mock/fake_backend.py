@@ -164,6 +164,7 @@ class FakeBackendV2(BackendV2):
         """Return the grouping of measurements which are multiplexed
         This is required to be implemented if the backend supports Pulse
         scheduling.
+
         Returns:
             meas_map: The grouping of measurements which are multiplexed
         """
