@@ -154,6 +154,7 @@ class FakeBackendV2(BackendV2):
     @property
     def dtm(self) -> float:
         """Return the system time resolution of output signals
+
         Returns:
             dtm: The output signal timestep in seconds.
         """
