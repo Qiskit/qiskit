@@ -129,8 +129,11 @@ class ParametricPulse(Pulse):
         # midpoint sampling
         times = np.arange(0, self.duration) + 1/2
         if optionals.HAS_SYMENGINE:
-            # this should be simplified to handle piecewise function
-            lambda_func = sym.lambdify(t, [assigned_expr.simplify()])
+            # Fall back to sympy for lambda function creation until symengine's
+            # lambdify fully supports the features required by parametric
+            # pulses.
+            import sympy
+            lambda_func = sympy.lambdify(t, sym.sympify(assigned_expr))
         else:
             lambda_func = sym.lambdify(t, assigned_expr)
 
