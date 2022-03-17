@@ -317,7 +317,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
     @property
     def setting(self):
-        """Prepare the setting of VQE as a string."""
+        """Prepare the setting of VQD as a string."""
         ret = f"Algorithm: {self.__class__.__name__}\n"
         params = ""
         for key, value in self.__dict__.items():
