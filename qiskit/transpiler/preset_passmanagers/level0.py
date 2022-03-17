@@ -49,6 +49,7 @@ from qiskit.transpiler.passes import ASAPSchedule
 from qiskit.transpiler.passes import AlignMeasures
 from qiskit.transpiler.passes import ValidatePulseGates
 from qiskit.transpiler.passes import PulseGates
+from qiskit.transpiler.passes import PadDelay
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import ContainsInstruction
 
@@ -188,7 +189,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             Unroll3qOrMore(),
             Collect2qBlocks(),
             Collect1qRuns(),
-            ConsolidateBlocks(basis_gates=basis_gates),
+            ConsolidateBlocks(basis_gates=basis_gates, target=target),
             UnitarySynthesis(
                 basis_gates,
                 approximation_degree=approximation_degree,
@@ -221,9 +222,9 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if scheduling_method:
         _scheduling += _time_unit_conversion
         if scheduling_method in {"alap", "as_late_as_possible"}:
-            _scheduling += [ALAPSchedule(instruction_durations)]
+            _scheduling += [ALAPSchedule(instruction_durations), PadDelay()]
         elif scheduling_method in {"asap", "as_soon_as_possible"}:
-            _scheduling += [ASAPSchedule(instruction_durations)]
+            _scheduling += [ASAPSchedule(instruction_durations), PadDelay()]
         else:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
 

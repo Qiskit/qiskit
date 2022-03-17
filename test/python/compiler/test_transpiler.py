@@ -79,7 +79,6 @@ class TestTranspile(QiskitTestCase):
             backend=backend,
             coupling_map=coupling_map,
             basis_gates=basis_gates,
-            pass_manager=None,
         )
 
         circuit3 = transpile(
@@ -1052,6 +1051,7 @@ class TestTranspile(QiskitTestCase):
         transpiled_circuit = transpile(
             circ,
             backend=backend,
+            layout_method="trivial",
         )
         self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
         self.assertEqual(list(transpiled_circuit.count_ops().keys()), ["mycustom"])
@@ -1090,7 +1090,7 @@ class TestTranspile(QiskitTestCase):
 
         backend = FakeAlmaden()
         with self.assertRaises(QiskitError):
-            transpile(circ, backend=backend)
+            transpile(circ, backend=backend, layout_method="trivial")
 
     def test_transpile_calibrated_nonbasis_gate_on_diff_qubit(self):
         """Test if the non-basis gates are transpiled if they are on different qubit that
@@ -1129,7 +1129,7 @@ class TestTranspile(QiskitTestCase):
         circ.add_calibration(x_180, [0], q0_x180)
         circ.add_calibration("h", [1], q0_x180)  # 'h' is calibrated on qubit 1
 
-        transpiled_circ = transpile(circ, FakeAlmaden())
+        transpiled_circ = transpile(circ, FakeAlmaden(), layout_method="trivial")
         self.assertEqual(set(transpiled_circ.count_ops().keys()), {"u2", "mycustom", "h"})
 
     def test_parameterized_calibrations_transpile(self):
@@ -1146,10 +1146,10 @@ class TestTranspile(QiskitTestCase):
 
         circ.add_calibration("rxt", [0], q0_rxt(tau), [2 * 3.14 * tau])
 
-        transpiled_circ = transpile(circ, FakeAlmaden())
+        transpiled_circ = transpile(circ, FakeAlmaden(), layout_method="trivial")
         self.assertEqual(set(transpiled_circ.count_ops().keys()), {"rxt"})
         circ = circ.assign_parameters({tau: 1})
-        transpiled_circ = transpile(circ, FakeAlmaden())
+        transpiled_circ = transpile(circ, FakeAlmaden(), layout_method="trivial")
         self.assertEqual(set(transpiled_circ.count_ops().keys()), {"rxt"})
 
     def test_inst_durations_from_calibrations(self):
@@ -1206,7 +1206,7 @@ class TestTranspile(QiskitTestCase):
                 pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.ControlChannel(4)
             )
         circ.add_calibration("my_custom_gate", [0, 1, 2, 3, 4], my_schedule, [])
-        trans_circ = transpile(circ, backend, optimization_level=opt_level)
+        trans_circ = transpile(circ, backend, optimization_level=opt_level, layout_method="trivial")
         self.assertEqual({"measure": 5, "my_custom_gate": 1, "barrier": 1}, trans_circ.count_ops())
 
     @data(0, 1, 2, 3)
