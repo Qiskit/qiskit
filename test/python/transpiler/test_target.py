@@ -911,6 +911,7 @@ Instructions:
         self.assertFalse(self.ideal_sim_target.instruction_supported("cx", (0, 524)))
         self.assertTrue(self.fake_backend_target.instruction_supported("cx", (0, 1)))
         self.assertFalse(self.fake_backend_target.instruction_supported("cx", (1, 0)))
+        self.assertFalse(self.ideal_sim_target.instruction_supported("cx", (0, 1, 2)))
 
 
 class TestPulseTarget(QiskitTestCase):
