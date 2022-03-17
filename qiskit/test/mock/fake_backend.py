@@ -249,6 +249,7 @@ class FakeBackendV2(BackendV2):
                 from qiskit.providers import aer
 
                 sim = aer.Aer.get_backend("qasm_simulator")
+                sim._options = self._options
                 if self._props_dict:
                     noise_model = self._get_noise_model_from_backend_v2()
                     job = sim.run(circuits, noise_model=noise_model, **options)
