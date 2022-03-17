@@ -281,15 +281,6 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         ]
         return SparsePauliOp(labels, coeffs)
 
-    def zero_spp_op(self, num_qubits, num_terms):
-        """Generate a zero SparsePauliOp"""
-        coeffs = np.zeros(num_terms)
-        labels = [
-            "".join(self.RNG.choice(["I", "X", "Y", "Z"], size=num_qubits))
-            for _ in range(num_terms)
-        ]
-        return SparsePauliOp(labels, coeffs)
-
     @combine(num_qubits=[1, 2, 3, 4])
     def test_conjugate(self, num_qubits):
         """Test conjugate method for {num_qubits}-qubits."""
@@ -496,7 +487,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
     @combine(num_qubits=[1, 2, 3, 4])
     def test_simplify_zero(self, num_qubits):
         """Test simplify method for {num_qubits} qubits with zero operators."""
-        zero_op = self.zero_spp_op(num_qubits, 2**num_qubits)
+        spp_op = self.random_spp_op(num_qubits, 2**num_qubits)
+        zero_op = spp_op - spp_op
         simplified_op = zero_op.simplify()
         value = Operator(simplified_op)
         target = Operator(zero_op)
@@ -552,7 +544,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         """Test __eq__ method for {num_qubits} qubits."""
         spp_op1 = self.random_spp_op(num_qubits, 2**num_qubits)
         spp_op2 = self.random_spp_op(num_qubits, 2**num_qubits)
-        zero = self.zero_spp_op(num_qubits, 2**num_qubits)
+        spp_op3 = self.random_spp_op(num_qubits, 2**num_qubits)
+        zero = spp_op3 - spp_op3
         self.assertEqual(spp_op1, spp_op1)
         self.assertEqual(spp_op2, spp_op2)
         self.assertNotEqual(spp_op1, spp_op1 + zero)
@@ -565,8 +558,10 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         """Test equiv method for {num_qubits} qubits."""
         spp_op1 = self.random_spp_op(num_qubits, 2**num_qubits)
         spp_op2 = self.random_spp_op(num_qubits, 2**num_qubits)
-        zero = self.zero_spp_op(num_qubits, 2**num_qubits)
-        zero2 = self.zero_spp_op(num_qubits, 2**num_qubits)
+        spp_op3 = self.random_spp_op(num_qubits, 2**num_qubits)
+        spp_op4 = self.random_spp_op(num_qubits, 2**num_qubits)
+        zero = spp_op3 - spp_op3
+        zero2 = spp_op4 - spp_op4
         self.assertTrue(spp_op1.equiv(spp_op1))
         self.assertTrue(spp_op1.equiv(spp_op1 + zero))
         self.assertTrue(spp_op2.equiv(spp_op2))
