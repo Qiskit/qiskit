@@ -29,11 +29,11 @@ class XXPlusYYGate(Gate):
 
     .. parsed-literal::
 
-             ┌──────────┐
-        q_0: ┤0         ├
-             │  Xy(θ,β) │
-        q_1: ┤1         ├
-             └──────────┘
+             ┌───────────────┐
+        q_0: ┤0              ├
+             │  {XX+YY}(θ,β) │
+        q_1: ┤1              ├
+             └───────────────┘
 
     **Matrix Representation:**
 
@@ -41,7 +41,7 @@ class XXPlusYYGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        XY(\theta, \beta)\ q_0, q_1 =
+        R_{XX+YY}(\theta, \beta)\ q_0, q_1 =
           RZ_1(\beta) \cdot exp(-i \frac{\theta}{2} \frac{XX+YY}{2}) \cdot RZ_1(-\beta) =
             \begin{pmatrix}
                 1 & 0                     & 0                    & 0  \\
@@ -61,17 +61,17 @@ class XXPlusYYGate(Gate):
 
         .. parsed-literal::
 
-                 ┌──────────┐
-            q_0: ┤1         ├
-                 │  Xy(θ,β) │
-            q_1: ┤0         ├
-                 └──────────┘
+                 ┌───────────────┐
+            q_0: ┤1              ├
+                 │  {XX+YY}(θ,β) │
+            q_1: ┤0              ├
+                 └───────────────┘
 
         .. math::
 
             \newcommand{\th}{\frac{\theta}{2}}
 
-            XY(\theta, \beta)\ q_1, q_0 =
+            R_{XX+YY}(\theta, \beta)\ q_1, q_0 =
             RZ_0(\beta) \cdot exp(-i \frac{\theta}{2} \frac{XX+YY}{2}) \cdot RZ_0(-\beta) =
                 \begin{pmatrix}
                     1 & 0                     & 0                     & 0  \\
@@ -89,7 +89,7 @@ class XXPlusYYGate(Gate):
 
     def _define(self):
         """
-        gate xy(theta, beta) a, b {
+        gate xxplusyy(theta, beta) a, b {
             rz(beta) b;
             rz(-pi/2) a;
             sx a;
