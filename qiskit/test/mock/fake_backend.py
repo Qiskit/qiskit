@@ -237,28 +237,27 @@ class FakeBackendV2(BackendV2):
                     pulse_job = True
                 elif all(isinstance(x, circuit.QuantumCircuit) for x in circuits):
                     pulse_job = False
-        if pulse_job is None:
+        if pulse_job is None:   # submitted job is invalid
             raise QiskitError(
                 "Invalid input object %s, must be either a "
                 "QuantumCircuit, Schedule, or a list of either" % circuits
             )
-        if _optionals.HAS_AER:
-            from qiskit.providers import aer
+        elif pulse_job:
+            raise QiskitError("Pulse simulation is currently not supported for V2 backends.")
+        else:   # circuit job
+            if _optionals.HAS_AER:
+                from qiskit.providers import aer
 
-            if pulse_job:
-                raise QiskitError("Pulse simulation is currently not supported for V2 backends.")
-            sim = aer.Aer.get_backend("qasm_simulator")
-            if self._props_dict:
-                noise_model = self._get_noise_model_from_backend_v2()
-                job = sim.run(circuits, noise_model=noise_model, **options)
+                sim = aer.Aer.get_backend("qasm_simulator")
+                if self._props_dict:
+                    noise_model = self._get_noise_model_from_backend_v2()
+                    job = sim.run(circuits, noise_model=noise_model, **options)
+                else:   # simulate without noise
+                    job = sim.run(circuits, **options)
             else:
+                warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
+                sim = basicaer.BasicAer.get_backend("qasm_simulator")
                 job = sim.run(circuits, **options)
-        else:
-            if pulse_job:
-                raise QiskitError("Unable to run pulse schedules without qiskit-aer installed")
-            warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
-            sim = basicaer.BasicAer.get_backend("qasm_simulator")
-            job = sim.run(circuits, **options)
         return job
 
     def _get_noise_model_from_backend_v2(
