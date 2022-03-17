@@ -560,7 +560,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
             # support SumOps yet
             if isinstance(self._gradient, GradientBase):
                 gradient = self._gradient.gradient_wrapper(
-                    ~StateFn(operator) @ StateFn(self.ansatz),
+                    StateFn(operator, is_measurement=True) @ StateFn(self.ansatz),
                     grad_params=self._ansatz_params,
                     bind_params=list(self.ansatz.parameters),
                     backend=self._quantum_instance,
