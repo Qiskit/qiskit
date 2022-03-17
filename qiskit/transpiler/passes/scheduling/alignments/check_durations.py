@@ -53,9 +53,10 @@ class InstructionDurationCheck(AnalysisPass):
         Args:
             dag: DAG circuit to check instruction durations.
         """
+        self.property_set["reschedule_required"] = False
+
         # Rescheduling is not necessary
         if self.acquire_align == 1 and self.pulse_align == 1:
-            self.property_set["reschedule_required"] = False
             return
 
         # Check delay durations
@@ -72,5 +73,3 @@ class InstructionDurationCheck(AnalysisPass):
                 if not (dur % self.acquire_align == 0 and dur % self.pulse_align == 0):
                     self.property_set["reschedule_required"] = True
                     return
-
-        self.property_set["reschedule_required"] = False
