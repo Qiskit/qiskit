@@ -22,6 +22,7 @@ from ddt import ddt
 from qiskit import QiskitError
 from qiskit.quantum_info.operators import (
     Operator,
+    Pauli,
     PauliList,
     PauliTable,
     SparsePauliOp,
@@ -157,9 +158,30 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         """Test from_list method."""
         labels = ["XXZ", "IXI", "YZZ", "III"]
         coeffs = [3.0, 5.5, -1j, 23.3333]
-        spp_op = SparsePauliOp.from_list(list(zip(labels, coeffs)))
+        spp_op = SparsePauliOp.from_list(zip(labels, coeffs))
         np.testing.assert_array_equal(spp_op.coeffs, coeffs)
         self.assertEqual(spp_op.paulis, PauliList(labels))
+
+    def test_from_index_list(self):
+        """Test from_list method specifying the Paulis via indices."""
+        expected_labels = ["XXZ", "IXI", "YIZ", "III"]
+        paulis = ["XXZ", "X", "YZ", ""]
+        indices = [[2, 1, 0], [1], [2, 0], []]
+        coeffs = [3.0, 5.5, -1j, 23.3333]
+        spp_op = SparsePauliOp.from_sparse_list(zip(paulis, indices, coeffs), num_qubits=3)
+        np.testing.assert_array_equal(spp_op.coeffs, coeffs)
+        self.assertEqual(spp_op.paulis, PauliList(expected_labels))
+
+    def test_from_index_list_endianness(self):
+        """Test the construction from index list has the right endianness."""
+        spp_op = SparsePauliOp.from_sparse_list([("ZX", [1, 4], 1)], num_qubits=5)
+        expected = Pauli("XIIZI")
+        self.assertEqual(spp_op.paulis[0], expected)
+
+    def test_from_index_list_raises(self):
+        """Test from_list via Pauli + indices raises correctly, if number of qubits invalid."""
+        with self.assertRaises(QiskitError):
+            _ = SparsePauliOp.from_sparse_list([("Z", [2], 1)], 1)
 
     def test_from_zip(self):
         """Test from_list method for zipped input."""

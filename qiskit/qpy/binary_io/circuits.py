@@ -37,7 +37,7 @@ from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.synthesis import evolution as evo_synth
 
 
-def _read_header_v2(file_obj, version, vectors):
+def _read_header_v2(file_obj, version, vectors, metadata_deserializer=None):
     data = formats.CIRCUIT_HEADER_V2._make(
         struct.unpack(
             formats.CIRCUIT_HEADER_V2_PACK,
@@ -59,11 +59,11 @@ def _read_header_v2(file_obj, version, vectors):
         "num_instructions": data.num_instructions,
     }
     metadata_raw = file_obj.read(data.metadata_size)
-    metadata = json.loads(metadata_raw)
+    metadata = json.loads(metadata_raw, cls=metadata_deserializer)
     return header, name, metadata
 
 
-def _read_header(file_obj):
+def _read_header(file_obj, metadata_deserializer=None):
     data = formats.CIRCUIT_HEADER._make(
         struct.unpack(formats.CIRCUIT_HEADER_PACK, file_obj.read(formats.CIRCUIT_HEADER_SIZE))
     )
@@ -76,7 +76,7 @@ def _read_header(file_obj):
         "num_instructions": data.num_instructions,
     }
     metadata_raw = file_obj.read(data.metadata_size)
-    metadata = json.loads(metadata_raw)
+    metadata = json.loads(metadata_raw, cls=metadata_deserializer)
     return header, name, metadata
 
 
@@ -562,14 +562,20 @@ def _write_registers(file_obj, in_circ_regs, full_bits):
     return len(in_circ_regs) + len(out_circ_regs)
 
 
-def write_circuit(file_obj, circuit):
+def write_circuit(file_obj, circuit, metadata_serializer=None):
     """Write a single QuantumCircuit object in the file like object.
 
     Args:
         file_obj (FILE): The file like object to write the circuit data in.
         circuit (QuantumCircuit): The circuit data to write.
+        metadata_serializer (JSONEncoder): An optional JSONEncoder class that
+            will be passed the :attr:`.QuantumCircuit.metadata` dictionary for
+            each circuit in ``circuits`` and will be used as the ``cls`` kwarg
+            on the ``json.dump()`` call to JSON serialize that dictionary.
     """
-    metadata_raw = json.dumps(circuit.metadata, separators=(",", ":")).encode(common.ENCODE)
+    metadata_raw = json.dumps(
+        circuit.metadata, separators=(",", ":"), cls=metadata_serializer
+    ).encode(common.ENCODE)
     metadata_size = len(metadata_raw)
     num_instructions = len(circuit)
     circuit_name = circuit.name.encode(common.ENCODE)
@@ -616,12 +622,19 @@ def write_circuit(file_obj, circuit):
     instruction_buffer.close()
 
 
-def read_circuit(file_obj, version):
+def read_circuit(file_obj, version, metadata_deserializer=None):
     """Read a single QuantumCircuit object from the file like object.
 
     Args:
         file_obj (FILE): The file like object to read the circuit data from.
         version (int): QPY version.
+        metadata_deserializer (JSONDecoder): An optional JSONDecoder class
+            that will be used for the ``cls`` kwarg on the internal
+            ``json.load`` call used to deserialize the JSON payload used for
+            the :attr:`.QuantumCircuit.metadata` attribute for any circuits
+            in the QPY file. If this is not specified the circuit metadata will
+            be parsed as JSON with the stdlib ``json.load()`` function using
+            the default ``JSONDecoder`` class.
 
     Returns:
         QuantumCircuit: The circuit object from the file.
@@ -631,9 +644,11 @@ def read_circuit(file_obj, version):
     """
     vectors = {}
     if version < 2:
-        header, name, metadata = _read_header(file_obj)
+        header, name, metadata = _read_header(file_obj, metadata_deserializer=metadata_deserializer)
     else:
-        header, name, metadata = _read_header_v2(file_obj, version, vectors)
+        header, name, metadata = _read_header_v2(
+            file_obj, version, vectors, metadata_deserializer=metadata_deserializer
+        )
 
     global_phase = header["global_phase"]
     num_qubits = header["num_qubits"]
