@@ -237,14 +237,14 @@ class FakeBackendV2(BackendV2):
                     pulse_job = True
                 elif all(isinstance(x, circuit.QuantumCircuit) for x in circuits):
                     pulse_job = False
-        if pulse_job is None:   # submitted job is invalid
+        if pulse_job is None:  # submitted job is invalid
             raise QiskitError(
                 "Invalid input object %s, must be either a "
                 "QuantumCircuit, Schedule, or a list of either" % circuits
             )
         elif pulse_job:
             raise QiskitError("Pulse simulation is currently not supported for V2 backends.")
-        else:   # circuit job
+        else:  # circuit job
             if _optionals.HAS_AER:
                 from qiskit.providers import aer
 
@@ -253,7 +253,7 @@ class FakeBackendV2(BackendV2):
                 if self._props_dict:
                     noise_model = self._get_noise_model_from_backend_v2()
                     job = sim.run(circuits, noise_model=noise_model, **options)
-                else:   # simulate without noise
+                else:  # simulate without noise
                     job = sim.run(circuits, **options)
             else:
                 warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
