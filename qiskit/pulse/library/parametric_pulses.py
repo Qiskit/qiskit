@@ -123,7 +123,6 @@ class ParametricPulse(Pulse):
             import sympy as sym
 
         params = {sym.Symbol(k): v for k, v in self.parameters.items()}
-        t = sym.Symbol("t")
         assigned_expr = self.definition.subs(params)
 
         # midpoint sampling
@@ -133,8 +132,9 @@ class ParametricPulse(Pulse):
             # lambdify fully supports the features required by parametric
             # pulses.
             import sympy
-            lambda_func = sympy.lambdify(t, sym.sympify(assigned_expr))
+            lambda_func = sympy.lambdify(sympy.Symbol("t"), sym.sympify(assigned_expr))
         else:
+            t = sym.Symbol("t")
             lambda_func = sym.lambdify(t, assigned_expr)
 
         waveform = lambda_func(times)
