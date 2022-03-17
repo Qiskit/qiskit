@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -102,8 +102,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         """
 
         Args:
-            ansatz: A parameterized circuit used as Ansatz for the wave function.
-
+            ansatz: A parameterized circuit used as ansatz for the wave function.
             optimizer: A classical optimizer.
             k: the number of eigenvalues to return. Returns the lowest k eigenvalues.
             beta: beta parameter in the VQD paper. Should have size k -1, the number of excited states.
@@ -318,7 +317,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
     @property
     def setting(self):
-        """Prepare the setting of VQE as a string."""
+        """Prepare the setting of VQD as a string."""
         ret = f"Algorithm: {self.__class__.__name__}\n"
         params = ""
         for key, value in self.__dict__.items():
@@ -331,11 +330,10 @@ class VQD(VariationalAlgorithm, Eigensolver):
         return ret
 
     def print_settings(self):
-        """
-        Preparing the setting of VQE into a string.
+        """Preparing the setting of VQD into a string.
 
         Returns:
-            str: the formatted setting of VQE
+            str: the formatted setting of VQD.
         """
         ret = "\n"
         ret += "==================== Setting of {} ============================\n".format(
@@ -562,7 +560,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
             # support SumOps yet
             if isinstance(self._gradient, GradientBase):
                 gradient = self._gradient.gradient_wrapper(
-                    ~StateFn(operator) @ StateFn(self.ansatz),
+                    StateFn(operator, is_measurement=True) @ StateFn(self.ansatz),
                     grad_params=self._ansatz_params,
                     bind_params=list(self.ansatz.parameters),
                     backend=self._quantum_instance,
