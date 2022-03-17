@@ -495,6 +495,8 @@ class Target(Mapping):
             bool: Returns ``True`` if the instruction is supported and ``False`` if it isn't.
 
         """
+        # Case a list if passed in by mistake
+        qargs = tuple(qargs)
         if operation_name in self._gate_map:
             if qargs in self._gate_map[operation_name]:
                 return True
