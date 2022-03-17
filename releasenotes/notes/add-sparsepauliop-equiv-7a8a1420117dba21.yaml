@@ -1,9 +1,10 @@
 ---
 features:
   - |
-    A utility function ``numpy.unique`` to compute unique elements of an array
-    that is used in :meth:`~qiskit.quantum_info.SparsePauliOp.simplify`
-    has been reimplemented in Rust to improve the performance.
+    The performance of the:meth:`.SparsePauliOp.simplify` method has 
+    greatly improved by replacing the use ``numpy.unique`` to compute unique elements
+    of an array by a new similar function implemented in Rust that doesn't pre-sort the
+    array.
   - |
     Added :meth:`~qiskit.quantum_info.SparsePauliOp.equiv`.
     While :meth:`~qiskit.quantum_info.SparsePauliOp.__eq__` compare operartors
