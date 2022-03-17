@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed support in :func:`~qiskit.compiler.transpile` for passing a
+    :class:`~qiskit.pulse.InstructionMap` to the underlying :class:`~qiskit.transpiler.PassManager`
+    based on the :class:`~qiskit.transpiler.Target` for :class:`~qiskit.providers.backend.BackendV2` based
+    backends.
