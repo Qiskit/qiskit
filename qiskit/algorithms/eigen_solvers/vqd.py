@@ -330,11 +330,10 @@ class VQD(VariationalAlgorithm, Eigensolver):
         return ret
 
     def print_settings(self):
-        """
-        Preparing the setting of VQE into a string.
+        """Preparing the setting of VQD into a string.
 
         Returns:
-            str: the formatted setting of VQE
+            str: the formatted setting of VQD.
         """
         ret = "\n"
         ret += "==================== Setting of {} ============================\n".format(
