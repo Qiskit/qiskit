@@ -26,6 +26,7 @@ def marginal_counts(
     indices: Optional[List[int]] = None,
     inplace: bool = False,
     format_marginal: bool = False,
+    marginalize_memory: Optional[bool] = True,
 ) -> Union[Dict[str, int], Result]:
     """Marginalize counts from an experiment over some indices of interest.
 
@@ -40,6 +41,9 @@ def marginal_counts(
         format_marginal: Default: False. If True, takes the output of
             marginalize and formats it with placeholders between cregs and
             for non-indices.
+        marginalize_memory: If True, then also marginalize the memory field (if present).
+            If False, remove the memory field from the result.
+            If None, leave the memory field as is.
 
     Returns:
         Result or dict(str, int): A Result object or a dictionary with
@@ -59,18 +63,27 @@ def marginal_counts(
             for k, v in new_counts.items():
                 new_counts_hex[_bin_to_hex(k)] = v
             experiment_result.data.counts = new_counts_hex
-            experiment_result.header.memory_slots = len(indices)
-            csize = experiment_result.header.creg_sizes
-            experiment_result.header.creg_sizes = _adjust_creg_sizes(csize, indices)
 
-            if getattr(experiment_result.data, "memory", None) is not None:
-                sorted_indices = sorted(indices, reverse=True)  # same convention as for the counts
-                bit_strings = [_hex_to_bin(s) for s in experiment_result.data.memory]
-                marginal_bit_strings = [
-                    "".join([s[-idx - 1] for idx in sorted_indices if idx < len(s)])
-                    for s in bit_strings
-                ]
-                experiment_result.data.memory = [_bin_to_hex(s) for s in marginal_bit_strings]
+            if indices is not None:
+                experiment_result.header.memory_slots = len(indices)
+                csize = experiment_result.header.creg_sizes
+                experiment_result.header.creg_sizes = _adjust_creg_sizes(csize, indices)
+
+            if getattr(experiment_result.data, "memory", None) is not None and indices is not None:
+                if marginalize_memory is False:
+                    delattr(experiment_result.data, "memory")
+                elif marginalize_memory is None:
+                    pass  # leave as is
+                else:
+                    sorted_indices = sorted(
+                        indices, reverse=True
+                    )  # same convention as for the counts
+                    bit_strings = [_hex_to_bin(s) for s in experiment_result.data.memory]
+                    marginal_bit_strings = [
+                        "".join([s[-idx - 1] for idx in sorted_indices if idx < len(s)])
+                        for s in bit_strings
+                    ]
+                    experiment_result.data.memory = [_bin_to_hex(s) for s in marginal_bit_strings]
         return result
     else:
         marg_counts = _marginalize(result, indices)
