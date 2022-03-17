@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -286,7 +286,10 @@ class SparsePauliOp(LinearOp):
             z4[:, qargs] = z3
             pauli_list = PauliList(BasePauli(z4, x4, phase))
 
-        coeffs = np.kron(self.coeffs, other.coeffs)
+        # note: the following is a faster code equivalent to
+        # `coeffs = np.kron(self.coeffs, other.coeffs)`
+        # since `self.coeffs` and `other.coeffs` are both 1d arrays.
+        coeffs = np.multiply.outer(self.coeffs, other.coeffs).ravel()
         return SparsePauliOp(pauli_list, coeffs, copy=False)
 
     def tensor(self, other):
@@ -539,15 +542,104 @@ class SparsePauliOp(LinearOp):
 
     @staticmethod
     def from_list(obj):
-        """Construct from a list [(pauli_str, coeffs)]"""
+        """Construct from a list of Pauli strings and coefficients.
+
+        For example, the 5-qubit Hamiltonian
+
+        .. math::
+
+            H = Z_1 X_4 + 2 Y_0 Y_3
+
+        can be constructed as
+
+        .. code-block:: python
+
+            # via tuples and the full Pauli string
+            op = SparsePauliOp.from_list([("XIIZI", 1), ("IYIIY", 2)])
+
+        Args:
+            obj (Iterable[Tuple[str, complex]]): The list of 2-tuples specifying the Pauli terms.
+
+        Returns:
+            SparsePauliOp: The SparsePauliOp representation of the Pauli terms.
+
+        Raises:
+            QiskitError: If the list of Paulis is empty.
+        """
         obj = list(obj)  # To convert zip or other iterable
+
+        size = len(obj)  # number of Pauli terms
+        if size == 0:
+            raise QiskitError("Input Pauli list is empty.")
+
+        # determine the number of qubits
         num_qubits = len(obj[0][0])
-        size = len(obj)
+
         coeffs = np.zeros(size, dtype=complex)
         labels = np.zeros(size, dtype=f"<U{num_qubits}")
         for i, item in enumerate(obj):
             labels[i] = item[0]
             coeffs[i] = item[1]
+
+        paulis = PauliList(labels)
+        return SparsePauliOp(paulis, coeffs, copy=False)
+
+    @staticmethod
+    def from_sparse_list(obj, num_qubits):
+        """Construct from a list of local Pauli strings and coefficients.
+
+        Each list element is a 3-tuple of a local Pauli string, indices where to apply it,
+        and a coefficient.
+
+        For example, the 5-qubit Hamiltonian
+
+        .. math::
+
+            H = Z_1 X_4 + 2 Y_0 Y_3
+
+        can be constructed as
+
+        .. code-block:: python
+
+            # via triples and local Paulis with indices
+            op = SparsePauliOp.from_sparse_list([("ZX", [1, 4], 1), ("YY", [0, 3], 2)], num_qubits=5)
+
+            # equals the following construction from "dense" Paulis
+            op = SparsePauliOp.from_list([("XIIZI", 1), ("IYIIY", 2)])
+
+        Args:
+            obj (Iterable[Tuple[str, List[int], complex]]): The list 3-tuples specifying the Paulis.
+            num_qubits (int): The number of qubits of the operator.
+
+        Returns:
+            SparsePauliOp: The SparsePauliOp representation of the Pauli terms.
+
+        Raises:
+            QiskitError: If the list of Paulis is empty.
+            QiskitError: If the number of qubits is incompatible with the indices of the Pauli terms.
+        """
+        obj = list(obj)  # To convert zip or other iterable
+
+        size = len(obj)  # number of Pauli terms
+        if size == 0:
+            raise QiskitError("Input Pauli list is empty.")
+
+        coeffs = np.zeros(size, dtype=complex)
+        labels = np.zeros(size, dtype=f"<U{num_qubits}")
+
+        for i, (paulis, indices, coeff) in enumerate(obj):
+            # construct the full label based off the non-trivial Paulis and indices
+            label = ["I"] * num_qubits
+            for pauli, index in zip(paulis, indices):
+                if index >= num_qubits:
+                    raise QiskitError(
+                        f"The number of qubits ({num_qubits}) is smaller than a required index {index}."
+                    )
+                label[~index] = pauli
+
+            labels[i] = "".join(label)
+            coeffs[i] = coeff
+
         paulis = PauliList(labels)
         return SparsePauliOp(paulis, coeffs, copy=False)
 
