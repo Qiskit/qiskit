@@ -129,18 +129,13 @@ class ParametricPulse(Pulse):
         # midpoint sampling
         times = np.arange(0, self.duration) + 1/2
         if optionals.HAS_SYMENGINE:
+            # this should be simplified to handle piecewise function
             lambda_func = sym.lambdify(t, [assigned_expr.simplify()])
         else:
-            # lambda_func = sym.lambdify(t, assigned_expr.simplify())
             lambda_func = sym.lambdify(t, assigned_expr)
 
         waveform = lambda_func(times)
-        if not isinstance(waveform, np.ndarray):
-            # Workaround for constants being simplified to scalars
-            # See: https://github.com/sympy/sympy/issues/5642
-            waveform = waveform * np.ones(times.shape)
 
-        # this should be simplified to handle piecewise function
 
         return Waveform(samples=waveform, name=self.name)
 

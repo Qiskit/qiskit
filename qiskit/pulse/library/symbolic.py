@@ -59,6 +59,13 @@ def symbolic_drag():
 
 
 def symbolic_constant():
-    amp = sym.Symbol("amp")
+    t, duration, amp = sym.symbols("t, duration, amp")
 
-    return amp
+    # Note this is implemented using Piecewise instead of just returning amp
+    # directly because otherwise the expression has no t dependence and sympy's
+    # lambdify will produce a function f that for an array t returns amp
+    # instead of amp * np.ones(t.shape). This does not work well with
+    # ParametricPulse.get_waveform().
+    #
+    # See: https://github.com/sympy/sympy/issues/5642
+    return amp * sym.Piecewise((1, 0<= t <= duration), (0, True))
