@@ -11,10 +11,10 @@
 # that they have been altered from the originals.
 """Prepare a quantum state from the state where all qubits are 0."""
 
+from typing import Union, Optional
+
 import math
 import numpy as np
-
-from typing import Union, Optional
 
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit, QuantumRegister
@@ -76,9 +76,6 @@ class StatePreparation(Gate):
         [`https://arxiv.org/abs/quant-ph/0406176v5`]
 
         """
-        # pylint: disable=cyclic-import
-        from qiskit.quantum_info import Statevector
-
         self._params_arg = params
         self._inverse = inverse
         self._name = "State Preparation Dg" if self._inverse else "State Preparation"
