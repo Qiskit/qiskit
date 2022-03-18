@@ -57,6 +57,8 @@ class ParametricPulse(Pulse):
 
     PARAM_DEF = ["duration"]
 
+    numerical_func = None
+
     @abstractmethod
     def __init__(
         self,
@@ -84,6 +86,24 @@ class ParametricPulse(Pulse):
 
         self.definition = self._define()
         self.validate_parameters()
+        if type(self).numerical_func is None:
+            type(self).numerical_func = self.lambdify(self.definition)
+
+    def lambdify(self, expr):
+        import sympy
+
+        symbols = [sympy.Symbol("t")] + [sympy.Symbol(p) for p in self.PARAM_DEF]
+
+        if optionals.HAS_SYMENGINE:
+            # Fall back to sympy for lambda function creation until symengine's
+            # lambdify fully supports the features required by parametric
+            # pulses.
+            import symengine
+            expr = symengine.sympify(expr)
+
+        lambda_func = sympy.lambdify(symbols, expr)
+
+        return lambda_func
 
     def _define(self):
         """Return symbolic expression of pulse waveform.
@@ -117,28 +137,32 @@ class ParametricPulse(Pulse):
                 f"Unassigned parameter exists: {self.parameters}. All parameters should be assigned."
             )
 
-        if optionals.HAS_SYMENGINE:
-            import symengine as sym
-        else:
-            import sympy as sym
+        # if optionals.HAS_SYMENGINE:
+        #     import symengine as sym
+        # else:
+        #     import sympy as sym
+        #
+        # params = {sym.Symbol(k): v for k, v in self.parameters.items()}
+        # assigned_expr = self.definition.subs(params)
+        #
+        # # midpoint sampling
+        # times = np.arange(0, self.duration) + 1/2
+        # if optionals.HAS_SYMENGINE:
+        #     # Fall back to sympy for lambda function creation until symengine's
+        #     # lambdify fully supports the features required by parametric
+        #     # pulses.
+        #     import sympy
+        #     lambda_func = sympy.lambdify(sympy.Symbol("t"), sym.sympify(assigned_expr))
+        # else:
+        #     t = sym.Symbol("t")
+        #     lambda_func = sym.lambdify(t, assigned_expr)
+        #
+        # waveform = lambda_func(times)
 
-        params = {sym.Symbol(k): v for k, v in self.parameters.items()}
-        assigned_expr = self.definition.subs(params)
-
-        # midpoint sampling
         times = np.arange(0, self.duration) + 1/2
-        if optionals.HAS_SYMENGINE:
-            # Fall back to sympy for lambda function creation until symengine's
-            # lambdify fully supports the features required by parametric
-            # pulses.
-            import sympy
-            lambda_func = sympy.lambdify(sympy.Symbol("t"), sym.sympify(assigned_expr))
-        else:
-            t = sym.Symbol("t")
-            lambda_func = sym.lambdify(t, assigned_expr)
+        args = (times, *self.parameters.values())
 
-        waveform = lambda_func(times)
-
+        waveform = type(self).numerical_func(*args)
 
         return Waveform(samples=waveform, name=self.name)
 
