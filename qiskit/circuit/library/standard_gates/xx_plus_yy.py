@@ -89,9 +89,10 @@ class XXPlusYYGate(Gate):
     ):
         """Create new XX+YY gate.
 
-        Arguments:
+        Args:
             theta: The rotation angle.
             beta: The phase angle.
+            label: The label of the gate.
         """
         super().__init__("xxplusyy", 2, [theta, beta], label=label)
 
