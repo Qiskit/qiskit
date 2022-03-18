@@ -165,5 +165,3 @@ from .synthesis import (
 )
 
 from .analysis import hellinger_distance, hellinger_fidelity
-
-from .primitives import Estimator, Sampler

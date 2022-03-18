@@ -22,8 +22,7 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.exceptions import QiskitError
-from qiskit.primitives import SamplerResult
-from qiskit.quantum_info.primitives import Sampler
+from qiskit.primitives import Sampler, SamplerResult
 from qiskit.test import QiskitTestCase
 
 
