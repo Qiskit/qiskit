@@ -484,6 +484,28 @@ class Target(Mapping):
             raise KeyError(f"{qargs} not in target.")
         return [self._gate_name_map[x] for x in self._qarg_gate_map[qargs]]
 
+    def instruction_supported(self, operation_name, qargs):
+        """Return whether the instruction (operation + qubits) is supported by the target
+
+        Args:
+            operation_name (str): The name of the operation for the instruction
+            qargs (tuple): The tuple of qubit indices for the instruction
+
+        Returns:
+            bool: Returns ``True`` if the instruction is supported and ``False`` if it isn't.
+
+        """
+        # Case a list if passed in by mistake
+        qargs = tuple(qargs)
+        if operation_name in self._gate_map:
+            if qargs in self._gate_map[operation_name]:
+                return True
+            if self._gate_map[operation_name] is None or None in self._gate_map[operation_name]:
+                return self._gate_name_map[operation_name].num_qubits == len(qargs) and all(
+                    x < self.num_qubits for x in qargs
+                )
+        return False
+
     @property
     def operation_names(self):
         """Get the operation names in the target."""
@@ -633,12 +655,16 @@ class Target(Mapping):
             if self._non_global_basis is not None:
                 return self._non_global_basis
 
-            search_set = {frozenset(qarg) for qarg in self._qarg_gate_map if len(qarg) != 1}
+            search_set = {
+                frozenset(qarg)
+                for qarg in self._qarg_gate_map
+                if qarg is not None and len(qarg) != 1
+            }
         incomplete_basis_gates = []
         size_dict = defaultdict(int)
         size_dict[1] = self.num_qubits
         for qarg in search_set:
-            if len(qarg) == 1:
+            if qarg is None or len(qarg) == 1:
                 continue
             size_dict[len(qarg)] += 1
         for inst, qargs in self._gate_map.items():

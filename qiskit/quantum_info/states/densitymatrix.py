@@ -32,8 +32,8 @@ from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_ma
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 
-# pylint: disable=no-name-in-module
-from .cython.exp_value import density_expval_pauli_no_x, density_expval_pauli_with_x
+# pylint: disable=import-error
+from qiskit._accelerate.pauli_expval import density_expval_pauli_no_x, density_expval_pauli_with_x
 
 
 class DensityMatrix(QuantumState, TolerancesMixin):
@@ -592,7 +592,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             instruction = instruction.to_instruction()
         # Initialize an the statevector in the all |0> state
         num_qubits = instruction.num_qubits
-        init = np.zeros((2 ** num_qubits, 2 ** num_qubits), dtype=complex)
+        init = np.zeros((2**num_qubits, 2**num_qubits), dtype=complex)
         init[0, 0] = 1
         vec = DensityMatrix(init, dims=num_qubits * (2,))
         vec._append_instruction(instruction)

@@ -20,7 +20,7 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit import Instruction
+from qiskit.circuit import Instruction, Operation
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library.standard_gates.x import CXGate, XGate
 from qiskit.circuit.library.standard_gates.h import HGate
@@ -32,7 +32,7 @@ from qiskit.circuit.reset import Reset
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class Initialize(Instruction):
+class Initialize(Instruction, Operation):
     """Complex amplitude initialization.
 
     Class that implements the (complex amplitude) initialization of some
@@ -259,7 +259,7 @@ class Initialize(Instruction):
         a_complex = complex(a_complex)
         b_complex = complex(b_complex)
         mag_a = np.absolute(a_complex)
-        final_r = float(np.sqrt(mag_a ** 2 + np.absolute(b_complex) ** 2))
+        final_r = float(np.sqrt(mag_a**2 + np.absolute(b_complex) ** 2))
         if final_r < _EPS:
             theta = 0
             phi = 0
@@ -341,7 +341,7 @@ class Initialize(Instruction):
             raise QiskitError(
                 "Initialize parameter vector has %d elements, therefore expects %s "
                 "qubits. However, %s were provided."
-                % (2 ** self.num_qubits, self.num_qubits, len(flat_qargs))
+                % (2**self.num_qubits, self.num_qubits, len(flat_qargs))
             )
         yield flat_qargs, []
 
@@ -404,9 +404,12 @@ def initialize(self, params, qubits=None):
             circuit.draw()
 
         output:
-             ┌──────────────────────────────┐
-        q_0: ┤ initialize(0.70711,-0.70711) ├
-             └──────────────────────────────┘
+
+        .. parsed-literal::
+
+                 ┌──────────────────────────────┐
+            q_0: ┤ initialize(0.70711,-0.70711) ├
+                 └──────────────────────────────┘
 
 
         Initialize from a string two qubits in the state `|10>`.
@@ -424,12 +427,14 @@ def initialize(self, params, qubits=None):
             circuit.draw()
 
         output:
-             ┌──────────────────┐
-        q_0: ┤0                 ├
-             │  initialize(0,1) │
-        q_1: ┤1                 ├
-             └──────────────────┘
 
+        .. parsed-literal::
+
+                 ┌──────────────────┐
+            q_0: ┤0                 ├
+                 │  initialize(0,1) │
+            q_1: ┤1                 ├
+                 └──────────────────┘
 
         Initialize two qubits from an array of complex amplitudes
         .. jupyter-execute::
@@ -442,20 +447,20 @@ def initialize(self, params, qubits=None):
             circuit.draw()
 
         output:
-             ┌────────────────────────────────────┐
-        q_0: ┤0                                   ├
-             │  initialize(0,0.70711,-0.70711j,0) │
-        q_1: ┤1                                   ├
-             └────────────────────────────────────┘
+
+        .. parsed-literal::
+
+                 ┌────────────────────────────────────┐
+            q_0: ┤0                                   ├
+                 │  initialize(0,0.70711,-0.70711j,0) │
+            q_1: ┤1                                   ├
+                 └────────────────────────────────────┘
     """
     if qubits is None:
         qubits = self.qubits
-    else:
-        if isinstance(qubits, int):
-            qubits = [qubits]
-        qubits = self._bit_argument_conversion(qubits, self.qubits)
-
-    num_qubits = None if not isinstance(params, int) else len(qubits)
+    elif isinstance(qubits, (int, np.integer, slice)):
+        qubits = [qubits]
+    num_qubits = len(qubits) if isinstance(params, int) else None
     return self.append(Initialize(params, num_qubits), qubits)
 
 

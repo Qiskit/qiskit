@@ -49,7 +49,6 @@ Standard Gates
    MCXGrayCode
    MCXRecursive
    MCXVChain
-   MSGate
    PhaseGate
    RCCXGate
    RC3XGate
@@ -104,12 +103,14 @@ Generalized Gates
    MCMTVChain
    Permutation
    GMS
+   MSGate
    GR
    GRX
    GRY
    GRZ
    RVGate
    PauliGate
+   LinearFunction
 
 Boolean Logic Circuits
 ======================
@@ -233,18 +234,6 @@ Particular Quantum Circuits
    PhaseOracle
    EvolvedOperatorAnsatz
    PauliEvolutionGate
-
-
-Probability distributions
-=========================
-
-.. autosummary::
-   :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
-
-   UniformDistribution
-   NormalDistribution
-   LogNormalDistribution
 
 
 N-local circuits
@@ -382,12 +371,14 @@ from .generalized_gates import (
     MCMTVChain,
     Permutation,
     GMS,
+    MSGate,
     GR,
     GRX,
     GRY,
     GRZ,
     RVGate,
     PauliGate,
+    LinearFunction,
 )
 from .pauli_evolution import PauliEvolutionGate
 from .boolean_logic import (
@@ -426,11 +417,6 @@ from .n_local import (
     QAOAAnsatz,
 )
 from .data_preparation import PauliFeatureMap, ZFeatureMap, ZZFeatureMap
-from .probability_distributions import (
-    LogNormalDistribution,
-    NormalDistribution,
-    UniformDistribution,
-)
 from .quantum_volume import QuantumVolume
 from .fourier_checking import FourierChecking
 from .graph_state import GraphState

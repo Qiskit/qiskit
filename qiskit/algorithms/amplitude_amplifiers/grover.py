@@ -143,7 +143,7 @@ class Grover(AmplitudeAmplifier):
 
         if growth_rate is not None:
             # yield iterations ** 1, iterations ** 2, etc. and casts to int
-            self._iterations = map(lambda x: int(growth_rate ** x), itertools.count(1))
+            self._iterations = map(lambda x: int(growth_rate**x), itertools.count(1))
         elif isinstance(iterations, int):
             self._iterations = [iterations]
         else:
@@ -195,7 +195,7 @@ class Grover(AmplitudeAmplifier):
             max_power = np.inf  # no cap on the power
             iterator = iter(self._iterations)
         else:
-            max_iterations = max(10, 2 ** amplification_problem.oracle.num_qubits)
+            max_iterations = max(10, 2**amplification_problem.oracle.num_qubits)
             max_power = np.ceil(
                 2 ** (len(amplification_problem.grover_operator.reflection_qubits) / 2)
             )
@@ -292,7 +292,7 @@ class Grover(AmplitudeAmplifier):
         Returns:
             The optimal number of iterations for Grover's algorithm to succeed.
         """
-        amplitude = np.sqrt(num_solutions / 2 ** num_qubits)
+        amplitude = np.sqrt(num_solutions / 2**num_qubits)
         return round(np.arccos(amplitude) / (2 * np.arcsin(amplitude)))
 
     def construct_circuit(

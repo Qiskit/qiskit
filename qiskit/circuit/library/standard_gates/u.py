@@ -28,7 +28,13 @@ class UGate(Gate):
 
     .. math::
         U(\theta, \phi, \lambda) =
-            RZ(\phi - \pi/2) RX(\pi/2) RZ(\pi - \theta) RX(\pi/2) RZ(\lambda - \pi/2)
+            RZ(\phi) RX(-\pi/2) RZ(\theta) RX(\pi/2) RZ(\lambda)
+
+    Equivalent simplified form:
+
+    .. math::
+        U(\theta, \phi, \lambda) =
+            RZ(\phi + \pi/2) RX(\theta) RZ(\lambda - \pi/2)
 
     **Circuit symbol:**
 
@@ -216,6 +222,11 @@ class CUGate(ControlledGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
+        #          ┌──────┐    ┌──────────────┐
+        # q_0: ────┤ P(γ) ├────┤ P(λ/2 + φ/2) ├──■────────────────────────────■────────────────
+        #      ┌───┴──────┴───┐└──────────────┘┌─┴─┐┌──────────────────────┐┌─┴─┐┌────────────┐
+        # q_1: ┤ P(λ/2 - φ/2) ├────────────────┤ X ├┤ U(-0/2,0,-λ/2 - φ/2) ├┤ X ├┤ U(0/2,φ,0) ├
+        #      └──────────────┘                └───┘└──────────────────────┘└───┘└────────────┘
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         qc.p(self.params[3], 0)
