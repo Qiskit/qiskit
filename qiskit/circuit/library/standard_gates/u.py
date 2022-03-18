@@ -28,7 +28,7 @@ class UGate(Gate):
 
     .. math::
         U(\theta, \phi, \lambda) =
-            RZ(\phi) RX(\pi/2) RZ(\pi - \theta) RX(\pi/2) RZ(\lambda - \pi)
+            RZ(\phi) RX(-\pi/2) RZ(\theta) RX(\pi/2) RZ(\lambda)
 
     Equivalent simplified form:
 
