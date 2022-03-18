@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    New module :mod:`qiskit.qpy` has beend added. This functionality for
+    saving and loading :class:`QuantumCircuit` has been existing
+    in :mod:`qiskit.circuit.qpy_serialization` but now code is moved to its own module.
+    This change is aiming at QPY serializing different data types that Qiskit generates,
+    such as pulse schedules attached to the pulse gates.

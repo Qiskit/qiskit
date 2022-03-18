@@ -1,0 +1,16 @@
+---
+
+features:
+  - |
+    The :class:`~qiskit.transpiler.ConsolidateBlocks` pass has a new keyword
+    argument on its constructor, ``target``. This argument is used to specify a
+    :class:`~qiskit.transpiler.Target` object representing the compilation
+    target for the pass. If it is specified it supersedes the ``basis_gates``
+    kwarg. If a target is specified the pass will respect the gates and qubits
+    when deciding which gates to consolidate into a unitary.
+  - |
+    The :class:`~qiskit.transpiler.Target` class has a new method,
+    :meth:`~qiskit.transpiler.Target.instruction_supported` which is used
+    to query the target to see if an instruction (the combination of an
+    operation and the qubit(s) it is executed on) is supported on the backend
+    modelled by the :class:`~qiskit.transpiler.Target`.
