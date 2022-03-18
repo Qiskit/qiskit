@@ -82,10 +82,18 @@ class XXPlusYYGate(Gate):
     """
 
     def __init__(
-        self, theta: ParameterValueType, beta: ParameterValueType = 0, label: Optional[str] = None
+        self,
+        theta: ParameterValueType,
+        beta: ParameterValueType = 0,
+        label: Optional[str] = "{XX+YY}",
     ):
-        """Create new XX+YY gate."""
-        super().__init__("xy", 2, [theta, beta], label=label)
+        """Create new XX+YY gate.
+
+        Arguments:
+            theta: The rotation angle.
+            beta: The phase angle.
+        """
+        super().__init__("xxplusyy", 2, [theta, beta], label=label)
 
     def _define(self):
         """
