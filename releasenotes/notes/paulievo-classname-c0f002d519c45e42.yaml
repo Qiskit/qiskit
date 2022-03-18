@@ -7,5 +7,5 @@ upgrade:
 
     Previously, the name contained the operators which are evolved, which is
     now available via :meth:`~qiskit.circuit.library.PauliEvolutionGate.label`. 
-    If a circuit witha Pauli evolution is drawn, the gate thus still shows the 
+    If a circuit with a Pauli evolution is drawn, the gate thus still shows the 
     information which gates are being evolved.
