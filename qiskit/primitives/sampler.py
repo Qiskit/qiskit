@@ -16,15 +16,15 @@ Sampler class
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import Optional
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.primitives import BaseSampler, SamplerResult
 from qiskit.quantum_info import Statevector
 from qiskit.result import QuasiDistribution
 
-from .utils import init_circuit, final_measurement_mapping
+from .base_sampler import BaseSampler
+from .sampler_result import SamplerResult
+from .utils import final_measurement_mapping, init_circuit
 
 
 class Sampler(BaseSampler):
@@ -64,8 +64,8 @@ class Sampler(BaseSampler):
 
     def __call__(
         self,
-        circuits: Optional[Sequence[int]] = None,
-        parameters: Optional[Sequence[Sequence[float]]] = None,
+        circuits: Sequence[int] | None = None,
+        parameters: Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> SamplerResult:
         if self._is_closed:

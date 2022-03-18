@@ -16,17 +16,18 @@ Estimator class
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import Optional, cast
+from typing import cast
 
 import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
-from qiskit.primitives import BaseEstimator, EstimatorResult
 from qiskit.quantum_info import Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
+from .base_estimator import BaseEstimator
+from .estimator_result import EstimatorResult
 from .utils import init_circuit, init_observable
 
 
@@ -39,7 +40,7 @@ class Estimator(BaseEstimator):
         self,
         circuits: QuantumCircuit | Iterable[QuantumCircuit],
         observables: BaseOperator | PauliSumOp | Iterable[BaseOperator | PauliSumOp],
-        parameters: Optional[Iterable[Iterable[Parameter]]] = None,
+        parameters: Iterable[Iterable[Parameter]] | None = None,
     ):
         if isinstance(circuits, QuantumCircuit):
             circuits = [circuits]
@@ -58,9 +59,9 @@ class Estimator(BaseEstimator):
 
     def __call__(
         self,
-        circuits: Optional[Sequence[int]] = None,
-        observables: Optional[Sequence[int]] = None,
-        parameters: Optional[Sequence[Sequence[float]] | Sequence[float]] = None,
+        circuits: Sequence[int] | None = None,
+        observables: Sequence[int] | None = None,
+        parameters: Sequence[Sequence[float]] | Sequence[float] | None = None,
         **run_options,
     ) -> EstimatorResult:
         if self._is_closed:
