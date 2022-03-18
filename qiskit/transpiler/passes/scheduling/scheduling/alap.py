@@ -14,7 +14,7 @@
 from qiskit.circuit import Measure
 from qiskit.transpiler.exceptions import TranspilerError
 
-from .base_scheduler import BaseScheduler
+from qiskit.transpiler.passes.scheduling.scheduling.base_scheduler import BaseScheduler
 
 
 class ALAPSchedule(BaseScheduler):

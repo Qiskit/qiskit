@@ -19,7 +19,7 @@ from qiskit import QuantumCircuit
 from qiskit.pulse import Schedule, Play, Constant, DriveChannel
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.instruction_durations import InstructionDurations
-from qiskit.transpiler.passes import ASAPSchedule, ALAPSchedule, PadDelay
+from qiskit.transpiler.passes import ASAPSchedule, ALAPSchedule, PadDelay, SetIOLatency
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -444,10 +444,18 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
 
         # lock at the end edge
         actual_asap = PassManager(
-            [ASAPSchedule(durations, clbit_write_latency=1000), PadDelay()]
+            [
+                SetIOLatency(clbit_write_latency=1000),
+                ASAPSchedule(durations),
+                PadDelay(),
+            ]
         ).run(qc)
         actual_alap = PassManager(
-            [ALAPSchedule(durations, clbit_write_latency=1000), PadDelay()]
+            [
+                SetIOLatency(clbit_write_latency=1000),
+                ALAPSchedule(durations),
+                PadDelay(),
+            ]
         ).run(qc)
 
         # start times of 2nd measure depends on ASAP/ALAP
@@ -496,25 +504,22 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         qc.x(0).c_if(0, 1)
 
         durations = InstructionDurations([("x", None, 100), ("measure", None, 1000)])
-        pm_asap = PassManager(
+
+        actual_asap = PassManager(
             [
+                SetIOLatency(clbit_write_latency=write_lat, conditional_latency=cond_lat),
                 ASAPSchedule(durations),
                 PadDelay(),
             ]
-        )
-        pm_asap.property_set["clbit_write_latency"] = write_lat
-        pm_asap.property_set["conditional_latency"] = cond_lat
-        actual_asap = pm_asap.run(qc)
+        ).run(qc)
 
-        pm_alap = PassManager(
+        actual_alap = PassManager(
             [
+                SetIOLatency(clbit_write_latency=write_lat, conditional_latency=cond_lat),
                 ALAPSchedule(durations),
                 PadDelay(),
             ]
-        )
-        pm_alap.property_set["clbit_write_latency"] = write_lat
-        pm_alap.property_set["conditional_latency"] = cond_lat
-        actual_alap = pm_alap.run(qc)
+        ).run(qc)
 
         expected = QuantumCircuit(1, 1)
         expected.measure(0, 0)
@@ -632,19 +637,21 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
             [("x", None, 100), ("measure", None, 1000), ("cx", None, 200)]
         )
 
-        pm_asap = PassManager(
-            [ASAPSchedule(durations), PadDelay()]
-        )
-        pm_asap.property_set["clbit_write_latency"] = 100
-        pm_asap.property_set["conditional_latency"] = 100
-        actual_asap = pm_asap.run(qc)
+        actual_asap = PassManager(
+            [
+                SetIOLatency(clbit_write_latency=100, conditional_latency=200),
+                ASAPSchedule(durations),
+                PadDelay(),
+            ]
+        ).run(qc)
 
-        pm_alap = PassManager(
-            [ALAPSchedule(durations), PadDelay()]
-        )
-        pm_alap.property_set["clbit_write_latency"] = 100
-        pm_alap.property_set["conditional_latency"] = 100
-        actual_alap = pm_alap.run(qc)
+        actual_alap = PassManager(
+            [
+                SetIOLatency(clbit_write_latency=100, conditional_latency=200),
+                ALAPSchedule(durations),
+                PadDelay(),
+            ]
+        ).run(qc)
 
         expected_asap = QuantumCircuit(3, 1)
         expected_asap.delay(200, 0)  # due to conditional latency of 200dt

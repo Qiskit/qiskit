@@ -108,6 +108,7 @@ Scheduling
    AlignMeasures
    ValidatePulseGates
    InstructionDurationCheck
+   SetIOLatency
 
 Circuit Analysis
 ================
@@ -234,6 +235,7 @@ from .scheduling import ValidatePulseGates
 from .scheduling import PadDelay
 from .scheduling import ConstrainedReschedule
 from .scheduling import InstructionDurationCheck
+from .scheduling import SetIOLatency
 
 # additional utility passes
 from .utils import CheckMap
