@@ -23,6 +23,7 @@ from qiskit.transpiler.passes import (
     ValidatePulseGates,
     ALAPSchedule,
     PadDelay,
+    SetIOLatency,
 )
 
 
@@ -77,11 +78,8 @@ class TestAlignMeasures(QiskitTestCase):
             [
                 # reproduce old behavior of 0.20.0 before #7655
                 # currently default write latency is 0
-                ALAPSchedule(
-                    durations=self.instruction_durations,
-                    clbit_write_latency=1600,
-                    conditional_latency=0,
-                ),
+                SetIOLatency(clbit_write_latency=1600, conditional_latency=0),
+                ALAPSchedule(durations=self.instruction_durations),
                 ConstrainedReschedule(acquire_alignment=16),
                 PadDelay(),
             ]
@@ -131,11 +129,8 @@ class TestAlignMeasures(QiskitTestCase):
             [
                 # reproduce old behavior of 0.20.0 before #7655
                 # currently default write latency is 0
-                ALAPSchedule(
-                    durations=self.instruction_durations,
-                    clbit_write_latency=1600,
-                    conditional_latency=0,
-                ),
+                SetIOLatency(clbit_write_latency=1600, conditional_latency=0),
+                ALAPSchedule(durations=self.instruction_durations),
                 ConstrainedReschedule(acquire_alignment=16),
                 PadDelay(),
             ]
@@ -189,11 +184,8 @@ class TestAlignMeasures(QiskitTestCase):
             [
                 # reproduce old behavior of 0.20.0 before #7655
                 # currently default write latency is 0
-                ALAPSchedule(
-                    durations=self.instruction_durations,
-                    clbit_write_latency=1600,
-                    conditional_latency=0,
-                ),
+                SetIOLatency(clbit_write_latency=1600, conditional_latency=0),
+                ALAPSchedule(durations=self.instruction_durations),
                 ConstrainedReschedule(acquire_alignment=16),
                 PadDelay(),
             ]
@@ -258,11 +250,8 @@ class TestAlignMeasures(QiskitTestCase):
             [
                 # reproduce old behavior of 0.20.0 before #7655
                 # currently default write latency is 0
-                ALAPSchedule(
-                    durations=self.instruction_durations,
-                    clbit_write_latency=1600,
-                    conditional_latency=0,
-                ),
+                SetIOLatency(clbit_write_latency=1600, conditional_latency=0),
+                ALAPSchedule(durations=self.instruction_durations),
                 ConstrainedReschedule(acquire_alignment=16),
                 PadDelay(),
             ]
@@ -346,11 +335,8 @@ class TestAlignMeasures(QiskitTestCase):
             [
                 # reproduce old behavior of 0.20.0 before #7655
                 # currently default write latency is 0
-                ALAPSchedule(
-                    durations=self.instruction_durations,
-                    clbit_write_latency=1600,
-                    conditional_latency=0,
-                ),
+                SetIOLatency(clbit_write_latency=1600, conditional_latency=0),
+                ALAPSchedule(durations=self.instruction_durations),
                 ConstrainedReschedule(acquire_alignment=16),
                 PadDelay(fill_very_end=False),
             ]
