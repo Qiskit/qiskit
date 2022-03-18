@@ -87,6 +87,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
         self.num_state_qubits = num_state_qubits
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """Check if the current configuration is valid."""
         valid = True
 
         if self._f_x is None:
@@ -180,7 +181,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
 
         # it the state qubits are set ensure that the breakpoints match beginning and end
         if self.num_state_qubits is not None:
-            num_states = 2 ** self.num_state_qubits
+            num_states = 2**self.num_state_qubits
 
             # If the last breakpoint is < num_states, add the identity polynomial
             if breakpoints[-1] < num_states:
@@ -227,7 +228,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
         breakpoints = self._breakpoints
         # Need to take into account the case in which no breakpoints were provided in first place
         if breakpoints == [0]:
-            breakpoints = [0, 2 ** self.num_state_qubits]
+            breakpoints = [0, 2**self.num_state_qubits]
 
         num_intervals = len(breakpoints)
 
@@ -257,7 +258,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
                 ) from err
 
         # If the last breakpoint is < 2 ** num_qubits, add the identity polynomial
-        if breakpoints[-1] < 2 ** self.num_state_qubits:
+        if breakpoints[-1] < 2**self.num_state_qubits:
             polynomials = polynomials + [[2 * np.arcsin(1)]]
 
         # If the first breakpoint is > 0, add the identity polynomial
@@ -307,11 +308,12 @@ class PiecewiseChebyshev(BlueprintCircuit):
 
             # Set breakpoints if they haven't been set
             if num_state_qubits is not None and self._breakpoints is None:
-                self.breakpoints = [0, 2 ** num_state_qubits]
+                self.breakpoints = [0, 2**num_state_qubits]
 
             self._reset_registers(num_state_qubits)
 
     def _reset_registers(self, num_state_qubits: Optional[int]) -> None:
+        """Reset the registers."""
         self.qregs = []
 
         if num_state_qubits is not None:
@@ -325,16 +327,12 @@ class PiecewiseChebyshev(BlueprintCircuit):
                 self.add_register(qr_ancilla)
 
     def _build(self):
-        """Build the circuit. The operation is considered successful when q_objective is
-        :math:`|1>`"""
-        # do not build the circuit if _data is already populated
-        if self._data is not None:
+        """Build the circuit if not already build. The operation is considered successful
+        when q_objective is :math:`|1>`"""
+        if self._is_built:
             return
 
-        self._data = []
-
-        # check whether the configuration is valid
-        self._check_configuration()
+        super()._build()
 
         poly_r = PiecewisePolynomialPauliRotations(
             self.num_state_qubits, self.breakpoints, self.polynomials, name=self.name

@@ -135,6 +135,7 @@ class SabreSwap(TransformationPass):
         self.applied_predecessors = None
         self.qubits_decay = None
         self._bit_indices = None
+        self.dist_matrix = None
 
     def run(self, dag):
         """Run the SabreSwap pass on `dag`.
@@ -152,6 +153,8 @@ class SabreSwap(TransformationPass):
 
         if len(dag.qubits) > self.coupling_map.size():
             raise TranspilerError("More virtual qubits exist than physical.")
+
+        self.dist_matrix = self.coupling_map.distance_matrix
 
         rng = np.random.default_rng(self.seed)
 
@@ -183,7 +186,11 @@ class SabreSwap(TransformationPass):
             for node in front_layer:
                 if len(node.qargs) == 2:
                     v0, v1 = node.qargs
-                    if self.coupling_map.graph.has_edge(current_layout[v0], current_layout[v1]):
+                    # Accessing layout._v2p directly to avoid overhead from __getitem__ and a
+                    # single access isn't feasible because the layout is updated on each iteration
+                    if self.coupling_map.graph.has_edge(
+                        current_layout._v2p[v0], current_layout._v2p[v1]
+                    ):
                         execute_gate_list.append(node)
                 else:  # Single-qubit gates as well as barriers are free
                     execute_gate_list.append(node)
@@ -283,12 +290,12 @@ class SabreSwap(TransformationPass):
         """Populate extended_set by looking ahead a fixed number of gates.
         For each existing element add a successor until reaching limit.
         """
-        extended_set = list()
-        incremented = list()
+        extended_set = []
+        incremented = []
         tmp_front_layer = front_layer
         done = False
         while tmp_front_layer and not done:
-            new_tmp_front_layer = list()
+            new_tmp_front_layer = []
             for node in tmp_front_layer:
                 for successor in self._successors(node, dag):
                     incremented.append(successor)
@@ -328,8 +335,9 @@ class SabreSwap(TransformationPass):
 
     def _compute_cost(self, layer, layout):
         cost = 0
+        layout_map = layout._v2p
         for node in layer:
-            cost += self.coupling_map.distance(layout[node.qargs[0]], layout[node.qargs[1]])
+            cost += self.dist_matrix[layout_map[node.qargs[0]], layout_map[node.qargs[1]]]
         return cost
 
     def _score_heuristic(self, heuristic, front_layer, extended_set, layout, swap_qubits=None):
@@ -365,7 +373,7 @@ def _transform_gate_for_layout(op_node, layout, device_qreg):
     mapped_op_node = copy(op_node)
 
     premap_qargs = op_node.qargs
-    mapped_qargs = map(lambda x: device_qreg[layout[x]], premap_qargs)
+    mapped_qargs = map(lambda x: device_qreg[layout._v2p[x]], premap_qargs)
     mapped_op_node.qargs = list(mapped_qargs)
 
     return mapped_op_node

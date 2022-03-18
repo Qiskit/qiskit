@@ -22,6 +22,7 @@ from ddt import ddt
 from qiskit import QiskitError
 from qiskit.quantum_info.operators import (
     Operator,
+    Pauli,
     PauliList,
     PauliTable,
     SparsePauliOp,
@@ -53,23 +54,24 @@ class TestSparsePauliOpInit(QiskitTestCase):
         """Test PauliTable initialization."""
         labels = ["I", "X", "Y", "Z"]
         table = PauliTable.from_labels(labels)
+        paulis = PauliList(labels)
         with self.subTest(msg="no coeffs"):
             spp_op = SparsePauliOp(table)
-            self.assertTrue(np.array_equal(spp_op.coeffs, np.ones(len(labels))))
-            self.assertEqual(spp_op.table, table)
+            np.testing.assert_array_equal(spp_op.coeffs, np.ones(len(labels)))
+            self.assertEqual(spp_op.paulis, paulis)
         with self.subTest(msg="no coeffs"):
             coeffs = [1, 2, 3, 4]
             spp_op = SparsePauliOp(table, coeffs)
-            self.assertTrue(np.array_equal(spp_op.coeffs, coeffs))
-            self.assertEqual(spp_op.table, table)
+            np.testing.assert_array_equal(spp_op.coeffs, coeffs)
+            self.assertEqual(spp_op.paulis, paulis)
 
     def test_str_init(self):
-        """Test PauliTable initialization."""
+        """Test str initialization."""
         for label in ["IZ", "XI", "YX", "ZZ"]:
-            table = PauliTable(label)
+            pauli_list = PauliList(label)
             spp_op = SparsePauliOp(label)
-            self.assertEqual(spp_op.table, table)
-            self.assertTrue(np.array_equal(spp_op.coeffs, [1]))
+            self.assertEqual(spp_op.paulis, pauli_list)
+            np.testing.assert_array_equal(spp_op.coeffs, [1])
 
     def test_pauli_list_init(self):
         """Test PauliList initialization."""
@@ -149,40 +151,61 @@ class TestSparsePauliOpConversions(QiskitTestCase):
             label = "".join(tup)
             with self.subTest(msg=label):
                 spp_op = SparsePauliOp.from_operator(Operator(pauli_mat(label)))
-                self.assertTrue(np.array_equal(spp_op.coeffs, [1]))
-                self.assertEqual(spp_op.table, PauliTable(label))
+                np.testing.assert_array_equal(spp_op.coeffs, [1])
+                self.assertEqual(spp_op.paulis, PauliList(label))
 
     def test_from_list(self):
         """Test from_list method."""
         labels = ["XXZ", "IXI", "YZZ", "III"]
         coeffs = [3.0, 5.5, -1j, 23.3333]
-        spp_op = SparsePauliOp.from_list(list(zip(labels, coeffs)))
-        self.assertTrue(np.array_equal(spp_op.coeffs, coeffs))
-        self.assertEqual(spp_op.table, PauliTable.from_labels(labels))
+        spp_op = SparsePauliOp.from_list(zip(labels, coeffs))
+        np.testing.assert_array_equal(spp_op.coeffs, coeffs)
+        self.assertEqual(spp_op.paulis, PauliList(labels))
+
+    def test_from_index_list(self):
+        """Test from_list method specifying the Paulis via indices."""
+        expected_labels = ["XXZ", "IXI", "YIZ", "III"]
+        paulis = ["XXZ", "X", "YZ", ""]
+        indices = [[2, 1, 0], [1], [2, 0], []]
+        coeffs = [3.0, 5.5, -1j, 23.3333]
+        spp_op = SparsePauliOp.from_sparse_list(zip(paulis, indices, coeffs), num_qubits=3)
+        np.testing.assert_array_equal(spp_op.coeffs, coeffs)
+        self.assertEqual(spp_op.paulis, PauliList(expected_labels))
+
+    def test_from_index_list_endianness(self):
+        """Test the construction from index list has the right endianness."""
+        spp_op = SparsePauliOp.from_sparse_list([("ZX", [1, 4], 1)], num_qubits=5)
+        expected = Pauli("XIIZI")
+        self.assertEqual(spp_op.paulis[0], expected)
+
+    def test_from_index_list_raises(self):
+        """Test from_list via Pauli + indices raises correctly, if number of qubits invalid."""
+        with self.assertRaises(QiskitError):
+            _ = SparsePauliOp.from_sparse_list([("Z", [2], 1)], 1)
 
     def test_from_zip(self):
         """Test from_list method for zipped input."""
         labels = ["XXZ", "IXI", "YZZ", "III"]
         coeffs = [3.0, 5.5, -1j, 23.3333]
         spp_op = SparsePauliOp.from_list(zip(labels, coeffs))
-        self.assertTrue(np.array_equal(spp_op.coeffs, coeffs))
-        self.assertEqual(spp_op.table, PauliTable.from_labels(labels))
+        np.testing.assert_array_equal(spp_op.coeffs, coeffs)
+        self.assertEqual(spp_op.paulis, PauliList(labels))
 
     def to_matrix(self):
         """Test to_matrix method."""
         labels = ["XI", "YZ", "YY", "ZZ"]
         coeffs = [-3, 4.4j, 0.2 - 0.1j, 66.12]
-        spp_op = SparsePauliOp(PauliTable.from_labels(labels), coeffs)
+        spp_op = SparsePauliOp(labels, coeffs)
         target = np.zeros((4, 4), dtype=complex)
         for coeff, label in zip(coeffs, labels):
             target += coeff * pauli_mat(label)
-        self.assertTrue(np.array_equal(spp_op.to_matrix(), target))
+        np.testing.assert_array_equal(spp_op.to_matrix(), target)
 
     def to_operator(self):
         """Test to_operator method."""
         labels = ["XI", "YZ", "YY", "ZZ"]
         coeffs = [-3, 4.4j, 0.2 - 0.1j, 66.12]
-        spp_op = SparsePauliOp(PauliTable.from_labels(labels), coeffs)
+        spp_op = SparsePauliOp(labels, coeffs)
         target = Operator(np.zeros((4, 4), dtype=complex))
         for coeff, label in zip(coeffs, labels):
             target = target + Operator(coeff * pauli_mat(label))
@@ -192,7 +215,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         """Test to_operator method."""
         labels = ["XI", "YZ", "YY", "ZZ"]
         coeffs = [-3, 4.4j, 0.2 - 0.1j, 66.12]
-        op = SparsePauliOp(PauliTable.from_labels(labels), coeffs)
+        op = SparsePauliOp(labels, coeffs)
         target = list(zip(labels, coeffs))
         self.assertEqual(op.to_list(), target)
 
@@ -204,46 +227,41 @@ class TestSparsePauliOpIteration(QiskitTestCase):
         """Test enumerate with SparsePauliOp."""
         labels = ["III", "IXI", "IYY", "YIZ", "XYZ", "III"]
         coeffs = np.array([1, 2, 3, 4, 5, 6])
-        table = PauliTable.from_labels(labels)
-        op = SparsePauliOp(table, coeffs)
+        op = SparsePauliOp(labels, coeffs)
         for idx, i in enumerate(op):
             self.assertEqual(i, SparsePauliOp(labels[idx], coeffs[[idx]]))
 
     def test_iter(self):
-        """Test iter with PauliTable."""
+        """Test iter with SparsePauliOp."""
         labels = ["III", "IXI", "IYY", "YIZ", "XYZ", "III"]
         coeffs = np.array([1, 2, 3, 4, 5, 6])
-        table = PauliTable.from_labels(labels)
-        op = SparsePauliOp(table, coeffs)
+        op = SparsePauliOp(labels, coeffs)
         for idx, i in enumerate(iter(op)):
             self.assertEqual(i, SparsePauliOp(labels[idx], coeffs[[idx]]))
 
     def test_label_iter(self):
-        """Test PauliTable label_iter method."""
+        """Test SparsePauliOp label_iter method."""
         labels = ["III", "IXI", "IYY", "YIZ", "XYZ", "III"]
         coeffs = np.array([1, 2, 3, 4, 5, 6])
-        table = PauliTable.from_labels(labels)
-        op = SparsePauliOp(table, coeffs)
+        op = SparsePauliOp(labels, coeffs)
         for idx, i in enumerate(op.label_iter()):
             self.assertEqual(i, (labels[idx], coeffs[idx]))
 
     def test_matrix_iter(self):
-        """Test PauliTable dense matrix_iter method."""
+        """Test SparsePauliOp dense matrix_iter method."""
         labels = ["III", "IXI", "IYY", "YIZ", "XYZ", "III"]
         coeffs = np.array([1, 2, 3, 4, 5, 6])
-        table = PauliTable.from_labels(labels)
-        op = SparsePauliOp(table, coeffs)
+        op = SparsePauliOp(labels, coeffs)
         for idx, i in enumerate(op.matrix_iter()):
-            self.assertTrue(np.array_equal(i, coeffs[idx] * pauli_mat(labels[idx])))
+            np.testing.assert_array_equal(i, coeffs[idx] * pauli_mat(labels[idx]))
 
     def test_matrix_iter_sparse(self):
-        """Test PauliTable sparse matrix_iter method."""
+        """Test SparsePauliOp sparse matrix_iter method."""
         labels = ["III", "IXI", "IYY", "YIZ", "XYZ", "III"]
         coeffs = np.array([1, 2, 3, 4, 5, 6])
-        table = PauliTable.from_labels(labels)
-        op = SparsePauliOp(table, coeffs)
+        op = SparsePauliOp(labels, coeffs)
         for idx, i in enumerate(op.matrix_iter(sparse=True)):
-            self.assertTrue(np.array_equal(i.toarray(), coeffs[idx] * pauli_mat(labels[idx])))
+            np.testing.assert_array_equal(i.toarray(), coeffs[idx] * pauli_mat(labels[idx]))
 
 
 @ddt
@@ -261,12 +279,12 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             "".join(self.RNG.choice(["I", "X", "Y", "Z"], size=num_qubits))
             for _ in range(num_terms)
         ]
-        return SparsePauliOp(PauliTable.from_labels(labels), coeffs)
+        return SparsePauliOp(labels, coeffs)
 
     @combine(num_qubits=[1, 2, 3, 4])
     def test_conjugate(self, num_qubits):
         """Test conjugate method for {num_qubits}-qubits."""
-        spp_op = self.random_spp_op(num_qubits, 2 ** num_qubits)
+        spp_op = self.random_spp_op(num_qubits, 2**num_qubits)
         target = Operator(spp_op).conjugate()
         op = spp_op.conjugate()
         value = op.to_operator()
@@ -276,7 +294,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
     @combine(num_qubits=[1, 2, 3, 4])
     def test_transpose(self, num_qubits):
         """Test transpose method for {num_qubits}-qubits."""
-        spp_op = self.random_spp_op(num_qubits, 2 ** num_qubits)
+        spp_op = self.random_spp_op(num_qubits, 2**num_qubits)
         target = Operator(spp_op).transpose()
         op = spp_op.transpose()
         value = op.to_operator()
@@ -286,7 +304,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
     @combine(num_qubits=[1, 2, 3, 4])
     def test_adjoint(self, num_qubits):
         """Test adjoint method for {num_qubits}-qubits."""
-        spp_op = self.random_spp_op(num_qubits, 2 ** num_qubits)
+        spp_op = self.random_spp_op(num_qubits, 2**num_qubits)
         target = Operator(spp_op).adjoint()
         op = spp_op.adjoint()
         value = op.to_operator()
@@ -296,8 +314,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
     @combine(num_qubits=[1, 2, 3, 4])
     def test_compose(self, num_qubits):
         """Test {num_qubits}-qubit compose methods."""
-        spp_op1 = self.random_spp_op(num_qubits, 2 ** num_qubits)
-        spp_op2 = self.random_spp_op(num_qubits, 2 ** num_qubits)
+        spp_op1 = self.random_spp_op(num_qubits, 2**num_qubits)
+        spp_op2 = self.random_spp_op(num_qubits, 2**num_qubits)
         target = Operator(spp_op1).compose(Operator(spp_op2))
 
         op = spp_op1.compose(spp_op2)
@@ -313,8 +331,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
     @combine(num_qubits=[1, 2, 3, 4])
     def test_dot(self, num_qubits):
         """Test {num_qubits}-qubit compose methods."""
-        spp_op1 = self.random_spp_op(num_qubits, 2 ** num_qubits)
-        spp_op2 = self.random_spp_op(num_qubits, 2 ** num_qubits)
+        spp_op1 = self.random_spp_op(num_qubits, 2**num_qubits)
+        spp_op2 = self.random_spp_op(num_qubits, 2**num_qubits)
         target = Operator(spp_op1).dot(Operator(spp_op2))
 
         op = spp_op1.dot(spp_op2)
@@ -322,16 +340,11 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         self.assertEqual(value, target)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
-        op = spp_op1 * spp_op2
-        value = op.to_operator()
-        self.assertEqual(value, target)
-        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
-
     @combine(num_qubits=[1, 2, 3])
     def test_qargs_compose(self, num_qubits):
         """Test 3-qubit compose method with {num_qubits}-qubit qargs."""
-        spp_op1 = self.random_spp_op(3, 2 ** 3)
-        spp_op2 = self.random_spp_op(num_qubits, 2 ** num_qubits)
+        spp_op1 = self.random_spp_op(3, 2**3)
+        spp_op2 = self.random_spp_op(num_qubits, 2**num_qubits)
         qargs = self.RNG.choice(3, size=num_qubits, replace=False).tolist()
         target = Operator(spp_op1).compose(Operator(spp_op2), qargs=qargs)
 
@@ -348,8 +361,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
     @combine(num_qubits=[1, 2, 3])
     def test_qargs_dot(self, num_qubits):
         """Test 3-qubit dot method with {num_qubits}-qubit qargs."""
-        spp_op1 = self.random_spp_op(3, 2 ** 3)
-        spp_op2 = self.random_spp_op(num_qubits, 2 ** num_qubits)
+        spp_op1 = self.random_spp_op(3, 2**3)
+        spp_op2 = self.random_spp_op(num_qubits, 2**num_qubits)
         qargs = self.RNG.choice(3, size=num_qubits, replace=False).tolist()
         target = Operator(spp_op1).dot(Operator(spp_op2), qargs=qargs)
 
@@ -358,16 +371,11 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         self.assertEqual(value, target)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
-        op = spp_op1 * spp_op2(qargs)
-        value = op.to_operator()
-        self.assertEqual(value, target)
-        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
-
     @combine(num_qubits1=[1, 2, 3], num_qubits2=[1, 2, 3])
     def test_tensor(self, num_qubits1, num_qubits2):
         """Test tensor method for {num_qubits1} and {num_qubits2} qubits."""
-        spp_op1 = self.random_spp_op(num_qubits1, 2 ** num_qubits1)
-        spp_op2 = self.random_spp_op(num_qubits2, 2 ** num_qubits2)
+        spp_op1 = self.random_spp_op(num_qubits1, 2**num_qubits1)
+        spp_op2 = self.random_spp_op(num_qubits2, 2**num_qubits2)
         target = Operator(spp_op1).tensor(Operator(spp_op2))
         op = spp_op1.tensor(spp_op2)
         value = op.to_operator()
@@ -377,8 +385,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
     @combine(num_qubits1=[1, 2, 3], num_qubits2=[1, 2, 3])
     def test_expand(self, num_qubits1, num_qubits2):
         """Test expand method for {num_qubits1} and {num_qubits2} qubits."""
-        spp_op1 = self.random_spp_op(num_qubits1, 2 ** num_qubits1)
-        spp_op2 = self.random_spp_op(num_qubits2, 2 ** num_qubits2)
+        spp_op1 = self.random_spp_op(num_qubits1, 2**num_qubits1)
+        spp_op2 = self.random_spp_op(num_qubits2, 2**num_qubits2)
         target = Operator(spp_op1).expand(Operator(spp_op2))
         op = spp_op1.expand(spp_op2)
         value = op.to_operator()
@@ -388,8 +396,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
     @combine(num_qubits=[1, 2, 3, 4])
     def test_add(self, num_qubits):
         """Test + method for {num_qubits} qubits."""
-        spp_op1 = self.random_spp_op(num_qubits, 2 ** num_qubits)
-        spp_op2 = self.random_spp_op(num_qubits, 2 ** num_qubits)
+        spp_op1 = self.random_spp_op(num_qubits, 2**num_qubits)
+        spp_op2 = self.random_spp_op(num_qubits, 2**num_qubits)
         target = Operator(spp_op1) + Operator(spp_op2)
         op = spp_op1 + spp_op2
         value = op.to_operator()
@@ -399,8 +407,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
     @combine(num_qubits=[1, 2, 3, 4])
     def test_sub(self, num_qubits):
         """Test + method for {num_qubits} qubits."""
-        spp_op1 = self.random_spp_op(num_qubits, 2 ** num_qubits)
-        spp_op2 = self.random_spp_op(num_qubits, 2 ** num_qubits)
+        spp_op1 = self.random_spp_op(num_qubits, 2**num_qubits)
+        spp_op2 = self.random_spp_op(num_qubits, 2**num_qubits)
         target = Operator(spp_op1) - Operator(spp_op2)
         op = spp_op1 - spp_op2
         value = op.to_operator()
@@ -410,8 +418,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
     @combine(num_qubits=[1, 2, 3])
     def test_add_qargs(self, num_qubits):
         """Test + method for 3 qubits with {num_qubits} qubit qargs."""
-        spp_op1 = self.random_spp_op(3, 2 ** 3)
-        spp_op2 = self.random_spp_op(num_qubits, 2 ** num_qubits)
+        spp_op1 = self.random_spp_op(3, 2**3)
+        spp_op2 = self.random_spp_op(num_qubits, 2**num_qubits)
         qargs = self.RNG.choice(3, size=num_qubits, replace=False).tolist()
         target = Operator(spp_op1) + Operator(spp_op2)(qargs)
         op = spp_op1 + spp_op2(qargs)
@@ -422,8 +430,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
     @combine(num_qubits=[1, 2, 3])
     def test_sub_qargs(self, num_qubits):
         """Test - method for 3 qubits with {num_qubits} qubit qargs."""
-        spp_op1 = self.random_spp_op(3, 2 ** 3)
-        spp_op2 = self.random_spp_op(num_qubits, 2 ** num_qubits)
+        spp_op1 = self.random_spp_op(3, 2**3)
+        spp_op2 = self.random_spp_op(num_qubits, 2**num_qubits)
         qargs = self.RNG.choice(3, size=num_qubits, replace=False).tolist()
         target = Operator(spp_op1) - Operator(spp_op2)(qargs)
         op = spp_op1 - spp_op2(qargs)
@@ -434,7 +442,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
     @combine(num_qubits=[1, 2, 3], value=[0, 1, 1j, -3 + 4.4j, np.int64(2)])
     def test_mul(self, num_qubits, value):
         """Test * method for {num_qubits} qubits and value {value}."""
-        spp_op = self.random_spp_op(num_qubits, 2 ** num_qubits)
+        spp_op = self.random_spp_op(num_qubits, 2**num_qubits)
         target = value * Operator(spp_op)
         op = value * spp_op
         value = op.to_operator()
@@ -444,7 +452,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
     @combine(num_qubits=[1, 2, 3], value=[1, 1j, -3 + 4.4j])
     def test_div(self, num_qubits, value):
         """Test / method for {num_qubits} qubits and value {value}."""
-        spp_op = self.random_spp_op(num_qubits, 2 ** num_qubits)
+        spp_op = self.random_spp_op(num_qubits, 2**num_qubits)
         target = Operator(spp_op) / value
         op = spp_op / value
         value = op.to_operator()
@@ -466,7 +474,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
     @combine(num_qubits=[1, 2, 3, 4], num_adds=[0, 1, 2, 3])
     def test_simplify2(self, num_qubits, num_adds):
         """Test simplify method for {num_qubits} qubits with {num_adds} `add` calls."""
-        spp_op = self.random_spp_op(num_qubits, 2 ** num_qubits)
+        spp_op = self.random_spp_op(num_qubits, 2**num_qubits)
         for _ in range(num_adds):
             spp_op += spp_op
         simplified_op = spp_op.simplify()
@@ -475,6 +483,115 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         self.assertEqual(value, target)
         np.testing.assert_array_equal(spp_op.paulis.phase, np.zeros(spp_op.size))
         np.testing.assert_array_equal(simplified_op.paulis.phase, np.zeros(simplified_op.size))
+
+    @combine(num_qubits=[1, 2, 3, 4])
+    def test_simplify_zero(self, num_qubits):
+        """Test simplify method for {num_qubits} qubits with zero operators."""
+        spp_op = self.random_spp_op(num_qubits, 2**num_qubits)
+        zero_op = spp_op - spp_op
+        simplified_op = zero_op.simplify()
+        value = Operator(simplified_op)
+        target = Operator(zero_op)
+        self.assertEqual(value, target)
+        np.testing.assert_array_equal(simplified_op.coeffs, [0])
+        np.testing.assert_array_equal(zero_op.paulis.phase, np.zeros(zero_op.size))
+        np.testing.assert_array_equal(simplified_op.paulis.phase, np.zeros(simplified_op.size))
+
+    def test_chop(self):
+        """Test chop, which individually truncates real and imaginary parts of the coeffs."""
+        eps = 1e-10
+        op = SparsePauliOp(
+            ["XYZ", "ZII", "ZII", "YZY"], coeffs=[eps + 1j * eps, 1 + 1j * eps, eps + 1j, 1 + 1j]
+        )
+        simplified = op.chop(tol=eps)
+        expected_coeffs = [1, 1j, 1 + 1j]
+        expected_paulis = ["ZII", "ZII", "YZY"]
+        self.assertListEqual(simplified.coeffs.tolist(), expected_coeffs)
+        self.assertListEqual(simplified.paulis.to_labels(), expected_paulis)
+
+    def test_chop_all(self):
+        """Test that chop returns an identity operator with coeff 0 if all coeffs are chopped."""
+        eps = 1e-10
+        op = SparsePauliOp(["X", "Z"], coeffs=[eps, eps])
+        simplified = op.chop(tol=eps)
+        expected = SparsePauliOp(["I"], coeffs=[0.0])
+        self.assertEqual(simplified, expected)
+
+    @combine(num_qubits=[1, 2, 3, 4], num_ops=[1, 2, 3, 4])
+    def test_sum(self, num_qubits, num_ops):
+        """Test sum method for {num_qubits} qubits with {num_ops} operators."""
+        ops = [self.random_spp_op(num_qubits, 2**num_qubits) for _ in range(num_ops)]
+        sum_op = SparsePauliOp.sum(ops)
+        value = Operator(sum_op)
+        target_operator = sum((Operator(op) for op in ops[1:]), Operator(ops[0]))
+        self.assertEqual(value, target_operator)
+        target_spp_op = sum((op for op in ops[1:]), ops[0])
+        self.assertEqual(sum_op, target_spp_op)
+        np.testing.assert_array_equal(sum_op.paulis.phase, np.zeros(sum_op.size))
+
+    def test_sum_error(self):
+        """Test sum method with invalid cases."""
+        with self.assertRaises(QiskitError):
+            SparsePauliOp.sum([])
+        with self.assertRaises(QiskitError):
+            ops = [self.random_spp_op(num_qubits, 2**num_qubits) for num_qubits in [1, 2]]
+            SparsePauliOp.sum(ops)
+        with self.assertRaises(QiskitError):
+            SparsePauliOp.sum([1, 2])
+
+    @combine(num_qubits=[1, 2, 3, 4])
+    def test_eq(self, num_qubits):
+        """Test __eq__ method for {num_qubits} qubits."""
+        spp_op1 = self.random_spp_op(num_qubits, 2**num_qubits)
+        spp_op2 = self.random_spp_op(num_qubits, 2**num_qubits)
+        spp_op3 = self.random_spp_op(num_qubits, 2**num_qubits)
+        zero = spp_op3 - spp_op3
+        self.assertEqual(spp_op1, spp_op1)
+        self.assertEqual(spp_op2, spp_op2)
+        self.assertNotEqual(spp_op1, spp_op1 + zero)
+        self.assertNotEqual(spp_op2, spp_op2 + zero)
+        if spp_op1 != spp_op2:
+            self.assertNotEqual(spp_op1 + spp_op2, spp_op2 + spp_op1)
+
+    @combine(num_qubits=[1, 2, 3, 4])
+    def test_equiv(self, num_qubits):
+        """Test equiv method for {num_qubits} qubits."""
+        spp_op1 = self.random_spp_op(num_qubits, 2**num_qubits)
+        spp_op2 = self.random_spp_op(num_qubits, 2**num_qubits)
+        spp_op3 = self.random_spp_op(num_qubits, 2**num_qubits)
+        spp_op4 = self.random_spp_op(num_qubits, 2**num_qubits)
+        zero = spp_op3 - spp_op3
+        zero2 = spp_op4 - spp_op4
+        self.assertTrue(spp_op1.equiv(spp_op1))
+        self.assertTrue(spp_op1.equiv(spp_op1 + zero))
+        self.assertTrue(spp_op2.equiv(spp_op2))
+        self.assertTrue(spp_op2.equiv(spp_op2 + zero))
+        self.assertTrue(zero.equiv(zero2))
+        self.assertTrue((zero + zero2).equiv(zero2 + zero))
+        self.assertTrue((zero2 + zero).equiv(zero + zero2))
+        self.assertTrue((spp_op1 + spp_op2).equiv(spp_op2 + spp_op1))
+        self.assertTrue((spp_op2 + spp_op1).equiv(spp_op1 + spp_op2))
+        self.assertTrue((spp_op1 - spp_op1).equiv(spp_op2 - spp_op2))
+        self.assertTrue((2 * spp_op1).equiv(spp_op1 + spp_op1))
+        self.assertTrue((2 * spp_op2).equiv(spp_op2 + spp_op2))
+        if not spp_op1.equiv(zero):
+            self.assertFalse(spp_op1.equiv(spp_op1 + spp_op1))
+        if not spp_op2.equiv(zero):
+            self.assertFalse(spp_op2.equiv(spp_op2 + spp_op2))
+
+    def test_eq_equiv(self):
+        """Test __eq__ and equiv methods with some specific cases."""
+        with self.subTest("shuffled"):
+            spp_op1 = SparsePauliOp.from_list([("X", 1), ("Y", 2)])
+            spp_op2 = SparsePauliOp.from_list([("Y", 2), ("X", 1)])
+            self.assertNotEqual(spp_op1, spp_op2)
+            self.assertTrue(spp_op1.equiv(spp_op2))
+
+        with self.subTest("w/ zero"):
+            spp_op1 = SparsePauliOp.from_list([("X", 1), ("Y", 1)])
+            spp_op2 = SparsePauliOp.from_list([("X", 1), ("Y", 1), ("Z", 0)])
+            self.assertNotEqual(spp_op1, spp_op2)
+            self.assertTrue(spp_op1.equiv(spp_op2))
 
 
 if __name__ == "__main__":

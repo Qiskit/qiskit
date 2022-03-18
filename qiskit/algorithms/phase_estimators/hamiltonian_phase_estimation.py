@@ -125,7 +125,6 @@ class HamiltonianPhaseEstimation:
         # It does not break any others that we tested.
         return unitary_circuit.decompose().decompose()
 
-    # pylint: disable=arguments-differ
     def estimate(
         self,
         hamiltonian: OperatorBase,

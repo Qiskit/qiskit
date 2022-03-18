@@ -20,7 +20,7 @@ from typing import Dict
 
 import numpy as np
 
-from qiskit.circuit import Instruction, QuantumCircuit
+from qiskit.circuit import Instruction, QuantumCircuit, Operation
 from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
@@ -31,7 +31,7 @@ from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
 from qiskit.utils.deprecation import deprecate_function
 
 
-class Pauli(BasePauli):
+class Pauli(BasePauli, Operation):
     r"""N-qubit Pauli operator.
 
     This class represents an operator :math:`P` from the full :math:`n`-qubit
@@ -178,8 +178,7 @@ class Pauli(BasePauli):
         elif isinstance(data, tuple):
             if len(data) not in [2, 3]:
                 raise QiskitError(
-                    "Invalid input tuple for Pauli, input tuple must be"
-                    " `(z, x, phase)` or `(z, x)`"
+                    "Invalid input tuple for Pauli, input tuple must be `(z, x, phase)` or `(z, x)`"
                 )
             base_z, base_x, base_phase = self._from_array(*data)
         elif isinstance(data, str):
@@ -202,6 +201,16 @@ class Pauli(BasePauli):
         if base_z.shape[0] != 1:
             raise QiskitError("Input is not a single Pauli")
         super().__init__(base_z, base_x, base_phase)
+
+    @property
+    def name(self):
+        """Unique string identifier for operation type."""
+        return "pauli"
+
+    @property
+    def num_clbits(self):
+        """Number of classical bits."""
+        return 0
 
     def __repr__(self):
         """Display representation."""

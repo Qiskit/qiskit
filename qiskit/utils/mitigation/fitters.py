@@ -14,8 +14,6 @@
 # https://github.com/Qiskit/qiskit-ignis/blob/b91066c72171bcd55a70e6e8993b813ec763cf41/qiskit/ignis/mitigation/measurement/fitters.py
 # it was migrated as qiskit-ignis is being deprecated
 
-# pylint: disable=cell-var-from-loop
-
 
 """
 Measurement correction fitters.
@@ -393,7 +391,7 @@ class TensoredMeasFitter:
         # initialize the set of empty calibration matrices
         self._cal_matrices = []
         for list_size in self._qubit_list_sizes:
-            self._cal_matrices.append(np.zeros([2 ** list_size, 2 ** list_size], dtype=float))
+            self._cal_matrices.append(np.zeros([2**list_size, 2**list_size], dtype=float))
 
         # go through for each calibration experiment
         for result in self._result_list:
@@ -427,7 +425,6 @@ class TensoredMeasFitter:
 
         for mat_index, _ in enumerate(self._cal_matrices):
             sums_of_columns = np.sum(self._cal_matrices[mat_index], axis=0)
-            # pylint: disable=assignment-from-no-return
             self._cal_matrices[mat_index] = np.divide(
                 self._cal_matrices[mat_index],
                 sums_of_columns,

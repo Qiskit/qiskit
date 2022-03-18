@@ -20,7 +20,7 @@ from math import pi
 import numpy
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.circuit import Gate, Parameter
+from qiskit.circuit import Gate, Parameter, Qubit, Clbit
 from qiskit.quantum_info.operators import SuperOp
 from qiskit.quantum_info.random import random_unitary
 from qiskit.test import QiskitTestCase
@@ -45,7 +45,6 @@ from qiskit.circuit.library import (
     CPhaseGate,
 )
 from qiskit.transpiler.passes import ApplyLayout
-from qiskit.visualization.exceptions import VisualizationError
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
 
 
@@ -635,6 +634,81 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.append(CPhaseGate(pi / 2), [qr[0], qr[1]])
         circuit.append(CPhaseGate(pi / 2), [qr[2], qr[0]])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_cu1_condition(self):
+        """Test cu1 with condition"""
+        expected = "\n".join(
+            [
+                "                      ",
+                "q_0: ────────■────────",
+                "             │U1(π/2) ",
+                "q_1: ────────■────────",
+                "             ║        ",
+                "q_2: ────────╫────────",
+                "             ║        ",
+                "c_0: ════════╬════════",
+                "             ║        ",
+                "c_1: ════════■════════",
+                "                      ",
+                "c_2: ═════════════════",
+                "                      ",
+            ]
+        )
+        qr = QuantumRegister(3, "q")
+        cr = ClassicalRegister(3, "c")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.append(CU1Gate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
+        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
+
+    def test_text_rzz_condition(self):
+        """Test rzz with condition"""
+        expected = "\n".join(
+            [
+                "                      ",
+                "q_0: ────────■────────",
+                "             │ZZ(π/2) ",
+                "q_1: ────────■────────",
+                "             ║        ",
+                "q_2: ────────╫────────",
+                "             ║        ",
+                "c_0: ════════╬════════",
+                "             ║        ",
+                "c_1: ════════■════════",
+                "                      ",
+                "c_2: ═════════════════",
+                "                      ",
+            ]
+        )
+        qr = QuantumRegister(3, "q")
+        cr = ClassicalRegister(3, "c")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.append(RZZGate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
+        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
+
+    def test_text_cp_condition(self):
+        """Test cp with condition"""
+        expected = "\n".join(
+            [
+                "                    ",
+                "q_0: ───────■───────",
+                "            │P(π/2) ",
+                "q_1: ───────■───────",
+                "            ║       ",
+                "q_2: ───────╫───────",
+                "            ║       ",
+                "c_0: ═══════╬═══════",
+                "            ║       ",
+                "c_1: ═══════■═══════",
+                "                    ",
+                "c_2: ═══════════════",
+                "                    ",
+            ]
+        )
+        qr = QuantumRegister(3, "q")
+        cr = ClassicalRegister(3, "c")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.append(CPhaseGate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
+        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
 
     def test_text_cu1_reverse_bits(self):
         """cu1 drawing with reverse_bits"""
@@ -2904,7 +2978,6 @@ class TestTextConditional(QiskitTestCase):
                 "                  0x1 ",
             ]
         )
-
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_text_bit_conditional(self):
@@ -2924,9 +2997,9 @@ class TestTextConditional(QiskitTestCase):
                 "qr_1: |0>──╫──┤ H ├",
                 "           ║  └─╥─┘",
                 " cr_0: 0 ══■════╬══",
-                "          0x1   ║  ",
+                "                ║  ",
                 " cr_1: 0 ═══════o══",
-                "               0x0 ",
+                "                   ",
             ]
         )
 
@@ -2949,7 +3022,7 @@ class TestTextConditional(QiskitTestCase):
                 "qr_1: |0>─────╫─────────┤ H ├────",
                 "              ║         └─╥─┘    ",
                 "         ┌────╨─────┐┌────╨─────┐",
-                " cr: 0 2/╡ cr_0 = T ╞╡ cr_1 = F ╞",
+                " cr: 0 2/╡ cr_0=0x1 ╞╡ cr_1=0x0 ╞",
                 "         └──────────┘└──────────┘",
             ]
         )
@@ -2957,6 +3030,78 @@ class TestTextConditional(QiskitTestCase):
         self.assertEqual(
             str(_text_circuit_drawer(circuit, cregbundle=True, vertical_compression="medium")),
             expected,
+        )
+
+    def test_text_condition_measure_bits_true(self):
+        """Condition and measure on single bits cregbundle true"""
+
+        bits = [Qubit(), Qubit(), Clbit(), Clbit()]
+        cr = ClassicalRegister(2, "cr")
+        crx = ClassicalRegister(3, "cs")
+        circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
+        circuit.x(0).c_if(crx[1], 0)
+        circuit.measure(0, bits[3])
+
+        expected = "\n".join(
+            [
+                "         ┌───┐    ┌─┐",
+                "   0: ───┤ X ├────┤M├",
+                "         └─╥─┘    └╥┘",
+                "   1: ─────╫───────╫─",
+                "           ║       ║ ",
+                "   0: ═════╬═══════╬═",
+                "           ║       ║ ",
+                "   1: ═════╬═══════╩═",
+                "           ║         ",
+                "cr: 2/═════╬═════════",
+                "           ║         ",
+                "   4: ═════╬═════════",
+                "      ┌────╨─────┐   ",
+                "cs: 3/╡ cs_1=0x0 ╞═══",
+                "      └──────────┘   ",
+            ]
+        )
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, cregbundle=True, initial_state=False)), expected
+        )
+
+    def test_text_condition_measure_bits_false(self):
+        """Condition and measure on single bits cregbundle false"""
+
+        bits = [Qubit(), Qubit(), Clbit(), Clbit()]
+        cr = ClassicalRegister(2, "cr")
+        crx = ClassicalRegister(3, "cs")
+        circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
+        circuit.x(0).c_if(crx[1], 0)
+        circuit.measure(0, bits[3])
+
+        expected = "\n".join(
+            [
+                "      ┌───┐┌─┐",
+                "   0: ┤ X ├┤M├",
+                "      └─╥─┘└╥┘",
+                "   1: ──╫───╫─",
+                "        ║   ║ ",
+                "   0: ══╬═══╬═",
+                "        ║   ║ ",
+                "   1: ══╬═══╩═",
+                "        ║     ",
+                "cr_0: ══╬═════",
+                "        ║     ",
+                "cr_1: ══╬═════",
+                "        ║     ",
+                "   4: ══╬═════",
+                "        ║     ",
+                "cs_0: ══╬═════",
+                "        ║     ",
+                "cs_1: ══o═════",
+                "              ",
+                "cs_2: ════════",
+                "              ",
+            ]
+        )
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, cregbundle=False, initial_state=False)), expected
         )
 
     def test_text_conditional_reverse_bits_1(self):
@@ -3016,6 +3161,43 @@ class TestTextConditional(QiskitTestCase):
 
         self.assertEqual(
             str(_text_circuit_drawer(circuit, cregbundle=False, reverse_bits=True)), expected
+        )
+
+    def test_text_condition_bits_reverse(self):
+        """Condition and measure on single bits cregbundle true and reverse_bits true"""
+
+        bits = [Qubit(), Qubit(), Clbit(), Clbit()]
+        cr = ClassicalRegister(2, "cr")
+        crx = ClassicalRegister(3, "cs")
+        circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
+        circuit.x(0).c_if(bits[3], 0)
+
+        expected = "\n".join(
+            [
+                "           ",
+                "   1: ─────",
+                "      ┌───┐",
+                "   0: ┤ X ├",
+                "      └─╥─┘",
+                "cs: 3/══╬══",
+                "        ║  ",
+                "   4: ══╬══",
+                "        ║  ",
+                "cr: 2/══╬══",
+                "        ║  ",
+                "   1: ══o══",
+                "           ",
+                "   0: ═════",
+                "           ",
+            ]
+        )
+        self.assertEqual(
+            str(
+                _text_circuit_drawer(
+                    circuit, cregbundle=True, initial_state=False, reverse_bits=True
+                )
+            ),
+            expected,
         )
 
 
@@ -4688,8 +4870,6 @@ class TestTextPhase(QiskitTestCase):
 
     def test_registerless_one_bit(self):
         """Text circuit with one-bit registers and registerless bits."""
-        from qiskit.circuit import Qubit, Clbit
-
         # fmt: off
         expected = "\n".join(["       ",
                               "qrx_0: ",
@@ -4795,16 +4975,6 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
             self.fail("_text_circuit_drawer() should be cp437.")
         self.assertFilesAreEqual(filename, self.text_reference_cp437, "cp437")
         os.remove(filename)
-
-    def test_filename_extension_error_message(self):
-        """Test that the error message shown for wrong file extension is correct."""
-        circuit = self.sample_circuit()
-        with self.assertRaises(VisualizationError) as ve:
-            _text_circuit_drawer(circuit, filename="file.spooky")
-            self.assertEqual(
-                str(ve.exception),
-                "ERROR: filename parameter does not use .txt extension.",
-            )
 
 
 if __name__ == "__main__":

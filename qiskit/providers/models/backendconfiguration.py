@@ -361,20 +361,20 @@ class QasmBackendConfiguration:
             self.parametric_pulses = parametric_pulses
 
         # convert lo range from GHz to Hz
-        if "qubit_lo_range" in kwargs.keys():
+        if "qubit_lo_range" in kwargs:
             kwargs["qubit_lo_range"] = [
                 [min_range * 1e9, max_range * 1e9]
                 for (min_range, max_range) in kwargs["qubit_lo_range"]
             ]
 
-        if "meas_lo_range" in kwargs.keys():
+        if "meas_lo_range" in kwargs:
             kwargs["meas_lo_range"] = [
                 [min_range * 1e9, max_range * 1e9]
                 for (min_range, max_range) in kwargs["meas_lo_range"]
             ]
 
         # convert rep_times from μs to sec
-        if "rep_times" in kwargs.keys():
+        if "rep_times" in kwargs:
             kwargs["rep_times"] = [_rt * 1e-6 for _rt in kwargs["rep_times"]]
 
         self._data.update(kwargs)

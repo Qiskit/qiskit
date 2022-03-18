@@ -292,8 +292,9 @@ class StabilizerTable(PauliTable, AdjointMixin):
             ind = [ind]
         if max(ind) >= self.size:
             raise QiskitError(
-                "Indices {} are not all less than the size"
-                " of the SatbilizerTable ({})".format(ind, self.size)
+                "Indices {} are not all less than the size of the StabilizerTable ({})".format(
+                    ind, self.size
+                )
             )
         return StabilizerTable(
             np.delete(self._array, ind, axis=0), np.delete(self._phase, ind, axis=0)
@@ -947,7 +948,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
         # For efficiency we also allow returning a single rank-3
         # array where first index is the Pauli row, and second two
         # indices are the matrix indices
-        dim = 2 ** self.num_qubits
+        dim = 2**self.num_qubits
         ret = np.zeros((self.size, dim, dim), dtype=float)
         for i in range(self.size):
             ret[i] = self._to_matrix(self._array[i], self._phase[i])

@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes a problem in the ``mpl`` circuit drawer when register names
+    with multiple underscores in the name did not display correctly.
+    Also the same problem would cause the ``latex`` drawer to fail,
+    which has been fixed.

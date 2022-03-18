@@ -163,7 +163,10 @@ class TestGateDefinitions(QiskitTestCase):
         axis = np.array([np.cos(phi), np.sin(phi), 0])  # RGate axis
         rotvec = theta * axis
         rv = RVGate(*rotvec)
-        self.assertTrue(np.array_equal(rgate.to_matrix(), rv.to_matrix()))
+        rg_matrix = rgate.to_matrix()
+        rv_matrix = rv.to_matrix()
+        np.testing.assert_array_max_ulp(rg_matrix.real, rv_matrix.real, 4)
+        np.testing.assert_array_max_ulp(rg_matrix.imag, rv_matrix.imag, 4)
 
     def test_rv_zero(self):
         """Test R(v) gate with zero vector returns identity"""
@@ -227,10 +230,6 @@ class TestStandardGates(QiskitTestCase):
             num_ctrl_qubits = 3
             float_vector = float_vector[:-1]
             gate = gate_class(num_ctrl_qubits, *float_vector)
-        elif class_name == "MSGate":
-            num_qubits = 3
-            float_vector = float_vector[:-1]
-            gate = gate_class(num_qubits, *float_vector)
         elif class_name == "PauliGate":
             pauli_string = "IXYZ"
             gate = gate_class(pauli_string)
@@ -269,6 +268,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
             "VariadicZeroParamGate",
             "ClassicalFunction",
             "ClassicalElement",
+            "LinearFunction",
         }
         cls._gate_classes = []
         for aclass in class_list:

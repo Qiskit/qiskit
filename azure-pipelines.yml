@@ -23,20 +23,17 @@ stages:
     condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
     jobs:
     - job: 'linux'
-      pool: {vmImage: 'Ubuntu-16.04'}
+      pool: {vmImage: 'ubuntu-latest'}
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         python.version: '3.7'
-        CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: cp27-* cp34-* cp35-* pp*
         TWINE_USERNAME: qiskit
-        CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
       steps:
         - task: UsePythonVersion@0
         - bash: |
             set -e
             python -m pip install --upgrade pip
-            pip install cibuildwheel==1.11.0
+            pip install cibuildwheel==2.3.1
             pip install -U twine
             cibuildwheel --output-dir wheelhouse .
         - task: PublishBuildArtifacts@1
@@ -47,7 +44,7 @@ stages:
           env:
             TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'sdist'
-      pool: {vmImage: 'Ubuntu-16.04'}
+      pool: {vmImage: 'ubuntu-latest'}
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         TWINE_USERNAME: qiskit
@@ -71,16 +68,13 @@ stages:
       pool: {vmImage: 'macOS-10.15'}
       variables:
         python.version: '3.7'
-        CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: cp27-* cp34-* cp35-* pp*
         TWINE_USERNAME: qiskit
-        CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
       steps:
       - task: UsePythonVersion@0
       - bash: |
           set -e
           python -m pip install --upgrade pip
-          pip install cibuildwheel==1.11.0
+          pip install cibuildwheel==2.3.1
           pip install -U twine
           cibuildwheel --output-dir wheelhouse .
       - task: PublishBuildArtifacts@1
@@ -95,17 +89,14 @@ stages:
       pool: {vmImage: 'macOS-10.15'}
       variables:
         python.version: '3.7'
-        CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: cp27-* cp34-* cp35-* pp*
         CIBW_ARCHS_MACOS: universal2
         TWINE_USERNAME: qiskit
-        CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
       steps:
       - task: UsePythonVersion@0
       - bash: |
           set -e
           python -m pip install --upgrade pip
-          pip install cibuildwheel==1.11.0
+          pip install cibuildwheel==2.3.1
           pip install -U twine
           cibuildwheel --output-dir wheelhouse .
       - task: PublishBuildArtifacts@1
@@ -116,26 +107,23 @@ stages:
         env:
           TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'Windows'
-      pool: {vmImage: 'vs2017-win2016'}
+      pool: {vmImage: 'windows-latest'}
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
-        CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: cp27-* cp34-* cp35-* pp*
         TWINE_USERNAME: qiskit
-        CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
       steps:
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x86}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x64}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x86}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.8', architecture: x86}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.8', architecture: x64}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.9', architecture: x86}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.9', architecture: x64}}
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.10', architecture: x86}}
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.10', architecture: x64}}
         - bash: |
             set -e
             python -m pip install --upgrade pip
-            pip install cibuildwheel==1.11.0
+            pip install cibuildwheel==2.3.1
             pip install -U twine
             cibuildwheel --output-dir wheelhouse
         - task: PublishBuildArtifacts@1
@@ -192,9 +180,11 @@ stages:
             pip install -U "cplex" "qiskit-aer" "z3-solver" -c constraints.txt
             mkdir -p /tmp/terra-tests
             cp -r test /tmp/terra-tests/.
+            cp tools/verify_parallel_map.py /tmp/terra-tests/.
             cp .stestr.conf /tmp/terra-tests/.
             cp -r .stestr /tmp/terra-tests/. || :
-            sudo apt install -y graphviz
+            sudo apt-get update
+            sudo apt-get install -y graphviz
             pip check
           displayName: 'Install dependencies'
         - bash: |
@@ -204,8 +194,11 @@ stages:
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
+            python ./verify_parallel_map.py
             popd
           displayName: 'Run tests'
+          env:
+            QISKIT_PARALLEL: FALSE
         - task: CopyFiles@2
           condition: failed()
           displayName: 'Copy images'
@@ -250,8 +243,8 @@ stages:
             virtualenv image_tests
             image_tests/bin/pip install -U -r requirements.txt -c constraints.txt
             image_tests/bin/pip install -U -c constraints.txt -e ".[visualization]"
-            image_tests/bin/python setup.py build_ext --inplace
-            sudo apt install -y graphviz pandoc
+            sudo apt-get update
+            sudo apt-get install -y graphviz pandoc
             image_tests/bin/pip check
           displayName: 'Install dependencies'
         - bash: image_tests/bin/python -m unittest discover -v test/ipynb
@@ -296,6 +289,8 @@ stages:
             tools/verify_headers.py qiskit test
             python tools/find_optional_imports.py
             reno lint
+            cargo fmt --check
+            cargo clippy -- -D warnings
           displayName: 'Style and lint'
     - job: 'Docs'
       pool: {vmImage: 'ubuntu-latest'}
@@ -324,8 +319,8 @@ stages:
             set -e
             python -m pip install --upgrade pip setuptools wheel
             pip install -U tox
-            python setup.py build_ext --inplace
-            sudo apt install -y graphviz
+            sudo apt-get update
+            sudo apt-get install -y graphviz
           displayName: 'Install dependencies'
         - bash: |
             tox -edocs
@@ -393,7 +388,10 @@ stages:
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
+            python ./tools/verify_parallel_map.py
           displayName: 'Run tests'
+          env:
+            QISKIT_PARALLEL: FALSE
         - task: CopyFiles@2
           condition: failed()
           displayName: 'Copy images'
@@ -463,10 +461,12 @@ stages:
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 1024))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
+            python ./tools/verify_parallel_map.py
           displayName: 'Run tests'
           env:
             LANG: 'C.UTF-8'
             PYTHONIOENCODING: 'utf-8:backslashreplace'
+            QISKIT_PARALLEL: FALSE
         - task: CopyFiles@2
           condition: failed()
           displayName: 'Copy images'
@@ -506,12 +506,12 @@ stages:
       pool: {vmImage: 'windows-latest'}
       strategy:
         matrix:
-          Python36:
-            python.version: '3.6'
           Python38:
             python.version: '3.8'
           Python39:
             python.version: '3.9'
+          Python310:
+            python.version: '3.10'
       variables:
         QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
         QISKIT_TEST_CAPTURE_STREAMS: 1
@@ -547,6 +547,7 @@ stages:
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 1024))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
+            python ./tools/verify_parallel_map.py
           env:
             LANG: 'C.UTF-8'
             PYTHONIOENCODING: 'utf-8:backslashreplace'
@@ -587,12 +588,12 @@ stages:
       pool: {vmImage: 'ubuntu-latest'}
       strategy:
         matrix:
-          Python36:
-            python.version: '3.6'
           Python38:
             python.version: '3.8'
           Python39:
             python.version: '3.9'
+          Python310:
+            python.version: '3.10'
       variables:
         QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
         PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
@@ -629,7 +630,8 @@ stages:
             pip install -U -c constraints.txt -e .
             pip install -U "qiskit-aer" "z3-solver" -c constraints.txt
             python setup.py build_ext --inplace
-            sudo apt install -y graphviz
+            sudo apt-get update
+            sudo apt-get install -y graphviz
             pip check
           displayName: 'Install dependencies'
         - bash: |
@@ -638,7 +640,10 @@ stages:
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
+            python ./tools/verify_parallel_map.py
           displayName: 'Run tests'
+          env:
+            QISKIT_PARALLEL: FALSE
         - task: CopyFiles@2
           condition: failed()
           displayName: 'Copy images'
@@ -671,12 +676,12 @@ stages:
       pool: {vmImage: 'macOS-10.15'}
       strategy:
         matrix:
-          Python36:
-            python.version: '3.6'
           Python38:
             python.version: '3.8'
           Python39:
             python.version: '3.9'
+          Python310:
+            python.version: '3.10'
       variables:
         QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
         PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
@@ -720,6 +725,7 @@ stages:
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
+            python ./tools/verify_parallel_map.py
           displayName: 'Run tests'
         - task: CopyFiles@2
           condition: failed()
@@ -780,7 +786,8 @@ stages:
             pip install -c constraints.txt -e .
             pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" "qiskit-ignis" "matplotlib>=3.3.0" sphinx nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
             python setup.py build_ext --inplace
-            sudo apt install -y graphviz pandoc
+            sudo apt-get update
+            sudo apt-get install -y graphviz pandoc
             pip check
           displayName: 'Install dependencies'
         - bash: |
