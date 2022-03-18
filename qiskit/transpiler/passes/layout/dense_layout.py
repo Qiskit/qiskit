@@ -75,6 +75,10 @@ class DenseLayout(AnalysisPass):
         Raises:
             TranspilerError: if dag wider than self.coupling_map
         """
+        if self.coupling_map is None:
+            raise TranspilerError(
+                "A coupling_map or target with constrained qargs is necessary to run the pass."
+            )
         num_dag_qubits = len(dag.qubits)
         if num_dag_qubits > self.coupling_map.size():
             raise TranspilerError("Number of qubits greater than device.")
