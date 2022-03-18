@@ -157,7 +157,7 @@ class TestGatesInBasisPass(QiskitTestCase):
 
     def test_all_gates_in_ideal_sim_target(self):
         """Test with target that has ideal gates."""
-        target = Target()
+        target = Target(num_qubits=2)
         target.add_instruction(HGate())
         target.add_instruction(CXGate())
         target.add_instruction(Measure())

@@ -50,12 +50,8 @@ class GatesInBasis(AnalysisPass):
                 # Barrier is universal and supported by all backends
                 if gate.name == "barrier":
                     continue
-                if gate.name not in self._target:
-                    gates_out_of_basis = True
-                    break
-                if (
-                    None not in self._target[gate.name]
-                    and tuple(qubit_map[bit] for bit in gate.qargs) not in self._target[gate.name]
+                if not self._target.instruction_supported(
+                    gate.name, tuple(qubit_map[bit] for bit in gate.qargs)
                 ):
                     gates_out_of_basis = True
                     break
