@@ -458,7 +458,7 @@ class TestInitialize(QiskitTestCase):
 
         self.assertEqual(decom_circ.data[0][0].name, "reset")
         self.assertEqual(decom_circ.data[1][0].name, "reset")
-        self.assertEqual(decom_circ.data[2][0].name, "state_preparation")
+        self.assertEqual(decom_circ.data[2][0].name, "State Preparation")
 
     def test_mutating_params(self):
         """Test mutating Initialize params correctly updates StatePreparation params"""
@@ -469,7 +469,7 @@ class TestInitialize(QiskitTestCase):
         qc.append(init, qr)
         decom_circ = qc.decompose()
 
-        self.assertEqual(decom_circ.data[2][0].name, "state_preparation")
+        self.assertEqual(decom_circ.data[2][0].name, "State Preparation")
         self.assertEqual(decom_circ.data[2][0].params, ["0", "0"])
 
 

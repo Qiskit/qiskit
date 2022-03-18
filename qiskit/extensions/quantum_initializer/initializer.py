@@ -71,7 +71,7 @@ class Initialize(Instruction, Operation):
         Returns:
             QuantumCircuit: circuit to take self.params vector to :math:`|{00\\ldots0}\\rangle`
         """
-        return self._stateprep.gates_to_uncompute()
+        return self._stateprep._gates_to_uncompute()
 
     @property
     def params(self):
@@ -84,15 +84,7 @@ class Initialize(Instruction, Operation):
         self._stateprep.params = parameters
 
     def broadcast_arguments(self, qargs, cargs):
-        flat_qargs = [qarg for sublist in qargs for qarg in sublist]
-
-        if self.num_qubits != len(flat_qargs):
-            raise QiskitError(
-                "Initialize parameter vector has %d elements, therefore expects %s "
-                "qubits. However, %s were provided."
-                % (2**self.num_qubits, self.num_qubits, len(flat_qargs))
-            )
-        yield flat_qargs, []
+        return self._stateprep.broadcast_arguments(qargs, cargs)
 
 
 def initialize(self, params, qubits=None):

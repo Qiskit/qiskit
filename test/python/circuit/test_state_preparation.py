@@ -35,7 +35,7 @@ class TestStatePreparation(QiskitTestCase):
         desired_sv = Statevector.from_label("01+-lr")
         qc = QuantumCircuit(6)
         qc.prepare_state("01+-lr", range(6))
-        actual_sv = Statevector.from_instruction(qc)
+        actual_sv = Statevector(qc)
         self.assertTrue(desired_sv == actual_sv)
 
     def test_prepare_from_int(self):
@@ -43,7 +43,7 @@ class TestStatePreparation(QiskitTestCase):
         desired_sv = Statevector.from_label("110101")
         qc = QuantumCircuit(6)
         qc.prepare_state(53, range(6))
-        actual_sv = Statevector.from_instruction(qc)
+        actual_sv = Statevector(qc)
         self.assertTrue(desired_sv == actual_sv)
 
     def test_prepare_from_list(self):
@@ -51,7 +51,7 @@ class TestStatePreparation(QiskitTestCase):
         desired_sv = Statevector([1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)])
         qc = QuantumCircuit(2)
         qc.prepare_state([1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)])
-        actual_sv = Statevector.from_instruction(qc)
+        actual_sv = Statevector(qc)
         self.assertTrue(desired_sv == actual_sv)
 
     def test_nonzero_state_incorrect(self):
@@ -60,19 +60,26 @@ class TestStatePreparation(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.x(0)
         qc.prepare_state([1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)])
-        actual_sv = Statevector.from_instruction(qc)
+        actual_sv = Statevector(qc)
         self.assertFalse(desired_sv == actual_sv)
 
     @data(2, "11", [1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)])
     def test_inverse(self, state):
         """Test inverse of StatePreparation"""
         qc = QuantumCircuit(2)
-
         stateprep = StatePreparation(state)
         qc.append(stateprep, [0, 1])
         qc.append(stateprep.inverse(), [0, 1])
-
         self.assertTrue(np.allclose(Operator(qc).data, np.identity(2**qc.num_qubits)))
+
+    def test_double_inverse(self):
+        """Test twice inverse of StatePreparation"""
+        desired_sv = Statevector([1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)])
+        qc = QuantumCircuit(2)
+        stateprep = StatePreparation([1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)])
+        qc.append(stateprep.inverse().inverse(), [0, 1])
+        actual_sv = Statevector(qc)
+        self.assertTrue(desired_sv == actual_sv)
 
     def test_incompatible_state_and_qubit_args(self):
         """Test error raised if number of qubits not compatible with state arg"""

@@ -14,6 +14,8 @@
 import math
 import numpy as np
 
+from typing import Union, Optional
+
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.gate import Gate
@@ -23,6 +25,7 @@ from qiskit.circuit.library.standard_gates.s import SGate, SdgGate
 from qiskit.circuit.library.standard_gates.ry import RYGate
 from qiskit.circuit.library.standard_gates.rz import RZGate
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.quantum_info import Statevector
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -34,9 +37,14 @@ class StatePreparation(Gate):
     flexible collection of qubit registers.
     """
 
-    def __init__(self, params, num_qubits=None, inverse: bool = False):
-        r"""Prepare state
-
+    def __init__(
+        self,
+        params: Union[str, list, Statevector],
+        num_qubits: int = None,
+        inverse: bool = False,
+        label: Optional[str] = None,
+    ):
+        r"""
         Args:
             params (str, list, int or Statevector):
                 * Statevector: Statevector to initialize to.
@@ -53,21 +61,27 @@ class StatePreparation(Gate):
                 number of qubits in the `initialize` call. Example: `initialize` covers 5 qubits
                 and params is 3. This allows qubits 0 and 1 to be initialized to :math:`|1\rangle`
                 and the remaining 3 qubits to be initialized to :math:`|0\rangle`.
+            inverse (bool): if True, the inverse state is constructed.
+            label (str or None): An optional label for the gate [Default: State Preparation]
 
         Raises:
             QiskitError: num_qubits parameter used when params is not an integer
 
         When a Statevector argument is passed the state is prepared using a recursive
-        initialization algorithm, including optimizations, from "Synthesis of Quantum Logic
-        Circuits" Shende, Bullock, Markov (https://arxiv.org/abs/quant-ph/0406176v5), as well
+        initialization algorithm, including optimizations, from [1], as well
         as some additional optimizations including removing zero rotations and double cnots.
+
+        **References:**
+        [1] Shende, Bullock, Markov. Synthesis of Quantum Logic Circuits (2004)
+        [`https://arxiv.org/abs/quant-ph/0406176v5`]
+
         """
         # pylint: disable=cyclic-import
         from qiskit.quantum_info import Statevector
 
         self._params_arg = params
         self._inverse = inverse
-        self._name = "state_preparation_dg" if self._inverse else "state_preparation"
+        self._name = "State Preparation Dg" if self._inverse else "State Preparation"
 
         if isinstance(params, Statevector):
             params = params.data
@@ -84,7 +98,7 @@ class StatePreparation(Gate):
 
         params = [params] if isinstance(params, int) else params
 
-        super().__init__(self._name, num_qubits, params)
+        super().__init__(self._name, num_qubits, params, label=label)
 
     def _define(self):
         if self._from_label:
@@ -153,18 +167,18 @@ class StatePreparation(Gate):
         double cnots.
         """
         # call to generate the circuit that takes the desired vector to zero
-        disentangling_circuit = self.gates_to_uncompute()
+        disentangling_circuit = self._gates_to_uncompute()
 
         # invert the circuit to create the desired vector from zero (assuming
         # the qubits are in the zero state)
-        initialize_instr = disentangling_circuit.to_instruction().inverse()
+        if self._inverse is False:
+            initialize_instr = disentangling_circuit.to_instruction().inverse()
+        else:
+            initialize_instr = disentangling_circuit.to_instruction()
 
         q = QuantumRegister(self.num_qubits, "q")
         initialize_circuit = QuantumCircuit(q, name="init_def")
         initialize_circuit.append(initialize_instr, q[:])
-
-        if self._inverse:
-            initialize_circuit = initialize_circuit.inverse()
 
         return initialize_circuit
 
@@ -191,7 +205,7 @@ class StatePreparation(Gate):
 
     def inverse(self):
         """Return inverted StatePreparation"""
-        return StatePreparation(self._params_arg, inverse=True)
+        return StatePreparation(self._params_arg, inverse=not self._inverse)
 
     def broadcast_arguments(self, qargs, cargs):
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]
@@ -224,7 +238,7 @@ class StatePreparation(Gate):
         else:
             raise CircuitError(f"invalid param type {type(parameter)} for instruction  {self.name}")
 
-    def gates_to_uncompute(self):
+    def _gates_to_uncompute(self):
         """Call to create a circuit with gates that take the desired vector to zero.
 
         Returns:
@@ -428,7 +442,7 @@ def prepare_state(self, state, qubits=None):
         .. parsed-literal::
 
                  ┌─────────────────────────────────────┐
-            q_0: ┤ State_preparation(0.70711,-0.70711) ├
+            q_0: ┤ State preparation(0.70711,-0.70711) ├
                  └─────────────────────────────────────┘
 
 
@@ -452,7 +466,7 @@ def prepare_state(self, state, qubits=None):
 
                  ┌─────────────────────────┐
             q_0: ┤0                        ├
-                 │  State_preparation(0,1) │
+                 │  State preparation(0,1) │
             q_1: ┤1                        ├
                  └─────────────────────────┘
 
@@ -473,7 +487,7 @@ def prepare_state(self, state, qubits=None):
 
                  ┌───────────────────────────────────────────┐
             q_0: ┤0                                          ├
-                 │  State_preparation(0,0.70711,-0.70711j,0) │
+                 │  State preparation(0,0.70711,-0.70711j,0) │
             q_1: ┤1                                          ├
                  └───────────────────────────────────────────┘
     """
