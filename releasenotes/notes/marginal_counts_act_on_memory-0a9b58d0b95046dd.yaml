@@ -2,7 +2,7 @@
 features:
   - |
     Update the :func:`~.marginal_counts` method to marginalize the memory field of the data.
-    For example, if `result`  is a qiskit `Result` object obtained from a 4-qubit measurement we can
+    For example, if `result`  is a qiskit :class:`~.Result` object obtained from a 4-qubit measurement we can
     marginalize onto the first qubit with as::
 
         print(result.results[0].data.memory)
