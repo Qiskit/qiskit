@@ -140,21 +140,6 @@ class BaseScheduler(AnalysisPass):
         The former parameter determines the delay of the register write-access from
         the beginning of the measure instruction t0, and another parameter determines
         the delay of conditional gate operation from t0 which comes from the register read-access.
-
-        - clbit_write_latency: A control flow constraints. Because standard superconducting
-          quantum processor implement dispersive QND readout, the actual data transfer
-          to the clbit happens after the round-trip stimulus signal is buffered
-          and discriminated into quantum state.
-          The interval ``[t0, t0 + clbit_write_latency]`` is regarded as idle time
-          for clbits associated with the measure instruction.
-          This defaults to 0 dt which is identical to Qiskit Pulse scheduler.
-
-        - conditional_latency: A control flow constraints. This value represents
-          a latency of reading a classical register for the conditional operation.
-          The gate operation occurs after this latency. This appears as a delay
-          in front of the DAGOpNode of the gate.
-          This defaults to 0 dt.
-
         These information might be found in the backend configuration and then should
         be copied to the pass manager property set before the pass is called.
 

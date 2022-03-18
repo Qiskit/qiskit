@@ -22,6 +22,7 @@ from qiskit.transpiler.passes import (
     ConstrainedReschedule,
     ValidatePulseGates,
     ALAPSchedule,
+    ASAPSchedule,
     PadDelay,
     SetIOLatency,
 )
@@ -357,12 +358,169 @@ class TestAlignMeasures(QiskitTestCase):
 
         self.assertEqual(aligned_circuit, ref_circuit)
 
+    def test_programmed_delay_preserved(self):
+        """Intentionally programmed delay will be kept after reschedule.
+
+        No delay
+        ++++++++
+
+        (input)
+             ┌────────────────┐┌───┐ ░ ┌───┐
+        q_0: ┤ Delay(100[dt]) ├┤ X ├─░─┤ X ├
+             ├────────────────┤└───┘ ░ └───┘
+        q_1: ┤ Delay(272[dt]) ├──────░──────
+             └────────────────┘      ░
+
+        (aligned)
+             ┌────────────────┐┌───┐ ░ ┌───┐
+        q_0: ┤ Delay(112[dt]) ├┤ X ├─░─┤ X ├
+             ├────────────────┤└───┘ ░ └───┘
+        q_1: ┤ Delay(272[dt]) ├──────░──────
+             └────────────────┘      ░
+
+        With delay (intentional post buffer)
+        ++++++++++++++++++++++++++++++++++++
+
+        (input) ... this is identical to no delay pattern without reschedule
+             ┌────────────────┐┌───┐┌───────────────┐ ░ ┌───┐
+        q_0: ┤ Delay(100[dt]) ├┤ X ├┤ Delay(10[dt]) ├─░─┤ X ├
+             ├────────────────┤└───┘└───────────────┘ ░ └───┘
+        q_1: ┤ Delay(272[dt]) ├───────────────────────░──────
+             └────────────────┘                       ░
+
+        (aligned)
+             ┌────────────────┐┌───┐┌───────────────┐ ░ ┌──────────────┐┌───┐
+        q_0: ┤ Delay(112[dt]) ├┤ X ├┤ Delay(10[dt]) ├─░─┤ Delay(6[dt]) ├┤ X ├
+             ├────────────────┤└───┘└───────────────┘ ░ └──────────────┘└───┘
+        q_1: ┤ Delay(282[dt]) ├───────────────────────░──────────────────────
+             └────────────────┘                       ░
+
+        """
+
+        pm = PassManager(
+            [
+                ASAPSchedule(durations=self.instruction_durations),
+                ConstrainedReschedule(pulse_alignment=16),
+                PadDelay(fill_very_end=False),
+            ]
+        )
+
+        pm_only_schedule = PassManager(
+            [
+                ASAPSchedule(durations=self.instruction_durations),
+                PadDelay(fill_very_end=False),
+            ]
+        )
+
+        circuit_no_delay = QuantumCircuit(2)
+        circuit_no_delay.delay(100, 0, unit="dt")
+        circuit_no_delay.x(0)  # q0 ends here at t = 260, t = 260 - 272 is free
+        circuit_no_delay.delay(160 + 112, 1, unit="dt")
+        circuit_no_delay.barrier()  # q0 and q1 is aligned here at t = 272 dt
+        circuit_no_delay.x(0)
+
+        ref_no_delay = QuantumCircuit(2)
+        ref_no_delay.delay(112, 0, unit="dt")
+        ref_no_delay.x(0)
+        ref_no_delay.delay(160 + 100 + 12, 1, unit="dt")  # this t0 doesn't change
+        ref_no_delay.barrier()
+        ref_no_delay.x(0)  # no buffer
+
+        self.assertEqual(pm.run(circuit_no_delay), ref_no_delay)
+
+        circuit_with_delay = QuantumCircuit(2)
+        circuit_with_delay.delay(100, 0, unit="dt")
+        circuit_with_delay.x(0)  # q0 ends here at t = 260
+        circuit_with_delay.delay(10, 0, unit="dt")  # intentional post buffer of 10 dt to next X(0)
+        circuit_with_delay.delay(160 + 112, 1, unit="dt")  # q0 and q1 is aligned here at t = 272 dt
+        circuit_with_delay.barrier()
+        circuit_with_delay.x(0)
+
+        ref_with_delay = QuantumCircuit(2)
+        ref_with_delay.delay(112, 0, unit="dt")
+        ref_with_delay.x(0)
+        ref_with_delay.delay(10, 0, unit="dt")  # this delay survive
+        ref_with_delay.delay(160 + 100 + 12 + 10, 1, unit="dt")
+        ref_with_delay.barrier()
+        ref_with_delay.delay(6, 0, unit="dt")  # extra delay for next X0
+        ref_with_delay.x(0)  # at least 10dt buffer is preserved
+
+        self.assertEqual(pm.run(circuit_with_delay), ref_with_delay)
+
+        # check if circuit is identical without reschedule
+        self.assertEqual(
+            pm_only_schedule.run(circuit_no_delay),
+            pm_only_schedule.run(circuit_with_delay),
+        )
+
+    def test_both_pulse_and_acquire_alignment(self):
+        """Test when both acquire and pulse alignment are specified.
+
+        (input)
+             ┌────────────────┐┌───┐┌───────────────┐┌─┐
+          q: ┤ Delay(100[dt]) ├┤ X ├┤ Delay(10[dt]) ├┤M├
+             └────────────────┘└───┘└───────────────┘└╥┘
+        c: 1/═════════════════════════════════════════╩═
+                                                      0
+
+        (aligned)
+             ┌────────────────┐┌───┐┌───────────────┐┌─┐
+          q: ┤ Delay(112[dt]) ├┤ X ├┤ Delay(16[dt]) ├┤M├
+             └────────────────┘└───┘└───────────────┘└╥┘
+        c: 1/═════════════════════════════════════════╩═
+                                                      0
+        """
+        pm = PassManager(
+            [
+                ALAPSchedule(durations=self.instruction_durations),
+                ConstrainedReschedule(pulse_alignment=16, acquire_alignment=16),
+                PadDelay(fill_very_end=False),
+            ]
+        )
+
+        circuit = QuantumCircuit(1, 1)
+        circuit.delay(100, 0, unit="dt")
+        circuit.x(0)
+        circuit.delay(10, 0, unit="dt")
+        circuit.measure(0, 0)
+
+        ref_circ = QuantumCircuit(1, 1)
+        ref_circ.delay(112, 0, unit="dt")
+        ref_circ.x(0)
+        ref_circ.delay(16, 0, unit="dt")
+        ref_circ.measure(0, 0)
+
+        self.assertEqual(pm.run(circuit), ref_circ)
+
+    def test_deprecated_align_measure(self):
+        """Test if old AlignMeasures can be still used and warning is raised."""
+        circuit = QuantumCircuit(1, 1)
+        circuit.x(0)
+        circuit.delay(100)
+        circuit.measure(0, 0)
+
+        with self.assertWarns(FutureWarning):
+            pm_old = PassManager(
+                [
+                    ALAPSchedule(durations=self.instruction_durations),
+                    AlignMeasures(alignment=16),
+                    PadDelay(fill_very_end=False),
+                ]
+            )
+
+        pm_new = PassManager(
+            [
+                ALAPSchedule(durations=self.instruction_durations),
+                AlignMeasures(alignment=16),
+                PadDelay(fill_very_end=False),
+            ]
+        )
+
+        self.assertEqual(pm_old.run(circuit), pm_new.run(circuit))
+
 
 class TestPulseGateValidation(QiskitTestCase):
     """A test for pulse gate validation pass."""
-
-    def setUp(self):
-        super().setUp()
 
     def test_invalid_pulse_duration(self):
         """Kill pass manager if invalid pulse gate is found."""
@@ -378,9 +536,7 @@ class TestPulseGateValidation(QiskitTestCase):
         circuit.x(0)
         circuit.add_calibration("x", qubits=(0,), schedule=custom_gate)
 
-        pm = PassManager(
-            ValidatePulseGates(granularity=16, min_length=64)
-        )
+        pm = PassManager(ValidatePulseGates(granularity=16, min_length=64))
         with self.assertRaises(TranspilerError):
             pm.run(circuit)
 
@@ -398,9 +554,7 @@ class TestPulseGateValidation(QiskitTestCase):
         circuit.x(0)
         circuit.add_calibration("x", qubits=(0,), schedule=custom_gate)
 
-        pm = PassManager(
-            ValidatePulseGates(granularity=16, min_length=64)
-        )
+        pm = PassManager(ValidatePulseGates(granularity=16, min_length=64))
         with self.assertRaises(TranspilerError):
             pm.run(circuit)
 
@@ -422,9 +576,7 @@ class TestPulseGateValidation(QiskitTestCase):
         circuit.x(0)
         circuit.add_calibration("x", qubits=(0,), schedule=custom_gate)
 
-        pm = PassManager(
-            ValidatePulseGates(granularity=16, min_length=64)
-        )
+        pm = PassManager(ValidatePulseGates(granularity=16, min_length=64))
         with self.assertRaises(TranspilerError):
             pm.run(circuit)
 
@@ -442,9 +594,7 @@ class TestPulseGateValidation(QiskitTestCase):
         circuit.add_calibration("x", qubits=(0,), schedule=custom_gate)
 
         # just not raise an error
-        pm = PassManager(
-            ValidatePulseGates(granularity=16, min_length=64)
-        )
+        pm = PassManager(ValidatePulseGates(granularity=16, min_length=64))
         pm.run(circuit)
 
     def test_no_calibration(self):
@@ -454,7 +604,5 @@ class TestPulseGateValidation(QiskitTestCase):
         circuit.x(0)
 
         # just not raise an error
-        pm = PassManager(
-            ValidatePulseGates(granularity=16, min_length=64)
-        )
+        pm = PassManager(ValidatePulseGates(granularity=16, min_length=64))
         pm.run(circuit)

@@ -14,7 +14,6 @@
 
 from typing import List
 
-from qiskit.circuit.delay import Delay
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.measure import Measure
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGOutNode
@@ -179,6 +178,8 @@ class ConstrainedReschedule(AnalysisPass):
         Assumptions:
 
             - Topological order and absolute time order of DAGOpNode are consistent.
+            - All bits in either qargs or cargs associated with node synchronously start.
+            - Start time of qargs and cargs may different due to I/O latency.
 
         Based on the configurations above, rescheduler pass takes following strategy.
 

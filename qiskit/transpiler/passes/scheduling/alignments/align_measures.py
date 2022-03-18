@@ -14,14 +14,13 @@
 
 import warnings
 
-from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.passes.scheduling.alignments import ConstrainedReschedule
+from qiskit.transpiler.passes.scheduling.alignments.reschedule import ConstrainedReschedule
 
 
-class AlignMeasures(TransformationPass):
+class AlignMeasures:
     """Deprecated. Measurement alignment."""
 
-    def __new__(cls, alignment: int = 1) -> ConstrainedReschedule:
+    def __new__(cls, alignment=1) -> ConstrainedReschedule:
         """Create new pass.
 
         Args:
@@ -38,6 +37,3 @@ class AlignMeasures(TransformationPass):
             FutureWarning,
         )
         return ConstrainedReschedule(acquire_alignment=alignment)
-
-    def run(self, dag):
-        raise NotImplementedError

@@ -12,6 +12,7 @@
 """Set classical IO latency information to circuit."""
 
 from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.dagcircuit import DAGCircuit
 
 
 class SetIOLatency(AnalysisPass):
@@ -53,7 +54,7 @@ class SetIOLatency(AnalysisPass):
         self._conditional_latency = conditional_latency
         self._clbit_write_latency = clbit_write_latency
 
-    def run(self, dag):
+    def run(self, dag: DAGCircuit):
         """Add IO latency information.
 
         Args:
