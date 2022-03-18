@@ -12,15 +12,19 @@
 """Tests evaluator of auxiliary operators for algorithms."""
 
 import unittest
+from typing import Tuple, Union
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
-from ddt import ddt, data, unpack
+from ddt import ddt, data
 
+from qiskit.algorithms.list_or_dict import ListOrDict
+from qiskit.providers import BaseBackend, Backend
+from qiskit.quantum_info import Statevector
 from qiskit.algorithms import eval_observables
-from qiskit import BasicAer
+from qiskit import BasicAer, QuantumCircuit
 from qiskit.circuit.library import EfficientSU2
-from qiskit.opflow import PauliSumOp, X, Z, I, ExpectationFactory
+from qiskit.opflow import PauliSumOp, X, Z, I, ExpectationFactory, OperatorBase, ExpectationBase
 from qiskit.utils import QuantumInstance, algorithm_globals
 
 
@@ -43,45 +47,77 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
         self.threshold = 1e-8
         self.backend_names = ["statevector_simulator", "qasm_simulator"]
 
+    def get_exact_expectation(self, ansatz: QuantumCircuit, observables: ListOrDict[OperatorBase]):
+        """
+        Calculates the exact expectation to be used as an expected result for unit tests.
+        """
+        if isinstance(observables, dict):
+            observables_list = list(observables.values())
+        else:
+            observables_list = observables
+
+        # the exact value is a list of (mean, variance) where we expect 0 variance
+        exact = [
+            (Statevector(ansatz).expectation_value(observable), 0)
+            for observable in observables_list
+        ]
+
+        if isinstance(observables, dict):
+            return dict(zip(observables.keys(), exact))
+
+        return exact
+
+    def _run_test(
+        self,
+        expected_result: ListOrDict[Tuple[complex, complex]],
+        quantum_state: Union[QuantumCircuit, Statevector],
+        decimal: int,
+        expectation: ExpectationBase,
+        observables: ListOrDict[OperatorBase],
+        quantum_instance: Union[QuantumInstance, BaseBackend, Backend],
+    ):
+        result = eval_observables(
+            quantum_instance, quantum_state, observables, expectation, self.threshold
+        )
+
+        if isinstance(observables, dict):
+            np.testing.assert_equal(list(result.keys()), list(expected_result.keys()))
+            np.testing.assert_array_almost_equal(
+                list(result.values()), list(expected_result.values()), decimal=decimal
+            )
+        else:
+            np.testing.assert_array_almost_equal(result, expected_result, decimal=decimal)
+
     @data(
-        (
-            [
-                PauliSumOp.from_list([("II", 2.0)]),
-                PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)]),
-            ],
-            [(1.9999999999999998, 0.0), (0.3819044157958812, 0.0)],
-        ),
-        (
-            [
-                PauliSumOp.from_list([("ZZ", 2.0)]),
-            ],
-            [(-0.4723823368164749, 0.0)],
-        ),
-        (
-            {
-                "op1": PauliSumOp.from_list([("II", 2.0)]),
-                "op2": PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)]),
-            },
-            {"op1": (1.9999999999999998, 0.0), "op2": (0.3819044157958812, 0.0)},
-        ),
-        (
-            {
-                "op1": PauliSumOp.from_list([("ZZ", 2.0)]),
-            },
-            {"op1": (-0.4723823368164749, 0.0)},
-        ),
+        [
+            PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)]),
+            PauliSumOp.from_list([("II", 2.0)]),
+        ],
+        [
+            PauliSumOp.from_list([("ZZ", 2.0)]),
+        ],
+        {
+            "op1": PauliSumOp.from_list([("II", 2.0)]),
+            "op2": PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)]),
+        },
+        {
+            "op1": PauliSumOp.from_list([("ZZ", 2.0)]),
+        },
     )
-    @unpack
-    def test_eval_observables_statevector(self, observables, expected_result):
+    def test_eval_observables(self, observables: ListOrDict[OperatorBase]):
         """Tests evaluator of auxiliary operators for algorithms."""
 
-        ansatz = EfficientSU2(1)
-        parameters = np.array([1.2, 4.2, 1.4, 2.0, 1.2, 4.2, 1.4, 2.0], dtype=float)
-        param_dict = dict(zip(ansatz.ordered_parameters, parameters))
-        bound_ansatz = ansatz.bind_parameters(param_dict)
+        ansatz = EfficientSU2(2)
+        parameters = np.array(
+            [1.2, 4.2, 1.4, 2.0, 1.2, 4.2, 1.4, 2.0, 1.2, 4.2, 1.4, 2.0, 1.2, 4.2, 1.4, 2.0],
+            dtype=float,
+        )
+
+        bound_ansatz = ansatz.bind_parameters(parameters)
+        expected_result = self.get_exact_expectation(bound_ansatz, observables)
 
         for backend_name in self.backend_names:
-            shots = 2048 if backend_name == "qasm_simulator" else 1
+            shots = 4096 if backend_name == "qasm_simulator" else 1
             decimal = (
                 1 if backend_name == "qasm_simulator" else 6
             )  # to accommodate for qasm being imperfect
@@ -97,17 +133,27 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
                     operator=self.h2_op,
                     backend=quantum_instance,
                 )
-                result = eval_observables(
-                    quantum_instance, bound_ansatz, observables, expectation, self.threshold
-                )
 
-                if isinstance(observables, dict):
-                    np.testing.assert_equal(list(result.keys()), list(expected_result.keys()))
-                    np.testing.assert_array_almost_equal(
-                        list(result.values()), list(expected_result.values()), decimal=decimal
+                with self.subTest(msg="Test QuantumCircuit."):
+                    self._run_test(
+                        expected_result,
+                        bound_ansatz,
+                        decimal,
+                        expectation,
+                        observables,
+                        quantum_instance,
                     )
-                else:
-                    np.testing.assert_array_almost_equal(result, expected_result, decimal=decimal)
+
+                with self.subTest(msg="Test Statevector."):
+                    statevector = Statevector(bound_ansatz)
+                    self._run_test(
+                        expected_result,
+                        statevector,
+                        decimal,
+                        expectation,
+                        observables,
+                        quantum_instance,
+                    )
 
 
 if __name__ == "__main__":

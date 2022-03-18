@@ -37,16 +37,18 @@ class ConsolidateBlocks(TransformationPass):
         collected by a previous pass, such as `Collect2qBlocks`.
     """
 
-    def __init__(self, kak_basis_gate=None, force_consolidate=False, basis_gates=None):
+    def __init__(self, kak_basis_gate=None, force_consolidate=False, basis_gates=None, target=None):
         """ConsolidateBlocks initializer.
 
         Args:
             kak_basis_gate (Gate): Basis gate for KAK decomposition.
             force_consolidate (bool): Force block consolidation
             basis_gates (List(str)): Basis gates from which to choose a KAK gate.
+            target (Target): The target object for the compilation target backend
         """
         super().__init__()
         self.basis_gates = None
+        self.target = target
         if basis_gates is not None:
             self.basis_gates = set(basis_gates)
         self.force_consolidate = force_consolidate
@@ -73,7 +75,9 @@ class ConsolidateBlocks(TransformationPass):
         basis_gate_name = self.decomposer.gate.name
         all_block_gates = set()
         for block in blocks:
-            if len(block) == 1 and (self.basis_gates and block[0].name not in self.basis_gates):
+            if len(block) == 1 and self._check_not_in_basis(
+                block[0].name, block[0].qargs, global_index_map
+            ):
                 all_block_gates.add(block[0])
                 dag.substitute_node(block[0], UnitaryGate(block[0].op.to_matrix()))
             else:
@@ -95,7 +99,7 @@ class ConsolidateBlocks(TransformationPass):
                 for nd in block:
                     if nd.op.name == basis_gate_name:
                         basis_count += 1
-                    if self.basis_gates and nd.op.name not in self.basis_gates:
+                    if self._check_not_in_basis(nd.op.name, nd.qargs, global_index_map):
                         outside_basis = True
                     qc.append(nd.op, [q[block_index_map[i]] for i in nd.qargs])
                 unitary = UnitaryGate(Operator(qc))
@@ -106,7 +110,8 @@ class ConsolidateBlocks(TransformationPass):
                     or unitary.num_qubits > 2
                     or self.decomposer.num_basis_gates(unitary) < basis_count
                     or len(block) > max_2q_depth
-                    or (self.basis_gates is not None and outside_basis)
+                    or ((self.basis_gates is not None) and outside_basis)
+                    or ((self.target is not None) and outside_basis)
                 ):
                     dag.replace_block_with_op(block, unitary, block_index_map, cycle_check=False)
         # If 1q runs are collected before consolidate those too
@@ -114,7 +119,9 @@ class ConsolidateBlocks(TransformationPass):
         for run in runs:
             if run[0] in all_block_gates:
                 continue
-            if len(run) == 1 and self.basis_gates and run[0].name not in self.basis_gates:
+            if len(run) == 1 and not self._check_not_in_basis(
+                run[0].name, run[0].qargs, global_index_map
+            ):
                 dag.substitute_node(run[0], UnitaryGate(run[0].op.to_matrix()))
             else:
                 qubit = run[0].qargs[0]
@@ -129,6 +136,14 @@ class ConsolidateBlocks(TransformationPass):
                 unitary = UnitaryGate(operator)
                 dag.replace_block_with_op(run, unitary, {qubit: 0}, cycle_check=False)
         return dag
+
+    def _check_not_in_basis(self, gate_name, qargs, global_index_map):
+        if self.target is not None:
+            return not self.target.instruction_supported(
+                gate_name, tuple(global_index_map[qubit] for qubit in qargs)
+            )
+        else:
+            return self.basis_gates and gate_name not in self.basis_gates
 
     def _block_qargs_to_indices(self, block_qargs, global_index_map):
         """Map each qubit in block_qargs to its wire position among the block's wires.
