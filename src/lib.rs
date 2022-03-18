@@ -20,6 +20,7 @@ mod dense_layout;
 mod edge_collections;
 mod nlayout;
 mod pauli_exp_val;
+mod sparse_pauli_op;
 mod stochastic_swap;
 
 #[inline]
@@ -40,5 +41,6 @@ fn _accelerate(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(stochastic_swap::stochastic_swap))?;
     m.add_wrapped(wrap_pymodule!(pauli_exp_val::pauli_expval))?;
     m.add_wrapped(wrap_pymodule!(dense_layout::dense_layout))?;
+    m.add_wrapped(wrap_pymodule!(sparse_pauli_op::sparse_pauli_op))?;
     Ok(())
 }

@@ -20,6 +20,7 @@ import logging
 import warnings
 from time import time
 import numpy as np
+import scipy
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import RealAmplitudes
@@ -40,12 +41,28 @@ from qiskit.utils.validation import validate_min
 from qiskit.utils.backend_utils import is_aer_provider
 from qiskit.utils import QuantumInstance, algorithm_globals
 from ..list_or_dict import ListOrDict
-from ..optimizers import Optimizer, SLSQP
+from ..optimizers import Optimizer, SLSQP, OptimizerResult
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 from ..exceptions import AlgorithmError
 
 logger = logging.getLogger(__name__)
+
+
+OBJECTIVE = Callable[[np.ndarray], float]
+GRADIENT = Callable[[np.ndarray], np.ndarray]
+RESULT = Union[scipy.optimize.OptimizeResult, OptimizerResult]
+BOUNDS = List[Tuple[float, float]]
+
+MINIMIZER = Callable[
+    [
+        OBJECTIVE,  # the objective function to minimize (the energy in the case of the VQE)
+        np.ndarray,  # the initial point for the optimization
+        Optional[GRADIENT],  # the gradient of the objective function
+        Optional[BOUNDS],  # parameters bounds for the optimization
+    ],
+    RESULT,  # a result object (either SciPy's or Qiskit's)
+]
 
 
 class VQE(VariationalAlgorithm, MinimumEigensolver):
@@ -81,12 +98,46 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     will default it to :math:`-2\pi`; similarly, if the ansatz returns ``None``
     as the upper bound, the default value will be :math:`2\pi`.
 
+    The optimizer can either be one of Qiskit's optimizers, such as
+    :class:`~qiskit.algorithms.optimizers.SPSA` or a callable with the following signature:
+
+    .. note::
+
+        The callable _must_ have the argument names ``fun, x0, jac, bounds`` as indicated
+        in the following code block.
+
+    .. code-block::python
+
+        from qiskit.algorithms.optimizers import OptimizerResult
+
+        def my_minimizer(fun, x0, jac=None, bounds=None) -> OptimizerResult:
+            # Note that the callable *must* have these argument names!
+            # Args:
+            #     fun (callable): the function to minimize
+            #     x0 (np.ndarray): the initial point for the optimization
+            #     jac (callable, optional): the gradient of the objective function
+            #     bounds (list, optional): a list of tuples specifying the parameter bounds
+
+            result = OptimizerResult()
+            result.x = # optimal parameters
+            result.fun = # optimal function value
+            return result
+
+    The above signature also allows to directly pass any SciPy minimizer, for instance as
+
+    .. code-block::python
+
+        from functools import partial
+        from scipy.optimize import minimize
+
+        optimizer = partial(minimize, method="L-BFGS-B")
+
     """
 
     def __init__(
         self,
         ansatz: Optional[QuantumCircuit] = None,
-        optimizer: Optional[Optimizer] = None,
+        optimizer: Optional[Union[Optimizer, MINIMIZER]] = None,
         initial_point: Optional[np.ndarray] = None,
         gradient: Optional[Union[GradientBase, Callable]] = None,
         expectation: Optional[ExpectationBase] = None,
@@ -99,7 +150,8 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         Args:
             ansatz: A parameterized circuit used as Ansatz for the wave function.
-            optimizer: A classical optimizer.
+            optimizer: A classical optimizer. Can either be a Qiskit optimizer or a callable
+                that takes an array as input and returns a Qiskit or SciPy optimization result.
             initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
@@ -298,7 +350,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         if optimizer is None:
             optimizer = SLSQP()
 
-        optimizer.set_max_evals_grouped(self.max_evals_grouped)
+        if isinstance(optimizer, Optimizer):
+            optimizer.set_max_evals_grouped(self.max_evals_grouped)
+
         self._optimizer = optimizer
 
     @property
@@ -333,7 +387,10 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         else:
             ret += "ansatz has not been set"
         ret += "===============================================================\n"
-        ret += f"{self._optimizer.setting}"
+        if callable(self.optimizer):
+            ret += "Optimizer is custom callable\n"
+        else:
+            ret += f"{self._optimizer.setting}"
         ret += "===============================================================\n"
         return ret
 
@@ -534,26 +591,31 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         start_time = time()
 
-        # keep this until Optimizer.optimize is removed
-        try:
-            opt_result = self.optimizer.minimize(
+        if callable(self.optimizer):
+            opt_result = self.optimizer(  # pylint: disable=not-callable
                 fun=energy_evaluation, x0=initial_point, jac=gradient, bounds=bounds
             )
-        except AttributeError:
-            # self.optimizer is an optimizer with the deprecated interface that uses
-            # ``optimize`` instead of ``minimize```
-            warnings.warn(
-                "Using an optimizer that is run with the ``optimize`` method is "
-                "deprecated as of Qiskit Terra 0.19.0 and will be unsupported no "
-                "sooner than 3 months after the release date. Instead use an optimizer "
-                "providing ``minimize`` (see qiskit.algorithms.optimizers.Optimizer).",
-                DeprecationWarning,
-                stacklevel=2,
-            )
+        else:
+            # keep this until Optimizer.optimize is removed
+            try:
+                opt_result = self.optimizer.minimize(
+                    fun=energy_evaluation, x0=initial_point, jac=gradient, bounds=bounds
+                )
+            except AttributeError:
+                # self.optimizer is an optimizer with the deprecated interface that uses
+                # ``optimize`` instead of ``minimize```
+                warnings.warn(
+                    "Using an optimizer that is run with the ``optimize`` method is "
+                    "deprecated as of Qiskit Terra 0.19.0 and will be unsupported no "
+                    "sooner than 3 months after the release date. Instead use an optimizer "
+                    "providing ``minimize`` (see qiskit.algorithms.optimizers.Optimizer).",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
 
-            opt_result = self.optimizer.optimize(
-                len(initial_point), energy_evaluation, gradient, bounds, initial_point
-            )
+                opt_result = self.optimizer.optimize(
+                    len(initial_point), energy_evaluation, gradient, bounds, initial_point
+                )
 
         eval_time = time() - start_time
 
