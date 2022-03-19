@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -45,6 +45,7 @@ from ..optimizers import Optimizer, SLSQP, OptimizerResult
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 from ..exceptions import AlgorithmError
+from ..aux_ops_evaluator import eval_observables
 
 logger = logging.getLogger(__name__)
 
@@ -480,59 +481,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     def supports_aux_operators(cls) -> bool:
         return True
 
-    def _eval_aux_ops(
-        self,
-        parameters: np.ndarray,
-        aux_operators: ListOrDict[OperatorBase],
-        expectation: ExpectationBase,
-        threshold: float = 1e-12,
-    ) -> ListOrDict[Tuple[complex, complex]]:
-        # Create new CircuitSampler to avoid breaking existing one's caches.
-        sampler = CircuitSampler(self.quantum_instance)
-
-        if isinstance(aux_operators, dict):
-            list_op = ListOp(list(aux_operators.values()))
-        else:
-            list_op = ListOp(aux_operators)
-
-        aux_op_expect = expectation.convert(
-            StateFn(list_op, is_measurement=True).compose(
-                CircuitStateFn(self.ansatz.bind_parameters(parameters))
-            )
-        )
-        aux_op_expect_sampled = sampler.convert(aux_op_expect)
-
-        # compute means
-        values = np.real(aux_op_expect_sampled.eval())
-
-        # compute standard deviations
-        variances = np.real(expectation.compute_variance(aux_op_expect_sampled))
-        if not isinstance(variances, np.ndarray) and variances == 0.0:
-            # when `variances` is a single value equal to 0., our expectation value is exact and we
-            # manually ensure the variances to be a list of the correct length
-            variances = np.zeros(len(aux_operators), dtype=float)
-        std_devs = np.sqrt(variances / self.quantum_instance.run_config.shots)
-
-        # Discard values below threshold
-        aux_op_means = values * (np.abs(values) > threshold)
-        # zip means and standard deviations into tuples
-        aux_op_results = zip(aux_op_means, std_devs)
-
-        # Return None eigenvalues for None operators if aux_operators is a list.
-        # None operators are already dropped in compute_minimum_eigenvalue if aux_operators is a dict.
-        if isinstance(aux_operators, list):
-            aux_operator_eigenvalues = [None] * len(aux_operators)
-            key_value_iterator = enumerate(aux_op_results)
-        else:
-            aux_operator_eigenvalues = {}
-            key_value_iterator = zip(aux_operators.keys(), aux_op_results)
-
-        for key, value in key_value_iterator:
-            if aux_operators[key] is not None:
-                aux_operator_eigenvalues[key] = value
-
-        return aux_operator_eigenvalues
-
     def compute_minimum_eigenvalue(
         self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]] = None
     ) -> MinimumEigensolverResult:
@@ -639,7 +587,11 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._ret = result
 
         if aux_operators is not None:
-            aux_values = self._eval_aux_ops(opt_result.x, aux_operators, expectation=expectation)
+            bound_ansatz = self.ansatz.bind_parameters(result.optimal_point)
+
+            aux_values = eval_observables(
+                self.quantum_instance, bound_ansatz, aux_operators, expectation=expectation
+            )
             result.aux_operator_eigenvalues = aux_values
 
         return result

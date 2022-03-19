@@ -42,6 +42,7 @@ from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
+from qiskit.transpiler.passes import Size
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CommutativeCancellation
@@ -161,7 +162,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if layout_method == "trivial":
         _choose_layout_1 = TrivialLayout(coupling_map)
     elif layout_method == "dense":
-        _choose_layout_1 = DenseLayout(coupling_map, backend_properties)
+        _choose_layout_1 = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
         _choose_layout_1 = NoiseAdaptiveLayout(backend_properties)
     elif layout_method == "sabre":
@@ -233,7 +234,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             ),
             Unroll3qOrMore(),
             Collect2qBlocks(),
-            ConsolidateBlocks(basis_gates=basis_gates),
+            ConsolidateBlocks(basis_gates=basis_gates, target=target),
             UnitarySynthesis(
                 basis_gates,
                 approximation_degree=approximation_degree,
@@ -258,9 +259,10 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     # 8. Optimize iteratively until no more change in depth. Removes useless gates
     # after reset and before measure, commutes gates and optimizes contiguous blocks.
     _depth_check = [Depth(), FixedPoint("depth")]
+    _size_check = [Size(), FixedPoint("size")]
 
     def _opt_control(property_set):
-        return not property_set["depth_fixed_point"]
+        return (not property_set["depth_fixed_point"]) or (not property_set["size_fixed_point"])
 
     _reset = [RemoveResetInZeroState()]
 
@@ -268,7 +270,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _opt = [
         Collect2qBlocks(),
-        ConsolidateBlocks(basis_gates=basis_gates),
+        ConsolidateBlocks(basis_gates=basis_gates, target=target),
         UnitarySynthesis(
             basis_gates,
             approximation_degree=approximation_degree,
@@ -338,12 +340,14 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         # inserted by UnitarySynthesis which is direction aware but only via
         # the coupling map which with a target doesn't give a full picture
         if target is not None:
-            pm3.append(_depth_check + _opt + _unroll + _direction, do_while=_opt_control)
+            pm3.append(
+                _depth_check + _size_check + _opt + _unroll + _direction, do_while=_opt_control
+            )
         else:
-            pm3.append(_depth_check + _opt + _unroll, do_while=_opt_control)
+            pm3.append(_depth_check + _size_check + _opt + _unroll, do_while=_opt_control)
     else:
         pm3.append(_reset)
-        pm3.append(_depth_check + _opt + _unroll, do_while=_opt_control)
+        pm3.append(_depth_check + _size_check + _opt + _unroll, do_while=_opt_control)
     if inst_map and inst_map.has_custom_gate():
         pm3.append(PulseGates(inst_map=inst_map))
     if scheduling_method:
