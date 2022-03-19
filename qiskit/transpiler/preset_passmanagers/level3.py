@@ -120,6 +120,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             method=unitary_synthesis_method,
             plugin_config=unitary_synthesis_plugin_config,
             min_qubits=3,
+            target=target,
         ),
         Unroll3qOrMore(),
     ]
@@ -214,6 +215,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 backend_props=backend_properties,
                 plugin_config=unitary_synthesis_plugin_config,
                 method=unitary_synthesis_method,
+                target=target,
             ),
             UnrollCustomDefinitions(sel, basis_gates),
             BasisTranslator(sel, basis_gates, target),
@@ -228,6 +230,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 method=unitary_synthesis_method,
                 plugin_config=unitary_synthesis_plugin_config,
                 min_qubits=3,
+                target=target,
             ),
             Unroll3qOrMore(),
             Collect2qBlocks(),
@@ -239,6 +242,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 backend_props=backend_properties,
                 method=unitary_synthesis_method,
                 plugin_config=unitary_synthesis_plugin_config,
+                target=target,
             ),
         ]
     else:
@@ -274,6 +278,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             backend_props=backend_properties,
             method=unitary_synthesis_method,
             plugin_config=unitary_synthesis_plugin_config,
+            target=target,
         ),
         Optimize1qGatesDecomposition(basis_gates),
         CommutativeCancellation(),
