@@ -556,6 +556,12 @@ class TestInstructions(QiskitTestCase):
             instructions.add(instruction, [Qubit()], [])
             with self.assertRaisesRegex(CircuitError, r"Cannot pass an index as a condition .*"):
                 instructions.c_if(0, 0)
+        with self.subTest("condition value True/False"):
+            instruction = HGate()
+            instructions = InstructionSet()
+            instructions.add(instruction, [Qubit()], [])
+            with self.assertRaisesRegex(CircuitError, r"condition value should be 0/1 or True/False"):
+                instructions.c_if(Clbit(), 2)
 
     def test_instructionset_c_if_deprecated_resolution(self):
         r"""Test that the deprecated path of passing an iterable of :obj:`.ClassicalRegister`\ s to
