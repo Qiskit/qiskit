@@ -560,15 +560,18 @@ class TestInstructions(QiskitTestCase):
             instruction = HGate()
             instructions = InstructionSet()
             instructions.add(instruction, [Qubit()], [])
-            with self.assertRaisesRegex(CircuitError, r"condition value should be 0/1 or True/False"):
+            with self.assertRaisesRegex(
+                CircuitError, r"condition value should be 0/1 or True/False"
+            ):
                 instructions.c_if(Clbit(), 2)
             with self.subTest("less than 2 ^ number of bits"):
                 instruction = HGate()
                 instructions = InstructionSet()
                 instructions.add(instruction, [Qubit()], [])
                 register = ClassicalRegister(2)
-                with self.assertRaisesRegex(CircuitError,
-                                            r"condition value should be less than 2 \^ number of bits"):
+                with self.assertRaisesRegex(
+                    CircuitError, r"condition value should be less than 2 \^ number of bits"
+                ):
                     instructions.c_if(register, 10)
 
     def test_instructionset_c_if_deprecated_resolution(self):
