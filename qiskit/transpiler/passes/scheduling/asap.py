@@ -11,8 +11,7 @@
 # that they have been altered from the originals.
 
 """ASAP Scheduling."""
-from qiskit.circuit import Delay, Qubit, Measure
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.circuit import Measure
 from qiskit.transpiler.exceptions import TranspilerError
 
 from .base_scheduler import BaseScheduler
@@ -41,14 +40,7 @@ class ASAPSchedule(BaseScheduler):
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("ASAP schedule runs on physical circuits only")
 
-        time_unit = self.property_set["time_unit"]
-
-        new_dag = DAGCircuit()
-        for qreg in dag.qregs.values():
-            new_dag.add_qreg(qreg)
-        for creg in dag.cregs.values():
-            new_dag.add_creg(creg)
-
+        node_start_time = dict()
         idle_after = {q: 0 for q in dag.qubits + dag.clbits}
         bit_indices = {q: index for index, q in enumerate(dag.qubits)}
         for node in dag.topological_op_nodes():
@@ -128,27 +120,9 @@ class ASAPSchedule(BaseScheduler):
                     t0 = max(idle_after[bit] for bit in node.qargs + node.cargs)
                     t1 = t0 + op_duration
 
-            # Add delay to qubit wire
             for bit in node.qargs:
-                delta = t0 - idle_after[bit]
-                if delta > 0 and isinstance(bit, Qubit):
-                    new_dag.apply_operation_back(Delay(delta, time_unit), [bit], [])
                 idle_after[bit] = t1
 
-            new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
+            node_start_time[node] = t0
 
-        circuit_duration = max(idle_after.values())
-        for bit, after in idle_after.items():
-            delta = circuit_duration - after
-            if not (delta > 0 and isinstance(bit, Qubit)):
-                continue
-            new_dag.apply_operation_back(Delay(delta, time_unit), [bit], [])
-
-        new_dag.name = dag.name
-        new_dag.metadata = dag.metadata
-        new_dag.calibrations = dag.calibrations
-
-        # set circuit duration and unit to indicate it is scheduled
-        new_dag.duration = circuit_duration
-        new_dag.unit = time_unit
-        return new_dag
+        self.property_set["node_start_time"] = node_start_time

@@ -42,6 +42,7 @@ from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
+from qiskit.transpiler.passes import Size
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CommutativeCancellation
@@ -58,6 +59,7 @@ from qiskit.transpiler.passes import ASAPSchedule
 from qiskit.transpiler.passes import AlignMeasures
 from qiskit.transpiler.passes import ValidatePulseGates
 from qiskit.transpiler.passes import PulseGates
+from qiskit.transpiler.passes import PadDelay
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import ContainsInstruction
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
@@ -118,6 +120,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             method=unitary_synthesis_method,
             plugin_config=unitary_synthesis_plugin_config,
             min_qubits=3,
+            target=target,
         ),
         Unroll3qOrMore(),
     ]
@@ -159,7 +162,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if layout_method == "trivial":
         _choose_layout_1 = TrivialLayout(coupling_map)
     elif layout_method == "dense":
-        _choose_layout_1 = DenseLayout(coupling_map, backend_properties)
+        _choose_layout_1 = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
         _choose_layout_1 = NoiseAdaptiveLayout(backend_properties)
     elif layout_method == "sabre":
@@ -212,6 +215,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 backend_props=backend_properties,
                 plugin_config=unitary_synthesis_plugin_config,
                 method=unitary_synthesis_method,
+                target=target,
             ),
             UnrollCustomDefinitions(sel, basis_gates),
             BasisTranslator(sel, basis_gates, target),
@@ -226,10 +230,11 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 method=unitary_synthesis_method,
                 plugin_config=unitary_synthesis_plugin_config,
                 min_qubits=3,
+                target=target,
             ),
             Unroll3qOrMore(),
             Collect2qBlocks(),
-            ConsolidateBlocks(basis_gates=basis_gates),
+            ConsolidateBlocks(basis_gates=basis_gates, target=target),
             UnitarySynthesis(
                 basis_gates,
                 approximation_degree=approximation_degree,
@@ -237,6 +242,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 backend_props=backend_properties,
                 method=unitary_synthesis_method,
                 plugin_config=unitary_synthesis_plugin_config,
+                target=target,
             ),
         ]
     else:
@@ -253,9 +259,10 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     # 8. Optimize iteratively until no more change in depth. Removes useless gates
     # after reset and before measure, commutes gates and optimizes contiguous blocks.
     _depth_check = [Depth(), FixedPoint("depth")]
+    _size_check = [Size(), FixedPoint("size")]
 
     def _opt_control(property_set):
-        return not property_set["depth_fixed_point"]
+        return (not property_set["depth_fixed_point"]) or (not property_set["size_fixed_point"])
 
     _reset = [RemoveResetInZeroState()]
 
@@ -263,7 +270,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _opt = [
         Collect2qBlocks(),
-        ConsolidateBlocks(basis_gates=basis_gates),
+        ConsolidateBlocks(basis_gates=basis_gates, target=target),
         UnitarySynthesis(
             basis_gates,
             approximation_degree=approximation_degree,
@@ -271,6 +278,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             backend_props=backend_properties,
             method=unitary_synthesis_method,
             plugin_config=unitary_synthesis_plugin_config,
+            target=target,
         ),
         Optimize1qGatesDecomposition(basis_gates),
         CommutativeCancellation(),
@@ -288,9 +296,9 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if scheduling_method:
         _scheduling += _time_unit_conversion
         if scheduling_method in {"alap", "as_late_as_possible"}:
-            _scheduling += [ALAPSchedule(instruction_durations)]
+            _scheduling += [ALAPSchedule(instruction_durations), PadDelay()]
         elif scheduling_method in {"asap", "as_soon_as_possible"}:
-            _scheduling += [ASAPSchedule(instruction_durations)]
+            _scheduling += [ASAPSchedule(instruction_durations), PadDelay()]
         else:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
 
@@ -332,12 +340,14 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         # inserted by UnitarySynthesis which is direction aware but only via
         # the coupling map which with a target doesn't give a full picture
         if target is not None:
-            pm3.append(_depth_check + _opt + _unroll + _direction, do_while=_opt_control)
+            pm3.append(
+                _depth_check + _size_check + _opt + _unroll + _direction, do_while=_opt_control
+            )
         else:
-            pm3.append(_depth_check + _opt + _unroll, do_while=_opt_control)
+            pm3.append(_depth_check + _size_check + _opt + _unroll, do_while=_opt_control)
     else:
         pm3.append(_reset)
-        pm3.append(_depth_check + _opt + _unroll, do_while=_opt_control)
+        pm3.append(_depth_check + _size_check + _opt + _unroll, do_while=_opt_control)
     if inst_map and inst_map.has_custom_gate():
         pm3.append(PulseGates(inst_map=inst_map))
     if scheduling_method:

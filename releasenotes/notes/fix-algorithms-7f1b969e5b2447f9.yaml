@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    :class:`qiskit.algorithms.amplitude_estimators.AmplitudeEstimator` now inherits from ABC.
+    :class:`qiskit.algorithms.amplitude_amplifiers.AmplitudeAmplifier` is now included in
+    ``qiskit/algorithms/__init__.py`` file.
