@@ -216,8 +216,9 @@ class LinCombFull(CircuitQFI):
             qfi_operators.append(ListOp(qfi_ops))
 
         # Return estimate of the full QFI -- A QFI is by definition positive semi-definite.
-        return ListOp(qfi_operators,
-                      combo_fn=lambda x: check_and_realpart_extraction(triu_to_dense(x)))
+        return ListOp(
+            qfi_operators, combo_fn=lambda x: check_and_realpart_extraction(triu_to_dense(x))
+        )
 
 
 def check_and_realpart_extraction(x: Union[List[float], np.ndarray]) -> np.ndarray:

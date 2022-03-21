@@ -615,11 +615,9 @@ class LinComb(CircuitGradient):
 
         return out
 
-    def _aux_meas_basis_trafo(self,
-                              aux_meas_op: OperatorBase,
-                              state: StateFn,
-                              state_op: StateFn,
-                              combo_fn: Callable) -> ListOp:
+    def _aux_meas_basis_trafo(
+        self, aux_meas_op: OperatorBase, state: StateFn, state_op: StateFn, combo_fn: Callable
+    ) -> ListOp:
         """
         This function applies the necessary basis transformation to measure the quantum state in
         a different basis -- given by the auxiliary measurement operator `aux_meas_op`.
@@ -638,41 +636,30 @@ class LinComb(CircuitGradient):
         if aux_meas_op == Z - 1j * Y:
             state_z = ListOp(
                 [state],
-                combo_fn=partial(
-                    combo_fn, state_op=state_op
-                ),
+                combo_fn=partial(combo_fn, state_op=state_op),
             )
-            pbc = PauliBasisChange(
-                replacement_fn=PauliBasisChange.measurement_replacement_fn
-            )
+            pbc = PauliBasisChange(replacement_fn=PauliBasisChange.measurement_replacement_fn)
             pbc = pbc.convert(-Y ^ (I ^ (state.num_qubits - 1)))
             state_y = pbc[-1] @ state
             state_y = ListOp(
                 [state_y],
-                combo_fn=partial(combo_fn, state_op=state_op
-                ),
+                combo_fn=partial(combo_fn, state_op=state_op),
             )
             return state_z - 1j * state_y
 
         elif aux_meas_op == -Y:
-            pbc = PauliBasisChange(
-                replacement_fn=PauliBasisChange.measurement_replacement_fn
-            )
-            pbc = pbc.convert(
-                aux_meas_op ^ (I ^ (state.num_qubits - 1))
-            )
+            pbc = PauliBasisChange(replacement_fn=PauliBasisChange.measurement_replacement_fn)
+            pbc = pbc.convert(aux_meas_op ^ (I ^ (state.num_qubits - 1)))
             print(state)
             state = pbc[-1] @ state
             return -1 * ListOp(
                 [state],
-                combo_fn=partial(combo_fn, state_op=state_op
-                ),
+                combo_fn=partial(combo_fn, state_op=state_op),
             )
         elif aux_meas_op == Z:
             return ListOp(
                 [state],
-                combo_fn=partial(combo_fn, state_op=state_op
-                ),
+                combo_fn=partial(combo_fn, state_op=state_op),
             )
         else:
             raise ValueError(
@@ -762,8 +749,9 @@ class LinComb(CircuitGradient):
                             state = StateFn(meas_op, is_measurement=True) @ state
 
                         else:
-                            state = self._aux_meas_basis_trafo(aux_meas_op, state, state_op,
-                                                               self._grad_combo_fn)
+                            state = self._aux_meas_basis_trafo(
+                                aux_meas_op, state, state_op, self._grad_combo_fn
+                            )
 
                         if param_expression != param:  # parameter is not identity, apply chain rule
                             param_grad = param_expression.gradient(param)
@@ -861,9 +849,9 @@ class LinComb(CircuitGradient):
                                 if meas_op is not None:
                                     state = StateFn(meas_op, is_measurement=True) @ state
                                 else:
-                                    state = self._aux_meas_basis_trafo(aux_meas_op, state,
-                                                                       state_op,
-                                                                       self._hess_combo_fn)
+                                    state = self._aux_meas_basis_trafo(
+                                        aux_meas_op, state, state_op, self._hess_combo_fn
+                                    )
 
                                 # Chain Rule Parameter Expression
                                 param_grad = 1
