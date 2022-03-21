@@ -148,8 +148,8 @@ class StatePreparation(Gate):
             if bit == "1":
                 initialize_circuit.append(XGate(), [q[qubit]])
 
-    # note: X is it's own inverse, so even if self._inverse is True,
-    # we don't need to invert anything
+        # note: X is it's own inverse, so even if self._inverse is True,
+        # we don't need to invert anything
         return initialize_circuit
 
     def _define_synthesis(self):

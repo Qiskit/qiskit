@@ -42,14 +42,13 @@ Initialization
    :toctree: ../stubs/
 
    Initialize
-   StatePreparation
 """
 
 # import all standard gates
 from qiskit.circuit.library.standard_gates import *
 from qiskit.circuit.barrier import Barrier
 
-from .quantum_initializer import Initialize, SingleQubitUnitary, StatePreparation
+from .quantum_initializer import Initialize, SingleQubitUnitary
 from .unitary import UnitaryGate
 from .hamiltonian_gate import HamiltonianGate
 from .simulator import Snapshot

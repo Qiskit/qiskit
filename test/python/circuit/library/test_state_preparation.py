@@ -23,7 +23,7 @@ from qiskit import QuantumCircuit
 from qiskit.quantum_info import Statevector, Operator
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
-from qiskit.extensions.quantum_initializer import StatePreparation
+from qiskit.circuit.library import StatePreparation
 
 
 @ddt
