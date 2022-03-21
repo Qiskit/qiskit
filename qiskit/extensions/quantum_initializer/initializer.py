@@ -59,7 +59,7 @@ class Initialize(Instruction, Operation):
             number of qubits in the `initialize` call. Example: `initialize` covers 5 qubits
             and params is 3. This allows qubits 0 and 1 to be initialized to `|1>` and the
             remaining 3 qubits to be initialized to `|0>`.
-        normalize (bool): whether to normalize an input array to a unit vector.
+        normalize (bool): Whether to normalize an input array to a unit vector.
         """
         # pylint: disable=cyclic-import
         from qiskit.quantum_info import Statevector
@@ -90,9 +90,9 @@ class Initialize(Instruction, Operation):
             if num_qubits == 0 or not num_qubits.is_integer():
                 raise QiskitError("Desired statevector length not a positive power of 2.")
 
-            if normalize is True:
-                params = self._normalize(params)
-            elif normalize is False:
+            if normalize:
+                params = np.array(params, dtype=np.complex128) / np.linalg.norm(params)
+            else:
                 # Check if probabilities (amplitudes squared) sum to 1
                 if not math.isclose(sum(np.absolute(params) ** 2), 1.0, abs_tol=_EPS):
                     raise QiskitError("Sum of amplitudes-squared does not equal one.")
@@ -178,16 +178,6 @@ class Initialize(Instruction, Operation):
         initialize_circuit.append(initialize_instr, q[:])
 
         return initialize_circuit
-
-    def _normalize(self, state_array):
-        """Normalizes input list or ndarray of real or complex nums.
-
-        Returns:
-            ndarray
-        """
-        out = np.array(state_array, dtype=np.complex128)
-        out /= np.linalg.norm(state_array)
-        return out
 
     def gates_to_uncompute(self):
         """Call to create a circuit with gates that take the desired vector to zero.
