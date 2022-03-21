@@ -1,7 +1,14 @@
 ---
+upgrade:
+  - |
+    The behaviour of :func:`marginal_counts` method on the `memory` field of experiment data has changed.
+    Previously, the `memory` field was not marginalized. In this release the `memory` field is 
+    marginalized by default. The old behaviour can be restored by setting `marginalize_memory=None`
+    as an argument to :func:`marginal_counts`.
+
 features:
   - |
-    Update the `marginal_counts` method to marginalize the memory field of the data.
+    Update the :func:`marginal_counts` method to marginalize the memory field of the data.
     For example, if `result`  is a qiskit `Result` object obtained from a 4-qubit measurement we can
     marginalize onto the first qubit with as::
 
