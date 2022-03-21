@@ -10,17 +10,21 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=missing-function-docstring
+
 """
 Tests for the default UnitarySynthesis transpiler pass.
 """
 
 import unittest
 
+from test import combine
+
 from ddt import ddt, data
 
 from qiskit import transpile
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeVigo
+from qiskit.test.mock import FakeVigo, FakeBackend5QV2, FakeBackendV2, FakeMumbaiV2
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import QuantumVolume
 from qiskit.converters import circuit_to_dag
@@ -570,6 +574,35 @@ class TestUnitarySynthesis(QiskitTestCase):
             )
         )
 
+    @combine(
+        opt_level=[0, 1, 2, 3],
+        bidirectional=[True, False],
+        dsc=(
+            "test natural_direction works with transpile using opt_level {opt_level} on"
+            "target with multiple 2q gates with bidirectional={bidirectional}"
+        ),
+        name="opt_level_{opt_level}_bidirectional_{bidirectional}",
+    )
+    def test_coupling_map_transpile_with_backendv2(self, opt_level, bidirectional):
+        backend = FakeBackend5QV2(bidirectional)
+        qr = QuantumRegister(2)
+        circ = QuantumCircuit(qr)
+        circ.append(random_unitary(4, seed=1), [0, 1])
+        circ_01 = transpile(
+            circ,
+            backend=backend,
+            optimization_level=opt_level,
+        )
+        circ_01_index = {qubit: index for index, qubit in enumerate(circ_01.qubits)}
+        self.assertTrue(
+            all(
+                (
+                    (0, 1) == (circ_01_index[qlist[0]], circ_01_index[qlist[1]])
+                    for _, qlist, _ in circ_01.get_instructions("cx")
+                )
+            )
+        )
+
     @data(1, 2, 3)
     def test_coupling_map_unequal_durations(self, opt):
         """Test direction with transpile/execute with backend durations."""
@@ -590,6 +623,96 @@ class TestUnitarySynthesis(QiskitTestCase):
                 (
                     (0, 1) == (tqc_index[qlist[0]], tqc_index[qlist[1]])
                     for _, qlist, _ in tqc.get_instructions("cx")
+                )
+            )
+        )
+
+    @combine(
+        opt_level=[0, 1, 2, 3],
+        bidirectional=[True, False],
+        dsc=(
+            "Test direction with transpile using opt_level {opt_level} on"
+            "target with multiple 2q gates with bidirectional={bidirectional}"
+        ),
+        name="opt_level_{opt_level}_bidirectional_{bidirectional}",
+    )
+    def test_coupling_unequal_duration_with_backendv2(self, opt_level, bidirectional):
+        qr = QuantumRegister(2)
+        circ = QuantumCircuit(qr)
+        circ.append(random_unitary(4, seed=1), [1, 0])
+        backend = FakeBackend5QV2(bidirectional)
+        tqc = transpile(
+            circ,
+            backend=backend,
+            optimization_level=opt_level,
+            translation_method="synthesis",
+            layout_method="trivial",
+        )
+        tqc_index = {qubit: index for index, qubit in enumerate(tqc.qubits)}
+        if bidirectional:
+            self.assertTrue(
+                all(
+                    (
+                        (1, 0) == (tqc_index[qlist[0]], tqc_index[qlist[1]])
+                        for _, qlist, _ in tqc.get_instructions("cx")
+                    )
+                )
+            )
+
+        else:
+            self.assertTrue(
+                all(
+                    (
+                        (0, 1) == (tqc_index[qlist[0]], tqc_index[qlist[1]])
+                        for _, qlist, _ in tqc.get_instructions("cx")
+                    )
+                )
+            )
+
+    @combine(
+        opt_level=[0, 1, 2, 3],
+        dsc=(
+            "Test direction with transpile using opt_level {opt_level} on"
+            "target with multiple 2q gates"
+        ),
+        name="opt_level_{opt_level}",
+    )
+    def test_non_overlapping_kak_gates_with_backendv2(self, opt_level):
+        qr = QuantumRegister(2)
+        circ = QuantumCircuit(qr)
+        circ.append(random_unitary(4, seed=1), [1, 0])
+        backend = FakeBackendV2()
+        tqc = transpile(
+            circ,
+            backend=backend,
+            optimization_level=opt_level,
+            translation_method="synthesis",
+            layout_method="trivial",
+        )
+        tqc_index = {qubit: index for index, qubit in enumerate(tqc.qubits)}
+        self.assertTrue(
+            all(
+                (
+                    (1, 0) == (tqc_index[qlist[0]], tqc_index[qlist[1]])
+                    for _, qlist, _ in tqc.get_instructions("ecr")
+                )
+            )
+        )
+
+    def test_fractional_cx_with_backendv2(self):
+        """Test fractional CX gets used if present in target."""
+        qr = QuantumRegister(2)
+        circ = QuantumCircuit(qr)
+        circ.append(random_unitary(4, seed=1), [0, 1])
+        backend = FakeMumbaiV2()
+        synth_pass = UnitarySynthesis(target=backend.target)
+        tqc = synth_pass(circ)
+        tqc_index = {qubit: index for index, qubit in enumerate(tqc.qubits)}
+        self.assertTrue(
+            all(
+                (
+                    (0, 1) == (tqc_index[qlist[0]], tqc_index[qlist[1]])
+                    for _, qlist, _ in tqc.get_instructions("rzx45")
                 )
             )
         )
