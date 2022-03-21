@@ -28,7 +28,7 @@ from ..circuit_gradients.lin_comb import LinComb
 from .circuit_qfi import CircuitQFI
 
 # error tolerance variable
-e_tol = 1e-8
+ETOL = 1e-8
 
 
 class LinCombFull(CircuitQFI):
@@ -231,7 +231,7 @@ def check_and_realpart_extraction(x: Union[List[float], np.ndarray]) -> np.ndarr
         ValueError: If ``x`` has non-negligible imaginary components.
 
     """
-    if np.any([[np.abs(np.imag(x_item)) > e_tol for x_item in x_row] for x_row in x]):
+    if np.any([[np.abs(np.imag(x_item)) > ETOL for x_item in x_row] for x_row in x]):
         raise ValueError(
             "The imaginary parts are non-negligible. Please "
             "increase the number of backend shots."

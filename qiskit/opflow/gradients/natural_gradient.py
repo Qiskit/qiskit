@@ -31,9 +31,9 @@ from .gradient_base import GradientBase
 from .qfi import QFI
 
 # Error tolerance variable
-e_tol = 1e-8
+ETOL = 1e-8
 # Cut-off ratio for small singular values for least square solver
-rcond = 1e-2
+RCOND = 1e-2
 
 
 class NaturalGradient(GradientBase):
@@ -150,7 +150,7 @@ class NaturalGradient(GradientBase):
         """
         gradient = x[0]
         metric = x[1]
-        if any(np.abs(np.imag(c_item)) > e_tol for c_item in gradient):
+        if any(np.abs(np.imag(c_item)) > ETOL for c_item in gradient):
             raise ValueError("The imaginary part of the gradient are non-negligible.")
         gradient = np.real(gradient)
 
@@ -164,7 +164,7 @@ class NaturalGradient(GradientBase):
             # Check if numerical instabilities lead to a metric which is not positive semidefinite
             w, v = np.linalg.eigh(metric)
 
-            if not all(ew >= (-1)*e_tol for ew in w):
+            if not all(ew >= (-1) * ETOL for ew in w):
                 raise ValueError(
                     "The underlying metric has ein Eigenvalue < -1e-8. "
                     "Please use a regularized least-square solver for this problem or"
@@ -173,10 +173,10 @@ class NaturalGradient(GradientBase):
             if not all(ew >= 0 for ew in w):
                 # If not all eigenvalues are non-negative, set them to a small positive
                 # value
-                w = [max(e_tol, ew) for ew in w]
+                w = [max(ETOL, ew) for ew in w]
                 # Recompose the adapted eigenvalues with the eigenvectors to get a new metric
                 metric = np.real(v @ np.diag(w) @ np.linalg.inv(v))
-            nat_grad = np.linalg.lstsq(metric, gradient, rcond=rcond)[0]
+            nat_grad = np.linalg.lstsq(metric, gradient, rcond=RCOND)[0]
         return nat_grad
 
     @property
@@ -251,7 +251,7 @@ class NaturalGradient(GradientBase):
                     eps.append(
                         np.log(np.linalg.norm(np.matmul(metric, np.transpose(x)) - gradient) ** 2)
                     )
-                eta.append(np.log(max(np.linalg.norm(x) ** 2, e_tol)))
+                eta.append(np.log(max(np.linalg.norm(x) ** 2, ETOL)))
             p_temp = 1
             c_k = 0
             for i in range(3):
