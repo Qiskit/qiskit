@@ -94,11 +94,11 @@ class XXPlusYYGate(Gate):
             beta: The phase angle.
             label: The label of the gate.
         """
-        super().__init__("xxplusyy", 2, [theta, beta], label=label)
+        super().__init__("xx_plus_yy", 2, [theta, beta], label=label)
 
     def _define(self):
         """
-        gate xxplusyy(theta, beta) a, b {
+        gate xx_plus_yy(theta, beta) a, b {
             rz(beta) b;
             rz(-pi/2) a;
             sx a;
