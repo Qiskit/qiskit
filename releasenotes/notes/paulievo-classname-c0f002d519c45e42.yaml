@@ -1,0 +1,11 @@
+---
+upgrade:
+  - |
+    Update the name of :class:`~qiskit.circuit.library.PauliEvolutionGate` to 
+    ``"PauliEvolution"``. This change is consistent with other gates in Qiskit
+    and e.g. allows unrolling to Pauli evolution gates.
+
+    Previously, the name contained the operators which are evolved, which is
+    now available via :meth:`~qiskit.circuit.library.PauliEvolutionGate.label`. 
+    If a circuit with a Pauli evolution is drawn, the gate thus still shows the 
+    information which gates are being evolved.

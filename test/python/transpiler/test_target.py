@@ -395,6 +395,24 @@ class TestTarget(QiskitTestCase):
         for gate in ideal_sim_expected:
             self.assertIn(gate, self.ideal_sim_target.operations_for_qargs(None))
 
+    def test_get_operation_names_for_qargs(self):
+        with self.assertRaises(KeyError):
+            self.empty_target.operation_names_for_qargs((0,))
+        expected = {"rz", "id", "sx", "x", "measure"}
+        res = self.ibm_target.operation_names_for_qargs((0,))
+        for gate in expected:
+            self.assertIn(gate, res)
+        expected = {"ecr"}
+        res = self.fake_backend_target.operation_names_for_qargs((1, 0))
+        for gate in expected:
+            self.assertIn(gate, res)
+        expected = {"cx"}
+        res = self.fake_backend_target.operation_names_for_qargs((0, 1))
+        self.assertEqual(expected, res)
+        ideal_sim_expected = ["u", "rx", "ry", "rz", "cx", "ecr", "ccx", "measure"]
+        for gate in ideal_sim_expected:
+            self.assertIn(gate, self.ideal_sim_target.operation_names_for_qargs(None))
+
     def test_coupling_map(self):
         self.assertEqual(
             CouplingMap().get_edges(), self.empty_target.build_coupling_map().get_edges()
@@ -903,6 +921,15 @@ Instructions:
         self.assertEqual(
             self.fake_backend_target.get_non_global_operation_names(True), ["cx", "ecr"]
         )
+
+    def test_instruction_supported(self):
+        self.assertTrue(self.aqt_target.instruction_supported("r", (0,)))
+        self.assertFalse(self.aqt_target.instruction_supported("cx", (0, 1)))
+        self.assertTrue(self.ideal_sim_target.instruction_supported("cx", (0, 1)))
+        self.assertFalse(self.ideal_sim_target.instruction_supported("cx", (0, 524)))
+        self.assertTrue(self.fake_backend_target.instruction_supported("cx", (0, 1)))
+        self.assertFalse(self.fake_backend_target.instruction_supported("cx", (1, 0)))
+        self.assertFalse(self.ideal_sim_target.instruction_supported("cx", (0, 1, 2)))
 
 
 class TestPulseTarget(QiskitTestCase):
