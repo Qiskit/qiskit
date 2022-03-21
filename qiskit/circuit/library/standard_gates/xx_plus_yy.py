@@ -105,8 +105,8 @@ class XXPlusYYGate(Gate):
             rz(pi/2) a;
             s b;
             cx a, b;
-            ry(theta) a;
-            ry(theta) b;
+            ry(theta/2) a;
+            ry(theta/2) b;
             cx a, b;
             sdg b;
             rz(-pi/2) a;
