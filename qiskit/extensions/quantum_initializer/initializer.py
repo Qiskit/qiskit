@@ -44,22 +44,25 @@ class Initialize(Instruction, Operation):
     def __init__(self, params, num_qubits=None, normalize=False):
         """Create new initialize composite.
 
-        params (str, list, int or Statevector):
-          * Statevector: Statevector to initialize to.
-          * list: vector of complex amplitudes to initialize to.
-          * string: labels of basis states of the Pauli eigenstates Z, X, Y. See
-               :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
-               Notice the order of the labels is reversed with respect to the qubit index to
-               be applied to. Example label '01' initializes the qubit zero to `|1>` and the
-               qubit one to `|0>`.
-          * int: an integer that is used as a bitmap indicating which qubits to initialize
-               to `|1>`. Example: setting params to 5 would initialize qubit 0 and qubit 2
-               to `|1>` and qubit 1 to `|0>`.
-        num_qubits (int): This parameter is only used if params is an int. Indicates the total
-            number of qubits in the `initialize` call. Example: `initialize` covers 5 qubits
-            and params is 3. This allows qubits 0 and 1 to be initialized to `|1>` and the
-            remaining 3 qubits to be initialized to `|0>`.
-        normalize (bool): Whether to normalize an input array to a unit vector.
+        Args:
+            params (str, list, int or Statevector):
+                * Statevector: Statevector to initialize to.
+                * list: vector of complex amplitudes to initialize to.
+                * string: labels of basis states of the Pauli eigenstates Z, X, Y. See
+                    :meth:`~qiskit.quantum_info.states.statevector.Statevector.from_label`.
+                    Notice the order of the labels is reversed with respect to the qubit index to
+                    be applied to. Example label '01' initializes the qubit zero to `|1>` and the
+                    qubit one to `|0>`.
+                * int: an integer that is used as a bitmap indicating which qubits to initialize
+                    to `|1>`. Example: setting params to 5 would initialize qubit 0 and qubit 2
+                    to `|1>` and qubit 1 to `|0>`.
+
+            num_qubits (int): This parameter is only used if params is an int. Indicates the total
+                number of qubits in the `initialize` call. Example: `initialize` covers 5 qubits
+                and params is 3. This allows qubits 0 and 1 to be initialized to `|1>` and the
+                remaining 3 qubits to be initialized to `|0>`.
+
+            normalize (bool): Whether to normalize an input array to a unit vector.
         """
         # pylint: disable=cyclic-import
         from qiskit.quantum_info import Statevector
@@ -388,10 +391,13 @@ def initialize(self, params, qubits=None, normalize=False):
             * int: an integer that is used as a bitmap indicating which qubits to initialize
                to `|1>`. Example: setting params to 5 would initialize qubit 0 and qubit 2
                to `|1>` and qubit 1 to `|0>`.
+
         qubits (QuantumRegister or int):
             * QuantumRegister: A list of qubits to be initialized [Default: None].
             * int: Index of qubit to initialized [Default: None].
+
         normalize (bool): whether to normalize an input array to a unit vector.
+
     Returns:
         qiskit.circuit.Instruction: a handle to the instruction that was just initialized
 
