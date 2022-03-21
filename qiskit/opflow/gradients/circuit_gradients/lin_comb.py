@@ -615,8 +615,11 @@ class LinComb(CircuitGradient):
 
         return out
 
-    def _aux_meas_basis_trafo(
-        self, aux_meas_op: OperatorBase, state: StateFn, state_op: StateFn, combo_fn: Callable
+    def _aux_meas_basis_trafo(self,
+                              aux_meas_op: OperatorBase,
+                              state: StateFn,
+                              state_op: StateFn,
+                              combo_fn: Callable
     ) -> ListOp:
         """
         This function applies the necessary basis transformation to measure the quantum state in
@@ -631,6 +634,9 @@ class LinComb(CircuitGradient):
 
         Returns:
             Operator representing the gradient or Hessian.
+
+        Raises:
+            ValueError: If `aux_meas_op` is neither Z nor -Y nor Z-iY.
 
         """
         if aux_meas_op == Z - 1j * Y:
