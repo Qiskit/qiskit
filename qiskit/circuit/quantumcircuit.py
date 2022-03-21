@@ -111,7 +111,44 @@ BitType = TypeVar("BitType", Qubit, Clbit)
 VALID_QASM2_IDENTIFIER = re.compile("[a-z][a-zA-Z_0-9]*")
 
 
-class QuantumCircuit:
+import inspect
+class Locatable:
+    def __new__(cls, *_args, **_kwargs):
+        new_instance = super(Locatable, cls).__new__(cls)
+        stack_trace = inspect.stack()
+        created_at = '%s:%d' % (
+            stack_trace[1][1], stack_trace[1][2])
+        new_instance.created_at = created_at 
+        return new_instance
+
+    def get_file_of_object_creation(self):
+        return self.created_at
+
+
+    @staticmethod
+    def _initialization_location():
+        # Background: https://stackoverflow.com/a/42653524/
+        frame = inspect.currentframe()
+        while frame:
+            if frame.f_code.co_name == '<module>':
+                return {'module': frame.f_globals['__name__'], 'line': frame.f_lineno}
+            frame = frame.f_back
+
+    @property
+    def name2(self):
+        module_name = self.__module__
+        class_name = self.__class__.__qualname__  # pylint: disable=no-member
+        print(self.trace_call())
+        return module_name + '.' + class_name
+
+    def get_caller(self):
+        return inspect.stack()[2]   # 1 is get_caller's caller
+
+    def trace_call(self):
+        _, filename, line, function, _, _ = self.get_caller()
+        print("Called by %r at %r:%d" % (function, filename, line))
+
+class QuantumCircuit(Locatable):
     """Create a new circuit.
 
     A circuit is a list of instructions bound to some registers.
@@ -285,6 +322,16 @@ class QuantumCircuit:
         if not isinstance(metadata, dict) and metadata is not None:
             raise TypeError("Only a dictionary or None is accepted for circuit metadata")
         self._metadata = metadata
+
+    # def __new__(cls, *args, **kwargs):
+    #     """Temporary debugging to locate line of object creation"""
+    #     import inspect
+    #     new_instance = super(QuantumCircuit, cls).__new__(cls, *args, **kwargs)
+    #     stack_trace = inspect.stack()
+    #     created_at = '%s:%d' % (
+    #         stack_trace[1][1], stack_trace[1][2])
+    #     new_instance.created_at = created_at 
+    #     return new_instance
 
     @property
     def data(self) -> QuantumCircuitData:
@@ -1964,6 +2011,7 @@ class QuantumCircuit:
         Returns:
             OrderedDict: a breakdown of how many operations of each kind, sorted by amount.
         """
+        print("COUNT_OPS")
         count_ops: Dict[Instruction, int] = {}
         for instr, _, _ in self._data:
             count_ops[instr.name] = count_ops.get(instr.name, 0) + 1
@@ -2560,6 +2608,11 @@ class QuantumCircuit:
                 assignee = instr.params[param_index]
                 # Normal ParameterExpression.
                 if isinstance(assignee, ParameterExpression):
+                    print(instr.name, type(parameter), type(value))
+                    if isinstance(value, QuantumCircuit):
+                        if parameter in value.parameters:
+                            value.assign_parameters(parameter, value)
+                        continue
                     new_param = assignee.assign(parameter, value)
                     # if fully bound, validate
                     if len(new_param.parameters) == 0:

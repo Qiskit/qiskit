@@ -22,7 +22,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from qiskit.circuit import Gate, ParameterVector, QuantumRegister
+from qiskit.circuit import Gate, ParameterVector, QuantumRegister, ControlFlowOp
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -202,6 +202,7 @@ class BasisTranslator(TransformationPass):
 
         # Compose found path into a set of instruction substitution rules.
 
+        from qiskit.converters import dag_to_circuit
         compose_start_time = time.time()
         instr_map = _compose_transforms(basis_transforms, source_basis, dag)
         extra_instr_map = {
@@ -218,11 +219,17 @@ class BasisTranslator(TransformationPass):
 
         replace_start_time = time.time()
         for node in dag.op_nodes():
+            print(node.name)
             node_qargs = tuple(qarg_indices[bit] for bit in node.qargs)
             qubit_set = frozenset(node_qargs)
 
             if node.name in target_basis:
-                continue
+                if isinstance(node.op, ControlFlowOp):
+                    block_instrs = {next(iter(block.count_ops())) for block in node.op.blocks}
+                    if block_instrs in target_basis:
+                        continue
+                else:
+                    continue
             if (
                 node_qargs in self._qargs_with_non_global_operation
                 and node.name in self._qargs_with_non_global_operation[node_qargs]

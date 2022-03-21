@@ -1269,6 +1269,8 @@ class DAGCircuit:
             raise DAGCircuitError("Only DAGOpNodes can be replaced.")
 
         if node.op.num_qubits != op.num_qubits or node.op.num_clbits != op.num_clbits:
+
+            breakpoint()
             raise DAGCircuitError(
                 "Cannot replace node of width ({} qubits, {} clbits) with "
                 "instruction of mismatched width ({} qubits, {} clbits).".format(
