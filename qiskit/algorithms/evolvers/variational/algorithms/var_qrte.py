@@ -19,8 +19,7 @@ from scipy.integrate import OdeSolver, RK45
 
 from qiskit.algorithms import RealEvolver, EvolutionProblem
 from qiskit.algorithms.evolvers.evolution_result import EvolutionResult
-from qiskit.algorithms.evolvers.variational.variational_principles.real\
-    .real_variational_principle import (
+from qiskit.algorithms.evolvers.variational.variational_principles.real.real_variational_principle import (
     RealVariationalPrinciple,
 )
 from qiskit.algorithms.evolvers.variational.solvers.ode.abstract_ode_function_generator import (

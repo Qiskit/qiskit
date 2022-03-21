@@ -19,8 +19,7 @@ from scipy.integrate import OdeSolver, RK45
 
 from qiskit.algorithms import ImaginaryEvolver, EvolutionProblem
 from qiskit.algorithms.evolvers.evolution_result import EvolutionResult
-from qiskit.algorithms.evolvers.variational.variational_principles.imaginary\
-    .imaginary_variational_principle import (
+from qiskit.algorithms.evolvers.variational.variational_principles.imaginary.imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
 from qiskit.algorithms.evolvers.variational.solvers.ode.abstract_ode_function_generator import (

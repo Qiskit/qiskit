@@ -14,6 +14,7 @@
 
 import unittest
 
+from qiskit.algorithms import EvolutionProblem
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
@@ -74,14 +75,13 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         var_qrte = VarQRTE(var_principle, ode_function, backend=backend)
         time = 0.1
 
-        evolution_result = var_qrte.evolve(
-            observable,
-            time,
-            ansatz,  # ansatz is a state in this case
-            hamiltonian_value_dict=param_dict,
+        evolution_problem = EvolutionProblem(
+            observable, time, ansatz, hamiltonian_value_dict=param_dict
         )
 
-        evolved_state = evolution_result.evolved_object
+        evolution_result = var_qrte.evolve(evolution_problem)
+
+        evolved_state = evolution_result.evolved_state
 
         # values from the prototype
         thetas_expected = [
@@ -139,14 +139,13 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         var_qrte = VarQRTE(var_principle, ode_function, backend=backend)
         time = 1
 
-        evolution_result = var_qrte.evolve(
-            observable,
-            time,
-            ansatz,  # ansatz is a state in this case
-            hamiltonian_value_dict=param_dict,
+        evolution_problem = EvolutionProblem(
+            observable, time, ansatz, hamiltonian_value_dict=param_dict
         )
 
-        evolved_state = evolution_result.evolved_object
+        evolution_result = var_qrte.evolve(evolution_problem)
+
+        evolved_state = evolution_result.evolved_state
 
         thetas_expected = [
             0.348407744196573,
