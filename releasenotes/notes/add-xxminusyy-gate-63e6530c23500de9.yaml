@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds a gate for the XX-YY interaction, accessible via
+    `qiskit.circuit.library.XXMinusYYGate`
