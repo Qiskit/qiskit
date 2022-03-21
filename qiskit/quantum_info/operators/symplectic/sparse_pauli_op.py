@@ -28,6 +28,7 @@ from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.symplectic.pauli_utils import pauli_basis
 from qiskit.utils.deprecation import deprecate_function
+from qiskit._accelerate.sparse_pauli_op import unordered_unique  # pylint: disable=import-error
 
 
 class SparsePauliOp(LinearOp):
@@ -127,12 +128,26 @@ class SparsePauliOp(LinearOp):
         )
 
     def __eq__(self, other):
-        """Check if two SparsePauliOp operators are equal"""
+        """Entrywise comparison of two SparsePauliOp operators"""
         return (
             super().__eq__(other)
+            and self.coeffs.shape == other.coeffs.shape
             and np.allclose(self.coeffs, other.coeffs)
             and self.paulis == other.paulis
         )
+
+    def equiv(self, other):
+        """Check if two SparsePauliOp operators are equivalent.
+
+        Args:
+            other (SparsePauliOp): an operator object.
+
+        Returns:
+            bool: True if the operator is equivalent to ``self``.
+        """
+        if not super().__eq__(other):
+            return False
+        return np.allclose((self - other).simplify().coeffs, [0])
 
     @property
     def settings(self) -> Dict:
@@ -388,11 +403,22 @@ class SparsePauliOp(LinearOp):
         if rtol is None:
             rtol = self.rtol
 
+        # Filter non-zero coefficients
+        non_zero = np.logical_not(np.isclose(self.coeffs, 0, atol=atol, rtol=rtol))
+        paulis_x = self.paulis.x[non_zero]
+        paulis_z = self.paulis.z[non_zero]
+        nz_coeffs = self.coeffs[non_zero]
+
         # Pack bool vectors into np.uint8 vectors by np.packbits
-        array = np.packbits(self.paulis.x, axis=1) * 256 + np.packbits(self.paulis.z, axis=1)
-        _, indexes, inverses = np.unique(array, return_index=True, return_inverse=True, axis=0)
+        array = np.packbits(paulis_x, axis=1) * 256 + np.packbits(paulis_z, axis=1)
+        indexes, inverses = unordered_unique(array)
+
+        if np.all(non_zero) and indexes.shape[0] == array.shape[0]:
+            # No zero operator or duplicate operator
+            return self.copy()
+
         coeffs = np.zeros(indexes.shape[0], dtype=complex)
-        np.add.at(coeffs, inverses, self.coeffs)
+        np.add.at(coeffs, inverses, nz_coeffs)
         # Delete zero coefficient rows
         is_zero = np.isclose(coeffs, 0, atol=atol, rtol=rtol)
         # Check edge case that we deleted all Paulis
@@ -404,8 +430,8 @@ class SparsePauliOp(LinearOp):
         else:
             non_zero = np.logical_not(is_zero)
             non_zero_indexes = indexes[non_zero]
-            x = self.paulis.x[non_zero_indexes]
-            z = self.paulis.z[non_zero_indexes]
+            x = paulis_x[non_zero_indexes]
+            z = paulis_z[non_zero_indexes]
             coeffs = coeffs[non_zero]
 
         return SparsePauliOp(

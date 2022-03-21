@@ -25,6 +25,7 @@ from qiskit.circuit.measure import Measure
 from qiskit.visualization.qcstyle import load_style
 from qiskit.circuit.tools.pi_check import pi_check
 from .utils import (
+    check_cregbundle,
     get_gate_ctrl_text,
     get_param_str,
     get_wire_map,
@@ -181,16 +182,7 @@ class QCircuitImage:
         self._initial_state = initial_state
         self._cregbundle = cregbundle
         self._global_phase = circuit.global_phase
-
-        # If there is any custom instruction that uses classical bits
-        # then cregbundle is forced to be False.
-        for layer in self._nodes:
-            for node in layer:
-                if node.op.name not in {"measure"} and node.cargs:
-                    self._cregbundle = False
-
-        self._wire_map = get_wire_map(circuit, qubits + clbits, self._cregbundle)
-        self._img_width = len(self._wire_map)
+        self._wire_map = {}
 
         self._style, _ = load_style(style)
 
@@ -299,6 +291,8 @@ class QCircuitImage:
             current_max = 0
             for node in layer:
                 op = node.op
+                if self._cregbundle:
+                    self._cregbundle = check_cregbundle(node, self._circuit)
                 # useful information for determining wire spacing
                 boxed_gates = [
                     "u1",
@@ -359,6 +353,8 @@ class QCircuitImage:
         # the wires poking out at the ends is 2 more
         sum_column_widths = sum(1 + v / 3 for v in max_column_widths)
 
+        self._wire_map = get_wire_map(self._circuit, self._qubits + self._clbits, self._cregbundle)
+        self._img_width = len(self._wire_map)
         max_wire_name = 3
         for wire in self._wire_map:
             if isinstance(wire, (Qubit, Clbit)):
@@ -619,56 +615,44 @@ class QCircuitImage:
 
     def _add_condition(self, op, wire_list, col):
         """Add a condition to the _latex list"""
-        # cwire - the wire number for the first wire for the condition register
-        #         or if cregbundle, wire number of the condition register itself
-        # gap - the number of wires from cwire to the bottom gate qubit
-
-        label, val_bits = get_condition_label_val(
-            op.condition, self._circuit, self._cregbundle, self._reverse_bits
+        cond_label, cond_list = get_condition_label_val(
+            op.condition, self._circuit, self._cregbundle
         )
-        cond_is_bit = isinstance(op.condition[0], Clbit)
-        cond_reg = op.condition[0]
-        if cond_is_bit:
-            register = get_bit_register(self._circuit, op.condition[0])
-            if register is not None:
-                cond_reg = register
+        # make a list of (wire_number, value) pairs from the (bit, value) pairs
+        cwire_list = []
+        for bit, val in cond_list:
+            if self._cregbundle and not isinstance(bit, ClassicalRegister):
+                register = get_bit_register(self._circuit, bit)
+                if register is not None:
+                    cwire_list.append((self._wire_map[register], val))
+                else:
+                    cwire_list.append((self._wire_map[bit], val))
+            else:
+                cwire_list.append((self._wire_map[bit], val))
 
-        if self._cregbundle:
-            cwire = self._wire_map[cond_reg]
-        else:
-            cwire = self._wire_map[op.condition[0] if cond_is_bit else cond_reg[0]]
-
-        gap = cwire - max(wire_list)
+        # sort the cwire_list so we can put the value label below
+        # the bottommost wire
+        cwire_list = sorted(cwire_list)
+        prev_wire = max(wire_list)
         meas_offset = -0.3 if isinstance(op, Measure) else 0.0
 
-        # Print the condition value at the bottom and put bullet on creg line
-        if cond_is_bit or self._cregbundle:
-            control = "\\control" if op.condition[1] else "\\controlo"
-            self._latex[cwire][col] = f"{control}" + " \\cw^(%s){^{\\mathtt{%s}}} \\cwx[-%s]" % (
-                meas_offset,
-                label,
-                str(gap),
-            )
-        else:
-            cond_len = op.condition[0].size - 1
-            # If reverse, start at highest reg bit and go down to 0
-            if self._reverse_bits:
-                cwire -= cond_len
-                gap -= cond_len
-            # Iterate through the reg bits down to the lowest one
-            for i in range(cond_len):
-                control = "\\control" if val_bits[i] == "1" else "\\controlo"
-                self._latex[cwire + i][col] = f"{control} \\cw \\cwx[-" + str(gap) + "]"
-                gap = 1
-            # Add (hex condition value) below the last cwire
-            control = "\\control" if val_bits[cond_len] == "1" else "\\controlo"
-            self._latex[cwire + cond_len][col] = (
-                f"{control}" + " \\cw^(%s){^{\\mathtt{%s}}} \\cwx[-%s]"
-            ) % (
-                meas_offset,
-                label,
-                str(gap),
-            )
+        # go throught the cwire_list from top to bottommost wire less 1
+        for cwire, val in cwire_list[:-1]:
+            control = "\\control" if val == "1" else "\\controlo"
+            gap = cwire - prev_wire
+            self._latex[cwire][col] = f"{control} \\cw \\cwx[-" + str(gap) + "]"
+            prev_wire = cwire
+
+        # Add (hex condition value) below the last cwire
+        control = "\\control" if cwire_list[-1][1] == "1" else "\\controlo"
+        gap = cwire_list[-1][0] - prev_wire
+        self._latex[cwire_list[-1][0]][col] = (
+            f"{control}" + " \\cw^(%s){^{\\mathtt{%s}}} \\cwx[-%s]"
+        ) % (
+            meas_offset,
+            cond_label,
+            str(gap),
+        )
 
     def _truncate_float(self, matchobj, ndigits=4):
         """Truncate long floats."""
