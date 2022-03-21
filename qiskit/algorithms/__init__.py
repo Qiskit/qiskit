@@ -93,6 +93,22 @@ knowledge to do this in that application domain.
    NumPyEigensolver
 
 
+Evolvers
+--------
+
+Algorithms to evolve quantum states in time. Both real and imaginary time evolution is possible
+with algorithms that support them. For machine learning, Quantum Imaginary Time Evolution might be
+used to train Quantum Boltzmann Machine Neural Networks for example.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+    RealEvolver
+    ImaginaryEvolver
+    EvolutionResult
+    EvolutionProblem
+
 Factorizers
 -----------
 
@@ -166,6 +182,7 @@ Algorithms that estimate the phases of eigenstates of a unitary.
    PhaseEstimationResult
    IterativePhaseEstimation
 
+
 Exceptions
 ==========
 
@@ -173,9 +190,23 @@ Exceptions
    :toctree: ../stubs/
 
    AlgorithmError
+
+
+Utility methods
+---------------
+
+Utility methods used by algorithms.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   eval_observables
 """
 
 from .algorithm_result import AlgorithmResult
+from .evolvers import EvolutionResult, EvolutionProblem
+from .evolvers.real.real_evolver import RealEvolver
+from .evolvers.imaginary.imaginary_evolver import ImaginaryEvolver
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
 from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem, AmplitudeAmplifier
 from .amplitude_estimators import (
@@ -211,6 +242,7 @@ from .phase_estimators import (
     IterativePhaseEstimation,
 )
 from .exceptions import AlgorithmError
+from .aux_ops_evaluator import eval_observables
 
 __all__ = [
     "AlgorithmResult",
@@ -232,6 +264,10 @@ __all__ = [
     "MaximumLikelihoodAmplitudeEstimationResult",
     "EstimationProblem",
     "NumPyEigensolver",
+    "RealEvolver",
+    "ImaginaryEvolver",
+    "EvolutionResult",
+    "EvolutionProblem",
     "LinearSolverResult",
     "Eigensolver",
     "EigensolverResult",
@@ -253,4 +289,5 @@ __all__ = [
     "PhaseEstimationResult",
     "IterativePhaseEstimation",
     "AlgorithmError",
+    "eval_observables",
 ]

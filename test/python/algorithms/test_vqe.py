@@ -15,9 +15,11 @@
 import logging
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
+from test.python.transpiler._dummy_passes import DummyAP
 
 from functools import partial
 import numpy as np
+from scipy.optimize import minimize as scipy_minimize
 from ddt import data, ddt, unpack
 
 from qiskit import BasicAer, QuantumCircuit
@@ -31,6 +33,7 @@ from qiskit.algorithms.optimizers import (
     SLSQP,
     SPSA,
     TNC,
+    OptimizerResult,
 )
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes, TwoLocal
 from qiskit.exceptions import MissingOptionalLibraryError
@@ -50,7 +53,6 @@ from qiskit.quantum_info import Statevector
 from qiskit.transpiler import PassManager, PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import level_1_pass_manager
 from qiskit.utils import QuantumInstance, algorithm_globals, has_aer
-from ..transpiler._dummy_passes import DummyAP
 
 if has_aer():
     from qiskit import Aer
@@ -67,6 +69,16 @@ class LogPass(DummyAP):
 
     def run(self, dag):
         logging.getLogger(logger).info(self.message)
+
+
+# pylint: disable=invalid-name, unused-argument
+def _mock_optimizer(fun, x0, jac=None, bounds=None) -> OptimizerResult:
+    """A mock of a callable that can be used as minimizer in the VQE."""
+    result = OptimizerResult()
+    result.x = np.zeros_like(x0)
+    result.fun = fun(result.x)
+    result.nit = 0
+    return result
 
 
 @ddt
@@ -489,6 +501,24 @@ class TestVQE(QiskitAlgorithmsTestCase):
         vqe.optimizer = None
         self.assertIsInstance(vqe.optimizer, SLSQP)
 
+    def test_optimizer_scipy_callable(self):
+        """Test passing a SciPy optimizer directly as callable."""
+        vqe = VQE(
+            optimizer=partial(scipy_minimize, method="L-BFGS-B", options={"maxiter": 2}),
+            quantum_instance=self.statevector_simulator,
+        )
+        result = vqe.compute_minimum_eigenvalue(Z)
+        self.assertEqual(result.cost_function_evals, 20)
+
+    def test_optimizer_callable(self):
+        """Test passing a optimizer directly as callable."""
+        ansatz = RealAmplitudes(1, reps=1)
+        vqe = VQE(
+            ansatz=ansatz, optimizer=_mock_optimizer, quantum_instance=self.statevector_simulator
+        )
+        result = vqe.compute_minimum_eigenvalue(Z)
+        self.assertTrue(np.all(result.optimal_point == np.zeros(ansatz.num_parameters)))
+
     def test_aux_operators_list(self):
         """Test list-based aux_operators."""
         wavefunction = self.ry_wavefunction
@@ -586,12 +616,10 @@ class TestVQE(QiskitAlgorithmsTestCase):
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2.0, places=6)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.5784419552370315, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.6796875, places=6)
         # standard deviations
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1], 0.0)
-        self.assertAlmostEqual(
-            result.aux_operator_eigenvalues[1][1], 0.015183867579396111, places=6
-        )
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][1], 0.02534712219145965, places=6)
 
         # Go again with additional None and zero operators
         aux_ops = [*aux_ops, None, 0]
@@ -599,12 +627,14 @@ class TestVQE(QiskitAlgorithmsTestCase):
         self.assertEqual(len(result.aux_operator_eigenvalues), 4)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2.0, places=6)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.56640625, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.57421875, places=6)
         self.assertEqual(result.aux_operator_eigenvalues[2][0], 0.0)
         self.assertEqual(result.aux_operator_eigenvalues[3][0], 0.0)
         # # standard deviations
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1], 0.0)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][1], 0.01548658094658011, places=6)
+        self.assertAlmostEqual(
+            result.aux_operator_eigenvalues[1][1], 0.026562146577166837, places=6
+        )
         self.assertAlmostEqual(result.aux_operator_eigenvalues[2][1], 0.0)
         self.assertAlmostEqual(result.aux_operator_eigenvalues[3][1], 0.0)
 
