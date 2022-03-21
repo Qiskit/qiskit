@@ -1,0 +1,8 @@
+---
+other:
+  - |
+    A new convenience method :func:`qiskit.algorithms.eval_observables` to evaluate observables
+    given a bound circuit is added. It originates from a method previously residing in
+    :class:`qiskit.algorithms.VQE`. The method is general enough so that it can be used
+    in other algorithms, for example time evolution algorithms. The method is also refactored to be
+    more modular.
