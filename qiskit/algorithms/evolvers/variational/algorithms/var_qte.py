@@ -42,6 +42,7 @@ from qiskit.opflow import (
     ComposedOp,
     PauliExpectation,
     OperatorBase,
+    ExpectationBase,
 )
 
 
@@ -57,6 +58,7 @@ class VarQTE(Evolver, ABC):
         variational_principle: VariationalPrinciple,
         ode_function_generator: AbstractOdeFunctionGenerator,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+        expectation: Optional[ExpectationBase] = None,
         ode_solver_callable: OdeSolver = RK45,
         lse_solver_callable: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
         allowed_imaginary_part: float = 1e-7,
@@ -67,6 +69,8 @@ class VarQTE(Evolver, ABC):
             variational_principle: Variational Principle to be used.
             ode_function_generator: Generator for a function that ODE will use.
             backend: Backend used to evaluate the quantum circuit outputs.
+            expectation: An instance of ExpectationBase which defines a method for calculating
+                expectation values of EvolutionProblem.aux_operators.
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
             lse_solver_callable: Linear system of equations solver that follows a NumPy
                 np.linalg.lstsq interface.
@@ -80,6 +84,7 @@ class VarQTE(Evolver, ABC):
         self._variational_principle = variational_principle
 
         self._backend = backend
+        self._expectation = expectation
         # we define separate instances of CircuitSamplers as it caches aggressively according
         # to its documentation
         self._init_samplers()
@@ -159,6 +164,7 @@ class VarQTE(Evolver, ABC):
         parameter_values = ode_solver.run(time)
         param_dict_from_ode = dict(zip(init_state_parameters, parameter_values))
 
+        # TODO leads to an error
         # if self._state_circ_sampler:
         #     return self._state_circ_sampler.convert(initial_state, param_dict_from_ode)
         return initial_state.assign_parameters(param_dict_from_ode)

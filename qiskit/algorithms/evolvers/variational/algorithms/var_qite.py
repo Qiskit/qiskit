@@ -17,7 +17,7 @@ from typing import Optional, Union, Callable
 import numpy as np
 from scipy.integrate import OdeSolver, RK45
 
-from qiskit.algorithms import ImaginaryEvolver, EvolutionProblem
+from qiskit.algorithms import ImaginaryEvolver, EvolutionProblem, eval_observables
 from qiskit.algorithms.evolvers.evolution_result import EvolutionResult
 from qiskit.algorithms.evolvers.variational.variational_principles.imaginary.imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
@@ -27,6 +27,7 @@ from qiskit.algorithms.evolvers.variational.solvers.ode.abstract_ode_function_ge
 )
 from qiskit.opflow import (
     StateFn,
+    ExpectationBase,
 )
 from qiskit.algorithms.evolvers.variational.algorithms.var_qte import VarQTE
 from qiskit.providers import BaseBackend
@@ -41,6 +42,7 @@ class VarQITE(ImaginaryEvolver, VarQTE):
         variational_principle: ImaginaryVariationalPrinciple,
         ode_function_generator: AbstractOdeFunctionGenerator,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+        expectation: Optional[ExpectationBase] = None,
         ode_solver_callable: OdeSolver = RK45,
         lse_solver_callable: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
         allowed_imaginary_part: float = 1e-7,
@@ -50,7 +52,9 @@ class VarQITE(ImaginaryEvolver, VarQTE):
         Args:
             variational_principle: Variational Principle to be used.
             ode_function_generator: Generator for a function that ODE will use.
-            backend: Backend used to evaluate the quantum circuit outputs
+            backend: Backend used to evaluate the quantum circuit outputs.
+            expectation: An instance of ExpectationBase which defines a method for calculating
+                expectation values of EvolutionProblem.aux_operators.
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
             lse_solver_callable: Linear system of equations solver that follows a NumPy
                 np.linalg.lstsq interface.
@@ -63,6 +67,7 @@ class VarQITE(ImaginaryEvolver, VarQTE):
             variational_principle,
             ode_function_generator,
             backend,
+            expectation,
             ode_solver_callable,
             lse_solver_callable,
             allowed_imaginary_part,
@@ -89,7 +94,7 @@ class VarQITE(ImaginaryEvolver, VarQTE):
 
         error_calculator = None  # TODO will be supported in another PR
 
-        evolved_object = super()._evolve_helper(
+        evolved_state = super()._evolve_helper(
             init_state_param_dict,
             evolution_problem.hamiltonian,
             evolution_problem.time,
@@ -98,4 +103,10 @@ class VarQITE(ImaginaryEvolver, VarQTE):
             evolution_problem.initial_state,
         )
 
-        return EvolutionResult(evolved_object)
+        evaluated_aux_ops = None
+        if evolution_problem.aux_operators is not None:
+            evaluated_aux_ops = eval_observables(
+                self._backend, evolved_state, evolution_problem.aux_operators, self._expectation
+            )
+
+        return EvolutionResult(evolved_state, evaluated_aux_ops)
