@@ -148,6 +148,11 @@ class PauliSumOp(PrimitiveOp):
     def equals(self, other: OperatorBase) -> bool:
         self_reduced, other_reduced = self.reduce(), other.reduce()
 
+        if isinstance(other_reduced, PauliOp):
+            other_reduced = PauliSumOp(
+                SparsePauliOp(other_reduced.primitive, coeffs=[other_reduced.coeff])
+            )
+
         if not isinstance(other_reduced, PauliSumOp):
             return False
 

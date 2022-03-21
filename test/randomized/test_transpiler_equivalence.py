@@ -148,7 +148,11 @@ class QCircuitMachine(RuleBasedStateMachine):
         gate=st.sampled_from(oneQ_oneP_gates),
         qarg=qubits,
         param=st.floats(
-            allow_nan=False, allow_infinity=False, min_value=-10 * pi, max_value=10 * pi
+            allow_nan=False,
+            allow_infinity=False,
+            min_value=-10 * pi,
+            max_value=10 * pi,
+            allow_subnormal=False,
         ),
     )
     def add_1q1p_gate(self, gate, qarg, param):
@@ -159,7 +163,13 @@ class QCircuitMachine(RuleBasedStateMachine):
         gate=st.sampled_from(oneQ_twoP_gates),
         qarg=qubits,
         params=st.lists(
-            st.floats(allow_nan=False, allow_infinity=False, min_value=-10 * pi, max_value=10 * pi),
+            st.floats(
+                allow_nan=False,
+                allow_infinity=False,
+                min_value=-10 * pi,
+                max_value=10 * pi,
+                allow_subnormal=False,
+            ),
             min_size=2,
             max_size=2,
         ),
@@ -172,7 +182,13 @@ class QCircuitMachine(RuleBasedStateMachine):
         gate=st.sampled_from(oneQ_threeP_gates),
         qarg=qubits,
         params=st.lists(
-            st.floats(allow_nan=False, allow_infinity=False, min_value=-10 * pi, max_value=10 * pi),
+            st.floats(
+                allow_nan=False,
+                allow_infinity=False,
+                min_value=-10 * pi,
+                max_value=10 * pi,
+                allow_subnormal=False,
+            ),
             min_size=3,
             max_size=3,
         ),
@@ -185,7 +201,11 @@ class QCircuitMachine(RuleBasedStateMachine):
         gate=st.sampled_from(twoQ_oneP_gates),
         qargs=st.lists(qubits, max_size=2, min_size=2, unique=True),
         param=st.floats(
-            allow_nan=False, allow_infinity=False, min_value=-10 * pi, max_value=10 * pi
+            allow_nan=False,
+            allow_infinity=False,
+            min_value=-10 * pi,
+            max_value=10 * pi,
+            allow_subnormal=False,
         ),
     )
     def add_2q1p_gate(self, gate, qargs, param):
@@ -196,7 +216,13 @@ class QCircuitMachine(RuleBasedStateMachine):
         gate=st.sampled_from(twoQ_threeP_gates),
         qargs=st.lists(qubits, max_size=2, min_size=2, unique=True),
         params=st.lists(
-            st.floats(allow_nan=False, allow_infinity=False, min_value=-10 * pi, max_value=10 * pi),
+            st.floats(
+                allow_nan=False,
+                allow_infinity=False,
+                min_value=-10 * pi,
+                max_value=10 * pi,
+                allow_subnormal=False,
+            ),
             min_size=3,
             max_size=3,
         ),
