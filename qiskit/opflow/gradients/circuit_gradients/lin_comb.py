@@ -727,8 +727,8 @@ class LinComb(CircuitGradient):
                                 )
                             else:
                                 raise ValueError(
-                                    "The decomposition of the auxiliary measurement "
-                                    "operator went wrong."
+                                    f"The auxiliary measurement operator passed {aux_meas_op}"
+                                    "is not supported. Only Y, Z, or Z - 1j * Y are valid."
                                 )
 
                         if param_expression != param:  # parameter is not identity, apply chain rule
