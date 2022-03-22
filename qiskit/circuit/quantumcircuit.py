@@ -2011,7 +2011,6 @@ class QuantumCircuit(Locatable):
         Returns:
             OrderedDict: a breakdown of how many operations of each kind, sorted by amount.
         """
-        print("COUNT_OPS")
         count_ops: Dict[Instruction, int] = {}
         for instr, _, _ in self._data:
             count_ops[instr.name] = count_ops.get(instr.name, 0) + 1

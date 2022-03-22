@@ -937,7 +937,6 @@ class DAGCircuit:
         # Try to convert to float, but in case of unbound ParameterExpressions
         # a TypeError will be raise, fallback to normal equality in those
         # cases
-
         try:
             self_phase = float(self.global_phase)
             other_phase = float(other.global_phase)

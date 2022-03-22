@@ -19,10 +19,13 @@ from heapq import heappush, heappop
 from itertools import zip_longest
 from itertools import count as iter_count
 from collections import defaultdict
+import copy
 
 import numpy as np
 
-from qiskit.circuit import Gate, ParameterVector, QuantumRegister, ControlFlowOp
+from qiskit.circuit import (Gate, ParameterVector, QuantumRegister,
+                            ControlFlowOp, QuantumCircuit)
+from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -195,6 +198,7 @@ class BasisTranslator(TransformationPass):
         )
 
         if basis_transforms is None:
+            breakpoint()
             raise TranspilerError(
                 "Unable to map source basis {} to target basis {} "
                 "over library {}.".format(source_basis, target_basis, self._equiv_lib)
@@ -202,7 +206,6 @@ class BasisTranslator(TransformationPass):
 
         # Compose found path into a set of instruction substitution rules.
 
-        from qiskit.converters import dag_to_circuit
         compose_start_time = time.time()
         instr_map = _compose_transforms(basis_transforms, source_basis, dag)
         extra_instr_map = {
@@ -228,6 +231,23 @@ class BasisTranslator(TransformationPass):
                     block_instrs = {next(iter(block.count_ops())) for block in node.op.blocks}
                     if block_instrs in target_basis:
                         continue
+                    else:
+                        # recursively do basis translation of blocks
+                        print("translating blocks")
+                        new_params = []
+                        for param in node.op.params:
+                            if (isinstance(param, QuantumCircuit) and
+                                set(param.count_ops().keys()) not in target_basis):
+                                dag_block = circuit_to_dag(param)
+                                unrolled_dag_block = self.run(dag_block)
+                                unrolled_circ_block = dag_to_circuit(unrolled_dag_block)
+                                new_params.append(unrolled_circ_block)
+                            else:
+                                new_params.append(copy.copy(param))
+                        new_cf_op = node.op.copy_no_body()
+                        new_cf_op.params = new_params
+                        node.op = new_cf_op
+                    continue
                 else:
                     continue
             if (
