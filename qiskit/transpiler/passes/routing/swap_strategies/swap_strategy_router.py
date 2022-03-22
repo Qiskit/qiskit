@@ -502,7 +502,6 @@ class PauliEvolutionGateRouter(SwapStrategyRouter):
            QiskitError: If the Pauli coefficient has an iaginary part.
         """
 
-        distance_matrix = swap_strategy.distance_matrix
         gate_layers = defaultdict(dict)
 
         for edge, (pauli, coeff) in self._required_paulis.items():
@@ -510,7 +509,7 @@ class PauliEvolutionGateRouter(SwapStrategyRouter):
             bit0 = layout.get_virtual_bits()[dag.qubits[edge[0]]]
             bit1 = layout.get_virtual_bits()[dag.qubits[edge[1]]]
 
-            distance = distance_matrix[bit0][bit1]
+            distance = swap_strategy.distance_matrix[bit0][bit1]
 
             simple_pauli = Pauli(str(pauli).replace("I", ""))
 
