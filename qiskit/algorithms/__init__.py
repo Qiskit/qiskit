@@ -106,6 +106,8 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
 
     RealEvolver
     ImaginaryEvolver
+    VarQITE
+    VarQRTE
     EvolutionResult
     EvolutionProblem
 
@@ -243,6 +245,8 @@ from .phase_estimators import (
 )
 from .exceptions import AlgorithmError
 from .aux_ops_evaluator import eval_observables
+from .evolvers.variational.algorithms.var_qite import VarQITE
+from .evolvers.variational.algorithms.var_qrte import VarQRTE
 
 __all__ = [
     "AlgorithmResult",
@@ -266,6 +270,8 @@ __all__ = [
     "NumPyEigensolver",
     "RealEvolver",
     "ImaginaryEvolver",
+    "VarQITE",
+    "VarQRTE",
     "EvolutionResult",
     "EvolutionProblem",
     "LinearSolverResult",
