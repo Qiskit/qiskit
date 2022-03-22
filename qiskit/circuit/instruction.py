@@ -391,30 +391,17 @@ class Instruction:
 
     def c_if(self, classical, val):
         """Set a classical equality condition on this instruction between the register or cbit
-        or list of cbits, ``classical`` and value ``val``.
+        ``classical`` and value ``val``.
 
         .. note::
 
             This is a setter method, not an additive one.  Calling this multiple times will silently
             override any previously set condition; it does not stack.
         """
-        if not isinstance(classical, (ClassicalRegister, Clbit)) and not all(
-            isinstance(cbit, Clbit) for cbit in classical
-        ):
-            raise CircuitError(
-                "c_if must be used with a classical register, a bit or a list of classical bits"
-            )
+        if not isinstance(classical, (ClassicalRegister, Clbit)):
+            raise CircuitError("c_if must be used with a classical register or classical bit")
         if val < 0:
             raise CircuitError("condition value should be non-negative")
-
-        if (isinstance(classical, ClassicalRegister) and val >= 2**classical.size) or (
-            isinstance(classical, list) and val >= 2 ** len(classical)
-        ):
-            raise CircuitError("condition value should be less than 2 ^ number of bits")
-
-        if isinstance(classical, Clbit) and int(val) > 1:
-            raise CircuitError("condition value should be 0/1 or True/False")
-
         if isinstance(classical, Clbit):
             # Casting the conditional value as Boolean when
             # the classical condition is on a classical bit.
