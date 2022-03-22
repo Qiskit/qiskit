@@ -18,7 +18,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from qiskit.quantum_info import state_fidelity, Statevector
 from qiskit.algorithms import EvolutionProblem
-from qiskit.algorithms.evolvers.variational.algorithms.var_qrte import VarQRTE
+from qiskit.algorithms.evolvers.variational import VarQRTE
 from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_generator import (
     OdeFunctionGenerator,
 )

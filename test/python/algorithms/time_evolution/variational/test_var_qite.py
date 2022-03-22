@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit import Aer
 from qiskit.algorithms import EvolutionProblem
-from qiskit.algorithms.evolvers.variational.algorithms.var_qite import VarQITE
+from qiskit.algorithms.evolvers.variational import VarQITE
 from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_generator import (
     OdeFunctionGenerator,
 )
