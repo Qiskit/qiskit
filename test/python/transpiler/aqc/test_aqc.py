@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,7 +12,8 @@
 """
 Tests AQC framework using hardcoded and randomly generated circuits.
 """
-import sys
+
+
 import unittest
 from test.python.transpiler.aqc.sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
 import numpy as np
@@ -25,30 +26,22 @@ from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitO
 from qiskit.transpiler.synthesis.aqc.fast_gradient.fast_gradient import FastCNOTUnitObjective
 from qiskit.algorithms.optimizers import L_BFGS_B
 
-__glo_verbose__ = False
-
 
 class TestAqc(QiskitTestCase):
     """Main tests of approximate quantum compiler."""
 
     @staticmethod
     def _print_result_info(target_matrix: np.ndarray, approx_matrix: np.ndarray):
-        if __glo_verbose__:
-            diff = approx_matrix - target_matrix
-            fro_err = 0.5 * (np.linalg.norm(diff, "fro") ** 2)
-            sin_err = np.linalg.norm(diff, 2)
-            print("\nApproximation misfit:")
-            print(f"Cost function based on Frobenius norm: {fro_err:0.8f}")
-            print(f"Max. singular value of (V - U): {sin_err:0.8f}")
+        pass
 
     def test_aqc(self):
         """
         Tests AQC on a hardcoded circuit/matrix using default implementation
-        of Frobenius norm minimizer: min(||U - V||_F^2).
+        of Frobenius norm minimizer: ``min(||U - V||_F^2)``.
         """
 
         seed = 12345
-        num_qubits = int(round(np.log2(np.array(ORIGINAL_CIRCUIT).shape[0])))
+        num_qubits = int(round(np.log2(ORIGINAL_CIRCUIT.shape[0])))
         cnots = make_cnot_network(
             num_qubits=num_qubits, network_layout="spin", connectivity_type="full", depth=0
         )
@@ -56,7 +49,7 @@ class TestAqc(QiskitTestCase):
         optimizer = L_BFGS_B(maxiter=200)
         aqc = AQC(optimizer=optimizer, seed=seed)
 
-        target_matrix = np.array(ORIGINAL_CIRCUIT)
+        target_matrix = ORIGINAL_CIRCUIT
         circ = CNOTUnitCircuit(num_qubits, cnots)
         objv = DefaultCNOTUnitObjective(num_qubits, cnots)
 
@@ -64,7 +57,7 @@ class TestAqc(QiskitTestCase):
             target_matrix=target_matrix,
             approximate_circuit=circ,
             approximating_objective=objv,
-            initial_point=np.array(INITIAL_THETAS),
+            initial_point=INITIAL_THETAS,
         )
 
         approx_matrix = Operator(circ).data
@@ -75,8 +68,8 @@ class TestAqc(QiskitTestCase):
     def test_aqc_fastgrad(self):
         """
         Tests AQC on a MCX circuit/matrix with random initial guess using
-        'fast gradient' implementation of Frobenius norm minimizer:
-        min(||U - V||_F^2).
+        the so called "fast gradient" implementation of Frobenius norm minimizer:
+        ``min(||U - V||_F^2)``.
         """
         seed = 12345
         num_qubits = int(3)
@@ -109,5 +102,4 @@ class TestAqc(QiskitTestCase):
 
 
 if __name__ == "__main__":
-    __glo_verbose__ = ("-v" in sys.argv) or ("--verbose" in sys.argv)
     unittest.main()

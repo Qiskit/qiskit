@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,7 +14,7 @@
 Tests for Layer1Q implementation.
 """
 
-import sys
+
 from time import perf_counter
 import unittest
 from random import randint
@@ -24,31 +24,28 @@ import qiskit.transpiler.synthesis.aqc.fast_gradient.layer as lr
 from qiskit.transpiler.synthesis.aqc.fast_gradient.pmatrix import PMatrix
 from qiskit.test import QiskitTestCase
 
-__glo_verbose__ = False
-
 
 class TestLayer1q(QiskitTestCase):
     """
     Tests for Layer1Q class.
     """
 
+    long_test = False  # enables thorough testing
+
+    def setUp(self):
+        super().setUp()
+
     def test_layer1q_matrix(self):
         """
         Tests: (1) the correctness of Layer2Q matrix construction;
         (2) matrix multiplication interleaved with permutations.
-        TODO: test fails for natural bit ordering, although this is not a problem
-        TODO: because we do not use that ordering, but ...
         """
-        if __glo_verbose__:
-            print("\nrunning {:s}() ...".format(self.test_layer1q_matrix.__name__))
 
         start = perf_counter()
         mat_kind = "complex"
         eps = 100.0 * np.finfo(float).eps
         max_rel_err = 0.0
-        for n in range(2, (8 if __glo_verbose__ else 5) + 1):
-            if __glo_verbose__:
-                print("n:", n)
+        for n in range(2, (8 if self.long_test else 5) + 1):
 
             dim = 2**n
             iden = tut.identity_matrix(n)
@@ -87,29 +84,21 @@ class TestLayer1q(QiskitTestCase):
                 )
                 max_rel_err = max(max_rel_err, err1, err2, err3, err4)
 
-        if __glo_verbose__:
-            print("test execution time: {:0.6f}".format(perf_counter() - start))
-            print("max. relative error: {:0.16f}".format(max_rel_err))
-
     def test_pmatrix_class(self):
         """
         Test the class PMatrix.
         """
-        if __glo_verbose__:
-            print("\nrunning {:s}() ...".format(self.test_pmatrix_class.__name__))
 
         start = perf_counter()
         _eps = 100.0 * np.finfo(float).eps
         mat_kind = "complex"
         max_rel_err = 0.0
-        for n in range(2, (8 if __glo_verbose__ else 5) + 1):
-            if __glo_verbose__:
-                print("n:", n)
+        for n in range(2, (8 if self.long_test else 5) + 1):
 
             dim = 2**n
             tmp1 = np.ndarray((dim, dim), dtype=np.cfloat)
             tmp2 = tmp1.copy()
-            for _ in range(200 if __glo_verbose__ else 50):
+            for _ in range(200 if self.long_test else 50):
                 k0 = randint(0, n - 1)
                 k1 = randint(0, n - 1)
                 k2 = randint(0, n - 1)
@@ -148,12 +137,7 @@ class TestLayer1q(QiskitTestCase):
 
                 max_rel_err = max(max_rel_err, err1, err2)
 
-        if __glo_verbose__:
-            print("test execution time: {:0.6}".format(perf_counter() - start))
-            print("max. relative error: {:0.16f}".format(max_rel_err))
-
 
 if __name__ == "__main__":
-    __glo_verbose__ = ("-v" in sys.argv) or ("--verbose" in sys.argv)
     np.set_printoptions(precision=6, linewidth=256)
     unittest.main()

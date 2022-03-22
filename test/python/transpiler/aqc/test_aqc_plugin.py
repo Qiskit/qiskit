@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,7 +13,7 @@
 Tests AQC plugin.
 """
 
-import sys
+
 import unittest
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -26,8 +26,6 @@ from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes.synthesis.unitary_synthesis import UnitarySynthesis
 from qiskit.transpiler.synthesis.aqc.aqc_plugin import AQCSynthesisPlugin
 
-__glo_verbose__ = False
-
 
 class TestAQCSynthesisPlugin(QiskitTestCase):
     """Basic tests of the AQC synthesis plugin."""
@@ -35,14 +33,7 @@ class TestAQCSynthesisPlugin(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self._qc = QuantumCircuit(3)
-        self._qc.mcx(
-            [
-                0,
-                1,
-            ],
-            2,
-        )
-
+        self._qc.mcx([0, 1], 2)
         self._target_unitary = Operator(self._qc).data
         self._seed_config = {"seed": 12345}
 
@@ -107,5 +98,4 @@ class TestAQCSynthesisPlugin(QiskitTestCase):
 
 
 if __name__ == "__main__":
-    __glo_verbose__ = ("-v" in sys.argv) or ("--verbose" in sys.argv)
     unittest.main()

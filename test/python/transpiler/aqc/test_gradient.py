@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,15 +13,13 @@
 Tests analytical gradient vs the one computed via finite differences.
 """
 
-import sys
+
 import unittest
 from test.python.transpiler.aqc.sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
 import numpy as np
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
 from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
-
-__glo_verbose__ = False
 
 
 class TestGradientAgainstFiniteDiff(QiskitTestCase):
@@ -44,12 +42,12 @@ class TestGradientAgainstFiniteDiff(QiskitTestCase):
         )
 
         # we pick a target matrix from the existing sample data
-        target_matrix = np.asarray(ORIGINAL_CIRCUIT)
+        target_matrix = ORIGINAL_CIRCUIT
         objective = DefaultCNOTUnitObjective(num_qubits, cnots)
         objective.target_matrix = target_matrix
 
         # thetas = np.random.rand(objective.num_thetas) * (2.0 * np.pi)
-        thetas = np.asarray(INITIAL_THETAS)
+        thetas = INITIAL_THETAS
         fobj0 = objective.objective(thetas)
         grad0 = objective.gradient(thetas)
 
@@ -92,12 +90,6 @@ class TestGradientAgainstFiniteDiff(QiskitTestCase):
             tau /= 2.0
             diff_prev = diff
 
-        if __glo_verbose__ > 0:
-            print("Numerical vs analytical as tau decreasing:")
-            print(np.asarray(errors))
-            print("Approximation order term as tau decreasing:")
-            print(np.asarray(orders))
-
         # check errors
         prev_error = errors[0]
         for error in errors[1:]:
@@ -112,5 +104,4 @@ class TestGradientAgainstFiniteDiff(QiskitTestCase):
 
 if __name__ == "__main__":
     np.set_printoptions(precision=6, linewidth=256)
-    __glo_verbose__ = ("-v" in sys.argv) or ("--verbose" in sys.argv)
     unittest.main()

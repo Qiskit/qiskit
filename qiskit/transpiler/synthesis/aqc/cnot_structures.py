@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,7 +13,6 @@
 These are the CNOT structure methods: anything that you need for creating CNOT structures.
 """
 import logging
-
 import numpy as np
 
 _NETWORK_LAYOUTS = ["sequ", "spin", "cart", "cyclic_spin", "cyclic_line"]

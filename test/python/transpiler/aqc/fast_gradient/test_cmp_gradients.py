@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,11 +12,13 @@
 
 """
 Tests equivalence of the default and fast gradient computation routines.
-N O T E: this test is rather long and recommended for developers only.
+**Note**: this test is rather long and recommended for developers only.
 """
 
-import gc
 import sys
+
+
+import gc
 from time import perf_counter
 import unittest
 import concurrent.futures
@@ -26,13 +28,17 @@ from qiskit.transpiler.synthesis.aqc.fast_gradient.fast_gradient import FastCNOT
 from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
 from qiskit.test import QiskitTestCase
 
-__glo_verbose__ = False
-
 
 class TestCompareGradientImpls(QiskitTestCase):
+
     """
     Tests equivalence of the default and fast gradient implementations.
     """
+
+    long_test = False  # enables thorough testing
+
+    def setUp(self):
+        super().setUp()
 
     def _compare(
         self, num_qubits: int, depth: int, verbose: bool
@@ -45,9 +51,6 @@ class TestCompareGradientImpls(QiskitTestCase):
         self.assertTrue(isinstance(num_qubits, (int, np.int64)))
         self.assertTrue(isinstance(depth, (int, np.int64)))
         self.assertTrue(isinstance(verbose, bool))
-
-        if verbose:
-            print(".", end="", flush=True)
 
         cnots = rand_circuit(num_qubits=num_qubits, depth=depth)
         depth = cnots.shape[1]  # might be less than initial depth
@@ -98,16 +101,12 @@ class TestCompareGradientImpls(QiskitTestCase):
         """
         Tests equivalence of gradients.
         """
-        if __glo_verbose__:
-            print("\nRunning {:s}() ...".format(self.test_cmp_gradients.__name__))
-            print("Here we compare the default and fast gradient calculators")
-            print("for equivalence")
 
         # Configurations of the number of qubits and depths we want to try.
-        max_depth = 100 if __glo_verbose__ else 10
+        max_depth = 100 if self.long_test else 10
         configs = [
             (n, depth)
-            for n in range(2, (8 if __glo_verbose__ else 3) + 1)
+            for n in range(2, (8 if self.long_test else 3) + 1)
             for depth in np.sort(
                 np.random.permutation(np.arange(3 if n <= 3 else 7, 9 if n <= 3 else max_depth))[
                     0:10
@@ -116,42 +115,25 @@ class TestCompareGradientImpls(QiskitTestCase):
         ]
 
         results = list()
-        if __glo_verbose__:
+        if self.long_test:
             with concurrent.futures.ProcessPoolExecutor() as executor:
                 tasks = [
-                    executor.submit(self._compare, int(nqubits), int(depth), bool(__glo_verbose__))
+                    executor.submit(self._compare, int(nqubits), int(depth), bool(self.long_test))
                     for nqubits, depth in configs
                 ]
                 results = [t.result() for t in tasks]
         else:
             for nqubits, depth in configs:
-                results.append(self._compare(int(nqubits), int(depth), bool(__glo_verbose__)))
-
-        if __glo_verbose__:
-            print("")
-        sys.stderr.flush()
-        sys.stdout.flush()
+                results.append(self._compare(int(nqubits), int(depth), bool(self.long_test)))
 
         # Print out the comparison results.
-        if __glo_verbose__:
+        if self.long_test:
             total_speed_score, total_count = 0.0, 0
             for num_qubits, depth, ferr, gerr, speedup, t1, t2 in results:
                 total_speed_score += speedup
                 total_count += 1
-                print(
-                    "n: {:2d}, depth: {:2d}, "
-                    "objective relative error: {:.16f}, "
-                    "gradient relative error: {:.16f}, "
-                    "speedup: {:6.3f},   "
-                    "'fast' time: {:6.3f}, 'default' time: {:6.3f}".format(
-                        num_qubits, depth, ferr, gerr, speedup, t1, t2
-                    )
-                )
-            print("\nTotal speedup score: {:0.6f}".format(total_speed_score))
-            print("Mean speedup score: {:0.6f}".format(total_speed_score / total_count))
 
 
 if __name__ == "__main__":
-    __glo_verbose__ = ("-v" in sys.argv) or ("--verbose" in sys.argv)
     np.set_printoptions(precision=6, linewidth=256)
     unittest.main()

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,8 +20,8 @@ from qiskit.circuit.library import RXGate, RZGate, RYGate
 
 def place_unitary(unitary: np.ndarray, n: int, j: int) -> np.ndarray:
     """
-    Computes I(j - 1) tensor product U tensor product I(n - j), where U is a unitary matrix
-    of size ``(2, 2)``.
+    Computes ``I(j - 1)`` tensor product ``U`` tensor product ``I(n - j)``,
+    where ``U`` is a unitary matrix of size ``(2, 2)``.
 
     Args:
         unitary: a unitary matrix of size ``(2, 2)``.
@@ -36,7 +36,7 @@ def place_unitary(unitary: np.ndarray, n: int, j: int) -> np.ndarray:
 
 def place_cnot(n: int, j: int, k: int) -> np.ndarray:
     """
-    Places a CNOT from j to k.
+    Places a CNOT from ``j`` to ``k``.
 
     Args:
         n: number of qubits.
@@ -71,7 +71,7 @@ def place_cnot(n: int, j: int, k: int) -> np.ndarray:
 
 def rx_matrix(phi: float) -> np.ndarray:
     """
-    Computes an RX rotation by the angle of ``phi``.
+    Computes an ``RX`` rotation by the angle of ``phi``.
 
     Args:
         phi: rotation angle.
@@ -84,7 +84,7 @@ def rx_matrix(phi: float) -> np.ndarray:
 
 def ry_matrix(phi: float) -> np.ndarray:
     """
-    Computes an RY rotation by the angle of ``phi``.
+    Computes an ``RY`` rotation by the angle of ``phi``.
 
     Args:
         phi: rotation angle.
@@ -97,7 +97,7 @@ def ry_matrix(phi: float) -> np.ndarray:
 
 def rz_matrix(phi: float) -> np.ndarray:
     """
-    Computes an RZ rotation by the angle of ``phi``.
+    Computes an ``RZ`` rotation by the angle of ``phi``.
 
     Args:
         phi: rotation angle.

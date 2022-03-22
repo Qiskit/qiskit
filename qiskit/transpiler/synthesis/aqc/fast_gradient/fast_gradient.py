@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,8 +16,9 @@ Implementation of the fast objective function class.
 
 import warnings
 import numpy as np
+import logging
 
-# from .fast_grad_utils import get_max_num_bits
+from .fast_grad_utils import get_max_num_bits
 from .layer import (
     LayerBase,
     Layer2Q,
@@ -40,28 +41,16 @@ class FastCNOTUnitObjective(ApproximatingObjective):
     """
 
     def __init__(self, num_qubits: int, cnots: np.ndarray):
-        """Constructor."""
         super().__init__()
 
-        self._verbose = 0
-        self._debug = False
-        if self._debug:
-            print("Debugging mode is on")
-        if self._verbose >= 1:
-            print("Gradient:", self.__class__.__name__)
-
-        # assert isinstance(num_qubits, int) and 2 <= num_qubits <= get_max_num_bits()
-        # assert isinstance(cnots, np.ndarray) and cnots.ndim == 2
-        # assert cnots.dtype == np.int64 and cnots.shape[0] == 2
         # pylint: disable=misplaced-comparison-constant
-        # assert np.all(0 <= cnots) and np.all(cnots < num_qubits)
 
         self.num_qubits = num_qubits  # number of qubits
         dim = 2**num_qubits  # actual problem dimension
         depth = cnots.shape[1]
         self._depth = depth  # number of C-layers (circuit depth)
 
-        self._u_mat = np.empty(0)  # reference to external target matrix U
+        self._u_mat = np.empty(0)  # external target matrix U
         self._ucf_mat = PMatrix(mat=None)  # U^dagger @ C @ F
         self._fuc_mat = PMatrix(mat=None)  # F @ U^dagger @ C
         self._ucf_mat.initialize(num_qubits)
@@ -109,12 +98,6 @@ class FastCNOTUnitObjective(ApproximatingObjective):
         See description of the base class method.
         """
         depth, n = self._depth, self.num_qubits
-        # assert depth >= 2
-        # assert isinstance(self.target_matrix, np.ndarray)
-        # assert self.target_matrix.shape == (2**n, 2**n)
-        # assert self.target_matrix.dtype == np.cfloat
-        # assert isinstance(param_values, np.ndarray) and param_values.ndim == 1
-        # assert param_values.size == self.num_thetas and param_values.dtype == np.float64
         self._u_mat = self.target_matrix  # reference to external target matrix U
 
         # Memorize the last angular parameters used to compute the objective.
@@ -133,7 +116,6 @@ class FastCNOTUnitObjective(ApproximatingObjective):
         self._init_layers()
         self._calc_ucf_fuc()
         objective_value = self._calc_objective_function()
-        # assert np.isreal(objective_value)
         return objective_value
 
     def gradient(self, param_values: np.ndarray) -> np.ndarray:
@@ -141,8 +123,6 @@ class FastCNOTUnitObjective(ApproximatingObjective):
         Computes the gradient of objective function.
         See description of the base class method.
         """
-        # assert isinstance(param_values, np.ndarray) and param_values.ndim == 1
-        # assert param_values.size == self.num_thetas and param_values.dtype == np.float64
 
         # If thetas are the same as used for objective value calculation
         # before calling this function, then we re-use the computations,
@@ -157,7 +137,6 @@ class FastCNOTUnitObjective(ApproximatingObjective):
         grad3n = grad[4 * self._depth :].reshape(self.num_qubits, 3)
         self._calc_gradient4d(grad4d)
         self._calc_gradient3n(grad3n)
-        # assert grad.dtype == np.float64
         return grad
 
     def __copy__(self):
@@ -182,7 +161,7 @@ class FastCNOTUnitObjective(ApproximatingObjective):
 
     def _calc_ucf_fuc(self):
         """
-        Computes matrices ucf_mat and fuc_mat. Both remain non-finalized.
+        Computes matrices ``ucf_mat`` and ``fuc_mat``. Both remain non-finalized.
         """
         ucf_mat = self._ucf_mat
         fuc_mat = self._fuc_mat
@@ -215,21 +194,6 @@ class FastCNOTUnitObjective(ApproximatingObjective):
         ucf = self._ucf_mat.finalize(temp_mat=self._tmp1)
         trace_ucf = np.trace(ucf)
         fobj = abs((2**self.num_qubits) - float(np.real(trace_ucf)))
-
-        # No need to finalize both matrices ucf_mat and fuc_mat, just for debugging.
-        if self._debug:
-            fuc = self._fuc_mat.finalize(temp_mat=self._tmp1)
-            trace_fuc = np.trace(fuc)
-            print(
-                "trace relative residual: {:0.16f},  "
-                "trace(ucf_mat): {:f},  trace(fuc_mat): {:f}".format(
-                    abs(trace_ucf - trace_fuc) / max(abs(trace_ucf), abs(trace_fuc)),
-                    trace_ucf,
-                    trace_fuc,
-                )
-            )
-            _eps = float(np.sqrt(np.finfo(np.float64).eps))
-            # assert abs(trace_ucf - trace_fuc) <= _eps + _eps * abs(trace_fuc)
 
         return fobj
 

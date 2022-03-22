@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -57,7 +57,7 @@ class AQC:
         """
         super().__init__()
         self._optimizer = optimizer
-        self._seed = seed or 12345
+        self._seed = seed
 
     def compile_unitary(
         self,
@@ -97,21 +97,13 @@ class AQC:
             np.random.seed(self._seed)
             initial_point = np.random.uniform(0, 2 * np.pi, approximating_objective.num_thetas)
 
-        if hasattr(optimizer, "minimize"):
-            opt_result = optimizer.minimize(
-                fun=approximating_objective.objective,
-                x0=initial_point,
-                jac=approximating_objective.gradient,
-            )
-            approximate_circuit.build(opt_result.x)
-        else:
-            thetas, _, _ = optimizer.optimize(
-                num_vars=initial_point.size,
-                objective_function=approximating_objective.objective,
-                gradient_function=approximating_objective.gradient,
-                initial_point=initial_point,
-            )
-            approximate_circuit.build(thetas)
+        opt_result = optimizer.minimize(
+            fun=approximating_objective.objective,
+            x0=initial_point,
+            jac=approximating_objective.gradient,
+        )
+
+        approximate_circuit.build(opt_result.x)
 
         approx_matrix = Operator(approximate_circuit).data
 

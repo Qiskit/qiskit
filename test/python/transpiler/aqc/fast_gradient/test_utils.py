@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,9 +14,7 @@
 Tests for utility functions.
 """
 
-# import os, sys; sys.path.append(os.getcwd()); print(sys.path) # to run in console
 
-import sys
 import random
 from time import perf_counter
 import unittest
@@ -24,37 +22,9 @@ import test.python.transpiler.aqc.fast_gradient.utils_for_testing as tut
 import numpy as np
 import qiskit.transpiler.synthesis.aqc.fast_gradient.fast_grad_utils as myu
 from qiskit.test import QiskitTestCase
-
-__glo_verbose__ = False
-
-
-def _rx(phi: float) -> np.ndarray:
-    """
-    Returns Rx gate matrix. Function has obvious implementation but creates
-    a temporary array upon every call. This can be inefficient in some cases.
-    """
-    return np.array(
-        [[np.cos(phi / 2), -1j * np.sin(phi / 2)], [-1j * np.sin(phi / 2), np.cos(phi / 2)]],
-        dtype=np.cfloat,
-    )
-
-
-def _ry(phi: float) -> np.ndarray:
-    """
-    Returns Ry gate matrix. Function has obvious implementation but creates
-    a temporary array upon every call. This can be inefficient in some cases.
-    """
-    return np.array(
-        [[np.cos(phi / 2), -np.sin(phi / 2)], [np.sin(phi / 2), np.cos(phi / 2)]], dtype=np.cfloat
-    )
-
-
-def _rz(phi: float) -> np.ndarray:
-    """
-    Returns Rz gate matrix. Function has obvious implementation but creates
-    a temporary array upon every call. This can be inefficient in some cases.
-    """
-    return np.array([[np.exp(-1j * phi / 2), 0], [0, np.exp(1j * phi / 2)]], dtype=np.cfloat)
+from qiskit.transpiler.synthesis.aqc.elementary_operations import rx_matrix as _rx
+from qiskit.transpiler.synthesis.aqc.elementary_operations import ry_matrix as _ry
+from qiskit.transpiler.synthesis.aqc.elementary_operations import rz_matrix as _rz
 
 
 class TestUtils(QiskitTestCase):
@@ -62,15 +32,18 @@ class TestUtils(QiskitTestCase):
     Tests utility functions used by the fast gradient implementation.
     """
 
+    long_test = False  # enables thorough testing
+
+    def setUp(self):
+        super().setUp()
+
     def test_reverse_bits(self):
         """
         Tests the function utils.reverse_bits().
         """
-        if __glo_verbose__:
-            print("\nrunning {:s}() ...".format(self.test_reverse_bits.__name__))
 
         start = perf_counter()
-        nbits = myu.get_max_num_bits() if __glo_verbose__ else 7
+        nbits = myu.get_max_num_bits() if self.long_test else 7
         for x in range(2**nbits):
             y = myu.reverse_bits(x, nbits, enable=True)
             self.assertTrue(x == myu.reverse_bits(y, nbits, enable=True))
@@ -81,15 +54,10 @@ class TestUtils(QiskitTestCase):
         y = myu.reverse_bits(x, nbits, enable=True)
         self.assertTrue(np.all(myu.reverse_bits(y, nbits, enable=True) == x))
 
-        if __glo_verbose__:
-            print("test execution time:", perf_counter() - start)
-
     def test_make_unit_vector(self):
         """
         Tests the function utils_for_testing.make_unit_vector().
         """
-        if __glo_verbose__:
-            print("\nrunning {:s}() ...".format(self.test_make_unit_vector.__name__))
 
         start = perf_counter()
 
@@ -107,28 +75,19 @@ class TestUtils(QiskitTestCase):
             self.assertTrue(vec.dtype == np.int64 and vec.shape == (2**nbits,))
             return vec
 
-        for n in range(1, (11 if __glo_verbose__ else 5) + 1):
+        for n in range(1, (11 if self.long_test else 5) + 1):
             for k in range(2**n):
                 v1 = _make_unit_vector_simple(k, n)
                 v2 = tut.make_unit_vector(k, n)
                 self.assertTrue(np.all(v1 == v2))
 
-            if __glo_verbose__:
-                print(".", end="", flush=True)
-
-        if __glo_verbose__:
-            print("")
-            print("test execution time:", perf_counter() - start)
-
     def test_swap(self):
         """
         Tests the function utils.swap_bits().
         """
-        if __glo_verbose__:
-            print("\nrunning {:s}() ...".format(self.test_swap.__name__))
 
         start = perf_counter()
-        nbits = myu.get_max_num_bits() if __glo_verbose__ else 7
+        nbits = myu.get_max_num_bits() if self.long_test else 7
         for x in range(2**nbits):
             for a in range(nbits):
                 for b in range(nbits):
@@ -137,15 +96,10 @@ class TestUtils(QiskitTestCase):
                     self.assertTrue(((x >> a) & 1) == ((y >> b) & 1))
                     self.assertTrue(((x >> b) & 1) == ((y >> a) & 1))
 
-        if __glo_verbose__:
-            print("test execution time:", perf_counter() - start)
-
     def test_permutations(self):
         """
         Tests various properties of permutations and their compositions.
         """
-        if __glo_verbose__:
-            print("\nrunning {:s}() ...".format(self.test_permutations.__name__))
 
         total_start = perf_counter()
 
@@ -160,9 +114,7 @@ class TestUtils(QiskitTestCase):
             p_mat, q_mat = _perm2_mat(perm), _perm2_mat(inv_perm)
             return perm, inv_perm, p_mat, q_mat
 
-        for n in range(1, (8 if __glo_verbose__ else 5) + 1):
-            if __glo_verbose__:
-                print("n =", n, end="", flush=True)
+        for n in range(1, (8 if self.long_test else 5) + 1):
 
             start = perf_counter()
 
@@ -213,36 +165,22 @@ class TestUtils(QiskitTestCase):
                     )
                 )
 
-            if __glo_verbose__:
-                print(", time = {:0.6f}".format(perf_counter() - start))
-        if __glo_verbose__:
-            print("test execution time:", perf_counter() - total_start)
-
     def test_gates2x2(self):
         """
         Tests implementation of 2x2 gate matrices vs the ones that create and
         return temporary array upon every call (but have more compact code).
         """
-        if __glo_verbose__:
-            print("\nrunning {:s}() ...".format(self.test_gates2x2.__name__))
 
         total_start = perf_counter()
-        _eps = np.finfo(np.float64).eps * 2.0
+        tol = np.finfo(np.float64).eps * 2.0
         out = np.full((2, 2), fill_value=0, dtype=np.cfloat)
-        for test in range(1000 if __glo_verbose__ else 100):
+        for test in range(1000 if self.long_test else 100):
             phi = random.random() * 2.0 * np.pi
-            self.assertTrue(np.allclose(myu.make_rx(phi, out=out), _rx(phi), atol=_eps, rtol=_eps))
-            self.assertTrue(np.allclose(myu.make_ry(phi, out=out), _ry(phi), atol=_eps, rtol=_eps))
-            self.assertTrue(np.allclose(myu.make_rz(phi, out=out), _rz(phi), atol=_eps, rtol=_eps))
-            if test % 100 == 0:
-                if __glo_verbose__:
-                    print(".", end="", flush=True)
-
-        if __glo_verbose__:
-            print("\ntest execution time:", perf_counter() - total_start)
+            self.assertTrue(np.allclose(myu.make_rx(phi, out=out), _rx(phi), atol=tol, rtol=tol))
+            self.assertTrue(np.allclose(myu.make_ry(phi, out=out), _ry(phi), atol=tol, rtol=tol))
+            self.assertTrue(np.allclose(myu.make_rz(phi, out=out), _rz(phi), atol=tol, rtol=tol))
 
 
 if __name__ == "__main__":
-    __glo_verbose__ = ("-v" in sys.argv) or ("--verbose" in sys.argv)
     np.set_printoptions(precision=6, linewidth=256)
     unittest.main()

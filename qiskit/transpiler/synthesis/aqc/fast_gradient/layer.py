@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,7 +18,7 @@ from abc import abstractmethod, ABC
 from typing import Tuple, Optional
 import numpy as np
 from qiskit.transpiler.synthesis.aqc.fast_gradient.fast_grad_utils import (
-    # get_max_num_bits,
+    get_max_num_bits,
     bit_permutation_1q,
     reverse_bits,
     inverse_permutation,
@@ -31,9 +31,9 @@ from qiskit.transpiler.synthesis.aqc.fast_gradient.fast_grad_utils import (
 class LayerBase(ABC):
     """
     Base class for any layer implementation. Each layer here is represented
-    by a 2x2 or 4x4 gate matrix G (applied to 1 or 2 qubits respectively)
+    by a 2x2 or 4x4 gate matrix ``G`` (applied to 1 or 2 qubits respectively)
     interleaved with the identity ones:
-        Layer = I kron I kron ... kron G kron ... kron I kron I
+    ``Layer = I kron I kron ... kron G kron ... kron I kron I``
     """
 
     @abstractmethod
@@ -65,8 +65,6 @@ class Layer1Q(LayerBase):
 
     def __init__(self, nbits: int, k: int, g2x2: Optional[np.ndarray] = None):
         """
-        Constructor.
-
         Args:
             nbits: number of qubits.
             k: index of the bit where gate is applied.
@@ -74,8 +72,6 @@ class Layer1Q(LayerBase):
                   or None (should be set up later).
         """
         super().__init__()
-        # assert isinstance(nbits, int) and 1 <= nbits <= get_max_num_bits()
-        # assert isinstance(k, int) and 0 <= k < nbits
 
         self._nbits = nbits  # number of bits
         self._idx_k = k  # index of the bit where gate is applied
@@ -84,7 +80,6 @@ class Layer1Q(LayerBase):
         self._gmat = np.full((2, 2), fill_value=0, dtype=np.cfloat)
         self._tmp_g = np.full_like(self._gmat, fill_value=0)
         if isinstance(g2x2, np.ndarray):
-            # assert g2x2.shape == (2, 2)
             np.copyto(self._gmat, g2x2)  # todo: why copy?
 
         bit_flip = True
@@ -97,7 +92,6 @@ class Layer1Q(LayerBase):
 
     def set_from_matrix(self, mat: np.ndarray):
         """See base class description."""
-        # assert isinstance(mat, np.ndarray) and mat.shape == (2, 2)
         np.copyto(self._gmat, mat)  # todo: why copy?
 
     def get_attr(self) -> (np.ndarray, np.ndarray, np.ndarray):
@@ -113,8 +107,6 @@ class Layer2Q(LayerBase):
 
     def __init__(self, nbits: int, j: int, k: int, g4x4: Optional[np.ndarray] = None):
         """
-        Constructor.
-
         Args:
             nbits: number of qubits.
             j: index of the first (control) bit.
@@ -123,9 +115,6 @@ class Layer2Q(LayerBase):
                   or None (should be set up later).
         """
         super().__init__()
-        # assert isinstance(nbits, int) and 2 <= nbits <= get_max_num_bits()
-        # assert isinstance(j, int) and isinstance(k, int) and j != k
-        # assert 0 <= j < nbits and 0 <= k < nbits
 
         self._nbits = nbits  # number of bits
         self._idx_j = j  # index of the first (control) bit
@@ -135,10 +124,9 @@ class Layer2Q(LayerBase):
         self._gmat = np.full((4, 4), fill_value=0, dtype=np.cfloat)
         self._tmp_g = np.full_like(self._gmat, fill_value=0)
         if isinstance(g4x4, np.ndarray):
-            # assert g4x4.shape == (4, 4)
             np.copyto(self._gmat, g4x4)
 
-        bit_flip = True  # TODO: is_natural_bit_ordering()
+        bit_flip = True
         dim = 2**nbits
         row_perm = reverse_bits(bit_permutation_2q(n=nbits, j=j, k=k), nbits=nbits, enable=bit_flip)
         col_perm = reverse_bits(np.arange(dim, dtype=np.int64), nbits=nbits, enable=bit_flip)
@@ -148,7 +136,6 @@ class Layer2Q(LayerBase):
 
     def set_from_matrix(self, mat: np.ndarray):
         """See base class description."""
-        # assert isinstance(mat, np.ndarray) and mat.shape == (4, 4)
         np.copyto(self._gmat, mat)
 
     def get_attr(self) -> (np.ndarray, np.ndarray, np.ndarray):
@@ -169,10 +156,7 @@ def init_layer1q_matrices(thetas: np.ndarray, dst: np.ndarray) -> np.ndarray:
     Returns:
         Returns the "dst" array.
     """
-    # assert isinstance(thetas, np.ndarray) and isinstance(dst, np.ndarray)
     n = thetas.shape[0]
-    # assert thetas.shape == (n, 3) and thetas.dtype == np.float64
-    # assert dst.shape == (n, 2, 2) and dst.dtype == np.cfloat
     tmp = np.full((4, 2, 2), fill_value=0, dtype=np.cfloat)
     for k in range(n):
         th = thetas[k]
@@ -197,10 +181,7 @@ def init_layer1q_deriv_matrices(thetas: np.ndarray, dst: np.ndarray) -> np.ndarr
     Returns:
         Returns the "dst" array.
     """
-    # assert isinstance(thetas, np.ndarray) and isinstance(dst, np.ndarray)
     n = thetas.shape[0]
-    # assert thetas.shape == (n, 3) and thetas.dtype == np.float64
-    # assert dst.shape == (n, 3, 2, 2) and dst.dtype == np.cfloat
     y = np.array([[0, -0.5], [0.5, 0]], dtype=np.cfloat)
     z = np.array([[-0.5j, 0], [0, 0.5j]], dtype=np.cfloat)
     tmp = np.full((5, 2, 2), fill_value=0, dtype=np.cfloat)
@@ -232,10 +213,7 @@ def init_layer2q_matrices(thetas: np.ndarray, dst: np.ndarray) -> np.ndarray:
     Returns:
         Returns the "dst" array.
     """
-    # assert isinstance(thetas, np.ndarray) and isinstance(dst, np.ndarray)
     depth = thetas.shape[0]
-    # assert thetas.shape == (depth, 4) and thetas.dtype == np.float64
-    # assert dst.shape == (depth, 4, 4) and dst.dtype == np.cfloat
     for k in range(depth):
         th = thetas[k]
         cs0 = np.cos(0.5 * th[0]).item()
@@ -292,10 +270,7 @@ def init_layer2q_deriv_matrices(thetas: np.ndarray, dst: np.ndarray) -> np.ndarr
     Returns:
         Returns the "dst" array.
     """
-    # assert isinstance(thetas, np.ndarray) and isinstance(dst, np.ndarray)
     depth = thetas.shape[0]
-    # assert thetas.shape == (depth, 4) and thetas.dtype == np.float64
-    # assert dst.shape == (depth, 4, 4, 4) and dst.dtype == np.cfloat
     for k in range(depth):
         th = thetas[k]
         cs0 = np.cos(0.5 * th[0]).item()

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -24,8 +24,6 @@ def _pp(perm: np.ndarray):
     """
     Prints a permutation. The least significant bit is on the left.
     """
-    # assert isinstance(perm, np.ndarray) and perm.dtype == np.int64
-    # assert np.all(perm >= 0)
     if np.amax(perm) >= 2**8:
         print("WARNING: index in permutation should occupy 8 bits or less")
         return
@@ -51,7 +49,6 @@ def _pb(x: int):
     Prints an integer number as a binary string.
     The least significant bit is on the left.
     """
-    # assert isinstance(x, int) and x >= 0
     if x >= 2**8:
         print("WARNING: index value should occupy 8 bits or less")
         return
@@ -62,25 +59,21 @@ def relative_error(a_mat: np.ndarray, b_mat: np.ndarray) -> float:
     """
     Computes relative residual between two matrices in Frobenius norm.
     """
-    # assert isinstance(a_mat, np.ndarray) and isinstance(b_mat, np.ndarray)
     return float(np.linalg.norm(a_mat - b_mat, "fro")) / float(np.linalg.norm(b_mat, "fro"))
 
 
 def make_unit_vector(pos: int, nbits: int) -> np.ndarray:
     """
-    Makes a unit vector e = (0 ... 0 1 0 ... 0) of size 2^nbits with
-    unit at the position 'num'.
-    N O T E: result depends on bit ordering.
+    Makes a unit vector ``e = (0 ... 0 1 0 ... 0)`` of size ``2^n`` with
+    unit at the position ``num``. **Note**: result depends on bit ordering.
 
     Args:
         pos: position of unit in vector.
-        nbits: number of meaningful bit in the number 'pos'.
+        nbits: number of meaningful bit in the number "pos".
 
     Returns:
-        unit vector of size 2^nbits.
+        unit vector of size ``2^n``.
     """
-    # assert isinstance(pos, int) and isinstance(nbits, int)
-    # assert 0 <= pos < 2**nbits
     vec = np.full((2**nbits,), fill_value=0, dtype=np.int64)
     vec[myu.reverse_bits(pos, nbits, enable=not myu.is_natural_bit_ordering())] = 1
     return vec
@@ -94,9 +87,8 @@ def identity_matrix(n: int) -> np.ndarray:
         n: number of bits.
 
     Returns:
-        unit matrix of size 2^n with integer entries.
+        unit matrix of size ``2^n`` with integer entries.
     """
-    # assert isinstance(n, int) and n >= 0
     return np.eye(2**n, dtype=np.int64)
 
 
@@ -127,8 +119,6 @@ def rand_matrix(dim: int, kind: str = "complex") -> np.ndarray:
     Returns:
         a random matrix.
     """
-    # assert isinstance(dim, int) and dim > 0
-    # assert isinstance(kind, str) and (kind in {"complex", "randint"})
     if kind == "complex":
         return (
             np.random.rand(dim, dim).astype(np.cfloat)
@@ -140,7 +130,7 @@ def rand_matrix(dim: int, kind: str = "complex") -> np.ndarray:
 
 def make_test_matrices2x2(n: int, k: int, kind: str = "complex") -> Tuple[np.ndarray, np.ndarray]:
     """
-    Creates a 2^n x 2^n random matrix made as a Kronecker product of identity
+    Creates a ``2^n x 2^n`` random matrix made as a Kronecker product of identity
     ones and a single 1-qubit gate. This models a layer in quantum circuit with
     an arbitrary 1-qubit gate somewhere in the middle.
 
@@ -150,13 +140,9 @@ def make_test_matrices2x2(n: int, k: int, kind: str = "complex") -> Tuple[np.nda
         kind: entries of the output matrix are defined as:
               "complex", "primes" or "randint".
     Returns:
-        A tuple of (1) 2^n x 2^n random matrix; (2) 2 x 2 matrix of 1-qubit
+        A tuple of (1) ``2^n x 2^n`` random matrix; (2) ``2 x 2`` matrix of 1-qubit
           gate used for matrix construction.
-    TODO: bit ordering might be an issue in case of natural ordering???
     """
-    # assert isinstance(n, int) and isinstance(k, int)
-    # assert 0 <= k < n and 2 <= n <= myu.get_max_num_bits()
-    # assert isinstance(kind, str) and (kind in {"complex", "primes", "randint"})
     if kind == "primes":
         a_mat = np.array([[2, 3], [5, 7]], dtype=np.int64)
     else:
@@ -169,7 +155,7 @@ def make_test_matrices4x4(
     n: int, j: int, k: int, kind: str = "complex"
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Creates a 2^n x 2^n random matrix made as a Kronecker product of identity
+    Creates a ``2^n x 2^n`` random matrix made as a Kronecker product of identity
     ones and a single 2-qubit gate. This models a layer in quantum circuit with
     an arbitrary 2-qubit gate somewhere in the middle.
 
@@ -181,13 +167,9 @@ def make_test_matrices4x4(
               "complex", "primes" or "randint".
 
     Returns:
-        A tuple of (1) 2^n x 2^n random matrix; (2) 4 x 4 matrix of
+        A tuple of (1) ``2^n x 2^n`` random matrix; (2) ``4 x 4`` matrix of
         2-qubit gate used for matrix construction.
-    TODO: bit ordering might be an issue in case of natural ordering.
     """
-    # assert isinstance(n, int) and isinstance(j, int) and isinstance(k, int)
-    # assert j != k and 0 <= j < n and 0 <= k < n and 2 <= n <= myu.get_max_num_bits()
-    # assert isinstance(kind, str) and (kind in {"complex", "primes", "randint"})
     if kind == "primes":
         a_mat = np.array([[2, 3], [5, 7]], dtype=np.int64)
         b_mat = np.array([[11, 13], [17, 19]], dtype=np.int64)
@@ -227,16 +209,11 @@ def rand_su_mat(dim: int) -> np.ndarray:
     """
     Generates a random SU matrix.
     Args:
-        dim: matrix size dim-x-dim.
+        dim: matrix size ``dim-x-dim``.
     Returns:
         random SU matrix.
     """
-    # tol = float(np.sqrt(np.finfo(np.float64).eps))
-    # assert isinstance(dim, (int, np.int64)) and dim >= 4
+    tol = float(np.sqrt(np.finfo(np.float64).eps))
     u_mat = unitary_group.rvs(dim)
     u_mat /= np.linalg.det(u_mat) ** (1.0 / float(dim))
-    # assert u_mat.dtype == np.cfloat
-    # assert abs(np.linalg.det(u_mat) - 1.0) < tol
-    # assert np.allclose(np.conj(u_mat).T @ u_mat, np.eye(dim), atol=tol, rtol=tol)
-    # assert np.allclose(u_mat @ np.conj(u_mat).T, np.eye(dim), atol=tol, rtol=tol)
     return u_mat
