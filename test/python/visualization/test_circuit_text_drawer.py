@@ -635,6 +635,81 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.append(CPhaseGate(pi / 2), [qr[2], qr[0]])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_text_cu1_condition(self):
+        """Test cu1 with condition"""
+        expected = "\n".join(
+            [
+                "                      ",
+                "q_0: ────────■────────",
+                "             │U1(π/2) ",
+                "q_1: ────────■────────",
+                "             ║        ",
+                "q_2: ────────╫────────",
+                "             ║        ",
+                "c_0: ════════╬════════",
+                "             ║        ",
+                "c_1: ════════■════════",
+                "            0x1       ",
+                "c_2: ═════════════════",
+                "                      ",
+            ]
+        )
+        qr = QuantumRegister(3, "q")
+        cr = ClassicalRegister(3, "c")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.append(CU1Gate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
+        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
+
+    def test_text_rzz_condition(self):
+        """Test rzz with condition"""
+        expected = "\n".join(
+            [
+                "                      ",
+                "q_0: ────────■────────",
+                "             │ZZ(π/2) ",
+                "q_1: ────────■────────",
+                "             ║        ",
+                "q_2: ────────╫────────",
+                "             ║        ",
+                "c_0: ════════╬════════",
+                "             ║        ",
+                "c_1: ════════■════════",
+                "            0x1       ",
+                "c_2: ═════════════════",
+                "                      ",
+            ]
+        )
+        qr = QuantumRegister(3, "q")
+        cr = ClassicalRegister(3, "c")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.append(RZZGate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
+        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
+
+    def test_text_cp_condition(self):
+        """Test cp with condition"""
+        expected = "\n".join(
+            [
+                "                    ",
+                "q_0: ───────■───────",
+                "            │P(π/2) ",
+                "q_1: ───────■───────",
+                "            ║       ",
+                "q_2: ───────╫───────",
+                "            ║       ",
+                "c_0: ═══════╬═══════",
+                "            ║       ",
+                "c_1: ═══════■═══════",
+                "           0x1      ",
+                "c_2: ═══════════════",
+                "                    ",
+            ]
+        )
+        qr = QuantumRegister(3, "q")
+        cr = ClassicalRegister(3, "c")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.append(CPhaseGate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
+        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
+
     def test_text_cu1_reverse_bits(self):
         """cu1 drawing with reverse_bits"""
         expected = "\n".join(
@@ -2922,9 +2997,9 @@ class TestTextConditional(QiskitTestCase):
                 "qr_1: |0>──╫──┤ H ├",
                 "           ║  └─╥─┘",
                 " cr_0: 0 ══■════╬══",
-                "                ║  ",
+                "          0x1   ║  ",
                 " cr_1: 0 ═══════o══",
-                "                   ",
+                "               0x0 ",
             ]
         )
 
@@ -3020,7 +3095,7 @@ class TestTextConditional(QiskitTestCase):
                 "cs_0: ══╬═════",
                 "        ║     ",
                 "cs_1: ══o═════",
-                "              ",
+                "       0x0    ",
                 "cs_2: ════════",
                 "              ",
             ]
@@ -3111,7 +3186,7 @@ class TestTextConditional(QiskitTestCase):
                 "cr: 2/══╬══",
                 "        ║  ",
                 "   1: ══o══",
-                "           ",
+                "       0x0 ",
                 "   0: ═════",
                 "           ",
             ]
@@ -3123,6 +3198,39 @@ class TestTextConditional(QiskitTestCase):
                 )
             ),
             expected,
+        )
+
+    def test_text_condition_bits_list(self):
+        """Test text drawer using gate with condition on a list of bits."""
+        clbits = [Clbit(), Clbit(), Clbit()]
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qr, clbits, cr)
+        circuit.x(0).c_if([cr[0], clbits[1], cr[1], clbits[2]], 11)
+
+        expected = "\n".join(
+            [
+                "      ┌───┐",
+                "qr_0: ┤ X ├",
+                "      └─╥─┘",
+                "qr_1: ──╫──",
+                "        ║  ",
+                "   0: ══╬══",
+                "        ║  ",
+                "   1: ══■══",
+                "        ║  ",
+                "   2: ══■══",
+                "        ║  ",
+                "cr_0: ══■══",
+                "        ║  ",
+                "cr_1: ══o══",
+                "       0xb ",
+                "cr_2: ═════",
+                "           ",
+            ]
+        )
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, cregbundle=False, initial_state=False)), expected
         )
 
 

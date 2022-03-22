@@ -666,9 +666,14 @@ def _parse_basis_gates(basis_gates, backend, circuits):
 def _parse_inst_map(inst_map, backend, num_circuits):
     # try getting inst_map from user, else backend
     if inst_map is None:
-        if hasattr(backend, "defaults"):
-            inst_map = getattr(backend.defaults(), "instruction_schedule_map", None)
-
+        backend_version = getattr(backend, "version", 0)
+        if not isinstance(backend_version, int):
+            backend_version = 0
+        if backend_version <= 1:
+            if hasattr(backend, "defaults"):
+                inst_map = getattr(backend.defaults(), "instruction_schedule_map", None)
+        else:
+            inst_map = backend.target.instruction_schedule_map()
     # inst_maps could be None, or single entry
     if inst_map is None or isinstance(inst_map, InstructionScheduleMap):
         inst_map = [inst_map] * num_circuits
@@ -948,8 +953,8 @@ def _parse_instruction_durations(backend, inst_durations, dt, circuits):
         if circ.calibrations:
             cal_durations = []
             for gate, gate_cals in circ.calibrations.items():
-                for (qubits, _), schedule in gate_cals.items():
-                    cal_durations.append((gate, qubits, schedule.duration))
+                for (qubits, parameters), schedule in gate_cals.items():
+                    cal_durations.append((gate, qubits, parameters, schedule.duration))
             circ_durations.update(cal_durations, circ_durations.dt)
 
         if inst_durations:

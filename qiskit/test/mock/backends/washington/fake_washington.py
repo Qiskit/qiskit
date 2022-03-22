@@ -15,13 +15,14 @@ Fake Washington device (127 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_qasm_backend
+from qiskit.test.mock import fake_pulse_backend
 
 
-class FakeWashington(fake_qasm_backend.FakeQasmBackend):
+class FakeWashington(fake_pulse_backend.FakePulseBackend):
     """A fake 127 qubit backend."""
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_washington.json"
     props_filename = "props_washington.json"
+    defs_filename = "defs_washington.json"
     backend_name = "fake_washington"

@@ -49,7 +49,6 @@ Standard Gates
    MCXGrayCode
    MCXRecursive
    MCXVChain
-   MSGate
    PhaseGate
    RCCXGate
    RC3XGate
@@ -61,7 +60,7 @@ Standard Gates
    RZGate
    RZZGate
    RZXGate
-   XYGate
+   XXPlusYYGate
    ECRGate
    SGate
    SdgGate
@@ -104,12 +103,14 @@ Generalized Gates
    MCMTVChain
    Permutation
    GMS
+   MSGate
    GR
    GRX
    GRY
    GRZ
    RVGate
    PauliGate
+   LinearFunction
 
 Boolean Logic Circuits
 ======================
@@ -370,12 +371,14 @@ from .generalized_gates import (
     MCMTVChain,
     Permutation,
     GMS,
+    MSGate,
     GR,
     GRX,
     GRY,
     GRZ,
     RVGate,
     PauliGate,
+    LinearFunction,
 )
 from .pauli_evolution import PauliEvolutionGate
 from .boolean_logic import (
