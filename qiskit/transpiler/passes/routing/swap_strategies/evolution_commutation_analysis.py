@@ -61,7 +61,7 @@ class FindCommutingPauliEvolutions(AnalysisPass):
 
     @staticmethod
     def summands_commute(operator: SparsePauliOp) -> bool:
-        """Check if all summands in the operator we evolve commute.
+        """Check if all summands in the evolved operator commute.
 
         Args:
             operator: The operator on which we check if all summands commute.
