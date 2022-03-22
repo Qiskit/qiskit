@@ -48,26 +48,27 @@ def validate_hamiltonian_form(hamiltonian: Union[SummedOp, PauliOp]):
     Raises:
         ValueError: if an invalid Hamiltonian is provided.
     """
+    value_error = ValueError(
+        "Hamiltonian term has a coefficient that is not a linear function of a "
+        "single parameter. It is not supported."
+    )
     if isinstance(hamiltonian, SummedOp):
         if isinstance(hamiltonian.coeff, ParameterExpression):
             raise ValueError(
-                "The coefficient multiplying the whole Hamiltonian cannot be a "
-                "ParameterExpression."
+                f"The coefficient multiplying the whole Hamiltonian cannot be a "
+                f"ParameterExpression. The following coefficient was detected: {hamiltonian.coeff}."
             )
         for op in hamiltonian.oplist:
             if not _is_pauli_lin_single_param(op):
-                raise ValueError(
-                    "Hamiltonian term has a coefficient that is not a linear function of a "
-                    "single parameter. It is not supported."
-                )
+                raise value_error
     elif isinstance(hamiltonian, PauliOp):
         if not _is_pauli_lin_single_param(hamiltonian):
-            raise ValueError(
-                "Hamiltonian term has a coefficient that is not a linear function of a "
-                "single parameter. It is not supported."
-            )
+            raise value_error
     else:
-        raise ValueError("Hamiltonian not a SummedOp/PauliOp which are the only options supported.")
+        raise ValueError(
+            f"Hamiltonian not a SummedOp/PauliOp which are the only options supported. The "
+            f"following type detected instead: {type(hamiltonian)}."
+        )
 
 
 def _is_pauli_lin_single_param(operator: PauliOp) -> bool:

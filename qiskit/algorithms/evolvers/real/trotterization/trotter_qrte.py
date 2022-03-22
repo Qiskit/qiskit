@@ -55,23 +55,45 @@ class TrotterQrte(RealEvolver):
 
     def __init__(
         self,
-        quantum_instance: Union[QuantumInstance, BaseBackend, Backend],
-        product_formula: ProductFormula = LieTrotter(),
+        product_formula: ProductFormula = None,
         expectation: Optional[ExpectationBase] = None,
+        quantum_instance: Union[QuantumInstance, BaseBackend, Backend] = None,
     ) -> None:
         """
         Args:
-            quantum_instance: A quantum instance used for calculations.
             product_formula: A Lie-Trotter-Suzuki product formula. The default is the Lie-Trotter
                 first order product formula with a single repetition.
             expectation: An instance of ExpectationBase which defines a method for calculating
                 expectation values of EvolutionProblem.aux_operators.
+            quantum_instance: A quantum instance used for calculations.
         """
-        self.product_formula = product_formula
+        if product_formula is None:
+            product_formula = LieTrotter()
+        self._product_formula = product_formula
         self._quantum_instance = quantum_instance
         self._expectation = expectation
 
         self._circuit_sampler = CircuitSampler(quantum_instance)
+
+    @property
+    def product_formula(self) -> ProductFormula:
+        """Returns a product formula used in the algorithm."""
+        return self._product_formula
+
+    @property
+    def quantum_instance(self) -> Union[QuantumInstance, BaseBackend, Backend]:
+        """Returns a quantum instance used in the algorithm."""
+        return self._quantum_instance
+
+    @quantum_instance.setter
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]):
+        """Sets a quantum instance used in the algorithm."""
+        self._quantum_instance = quantum_instance
+
+    @property
+    def expectation(self) -> ExpectationBase:
+        """Returns an expectation used in the algorithm."""
+        return self._expectation
 
     @classmethod
     def supports_aux_operators(cls) -> bool:
@@ -79,7 +101,8 @@ class TrotterQrte(RealEvolver):
         Whether computing the expectation value of auxiliary operators is supported.
 
         Returns:
-            True if aux_operator expectations can be evaluated, False otherwise.
+            True if `aux_operators` expectations in the EvolutionProblem can be evaluated, False
+                otherwise.
         """
         return True
 
@@ -87,7 +110,8 @@ class TrotterQrte(RealEvolver):
         """
         Evolves a quantum state for a given time using the Trotterization method
         based on a product formula provided.
-        Time-dependent Hamiltonians are not yet supported.
+
+        Note: Time-dependent Hamiltonians are not yet supported.
 
         Args:
             evolution_problem: Instance defining evolution problem. For the included Hamiltonian,
@@ -97,12 +121,22 @@ class TrotterQrte(RealEvolver):
             Evolution result that includes an evolved state.
 
         Raises:
-            ValueError: If t_param is not set to None (feature not currently supported).
+            ValueError: If `t_param` is not set to None in the EvolutionProblem (feature not
+                currently supported).
+            ValueError: If the `initial_state` is not provided in the EvolutionProblem.
         """
         if evolution_problem.t_param is not None:
             raise ValueError(
                 "TrotterQrte does not accept a time dependent hamiltonian,"
-                "t_param should be set to None."
+                "`t_param` from the EvolutionProblem should be set to None."
+            )
+
+        if evolution_problem.aux_operators is not None and (
+            self._quantum_instance is None or self._expectation is None
+        ):
+            raise ValueError(
+                "aux_operators where provided for evaluations but no `expectation` or "
+                "`quantum_instance` was provided."
             )
 
         hamiltonian = self._try_binding_params(
@@ -110,7 +144,7 @@ class TrotterQrte(RealEvolver):
         )
         # the evolution gate
         evolution_gate = CircuitOp(
-            PauliEvolutionGate(hamiltonian, evolution_problem.time, synthesis=self.product_formula)
+            PauliEvolutionGate(hamiltonian, evolution_problem.time, synthesis=self._product_formula)
         )
 
         if evolution_problem.initial_state is not None:
@@ -118,22 +152,17 @@ class TrotterQrte(RealEvolver):
             evolved_state = self._circuit_sampler.convert(quantum_state).eval()
 
         else:
-            raise ValueError("initial_state must be provided.")
+            raise ValueError("`initial_state` must be provided in the EvolutionProblem.")
 
         evaluated_aux_ops = None
         if evolution_problem.aux_operators is not None:
-            if self._quantum_instance is not None and self._expectation is not None:
-                evaluated_aux_ops = eval_observables(
-                    self._quantum_instance,
-                    quantum_state.primitive,
-                    evolution_problem.aux_operators,
-                    self._expectation,
-                    algorithm_globals.numerical_tolerance_at_0,
-                )
-            else:
-                raise ValueError(
-                    "aux_operators where provided for evaluations but no expectation was provided."
-                )
+            evaluated_aux_ops = eval_observables(
+                self._quantum_instance,
+                quantum_state.primitive,
+                evolution_problem.aux_operators,
+                self._expectation,
+                algorithm_globals.numerical_tolerance_at_0,
+            )
 
         return EvolutionResult(evolved_state.eval(), evaluated_aux_ops)
 

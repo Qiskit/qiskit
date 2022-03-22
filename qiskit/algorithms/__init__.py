@@ -106,6 +106,7 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
 
     RealEvolver
     ImaginaryEvolver
+    TrotterQrte
     EvolutionResult
     EvolutionProblem
 
@@ -243,6 +244,7 @@ from .phase_estimators import (
 )
 from .exceptions import AlgorithmError
 from .aux_ops_evaluator import eval_observables
+from .evolvers.real.trotterization import TrotterQrte
 
 __all__ = [
     "AlgorithmResult",
@@ -266,6 +268,7 @@ __all__ = [
     "NumPyEigensolver",
     "RealEvolver",
     "ImaginaryEvolver",
+    "TrotterQrte",
     "EvolutionResult",
     "EvolutionProblem",
     "LinearSolverResult",

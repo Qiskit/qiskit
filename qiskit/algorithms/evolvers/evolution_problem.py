@@ -23,9 +23,8 @@ from ..list_or_dict import ListOrDict
 class EvolutionProblem:
     """Evolution problem class.
 
-    This class is the input to time evolution algorithms and contains
-    information on e.g. the total evolution time and under which Hamiltonian
-    the state is evolved.
+    This class is the input to time evolution algorithms and must contain information on the total
+    evolution time, a quantum state to be evolved and under which Hamiltonian the state is evolved.
     """
 
     def __init__(
