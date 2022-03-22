@@ -496,7 +496,7 @@ class DAGCircuit:
         self._increment_op(op)
         return node_index
 
-    def _copy_circuit_metadata(self):
+    def copy_circuit_metadata(self):
         """Return a copy of source_dag with metadata but empty."""
         target_dag = DAGCircuit()
         target_dag.name = self.name
@@ -1542,7 +1542,7 @@ class DAGCircuit:
                 return
 
             # Construct a shallow copy of self
-            new_layer = self._copy_circuit_metadata()
+            new_layer = self.copy_circuit_metadata()
 
             for node in op_nodes:
                 # this creates new DAGOpNodes in the new_layer
@@ -1562,7 +1562,7 @@ class DAGCircuit:
         same structure as in layers().
         """
         for next_node in self.topological_op_nodes():
-            new_layer = self._copy_circuit_metadata()
+            new_layer = self.copy_circuit_metadata()
 
             # Save the support of the operation we add to the layer
             support_list = []
