@@ -42,7 +42,7 @@ class StatePreparation(Gate):
         params: Union[str, list, Statevector],
         num_qubits: int = None,
         inverse: bool = False,
-        label: Optional[str] = None,
+        label: Optional[str] = "State Preparation",
     ):
         r"""
         Args:
@@ -78,7 +78,8 @@ class StatePreparation(Gate):
         """
         self._params_arg = params
         self._inverse = inverse
-        self._name = "State Preparation Dg" if self._inverse else "State Preparation"
+        self._name = "state_preparation_dg" if self._inverse else "state_preparation"
+        self._label = f"{label} Dg" if self._inverse else label
 
         if isinstance(params, Statevector):
             params = params.data
@@ -95,7 +96,7 @@ class StatePreparation(Gate):
 
         params = [params] if isinstance(params, int) else params
 
-        super().__init__(self._name, num_qubits, params, label=label)
+        super().__init__(self._name, num_qubits, params, label=self._label)
 
     def _define(self):
         if self._from_label:
@@ -201,7 +202,7 @@ class StatePreparation(Gate):
 
     def inverse(self):
         """Return inverted StatePreparation"""
-        return StatePreparation(self._params_arg, inverse=not self._inverse)
+        return StatePreparation(self._params_arg, inverse=not self._inverse, label=self._label)
 
     def broadcast_arguments(self, qargs, cargs):
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]
@@ -438,7 +439,7 @@ def prepare_state(self, state, qubits=None):
         .. parsed-literal::
 
                  ┌─────────────────────────────────────┐
-            q_0: ┤ State preparation(0.70711,-0.70711) ├
+            q_0: ┤ State Preparation(0.70711,-0.70711) ├
                  └─────────────────────────────────────┘
 
 
@@ -462,7 +463,7 @@ def prepare_state(self, state, qubits=None):
 
                  ┌─────────────────────────┐
             q_0: ┤0                        ├
-                 │  State preparation(0,1) │
+                 │  State Preparation(0,1) │
             q_1: ┤1                        ├
                  └─────────────────────────┘
 
@@ -483,7 +484,7 @@ def prepare_state(self, state, qubits=None):
 
                  ┌───────────────────────────────────────────┐
             q_0: ┤0                                          ├
-                 │  State preparation(0,0.70711,-0.70711j,0) │
+                 │  State Preparation(0,0.70711,-0.70711j,0) │
             q_1: ┤1                                          ├
                  └───────────────────────────────────────────┘
     """
