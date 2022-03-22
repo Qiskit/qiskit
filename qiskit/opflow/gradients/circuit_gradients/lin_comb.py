@@ -653,7 +653,6 @@ class LinComb(CircuitGradient):
         elif aux_meas_op == -Y:
             pbc = PauliBasisChange(replacement_fn=PauliBasisChange.measurement_replacement_fn)
             pbc = pbc.convert(aux_meas_op ^ (I ^ (state.num_qubits - 1)))
-            print(state)
             state = pbc[-1] @ state
             return -1 * ListOp(
                 [state],
