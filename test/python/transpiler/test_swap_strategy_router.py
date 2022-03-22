@@ -50,7 +50,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         )
 
     def test_basic_zz(self):
-        """Test that we can decompose a ZZ-based evolution op.
+        """Test to decompose a ZZ-based evolution op.
 
         The expected circuit is:
 
@@ -84,7 +84,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         self.assertEqual(swapped, expected)
 
     def test_basic_xx(self):
-        """Test that we can route an XX-based evolution op.
+        """Test to route an XX-based evolution op.
 
         The op is :code:`[("XXII", -1), ("IIXX", 1), ("XIIX", -2), ("IXIX", 2)]`.
 
@@ -122,7 +122,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         self.assertEqual(swapped, expected)
 
     def test_basic_xx_with_measure(self):
-        """Test that we can route an XX-based evolution op with measures.
+        """Test to route an XX-based evolution op with measures.
 
         The op is :code:`[("XXII", -1), ("IIXX", 1), ("XIIX", -2), ("IXIX", 2)]`.
 
@@ -172,8 +172,8 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
     def test_qaoa(self):
         """Test the QAOA with a custom mixer.
 
-        This test ensures that single-qubit gates end up on the correct qubits. As mixer
-        we use Ry gates and the operator is :code:`[("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)]`.
+        This test ensures that single-qubit gates end up on the correct qubits. The mixer
+        uses Ry gates and the operator is :code:`[("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)]`.
 
         ..parsed-literal:
 
@@ -310,7 +310,7 @@ class TestSwapRouterExceptions(QiskitTestCase):
             pm_.run(self.circ)
 
     def test_invalid_flaged_op(self):
-        """Test that we raise if an invalid op has been flagged."""
+        """Test to raise if an invalid op has been flagged."""
 
         pm_ = PassManager([FlagAllOps(), PauliEvolutionGateRouter(self.swap_strat)])
 
@@ -321,7 +321,7 @@ class TestSwapRouterExceptions(QiskitTestCase):
             pm_.run(circ)
 
     def test_deficient_swap_strategy(self):
-        """Check that we raise when we cannot implement all edges."""
+        """Test to raise when all edges cannot be implemented."""
 
         pm_ = PassManager([FindCommutingPauliEvolutions(), PauliEvolutionGateRouter()])
 

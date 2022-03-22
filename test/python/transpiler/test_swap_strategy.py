@@ -103,7 +103,7 @@ class TestSwapStrategy(QiskitTestCase):
         self.assertEqual(edge_set, set(swapped_map.get_edges()))
 
     def test_check_configuration(self):
-        """Test that we cannot initialize a swap strategy that is invalid."""
+        """Test that tries to initialize an invalid swap strategy."""
         with self.assertRaises(QiskitError):
             SwapStrategy(
                 coupling_map=self.line_coupling_map,
@@ -122,7 +122,7 @@ class TestSwapStrategy(QiskitTestCase):
         self.assertEqual(line_distance_matrix, self.line_strategy.distance_matrix)
 
     def test_reaches_full_connectivity(self):
-        """Test that we reach full connectivity on the longest line of Mumbai."""
+        """Test to reach full connectivity on the longest line of Mumbai."""
 
         # The longest line on e.g. Mumbai has the qubits
         ll27 = [
@@ -216,7 +216,7 @@ class TestLineSwapStrategy(QiskitTestCase):
             LineSwapStrategy([1], 0)
 
     def test_full_line(self):
-        """Test that we reach full connectivity on a line."""
+        """Test to reach full connectivity on a line."""
 
         n_nodes = 5
         strategy = LineSwapStrategy(list(range(n_nodes)))

@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""An analysis class to find evolution gates in which the Paulis commute."""
+"""An analysis pass to find evolution gates in which the Paulis commute."""
 
 from abc import abstractmethod
 from collections import defaultdict
@@ -139,7 +139,7 @@ class SwapStrategyRouter(TransformationPass):
                 no swap strategy in the property set.
         """
         if self._swap_strategy is None:
-            swap_strategy = self.property_set.get("swap_strategy", None)
+            swap_strategy = self.property_set["swap_strategy"]
 
             if swap_strategy is None:
                 raise TranspilerError("No swap strategy given at init or in the property set.")

@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""An analysis class to find evolution gates in which the Paulis commute."""
+"""An analysis pass to find evolution gates in which the Paulis commute."""
 
 import warnings
 
@@ -64,7 +64,7 @@ class FindCommutingPauliEvolutions(AnalysisPass):
         """Check if all summands in the evolved operator commute.
 
         Args:
-            operator: The operator on which we check if all summands commute.
+            operator: The operator to check if all its summands commute.
 
         Returns:
             True if all summands commute, False otherwise.

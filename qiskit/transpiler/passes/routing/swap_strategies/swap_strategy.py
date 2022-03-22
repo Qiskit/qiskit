@@ -139,7 +139,6 @@ class SwapStrategy:
             for j in range(i):
                 if self.distance_matrix[i][j] == idx:
                     connections.append({i, j})
-
         return connections
 
     def _build_edges(self) -> Set[Tuple[int, int]]:
