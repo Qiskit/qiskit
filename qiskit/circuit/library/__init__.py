@@ -92,7 +92,7 @@ For example:
    RZGate
    RZZGate
    RZXGate
-   XYGate
+   XXPlusYYGate
    ECRGate
    SGate
    SdgGate
@@ -164,6 +164,7 @@ set the amount of qubits involved at instantiation time.
    MCXVChain
    RVGate
    PauliGate
+   LinearFunction
 
 Boolean Logic Circuits
 ======================
@@ -466,12 +467,14 @@ from .generalized_gates import (
     MCMTVChain,
     Permutation,
     GMS,
+    MSGate,
     GR,
     GRX,
     GRY,
     GRZ,
     RVGate,
     PauliGate,
+    LinearFunction,
 )
 from .pauli_evolution import PauliEvolutionGate
 from .boolean_logic import (

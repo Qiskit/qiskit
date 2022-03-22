@@ -18,7 +18,7 @@ import unittest
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.circuit.library import U2Gate
+from qiskit.circuit.library import U2Gate, SwapGate, CXGate
 from qiskit.extensions import UnitaryGate
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import ConsolidateBlocks
@@ -26,6 +26,7 @@ from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.measures import process_fidelity
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
+from qiskit.transpiler import Target
 from qiskit.transpiler.passes import Collect1qRuns
 from qiskit.transpiler.passes import Collect2qBlocks
 
@@ -357,6 +358,53 @@ class TestConsolidateBlocks(QiskitTestCase):
         pass_manager.append(consolidate_block_pass)
         expected = QuantumCircuit(2)
         expected.unitary(np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]]), [0, 1])
+        self.assertEqual(expected, pass_manager.run(qc))
+
+    def test_single_gate_block_outside_basis_with_target(self):
+        """Test a gate outside basis defined in target gets converted."""
+        qc = QuantumCircuit(2)
+        target = Target(num_qubits=2)
+        # Add ideal basis gates to all qubits
+        target.add_instruction(CXGate())
+        qc.swap(0, 1)
+        consolidate_block_pass = ConsolidateBlocks(target=target)
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(consolidate_block_pass)
+        expected = QuantumCircuit(2)
+        expected.unitary(np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]]), [0, 1])
+        self.assertEqual(expected, pass_manager.run(qc))
+
+    def test_single_gate_block_outside_local_basis_with_target(self):
+        """Test that a gate in basis but outside valid qubits is treated as outside basis with target."""
+        qc = QuantumCircuit(2)
+        target = Target(num_qubits=2)
+        # Add ideal cx to (1, 0) only
+        target.add_instruction(CXGate(), {(1, 0): None})
+        qc.cx(0, 1)
+        consolidate_block_pass = ConsolidateBlocks(target=target)
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(consolidate_block_pass)
+        expected = QuantumCircuit(2)
+        expected.unitary(np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]]), [0, 1])
+        self.assertEqual(expected, pass_manager.run(qc))
+
+    def test_single_gate_block_outside_target_with_matching_basis_gates(self):
+        """Ensure the target is the source of truth with basis_gates also set."""
+        qc = QuantumCircuit(2)
+        target = Target(num_qubits=2)
+        # Add ideal cx to (1, 0) only
+        target.add_instruction(SwapGate())
+        qc.swap(0, 1)
+        consolidate_block_pass = ConsolidateBlocks(
+            basis_gates=["id", "cx", "rz", "sx", "x"], target=target
+        )
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(consolidate_block_pass)
+        expected = QuantumCircuit(2)
+        expected.swap(0, 1)
         self.assertEqual(expected, pass_manager.run(qc))
 
 
