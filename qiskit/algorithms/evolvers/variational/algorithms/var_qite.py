@@ -17,19 +17,18 @@ from typing import Optional, Union, Callable
 import numpy as np
 from scipy.integrate import OdeSolver, RK45
 
-from qiskit.algorithms import ImaginaryEvolver, EvolutionProblem, eval_observables
-from qiskit.algorithms.evolvers.evolution_result import EvolutionResult
-from qiskit.algorithms.evolvers.variational.variational_principles.imaginary.imaginary_variational_principle import (
-    ImaginaryVariationalPrinciple,
-)
-from qiskit.algorithms.evolvers.variational.solvers.ode.abstract_ode_function_generator import (
+from qiskit.algorithms import EvolutionProblem, EvolutionResult, ImaginaryEvolver, eval_observables
+from .var_qte import VarQTE
+from ..solvers.ode.abstract_ode_function_generator import (
     AbstractOdeFunctionGenerator,
+)
+from ..variational_principles.imaginary.imaginary_variational_principle import (
+    ImaginaryVariationalPrinciple,
 )
 from qiskit.opflow import (
     StateFn,
     ExpectationBase,
 )
-from qiskit.algorithms.evolvers.variational.algorithms.var_qte import VarQTE
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 

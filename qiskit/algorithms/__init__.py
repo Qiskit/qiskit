@@ -245,8 +245,8 @@ from .phase_estimators import (
 )
 from .exceptions import AlgorithmError
 from .aux_ops_evaluator import eval_observables
-from .evolvers.variational.algorithms.var_qite import VarQITE
-from .evolvers.variational.algorithms.var_qrte import VarQRTE
+from .evolvers.variational import VarQITE
+from .evolvers.variational import VarQRTE
 
 __all__ = [
     "AlgorithmResult",

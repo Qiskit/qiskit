@@ -14,19 +14,18 @@
 
 import unittest
 
-from qiskit.algorithms import EvolutionProblem
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
-
+from qiskit.quantum_info import state_fidelity, Statevector
+from qiskit.algorithms import EvolutionProblem
+from qiskit.algorithms.evolvers.variational.algorithms.var_qrte import VarQRTE
 from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_generator import (
     OdeFunctionGenerator,
 )
-from qiskit.quantum_info import state_fidelity, Statevector
 from qiskit.algorithms.evolvers.variational.variational_principles.real.implementations.real_mc_lachlan_variational_principle import (
     RealMcLachlanVariationalPrinciple,
 )
 from qiskit import Aer
-from qiskit.algorithms.evolvers.variational.algorithms.var_qrte import VarQRTE
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import (
     SummedOp,

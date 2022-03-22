@@ -17,15 +17,14 @@ from typing import Optional, Union, Callable
 import numpy as np
 from scipy.integrate import OdeSolver, RK45
 
-from qiskit.algorithms import RealEvolver, EvolutionProblem, eval_observables
-from qiskit.algorithms.evolvers.evolution_result import EvolutionResult
-from qiskit.algorithms.evolvers.variational.variational_principles.real.real_variational_principle import (
-    RealVariationalPrinciple,
-)
-from qiskit.algorithms.evolvers.variational.solvers.ode.abstract_ode_function_generator import (
+from qiskit.algorithms import EvolutionProblem, EvolutionResult, RealEvolver, eval_observables
+from .var_qte import VarQTE
+from ..solvers.ode.abstract_ode_function_generator import (
     AbstractOdeFunctionGenerator,
 )
-from qiskit.algorithms.evolvers.variational.algorithms.var_qte import VarQTE
+from ..variational_principles.real.real_variational_principle import (
+    RealVariationalPrinciple,
+)
 from qiskit.opflow import (
     StateFn,
     ExpectationBase,
