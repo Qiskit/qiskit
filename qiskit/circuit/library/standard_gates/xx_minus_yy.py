@@ -50,7 +50,7 @@ class XXMinusYYGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        R_{XX-YY}(\theta, \beta)\ q_0, q_1 =
+        R_{XX-YY}(\theta, \beta) q_0, q_1 =
           RZ_1(\beta) \cdot exp(-i \frac{\theta}{2} \frac{XX-YY}{2}) \cdot RZ_1(-\beta) =
             \begin{pmatrix}
                 \cos(\th)             & 0 & 0 & -i\sin(\th)e^{-i\beta}  \\
@@ -80,7 +80,7 @@ class XXMinusYYGate(Gate):
 
             \newcommand{\th}{\frac{\theta}{2}}
 
-            R_{XX-YY}(\theta, \beta)\ q_1, q_0 =
+            R_{XX-YY}(\theta, \beta) q_1, q_0 =
             RZ_0(\beta) \cdot exp(-i \frac{\theta}{2} \frac{XX-YY}{2}) \cdot RZ_0(-\beta) =
                 \begin{pmatrix}
                     \cos(\th)             & 0 & 0 & -i\sin(\th)e^{i\beta}  \\
@@ -124,7 +124,6 @@ class XXMinusYYGate(Gate):
             rz(beta) b;
         }
         """
-        # pylint: disable=cyclic-import
         theta, beta = self.params
         register = QuantumRegister(2, "q")
         circuit = QuantumCircuit(register, name=self.name)
