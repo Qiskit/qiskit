@@ -131,7 +131,7 @@ class AlignMeasures(TransformationPass):
         #
         # * some validations for non-scheduled nodes are dropped, since we assume scheduled input
         # * pad_with_delay is called only with non-delay node to avoid consecutive delay
-        new_dag = dag.copy_circuit_metadata()
+        new_dag = dag.copy_empty_like()
 
         qubit_time_available = defaultdict(int)  # to track op start time
         qubit_stop_times = defaultdict(int)  # to track delay start time for padding

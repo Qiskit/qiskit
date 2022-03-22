@@ -349,8 +349,8 @@ class TestDagWireRemoval(QiskitTestCase):
         self.assert_clbits_equal(self.original_clbits, excluding={self.individual_clbit})
 
     def test_copy_circuit_metadata(self):
-        """Copy dag circuit metadata with copy_circuit_metadata."""
-        result_dag = self.dag.copy_circuit_metadata()
+        """Copy dag circuit metadata with copy_empty_like."""
+        result_dag = self.dag.copy_empty_like()
         self.assertEqual(self.dag.name, result_dag.name)
         self.assertEqual(self.dag.metadata, result_dag.metadata)
         self.assertEqual(self.dag.clbits, result_dag.clbits)
