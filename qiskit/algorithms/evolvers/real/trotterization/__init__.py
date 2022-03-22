@@ -19,7 +19,7 @@ a Hamiltonian is time-dependent via t_param = Parameter("t")) and/or w.r.t. para
 Hamiltonian using an expectation value through a custom observable."""
 
 from qiskit.algorithms.evolvers.real.trotterization.trotter_qrte import (
-    TrotterQrte,
+    TrotterQRTE,
 )
 
-__all__ = ["TrotterQrte"]
+__all__ = ["TrotterQRTE"]

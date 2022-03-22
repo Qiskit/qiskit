@@ -28,11 +28,11 @@ from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.providers import Backend, BaseBackend
 from qiskit.synthesis import ProductFormula, LieTrotter
 from qiskit.utils import QuantumInstance, algorithm_globals
-from .trotter_ops_validator import is_op_bound
+from .trotter_ops_validator import is_op_bound, validate_hamiltonian_form
 
 
-class TrotterQrte(RealEvolver):
-    """ Class for performing Quantum Real Time Evolution using Trotterization.
+class TrotterQRTE(RealEvolver):
+    """Class for performing Quantum Real Time Evolution using Trotterization.
     Type of Trotterization is defined by a ProductFormula provided.
 
     Examples:
@@ -40,24 +40,26 @@ class TrotterQrte(RealEvolver):
         .. jupyter-execute::
 
             from qiskit.opflow import X, Y, Zero
-            from qiskit.algorithms import EvolutionProblem, EvolutionResult
-            from qiskit.algorithms.evolvers.real.implementations.\
-                trotterization.trotter_qrte import TrotterQrte
+            from qiskit.algorithms import EvolutionProblem, TrotterQRTE
+            from qiskit import BasicAer
+            from qiskit.utils import QuantumInstance
 
             operator = X + Z
             initial_state = Zero
             time = 1
             evolution_problem = EvolutionProblem(operator, 1, initial_state)
             # LieTrotter with 1 rep
-            trotter_qrte = TrotterQrte(evolution_problem)
-            evolved_state = trotter_qrte.evolve().evolved_state
+            backend = BasicAer.get_backend("statevector_simulator")
+            quantum_instance = QuantumInstance(backend=backend)
+            trotter_qrte = TrotterQRTE(quantum_instance=quantum_instance)
+            evolved_state = trotter_qrte.evolve(evolution_problem).evolved_state
     """
 
     def __init__(
         self,
-        product_formula: ProductFormula = None,
+        product_formula: Optional[ProductFormula] = None,
         expectation: Optional[ExpectationBase] = None,
-        quantum_instance: Union[QuantumInstance, BaseBackend, Backend] = None,
+        quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
     ) -> None:
         """
         Args:
@@ -111,7 +113,8 @@ class TrotterQrte(RealEvolver):
         Evolves a quantum state for a given time using the Trotterization method
         based on a product formula provided.
 
-        Note: Time-dependent Hamiltonians are not yet supported.
+        .. note::
+            Time-dependent Hamiltonians are not yet supported.
 
         Args:
             evolution_problem: Instance defining evolution problem. For the included Hamiltonian,
@@ -138,7 +141,7 @@ class TrotterQrte(RealEvolver):
                 "aux_operators where provided for evaluations but no `expectation` or "
                 "`quantum_instance` was provided."
             )
-
+        validate_hamiltonian_form(evolution_problem.hamiltonian)
         hamiltonian = self._try_binding_params(
             evolution_problem.hamiltonian, evolution_problem.hamiltonian_value_dict
         )
@@ -206,8 +209,3 @@ class TrotterQrte(RealEvolver):
 
             is_op_bound(op_bound)
             return op_bound
-        else:
-            raise ValueError(
-                f"Provided a Hamiltonian of an unsupported type: {type(hamiltonian)}. Only "
-                f"SummedOp, PauliOp are supported by TrotterQrte."
-            )

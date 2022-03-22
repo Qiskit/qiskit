@@ -244,7 +244,7 @@ from .phase_estimators import (
 )
 from .exceptions import AlgorithmError
 from .aux_ops_evaluator import eval_observables
-from .evolvers.real.trotterization import TrotterQrte
+from .evolvers.real.trotterization import TrotterQRTE
 
 __all__ = [
     "AlgorithmResult",
@@ -268,7 +268,7 @@ __all__ = [
     "NumPyEigensolver",
     "RealEvolver",
     "ImaginaryEvolver",
-    "TrotterQrte",
+    "TrotterQRTE",
     "EvolutionResult",
     "EvolutionProblem",
     "LinearSolverResult",

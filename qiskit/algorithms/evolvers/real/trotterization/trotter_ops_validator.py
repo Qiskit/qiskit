@@ -31,7 +31,7 @@ def is_op_bound(operator: Union[SummedOp, PauliOp]) -> None:
     Raises:
         ValueError: If an operator has unbound parameters.
     """
-    if len(operator.parameters) > 0:
+    if len(operator.parameters) != 0:
         raise ValueError(
             f"Did not manage to bind all parameters in the Hamiltonian, "
             f"these parameters encountered: {operator.parameters}."
