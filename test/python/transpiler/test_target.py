@@ -27,6 +27,7 @@ from qiskit.circuit.library import (
     ECRGate,
     UGate,
     CCXGate,
+    RZXGate,
 )
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.parameter import Parameter
@@ -39,6 +40,7 @@ from qiskit.transpiler import Target
 from qiskit.transpiler import InstructionProperties
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock.fake_backend_v2 import FakeBackendV2
+from qiskit.test.mock.fake_mumbai_v2 import FakeMumbaiV2
 
 
 class TestTarget(QiskitTestCase):
@@ -930,6 +932,67 @@ Instructions:
         self.assertTrue(self.fake_backend_target.instruction_supported("cx", (0, 1)))
         self.assertFalse(self.fake_backend_target.instruction_supported("cx", (1, 0)))
         self.assertFalse(self.ideal_sim_target.instruction_supported("cx", (0, 1, 2)))
+
+    def test_instruction_supported_parameters(self):
+        mumbai = FakeMumbaiV2()
+        self.assertTrue(
+            mumbai.target.instruction_supported(
+                qargs=(0, 1), operation_class=RZXGate, parameters=[math.pi / 4]
+            )
+        )
+        self.assertTrue(mumbai.target.instruction_supported(qargs=(0, 1), operation_class=RZXGate))
+        self.assertTrue(
+            mumbai.target.instruction_supported(operation_class=RZXGate, parameters=[math.pi / 4])
+        )
+        self.assertFalse(mumbai.target.instruction_supported("rzx", parameters=[math.pi / 4]))
+        self.assertTrue(mumbai.target.instruction_supported("rz", parameters=[Parameter("angle")]))
+        self.assertTrue(
+            mumbai.target.instruction_supported("rzx_45", qargs=(0, 1), parameters=[math.pi / 4])
+        )
+        self.assertTrue(mumbai.target.instruction_supported("rzx_45", qargs=(0, 1)))
+        self.assertTrue(mumbai.target.instruction_supported("rzx_45", parameters=[math.pi / 4]))
+        self.assertFalse(mumbai.target.instruction_supported("rzx_45", parameters=[math.pi / 6]))
+        self.assertFalse(
+            mumbai.target.instruction_supported("rzx_45", parameters=[Parameter("angle")])
+        )
+        self.assertTrue(
+            self.ideal_sim_target.instruction_supported(
+                qargs=(0,), operation_class=RXGate, parameters=[Parameter("angle")]
+            )
+        )
+        self.assertTrue(
+            self.ideal_sim_target.instruction_supported(
+                qargs=(0,), operation_class=RXGate, parameters=[math.pi]
+            )
+        )
+        self.assertTrue(
+            self.ideal_sim_target.instruction_supported(
+                operation_class=RXGate, parameters=[math.pi]
+            )
+        )
+        self.assertTrue(
+            self.ideal_sim_target.instruction_supported(
+                operation_class=RXGate, parameters=[Parameter("angle")]
+            )
+        )
+        self.assertTrue(
+            self.ideal_sim_target.instruction_supported(
+                "rx", qargs=(0,), parameters=[Parameter("angle")]
+            )
+        )
+        self.assertTrue(
+            self.ideal_sim_target.instruction_supported("rx", qargs=(0,), parameters=[math.pi])
+        )
+        self.assertTrue(self.ideal_sim_target.instruction_supported("rx", parameters=[math.pi]))
+        self.assertTrue(
+            self.ideal_sim_target.instruction_supported("rx", parameters=[Parameter("angle")])
+        )
+
+    def test_instruction_supported_no_args(self):
+        self.assertFalse(self.ibm_target.instruction_supported())
+
+    def test_instruction_supported_no_operation(self):
+        self.assertFalse(self.ibm_target.instruction_supported(qargs=(0,), parameters=[math.pi]))
 
 
 class TestPulseTarget(QiskitTestCase):
