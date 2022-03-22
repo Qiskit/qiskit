@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    
+    The a new method :meth:`qiskit.dagcircuit.DAGCircuit.copy_circuit_metadata` allows to create a new
+    :class:`qiskit.dagcircuit.DAGCircuit` with the same metadata. The method used to be internal and now is public.
