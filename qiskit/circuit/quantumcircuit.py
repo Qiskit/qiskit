@@ -1156,11 +1156,6 @@ class QuantumCircuit:
                 return self._clbits[specifier]
             except IndexError:
                 raise CircuitError(f"Classical bit index {specifier} is out-of-range.") from None
-        if isinstance(specifier, list):
-            for bit in specifier:
-                if bit not in self._clbit_indices:
-                    raise CircuitError(f"Clbit {specifier} is not present in this circuit.")
-                return specifier
         raise CircuitError(f"Unknown classical resource specifier: '{specifier}'.")
 
     def append(
