@@ -1,3 +1,5 @@
+
+   
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2018, 2021.
@@ -311,14 +313,11 @@ class TestQAOA(QiskitAlgorithmsTestCase):
 
     def _get_operator(self, weight_matrix):
         """Generate Hamiltonian for the max-cut problem of a graph.
-
         Args:
             weight_matrix (numpy.ndarray) : adjacency matrix.
-
         Returns:
             PauliSumOp: operator for the Hamiltonian
             float: a constant shift for the obj function.
-
         """
         num_nodes = weight_matrix.shape[0]
         pauli_list = []
@@ -337,10 +336,8 @@ class TestQAOA(QiskitAlgorithmsTestCase):
 
     def _get_graph_solution(self, x: np.ndarray) -> str:
         """Get graph solution from binary string.
-
         Args:
             x : binary string as numpy array.
-
         Returns:
             a graph solution as string.
         """
@@ -351,7 +348,6 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         """Compute the most likely binary string from state vector.
         Args:
             state_vector (numpy.ndarray or dict): state vector or counts.
-
         Returns:
             numpy.ndarray: binary string as numpy.ndarray of ints.
         """

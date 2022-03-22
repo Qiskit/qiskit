@@ -19,14 +19,12 @@ from typing import List, Optional, Tuple, Union
 import numpy as np
 from itertools import combinations_with_replacement, permutations, product
 
-from qiskit.circuit.library.n_local import QAOAAnsatz
-from qiskit.circuit.library.evolved_operator_ansatz import _is_pauli_identity
-from qiskit.circuit.parametervector import ParameterVector
-from qiskit.circuit import QuantumCircuit
-from qiskit.opflow import PauliSumOp, PauliOp, OperatorBase
-from qiskit.pulse.builder import num_qubits
+from qiskit.circuit import QuantumCircuit, ParameterVector
+from qiskit.opflow import PauliSumOp, PauliOp, OperatorBase, PrimitiveOp
 from qiskit.quantum_info import Pauli, SparsePauliOp, Operator
-from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
+from qiskit.circuit.library.evolved_operator_ansatz import _is_pauli_identity
+from qiskit.circuit.library.n_local import QAOAAnsatz
+
 
 
 def _reordered_indices(num_cost: int, num_mixer: list, opt_inputs: bool = False):
@@ -35,30 +33,30 @@ def _reordered_indices(num_cost: int, num_mixer: list, opt_inputs: bool = False)
     # with more than 1 parameters, from (cost_1, mixer_1a, mixer_1b, cost_2, ...)
     # to (cost_1, cost_2, ..., mixer_1a, mixer_1b, mixer_2a, mixer_2b, ...)
     gamma_indices, beta_indices = [], []
-    if opt_inputs:
-        cost_p, mix_p, p = 0, 0, 0
-        while p < num_cost + len(num_mixer):
-            if mix_p < len(num_mixer):
-                p_beta = num_mixer[mix_p] + p
-                beta_indices.extend(list(range(p, p_beta)))
-                p += num_mixer[cost_p]
-            gamma_indices.extend(list(range(p, p + 1)))
-            mix_p += 1
-            cost_p += 1
-            p += 1
-    else:
-        rep = 0
-        for rep_cost in range(num_cost):
-            if num_cost>0:
-                gamma_indices.extend(list(range(rep,rep+1)))
-            rep+=1
-            if rep_cost < len(num_mixer):
-                rep_mix = num_mixer[rep_cost]
-                beta_indices.extend(list(range(rep,rep_mix+rep)))
-            rep+=rep_mix
-
+    rep = 0
+    for rep_cost in range(num_cost):
+        if num_cost>0:
+            gamma_indices.extend(list(range(rep,rep+1)))
+        rep+=1
+        if rep_cost < len(num_mixer):
+            rep_mix = num_mixer[rep_cost]
+            beta_indices.extend(list(range(rep,rep_mix+rep)))
+        rep+=rep_mix
     return gamma_indices, beta_indices
 
+# TODO: Implement compute_energy_gradient in here rather than adapt_qaoa.
+"""
+I think it makes more logical sense for compute_energy_gradient/ _test_mixer_pool functions 
+to be placed in adaptansatz. The reason is because we would like to build the ansatz based
+on the user-defined cost function.
+
+The parameter reps is somewhat useless here since the length of mixer_operators should define
+the ansatz depth. This is because for len(mixer_operators)==1 and reps>1, parameter optimisation
+for a set of initial values must completed (which is the function of adaptqaoa class.)
+
+
+
+"""
 
 def adapt_mixer_pool(
     num_qubits: int, add_single: bool = True, add_multi: bool = True, pool_type: str = None
@@ -78,7 +76,7 @@ def adapt_mixer_pool(
         List of all possible combinations of mixers.
 
     Raises:
-        ValueError: If an unrecognisible mixer type has been provided.
+        KeyError: If an unrecognisible mixer type has been provided.
     """
     if pool_type:
         if pool_type == "multi":
@@ -88,7 +86,7 @@ def adapt_mixer_pool(
         elif pool_type == "single":
             add_multi, add_single = False, False
         else:
-            raise ValueError(
+            raise KeyError(
                 "Unrecognised mixer pool type '{}', modify this input to the available presets"
                 " 'single', 'singular' or 'multi'.".format(pool_type)
             )
@@ -163,8 +161,8 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
         super().__init__(reps=reps, name=name, cost_operator=cost_operator)
         self._reps = reps
         self._initial_state = initial_state
-        self._mixer_pool_type = mixer_pool_type
         self._mixer_pool = mixer_operators
+        self._mixer_pool_type = mixer_pool_type
         # set this circuit as a not-built circuit
         self._bounds = None
 
@@ -236,11 +234,8 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
         """
         
         if hasattr(self,'_num_cost'):
-            # self._bounds = [(-0.5 * np.pi, 0.5 * np.pi)] * sum(self._num_mixer)
-            # self._bounds += [(-2 * np.pi, 2 * np.pi)] * self._num_cost
             self._bounds = [(-0.5 * np.pi, 0.5 * np.pi)] * sum(self._num_mixer)
             self._bounds += [(-2 * np.pi, 2 * np.pi)] * self._num_cost
-
         return self._bounds
 
     @parameter_bounds.setter
@@ -290,10 +285,15 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
         if self._mixer_pool is not None:
             return self._mixer_pool
         # if no mixer is passed and we know the number of qubits, then initialize it.
-        if self.cost_operator is not None:
-            mixer_pool = adapt_mixer_pool(
+        if self.cost_operator is not None:  # Generate the complete set of mixers for   
+            all_mixers = adapt_mixer_pool(  # problem dimension
                 num_qubits=self.num_qubits, pool_type=self._mixer_pool_type
             )
+            mixer_pool = []
+            for mix in all_mixers:  # remove mixers that commute with cost operator
+                comm = commutator(self.cost_operator,mix)
+                if np.count_nonzero(comm)>0: 
+                    mixer_pool.append(mix)
             self._mixer_pool = mixer_pool
             return mixer_pool
         return None
@@ -343,9 +343,15 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
 
         betas = ParameterVector("β", sum(self._num_mixer))
         gammas = ParameterVector("γ", self._num_cost)
-        gamma_index, beta_index = _reordered_indices(num_mixer=self._num_mixer, #TODO: Order is reversed here!!
+        gamma_index, beta_index = _reordered_indices(num_mixer=self._num_mixer,
                                                     num_cost=self._num_cost)
-        reordered = np.array([None]*(sum(self._num_mixer)+self._num_cost))
+        reordered = np.array([None] * (sum(self._num_mixer) + self._num_cost))
         reordered[gamma_index] = [_ for _ in gammas]
         reordered[beta_index] = [_ for _ in betas]
         self.assign_parameters(dict(zip(self.ordered_parameters, reordered)), inplace=True)
+
+def commutator(a,b):
+    "Qiskit commutator produces incorrect results, using this instead."
+    a = a if isinstance(a, np.ndarray) else a.to_matrix()
+    b = b if isinstance(b, np.ndarray) else b.to_matrix()    
+    return np.matmul(a, b) - np.matmul(b, a)

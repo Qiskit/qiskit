@@ -249,6 +249,7 @@ N-local circuits
    EfficientSU2
    ExcitationPreserving
    QAOAAnsatz
+   AdaptQAOAAnsatz
 
 
 Data encoding circuits
@@ -412,6 +413,7 @@ from .n_local import (
     EfficientSU2,
     ExcitationPreserving,
     QAOAAnsatz,
+   #  AdaptQAOAAnsatz,
 )
 from .data_preparation import PauliFeatureMap, ZFeatureMap, ZZFeatureMap
 from .quantum_volume import QuantumVolume

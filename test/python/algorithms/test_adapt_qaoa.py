@@ -13,9 +13,7 @@
 """ Test AdaptQAOA """
 
 import math
-from qiskit.algorithms.optimizers.optimizer import Optimizer
 import unittest
-from functools import reduce
 from itertools import combinations_with_replacement, permutations, product
 from qiskit.test import QiskitTestCase  # test.python.algorithms import QiskitAlgorithmsTestCase
 
@@ -27,10 +25,8 @@ from qiskit.circuit import Parameter
 from ddt import ddt, idata, unpack
 from qiskit import BasicAer, QuantumCircuit, QuantumRegister
 from qiskit.algorithms import AdaptQAOA
-from qiskit.algorithms.optimizers import COBYLA
 from qiskit.circuit.library import IGate, XGate, YGate, ZGate
-from qiskit.opflow import I, PauliSumOp, X, Y, Z
-from qiskit.opflow.primitive_ops import PauliOp
+from qiskit.opflow import I, PauliSumOp, X, Y, Z, PauliOp
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.utils import QuantumInstance, algorithm_globals
 global OPTIMIZER
@@ -71,11 +67,16 @@ def _create_mixer_pool(num_q, add_multi, circ):
         if circ:
             qr = QuantumRegister(num_q)
             op = QuantumCircuit(qr)
+            theta = Parameter("θ")
             for i, mix in enumerate(mix_str):
-                qiskit_dict = {"I": IGate(), "X": XGate(), "Y": YGate(), "Z": ZGate()}
-
-                mix_qis_gate = qiskit_dict[mix]
-                op.append(mix_qis_gate, [i])
+                if mix == 'X':
+                    op.rx(theta, [i])
+                elif mix == 'Y':
+                    op.ry(theta, [i])
+                elif mix == 'Z':
+                    op.rz(theta, [i])
+                else:
+                    op.append(IGate(),[i])
         else:
             if mix_str == len(mix_str) * mix_str[0]:
                 gate = mix_str[0]
@@ -128,6 +129,7 @@ class TestAdaptQAOA(QiskitTestCase):
         )
         self.statevector_simulator = QuantumInstance(
             BasicAer.get_backend("statevector_simulator"),
+            shots=4096,
             seed_simulator=self.seed,
             seed_transpiler=self.seed,
         )
@@ -161,9 +163,9 @@ class TestAdaptQAOA(QiskitTestCase):
 
     @idata(
         [
-            [W1, P1, S1, False],    #TODO: mismatch err
+            [W1, P1, S1, False],
             [W2, P2, S2, False],    
-            [W1, P1, S1, True], 
+            [W1, P1, S1, True],
             [W2, P2, S2, True],
         ]
     )
@@ -190,7 +192,6 @@ class TestAdaptQAOA(QiskitTestCase):
             mixer_pool=mixer,
             quantum_instance=self.statevector_simulator,
         )
-
         result = adapt_qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
@@ -201,15 +202,11 @@ class TestAdaptQAOA(QiskitTestCase):
         qubit_op, _ = self._get_operator(W1)
 
         adapt_qaoa = AdaptQAOA(
-            optimizer=OPTIMIZER,
-            max_reps=2,
-            mixer_pool_type="multi",
+            mixer_pool_type = "multi",
             quantum_instance=self.statevector_simulator,
         )
-
         result = adapt_qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
-        self.log.debug(x)
         graph_solution = self._get_graph_solution(x)
         self.assertIn(graph_solution, S1)
 
@@ -234,7 +231,6 @@ class TestAdaptQAOA(QiskitTestCase):
             mixer_pool=mixer,
             quantum_instance=self.statevector_simulator,
         )
-
         result = adapt_qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         self.log.debug(x)
@@ -254,7 +250,6 @@ class TestAdaptQAOA(QiskitTestCase):
             mixer_pool=mixer,
             quantum_instance=self.statevector_simulator,
         )
-
         result = adapt_qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         # we just assert that we get a result, it is not meaningful.
         self.assertIsNotNone(result.eigenstate)
@@ -314,7 +309,6 @@ class TestAdaptQAOA(QiskitTestCase):
             callback=cb_callback,
             quantum_instance=self.statevector_simulator,
         )
-
         result = adapt_qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
@@ -381,24 +375,6 @@ class TestAdaptQAOA(QiskitTestCase):
                         for k in zero_circ_dict.keys():
                             if k != '_definition':  # if its a circuit they wont be equal due to varied mixers.
                                 self.assertEqual(zero_circ_dict[k],custom_circ_dict[k])
-
-
-    def test_adapt_qaoa_random_initial_point(self):
-        """AdaptQAOA random initial point"""
-        w = rx.adjacency_matrix(
-            rx.undirected_gnp_random_graph(5, 0.5, seed=algorithm_globals.random_seed)
-        )
-        qubit_op, _ = self._get_operator(w)
-
-        adapt_qaoa = AdaptQAOA(
-            optimizer=OPTIMIZER,
-            max_reps=1,
-            quantum_instance=self.qasm_simulator,
-        )
-
-        result = adapt_qaoa.compute_minimum_eigenvalue(operator=qubit_op)
-
-        self.assertLess(result.eigenvalue.real, -0.97)
 
     def _get_operator(self, weight_matrix):
         """Generate Hamiltonian for the max-cut problem of a graph.
@@ -478,12 +454,3 @@ class TestAdaptQAOA(QiskitTestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-
-    """ To fix:
-        - test_adapt_qaoa_qc_mixer:
-            - Doesn't like circuits as mixers
-        - test_adapt_qaoa_qc_mixer_many_parameters
-    
-    
-    """
