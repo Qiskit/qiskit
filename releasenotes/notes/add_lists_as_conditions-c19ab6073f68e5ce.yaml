@@ -1,0 +1,16 @@
+---
+features:
+  - |
+    Add the option to use a list of :class:`.Clbit`\ s for a
+    classical condition on a gate. The bits may be a mix of bits from a
+    :class:`.ClassicalRegister` or bits without a register.
+
+    .. code-block::
+
+        from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister, Clbit
+
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(2, "cr")
+        clbits = [Clbit(), Clbit()]
+        circuit = QuantumCircuit(qr, cr, clbits)
+        circuit.h(0).c_if([cr[0], clbits[1], cr[1], clbits[0]], 11)

@@ -622,6 +622,107 @@ class TestDynamicalDecoupling(QiskitTestCase):
 
         self.assertEqual(pm.run(circ).duration, rx_duration + 100 + 300)
 
+    def test_insert_dd_ghz_xy4_with_alignment(self):
+        """Test DD with pulse alignment constraints.
+
+                   ┌───┐            ┌───────────────┐      ┌───┐      ┌───────────────┐»
+        q_0: ──────┤ H ├─────────■──┤ Delay(40[dt]) ├──────┤ X ├──────┤ Delay(70[dt]) ├»
+             ┌─────┴───┴─────┐ ┌─┴─┐└───────────────┘┌─────┴───┴─────┐└─────┬───┬─────┘»
+        q_1: ┤ Delay(50[dt]) ├─┤ X ├────────■────────┤ Delay(20[dt]) ├──────┤ X ├──────»
+             ├───────────────┴┐└───┘      ┌─┴─┐      └───────────────┘      └───┘      »
+        q_2: ┤ Delay(750[dt]) ├───────────┤ X ├──────────────■─────────────────────────»
+             ├────────────────┤           └───┘            ┌─┴─┐                       »
+        q_3: ┤ Delay(950[dt]) ├────────────────────────────┤ X ├───────────────────────»
+             └────────────────┘                            └───┘                       »
+        «           ┌───┐      ┌───────────────┐      ┌───┐      ┌───────────────┐»
+        «q_0: ──────┤ Y ├──────┤ Delay(70[dt]) ├──────┤ X ├──────┤ Delay(70[dt]) ├»
+        «     ┌─────┴───┴─────┐└─────┬───┬─────┘┌─────┴───┴─────┐└─────┬───┬─────┘»
+        «q_1: ┤ Delay(20[dt]) ├──────┤ Y ├──────┤ Delay(20[dt]) ├──────┤ X ├──────»
+        «     └───────────────┘      └───┘      └───────────────┘      └───┘      »
+        «q_2: ────────────────────────────────────────────────────────────────────»
+        «                                                                         »
+        «q_3: ────────────────────────────────────────────────────────────────────»
+        «                                                                         »
+        «           ┌───┐      ┌───────────────┐
+        «q_0: ──────┤ Y ├──────┤ Delay(50[dt]) ├─────────────────
+        «     ┌─────┴───┴─────┐└─────┬───┬─────┘┌───────────────┐
+        «q_1: ┤ Delay(20[dt]) ├──────┤ Y ├──────┤ Delay(20[dt]) ├
+        «     └───────────────┘      └───┘      └───────────────┘
+        «q_2: ───────────────────────────────────────────────────
+        «
+        «q_3: ───────────────────────────────────────────────────
+        «
+        """
+        dd_sequence = [XGate(), YGate(), XGate(), YGate()]
+        pm = PassManager(
+            [
+                ALAPSchedule(self.durations),
+                DynamicalDecoupling(
+                    self.durations,
+                    dd_sequence,
+                    pulse_alignment=10,
+                    extra_slack_distribution="edges",
+                ),
+            ]
+        )
+
+        ghz4_dd = pm.run(self.ghz4)
+
+        expected = self.ghz4.copy()
+        expected = expected.compose(Delay(50), [1], front=True)
+        expected = expected.compose(Delay(750), [2], front=True)
+        expected = expected.compose(Delay(950), [3], front=True)
+
+        expected = expected.compose(Delay(40), [0])
+        expected = expected.compose(XGate(), [0])
+        expected = expected.compose(Delay(70), [0])
+        expected = expected.compose(YGate(), [0])
+        expected = expected.compose(Delay(70), [0])
+        expected = expected.compose(XGate(), [0])
+        expected = expected.compose(Delay(70), [0])
+        expected = expected.compose(YGate(), [0])
+        expected = expected.compose(Delay(50), [0])
+
+        expected = expected.compose(Delay(20), [1])
+        expected = expected.compose(XGate(), [1])
+        expected = expected.compose(Delay(20), [1])
+        expected = expected.compose(YGate(), [1])
+        expected = expected.compose(Delay(20), [1])
+        expected = expected.compose(XGate(), [1])
+        expected = expected.compose(Delay(20), [1])
+        expected = expected.compose(YGate(), [1])
+        expected = expected.compose(Delay(20), [1])
+
+        self.assertEqual(ghz4_dd, expected)
+
+    def test_dd_can_sequentially_called(self):
+        """Test if sequentially called DD pass can output the same circuit.
+
+        This test verifies:
+        - if global phase is properly propagated from the previous padding node.
+        - if node_start_time property is properly updated for new dag circuit.
+        """
+        dd_sequence = [XGate(), YGate(), XGate(), YGate()]
+
+        pm1 = PassManager(
+            [
+                ALAPSchedule(self.durations),
+                DynamicalDecoupling(self.durations, dd_sequence, qubits=[0]),
+                DynamicalDecoupling(self.durations, dd_sequence, qubits=[1]),
+            ]
+        )
+        circ1 = pm1.run(self.ghz4)
+
+        pm2 = PassManager(
+            [
+                ALAPSchedule(self.durations),
+                DynamicalDecoupling(self.durations, dd_sequence, qubits=[0, 1]),
+            ]
+        )
+        circ2 = pm2.run(self.ghz4)
+
+        self.assertEqual(circ1, circ2)
+
 
 if __name__ == "__main__":
     unittest.main()

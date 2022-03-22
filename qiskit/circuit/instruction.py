@@ -30,7 +30,7 @@ Instructions are identified by the following:
 Instructions do not have any context about where they are in a circuit (which qubits/clbits).
 The circuit itself keeps this context.
 """
-import warnings
+
 import copy
 from itertools import zip_longest
 from typing import List
@@ -322,20 +322,6 @@ class Instruction:
         else:
             raise TypeError("label expects a string or None")
 
-    def mirror(self):
-        """DEPRECATED: use instruction.reverse_ops().
-
-        Return:
-            qiskit.circuit.Instruction: a new instruction with sub-instructions
-                reversed.
-        """
-        warnings.warn(
-            "instruction.mirror() is deprecated. Use circuit.reverse_ops()"
-            "to reverse the order of gates.",
-            DeprecationWarning,
-        )
-        return self.reverse_ops()
-
     def reverse_ops(self):
         """For a composite instruction, reverse the order of sub-instructions.
 
@@ -405,17 +391,30 @@ class Instruction:
 
     def c_if(self, classical, val):
         """Set a classical equality condition on this instruction between the register or cbit
-        ``classical`` and value ``val``.
+        or list of cbits, ``classical`` and value ``val``.
 
         .. note::
 
             This is a setter method, not an additive one.  Calling this multiple times will silently
             override any previously set condition; it does not stack.
         """
-        if not isinstance(classical, (ClassicalRegister, Clbit)):
-            raise CircuitError("c_if must be used with a classical register or classical bit")
+        if not isinstance(classical, (ClassicalRegister, Clbit)) and not all(
+            isinstance(cbit, Clbit) for cbit in classical
+        ):
+            raise CircuitError(
+                "c_if must be used with a classical register, a bit or a list of classical bits"
+            )
         if val < 0:
             raise CircuitError("condition value should be non-negative")
+
+        if (isinstance(classical, ClassicalRegister) and val >= 2**classical.size) or (
+            isinstance(classical, list) and val >= 2 ** len(classical)
+        ):
+            raise CircuitError("condition value should be less than 2 ^ number of bits")
+
+        if isinstance(classical, Clbit) and int(val) > 1:
+            raise CircuitError("condition value should be 0/1 or True/False")
+
         if isinstance(classical, Clbit):
             # Casting the conditional value as Boolean when
             # the classical condition is on a classical bit.

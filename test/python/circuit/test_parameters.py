@@ -1681,7 +1681,7 @@ class TestParameterExpressions(QiskitTestCase):
         circlib.CRXGate,
         circlib.CRYGate,
         circlib.CRZGate,
-        circlib.XYGate,
+        circlib.XXPlusYYGate,
     )
     def test_bound_gate_to_matrix(self, gate_class):
         """Test to_matrix works if previously free parameters are bound.
