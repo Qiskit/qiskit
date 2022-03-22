@@ -1,0 +1,31 @@
+---
+features:
+  - |
+    When using the ``latex`` or ``latex_source`` output mode of
+    :meth:`~qiskit.visualization.circuit_drawer` or the
+    :meth:`~qiskit.circuit.QuantumCircuit.draw` of
+    :class:`~qiskit.circuit.QuantumCircuit` the ``style`` kwarg
+    can now be used just as with the ``mpl`` output formatting.
+    However, unlike the ``mpl`` output mode only the ``displaytext``
+    field will be used when using the ``latex`` or ``latex_source`` output
+    modes (because neither supports color).
+  - |
+    When using the ``mpl`` or ``latex`` output methods for the
+    :meth:`~qiskit.visualization.circuit_drawer` function or the
+    :meth:`~qiskit.circuit.QuantumCircuit.draw` of
+    :class:`~qiskit.circuit.QuantumCircuit`, you can now use math mode
+    formatting for text and set color formatting (``mpl`` only)
+    by setting the ``style`` kwarg as a dict
+    with a user-generated name or label. For example, to add subscripts and to
+    change a gate color:
+
+    .. jupyter-execute::
+
+        from qiskit import QuantumCircuit
+        from qiskit.circuit.library import HGate
+        qc = QuantumCircuit(3)
+        qc.append(HGate(label='h1'), [0])
+        qc.append(HGate(label='h2'), [1])
+        qc.append(HGate(label='h3'), [2])
+        qc.draw('mpl', style={'displaytext': {'h1': 'H_1', 'h2': 'H_2', 'h3': 'H_3'},
+            'displaycolor': {'h2': ('#EEDD00', '#FF0000')}})

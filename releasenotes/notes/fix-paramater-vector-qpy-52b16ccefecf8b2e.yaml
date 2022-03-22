@@ -1,0 +1,17 @@
+---
+fixes:
+  - |
+    Fixed :mod:`~qiskit.circuit.qpy_serialization` support for
+    serializing :class:`~qiskit.circuit.QuantumCircuit` objects that are
+    using :class:`.ParameterVector` or :class:`.ParameterVectorElement` as
+    parameters. Previously, a :class:`.ParameterVectorElement` parameter was
+    just treated as a :class:`.Parameter` for QPY serialization which meant
+    the :class:`.ParameterVector` context was lost in QPY and the output
+    order of :attr:`~qiskit.circuit.QuantumCircuit.parameters` could be
+    incorrect.
+
+    To fix this issue a new QPY format version, :ref:`qpy_version_3`, was required.
+    This new format version includes a representation of the
+    :class:`~qiskit.circuit.ParameterVectorElement` class which is
+    described in the :mod:`~qiskit.circuit.qpy_serialization` documentation at
+    :ref:`qpy_param_vector`.

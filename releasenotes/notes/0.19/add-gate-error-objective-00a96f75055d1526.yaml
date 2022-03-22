@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    The values ``"gate_error"`` and ``"balanced"`` are now available for the
+    ``objective`` option in the construction of the
+    :class:`~qiskit.transpiler.passes.BIPMapping` object, and ``"balanced"`` is
+    now the default.
+
+    The ``"gate_error"`` objective requires passing a
+    :obj:`.BackendProperties` instance in the ``backend_prop``
+    kwarg, which contains the 2q-gate gate errors used in the computation of the
+    objectives.  The ``"balanced"`` objective will use the
+    :obj:`.BackendProperties` instance if it is given, but otherwise will assume
+    a CX error rate as given in the new parameter ``default_cx_error_rate``.
+    The relative weights of the gate-error and depth components of the balanced
+    objective can be controlled with the new ``depth_obj_weight`` parameter.
+upgrade:
+  - |
+    The default method for :obj:`.BIPMapping` is now ``balanced`` rather than
+    ``depth``.  This new objective generally achieves a better result, as it
+    factors in both the circuit depth and the gate error.

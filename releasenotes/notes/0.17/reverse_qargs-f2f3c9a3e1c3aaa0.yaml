@@ -1,0 +1,39 @@
+---
+features:
+  - |
+    Adds a :meth:`~qiskit.quantum_info.Statevector.reverse_qargs` method to the
+    :class:`qiskit.quantum_info.Statevector` and
+    :class:`qiskit.quantum_info.DensityMatrix` classes. This method reverses
+    the order of subsystems in the states and is equivalent to the
+    :meth:`qiskit.circuit.QuantumCircuit.reverse_bits` method for N-qubit
+    states. For example:
+
+      .. jupyter-execute::
+
+        from qiskit.circuit.library import QFT
+        from qiskit.quantum_info import Statevector
+        
+        circ = QFT(3)
+  
+        state1 = Statevector.from_instruction(circ)
+        state2 = Statevector.from_instruction(circ.reverse_bits())
+
+        state1.reverse_qargs() == state2
+  - |
+    Adds a :meth:`~qiskit.quantum_info.Operator.reverse_qargs` method to the
+    :class:`qiskit.quantum_info.Operator` class. This method reverses
+    the order of subsystems in the operator and is equivalent to the
+    :meth:`qiskit.circuit.QuantumCircuit.reverse_bits` method for N-qubit
+    operators. For example:
+
+      .. jupyter-execute::
+
+        from qiskit.circuit.library import QFT
+        from qiskit.quantum_info import Operator
+        
+        circ = QFT(3)
+  
+        op1 = Operator(circ)
+        op2 = Operator(circ.reverse_bits())
+
+        op1.reverse_qargs() == op2

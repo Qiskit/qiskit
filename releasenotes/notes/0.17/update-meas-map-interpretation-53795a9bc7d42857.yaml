@@ -1,0 +1,58 @@
+---
+upgrade:
+  - |
+    The interpretation of ``meas_map`` (which
+    is an attribute of a
+    :class:`~qiskit.providers.models.PulseBackendConfiguration` object or
+    as the corresponding ``meas_map`` kwarg on the
+    :func:`~qiskit.compiler.schedule`, :func:`~qiskit.compiler.assemble`,
+    :func:`~qiskit.compiler.sequence`, or
+    :func:`~qiskit.execute_function.execute` functions) has been updated
+    to better match the true constraints of the hardware. The format of this
+    data is a list of lists, where the items in the inner list are integers
+    specifying qubit labels. For instance::
+
+        [[A, B, C], [D, E, F, G]]
+
+    Previously, the ``meas_map`` constraint was interpreted such that
+    if one qubit was acquired (e.g. A), then all other qubits sharing
+    a subgroup with that qubit (B and C) would have to be acquired
+    at the same time and for the same duration. This constraint has been
+    relaxed. One acquisition does not require more acquisitions. (If A is
+    acquired, B and C do **not** need to be acquired.) Instead, qubits in the
+    same measurement group cannot be acquired in a partially overlapping way
+    -- think of the ``meas_map`` as specifying a shared acquisition resource
+    (If we acquire A from ``t=1000`` to ``t=2000``, we cannot acquire B
+    starting from ``1000<t<2000``). For example:
+
+    .. code-block:: python
+
+        # Good
+        meas_map = [[0, 1]]
+        # Acquire a subset of [0, 1]
+        sched = pulse.Schedule()
+        sched = sched.append(pulse.Acquire(10, acq_q0))
+
+        # Acquire 0 and 1 together (same start time, same duration)
+        sched = pulse.Schedule()
+        sched = sched.append(pulse.Acquire(10, acq_q0))
+        sched = sched.append(pulse.Acquire(10, acq_q1))
+
+        # Acquire 0 and 1 disjointly
+        sched = pulse.Schedule()
+        sched = sched.append(pulse.Acquire(10, acq_q0))
+        sched = sched.append(pulse.Acquire(10, acq_q1)) << 10
+
+        # Acquisitions overlap, but 0 and 1 aren't in the same measurement
+        # grouping
+        meas_map = [[0], [1]]
+        sched = pulse.Schedule()
+        sched = sched.append(pulse.Acquire(10, acq_q0))
+        sched = sched.append(pulse.Acquire(10, acq_q1)) << 1
+
+        # Bad: 0 and 1 are in the same grouping, but acquisitions
+        # partially overlap
+        meas_map = [[0, 1]]
+        sched = pulse.Schedule()
+        sched = sched.append(pulse.Acquire(10, acq_q0))
+        sched = sched.append(pulse.Acquire(10, acq_q1)) << 1

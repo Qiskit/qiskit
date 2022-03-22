@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member
 
 """Polynomially controlled Pauli-rotations."""
 
@@ -19,14 +18,14 @@ from typing import List, Optional, Dict, Sequence
 
 from itertools import product
 
-from qiskit.circuit import QuantumRegister, AncillaRegister
+from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 
 from .functional_pauli_rotations import FunctionalPauliRotations
 
 
 def _binomial_coefficients(n):
-    """"Return a dictionary of binomial coefficients
+    """ "Return a dictionary of binomial coefficients
 
     Based-on/forked from sympy's binomial_coefficients() function [#]
 
@@ -42,16 +41,16 @@ def _binomial_coefficients(n):
 
 
 def _large_coefficients_iter(m, n):
-    """"Return an iterator of multinomial coefficientss
+    """ "Return an iterator of multinomial coefficients
 
     Based-on/forked from sympy's multinomial_coefficients_iterator() function [#]
 
     .. [#] https://github.com/sympy/sympy/blob/sympy-1.5.1/sympy/ntheory/multinomial.py
     """
-    if m < 2*n or n == 1:
+    if m < 2 * n or n == 1:
         coefficients = _multinomial_coefficients(m, n)
         for key, value in coefficients.items():
-            yield(key, value)
+            yield (key, value)
     else:
         coefficients = _multinomial_coefficients(n, n)
         coefficients_dict = {}
@@ -88,7 +87,7 @@ def _large_coefficients_iter(m, n):
 
 
 def _multinomial_coefficients(m, n):
-    """"Return an iterator of multinomial coefficientss
+    """ "Return an iterator of multinomial coefficients
 
     Based-on/forked from sympy's multinomial_coefficients() function [#]
 
@@ -100,7 +99,7 @@ def _multinomial_coefficients(m, n):
         return {(): 1}
     if m == 2:
         return _binomial_coefficients(n)
-    if m >= 2*n and n > 1:
+    if m >= 2 * n and n > 1:
         return dict(_large_coefficients_iter(m, n))
     if n:
         j = 0
@@ -159,11 +158,13 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
     where :math:`c` are the input coefficients, ``coeffs``.
     """
 
-    def __init__(self, num_state_qubits: Optional[int] = None,
-                 coeffs: Optional[List[float]] = None,
-                 basis: str = 'Y',
-                 reverse: bool = False,
-                 name: str = 'poly') -> None:
+    def __init__(
+        self,
+        num_state_qubits: Optional[int] = None,
+        coeffs: Optional[List[float]] = None,
+        basis: str = "Y",
+        name: str = "poly",
+    ) -> None:
         """Prepare an approximation to a state with amplitudes specified by a polynomial.
 
         Args:
@@ -171,17 +172,10 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
             coeffs: The coefficients of the polynomial. ``coeffs[i]`` is the coefficient of the
                 i-th power of x. Defaults to linear: [0, 1].
             basis: The type of Pauli rotation ('X', 'Y', 'Z').
-            reverse: If True, apply the polynomial with the reversed list of qubits
-                (i.e. q_n as q_0, q_n-1 as q_1, etc).
             name: The name of the circuit.
         """
         # set default internal parameters
         self._coeffs = coeffs or [0, 1]
-        self._reverse = reverse
-        if self._reverse is True:
-            warnings.warn('The reverse flag has been deprecated. '
-                          'Use circuit.reverse_bits() to reverse order of qubits.',
-                          DeprecationWarning)
 
         # initialize super (after setting coeffs)
         super().__init__(num_state_qubits=num_state_qubits, basis=basis, name=name)
@@ -208,10 +202,6 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         self._invalidate()
         self._coeffs = coeffs
 
-        # the number of ancilla's depends on the number of coefficients, so update if necessary
-        if coeffs and self.num_state_qubits:
-            self._reset_registers(self.num_state_qubits)
-
     @property
     def degree(self) -> int:
         """Return the degree of the polynomial, equals to the number of coefficients minus 1.
@@ -224,51 +214,44 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         return 0
 
     @property
-    def reverse(self) -> bool:
-        """Whether to apply the rotations on the reversed list of qubits.
-
-        Returns:
-            True, if the rotations are applied on the reversed list, False otherwise.
-        """
-        return self._reverse
-
-    @property
     def num_ancilla_qubits(self):
         """Deprecated. Use num_ancillas instead."""
-        warnings.warn('The PolynomialPauliRotations.num_ancilla_qubits property is deprecated '
-                      'as of 0.16.0. It will be removed no earlier than 3 months after the release '
-                      'date. You should use the num_ancillas property instead.',
-                      DeprecationWarning, stacklevel=2)
+        warnings.warn(
+            "The PolynomialPauliRotations.num_ancilla_qubits property is deprecated "
+            "as of 0.16.0. It will be removed no earlier than 3 months after the release "
+            "date. You should use the num_ancillas property instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.num_ancillas
 
     def _reset_registers(self, num_state_qubits):
+        """Reset the registers."""
         if num_state_qubits is not None:
             # set new register of appropriate size
-            qr_state = QuantumRegister(num_state_qubits, name='state')
-            qr_target = QuantumRegister(1, name='target')
-            num_ancillas = max(1, self.degree - 1)
-            qr_ancilla = AncillaRegister(num_ancillas)
-            self.qregs = [qr_state, qr_target, qr_ancilla]
-            self._qubits = qr_state[:] + qr_target[:] + qr_ancilla[:]
-            self._ancillas = qr_ancilla[:]
+            qr_state = QuantumRegister(num_state_qubits, name="state")
+            qr_target = QuantumRegister(1, name="target")
+
+            self.qregs = [qr_state, qr_target]
         else:
             self.qregs = []
-            self._qubits = []
-            self._ancillas = []
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """Check if the current configuration is valid."""
         valid = True
 
         if self.num_state_qubits is None:
             valid = False
             if raise_on_failure:
-                raise AttributeError('The number of qubits has not been set.')
+                raise AttributeError("The number of qubits has not been set.")
 
         if self.num_qubits < self.num_state_qubits + 1:
             valid = False
             if raise_on_failure:
-                raise CircuitError('Not enough qubits in the circuit, need at least '
-                                   '{}.'.format(self.num_state_qubits + 1))
+                raise CircuitError(
+                    "Not enough qubits in the circuit, need at least "
+                    "{}.".format(self.num_state_qubits + 1)
+                )
 
         return valid
 
@@ -309,45 +292,46 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         return rotation_coeffs
 
     def _build(self):
+        """If not already built, build the circuit."""
+        if self._is_built:
+            return
+
         super()._build()
 
-        qr_state = self.qubits[:self.num_state_qubits]
-        qr_target = self.qubits[self.num_state_qubits]
-        qr_ancilla = self.qubits[self.num_state_qubits + 1:]
+        circuit = QuantumCircuit(*self.qregs, name=self.name)
+        qr_state = circuit.qubits[: self.num_state_qubits]
+        qr_target = circuit.qubits[self.num_state_qubits]
 
         rotation_coeffs = self._get_rotation_coefficients()
 
-        if self.basis == 'x':
-            self.rx(self.coeffs[0], qr_target)
-        elif self.basis == 'y':
-            self.ry(self.coeffs[0], qr_target)
+        if self.basis == "x":
+            circuit.rx(self.coeffs[0], qr_target)
+        elif self.basis == "y":
+            circuit.ry(self.coeffs[0], qr_target)
         else:
-            self.rz(self.coeffs[0], qr_target)
+            circuit.rz(self.coeffs[0], qr_target)
 
         for c in rotation_coeffs:
             qr_control = []
-            if self.reverse:
-                for i, _ in enumerate(c):
-                    if c[i] > 0:
-                        qr_control.append(qr_state[qr_state.size - i - 1])
-            else:
-                for i, _ in enumerate(c):
-                    if c[i] > 0:
-                        qr_control.append(qr_state[i])
+            for i, _ in enumerate(c):
+                if c[i] > 0:
+                    qr_control.append(qr_state[i])
 
             # apply controlled rotations
             if len(qr_control) > 1:
-                if self.basis == 'x':
-                    self.mcrx(rotation_coeffs[c], qr_control, qr_target, qr_ancilla)
-                elif self.basis == 'y':
-                    self.mcry(rotation_coeffs[c], qr_control, qr_target, qr_ancilla)
+                if self.basis == "x":
+                    circuit.mcrx(rotation_coeffs[c], qr_control, qr_target)
+                elif self.basis == "y":
+                    circuit.mcry(rotation_coeffs[c], qr_control, qr_target)
                 else:
-                    self.mcrz(rotation_coeffs[c], qr_control, qr_target, qr_ancilla)
+                    circuit.mcrz(rotation_coeffs[c], qr_control, qr_target)
 
             elif len(qr_control) == 1:
-                if self.basis == 'x':
-                    self.crx(rotation_coeffs[c], qr_control[0], qr_target)
-                elif self.basis == 'y':
-                    self.cry(rotation_coeffs[c], qr_control[0], qr_target)
+                if self.basis == "x":
+                    circuit.crx(rotation_coeffs[c], qr_control[0], qr_target)
+                elif self.basis == "y":
+                    circuit.cry(rotation_coeffs[c], qr_control[0], qr_target)
                 else:
-                    self.crz(rotation_coeffs[c], qr_control[0], qr_target)
+                    circuit.crz(rotation_coeffs[c], qr_control[0], qr_target)
+
+        self.append(circuit.to_gate(), self.qubits)

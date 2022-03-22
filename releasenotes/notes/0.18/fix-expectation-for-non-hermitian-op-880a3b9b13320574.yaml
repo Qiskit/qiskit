@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed an issue with the
+    :meth:`~qiskit.opflow.expectations.PauliExpectation.convert` method of
+    the :class:`~qiskit.opflow.expectations.PauliExpectation` class where
+    calling it on an operator that was non-Hermitian would return
+    an incorrect result.
+    Fixed `#6307 <https://github.com/Qiskit/qiskit-terra/issues/6307>`__

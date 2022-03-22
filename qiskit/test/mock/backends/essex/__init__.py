@@ -10,6 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring
+"""Mock essex backend"""
 
 from .fake_essex import FakeEssex
+from .fake_essex import FakeLegacyEssex

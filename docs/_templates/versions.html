@@ -1,0 +1,30 @@
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="rst-current-version-label">{{ version_label }}</span>
+    <span class="rst-versions-dropdown-icon"></span>
+  </span>
+  <div class="rst-other-versions">
+    {% if translations %}
+    <dl>
+      <dt>{{ _('Languages') }}</dt>
+      {% for code, language in translations_list %}
+        <dd><a class="version" href="{{ translation_url(code, pagename) }}">{{ language }}</a></dd>
+      {% endfor %}
+    </dl>
+    {% endif %}
+    <dl>
+      <dt>Previous Releases</dt>
+      {% for version in version_list %}
+        <dd><a class="version" href="/documentation/stable/{{ version }}/index.html">{{ version }}</a></dd>
+      {% endfor %}
+    </dl>
+  </div>
+  <script>
+    jQuery('.version').click((evt) => {
+      const hash = window.location.hash
+      const complete_url = evt.target.href + hash
+      window.location = complete_url
+      evt.preventDefault()
+    })
+  </script>
+</div>

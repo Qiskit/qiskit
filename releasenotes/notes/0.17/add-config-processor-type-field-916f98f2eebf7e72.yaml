@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    The :class:`qiskit.providers.models.QasmBackendConfiguration` has a new
+    field ``processor_type`` which can optionally be used to provide
+    information about a backend's processor in the form:
+    ``{"family": <str>, "revision": <str>, segment: <str>}``. For example:
+    ``{"family": "Canary", "revision": "1.0", segment: "A"}``.

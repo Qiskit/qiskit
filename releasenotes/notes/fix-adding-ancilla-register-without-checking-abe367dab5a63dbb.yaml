@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    :meth:`.QuantumCircuit.add_register` will no longer cause duplicate
+    :class:`.AncillaQubit` references in a circuit when given an
+    :class:`.AncillaRegister` whose bits are already present.

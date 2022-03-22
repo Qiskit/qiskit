@@ -11,8 +11,9 @@
 # that they have been altered from the originals.
 
 """Directives are hints to the pulse compiler for how to process its input programs."""
+
 from abc import ABC
-from typing import Optional
+from typing import Optional, Tuple
 
 from qiskit.pulse import channels as chans
 from qiskit.pulse.instructions import instruction
@@ -24,13 +25,16 @@ class Directive(instruction.Instruction, ABC):
     This is a hint to the pulse compiler and is not loaded into hardware.
     """
 
+    @property
+    def duration(self) -> int:
+        """Duration of this instruction."""
+        return 0
+
 
 class RelativeBarrier(Directive):
     """Pulse ``RelativeBarrier`` directive."""
 
-    def __init__(self,
-                 *channels: chans.Channel,
-                 name: Optional[str] = None):
+    def __init__(self, *channels: chans.Channel, name: Optional[str] = None):
         """Create a relative barrier directive.
 
         The barrier directive blocks instructions within the same schedule
@@ -41,9 +45,13 @@ class RelativeBarrier(Directive):
             channels: The channel that the barrier applies to.
             name: Name of the directive for display purposes.
         """
-        super().__init__(tuple(channels), 0, tuple(channels), name=name)
+        super().__init__(operands=tuple(channels), name=name)
+
+    @property
+    def channels(self) -> Tuple[chans.Channel]:
+        """Returns the channels that this schedule uses."""
+        return self.operands
 
     def __eq__(self, other):
         """Verify two barriers are equivalent."""
-        return (isinstance(other, type(self)) and
-                set(self.channels) == set(other.channels))
+        return isinstance(other, type(self)) and set(self.channels) == set(other.channels)

@@ -15,36 +15,36 @@ Fake Yorktown device (5 qubit).
 """
 
 import os
-import json
-
-from qiskit.providers.models import QasmBackendConfiguration, BackendProperties
-from qiskit.test.mock.fake_backend import FakeBackend
+from qiskit.test.mock import fake_qasm_backend
 
 
-class FakeYorktown(FakeBackend):
-    """A fake 5 qubit backend."""
+class FakeYorktown(fake_qasm_backend.FakeQasmBackend):
+    """A fake 5 qubit backend.
 
-    def __init__(self):
-        """
-            1
-          / |
-        0 - 2 - 3
-            | /
-            4
-        """
-        dirname = os.path.dirname(__file__)
-        filename = "conf_yorktown.json"
-        with open(os.path.join(dirname, filename)) as f_conf:
-            conf = json.load(f_conf)
+        1
+      / |
+    0 - 2 - 3
+        | /
+        4
+    """
 
-        configuration = QasmBackendConfiguration.from_dict(conf)
-        configuration.backend_name = 'fake_yorktown'
-        super().__init__(configuration)
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_yorktown.json"
+    props_filename = "props_yorktown.json"
+    backend_name = "fake_yorktown"
 
-    def properties(self):
-        """Returns a snapshot of device properties"""
-        dirname = os.path.dirname(__file__)
-        filename = "props_yorktown.json"
-        with open(os.path.join(dirname, filename)) as f_prop:
-            props = json.load(f_prop)
-        return BackendProperties.from_dict(props)
+
+class FakeLegacyYorktown(fake_qasm_backend.FakeQasmLegacyBackend):
+    """A fake 5 qubit backend.
+
+        1
+      / |
+    0 - 2 - 3
+        | /
+        4
+    """
+
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_yorktown.json"
+    props_filename = "props_yorktown.json"
+    backend_name = "fake_yorktown"

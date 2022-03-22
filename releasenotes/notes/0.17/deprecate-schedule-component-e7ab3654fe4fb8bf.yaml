@@ -1,0 +1,13 @@
+---
+deprecations:
+  - |
+    The :class:`qiskit.pulse.ScheduleComponent` class in the
+    :mod:`qiskit.pulse` module has been deprecated and will be removed in a
+    future release. Its usage should be replaced either using a
+    :class:`qiskit.pulse.Schedule` or :class:`qiskit.pulse.Instruction`
+    directly. Additionally, the primary purpose of the ``ScheduleComponent``
+    class was as a common base class for both :class:`~qiskit.pulse.Schedule`
+    and :class:`~qiskit.pulse.Instruction` for any place that was explicitly
+    type checking or documenting accepting a ``ScheduleComponent`` input
+    should be updated to accept :class:`~qiskit.pulse.Instruction` or
+    :class:`~qiskit.pulse.Schedule`.

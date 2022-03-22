@@ -1,0 +1,24 @@
+---
+fixes:
+  - |
+    Fixed an issue with :class:`~qiskit.circuit.Delay` objects in a
+    :class:`~qiskit.circuit.QuantumCircuit` where
+    :func:`qiskit.compiler.transpile` would not be convert the units of
+    the :class:`~qiskit.circuit.Delay` to the units of the
+    :class:`~qiskit.providers.Backend`, if the ``backend`` kwarg is set on
+    :func:`~qiskit.circuit.transpile`. This could result in the wrong behavior
+    because of a unit mismatch, for example running::
+
+      from qiskit import transpile, execute
+      from qiskit.circuit import QuantumCircuit
+
+      qc = QuantumCircuit(1)
+      qc.delay(100, [0], unit='us')
+
+      qc = transpile(qc, backend)
+      job = execute(qc, backend)
+
+    would previously have resulted in the backend delay for 100 timesteps (each
+    of duration dt) rather than expected (100e-6 / dt) timesteps. This has been
+    corrected so the :func:`qiskit.compiler.transpile` function properly
+    converts the units.

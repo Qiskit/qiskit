@@ -35,7 +35,7 @@ class MetaPass(type):
         self_guard = object()
         init_signature = signature(class_.__init__)
         bound_signature = init_signature.bind(self_guard, *args, **kwargs)
-        arguments = [('class_.__name__', class_.__name__)]
+        arguments = [("class_.__name__", class_.__name__)]
         for name, value in bound_signature.arguments.items():
             if value == self_guard:
                 continue
@@ -53,7 +53,7 @@ class BasePass(metaclass=MetaPass):
         self.requires = []  # List of passes that requires
         self.preserves = []  # List of passes that preserves
         self.property_set = PropertySet()  # This pass's pointer to the pass manager's property set.
-        self._hash = None
+        self._hash = hash(None)
 
     def __hash__(self):
         return self._hash
@@ -95,12 +95,54 @@ class BasePass(metaclass=MetaPass):
         """
         return isinstance(self, AnalysisPass)
 
+    def __call__(self, circuit, property_set=None):
+        """Runs the pass on circuit.
+
+        Args:
+            circuit (QuantumCircuit): the dag on which the pass is run.
+            property_set (PropertySet or dict or None): input/output property set. An analysis pass
+                might change the property set in-place.
+
+        Returns:
+            QuantumCircuit: If on transformation pass, the resulting QuantumCircuit. If analysis
+                   pass, the input circuit.
+        """
+        from qiskit.converters import circuit_to_dag, dag_to_circuit
+        from qiskit.dagcircuit.dagcircuit import DAGCircuit
+
+        property_set_ = None
+        if isinstance(property_set, dict):  # this includes (dict, PropertySet)
+            property_set_ = PropertySet(property_set)
+
+        if isinstance(property_set_, PropertySet):
+            self.property_set = property_set_
+
+        result = self.run(circuit_to_dag(circuit))
+
+        result_circuit = circuit
+
+        if isinstance(property_set, dict):  # this includes (dict, PropertySet)
+            property_set.clear()
+            property_set.update(self.property_set)
+
+        if isinstance(result, DAGCircuit):
+            result_circuit = dag_to_circuit(result)
+        elif result is None:
+            result_circuit = circuit.copy()
+
+        if self.property_set["layout"]:
+            result_circuit._layout = self.property_set["layout"]
+
+        return result_circuit
+
 
 class AnalysisPass(BasePass):  # pylint: disable=abstract-method
     """An analysis pass: change property set, not DAG."""
+
     pass
 
 
 class TransformationPass(BasePass):  # pylint: disable=abstract-method
     """A transformation pass: change DAG, not property set."""
+
     pass

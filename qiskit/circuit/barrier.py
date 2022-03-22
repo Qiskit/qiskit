@@ -14,10 +14,13 @@
 
 from qiskit.exceptions import QiskitError
 from .instruction import Instruction
+from .operation import Operation
 
 
-class Barrier(Instruction):
+class Barrier(Instruction, Operation):
     """Barrier instruction."""
+
+    _directive = True
 
     def __init__(self, num_qubits):
         """Create new barrier instruction."""
@@ -31,4 +34,4 @@ class Barrier(Instruction):
         yield [qarg for sublist in qargs for qarg in sublist], []
 
     def c_if(self, classical, val):
-        raise QiskitError('Barriers are compiler directives and cannot be conditional.')
+        raise QiskitError("Barriers are compiler directives and cannot be conditional.")

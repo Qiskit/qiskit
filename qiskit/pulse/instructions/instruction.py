@@ -21,17 +21,13 @@ For example::
     sched = Schedule()
     sched += Delay(duration, channel)  # Delay is a specific subclass of Instruction
 """
-import warnings
+from abc import ABC, abstractmethod
+from typing import Callable, Iterable, List, Optional, Set, Tuple
 
-from abc import ABC
-from collections import defaultdict
-from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple
-
-import numpy as np
-
-from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
+
+
 # pylint: disable=missing-return-doc
 
 
@@ -40,17 +36,15 @@ class Instruction(ABC):
     channels.
     """
 
-    def __init__(self,
-                 operands: Tuple,
-                 duration: int,
-                 channels: Tuple[Channel],
-                 name: Optional[str] = None):
+    def __init__(
+        self,
+        operands: Tuple,
+        name: Optional[str] = None,
+    ):
         """Instruction initializer.
 
         Args:
             operands: The argument list.
-            duration: Length of time taken by the instruction in terms of dt.
-            channels: Tuple of pulse channels that this instruction operates on.
             name: Optional display name for this instruction.
 
         Raises:
@@ -58,48 +52,18 @@ class Instruction(ABC):
             PulseError: If the input ``channels`` are not all of
                 type :class:`Channel`.
         """
-        if not isinstance(duration, (int, np.integer)):
-            raise PulseError("Instruction duration must be an integer, "
-                             "got {} instead.".format(duration))
-        if duration < 0:
-            raise PulseError("{} duration of {} is invalid: must be nonnegative."
-                             "".format(self.__class__.__name__, duration))
-
-        for channel in channels:
-            if not isinstance(channel, Channel):
-                raise PulseError("Expected a channel, got {} instead.".format(channel))
-
-        self._duration = duration
-        self._channels = channels
-        self._timeslots = {channel: [(0, self.duration)] for channel in channels}
         self._operands = operands
         self._name = name
         self._hash = None
 
-        self._parameter_table = defaultdict(list)
-        for idx, op in enumerate(operands):
-            if isinstance(op, ParameterExpression):
-                for param in op.parameters:
-                    self._parameter_table[param].append(idx)
-            elif isinstance(op, Channel) and op.is_parameterized():
-                for param in op.parameters:
-                    self._parameter_table[param].append(idx)
+        for channel in self.channels:
+            if not isinstance(channel, Channel):
+                raise PulseError(f"Expected a channel, got {channel} instead.")
 
     @property
     def name(self) -> str:
         """Name of this instruction."""
         return self._name
-
-    @property
-    def command(self) -> None:
-        """The associated command. Commands are deprecated, so this method will be deprecated
-        shortly.
-
-        Returns:
-            Command: The deprecated command if available.
-        """
-        warnings.warn("The `command` method is deprecated. Commands have been removed and this "
-                      "method returns None.", DeprecationWarning)
 
     @property
     def id(self) -> int:  # pylint: disable=invalid-name
@@ -112,15 +76,10 @@ class Instruction(ABC):
         return self._operands
 
     @property
+    @abstractmethod
     def channels(self) -> Tuple[Channel]:
-        """Returns channels that this schedule uses."""
-        return self._channels
-
-    @property
-    def timeslots(self) -> Dict[Channel, List[Tuple[int, int]]]:
-        """Occupied time slots by this instruction."""
-        warnings.warn("Access to Instruction timeslots is deprecated.")
-        return self._timeslots
+        """Returns the channels that this schedule uses."""
+        raise NotImplementedError
 
     @property
     def start_time(self) -> int:
@@ -135,15 +94,15 @@ class Instruction(ABC):
     @property
     def duration(self) -> int:
         """Duration of this instruction."""
-        return self._duration
+        raise NotImplementedError
 
     @property
-    def _children(self) -> Tuple['Instruction']:
+    def _children(self) -> Tuple["Instruction"]:
         """Instruction has no child nodes."""
         return ()
 
     @property
-    def instructions(self) -> Tuple[Tuple[int, 'Instruction']]:
+    def instructions(self) -> Tuple[Tuple[int, "Instruction"]]:
         """Iterable for getting instructions from Schedule tree."""
         return tuple(self._instructions())
 
@@ -155,10 +114,7 @@ class Instruction(ABC):
         """
         return self.ch_stop_time(*channels)
 
-    def ch_start_time(
-            self,
-            *channels: List[Channel]
-    ) -> int:
+    def ch_start_time(self, *channels: List[Channel]) -> int:
         # pylint: disable=unused-argument
         """Return minimum start time for supplied channels.
 
@@ -177,7 +133,7 @@ class Instruction(ABC):
             return self.duration
         return 0
 
-    def _instructions(self, time: int = 0) -> Iterable[Tuple[int, 'Instruction']]:
+    def _instructions(self, time: int = 0) -> Iterable[Tuple[int, "Instruction"]]:
         """Iterable for flattening Schedule tree.
 
         Args:
@@ -189,12 +145,7 @@ class Instruction(ABC):
         """
         yield (time, self)
 
-    def flatten(self) -> 'Instruction':
-        """Return itself as already single instruction."""
-        return self
-
-    def shift(self,
-              time: int, name: Optional[str] = None):
+    def shift(self, time: int, name: Optional[str] = None):
         """Return a new schedule shifted forward by `time`.
 
         Args:
@@ -210,8 +161,7 @@ class Instruction(ABC):
             name = self.name
         return Schedule((time, self), name=name)
 
-    def insert(self, start_time: int, schedule,
-               name: Optional[str] = None):
+    def insert(self, start_time: int, schedule, name: Optional[str] = None):
         """Return a new :class:`~qiskit.pulse.Schedule` with ``schedule`` inserted within
         ``self`` at ``start_time``.
 
@@ -229,8 +179,7 @@ class Instruction(ABC):
             name = self.name
         return Schedule(self, (start_time, schedule), name=name)
 
-    def append(self, schedule,
-               name: Optional[str] = None):
+    def append(self, schedule, name: Optional[str] = None):
         """Return a new :class:`~qiskit.pulse.Schedule` with ``schedule`` inserted at the
         maximum time over all channels shared between ``self`` and ``schedule``.
 
@@ -248,55 +197,32 @@ class Instruction(ABC):
     @property
     def parameters(self) -> Set:
         """Parameters which determine the instruction behavior."""
-        return set(self._parameter_table.keys())
+        parameters = set()
+        for op in self.operands:
+            if hasattr(op, "parameters"):
+                for op_param in op.parameters:
+                    parameters.add(op_param)
+        return parameters
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
-        return bool(self.parameters)
+        return any(chan.is_parameterized() for chan in self.channels)
 
-    def assign_parameters(self,
-                          value_dict: Dict[ParameterExpression, ParameterValueType]
-                          ) -> 'Instruction':
-        """Modify and return self with parameters assigned according to the input.
-
-        Args:
-            value_dict: A mapping from Parameters to either numeric values or another
-                Parameter expression.
-
-        Returns:
-            Self with updated parameters.
-        """
-        new_operands = list(self.operands)
-
-        for parameter in self.parameters:
-            if parameter not in value_dict:
-                continue
-
-            value = value_dict[parameter]
-            op_indices = self._parameter_table[parameter]
-            for op_idx in op_indices:
-                new_operands[op_idx] = new_operands[op_idx].assign(parameter, value)
-
-            # Update parameter table
-            entry = self._parameter_table.pop(parameter)
-            if isinstance(value, ParameterExpression):
-                for new_parameter in value.parameters:
-                    if new_parameter in self._parameter_table:
-                        new_entry = set(entry + self._parameter_table[new_parameter])
-                        self._parameter_table[new_parameter] = list(new_entry)
-                    else:
-                        self._parameter_table[new_parameter] = entry
-
-        self._operands = tuple(new_operands)
-        return self
-
-    def draw(self, dt: float = 1, style=None,
-             filename: Optional[str] = None, interp_method: Optional[Callable] = None,
-             scale: float = 1, plot_all: bool = False,
-             plot_range: Optional[Tuple[float]] = None,
-             interactive: bool = False, table: bool = True,
-             label: bool = False, framechange: bool = True,
-             channels: Optional[List[Channel]] = None):
+    def draw(
+        self,
+        dt: float = 1,
+        style=None,
+        filename: Optional[str] = None,
+        interp_method: Optional[Callable] = None,
+        scale: float = 1,
+        plot_all: bool = False,
+        plot_range: Optional[Tuple[float]] = None,
+        interactive: bool = False,
+        table: bool = True,
+        label: bool = False,
+        framechange: bool = True,
+        channels: Optional[List[Channel]] = None,
+    ):
         """Plot the instruction.
 
         Args:
@@ -317,18 +243,26 @@ class Instruction(ABC):
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse schedule
         """
-        # pylint: disable=invalid-name, cyclic-import
+        # pylint: disable=cyclic-import
         from qiskit import visualization
 
-        return visualization.pulse_drawer(self, dt=dt, style=style,
-                                          filename=filename, interp_method=interp_method,
-                                          scale=scale,
-                                          plot_all=plot_all, plot_range=plot_range,
-                                          interactive=interactive, table=table,
-                                          label=label, framechange=framechange,
-                                          channels=channels)
+        return visualization.pulse_drawer(
+            self,
+            dt=dt,
+            style=style,
+            filename=filename,
+            interp_method=interp_method,
+            scale=scale,
+            plot_all=plot_all,
+            plot_range=plot_range,
+            interactive=interactive,
+            table=table,
+            label=label,
+            framechange=framechange,
+            channels=channels,
+        )
 
-    def __eq__(self, other: 'Instruction') -> bool:
+    def __eq__(self, other: "Instruction") -> bool:
         """Check if this Instruction is equal to the `other` instruction.
 
         Equality is determined by the instruction sharing the same operands and channels.
@@ -371,6 +305,7 @@ class Instruction(ABC):
         return self.shift(time)
 
     def __repr__(self) -> str:
-        operands = ', '.join(str(op) for op in self.operands)
-        return "{}({}{})".format(self.__class__.__name__, operands,
-                                 ", name='{}'".format(self.name) if self.name else "")
+        operands = ", ".join(str(op) for op in self.operands)
+        return "{}({}{})".format(
+            self.__class__.__name__, operands, f", name='{self.name}'" if self.name else ""
+        )

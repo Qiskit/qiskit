@@ -1,0 +1,28 @@
+---
+upgrade:
+  - |
+    The ``DAGCircuit.__eq__`` method (which is used by the ``==`` operator),
+    which is used to check structural equality of
+    :class:`~qiskit.dagcircuit.DAGCircuit` and
+    :class:`~qiskit.circuit.QuantumCircuit` instances, will now
+    include the :attr:`~qiskit.circuit.QuantumCircuit.global_phase` and
+    :attr:`~qiskit.circuit.QuantumCircuit.calibrations` attributes in the
+    fields checked for equality. This means that circuits which would have
+    evaluated as equal in prior releases may not anymore if the
+    ``global_phase`` or ``calibrations`` differ between the circuits. For
+    example, in previous releases this would return ``True``::
+
+      import math
+
+      from qiskit import QuantumCircuit
+
+      qc1 = QuantumCircuit(1)
+      qc1.x(0)
+
+      qc2 = QuantumCircuit(1, global_phase=math.pi)
+      qc2.x(0)
+
+      print(qc2 == qc1)
+
+    However, now because the ``global_phase`` attribute of the circuits differ
+    this will now return ``False``.

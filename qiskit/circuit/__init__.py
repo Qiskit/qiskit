@@ -187,11 +187,25 @@ Gates and Instructions
    Gate
    ControlledGate
    Delay
+   Barrier
    Measure
    Reset
    Instruction
    InstructionSet
    EquivalenceLibrary
+
+Control Flow Operations
+-----------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ControlFlowOp
+   IfElseOp
+   WhileLoopOp
+   ForLoopOp
+   BreakLoopOp
+   ContinueLoopOp
 
 Parametric Quantum Circuits
 ---------------------------
@@ -215,10 +229,12 @@ from .quantumcircuit import QuantumCircuit
 from .classicalregister import ClassicalRegister, Clbit
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .gate import Gate
+
 # pylint: disable=cyclic-import
 from .controlledgate import ControlledGate
 from .instruction import Instruction
 from .instructionset import InstructionSet
+from .operation import Operation
 from .barrier import Barrier
 from .delay import Delay
 from .measure import Measure
@@ -228,4 +244,13 @@ from .parametervector import ParameterVector
 from .parameterexpression import ParameterExpression
 from .equivalence import EquivalenceLibrary
 from .classicalfunction.types import Int1, Int2
-from .classicalfunction import classical_function
+from .classicalfunction import classical_function, BooleanExpression
+
+from .controlflow import (
+    ControlFlowOp,
+    WhileLoopOp,
+    ForLoopOp,
+    IfElseOp,
+    BreakLoopOp,
+    ContinueLoopOp,
+)

@@ -11,8 +11,6 @@
 # that they have been altered from the originals.
 
 """Node for an OPENQASM custom gate body."""
-import warnings
-
 from .node import Node
 
 
@@ -25,13 +23,10 @@ class GateBody(Node):
 
     def __init__(self, children):
         """Create the gatebody node."""
-        super().__init__('gate_body', children, None)
+        super().__init__("gate_body", children, None)
 
-    def qasm(self, prec=None):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
-        if prec is not None:
-            warnings.warn('Parameter \'GateBody.qasm(..., prec)\' is no longer used and is being '
-                          'deprecated.', DeprecationWarning, 2)
         string = ""
         for children in self.children:
             string += "  " + children.qasm() + "\n"
