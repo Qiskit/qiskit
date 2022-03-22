@@ -237,20 +237,6 @@ class SwapStrategy:
 
         return x
 
-    def composed_permutation(self, idx: int) -> List[int]:
-        """Returns the composed permutation of all swap layers applied up to index ``idx``.
-
-        Permutations are represented by list of integers where the ith element
-        corresponds to the mapping of i under the permutation.
-
-        Args:
-            idx: The number of SWAP layers to apply.
-
-        Returns:
-            The permutation as a list of integer values.
-        """
-        return list(np.argsort(self.inverse_composed_permutation(idx)))
-
     def inverse_composed_permutation(self, idx: int) -> List[int]:
         """
         Returns the inversed composed permutation of all swap layers applied up to layer

@@ -55,19 +55,6 @@ class TestSwapStrategy(QiskitTestCase):
     @data(
         (0, [0, 1, 2, 3, 4]),
         (1, [1, 0, 3, 2, 4]),
-        (2, [2, 0, 4, 1, 3]),
-        (3, [3, 1, 4, 0, 2]),
-        (4, [4, 2, 3, 0, 1]),
-        (5, [4, 3, 2, 1, 0]),
-    )
-    @unpack
-    def test_composed_permutation(self, layer_idx: int, expected: List[int]):
-        """Test that the permutations are correct."""
-        self.assertEqual(self.line_strategy.composed_permutation(layer_idx), expected)
-
-    @data(
-        (0, [0, 1, 2, 3, 4]),
-        (1, [1, 0, 3, 2, 4]),
         (2, [1, 3, 0, 4, 2]),
         (3, [3, 1, 4, 0, 2]),
         (4, [3, 4, 1, 2, 0]),
