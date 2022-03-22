@@ -207,14 +207,20 @@ class LinComb(CircuitGradient):
                     ):
 
                         return self._gradient_states(
-                            state_op, meas_op=(2 * aux_meas_op ^ meas), target_params=params
+                            state_op,
+                            meas_op=(2 * meas),
+                            target_params=params,
+                            aux_meas_op=aux_meas_op,
                         )
                     elif isinstance(params, tuple) or (
                         isinstance(params, list)
                         and all(isinstance(param, tuple) for param in params)
                     ):
                         return self._hessian_states(
-                            state_op, meas_op=(4 * (aux_meas_op ^ I ^ meas)), target_params=params
+                            state_op,
+                            meas_op=(4 * (I ^ meas)),
+                            target_params=params,
+                            aux_meas_op=aux_meas_op,
                         )  # type: ignore
                     else:
                         raise OpflowError(
@@ -236,8 +242,9 @@ class LinComb(CircuitGradient):
                         return state_op.traverse(
                             partial(
                                 self._gradient_states,
-                                meas_op=(2 * aux_meas_op ^ meas),
+                                meas_op=(2 * meas),
                                 target_params=params,
+                                aux_meas_op=aux_meas_op,
                             )
                         )
                     elif isinstance(params, tuple) or (
@@ -247,8 +254,9 @@ class LinComb(CircuitGradient):
                         return state_op.traverse(
                             partial(
                                 self._hessian_states,
-                                meas_op=(4 * aux_meas_op ^ I ^ meas),
+                                meas_op=(4 * I ^ meas),
                                 target_params=params,
+                                aux_meas_op=aux_meas_op,
                             )
                         )
 
@@ -748,7 +756,7 @@ class LinComb(CircuitGradient):
                         param_expression = gate.params[idx]
 
                         if isinstance(meas_op, OperatorBase):
-                            state = StateFn(meas_op, is_measurement=True) @ state
+                            state = StateFn(aux_meas_op ^ meas_op, is_measurement=True) @ state
 
                         else:
                             state = self._aux_meas_basis_trafo(
@@ -849,7 +857,9 @@ class LinComb(CircuitGradient):
                                 state = CircuitStateFn(hessian_circuit, coeff=coeff)
 
                                 if meas_op is not None:
-                                    state = StateFn(meas_op, is_measurement=True) @ state
+                                    state = (
+                                        StateFn(aux_meas_op ^ meas_op, is_measurement=True) @ state
+                                    )
                                 else:
                                     state = self._aux_meas_basis_trafo(
                                         aux_meas_op, state, state_op, self._hess_combo_fn
