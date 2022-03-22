@@ -2,6 +2,6 @@
 features:
   - |
     Adds a gate for the XX-YY interaction, accessible via
-    `qiskit.circuit.library.XXMinusYYGate`. This gate can be used
+    :class:`qiskit.circuit.library.XXMinusYYGate`. This gate can be used
     to implement the bSwap gate and its powers. It also arises
     in the simulation of superconducting fermionic models.

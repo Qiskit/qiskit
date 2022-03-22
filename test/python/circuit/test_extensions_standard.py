@@ -1380,12 +1380,12 @@ class TestStandard2Q(QiskitTestCase):
         (4 * np.pi, 0, np.eye(4)),
     )
     def test_xx_minus_yy_matrix(self, theta: float, beta: float, expected: np.ndarray):
-        """Test XX+YY matrix."""
+        """Test XX-YY matrix."""
         gate = XXMinusYYGate(theta, beta)
         np.testing.assert_allclose(np.array(gate), expected, atol=1e-7)
 
     def test_xx_minus_yy_exponential_formula(self):
-        """Test XX+YY exponential formula."""
+        """Test XX-YY exponential formula."""
         theta, beta = np.random.uniform(-10, 10, size=2)
         theta = np.pi / 2
         beta = 0.0

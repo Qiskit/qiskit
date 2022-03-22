@@ -175,7 +175,7 @@ class TestGateDefinitions(QiskitTestCase):
         self.assertTrue(np.array_equal(rv.to_matrix(), np.array([[1, 0], [0, 1]])))
 
     def test_xx_minus_yy_definition(self):
-        """Test XX+YY gate decomposition."""
+        """Test XX-YY gate decomposition."""
         theta, beta = np.random.uniform(-10, 10, size=2)
         gate = XXMinusYYGate(theta, beta)
         circuit = QuantumCircuit(2)
