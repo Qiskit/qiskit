@@ -41,37 +41,37 @@ class VarQITE(ImaginaryEvolver, VarQTE):
         self,
         variational_principle: ImaginaryVariationalPrinciple,
         ode_function_generator: AbstractOdeFunctionGenerator,
-        backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
-        expectation: Optional[ExpectationBase] = None,
         ode_solver_callable: OdeSolver = RK45,
         lse_solver_callable: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
+        expectation: Optional[ExpectationBase] = None,
         allowed_imaginary_part: float = 1e-7,
         allowed_num_instability_error: float = 1e-7,
+        quantum_instance: Optional[Union[BaseBackend, QuantumInstance]] = None,
     ) -> None:
         r"""
         Args:
             variational_principle: Variational Principle to be used.
             ode_function_generator: Generator for a function that ODE will use.
-            backend: Backend used to evaluate the quantum circuit outputs.
-            expectation: An instance of ExpectationBase which defines a method for calculating
-                expectation values of EvolutionProblem.aux_operators.
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
             lse_solver_callable: Linear system of equations solver that follows a NumPy
                 np.linalg.lstsq interface.
+            expectation: An instance of ExpectationBase which defines a method for calculating
+                expectation values of EvolutionProblem.aux_operators.
             allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
                 imaginary part is expected.
             allowed_num_instability_error: The amount of negative value that is allowed to be
                 rounded up to 0 for quantities that are expected to be non-negative.
+            quantum_instance: Backend used to evaluate the quantum circuit outputs.
         """
         super().__init__(
             variational_principle,
             ode_function_generator,
-            backend,
-            expectation,
             ode_solver_callable,
             lse_solver_callable,
+            expectation,
             allowed_imaginary_part,
             allowed_num_instability_error,
+            quantum_instance,
         )
 
     def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
