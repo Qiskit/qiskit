@@ -497,7 +497,17 @@ class DAGCircuit:
         return node_index
 
     def copy_circuit_metadata(self):
-        """Return a copy of source_dag with metadata but empty."""
+        """Return a copy of self with metadata but empty.
+
+        The metadata includes:
+            * name and other metadata
+            * global phase
+            * duration
+            * all the qubits and clbits, including the registers.
+
+        Returns:
+            DAGCircuit: An empty copy of self, only with the metadata
+        """
         target_dag = DAGCircuit()
         target_dag.name = self.name
         target_dag._global_phase = self._global_phase
