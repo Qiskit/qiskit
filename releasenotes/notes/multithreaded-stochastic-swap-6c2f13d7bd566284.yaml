@@ -1,0 +1,58 @@
+---
+features:
+  - |
+    The internals of the :class:`.StochasticSwap` algorithm have been reimplemented
+    to be multithreaded and are now written in the
+    `Rust <https://www.rust-lang.org/>`__ programming language instead of Cython.
+    This significantly increases the run time performance of the compiler pass
+    and by extension :func:`~.transpile` when run with ``optimization_level`` 0,
+    1, and 2. By default the pass will use up to the number of logical CPUs on your
+    local system but you can control the number of threads used by the pass by setting
+    the ``RAYON_NUM_THREADS`` environment variable to an integer value. For example,
+    setting ``RAYON_NUM_THREADS=4`` will run the :class:`.StochasticSwap` with 4 
+    threads.
+  - |
+    A new environment variable ``QISKIT_FORCE_THREADS`` is available for users to
+    directly control whether potentially multithreaded portions of qiskit's code
+    will run in multiple threads. Currently this is only used by the
+    :class:`~.StochasticSwap` transpiler pass but it likely will be used other
+    parts of Qiskit in the future. When this env variable is set to ``TRUE`` any
+    multithreaded code in Qiskit Terra will always use multiple threads regardless
+    of any other runtime conditions that might have otherwise caused the function
+    to use a single threaded variant. For example, in :class:`~.StochasticSwap` if
+    the pass is being run as part of a :func:`~.transpile` call with > 1 circuit
+    that is being executed in parallel with ``multiprocessing`` via
+    :func:`~.parallel_map` the :class:`~.StochasticSwap` will not use multiple
+    threads to avoid potentially oversubscribing CPU resources. However, if you'd
+    like to use multiple threads in the pass along with multiple processes you
+    can set ``QISKIT_FORCE_THREADS=TRUE``.
+upgrade:
+  - |
+    The :class:`.StochasticSwap` transpiler pass may return different results with
+    the same seed value set. This is due to the internal rewrite of the transpiler
+    pass to improve runtime performance. However, this means that if you ran
+    :func:`~.transpile` with ``optimization_level`` 0, 1 (the default), or 2 with a
+    value set for ``seed_transpiler`` you may get an output with different swap
+    mapping present after upgrading to Qiskit Terra 0.20.0.
+  - |
+    To build Qiskit Terra from source a `Rust <https://www.rust-lang.org/>`__
+    compiler is now needed. This is due to the internal rewrite of the
+    :class:`.StochasticSwap` transpiler pass which greatly improves the runtime
+    performance of the transpiler. The rust compiler can easily be installed
+    using rustup, which can be found here: https://rustup.rs/
+issues:
+  - |
+    When running :func:`.parallel_map` (which is done internally by
+    performance sensitive functions such as :func:`.transpile` and
+    :func:`.assemble`) in a subprocess launched outside of
+    :func:`.parallel_map` it is possible that the parallel dispatch performed
+    inside :func:`.parallel_map` will hang and never return.
+    This is due to upstream issues in cpython (see:
+    https://bugs.python.org/issue40379 for more details) around the default
+    method to launch subprocesses on Linux and macOS (with Python 3.7). If you
+    encounter this you have two options you can either remove the nested
+    parallel processes as calling :func:`.parallel_map` from a main process
+    should work fine or you can manually call the cPython standard library
+    ``multiprocessing`` module to perform similar parallel dispatch from a
+    subprocess but use the ``"spawn"`` or ``"forkserver"`` launch methods to
+    avoid the potential to have things get stuck and never return.

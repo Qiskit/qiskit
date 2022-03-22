@@ -172,7 +172,7 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
             self.mixer_operator = self.mixer_operators
             return super()._check_configuration()
 
-        if not super(QAOAAnsatz, self)._check_configuration(raise_on_failure):
+        if not super(AdaptQAOAAnsatz, self)._check_configuration(raise_on_failure):
             return False
 
         if self.cost_operator is None:
@@ -193,9 +193,9 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
         if self.mixer_operators is not None and not hasattr(self,'_config_check'):
             # Check that the dimensionality of the mixer operator pool is equal to the cost operator
             nmix_qubits, nmix_params, mixer_operators = [], [], []
-            for mixer in self.mixer_operators: 
+            for mixer in self.mixer_operators:
                 nmix_qubits.append(mixer.num_qubits) #
-                if isinstance(mixer, QuantumCircuit): # For the purposes of efficient energy gradient computation 
+                if isinstance(mixer, QuantumCircuit): # For the purposes of efficient energy gradient computation
                     nmix_params.append(mixer.num_parameters)
                     if not nmix_params[-1]:
                         mixer = PrimitiveOp(Operator(mixer)) # (i.e. the commutator) we must convert mixer circuits
@@ -271,7 +271,7 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
     
     @operators.setter
     def operators(self, operators) -> List:
-        "Sets list of ansatz operators"
+        """Sets list of ansatz operators"""
         self._operators = operators
 
     @property
@@ -330,7 +330,7 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
     def _build(self):
         if self._is_built:
             return
-        super(QAOAAnsatz, self)._build()
+        super(AdaptQAOAAnsatz, self)._build()
 
         num_mixer = []
         for mix in self.mixer_operators:

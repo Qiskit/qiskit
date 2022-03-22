@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    :meth:`.LocalReadoutMitigator.assignment_matrix` will now accept lists of
+    qubits beyond the trivial ``[0, 1, 2, ..., n-1]``.
