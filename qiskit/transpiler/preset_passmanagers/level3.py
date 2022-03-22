@@ -120,6 +120,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             method=unitary_synthesis_method,
             plugin_config=unitary_synthesis_plugin_config,
             min_qubits=3,
+            target=target,
         ),
         Unroll3qOrMore(),
     ]
@@ -214,6 +215,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 backend_props=backend_properties,
                 plugin_config=unitary_synthesis_plugin_config,
                 method=unitary_synthesis_method,
+                target=target,
             ),
             UnrollCustomDefinitions(sel, basis_gates),
             BasisTranslator(sel, basis_gates, target),
@@ -228,6 +230,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 method=unitary_synthesis_method,
                 plugin_config=unitary_synthesis_plugin_config,
                 min_qubits=3,
+                target=target,
             ),
             Unroll3qOrMore(),
             Collect2qBlocks(),
@@ -239,6 +242,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 backend_props=backend_properties,
                 method=unitary_synthesis_method,
                 plugin_config=unitary_synthesis_plugin_config,
+                target=target,
             ),
         ]
     else:
@@ -274,6 +278,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             backend_props=backend_properties,
             method=unitary_synthesis_method,
             plugin_config=unitary_synthesis_plugin_config,
+            target=target,
         ),
         Optimize1qGatesDecomposition(basis_gates),
         CommutativeCancellation(),
@@ -330,19 +335,21 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm3.append(_direction_check)
         pm3.append(_direction, condition=_direction_condition)
         pm3.append(_reset)
+        pm3.append(_depth_check + _size_check)
         # For transpiling to a target we need to run GateDirection in the
         # optimization loop to correct for incorrect directions that might be
         # inserted by UnitarySynthesis which is direction aware but only via
         # the coupling map which with a target doesn't give a full picture
         if target is not None:
             pm3.append(
-                _depth_check + _size_check + _opt + _unroll + _direction, do_while=_opt_control
+                _opt + _unroll + _depth_check + _size_check + _direction, do_while=_opt_control
             )
         else:
-            pm3.append(_depth_check + _size_check + _opt + _unroll, do_while=_opt_control)
+            pm3.append(_opt + _unroll + _depth_check + _size_check, do_while=_opt_control)
     else:
         pm3.append(_reset)
-        pm3.append(_depth_check + _size_check + _opt + _unroll, do_while=_opt_control)
+        pm3.append(_depth_check + _size_check)
+        pm3.append(_opt + _unroll + _depth_check + _size_check, do_while=_opt_control)
     if inst_map and inst_map.has_custom_gate():
         pm3.append(PulseGates(inst_map=inst_map))
     if scheduling_method:

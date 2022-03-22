@@ -167,6 +167,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             method=unitary_synthesis_method,
             min_qubits=3,
             plugin_config=unitary_synthesis_plugin_config,
+            target=target,
         ),
         Unroll3qOrMore(),
     ]
@@ -230,6 +231,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 method=unitary_synthesis_method,
                 backend_props=backend_properties,
                 plugin_config=unitary_synthesis_plugin_config,
+                target=target,
             ),
             UnrollCustomDefinitions(sel, basis_gates),
             BasisTranslator(sel, basis_gates, target),
@@ -245,6 +247,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 method=unitary_synthesis_method,
                 backend_props=backend_properties,
                 min_qubits=3,
+                target=target,
             ),
             Unroll3qOrMore(),
             Collect2qBlocks(),
@@ -256,6 +259,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 method=unitary_synthesis_method,
                 backend_props=backend_properties,
                 plugin_config=unitary_synthesis_plugin_config,
+                target=target,
             ),
         ]
     else:
@@ -333,7 +337,8 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm1.append(_direction_check)
         pm1.append(_direction, condition=_direction_condition)
     pm1.append(_reset)
-    pm1.append(_depth_check + _size_check + _opt + _unroll, do_while=_opt_control)
+    pm1.append(_depth_check + _size_check)
+    pm1.append(_opt + _unroll + _depth_check + _size_check, do_while=_opt_control)
     if inst_map and inst_map.has_custom_gate():
         pm1.append(PulseGates(inst_map=inst_map))
     if scheduling_method:
