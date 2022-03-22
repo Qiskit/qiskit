@@ -27,13 +27,11 @@ from qiskit.transpiler.passes import CXCancellation
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import GateDirection
 from qiskit.transpiler.passes import SetLayout
-from qiskit.transpiler.passes import VF2Layout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
 from qiskit.transpiler.passes import SabreLayout
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
-from qiskit.transpiler.passes import Layout2qDistance
 from qiskit.transpiler.passes import BasicSwap
 from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.transpiler.passes import StochasticSwap
@@ -46,6 +44,7 @@ from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckGateDirection
+from qiskit.transpiler.passes import Layout2qDistance
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
@@ -55,10 +54,8 @@ from qiskit.transpiler.passes import ASAPSchedule
 from qiskit.transpiler.passes import AlignMeasures
 from qiskit.transpiler.passes import ValidatePulseGates
 from qiskit.transpiler.passes import PulseGates
-from qiskit.transpiler.passes import PadDelay
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import ContainsInstruction
-from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 
 from qiskit.transpiler import TranspilerError
 
@@ -105,57 +102,16 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
     target = pass_manager_config.target
 
-    # 1. Use trivial layout if no layout given if that isn't perfect use vf2 layout
+    # 1. Use trivial layout if no layout given
     _given_layout = SetLayout(initial_layout)
+
+    _choose_layout_and_score = [
+        TrivialLayout(coupling_map),
+        Layout2qDistance(coupling_map, property_name="trivial_layout_score"),
+    ]
 
     def _choose_layout_condition(property_set):
         return not property_set["layout"]
-
-    def _trivial_not_perfect(property_set):
-        # Verify that a trivial layout is perfect. If trivial_layout_score > 0
-        # the layout is not perfect. The layout is unconditionally set by trivial
-        # layout so we need to clear it before contuing.
-        if (
-            property_set["trivial_layout_score"] is not None
-            and property_set["trivial_layout_score"] != 0
-        ):
-            return True
-        return False
-
-    def _vf2_match_not_found(property_set):
-        # If a layout hasn't been set by the time we run vf2 layout we need to
-        # run layout
-        if property_set["layout"] is None:
-            return True
-        # if VF2 layout stopped for any reason other than solution found we need
-        # to run layout since VF2 didn't converge.
-        if (
-            property_set["VF2Layout_stop_reason"] is not None
-            and property_set["VF2Layout_stop_reason"] is not VF2LayoutStopReason.SOLUTION_FOUND
-        ):
-            return True
-        return False
-
-    _choose_layout_0 = (
-        []
-        if pass_manager_config.layout_method
-        else [
-            TrivialLayout(coupling_map),
-            Layout2qDistance(coupling_map, property_name="trivial_layout_score"),
-        ]
-    )
-
-    _choose_layout_1 = (
-        []
-        if pass_manager_config.layout_method
-        else VF2Layout(
-            coupling_map,
-            seed=seed_transpiler,
-            call_limit=int(5e4),  # Set call limit to ~100ms with retworkx 0.10.2
-            time_limit=0.1,
-            properties=backend_properties,
-        )
-    )
 
     # 2. Decompose so only 1-qubit and 2-qubit gates remain
     _unroll3q = [
@@ -181,6 +137,12 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _improve_layout = SabreLayout(coupling_map, max_iterations=2, seed=seed_transpiler)
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
+
+    def _not_perfect_yet(property_set):
+        return (
+            property_set["trivial_layout_score"] is not None
+            and property_set["trivial_layout_score"] != 0
+        )
 
     # 4. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
@@ -247,7 +209,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             ),
             Unroll3qOrMore(),
             Collect2qBlocks(),
-            ConsolidateBlocks(basis_gates=basis_gates, target=target),
+            ConsolidateBlocks(basis_gates=basis_gates),
             UnitarySynthesis(
                 basis_gates,
                 approximation_degree=approximation_degree,
@@ -291,9 +253,9 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if scheduling_method:
         _scheduling += _time_unit_conversion
         if scheduling_method in {"alap", "as_late_as_possible"}:
-            _scheduling += [ALAPSchedule(instruction_durations), PadDelay()]
+            _scheduling += [ALAPSchedule(instruction_durations)]
         elif scheduling_method in {"asap", "as_soon_as_possible"}:
-            _scheduling += [ASAPSchedule(instruction_durations), PadDelay()]
+            _scheduling += [ASAPSchedule(instruction_durations)]
         else:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
 
@@ -317,9 +279,8 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if coupling_map or initial_layout:
         pm1.append(_given_layout)
         pm1.append(_unroll3q)
-        pm1.append(_choose_layout_0, condition=_choose_layout_condition)
-        pm1.append(_choose_layout_1, condition=_trivial_not_perfect)
-        pm1.append(_improve_layout, condition=_vf2_match_not_found)
+        pm1.append(_choose_layout_and_score, condition=_choose_layout_condition)
+        pm1.append(_improve_layout, condition=_not_perfect_yet)
         pm1.append(_embed)
         pm1.append(_swap_check)
         pm1.append(_swap, condition=_swap_condition)

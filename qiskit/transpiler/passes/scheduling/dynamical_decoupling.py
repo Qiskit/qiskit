@@ -25,8 +25,6 @@ from qiskit.transpiler.passes.optimization import Optimize1qGates
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
-from .padding import PadDelay
-
 
 class DynamicalDecoupling(TransformationPass):
     """Dynamical decoupling insertion pass.
@@ -120,9 +118,6 @@ class DynamicalDecoupling(TransformationPass):
         self._qubits = qubits
         self._spacing = spacing
         self._skip_reset_qubits = skip_reset_qubits
-
-        # temporary code until DD pass is updated
-        self.requires = [PadDelay()]
 
     def run(self, dag):
         """Run the DynamicalDecoupling pass on dag.

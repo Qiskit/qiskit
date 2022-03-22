@@ -38,6 +38,7 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
    CZGate
    HGate
    IGate
+   MSGate
    MCPhaseGate
    PhaseGate
    RCCXGate
@@ -72,6 +73,7 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
 from .h import HGate, CHGate
 from .i import IGate
 from .p import PhaseGate, CPhaseGate, MCPhaseGate
+from .ms import MSGate
 from .r import RGate
 from .rx import RXGate, CRXGate
 from .rxx import RXXGate

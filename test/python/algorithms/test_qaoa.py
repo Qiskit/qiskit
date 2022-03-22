@@ -17,12 +17,10 @@
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
-from functools import partial
 import math
 import numpy as np
-from scipy.optimize import minimize as scipy_minimize
-from ddt import ddt, idata, unpack
 import retworkx as rx
+from ddt import ddt, idata, unpack
 
 from qiskit.algorithms import QAOA
 from qiskit.algorithms.optimizers import COBYLA, NELDER_MEAD
@@ -312,15 +310,6 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         self.assertNotEqual(circ3, ref)
         circ4 = qaoa.construct_circuit([0, 0], I ^ Z)[0]
         self.assertEqual(circ4, ref)
-
-    def test_optimizer_scipy_callable(self):
-        """Test passing a SciPy optimizer directly as callable."""
-        qaoa = QAOA(
-            optimizer=partial(scipy_minimize, method="Nelder-Mead", options={"maxiter": 2}),
-            quantum_instance=self.statevector_simulator,
-        )
-        result = qaoa.compute_minimum_eigenvalue(Z)
-        self.assertEqual(result.cost_function_evals, 4)
 
     def _get_operator(self, weight_matrix):
         """Generate Hamiltonian for the max-cut problem of a graph.

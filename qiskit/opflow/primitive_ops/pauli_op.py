@@ -87,16 +87,10 @@ class PauliOp(PrimitiveOp):
         return PauliOp(self.primitive, coeff=self.coeff.conjugate())
 
     def equals(self, other: OperatorBase) -> bool:
-        if isinstance(other, PauliOp) and self.coeff == other.coeff:
-            return self.primitive == other.primitive
+        if not isinstance(other, PauliOp) or not self.coeff == other.coeff:
+            return False
 
-        # pylint: disable=cyclic-import
-        from .pauli_sum_op import PauliSumOp
-
-        if isinstance(other, PauliSumOp):
-            return other == self
-
-        return False
+        return self.primitive == other.primitive
 
     def _expand_dim(self, num_qubits: int) -> "PauliOp":
         return PauliOp(Pauli("I" * num_qubits).expand(self.primitive), coeff=self.coeff)

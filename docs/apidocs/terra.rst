@@ -22,7 +22,6 @@ Qiskit Terra API Reference
    pulse
    scheduler
    synthesis
-   primitives
    qasm
    qobj
    qpy

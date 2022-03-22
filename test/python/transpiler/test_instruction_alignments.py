@@ -14,13 +14,13 @@
 
 from qiskit import QuantumCircuit, pulse
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler import InstructionDurations, PassManager
+from qiskit.transpiler import InstructionDurations
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import (
     AlignMeasures,
     ValidatePulseGates,
     ALAPSchedule,
-    PadDelay,
+    TimeUnitConversion,
 )
 
 
@@ -29,8 +29,8 @@ class TestAlignMeasures(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-
-        self.instruction_durations = InstructionDurations(
+        instruction_durations = InstructionDurations()
+        instruction_durations.update(
             [
                 ("rz", (0,), 0),
                 ("rz", (1,), 0),
@@ -43,6 +43,9 @@ class TestAlignMeasures(QiskitTestCase):
                 ("measure", None, 1600),
             ]
         )
+        self.time_conversion_pass = TimeUnitConversion(inst_durations=instruction_durations)
+        self.scheduling_pass = ALAPSchedule(durations=instruction_durations)
+        self.align_measure_pass = AlignMeasures(alignment=16)
 
     def test_t1_experiment_type(self):
         """Test T1 experiment type circuit.
@@ -71,21 +74,11 @@ class TestAlignMeasures(QiskitTestCase):
         circuit.delay(100, 0, unit="dt")
         circuit.measure(0, 0)
 
-        pm = PassManager(
-            [
-                # reproduce old behavior of 0.20.0 before #7655
-                # currently default write latency is 0
-                ALAPSchedule(
-                    durations=self.instruction_durations,
-                    clbit_write_latency=1600,
-                    conditional_latency=0,
-                ),
-                PadDelay(),
-                AlignMeasures(alignment=16),
-            ]
+        timed_circuit = self.time_conversion_pass(circuit)
+        scheduled_circuit = self.scheduling_pass(timed_circuit, property_set={"time_unit": "dt"})
+        aligned_circuit = self.align_measure_pass(
+            scheduled_circuit, property_set={"time_unit": "dt"}
         )
-
-        aligned_circuit = pm.run(circuit)
 
         ref_circuit = QuantumCircuit(1, 1)
         ref_circuit.x(0)
@@ -125,21 +118,11 @@ class TestAlignMeasures(QiskitTestCase):
         circuit.sx(0)
         circuit.measure(0, 0)
 
-        pm = PassManager(
-            [
-                # reproduce old behavior of 0.20.0 before #7655
-                # currently default write latency is 0
-                ALAPSchedule(
-                    durations=self.instruction_durations,
-                    clbit_write_latency=1600,
-                    conditional_latency=0,
-                ),
-                PadDelay(),
-                AlignMeasures(alignment=16),
-            ]
+        timed_circuit = self.time_conversion_pass(circuit)
+        scheduled_circuit = self.scheduling_pass(timed_circuit, property_set={"time_unit": "dt"})
+        aligned_circuit = self.align_measure_pass(
+            scheduled_circuit, property_set={"time_unit": "dt"}
         )
-
-        aligned_circuit = pm.run(circuit)
 
         ref_circuit = QuantumCircuit(1, 1)
         ref_circuit.sx(0)
@@ -183,21 +166,11 @@ class TestAlignMeasures(QiskitTestCase):
         circuit.delay(120, 0, unit="dt")
         circuit.measure(0, 1)
 
-        pm = PassManager(
-            [
-                # reproduce old behavior of 0.20.0 before #7655
-                # currently default write latency is 0
-                ALAPSchedule(
-                    durations=self.instruction_durations,
-                    clbit_write_latency=1600,
-                    conditional_latency=0,
-                ),
-                PadDelay(),
-                AlignMeasures(alignment=16),
-            ]
+        timed_circuit = self.time_conversion_pass(circuit)
+        scheduled_circuit = self.scheduling_pass(timed_circuit, property_set={"time_unit": "dt"})
+        aligned_circuit = self.align_measure_pass(
+            scheduled_circuit, property_set={"time_unit": "dt"}
         )
-
-        aligned_circuit = pm.run(circuit)
 
         ref_circuit = QuantumCircuit(1, 2)
         ref_circuit.x(0)
@@ -252,21 +225,11 @@ class TestAlignMeasures(QiskitTestCase):
         circuit.cx(0, 1)
         circuit.measure(0, 0)
 
-        pm = PassManager(
-            [
-                # reproduce old behavior of 0.20.0 before #7655
-                # currently default write latency is 0
-                ALAPSchedule(
-                    durations=self.instruction_durations,
-                    clbit_write_latency=1600,
-                    conditional_latency=0,
-                ),
-                PadDelay(),
-                AlignMeasures(alignment=16),
-            ]
+        timed_circuit = self.time_conversion_pass(circuit)
+        scheduled_circuit = self.scheduling_pass(timed_circuit, property_set={"time_unit": "dt"})
+        aligned_circuit = self.align_measure_pass(
+            scheduled_circuit, property_set={"time_unit": "dt"}
         )
-
-        aligned_circuit = pm.run(circuit)
 
         ref_circuit = QuantumCircuit(2, 2)
         ref_circuit.x(0)
@@ -295,10 +258,9 @@ class TestAlignMeasures(QiskitTestCase):
 
         # pre scheduling is not necessary because alignment is skipped
         # this is to minimize breaking changes to existing code.
-        pm = PassManager(AlignMeasures(alignment=16))
-        aligned_circuit = pm.run(circuit)
+        transpiled = self.align_measure_pass(circuit, property_set={"time_unit": "dt"})
 
-        self.assertEqual(aligned_circuit, circuit)
+        self.assertEqual(transpiled, circuit)
 
     def test_circuit_using_clbit(self):
         """Test a circuit with instructions using a common clbit.
@@ -338,22 +300,11 @@ class TestAlignMeasures(QiskitTestCase):
         circuit.x(1).c_if(0, 1)
         circuit.measure(2, 0)
 
-        pm = PassManager(
-            [
-                # reproduce old behavior of 0.20.0 before #7655
-                # currently default write latency is 0
-                ALAPSchedule(
-                    durations=self.instruction_durations,
-                    clbit_write_latency=1600,
-                    conditional_latency=0,
-                ),
-                PadDelay(),
-                AlignMeasures(alignment=16),
-            ]
+        timed_circuit = self.time_conversion_pass(circuit)
+        scheduled_circuit = self.scheduling_pass(timed_circuit, property_set={"time_unit": "dt"})
+        aligned_circuit = self.align_measure_pass(
+            scheduled_circuit, property_set={"time_unit": "dt"}
         )
-
-        aligned_circuit = pm.run(circuit)
-
         self.assertEqual(aligned_circuit.duration, 2032)
 
         ref_circuit = QuantumCircuit(3, 1)
