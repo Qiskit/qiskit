@@ -15,7 +15,7 @@
 from .scheduling import ALAPSchedule, ASAPSchedule, SetIOLatency
 from .time_unit_conversion import TimeUnitConversion
 from .dynamical_decoupling import DynamicalDecoupling
-from .padding import PadDelay
+from .pad_delay import PadDelay
 from .alignments import InstructionDurationCheck, ValidatePulseGates, ConstrainedReschedule
 
 # For backward compability

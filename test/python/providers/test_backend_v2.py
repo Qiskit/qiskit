@@ -21,6 +21,8 @@ from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.compiler import transpile
+from qiskit.compiler.transpiler import _parse_inst_map
+from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.test.base import QiskitTestCase
 from qiskit.test.mock.fake_backend_v2 import FakeBackendV2, FakeBackend5QV2
 from qiskit.test.mock.fake_mumbai_v2 import FakeMumbaiV2
@@ -165,3 +167,8 @@ class TestBackendV2(QiskitTestCase):
         expected.measure(qr[0], cr[0])
         expected.measure(qr[1], cr[1])
         self.assertEqual(expected, tqc)
+
+    def test_transpile_parse_inst_map(self):
+        """Test that transpiler._parse_inst_map() supports BackendV2."""
+        inst_map = _parse_inst_map(inst_map=None, backend=self.backend, num_circuits=1)[0]
+        self.assertIsInstance(inst_map, InstructionScheduleMap)

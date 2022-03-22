@@ -106,6 +106,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             method=unitary_synthesis_method,
             min_qubits=3,
             plugin_config=unitary_synthesis_plugin_config,
+            target=target,
         ),
         Unroll3qOrMore(),
     ]
@@ -119,7 +120,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if layout_method == "trivial":
         _choose_layout = TrivialLayout(coupling_map)
     elif layout_method == "dense":
-        _choose_layout = DenseLayout(coupling_map, backend_properties)
+        _choose_layout = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
         _choose_layout = NoiseAdaptiveLayout(backend_properties)
     elif layout_method == "sabre":
@@ -172,6 +173,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 backend_props=backend_properties,
                 method=unitary_synthesis_method,
                 plugin_config=unitary_synthesis_plugin_config,
+                target=target,
             ),
             UnrollCustomDefinitions(sel, basis_gates),
             BasisTranslator(sel, basis_gates, target),
@@ -186,11 +188,12 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 method=unitary_synthesis_method,
                 min_qubits=3,
                 plugin_config=unitary_synthesis_plugin_config,
+                target=target,
             ),
             Unroll3qOrMore(),
             Collect2qBlocks(),
             Collect1qRuns(),
-            ConsolidateBlocks(basis_gates=basis_gates),
+            ConsolidateBlocks(basis_gates=basis_gates, target=target),
             UnitarySynthesis(
                 basis_gates,
                 approximation_degree=approximation_degree,
@@ -198,6 +201,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 backend_props=backend_properties,
                 method=unitary_synthesis_method,
                 plugin_config=unitary_synthesis_plugin_config,
+                target=target,
             ),
         ]
     else:
