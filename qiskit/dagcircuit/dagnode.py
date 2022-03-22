@@ -279,7 +279,6 @@ class DAGNode:
         Return:
             Bool: If node1 == node2
         """
-        print("HULU")
         if bit_indices1 is None or bit_indices2 is None:
             warnings.warn(
                 "DAGNode.semantic_eq now expects two bit-to-circuit index "

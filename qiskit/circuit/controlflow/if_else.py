@@ -137,22 +137,24 @@ class IfElseOp(ControlFlowOp):
         else:
             return (self.params[0], self.params[1])
 
+    def replace_blocks(self, blocks):
+        if len(blocks) == 1:
+            (true_body,) = blocks
+            false_body = None
+        else:
+            (true_body, false_body) = blocks
+        if (not isinstance(true_body, QuantumCircuit) or
+            not isinstance(false_body, (QuantumCircuit, type(None)))):
+            raise CircuitError(
+                "Setting blocks of IfElseOp expects QuantumCircuit objects."
+            )
+        return IfElseOp(self.condition, true_body, false_body=false_body, label=self.label)
+
     def c_if(self, classical, val):
         raise NotImplementedError(
             "IfElseOp cannot be classically controlled through Instruction.c_if. "
             "Please nest it in an IfElseOp instead."
         )
-
-    def copy_no_body(self):
-        """Return a copy with body arguments replaced by empty circuits with
-        the intention that it will be populated by the caller."""
-        true_body = QuantumCircuit(self.params[0].qubits, self.params[0].clbits)
-        if self.params[1]:
-            false_body = QuantumCircuit(self.params[1].qubits, self.params[1].clbits)
-        else:
-            false_body = None
-        return IfElseOp(copy(self.condition), true_body, false_body=false_body, label=self.label)
-
 
 
 class IfElsePlaceholder(InstructionPlaceholder):

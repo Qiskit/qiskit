@@ -232,21 +232,14 @@ class BasisTranslator(TransformationPass):
                     if block_instrs in target_basis:
                         continue
                     else:
-                        # recursively do basis translation of blocks
                         print("translating blocks")
-                        new_params = []
-                        for param in node.op.params:
-                            if (isinstance(param, QuantumCircuit) and
-                                set(param.count_ops().keys()) not in target_basis):
-                                dag_block = circuit_to_dag(param)
-                                unrolled_dag_block = self.run(dag_block)
-                                unrolled_circ_block = dag_to_circuit(unrolled_dag_block)
-                                new_params.append(unrolled_circ_block)
-                            else:
-                                new_params.append(copy.copy(param))
-                        new_cf_op = node.op.copy_no_body()
-                        new_cf_op.params = new_params
-                        node.op = new_cf_op
+                        unrolled_blocks = []
+                        for block in node.op.blocks:
+                            dag_block = circuit_to_dag(block)
+                            unrolled_dag_block = self.run(dag_block)
+                            unrolled_circ_block = dag_to_circuit(unrolled_dag_block)
+                            unrolled_blocks.append(unrolled_circ_block)
+                        node.op = node.op.replace_blocks(unrolled_blocks)
                     continue
                 else:
                     continue

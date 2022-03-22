@@ -96,17 +96,17 @@ class WhileLoopOp(ControlFlowOp):
     def blocks(self):
         return (self._params[0],)
 
+    def replace_blocks(self, blocks):
+        (body,) = blocks
+        if not isinstance(body, QuantumCircuit):
+            raise CircuitError("WhileLoopOp expects a single QuantumCircuit when setting blocks")
+        return WhileLoopOp(self.condition, body, label=self.label)
+
     def c_if(self, classical, val):
         raise NotImplementedError(
             "WhileLoopOp cannot be classically controlled through Instruction.c_if. "
             "Please use an IfElseOp instead."
         )
-
-    def copy_no_body(self):
-        """Return a copy with body arguments replaced by empty circuits with
-        the intention that it will be populated by the caller."""
-        body = QuantumCircuit(self.params[0].qubits, self.params[0].clbits)
-        return WhileLoopOp(copy(self.condition), body, label=self.label)
 
 
 class WhileLoopContext:
