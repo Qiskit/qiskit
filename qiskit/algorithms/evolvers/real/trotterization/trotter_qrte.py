@@ -75,6 +75,12 @@ class TrotterQrte(RealEvolver):
 
     @classmethod
     def supports_aux_operators(cls) -> bool:
+        """
+        Whether computing the expectation value of auxiliary operators is supported.
+
+        Returns:
+            True if aux_operator expectations can be evaluated, False otherwise.
+        """
         return True
 
     def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
