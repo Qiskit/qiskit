@@ -16,7 +16,6 @@ Matrix designed for fast multiplication by permutation and block-diagonal ones.
 
 from typing import Optional
 import numpy as np
-from .fast_grad_utils import get_max_num_bits
 from .layer import Layer1Q, Layer2Q
 
 

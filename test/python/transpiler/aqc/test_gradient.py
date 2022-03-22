@@ -12,6 +12,7 @@
 """
 Tests analytical gradient vs the one computed via finite differences.
 """
+# pylint: disable=wrong-import-position
 
 
 import unittest

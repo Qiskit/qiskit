@@ -13,16 +13,17 @@
 """
 Tests for Layer1Q implementation.
 """
+# pylint: disable=wrong-import-position
+# pylint: disable=wrong-import-order
 
 
-from time import perf_counter
 import unittest
 from random import randint
-import test.python.transpiler.aqc.fast_gradient.utils_for_testing as tut
 import numpy as np
+from qiskit.test import QiskitTestCase
+import test.python.transpiler.aqc.fast_gradient.utils_for_testing as tut
 import qiskit.transpiler.synthesis.aqc.fast_gradient.layer as lr
 from qiskit.transpiler.synthesis.aqc.fast_gradient.pmatrix import PMatrix
-from qiskit.test import QiskitTestCase
 
 
 class TestLayer1q(QiskitTestCase):
@@ -32,16 +33,12 @@ class TestLayer1q(QiskitTestCase):
 
     long_test = False  # enables thorough testing
 
-    def setUp(self):
-        super().setUp()
-
     def test_layer1q_matrix(self):
         """
         Tests: (1) the correctness of Layer2Q matrix construction;
         (2) matrix multiplication interleaved with permutations.
         """
 
-        start = perf_counter()
         mat_kind = "complex"
         eps = 100.0 * np.finfo(float).eps
         max_rel_err = 0.0
@@ -89,7 +86,6 @@ class TestLayer1q(QiskitTestCase):
         Test the class PMatrix.
         """
 
-        start = perf_counter()
         _eps = 100.0 * np.finfo(float).eps
         mat_kind = "complex"
         max_rel_err = 0.0

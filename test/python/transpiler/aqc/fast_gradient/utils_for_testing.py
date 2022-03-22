@@ -13,6 +13,7 @@
 """
 Utility functions for debugging and testing.
 """
+# pylint: disable=wrong-import-position
 
 from typing import Tuple
 import numpy as np
@@ -213,7 +214,6 @@ def rand_su_mat(dim: int) -> np.ndarray:
     Returns:
         random SU matrix.
     """
-    tol = float(np.sqrt(np.finfo(np.float64).eps))
     u_mat = unitary_group.rvs(dim)
     u_mat /= np.linalg.det(u_mat) ** (1.0 / float(dim))
     return u_mat

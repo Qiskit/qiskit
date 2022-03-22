@@ -17,8 +17,7 @@ Layer classes for the fast gradient implementation.
 from abc import abstractmethod, ABC
 from typing import Tuple, Optional
 import numpy as np
-from qiskit.transpiler.synthesis.aqc.fast_gradient.fast_grad_utils import (
-    get_max_num_bits,
+from .fast_grad_utils import (
     bit_permutation_1q,
     reverse_bits,
     inverse_permutation,

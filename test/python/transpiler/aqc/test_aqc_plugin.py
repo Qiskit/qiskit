@@ -12,6 +12,7 @@
 """
 Tests AQC plugin.
 """
+# pylint: disable=wrong-import-position
 
 
 import unittest

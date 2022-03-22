@@ -12,14 +12,13 @@
 
 """
 Tests equivalence of the default and fast gradient computation routines.
-**Note**: this test is rather long and recommended for developers only.
 """
+# pylint: disable=wrong-import-position
 
-import sys
 
-
-import gc
+from typing import Tuple
 from time import perf_counter
+import gc
 import unittest
 import concurrent.futures
 from test.python.transpiler.aqc.fast_gradient.utils_for_testing import rand_circuit, rand_su_mat
@@ -37,12 +36,9 @@ class TestCompareGradientImpls(QiskitTestCase):
 
     long_test = False  # enables thorough testing
 
-    def setUp(self):
-        super().setUp()
-
     def _compare(
         self, num_qubits: int, depth: int, verbose: bool
-    ) -> (int, int, float, float, float, float, float):
+    ) -> Tuple[int, int, float, float, float, float, float]:
         """
         Calculates gradient and objective function value for the original
         and the fast implementations, and compares the outputs from both.
@@ -91,10 +87,6 @@ class TestCompareGradientImpls(QiskitTestCase):
         self.assertLess(fobj_rel_err, tol)
         self.assertLess(grad_rel_err, tol)
         self.assertTrue(np.allclose(g1, g2, atol=tol, rtol=tol))
-
-        # Useful when run inside a parallel process:
-        sys.stderr.flush()
-        sys.stdout.flush()
         return int(num_qubits), int(depth), fobj_rel_err, grad_rel_err, speedup, t1, t2
 
     def test_cmp_gradients(self):
@@ -126,12 +118,10 @@ class TestCompareGradientImpls(QiskitTestCase):
             for nqubits, depth in configs:
                 results.append(self._compare(int(nqubits), int(depth), bool(self.long_test)))
 
-        # Print out the comparison results.
-        if self.long_test:
-            total_speed_score, total_count = 0.0, 0
-            for num_qubits, depth, ferr, gerr, speedup, t1, t2 in results:
-                total_speed_score += speedup
-                total_count += 1
+        tol = float(np.sqrt(np.finfo(float).eps))
+        for _, _, ferr, gerr, _, _, _ in results:
+            self.assertTrue(ferr < tol)
+            self.assertTrue(gerr < tol)
 
 
 if __name__ == "__main__":

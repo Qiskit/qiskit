@@ -13,9 +13,9 @@
 """
 Tests for Layer2Q implementation.
 """
+# pylint: disable=wrong-import-position
 
 
-from time import perf_counter
 import unittest
 from random import randint
 import test.python.transpiler.aqc.fast_gradient.utils_for_testing as tut
@@ -32,16 +32,12 @@ class TestLayer2q(QiskitTestCase):
 
     long_test = False  # enables thorough testing
 
-    def setUp(self):
-        super().setUp()
-
     def test_layer2q_matrix(self):
         """
         Tests: (1) the correctness of Layer2Q matrix construction;
         (2) matrix multiplication interleaved with permutations.
         """
 
-        start = perf_counter()
         mat_kind = "complex"
         _eps = 100.0 * np.finfo(float).eps
         max_rel_err = 0.0
@@ -92,7 +88,6 @@ class TestLayer2q(QiskitTestCase):
         Test the class PMatrix.
         """
 
-        start = perf_counter()
         _eps = 100.0 * np.finfo(float).eps
         mat_kind = "complex"
         max_rel_err = 0.0

@@ -12,6 +12,7 @@
 """
 Tests AQC framework using hardcoded and randomly generated circuits.
 """
+# pylint: disable=wrong-import-position
 
 
 import unittest

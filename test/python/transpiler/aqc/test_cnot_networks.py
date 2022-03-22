@@ -12,6 +12,7 @@
 """
 Tests building up CNOT unit structures.
 """
+# pylint: disable=wrong-import-position
 
 
 import unittest

@@ -16,7 +16,6 @@ Implementation of the fast objective function class.
 
 import warnings
 import numpy as np
-import logging
 
 from .fast_grad_utils import get_max_num_bits
 from .layer import (
@@ -44,6 +43,10 @@ class FastCNOTUnitObjective(ApproximatingObjective):
         super().__init__()
 
         # pylint: disable=misplaced-comparison-constant
+        if not 2 <= num_qubits <= get_max_num_bits():
+            raise ValueError(
+                f"expects number of qubits in the range " f"[2 ... {get_max_num_bits()}]"
+            )
 
         self.num_qubits = num_qubits  # number of qubits
         dim = 2**num_qubits  # actual problem dimension

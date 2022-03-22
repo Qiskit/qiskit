@@ -13,10 +13,10 @@
 """
 Tests for utility functions.
 """
+# pylint: disable=wrong-import-position
 
 
 import random
-from time import perf_counter
 import unittest
 import test.python.transpiler.aqc.fast_gradient.utils_for_testing as tut
 import numpy as np
@@ -34,15 +34,11 @@ class TestUtils(QiskitTestCase):
 
     long_test = False  # enables thorough testing
 
-    def setUp(self):
-        super().setUp()
-
     def test_reverse_bits(self):
         """
         Tests the function utils.reverse_bits().
         """
 
-        start = perf_counter()
         nbits = myu.get_max_num_bits() if self.long_test else 7
         for x in range(2**nbits):
             y = myu.reverse_bits(x, nbits, enable=True)
@@ -58,8 +54,6 @@ class TestUtils(QiskitTestCase):
         """
         Tests the function utils_for_testing.make_unit_vector().
         """
-
-        start = perf_counter()
 
         # Computes unit vector as Kronecker product of (1 0) or (0 1) sub-vectors.
         def _make_unit_vector_simple(num: int, nbits: int) -> np.ndarray:
@@ -86,7 +80,6 @@ class TestUtils(QiskitTestCase):
         Tests the function utils.swap_bits().
         """
 
-        start = perf_counter()
         nbits = myu.get_max_num_bits() if self.long_test else 7
         for x in range(2**nbits):
             for a in range(nbits):
@@ -101,8 +94,6 @@ class TestUtils(QiskitTestCase):
         Tests various properties of permutations and their compositions.
         """
 
-        total_start = perf_counter()
-
         def _perm2_mat(perm: np.ndarray) -> np.ndarray:
             """Creates permutation matrix from a permutation."""
             return np.eye(perm.size, dtype=np.int64)[perm]
@@ -115,8 +106,6 @@ class TestUtils(QiskitTestCase):
             return perm, inv_perm, p_mat, q_mat
 
         for n in range(1, (8 if self.long_test else 5) + 1):
-
-            start = perf_counter()
 
             dim = 2**n
             for _ in range(100):
@@ -171,10 +160,9 @@ class TestUtils(QiskitTestCase):
         return temporary array upon every call (but have more compact code).
         """
 
-        total_start = perf_counter()
         tol = np.finfo(np.float64).eps * 2.0
         out = np.full((2, 2), fill_value=0, dtype=np.cfloat)
-        for test in range(1000 if self.long_test else 100):
+        for test in range(1000 if self.long_test else 100):  # pylint: disable=unused-variable
             phi = random.random() * 2.0 * np.pi
             self.assertTrue(np.allclose(myu.make_rx(phi, out=out), _rx(phi), atol=tol, rtol=tol))
             self.assertTrue(np.allclose(myu.make_ry(phi, out=out), _ry(phi), atol=tol, rtol=tol))
