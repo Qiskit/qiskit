@@ -323,6 +323,7 @@ They are heavily used in near-term algorithms in e.g. Chemistry, Physics or Opti
    EfficientSU2
    ExcitationPreserving
    QAOAAnsatz
+   AdaptQAOAAnsatz
 
 
 Data encoding circuits
@@ -526,6 +527,7 @@ from .n_local import (
     EfficientSU2,
     ExcitationPreserving,
     QAOAAnsatz,
+   #  AdaptQAOAAnsatz,
 )
 from .data_preparation import PauliFeatureMap, ZFeatureMap, ZZFeatureMap, StatePreparation
 from .quantum_volume import QuantumVolume
