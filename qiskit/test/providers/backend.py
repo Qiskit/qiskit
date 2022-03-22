@@ -73,3 +73,7 @@ class BackendTestCase(QiskitTestCase):
         result = job.result()
         self.assertEqual(result.success, True)
         return result
+
+    def test_max_shots(self):
+        """Test there is not a maximum number of shots on the backend."""
+        execute(self.circuit, self.backend, shots=int(2e6))
