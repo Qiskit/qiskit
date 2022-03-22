@@ -13,6 +13,7 @@
 """Common visualization utilities."""
 
 import re
+from warnings import warn
 from collections import OrderedDict
 
 import numpy as np
@@ -35,6 +36,34 @@ from qiskit.quantum_info.operators.symplectic import PauliList, SparsePauliOp
 from qiskit.quantum_info.states import DensityMatrix
 from qiskit.utils import optionals as _optionals
 from qiskit.visualization.exceptions import VisualizationError
+
+
+def check_cregbundle(node, circuit):
+    """Check if node has cargs or if node has a condition with a list
+    and one of the bits in the list is a register bit"""
+
+    op = node.op
+    if node.cargs and not isinstance(op, Measure):
+        warn(
+            "cregbundle set to False since an instruction needs to refer"
+            " to individual classical wire",
+            RuntimeWarning,
+            2,
+        )
+        return False
+    if op.condition is not None and isinstance(op.condition[0], list) and len(op.condition[0]) > 1:
+        for bit in op.condition[0]:
+            register = get_bit_register(circuit, bit)
+            if register is not None:
+                warn(
+                    "cregbundle set to False since there is a gate in the circuit"
+                    " with a classical condition on a list of bits and at least one"
+                    " of those bits belongs to a register",
+                    RuntimeWarning,
+                    2,
+                )
+                return False
+    return True
 
 
 def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
@@ -281,40 +310,52 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
     return wire_label
 
 
-def get_condition_label_val(condition, circuit, cregbundle, reverse_bits):
+def get_condition_label_val(condition, circuit, cregbundle):
     """Get the label and value list to display a condition
 
     Args:
-        condition (Union[Clbit, ClassicalRegister], int): classical condition
+        condition (Union[Clbit, ClassicalRegister, list[Clbit]], int): classical condition
         circuit (QuantumCircuit): the circuit that is being drawn
         cregbundle (bool): if set True bundle classical registers
-        reverse_bits (bool): if set True reverse the bit order
 
     Returns:
         str: label to display for the condition
-        list(str): list of 1's and 0's indicating values of condition
+        list(tuple(Union[Clbit, ClassicalRegister]), str)) List of tuples containing
+            condition bits or registers and 1 or 0 indicating condition value
     """
-    cond_is_bit = bool(isinstance(condition[0], Clbit))
+    cond_bit = None
+    # Treat single bit in a list same as single bit
+    if isinstance(condition[0], list) and len(condition[0]) == 1:
+        cond_bit = condition[0][0]
+    elif isinstance(condition[0], Clbit) or (
+        isinstance(condition[0], ClassicalRegister) and cregbundle
+    ):
+        cond_bit = condition[0]
     cond_val = int(condition[1])
 
-    # if condition on a register, return list of 1's and 0's indicating
-    # closed or open, else only one element is returned
-    if isinstance(condition[0], ClassicalRegister) and not cregbundle:
-        val_bits = list(f"{cond_val:0{condition[0].size}b}")
-        if not reverse_bits:
-            val_bits = val_bits[::-1]
+    # Make a list of tuples containing the bits/registers with the condition value
+    if cond_bit is not None:
+        cond_list = [(cond_bit, "1" if cond_val > 0 else "0")]
     else:
-        val_bits = list(str(cond_val))
+        cond_list = []
+        cond_len = (
+            condition[0].size if isinstance(condition[0], ClassicalRegister) else len(condition[0])
+        )
+        val_bits = list(f"{cond_val:0{cond_len}b}")[::-1]
+        for idx, bit in enumerate(condition[0]):
+            cond_list.append((bit, val_bits[idx]))
 
-    label = ""
-    if cond_is_bit and cregbundle:
-        register, _, reg_index = get_bit_reg_index(circuit, condition[0], False)
+    cond_label = ""
+    if cond_bit is not None and isinstance(cond_bit, Clbit) and cregbundle:
+        register, _, reg_index = get_bit_reg_index(circuit, cond_bit, False)
         if register is not None:
-            label = f"{register.name}_{reg_index}={hex(cond_val)}"
-    elif not cond_is_bit:
-        label = hex(cond_val)
+            cond_label = f"{register.name}_{reg_index}={hex(cond_val)}"
+        else:
+            cond_label = hex(cond_val)
+    else:
+        cond_label = hex(cond_val)
 
-    return label, val_bits
+    return cond_label, cond_list
 
 
 def fix_special_characters(label):
