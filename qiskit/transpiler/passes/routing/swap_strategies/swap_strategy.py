@@ -48,6 +48,7 @@ class SwapStrategy:
         self._swap_layers = swap_layers
         self._distance_matrix = None
         self._possible_edges = None
+        self._missed_edges = None
         self._inverse_composed_permutation = {0: list(range(self._num_vertices))}
 
         edge_set = set(self._coupling_map.get_edges())
@@ -157,33 +158,39 @@ class SwapStrategy:
         """Return the qubit connections that can be generated.
 
         Returns:
-            The qubit connections that can be accomodated by the swap strategy.
+            The qubit connections that can be accommodated by the swap strategy.
         """
         if self._possible_edges is None:
             self._possible_edges = self._build_edges()
 
         return self._possible_edges
 
+    def _compute_missing_couplings(self):
+        """Compute the set of couplings that cannot be reached."""
+        physical_qubits = list(set(sum(self._coupling_map.get_edges(), ())))
+        self._missed_edges = set()
+        for i, physical_qubit_i in enumerate(physical_qubits):
+            for j in range(i + 1, len(physical_qubits)):
+                self._missed_edges.add((physical_qubit_i, physical_qubits[j]))
+                self._missed_edges.add((physical_qubits[j], physical_qubit_i))
+
+        for layer_idx in range(len(self) + 1):
+            for edge in self.new_connections(layer_idx):
+                for edge_tuple in [tuple(edge), tuple(edge)[::-1]]:
+                    self._missed_edges.discard(edge_tuple)
+
+    @property
     def missing_couplings(self) -> Set[Tuple[int, int]]:
-        """Compute the set of couplings that cannot be reached.
+        """Return the set of couplings that cannot be reached.
 
         Returns:
             The couplings that cannot be reached as a set of Tuples of int. Here,
             each int corresponds to a qubit in the coupling map.
         """
-        physical_qubits = list(set(sum(self._coupling_map.get_edges(), ())))
-        missed_edges = set()
-        for i, physical_qubit_i in enumerate(physical_qubits):
-            for j in range(i + 1, len(physical_qubits)):
-                missed_edges.add((physical_qubit_i, physical_qubits[j]))
-                missed_edges.add((physical_qubits[j], physical_qubit_i))
+        if self._missed_edges is None:
+            self._compute_missing_couplings()
 
-        for layer_idx in range(len(self) + 1):
-            for edge in self.new_connections(layer_idx):
-                for edge_tuple in [tuple(edge), tuple(edge)[::-1]]:
-                    missed_edges.discard(edge_tuple)
-
-        return missed_edges
+        return self._missed_edges
 
     @property
     def reaches_full_connectivity(self) -> bool:
@@ -192,7 +199,10 @@ class SwapStrategy:
         Returns:
             True if the swap strategy reaches full connectivity and False otherwise.
         """
-        return len(self.missing_couplings()) == 0
+        if self._missed_edges is None:
+            self._compute_missing_couplings()
+
+        return len(self._missed_edges) == 0
 
     def swapped_coupling_map(self, idx: int) -> CouplingMap:
         """Returns the coupling map after applying ``idx`` swap layers of strategy.
