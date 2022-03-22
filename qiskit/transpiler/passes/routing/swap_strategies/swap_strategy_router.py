@@ -148,8 +148,7 @@ class SwapStrategyRouter(TransformationPass):
 
         new_dag = self._empty_like(dag)
 
-        canonical_register = dag.qregs["q"]
-        current_layout = Layout.generate_trivial_layout(canonical_register)
+        current_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
         # Used to keep track of nodes that do not decompose using swap strategies.
         accumulator = self._empty_like(new_dag)
