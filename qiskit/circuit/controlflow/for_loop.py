@@ -14,7 +14,6 @@
 
 import warnings
 from typing import Iterable, Optional, Union
-from copy import copy
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
@@ -118,7 +117,18 @@ class ForLoopOp(ControlFlowOp):
     def blocks(self):
         return (self._params[2],)
 
-    def replace_blocks(self, blocks):
+    def replace_blocks(self, blocks: Iterable[QuantumCircuit]) -> "ForLoopOp":
+        """Return new instruction with replaced blocks.
+
+        Args:
+            blocks: Single element list of QuantumCircuit.
+
+        Raises:
+            CircuitError: not passing list of QuantumCircuit as argument
+
+        Returns:
+            ForLoopOp: new instruction with supplied block.
+        """
         (body,) = blocks
         if not isinstance(body, QuantumCircuit):
             raise CircuitError("ForLoopOp expects a single QuantumCircuit when setting blocks")

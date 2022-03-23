@@ -19,12 +19,10 @@ from heapq import heappush, heappop
 from itertools import zip_longest
 from itertools import count as iter_count
 from collections import defaultdict
-import copy
 
 import numpy as np
 
-from qiskit.circuit import (Gate, ParameterVector, QuantumRegister,
-                            ControlFlowOp, QuantumCircuit)
+from qiskit.circuit import Gate, ParameterVector, QuantumRegister, ControlFlowOp
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
@@ -198,7 +196,6 @@ class BasisTranslator(TransformationPass):
         )
 
         if basis_transforms is None:
-            breakpoint()
             raise TranspilerError(
                 "Unable to map source basis {} to target basis {} "
                 "over library {}.".format(source_basis, target_basis, self._equiv_lib)
@@ -222,27 +219,22 @@ class BasisTranslator(TransformationPass):
 
         replace_start_time = time.time()
         for node in dag.op_nodes():
-            print(node.name)
             node_qargs = tuple(qarg_indices[bit] for bit in node.qargs)
             qubit_set = frozenset(node_qargs)
 
             if node.name in target_basis:
                 if isinstance(node.op, ControlFlowOp):
-                    block_instrs = {next(iter(block.count_ops())) for block in node.op.blocks}
-                    if block_instrs in target_basis:
-                        continue
-                    else:
-                        print("translating blocks")
-                        unrolled_blocks = []
-                        for block in node.op.blocks:
-                            dag_block = circuit_to_dag(block)
-                            unrolled_dag_block = self.run(dag_block)
-                            unrolled_circ_block = dag_to_circuit(unrolled_dag_block)
-                            unrolled_blocks.append(unrolled_circ_block)
-                        node.op = node.op.replace_blocks(unrolled_blocks)
-                    continue
-                else:
-                    continue
+                    # block_instrs = {next(iter(block.count_ops())) for block in node.op.blocks}
+                    # breakpoint()
+                    # if not block_instrs.issubset(target_basis):
+                    flow_blocks = []
+                    for block in node.op.blocks:
+                        dag_block = circuit_to_dag(block)
+                        flow_dag_block = self.run(dag_block)
+                        flow_circ_block = dag_to_circuit(flow_dag_block)
+                        flow_blocks.append(flow_circ_block)
+                    node.op = node.op.replace_blocks(flow_blocks)
+                continue
             if (
                 node_qargs in self._qargs_with_non_global_operation
                 and node.name in self._qargs_with_non_global_operation[node_qargs]
@@ -265,8 +257,6 @@ class BasisTranslator(TransformationPass):
                 if node.op.params:
                     # Convert target to circ and back to assign_parameters, since
                     # DAGCircuits won't have a ParameterTable.
-                    from qiskit.converters import dag_to_circuit, circuit_to_dag
-
                     target_circuit = dag_to_circuit(target_dag)
 
                     target_circuit.assign_parameters(
@@ -482,8 +472,6 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
             ]
 
             if doomed_nodes and logger.isEnabledFor(logging.DEBUG):
-                from qiskit.converters import dag_to_circuit
-
                 logger.debug(
                     "Updating transform for mapped instr %s %s from \n%s",
                     mapped_instr_name,
@@ -492,8 +480,6 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
                 )
 
             for node in doomed_nodes:
-                from qiskit.converters import circuit_to_dag
-
                 replacement = equiv.assign_parameters(
                     dict(zip_longest(equiv_params, node.op.params))
                 )
@@ -503,8 +489,6 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
                 dag.substitute_node_with_dag(node, replacement_dag)
 
             if doomed_nodes and logger.isEnabledFor(logging.DEBUG):
-                from qiskit.converters import dag_to_circuit
-
                 logger.debug(
                     "Updated transform for mapped instr %s %s to\n%s",
                     mapped_instr_name,

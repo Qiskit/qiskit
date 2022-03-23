@@ -12,8 +12,7 @@
 
 "Circuit operation representing a ``while`` loop."
 
-from typing import Optional, Tuple, Union
-from copy import copy
+from typing import Optional, Tuple, Union, Iterable
 
 from qiskit.circuit import Clbit, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
@@ -96,7 +95,18 @@ class WhileLoopOp(ControlFlowOp):
     def blocks(self):
         return (self._params[0],)
 
-    def replace_blocks(self, blocks):
+    def replace_blocks(self, blocks: Iterable[QuantumCircuit]) -> "WhileLoopOp":
+        """Return new instruction with replaced blocks.
+
+        Args:
+            blocks: List of QuantumCircuits and or None for the 'else' block.
+
+        Raises:
+            CircuitError: not passing list of QuantumCircuit as argument
+
+        Returns:
+            IfElseOp: new instruction with supplied conditional blocks.
+        """
         (body,) = blocks
         if not isinstance(body, QuantumCircuit):
             raise CircuitError("WhileLoopOp expects a single QuantumCircuit when setting blocks")

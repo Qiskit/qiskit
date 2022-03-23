@@ -392,10 +392,10 @@ class TestBasisTranslator(QiskitTestCase):
         equiv = QuantumCircuit([qubits[0]])
         equiv.append(OneQubitZeroParamGate(name="1q0p_2"), [qubits[0]])
         equiv.append(OneQubitOneParamGate(alpha, name="1q1p_2"), [qubits[0]])
-        
+
         eq_lib = EquivalenceLibrary()
         eq_lib.add_equivalence(gate, equiv)
-        
+
         circ = QuantumCircuit(qubits, clbits)
         circ.append(OneQubitOneParamGate(beta), [qubits[0]])
         circ.measure(qubits[0], clbits[1])
@@ -406,7 +406,6 @@ class TestBasisTranslator(QiskitTestCase):
             circ.append(TwoQubitZeroParamGate(), [qubits[1], qubits[0]])
         dag = circuit_to_dag(circ)
         dag_translated = BasisTranslator(eq_lib, ["if_else", "1q0p_2", "1q1p_2", "2q0p"]).run(dag)
-        circ_translated = dag_to_circuit(dag_translated)
 
         expected = QuantumCircuit(qubits, clbits)
         expected.append(OneQubitZeroParamGate(name="1q0p_2"), [qubits[0]])
@@ -421,7 +420,7 @@ class TestBasisTranslator(QiskitTestCase):
         dag_expected = circuit_to_dag(expected)
         self.assertEqual(dag_translated, dag_expected)
 
-    def test_nested_for_loop(self):
+    def test_nested_loop(self):
         """Test a simple if-else with parameters."""
         qubits = [Qubit(), Qubit()]
         clbits = [Clbit(), Clbit()]
@@ -430,30 +429,31 @@ class TestBasisTranslator(QiskitTestCase):
         alpha = Parameter("alpha")
 
         gate = OneQubitOneParamGate(alpha)
-        equiv = QuantumCircuit([qubits[0]])        
+        equiv = QuantumCircuit([qubits[0]])
         equiv.append(OneQubitZeroParamGate(name="1q0p_2"), [qubits[0]])
         equiv.append(OneQubitOneParamGate(alpha, name="1q1p_2"), [qubits[0]])
-        
+
         eq_lib = EquivalenceLibrary()
         eq_lib.add_equivalence(gate, equiv)
-        
+
         circ = QuantumCircuit(qubits, cr)
         with circ.for_loop(range(3), loop_parameter=index1) as ind:
             with circ.while_loop((cr, 0)):
                 circ.append(OneQubitOneParamGate(alpha * ind), [qubits[0]])
         dag = circuit_to_dag(circ)
-        dag_translated = BasisTranslator(eq_lib, ["if_else", "for_loop", "while_loop", "1q0p_2", "1q1p_2"]).run(dag)
-        circ_translated = dag_to_circuit(dag_translated)
+        dag_translated = BasisTranslator(
+            eq_lib, ["if_else", "for_loop", "while_loop", "1q0p_2", "1q1p_2"]
+        ).run(dag)
 
         expected = QuantumCircuit(qubits, cr)
         with expected.for_loop(range(3), loop_parameter=index1) as ind:
             with expected.while_loop((cr, 0)):
-                expected.append(OneQubitZeroParamGate(name="1q0p_2"), [qubits[0]])                
+                expected.append(OneQubitZeroParamGate(name="1q0p_2"), [qubits[0]])
                 expected.append(OneQubitOneParamGate(alpha * ind, name="1q1p_2"), [qubits[0]])
         dag_expected = circuit_to_dag(expected)
         self.assertEqual(dag_translated, dag_expected)
-        
-        
+
+
 class TestUnrollerCompatability(QiskitTestCase):
     """Tests backward compatability with the Unroller pass.
 
