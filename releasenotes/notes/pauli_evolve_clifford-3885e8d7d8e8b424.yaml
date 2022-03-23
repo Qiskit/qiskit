@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Add a parameter frame to the method :meth:`evolve` in the classes
+    :class:`qiskit.quantum_info.Pauli` and :class:`qiskit.quantum_info.PauliList`,
+    that performes an evolution of a Pauli by a Clifford.
+    If frame='h' (default) then it does the Heisenberg picture evolution of a Pauli by a Clifford,
+    and if frame='s' then it does the Schrödinger picture evolution of a Pauli by a Clifford.
+    The latter option yields a faster calculation, and is also useful in certain cases.
+    This new option makes the calculation of the greedy Clifford decomposition method in
+    :class:`qiskit.quantum_info.decompose_clifford` significantly faster.
