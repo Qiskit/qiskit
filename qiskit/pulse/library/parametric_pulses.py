@@ -47,8 +47,7 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library import continuous, symbolic
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
-from qiskit.pulse.utils import deprecated_functionality
-from qiskit.utils import optionals
+from qiskit.pulse.utils import deprecated_functionality, lambdify_symbolic_pulse
 
 
 class ParametricPulse(Pulse):
@@ -58,6 +57,10 @@ class ParametricPulse(Pulse):
     PARAM_DEF = ["duration"]
 
     numerical_func = None
+
+    def __init_subclass__(cls, **kwargs):
+        # caching lambda symbolic equation for better performance
+        cls.numerical_func = lambdify_symbolic_pulse(cls._define(), cls.PARAM_DEF)
 
     @abstractmethod
     def __init__(
@@ -70,7 +73,7 @@ class ParametricPulse(Pulse):
         """Create a parametric pulse and validate the input parameters.
 
         Args:
-            duration: Pulse length in terms of the the sampling period `dt`.
+            duration: Pulse length in terms of the sampling period `dt`.
             parameters: Other parameters to form waveform.
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
@@ -84,28 +87,10 @@ class ParametricPulse(Pulse):
         else:
             self.param_values = (duration, )
 
-        self.definition = self._define()
         self.validate_parameters()
-        if type(self).numerical_func is None:
-            type(self).numerical_func = self.lambdify(self.definition)
 
-    def lambdify(self, expr):
-        import sympy
-
-        symbols = [sympy.Symbol("t")] + [sympy.Symbol(p) for p in self.PARAM_DEF]
-
-        if optionals.HAS_SYMENGINE:
-            # Fall back to sympy for lambda function creation until symengine's
-            # lambdify fully supports the features required by parametric
-            # pulses.
-            import symengine
-            expr = symengine.sympify(expr)
-
-        lambda_func = sympy.lambdify(symbols, expr)
-
-        return lambda_func
-
-    def _define(self):
+    @classmethod
+    def _define(cls):
         """Return symbolic expression of pulse waveform.
 
         A custom pulse without having this method implemented cannot be QPY serialized.
@@ -136,28 +121,6 @@ class ParametricPulse(Pulse):
             raise PulseError(
                 f"Unassigned parameter exists: {self.parameters}. All parameters should be assigned."
             )
-
-        # if optionals.HAS_SYMENGINE:
-        #     import symengine as sym
-        # else:
-        #     import sympy as sym
-        #
-        # params = {sym.Symbol(k): v for k, v in self.parameters.items()}
-        # assigned_expr = self.definition.subs(params)
-        #
-        # # midpoint sampling
-        # times = np.arange(0, self.duration) + 1/2
-        # if optionals.HAS_SYMENGINE:
-        #     # Fall back to sympy for lambda function creation until symengine's
-        #     # lambdify fully supports the features required by parametric
-        #     # pulses.
-        #     import sympy
-        #     lambda_func = sympy.lambdify(sympy.Symbol("t"), sym.sympify(assigned_expr))
-        # else:
-        #     t = sym.Symbol("t")
-        #     lambda_func = sym.lambdify(t, assigned_expr)
-        #
-        # waveform = lambda_func(times)
 
         times = np.arange(0, self.duration) + 1/2
         args = (times, *self.parameters.values())
@@ -227,7 +190,7 @@ class Gaussian(ParametricPulse):
         """Initialize the gaussian pulse.
 
         Args:
-            duration: Pulse length in terms of the the sampling period `dt`.
+            duration: Pulse length in terms of the sampling period `dt`.
             amp: The amplitude of the Gaussian envelope.
             sigma: A measure of how wide or narrow the Gaussian peak is; described mathematically
                    in the class docstring.
@@ -258,7 +221,8 @@ class Gaussian(ParametricPulse):
         """The Gaussian standard deviation of the pulse width."""
         return self.param_values[2]
 
-    def _define(self):
+    @classmethod
+    def _define(cls):
         return symbolic.symbolic_gaussian()
 
     def validate_parameters(self) -> None:
@@ -331,7 +295,7 @@ class GaussianSquare(ParametricPulse):
         """Initialize the gaussian square pulse.
 
         Args:
-            duration: Pulse length in terms of the the sampling period `dt`.
+            duration: Pulse length in terms of the sampling period `dt`.
             amp: The amplitude of the Gaussian and of the square pulse.
             sigma: A measure of how wide or narrow the Gaussian risefall is; see the class
                    docstring for more details.
@@ -387,7 +351,8 @@ class GaussianSquare(ParametricPulse):
         """The width of the square portion of the pulse."""
         return self.param_values[3]
 
-    def _define(self):
+    @classmethod
+    def _define(cls):
         return symbolic.symbolic_gaussian_square()
 
     def validate_parameters(self) -> None:
@@ -465,7 +430,7 @@ class Drag(ParametricPulse):
         """Initialize the drag pulse.
 
         Args:
-            duration: Pulse length in terms of the the sampling period `dt`.
+            duration: Pulse length in terms of the sampling period `dt`.
             amp: The amplitude of the Drag envelope.
             sigma: A measure of how wide or narrow the Gaussian peak is; described mathematically
                    in the class docstring.
@@ -503,7 +468,8 @@ class Drag(ParametricPulse):
         """The weighing factor for the Gaussian derivative component of the waveform."""
         return self.param_values[3]
 
-    def _define(self):
+    @classmethod
+    def _define(cls):
         return symbolic.symbolic_drag()
 
     def validate_parameters(self) -> None:
@@ -570,7 +536,7 @@ class Constant(ParametricPulse):
         Initialize the constant-valued pulse.
 
         Args:
-            duration: Pulse length in terms of the the sampling period `dt`.
+            duration: Pulse length in terms of the sampling period `dt`.
             amp: The amplitude of the constant square pulse.
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
@@ -593,7 +559,8 @@ class Constant(ParametricPulse):
         """The constant value amplitude."""
         return self.param_values[1]
 
-    def _define(self):
+    @classmethod
+    def _define(cls):
         return symbolic.symbolic_constant()
 
     def validate_parameters(self) -> None:
