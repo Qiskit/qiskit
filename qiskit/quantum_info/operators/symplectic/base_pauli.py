@@ -222,14 +222,18 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         b_dot_a = np.mod(np.sum(np.logical_and(z1, other._x), axis=1), 2)
         return a_dot_b == b_dot_a
 
-    def evolve(self, other, qargs=None):
+    def evolve(self, other, qargs=None, frame="h"):
         r"""Heisenberg picture evolution of a Pauli by a Clifford.
 
         This returns the Pauli :math:`P^\prime = C^\dagger.P.C`.
 
+        By choosing the parameter frame='s', this function returns the Schrödinger evolution of the Pauli
+        :math:`P^\prime = C.P.C^\dagger`. This option yields a faster calculation.
+
         Args:
             other (BasePauli or QuantumCircuit): The Clifford circuit to evolve by.
             qargs (list): a list of qubits to apply the Clifford to.
+            frame (string): 'h' for Heisenberg or 's' for Schrödinger framework.
 
         Returns:
             BasePauli: the Pauli :math:`C^\dagger.P.C`.
@@ -253,8 +257,12 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
         # Evolve via Pauli
         if isinstance(other, BasePauli):
-            ret = self.compose(other.adjoint(), qargs=qargs)
-            ret = ret.compose(other, front=True, qargs=qargs)
+            if frame == "s":
+                ret = self.compose(other, qargs=qargs)
+                ret = ret.compose(other.adjoint(), front=True, qargs=qargs)
+            else:
+                ret = self.compose(other.adjoint(), qargs=qargs)
+                ret = ret.compose(other, front=True, qargs=qargs)
             return ret
 
         # pylint: disable=cyclic-import
@@ -262,12 +270,14 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
         # Convert Clifford to quantum circuits
         if isinstance(other, Clifford):
-            return self._evolve_clifford(other, qargs=qargs)
+            return self._evolve_clifford(other, qargs=qargs, frame=frame)
 
         # Otherwise evolve by the inverse circuit to compute C^dg.P.C
+        if frame == "s":
+            return self.copy()._append_circuit(other, qargs=qargs)
         return self.copy()._append_circuit(other.inverse(), qargs=qargs)
 
-    def _evolve_clifford(self, other, qargs=None):
+    def _evolve_clifford(self, other, qargs=None, frame="h"):
         """Heisenberg picture evolution of a Pauli by a Clifford."""
         if qargs is None:
             idx = slice(None)
@@ -286,7 +296,10 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 
         # Get action of Pauli's from Clifford
-        adj = other.adjoint()
+        if frame == "s":
+            adj = other.copy()
+        else:
+            adj = other.adjoint()
         pauli_list = []
         for z in self._z[:, idx]:
             pauli = Pauli("I" * num_act)
