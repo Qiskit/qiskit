@@ -521,7 +521,7 @@ class Target(Mapping):
                 target contains the operation). Normally you would not set this argument
                 if you wanted to check more generally that the target supports an operation
                 with the ``parameters`` on any qubits.
-            operation_class (Instruction): The operation class to check whether
+            operation_class (qiskit.circuit.Instruction): The operation class to check whether
                 the target supports a particular operation by class rather
                 than by name. This lookup is more expensive as it needs to
                 iterate over all operations in the target instead of just a
