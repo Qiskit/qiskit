@@ -46,7 +46,7 @@ class StatePreparation(Gate):
     ):
         r"""
         Args:
-            params (str, list, int or Statevector):
+            params:
                 * Statevector: Statevector to initialize to.
                 * list: vector of complex amplitudes to initialize to.
                 * string: labels of basis states of the Pauli eigenstates Z, X, Y. See
@@ -57,12 +57,12 @@ class StatePreparation(Gate):
                 * int: an integer that is used as a bitmap indicating which qubits to initialize
                   to :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit 2
                   to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
-            num_qubits (int): This parameter is only used if params is an int. Indicates the total
+            num_qubits: This parameter is only used if params is an int. Indicates the total
                 number of qubits in the `initialize` call. Example: `initialize` covers 5 qubits
                 and params is 3. This allows qubits 0 and 1 to be initialized to :math:`|1\rangle`
                 and the remaining 3 qubits to be initialized to :math:`|0\rangle`.
-            inverse (bool): if True, the inverse state is constructed.
-            label (str or None): An optional label for the gate [Default: State Preparation]
+            inverse: if True, the inverse state is constructed.
+            label: An optional label for the gate [Default: State Preparation]
 
         Raises:
             QiskitError: ``num_qubits`` parameter used when ``params`` is not an integer
