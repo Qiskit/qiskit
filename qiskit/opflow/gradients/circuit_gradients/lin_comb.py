@@ -641,7 +641,7 @@ class LinComb(CircuitGradient):
             Operator representing the gradient or Hessian.
 
         Raises:
-            ValueError: If `aux_meas_op` is neither Z nor -Y nor Z - 1j * Y.
+            ValueError: If ``aux_meas_op`` is neither ``Z`` nor ``-Y`` nor ``Z - 1j * Y``.
 
         """
         if aux_meas_op == Z - 1j * Y:
