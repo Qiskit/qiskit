@@ -67,6 +67,7 @@ class StochasticSwap(TransformationPass):
         self.rng = None
         self.trivial_layout = None
         self._qubit_indices = None
+        self._final_perm = None
 
     def run(self, dag):
         """Run the StochasticSwap pass on `dag`.
@@ -85,17 +86,37 @@ class StochasticSwap(TransformationPass):
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("StochasticSwap runs on physical circuits only")
 
-        if len(dag.qubits) > len(self.coupling_map.physical_qubits):
+        num_qubits = len(dag.qubits)
+        if num_qubits > len(self.coupling_map.physical_qubits):
             raise TranspilerError("The layout does not match the amount of qubits in the DAG")
 
         canonical_register = dag.qregs["q"]
         self.trivial_layout = Layout.generate_trivial_layout(canonical_register)
         self._qubit_indices = {bit: idx for idx, bit in enumerate(dag.qubits)}
 
+        # Grab the intial layout and set as the starting permutation.
+        self._final_perm = np.arange(num_qubits)
+        unused = list(range(num_qubits))
+        val_idx = 0
+        if self.property_set["layout"] is not None:
+            for key, val in self.property_set["layout"]._p2v.items():
+                if val._register.name != "ancilla":
+                    self._final_perm[key] = val_idx
+                    unused.remove(val_idx)
+                    val_idx += 1
+                else:
+                    self._final_perm[key] = -1
+        idx = 0
+        for kk in range(self._final_perm.shape[0]):
+            if self._final_perm[kk] == -1:
+                self._final_perm[kk] = unused[idx]
+                idx += 1
+
         self.qregs = dag.qregs
         logger.debug("StochasticSwap rng seeded with seed=%s", self.seed)
         self.coupling_map.compute_distance_matrix()
         new_dag = self._mapper(dag, self.coupling_map, trials=self.trials)
+        self.property_set["final_permutation"] = self._final_perm
         return new_dag
 
     def _layer_permutation(self, layer_partition, layout, qubit_subset, coupling, trials):
@@ -208,6 +229,10 @@ class StochasticSwap(TransformationPass):
             swap_src = self.trivial_layout._p2v[edges[2 * idx]]
             swap_tgt = self.trivial_layout._p2v[edges[2 * idx + 1]]
             trial_circuit.apply_operation_back(SwapGate(), [swap_src, swap_tgt], [])
+            # record permutation
+            temp = self._final_perm[edges[2 * idx + 1]]
+            self._final_perm[edges[2 * idx + 1]] = self._final_perm[edges[2 * idx]]
+            self._final_perm[edges[2 * idx]] = temp
         best_circuit = trial_circuit
 
         # Otherwise, we return our result for this layer
