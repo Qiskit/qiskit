@@ -45,10 +45,17 @@ import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.library import continuous, symbolic
+from qiskit.pulse.library.symbolic import normalized_gaussian
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
 from qiskit.pulse.utils import lambdify_symbolic_pulse
+
+from qiskit.utils import optionals
+
+if optionals.HAS_SYMENGINE:
+    import symengine as sym
+else:
+    import sympy as sym
 
 
 class ParametricPulse(Pulse):
@@ -101,7 +108,7 @@ class ParametricPulse(Pulse):
         return self.parameters[item]
 
     @classmethod
-    def _define(cls):
+    def _define(cls) -> "Expr":
         """Return symbolic expression of pulse waveform.
 
         A custom pulse without having this method implemented cannot be QPY serialized.
@@ -221,8 +228,11 @@ class Gaussian(ParametricPulse):
         )
 
     @classmethod
-    def _define(cls):
-        return symbolic.symbolic_gaussian()
+    def _define(cls) -> "Expr":
+        t, duration, amp, sigma = sym.symbols("t, duration, amp, sigma")
+        center = duration / 2
+
+        return amp * normalized_gaussian(t, center, duration + 2, sigma)
 
     def validate_parameters(self) -> None:
         _, amp, sigma = self.param_values
@@ -328,8 +338,18 @@ class GaussianSquare(ParametricPulse):
         )
 
     @classmethod
-    def _define(cls):
-        return symbolic.symbolic_gaussian_square()
+    def _define(cls) -> "Expr":
+        t, duration, amp, sigma, width = sym.symbols("t, duration, amp, sigma, width")
+        center = duration / 2
+
+        sq_t0 = center - width / 2
+        sq_t1 = center + width / 2
+        gaussian_zeroed_width = duration + 2 - width
+
+        gaussian_ledge = normalized_gaussian(t, sq_t0, gaussian_zeroed_width, sigma)
+        gaussian_redge = normalized_gaussian(t, sq_t1, gaussian_zeroed_width, sigma)
+
+        return amp * sym.Piecewise((gaussian_ledge, t <= sq_t0), (gaussian_redge, t >= sq_t1), (1, True))
 
     def validate_parameters(self) -> None:
         duration, amp, sigma, width = self.param_values
@@ -427,8 +447,14 @@ class Drag(ParametricPulse):
         )
 
     @classmethod
-    def _define(cls):
-        return symbolic.symbolic_drag()
+    def _define(cls) -> "Expr":
+        t, duration, amp, sigma, beta = sym.symbols("t, duration, amp, sigma, beta")
+        center = duration / 2
+
+        gauss = amp * normalized_gaussian(t, center, duration + 2, sigma)
+        deriv = - (t - center) / sigma * gauss
+
+        return gauss + 1j * beta * deriv
 
     def validate_parameters(self) -> None:
         duration, amp, sigma, beta = self.param_values
@@ -461,13 +487,7 @@ class Drag(ParametricPulse):
             argmax_x = max(argmax_x, 0)
 
             # 2. Find the value at that maximum
-            max_val = continuous.drag(
-                np.array(argmax_x),
-                sigma=sigma,
-                beta=beta,
-                amp=amp,
-                center=duration / 2,
-            )
+            max_val = type(self).numerical_func(argmax_x, *self.param_values)
             if abs(max_val) > 1.0:
                 raise PulseError("Beta is too large; pulse amplitude norm exceeds 1.")
 
@@ -512,8 +532,17 @@ class Constant(ParametricPulse):
         )
 
     @classmethod
-    def _define(cls):
-        return symbolic.symbolic_constant()
+    def _define(cls) -> "Expr":
+        t, duration, amp = sym.symbols("t, duration, amp")
+
+        # Note this is implemented using Piecewise instead of just returning amp
+        # directly because otherwise the expression has no t dependence and sympy's
+        # lambdify will produce a function f that for an array t returns amp
+        # instead of amp * np.ones(t.shape). This does not work well with
+        # ParametricPulse.get_waveform().
+        #
+        # See: https://github.com/sympy/sympy/issues/5642
+        return amp * sym.Piecewise((1, 0 <= t <= duration), (0, True))
 
     def validate_parameters(self) -> None:
         amp = self.param_values[1]

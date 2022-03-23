@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+from typing import Union
 
 from qiskit.utils import optionals
 
@@ -18,54 +19,46 @@ else:
     import sympy as sym
 
 
-def _normalized_gaussian(t, center, zeroed_width, sigma):
+def normalized_gaussian(
+    t: "Symbol",
+    center: Union["Symbol", "Expr"],
+    zeroed_width: Union["Symbol", "Expr"],
+    sigma: Union["Symbol", "Expr"],
+) -> "Expr":
+    r"""Generates normalized gaussian symboric equation.
+
+    For :math:`A=` ``amp`` and :math:`\sigma=` ``sigma``, the symbolic equation will be
+
+    .. math::
+
+        f(x) = A\exp\left(\left(\frac{x - \mu}{2\sigma}\right)^2 \right),
+
+    with the center :math:`\mu=` ``duration/2``.
+    Then, each output sample :math:`y` is modified according to:
+
+    .. math::
+
+        y \mapsto A\frac{y-y^*}{A-y^*},
+
+    where :math:`y^*` is the value of the un-normalized Gaussian .
+    This sets the endpoints to :math:`0` while preserving the amplitude at the center.
+    If :math:`A=y^*`, :math:`y` is set to :math:`1`.
+    The endpoints are at ``x = -1, x = duration + 1``.
+
+    Integrated area under the full curve is ``amp * np.sqrt(2*np.pi*sigma**2)``
+
+    Args:
+        t: Symbol object represents time.
+        center: Symbol or expression represents the middle point of the samples.
+        zeroed_width: Symbol or expression represents the endpoints the samples.
+        sigma: Symbol or expression represents Gaussian sigma.
+
+    Returns:
+        Symbolic equation.
+    """
     gauss = sym.exp(-((t - center) / sigma) ** 2 / 2)
 
     t_edge = zeroed_width / 2
     offset = sym.exp(-(t_edge / sigma) ** 2 / 2)
 
     return (gauss - offset) / (1 - offset)
-
-
-def symbolic_gaussian():
-    t, duration, amp, sigma = sym.symbols("t, duration, amp, sigma")
-    center = duration / 2
-
-    return amp * _normalized_gaussian(t, center, duration + 2, sigma)
-
-
-def symbolic_gaussian_square():
-    t, duration, amp, sigma, width = sym.symbols("t, duration, amp, sigma, width")
-    center = duration / 2
-
-    sq_t0 = center - width / 2
-    sq_t1 = center + width / 2
-    gaussian_zeroed_width = duration + 2 - width
-
-    gaussian_ledge = _normalized_gaussian(t, sq_t0, gaussian_zeroed_width, sigma)
-    gaussian_redge = _normalized_gaussian(t, sq_t1, gaussian_zeroed_width, sigma)
-
-    return amp * sym.Piecewise((gaussian_ledge, t <= sq_t0), (gaussian_redge, t >= sq_t1), (1, True))
-
-
-def symbolic_drag():
-    t, duration, amp, sigma, beta = sym.symbols("t, duration, amp, sigma, beta")
-    center = duration / 2
-
-    gauss = amp * _normalized_gaussian(t, center, duration + 2, sigma)
-    deriv = - (t - center) / sigma * gauss
-
-    return gauss + 1j * beta * deriv
-
-
-def symbolic_constant():
-    t, duration, amp = sym.symbols("t, duration, amp")
-
-    # Note this is implemented using Piecewise instead of just returning amp
-    # directly because otherwise the expression has no t dependence and sympy's
-    # lambdify will produce a function f that for an array t returns amp
-    # instead of amp * np.ones(t.shape). This does not work well with
-    # ParametricPulse.get_waveform().
-    #
-    # See: https://github.com/sympy/sympy/issues/5642
-    return amp * sym.Piecewise((1, 0<= t <= duration), (0, True))
