@@ -69,7 +69,7 @@ class ParametricPulse(Pulse):
     def __init_subclass__(cls, **kwargs):
         # caching lambda symbolic equation for better performance
         if cls._define():
-            cls.numerical_func = lambdify_symbolic_pulse(cls._define(), cls.PARAM_DEF)
+            cls.numerical_func = staticmethod(lambdify_symbolic_pulse(cls._define(), cls.PARAM_DEF))
 
     @abstractmethod
     def __init__(
@@ -143,7 +143,7 @@ class ParametricPulse(Pulse):
         times = np.arange(0, self.duration) + 1/2
         args = (times, *self.parameters.values())
 
-        waveform = type(self).numerical_func(*args)
+        waveform = self.numerical_func(*args)
 
         return Waveform(samples=waveform, name=self.name)
 
