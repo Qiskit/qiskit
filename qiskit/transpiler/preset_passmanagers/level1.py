@@ -27,11 +27,13 @@ from qiskit.transpiler.passes import CXCancellation
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import GateDirection
 from qiskit.transpiler.passes import SetLayout
+from qiskit.transpiler.passes import VF2Layout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
 from qiskit.transpiler.passes import SabreLayout
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
+from qiskit.transpiler.passes import Layout2qDistance
 from qiskit.transpiler.passes import BasicSwap
 from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.transpiler.passes import StochasticSwap
@@ -40,11 +42,11 @@ from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
+from qiskit.transpiler.passes import Size
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckGateDirection
-from qiskit.transpiler.passes import Layout2qDistance
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
@@ -54,8 +56,10 @@ from qiskit.transpiler.passes import ASAPSchedule
 from qiskit.transpiler.passes import AlignMeasures
 from qiskit.transpiler.passes import ValidatePulseGates
 from qiskit.transpiler.passes import PulseGates
+from qiskit.transpiler.passes import PadDelay
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import ContainsInstruction
+from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 
 from qiskit.transpiler import TranspilerError
 
@@ -102,16 +106,57 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
     target = pass_manager_config.target
 
-    # 1. Use trivial layout if no layout given
+    # 1. Use trivial layout if no layout given if that isn't perfect use vf2 layout
     _given_layout = SetLayout(initial_layout)
-
-    _choose_layout_and_score = [
-        TrivialLayout(coupling_map),
-        Layout2qDistance(coupling_map, property_name="trivial_layout_score"),
-    ]
 
     def _choose_layout_condition(property_set):
         return not property_set["layout"]
+
+    def _trivial_not_perfect(property_set):
+        # Verify that a trivial layout is perfect. If trivial_layout_score > 0
+        # the layout is not perfect. The layout is unconditionally set by trivial
+        # layout so we need to clear it before contuing.
+        if (
+            property_set["trivial_layout_score"] is not None
+            and property_set["trivial_layout_score"] != 0
+        ):
+            return True
+        return False
+
+    def _vf2_match_not_found(property_set):
+        # If a layout hasn't been set by the time we run vf2 layout we need to
+        # run layout
+        if property_set["layout"] is None:
+            return True
+        # if VF2 layout stopped for any reason other than solution found we need
+        # to run layout since VF2 didn't converge.
+        if (
+            property_set["VF2Layout_stop_reason"] is not None
+            and property_set["VF2Layout_stop_reason"] is not VF2LayoutStopReason.SOLUTION_FOUND
+        ):
+            return True
+        return False
+
+    _choose_layout_0 = (
+        []
+        if pass_manager_config.layout_method
+        else [
+            TrivialLayout(coupling_map),
+            Layout2qDistance(coupling_map, property_name="trivial_layout_score"),
+        ]
+    )
+
+    _choose_layout_1 = (
+        []
+        if pass_manager_config.layout_method
+        else VF2Layout(
+            coupling_map,
+            seed=seed_transpiler,
+            call_limit=int(5e4),  # Set call limit to ~100ms with retworkx 0.10.2
+            time_limit=0.1,
+            properties=backend_properties,
+        )
+    )
 
     # 2. Decompose so only 1-qubit and 2-qubit gates remain
     _unroll3q = [
@@ -122,6 +167,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             method=unitary_synthesis_method,
             min_qubits=3,
             plugin_config=unitary_synthesis_plugin_config,
+            target=target,
         ),
         Unroll3qOrMore(),
     ]
@@ -130,19 +176,13 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if layout_method == "trivial":
         _improve_layout = TrivialLayout(coupling_map)
     elif layout_method == "dense":
-        _improve_layout = DenseLayout(coupling_map, backend_properties)
+        _improve_layout = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
         _improve_layout = NoiseAdaptiveLayout(backend_properties)
     elif layout_method == "sabre":
         _improve_layout = SabreLayout(coupling_map, max_iterations=2, seed=seed_transpiler)
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
-
-    def _not_perfect_yet(property_set):
-        return (
-            property_set["trivial_layout_score"] is not None
-            and property_set["trivial_layout_score"] != 0
-        )
 
     # 4. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
@@ -191,6 +231,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 method=unitary_synthesis_method,
                 backend_props=backend_properties,
                 plugin_config=unitary_synthesis_plugin_config,
+                target=target,
             ),
             UnrollCustomDefinitions(sel, basis_gates),
             BasisTranslator(sel, basis_gates, target),
@@ -206,10 +247,11 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 method=unitary_synthesis_method,
                 backend_props=backend_properties,
                 min_qubits=3,
+                target=target,
             ),
             Unroll3qOrMore(),
             Collect2qBlocks(),
-            ConsolidateBlocks(basis_gates=basis_gates),
+            ConsolidateBlocks(basis_gates=basis_gates, target=target),
             UnitarySynthesis(
                 basis_gates,
                 approximation_degree=approximation_degree,
@@ -217,6 +259,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 method=unitary_synthesis_method,
                 backend_props=backend_properties,
                 plugin_config=unitary_synthesis_plugin_config,
+                target=target,
             ),
         ]
     else:
@@ -234,10 +277,12 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _reset = RemoveResetInZeroState()
 
     # 9. Merge 1q rotations and cancel CNOT gates iteratively until no more change in depth
+    # or size of circuit
     _depth_check = [Depth(), FixedPoint("depth")]
+    _size_check = [Size(), FixedPoint("size")]
 
     def _opt_control(property_set):
-        return not property_set["depth_fixed_point"]
+        return (not property_set["depth_fixed_point"]) or (not property_set["size_fixed_point"])
 
     _opt = [Optimize1qGatesDecomposition(basis_gates), CXCancellation()]
 
@@ -253,9 +298,9 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if scheduling_method:
         _scheduling += _time_unit_conversion
         if scheduling_method in {"alap", "as_late_as_possible"}:
-            _scheduling += [ALAPSchedule(instruction_durations)]
+            _scheduling += [ALAPSchedule(instruction_durations), PadDelay()]
         elif scheduling_method in {"asap", "as_soon_as_possible"}:
-            _scheduling += [ASAPSchedule(instruction_durations)]
+            _scheduling += [ASAPSchedule(instruction_durations), PadDelay()]
         else:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
 
@@ -279,8 +324,9 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if coupling_map or initial_layout:
         pm1.append(_given_layout)
         pm1.append(_unroll3q)
-        pm1.append(_choose_layout_and_score, condition=_choose_layout_condition)
-        pm1.append(_improve_layout, condition=_not_perfect_yet)
+        pm1.append(_choose_layout_0, condition=_choose_layout_condition)
+        pm1.append(_choose_layout_1, condition=_trivial_not_perfect)
+        pm1.append(_improve_layout, condition=_vf2_match_not_found)
         pm1.append(_embed)
         pm1.append(_swap_check)
         pm1.append(_swap, condition=_swap_condition)
@@ -291,7 +337,8 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm1.append(_direction_check)
         pm1.append(_direction, condition=_direction_condition)
     pm1.append(_reset)
-    pm1.append(_depth_check + _opt + _unroll, do_while=_opt_control)
+    pm1.append(_depth_check + _size_check)
+    pm1.append(_opt + _unroll + _depth_check + _size_check, do_while=_opt_control)
     if inst_map and inst_map.has_custom_gate():
         pm1.append(PulseGates(inst_map=inst_map))
     if scheduling_method:

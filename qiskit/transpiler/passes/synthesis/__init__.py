@@ -15,3 +15,4 @@
 from .unitary_synthesis import UnitarySynthesis
 from .solovay_kitaev import SolovayKitaevDecomposition
 from .plugin import unitary_synthesis_plugin_names
+from .linear_functions_synthesis import LinearFunctionsSynthesis, LinearFunctionsToPermutations
