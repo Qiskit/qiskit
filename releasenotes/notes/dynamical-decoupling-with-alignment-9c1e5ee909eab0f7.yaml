@@ -1,0 +1,22 @@
+---
+upgrade:
+  - |
+    :class:`DynamicalDecoupling` has been upgraded to take ``pulse_alignment``
+    which represents a hardware constraint for waveform start timing.
+    The spacing between gates comprising a dynamical decoupling sequence
+    is now adjusted to satisfy this constraint so that the circuit can be
+    executed on hardware with the constraint.
+    This value is usually found in ``backend.configuration().timing_constraints``.
+  - |
+    ``extra_slack_distribution`` option has been added to :class:`DynamicalDecoupling`.
+    This options controls how to distribute the extra slack when the duration of the
+    created dynamical decoupling sequence is shorter than the idle time of your circuit
+    that you want to fill with the sequence. This defaults to ``middle`` which is
+    identical to conventional behavior. The new strategy ``split_edges``
+    evenly divide the extra slack into the beginning and end of the sequence,
+    rather than adding it to the interval in the middle of the sequence.
+    This might result in better noise cancellation especially when ``pulse_alignment`` > 1.
+  - |
+    :class:`DynamicalDecoupling` has been upgraded to be a subclass of
+    :class:`BasePadding`. This means the dynamical decoupling pass is
+    now a drop-in replacement for the :class:`PadDelay` pass.
