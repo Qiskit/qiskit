@@ -12,7 +12,7 @@
 
 """Algebra utilities and the ``GateSequence`` class."""
 
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Iterable
 
 import math
 import numpy as np
@@ -27,22 +27,19 @@ class GateSequence:
     This class stores the sequence of gates along with the unitary they implement.
     """
 
-    def __init__(self, gates: Optional[List[Gate]] = None) -> None:
+    def __init__(self, labels: Iterable[str] = (), gates: Iterable[np.ndarray] = ()) -> None:
         """Create a new sequence of gates.
 
         Args:
             gates: The gates in the sequence. The default is [].
         """
-        if gates is None:
-            gates = []
-
-        # store the gates
-        self.gates = gates
+        self.labels = list(labels)
+        self.gates = list(gates)
 
         # get U(2) representation of the gate sequence
         u2_matrix = np.identity(2)
-        for gate in gates:
-            u2_matrix = gate.to_matrix().dot(u2_matrix)
+        for gate in self.gates:
+            u2_matrix = gate.dot(u2_matrix)
 
         # convert to SU(2)
         su2_matrix, global_phase = _convert_u2_to_su2(u2_matrix)
@@ -56,8 +53,8 @@ class GateSequence:
 
     @property
     def name(self):
-        if len(self.gates) > 0:
-            return " ".join(gate.name for gate in self.gates)
+        if len(self.labels) > 0:
+            return " ".join(self.labels)
         else:
             return "i"
 
@@ -101,7 +98,7 @@ class GateSequence:
 
         return circuit
 
-    def append(self, gate: Gate) -> "GateSequence":
+    def append(self, label: str, gate: np.ndarray) -> "GateSequence":
         """Append gate to the sequence of gates.
 
         Args:
@@ -113,12 +110,13 @@ class GateSequence:
         # TODO: this recomputes the product whenever we append something, which could be more
         # efficient by storing the current matrix and just multiplying the input gate to it
         # self.product = convert_su2_to_so3(self._compute_product(self.gates))
-        su2, phase = _convert_u2_to_su2(gate.to_matrix())
+        su2, phase = _convert_u2_to_su2(gate)
         so3 = _convert_su2_to_so3(su2)
 
         self.product = so3.dot(self.product)
         self.global_phase = self.global_phase + phase
         self.gates.append(gate)
+        self.labels.append(label)
 
         return self
 
@@ -138,7 +136,12 @@ class GateSequence:
             A new ``GateSequence`` containing copy of list of gates.
 
         """
-        return GateSequence(self.gates.copy())
+        out = type(self).__new__(type(self))
+        out.labels = self.labels.copy()
+        out.gates = self.gates.copy()
+        out.global_phase = self.global_phase
+        out.product = self.product.copy()
+        return out
 
     def __len__(self) -> int:
         """Return length of sequence of gates.

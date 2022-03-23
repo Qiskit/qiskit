@@ -12,8 +12,10 @@
 
 """Synthesize a single qubit gate to a discrete basis set."""
 
-from typing import List, Union, Optional
-import itertools
+from typing import List, Union, Optional, Set
+
+# import itertools
+import collections
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Gate
@@ -40,27 +42,35 @@ INVERSE_PAIRS = {
     "sgd": "s",
 }
 
+# allowed (unparameterized) single qubit gates
+_1q_gates = {
+    "h": np.array(gates.HGate(), dtype=np.complex128),
+    "t": np.array(gates.TGate(), dtype=np.complex128),
+    "tdg": np.array(gates.TdgGate(), dtype=np.complex128),
+}
+# _1q_gates = {
+#     "i": gates.IGate(),
+#     "x": gates.XGate(),
+#     "y": gates.YGate(),
+#     "z": gates.ZGate(),
+#     "h": gates.HGate(),
+#     "t": gates.TGate(),
+#     "tdg": gates.TdgGate(),
+#     "s": gates.SGate(),
+#     "sdg": gates.SdgGate(),
+#     "sx": gates.SXGate(),
+#     "sxdg": gates.SXdgGate(),
+# }
+
+
+Node = collections.namedtuple("Node", ("labels", "sequence", "children"))
+
 
 class SolovayKitaev:
     """The Solovay Kitaev discrete decomposition algorithm.
 
     See :class:`~qiskit.transpiler.passes.SolovayKitaevDecomposition` for more information.
     """
-
-    # allowed (unparameterized) single qubit gates
-    _1q_gates = {
-        "i": gates.IGate(),
-        "x": gates.XGate(),
-        "y": gates.YGate(),
-        "z": gates.ZGate(),
-        "h": gates.HGate(),
-        "t": gates.TGate(),
-        "tdg": gates.TdgGate(),
-        "s": gates.SGate(),
-        "sdg": gates.SdgGate(),
-        "sx": gates.SXGate(),
-        "sxdg": gates.SXdgGate(),
-    }
 
     def __init__(
         self, basis_gates: Optional[List[Union[str, Gate]]] = None, depth: Optional[int] = None
@@ -103,7 +113,7 @@ class SolovayKitaev:
         sequences = []
         for gatestring, matrix in data.items():
             sequence = GateSequence()
-            sequence.gates = [self._1q_gates[element] for element in gatestring.split()]
+            sequence.gates = [_1q_gates[element] for element in gatestring.split()]
             sequence.product = np.asarray(matrix)
             sequences.append(sequence)
 
@@ -126,31 +136,41 @@ class SolovayKitaev:
         Raises:
             ValueError: If ``basis_gates`` contains an invalid gate identifier.
         """
-        for i, gate in enumerate(basis_gates):
-            if isinstance(gate, str):
-                if gate in SolovayKitaev._1q_gates.keys():
-                    basis_gates[i] = SolovayKitaev._1q_gates[gate]
-                else:
-                    raise ValueError(f"Invalid gate identifier: {gate}")
+        # for i, gate in enumerate(basis_gates):
+        #     if isinstance(gate, str):
+        #         if gate in _1q_gates.keys():
+        #             basis_gates[i] = _1q_gates[gate]
+        #         else:
+        #             raise ValueError(f"Invalid gate identifier: {gate}")
 
-        # get all products from all depths
-        products = []
-        for reps in range(1, depth + 1):
-            # TODO check if this can be optimized by putting _remove_inverse_follows_gate
-            products += list(list(comb) for comb in itertools.product(*[basis_gates] * reps))
+        basis_gates = set(basis_gates)
+        tree = Node((), GateSequence(), [])
+        cur_level = [tree]
+        sequences = [tree.sequence]
+        for _ in [None] * depth:
+            next_level = []
+            for node in cur_level:
+                next_level.extend(_process_node(node, basis_gates, sequences))
+            cur_level = next_level
 
-        sequences = []
-        for item in products:
-            candidate = GateSequence(item)
-            _remove_inverse_follows_gate(candidate)
-            accept = _check_candidate(candidate, sequences)
-            if accept:
-                sequences.append(candidate)
+        # # get all products from all depths
+        # products = []
+        # for reps in range(1, depth + 1):
+        #     # TODO check if this can be optimized by putting _remove_inverse_follows_gate
+        #     products += list(list(comb) for comb in itertools.product(*[basis_gates] * reps))
+
+        # sequences = []
+        # for item in products:
+        #     candidate = GateSequence(item)
+        #     _remove_inverse_follows_gate(candidate)
+        #     accept = _check_candidate(candidate, sequences)
+        #     if accept:
+        #         sequences.append(candidate)
 
         if filename is not None:
             data = {}
             for sequence in sequences:
-                gatestring = " ".join([gate.name for gate in sequence.gates])
+                gatestring = sequence.name
                 data[gatestring] = sequence.product
 
             np.save(filename, data)
@@ -439,3 +459,17 @@ def _remove_identities(sequence):
             sequence.gates.pop(index)
         else:
             index += 1
+
+
+def _process_node(node: Node, basis_gates: Set[str], sequences: List[GateSequence]):
+    inverse_last = INVERSE_PAIRS[node.labels[-1]] if node.labels else None
+
+    for gate in basis_gates - {inverse_last}:
+        sequence = node.sequence.copy()
+        sequence.append(gate, _1q_gates[gate])
+
+        if _check_candidate(sequence, sequences):
+            sequences.append(sequence)
+            node.children.append(Node(node.labels + (gate,), sequence, []))
+
+    return node.children
