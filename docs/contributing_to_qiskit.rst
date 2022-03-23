@@ -700,12 +700,6 @@ from system-wide packages. This way, we avoid inadvertently becoming dependent o
 particular system configuration. For developers, this also makes it easy to maintain multiple
 environments (e.g. one per supported Python version, for older versions of Qiskit, etc.).
 
-.. note::
-
-   **M1 Mac users:** Some Qiskit dependencies may not yet be available in PyPI. Until they are,
-   Conda is recommended.
-
-
 .. tabbed:: Python venv
 
    All Python versions supported by Qiskit include built-in virtual environment module
@@ -750,39 +744,17 @@ environments (e.g. one per supported Python version, for older versions of Qiski
 Installing Terra from Source
 ============================
 
-Installing from source requires that you have a C++ compiler on your system that supports
-C++11.
+Installing from source requires that you have the Rust compiler on your system.
+To install the Rust compiler the recommended path is to use rustup, which is
+a cross-platform Rust installer. To use rustup you can go to:
 
+https://rustup.rs/
 
-.. tabbed:: Compiler for Linux
+which will provide instructions for how to install rust on your platform.
+Besides rustup there are
+`other installation methods <https://forge.rust-lang.org/infra/other-installation-methods.html>`__ available too.
 
-   On most Linux platforms, the necessary GCC compiler is already installed.
-
-.. tabbed:: Compiler for macOS
-
-   If you use macOS, you can install the Clang compiler by installing XCode.
-   Check if you have XCode and Clang installed by opening a terminal window and entering the
-   following.
-
-   .. code:: sh
-
-      clang --version
-
-   Install XCode and Clang by using the following command.
-
-   .. code:: sh
-
-      xcode-select --install
-
-.. tabbed:: Compiler for Windows
-
-   On Windows, it is easiest to install the Visual C++ compiler from the
-   `Build Tools for Visual Studio 2017 <https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2017>`__.
-   You can instead install Visual Studio version 2015 or 2017, making sure to select the
-   options for installing the C++ compiler.
-
-
-Once the compilers are installed, you are ready to install Qiskit Terra.
+Once the Rust compiler is installed, you are ready to install Qiskit Terra.
 
 1. Clone the Terra repository.
 
@@ -796,19 +768,13 @@ Once the compilers are installed, you are ready to install Qiskit Terra.
 
       cd qiskit-terra
 
-3. Install the Python requirements libraries from your ``qiskit-terra`` directory.
-
-   .. code:: sh
-
-      pip install cython
-
-4. If you want to run tests or linting checks, install the developer requirements.
+3. If you want to run tests or linting checks, install the developer requirements.
 
    .. code:: sh
 
       pip install -r requirements-dev.txt
 
-5. Install ``qiskit-terra``.
+4. Install ``qiskit-terra``.
 
    .. code:: sh
 
@@ -821,31 +787,32 @@ project don't require a reinstall to be applied, you can do this with:
 
    pip install -e .
 
+Installing in editable mode will build the compiled extensions in debug mode
+without optimizations. This will affect the runtime performance of the compiled
+code. If you'd like to use editable mode and build the compiled code in release
+with optimizations enabled you can run:
+
+.. code:: sh
+
+   python setup.py build_rust --release --inplace
+
+after you run pip and that will rebuild the binary in release mode.
+
+If you are working on Rust code in Qiskit you will need to rebuild the extension
+code every time you make a local change. ``pip install -e .`` will only build
+the Rust extension when it's called, so any local changes you make to the Rust
+code after running pip will not be reflected in the installed package unless
+you rebuild the extension. You can leverage the above ``build_rust`` command to
+do this (with or without ``--release`` based on whether you want to build in
+debug mode or release mode).
+
 You can then run the code examples after installing Terra. You can
-run the example with the following command.
+run an example script with the following command.
 
 .. code:: sh
 
    python examples/python/using_qiskit_terra_level_0.py
 
-
-.. note::
-
-    If you do not intend to install any other components, qiskit-terra will
-    emit a ``RuntimeWarning`` warning that both qiskit-aer and
-    qiskit-ibmq-provider are not installed. This is done because
-    users commonly intend to use the additional elements,
-    but do not realize they are not installed, or that the installation
-    of either Aer or the IBM Quantum Provider failed for some reason. If you wish
-    to suppress these warnings, add::
-
-        import warnings
-        warnings.filterwarnings('ignore', category=RuntimeWarning,
-                                module='qiskit')
-
-    before any ``qiskit`` imports in your code. This will suppress the
-    warning about the missing qiskit-aer and qiskit-ibmq-provider, but
-    will continue to display any other warnings from qiskit or other packages.
 
 .. _install-qiskit-aer:
 
@@ -862,7 +829,7 @@ Installing Aer from Source
 
    .. code:: sh
 
-      pip install cmake scikit-build cython
+      pip install cmake scikit-build
 
 After this, the steps to install Aer depend on which operating system you are
 using. Since Aer is a compiled C++ program with a Python interface, there are
@@ -906,10 +873,6 @@ universally depending on operating system.
 
 .. tabbed:: macOS
 
-   .. note::
-      **Mac M1 Users:** There are ongoing issues with building Aer for AArch64 macOS.
-      See `#1286 <https://github.com/Qiskit/qiskit-aer/issues/1286>`__ for discussion and
-      workarounds before continuing.
 
    3. Install dependencies.
 
