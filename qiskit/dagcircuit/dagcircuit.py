@@ -500,6 +500,7 @@ class DAGCircuit:
         "identically."
     )
     def _copy_circuit_metadata(self):
+        """DEPRECATED"""
         return self.copy_empty_like()
 
     def copy_empty_like(self):
