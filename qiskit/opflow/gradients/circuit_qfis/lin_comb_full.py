@@ -226,13 +226,15 @@ class LinCombFull(CircuitQFI):
 def check_and_realpart_extraction(x: Union[List[float], np.ndarray]) -> np.ndarray:
     """
     Check for non-negligible imaginary values and remove negligible imaginary parts from x.
+
     Args:
         x: Vector or matrix.
+
     Returns:
         Real part of x.
+
     Raises:
         ValueError: If ``x`` has non-negligible imaginary components.
-
     """
     if np.any([[np.abs(np.imag(x_item)) > ETOL for x_item in x_row] for x_row in x]):
         raise ValueError(
