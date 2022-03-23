@@ -14,18 +14,18 @@
 
 import unittest
 
-from test.python.opflow import QiskitOpflowTestCase
 from ddt import ddt, data
 import numpy as np
 from numpy.testing import assert_raises
 from scipy.linalg import expm
 
+from test.python.opflow import QiskitOpflowTestCase
 from qiskit import BasicAer
 from qiskit.algorithms import EvolutionProblem
 from qiskit.algorithms.evolvers.real.trotterization.trotter_qrte import (
     TrotterQRTE,
 )
-from qiskit.quantum_info import Statevector
+from qiskit.quantum_info import Statevector, SparsePauliOp, Pauli, PauliTable
 from qiskit.utils import algorithm_globals, QuantumInstance
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
@@ -113,13 +113,18 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
             evolution_result.aux_ops_evaluated, expected_aux_ops_evaluated
         )
 
-    @data(SummedOp([(X ^ Y), (Y ^ X)]), SummedOp([(Z ^ Z), (Z ^ I), (I ^ Z)]), Y ^ Y)
+    @data(
+        SummedOp([(X ^ Y), (Y ^ X)]),
+        (Z ^ Z) + (Z ^ I) + (I ^ Z),
+        Y ^ Y,
+        SparsePauliOp(Pauli("XI")),
+        SparsePauliOp(PauliTable.from_labels(["XX", "ZZ"])),
+    )
     def test_trotter_qrte_trotter_2(self, operator):
-        """Test for trotter qrte."""
+        """Test for trotter qrte with various types of a Hamiltonian."""
         # LieTrotter with 1 rep
         trotter_qrte = TrotterQRTE(quantum_instance=self.quantum_instance)
         initial_state = StateFn([1, 0, 0, 0])
-
         # Calculate the expected state
         expected_state = initial_state.to_matrix()
         expected_state = expm(-1j * operator.to_matrix()) @ expected_state
@@ -132,7 +137,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
     @data("qi", "b_sv", "None")
     def test_trotter_qrte_suzuki(self, quantum_instance):
         """Test for trotter qrte with Suzuki."""
-        operator = SummedOp([X, Z])
+        operator = X + Z
         # 2nd order Suzuki with 1 rep
         quantum_instance = self.backends_dict[quantum_instance]
         trotter_qrte = TrotterQRTE(

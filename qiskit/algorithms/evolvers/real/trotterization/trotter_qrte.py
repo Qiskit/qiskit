@@ -12,12 +12,10 @@
 
 """An algorithm to implement a Trotterization real time-evolution."""
 
-from typing import Union, Dict, Optional
+from typing import Union, Optional
 
 from qiskit.algorithms import EvolutionProblem, EvolutionResult, RealEvolver, eval_observables
-from qiskit.circuit import Parameter
 from qiskit.opflow import (
-    OperatorBase,
     SummedOp,
     PauliOp,
     CircuitOp,
@@ -27,9 +25,9 @@ from qiskit.opflow import (
 )
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.providers import Backend, BaseBackend
+from qiskit.quantum_info import SparsePauliOp, Pauli
 from qiskit.synthesis import ProductFormula, LieTrotter
 from qiskit.utils import QuantumInstance, algorithm_globals
-from .trotter_ops_validator import is_op_bound, validate_hamiltonian_form
 
 
 class TrotterQRTE(RealEvolver):
@@ -100,10 +98,9 @@ class TrotterQRTE(RealEvolver):
         if isinstance(quantum_instance, (BaseBackend, Backend)):
             quantum_instance = QuantumInstance(quantum_instance)
 
+        self._circuit_sampler = None
         if quantum_instance is not None:
             self._circuit_sampler = CircuitSampler(quantum_instance)
-        else:
-            self._circuit_sampler = None
 
         self._quantum_instance = quantum_instance
 
@@ -133,7 +130,8 @@ class TrotterQRTE(RealEvolver):
 
         Args:
             evolution_problem: Instance defining evolution problem. For the included Hamiltonian,
-                only SummedOp, PauliOp are supported by TrotterQrte.
+                `PauliOp`, `SparsePauliOp`, `Pauli` or `SummedOp` thereof or `PauliSumOp` are
+                supported by TrotterQrte.
 
         Returns:
             Evolution result that includes an evolved state.
@@ -157,10 +155,9 @@ class TrotterQRTE(RealEvolver):
                 "aux_operators where provided for evaluations but no `expectation` or "
                 "`quantum_instance` was provided."
             )
-        validate_hamiltonian_form(evolution_problem.hamiltonian)
-        hamiltonian = evolution_problem.hamiltonian.bind_parameters(
-            evolution_problem.hamiltonian_value_dict
-        )
+        hamiltonian = evolution_problem.hamiltonian
+        if not isinstance(hamiltonian, SparsePauliOp):  # TODO can we handle it better?
+            hamiltonian = hamiltonian.bind_parameters(evolution_problem.hamiltonian_value_dict)
         if isinstance(hamiltonian, SummedOp):
             hamiltonian = self._summed_op_to_pauli_sum_op(hamiltonian)
         # the evolution gate
@@ -202,10 +199,18 @@ class TrotterQRTE(RealEvolver):
 
         Returns:
             Hamiltonian.
+
+        Raises:
+            ValueError: If the `SummedOp` Hamiltonian contains operators of an invalid type.
         """
         # PauliSumOp does not allow parametrized coefficients but after binding the parameters
         # we need to convert it into a PauliSumOp for the PauliEvolutionGate.
         op_list = []
         for op in hamiltonian.oplist:
+            if not isinstance(op, (PauliOp, Pauli, SparsePauliOp)):
+                raise ValueError(
+                    f"Content of the Hamiltonian not of type PauliOp, Pauli, or SparsePauliOp. The "
+                    f"following type detected: {type(op)}."
+                )
             op_list.append(op)
         return sum(op_list)
