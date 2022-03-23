@@ -633,7 +633,7 @@ class LinComb(CircuitGradient):
             aux_meas_op: The auxiliary measurement operator defines the necessary measurement basis.
             state: This operator represents the gradient or Hessian before the basis transformation.
             state_op: The operator representing the quantum state for which we compute the gradient
-            or Hessian.
+                or Hessian.
             combo_fn: This combo_fn defines whether the target is a gradient or Hessian.
 
 
