@@ -22,6 +22,7 @@ from qiskit.transpiler.passes.synthesis import (
 )
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.library.generalized_gates import LinearFunction
+from qiskit.circuit.library import RealAmplitudes
 from qiskit.transpiler import PassManager
 from qiskit.quantum_info import Operator
 
@@ -212,6 +213,121 @@ class TestLinearFunctionsPasses(QiskitTestCase):
 
         # check that we have an equivalent circuit
         self.assertEqual(Operator(circuit1), Operator(circuit3))
+
+    def test_real_amplitudes_circuit_4q(self):
+        """Test that for the 4-qubit real amplitudes circuit
+        extracting linear functions produces the expected number of linear blocks,
+        and synthesizing these blocks produces an expected number of CNOTs.
+        """
+        ansatz = RealAmplitudes(4, reps=2)
+        circuit1 = ansatz.decompose()
+
+        # collect linear functions
+        circuit2 = PassManager(CollectLinearFunctions()).run(circuit1)
+        self.assertEqual(circuit2.count_ops()["linear_function"], 2)
+
+        # synthesize linear functions
+        circuit3 = PassManager(LinearFunctionsSynthesis()).run(circuit2)
+        self.assertEqual(circuit3.count_ops()["cx"], 6)
+
+    def test_real_amplitudes_circuit_5q(self):
+        """Test that for the 5-qubit real amplitudes circuit
+        extracting linear functions produces the expected number of linear blocks,
+        and synthesizing these blocks produces an expected number of CNOTs.
+        """
+        ansatz = RealAmplitudes(5, reps=2)
+        circuit1 = ansatz.decompose()
+
+        # collect linear functions
+        circuit2 = PassManager(CollectLinearFunctions()).run(circuit1)
+        self.assertEqual(circuit2.count_ops()["linear_function"], 2)
+
+        # synthesize linear functions
+        circuit3 = PassManager(LinearFunctionsSynthesis()).run(circuit2)
+        self.assertEqual(circuit3.count_ops()["cx"], 8)
+
+    def test_not_collecting_single_gates1(self):
+        """Test that extraction of linear functions does not create
+        linear functions out of single gates.
+        """
+        circuit1 = QuantumCircuit(3)
+        circuit1.cx(0, 1)
+        circuit1.h(1)
+        circuit1.cx(1, 2)
+
+        # collect linear functions
+        circuit2 = PassManager(CollectLinearFunctions()).run(circuit1)
+
+        # check that there are no LinearFunctions present in synthesized_circuit
+        self.assertNotIn("linear_function", circuit2.count_ops().keys())
+
+    def test_not_collecting_single_gates2(self):
+        """Test that extraction of linear functions does not create
+        linear functions out of single gates.
+        """
+        circuit1 = QuantumCircuit(3)
+        circuit1.h(0)
+        circuit1.h(1)
+        circuit1.swap(0, 1)
+        circuit1.s(1)
+        circuit1.swap(1, 2)
+        circuit1.h(2)
+
+        # collect linear functions
+        circuit2 = PassManager(CollectLinearFunctions()).run(circuit1)
+
+        # check that there are no LinearFunctions present in synthesized_circuit
+        self.assertNotIn("linear_function", circuit2.count_ops().keys())
+
+    def test_disconnected_gates1(self):
+        """Test that extraction of linear functions does not create
+        linear functions out of disconnected gates.
+        """
+        circuit1 = QuantumCircuit(4)
+        circuit1.cx(0, 1)
+        circuit1.cx(2, 3)
+
+        # collect linear functions
+        circuit2 = PassManager(CollectLinearFunctions()).run(circuit1)
+
+        # check that there are no LinearFunctions present in synthesized_circuit
+        self.assertNotIn("linear_function", circuit2.count_ops().keys())
+
+    def test_disconnected_gates2(self):
+        """Test that extraction of linear functions does not create
+        linear functions out of disconnected gates.
+        """
+        circuit1 = QuantumCircuit(4)
+        circuit1.cx(0, 1)
+        circuit1.cx(1, 0)
+        circuit1.cx(2, 3)
+
+        # collect linear functions
+        circuit2 = PassManager(CollectLinearFunctions()).run(circuit1)
+
+        # we expect that the first two CX gates will be combined into
+        # a linear function, but the last will not
+        self.assertEqual(circuit2.count_ops()["linear_function"], 1)
+        self.assertEqual(circuit2.count_ops()["cx"], 1)
+
+    def test_connected_gates(self):
+        """Test that extraction of linear functions combines gates
+        which become connected later.
+        """
+        circuit1 = QuantumCircuit(4)
+        circuit1.cx(0, 1)
+        circuit1.cx(1, 0)
+        circuit1.cx(2, 3)
+        circuit1.swap(0, 3)
+
+        # collect linear functions
+        circuit2 = PassManager(CollectLinearFunctions()).run(circuit1)
+
+        # we expect that the first two CX gates will be combined into
+        # a linear function, but the last will not
+        self.assertEqual(circuit2.count_ops()["linear_function"], 1)
+        self.assertNotIn("cx", circuit2.count_ops().keys())
+        self.assertNotIn("swap", circuit2.count_ops().keys())
 
 
 if __name__ == "__main__":
