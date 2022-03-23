@@ -28,6 +28,7 @@ from qiskit.circuit.library import (
     UGate,
     CCXGate,
     RZXGate,
+    CZGate,
 )
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.parameter import Parameter
@@ -986,6 +987,17 @@ Instructions:
         self.assertTrue(self.ideal_sim_target.instruction_supported("rx", parameters=[math.pi]))
         self.assertTrue(
             self.ideal_sim_target.instruction_supported("rx", parameters=[Parameter("angle")])
+        )
+
+    def test_instruction_supported_arg_len_mismatch(self):
+        self.assertFalse(
+            self.ideal_sim_target.instruction_supported(operation_class=UGate, parameters=[math.pi])
+        )
+        self.assertFalse(self.ideal_sim_target.instruction_supported("u", parameters=[math.pi]))
+
+    def test_instruction_supported_class_not_in_target(self):
+        self.assertFalse(
+            self.ibm_target.instruction_supported(operation_class=CZGate, parameters=[math.pi])
         )
 
     def test_instruction_supported_no_args(self):
