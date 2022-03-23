@@ -501,7 +501,7 @@ class DAGCircuit:
             * all the qubits and clbits, including the registers.
 
         Returns:
-            DAGCircuit: An empty copy of self but empty.
+            DAGCircuit: An empty copy of self.
         """
         target_dag = DAGCircuit()
         target_dag.name = self.name
