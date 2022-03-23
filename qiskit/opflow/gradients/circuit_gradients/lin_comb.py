@@ -628,7 +628,7 @@ class LinComb(CircuitGradient):
         """
         This function applies the necessary basis transformation to measure the quantum state in
         a different basis -- given by the auxiliary measurement operator ``aux_meas_op``.
- 
+
         Args:
             aux_meas_op: The auxiliary measurement operator defines the necessary measurement basis.
             state: This operator represents the gradient or Hessian before the basis transformation.
