@@ -119,7 +119,7 @@ def deprecated_functionality(func):
 
 
 def lambdify_symbolic_pulse(
-    expr,
+    expr: sympy.Expr,
     parameters: List[str],
 ) -> Callable:
     """Lambdify symbolic pulse equation.

@@ -53,6 +53,8 @@ from qiskit.pulse.utils import lambdify_symbolic_pulse
 
 class ParametricPulse(Pulse):
     """The abstract superclass for parametric pulses."""
+    __slots__ = ("param_values", )
+
     PARAM_DEF = ["duration"]
 
     numerical_func = None
@@ -89,10 +91,14 @@ class ParametricPulse(Pulse):
 
         self.validate_parameters()
 
-        # For backward compatibility
-        # .duration is already public member in the superclass
-        for name, value in zip(self.PARAM_DEF[1:], parameters):
-            setattr(self, name, value)
+    def __getattr__(self, item):
+        # For backward compatibility, return parameter names as property-like
+
+        if item not in self.PARAM_DEF:
+            raise AttributeError(
+                f"'{self.__class__.__name__}' object has not attribute '{item}'"
+            )
+        return self.parameters[item]
 
     @classmethod
     def _define(cls):
@@ -271,6 +277,8 @@ class GaussianSquare(ParametricPulse):
     This pulse would be more accurately named as ``LiftedGaussianSquare``, however, for historical
     and practical DSP reasons it has the name ``GaussianSquare``.
     """
+    __slots__ = ("risefall_sigma_ratio", )
+
     PARAM_DEF = ["duration", "amp", "sigma", "width"]
 
     def __init__(
