@@ -65,7 +65,7 @@ class StatePreparation(Gate):
             label (str or None): An optional label for the gate [Default: State Preparation]
 
         Raises:
-            QiskitError: num_qubits parameter used when params is not an integer
+            QiskitError: ``num_qubits`` parameter used when ``params`` is not an integer
 
         When a Statevector argument is passed the state is prepared using a recursive
         initialization algorithm, including optimizations, from [1], as well
