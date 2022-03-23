@@ -219,14 +219,13 @@ class NaturalGradient(GradientBase):
             metric: See (1) and (2).
             gradient: See (1) and (2).
             reg_method: Given the metric, gradient and lambda the regularization method must return
-                x_lambda.
-            - see (2)
-            lambda1: left starting point for L-curve corner search
-            lambda4: right starting point for L-curve corner search
-            tol: termination threshold
+                ``x_lambda``. - see (2)
+            lambda1: Left starting point for L-curve corner search.
+            lambda4: Right starting point for L-curve corner search.
+            tol: Termination threshold.
 
         Returns:
-            regularization coefficient, solution to the regularization inverse problem
+            Regularization coefficient which is the solution to the regularization inverse problem.
         """
 
         def _get_curvature(x_lambda: List) -> float:
@@ -235,8 +234,8 @@ class NaturalGradient(GradientBase):
             Menger, K. (1930).  Untersuchungen  ̈uber Allgemeine Metrik. Math. Ann.,103(1), 466–501
 
             Args:
-                x_lambda: [[x_lambdaj], [x_lambdak], [x_lambdal]]
-                    lambdaj < lambdak < lambdal
+                ``x_lambda: [[x_lambdaj], [x_lambdak], [x_lambdal]]``
+                    ``lambdaj < lambdak < lambdal``
 
             Returns:
                 Menger Curvature

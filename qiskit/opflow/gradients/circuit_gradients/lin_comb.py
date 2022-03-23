@@ -124,7 +124,7 @@ class LinComb(CircuitGradient):
             aux_meas_op: The operator that the auxiliary qubit is measured with respect to.
                 For ``aux_meas_op = Z`` we compute 2Re[⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉],
                 for ``aux_meas_op = -Y`` we compute 2Im[⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉], and
-                for ``aux_meas_op = Z-1jY`` we compute 2⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω).
+                for ``aux_meas_op = Z - 1j * Y`` we compute 2⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω).
         Returns:
             An operator corresponding to the gradient resp. Hessian. The order is in accordance with
             the order of the given parameters.
@@ -134,7 +134,7 @@ class LinComb(CircuitGradient):
         if aux_meas_op not in [Z, -Y, (Z - 1j * Y)]:
             raise ValueError(
                 "This auxiliary measurement operator is currently not supported. Please choose "
-                "either Z, -Y, or Z-1jY. "
+                "either Z, -Y, or Z - 1j * Y. "
             )
         return self._prepare_operator(operator, params, aux_meas_op)
 
@@ -154,8 +154,8 @@ class LinComb(CircuitGradient):
         """Traverse ``operator`` to get back the adapted operator representing the gradient.
 
         Args:
-            operator: The operator we are taking the gradient of: ⟨ψ(ω)|O(θ)|ψ(ω)〉
-            params: The parameters we are taking the gradient wrt: ω
+            operator: The operator we are taking the gradient of: ⟨ψ(ω)|O(θ)|ψ(ω)〉.
+            params: The parameters we are taking the gradient wrt: ω.
                 If a ``ParameterExpression```, ``ParameterVector`` or ``List[ParameterExpression]``
                 is given, then the 1st order derivative of the operator is calculated.
                 If a ``Tuple[ParameterExpression, ParameterExpression]`` or
@@ -164,7 +164,7 @@ class LinComb(CircuitGradient):
             aux_meas_op: The operator that the auxiliary qubit is measured with respect to.
                 For ``aux_meas_op = Z`` we compute 2Re[⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉],
                 for ``aux_meas_op = -Y`` we compute 2Im[⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉], and
-                for ``aux_meas_op = Z-1jY`` we compute 2⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω).
+                for ``aux_meas_op = Z - 1j * Y`` we compute 2⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω).
         Returns:
             The adapted operator.
             Measurement operators are attached with an additional Z term acting
@@ -641,7 +641,7 @@ class LinComb(CircuitGradient):
             Operator representing the gradient or Hessian.
 
         Raises:
-            ValueError: If `aux_meas_op` is neither Z nor -Y nor Z-iY.
+            ValueError: If `aux_meas_op` is neither Z nor -Y nor Z - 1j * Y.
 
         """
         if aux_meas_op == Z - 1j * Y:
@@ -698,7 +698,7 @@ class LinComb(CircuitGradient):
             aux_meas_op: The operator that the auxiliary qubit is measured with respect to.
                 For ``aux_meas_op = Z`` we compute 2Re[⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉],
                 for ``aux_meas_op = -Y`` we compute 2Im[⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉], and
-                for ``aux_meas_op = Z-1jY`` we compute 2⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω).
+                for ``aux_meas_op = Z - 1j * Y`` we compute 2⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω).
 
         Returns:
             ListOp of StateFns as quantum circuits which are the states w.r.t. which we compute the

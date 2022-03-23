@@ -1282,7 +1282,7 @@ class TestQFI(QiskitOpflowTestCase):
     def test_qfi_phase_fix(self):
         """Test the phase-fix argument in a QFI calculation
 
-        QFI = [[1, 0], [0, 1]]
+        QFI = [[1, 0], [0, 1]].
         """
         # create the circuit
         a, b = Parameter("a"), Parameter("b")
