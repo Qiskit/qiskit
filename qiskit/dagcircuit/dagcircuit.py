@@ -36,6 +36,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.dagcircuit.dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_function
 
 
 class DAGCircuit:
@@ -490,6 +491,16 @@ class DAGCircuit:
         new_node._node_id = node_index
         self._increment_op(op)
         return node_index
+
+    @deprecate_function(
+        "The DAGCircuit._copy_circuit_metadata method is deprecated as of "
+        "0.20.0. It will be removed no earlier than 3 months "
+        "after the release date. You should use the "
+        "DAGCircuit.copy_empty_like method instead, which acts "
+        "identically."
+    )
+    def _copy_circuit_metadata(self):
+        return self.copy_empty_like()
 
     def copy_empty_like(self):
         """Return a copy of self with the same structure but empty.
