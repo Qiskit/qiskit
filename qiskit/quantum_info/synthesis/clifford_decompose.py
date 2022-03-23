@@ -477,15 +477,23 @@ def decompose_clifford_greedy(clifford):
     # Reducing the original Clifford to identity
     # via symplectic Gaussian elimination
     while len(qubit_list) > 0:
+        # Calculate the adjoint of clifford_cpy without the phase
+        clifford_adj = clifford_cpy.copy()
+        tmp = clifford_adj.destabilizer.X.copy()
+        clifford_adj.destabilizer.X = clifford_adj.stabilizer.Z.T
+        clifford_adj.destabilizer.Z = clifford_adj.destabilizer.Z.T
+        clifford_adj.stabilizer.X = clifford_adj.stabilizer.X.T
+        clifford_adj.stabilizer.Z = tmp.T
+
         list_greedy_cost = []
         for qubit in qubit_list:
             pauli_x = Pauli(num_qubits * "I")
             pauli_x[qubit] = "X"
-            pauli_x = pauli_x.evolve(clifford_cpy)
+            pauli_x = pauli_x.evolve(clifford_adj, frame="s")
 
             pauli_z = Pauli(num_qubits * "I")
             pauli_z[qubit] = "Z"
-            pauli_z = pauli_z.evolve(clifford_cpy)
+            pauli_z = pauli_z.evolve(clifford_adj, frame="s")
             list_pairs = []
             pauli_count = 0
 
@@ -502,11 +510,11 @@ def decompose_clifford_greedy(clifford):
         # Gaussian elimination step for the qubit with minimal CNOT cost
         pauli_x = Pauli(num_qubits * "I")
         pauli_x[min_qubit] = "X"
-        pauli_x = pauli_x.evolve(clifford_cpy)
+        pauli_x = pauli_x.evolve(clifford_adj, frame="s")
 
         pauli_z = Pauli(num_qubits * "I")
         pauli_z[min_qubit] = "Z"
-        pauli_z = pauli_z.evolve(clifford_cpy)
+        pauli_z = pauli_z.evolve(clifford_adj, frame="s")
 
         # Compute the decoupling operator of cliff_ox and cliff_oz
         decouple_circ, decouple_cliff = _calc_decoupling(
