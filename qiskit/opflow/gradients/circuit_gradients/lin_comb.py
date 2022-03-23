@@ -162,9 +162,9 @@ class LinComb(CircuitGradient):
                 ``List[Tuple[ParameterExpression, ParameterExpression]]``
                 is given, then the 2nd order derivative of the operator is calculated.
             aux_meas_op: The operator that the auxiliary qubit is measured with respect to.
-                For ``aux_meas_op = Z`` we compute 2Re[⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉],
-                for ``aux_meas_op = -Y`` we compute 2Im[⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉], and
-                for ``aux_meas_op = Z - 1j * Y`` we compute 2⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω).
+                For ``aux_meas_op = Z`` we compute 2Re[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉],
+                for ``aux_meas_op = -Y`` we compute 2Im[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉], and
+                for ``aux_meas_op = Z - 1j * Y`` we compute 2(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉.
         Returns:
             The adapted operator.
             Measurement operators are attached with an additional Z term acting
