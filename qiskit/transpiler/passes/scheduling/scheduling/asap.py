@@ -14,7 +14,7 @@
 from qiskit.circuit import Measure
 from qiskit.transpiler.exceptions import TranspilerError
 
-from .base_scheduler import BaseScheduler
+from qiskit.transpiler.passes.scheduling.scheduling.base_scheduler import BaseScheduler
 
 
 class ASAPSchedule(BaseScheduler):
@@ -39,6 +39,9 @@ class ASAPSchedule(BaseScheduler):
         """
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("ASAP schedule runs on physical circuits only")
+
+        conditional_latency = self.property_set.get("conditional_latency", 0)
+        clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
 
         node_start_time = dict()
         idle_after = {q: 0 for q in dag.qubits + dag.clbits}
@@ -69,8 +72,8 @@ class ASAPSchedule(BaseScheduler):
                         # C ▒▒▒░░░▒▒░░░
                         #         |t0q - conditional_latency
                         #
-                        t0c = max(t0q - self.conditional_latency, t0c)
-                    t1c = t0c + self.conditional_latency
+                        t0c = max(t0q - conditional_latency, t0c)
+                    t1c = t0c + conditional_latency
                     for bit in node.op.condition_bits:
                         # Lock clbit until state is read
                         idle_after[bit] = t1c
@@ -111,7 +114,7 @@ class ASAPSchedule(BaseScheduler):
                     # C ▒▒▒▒▒▒▒▒░░░▒▒▒▒▒
                     #              |t0c' = t0c + clbit_write_latency
                     #
-                    t0 = max(t0q, t0c - self.clbit_write_latency)
+                    t0 = max(t0q, t0c - clbit_write_latency)
                     t1 = t0 + op_duration
                     for clbit in node.cargs:
                         idle_after[clbit] = t1
