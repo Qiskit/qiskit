@@ -15,6 +15,7 @@
 import logging
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
+from test.python.transpiler._dummy_passes import DummyAP
 
 from functools import partial
 import numpy as np
@@ -52,7 +53,6 @@ from qiskit.quantum_info import Statevector
 from qiskit.transpiler import PassManager, PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import level_1_pass_manager
 from qiskit.utils import QuantumInstance, algorithm_globals, has_aer
-from ..transpiler._dummy_passes import DummyAP
 
 if has_aer():
     from qiskit import Aer
@@ -616,12 +616,10 @@ class TestVQE(QiskitAlgorithmsTestCase):
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2.0, places=6)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.5784419552370315, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.6796875, places=6)
         # standard deviations
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1], 0.0)
-        self.assertAlmostEqual(
-            result.aux_operator_eigenvalues[1][1], 0.015183867579396111, places=6
-        )
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][1], 0.02534712219145965, places=6)
 
         # Go again with additional None and zero operators
         aux_ops = [*aux_ops, None, 0]
@@ -629,12 +627,14 @@ class TestVQE(QiskitAlgorithmsTestCase):
         self.assertEqual(len(result.aux_operator_eigenvalues), 4)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2.0, places=6)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.56640625, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.57421875, places=6)
         self.assertEqual(result.aux_operator_eigenvalues[2][0], 0.0)
         self.assertEqual(result.aux_operator_eigenvalues[3][0], 0.0)
         # # standard deviations
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1], 0.0)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][1], 0.01548658094658011, places=6)
+        self.assertAlmostEqual(
+            result.aux_operator_eigenvalues[1][1], 0.026562146577166837, places=6
+        )
         self.assertAlmostEqual(result.aux_operator_eigenvalues[2][1], 0.0)
         self.assertAlmostEqual(result.aux_operator_eigenvalues[3][1], 0.0)
 
