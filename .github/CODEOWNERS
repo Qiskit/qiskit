@@ -32,6 +32,7 @@ qpy/                  @Qiskit/terra-core @nkanazawa1989
 pulse/                @Qiskit/terra-core @eggerdj @nkanazawa1989 @danpuzzuoli
 scheduler/            @Qiskit/terra-core @eggerdj @nkanazawa1989 @danpuzzuoli
 visualization/        @Qiskit/terra-core @nonhermitian @nkanazawa1989
+primitives/           @Qiskit/terra-core @ikkoham @t-imamichi
 # Override the release notes directories to have _no_ code owners, so any review
 # from somebody with write access is acceptable.
 /releasenotes/notes
