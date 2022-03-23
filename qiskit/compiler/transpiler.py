@@ -31,7 +31,7 @@ from qiskit.providers.backend import Backend
 from qiskit.providers.models import BackendProperties
 from qiskit.providers.models.backendproperties import Gate
 from qiskit.pulse import Schedule, InstructionScheduleMap
-from qiskit.tools.parallel import parallel_map
+from qiskit.tools import parallel
 from qiskit.transpiler import Layout, CouplingMap, PropertySet
 from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -319,9 +319,9 @@ def transpile(
         smb = smm.SharedMemory(size=len(data))
         smb.buf[:] = data[:]
         # Transpile circuits in parallel
-        circuits = parallel_map(
+        circuits = parallel.parallel_map(
             _transpile_circuit,
-            list(zip(enumerate(circuits), cycle([smb.name]), unique_transpile_args)),
+            list(zip(circuits, cycle([smb.name]), unique_transpile_args)),
         )
 
     end_time = time()
@@ -382,7 +382,7 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
     Raises:
         TranspilerError: if transpile_config is not valid or transpilation incurs error
     """
-    (index, circuit), name, unique_config = circuit_config_tuple
+    circuit, name, unique_config = circuit_config_tuple
     existing_shm = SharedMemory(name=name)
     try:
         with io.BytesIO(existing_shm.buf) as buf:
@@ -598,13 +598,13 @@ def _parse_transpile_args(
         "inst_map": inst_map,
         "coupling_map": coupling_map,
         "backend_properties": backend_properties,
+        "approximation_degree": approximation_degree,
         "initial_layout": initial_layout,
         "layout_method": layout_method,
         "routing_method": routing_method,
         "translation_method": translation_method,
         "scheduling_method": scheduling_method,
         "instruction_durations": durations,
-        "approximation_degree": approximation_degree,
         "timing_constraints": timing_constraints,
         "seed_transpiler": seed_transpiler,
         "unitary_synthesis_method": unitary_synthesis_method,
@@ -966,11 +966,10 @@ def _parse_instruction_durations(backend, inst_durations, dt, circuits):
 
 
 def _parse_approximation_degree(approximation_degree, num_circuits):
-
     if approximation_degree is None:
-        return approximation_degree
+        return None
     if not isinstance(approximation_degree, list):
-        if 0.0 <= approximation_degree <= 1.0:
+        if approximation_degree < 0.0 or approximation_degree > 1.0:
             raise TranspilerError("Approximation degree must be in [0.0, 1.0]")
     else:
         if not all(0.0 <= d <= 1.0 for d in approximation_degree if d):
