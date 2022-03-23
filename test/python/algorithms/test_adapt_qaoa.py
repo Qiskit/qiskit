@@ -14,81 +14,21 @@
 
 import math
 import unittest
-from itertools import combinations_with_replacement, permutations, product
 from qiskit.test import QiskitTestCase  # test.python.algorithms import QiskitAlgorithmsTestCase
 
 import random
 import numpy as np
 import networkx as nx
-import retworkx as rx
 from qiskit.circuit import Parameter
 from ddt import ddt, idata, unpack
 from qiskit import BasicAer, QuantumCircuit, QuantumRegister
-from qiskit.algorithms import AdaptQAOA
-from qiskit.circuit.library import IGate, XGate, YGate, ZGate
-from qiskit.opflow import I, PauliSumOp, X, Y, Z, PauliOp
-from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.algorithms.minimum_eigen_solvers.adapt_qaoa import AdaptQAOA
+from qiskit.circuit.library.n_local.adaptqaoa_ansatz import adapt_mixer_pool
+from qiskit.opflow import I, PauliSumOp, X, Y, Z
+from qiskit.quantum_info import Pauli
 from qiskit.utils import QuantumInstance, algorithm_globals
 global OPTIMIZER
 OPTIMIZER = None
-
-def _create_mixer_pool(num_q, add_multi, circ):
-    """Compute the mixer pool
-    Args:
-        num_q (int): number of qubits
-        add_multi (bool): whether to add multi qubit gates to the mixer pool
-        circ (bool): if output mixer pool in form of list of circuits instead of list of operators
-
-    Returns:
-        list: all possible combinations of mixers
-    """
-    mixer_pool = ["X" * num_q]
-
-    mixer_pool.append("Y" * num_q)
-
-    mixer_pool += [i * "I" + "X" + (num_q - i - 1) * "I" for i in range(num_q)]
-    mixer_pool += [i * "I" + "Y" + (num_q - i - 1) * "I" for i in range(num_q)]
-
-    if add_multi:
-        indicies = list(permutations(range(num_q), 2))
-        indicies = list(set(tuple(sorted(x)) for x in indicies))
-        combos = list(combinations_with_replacement(["X", "Y", "Z"], 2))
-
-        full_multi = list(product(indicies, combos))
-        for item in full_multi:
-            iden_str = list("I" * num_q)
-            iden_str[item[0][0]] = item[1][0]
-            iden_str[item[0][1]] = item[1][1]
-
-            mixer_pool.append("".join(iden_str))
-
-    mixer_circ_list = []
-    for mix_str in mixer_pool:
-        if circ:
-            qr = QuantumRegister(num_q)
-            op = QuantumCircuit(qr)
-            theta = Parameter("θ")
-            for i, mix in enumerate(mix_str):
-                if mix == 'X':
-                    op.rx(theta, [i])
-                elif mix == 'Y':
-                    op.ry(theta, [i])
-                elif mix == 'Z':
-                    op.rz(theta, [i])
-                else:
-                    op.append(IGate(),[i])
-        else:
-            if mix_str == len(mix_str) * mix_str[0]:
-                gate = mix_str[0]
-                list_string = [
-                    i * "I" + gate + (len(mix_str) - i - 1) * "I" for i in range(len(mix_str))
-                ]
-                op_list = [(op, 1) for op in list_string]
-                op = PauliSumOp(SparsePauliOp.from_list(op_list))
-            else:
-                op = PauliOp(Pauli(mix_str))
-        mixer_circ_list.append(op)
-    return mixer_circ_list
 
 W1 = np.array([[0, 1, 0, 1], [1, 0, 1, 0], [0, 1, 0, 1], [1, 0, 1, 0]])
 P1 = 1
@@ -184,7 +124,8 @@ class TestAdaptQAOA(QiskitTestCase):
             qubit_op = qubit_op.to_matrix_op()
 
         num_qubits = qubit_op.num_qubits
-        mixer = _create_mixer_pool(num_q=num_qubits, add_multi=True, circ=True)
+        mixer = adapt_mixer_pool(num_qubits = num_qubits, add_multi=True, circuit_rep=True, 
+        circ_params = np.arange(num_qubits))
 
         adapt_qaoa = AdaptQAOA(
             optimizer=OPTIMIZER,
@@ -199,7 +140,7 @@ class TestAdaptQAOA(QiskitTestCase):
 
     def test_adapt_qaoa_qc_mixer_type(self):
         """AdaptQAOA test with no mixer_pool specified but mixer_pool_type is specified"""
-        qubit_op, _ = self._get_operator(W1)
+        qubit_op, _ = self._get_operator(W2)
 
         adapt_qaoa = AdaptQAOA(
             mixer_pool_type = "multi",
@@ -208,27 +149,18 @@ class TestAdaptQAOA(QiskitTestCase):
         result = adapt_qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
-        self.assertIn(graph_solution, S1)
+        self.assertIn(graph_solution, S2)
 
     def test_adapt_qaoa_qc_mixer_many_parameters(self):
         """AdaptQAOA test with a mixer as a parameterized circuit with the num of parameters > 1."""
         qubit_op, _ = self._get_operator(W1)
 
         num_qubits = qubit_op.num_qubits
-        # TODO: differentiate between this function (>1 params) and
-        # prev function (=1 params) or delete one
-        _mixer = _create_mixer_pool(num_qubits, add_multi=True, circ=True)
-        mixer = []
-        for mix in _mixer:
-            for i in range(num_qubits):
-                theta = Parameter("θ" + str(i))
-                mix.rx(theta, range(num_qubits))
-            mixer.append(mix)
-
+        mixers = adapt_mixer_pool(num_qubits = num_qubits, pool_type = 'multi', circuit_rep = True,
+                circ_params = np.arange(num_qubits), num_params = num_qubits)
         adapt_qaoa = AdaptQAOA(
             optimizer=OPTIMIZER,
-            max_reps=2,
-            mixer_pool=mixer,
+            mixer_pool=mixers,
             quantum_instance=self.statevector_simulator,
         )
         result = adapt_qaoa.compute_minimum_eigenvalue(operator=qubit_op)
@@ -242,11 +174,10 @@ class TestAdaptQAOA(QiskitTestCase):
         qubit_op, _ = self._get_operator(W1)
 
         num_qubits = qubit_op.num_qubits
-        mixer = _create_mixer_pool(num_qubits, add_multi=True, circ=True)
+        mixer = adapt_mixer_pool(num_qubits = num_qubits, pool_type='multi', circuit_rep=True)
 
         adapt_qaoa = AdaptQAOA(
             optimizer=OPTIMIZER,
-            max_reps=1,
             mixer_pool=mixer,
             quantum_instance=self.statevector_simulator,
         )
@@ -256,12 +187,9 @@ class TestAdaptQAOA(QiskitTestCase):
 
     def test_change_operator_size(self):
         """AdaptQAOA change operator size test"""
-        qubit_op, _ = self._get_operator(
-            np.array([[0, 1, 0, 1], [1, 0, 1, 0], [0, 1, 0, 1], [1, 0, 1, 0]])
-        )
+        qubit_op, _ = self._get_operator(W2)
         adapt_qaoa = AdaptQAOA(
             optimizer=OPTIMIZER,
-            max_reps=1,
             quantum_instance=self.statevector_simulator,
         )
 
@@ -269,7 +197,7 @@ class TestAdaptQAOA(QiskitTestCase):
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
         with self.subTest(msg="AdaptQAOA 4x4"):
-            self.assertIn(graph_solution, {"0101", "1010"})
+            self.assertIn(graph_solution, S2)
 
         qubit_op, _ = self._get_operator(
             np.array(
