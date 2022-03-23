@@ -253,7 +253,7 @@ HAS_NLOPT = _LazyImportTester(
     callback=_nlopt_callback,
     msg="See the documentation of 'qiskit.algorithms.optimizer.nlopts' for installation help",
 )
-HAS_PIL = _LazyImportTester({"PIL": ("Image",)}, name="pillow", install="pip install pillow")
+HAS_PIL = _LazyImportTester("PIL.Image", name="pillow", install="pip install pillow")
 HAS_PYDOT = _LazyImportTester("pydot", install="pip install pydot")
 HAS_PYLATEX = _LazyImportTester(
     {
