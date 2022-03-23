@@ -147,7 +147,7 @@ class TestSolovayKitaev(QiskitTestCase):
         qft = QFT(3)
         transpiled = transpile(qft, basis_gates=["u", "cx"], optimization_level=1)
 
-        skd = SolovayKitaevDecomposition(1)
+        skd = SolovayKitaevDecomposition(1, ["h", "t", "tdg"], depth=10)
 
         with self.subTest("1 recursion"):
             discretized = skd(transpiled)

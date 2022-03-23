@@ -407,11 +407,14 @@ def _check_candidate(candidate: GateSequence, sequences: List[GateSequence]) -> 
     if any(candidate.name == existing.name for existing in sequences):
         return False
 
-    for existing in sequences:
-        # eliminate global phase
-        if matrix_equal(existing.product, candidate.product, ignore_phase=True):
-            # is the new sequence less or more efficient?
-            return len(candidate.gates) < len(existing.gates)
+    if candidate.euler_angles in {existing.euler_angles for existing in sequences}:
+        # for existing in sequences:
+        #     if np.all(existing.euler_angles == candidate.euler_angles):
+        # # eliminate global phase
+        # if matrix_equal(existing.product, candidate.product, ignore_phase=True):
+        #     # is the new sequence less or more efficient?
+        # return len(candidate.gates) < len(existing.gates)
+        return False
     return True
 
 
@@ -426,10 +429,8 @@ def _remove_inverse_follows_gate(sequence):
             remove = curr_gate.inverse() == next_gate
 
         if remove:
-            # remove gates at index and index + 1 (pop shifts the whole sequence, so we apply it
-            # twice for the value `index`)
-            sequence.gates.pop(index)
-            sequence.gates.pop(index)
+            # remove gates at index and index + 1
+            sequence.remove_cancelling_pair([index, index + 1])
             # take a step back to see if we have uncovered a new pair, e.g.
             # [h, s, sdg, h] at index = 1 removes s, sdg but if we continue at index 1
             # we miss the uncovered [h, h] pair at indices 0 and 1
@@ -449,17 +450,17 @@ def _remove_identities(sequence):
             index += 1
 
 
-def _process_node(node: Node, basis_gates: List[str], sequences: List[GateSequence]):
+def _process_node(node: Node, basis: List[str], sequences: List[GateSequence]):
     inverse_last = _1q_inverses[node.labels[-1]] if node.labels else None
 
-    for gate in basis_gates:  # - {inverse_last}:
-        if gate == inverse_last:
+    for label in basis:  # - {inverse_last}:
+        if label == inverse_last:
             continue
         sequence = node.sequence.copy()
-        sequence.append(_1q_gates[gate])
+        sequence.append(_1q_gates[label])
 
         if _check_candidate(sequence, sequences):
             sequences.append(sequence)
-            node.children.append(Node(node.labels + (gate,), sequence, []))
+            node.children.append(Node(node.labels + (label,), sequence, []))
 
     return node.children

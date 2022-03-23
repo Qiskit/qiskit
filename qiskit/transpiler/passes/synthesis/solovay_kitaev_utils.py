@@ -19,6 +19,7 @@ import numpy as np
 from scipy.optimize import fsolve
 
 from qiskit.circuit import Gate, QuantumCircuit
+from qiskit.extensions import UnitaryGate
 
 
 class GateSequence:
@@ -49,15 +50,34 @@ class GateSequence:
         so3_matrix = _convert_su2_to_so3(su2_matrix)
 
         # store the matrix and the global phase
+        self._eulers = None
+        self.name = " ".join(self.labels)
         self.global_phase = global_phase
         self.product = so3_matrix
+        self.product_su2 = su2_matrix
+
+    # @property
+    # def name(self):
+    #     if self._name is None:
+    #         self._name = " ".join(self.labels)
+
+    #     return self._name
+
+    def remove_cancelling_pair(self, indices: Iterable[int]) -> None:
+        """Remove a pair of indices that cancel each other and *do not* change the matrices."""
+        for index in list(indices[::-1]):
+            self.gates.pop(index)
+            self.labels.pop(index)
+
+        # restore name
+        self.name = " ".join(self.labels)
 
     @property
-    def name(self):
-        if len(self.labels) > 0:
-            return " ".join(self.labels)
-        else:
-            return "i"
+    def euler_angles(self):
+        if self._eulers is None:
+            self._eulers = _get_euler_angles(self.product_su2)
+
+        return self._eulers
 
     def __eq__(self, other: "GateSequence") -> bool:
         """Check if this GateSequence is the same as the other GateSequence.
@@ -108,6 +128,9 @@ class GateSequence:
         Returns:
             GateSequence with ``gate`` appended.
         """
+        # invalidate euler angles and name
+        self._eulers = None
+
         # TODO: this recomputes the product whenever we append something, which could be more
         # efficient by storing the current matrix and just multiplying the input gate to it
         # self.product = convert_su2_to_so3(self._compute_product(self.gates))
@@ -116,10 +139,12 @@ class GateSequence:
         so3 = _convert_su2_to_so3(su2)
 
         self.product = so3.dot(self.product)
+        self.product_su2 = su2.dot(self.product_su2)
         self.global_phase = self.global_phase + phase
 
         self.gates.append(gate)
         self.labels.append(gate.name)
+        self.name += f" {gate.name}"
         self.matrices.append(matrix)
 
         return self
@@ -128,7 +153,10 @@ class GateSequence:
         """Get the complex conjugate."""
         adjoint = GateSequence()
         adjoint.gates = [gate.inverse() for gate in reversed(self.gates)]
+        adjoint.labels = [inv.name for inv in adjoint.gates]
+        adjoint.name = " ".join(adjoint.labels)
         adjoint.product = np.conj(self.product).T
+        adjoint.product_su2 = np.conj(self.product_su2).T
         adjoint.global_phase = -self.global_phase
 
         return adjoint
@@ -146,6 +174,9 @@ class GateSequence:
         out.matrices = self.matrices.copy()
         out.global_phase = self.global_phase
         out.product = self.product.copy()
+        out.product_su2 = self.product_su2.copy()
+        out.name = self.name
+        out._eulers = self._eulers
         return out
 
     def __len__(self) -> int:
@@ -232,6 +263,8 @@ class GateSequence:
         """
         composed = GateSequence()
         composed.gates = other.gates + self.gates
+        composed.labels = other.labels + self.labels
+        composed.name = f"{other.name} {self.name}"
         composed.product = np.dot(self.product, other.product)
         composed.global_phase = self.global_phase + other.global_phase
 
@@ -524,6 +557,12 @@ def _check_is_so3(matrix: np.ndarray) -> None:
 
     if abs(np.linalg.det(matrix) - 1) > 1e-4:
         raise ValueError(f"Determinant of matrix must be 1, but is {np.linalg.det(matrix)}.")
+
+
+def _get_euler_angles(matrix: np.ndarray) -> Tuple[float, float, float]:
+    u = UnitaryGate(matrix)
+    angles = tuple(u.definition.data[0][0].params)
+    return angles
 
 
 def commutator_decompose(
