@@ -57,7 +57,7 @@ class EvolutionProblem:
             t_param_set.add(t_param)
         hamiltonian_dict_param_set = set()
         if hamiltonian_value_dict is not None:
-            hamiltonian_dict_param_set.add(hamiltonian_value_dict.keys())
+            hamiltonian_dict_param_set.union(set(hamiltonian_value_dict.keys()))
         params_set = t_param_set.union(hamiltonian_dict_param_set)
         hamiltonian_param_set = set(hamiltonian.parameters)
         if hamiltonian_param_set != params_set:
