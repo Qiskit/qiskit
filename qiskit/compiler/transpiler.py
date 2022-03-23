@@ -590,7 +590,7 @@ def _parse_transpile_args(
     }
     shared_dict = {
         "optimization_level": optimization_level,
-        "basis_gates": basis_gates,
+        "basis_gates": list(basis_gates),
     }
 
     list_transpile_args = []
