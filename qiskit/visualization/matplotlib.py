@@ -32,7 +32,6 @@ from qiskit.circuit.library.standard_gates import (
 from qiskit.extensions import Initialize
 from qiskit.visualization.qcstyle import load_style
 from qiskit.visualization.utils import (
-    check_cregbundle,
     get_gate_ctrl_text,
     get_param_str,
     get_wire_map,
@@ -404,8 +403,14 @@ class MatplotlibDrawer:
             widest_box = WID
             for node in layer:
                 op = node.op
-                if self._cregbundle:
-                    self._cregbundle = check_cregbundle(node, self._circuit)
+                if self._cregbundle and node.cargs and not isinstance(op, Measure):
+                    self._cregbundle = False
+                    warn(
+                        "Cregbundle set to False since an instruction needs to refer"
+                        " to individual classical wire",
+                        RuntimeWarning,
+                        2,
+                    )
                 self._data[node] = {}
                 self._data[node]["width"] = WID
                 num_ctrl_qubits = 0 if not hasattr(op, "num_ctrl_qubits") else op.num_ctrl_qubits
@@ -877,25 +882,42 @@ class MatplotlibDrawer:
 
     def _condition(self, node, cond_xy):
         """Add a conditional to a gate"""
-        condition = node.op.condition
-        cond_label, cond_list = get_condition_label_val(condition, self._circuit, self._cregbundle)
+        label, val_bits = get_condition_label_val(
+            node.op.condition, self._circuit, self._cregbundle, self._reverse_bits
+        )
+        cond_bit_reg = node.op.condition[0]
+        cond_bit_val = int(node.op.condition[1])
+
+        first_clbit = len(self._qubits)
+        cond_pos = []
+
+        # In the first case, multiple bits are indicated on the drawing. In all
+        # other cases, only one bit is shown.
+        if not self._cregbundle and isinstance(cond_bit_reg, ClassicalRegister):
+            for idx in range(cond_bit_reg.size):
+                rev_idx = cond_bit_reg.size - idx - 1 if self._reverse_bits else idx
+                cond_pos.append(cond_xy[self._wire_map[cond_bit_reg[rev_idx]] - first_clbit])
+
+        # If it's a register bit and cregbundle, need to use the register to find the location
+        elif self._cregbundle and isinstance(cond_bit_reg, Clbit):
+            register = get_bit_register(self._circuit, cond_bit_reg)
+            if register is not None:
+                cond_pos.append(cond_xy[self._wire_map[register] - first_clbit])
+            else:
+                cond_pos.append(cond_xy[self._wire_map[cond_bit_reg] - first_clbit])
+        else:
+            cond_pos.append(cond_xy[self._wire_map[cond_bit_reg] - first_clbit])
+
         xy_plot = []
-        for bit, val in cond_list:
-            # if it's a register bit and cregbundle on, need to use
-            # register to find it in the map
-            bit_reg = bit
-            if isinstance(bit, Clbit) and self._cregbundle:
-                register = get_bit_register(self._circuit, bit)
-                if register is not None:
-                    bit_reg = register
-
-            xy = cond_xy[self._wire_map[bit_reg] - len(self._qubits)]
-
-            if val == "1":
+        for idx, xy in enumerate(cond_pos):
+            if val_bits[idx] == "1" or (
+                isinstance(cond_bit_reg, ClassicalRegister)
+                and cond_bit_val != 0
+                and self._cregbundle
+            ):
                 fc = self._style["lc"]
             else:
                 fc = self._style["bg"]
-
             box = self._patches_mod.Circle(
                 xy=xy,
                 radius=WID * 0.15,
@@ -906,7 +928,6 @@ class MatplotlibDrawer:
             )
             self._ax.add_patch(box)
             xy_plot.append(xy)
-
         qubit_b = min(self._data[node]["q_xy"], key=lambda xy: xy[1])
         clbit_b = min(xy_plot, key=lambda xy: xy[1])
 
@@ -917,7 +938,7 @@ class MatplotlibDrawer:
         self._ax.text(
             xpos,
             ypos - 0.3 * HIG,
-            cond_label,
+            label,
             ha="center",
             va="top",
             fontsize=self._sfs,
