@@ -39,6 +39,7 @@ by following the existing pattern:
 from abc import abstractmethod
 from typing import Any, Dict, Tuple, Optional, Union
 
+import functools
 import math
 import numpy as np
 
@@ -47,20 +48,19 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library import continuous, symbolic
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
-from qiskit.pulse.utils import deprecated_functionality, lambdify_symbolic_pulse
+from qiskit.pulse.utils import lambdify_symbolic_pulse
 
 
 class ParametricPulse(Pulse):
     """The abstract superclass for parametric pulses."""
-    __slots__ = ("param_values", "definition")
-
     PARAM_DEF = ["duration"]
 
     numerical_func = None
 
     def __init_subclass__(cls, **kwargs):
         # caching lambda symbolic equation for better performance
-        cls.numerical_func = lambdify_symbolic_pulse(cls._define(), cls.PARAM_DEF)
+        if cls._define():
+            cls.numerical_func = lambdify_symbolic_pulse(cls._define(), cls.PARAM_DEF)
 
     @abstractmethod
     def __init__(
@@ -88,6 +88,11 @@ class ParametricPulse(Pulse):
             self.param_values = (duration, )
 
         self.validate_parameters()
+
+        # For backward compatibility
+        # .duration is already public member in the superclass
+        for name, value in zip(self.PARAM_DEF[1:], parameters):
+            setattr(self, name, value)
 
     @classmethod
     def _define(cls):
@@ -209,18 +214,6 @@ class Gaussian(ParametricPulse):
             limit_amplitude=limit_amplitude,
         )
 
-    @property
-    @deprecated_functionality
-    def amp(self) -> Union[complex, ParameterExpression]:
-        """The Gaussian amplitude."""
-        return self.param_values[1]
-
-    @property
-    @deprecated_functionality
-    def sigma(self) -> Union[float, ParameterExpression]:
-        """The Gaussian standard deviation of the pulse width."""
-        return self.param_values[2]
-
     @classmethod
     def _define(cls):
         return symbolic.symbolic_gaussian()
@@ -278,8 +271,6 @@ class GaussianSquare(ParametricPulse):
     This pulse would be more accurately named as ``LiftedGaussianSquare``, however, for historical
     and practical DSP reasons it has the name ``GaussianSquare``.
     """
-    __slots__ = ("_risefall_sigma_ratio", )
-
     PARAM_DEF = ["duration", "amp", "sigma", "width"]
 
     def __init__(
@@ -319,37 +310,14 @@ class GaussianSquare(ParametricPulse):
         else:
             risefall_sigma_ratio = (duration - width) / (2.0 * sigma)
 
-        self._risefall_sigma_ratio = risefall_sigma_ratio
+        self.risefall_sigma_ratio = risefall_sigma_ratio
+
         super().__init__(
             duration=duration,
             parameters=(amp, sigma, width),
             name=name,
             limit_amplitude=limit_amplitude
         )
-
-    @property
-    @deprecated_functionality
-    def amp(self) -> Union[complex, ParameterExpression]:
-        """The Gaussian amplitude."""
-        return self.param_values[1]
-
-    @property
-    @deprecated_functionality
-    def sigma(self) -> Union[float, ParameterExpression]:
-        """The Gaussian standard deviation of the pulse width."""
-        return self.param_values[2]
-
-    @property
-    @deprecated_functionality
-    def risefall_sigma_ratio(self) -> Union[float, ParameterExpression]:
-        """The duration of each risefall in terms of sigma."""
-        return self._risefall_sigma_ratio
-
-    @property
-    @deprecated_functionality
-    def width(self) -> Union[float, ParameterExpression]:
-        """The width of the square portion of the pulse."""
-        return self.param_values[3]
 
     @classmethod
     def _define(cls):
@@ -450,24 +418,6 @@ class Drag(ParametricPulse):
             limit_amplitude=limit_amplitude,
         )
 
-    @property
-    @deprecated_functionality
-    def amp(self) -> Union[complex, ParameterExpression]:
-        """The Gaussian amplitude."""
-        return self.param_values[1]
-
-    @property
-    @deprecated_functionality
-    def sigma(self) -> Union[float, ParameterExpression]:
-        """The Gaussian standard deviation of the pulse width."""
-        return self.param_values[2]
-
-    @property
-    @deprecated_functionality
-    def beta(self) -> Union[float, ParameterExpression]:
-        """The weighing factor for the Gaussian derivative component of the waveform."""
-        return self.param_values[3]
-
     @classmethod
     def _define(cls):
         return symbolic.symbolic_drag()
@@ -552,12 +502,6 @@ class Constant(ParametricPulse):
             name=name,
             limit_amplitude=limit_amplitude,
         )
-
-    @property
-    @deprecated_functionality
-    def amp(self) -> Union[complex, ParameterExpression]:
-        """The constant value amplitude."""
-        return self.param_values[1]
 
     @classmethod
     def _define(cls):
