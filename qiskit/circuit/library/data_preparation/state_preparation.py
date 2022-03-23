@@ -235,6 +235,9 @@ class StatePreparation(Gate):
         else:
             raise CircuitError(f"invalid param type {type(parameter)} for instruction  {self.name}")
 
+    def _return_repeat(self, exponent: float) -> "Gate":
+        return Gate(name=f"{self.name}*{exponent}", num_qubits=self.num_qubits, params=[])
+
     def _gates_to_uncompute(self):
         """Call to create a circuit with gates that take the desired vector to zero.
 
