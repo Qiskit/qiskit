@@ -27,19 +27,20 @@ class GateSequence:
     This class stores the sequence of gates along with the unitary they implement.
     """
 
-    def __init__(self, labels: Iterable[str] = (), gates: Iterable[np.ndarray] = ()) -> None:
+    def __init__(self, gates: Iterable[Gate] = ()) -> None:
         """Create a new sequence of gates.
 
         Args:
             gates: The gates in the sequence. The default is [].
         """
-        self.labels = list(labels)
         self.gates = list(gates)
+        self.matrices = [np.array(gate, dtype=np.complex128) for gate in gates]
+        self.labels = [gate.name for gate in gates]
 
         # get U(2) representation of the gate sequence
         u2_matrix = np.identity(2)
-        for gate in self.gates:
-            u2_matrix = gate.dot(u2_matrix)
+        for matrix in self.matrices:
+            u2_matrix = matrix.dot(u2_matrix)
 
         # convert to SU(2)
         su2_matrix, global_phase = _convert_u2_to_su2(u2_matrix)
@@ -98,7 +99,7 @@ class GateSequence:
 
         return circuit
 
-    def append(self, label: str, gate: np.ndarray) -> "GateSequence":
+    def append(self, gate: Gate) -> "GateSequence":
         """Append gate to the sequence of gates.
 
         Args:
@@ -110,13 +111,16 @@ class GateSequence:
         # TODO: this recomputes the product whenever we append something, which could be more
         # efficient by storing the current matrix and just multiplying the input gate to it
         # self.product = convert_su2_to_so3(self._compute_product(self.gates))
-        su2, phase = _convert_u2_to_su2(gate)
+        matrix = np.array(gate, dtype=np.complex128)
+        su2, phase = _convert_u2_to_su2(matrix)
         so3 = _convert_su2_to_so3(su2)
 
         self.product = so3.dot(self.product)
         self.global_phase = self.global_phase + phase
+
         self.gates.append(gate)
-        self.labels.append(label)
+        self.labels.append(gate.name)
+        self.matrices.append(matrix)
 
         return self
 
@@ -139,6 +143,7 @@ class GateSequence:
         out = type(self).__new__(type(self))
         out.labels = self.labels.copy()
         out.gates = self.gates.copy()
+        out.matrices = self.matrices.copy()
         out.global_phase = self.global_phase
         out.product = self.product.copy()
         return out

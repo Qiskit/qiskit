@@ -30,7 +30,7 @@ from qiskit.transpiler.passes.synthesis.solovay_kitaev_utils import (
 )
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
-INVERSE_PAIRS = {
+_1q_inverses = {
     "i": "i",
     "x": "x",
     "y": "y",
@@ -43,24 +43,24 @@ INVERSE_PAIRS = {
 }
 
 # allowed (unparameterized) single qubit gates
-_1q_gates = {
-    "h": np.array(gates.HGate(), dtype=np.complex128),
-    "t": np.array(gates.TGate(), dtype=np.complex128),
-    "tdg": np.array(gates.TdgGate(), dtype=np.complex128),
-}
 # _1q_gates = {
-#     "i": gates.IGate(),
-#     "x": gates.XGate(),
-#     "y": gates.YGate(),
-#     "z": gates.ZGate(),
-#     "h": gates.HGate(),
-#     "t": gates.TGate(),
-#     "tdg": gates.TdgGate(),
-#     "s": gates.SGate(),
-#     "sdg": gates.SdgGate(),
-#     "sx": gates.SXGate(),
-#     "sxdg": gates.SXdgGate(),
+#     "h": np.array(gates.HGate(), dtype=np.complex128),
+#     "t": np.array(gates.TGate(), dtype=np.complex128),
+#     "tdg": np.array(gates.TdgGate(), dtype=np.complex128),
 # }
+_1q_gates = {
+    "i": gates.IGate(),
+    "x": gates.XGate(),
+    "y": gates.YGate(),
+    "z": gates.ZGate(),
+    "h": gates.HGate(),
+    "t": gates.TGate(),
+    "tdg": gates.TdgGate(),
+    "s": gates.SGate(),
+    "sdg": gates.SdgGate(),
+    "sx": gates.SXGate(),
+    "sxdg": gates.SXdgGate(),
+}
 
 
 Node = collections.namedtuple("Node", ("labels", "sequence", "children"))
@@ -136,36 +136,24 @@ class SolovayKitaev:
         Raises:
             ValueError: If ``basis_gates`` contains an invalid gate identifier.
         """
-        # for i, gate in enumerate(basis_gates):
-        #     if isinstance(gate, str):
-        #         if gate in _1q_gates.keys():
-        #             basis_gates[i] = _1q_gates[gate]
-        #         else:
-        #             raise ValueError(f"Invalid gate identifier: {gate}")
+        basis = []
+        for i, gate in enumerate(basis_gates):
+            if isinstance(gate, str):
+                if gate not in _1q_gates.keys():
+                    raise ValueError(f"Invalid gate identifier: {gate}")
+                basis.append(gate)
+            else:  # gate is a qiskit.circuit.Gate
+                basis.append(gate.name)
 
-        basis_gates = set(basis_gates)
+        # basis_gates = set(basis_gates)
         tree = Node((), GateSequence(), [])
         cur_level = [tree]
         sequences = [tree.sequence]
         for _ in [None] * depth:
             next_level = []
             for node in cur_level:
-                next_level.extend(_process_node(node, basis_gates, sequences))
+                next_level.extend(_process_node(node, basis, sequences))
             cur_level = next_level
-
-        # # get all products from all depths
-        # products = []
-        # for reps in range(1, depth + 1):
-        #     # TODO check if this can be optimized by putting _remove_inverse_follows_gate
-        #     products += list(list(comb) for comb in itertools.product(*[basis_gates] * reps))
-
-        # sequences = []
-        # for item in products:
-        #     candidate = GateSequence(item)
-        #     _remove_inverse_follows_gate(candidate)
-        #     accept = _check_candidate(candidate, sequences)
-        #     if accept:
-        #         sequences.append(candidate)
 
         if filename is not None:
             data = {}
@@ -274,7 +262,7 @@ class SolovayKitaevDecomposition(TransformationPass):
 
     .. parsed-literal::
 
-        global phase: -π/8
+        global phase: 7π/8
              ┌───┐┌───┐┌───┐
         q_0: ┤ H ├┤ T ├┤ H ├
              └───┘└───┘└───┘
@@ -432,8 +420,8 @@ def _remove_inverse_follows_gate(sequence):
     while index < len(sequence.gates) - 1:
         curr_gate = sequence.gates[index]
         next_gate = sequence.gates[index + 1]
-        if curr_gate.name in INVERSE_PAIRS.keys():
-            remove = INVERSE_PAIRS[curr_gate.name] == next_gate.name
+        if curr_gate.name in _1q_inverses.keys():
+            remove = _1q_inverses[curr_gate.name] == next_gate.name
         else:
             remove = curr_gate.inverse() == next_gate
 
@@ -461,12 +449,14 @@ def _remove_identities(sequence):
             index += 1
 
 
-def _process_node(node: Node, basis_gates: Set[str], sequences: List[GateSequence]):
-    inverse_last = INVERSE_PAIRS[node.labels[-1]] if node.labels else None
+def _process_node(node: Node, basis_gates: List[str], sequences: List[GateSequence]):
+    inverse_last = _1q_inverses[node.labels[-1]] if node.labels else None
 
-    for gate in basis_gates - {inverse_last}:
+    for gate in basis_gates:  # - {inverse_last}:
+        if gate == inverse_last:
+            continue
         sequence = node.sequence.copy()
-        sequence.append(gate, _1q_gates[gate])
+        sequence.append(_1q_gates[gate])
 
         if _check_candidate(sequence, sequences):
             sequences.append(sequence)
