@@ -24,6 +24,7 @@
 
 # Qiskit folders (also their corresponding tests)
 algorithms/           @Qiskit/terra-core @manoelmarques @woodsp-ibm
+circuit/library/      @Qiskit/terra-core @alexanderivrii @ShellyGarion @eliarbel
 opflow/               @Qiskit/terra-core @manoelmarques @woodsp-ibm @ikkoham
 qiskit/utils/         @Qiskit/terra-core @manoelmarques @woodsp-ibm
 providers/            @Qiskit/terra-core @jyu00
@@ -31,6 +32,8 @@ quantum_info/         @Qiskit/terra-core @ikkoham
 qpy/                  @Qiskit/terra-core @nkanazawa1989
 pulse/                @Qiskit/terra-core @eggerdj @nkanazawa1989 @danpuzzuoli
 scheduler/            @Qiskit/terra-core @eggerdj @nkanazawa1989 @danpuzzuoli
+synthesis/            @Qiskit/terra-core @alexanderivrii @ShellyGarion @eliarbel
+transpiler/           @Qiskit/terra-core @alexanderivrii @ShellyGarion @eliarbel
 visualization/        @Qiskit/terra-core @nonhermitian @nkanazawa1989
 # Override the release notes directories to have _no_ code owners, so any review
 # from somebody with write access is acceptable.
