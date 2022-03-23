@@ -28,6 +28,18 @@ from qiskit.transpiler.passes.synthesis.solovay_kitaev_utils import (
     commutator_decompose,
 )
 
+INVERSE_PAIRS = {
+    "i": "i",
+    "x": "x",
+    "y": "y",
+    "z": "z",
+    "h": "h",
+    "t": "tdg",
+    "tdg": "t",
+    "s": "sdg",
+    "sgd": "s",
+}
+
 
 class SolovayKitaev:
     """The Solovay Kitaev discrete decomposition algorithm.
@@ -87,15 +99,9 @@ class SolovayKitaev:
         # if a file, load the dictionary
         if isinstance(data, str):
             data = np.load(data, allow_pickle=True)
-        # gatestrings = data[0]
-        # matrices = data[1:]
-
-        # if len(gatestrings) != len(matrices):
-        #     raise ValueError("Mismatching number of gates and matrices.")
 
         sequences = []
         for gatestring, matrix in data.items():
-            # for i, gatestring in enumerate(gatestrings):
             sequence = GateSequence()
             sequence.gates = [self._1q_gates[element] for element in gatestring.split()]
             sequence.product = np.asarray(matrix)
@@ -115,7 +121,7 @@ class SolovayKitaev:
             filename: If provided, the basic approximations are stored in this file.
 
         Returns:
-            List of GateSequences using the gates in basic_gates.
+            List of ``GateSequences`` using the gates in ``basic_gates``.
 
         Raises:
             ValueError: If ``basis_gates`` contains an invalid gate identifier.
@@ -130,6 +136,7 @@ class SolovayKitaev:
         # get all products from all depths
         products = []
         for reps in range(1, depth + 1):
+            # TODO check if this can be optimized by putting _remove_inverse_follows_gate
             products += list(list(comb) for comb in itertools.product(*[basis_gates] * reps))
 
         sequences = []
@@ -141,16 +148,11 @@ class SolovayKitaev:
                 sequences.append(candidate)
 
         if filename is not None:
-            # gatestrings = []
-            # matrices = []
             data = {}
             for sequence in sequences:
                 gatestring = " ".join([gate.name for gate in sequence.gates])
                 data[gatestring] = sequence.product
-                # matrices.append(sequence.product)
-                # gatestrings.append(
 
-            # data = np.array([np.array(gatestrings)] + [np.array(matrix) for matrix in matrices])
             np.save(filename, data)
 
         return sequences
@@ -409,7 +411,14 @@ def _check_candidate(candidate: GateSequence, sequences: List[GateSequence]) -> 
 def _remove_inverse_follows_gate(sequence):
     index = 0
     while index < len(sequence.gates) - 1:
-        if sequence.gates[index + 1] == sequence.gates[index].inverse():
+        curr_gate = sequence.gates[index]
+        next_gate = sequence.gates[index + 1]
+        if curr_gate.name in INVERSE_PAIRS.keys():
+            remove = INVERSE_PAIRS[curr_gate.name] == next_gate.name
+        else:
+            remove = curr_gate.inverse() == next_gate
+
+        if remove:
             # remove gates at index and index + 1 (pop shifts the whole sequence, so we apply it
             # twice for the value `index`)
             sequence.gates.pop(index)
@@ -427,7 +436,7 @@ def _remove_inverse_follows_gate(sequence):
 def _remove_identities(sequence):
     index = 0
     while index < len(sequence.gates):
-        if isinstance(sequence.gates[index], gates.IGate):
+        if sequence.gates[index].name == "id":
             sequence.gates.pop(index)
         else:
             index += 1
