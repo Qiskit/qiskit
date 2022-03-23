@@ -54,6 +54,13 @@ class GateSequence:
         self.global_phase = global_phase
         self.product = so3_matrix
 
+    @property
+    def name(self):
+        if len(self.gates) > 0:
+            return " ".join(gate.name for gate in self.gates)
+        else:
+            return "i"
+
     def __eq__(self, other: "GateSequence") -> bool:
         """Check if this GateSequence is the same as the other GateSequence.
 

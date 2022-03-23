@@ -22,11 +22,11 @@ from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
-
 from qiskit.transpiler.passes.synthesis.solovay_kitaev_utils import (
     GateSequence,
     commutator_decompose,
 )
+from qiskit.quantum_info.operators.predicates import matrix_equal
 
 INVERSE_PAIRS = {
     "i": "i",
@@ -395,16 +395,15 @@ class SolovayKitaevDecomposition(TransformationPass):
 
 
 def _check_candidate(candidate: GateSequence, sequences: List[GateSequence]) -> bool:
-    from qiskit.quantum_info.operators.predicates import matrix_equal
 
-    # check if a matrix representation already exists
+    if any(candidate.name == existing.name for existing in sequences):
+        return False
+
     for existing in sequences:
         # eliminate global phase
         if matrix_equal(existing.product, candidate.product, ignore_phase=True):
             # is the new sequence less or more efficient?
-            if len(candidate.gates) >= len(existing.gates):
-                return False
-            return True
+            return len(candidate.gates) < len(existing.gates)
     return True
 
 
