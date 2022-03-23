@@ -400,8 +400,7 @@ class LinComb(CircuitGradient):
 
         Returns:
             The coefficients and the gates used for the metric computation for each parameter of
-            the respective gates.
-            [([a^0], [V^0]) ..., ([a^k], [V^k])]
+            the respective gates ``[([a^0], [V^0]) ..., ([a^k], [V^k])]``.
 
         Raises:
             OpflowError: If the input gate is controlled by another state but '|1>^{\otimes k}'
