@@ -696,9 +696,9 @@ class LinComb(CircuitGradient):
             trim_after_grad_gate: If True remove all gates after the ``grad_gate``. Can
                 be used to reduce the circuit depth in e.g. computing an overlap of gradients.
             aux_meas_op: The operator that the auxiliary qubit is measured with respect to.
-                For ``aux_meas_op = Z`` we compute 2Re[⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉],
-                for ``aux_meas_op = -Y`` we compute 2Im[⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉], and
-                for ``aux_meas_op = Z - 1j * Y`` we compute 2⟨(dω⟨ψ(ω)|)O(θ)|ψ(ω).
+                For ``aux_meas_op = Z`` we compute 2Re[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉],
+                for ``aux_meas_op = -Y`` we compute 2Im[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉], and
+                for ``aux_meas_op = Z - 1j * Y`` we compute 2(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉.
 
         Returns:
             ListOp of StateFns as quantum circuits which are the states w.r.t. which we compute the
