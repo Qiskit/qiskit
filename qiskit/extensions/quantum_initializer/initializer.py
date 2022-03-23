@@ -28,12 +28,12 @@ from qiskit.circuit.library.standard_gates.s import SGate, SdgGate
 from qiskit.circuit.library.standard_gates.ry import RYGate
 from qiskit.circuit.library.standard_gates.rz import RZGate
 from qiskit.circuit.reset import Reset
-from qiskit.circuit.argumentsbroadcaster import ArgumentsBroadcasterInitializer
+from qiskit.circuit.broadcast import Broadcaster
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class Initialize(ArgumentsBroadcasterInitializer, Instruction, Operation):
+class Initialize(Instruction, Operation):
     """Complex amplitude initialization.
 
     Class that implements the (complex amplitude) initialization of some
@@ -41,6 +41,8 @@ class Initialize(ArgumentsBroadcasterInitializer, Instruction, Operation):
     Note that Initialize is an Instruction and not a Gate since it contains a reset instruction,
     which is not unitary.
     """
+
+    broadcast_arguments = Broadcaster.initializer
 
     def __init__(self, params, num_qubits=None):
         """Create new initialize composite.

@@ -18,11 +18,13 @@ import warnings
 
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.operation import Operation
-from .argumentsbroadcaster import ArgumentsBroadcasterMeasure
+from .broadcast import Broadcaster
 
 
-class Measure(ArgumentsBroadcasterMeasure, Instruction, Operation):
+class Measure(Instruction, Operation):
     """Quantum measurement in the computational basis."""
+
+    broadcast_arguments = Broadcaster.measure
 
     def __init__(self):
         """Create new measurement instruction."""

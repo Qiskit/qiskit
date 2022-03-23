@@ -10,29 +10,22 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Arguments Broadcaster Mixin."""
+"""Broadcasting functionality."""
 
-from abc import ABC, abstractmethod
 from typing import List, Tuple
 from qiskit.circuit.exceptions import CircuitError, QiskitError
 
 
-class ArgumentsBroadcaster(ABC):
-    """
-    A mixin for argument broadcasting.
-    """
+class Broadcaster:
+    """Validation and handling of the arguments and its relationship."""
 
-    @abstractmethod
-    def broadcast_arguments(self, qargs, cargs):
-        pass
-
-
-class ArgumentsBroadcasterGeneric(ArgumentsBroadcaster):
-    def broadcast_arguments(self, qargs, cargs):
+    @staticmethod
+    def instruction(instr: "Instruction", qargs, cargs):
         """
         Validation of the arguments.
 
         Args:
+            instr: The actual instruction.
             qargs (List): List of quantum bit arguments.
             cargs (List): List of classical bit arguments.
 
@@ -44,11 +37,10 @@ class ArgumentsBroadcasterGeneric(ArgumentsBroadcaster):
                 arguments does not match the gate expectation.
         """
         # This is the "generic" method, formerly implemented by Instruction class.
-        #print("In AB: generic")
-        if len(qargs) != self.num_qubits:
+        if len(qargs) != instr.num_qubits:
             raise CircuitError(
                 f"The amount of qubit arguments {len(qargs)} does not match"
-                f" the instruction expectation ({self.num_qubits})."
+                f" the instruction expectation ({instr.num_qubits})."
             )
 
         #  [[q[0], q[1]], [c[0], c[1]]] -> [q[0], c[0]], [q[1], c[1]]
@@ -57,26 +49,21 @@ class ArgumentsBroadcasterGeneric(ArgumentsBroadcaster):
 
         yield flat_qargs, flat_cargs
 
-
-class ArgumentsBroadcasterBarrier(ArgumentsBroadcaster):
-
-    def broadcast_arguments(self, qargs, cargs):
-        #print("In AB: barrier")
-
-        yield [qarg for sublist in qargs for qarg in sublist], []
-
-
-class ArgumentsBroadcasterDelay(ArgumentsBroadcaster):
-
-    def broadcast_arguments(self, qargs, cargs):
-        #print("In AB: delay")
-        yield [qarg for sublist in qargs for qarg in sublist], []
-
-
-class ArgumentsBroadcasterGate(ArgumentsBroadcaster):
-
+    # pylint: disable=unused-argument
     @staticmethod
-    def _broadcast_single_argument(qarg: List) -> List:
+    def barrier(instr, qargs, cargs):
+        """Expanding arguments for Barrier."""
+        yield [qarg for sublist in qargs for qarg in sublist], []
+
+    # pylint: disable=unused-argument
+    @staticmethod
+    def delay(instr, qargs, cargs):
+        """Expanding arguments for Delay."""
+        yield [qarg for sublist in qargs for qarg in sublist], []
+
+    # pylint: disable=unused-argument
+    @staticmethod
+    def _gate_single_argument(qarg: List) -> List:
         """Expands a single argument.
 
         For example: [q[0], q[1]] -> [q[0]], [q[1]]
@@ -87,7 +74,7 @@ class ArgumentsBroadcasterGate(ArgumentsBroadcaster):
             yield [arg0], []
 
     @staticmethod
-    def _broadcast_2_arguments(qarg0: List, qarg1: List) -> List:
+    def _gate_2_arguments(qarg0: List, qarg1: List) -> List:
         if len(qarg0) == len(qarg1):
             # [[q[0], q[1]], [r[0], r[1]]] -> [q[0], r[0]]
             #                              -> [q[1], r[1]]
@@ -109,14 +96,16 @@ class ArgumentsBroadcasterGate(ArgumentsBroadcaster):
             )
 
     @staticmethod
-    def _broadcast_3_or_more_args(qargs: List) -> List:
+    def _gate_3_or_more_args(qargs: List) -> List:
         if all(len(qarg) == len(qargs[0]) for qarg in qargs):
             for arg in zip(*qargs):
                 yield list(arg), []
         else:
             raise CircuitError("Not sure how to combine these qubit arguments:\n %s\n" % qargs)
 
-    def broadcast_arguments(self, qargs: List, cargs: List) -> Tuple[List, List]:
+    # pylint: disable=unused-argument
+    @staticmethod
+    def gate(instr: "Gate", qargs: List, cargs: List) -> Tuple[List, List]:
         """Validation and handling of the arguments and its relationship.
 
         For example, ``cx([q[0],q[1]], q[2])`` means ``cx(q[0], q[2]); cx(q[1], q[2])``. This
@@ -143,6 +132,7 @@ class ArgumentsBroadcasterGate(ArgumentsBroadcaster):
                 [q[0], q[1]], [r[0], r[1]],  ...] -> [q[0], r[0], ...], [q[1], r[1], ...]
 
         Args:
+            instr: The actual gate.
             qargs: List of quantum bit arguments.
             cargs: List of classical bit arguments.
 
@@ -154,33 +144,27 @@ class ArgumentsBroadcasterGate(ArgumentsBroadcaster):
                 arguments does not match the gate expectation.
         """
 
-        #print("In AB: gate")
-
-        if len(qargs) != self.num_qubits or cargs:
+        if len(qargs) != instr.num_qubits or cargs:
             raise CircuitError(
                 f"The amount of qubit({len(qargs)})/clbit({len(cargs)}) arguments does"
-                f" not match the gate expectation ({self.num_qubits})."
+                f" not match the gate expectation ({instr.num_qubits})."
             )
 
         if any(not qarg for qarg in qargs):
             raise CircuitError("One or more of the arguments are empty")
 
         if len(qargs) == 1:
-            return self._broadcast_single_argument(qargs[0])
+            return Broadcaster._gate_single_argument(qargs[0])
         elif len(qargs) == 2:
-            return self._broadcast_2_arguments(qargs[0], qargs[1])
+            return Broadcaster._gate_2_arguments(qargs[0], qargs[1])
         elif len(qargs) >= 3:
-            return self._broadcast_3_or_more_args(qargs)
+            return Broadcaster._gate_3_or_more_args(qargs)
         else:
             raise CircuitError("This gate cannot handle %i arguments" % len(qargs))
 
-
-class ArgumentsBroadcasterMeasure(ArgumentsBroadcaster):
-
-    def broadcast_arguments(self, qargs, cargs):
-
-        #print("In AB: measure")
-
+    @staticmethod
+    def measure(instr, qargs, cargs):
+        """Expanding arguments for Measure."""
         qarg = qargs[0]
         carg = cargs[0]
 
@@ -193,26 +177,22 @@ class ArgumentsBroadcasterMeasure(ArgumentsBroadcaster):
         else:
             raise CircuitError("register size error")
 
-
-class ArgumentsBroadcasterReset(ArgumentsBroadcaster):
-    def broadcast_arguments(self, qargs, cargs):
-        #print("In AB: reset")
-
+    @staticmethod
+    def reset(instr, qargs, cargs):
+        """Expanding arguments for Reset."""
         for qarg in qargs[0]:
             yield [qarg], []
 
-
-class ArgumentsBroadcasterInitializer(ArgumentsBroadcaster):
-    def broadcast_arguments(self, qargs, cargs):
-        #print("In AB: initializer")
+    @staticmethod
+    def initializer(instr, qargs, cargs):
+        """Expanding arguments for Initializer."""
 
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]
 
-        if self.num_qubits != len(flat_qargs):
+        if instr.num_qubits != len(flat_qargs):
             raise QiskitError(
                 "Initialize parameter vector has %d elements, therefore expects %s "
                 "qubits. However, %s were provided."
-                % (2 ** self.num_qubits, self.num_qubits, len(flat_qargs))
+                % (2**instr.num_qubits, instr.num_qubits, len(flat_qargs))
             )
         yield flat_qargs, []
-

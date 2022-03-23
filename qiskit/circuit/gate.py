@@ -12,18 +12,20 @@
 
 """Unitary gate."""
 
-from typing import List, Optional, Union, Tuple
+from typing import List, Optional, Union
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
 from .instruction import Instruction
 from .operation import Operation
-from .argumentsbroadcaster import ArgumentsBroadcasterGate
+from .broadcast import Broadcaster
 
 
-class Gate(ArgumentsBroadcasterGate, Instruction, Operation):
+class Gate(Instruction, Operation):
     """Unitary gate."""
+
+    broadcast_arguments = Broadcaster.gate
 
     def __init__(
         self, name: str, num_qubits: int, params: List, label: Optional[str] = None

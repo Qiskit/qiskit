@@ -25,6 +25,7 @@ def test_barrier():
     qc.s(1)
     print(qc)
 
+
 def test_delay():
     qc = QuantumCircuit(3)
     qc.h(0)
@@ -120,10 +121,10 @@ def test_quantum_circuit():
     qc2.append(qc1, [0, 2, 4])
     print(qc2)
 
+
 def test_initializer():
     """Combining two circuits containing initialize."""
     desired_vector_1 = [1.0 / math.sqrt(2), 1.0 / math.sqrt(2)]
-    desired_vector_2 = [1.0 / math.sqrt(2), -1.0 / math.sqrt(2)]
     qr = QuantumRegister(1, "qr")
     cr = ClassicalRegister(1, "cr")
     qc1 = QuantumCircuit(qr, cr)

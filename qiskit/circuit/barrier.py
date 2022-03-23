@@ -15,13 +15,14 @@
 from qiskit.exceptions import QiskitError
 from .instruction import Instruction
 from .operation import Operation
-from .argumentsbroadcaster import ArgumentsBroadcasterBarrier
+from .broadcast import Broadcaster
 
 
-class Barrier(ArgumentsBroadcasterBarrier, Instruction, Operation):
+class Barrier(Instruction, Operation):
     """Barrier instruction."""
 
     _directive = True
+    broadcast_arguments = Broadcaster.barrier
 
     def __init__(self, num_qubits):
         """Create new barrier instruction."""
