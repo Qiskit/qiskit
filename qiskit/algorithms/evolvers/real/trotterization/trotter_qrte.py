@@ -23,6 +23,7 @@ from qiskit.opflow import (
     CircuitOp,
     ExpectationBase,
     CircuitSampler,
+    PauliSumOp,
 )
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.providers import Backend, BaseBackend
@@ -72,10 +73,11 @@ class TrotterQRTE(RealEvolver):
         if product_formula is None:
             product_formula = LieTrotter()
         self._product_formula = product_formula
-        self._quantum_instance = quantum_instance
+        self._quantum_instance = None
+        self._circuit_sampler = None
+        if quantum_instance is not None:
+            self.quantum_instance = quantum_instance
         self._expectation = expectation
-
-        self._circuit_sampler = CircuitSampler(quantum_instance)
 
     @property
     def product_formula(self) -> ProductFormula:
@@ -88,8 +90,21 @@ class TrotterQRTE(RealEvolver):
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]):
-        """Sets a quantum instance used in the algorithm."""
+    def quantum_instance(
+        self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
+    ) -> None:
+        """Set quantum instance.
+        Args:
+            quantum_instance: The quantum instance used to run this algorithm.
+        """
+        if isinstance(quantum_instance, (BaseBackend, Backend)):
+            quantum_instance = QuantumInstance(quantum_instance)
+
+        if quantum_instance is not None:
+            self._circuit_sampler = CircuitSampler(quantum_instance)
+        else:
+            self._circuit_sampler = None
+
         self._quantum_instance = quantum_instance
 
     @property
@@ -134,6 +149,7 @@ class TrotterQRTE(RealEvolver):
                 "`t_param` from the EvolutionProblem should be set to None."
             )
 
+        # TODO handle no quantum_instance in aux_ops_evaluator; make it optional there
         if evolution_problem.aux_operators is not None and (
             self._quantum_instance is None or self._expectation is None
         ):
@@ -142,9 +158,11 @@ class TrotterQRTE(RealEvolver):
                 "`quantum_instance` was provided."
             )
         validate_hamiltonian_form(evolution_problem.hamiltonian)
-        hamiltonian = self._try_binding_params(
-            evolution_problem.hamiltonian, evolution_problem.hamiltonian_value_dict
+        hamiltonian = evolution_problem.hamiltonian.bind_parameters(
+            evolution_problem.hamiltonian_value_dict
         )
+        if isinstance(hamiltonian, SummedOp):
+            hamiltonian = self._summed_op_to_pauli_sum_op(hamiltonian)
         # the evolution gate
         evolution_gate = CircuitOp(
             PauliEvolutionGate(hamiltonian, evolution_problem.time, synthesis=self._product_formula)
@@ -152,7 +170,10 @@ class TrotterQRTE(RealEvolver):
 
         if evolution_problem.initial_state is not None:
             quantum_state = evolution_gate @ evolution_problem.initial_state
-            evolved_state = self._circuit_sampler.convert(quantum_state).eval()
+            if self._circuit_sampler is not None:
+                quantum_state = self._circuit_sampler.convert(quantum_state)
+
+            evolved_state = quantum_state.eval()
 
         else:
             raise ValueError("`initial_state` must be provided in the EvolutionProblem.")
@@ -167,45 +188,24 @@ class TrotterQRTE(RealEvolver):
                 algorithm_globals.numerical_tolerance_at_0,
             )
 
-        return EvolutionResult(evolved_state.eval(), evaluated_aux_ops)
+        return EvolutionResult(evolved_state, evaluated_aux_ops)
 
     @staticmethod
-    def _try_binding_params(
-        hamiltonian: Union[SummedOp, PauliOp],
-        hamiltonian_value_dict: Dict[Parameter, Union[float, complex]],
-    ) -> Union[SummedOp, PauliOp, OperatorBase]:
+    def _summed_op_to_pauli_sum_op(
+        hamiltonian: Union[SummedOp],
+    ) -> Union[PauliSumOp, PauliOp]:
         """
         Tries binding parameters in a Hamiltonian.
 
         Args:
-            hamiltonian: The Hamiltonian of that defines an evolution. Only SummedOp, PauliOp are
-                supported by TrotterQrte.
-            hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
-                certain values.
+            hamiltonian: The Hamiltonian of that defines an evolution.
 
         Returns:
-            Bound Hamiltonian.
-
-        Raises:
-            ValueError: If a Hamiltonian is not of an expected type.
+            Hamiltonian.
         """
         # PauliSumOp does not allow parametrized coefficients but after binding the parameters
         # we need to convert it into a PauliSumOp for the PauliEvolutionGate.
-        if isinstance(hamiltonian, SummedOp):
-            op_list = []
-            for op in hamiltonian.oplist:
-                if hamiltonian_value_dict is not None:
-                    op_bound = op.bind_parameters(hamiltonian_value_dict)
-                else:
-                    op_bound = op
-                is_op_bound(op_bound)
-                op_list.append(op_bound)
-            return sum(op_list)
-        elif isinstance(hamiltonian, PauliOp):  # in case there is only a single summand
-            if hamiltonian_value_dict is not None:
-                op_bound = hamiltonian.bind_parameters(hamiltonian_value_dict)
-            else:
-                op_bound = hamiltonian
-
-            is_op_bound(op_bound)
-            return op_bound
+        op_list = []
+        for op in hamiltonian.oplist:
+            op_list.append(op)
+        return sum(op_list)

@@ -52,19 +52,28 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         algorithm_globals.random_seed = self.seed
         shots = 1
         backend = BasicAer.get_backend("statevector_simulator")
+        backend_qasm = BasicAer.get_backend("qasm_simulator")  # TODO add to tests
         self.quantum_instance = QuantumInstance(
             backend=backend,
             shots=shots,
             seed_simulator=self.seed,
             seed_transpiler=self.seed,
         )
+        self.backends_dict = {
+            "qi": self.quantum_instance,
+            "b_sv": backend,
+            "b_qasm": backend_qasm,
+            "None": None,
+        }
 
-    def test_trotter_qrte_trotter(self):
+    @data("qi", "b_sv", "None")
+    def test_trotter_qrte_trotter(self, quantum_instanc):
         """Test for trotter qrte."""
         operator = SummedOp([X, Z])
         # LieTrotter with 1 rep
+        quantum_instance = self.backends_dict[quantum_instanc]
 
-        trotter_qrte = TrotterQRTE(quantum_instance=self.quantum_instance)
+        trotter_qrte = TrotterQRTE(quantum_instance=quantum_instance)
         initial_state = Zero
         evolution_problem = EvolutionProblem(operator, 1, initial_state)
         evolution_result = trotter_qrte.evolve(evolution_problem)
@@ -76,22 +85,28 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
 
         np.testing.assert_equal(evolution_result.evolved_state, expected_evolved_state)
 
-    def test_trotter_qrte_trotter_aux_ops(self):
+    @data("qi", "b_sv")
+    def test_trotter_qrte_trotter_aux_ops(self, quantum_instance):
         """Test for trotter qrte."""
         operator = SummedOp([X, Z])
         # LieTrotter with 1 rep
         aux_ops = [X, Y]
         expectation = MatrixExpectation()
-        trotter_qrte = TrotterQRTE(quantum_instance=self.quantum_instance, expectation=expectation)
+        quantum_instance = self.backends_dict[quantum_instance]
+
+        trotter_qrte = TrotterQRTE(quantum_instance=quantum_instance, expectation=expectation)
         initial_state = Zero
-        evolution_problem = EvolutionProblem(operator, 1, initial_state, aux_ops)
+        time = 3
+        evolution_problem = EvolutionProblem(operator, time, initial_state, aux_ops)
         evolution_result = trotter_qrte.evolve(evolution_problem)
         # Calculate the expected state
         expected_state = (
-            expm(-1j * Z.to_matrix()) @ expm(-1j * X.to_matrix()) @ initial_state.to_matrix()
+            expm(-time * 1j * Z.to_matrix())
+            @ expm(-time * 1j * X.to_matrix())
+            @ initial_state.to_matrix()
         )
         expected_evolved_state = VectorStateFn(Statevector(expected_state, dims=(2,)))
-        expected_aux_ops_evaluated = [(0.8268218104318058, 0.0), (0.3784012476539641, 0.0)]
+        expected_aux_ops_evaluated = [(0.078073, 0.0), (0.268286, 0.0)]
 
         np.testing.assert_equal(evolution_result.evolved_state, expected_evolved_state)
         np.testing.assert_array_almost_equal(
@@ -114,12 +129,14 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         evolution_result = trotter_qrte.evolve(evolution_problem)
         np.testing.assert_equal(evolution_result.evolved_state, expected_evolved_state)
 
-    def test_trotter_qrte_suzuki(self):
+    @data("qi", "b_sv", "None")
+    def test_trotter_qrte_suzuki(self, quantum_instance):
         """Test for trotter qrte with Suzuki."""
         operator = SummedOp([X, Z])
         # 2nd order Suzuki with 1 rep
+        quantum_instance = self.backends_dict[quantum_instance]
         trotter_qrte = TrotterQRTE(
-            quantum_instance=self.quantum_instance, product_formula=SuzukiTrotter()
+            quantum_instance=quantum_instance, product_formula=SuzukiTrotter()
         )
         initial_state = Zero
         evolution_problem = EvolutionProblem(operator, 1, initial_state)
@@ -135,12 +152,14 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
 
         np.testing.assert_equal(evolution_result.evolved_state, expected_evolved_state)
 
-    def test_trotter_qrte_qdrift(self):
+    @data("qi", "b_sv", "None")
+    def test_trotter_qrte_qdrift(self, quantum_instance):
         """Test for trotter qrte with QDrift."""
         algorithm_globals.random_seed = 0
         operator = SummedOp([X, Z])
+        quantum_instance = self.backends_dict[quantum_instance]
         # QDrift with one repetition
-        trotter_qrte = TrotterQRTE(quantum_instance=self.quantum_instance, product_formula=QDrift())
+        trotter_qrte = TrotterQRTE(quantum_instance=quantum_instance, product_formula=QDrift())
         initial_state = Zero
         evolution_problem = EvolutionProblem(operator, 1, initial_state)
         evolution_result = trotter_qrte.evolve(evolution_problem)
@@ -160,8 +179,8 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         operator = X * t_param + Z
         trotter_qrte = TrotterQRTE(quantum_instance=self.quantum_instance)
         initial_state = Zero
-        evolution_problem = EvolutionProblem(operator, 1, initial_state, t_param=t_param)
         with assert_raises(ValueError):
+            evolution_problem = EvolutionProblem(operator, 1, initial_state, t_param=t_param)
             _ = trotter_qrte.evolve(evolution_problem)
 
     def test_trotter_qrte_trotter_binding_missing_param(self):
@@ -170,8 +189,8 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         operator = X * t_param + Z
         trotter_qrte = TrotterQRTE(quantum_instance=self.quantum_instance)
         initial_state = Zero
-        evolution_problem = EvolutionProblem(operator, 1, initial_state)
         with assert_raises(ValueError):
+            evolution_problem = EvolutionProblem(operator, 1, initial_state)
             _ = trotter_qrte.evolve(evolution_problem)
 
 
