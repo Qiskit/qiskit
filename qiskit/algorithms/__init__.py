@@ -106,7 +106,7 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
 
     RealEvolver
     ImaginaryEvolver
-    TrotterQrte
+    TrotterQRTE
     EvolutionResult
     EvolutionProblem
 

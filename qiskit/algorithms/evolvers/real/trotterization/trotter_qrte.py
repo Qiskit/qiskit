@@ -130,8 +130,8 @@ class TrotterQRTE(RealEvolver):
 
         Args:
             evolution_problem: Instance defining evolution problem. For the included Hamiltonian,
-                `PauliOp`, `SparsePauliOp`, `Pauli` or `SummedOp` thereof or `PauliSumOp` are
-                supported by TrotterQrte.
+                ``PauliOp``, ``SparsePauliOp``, ``Pauli`` or ``SummedOp`` thereof or ``PauliSumOp``
+                are supported by TrotterQRTE.
 
         Returns:
             Evolution result that includes an evolved state.
@@ -143,8 +143,8 @@ class TrotterQRTE(RealEvolver):
         """
         if evolution_problem.t_param is not None:
             raise ValueError(
-                "TrotterQrte does not accept a time dependent hamiltonian,"
-                "`t_param` from the EvolutionProblem should be set to None."
+                "TrotterQRTE does not accept a time dependent hamiltonian,"
+                "``t_param`` from the EvolutionProblem should be set to None."
             )
 
         # TODO handle no quantum_instance in aux_ops_evaluator; make it optional there

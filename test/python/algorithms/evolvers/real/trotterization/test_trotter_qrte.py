@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test Trotter Qrte. """
+""" Test TrotterQRTE. """
 
 import unittest
 
@@ -44,7 +44,7 @@ from qiskit.synthesis import SuzukiTrotter, QDrift
 
 @ddt
 class TestTrotterQRTE(QiskitOpflowTestCase):
-    """Trotter Qrte tests."""
+    """TrotterQRTE tests."""
 
     def setUp(self):
         super().setUp()
@@ -68,7 +68,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
 
     @data("qi", "b_sv", "None")
     def test_trotter_qrte_trotter(self, quantum_instanc):
-        """Test for trotter qrte."""
+        """Test for TrotterQRTE."""
         operator = SummedOp([X, Z])
         # LieTrotter with 1 rep
         quantum_instance = self.backends_dict[quantum_instanc]
@@ -87,7 +87,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
 
     @data("qi", "b_sv")
     def test_trotter_qrte_trotter_aux_ops(self, quantum_instance):
-        """Test for trotter qrte."""
+        """Test for TrotterQRTE."""
         operator = SummedOp([X, Z])
         # LieTrotter with 1 rep
         aux_ops = [X, Y]
@@ -136,7 +136,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
 
     @data("qi", "b_sv", "None")
     def test_trotter_qrte_suzuki(self, quantum_instance):
-        """Test for trotter qrte with Suzuki."""
+        """Test for TrotterQRTE with Suzuki."""
         operator = X + Z
         # 2nd order Suzuki with 1 rep
         quantum_instance = self.backends_dict[quantum_instance]
@@ -159,7 +159,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
 
     @data("qi", "b_sv", "None")
     def test_trotter_qrte_qdrift(self, quantum_instance):
-        """Test for trotter qrte with QDrift."""
+        """Test for TrotterQRTE with QDrift."""
         algorithm_globals.random_seed = 0
         operator = SummedOp([X, Z])
         quantum_instance = self.backends_dict[quantum_instance]
@@ -179,7 +179,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         np.testing.assert_equal(evolution_result.evolved_state, expected_evolved_state)
 
     def test_trotter_qrte_trotter_binding_missing_dict(self):
-        """Test for trotter qrte with binding and missing dictionary.."""
+        """Test for TrotterQRTE with binding and missing dictionary.."""
         t_param = Parameter("t")
         operator = X * t_param + Z
         trotter_qrte = TrotterQRTE(quantum_instance=self.quantum_instance)
@@ -189,7 +189,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
             _ = trotter_qrte.evolve(evolution_problem)
 
     def test_trotter_qrte_trotter_binding_missing_param(self):
-        """Test for trotter qrte with binding and missing param."""
+        """Test for TrotterQRTE with binding and missing param."""
         t_param = Parameter("t")
         operator = X * t_param + Z
         trotter_qrte = TrotterQRTE(quantum_instance=self.quantum_instance)
