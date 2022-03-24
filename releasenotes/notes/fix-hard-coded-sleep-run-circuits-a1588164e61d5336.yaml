@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    The `QuantumInstance` class used by many algorithms in `qiskit.algorithms` (like VQE),
+    was hard-coding the value for a sleep when it looped waiting for the job status to be
+    updated. It now will respect the configured sleep value set in `QuantumInstance`.
+    This is still configured in `QuantumInstance` constructor via the `wait` value.
