@@ -61,7 +61,9 @@ def plot_gate_map(
         filename (str): file path to save image to.
         qubit_coordinates (Sequence): A sequence type (list or array being the
             most common) of 2d coordinates for each qubit. The length of the
-            sequence much mast the number of qubits on the backend.
+            sequence much mast the number of qubits on the backend. The sequence
+            should be the planar coordinates in a 0-based square grid where each
+            qubit is located.
 
     Returns:
         Figure: A Matplotlib figure instance.
@@ -734,7 +736,7 @@ def plot_coupling_map(
     return None
 
 
-def plot_circuit_layout(circuit, backend, view="virtual"):
+def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None):
     """Plot the layout of a circuit transpiled for a given
     target backend.
 
@@ -742,6 +744,11 @@ def plot_circuit_layout(circuit, backend, view="virtual"):
         circuit (QuantumCircuit): Input quantum circuit.
         backend (BaseBackend): Target backend.
         view (str): Layout view: either 'virtual' or 'physical'.
+        qubit_coordinates (Sequence): A sequence type (list or array being the
+            most common) of 2d coordinates for each qubit. The length of the
+            sequence much mast the number of qubits on the backend. The sequence
+            should be the planar coordinates in a 0-based square grid where each
+            qubit is located.
 
     Returns:
         Figure: A matplotlib figure showing layout.
@@ -830,19 +837,30 @@ def plot_circuit_layout(circuit, backend, view="virtual"):
         if edge[0] in qubits and edge[1] in qubits:
             lcolors[idx] = "k"
 
-    fig = plot_gate_map(backend, qubit_color=qcolors, qubit_labels=qubit_labels, line_color=lcolors)
+    fig = plot_gate_map(
+        backend,
+        qubit_color=qcolors,
+        qubit_labels=qubit_labels,
+        line_color=lcolors,
+        qubit_coordinates=qubit_coordinates,
+    )
     return fig
 
 
 @_optionals.HAS_MATPLOTLIB.require_in_call
 @_optionals.HAS_SEABORN.require_in_call
-def plot_error_map(backend, figsize=(12, 9), show_title=True):
+def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=None):
     """Plots the error map of a given backend.
 
     Args:
         backend (IBMQBackend): Given backend.
         figsize (tuple): Figure size in inches.
         show_title (bool): Show the title or not.
+        qubit_coordinates (Sequence): A sequence type (list or array being the
+            most common) of 2d coordinates for each qubit. The length of the
+            sequence much mast the number of qubits on the backend. The sequence
+            should be the planar coordinates in a 0-based square grid where each
+            qubit is located.
 
     Returns:
         Figure: A matplotlib figure showing error map.
@@ -1000,6 +1018,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         line_width=5,
         plot_directed=directed,
         ax=main_ax,
+        qubit_coordinates=qubit_coordinates,
     )
     main_ax.axis("off")
     main_ax.set_aspect(1)
