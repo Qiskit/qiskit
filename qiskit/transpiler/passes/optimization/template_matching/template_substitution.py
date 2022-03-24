@@ -482,12 +482,8 @@ class TemplateSubstitution:
 
         In order to resolve the conflict of the same parameter names in the
         circuit and template, each variable in the template sublist is
-        checked against circ_param_str (the string of all combined
-        parameter expressions in the circuit sublist). If a Parameter from
-        the template sublist has the same name, a new Parameter with a
-        random name is created and assigned to the template sublist and added
-        to a dictionary of substituted params (sub_params), so that the
-        substituted Parameter can be replaced in every tempalte node.
+        re-assigned to a new dummy parameter with a completely separate name
+        if it clashes with one that exists in an input circuit.
 
         Args:
             template_sublist (list): part of the matched template.
