@@ -55,9 +55,17 @@ class EvolutionProblem:
             ValueError: If not all parameter values are provided.
         """
         if time <= 0:
-            raise ValueError(f"Time of evolution provided is not positive, detected time={time}.")
+            raise ValueError(
+                f"Time of evolution provided is not positive, detected " f"``time={time}``."
+            )
         if initial_state is None:
-            raise ValueError("No initial_state provided for the EvolutionProblem. It is required.")
+            raise ValueError(
+                "No ``initial_state`` provided for the EvolutionProblem. It is " "required."
+            )
+        if hamiltonian is None:
+            raise ValueError(
+                "No ``hamiltonian`` provided for the EvolutionProblem. It is " "required."
+            )
         # TODO SparsePauliOp does not have .parameters because it is not allowed to be parametrized.
         #  Can we handle this better than with an if?
         if not isinstance(hamiltonian, SparsePauliOp):
