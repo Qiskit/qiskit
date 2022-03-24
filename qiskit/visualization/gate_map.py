@@ -503,9 +503,12 @@ def plot_gate_map(
     if qubit_coordinates is None:
         # Replace with planar_layout() when retworkx offers it
         qubit_coordinates_rx = rx.spring_layout(coupling_map.graph, seed=1234)
-        scaling_factor = 10**int(math.log10(num_qubits) + 1)
+        scaling_factor = 10 ** int(math.log10(num_qubits) + 1)
         qubit_coordinates = [
-            (int(scaling_factor * qubit_coordinates_rx[i][0]), int(scaling_factor * qubit_coordinates_rx[i][1]))
+            (
+                int(scaling_factor * qubit_coordinates_rx[i][0]),
+                int(scaling_factor * qubit_coordinates_rx[i][1]),
+            )
             for i in range(num_qubits)
         ]
 
