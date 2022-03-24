@@ -28,7 +28,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.transpiler.exceptions import TranspilerError
 
 
-def _ry_to_rz_template_pass(parameter=None, extra_costs=None):
+def _ry_to_rz_template_pass(parameter: Parameter = None, extra_costs=None):
     """Create a simple pass manager that runs a template optimisation with a single transformation.
     It turns ``RX(pi/2).RY(parameter).RX(-pi/2)`` into the equivalent virtual ``RZ`` rotation, where
     if ``parameter`` is given, it will be the instance used in the template."""
@@ -38,7 +38,7 @@ def _ry_to_rz_template_pass(parameter=None, extra_costs=None):
     template.rx(-np.pi / 2, 0)
     template.ry(parameter, 0)
     template.rx(np.pi / 2, 0)
-    template.rz(-parameter, 0)
+    template.rz(-parameter, 0)  # pylint: disable=invalid-unary-operand-type
 
     costs = {"rx": 16, "ry": 16, "rz": 0}
     if extra_costs is not None:
