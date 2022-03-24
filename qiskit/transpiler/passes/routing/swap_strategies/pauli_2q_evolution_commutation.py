@@ -43,7 +43,7 @@ class FindCommutingPauliEvolutions(TransformationPass):
                     sub_dag = self._decompose_to_2q(dag, node.op)
 
                     block_op = Commuting2QBlocks(set(sub_dag.op_nodes()))
-                    register = dag.qregs['q']
+                    register = dag.qregs["q"]
                     wire_order = {qubit: register.index(qubit) for qubit in block_op.qubits}
                     dag.replace_block_with_op([node], block_op, wire_order)
 
