@@ -261,7 +261,7 @@ class LinComb(CircuitGradient):
                         )
 
                     raise OpflowError(
-                        "The linear combination gradient does only support the "
+                        "The linear combination gradient only supports the "
                         "computation of 1st and 2nd order gradients."
                     )
             else:
