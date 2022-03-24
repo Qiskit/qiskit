@@ -605,6 +605,46 @@ class TestTemplateMatching(QiskitTestCase):
         expected.rz(b, 1)
         self.assertEqual(circuit_out, expected)
 
+    def test_template_match_multiparameter(self):
+        """Test that the template matching works on instructions that take more than one
+        parameter."""
+        a = Parameter("a")
+        b = Parameter("b")
+        template = QuantumCircuit(1)
+        template.u(0, a, b, 0)
+        template.rz(-a - b, 0)
+
+        circuit_in = QuantumCircuit(1)
+        circuit_in.u(0, 1.23, 2.45, 0)
+        pm = PassManager(TemplateOptimization([template], user_cost_dict={"u": 16, "rz": 0}))
+        circuit_out = pm.run(circuit_in)
+
+        expected = QuantumCircuit(1)
+        expected.rz(1.23 + 2.45, 0)
+
+        self.assertEqual(circuit_out, expected)
+
+    def test_naming_clash_multiparameter(self):
+        """Test that the naming clash prevention mechanism works with instructions that take
+        multiple parameters."""
+        a_template = Parameter("a")
+        b_template = Parameter("b")
+        template = QuantumCircuit(1)
+        template.u(0, a_template, b_template, 0)
+        template.rz(-a_template - b_template, 0)
+
+        a_circuit = Parameter("a")
+        b_circuit = Parameter("b")
+        circuit_in = QuantumCircuit(1)
+        circuit_in.u(0, a_circuit, b_circuit, 0)
+        pm = PassManager(TemplateOptimization([template], user_cost_dict={"u": 16, "rz": 0}))
+        circuit_out = pm.run(circuit_in)
+
+        expected = QuantumCircuit(1)
+        expected.rz(a_circuit + b_circuit, 0)
+
+        self.assertEqual(circuit_out, expected)
+
 
 if __name__ == "__main__":
     unittest.main()
