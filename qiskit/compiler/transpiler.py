@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=import-error,invalid-sequence-index
+
 """Circuit transpile function"""
 import datetime
 import io
@@ -552,31 +554,19 @@ def _parse_transpile_args(
         if backend_properties is None:
             backend_properties = _target_to_backend_properties(target)
 
-    basis_gates = _parse_basis_gates(basis_gates, backend, circuits)
-    inst_map = _parse_inst_map(inst_map, backend, num_circuits)
-    faulty_qubits_map = _parse_faulty_qubits_map(backend, num_circuits)
-    coupling_map = _parse_coupling_map(coupling_map, backend, num_circuits)
-    backend_properties = _parse_backend_properties(backend_properties, backend, num_circuits)
-    backend_num_qubits = _parse_backend_num_qubits(backend, num_circuits)
+    basis_gates = _parse_basis_gates(basis_gates, backend)
     initial_layout = _parse_initial_layout(initial_layout, circuits)
-    layout_method = _parse_layout_method(layout_method, num_circuits)
-    routing_method = _parse_routing_method(routing_method, num_circuits)
-    translation_method = _parse_translation_method(translation_method, num_circuits)
-    approximation_degree = _parse_approximation_degree(approximation_degree, num_circuits)
-    unitary_synthesis_method = _parse_unitary_synthesis_method(
-        unitary_synthesis_method, num_circuits
-    )
-    unitary_synthesis_plugin_config = _parse_unitary_plugin_config(
-        unitary_synthesis_plugin_config, num_circuits
-    )
-    seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
-    optimization_level = _parse_optimization_level(optimization_level, num_circuits)
+    inst_map = _parse_inst_map(inst_map, backend)
+    faulty_qubits_map = _parse_faulty_qubits_map(backend, num_circuits)
+    coupling_map = _parse_coupling_map(coupling_map, backend)
+    backend_properties = _parse_backend_properties(backend_properties, backend)
+    backend_num_qubits = _parse_backend_num_qubits(backend, num_circuits)
+    approximation_degree = _parse_approximation_degree(approximation_degree)
     output_name = _parse_output_name(output_name, circuits)
     callback = _parse_callback(callback, num_circuits)
     durations = _parse_instruction_durations(backend, instruction_durations, dt, circuits)
-    scheduling_method = _parse_scheduling_method(scheduling_method, num_circuits)
     timing_constraints = _parse_timing_constraints(backend, timing_constraints, num_circuits)
-    target = _parse_target(backend, target, num_circuits)
+    target = _parse_target(backend, target)
     if scheduling_method and any(d is None for d in durations):
         raise TranspilerError(
             "Transpiling a circuit with a scheduling method"
@@ -590,7 +580,7 @@ def _parse_transpile_args(
     }
     shared_dict = {
         "optimization_level": optimization_level,
-        "basis_gates": list(basis_gates),
+        "basis_gates": basis_gates,
     }
 
     list_transpile_args = []
@@ -667,7 +657,7 @@ def _create_faulty_qubits_map(backend):
     return faulty_qubits_map
 
 
-def _parse_basis_gates(basis_gates, backend, circuits):
+def _parse_basis_gates(basis_gates, backend):
     # try getting basis_gates from user, else backend
     if basis_gates is None:
         backend_version = getattr(backend, "version", 0)
@@ -678,11 +668,12 @@ def _parse_basis_gates(basis_gates, backend, circuits):
                 basis_gates = getattr(backend.configuration(), "basis_gates", None)
         else:
             basis_gates = backend.operation_names
-
+    if basis_gates is not None:
+        basis_gates = list(basis_gates)
     return basis_gates
 
 
-def _parse_inst_map(inst_map, backend, num_circuits):
+def _parse_inst_map(inst_map, backend):
     # try getting inst_map from user, else backend
     if inst_map is None:
         backend_version = getattr(backend, "version", 0)
@@ -696,7 +687,7 @@ def _parse_inst_map(inst_map, backend, num_circuits):
     return inst_map
 
 
-def _parse_coupling_map(coupling_map, backend, num_circuits):
+def _parse_coupling_map(coupling_map, backend):
     # try getting coupling_map from user, else backend
     if coupling_map is None:
         backend_version = getattr(backend, "version", 0)
@@ -820,7 +811,7 @@ def _target_to_backend_properties(target: Target):
         return None
 
 
-def _parse_backend_properties(backend_properties, backend, num_circuits):
+def _parse_backend_properties(backend_properties, backend):
     # try getting backend_properties from user, else backend
     if backend_properties is None:
         backend_version = getattr(backend, "version", None)
@@ -916,22 +907,6 @@ def _parse_initial_layout(initial_layout, circuits):
     return initial_layout
 
 
-def _parse_layout_method(layout_method, num_circuits):
-    return layout_method
-
-
-def _parse_routing_method(routing_method, num_circuits):
-    return routing_method
-
-
-def _parse_translation_method(translation_method, num_circuits):
-    return translation_method
-
-
-def _parse_scheduling_method(scheduling_method, num_circuits):
-    return scheduling_method
-
-
 def _parse_instruction_durations(backend, inst_durations, dt, circuits):
     """Create a list of ``InstructionDuration``s. If ``inst_durations`` is provided,
     the backend will be ignored, otherwise, the durations will be populated from the
@@ -965,7 +940,7 @@ def _parse_instruction_durations(backend, inst_durations, dt, circuits):
     return durations
 
 
-def _parse_approximation_degree(approximation_degree, num_circuits):
+def _parse_approximation_degree(approximation_degree):
     if approximation_degree is None:
         return None
     if not isinstance(approximation_degree, list):
@@ -977,27 +952,11 @@ def _parse_approximation_degree(approximation_degree, num_circuits):
     return approximation_degree
 
 
-def _parse_unitary_synthesis_method(unitary_synthesis_method, num_circuits):
-    return unitary_synthesis_method
-
-
-def _parse_unitary_plugin_config(unitary_synthesis_plugin_config, num_circuits):
-    return unitary_synthesis_plugin_config
-
-
-def _parse_target(backend, target, num_circuits):
+def _parse_target(backend, target):
     backend_target = getattr(backend, "target", None)
     if target is None:
         target = backend_target
     return target
-
-
-def _parse_seed_transpiler(seed_transpiler, num_circuits):
-    return seed_transpiler
-
-
-def _parse_optimization_level(optimization_level, num_circuits):
-    return optimization_level
 
 
 def _parse_callback(callback, num_circuits):
