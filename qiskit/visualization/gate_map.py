@@ -14,8 +14,12 @@
 
 import math
 from typing import List
+
 import numpy as np
+import retworkx as rx
+
 from qiskit.exceptions import QiskitError
+from qiskit.utils.backend_utils import _get_backend_interface_version
 from qiskit.utils import optionals as _optionals
 from .exceptions import VisualizationError
 from .utils import matplotlib_close_if_inline
@@ -36,6 +40,7 @@ def plot_gate_map(
     font_color="w",
     ax=None,
     filename=None,
+    qubit_coordinates=None,
 ):
     """Plots the gate map of a device.
 
@@ -54,6 +59,9 @@ def plot_gate_map(
         font_color (str): The font color for the qubit labels.
         ax (Axes): A Matplotlib axes instance.
         filename (str): file path to save image to.
+        qubit_coordinates (Sequence): A sequence type (list or array being the
+            most common) of 2d coordinates for each qubit. The length of the
+            sequence much mast the number of qubits on the backend.
 
     Returns:
         Figure: A Matplotlib figure instance.
@@ -82,9 +90,6 @@ def plot_gate_map(
            backend = accountProvider.get_backend('ibmq_vigo')
            plot_gate_map(backend)
     """
-    if backend.configuration().simulator:
-        raise QiskitError("Requires a device backend, not simulator.")
-
     qubit_coordinates_map = {}
 
     qubit_coordinates_map[1] = [[0, 0]]
@@ -338,14 +343,178 @@ def plot_gate_map(
         [8, 10],
     ]
 
-    config = backend.configuration()
-    num_qubits = config.n_qubits
-    coupling_map = config.coupling_map
-    qubit_coordinates = qubit_coordinates_map.get(num_qubits)
+    qubit_coordinates_map[127] = [
+        [1, 1],
+        [2, 1],
+        [3, 1],
+        [4, 1],
+        [5, 1],
+        [6, 1],
+        [7, 1],
+        [8, 1],
+        [9, 1],
+        [10, 1],
+        [11, 1],
+        [12, 1],
+        [13, 1],
+        [14, 1],
+        [1, 2],
+        [5, 2],
+        [9, 2],
+        [13, 2],
+        [1, 3],
+        [2, 3],
+        [3, 3],
+        [4, 3],
+        [5, 3],
+        [6, 3],
+        [7, 3],
+        [8, 3],
+        [9, 3],
+        [10, 3],
+        [11, 3],
+        [12, 3],
+        [13, 3],
+        [14, 3],
+        [15, 3],
+        [3, 4],
+        [7, 4],
+        [11, 4],
+        [15, 4],
+        [1, 5],
+        [2, 5],
+        [3, 5],
+        [4, 5],
+        [5, 5],
+        [6, 5],
+        [7, 5],
+        [8, 5],
+        [9, 5],
+        [10, 5],
+        [11, 5],
+        [12, 5],
+        [13, 5],
+        [14, 5],
+        [15, 5],
+        [1, 6],
+        [5, 6],
+        [9, 6],
+        [13, 6],
+        [1, 7],
+        [2, 7],
+        [3, 7],
+        [4, 7],
+        [5, 7],
+        [6, 7],
+        [7, 7],
+        [8, 7],
+        [9, 7],
+        [10, 7],
+        [11, 7],
+        [12, 7],
+        [13, 7],
+        [14, 7],
+        [15, 7],
+        [3, 8],
+        [7, 8],
+        [11, 8],
+        [15, 8],
+        [1, 9],
+        [2, 9],
+        [3, 9],
+        [4, 9],
+        [5, 9],
+        [6, 9],
+        [7, 9],
+        [8, 9],
+        [9, 9],
+        [10, 9],
+        [11, 9],
+        [12, 9],
+        [13, 9],
+        [14, 9],
+        [15, 9],
+        [1, 10],
+        [5, 10],
+        [9, 10],
+        [13, 10],
+        [1, 11],
+        [2, 11],
+        [3, 11],
+        [4, 11],
+        [5, 11],
+        [6, 11],
+        [7, 11],
+        [8, 11],
+        [9, 11],
+        [10, 11],
+        [11, 11],
+        [12, 11],
+        [13, 11],
+        [14, 11],
+        [15, 11],
+        [3, 12],
+        [7, 12],
+        [11, 12],
+        [15, 12],
+        [2, 13],
+        [3, 13],
+        [4, 13],
+        [5, 13],
+        [6, 13],
+        [7, 13],
+        [8, 13],
+        [9, 13],
+        [10, 13],
+        [11, 13],
+        [12, 13],
+        [13, 13],
+        [14, 13],
+        [15, 13],
+    ]
+    backend_version = _get_backend_interface_version(backend)
+    if backend_version <= 1:
+        from qiskit.transpiler.coupling import CouplingMap
+
+        if backend.configuration().simulator:
+            raise QiskitError("Requires a device backend, not simulator.")
+        config = backend.configuration()
+        num_qubits = config.n_qubits
+        coupling_map = CouplingMap(config.coupling_map)
+        name = backend.name()
+    else:
+        num_qubits = backend.num_qubits
+        coupling_map = backend.coupling_map
+        name = backend.name
+    if "ibm" in name or "fake" in name:
+        qubit_coordinates = qubit_coordinates_map.get(num_qubits, None)
+
+    if qubit_coordinates is None:
+        qubit_coordinates_rx = rx.spring_layout(coupling_map.graph, k=1.0, seed=1234)
+        print(qubit_coordinates_rx)
+        qubit_coordinates = [
+            (int(10 * qubit_coordinates_rx[i][0]), int(10 * qubit_coordinates_rx[i][1]))
+            for i in range(num_qubits)
+        ]
+
+    if any(x[0] < 1 or x[1] < 1 for x in qubit_coordinates):
+        min_entry = min(qubit_coordinates, key=lambda x: min(x[0], x[1]))
+        negative_offset = 0 - min(min_entry)
+        qubit_coordinates = [
+            (x[0] + negative_offset, x[1] + negative_offset) for x in qubit_coordinates
+        ]
+    print(qubit_coordinates)
+
+    if len(qubit_coordinates) != num_qubits:
+        raise QiskitError(
+            f"The number of specified qubit coordinates {len(qubit_coordinates)} "
+            f"does not match the device number of qubits: {num_qubits}"
+        )
+
     return plot_coupling_map(
         num_qubits,
         qubit_coordinates,
-        coupling_map,
+        coupling_map.get_edges(),
         figsize,
         plot_directed,
         label_qubits,
@@ -614,7 +783,13 @@ def plot_circuit_layout(circuit, backend, view="virtual"):
     if circuit._layout is None:
         raise QiskitError("Circuit has no layout. Perhaps it has not been transpiled.")
 
-    num_qubits = backend.configuration().n_qubits
+    backend_version = _get_backend_interface_version(backend)
+    if backend_version <= 1:
+        num_qubits = backend.configuration().n_qubits
+        cmap = backend.configuration().coupling_map
+    else:
+        num_qubits = backend.num_qubits
+        cmap = backend.coupling_map
 
     qubits = []
     qubit_labels = [None] * num_qubits
@@ -648,8 +823,6 @@ def plot_circuit_layout(circuit, backend, view="virtual"):
     qcolors = ["#648fff"] * num_qubits
     for k in qubits:
         qcolors[k] = "k"
-
-    cmap = backend.configuration().coupling_map
 
     lcolors = ["#648fff"] * len(cmap)
 
@@ -705,24 +878,78 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
 
     color_map = sns.cubehelix_palette(reverse=True, as_cmap=True)
 
-    props = backend.properties().to_dict()
-    config = backend.configuration().to_dict()
+    backend_version = _get_backend_interface_version(backend)
+    if backend_version <= 1:
+        num_qubits = backend.configuration().n_qubits
+        cmap = backend.configuration().coupling_map
+        props = backend.properties().to_dict()
+        single_gate_errors = [0] * num_qubits
+        read_err = [0] * num_qubits
+        cx_errors = []
+        # sx error rates
+        for gate in props["gates"]:
+            if gate["gate"] == "sx":
+                _qubit = gate["qubits"][0]
+                for param in gate["parameters"]:
+                    if param["name"] == "gate_error":
+                        single_gate_errors[_qubit] = param["value"]
+                        break
+                else:
+                    raise VisualizationError(
+                        f"Backend '{backend}' did not supply an error for the 'sx' gate."
+                    )
+        if cmap:
+            directed = False
+            if num_qubits < 20:
+                for edge in cmap:
+                    if not [edge[1], edge[0]] in cmap:
+                        directed = True
+                        break
 
-    num_qubits = config["n_qubits"]
+            for line in cmap:
+                for item in props["gates"]:
+                    if item["qubits"] == line:
+                        cx_errors.append(item["parameters"][0]["value"])
+                        break
+                else:
+                    continue
+        for qubit in range(num_qubits):
+            for item in props["qubits"][qubit]:
+                if item["name"] == "readout_error":
+                    read_err.append(item["value"])
 
-    # sx error rates
-    single_gate_errors = [0] * num_qubits
-    for gate in props["gates"]:
-        if gate["gate"] == "sx":
-            _qubit = gate["qubits"][0]
-            for param in gate["parameters"]:
-                if param["name"] == "gate_error":
-                    single_gate_errors[_qubit] = param["value"]
-                    break
-            else:
-                raise VisualizationError(
-                    f"Backend '{backend}' did not supply an error for the 'sx' gate."
-                )
+    else:
+        num_qubits = backend.num_qubits
+        cmap = backend.coupling_map
+        two_q_error_map = {}
+        single_gate_errors = [0] * num_qubits
+        read_err = [0] * num_qubits
+        cx_errors = []
+        for gate, prop_dict in backend.target.items():
+            if prop_dict is None or None in prop_dict:
+                continue
+            for qargs, inst_props in prop_dict.items():
+                if gate == "measure":
+                    if inst_props.error is not None:
+                        read_err[qargs[0]] = inst_props.error
+                elif len(qargs) == 1:
+                    if inst_props.error is not None:
+                        single_gate_errors = max(single_gate_errors[qargs[0]], inst_props.error)
+                elif len(qargs) == 2:
+                    if inst_props.error is not None:
+                        two_q_error_map[qargs] = max(
+                            two_q_error_map.get(qargs, 0), inst_props.error
+                        )
+        if cmap:
+            directed = False
+            if num_qubits < 20:
+                for edge in cmap:
+                    if not [edge[1], edge[0]] in cmap:
+                        directed = True
+                        break
+            for line in cmap:
+                err = two_q_error_map.get(tuple(line), 0)
+                cx_errors.append(err)
 
     # Convert to percent
     single_gate_errors = 100 * np.asarray(single_gate_errors)
@@ -733,26 +960,9 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     )
     q_colors = [color_map(single_norm(err)) for err in single_gate_errors]
 
-    cmap = config["coupling_map"]
-
     directed = False
     line_colors = []
     if cmap:
-        directed = False
-        if num_qubits < 20:
-            for edge in cmap:
-                if not [edge[1], edge[0]] in cmap:
-                    directed = True
-                    break
-
-        cx_errors = []
-        for line in cmap:
-            for item in props["gates"]:
-                if item["qubits"] == line:
-                    cx_errors.append(item["parameters"][0]["value"])
-                    break
-            else:
-                continue
 
         # Convert to percent
         cx_errors = 100 * np.asarray(cx_errors)
@@ -760,15 +970,6 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
 
         cx_norm = matplotlib.colors.Normalize(vmin=min(cx_errors), vmax=max(cx_errors))
         line_colors = [color_map(cx_norm(err)) for err in cx_errors]
-
-    # Measurement errors
-
-    read_err = []
-
-    for qubit in range(num_qubits):
-        for item in props["qubits"][qubit]:
-            if item["name"] == "readout_error":
-                read_err.append(item["value"])
 
     read_err = 100 * np.asarray(read_err)
     avg_read_err = np.mean(read_err)
