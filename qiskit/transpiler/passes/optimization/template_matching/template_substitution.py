@@ -504,7 +504,7 @@ class TemplateSubstitution:
         template_dag_dep = copy.deepcopy(self.template_dag_dep)
 
         # add parameters from circuit to circuit_params
-        for idx, t_idx in enumerate(template_sublist):
+        for idx, _ in enumerate(template_sublist):
             qc_idx = circuit_sublist[idx]
             parameters = self.circuit_dag_dep.get_node(qc_idx).op.params
             circuit_params += parameters
@@ -525,7 +525,7 @@ class TemplateSubstitution:
 
         # add parameters from template to template_params, replacing parameters with names that
         # clash with those in the circuit.
-        for idx, t_idx in enumerate(template_sublist):
+        for t_idx in template_sublist:
             node = template_dag_dep.get_node(t_idx)
             sub_node_params = []
             for t_param_exp in node.op.params:
@@ -567,6 +567,9 @@ class TemplateSubstitution:
                 if isinstance(circuit_param, ParameterExpression):
                     for param in circuit_param.parameters:
                         circ_dict[param] = param.sympify()
+            elif template_param != circuit_param:
+                # Both are numeric parameters, but aren't equal.
+                return None
 
         if not temp_symbols:
             return template_dag_dep
@@ -592,9 +595,10 @@ class TemplateSubstitution:
                     for param in param_exp.parameters:
                         if param in fake_bind:
                             if fake_bind[param] not in bound_params:
-                                bound_params.append(param_exp.assign(param, fake_bind[param]))
+                                param_exp = param_exp.assign(param, fake_bind[param])
                 else:
-                    bound_params.append(float(param_exp))
+                    param_exp = float(param_exp)
+                bound_params.append(param_exp)
 
             node.op.params = bound_params
 
