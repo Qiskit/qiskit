@@ -13,7 +13,6 @@
 """Standard gates."""
 
 
-import warnings
 from qiskit.qasm import pi
 from qiskit.circuit import EquivalenceLibrary, Parameter, QuantumCircuit, QuantumRegister
 
@@ -22,7 +21,6 @@ from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
 from . import (
     HGate,
     CHGate,
-    MSGate,
     PhaseGate,
     CPhaseGate,
     RGate,
@@ -100,19 +98,6 @@ for inst, qargs, cargs in [
 ]:
     def_ch.append(inst, qargs, cargs)
 _sel.add_equivalence(CHGate(), def_ch)
-
-# MSGate
-
-for num_qubits in range(2, 20):
-    q = QuantumRegister(num_qubits, "q")
-    theta = Parameter("theta")
-    def_ms = QuantumCircuit(q)
-    for i in range(num_qubits):
-        for j in range(i + 1, num_qubits):
-            def_ms.append(RXXGate(theta), [q[i], q[j]])
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        _sel.add_equivalence(MSGate(num_qubits, theta), def_ms)
 
 # PhaseGate
 #
@@ -599,13 +584,13 @@ _sel.add_equivalence(CSXGate(), def_csx)
 # q_1: ┤ Sx ├     q_1: ─────┤1          ├┤ sx^0.5 ├─────
 #      └────┘               └───────────┘└────────┘
 q = QuantumRegister(2, "q")
-csx_to_zx45 = QuantumCircuit(q, global_phase=pi / 8)
+csx_to_zx45 = QuantumCircuit(q, global_phase=pi / 4)
 for inst, qargs, cargs in [
     (XGate(), [q[0]], []),
     (RZXGate(pi / 4), [q[0], q[1]], []),
     (TdgGate(), [q[0]], []),
     (XGate(), [q[0]], []),
-    (SXGate().power(0.5), [q[1]], []),
+    (RXGate(pi / 4), [q[1]], []),
 ]:
     csx_to_zx45.append(inst, qargs, cargs)
 _sel.add_equivalence(CSXGate(), csx_to_zx45)
