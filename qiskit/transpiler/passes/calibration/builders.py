@@ -25,7 +25,6 @@ from qiskit.circuit import Instruction as CircuitInst
 from qiskit.circuit.library.standard_gates import RZXGate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.pulse import (
     Play,
     Delay,
@@ -225,18 +224,10 @@ class RZXCalibrationBuilder(CalibrationBuilder):
             schedule: The calibration schedule for the RZXGate(theta).
 
         Raises:
-            QiskitError: If the control and target
-                qubits cannot be identified, or the backend does not support cx between
-                the qubits.
-            TranspilerError: If all Parameters are not bound.
+            QiskitError: if the control and target qubits cannot be identified or the backend
+                does not support cx between the qubits.
         """
-        try:
-            theta = float(node_op.params[0])
-        except TypeError as ex:
-            raise TranspilerError(
-                "This transpilation pass requires all Parameters to be bound and real."
-            ) from ex
-
+        theta = node_op.params[0]
         q1, q2 = qubits[0], qubits[1]
 
         if not self._inst_map.has("cx", qubits):
