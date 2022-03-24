@@ -15,7 +15,9 @@
 from typing import Union, Optional
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms import EvolutionProblem, EvolutionResult, RealEvolver, eval_observables
+from qiskit.algorithms.aux_ops_evaluator import eval_observables
+from qiskit.algorithms.evolvers import EvolutionProblem, EvolutionResult
+from qiskit.algorithms.evolvers.real.real_evolver import RealEvolver
 from qiskit.opflow import (
     SummedOp,
     PauliOp,
