@@ -104,8 +104,11 @@ Scheduling
    ALAPSchedule
    ASAPSchedule
    DynamicalDecoupling
+   ConstrainedReschedule
    AlignMeasures
    ValidatePulseGates
+   InstructionDurationCheck
+   SetIOLatency
 
 Circuit Analysis
 ================
@@ -227,9 +230,12 @@ from .scheduling import TimeUnitConversion
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
 from .scheduling import DynamicalDecoupling
-from .scheduling import AlignMeasures
+from .scheduling import AlignMeasures  # Deprecated
 from .scheduling import ValidatePulseGates
 from .scheduling import PadDelay
+from .scheduling import ConstrainedReschedule
+from .scheduling import InstructionDurationCheck
+from .scheduling import SetIOLatency
 
 # additional utility passes
 from .utils import CheckMap

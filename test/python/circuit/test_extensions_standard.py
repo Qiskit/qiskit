@@ -16,13 +16,27 @@ import unittest
 from inspect import signature
 import warnings
 
+import numpy as np
+from scipy.linalg import expm
+from ddt import data, ddt, unpack
+
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, execute
 from qiskit.qasm import pi
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Gate, ControlledGate
-from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate
+from qiskit.circuit.library import (
+    U1Gate,
+    U2Gate,
+    U3Gate,
+    CU1Gate,
+    CU3Gate,
+    XXMinusYYGate,
+    RZGate,
+    XGate,
+    YGate,
+)
 from qiskit import BasicAer
 from qiskit.quantum_info import Pauli
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
@@ -978,6 +992,7 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(instruction_set.instructions[2].params, [])
 
 
+@ddt
 class TestStandard2Q(QiskitTestCase):
     """Standard Extension Test. Gates with two Qubits"""
 
@@ -1324,6 +1339,67 @@ class TestStandard2Q(QiskitTestCase):
         self.assertEqual(instruction_set.instructions[0].name, "swap")
         self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
         self.assertEqual(instruction_set.instructions[2].params, [])
+
+    @unpack
+    @data(
+        (0, 0, np.eye(4)),
+        (
+            np.pi / 2,
+            np.pi / 2,
+            np.array(
+                [
+                    [np.sqrt(2) / 2, 0, 0, -np.sqrt(2) / 2],
+                    [0, 1, 0, 0],
+                    [0, 0, 1, 0],
+                    [np.sqrt(2) / 2, 0, 0, np.sqrt(2) / 2],
+                ]
+            ),
+        ),
+        (
+            np.pi,
+            np.pi / 2,
+            np.array([[0, 0, 0, -1], [0, 1, 0, 0], [0, 0, 1, 0], [1, 0, 0, 0]]),
+        ),
+        (
+            2 * np.pi,
+            np.pi / 2,
+            np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]]),
+        ),
+        (
+            np.pi / 2,
+            np.pi,
+            np.array(
+                [
+                    [np.sqrt(2) / 2, 0, 0, 1j * np.sqrt(2) / 2],
+                    [0, 1, 0, 0],
+                    [0, 0, 1, 0],
+                    [1j * np.sqrt(2) / 2, 0, 0, np.sqrt(2) / 2],
+                ]
+            ),
+        ),
+        (4 * np.pi, 0, np.eye(4)),
+    )
+    def test_xx_minus_yy_matrix(self, theta: float, beta: float, expected: np.ndarray):
+        """Test XX-YY matrix."""
+        gate = XXMinusYYGate(theta, beta)
+        np.testing.assert_allclose(np.array(gate), expected, atol=1e-7)
+
+    def test_xx_minus_yy_exponential_formula(self):
+        """Test XX-YY exponential formula."""
+        theta, beta = np.random.uniform(-10, 10, size=2)
+        theta = np.pi / 2
+        beta = 0.0
+        gate = XXMinusYYGate(theta, beta)
+        x = np.array(XGate())
+        y = np.array(YGate())
+        xx = np.kron(x, x)
+        yy = np.kron(y, y)
+        rz1 = np.kron(np.array(RZGate(beta)), np.eye(2))
+        np.testing.assert_allclose(
+            np.array(gate),
+            rz1 @ expm(-0.25j * theta * (xx - yy)) @ rz1.T.conj(),
+            atol=1e-7,
+        )
 
 
 class TestStandard3Q(QiskitTestCase):
