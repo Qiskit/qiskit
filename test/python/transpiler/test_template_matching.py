@@ -21,7 +21,6 @@ from qiskit.quantum_info import Operator
 from qiskit.circuit.library.templates import template_nct_2a_2, template_nct_5a_3
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
-from qiskit.qasm import pi
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import TemplateOptimization
 from qiskit.transpiler.passes.calibration.rzx_templates import rzx_templates
@@ -430,23 +429,23 @@ class TestTemplateMatching(QiskitTestCase):
         template.rz(phi, 0)
         template.cx(1, 0)
         template.rz(-phi, 0)
-        template.rz(pi / 2, 0)
-        template.rx(pi / 2, 0)
-        template.rz(pi / 2, 0)
+        template.rz(np.pi / 2, 0)
+        template.rx(np.pi / 2, 0)
+        template.rz(np.pi / 2, 0)
         template.rx(phi, 0)
         template.rzx(-phi, 1, 0)
-        template.rz(pi / 2, 0)
+        template.rz(np.pi / 2, 0)
         template.rz(-theta, 1)
-        template.rx(pi / 2, 0)
-        template.rz(pi / 2, 1)
-        template.rz(pi / 2, 0)
-        template.rx(pi / 2, 1)
-        template.rz(pi / 2, 1)
+        template.rx(np.pi / 2, 0)
+        template.rz(np.pi / 2, 1)
+        template.rz(np.pi / 2, 0)
+        template.rx(np.pi / 2, 1)
+        template.rz(np.pi / 2, 1)
         template.rx(theta, 1)
         template.rzx(-theta, 0, 1)
-        template.rz(pi / 2, 1)
-        template.rx(pi / 2, 1)
-        template.rz(pi / 2, 1)
+        template.rz(np.pi / 2, 1)
+        template.rx(np.pi / 2, 1)
+        template.rz(np.pi / 2, 1)
 
         alpha = Parameter("$\\alpha$")
         beta = Parameter("$\\beta$")
