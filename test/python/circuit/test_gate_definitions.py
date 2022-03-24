@@ -62,6 +62,7 @@ from qiskit.circuit.library import (
     SXdgGate,
     CSXGate,
     RVGate,
+    XXMinusYYGate,
 )
 
 from qiskit.circuit.library.standard_gates.equivalence_library import (
@@ -172,6 +173,16 @@ class TestGateDefinitions(QiskitTestCase):
         """Test R(v) gate with zero vector returns identity"""
         rv = RVGate(0, 0, 0)
         self.assertTrue(np.array_equal(rv.to_matrix(), np.array([[1, 0], [0, 1]])))
+
+    def test_xx_minus_yy_definition(self):
+        """Test XX-YY gate decomposition."""
+        theta, beta = np.random.uniform(-10, 10, size=2)
+        gate = XXMinusYYGate(theta, beta)
+        circuit = QuantumCircuit(2)
+        circuit.append(gate, [0, 1])
+        decomposed_circuit = circuit.decompose()
+        self.assertTrue(len(decomposed_circuit) > len(circuit))
+        self.assertTrue(Operator(circuit).equiv(Operator(decomposed_circuit), atol=1e-7))
 
 
 @ddt
