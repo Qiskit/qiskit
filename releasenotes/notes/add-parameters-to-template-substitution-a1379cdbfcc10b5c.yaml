@@ -72,7 +72,3 @@ features:
       1600
       Duration of standard with two CNOT gates:
       6848
-      
-    Note that the :class:`.Parameter`\s/:class:`.ParameterExpression`\s 
-    must be bound before the :class:`.RZXCalibrationBuilder` can define 
-    calibrations for the :class:`.RZXGate`\ s.
