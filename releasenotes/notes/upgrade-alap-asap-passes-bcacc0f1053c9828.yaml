@@ -1,22 +1,30 @@
 ---
+features:
+  - |
+    New pass :class:`SetIOLatency` has been added. This pass takes
+    ``clbit_write_latency`` and ``conditional_latency`` and set these values to
+    property set of the pass manager.
+    Following passes that perform scheduling on instruction acting on classical resgisters
+    may consider these classical I/O latencies to provide more presice scheduling on
+    dynamic circuit.
 upgrade:
   - |
     The circuit scheduling passes
     :class:`~qiskit.transpiler.passes.scheduling.asap.ASAPSchedule` and
     :class:`~qiskit.transpiler.passes.scheduling.alap.ALAPSchedule` have been upgraded.
-    Now these passes can be instantiated with two new parameters
-    ``clbit_write_latency`` and ``conditional_latency``, which allows scheduler to
-    more carefully schedule instructions with classical feedback.
-    The former option represents a latency of clbit access from the begging of the
-    measurement instruction, and the other represents a latency of the
-    conditional gate operation from the first conditional clbit read-access.
+
+    Now these passes consider I/O latencies for measurement and conditional operations.
+    These information should be set by :class:`SetIOLatency` pass in advance.
+    The I/O latency to write classical register is represneted by ``clbit_write_latency``,
+    and one for reading the register is presented by ``conditional_latency``.
+    These properties are loaded from backend and set to the pass manager's property set.
 
     The standard behavior of these passes has been also upgraded to align
     timing ordering with the topological ordering of the DAG nodes.
     This change may affect the scheduling outcome if it includes conditional operations,
     or simultaneously measuring two qubits with the same classical register (edge-case).
-    To reproduce conventional behavior, create a pass manager with one of
-    scheduling passes with ``clbit_write_latency`` identical to the measurement instruction length.
+    To reproduce conventional behavior, set ``clbit_write_latency`` identical
+    to the measurement instruction length.
 
     The following example may clearly explain the change of scheduler spec.
 
@@ -38,7 +46,7 @@ upgrade:
 
       from qiskit import QuantumCircuit
       from qiskit.transpiler import InstructionDurations, PassManager
-      from qiskit.transpiler.passes import ALAPSchedule, PadDelay
+      from qiskit.transpiler.passes import ALAPSchedule, PadDelay, SetIOLatency
       from qiskit.visualization.timeline import draw
 
       circuit = QuantumCircuit(3, 1)
@@ -51,7 +59,8 @@ upgrade:
 
       pm = PassManager(
           [
-            ALAPSchedule(durations, clbit_write_latency=800, conditional_latency=0),
+            SetIOLatency(clbit_write_latency=800, conditional_latency=0),
+            ALAPSchedule(durations),
             PadDelay(),
           ]
       )
