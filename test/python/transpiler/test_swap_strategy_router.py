@@ -217,7 +217,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         param_dict = {p: idx + 1 for idx, p in enumerate(swapped.parameters)}
         swapped.assign_parameters(param_dict, inplace=True)
 
-        #There is some optionality in the order of two instructions. Both are valid.
+        # There is some optionality in the order of two instructions. Both are valid.
         valid_expected = []
         for order in [0, 1]:
             expected = QuantumCircuit(4)

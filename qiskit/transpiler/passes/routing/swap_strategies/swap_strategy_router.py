@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""An analysis pass to find evolution gates in which the Paulis commute."""
+"""A swap strategy pass for blocks of commuting gates."""
 
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple
@@ -26,12 +26,9 @@ from qiskit.transpiler.passes.routing.swap_strategies.commuting_2q_block import 
 
 
 class SwapStrategyRouter(TransformationPass):
-    """An abstract base class to swap route one or more instructions to the coupling map.
+    """A class to swap route one or more commuting gates to the coupling map.
 
-    The mapping to the coupling map is done using swap strategies. Sub-classes must inherit
-    from SwapStrategyRouter to define the type of instruction that they can handle and how to
-    handle it.
-
+    The mapping to the coupling map is done using swap strategies.
     The swap strategy should suit the problem and the coupling map. This transpiler pass
     should ideally be executed before the quantum circuit is enlarged with any idle ancilla
     qubits. Otherwise we may swap qubits outside of the portion of the chip we want to use.
@@ -104,7 +101,7 @@ class SwapStrategyRouter(TransformationPass):
     into account.
     """
 
-    # The node(s) that will be mapped must be of this type. Subclasses must specify this.
+    # The node(s) that will be mapped must be of this type.
     __instruction_type__ = Commuting2QBlocks
 
     def __init__(self, swap_strategy: Optional[SwapStrategy] = None) -> None:
@@ -277,8 +274,7 @@ class SwapStrategyRouter(TransformationPass):
             dag: The dag which contains the ``Commuting2QBlocks`` we route.
             node: A node whose operation is a ``Commuting2QBlocks``.
             current_layout: The layout before the swaps are applied. This function will
-                modify the layout so that subsequent gates can be properly composed
-                on the dag.
+                modify the layout so that subsequent gates can be properly composed on the dag.
             swap_strategy: The swap strategy used to decompose the node.
 
         Returns:
