@@ -493,7 +493,6 @@ def plot_gate_map(
 
     if qubit_coordinates is None:
         qubit_coordinates_rx = rx.spring_layout(coupling_map.graph, k=1.0, seed=1234)
-        print(qubit_coordinates_rx)
         qubit_coordinates = [
             (int(10 * qubit_coordinates_rx[i][0]), int(10 * qubit_coordinates_rx[i][1]))
             for i in range(num_qubits)
@@ -505,7 +504,6 @@ def plot_gate_map(
         qubit_coordinates = [
             (x[0] + negative_offset, x[1] + negative_offset) for x in qubit_coordinates
         ]
-    print(qubit_coordinates)
 
     if len(qubit_coordinates) != num_qubits:
         raise QiskitError(
