@@ -561,17 +561,17 @@ class TemplateSubstitution:
         for circuit_param, template_param in zip(circuit_params, template_params):
             if isinstance(template_param, ParameterExpression):
                 if isinstance(circuit_param, ParameterExpression):
-                    circ_param_sym = circuit_param.to_sympify_expression()
+                    circ_param_sym = circuit_param.sympify()
                 else:
                     circ_param_sym = parse_expr(str(circuit_param))
-                equations.append(sym.Eq(template_param.to_sympify_expression(), circ_param_sym))
+                equations.append(sym.Eq(template_param.sympify(), circ_param_sym))
 
                 for param in template_param.parameters:
-                    temp_symbols[param] = param.to_sympify_expression()
+                    temp_symbols[param] = param.sympify()
 
                 if isinstance(circuit_param, ParameterExpression):
                     for param in circuit_param.parameters:
-                        circ_dict[param] = param.to_sympify_expression()
+                        circ_dict[param] = param.sympify()
 
         if not temp_symbols:
             return template_dag_dep
