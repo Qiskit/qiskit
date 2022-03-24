@@ -280,6 +280,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
             "ClassicalFunction",
             "ClassicalElement",
             "LinearFunction",
+            "Commuting2QBlocks",
         }
         cls._gate_classes = []
         for aclass in class_list:
