@@ -217,29 +217,39 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         param_dict = {p: idx + 1 for idx, p in enumerate(swapped.parameters)}
         swapped.assign_parameters(param_dict, inplace=True)
 
-        expected = QuantumCircuit(4)
-        expected.h(range(4))
-        expected.append(PauliEvolutionGate(Pauli("ZZ"), 1), (1, 2))
-        expected.swap(0, 1)
-        expected.swap(2, 3)
-        expected.append(PauliEvolutionGate(Pauli("ZZ"), 2), (1, 2))
-        expected.swap(1, 2)
-        expected.append(PauliEvolutionGate(Pauli("ZZ"), 3), (0, 1))
-        expected.ry(-1, 0)
-        expected.ry(-3, 1)
-        expected.ry(0, 2)
-        expected.ry(-2, 3)
-        expected.append(PauliEvolutionGate(Pauli("ZZ"), 6), (0, 1))
-        expected.append(PauliEvolutionGate(Pauli("ZZ"), 4), (1, 2))
-        expected.swap(0, 1)
-        expected.swap(2, 3)
-        expected.append(PauliEvolutionGate(Pauli("ZZ"), 2), (1, 2))
-        expected.ry(-3, 0)
-        expected.ry(-1, 1)
-        expected.ry(-2, 2)
-        expected.ry(0, 3)
+        #There is some optionality in the order of two instructions. Both are valid.
+        valid_expected = []
+        for order in [0, 1]:
+            expected = QuantumCircuit(4)
+            expected.h(range(4))
+            expected.append(PauliEvolutionGate(Pauli("ZZ"), 1), (1, 2))
+            expected.swap(0, 1)
+            expected.swap(2, 3)
+            expected.append(PauliEvolutionGate(Pauli("ZZ"), 2), (1, 2))
+            expected.swap(1, 2)
+            expected.append(PauliEvolutionGate(Pauli("ZZ"), 3), (0, 1))
+            expected.ry(-1, 0)
+            expected.ry(-3, 1)
+            expected.ry(0, 2)
+            expected.ry(-2, 3)
+            if order == 0:
+                expected.append(PauliEvolutionGate(Pauli("ZZ"), 6), (0, 1))
+                expected.append(PauliEvolutionGate(Pauli("ZZ"), 4), (1, 2))
+            else:
+                expected.append(PauliEvolutionGate(Pauli("ZZ"), 4), (1, 2))
+                expected.append(PauliEvolutionGate(Pauli("ZZ"), 6), (0, 1))
 
-        self.assertEqual(swapped, expected)
+            expected.swap(0, 1)
+            expected.swap(2, 3)
+            expected.append(PauliEvolutionGate(Pauli("ZZ"), 2), (1, 2))
+            expected.ry(-3, 0)
+            expected.ry(-1, 1)
+            expected.ry(-2, 2)
+            expected.ry(0, 3)
+
+            valid_expected.append(expected == swapped)
+
+        self.assertEqual(set(valid_expected), {True, False})
 
     def test_enlarge_with_ancilla(self):
         """This pass tests that idle qubits after an embedding are left idle."""
