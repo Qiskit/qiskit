@@ -24,11 +24,10 @@ from qiskit.quantum_info import SparsePauliOp, Pauli
 from qiskit.transpiler.passes.routing.swap_strategies.commuting_2q_block import Commuting2QBlocks
 
 
-
 class FindCommutingPauliEvolutions(TransformationPass):
     """Finds PauliEvolutionGates where the operators, that are evolved, all commute."""
 
-    def run(self, dag: DAGCircuit) -> None:
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Check for ``PauliEvolutionGate``s where the summands all commute.
 
         Args:
@@ -43,10 +42,12 @@ class FindCommutingPauliEvolutions(TransformationPass):
                 elif self.summands_commute(node.op.operator):
                     sub_dag = self._decompose_to_2q(dag, node.op)
 
-                    block_op = Commuting2QBlocks(set(*sub_dag.op_nodes()))
+                    block_op = Commuting2QBlocks(set(sub_dag.op_nodes()))
                     register = dag.qregs['q']
                     wire_order = {qubit: register.index(qubit) for qubit in block_op.qubits}
                     dag.replace_block_with_op([node], block_op, wire_order)
+
+        return dag
 
     @staticmethod
     def single_qubit_terms_only(operator: SparsePauliOp) -> bool:

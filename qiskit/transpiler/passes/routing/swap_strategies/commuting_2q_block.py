@@ -14,6 +14,7 @@
 
 from typing import Set
 
+from qiskit import QiskitError
 from qiskit.circuit import Gate
 from qiskit.dagcircuit import DAGOpNode
 
@@ -30,12 +31,22 @@ class Commuting2QBlocks(Gate):
 
         Args:
             node_block: A block of nodes that commute.
+
+        Raises:
+            QiskitError: If the nodes in the node block do not apply to two-qubits.
         """
         qubits, cbits = set(), set()
         for node in node_block:
+            if len(node.qargs) != 2:
+                raise QiskitError(f"Node {node.name} does not apply to two-qubits.")
+
             qubits.update(node.qargs)
             cbits.update(node.cargs)
 
         super().__init__("Commuting 2Q gates", num_qubits=len(qubits), params=[])
-        self._node_block = node_block
+        self.node_block = list(node_block)
         self.qubits = list(qubits)
+
+    def __iter__(self):
+        """Iterate through the nodes in the block."""
+        return iter(self.node_block)

@@ -29,7 +29,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.transpiler.passes.routing.swap_strategies import (
     SwapStrategy,
     FindCommutingPauliEvolutions,
-    PauliEvolutionGateRouter,
+    SwapStrategyRouter,
 )
 
 
@@ -45,7 +45,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         self.pm_ = PassManager(
             [
                 FindCommutingPauliEvolutions(),
-                PauliEvolutionGateRouter(swap_strat),
+                SwapStrategyRouter(swap_strat),
             ]
         )
 
@@ -229,8 +229,8 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         expected.ry(-3, 1)
         expected.ry(0, 2)
         expected.ry(-2, 3)
-        expected.append(PauliEvolutionGate(Pauli("ZZ"), 4), (1, 2))
         expected.append(PauliEvolutionGate(Pauli("ZZ"), 6), (0, 1))
+        expected.append(PauliEvolutionGate(Pauli("ZZ"), 4), (1, 2))
         expected.swap(0, 1)
         expected.swap(2, 3)
         expected.append(PauliEvolutionGate(Pauli("ZZ"), 2), (1, 2))
@@ -261,7 +261,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         pm_pre = PassManager(
             [
                 FindCommutingPauliEvolutions(),
-                PauliEvolutionGateRouter(swap_strat),
+                SwapStrategyRouter(swap_strat),
                 SetLayout(initial_layout),
                 FullAncillaAllocation(backend_cmap),
                 EnlargeWithAncilla(),
@@ -304,36 +304,15 @@ class TestSwapRouterExceptions(QiskitTestCase):
     def test_no_swap_strategy(self):
         """Test raise on no swap strategy."""
 
-        pm_ = PassManager([FindCommutingPauliEvolutions(), PauliEvolutionGateRouter()])
+        pm_ = PassManager([FindCommutingPauliEvolutions(), SwapStrategyRouter()])
 
         with self.assertRaises(TranspilerError):
             pm_.run(self.circ)
-
-    def test_invalid_flaged_op(self):
-        """Test to raise if an invalid op has been flagged."""
-
-        pm_ = PassManager([FlagAllOps(), PauliEvolutionGateRouter(self.swap_strat)])
-
-        circ = QuantumCircuit(2)
-        circ.cx(0, 1)
-
-        with self.assertRaises(TranspilerError):
-            pm_.run(circ)
 
     def test_deficient_swap_strategy(self):
         """Test to raise when all edges cannot be implemented."""
 
-        pm_ = PassManager([FindCommutingPauliEvolutions(), PauliEvolutionGateRouter()])
+        pm_ = PassManager([FindCommutingPauliEvolutions(), SwapStrategyRouter()])
 
         with self.assertRaises(TranspilerError):
             pm_.run(self.circ)
-
-
-class FlagAllOps(AnalysisPass):
-    """A dummy pass that flags all ops as commuting blocks."""
-
-    def run(self, dag):
-        """Flag all ops."""
-        self.property_set["commuting_blocks"] = set()
-        for node in dag.op_nodes():
-            self.property_set["commuting_blocks"].add(node)
