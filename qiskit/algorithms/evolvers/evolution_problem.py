@@ -50,15 +50,19 @@ class EvolutionProblem:
                 dictionary maps all these parameters to values.
 
         Raises:
-            ValueError: If not all parameter values are provided.
             ValueError: If non-positive time of evolution is provided.
+            ValueError: If no ``initial_state`` is provided.
+            ValueError: If not all parameter values are provided.
         """
-
+        if time <= 0:
+            raise ValueError(f"Time of evolution provided is not positive, detected time={time}.")
+        if initial_state is None:
+            raise ValueError("No initial_state provided for the EvolutionProblem. It is required.")
+        # TODO SparsePauliOp does not have .parameters because it is not allowed to be parametrized.
+        #  Can we handle this better than with an if?
         if not isinstance(hamiltonian, SparsePauliOp):
             self._check_parameters(hamiltonian, hamiltonian_value_dict, t_param)
         self.hamiltonian = hamiltonian
-        if time <= 0:
-            raise ValueError(f"Time of evolution provided is not positive, detected time={time}.")
         self.time = time
         self.initial_state = initial_state
         self.aux_operators = aux_operators

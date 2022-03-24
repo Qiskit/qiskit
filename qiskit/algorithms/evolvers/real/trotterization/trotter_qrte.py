@@ -14,6 +14,7 @@
 
 from typing import Union, Optional
 
+from qiskit import QuantumCircuit
 from qiskit.algorithms import EvolutionProblem, EvolutionResult, RealEvolver, eval_observables
 from qiskit.opflow import (
     SummedOp,
@@ -22,6 +23,7 @@ from qiskit.opflow import (
     ExpectationBase,
     CircuitSampler,
     PauliSumOp,
+    StateFn,
 )
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.providers import Backend, BaseBackend
@@ -91,7 +93,7 @@ class TrotterQRTE(RealEvolver):
     def quantum_instance(
         self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
     ) -> None:
-        """Set quantum instance.
+        """Sets a quantum instance and a circuit sampler.
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
         """
@@ -115,7 +117,7 @@ class TrotterQRTE(RealEvolver):
         Whether computing the expectation value of auxiliary operators is supported.
 
         Returns:
-            True if `aux_operators` expectations in the EvolutionProblem can be evaluated, False
+            True if ``aux_operators`` expectations in the EvolutionProblem can be evaluated, False
                 otherwise.
         """
         return True
@@ -137,9 +139,9 @@ class TrotterQRTE(RealEvolver):
             Evolution result that includes an evolved state.
 
         Raises:
-            ValueError: If `t_param` is not set to None in the EvolutionProblem (feature not
+            ValueError: If ``t_param`` is not set to None in the EvolutionProblem (feature not
                 currently supported).
-            ValueError: If the `initial_state` is not provided in the EvolutionProblem.
+            ValueError: If the ``initial_state`` is not provided in the EvolutionProblem.
         """
         if evolution_problem.t_param is not None:
             raise ValueError(
@@ -152,8 +154,8 @@ class TrotterQRTE(RealEvolver):
             self._quantum_instance is None or self._expectation is None
         ):
             raise ValueError(
-                "aux_operators where provided for evaluations but no `expectation` or "
-                "`quantum_instance` was provided."
+                "aux_operators where provided for evaluations but no ``expectation`` or "
+                "``quantum_instance`` was provided."
             )
         hamiltonian = evolution_problem.hamiltonian
         if not isinstance(hamiltonian, SparsePauliOp):  # TODO can we handle it better?
@@ -166,14 +168,17 @@ class TrotterQRTE(RealEvolver):
         )
 
         if evolution_problem.initial_state is not None:
-            quantum_state = evolution_gate @ evolution_problem.initial_state
+            initial_state = evolution_problem.initial_state
+            if isinstance(initial_state, QuantumCircuit):
+                initial_state = StateFn(initial_state)
+            quantum_state = evolution_gate @ initial_state
             if self._circuit_sampler is not None:
                 quantum_state = self._circuit_sampler.convert(quantum_state)
 
             evolved_state = quantum_state.eval()
 
         else:
-            raise ValueError("`initial_state` must be provided in the EvolutionProblem.")
+            raise ValueError("``initial_state`` must be provided in the EvolutionProblem.")
 
         evaluated_aux_ops = None
         if evolution_problem.aux_operators is not None:
@@ -201,7 +206,7 @@ class TrotterQRTE(RealEvolver):
             Hamiltonian.
 
         Raises:
-            ValueError: If the `SummedOp` Hamiltonian contains operators of an invalid type.
+            ValueError: If the ``SummedOp`` Hamiltonian contains operators of an invalid type.
         """
         # PauliSumOp does not allow parametrized coefficients but after binding the parameters
         # we need to convert it into a PauliSumOp for the PauliEvolutionGate.

@@ -14,13 +14,13 @@
 
 import unittest
 
+from test.python.opflow import QiskitOpflowTestCase
 from ddt import ddt, data
 import numpy as np
 from numpy.testing import assert_raises
 from scipy.linalg import expm
 
-from test.python.opflow import QiskitOpflowTestCase
-from qiskit import BasicAer
+from qiskit import BasicAer, QuantumCircuit
 from qiskit.algorithms import EvolutionProblem
 from qiskit.algorithms.evolvers.real.trotterization.trotter_qrte import (
     TrotterQRTE,
@@ -121,7 +121,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         SparsePauliOp(PauliTable.from_labels(["XX", "ZZ"])),
     )
     def test_trotter_qrte_trotter_2(self, operator):
-        """Test for trotter qrte with various types of a Hamiltonian."""
+        """Test for TrotterQRTE with various types of a Hamiltonian."""
         # LieTrotter with 1 rep
         trotter_qrte = TrotterQRTE(quantum_instance=self.quantum_instance)
         initial_state = StateFn([1, 0, 0, 0])
@@ -197,6 +197,28 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         with assert_raises(ValueError):
             evolution_problem = EvolutionProblem(operator, 1, initial_state)
             _ = trotter_qrte.evolve(evolution_problem)
+
+    @data("qi", "b_sv", "None")
+    def test_trotter_qrte_qdrift_circuit(self, quantum_instance):
+        """Test for TrotterQRTE with QDrift."""
+        algorithm_globals.random_seed = 0
+        operator = SummedOp([X, Z])
+        quantum_instance = self.backends_dict[quantum_instance]
+        # QDrift with one repetition
+        trotter_qrte = TrotterQRTE(quantum_instance=quantum_instance, product_formula=QDrift())
+        initial_state = QuantumCircuit(1)
+        initial_state.append(X, [0])
+        evolution_problem = EvolutionProblem(operator, 1, initial_state)
+        evolution_result = trotter_qrte.evolve(evolution_problem)
+        sampled_ops = [Z, X, X, X, Z, Z, Z, Z]
+        evo_time = 0.25
+        # Calculate the expected state
+        expected_state = StateFn(initial_state).to_matrix()
+        for op in sampled_ops:
+            expected_state = expm(-1j * op.to_matrix() * evo_time) @ expected_state
+        expected_evolved_state = VectorStateFn(Statevector(expected_state, dims=(2,)))
+
+        np.testing.assert_equal(evolution_result.evolved_state, expected_evolved_state)
 
 
 if __name__ == "__main__":
