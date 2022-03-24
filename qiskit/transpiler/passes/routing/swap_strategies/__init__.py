@@ -21,5 +21,6 @@ Further details can also be found here: https://arxiv.org/abs/2202.03459.
 """
 
 from .swap_strategy import SwapStrategy, LineSwapStrategy
-from .evolution_commutation_analysis import FindCommutingPauliEvolutions
+from .pauli_2q_evolution_commutation import FindCommutingPauliEvolutions
 from .swap_strategy_router import SwapStrategyRouter, PauliEvolutionGateRouter
+from .commuting_2q_block import Commuting2QBlocks
