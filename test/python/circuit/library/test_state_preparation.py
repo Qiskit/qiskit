@@ -87,6 +87,12 @@ class TestStatePreparation(QiskitTestCase):
         with self.assertRaises(QiskitError):
             qc.prepare_state("11")
 
+    def test_repeats(self):
+        """Test repeat function repeats correctly"""
+        qc = QuantumCircuit(2)
+        qc.append(StatePreparation("01").repeat(2), [0, 1])
+        self.assertEqual(qc.decompose().count_ops()["state_preparation"], 2)
+
 
 if __name__ == "__main__":
     unittest.main()
