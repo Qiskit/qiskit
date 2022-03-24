@@ -17,6 +17,7 @@ import datetime
 import io
 from itertools import cycle
 import logging
+import os
 import pickle
 import sys
 from time import time
@@ -284,48 +285,72 @@ def transpile(
             UserWarning,
         )
 
-    with SharedMemoryManager() as smm:
-        with io.BytesIO() as buf:
-            # Get transpile_args to configure the circuit transpilation job(s)
-            unique_transpile_args, shared_args = _parse_transpile_args(
-                circuits,
-                backend,
-                basis_gates,
-                inst_map,
-                coupling_map,
-                backend_properties,
-                initial_layout,
-                layout_method,
-                routing_method,
-                translation_method,
-                scheduling_method,
-                instruction_durations,
-                dt,
-                approximation_degree,
-                seed_transpiler,
-                optimization_level,
-                callback,
-                output_name,
-                timing_constraints,
-                unitary_synthesis_method,
-                unitary_synthesis_plugin_config,
-                target,
+    unique_transpile_args, shared_args = _parse_transpile_args(
+        circuits,
+        backend,
+        basis_gates,
+        inst_map,
+        coupling_map,
+        backend_properties,
+        initial_layout,
+        layout_method,
+        routing_method,
+        translation_method,
+        scheduling_method,
+        instruction_durations,
+        dt,
+        approximation_degree,
+        seed_transpiler,
+        optimization_level,
+        callback,
+        output_name,
+        timing_constraints,
+        unitary_synthesis_method,
+        unitary_synthesis_plugin_config,
+        target,
+    )
+    # Get transpile_args to configure the circuit transpilation job(s)
+    if coupling_map in unique_transpile_args:
+        cmap_conf = unique_transpile_args["coupling_map"]
+    else:
+        cmap_conf = [shared_args["coupling_map"]] * len(circuits)
+    _check_circuits_coupling_map(circuits, cmap_conf, backend)
+    if (
+        len(circuits) > 1
+        and os.getenv("QISKIT_IN_PARALLEL", "FALSE") == "FALSE"
+        and parallel.PARALLEL_DEFAULT
+    ):
+        try:
+            os.environ["QISKIT_IN_PARALLEL"] = "TRUE"
+            with SharedMemoryManager() as smm:
+                with io.BytesIO() as buf:
+                    pickle.dump(shared_args, buf)
+                    data = buf.getvalue()
+                smb = smm.SharedMemory(size=len(data))
+                smb.buf[:] = data[:]
+                # Transpile circuits in parallel
+                circuits = parallel.parallel_map(
+                    _transpile_circuit,
+                    list(zip(circuits, cycle([smb.name]), unique_transpile_args)),
+                )
+        finally:
+            os.environ["QISKIT_IN_PARALLEL"] = "FALSE"
+    else:
+        output_circuits = []
+        for circuit, unique_args in zip(circuits, unique_transpile_args):
+            transpile_config, pass_manager = _combine_args(shared_args, unique_args)
+            output_circuits.append(
+                _serial_transpile_circuit(
+                    circuit,
+                    pass_manager,
+                    transpile_config["callback"],
+                    transpile_config["output_name"],
+                    transpile_config["backend_num_qubits"],
+                    transpile_config["faulty_qubits_map"],
+                    transpile_config["pass_manager_config"].backend_properties,
+                )
             )
-            if coupling_map in unique_transpile_args:
-                cmap_conf = unique_transpile_args["coupling_map"]
-            else:
-                cmap_conf = [shared_args["coupling_map"]] * len(circuits)
-            _check_circuits_coupling_map(circuits, cmap_conf, backend)
-            pickle.dump(shared_args, buf)
-            data = buf.getvalue()
-        smb = smm.SharedMemory(size=len(data))
-        smb.buf[:] = data[:]
-        # Transpile circuits in parallel
-        circuits = parallel.parallel_map(
-            _transpile_circuit,
-            list(zip(circuits, cycle([smb.name]), unique_transpile_args)),
-        )
-
+        circuits = output_circuits
     end_time = time()
     _log_transpile_time(start_time, end_time)
 
@@ -368,6 +393,59 @@ def _log_transpile_time(start_time, end_time):
     logger.info(log_msg)
 
 
+def _combine_args(shared_transpiler_args, unique_config):
+    optimization_level = shared_transpiler_args.pop("optimization_level")
+    pass_manager_config = shared_transpiler_args
+    pass_manager_config.update(unique_config.pop("pass_manager_config"))
+    pass_manager_config = PassManagerConfig(**pass_manager_config)
+
+    transpile_config = unique_config
+    transpile_config["pass_manager_config"] = pass_manager_config
+    transpile_config["optimization_level"] = optimization_level
+
+    if transpile_config["faulty_qubits_map"]:
+        pass_manager_config.initial_layout = _remap_layout_faulty_backend(
+            pass_manager_config.initial_layout, transpile_config["faulty_qubits_map"]
+        )
+
+    # we choose an appropriate one based on desired optimization level
+    level = transpile_config["optimization_level"]
+    shared_transpiler_args["optimization_level"] = optimization_level
+
+    if level == 0:
+        pass_manager = level_0_pass_manager(pass_manager_config)
+    elif level == 1:
+        pass_manager = level_1_pass_manager(pass_manager_config)
+    elif level == 2:
+        pass_manager = level_2_pass_manager(pass_manager_config)
+    elif level == 3:
+        pass_manager = level_3_pass_manager(pass_manager_config)
+    else:
+        raise TranspilerError("optimization_level can range from 0 to 3.")
+    return transpile_config, pass_manager
+
+
+def _serial_transpile_circuit(
+    circuit,
+    pass_manager,
+    callback,
+    output_name,
+    num_qubits,
+    faulty_qubits_map=None,
+    backend_prop=None,
+):
+    result = pass_manager.run(circuit, callback=callback, output_name=output_name)
+    if faulty_qubits_map:
+        return _remap_circuit_faulty_backend(
+            result,
+            num_qubits,
+            backend_prop,
+            faulty_qubits_map,
+        )
+
+    return result
+
+
 def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> QuantumCircuit:
     """Select a PassManager and run a single circuit through it.
     Args:
@@ -392,35 +470,8 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
     finally:
         existing_shm.close()
 
-    optimization_level = shared_transpiler_args.pop("optimization_level")
-    #    backend_num_qubits = shared_transpiler_args.pop("backend_num_qubits")
-    pass_manager_config = shared_transpiler_args
-    pass_manager_config.update(unique_config.pop("pass_manager_config"))
-    pass_manager_config = PassManagerConfig(**pass_manager_config)
-
-    transpile_config = unique_config
-    transpile_config["pass_manager_config"] = pass_manager_config
-    transpile_config["optimization_level"] = optimization_level
-    #    transpile_config["backend_num_qubits"] = backend_num_qubits
-
-    if transpile_config["faulty_qubits_map"]:
-        pass_manager_config.initial_layout = _remap_layout_faulty_backend(
-            pass_manager_config.initial_layout, transpile_config["faulty_qubits_map"]
-        )
-
-    # we choose an appropriate one based on desired optimization level
-    level = transpile_config["optimization_level"]
-
-    if level == 0:
-        pass_manager = level_0_pass_manager(pass_manager_config)
-    elif level == 1:
-        pass_manager = level_1_pass_manager(pass_manager_config)
-    elif level == 2:
-        pass_manager = level_2_pass_manager(pass_manager_config)
-    elif level == 3:
-        pass_manager = level_3_pass_manager(pass_manager_config)
-    else:
-        raise TranspilerError("optimization_level can range from 0 to 3.")
+    transpile_config, pass_manager = _combine_args(shared_transpiler_args, unique_config)
+    pass_manager_config = transpile_config["pass_manager_config"]
 
     result = pass_manager.run(
         circuit, callback=transpile_config["callback"], output_name=transpile_config["output_name"]
