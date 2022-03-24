@@ -68,7 +68,10 @@ class TrotterQRTE(RealEvolver):
                 first order product formula with a single repetition.
             expectation: An instance of ExpectationBase which defines a method for calculating
                 expectation values of EvolutionProblem.aux_operators.
-            quantum_instance: A quantum instance used for calculations.
+            quantum_instance: A quantum instance used for calculations. If not provided,
+                calculations are performed clasically which work reasonably only for small systems.
+                In case of auxiliary operators provided in ``EvolutionProblem``, a quantum instance
+                is required.
         """
         if product_formula is None:
             product_formula = LieTrotter()
@@ -149,7 +152,6 @@ class TrotterQRTE(RealEvolver):
                 "``t_param`` from the EvolutionProblem should be set to None."
             )
 
-        # TODO handle no quantum_instance in aux_ops_evaluator; make it optional there
         if evolution_problem.aux_operators is not None and (
             self._quantum_instance is None or self._expectation is None
         ):
