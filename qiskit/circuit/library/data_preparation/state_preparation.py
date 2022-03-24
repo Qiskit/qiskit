@@ -39,7 +39,7 @@ class StatePreparation(Gate):
 
     def __init__(
         self,
-        params: Union[str, list, Statevector],
+        params: Union[str, list, int, Statevector],
         num_qubits: Optional[int] = None,
         inverse: bool = False,
         label: Optional[str] = "State Preparation",
