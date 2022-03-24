@@ -254,8 +254,8 @@ class TestDagWireRemoval(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.dag = DAGCircuit()
-        self.name = "Name"
-        self.metadata = "Metadata"
+        self.dag.name = "Name"
+        self.dag.metadata = "Metadata"
         qreg = QuantumRegister(3, "qr")
         creg0 = ClassicalRegister(2, "c0")
         creg1 = ClassicalRegister(2, "c1")
