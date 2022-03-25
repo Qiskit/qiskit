@@ -62,7 +62,7 @@ class StatePreparation(Gate):
                 and params is 3. This allows qubits 0 and 1 to be initialized to :math:`|1\rangle`
                 and the remaining 3 qubits to be initialized to :math:`|0\rangle`.
             inverse: if True, the inverse state is constructed.
-            label: An optional label for the gate [Default: State Preparation]
+            label: An optional label for the gate
 
         Raises:
             QiskitError: ``num_qubits`` parameter used when ``params`` is not an integer
@@ -416,7 +416,8 @@ def prepare_state(self, state, qubits=None, label=None):
     :class:`qiskit.extensions.Initialize` it does not reset the qubits first.
 
     Args:
-        state (str or list or int):
+        state (str or list or int or Statevector):
+            * Statevector: Statevector to initialize to.
             * str: labels of basis states of the Pauli eigenstates Z, X, Y. See
               :meth:`.Statevector.from_label`. Notice the order of the labels is reversed with respect
               to the qubit index to be applied to. Example label '01' initializes the qubit zero to
@@ -430,6 +431,7 @@ def prepare_state(self, state, qubits=None, label=None):
             * QuantumRegister: A list of qubits to be initialized [Default: None].
             * int: Index of qubit to be initialized [Default: None].
             * list: Indexes of qubits to be initialized [Default: None].
+        label: An optional label for the gate
 
     Returns:
         qiskit.circuit.Instruction: a handle to the instruction that was just initialized
