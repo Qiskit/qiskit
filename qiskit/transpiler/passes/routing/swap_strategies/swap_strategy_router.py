@@ -137,12 +137,12 @@ class SwapStrategyRouter(TransformationPass):
         else:
             swap_strategy = self._swap_strategy
 
-        new_dag = self._empty_like(dag)
+        new_dag = dag.copy_empty_like()
 
         current_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
         # Used to keep track of nodes that do not decompose using swap strategies.
-        accumulator = self._empty_like(new_dag)
+        accumulator = new_dag.copy_empty_like()
 
         for node in dag.topological_op_nodes():
             if node in self._get_nodes_to_decompose(dag):
@@ -187,24 +187,7 @@ class SwapStrategyRouter(TransformationPass):
         new_dag.compose(accumulator, qubits=order_bis)
 
         # Re-initialize the node accumulator
-        return self._empty_like(new_dag)
-
-    @staticmethod
-    def _empty_like(dag: DAGCircuit) -> DAGCircuit:
-        """Create an empty dag with registers and metadata like the given dag."""
-        new_dag = DAGCircuit()
-        new_dag.name = dag.name
-        new_dag.metadata = dag.metadata
-
-        new_dag.add_qubits(dag.qubits)
-        new_dag.add_clbits(dag.clbits)
-
-        for qreg in dag.qregs.values():
-            new_dag.add_qreg(qreg)
-        for creg in dag.cregs.values():
-            new_dag.add_creg(creg)
-
-        return new_dag
+        return new_dag.copy_empty_like()
 
     @staticmethod
     def _position_in_cmap(j: int, k: int, layout: Layout, dag: DAGCircuit) -> Tuple[int, ...]:

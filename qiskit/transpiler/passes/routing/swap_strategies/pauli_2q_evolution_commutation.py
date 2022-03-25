@@ -125,7 +125,7 @@ class FindCommutingPauliEvolutions(TransformationPass):
         Raises:
            QiskitError: If the Pauli coefficient has an imaginary part.
         """
-        sub_dag = dag._copy_circuit_metadata()
+        sub_dag = dag.copy_empty_like()
 
         required_paulis = {
             self._pauli_to_edge(pauli): (pauli, coeff)
