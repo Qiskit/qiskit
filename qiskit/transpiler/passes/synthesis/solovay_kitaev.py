@@ -17,6 +17,7 @@ from typing import List, Union, Optional, Set
 # import itertools
 import collections
 import numpy as np
+from sklearn.neighbors import KDTree
 
 from qiskit.circuit import QuantumCircuit, Gate
 import qiskit.circuit.library.standard_gates as gates
@@ -149,10 +150,13 @@ class SolovayKitaev:
         tree = Node((), GateSequence(), [])
         cur_level = [tree]
         sequences = [tree.sequence]
+        points = np.array([tree.sequence.product.flatten()])
+        print(points)
+        kdtree = KDTree(points, leaf_size=2)
         for _ in [None] * depth:
             next_level = []
             for node in cur_level:
-                next_level.extend(_process_node(node, basis, sequences))
+                next_level.extend(_process_node(node, basis, sequences, kdtree))
             cur_level = next_level
 
         if filename is not None:
@@ -355,7 +359,8 @@ class SolovayKitaevDecomposition(TransformationPass):
             depth: The maximum depth of the approximations.
             filename: The file to store the approximations.
         """
-        SolovayKitaev.generate_basic_approximations(basis_gates, depth, filename)
+        b = SolovayKitaev.generate_basic_approximations(basis_gates, depth, filename)
+        print(b)
 
     def load_basic_approximations(self, filename: str) -> None:
         """Load basic approximations.
@@ -407,14 +412,15 @@ def _check_candidate(candidate: GateSequence, sequences: List[GateSequence]) -> 
     if any(candidate.name == existing.name for existing in sequences):
         return False
 
-    if candidate.euler_angles in {existing.euler_angles for existing in sequences}:
-        # for existing in sequences:
+    # if candidate.euler_angles in {existing.euler_angles for existing in sequences}:
+    #     return False
+    for existing in sequences:
         #     if np.all(existing.euler_angles == candidate.euler_angles):
-        # # eliminate global phase
-        # if matrix_equal(existing.product, candidate.product, ignore_phase=True):
-        #     # is the new sequence less or more efficient?
-        # return len(candidate.gates) < len(existing.gates)
-        return False
+        # eliminate global phase
+        # if np.allclose(existing.euler_angles, candidate.euler_angles):
+        if matrix_equal(existing.product_su2, candidate.product_su2, ignore_phase=True):
+            # is the new sequence less or more efficient?
+            return len(candidate.gates) < len(existing.gates)
     return True
 
 
@@ -450,7 +456,7 @@ def _remove_identities(sequence):
             index += 1
 
 
-def _process_node(node: Node, basis: List[str], sequences: List[GateSequence]):
+def _process_node(node: Node, basis: List[str], sequences: List[GateSequence], kdtree: KDTree):
     inverse_last = _1q_inverses[node.labels[-1]] if node.labels else None
 
     for label in basis:  # - {inverse_last}:
@@ -459,8 +465,24 @@ def _process_node(node: Node, basis: List[str], sequences: List[GateSequence]):
         sequence = node.sequence.copy()
         sequence.append(_1q_gates[label])
 
-        if _check_candidate(sequence, sequences):
+        points = np.array([sequence.product.flatten() for sequence in sequences])
+        candidate = np.array([sequence.product.flatten()])
+        # print("points")
+        # print("candidate")
+        # print(candidate)
+        kdtree = KDTree(points)
+        dist, nn = kdtree.query(candidate)
+        dist = dist[0][0]
+        # print("dist", dist)
+        # print(candidate)
+        # print(nn)
+        # print("nn", next_neighbour)
+        # print(_check_candidate(sequence, sequences) == (dist > 1e-8))
+        # if _check_candidate(sequence, sequences):
+        if dist > 1e-8:
             sequences.append(sequence)
             node.children.append(Node(node.labels + (label,), sequence, []))
+        # else:
+        # print("Found one!")
 
     return node.children

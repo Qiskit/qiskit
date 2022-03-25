@@ -143,8 +143,12 @@ class GateSequence:
         self.global_phase = self.global_phase + phase
 
         self.gates.append(gate)
+        if len(self.labels) > 0:
+            self.name += f" {gate.name}"
+        else:
+            self.name = gate.name
         self.labels.append(gate.name)
-        self.name += f" {gate.name}"
+
         self.matrices.append(matrix)
 
         return self
@@ -264,7 +268,8 @@ class GateSequence:
         composed = GateSequence()
         composed.gates = other.gates + self.gates
         composed.labels = other.labels + self.labels
-        composed.name = f"{other.name} {self.name}"
+        composed.name = " ".join(composed.labels)
+        # composed.name = f"{other.name} {self.name}"
         composed.product = np.dot(self.product, other.product)
         composed.global_phase = self.global_phase + other.global_phase
 
