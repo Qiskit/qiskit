@@ -1,15 +1,15 @@
 ---
 features:
   - |
-    New transpiler passes have been added. The transpiler passes
-    ``SwapStrategyRouter`` is a base class for transpiler passes that use swap
-    strategies to route a block of commuting gates to the coupling map. Indeed,
-    routing is a hard problem but is significantly easier when the gates
-    commute. This is often found in variational algorithms such as QAOA. Such
-    cases can be dealt with using swap strategies that apply a predefined set
-    of layers of SWAP gates. The child class :class:`qiskit.transpiler.passes.routing.swap_strategies.swap_strategy_router.PauliEvolutionGateRouter` is
-    used to route ``PauliEvolutionGate`` instructions in which all the Pauli
-    terms commute. Such evolution gates are identified in the dag using the
-    ``CheckCommutingEvolutions`` analysis pass. Finally, a swap strategy is
-    specified by the class ``SwapStrategy``. Swap strategies need to be tailored
-    to the coupling map and, ideally, the circuit for the best results.
+    New transpiler passes have been added. The transpiler pass
+    :class:`qiskit.transpiler.passes.routing.swap_strategies.swap_strategy_router.SwapStrategyRouter``
+    usees swap strategies to route a block of commuting gates to the coupling map. Indeed, routing
+    is a hard problem but is significantly easier when the gates commute. This is often found in
+    variational algorithms such as QAOA. Such cases can be dealt with using swap strategies that
+    apply a predefined set of layers of SWAP gates. Furthermore, the new transpiler pass
+    :class:`qiskit.transpiler.passes.routing.swap_strategies.pauli_2q_evolution_commutation.FindCommutingPauliEvolutions``
+    identifies blocks of Pauli evolutions made of commuting two-qubit terms. These terms are then grouped in
+    :class:`qiskit.transpiler.passes.routing.swap_strategies.commuting_2q_block.Commuting2QBlocks`
+    gates that are consummed by the swap-strategy router. Here, a swap strategy is specified by the class
+    :class:`qiskit.transpiler.passes.routing.swap_strategies.swap_strategy.SwapStrategy`.
+    Swap strategies need to be tailored to the coupling map and, ideally, the circuit for the best results.
