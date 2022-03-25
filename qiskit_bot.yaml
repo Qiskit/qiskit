@@ -20,9 +20,9 @@ notifications:
     "opflow":
         - "@manoelmarques"
         - "@woodsp-ibm"
-        - "@Cryosis"
+        - "@Cryoris"
     "circuit/library":
-        - "@Cryosis"
+        - "@Cryoris"
         - "@ajavadia"
     "primitives":
         - "@ikkoham"
