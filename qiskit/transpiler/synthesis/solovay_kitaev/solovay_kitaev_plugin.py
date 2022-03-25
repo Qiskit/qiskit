@@ -17,6 +17,13 @@ import numpy as np
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes.synthesis.plugin import UnitarySynthesisPlugin
 
+from .solovay_kitaev import SolovayKitaev
+from .generate_basis_approximations import generate_basic_approximations
+
+# we globally cache an instance of the Solovay-Kitaev class to generate the
+# computationally expensive basis approximation of single qubit gates only once
+_sk = None
+
 
 class SolovayKitaevSynthesisPlugin(UnitarySynthesisPlugin):
     """
@@ -104,27 +111,25 @@ class SolovayKitaevSynthesisPlugin(UnitarySynthesisPlugin):
 
         # Runtime imports to avoid the overhead of these imports for
         # plugin discovery and only use them if the plugin is run/used
-        from qiskit.algorithms.optimizers import L_BFGS_B
-        from qiskit.transpiler.synthesis.aqc.aqc import AQC
-        from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
-        from qiskit.transpiler.synthesis.aqc.cnot_unit_circuit import CNOTUnitCircuit
-        from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
 
         config = options.get("config") or {}
 
-        basic_approximations_file = config.get("basic_approximations", None)
-        basis_gates = config.get("basis_gates", None)
-        depth = config.get("depth", None)
-        connectivity_type = config.get("connectivity_type", "full")
-        depth = config.get("depth", 0)
+        recursion_degree = config.get("recursion_degree", 3)
 
-        initial_point = config.get("initial_point")
-        aqc.compile_unitary(
-            target_matrix=unitary,
-            approximate_circuit=approximate_circuit,
-            approximating_objective=approximating_objective,
-            initial_point=initial_point,
-        )
+        # if we didn't yet construct the Solovay-Kitaev instance, which contains
+        # the basic approximations, do it now
+        if _sk is None:
+            basic_approximations = config.get("basic_approximations", None)
+            basis_gates = options.get("basis_gates", None)
 
+            # if the basic approximations are not generated and not given,
+            # try to generate them if the basis set is specified
+            if basic_approximations is None and basis_gates is not None:
+                depth = config.get("depth", 10)
+                basic_approximations = generate_basic_approximations(basis_gates, depth)
+
+            _sk = SolovayKitaev(basic_approximations)
+
+        approximate_circuit = _sk.run(unitary, recursion_degree)
         dag_circuit = circuit_to_dag(approximate_circuit)
         return dag_circuit

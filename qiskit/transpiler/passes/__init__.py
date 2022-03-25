@@ -213,7 +213,6 @@ from .analysis import DAGLongestPath
 
 # synthesis
 from .synthesis import UnitarySynthesis
-from .synthesis import SolovayKitaevDecomposition
 from .synthesis import unitary_synthesis_plugin_names
 from .synthesis import LinearFunctionsSynthesis
 from .synthesis import LinearFunctionsToPermutations

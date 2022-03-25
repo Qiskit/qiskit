@@ -12,3 +12,5 @@
 
 from .generate_basis_approximations import generate_basic_approximations
 from .solovay_kitaev import SolovayKitaevDecomposition
+from .solovay_kitaev import SolovayKitaev
+from .solovay_kitaev_plugin import SolovayKitaevSynthesisPlugin

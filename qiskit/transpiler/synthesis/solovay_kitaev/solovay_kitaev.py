@@ -21,11 +21,8 @@ from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes.synthesis.solovay_kitaev_utils import (
-    GateSequence,
-    commutator_decompose,
-)
 
+from .utils import GateSequence, commutator_decompose
 from .generate_basis_approximations import generate_basic_approximations, _1q_gates, _1q_inverses
 
 
@@ -37,8 +34,9 @@ class SolovayKitaev:
 
     def __init__(
         self,
-        basic_approximations: Optional[Union[str, Dict[str, np.ndarray], List[GateSequence]]] = None
-        # basis_gates: Optional[List[Union[str, Gate]]] = None, depth: Optional[int] = None
+        basic_approximations: Optional[
+            Union[str, Dict[str, np.ndarray], List[GateSequence]]
+        ] = None,
     ) -> None:
         """
 

@@ -157,7 +157,7 @@ class UnitarySynthesis(TransformationPass):
                 not be determined.
             synth_gates (list[str]): List of gates to synthesize. If None and
                 `pulse_optimize` is False or None, default to
-                ['unitary']. If None and `pulse_optimzie` == True,
+                ['unitary']. If None and `pulse_optimize` == True,
                 default to ['unitary', 'swap']
             method (str): The unitary synthesis method plugin to use.
             min_qubits: The minimum number of qubits in the unitary to synthesize. If this is set

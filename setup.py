@@ -98,6 +98,7 @@ setup(
         "qiskit.unitary_synthesis": [
             "default = qiskit.transpiler.passes.synthesis.unitary_synthesis:DefaultUnitarySynthesis",
             "aqc = qiskit.transpiler.synthesis.aqc.aqc_plugin:AQCSynthesisPlugin",
+            "sk = qiskit.transpiler.synthesis.solovay_kitaev.solovay_kitaev_plugin:SolovayKitaevSynthesisPlugin",
         ]
     },
 )
