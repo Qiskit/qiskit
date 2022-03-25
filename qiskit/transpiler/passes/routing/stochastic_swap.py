@@ -275,7 +275,7 @@ class StochasticSwap(TransformationPass):
         # qregs and cregs as the input circuit
         dagcircuit_output = None
         if not self.fake_run:
-            dagcircuit_output = circuit_graph._copy_circuit_metadata()
+            dagcircuit_output = circuit_graph.copy_empty_like()
 
         logger.debug("trivial_layout = %s", layout)
 
