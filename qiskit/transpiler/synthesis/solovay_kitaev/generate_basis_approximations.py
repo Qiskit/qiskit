@@ -24,7 +24,7 @@ from qiskit.circuit import Gate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.utils import optionals
 
-from .solovay_kitaev_utils import GateSequence
+from .utils import GateSequence
 
 Node = collections.namedtuple("Node", ("labels", "sequence", "children"))
 

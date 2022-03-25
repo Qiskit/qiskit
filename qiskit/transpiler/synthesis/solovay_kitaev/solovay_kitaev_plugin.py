@@ -112,12 +112,14 @@ class SolovayKitaevSynthesisPlugin(UnitarySynthesisPlugin):
         # Runtime imports to avoid the overhead of these imports for
         # plugin discovery and only use them if the plugin is run/used
 
+        print("I live!")
         config = options.get("config") or {}
 
         recursion_degree = config.get("recursion_degree", 3)
 
         # if we didn't yet construct the Solovay-Kitaev instance, which contains
         # the basic approximations, do it now
+        global _sk
         if _sk is None:
             basic_approximations = config.get("basic_approximations", None)
             basis_gates = options.get("basis_gates", None)
