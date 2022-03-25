@@ -42,7 +42,7 @@ class StatePreparation(Gate):
         params: Union[str, list, int, Statevector],
         num_qubits: Optional[int] = None,
         inverse: bool = False,
-        label: Optional[str] = "State Preparation",
+        label: Optional[str] = None,
     ):
         r"""
         Args:
@@ -79,7 +79,11 @@ class StatePreparation(Gate):
         self._params_arg = params
         self._inverse = inverse
         self._name = "state_preparation_dg" if self._inverse else "state_preparation"
-        self._label = f"{label} Dg" if self._inverse else label
+
+        if label is None:
+            self._label = "State Preparation Dg" if self._inverse else "State Preparation"
+        else:
+            self._label = f"{label} Dg" if self._inverse else label
 
         if isinstance(params, Statevector):
             params = params.data
@@ -202,7 +206,12 @@ class StatePreparation(Gate):
 
     def inverse(self):
         """Return inverted StatePreparation"""
-        return StatePreparation(self._params_arg, inverse=not self._inverse, label=self._label)
+
+        label = (
+            None if self._label in ("State Preparation", "State Preparation Dg") else self._label
+        )
+
+        return StatePreparation(self._params_arg, inverse=not self._inverse, label=label)
 
     def broadcast_arguments(self, qargs, cargs):
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]
@@ -400,7 +409,7 @@ class StatePreparation(Gate):
         return circuit
 
 
-def prepare_state(self, state, qubits=None):
+def prepare_state(self, state, qubits=None, label=None):
     r"""Prepare qubits in a specific state.
 
     This class implements a state preparing unitary. Unlike
@@ -499,7 +508,7 @@ def prepare_state(self, state, qubits=None):
 
     num_qubits = len(qubits) if isinstance(state, int) else None
 
-    return self.append(StatePreparation(state, num_qubits), qubits)
+    return self.append(StatePreparation(state, num_qubits, label=label), qubits)
 
 
 QuantumCircuit.prepare_state = prepare_state
