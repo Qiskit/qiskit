@@ -14,7 +14,7 @@
 from qiskit.circuit import Measure
 from qiskit.transpiler.exceptions import TranspilerError
 
-from .base_scheduler import BaseScheduler
+from qiskit.transpiler.passes.scheduling.scheduling.base_scheduler import BaseScheduler
 
 
 class ALAPSchedule(BaseScheduler):
@@ -39,6 +39,9 @@ class ALAPSchedule(BaseScheduler):
         """
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("ALAP schedule runs on physical circuits only")
+
+        conditional_latency = self.property_set.get("conditional_latency", 0)
+        clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
 
         node_start_time = dict()
         idle_before = {q: 0 for q in dag.qubits + dag.clbits}
@@ -82,7 +85,7 @@ class ALAPSchedule(BaseScheduler):
                     t0 = max(t0q, t0c - op_duration)
                     t1 = t0 + op_duration
                     for clbit in node.op.condition_bits:
-                        idle_before[clbit] = t1 + self.conditional_latency
+                        idle_before[clbit] = t1 + conditional_latency
                 else:
                     t0 = t0q
                     t1 = t0 + op_duration
@@ -103,7 +106,7 @@ class ALAPSchedule(BaseScheduler):
                     #            |t0 + (duration - clbit_write_latency)
                     #
                     for clbit in node.cargs:
-                        idle_before[clbit] = t0 + (op_duration - self.clbit_write_latency)
+                        idle_before[clbit] = t0 + (op_duration - clbit_write_latency)
                 else:
                     # It happens to be directives such as barrier
                     t0 = max(idle_before[bit] for bit in node.qargs + node.cargs)
