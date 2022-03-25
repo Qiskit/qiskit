@@ -76,7 +76,7 @@ class Sampler(BaseSampler):
         if circuits is None:
             circuits = list(range(len(self._circuits)))
         if parameters is None:
-            parameters = [[] for _ in self._circuits]
+            parameters = [[]] * len(circuits)
         if len(circuits) != len(parameters):
             raise QiskitError(
                 f"The number of circuits ({len(circuits)}) does not match "
@@ -101,7 +101,7 @@ class Sampler(BaseSampler):
         ]
         quasis = [QuasiDistribution(dict(enumerate(p))) for p in probabilities]
 
-        return SamplerResult(quasis, [])
+        return SamplerResult(quasis, [{}] * len(circuits))
 
     def close(self):
         self._is_closed = True

@@ -120,12 +120,14 @@ class TestSampler(QiskitTestCase):
             keys, values = zip(*sorted(result.quasi_dists[0].items()))
             self.assertTupleEqual(keys, tuple(range(4)))
             np.testing.assert_allclose(values, [0.5, 0, 0, 0.5])
+            self.assertEqual(len(result.metadata), 1)
 
         # executes three Bell circuits
         with Sampler([bell] * 3, [[]] * 3) as sampler:
             result = sampler([0, 1, 2], [[]] * 3)
             self.assertIsInstance(result, SamplerResult)
             self.assertEqual(len(result.quasi_dists), 3)
+            self.assertEqual(len(result.metadata), 3)
             for dist in result.quasi_dists:
                 keys, values = zip(*sorted(dist.items()))
                 self.assertTupleEqual(keys, tuple(range(4)))
@@ -320,6 +322,28 @@ class TestSampler(QiskitTestCase):
                 sampler([1], [[]])
             with self.assertRaises(QiskitError):
                 sampler([1], [[1e2]])
+
+    def test_empty_parameter(self):
+        """Test for empty parameter"""
+        n = 5
+        qc = QuantumCircuit(n, n - 1)
+        qc.measure(range(n - 1), range(n - 1))
+        with Sampler(circuits=[qc] * 10) as sampler:
+            with self.subTest("one circuit"):
+                result = sampler([0], shots=1000)
+                self.assertEqual(len(result.quasi_dists), 1)
+                for q_d in result.quasi_dists:
+                    quasi_dist = {k: v for k, v in q_d.items() if v != 0.0}
+                    self.assertDictEqual(quasi_dist, {0: 1.0})
+                self.assertEqual(len(result.metadata), 1)
+
+            with self.subTest("two circuits"):
+                result = sampler([2, 4], shots=1000)
+                self.assertEqual(len(result.quasi_dists), 2)
+                for q_d in result.quasi_dists:
+                    quasi_dist = {k: v for k, v in q_d.items() if v != 0.0}
+                    self.assertDictEqual(quasi_dist, {0: 1.0})
+                self.assertEqual(len(result.metadata), 2)
 
 
 if __name__ == "__main__":
