@@ -78,7 +78,7 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
     @data([Y, -1, One], [Y, -1.2, One], [Y, 0, One], [None, 1, Zero], [Y, 2.5, None])
     @unpack
     def test_init_errors(self, hamiltonian, time, initial_state):
-        """Tests that all default fields are initialized correctly."""
+        """Tests expected errors are thrown on invalid input arguments."""
         with assert_raises(ValueError):
             _ = EvolutionProblem(hamiltonian, time, initial_state)
 

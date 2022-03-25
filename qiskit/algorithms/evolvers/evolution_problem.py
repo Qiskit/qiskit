@@ -54,28 +54,79 @@ class EvolutionProblem:
             ValueError: If no ``initial_state`` is provided.
             ValueError: If not all parameter values are provided.
         """
-        if time <= 0:
-            raise ValueError(
-                f"Time of evolution provided is not positive, detected " f"``time={time}``."
-            )
-        if initial_state is None:
-            raise ValueError(
-                "No ``initial_state`` provided for the EvolutionProblem. It is " "required."
-            )
-        if hamiltonian is None:
-            raise ValueError(
-                "No ``hamiltonian`` provided for the EvolutionProblem. It is " "required."
-            )
-        # TODO SparsePauliOp does not have .parameters because it is not allowed to be parametrized.
-        #  Can we handle this better than with an if?
-        if not isinstance(hamiltonian, SparsePauliOp):
-            self._check_parameters(hamiltonian, hamiltonian_value_dict, t_param)
+
+        self.t_param = t_param
+        self.hamiltonian_value_dict = hamiltonian_value_dict
         self.hamiltonian = hamiltonian
         self.time = time
         self.initial_state = initial_state
         self.aux_operators = aux_operators
-        self.t_param = t_param
-        self.hamiltonian_value_dict = hamiltonian_value_dict
+
+    @property
+    def hamiltonian(self) -> OperatorBase:
+        """Returns a hamiltonian."""
+        return self._hamiltonian
+
+    @hamiltonian.setter
+    def hamiltonian(self, hamiltonian) -> None:
+        """
+        Sets a hamiltonian and validates it.
+
+        Raises:
+            ValueError: If no Hamiltonian is provided.
+            ValueError: If Hamiltonian parameters cannot be bound with data provided.
+        """
+        self._hamiltonian = None
+        if hamiltonian is None:
+            raise ValueError(
+                "No ``hamiltonian`` provided for the EvolutionProblem. It is required."
+            )
+        # TODO SparsePauliOp does not have .parameters because it is not allowed to be parametrized.
+        #  Can we handle this better than with an if?
+        if not isinstance(hamiltonian, SparsePauliOp):
+            self._check_parameters(hamiltonian, self.hamiltonian_value_dict, self.t_param)
+
+        self._hamiltonian = hamiltonian
+
+    @property
+    def time(self) -> float:
+        """Returns time."""
+        return self._time
+
+    @time.setter
+    def time(self, time) -> None:
+        """
+        Sets time and validates it.
+
+        Raises:
+            ValueError: If time is not positive.
+        """
+        self._time = None
+        if time <= 0:
+            raise ValueError(
+                f"Time of evolution provided is not positive, detected ``time={time}``."
+            )
+        self._time = time
+
+    @property
+    def initial_state(self) -> Union[StateFn, QuantumCircuit]:
+        """Returns an initial state."""
+        return self._initial_state
+
+    @initial_state.setter
+    def initial_state(self, initial_state) -> None:
+        """
+        Sets an initial state and validates it.
+
+        Raises:
+            ValueError: If no initial state is provided.
+        """
+        self._initial_state = None
+        if initial_state is None:
+            raise ValueError(
+                "No ``initial_state`` provided for the EvolutionProblem. It is required."
+            )
+        self._initial_state = initial_state
 
     def _check_parameters(
         self,
@@ -101,7 +152,9 @@ class EvolutionProblem:
             t_param_set.add(t_param)
         hamiltonian_dict_param_set = set()
         if hamiltonian_value_dict is not None:
-            hamiltonian_dict_param_set.union(set(hamiltonian_value_dict.keys()))
+            hamiltonian_dict_param_set = hamiltonian_dict_param_set.union(
+                set(hamiltonian_value_dict.keys())
+            )
         params_set = t_param_set.union(hamiltonian_dict_param_set)
         hamiltonian_param_set = set(hamiltonian.parameters)
         if hamiltonian_param_set != params_set:
