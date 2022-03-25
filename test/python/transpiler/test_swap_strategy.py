@@ -12,8 +12,8 @@
 
 """Tests for swap strategies."""
 
-from ddt import data, ddt, unpack
 from typing import List
+from ddt import data, ddt, unpack
 
 from qiskit import QiskitError
 from qiskit.test import QiskitTestCase

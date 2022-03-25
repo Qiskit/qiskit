@@ -32,6 +32,11 @@ class FindCommutingPauliEvolutions(TransformationPass):
 
         Args:
             The DAG circuit in which to look for the commuting evolutions.
+
+        Returns:
+            The dag in which ``PauliEvolutionGate``s made of commuting two-qubit Paulis
+            have been replaced with ``Commuting2QBlocks`` gate instructions. These gates
+            contain nodes of two-qubit ``PauliEvolutionGate``s.
         """
 
         for node in dag.op_nodes():
@@ -39,7 +44,8 @@ class FindCommutingPauliEvolutions(TransformationPass):
                 operator = node.op.operator
                 if self.single_qubit_terms_only(operator):
                     continue
-                elif self.summands_commute(node.op.operator):
+
+                if self.summands_commute(node.op.operator):
                     sub_dag = self._decompose_to_2q(dag, node.op)
 
                     block_op = Commuting2QBlocks(set(sub_dag.op_nodes()))

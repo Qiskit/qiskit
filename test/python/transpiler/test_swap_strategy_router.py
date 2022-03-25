@@ -13,7 +13,7 @@
 """Tests for swap strategy routers."""
 
 from qiskit import QuantumCircuit
-from qiskit.transpiler import PassManager, CouplingMap, Layout, TranspilerError, AnalysisPass
+from qiskit.transpiler import PassManager, CouplingMap, Layout, TranspilerError
 
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.library.n_local import QAOAAnsatz
