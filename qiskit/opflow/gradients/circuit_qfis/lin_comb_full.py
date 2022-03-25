@@ -218,4 +218,4 @@ class LinCombFull(CircuitQFI):
             qfi_operators.append(ListOp(qfi_ops))
 
         # Return estimate of the full QFI -- A QFI is by definition positive semi-definite.
-        return ListOp(qfi_operators, combo_fn=lambda x: triu_to_dense(x))
+        return ListOp(qfi_operators, combo_fn=triu_to_dense)
