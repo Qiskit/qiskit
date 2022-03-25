@@ -87,6 +87,17 @@ class TestStatePreparation(QiskitTestCase):
         with self.assertRaises(QiskitError):
             qc.prepare_state("11")
 
+    def test_incompatible_int_state_and_qubit_args(self):
+        """Test error raised if number of qubits not compatible with  integer state arg"""
+        with self.assertRaises(QiskitError):
+            stateprep = StatePreparation(5, num_qubits=2)
+            stateprep.definition
+
+    def test_int_state_and_no_qubit_args(self):
+        """Test automatic determination of qubit number"""
+        stateprep = StatePreparation(5)
+        self.assertEqual(stateprep.num_qubits, 3)
+
     def test_repeats(self):
         """Test repeat function repeats correctly"""
         qc = QuantumCircuit(2)
