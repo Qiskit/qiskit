@@ -431,7 +431,7 @@ def prepare_state(self, state, qubits=None, label=None):
             * QuantumRegister: A list of qubits to be initialized [Default: None].
             * int: Index of qubit to be initialized [Default: None].
             * list: Indexes of qubits to be initialized [Default: None].
-        label: An optional label for the gate
+        label (str): An optional label for the gate
 
     Returns:
         qiskit.circuit.Instruction: a handle to the instruction that was just initialized

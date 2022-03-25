@@ -89,6 +89,7 @@ class TestStatePreparation(QiskitTestCase):
 
     def test_incompatible_int_state_and_qubit_args(self):
         """Test error raised if number of qubits not compatible with  integer state arg"""
+        # pylint: disable=pointless-statement
         with self.assertRaises(QiskitError):
             stateprep = StatePreparation(5, num_qubits=2)
             stateprep.definition
