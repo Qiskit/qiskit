@@ -12,14 +12,13 @@
 
 """Algebra utilities and the ``GateSequence`` class."""
 
-from typing import List, Optional, Tuple, Iterable
+from typing import Tuple, Iterable
 
 import math
 import numpy as np
 from scipy.optimize import fsolve
 
 from qiskit.circuit import Gate, QuantumCircuit
-from qiskit.extensions import UnitaryGate
 
 
 class GateSequence:
@@ -56,13 +55,6 @@ class GateSequence:
         self.product = so3_matrix
         self.product_su2 = su2_matrix
 
-    # @property
-    # def name(self):
-    #     if self._name is None:
-    #         self._name = " ".join(self.labels)
-
-    #     return self._name
-
     def remove_cancelling_pair(self, indices: Iterable[int]) -> None:
         """Remove a pair of indices that cancel each other and *do not* change the matrices."""
         for index in list(indices[::-1]):
@@ -71,13 +63,6 @@ class GateSequence:
 
         # restore name
         self.name = " ".join(self.labels)
-
-    @property
-    def euler_angles(self):
-        if self._eulers is None:
-            self._eulers = _get_euler_angles(self.product_su2)
-
-        return self._eulers
 
     def __eq__(self, other: "GateSequence") -> bool:
         """Check if this GateSequence is the same as the other GateSequence.
@@ -299,7 +284,7 @@ def _compute_euler_angles_from_so3(matrix: np.ndarray) -> Tuple[float, float, fl
         where phi is rotation about z-axis, theta rotation about y-axis\n
         and psi rotation about x-axis.
     """
-    matrix = np.round(matrix, decimals=7)
+    matrix = np.round(matrix, decimals=10)
     if matrix[2][0] != 1 and matrix[2][1] != -1:
         theta = -math.asin(matrix[2][0])
         psi = math.atan2(matrix[2][1] / math.cos(theta), matrix[2][2] / math.cos(theta))
@@ -562,12 +547,6 @@ def _check_is_so3(matrix: np.ndarray) -> None:
 
     if abs(np.linalg.det(matrix) - 1) > 1e-4:
         raise ValueError(f"Determinant of matrix must be 1, but is {np.linalg.det(matrix)}.")
-
-
-def _get_euler_angles(matrix: np.ndarray) -> Tuple[float, float, float]:
-    u = UnitaryGate(matrix)
-    angles = tuple(u.definition.data[0][0].params)
-    return angles
 
 
 def commutator_decompose(

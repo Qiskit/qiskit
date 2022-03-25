@@ -12,15 +12,11 @@
 
 """Synthesize a single qubit gate to a discrete basis set."""
 
-from typing import List, Union, Optional, Set
+from typing import Union, Optional, Dict, List
 
-# import itertools
-import collections
 import numpy as np
-from sklearn.neighbors import KDTree
 
 from qiskit.circuit import QuantumCircuit, Gate
-import qiskit.circuit.library.standard_gates as gates
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
@@ -29,42 +25,8 @@ from qiskit.transpiler.passes.synthesis.solovay_kitaev_utils import (
     GateSequence,
     commutator_decompose,
 )
-from qiskit.quantum_info.operators.predicates import matrix_equal
 
-_1q_inverses = {
-    "i": "i",
-    "x": "x",
-    "y": "y",
-    "z": "z",
-    "h": "h",
-    "t": "tdg",
-    "tdg": "t",
-    "s": "sdg",
-    "sgd": "s",
-}
-
-# allowed (unparameterized) single qubit gates
-# _1q_gates = {
-#     "h": np.array(gates.HGate(), dtype=np.complex128),
-#     "t": np.array(gates.TGate(), dtype=np.complex128),
-#     "tdg": np.array(gates.TdgGate(), dtype=np.complex128),
-# }
-_1q_gates = {
-    "i": gates.IGate(),
-    "x": gates.XGate(),
-    "y": gates.YGate(),
-    "z": gates.ZGate(),
-    "h": gates.HGate(),
-    "t": gates.TGate(),
-    "tdg": gates.TdgGate(),
-    "s": gates.SGate(),
-    "sdg": gates.SdgGate(),
-    "sx": gates.SXGate(),
-    "sxdg": gates.SXdgGate(),
-}
-
-
-Node = collections.namedtuple("Node", ("labels", "sequence", "children"))
+from .generate_basis_approximations import generate_basic_approximations, _1q_gates, _1q_inverses
 
 
 class SolovayKitaev:
@@ -74,7 +36,9 @@ class SolovayKitaev:
     """
 
     def __init__(
-        self, basis_gates: Optional[List[Union[str, Gate]]] = None, depth: Optional[int] = None
+        self,
+        basic_approximations: Optional[Union[str, Dict[str, np.ndarray], List[GateSequence]]] = None
+        # basis_gates: Optional[List[Union[str, Gate]]] = None, depth: Optional[int] = None
     ) -> None:
         """
 
@@ -90,12 +54,15 @@ class SolovayKitaev:
             basis_gates: The basis gates used in the basic approximations.
             depth: The maximum depth of the basic approximations.
         """
-        if basis_gates is not None and depth is not None:
-            self._basic_approximations = self.generate_basic_approximations(basis_gates, depth)
-        else:
-            self._basic_approximations = None
+        if basic_approximations is None:
+            # generate a default basic approximation
+            basic_approximations = generate_basic_approximations(
+                basis_gates=["h", "t", "tdg"], depth=10
+            )
 
-    def load_basic_approximations(self, data: Union[dict, str]) -> None:
+        self.basic_approximations = self.load_basic_approximations(basic_approximations)
+
+    def load_basic_approximations(self, data: Union[dict, str]) -> List[GateSequence]:
         """Load basic approximations.
 
         Args:
@@ -104,9 +71,16 @@ class SolovayKitaev:
                 There ``gates`` are the names of the gates producing the SO(3) matrix ``matrix``,
                 e.g. ``{"h t": np.array([[0, 0.7071, -0.7071], [0, -0.7071, -0.7071], [-1, 0, 0]]}``.
 
+        Returns:
+            A list of basic approximations as type ``GateSequence``.
+
         Raises:
             ValueError: If the number of gate combinations and associated matrices does not match.
         """
+        # is already a list of GateSequences
+        if isinstance(data, list):
+            return data
+
         # if a file, load the dictionary
         if isinstance(data, str):
             data = np.load(data, allow_pickle=True)
@@ -117,55 +91,6 @@ class SolovayKitaev:
             sequence.gates = [_1q_gates[element] for element in gatestring.split()]
             sequence.product = np.asarray(matrix)
             sequences.append(sequence)
-
-        self._basic_approximations = sequences
-
-    @staticmethod
-    def generate_basic_approximations(
-        basis_gates: List[Union[str, Gate]], depth: int, filename: Optional[str] = None
-    ) -> Optional[List[GateSequence]]:
-        """Generates a list of ``GateSequence``s with the gates in ``basic_gates``.
-
-        Args:
-            basis_gates: The gates from which to create the sequences of gates.
-            depth: The maximum depth of the approximations.
-            filename: If provided, the basic approximations are stored in this file.
-
-        Returns:
-            List of ``GateSequences`` using the gates in ``basic_gates``.
-
-        Raises:
-            ValueError: If ``basis_gates`` contains an invalid gate identifier.
-        """
-        basis = []
-        for i, gate in enumerate(basis_gates):
-            if isinstance(gate, str):
-                if gate not in _1q_gates.keys():
-                    raise ValueError(f"Invalid gate identifier: {gate}")
-                basis.append(gate)
-            else:  # gate is a qiskit.circuit.Gate
-                basis.append(gate.name)
-
-        # basis_gates = set(basis_gates)
-        tree = Node((), GateSequence(), [])
-        cur_level = [tree]
-        sequences = [tree.sequence]
-        points = np.array([tree.sequence.product.flatten()])
-        print(points)
-        kdtree = KDTree(points, leaf_size=2)
-        for _ in [None] * depth:
-            next_level = []
-            for node in cur_level:
-                next_level.extend(_process_node(node, basis, sequences, kdtree))
-            cur_level = next_level
-
-        if filename is not None:
-            data = {}
-            for sequence in sequences:
-                gatestring = sequence.name
-                data[gatestring] = sequence.product
-
-            np.save(filename, data)
 
         return sequences
 
@@ -234,11 +159,12 @@ class SolovayKitaev:
         Returns:
             Gate in basic approximations that is closest to ``sequence``.
         """
+        # TODO explore using a k-d tree here
 
         def key(x):
             return np.linalg.norm(np.subtract(x.product, sequence.product))
 
-        best = min(self._basic_approximations, key=key)
+        best = min(self.basic_approximations, key=key)
         return best
 
 
@@ -318,57 +244,22 @@ class SolovayKitaevDecomposition(TransformationPass):
     def __init__(
         self,
         recursion_degree: int = 3,
-        basis_gates: Optional[List[Union[str, Gate]]] = None,
-        depth: Optional[int] = None,
+        basic_approximations: Optional[Union[str, Dict[str, np.ndarray]]] = None,
     ) -> None:
         """
-
-        .. note::
-
-            If ``basis_gates`` and ``depth`` are not passed, the basic approximations can be
-            generated with the ``generate_basic_approximations`` method and loaded into the
-            class via ``load_basic_approximations``. Since in practice, large basic approximations
-            are required we suggest to generate a sufficiently large set once and always load
-            the approximations afterwards.
-
         Args:
             recursion_degree: The recursion depth for the Solovay-Kitaev algorithm.
                 A larger recursion depth increases the accuracy and length of the
                 decomposition.
-            basis_gates: The basis gates used in the basic approximations.
-            depth: The maximum depth of the basic approximations.
+            basic_approximations: The basic approximations for the finding the best discrete
+                decomposition at the root of the recursion. If a string, it specifies the ``.npy``
+                file to load the approximations from. If a dictionary, it contains
+                ``{label: SO(3)-matrix}`` pairs. If None, a default based on the H, T and Tdg gates
+                up to combinations of depth 10 is generated.
         """
         super().__init__()
         self.recursion_degree = recursion_degree
-        self._sk = SolovayKitaev(basis_gates, depth)
-
-    @staticmethod
-    def _get_default_approximations():
-        from .depth10_t_h_tdg import decompositions
-
-        return decompositions
-
-    @staticmethod
-    def generate_basic_approximations(
-        basis_gates: List[Union[str, Gate]], depth: int, filename: str
-    ) -> None:
-        """Generate and save the basic approximations.
-
-        Args:
-            basis_gates: The gates from which to create the sequences of gates.
-            depth: The maximum depth of the approximations.
-            filename: The file to store the approximations.
-        """
-        b = SolovayKitaev.generate_basic_approximations(basis_gates, depth, filename)
-        print(b)
-
-    def load_basic_approximations(self, filename: str) -> None:
-        """Load basic approximations.
-
-        Args:
-            filename: The path to the file from where to load the data.
-        """
-        self._sk.load_basic_approximations(filename)
+        self._sk = SolovayKitaev(basic_approximations)
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the SolovayKitaevDecomposition pass on `dag`.
@@ -382,9 +273,6 @@ class SolovayKitaevDecomposition(TransformationPass):
         Raises:
             TranspilerError: if a gates does not have to_matrix
         """
-        if self._sk._basic_approximations is None:
-            self.load_basic_approximations(self._get_default_approximations())
-
         for node in dag.op_nodes():
             if not node.op.num_qubits == 1:
                 continue  # ignore all non-single qubit gates
@@ -405,23 +293,6 @@ class SolovayKitaevDecomposition(TransformationPass):
             dag.substitute_node_with_dag(node, substitute)
 
         return dag
-
-
-def _check_candidate(candidate: GateSequence, sequences: List[GateSequence]) -> bool:
-
-    if any(candidate.name == existing.name for existing in sequences):
-        return False
-
-    # if candidate.euler_angles in {existing.euler_angles for existing in sequences}:
-    #     return False
-    for existing in sequences:
-        #     if np.all(existing.euler_angles == candidate.euler_angles):
-        # eliminate global phase
-        # if np.allclose(existing.euler_angles, candidate.euler_angles):
-        if matrix_equal(existing.product_su2, candidate.product_su2, ignore_phase=True):
-            # is the new sequence less or more efficient?
-            return len(candidate.gates) < len(existing.gates)
-    return True
 
 
 def _remove_inverse_follows_gate(sequence):
@@ -454,35 +325,3 @@ def _remove_identities(sequence):
             sequence.gates.pop(index)
         else:
             index += 1
-
-
-def _process_node(node: Node, basis: List[str], sequences: List[GateSequence], kdtree: KDTree):
-    inverse_last = _1q_inverses[node.labels[-1]] if node.labels else None
-
-    for label in basis:  # - {inverse_last}:
-        if label == inverse_last:
-            continue
-        sequence = node.sequence.copy()
-        sequence.append(_1q_gates[label])
-
-        points = np.array([sequence.product.flatten() for sequence in sequences])
-        candidate = np.array([sequence.product.flatten()])
-        # print("points")
-        # print("candidate")
-        # print(candidate)
-        kdtree = KDTree(points)
-        dist, nn = kdtree.query(candidate)
-        dist = dist[0][0]
-        # print("dist", dist)
-        # print(candidate)
-        # print(nn)
-        # print("nn", next_neighbour)
-        # print(_check_candidate(sequence, sequences) == (dist > 1e-8))
-        # if _check_candidate(sequence, sequences):
-        if dist > 1e-8:
-            sequences.append(sequence)
-            node.children.append(Node(node.labels + (label,), sequence, []))
-        # else:
-        # print("Found one!")
-
-    return node.children
