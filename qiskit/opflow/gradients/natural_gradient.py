@@ -138,7 +138,7 @@ class NaturalGradient(GradientBase):
         Natural Gradient Function Implementation.
 
         Args:
-            x: Iterable consisting of Gradient, Quantum Geometric Tensor.
+            x: Iterable consisting of Gradient, Quantum Fisher Information.
             regularization: Regularization method.
 
         Returns:
@@ -150,9 +150,22 @@ class NaturalGradient(GradientBase):
         """
         gradient = x[0]
         metric = x[1]
-        if any(np.abs(np.imag(c_item)) > ETOL for c_item in gradient):
-            raise ValueError("The imaginary part of the gradient are non-negligible.")
+        if np.amax(np.abs(np.imag(gradient))) > ETOL:
+            raise ValueError(
+                f"The imaginary part of the gradient are non-negligible. The largest absolute "
+                f"imaginary value in the gradient is {np.amax(np.abs(np.imag(gradient)))}."
+                f"Please increase the number of shots."
+            )
         gradient = np.real(gradient)
+
+        if np.amax(np.abs(np.imag(metric))) > ETOL:
+            raise ValueError(
+                "The imaginary part of the metric are non-negligible. The largest "
+                f"absolute imaginary value in the gradient is "
+                f"{np.amax(np.abs(np.imag(metric)))}. Please "
+                "increase the number of shots."
+            )
+        metric = np.real(metric)
 
         if regularization is not None:
             # If a regularization method is chosen then use a regularized solver to
@@ -166,7 +179,8 @@ class NaturalGradient(GradientBase):
 
             if not all(ew >= (-1) * ETOL for ew in w):
                 raise ValueError(
-                    "The underlying metric has ein Eigenvalue < -1e-8. "
+                    f"The underlying metric has ein Eigenvalue < -{ETOL}. "
+                    f"The smallest Eigenvalue is {np.amin(w)}"
                     "Please use a regularized least-square solver for this problem or"
                     "increase the number of backend shots.",
                 )

@@ -218,27 +218,4 @@ class LinCombFull(CircuitQFI):
             qfi_operators.append(ListOp(qfi_ops))
 
         # Return estimate of the full QFI -- A QFI is by definition positive semi-definite.
-        return ListOp(
-            qfi_operators, combo_fn=lambda x: check_and_realpart_extraction(triu_to_dense(x))
-        )
-
-
-def check_and_realpart_extraction(x: Union[List[float], np.ndarray]) -> np.ndarray:
-    """
-    Check for non-negligible imaginary values and remove negligible imaginary parts from x.
-
-    Args:
-        x: Vector or matrix.
-
-    Returns:
-        Real part of x.
-
-    Raises:
-        ValueError: If ``x`` has non-negligible imaginary components.
-    """
-    if np.any([[np.abs(np.imag(x_item)) > ETOL for x_item in x_row] for x_row in x]):
-        raise ValueError(
-            "The imaginary parts are non-negligible. Please "
-            "increase the number of backend shots."
-        )
-    return np.real(x)
+        return ListOp(qfi_operators, combo_fn=lambda x: triu_to_dense(x))
