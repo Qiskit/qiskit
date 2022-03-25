@@ -14,7 +14,6 @@
 
 import unittest
 
-from qiskit.pulse import x
 from test.python.opflow import QiskitOpflowTestCase
 from ddt import ddt, data, unpack
 import numpy as np
@@ -28,7 +27,7 @@ from qiskit.algorithms.evolvers.real.trotterization.trotter_qrte import (
 )
 from qiskit.quantum_info import Statevector, SparsePauliOp, Pauli, PauliTable
 from qiskit.utils import algorithm_globals, QuantumInstance
-from qiskit.circuit import Parameter, Instruction
+from qiskit.circuit import Parameter
 from qiskit.opflow import (
     X,
     Z,
@@ -68,12 +67,14 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         self.backends_dict = {
             "qi_sv": self.quantum_instance,
             "b_sv": backend_statevector,
+            "b_qasm": backend_qasm,
             "None": None,
         }
 
         self.backends_names = ["qi_sv", "b_sv", "None"]
         self.backends_names_not_none = ["qi_sv", "b_sv"]
 
+    # TODO add valid param binding Hamiltonian
     @data(
         (None, expm(-1j * Z.to_matrix()) @ expm(-1j * X.to_matrix())),
         (
@@ -182,35 +183,26 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
                 evolution_result = trotter_qrte.evolve(evolution_problem)
                 np.testing.assert_equal(evolution_result.evolved_state, expected_evolved_state)
 
-    def test_trotter_qrte_trotter_binding_missing_dict(self):
-        """Test for TrotterQRTE with binding and missing dictionary.."""
-        t_param = Parameter("t")
-        operator = X * t_param + Z
+    @data((Parameter("t"), {}), (None, {Parameter("t"): 2}))
+    @unpack
+    def test_trotter_qrte_trotter_errors(self, t_param, hamiltonian_value_dict):
+        """Test TrotterQRTE with raising errors."""
+        operator = X * Parameter("t") + Z
         initial_state = Zero
         time = 1
-        evolution_problem = EvolutionProblem(operator, time, initial_state, t_param=t_param)
-
         for backend_name in self.backends_names:
             with self.subTest(msg=f"Test {backend_name} backend."):
                 algorithm_globals.random_seed = 0
                 backend = self.backends_dict[backend_name]
                 trotter_qrte = TrotterQRTE(quantum_instance=backend)
                 with assert_raises(ValueError):
-                    _ = trotter_qrte.evolve(evolution_problem)
-
-    def test_trotter_qrte_trotter_binding_missing_param(self):
-        """Test for TrotterQRTE with binding and missing param."""
-        t_param = Parameter("t")
-        operator = X * t_param + Z
-        initial_state = Zero
-
-        for backend_name in self.backends_names:
-            with self.subTest(msg=f"Test {backend_name} backend."):
-                algorithm_globals.random_seed = 0
-                backend = self.backends_dict[backend_name]
-                trotter_qrte = TrotterQRTE(quantum_instance=backend)
-                with assert_raises(ValueError):
-                    evolution_problem = EvolutionProblem(operator, 1, initial_state)
+                    evolution_problem = EvolutionProblem(
+                        operator,
+                        time,
+                        initial_state,
+                        t_param=t_param,
+                        hamiltonian_value_dict=hamiltonian_value_dict,
+                    )
                     _ = trotter_qrte.evolve(evolution_problem)
 
 

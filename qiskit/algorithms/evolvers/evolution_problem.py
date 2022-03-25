@@ -34,6 +34,7 @@ class EvolutionProblem:
         time: float,
         initial_state: Union[StateFn, QuantumCircuit],
         aux_operators: Optional[ListOrDict[OperatorBase]] = None,
+        truncation_threshold: float = 1e-12,
         t_param: Optional[Parameter] = None,
         hamiltonian_value_dict: Optional[Dict[Parameter, Union[complex]]] = None,
     ):
@@ -44,6 +45,8 @@ class EvolutionProblem:
             initial_state: Quantum state to be evolved.
             aux_operators: Optional list of auxiliary operators to be evaluated with the
                 evolved ``initial_state`` and their expectation values returned.
+            truncation_threshold: Defines a threshold under which values can be assumed to be 0.
+                Used when ``aux_operators`` is provided.
             t_param: Time parameter in case of a time-dependent Hamiltonian. This
                 free parameter must be within the ``hamiltonian``.
             hamiltonian_value_dict: If the Hamiltonian contains free parameters, this
@@ -61,6 +64,7 @@ class EvolutionProblem:
         self.time = time
         self.initial_state = initial_state
         self.aux_operators = aux_operators
+        self.truncation_threshold = truncation_threshold
 
     @property
     def hamiltonian(self) -> OperatorBase:

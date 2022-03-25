@@ -31,7 +31,7 @@ from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.providers import Backend, BaseBackend
 from qiskit.quantum_info import SparsePauliOp, Pauli
 from qiskit.synthesis import ProductFormula, LieTrotter
-from qiskit.utils import QuantumInstance, algorithm_globals
+from qiskit.utils import QuantumInstance
 
 
 class TrotterQRTE(RealEvolver):
@@ -191,7 +191,7 @@ class TrotterQRTE(RealEvolver):
                 quantum_state.primitive,
                 evolution_problem.aux_operators,
                 self._expectation,
-                algorithm_globals.numerical_tolerance_at_0,
+                evolution_problem.truncation_threshold,
             )
 
         return EvolutionResult(evolved_state, evaluated_aux_ops)
