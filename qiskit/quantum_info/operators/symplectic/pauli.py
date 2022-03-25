@@ -556,14 +556,18 @@ class Pauli(BasePauli, Operation):
         """
         return np.logical_not(self.commutes(other, qargs=qargs))
 
-    def evolve(self, other, qargs=None):
+    def evolve(self, other, qargs=None, frame="h"):
         r"""Heisenberg picture evolution of a Pauli by a Clifford.
 
         This returns the Pauli :math:`P^\prime = C^\dagger.P.C`.
 
+        By choosing the parameter frame='s', this function returns the Schrödinger evolution of the Pauli
+        :math:`P^\prime = C.P.C^\dagger`. This option yields a faster calculation.
+
         Args:
             other (Pauli or Clifford or QuantumCircuit): The Clifford operator to evolve by.
             qargs (list): a list of qubits to apply the Clifford to.
+            frame (string): 'h' for Heisenberg or 's' for Schrödinger framework.
 
         Returns:
             Pauli: the Pauli :math:`C^\dagger.P.C`.
@@ -581,7 +585,7 @@ class Pauli(BasePauli, Operation):
             # Convert to a Pauli
             other = Pauli(other)
 
-        return Pauli(super().evolve(other, qargs=qargs))
+        return Pauli(super().evolve(other, qargs=qargs, frame=frame))
 
     # ---------------------------------------------------------------------
     # Initialization helper functions
