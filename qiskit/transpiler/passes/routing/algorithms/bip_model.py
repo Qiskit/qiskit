@@ -16,21 +16,6 @@ from functools import lru_cache
 
 import numpy as np
 
-try:
-    from docplex.mp.model import Model
-
-    HAS_DOCPLEX = True
-except ImportError:
-    HAS_DOCPLEX = False
-
-try:
-    import cplex  # pylint: disable=unused-import
-
-    HAS_CPLEX = True
-except ImportError:
-    HAS_CPLEX = False
-
-from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.transpiler.exceptions import TranspilerError, CouplingError
 from qiskit.transpiler.layout import Layout
 from qiskit.circuit.library.standard_gates import SwapGate
@@ -40,10 +25,12 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (
     TwoQubitWeylDecomposition,
     trace_to_fid,
 )
+from qiskit.utils import optionals as _optionals
 
 logger = logging.getLogger(__name__)
 
 
+@_optionals.HAS_DOCPLEX.require_in_instance
 class BIPMappingModel:
     """Internal model to create and solve a BIP problem for mapping.
 
@@ -69,12 +56,6 @@ class BIPMappingModel:
             TranspilerError: If size of virtual qubits and physical qubits differ, or
                 if coupling_map is not symmetric (bidirectional).
         """
-        if not HAS_DOCPLEX:
-            raise MissingOptionalLibraryError(
-                libname="DOcplex",
-                name="Decision Optimization CPLEX Modeling for Python",
-                pip_install="pip install docplex",
-            )
 
         self._dag = dag
         self._coupling = copy.deepcopy(coupling_map)  # reduced coupling map
@@ -166,6 +147,7 @@ class BIPMappingModel:
         """Check if the time-step t is a dummy step or not."""
         return len(self.gates[t]) == 0
 
+    @_optionals.HAS_DOCPLEX.require_in_call
     def create_cpx_problem(
         self,
         objective: str,
@@ -203,12 +185,13 @@ class BIPMappingModel:
 
         Raises:
             TranspilerError: if unknown objective type is specified or invalid options are specified.
-
+            MissingOptionalLibraryError: If docplex is not installed
         """
         self.bprop = backend_prop
         self.default_cx_error_rate = default_cx_error_rate
         if self.bprop is None and self.default_cx_error_rate is None:
             raise TranspilerError("BackendProperties or default_cx_error_rate must be specified")
+        from docplex.mp.model import Model
 
         mdl = Model()
 
@@ -442,6 +425,7 @@ class BIPMappingModel:
         tracesm = two_qubit_cnot_decompose.traces(targetm)
         return [trace_to_fid(tracesm[i]) for i in range(4)]
 
+    @_optionals.HAS_CPLEX.require_in_call
     def solve_cpx_problem(self, time_limit: float = 60, threads: int = None) -> str:
         """Solve the BIP problem using CPLEX.
 
@@ -458,12 +442,6 @@ class BIPMappingModel:
         Raises:
             MissingOptionalLibraryError: If CPLEX is not installed
         """
-        if not HAS_CPLEX:
-            raise MissingOptionalLibraryError(
-                libname="CPLEX",
-                name="CplexOptimizer",
-                pip_install="pip install cplex",
-            )
         self.problem.set_time_limit(time_limit)
         if threads is not None:
             self.problem.context.cplex_parameters.threads = threads

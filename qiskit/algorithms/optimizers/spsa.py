@@ -315,6 +315,7 @@ class SPSA(Optimizer):
             tuple(generator, generator): A tuple of powerseries generators, the first one for the
                 learning rate and the second one for the perturbation.
         """
+        logger.info("SPSA: Starting calibration of learning rate and perturbation.")
         if target_magnitude is None:
             target_magnitude = 2 * np.pi / 10
 
@@ -338,7 +339,7 @@ class SPSA(Optimizer):
         avg_magnitudes /= steps
 
         if modelspace:
-            a = target_magnitude / (avg_magnitudes ** 2)
+            a = target_magnitude / (avg_magnitudes**2)
         else:
             a = target_magnitude / avg_magnitudes
 
@@ -346,6 +347,15 @@ class SPSA(Optimizer):
         if a < 1e-10:
             warnings.warn(f"Calibration failed, using {target_magnitude} for `a`")
             a = target_magnitude
+
+        logger.info("Finished calibration:")
+        logger.info(
+            " -- Learning rate: a / ((A + n) ^ alpha) with a = %s, A = %s, alpha = %s",
+            a,
+            stability_constant,
+            alpha,
+        )
+        logger.info(" -- Perturbation: c / (n ^ gamma) with c = %s, gamma = %s", c, gamma)
 
         # set up the powerseries
         def learning_rate():
@@ -420,7 +430,7 @@ class SPSA(Optimizer):
         hessian_sample = None
         if self.second_order:
             diff = (values[2] - plus) - (values[3] - minus)
-            diff /= 2 * eps ** 2
+            diff /= 2 * eps**2
 
             rank_one = np.outer(delta1, delta2)
             hessian_sample = diff * (rank_one + rank_one.T) / 2
@@ -529,8 +539,7 @@ class SPSA(Optimizer):
                     fun, x, max_evals_grouped=self._max_evals_grouped
                 )
 
-        logger.info("=" * 30)
-        logger.info("Starting SPSA optimization")
+        logger.info("SPSA: Starting optimization.")
         start = time()
 
         # keep track of the last few steps to return their average
@@ -611,8 +620,7 @@ class SPSA(Optimizer):
                     logger.info("terminated optimization at {k}/{self.maxiter} iterations")
                     break
 
-        logger.info("SPSA finished in %s", time() - start)
-        logger.info("=" * 30)
+        logger.info("SPSA: Finished in %s", time() - start)
 
         if self.last_avg > 1:
             x = np.mean(last_steps, axis=0)

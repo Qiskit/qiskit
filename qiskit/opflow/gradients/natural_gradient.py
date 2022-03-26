@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.circuit import ParameterVector, ParameterExpression
-from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.utils import optionals as _optionals
 from ..operator_base import OperatorBase
 from ..list_ops.list_op import ListOp
 from ..list_ops.composed_op import ComposedOp
@@ -73,7 +73,6 @@ class NaturalGradient(GradientBase):
         self._regularization = regularization
         self._epsilon = kwargs.get("epsilon", 1e-6)
 
-    # pylint: disable=signature-differs
     def convert(
         self,
         operator: OperatorBase,
@@ -271,6 +270,7 @@ class NaturalGradient(GradientBase):
         return lambda_mc, x_mc
 
     @staticmethod
+    @_optionals.HAS_SKLEARN.require_in_call
     def _ridge(
         a: np.ndarray,
         c: np.ndarray,
@@ -313,12 +313,7 @@ class NaturalGradient(GradientBase):
             MissingOptionalLibraryError: scikit-learn not installed
 
         """
-        try:
-            from sklearn.linear_model import Ridge
-        except ImportError as ex:
-            raise MissingOptionalLibraryError(
-                libname="scikit-learn", name="_ridge", pip_install="pip install scikit-learn"
-            ) from ex
+        from sklearn.linear_model import Ridge
 
         reg = Ridge(
             alpha=lambda_,
@@ -342,6 +337,7 @@ class NaturalGradient(GradientBase):
         return lambda_mc, np.transpose(x_mc)
 
     @staticmethod
+    @_optionals.HAS_SKLEARN.require_in_call
     def _lasso(
         a: np.ndarray,
         c: np.ndarray,
@@ -392,12 +388,7 @@ class NaturalGradient(GradientBase):
             MissingOptionalLibraryError: scikit-learn not installed
 
         """
-        try:
-            from sklearn.linear_model import Lasso
-        except ImportError as ex:
-            raise MissingOptionalLibraryError(
-                libname="scikit-learn", name="_lasso", pip_install="pip install scikit-learn"
-            ) from ex
+        from sklearn.linear_model import Lasso
 
         reg = Lasso(
             alpha=lambda_,

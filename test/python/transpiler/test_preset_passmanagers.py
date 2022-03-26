@@ -11,6 +11,9 @@
 # that they have been altered from the originals.
 
 """Tests preset pass manager API"""
+
+import unittest
+
 from test import combine
 from ddt import ddt, data
 
@@ -32,6 +35,7 @@ from qiskit.test.mock import (
 )
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import GraphState
+from qiskit.quantum_info import random_unitary
 
 
 def emptycircuit():
@@ -49,6 +53,21 @@ def circuit_2532():
 @ddt
 class TestPresetPassManager(QiskitTestCase):
     """Test preset passmanagers work as expected."""
+
+    @combine(level=[0, 1, 2, 3], name="level{level}")
+    def test_no_coupling_map_with_sabre(self, level):
+        """Test that coupling_map can be None with Sabre (level={level})"""
+        q = QuantumRegister(2, name="q")
+        circuit = QuantumCircuit(q)
+        circuit.cz(q[0], q[1])
+        result = transpile(
+            circuit,
+            coupling_map=None,
+            layout_method="sabre",
+            routing_method="sabre",
+            optimization_level=level,
+        )
+        self.assertEqual(result, circuit)
 
     @combine(level=[0, 1, 2, 3], name="level{level}")
     def test_no_coupling_map(self, level):
@@ -99,6 +118,49 @@ class TestPresetPassManager(QiskitTestCase):
         self.assertEqual(result, circuit)
 
     @combine(level=[0, 1, 2, 3], name="level{level}")
+    def test_unitary_is_preserved_if_in_basis(self, level):
+        """Test that a unitary is not synthesized if in the basis."""
+        qc = QuantumCircuit(2)
+        qc.unitary(random_unitary(4, seed=42), [0, 1])
+        qc.measure_all()
+        result = transpile(qc, basis_gates=["cx", "u", "unitary"], optimization_level=level)
+        self.assertEqual(result, qc)
+
+    @combine(level=[0, 1, 2, 3], name="level{level}")
+    def test_unitary_is_preserved_if_basis_is_None(self, level):
+        """Test that a unitary is not synthesized if basis is None."""
+        qc = QuantumCircuit(2)
+        qc.unitary(random_unitary(4, seed=4242), [0, 1])
+        qc.measure_all()
+        result = transpile(qc, basis_gates=None, optimization_level=level)
+        self.assertEqual(result, qc)
+
+    @combine(level=[0, 1, 2, 3], name="level{level}")
+    def test_unitary_is_preserved_if_in_basis_synthesis_translation(self, level):
+        """Test that a unitary is not synthesized if in the basis with synthesis translation."""
+        qc = QuantumCircuit(2)
+        qc.unitary(random_unitary(4, seed=424242), [0, 1])
+        qc.measure_all()
+        result = transpile(
+            qc,
+            basis_gates=["cx", "u", "unitary"],
+            optimization_level=level,
+            translation_method="synthesis",
+        )
+        self.assertEqual(result, qc)
+
+    @combine(level=[0, 1, 2, 3], name="level{level}")
+    def test_unitary_is_preserved_if_basis_is_None_synthesis_transltion(self, level):
+        """Test that a unitary is not synthesized if basis is None with synthesis translation."""
+        qc = QuantumCircuit(2)
+        qc.unitary(random_unitary(4, seed=42424242), [0, 1])
+        qc.measure_all()
+        result = transpile(
+            qc, basis_gates=None, optimization_level=level, translation_method="synthesis"
+        )
+        self.assertEqual(result, qc)
+
+    @combine(level=[0, 1, 2, 3], name="level{level}")
     def test_respect_basis(self, level):
         """Test that all levels respect basis"""
         qc = QuantumCircuit(3)
@@ -114,6 +176,31 @@ class TestPresetPassManager(QiskitTestCase):
         dag = circuit_to_dag(result)
         circuit_ops = {node.name for node in dag.topological_op_nodes()}
         self.assertEqual(circuit_ops.union(set(basis_gates)), set(basis_gates))
+
+    @combine(level=[0, 1, 2, 3], name="level{level}")
+    def test_alignment_constraints_called_with_by_default(self, level):
+        """Test that TimeUnitConversion is not called if there is no delay in the circuit."""
+        q = QuantumRegister(2, name="q")
+        circuit = QuantumCircuit(q)
+        circuit.h(q[0])
+        circuit.cz(q[0], q[1])
+        with unittest.mock.patch("qiskit.transpiler.passes.TimeUnitConversion.run") as mock:
+            transpile(circuit, backend=FakeJohannesburg(), optimization_level=level)
+        mock.assert_not_called()
+
+    @combine(level=[0, 1, 2, 3], name="level{level}")
+    def test_alignment_constraints_called_with_delay_in_circuit(self, level):
+        """Test that TimeUnitConversion is called if there is a delay in the circuit."""
+        q = QuantumRegister(2, name="q")
+        circuit = QuantumCircuit(q)
+        circuit.h(q[0])
+        circuit.cz(q[0], q[1])
+        circuit.delay(9.5, unit="ns")
+        with unittest.mock.patch(
+            "qiskit.transpiler.passes.TimeUnitConversion.run", return_value=circuit_to_dag(circuit)
+        ) as mock:
+            transpile(circuit, backend=FakeJohannesburg(), optimization_level=level)
+        mock.assert_called_once()
 
 
 @ddt
@@ -465,59 +552,36 @@ class TestFinalLayouts(QiskitTestCase):
             19: Qubit(QuantumRegister(15, "ancilla"), 14),
         }
 
-        dense_layout = {
-            2: Qubit(QuantumRegister(3, "qr1"), 0),
-            6: Qubit(QuantumRegister(3, "qr1"), 1),
-            1: Qubit(QuantumRegister(3, "qr1"), 2),
-            5: Qubit(QuantumRegister(2, "qr2"), 0),
-            0: Qubit(QuantumRegister(2, "qr2"), 1),
-            3: Qubit(QuantumRegister(15, "ancilla"), 0),
-            4: Qubit(QuantumRegister(15, "ancilla"), 1),
-            7: Qubit(QuantumRegister(15, "ancilla"), 2),
-            8: Qubit(QuantumRegister(15, "ancilla"), 3),
-            9: Qubit(QuantumRegister(15, "ancilla"), 4),
-            10: Qubit(QuantumRegister(15, "ancilla"), 5),
-            11: Qubit(QuantumRegister(15, "ancilla"), 6),
-            12: Qubit(QuantumRegister(15, "ancilla"), 7),
-            13: Qubit(QuantumRegister(15, "ancilla"), 8),
-            14: Qubit(QuantumRegister(15, "ancilla"), 9),
-            15: Qubit(QuantumRegister(15, "ancilla"), 10),
-            16: Qubit(QuantumRegister(15, "ancilla"), 11),
-            17: Qubit(QuantumRegister(15, "ancilla"), 12),
-            18: Qubit(QuantumRegister(15, "ancilla"), 13),
-            19: Qubit(QuantumRegister(15, "ancilla"), 14),
-        }
-
-        csp_layout = {
-            13: Qubit(QuantumRegister(3, "qr1"), 0),
-            19: Qubit(QuantumRegister(3, "qr1"), 1),
-            14: Qubit(QuantumRegister(3, "qr1"), 2),
-            18: Qubit(QuantumRegister(2, "qr2"), 0),
-            17: Qubit(QuantumRegister(2, "qr2"), 1),
+        vf2_layout = {
             0: Qubit(QuantumRegister(15, "ancilla"), 0),
             1: Qubit(QuantumRegister(15, "ancilla"), 1),
             2: Qubit(QuantumRegister(15, "ancilla"), 2),
             3: Qubit(QuantumRegister(15, "ancilla"), 3),
-            4: Qubit(QuantumRegister(15, "ancilla"), 4),
-            5: Qubit(QuantumRegister(15, "ancilla"), 5),
-            6: Qubit(QuantumRegister(15, "ancilla"), 6),
-            7: Qubit(QuantumRegister(15, "ancilla"), 7),
-            8: Qubit(QuantumRegister(15, "ancilla"), 8),
-            9: Qubit(QuantumRegister(15, "ancilla"), 9),
-            10: Qubit(QuantumRegister(15, "ancilla"), 10),
-            11: Qubit(QuantumRegister(15, "ancilla"), 11),
-            12: Qubit(QuantumRegister(15, "ancilla"), 12),
-            15: Qubit(QuantumRegister(15, "ancilla"), 13),
-            16: Qubit(QuantumRegister(15, "ancilla"), 14),
+            4: Qubit(QuantumRegister(3, "qr1"), 0),
+            5: Qubit(QuantumRegister(15, "ancilla"), 4),
+            6: Qubit(QuantumRegister(15, "ancilla"), 5),
+            7: Qubit(QuantumRegister(15, "ancilla"), 6),
+            8: Qubit(QuantumRegister(3, "qr1"), 1),
+            9: Qubit(QuantumRegister(15, "ancilla"), 7),
+            10: Qubit(QuantumRegister(15, "ancilla"), 8),
+            11: Qubit(QuantumRegister(15, "ancilla"), 9),
+            12: Qubit(QuantumRegister(15, "ancilla"), 10),
+            13: Qubit(QuantumRegister(3, "qr1"), 2),
+            14: Qubit(QuantumRegister(2, "qr2"), 0),
+            15: Qubit(QuantumRegister(15, "ancilla"), 11),
+            16: Qubit(QuantumRegister(15, "ancilla"), 12),
+            17: Qubit(QuantumRegister(15, "ancilla"), 13),
+            18: Qubit(QuantumRegister(15, "ancilla"), 14),
+            19: Qubit(QuantumRegister(2, "qr2"), 1),
         }
 
         # Trivial layout
         expected_layout_level0 = trivial_layout
         # Dense layout
-        expected_layout_level1 = dense_layout
+        expected_layout_level1 = vf2_layout
         # CSP layout
-        expected_layout_level2 = csp_layout
-        expected_layout_level3 = csp_layout
+        expected_layout_level2 = vf2_layout
+        expected_layout_level3 = vf2_layout
 
         expected_layouts = [
             expected_layout_level0,
@@ -565,32 +629,55 @@ class TestFinalLayouts(QiskitTestCase):
         }
 
         dense_layout = {
-            2: qr[0],
+            11: qr[0],
             6: qr[1],
-            1: qr[2],
-            5: qr[3],
-            0: qr[4],
-            3: ancilla[0],
-            4: ancilla[1],
-            7: ancilla[2],
-            8: ancilla[3],
-            9: ancilla[4],
-            10: ancilla[5],
-            11: ancilla[6],
-            12: ancilla[7],
-            13: ancilla[8],
-            14: ancilla[9],
-            15: ancilla[10],
+            5: qr[2],
+            10: qr[3],
+            15: qr[4],
+            0: ancilla[0],
+            1: ancilla[1],
+            2: ancilla[2],
+            3: ancilla[3],
+            4: ancilla[4],
+            7: ancilla[5],
+            8: ancilla[6],
+            9: ancilla[7],
+            12: ancilla[8],
+            13: ancilla[9],
+            14: ancilla[10],
             16: ancilla[11],
             17: ancilla[12],
             18: ancilla[13],
             19: ancilla[14],
         }
 
+        sabre_layout = {
+            0: ancilla[0],
+            1: ancilla[1],
+            2: ancilla[2],
+            3: ancilla[3],
+            4: ancilla[4],
+            5: ancilla[5],
+            6: ancilla[6],
+            7: qr[4],
+            8: qr[1],
+            9: ancilla[7],
+            10: ancilla[8],
+            11: ancilla[9],
+            12: qr[2],
+            13: qr[0],
+            14: ancilla[10],
+            15: ancilla[11],
+            16: ancilla[12],
+            17: ancilla[13],
+            18: ancilla[14],
+            19: qr[3],
+        }
+
         expected_layout_level0 = trivial_layout
         expected_layout_level1 = dense_layout
         expected_layout_level2 = dense_layout
-        expected_layout_level3 = dense_layout
+        expected_layout_level3 = sabre_layout
 
         expected_layouts = [
             expected_layout_level0,
@@ -641,12 +728,12 @@ class TestFinalLayouts(QiskitTestCase):
             18: Qubit(QuantumRegister(20, "q"), 18),
             19: Qubit(QuantumRegister(20, "q"), 19),
         }
-        trans_qc = transpile(qc, backend, optimization_level=level)
+        trans_qc = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
         self.assertEqual(trans_qc._layout._p2v, expected)
 
-    @data(0, 1)
+    @data(0)
     def test_trivial_layout(self, level):
-        """Test that trivial layout is preferred in level 0 and 1
+        """Test that trivial layout is preferred in level 0
         See: https://github.com/Qiskit/qiskit-terra/pull/3657#pullrequestreview-342012465
         """
         qr = QuantumRegister(10, "qr")
@@ -809,3 +896,48 @@ class TestOptimizationWithCondition(QiskitTestCase):
         qc.cx(1, 0)
         circ = transpile(qc, basis_gates=["u3", "cz"])
         self.assertIsInstance(circ, QuantumCircuit)
+
+
+@ddt
+class TestOptimizationOnSize(QiskitTestCase):
+    """Test the optimization levels for optimization based on
+    both size and depth of the circuit.
+    See https://github.com/Qiskit/qiskit-terra/pull/7542
+    """
+
+    @data(2, 3)
+    def test_size_optimization(self, level):
+        """Test the levels for optimization based on size of circuit"""
+        qc = QuantumCircuit(8)
+        qc.cx(1, 2)
+        qc.cx(2, 3)
+        qc.cx(5, 4)
+        qc.cx(6, 5)
+        qc.cx(4, 5)
+        qc.cx(3, 4)
+        qc.cx(5, 6)
+        qc.cx(5, 4)
+        qc.cx(3, 4)
+        qc.cx(2, 3)
+        qc.cx(1, 2)
+        qc.cx(6, 7)
+        qc.cx(6, 5)
+        qc.cx(5, 4)
+        qc.cx(7, 6)
+        qc.cx(6, 7)
+
+        circ = transpile(qc, optimization_level=level).decompose()
+
+        circ_data = circ.data
+        free_qubits = set([0, 1, 2, 3])
+
+        # ensure no gates are using qubits - [0,1,2,3]
+        for gate in circ_data:
+            qubits = gate[1]
+            indices = {circ.find_bit(qubit).index for qubit in qubits}
+            common = indices.intersection(free_qubits)
+            for common_qubit in common:
+                self.assertTrue(common_qubit not in free_qubits)
+
+        self.assertLess(circ.size(), qc.size())
+        self.assertLessEqual(circ.depth(), qc.depth())

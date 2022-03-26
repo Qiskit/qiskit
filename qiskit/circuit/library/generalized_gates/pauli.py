@@ -14,7 +14,6 @@
 Simulator command to perform multiple pauli gates in a single pass
 """
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.library.standard_gates.i import IGate
 from qiskit.circuit.library.standard_gates.x import XGate
 from qiskit.circuit.library.standard_gates.y import YGate
 from qiskit.circuit.library.standard_gates.z import ZGate
@@ -45,11 +44,12 @@ class PauliGate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
-        gates = {"I": IGate, "X": XGate, "Y": YGate, "Z": ZGate}
+        gates = {"X": XGate, "Y": YGate, "Z": ZGate}
         q = QuantumRegister(len(self.params[0]), "q")
         qc = QuantumCircuit(q, name=f"{self.name}({self.params[0]})")
 
-        rules = [(gates[p](), [q[i]], []) for (i, p) in enumerate(reversed(self.params[0]))]
+        paulis = self.params[0]
+        rules = [(gates[p](), [q[i]], []) for (i, p) in enumerate(reversed(paulis)) if p != "I"]
         qc._data = rules
         self.definition = qc
 
@@ -71,7 +71,9 @@ class PauliGate(Gate):
                 return parameter
             else:
                 raise CircuitError(
-                    "Parameter string {0} should contain only 'I', 'X', 'Y', 'Z' characters"
+                    f"Parameter string {parameter} should contain only 'I', 'X', 'Y', 'Z' characters"
                 )
         else:
-            raise CircuitError("Parameter {0} should be a string of 'I', 'X', 'Y', 'Z' characters")
+            raise CircuitError(
+                f"Parameter {parameter} should be a string of 'I', 'X', 'Y', 'Z' characters"
+            )

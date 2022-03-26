@@ -217,6 +217,11 @@ class CU3Gate(ControlledGate):
         from .u1 import U1Gate
         from .x import CXGate  # pylint: disable=cyclic-import
 
+        #      ┌───────────────┐
+        # q_0: ┤ U1(λ/2 + φ/2) ├──■─────────────────────────────■─────────────────
+        #      ├───────────────┤┌─┴─┐┌───────────────────────┐┌─┴─┐┌─────────────┐
+        # q_1: ┤ U1(λ/2 - φ/2) ├┤ X ├┤ U3(-0/2,0,-λ/2 - φ/2) ├┤ X ├┤ U3(0/2,φ,0) ├
+        #      └───────────────┘└───┘└───────────────────────┘└───┘└─────────────┘
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
@@ -275,7 +280,7 @@ def _generate_gray_code(num_bits):
         raise ValueError("Cannot generate the gray code for less than 1 bit.")
     result = [0]
     for i in range(num_bits):
-        result += [x + 2 ** i for x in reversed(result)]
+        result += [x + 2**i for x in reversed(result)]
     return [format(x, "0%sb" % num_bits) for x in result]
 
 

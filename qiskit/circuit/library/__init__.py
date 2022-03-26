@@ -24,7 +24,6 @@ Standard Gates
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
-   Barrier
    C3XGate
    C3SXGate
    C4XGate
@@ -50,12 +49,9 @@ Standard Gates
    MCXGrayCode
    MCXRecursive
    MCXVChain
-   Measure
-   MSGate
    PhaseGate
    RCCXGate
    RC3XGate
-   Reset
    RGate
    RXGate
    RXXGate
@@ -64,6 +60,7 @@ Standard Gates
    RZGate
    RZZGate
    RZXGate
+   XXPlusYYGate
    ECRGate
    SGate
    SdgGate
@@ -81,6 +78,19 @@ Standard Gates
    YGate
    ZGate
 
+Standard Directives
+===================
+
+..
+    This summary table deliberately does not generate toctree entries; these directives are "owned"
+    by ``qiskit.circuit``.
+
+.. autosummary::
+
+   ~qiskit.circuit.Barrier
+   ~qiskit.circuit.Measure
+   ~qiskit.circuit.Reset
+
 Generalized Gates
 =================
 
@@ -93,12 +103,14 @@ Generalized Gates
    MCMTVChain
    Permutation
    GMS
+   MSGate
    GR
    GRX
    GRY
    GRZ
    RVGate
    PauliGate
+   LinearFunction
 
 Boolean Logic Circuits
 ======================
@@ -187,6 +199,15 @@ Functions on binary variables
 
    QuadraticForm
 
+Other arithmetic functions
+--------------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   ExactReciprocal
+
 Amplitude Functions
 ===================
 
@@ -212,17 +233,7 @@ Particular Quantum Circuits
    GroverOperator
    PhaseOracle
    EvolvedOperatorAnsatz
-
-Probability distributions
-=========================
-
-.. autosummary::
-   :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
-
-   UniformDistribution
-   NormalDistribution
-   LogNormalDistribution
+   PauliEvolutionGate
 
 
 N-local circuits
@@ -251,6 +262,7 @@ Data encoding circuits
    PauliFeatureMap
    ZFeatureMap
    ZZFeatureMap
+   StatePreparation
 
 NCT (Not-CNOT-Toffoli) template circuits
 ========================================
@@ -360,13 +372,16 @@ from .generalized_gates import (
     MCMTVChain,
     Permutation,
     GMS,
+    MSGate,
     GR,
     GRX,
     GRY,
     GRZ,
     RVGate,
     PauliGate,
+    LinearFunction,
 )
+from .pauli_evolution import PauliEvolutionGate
 from .boolean_logic import (
     AND,
     OR,
@@ -390,6 +405,7 @@ from .arithmetic import (
     PiecewiseChebyshev,
     HRSCumulativeMultiplier,
     RGQFTMultiplier,
+    ExactReciprocal,
 )
 
 from .n_local import (
@@ -401,12 +417,7 @@ from .n_local import (
     ExcitationPreserving,
     QAOAAnsatz,
 )
-from .data_preparation import PauliFeatureMap, ZFeatureMap, ZZFeatureMap
-from .probability_distributions import (
-    LogNormalDistribution,
-    NormalDistribution,
-    UniformDistribution,
-)
+from .data_preparation import PauliFeatureMap, ZFeatureMap, ZZFeatureMap, StatePreparation
 from .quantum_volume import QuantumVolume
 from .fourier_checking import FourierChecking
 from .graph_state import GraphState

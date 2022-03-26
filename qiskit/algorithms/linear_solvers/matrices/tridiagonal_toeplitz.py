@@ -197,13 +197,13 @@ class TridiagonalToeplitz(LinearSystemMatrix):
         matrix = diags(
             [self.off_diag, self.main_diag, self.off_diag],
             [-1, 0, 1],
-            shape=(2 ** self.num_state_qubits, 2 ** self.num_state_qubits),
+            shape=(2**self.num_state_qubits, 2**self.num_state_qubits),
         ).toarray()
         return matrix
 
     def eigs_bounds(self) -> Tuple[float, float]:
         """Return lower and upper bounds on the eigenvalues of the matrix."""
-        n_b = 2 ** self.num_state_qubits
+        n_b = 2**self.num_state_qubits
         # Calculate the eigenvalues according to the formula for Toeplitz matrices
         eig_1 = np.abs(self.main_diag - 2 * self.off_diag * np.cos(n_b * np.pi / (n_b + 1)))
         eig_2 = np.abs(self.main_diag - 2 * self.off_diag * np.cos(np.pi / (n_b + 1)))
@@ -218,6 +218,7 @@ class TridiagonalToeplitz(LinearSystemMatrix):
         return kappa, kappa
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """Check if the current configuration is valid."""
         valid = True
 
         if self.trotter_steps < 1:
@@ -244,15 +245,11 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             self.add_register(qr_ancilla)
 
     def _build(self) -> None:
-        """Build the circuit"""
-        # do not build the circuit if _data is already populated
-        if self._data is not None:
+        """If not already built, build the circuit."""
+        if self._is_built:
             return
 
-        self._data = []
-
-        # check whether the configuration is valid
-        self._check_configuration()
+        super()._build()
 
         self.compose(self.power(1), inplace=True)
 

@@ -17,7 +17,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 from scipy.linalg import expm
 import numpy as np
 from ddt import ddt, idata, unpack
-from qiskit import QuantumCircuit
+from qiskit import BasicAer, QuantumCircuit
 from qiskit.algorithms.linear_solvers.hhl import HHL
 from qiskit.algorithms.linear_solvers.matrices.tridiagonal_toeplitz import TridiagonalToeplitz
 from qiskit.algorithms.linear_solvers.matrices.numpy_matrix import NumPyMatrix
@@ -26,6 +26,7 @@ from qiskit.algorithms.linear_solvers.observables.matrix_functional import Matri
 from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
 from qiskit.quantum_info import Operator, partial_trace
 from qiskit.opflow import I, Z, StateFn
+from qiskit.utils import QuantumInstance
 from qiskit import quantum_info
 
 
@@ -184,21 +185,21 @@ class TestReciprocal(QiskitAlgorithmsTestCase):
         qc.append(reciprocal, list(range(num_qubits + 1 + neg_vals)))
 
         # Create the operator 0
-        state_vec = quantum_info.Statevector.from_instruction(qc).data[-(2 ** num_qubits) :]
+        state_vec = quantum_info.Statevector.from_instruction(qc).data[-(2**num_qubits) :]
 
         # Remove the factor from the hadamards
         state_vec *= np.sqrt(2) ** num_qubits
 
         # Analytic value
         exact = []
-        for i in range(0, 2 ** num_qubits):
+        for i in range(0, 2**num_qubits):
             if i == 0:
                 exact.append(0)
             else:
                 if neg_vals:
-                    exact.append(-scaling / (1 - i / (2 ** num_qubits)))
+                    exact.append(-scaling / (1 - i / (2**num_qubits)))
                 else:
-                    exact.append(scaling * (2 ** num_qubits) / i)
+                    exact.append(scaling * (2**num_qubits) / i)
 
         np.testing.assert_array_almost_equal(state_vec, exact, decimal=2)
 
@@ -236,6 +237,12 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
                 MatrixFunctional(1, 1 / 2),
             ],
             [
+                np.array([[82, 34], [34, 58]]),
+                np.array([[1], [0]]),
+                AbsoluteAverage(),
+                3,
+            ],
+            [
                 TridiagonalToeplitz(3, 1, -1 / 2, trotter_steps=2),
                 [-9 / 4, -0.3, 8 / 7, 10, -5, 11.1, 13 / 11, -27 / 12],
                 AbsoluteAverage(),
@@ -243,7 +250,7 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
         ]
     )
     @unpack
-    def test_hhl(self, matrix, right_hand_side, observable):
+    def test_hhl(self, matrix, right_hand_side, observable, decimal=1):
         """Test the HHL class."""
         if isinstance(matrix, QuantumCircuit):
             num_qubits = matrix.num_state_qubits
@@ -271,7 +278,21 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
             exact_x = np.dot(np.linalg.inv(matrix), rhs)
         exact_result = observable.evaluate_classically(exact_x)
 
-        np.testing.assert_almost_equal(approx_result, exact_result, decimal=1)
+        np.testing.assert_almost_equal(approx_result, exact_result, decimal=decimal)
+
+    def test_hhl_qi(self):
+        """Test the HHL quantum instance getter and setter."""
+        hhl = HHL()
+        self.assertIsNone(hhl.quantum_instance)  # Defaults to None
+
+        # First set a valid quantum instance and check via getter
+        qinst = QuantumInstance(backend=BasicAer.get_backend("qasm_simulator"))
+        hhl.quantum_instance = qinst
+        self.assertEqual(hhl.quantum_instance, qinst)
+
+        # Now set quantum instance back to None and check via getter
+        hhl.quantum_instance = None
+        self.assertIsNone(hhl.quantum_instance)
 
 
 if __name__ == "__main__":

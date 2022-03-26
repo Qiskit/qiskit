@@ -74,8 +74,8 @@ class DrawerCanvas:
         self.layout = stylesheet.layout
 
         # drawings
-        self._collections = dict()
-        self._output_dataset = dict()
+        self._collections = {}
+        self._output_dataset = {}
 
         # vertical offset of bits
         self.bits = []
@@ -248,8 +248,8 @@ class DrawerCanvas:
         self.vmin = y0 - self.formatter["margin.bottom"]
 
         # add data
-        temp_gate_links = dict()
-        temp_data = dict()
+        temp_gate_links = {}
+        temp_data = {}
         for data_key, data in self._collections.items():
             # deep copy to keep original data hash
             new_data = deepcopy(data)
@@ -396,7 +396,7 @@ class DrawerCanvas:
             overlapped_group.append(list(overlaps))
 
         # renew horizontal offset
-        new_links = dict()
+        new_links = {}
         for overlaps in overlapped_group:
             if len(overlaps) > 1:
                 xpos_mean = np.mean([links[key].xvals[0] for key in overlaps])

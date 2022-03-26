@@ -15,12 +15,13 @@
 import math
 from typing import List
 import numpy as np
-from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
-from .matplotlib import HAS_MATPLOTLIB
+from qiskit.exceptions import QiskitError
+from qiskit.utils import optionals as _optionals
 from .exceptions import VisualizationError
 from .utils import matplotlib_close_if_inline
 
 
+@_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_gate_map(
     backend,
     figsize=None,
@@ -81,13 +82,6 @@ def plot_gate_map(
            backend = accountProvider.get_backend('ibmq_vigo')
            plot_gate_map(backend)
     """
-    if not HAS_MATPLOTLIB:
-        raise MissingOptionalLibraryError(
-            libname="Matplotlib",
-            name="plot_gate_map",
-            pip_install="pip install matplotlib",
-        )
-
     if backend.configuration().simulator:
         raise QiskitError("Requires a device backend, not simulator.")
 
@@ -347,9 +341,7 @@ def plot_gate_map(
     config = backend.configuration()
     num_qubits = config.n_qubits
     coupling_map = config.coupling_map
-    qubit_coordinates = None
-    if num_qubits in qubit_coordinates_map.keys():
-        qubit_coordinates = qubit_coordinates_map[num_qubits]
+    qubit_coordinates = qubit_coordinates_map.get(num_qubits)
     return plot_coupling_map(
         num_qubits,
         qubit_coordinates,
@@ -369,6 +361,7 @@ def plot_gate_map(
     )
 
 
+@_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_coupling_map(
     num_qubits: int,
     qubit_coordinates: List[List[int]],
@@ -415,32 +408,17 @@ def plot_coupling_map(
         QiskitError: If length of qubit labels does not match number of qubits.
 
     Example:
-        .. jupyter-execute::
-            :hide-code:
-            :hide-output:
-
-            from qiskit.test.ibmq_mock import mock_get_backend
-            mock_get_backend('FakeVigo')
 
         .. jupyter-execute::
 
-            from qiskit import QuantumCircuit, execute, IBMQ
             from qiskit.visualization import plot_coupling_map
             %matplotlib inline
 
             num_qubits = 8
             coupling_map = [[0, 1], [1, 2], [2, 3], [3, 5], [4, 5], [5, 6], [2, 4], [6, 7]]
-            qubit_coordinates = [[0, 1], [1, 1], [1, 0], [1, 2], [2, 0],
-                                 [2, 2], [2, 1], [3, 1]]
-            plot_gate_map(num_qubits, coupling_map, qubit_coordinates)
+            qubit_coordinates = [[0, 1], [1, 1], [1, 0], [1, 2], [2, 0], [2, 2], [2, 1], [3, 1]]
+            plot_coupling_map(num_qubits, coupling_map, qubit_coordinates)
     """
-
-    if not HAS_MATPLOTLIB:
-        raise MissingOptionalLibraryError(
-            libname="Matplotlib",
-            name="plot_coupling_map",
-            pip_install="pip install matplotlib",
-        )
     import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
 
@@ -683,6 +661,8 @@ def plot_circuit_layout(circuit, backend, view="virtual"):
     return fig
 
 
+@_optionals.HAS_MATPLOTLIB.require_in_call
+@_optionals.HAS_SEABORN.require_in_call
 def plot_error_map(backend, figsize=(12, 9), show_title=True):
     """Plots the error map of a given backend.
 
@@ -718,24 +698,10 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
             backend = provider.get_backend('ibmq_vigo')
             plot_error_map(backend)
     """
-    try:
-        import seaborn as sns
-    except ImportError as ex:
-        raise MissingOptionalLibraryError(
-            libname="seaborn",
-            name="plot_error_map",
-            pip_install="pip install seaborn",
-        ) from ex
-    if not HAS_MATPLOTLIB:
-        raise MissingOptionalLibraryError(
-            libname="Matplotlib",
-            name="plot_error_map",
-            pip_install="pip install matplotlib",
-        )
+    import seaborn as sns
     import matplotlib
     import matplotlib.pyplot as plt
-    import matplotlib.gridspec as gridspec
-    from matplotlib import ticker
+    from matplotlib import gridspec, ticker
 
     color_map = sns.cubehelix_palette(reverse=True, as_cmap=True)
 

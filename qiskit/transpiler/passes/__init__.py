@@ -29,6 +29,7 @@ Layout Selection (Placement)
    NoiseAdaptiveLayout
    SabreLayout
    CSPLayout
+   VF2Layout
    ApplyLayout
    Layout2qDistance
    EnlargeWithAncilla
@@ -66,16 +67,22 @@ Optimizations
 
    Optimize1qGates
    Optimize1qGatesDecomposition
+   Collect1qRuns
    Collect2qBlocks
+   CollectMultiQBlocks
+   CollectLinearFunctions
    ConsolidateBlocks
    CXCancellation
+   InverseCancellation
    CommutationAnalysis
    CommutativeCancellation
    Optimize1qGatesSimpleCommutation
    RemoveDiagonalGatesBeforeMeasure
    RemoveResetInZeroState
    CrosstalkAdaptiveSchedule
+   HoareOptimizer
    TemplateOptimization
+   EchoRZXWeylDecomposition
 
 Calibration
 =============
@@ -97,8 +104,11 @@ Scheduling
    ALAPSchedule
    ASAPSchedule
    DynamicalDecoupling
+   ConstrainedReschedule
    AlignMeasures
    ValidatePulseGates
+   InstructionDurationCheck
+   SetIOLatency
 
 Circuit Analysis
 ================
@@ -121,6 +131,8 @@ Synthesis
    :toctree: ../stubs/
 
    UnitarySynthesis
+   LinearFunctionsSynthesis
+   LinearFunctionsToPermutations
 
 Additional Passes
 =================
@@ -139,6 +151,8 @@ Additional Passes
    RemoveFinalMeasurements
    DAGFixedPoint
    FixedPoint
+   ContainsInstruction
+   GatesInBasis
 """
 
 # layout selection (placement)
@@ -148,6 +162,7 @@ from .layout import DenseLayout
 from .layout import NoiseAdaptiveLayout
 from .layout import SabreLayout
 from .layout import CSPLayout
+from .layout import VF2Layout
 from .layout import ApplyLayout
 from .layout import Layout2qDistance
 from .layout import EnlargeWithAncilla
@@ -172,6 +187,8 @@ from .basis import BasisTranslator
 from .optimization import Optimize1qGates
 from .optimization import Optimize1qGatesDecomposition
 from .optimization import Collect2qBlocks
+from .optimization import Collect1qRuns
+from .optimization import CollectMultiQBlocks
 from .optimization import ConsolidateBlocks
 from .optimization import CommutationAnalysis
 from .optimization import CommutativeCancellation
@@ -184,6 +201,8 @@ from .optimization import CrosstalkAdaptiveSchedule
 from .optimization import HoareOptimizer
 from .optimization import TemplateOptimization
 from .optimization import InverseCancellation
+from .optimization import EchoRZXWeylDecomposition
+from .optimization import CollectLinearFunctions
 
 # circuit analysis
 from .analysis import ResourceEstimation
@@ -198,6 +217,8 @@ from .analysis import DAGLongestPath
 # synthesis
 from .synthesis import UnitarySynthesis
 from .synthesis import unitary_synthesis_plugin_names
+from .synthesis import LinearFunctionsSynthesis
+from .synthesis import LinearFunctionsToPermutations
 
 # calibration
 from .calibration import PulseGates
@@ -209,8 +230,12 @@ from .scheduling import TimeUnitConversion
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
 from .scheduling import DynamicalDecoupling
-from .scheduling import AlignMeasures
+from .scheduling import AlignMeasures  # Deprecated
 from .scheduling import ValidatePulseGates
+from .scheduling import PadDelay
+from .scheduling import ConstrainedReschedule
+from .scheduling import InstructionDurationCheck
+from .scheduling import SetIOLatency
 
 # additional utility passes
 from .utils import CheckMap
@@ -225,3 +250,5 @@ from .utils import DAGFixedPoint
 from .utils import FixedPoint
 from .utils import Error
 from .utils import RemoveBarriers
+from .utils import ContainsInstruction
+from .utils import GatesInBasis

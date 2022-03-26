@@ -170,6 +170,13 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
         """
         return csr_matrix(self.to_matrix())
 
+    def is_hermitian(self) -> bool:
+        """Return True if the operator is hermitian.
+
+        Returns: Boolean value
+        """
+        return (self.to_spmatrix() != self.to_spmatrix().getH()).nnz == 0
+
     @staticmethod
     def _indent(lines: str, indentation: str = INDENTATION) -> str:
         """Indented representation to allow pretty representation of nested operators."""
@@ -480,7 +487,7 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
             ValueError: Massive is False and number of qubits is greater than 16
         """
         if num_qubits > 16 and not massive and not algorithm_globals.massive:
-            dim = 2 ** num_qubits
+            dim = 2**num_qubits
             if matrix:
                 obj_type = "matrix"
                 dimensions = f"{dim}x{dim}"

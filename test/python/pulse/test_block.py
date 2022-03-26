@@ -216,32 +216,6 @@ class TestBlockOperation(BaseTestBlock):
 
         self.assertEqual(block.duration, 350)
 
-    def test_timeslots(self):
-        """Test if correct timeslot is returned with implicit scheduling."""
-        block = pulse.ScheduleBlock()
-        for inst in self.test_blocks:
-            block.append(inst)
-
-        ref_slots = {self.d0: [(0, 100), (100, 150), (150, 350)], self.d1: [(0, 200)]}
-
-        self.assertDictEqual(block.timeslots, ref_slots)
-
-    def test_start_time(self):
-        """Test if correct schedule start time is returned with implicit scheduling."""
-        block = pulse.ScheduleBlock()
-        for inst in self.test_blocks:
-            block.append(inst)
-
-        self.assertEqual(block.start_time, 0)
-
-    def test_stop_time(self):
-        """Test if correct schedule stop time is returned with implicit scheduling."""
-        block = pulse.ScheduleBlock()
-        for inst in self.test_blocks:
-            block.append(inst)
-
-        self.assertEqual(block.stop_time, 350)
-
     def test_channels(self):
         """Test if all channels are returned."""
         block = pulse.ScheduleBlock()
@@ -266,40 +240,6 @@ class TestBlockOperation(BaseTestBlock):
 
         self.assertEqual(block.ch_duration(self.d0), 350)
         self.assertEqual(block.ch_duration(self.d1), 200)
-
-    def test_channel_start_time(self):
-        """Test if correct start time is calculated for each channel."""
-        block = pulse.ScheduleBlock()
-        for inst in self.test_blocks:
-            block.append(inst)
-
-        self.assertEqual(block.ch_start_time(self.d0), 0)
-        self.assertEqual(block.ch_start_time(self.d1), 0)
-
-    def test_channel_stop_time(self):
-        """Test if correct stop time is calculated for each channel."""
-        block = pulse.ScheduleBlock()
-        for inst in self.test_blocks:
-            block.append(inst)
-
-        self.assertEqual(block.ch_stop_time(self.d0), 350)
-        self.assertEqual(block.ch_stop_time(self.d1), 200)
-
-    def test_cannot_insert(self):
-        """Test insert is not supported."""
-        block = pulse.ScheduleBlock()
-
-        with self.assertRaises(PulseError):
-            block.insert(0, pulse.Delay(10, self.d0))
-
-    def test_cannot_shift(self):
-        """Test shift is not supported."""
-        block = pulse.ScheduleBlock()
-        for inst in self.test_blocks:
-            block.append(inst)
-
-        with self.assertRaises(PulseError):
-            block.shift(10, inplace=True)
 
     def test_cannot_append_schedule(self):
         """Test schedule cannot be appended. Schedule should be input as Call instruction."""

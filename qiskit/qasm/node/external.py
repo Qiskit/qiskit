@@ -12,7 +12,6 @@
 
 """Node for an OPENQASM external function."""
 
-import warnings
 import numpy as np
 
 from qiskit.exceptions import MissingOptionalLibraryError
@@ -31,33 +30,12 @@ class External(Node):
         """Create the external node."""
         super().__init__("external", children, None)
 
-    def qasm(self, prec=None):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
-        if prec is not None:
-            warnings.warn(
-                "Parameter 'External.qasm(..., prec)' is no longer used and is being "
-                "deprecated.",
-                DeprecationWarning,
-                2,
-            )
         return self.children[0].qasm() + "(" + self.children[1].qasm() + ")"
 
-    def latex(self, prec=None, nested_scope=None):
+    def latex(self):
         """Return the corresponding math mode latex string."""
-        if prec is not None:
-            warnings.warn(
-                "Parameter 'External.latex(..., prec)' is no longer used and is being "
-                "deprecated.",
-                DeprecationWarning,
-                2,
-            )
-        if nested_scope is not None:
-            warnings.warn(
-                "Parameter 'External.latex(..., nested_scope)' is no longer used and "
-                "is being deprecated.",
-                DeprecationWarning,
-                2,
-            )
         try:
             from pylatexenc.latexencode import utf8tolatex
         except ImportError as ex:

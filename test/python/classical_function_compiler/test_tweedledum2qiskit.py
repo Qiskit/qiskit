@@ -11,8 +11,8 @@
 # that they have been altered from the originals.
 
 """Tests LogicNetwork.Tweedledum2Qiskit converter."""
-from tweedledum.ir import Circuit  # pylint: disable=no-name-in-module,
-from tweedledum.operators import X  # pylint:disable=no-name-in-module
+from tweedledum.ir import Circuit
+from tweedledum.operators import X
 
 from qiskit.test import QiskitTestCase
 
@@ -39,7 +39,7 @@ class TestTweedledum2Qiskit(QiskitTestCase):
     def test_cx_0_1(self):
         """CX(0, 1)"""
         tweedledum_circuit = Circuit()
-        qubits = list()
+        qubits = []
         qubits.append(tweedledum_circuit.create_qubit())
         qubits.append(tweedledum_circuit.create_qubit())
         tweedledum_circuit.apply_operator(X(), [qubits[0], qubits[1]])
@@ -54,7 +54,7 @@ class TestTweedledum2Qiskit(QiskitTestCase):
     def test_cx_1_0(self):
         """CX(1, 0)"""
         tweedledum_circuit = Circuit()
-        qubits = list()
+        qubits = []
         qubits.append(tweedledum_circuit.create_qubit())
         qubits.append(tweedledum_circuit.create_qubit())
         tweedledum_circuit.apply_operator(X(), [qubits[1], qubits[0]])
@@ -69,7 +69,7 @@ class TestTweedledum2Qiskit(QiskitTestCase):
     def test_cx_qreg(self):
         """CX(0, 1) with qregs parameter"""
         tweedledum_circuit = Circuit()
-        qubits = list()
+        qubits = []
         qubits.append(tweedledum_circuit.create_qubit())
         qubits.append(tweedledum_circuit.create_qubit())
         tweedledum_circuit.apply_operator(X(), [qubits[1], qubits[0]])

@@ -20,8 +20,7 @@ from qiskit.qobj import PulseQobj
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock.utils import ConfigurableFakeBackend
 from qiskit.test.mock import FakeAthens
-
-from qiskit.test.mock.fake_backend import HAS_AER
+from qiskit.utils import optionals
 
 
 def get_test_circuit():
@@ -43,7 +42,7 @@ class GeneratedFakeBackendsTest(QiskitTestCase):
         self.backend = ConfigurableFakeBackend("Tashkent", n_qubits=4)
 
     @unittest.skip("Skipped until qiskit-aer#741 is fixed and released")
-    @unittest.skipUnless(HAS_AER, "qiskit-aer is required to run this test")
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     def test_transpile_schedule_and_assemble(self):
         """Test transpile, schedule and assemble on generated backend."""
         qc = get_test_circuit()
@@ -70,7 +69,7 @@ class GeneratedFakeBackendsTest(QiskitTestCase):
 class FakeBackendsTest(QiskitTestCase):
     """fake backends test."""
 
-    @unittest.skipUnless(HAS_AER, "qiskit-aer is required to run this test")
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     def test_fake_backends_get_kwargs(self):
         """Fake backends honor kwargs passed."""
         backend = FakeAthens()

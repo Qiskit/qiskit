@@ -55,7 +55,7 @@ class BasicSwap(TransformationPass):
         if self.fake_run:
             return self.fake_run(dag)
 
-        new_dag = dag._copy_circuit_metadata()
+        new_dag = dag.copy_empty_like()
 
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("Basic swap runs on physical circuits only")

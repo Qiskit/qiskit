@@ -10,9 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unexpected-keyword-arg
-
-
 """ Test Operator construction, including OpPrimitives and singletons. """
 
 import unittest
@@ -97,20 +94,20 @@ class TestStateConstruction(QiskitOpflowTestCase):
         ).result()
 
         np.testing.assert_array_almost_equal(
-            StateFn(sv_res).to_matrix(), [0.5 ** 0.5, 0.5 ** 0.5, 0, 0, 0, 0, 0, 0]
+            StateFn(sv_res).to_matrix(), [0.5**0.5, 0.5**0.5, 0, 0, 0, 0, 0, 0]
         )
         np.testing.assert_array_almost_equal(
-            StateFn(sv_vector).to_matrix(), [0.5 ** 0.5, 0.5 ** 0.5, 0, 0, 0, 0, 0, 0]
+            StateFn(sv_vector).to_matrix(), [0.5**0.5, 0.5**0.5, 0, 0, 0, 0, 0, 0]
         )
         np.testing.assert_array_almost_equal(
-            StateFn(qasm_res).to_matrix(), [0.5 ** 0.5, 0.5 ** 0.5, 0, 0, 0, 0, 0, 0], decimal=1
+            StateFn(qasm_res).to_matrix(), [0.5**0.5, 0.5**0.5, 0, 0, 0, 0, 0, 0], decimal=1
         )
 
         np.testing.assert_array_almost_equal(
-            ((I ^ I ^ H) @ Zero).to_matrix(), [0.5 ** 0.5, 0.5 ** 0.5, 0, 0, 0, 0, 0, 0]
+            ((I ^ I ^ H) @ Zero).to_matrix(), [0.5**0.5, 0.5**0.5, 0, 0, 0, 0, 0, 0]
         )
         np.testing.assert_array_almost_equal(
-            qc_op.to_matrix(), [0.5 ** 0.5, 0.5 ** 0.5, 0, 0, 0, 0, 0, 0]
+            qc_op.to_matrix(), [0.5**0.5, 0.5**0.5, 0, 0, 0, 0, 0, 0]
         )
 
     def test_state_meas_composition(self):

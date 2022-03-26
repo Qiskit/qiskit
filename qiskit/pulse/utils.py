@@ -43,33 +43,31 @@ def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:
 @functools.lru_cache(maxsize=None)
 def format_parameter_value(
     operand: ParameterExpression,
+    decimal: int = 10,
 ) -> Union[ParameterExpression, complex]:
     """Convert ParameterExpression into the most suitable data type.
 
     Args:
         operand: Operand value in arbitrary data type including ParameterExpression.
+        decimal: Number of digit to round returned value.
 
     Returns:
         Value casted to non-parameter data type, when possible.
     """
-    # to evaluate parameter expression object, sympy srepr function is used.
-    # this function converts the parameter object into string with tiny round error.
-    # therefore evaluated value is not completely equal to the assigned value.
-    # however this error can be ignored in practice though we need to be careful for unittests.
-    # i.e. "pi=3.141592653589793" will be evaluated as "3.14159265358979"
-    # no DAC that recognizes the resolution of 1e-15 but they are AlmostEqual in tests.
-    from sympy import srepr
-
-    math_expr = srepr(operand).replace("*I", "j")
     try:
-        # value is assigned
-        evaluated = complex(math_expr)
-        if not np.iscomplex(evaluated):
+        # value is assigned.
+        # note that ParameterExpression directly supports __complex__ via sympy or symengine
+        evaluated = complex(operand)
+        # remove truncation error
+        evaluated = np.round(evaluated, decimals=decimal)
+        # typecast into most likely data type
+        if np.isreal(evaluated):
             evaluated = float(evaluated.real)
             if evaluated.is_integer():
                 evaluated = int(evaluated)
+
         return evaluated
-    except ValueError:
+    except TypeError:
         # value is not assigned
         pass
 
@@ -96,8 +94,7 @@ def instruction_duration_validation(duration: int):
 
     if not isinstance(duration, (int, np.integer)) or duration < 0:
         raise QiskitError(
-            "Instruction duration must be a non-negative integer, "
-            "got {} instead.".format(duration)
+            f"Instruction duration must be a non-negative integer, got {duration} instead."
         )
 
 
