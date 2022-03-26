@@ -958,6 +958,11 @@ for inst, qargs, cargs in [
     cx_to_ecr.append(inst, qargs, cargs)
 _sel.add_equivalence(CXGate(), cx_to_ecr)
 
+# CXGate
+# q_0: ──■──     q_0: ───────────────■───────────────────
+#      ┌─┴─┐  ≡       ┌────────────┐ │P(π) ┌────────────┐
+# q_1: ┤ X ├     q_1: ┤ U(π/2,0,π) ├─■─────┤ U(π/2,0,π) ├
+#      └───┘          └────────────┘       └────────────┘
 q = QuantumRegister(2, "q")
 cx_to_cp = QuantumCircuit(q)
 for inst, qargs, cargs in [
@@ -968,6 +973,12 @@ for inst, qargs, cargs in [
     cx_to_cp.append(inst, qargs, cargs)
 _sel.add_equivalence(CXGate(), cx_to_cp)
 
+# CXGate
+#                     ┌────────────┐
+# q_0: ──■──     q_0: ┤ U(0,0,π/2) ├────■──────────────────
+#      ┌─┴─┐  ≡       ├────────────┤┌───┴───┐┌────────────┐
+# q_1: ┤ X ├     q_1: ┤ U(π/2,0,π) ├┤ Rz(π) ├┤ U(π/2,0,π) ├
+#      └───┘          └────────────┘└───────┘└────────────┘
 q = QuantumRegister(2, "q")
 cx_to_crz = QuantumCircuit(q)
 for inst, qargs, cargs in [
