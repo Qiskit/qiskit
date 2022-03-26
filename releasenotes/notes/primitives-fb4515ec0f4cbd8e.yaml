@@ -1,0 +1,7 @@
+---
+features:
+  - |
+      Added new abstract base primitive types under :mod:`qiskit.primitives`.
+      There are two types of primitives, Sampler and Estimator.
+      The reference implementation can be found in :mod:`qiskit.primitives`.
+      Other concrete implementations will come from providers.
