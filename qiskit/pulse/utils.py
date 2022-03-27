@@ -20,7 +20,6 @@ import sympy
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import UnassignedDurationError, QiskitError
-from qiskit.utils import optionals
 
 
 def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:
@@ -131,13 +130,13 @@ def lambdify_symbolic_pulse(
     Returns:
         Lambdified symbolic equation.
     """
-    symbols = [sympy.Symbol("t")] + [sympy.Symbol(p) for p in parameters]
+    symbols = [sympy.Symbol(p) for p in parameters]
 
-    if optionals.HAS_SYMENGINE:
-        # Fall back to sympy for lambda function creation until symengine's
-        # lambdify fully supports the features required by parametric
-        # pulses.
-        import symengine
-        expr = symengine.sympify(expr)
+    # if optionals.HAS_SYMENGINE:
+    #     # Fall back to sympy for lambda function creation until symengine's
+    #     # lambdify fully supports the features required by parametric
+    #     # pulses.
+    #     import symengine
+    #     expr = symengine.sympify(expr)
 
     return sympy.lambdify(symbols, expr)

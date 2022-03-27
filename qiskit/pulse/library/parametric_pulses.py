@@ -37,39 +37,93 @@ by following the existing pattern:
         new_supported_pulse_name = library.YourPulseWaveformClass
 """
 from abc import abstractmethod
-from typing import Any, Dict, Tuple, Optional, Union
+from typing import Any, Dict, List, Tuple, Optional, Union
 
-import functools
-import math
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.library.symbolic import normalized_gaussian
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
 from qiskit.pulse.utils import lambdify_symbolic_pulse
 
-from qiskit.utils import optionals
+# Pulse module doesn't employ symengine. It doesn't automatically simply piecewise function
+# which causes performance issue in the lambda function.
+# In addition, there are several unsupported expression of boolean operation.
+# Thanks to Lambdify at subclass instantiation, the performance regression is not significant here.
+import sympy as sym
 
-if optionals.HAS_SYMENGINE:
-    import symengine as sym
-else:
-    import sympy as sym
+
+def _normalized_gaussian(
+    t: "Symbol",
+    center: Union["Symbol", "Expr"],
+    zeroed_width: Union["Symbol", "Expr"],
+    sigma: Union["Symbol", "Expr"],
+) -> "Expr":
+    r"""Helper function to return normalized gaussian symboric equation.
+
+    For :math:`A=` ``amp`` and :math:`\sigma=` ``sigma``, the symbolic equation will be
+
+    .. math::
+
+        f(x) = A\exp\left(\left(\frac{x - \mu}{2\sigma}\right)^2 \right),
+
+    with the center :math:`\mu=` ``duration/2``.
+    Then, each output sample :math:`y` is modified according to:
+
+    .. math::
+
+        y \mapsto A\frac{y-y^*}{A-y^*},
+
+    where :math:`y^*` is the value of the un-normalized Gaussian .
+    This sets the endpoints to :math:`0` while preserving the amplitude at the center.
+    If :math:`A=y^*`, :math:`y` is set to :math:`1`.
+    The endpoints are at ``x = -1, x = duration + 1``.
+
+    Integrated area under the full curve is ``amp * np.sqrt(2*np.pi*sigma**2)``
+
+    Args:
+        t: Symbol object represents time.
+        center: Symbol or expression represents the middle point of the samples.
+        zeroed_width: Symbol or expression represents the endpoints the samples.
+        sigma: Symbol or expression represents Gaussian sigma.
+
+    Returns:
+        Symbolic equation.
+    """
+    gauss = sym.exp(-((t - center) / sigma) ** 2 / 2)
+
+    t_edge = zeroed_width / 2
+    offset = sym.exp(-(t_edge / sigma) ** 2 / 2)
+
+    return (gauss - offset) / (1 - offset)
 
 
 class ParametricPulse(Pulse):
     """The abstract superclass for parametric pulses."""
-    __slots__ = ("param_values", )
+    __slots__ = ("param_values", "type")
 
     PARAM_DEF = ["duration"]
 
-    numerical_func = None
+    definition = None
+    constraints = None
 
     def __init_subclass__(cls, **kwargs):
         # caching lambda symbolic equation for better performance
+
+        # Lambdify the definition
         if cls._define():
-            cls.numerical_func = staticmethod(lambdify_symbolic_pulse(cls._define(), cls.PARAM_DEF))
+            params = ["t"] + cls.PARAM_DEF
+            cls.definition = staticmethod(lambdify_symbolic_pulse(cls._define(), params))
+        else:
+            raise PulseError(f"'{cls.__name__}' class has no waveform definition.")
+
+        # Lambdify the constraints
+        if cls._constraints():
+            params = cls.PARAM_DEF + ["limit"]
+            cls.constraints = [lambdify_symbolic_pulse(c, params) for c in cls._constraints()]
+        else:
+            cls.constraints = sym.true
 
     @abstractmethod
     def __init__(
@@ -78,6 +132,7 @@ class ParametricPulse(Pulse):
         parameters: Optional[Tuple[Union[ParameterExpression, complex]]] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
+        type: Optional[str] = None,
     ):
         """Create a parametric pulse and validate the input parameters.
 
@@ -86,17 +141,27 @@ class ParametricPulse(Pulse):
             parameters: Other parameters to form waveform.
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
-                             waveform to 1. The default is ``True`` and the
-                             amplitude is constrained to 1.
+                waveform to 1. The default is ``True`` and the
+                amplitude is constrained to 1.
+            type: Type of this waveform. This appears in the representation string.
         """
         super().__init__(duration=duration, name=name, limit_amplitude=limit_amplitude)
+        self.type = type
 
         if parameters:
             self.param_values = (duration, ) + tuple(parameters)
         else:
             self.param_values = (duration, )
 
-        self.validate_parameters()
+        if len(self.param_values) != len(self.PARAM_DEF):
+            raise PulseError(
+                f"Number of parameters {len(self.param_values)} does not match "
+                f"with these defined parameters {self.PARAM_DEF}"
+            )
+
+        # Validate parameters when they are all assigned.
+        if not self.is_parameterized():
+            self.validate_parameters()
 
     def __getattr__(self, item):
         # For backward compatibility, return parameter names as property-like
@@ -116,7 +181,11 @@ class ParametricPulse(Pulse):
         Note that the expression should contain symbol ``t`` that represents a
         sampling time, along with parameters defined in :meth:`.parameters`.
         """
-        return None
+        raise NotImplementedError
+
+    @classmethod
+    def _constraints(cls) -> List["Expr"]:
+        raise NotImplementedError
 
     def get_waveform(self) -> Waveform:
         r"""Return a Waveform with samples filled according to the formula that the pulse
@@ -141,13 +210,11 @@ class ParametricPulse(Pulse):
             )
 
         times = np.arange(0, self.duration) + 1/2
-        args = (times, *self.parameters.values())
-
-        waveform = self.numerical_func(*args)
+        args = (times, *self.param_values)
+        waveform = self.definition(*args)
 
         return Waveform(samples=waveform, name=self.name)
 
-    @abstractmethod
     def validate_parameters(self) -> None:
         """
         Validate parameters.
@@ -155,7 +222,15 @@ class ParametricPulse(Pulse):
         Raises:
             PulseError: If the parameters passed are not valid.
         """
-        raise NotImplementedError
+        args = (*self.param_values, self.limit_amplitude)
+
+        for i, eval_const in enumerate(self.constraints):
+            if not bool(eval_const(*args)):
+                dict_repr = ", ".join(f"{p} = {v}" for p, v in self.parameters.items())
+                const = str(self._constraints()[i])
+                raise PulseError(
+                    f"Assigned parameters {dict_repr} violate following constraint: {const}."
+                )
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
@@ -175,7 +250,7 @@ class ParametricPulse(Pulse):
         params_str = ", ".join(f"{p}={v}" for p, v in zip(self.PARAM_DEF, self.param_values))
 
         return "{}({}{})".format(
-            self.__class__.__name__,
+            self.type,
             params_str,
             f", name='{self.name}'" if self.name is not None else "",
         )
@@ -225,6 +300,7 @@ class Gaussian(ParametricPulse):
             parameters=(amp, sigma),
             name=name,
             limit_amplitude=limit_amplitude,
+            type=self.__class__.__name__,
         )
 
     @classmethod
@@ -232,18 +308,16 @@ class Gaussian(ParametricPulse):
         t, duration, amp, sigma = sym.symbols("t, duration, amp, sigma")
         center = duration / 2
 
-        return amp * normalized_gaussian(t, center, duration + 2, sigma)
+        return amp * _normalized_gaussian(t, center, duration + 2, sigma)
 
-    def validate_parameters(self) -> None:
-        _, amp, sigma = self.param_values
+    @classmethod
+    def _constraints(cls) -> List["Expr"]:
+        amp, sigma, lim_amp = sym.symbols("amp, sigma, limit")
 
-        if not _is_parameterized(amp) and abs(amp) > 1.0 and self.limit_amplitude:
-            raise PulseError(
-                f"The amplitude norm must be <= 1, found: {abs(amp)}"
-                + "This can be overruled by setting Pulse.limit_amplitude."
-            )
-        if not _is_parameterized(sigma) and sigma <= 0:
-            raise PulseError("Sigma must be greater than 0.")
+        return [
+            sym.ITE(lim_amp, sym.Abs(amp) <= 1.0, True),
+            sigma > 0,
+        ]
 
 
 class GaussianSquare(ParametricPulse):
@@ -287,9 +361,7 @@ class GaussianSquare(ParametricPulse):
     This pulse would be more accurately named as ``LiftedGaussianSquare``, however, for historical
     and practical DSP reasons it has the name ``GaussianSquare``.
     """
-    __slots__ = ("risefall_sigma_ratio", )
-
-    PARAM_DEF = ["duration", "amp", "sigma", "width"]
+    PARAM_DEF = ["duration", "amp", "sigma", "width", "risefall_sigma_ratio"]
 
     def __init__(
         self,
@@ -328,13 +400,12 @@ class GaussianSquare(ParametricPulse):
         else:
             risefall_sigma_ratio = (duration - width) / (2.0 * sigma)
 
-        self.risefall_sigma_ratio = risefall_sigma_ratio
-
         super().__init__(
             duration=duration,
-            parameters=(amp, sigma, width),
+            parameters=(amp, sigma, width, risefall_sigma_ratio),
             name=name,
-            limit_amplitude=limit_amplitude
+            limit_amplitude=limit_amplitude,
+            type=self.__class__.__name__,
         )
 
     @classmethod
@@ -346,32 +417,21 @@ class GaussianSquare(ParametricPulse):
         sq_t1 = center + width / 2
         gaussian_zeroed_width = duration + 2 - width
 
-        gaussian_ledge = normalized_gaussian(t, sq_t0, gaussian_zeroed_width, sigma)
-        gaussian_redge = normalized_gaussian(t, sq_t1, gaussian_zeroed_width, sigma)
+        gaussian_ledge = _normalized_gaussian(t, sq_t0, gaussian_zeroed_width, sigma)
+        gaussian_redge = _normalized_gaussian(t, sq_t1, gaussian_zeroed_width, sigma)
 
         return amp * sym.Piecewise((gaussian_ledge, t <= sq_t0), (gaussian_redge, t >= sq_t1), (1, True))
 
-    def validate_parameters(self) -> None:
-        duration, amp, sigma, width = self.param_values
+    @classmethod
+    def _constraints(cls) -> List["Expr"]:
+        duration, amp, sigma, width, lim_amp = sym.symbols("duration, amp, sigma, width, limit")
 
-        if not _is_parameterized(amp) and abs(amp) > 1.0 and self.limit_amplitude:
-            raise PulseError(
-                f"The amplitude norm must be <= 1, found: {abs(amp)}"
-                + "This can be overruled by setting Pulse.limit_amplitude."
-            )
-        if not _is_parameterized(sigma) and sigma <= 0:
-            raise PulseError("Sigma must be greater than 0.")
-
-        if not _is_parameterized(width) and width < 0:
-            raise PulseError("The pulse width must be at least 0.")
-        if (
-            not (_is_parameterized(width) or _is_parameterized(duration))
-            and width >= duration
-        ):
-            raise PulseError(
-                "The pulse width must be less than its duration, or "
-                "the parameter risefall_sigma_ratio must be less than duration/(2*sigma)."
-            )
+        return [
+            sym.ITE(lim_amp, sym.Abs(amp) <= 1.0, True),
+            sigma > 0,
+            width >= 0,
+            duration >= width,
+        ]
 
 
 class Drag(ParametricPulse):
@@ -444,6 +504,7 @@ class Drag(ParametricPulse):
             parameters=(amp, sigma, beta),
             name=name,
             limit_amplitude=limit_amplitude,
+            type=self.__class__.__name__,
         )
 
     @classmethod
@@ -451,45 +512,48 @@ class Drag(ParametricPulse):
         t, duration, amp, sigma, beta = sym.symbols("t, duration, amp, sigma, beta")
         center = duration / 2
 
-        gauss = amp * normalized_gaussian(t, center, duration + 2, sigma)
+        gauss = amp * _normalized_gaussian(t, center, duration + 2, sigma)
         deriv = - (t - center) / sigma * gauss
 
         return gauss + 1j * beta * deriv
 
-    def validate_parameters(self) -> None:
-        duration, amp, sigma, beta = self.param_values
+    @classmethod
+    def _constraints(cls) -> List["Expr"]:
+        t, duration, amp, sigma, beta, lim_amp = sym.symbols("t, duration, amp, sigma, beta, limit")
 
-        if not _is_parameterized(amp) and abs(amp) > 1.0 and self.limit_amplitude:
-            raise PulseError(
-                f"The amplitude norm must be <= 1, found: {abs(amp)}"
-                + "This can be overruled by setting Pulse.limit_amplitude."
-            )
-        if not _is_parameterized(sigma) and sigma <= 0:
-            raise PulseError("Sigma must be greater than 0.")
-        if not _is_parameterized(beta) and isinstance(beta, complex):
-            raise PulseError("Beta must be real.")
-        # Check if beta is too large: the amplitude norm must be <=1 for all points
-        if (
-            not _is_parameterized(beta)
-            and not _is_parameterized(sigma)
-            and beta > sigma
-            and self.limit_amplitude
-        ):
-            # If beta <= sigma, then the maximum amplitude is at duration / 2, which is
-            # already constrained by amp <= 1
+        # When large beta
+        # If beta <= sigma, then the maximum amplitude is at duration / 2, which is
+        # already constrained by amp <= 1
 
-            # 1. Find the first maxima associated with the beta * d/dx gaussian term
-            #    This eq is derived from solving for the roots of the norm of the drag function.
-            #    There is a second maxima mirrored around the center of the pulse with the same
-            #    norm as the first, so checking the value at the first x maxima is sufficient.
-            argmax_x = duration / 2 - (sigma / beta) * math.sqrt(beta**2 - sigma**2)
-            # If the max point is out of range, either end of the pulse will do
-            argmax_x = max(argmax_x, 0)
+        # Find the first maxima associated with the beta * d/dx gaussian term
+        # This eq is derived from solving for the roots of the norm of the drag function.
+        # There is a second maxima mirrored around the center of the pulse with the same
+        # norm as the first, so checking the value at the first x maxima is sufficient.
+        drag_eq = cls._define()
+        const_amp_large_beta = sym.ITE(
+            # IF
+            lim_amp & (sym.Abs(beta) > sigma),
+            # THEN
+            sym.ITE(
+                # IF
+                duration / 2 - (sigma / beta) * sym.sqrt(beta**2 - sigma**2) >= 0,
+                # THEN
+                sym.Abs(drag_eq.subs(
+                    [(t, duration / 2 - (sigma / beta) * sym.sqrt(beta**2 - sigma**2))])
+                ) <= 1,
+                # ELSE
+                sym.Abs(drag_eq.subs([(t, 0)])) <= 1,
+            ),
+            # ELSE
+            True,
+        )
 
-            # 2. Find the value at that maximum
-            max_val = type(self).numerical_func(argmax_x, *self.param_values)
-            if abs(max_val) > 1.0:
-                raise PulseError("Beta is too large; pulse amplitude norm exceeds 1.")
+        return [
+            sym.ITE(lim_amp, sym.Abs(amp) <= 1.0, True),
+            const_amp_large_beta,
+            sigma > 0,
+            sym.Eq(sym.im(beta), 0),
+        ]
 
 
 class Constant(ParametricPulse):
@@ -529,6 +593,7 @@ class Constant(ParametricPulse):
             parameters=(amp, ),
             name=name,
             limit_amplitude=limit_amplitude,
+            type=self.__class__.__name__,
         )
 
     @classmethod
@@ -542,15 +607,15 @@ class Constant(ParametricPulse):
         # ParametricPulse.get_waveform().
         #
         # See: https://github.com/sympy/sympy/issues/5642
-        return amp * sym.Piecewise((1, 0 <= t <= duration), (0, True))
+        return amp * sym.Piecewise((1, (t >= 0) & (t <= duration)), (0, True))
 
-    def validate_parameters(self) -> None:
-        amp = self.param_values[1]
-        if not _is_parameterized(amp) and abs(amp) > 1.0 and self.limit_amplitude:
-            raise PulseError(
-                f"The amplitude norm must be <= 1, found: {abs(amp)}"
-                + "This can be overruled by setting Pulse.limit_amplitude."
-            )
+    @classmethod
+    def _constraints(cls) -> List["Expr"]:
+        amp, lim_amp = sym.symbols("amp, limit")
+
+        return [
+            sym.ITE(lim_amp, sym.Abs(amp) <= 1.0, True),
+        ]
 
 
 def _is_parameterized(value: Any) -> bool:
