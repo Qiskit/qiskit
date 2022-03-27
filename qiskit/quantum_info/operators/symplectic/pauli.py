@@ -27,7 +27,7 @@ from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
-from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
+from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli, _count_y
 from qiskit.utils.deprecation import deprecate_function
 
 
@@ -628,9 +628,7 @@ class Pauli(BasePauli, Operation):
             raise QiskitError(f"{op} is not an N-qubit identity")
         base_z = np.zeros((1, op.num_qubits), dtype=bool)
         base_x = np.zeros((1, op.num_qubits), dtype=bool)
-        base_phase = np.mod(
-            cls._phase_from_complex(op.coeff) + np.sum(np.logical_and(base_z, base_x), axis=1), 4
-        )
+        base_phase = np.mod(cls._phase_from_complex(op.coeff) + _count_y(base_x, base_z), 4)
         return base_z, base_x, base_phase
 
     @classmethod
