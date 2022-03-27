@@ -594,17 +594,19 @@ class TestCircuitCompose(QiskitTestCase):
             self.assertIsInstance(qc.data[1][0], Instruction)
 
     def test_compose_no_clbits_in_one(self):
+        """Test combining a circuit with cregs to one without"""
         ansatz = TwoLocal(2, rotation_blocks="ry", entanglement_blocks="cx")
 
         qc = QuantumCircuit(2)
         qc.measure_all()
         out = ansatz.compose(qc)
         self.assertEqual(
-            out.cregs,
+            out.clbits,
             [Clbit(ClassicalRegister(2, "meas"), 0), Clbit(ClassicalRegister(2, "meas"), 1)],
         )
 
     def test_compose_no_clbits_in_one_inplace(self):
+        """Test combining a circuit with cregs to one without inplace"""
         ansatz = TwoLocal(2, rotation_blocks="ry", entanglement_blocks="cx")
 
         qc = QuantumCircuit(2)
@@ -614,6 +616,18 @@ class TestCircuitCompose(QiskitTestCase):
             ansatz.clbits,
             [Clbit(ClassicalRegister(2, "meas"), 0), Clbit(ClassicalRegister(2, "meas"), 1)],
         )
+
+    def test_compose_no_clbits_in_one_multireg(self):
+        """Test combining a circuit with cregs to one without, multi cregs"""
+        ansatz = TwoLocal(2, rotation_blocks="ry", entanglement_blocks="cx")
+
+        qa = QuantumRegister(2, "q")
+        ca = ClassicalRegister(2, "a")
+        cb = ClassicalRegister(2, "b")
+        qc = QuantumCircuit(qa, ca, cb)
+        qc.measure(0, cb[1])
+        out = ansatz.compose(qc)
+        self.assertEqual(out.cregs, qc.cregs)
 
 
 if __name__ == "__main__":
