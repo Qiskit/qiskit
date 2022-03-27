@@ -594,25 +594,26 @@ class TestCircuitCompose(QiskitTestCase):
             self.assertIsInstance(qc.data[1][0], Instruction)
 
     def test_compose_no_clbits_in_one(self):
-        ansatz = TwoLocal(2, rotation_blocks='ry',
-                          entanglement_blocks='cx')  
+        ansatz = TwoLocal(2, rotation_blocks="ry", entanglement_blocks="cx")
 
         qc = QuantumCircuit(2)
         qc.measure_all()
         out = ansatz.compose(qc)
-        self.assertEqual(out.clbits, [Clbit(ClassicalRegister(2, 'meas'), 0),
-                                      Clbit(ClassicalRegister(2, 'meas'), 1)])
-
+        self.assertEqual(
+            out.cregs,
+            [Clbit(ClassicalRegister(2, "meas"), 0), Clbit(ClassicalRegister(2, "meas"), 1)],
+        )
 
     def test_compose_no_clbits_in_one_inplace(self):
-        ansatz = TwoLocal(2, rotation_blocks='ry',
-                          entanglement_blocks='cx')  
+        ansatz = TwoLocal(2, rotation_blocks="ry", entanglement_blocks="cx")
 
         qc = QuantumCircuit(2)
         qc.measure_all()
         ansatz.compose(qc, inplace=True)
-        self.assertEqual(ansatz.clbits, [Clbit(ClassicalRegister(2, 'meas'), 0),
-                                         Clbit(ClassicalRegister(2, 'meas'), 1)])
+        self.assertEqual(
+            ansatz.clbits,
+            [Clbit(ClassicalRegister(2, "meas"), 0), Clbit(ClassicalRegister(2, "meas"), 1)],
+        )
 
 
 if __name__ == "__main__":

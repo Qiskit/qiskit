@@ -822,7 +822,9 @@ class QuantumCircuit:
             dest = self
         else:
             dest = self.copy()
-        
+
+        # If self does not have any cregs but other does then we allow
+        # that and add the registers to the output dest
         if not self.clbits and other.clbits:
             for reg in other.cregs:
                 dest.add_register(reg)
