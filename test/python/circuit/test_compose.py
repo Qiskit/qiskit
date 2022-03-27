@@ -26,7 +26,8 @@ from qiskit.circuit import (
     Gate,
     Instruction,
 )
-from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate
+from qiskit.circuit import Clbit, ClassicalRegister
+from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate, TwoLocal
 from qiskit.test import QiskitTestCase
 
 
@@ -591,6 +592,27 @@ class TestCircuitCompose(QiskitTestCase):
         with self.subTest("wrapping a non-unitary circuit"):
             qc = qc_init.compose(qc_nonunitary, wrap=True)
             self.assertIsInstance(qc.data[1][0], Instruction)
+
+    def test_compose_no_clbits_in_one(self):
+        ansatz = TwoLocal(2, rotation_blocks='ry',
+                          entanglement_blocks='cx')  
+
+        qc = QuantumCircuit(2)
+        qc.measure_all()
+        out = ansatz.compose(qc)
+        self.assertEqual(out.clbits, [Clbit(ClassicalRegister(2, 'meas'), 0),
+                                      Clbit(ClassicalRegister(2, 'meas'), 1)])
+
+
+    def test_compose_no_clbits_in_one_inplace(self):
+        ansatz = TwoLocal(2, rotation_blocks='ry',
+                          entanglement_blocks='cx')  
+
+        qc = QuantumCircuit(2)
+        qc.measure_all()
+        ansatz.compose(qc, inplace=True)
+        self.assertEqual(ansatz.clbits, [Clbit(ClassicalRegister(2, 'meas'), 0),
+                                         Clbit(ClassicalRegister(2, 'meas'), 1)])
 
 
 if __name__ == "__main__":
