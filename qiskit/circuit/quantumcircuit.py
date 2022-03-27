@@ -824,7 +824,8 @@ class QuantumCircuit:
             dest = self.copy()
         
         if not self.clbits and other.clbits:
-            dest.add_register(other.clbits)
+            for reg in other.cregs:
+                dest.add_register(reg)
 
         if wrap:
             try:
