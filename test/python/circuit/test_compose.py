@@ -25,8 +25,8 @@ from qiskit.circuit import (
     Parameter,
     Gate,
     Instruction,
+    Clbit
 )
-from qiskit.circuit import Clbit, ClassicalRegister
 from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate, TwoLocal
 from qiskit.test import QiskitTestCase
 
