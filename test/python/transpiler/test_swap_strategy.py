@@ -69,15 +69,13 @@ class TestSwapStrategy(QiskitTestCase):
         """Test that swapping a list of elements is correct."""
         list_to_swap = [0, 10, 20, 30, 40]
 
-        self.assertEqual(
-            self.line_strategy.apply_swap_layer(list_to_swap, 0),
-            [10, 0, 30, 20, 40],
-        )
+        swapped_list = self.line_strategy.apply_swap_layer(list_to_swap, 0)
+        self.assertEqual(swapped_list, [10, 0, 30, 20, 40])
+        self.assertFalse(list_to_swap == swapped_list)
 
-        self.assertEqual(
-            self.line_strategy.apply_swap_layer(list_to_swap, 1),
-            [0, 20, 10, 40, 30],
-        )
+        swapped_list = self.line_strategy.apply_swap_layer(list_to_swap, 1, inplace=True)
+        self.assertEqual(swapped_list, [0, 20, 10, 40, 30])
+        self.assertTrue(list_to_swap == swapped_list)
 
     def test_length(self):
         """Test the __len__ operator."""
