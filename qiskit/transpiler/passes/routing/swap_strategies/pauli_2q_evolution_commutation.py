@@ -105,7 +105,7 @@ class FindCommutingPauliEvolutions(TransformationPass):
         Raises:
             QiskitError: If the pauli does not exactly have two non-identity terms.
         """
-        edge = tuple(i for i, p in enumerate(str(pauli)[::-1]) if p != "I")
+        edge = tuple(np.logical_or(pauli.x, pauli.z).nonzero()[0])
 
         if len(edge) != 2:
             raise QiskitError(f"{pauli} does not have length two.")
