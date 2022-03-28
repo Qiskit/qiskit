@@ -101,9 +101,6 @@ class SwapStrategyRouter(TransformationPass):
     into account.
     """
 
-    # The node(s) that will be mapped must be of this type.
-    __instruction_type__ = Commuting2qBlocks
-
     def __init__(self, swap_strategy: Optional[SwapStrategy] = None) -> None:
         """
         Args:
@@ -309,7 +306,7 @@ class SwapStrategyRouter(TransformationPass):
         nodes_to_decompose = []
 
         for node in dag.op_nodes():
-            if isinstance(node.op, self.__instruction_type__):
+            if isinstance(node.op, Commuting2qBlocks):
                 nodes_to_decompose.append(node)
 
         return nodes_to_decompose
