@@ -18,5 +18,5 @@ features:
       # or equivalently, as previously
       op = SparsePauliOp.from_list([("IZIIX", 1), ("YIIYI", 2)])
 
-    This greatly facilitates the construction of very sparse operators on many qubits, as
-    is often the case for Ising Hamiltonians.
+    This facilitates the construction of very sparse operators on many qubits,
+    as is often the case for Ising Hamiltonians.

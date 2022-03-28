@@ -1,8 +1,8 @@
 ---
 features:
   - |
-    The internal computations of :class:`.Statevector.expectation_value` and
-    :class:`.DensityMatrix.expectation_value methods have been reimplemented
+    The internal computations of :meth:`.Statevector.expectation_value` and
+    :meth:`.DensityMatrix.expectation_value` methods have been reimplemented
     in the Rust programming language. This new implementation is multithreaded
     and by default for a :class:`~.Statevector` or :class:`~.DensityMatrix`
     >= 19 qubits will spawn a thread pool with the number of logical CPUs

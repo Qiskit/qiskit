@@ -1,10 +1,10 @@
 ---
 features:
   - |
-    The :class:`~qiskit.opflow.Z2Symmetries` class now exposes the threshold
-    tolerances used to chop small real- and imaginary parts of coefficients.
-    With this one can control how the coefficients of the tapered operator are
-    simplified. For example::
+    The :class:`~qiskit.opflow.primitive_ops.Z2Symmetries` class now exposes
+    the threshold tolerances used to chop small real and imaginary parts of
+    coefficients. With this one can control how the coefficients of the tapered
+    operator are simplified. For example::
 
         from qiskit.opflow import Z2Symmetries
         from qiskit.quantum_info import Pauli
@@ -19,10 +19,12 @@ features:
 
     Per default coefficients are chopped with a tolerance of ``tol=1e-14``.
   - |
-    Add a :meth:`qiskit.quantum_info.SparsePauliOp.chop` method that truncates real and
-    imaginary parts of coefficients individually. This is different to
-    :meth:`qiskit.quantum_info.SparsePauliOp.simplify` which removes a coefficient only if
-    the absolute value is close to 0. For example::
+    Added a :meth:`~qiskit.quantum_info.SparsePauliOp.chop` method to the
+    :class:`~qiskit.quantum_info.SparsePauliOp` class that truncates real and
+    imaginary parts of coefficients individually. This is different
+    from the :meth:`qiskit.quantum_info.SparsePauliOp.simplify` method which
+    removes a coefficient only if the absolute value is close to 0. For
+    example::
 
         >>> from qiskit.quantum_info import SparsePauliOp
         >>> op = SparsePauliOp(["X", "Y", "Z"], coeffs=[1+1e-17j, 1e-17+1j, 1e-17])
@@ -34,6 +36,8 @@ features:
                       coeffs=[1.+0.j, 0.+1.j])
 
     Note that the chop method does not accumulate the coefficents of the same Paulis, e.g.
+
+    .. code-block::
 
         >>> op = SparsePauliOp(["X", "X"], coeffs=[1+1e-17j, 1e-17+1j)
         >>> op.chop()

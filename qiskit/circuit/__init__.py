@@ -184,6 +184,7 @@ Gates and Instructions
 .. autosummary::
    :toctree: ../stubs/
 
+   Operation
    Gate
    ControlledGate
    Delay

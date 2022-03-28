@@ -1,0 +1,24 @@
+---
+prelude: |
+  The Qiskit 0.20.0 release highlights are:
+
+  * The introduction of multithreaded modules written in Rust to accelerate
+    the performance of certain portions of Qiskit Terra and improve scaling
+    with larger numbers of qubits.
+
+  * More native support for working with a :class:`~.Target` in the transpiler.
+    Several passes now support working directly with a :class:`~.Target` object
+    which makes the transpiler robust in the types of backends it can target.
+
+  * The introduction of the :mod:`qiskit.primitives` module. These APIs are
+    used to provide a higher level abstraction for working with
+    :class:`~.QuantumCircuit` objects and using backends for computation. For
+    example, the :class:`~qiskit.primitives.BaseEstimator` defines an abstract
+    interface
+    for estimating an expectation value of a QuantumCircuit and an observable.
+    This can then be used to construct higher level algorithms and applications
+    that are built using the estimation of expectation values without having
+    to worry about the implementation of computing the expectation value.
+
+  This release no long has support for Python 3.6 with this release,
+  Python 3.7 through Python 3.10.
