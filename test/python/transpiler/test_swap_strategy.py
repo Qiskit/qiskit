@@ -102,7 +102,7 @@ class TestSwapStrategy(QiskitTestCase):
         with self.assertRaises(QiskitError, msg=message):
             SwapStrategy(
                 coupling_map=self.line_coupling_map,
-                swap_layers=(((0, 1), (1, 2)), ),
+                swap_layers=(((0, 1), (1, 2)),),
             )
 
     def test_distance_matrix(self):
