@@ -219,7 +219,6 @@ class UnitarySynthesis(TransformationPass):
             return dag
 
         plugin_method = self.plugins.ext_plugins[self.method].obj
-        print("method", plugin_method)
         plugin_kwargs = {"config": self._plugin_config}
         _gate_lengths = _gate_errors = None
         dag_bit_indices = {}
@@ -269,10 +268,7 @@ class UnitarySynthesis(TransformationPass):
         if self.method == "default":
             plugin_method._approximation_degree = self._approximation_degree
 
-        print("iterating over", self._synth_gates)
-        print("iterating over", dag.named_nodes(*self._synth_gates))
         for node in dag.named_nodes(*self._synth_gates):
-            print("hello!")
             if self._min_qubits is not None and len(node.qargs) < self._min_qubits:
                 continue
             synth_dag = None
@@ -289,7 +285,6 @@ class UnitarySynthesis(TransformationPass):
                     self._coupling_map,
                     [dag_bit_indices[x] for x in node.qargs],
                 )
-            print("method", method, kwargs)
             synth_dag = method.run(unitary, **kwargs)
             if synth_dag is not None:
                 if isinstance(synth_dag, tuple):

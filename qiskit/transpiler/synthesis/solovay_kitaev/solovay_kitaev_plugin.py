@@ -10,9 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-An AQC synthesis plugin to Qiskit's transpiler.
+A Solovay-Kitaev synthesis plugin to Qiskit's transpiler.
 """
-import numpy as np
 
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes.synthesis.plugin import UnitarySynthesisPlugin
@@ -22,7 +21,7 @@ from .generate_basis_approximations import generate_basic_approximations
 
 # we globally cache an instance of the Solovay-Kitaev class to generate the
 # computationally expensive basis approximation of single qubit gates only once
-_sk = None
+SK_ = None
 
 
 class SolovayKitaevSynthesisPlugin(UnitarySynthesisPlugin):
@@ -100,7 +99,7 @@ class SolovayKitaevSynthesisPlugin(UnitarySynthesisPlugin):
     def supports_basis_gates(self):
         """The plugin does not support basis gates. By default it synthesis to the
         ``["h", "t", "tdg"]`` gate basis."""
-        return False
+        return True
 
     @property
     def supports_coupling_map(self):
@@ -111,16 +110,15 @@ class SolovayKitaevSynthesisPlugin(UnitarySynthesisPlugin):
 
         # Runtime imports to avoid the overhead of these imports for
         # plugin discovery and only use them if the plugin is run/used
-
-        print("I live!")
         config = options.get("config") or {}
 
         recursion_degree = config.get("recursion_degree", 3)
 
         # if we didn't yet construct the Solovay-Kitaev instance, which contains
         # the basic approximations, do it now
-        global _sk
-        if _sk is None:
+        global SK_  # pylint: disable=global-statement
+
+        if SK_ is None:
             basic_approximations = config.get("basic_approximations", None)
             basis_gates = options.get("basis_gates", None)
 
@@ -130,8 +128,8 @@ class SolovayKitaevSynthesisPlugin(UnitarySynthesisPlugin):
                 depth = config.get("depth", 10)
                 basic_approximations = generate_basic_approximations(basis_gates, depth)
 
-            _sk = SolovayKitaev(basic_approximations)
+                SK_ = SolovayKitaev(basic_approximations)
 
-        approximate_circuit = _sk.run(unitary, recursion_degree)
+        approximate_circuit = SK_.run(unitary, recursion_degree)
         dag_circuit = circuit_to_dag(approximate_circuit)
         return dag_circuit

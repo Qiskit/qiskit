@@ -36,7 +36,13 @@ from qiskit.transpiler.synthesis.solovay_kitaev.utils import GateSequence
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.exceptions import TranspilerError
 
-from qiskit.transpiler.passes import UnitarySynthesis
+from qiskit.transpiler import PassManager
+from qiskit.transpiler.passes import (
+    UnitarySynthesis,
+    Collect1qRuns,
+    ConsolidateBlocks,
+    Collect2qBlocks,
+)
 
 
 def _trace_distance(circuit1, circuit2):
@@ -87,13 +93,21 @@ class TestSolovayKitaev(QiskitTestCase):
 
     def test_unitary_synthesis(self):
         circuit = QuantumCircuit(1)
-        # circuit.append()
-        circuit.u(0.1, 0.2, 0.8, 0)
+        circuit.rx(0.8, 0)
 
-        u = UnitarySynthesis(["h", "t"], method="sk")
-        transpiled = transpile(circuit, optimization_level=3)
-        print(u(transpiled))
-        # print(transpiled)
+        _1q = Collect1qRuns()
+        _2q = Collect2qBlocks()
+        _cons = ConsolidateBlocks()
+        _synth = UnitarySynthesis(["h", "s"], method="sk")
+        passes = PassManager([_1q, _2q, _cons, _synth])
+        compiled = passes.run(circuit)
+
+        reference = QuantumCircuit(1, global_phase=3 * np.pi / 4)
+        reference.h(0)
+        reference.s(0)
+        reference.h(0)
+
+        self.assertEqual(compiled, reference)
 
     def test_plugin(self):
         circuit = QuantumCircuit(1)
