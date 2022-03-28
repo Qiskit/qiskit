@@ -264,7 +264,7 @@ class SwapStrategyRouter(TransformationPass):
         # Iterate over and apply gate layers
         max_distance = max(gate_layers.keys())
 
-        circuit_with_swap = QuantumCircuit(len(*dag.qregs.values()))
+        circuit_with_swap = QuantumCircuit(len(dag.qubits))
 
         for i in range(max_distance + 1):
             # Get current layer and replace the problem indices j,k by the corresponding
