@@ -21,7 +21,7 @@ from qiskit.qpy import formats, common, binary_io
 from qiskit.version import __version__
 
 
-def dump(circuits, file_obj):
+def dump(circuits, file_obj, metadata_serializer=None):
     """Write QPY binary data to a file
 
     This function is used to save a circuit to a file for later use or transfer
@@ -63,6 +63,10 @@ def dump(circuits, file_obj):
             store in the specified file like object. This can either be a
             single QuantumCircuit object or a list of QuantumCircuits.
         file_obj (file): The file like object to write the QPY data too
+        metadata_serializer (JSONEncoder): An optional JSONEncoder class that
+            will be passed the :attr:`.QuantumCircuit.metadata` dictionary for
+            each circuit in ``circuits`` and will be used as the ``cls`` kwarg
+            on the ``json.dump()`` call to JSON serialize that dictionary.
     """
     if isinstance(circuits, QuantumCircuit):
         circuits = [circuits]
@@ -78,10 +82,10 @@ def dump(circuits, file_obj):
     )
     file_obj.write(header)
     for circuit in circuits:
-        binary_io.write_circuit(file_obj, circuit)
+        binary_io.write_circuit(file_obj, circuit, metadata_serializer=metadata_serializer)
 
 
-def load(file_obj):
+def load(file_obj, metadata_deserializer=None):
     """Load a QPY binary file
 
     This function is used to load a serialized QPY circuit file and create
@@ -111,6 +115,13 @@ def load(file_obj):
     Args:
         file_obj (File): A file like object that contains the QPY binary
             data for a circuit
+        metadata_deserializer (JSONDecoder): An optional JSONDecoder class
+            that will be used for the ``cls`` kwarg on the internal
+            ``json.load`` call used to deserialize the JSON payload used for
+            the :attr:`.QuantumCircuit.metadata` attribute for any circuits
+            in the QPY file. If this is not specified the circuit metadata will
+            be parsed as JSON with the stdlib ``json.load()`` function using
+            the default ``JSONDecoder`` class.
     Returns:
         list: List of ``QuantumCircuit``
             The list of :class:`~qiskit.circuit.QuantumCircuit` objects
@@ -152,5 +163,9 @@ def load(file_obj):
         )
     circuits = []
     for _ in range(data.num_circuits):
-        circuits.append(binary_io.read_circuit(file_obj, data.qpy_version))
+        circuits.append(
+            binary_io.read_circuit(
+                file_obj, data.qpy_version, metadata_deserializer=metadata_deserializer
+            )
+        )
     return circuits

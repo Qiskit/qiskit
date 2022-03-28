@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    
+    The a new method :meth:`qiskit.dagcircuit.DAGCircuit.copy_empty_like` allows to create a new
+    :class:`qiskit.dagcircuit.DAGCircuit` with the same structure but empty.
+    This method is the same as the previously internal method `_copy_circuit_metadata`.

@@ -946,12 +946,20 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
 
         bt_pass = BasisTranslator(std_eqlib, target_basis=None, target=self.target)
         output = bt_pass(qc)
-        expected = QuantumCircuit(2, global_phase=pi / 2)
-        expected.rz(pi / 2, 1)
+        # We need a second run of BasisTranslator to correct gates outside of
+        # the target basis. This is a known isssue, see:
+        #  https://qiskit.org/documentation/release_notes.html#release-notes-0-19-0-known-issues
+        output = bt_pass(output)
+        expected = QuantumCircuit(2)
+        expected.rz(pi, 1)
         expected.sx(1)
-        expected.rz(pi / 2, 1)
+        expected.rz(3 * pi / 2, 1)
+        expected.sx(1)
+        expected.rz(3 * pi, 1)
         expected.cx(0, 1)
-        expected.rz(pi / 2, 1)
+        expected.rz(pi, 1)
         expected.sx(1)
-        expected.rz(pi / 2, 1)
+        expected.rz(3 * pi / 2, 1)
+        expected.sx(1)
+        expected.rz(3 * pi, 1)
         self.assertEqual(output, expected)
