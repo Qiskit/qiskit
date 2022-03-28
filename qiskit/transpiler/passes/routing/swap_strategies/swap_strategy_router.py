@@ -28,15 +28,15 @@ from qiskit.transpiler.passes.routing.swap_strategies.commuting_2q_block import 
 class SwapStrategyRouter(TransformationPass):
     """A class to swap route one or more commuting gates to the coupling map.
 
-    The mapping to the coupling map is done using swap strategies.
+    The mapping to the coupling map is done using swap strategies, see :class:`.SwapStrategy`.
     The swap strategy should suit the problem and the coupling map. This transpiler pass
     should ideally be executed before the quantum circuit is enlarged with any idle ancilla
     qubits. Otherwise we may swap qubits outside of the portion of the chip we want to use.
     Therefore, the swap strategy and its associated coupling map do not represent physical
     qubits. Instead, they represent an intermediate mapping that corresponds to the physical
     qubits once the initial layout is applied. The example below shows how to map a four
-    qubit PauliEvolutionGate to qubits 0, 1, 3, and 4 of the five qubit device with the
-    coupling map
+    qubit :class:`.PauliEvolutionGate` to qubits 0, 1, 3, and 4 of the five qubit device with
+    the coupling map
 
     .. parsed-literal::
 
