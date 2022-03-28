@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    The :class:`~qiskit.transpiler.passes.UnitarySynthesis` transpiler pass has
+    a new keyword argument on its constructor, ``target``. This can be used to
+    optionally specify a :class:`~qiskit.transpiler.Target` object which
+    represents the compilation target for the pass. When it's specified it will
+    supersede the values set for ``basis_gates``, ``coupling_map``, and
+    ``backend_props``. 
+  - |
+    The :class:`~qiskit.transpiler.passes.synthesis.plugin.UnitarySynthesisPlugin`
+    abstract plugin class has a new optional attribute implementations can add,
+    :attr:`~qiskit.transpiler.passes.synthesis.plugin.UnitarySynthesisPlugin.supports_target`.
+    If a plugin has this attribute set to ``True`` a :class:`~qiskit.transpiler.Target`
+    object will be passed in the ``options`` payload under the ``target`` field. The
+    expectation is that this :class:`~qiskit.transpiler.Target` object will be used
+    in place of ``coupling_map``, ``gate_lengths``, ``basis_gates``, and ``gate_errors``.

@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    The :class:`~qiskit.transpiler.DenseLayout` pass has a new keyword argument
+    on its constructor, ``target``. This argument is used to specify a
+    :class:`~qiskit.transpiler.Target` object representing the compilation target
+    for the pass. If it is specified it superscedes the other arguments,
+    ``coupling_map`` and ``backend_prop``.
+  - |
+    The :class:`~qiskit.transpiler.Target` class has a new method,
+    :meth:`~qiskit.transpiler.Target.operation_names_from_qargs`. This method is
+    used to get the operation names (i.e. lookup key in the target) for the operations
+    on a given qargs tuple.

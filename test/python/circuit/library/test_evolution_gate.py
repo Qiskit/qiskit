@@ -296,3 +296,15 @@ class TestEvolutionGate(QiskitTestCase):
         circuit.append(evo.inverse(), circuit.qubits)
 
         self.assertTrue(Operator(circuit).equiv(np.identity(2**circuit.num_qubits)))
+
+    def test_labels_and_name(self):
+        """Test the name and labels are correct."""
+        operators = [X, (X + Y), ((I ^ Z) + (Z ^ I) - 0.2 * (X ^ X))]
+
+        # note: the labels do not show coefficients!
+        expected_labels = ["X", "(X + Y)", "(IZ + ZI + XX)"]
+        for op, label in zip(operators, expected_labels):
+            with self.subTest(op=op, label=label):
+                evo = PauliEvolutionGate(op)
+                self.assertEqual(evo.name, "PauliEvolution")
+                self.assertEqual(evo.label, f"exp(-it {label})")

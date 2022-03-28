@@ -12,9 +12,11 @@
 
 """Base circuit scheduling pass."""
 
+import warnings
+
 from typing import Dict
 from qiskit.transpiler import InstructionDurations
-from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
 from qiskit.dagcircuit import DAGOpNode, DAGCircuit
 from qiskit.circuit import Delay, Gate
@@ -22,7 +24,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.transpiler.exceptions import TranspilerError
 
 
-class BaseScheduler(TransformationPass):
+class BaseScheduler(AnalysisPass):
     """Base scheduler pass.
 
     Policy of topological node ordering in scheduling
@@ -138,11 +140,10 @@ class BaseScheduler(TransformationPass):
         The former parameter determines the delay of the register write-access from
         the beginning of the measure instruction t0, and another parameter determines
         the delay of conditional gate operation from t0 which comes from the register read-access.
+        These information might be found in the backend configuration and then should
+        be copied to the pass manager property set before the pass is called.
 
-        Since we usually expect topological ordering and time ordering are identical
-        without the context of microarchitecture, both latencies are set to zero by default.
-        In this case, ``Measure`` instruction immediately locks the register C.
-        Under this configuration, the `alap`-scheduled circuit of above example may become
+        By default latencies, the `alap`-scheduled circuit of above example may become
 
         .. parsed-literal::
 
@@ -206,38 +207,26 @@ class BaseScheduler(TransformationPass):
 
     CONDITIONAL_SUPPORTED = (Gate, Delay)
 
-    def __init__(
-        self,
-        durations: InstructionDurations,
-        clbit_write_latency: int = 0,
-        conditional_latency: int = 0,
-    ):
+    def __init__(self, durations: InstructionDurations):
         """Scheduler initializer.
 
         Args:
             durations: Durations of instructions to be used in scheduling
-            clbit_write_latency: A control flow constraints. Because standard superconducting
-                quantum processor implement dispersive QND readout, the actual data transfer
-                to the clbit happens after the round-trip stimulus signal is buffered
-                and discriminated into quantum state.
-                The interval ``[t0, t0 + clbit_write_latency]`` is regarded as idle time
-                for clbits associated with the measure instruction.
-                This defaults to 0 dt which is identical to Qiskit Pulse scheduler.
-            conditional_latency: A control flow constraints. This value represents
-                a latency of reading a classical register for the conditional operation.
-                The gate operation occurs after this latency. This appears as a delay
-                in front of the DAGOpNode of the gate.
-                This defaults to 0 dt.
         """
         super().__init__()
         self.durations = durations
 
-        # Control flow constraints.
-        self.clbit_write_latency = clbit_write_latency
-        self.conditional_latency = conditional_latency
-
         # Ensure op node durations are attached and in consistent unit
         self.requires.append(TimeUnitConversion(durations))
+
+        # Initialize timeslot
+        if "node_start_time" in self.property_set:
+            warnings.warn(
+                "This circuit has been already scheduled. "
+                "The output of previous scheduling pass will be overridden.",
+                UserWarning,
+            )
+        self.property_set["node_start_time"] = dict()
 
     @staticmethod
     def _get_node_duration(
@@ -252,6 +241,9 @@ class BaseScheduler(TransformationPass):
             # If node has calibration, this value should be the highest priority
             cal_key = tuple(indices), tuple(float(p) for p in node.op.params)
             duration = dag.calibrations[node.op.name][cal_key].duration
+
+            # Note that node duration is updated (but this is analysis pass)
+            node.op.duration = duration
         else:
             duration = node.op.duration
 
