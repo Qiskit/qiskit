@@ -43,6 +43,11 @@ class Commuting2qBlocks(Gate):
             qubits.update(node.qargs)
             cbits.update(node.cargs)
 
+        if cbits:
+            raise QiskitError(
+                f"{self.__class__.__name__} does not accept nodes with classical bits."
+            )
+
         super().__init__("Commuting 2Q gates", num_qubits=len(qubits), params=[])
         self.node_block = list(node_block)
         self.qubits = list(qubits)
