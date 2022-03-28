@@ -60,6 +60,49 @@ class SwapStrategy:
                         f"part of the underlying coupling map with {edge_set} edges."
                     )
 
+    @classmethod
+    def make_line_swap_strategy(
+        cls,
+        line: List[int],
+        num_swap_layers: Optional[int] = None
+    ) -> "SwapStrategy":
+        """Creates a swap strategy for a line graph with the specified number of SWAP layers.
+
+        This SWAP strategy will use the full line if instructed to do so (i.e. num_variables
+        is None or equal to num_vertices). If instructed otherwise then the first num_variables
+        nodes of the line will be used in the swap strategy.
+
+        Args:
+            line: A line given as a list of nodes, e.g. ``[0, 2, 3, 4]``.
+            num_swap_layers: Number of swap layers the swap manager should be initialized with.
+
+        Raises:
+            ValueError: If the ``num_swap_layers`` is negative.
+            ValueError: If the ``line`` has less than 2 elements and no swap strategy can be applied.
+        """
+        if len(line) < 2:
+            raise ValueError(f"The line cannot have less than two elements, but is {line}")
+
+        if num_swap_layers is None:
+            num_swap_layers = len(line) - 2
+
+        elif num_swap_layers < 0:
+            raise ValueError(f"Negative number {num_swap_layers} passed for number of swap layers.")
+
+        swap_layer0 = [(line[i], line[i + 1]) for i in range(0, len(line) - 1, 2)]
+        swap_layer1 = [(line[i], line[i + 1]) for i in range(1, len(line) - 1, 2)]
+
+        base_layers = [swap_layer0, swap_layer1]
+
+        swap_layers = [base_layers[i % 2] for i in range(num_swap_layers)]
+
+        couplings = []
+        for idx in range(len(line) - 1):
+            couplings.append((line[idx], line[idx + 1]))
+            couplings.append((line[idx + 1], line[idx]))
+
+        return cls(coupling_map=CouplingMap(couplings), swap_layers=swap_layers)
+
     def __len__(self) -> int:
         """Return the length of the strategy as the number of layers.
 
@@ -255,45 +298,3 @@ class SwapStrategy:
             )
 
         return self._inverse_composed_permutation[idx]
-
-
-class LineSwapStrategy(SwapStrategy):
-    """An optimal SWAP strategy for a line."""
-
-    def __init__(self, line: List[int], num_swap_layers: Optional[int] = None) -> None:
-        """
-        Creates a swap strategy for a line graph with the specified number of SWAP layers.
-        This SWAP strategy will use the full line if instructed to do so (i.e. num_variables
-        is None or equal to num_vertices). If instructed otherwise then the first num_variables
-        nodes of the line will be used in the swap strategy.
-
-        Args:
-            line: A line given as a list of nodes, e.g. ``[0, 2, 3, 4]``.
-            num_swap_layers: Number of swap layers the swap manager should be initialized with.
-
-        Raises:
-            ValueError: If the ``num_swap_layers`` is negative.
-            ValueError: If the ``line`` has less than 2 elements and no swap strategy can be applied.
-        """
-        if len(line) < 2:
-            raise ValueError(f"The line cannot have less than two elements, but is {line}")
-
-        if num_swap_layers is None:
-            num_swap_layers = len(line) - 2
-
-        elif num_swap_layers < 0:
-            raise ValueError(f"Negative number {num_swap_layers} passed for number of swap layers.")
-
-        swap_layer0 = [(line[i], line[i + 1]) for i in range(0, len(line) - 1, 2)]
-        swap_layer1 = [(line[i], line[i + 1]) for i in range(1, len(line) - 1, 2)]
-
-        base_layers = [swap_layer0, swap_layer1]
-
-        swap_layers = [base_layers[i % 2] for i in range(num_swap_layers)]
-
-        couplings = []
-        for idx in range(len(line) - 1):
-            couplings.append((line[idx], line[idx + 1]))
-            couplings.append((line[idx + 1], line[idx]))
-
-        super().__init__(coupling_map=CouplingMap(couplings), swap_layers=swap_layers)

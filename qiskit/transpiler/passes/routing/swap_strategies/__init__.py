@@ -20,6 +20,6 @@ transpile blocks of commuting gates by applying layers of a predefined swap stra
 Further details can also be found here: https://arxiv.org/abs/2202.03459.
 """
 
-from .swap_strategy import SwapStrategy, LineSwapStrategy
+from .swap_strategy import SwapStrategy
 from .pauli_2q_evolution_commutation import FindCommutingPauliEvolutions
 from .swap_strategy_router import SwapStrategyRouter
