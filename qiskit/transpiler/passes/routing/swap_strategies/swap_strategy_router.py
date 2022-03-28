@@ -177,11 +177,11 @@ class SwapStrategyRouter(TransformationPass):
         """
         # Add all the non-swap strategy nodes that we have accumulated up to now.
         order = layout.reorder_bits(new_dag.qubits)
-        order_bis = [None] * len(layout)
+        order_bits = [None] * len(layout)
         for idx, val in enumerate(order):
-            order_bis[val] = idx
+            order_bits[val] = idx
 
-        new_dag.compose(accumulator, qubits=order_bis)
+        new_dag.compose(accumulator, qubits=order_bits)
 
         # Re-initialize the node accumulator
         return new_dag.copy_empty_like()
