@@ -15,7 +15,9 @@ Sampler class
 
 from __future__ import annotations
 
+import numpy as np
 from collections.abc import Iterable, Sequence
+from typing import cast
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -71,6 +73,11 @@ class Sampler(BaseSampler):
         if self._is_closed:
             raise QiskitError("The primitive has been closed.")
 
+        if isinstance(parameter_values, np.ndarray):
+            parameter_values = parameter_values.tolist()
+        if parameter_values and not isinstance(parameter_values[0], (np.ndarray, Sequence)):
+            parameter_values = cast("Sequence[float]", parameter_values)
+            parameter_values = [parameter_values]
         if circuit_indices is None and parameter_values is not None and len(self._circuits) == 1:
             circuit_indices = [0] * len(parameter_values)
         if circuit_indices is None:

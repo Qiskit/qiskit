@@ -87,6 +87,11 @@ class Estimator(BaseEstimator):
             observable_indices = list(range(len(self._observables)))
         if parameter_values is None:
             parameter_values = [[]] * len(circuit_indices)
+        if len(circuit_indices) != len(observable_indices):
+            raise QiskitError(
+                f"The number of circuit indices ({len(circuit_indices)}) does not match "
+                f"the number of observable indices ({len(observable_indices)})."
+            )
         if len(circuit_indices) != len(parameter_values):
             raise QiskitError(
                 f"The number of circuit indices ({len(circuit_indices)}) does not match "

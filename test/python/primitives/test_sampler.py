@@ -346,6 +346,29 @@ class TestSampler(QiskitTestCase):
                     self.assertDictEqual(quasi_dist, {0: 1.0})
                 self.assertEqual(len(result.metadata), 2)
 
+    def test_numpy_params(self):
+        """Test for numpy array as parameter values"""
+        qc = RealAmplitudes(num_qubits=2, reps=2)
+        qc.measure_all()
+        k = 5
+        params_array = np.random.rand(k, qc.num_parameters)
+        params_list = params_array.tolist()
+        params_list_array = [param for param in params_array]
+        with Sampler(circuits=qc) as sampler:
+            target = sampler([0] * k, params_list)
+
+            with self.subTest("ndarrary"):
+                result = sampler([0] * k, params_array)
+                self.assertEqual(len(result.metadata), k)
+                for i in range(k):
+                    self.assertDictEqual(result.quasi_dists[i], target.quasi_dists[i])
+
+            with self.subTest("list of ndarray"):
+                result = sampler([0] * k, params_list_array)
+                self.assertEqual(len(result.metadata), k)
+                for i in range(k):
+                    self.assertDictEqual(result.quasi_dists[i], target.quasi_dists[i])
+
 
 if __name__ == "__main__":
     unittest.main()

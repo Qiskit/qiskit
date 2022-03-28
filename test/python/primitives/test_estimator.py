@@ -257,6 +257,10 @@ class TestEstimator(QiskitTestCase):
                 est([0], [0], [[1e4]])
             with self.assertRaises(QiskitError):
                 est([1], [1], [[1, 2]])
+            with self.assertRaises(QiskitError):
+                est([0, 1], [1], [[1]])
+            with self.assertRaises(QiskitError):
+                est([0], [0, 1], [[1]])
 
     def test_empty_parameter(self):
         """Test for empty parameter"""
@@ -274,16 +278,26 @@ class TestEstimator(QiskitTestCase):
                 np.testing.assert_allclose(result.values, [1, 1])
                 self.assertEqual(len(result.metadata), 2)
 
-    def test_param_broadcast(self):
-        """Test for parameter broadcast"""
+    def test_numpy_params(self):
+        """Test for numpy array as parameter values"""
         qc = RealAmplitudes(num_qubits=2, reps=2)
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
-        params = np.random.rand(10, qc.num_parameters)
+        k = 5
+        params_array = np.random.rand(k, qc.num_parameters)
+        params_list = params_array.tolist()
+        params_list_array = [param for param in params_array]
         with Estimator(circuits=qc, observables=op) as estimator:
-            targets = [estimator(parameters=param).values[0] for param in params]
-            results = estimator(parameters=params)
-            self.assertEqual(len(results.metadata), 10)
-            np.testing.assert_allclose(results.values, targets)
+            target = estimator([0] * k, [0] * k, params_list)
+
+            with self.subTest("ndarrary"):
+                result = estimator([0] * k, [0] * k, params_array)
+                self.assertEqual(len(result.metadata), k)
+                np.testing.assert_allclose(result.values, target.values)
+
+            with self.subTest("list of ndarray"):
+                result = estimator([0] * k, [0] * k, params_list_array)
+                self.assertEqual(len(result.metadata), k)
+                np.testing.assert_allclose(result.values, target.values)
 
 
 if __name__ == "__main__":
