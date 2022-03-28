@@ -42,7 +42,6 @@ class LinCombFull(CircuitQFI):
         phase_fix: bool = True,
     ):
         """
-        Initialize linear combination gradient object.
         Args:
             aux_meas_op: The operator that the auxiliary qubit is measured with respect to.
                 For ``aux_meas_op = Z`` we compute 4Re[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉],
@@ -53,6 +52,7 @@ class LinCombFull(CircuitQFI):
         Raises:
             ValueError: If the provided auxiliary measurement operator is not supported.
         """
+        super().__init__()
         if aux_meas_op not in [Z, -Y, (Z - 1j * Y)]:
             raise ValueError(
                 "This auxiliary measurement operator is currently not supported. Please choose "
