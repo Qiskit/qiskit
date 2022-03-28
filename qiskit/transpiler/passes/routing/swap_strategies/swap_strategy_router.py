@@ -148,7 +148,7 @@ class SwapStrategyRouter(TransformationPass):
             if isinstance(node.op, Commuting2qBlocks):
 
                 # Check that the swap strategy creates enough connectivity for the node.
-                self._check_edges(dag, node, swap_strategy)
+                self._check_edges(node, swap_strategy)
 
                 # Compose any accumulated non-swap strategy gates to the dag
                 accumulator = self._compose_non_swap_nodes(accumulator, current_layout, new_dag)
@@ -316,8 +316,7 @@ class SwapStrategyRouter(TransformationPass):
 
         return gate_layers
 
-    @staticmethod
-    def _check_edges(dag: DAGCircuit, node: DAGOpNode, swap_strategy: SwapStrategy):
+    def _check_edges(self, node: DAGOpNode, swap_strategy: SwapStrategy):
         """Check if the swap strategy can create the required connectivity.
 
         Args:
@@ -328,11 +327,10 @@ class SwapStrategyRouter(TransformationPass):
             TranspilerError: If there is an edge that the swap strategy cannot accommodate
                 and if the pass has been configured to raise on such issues.
         """
-        register = dag.qregs["q"]
         required_edges = set()
 
         for sub_node in node.op:
-            edge = (register.index(sub_node.qargs[0]), register.index(sub_node.qargs[1]))
+            edge = (self._bit_indices[sub_node.qargs[0]], self._bit_indices[sub_node.qargs[1]])
             required_edges.add(edge)
 
         # Check that the swap strategy supports all required edges
