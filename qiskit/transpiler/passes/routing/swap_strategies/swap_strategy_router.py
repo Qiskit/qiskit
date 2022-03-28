@@ -112,6 +112,7 @@ class SwapStrategyRouter(TransformationPass):
         """
         super().__init__()
         self._swap_strategy = swap_strategy
+        self._bit_indices = None
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the pass by decomposing the nodes it applies on.
@@ -140,6 +141,8 @@ class SwapStrategyRouter(TransformationPass):
 
         # Used to keep track of nodes that do not decompose using swap strategies.
         accumulator = new_dag.copy_empty_like()
+
+        self._bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
 
         for node in dag.topological_op_nodes():
             if isinstance(node.op, Commuting2qBlocks):
@@ -186,27 +189,21 @@ class SwapStrategyRouter(TransformationPass):
         # Re-initialize the node accumulator
         return new_dag.copy_empty_like()
 
-    @staticmethod
-    def _position_in_cmap(j: int, k: int, layout: Layout, dag: DAGCircuit) -> Tuple[int, ...]:
+    def _position_in_cmap(self, j: int, k: int, layout: Layout) -> Tuple[int, ...]:
         """A helper function to track the movement of logical qubits through the swaps.
 
         Args:
             j: The index of decision variable j (i.e. logical qubit).
             k: The index of decision variable k (i.e. logical qubit).
             layout: The current layout that takes into account previous swap gates.
-            dag: The dag.
 
         Returns:
             The position in the coupling map of the logical qubits j and k as a tuple.
         """
-        pos_in_cmap = []
-        for idx in range(len(layout)):
-            if j == layout.get_virtual_bits()[dag.qubits[idx]]:
-                pos_in_cmap.append(idx)
-            if k == layout.get_virtual_bits()[dag.qubits[idx]]:
-                pos_in_cmap.append(idx)
+        bit0 = self._bit_indices[layout.get_physical_bits()[j]]
+        bit1 = self._bit_indices[layout.get_physical_bits()[k]]
 
-        return tuple(pos_in_cmap)
+        return bit0, bit1
 
     @staticmethod
     def _build_sub_layers(current_layer: Dict[tuple, Gate]) -> List[Dict[tuple, Gate]]:
@@ -275,7 +272,7 @@ class SwapStrategyRouter(TransformationPass):
             # to all the gates that can be applied at the ith swap layer.
             current_layer = {}
             for (j, k), local_gate in gate_layers.get(i, {}).items():
-                current_layer[self._position_in_cmap(j, k, current_layout, dag)] = local_gate
+                current_layer[self._position_in_cmap(j, k, current_layout)] = local_gate
 
             # Not all gates that are applied at the ith swap layer can be applied at the same
             # time. We therefore greedily build sub-layers.

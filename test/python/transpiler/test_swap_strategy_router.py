@@ -234,9 +234,9 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
             expected.ry(-2, 3)
             if order == 0:
                 expected.append(PauliEvolutionGate(Pauli("ZZ"), 6), (0, 1))
-                expected.append(PauliEvolutionGate(Pauli("ZZ"), 4), (1, 2))
+                expected.append(PauliEvolutionGate(Pauli("ZZ"), 4), (2, 1))
             else:
-                expected.append(PauliEvolutionGate(Pauli("ZZ"), 4), (1, 2))
+                expected.append(PauliEvolutionGate(Pauli("ZZ"), 4), (2, 1))
                 expected.append(PauliEvolutionGate(Pauli("ZZ"), 6), (0, 1))
 
             expected.swap(0, 1)
@@ -264,7 +264,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         backend_cmap = CouplingMap(couplinglist=[(0, 1), (1, 2), (1, 3), (3, 4)])
 
         swap_cmap = CouplingMap(couplinglist=[(0, 1), (1, 2), (2, 3)])
-        swap_strat = SwapStrategy(swap_cmap, swap_layers=[[(0, 1), (2, 3)], [(1, 2)]])
+        swap_strat = SwapStrategy(swap_cmap, swap_layers=(((0, 1), (2, 3)), ((1, 2), )))
 
         initial_layout = Layout.from_intlist([0, 1, 3, 4], *circ.qregs)
 
@@ -309,7 +309,7 @@ class TestSwapRouterExceptions(QiskitTestCase):
         self.swap_cmap = CouplingMap(couplinglist=[(0, 1), (1, 2), (2, 3)])
 
         # This swap strategy does not reach full connectivity.
-        self.swap_strat = SwapStrategy(self.swap_cmap, swap_layers=[[(0, 1), (2, 3)]])
+        self.swap_strat = SwapStrategy(self.swap_cmap, swap_layers=(((0, 1), (2, 3)), ))
 
     def test_no_swap_strategy(self):
         """Test raise on no swap strategy."""
