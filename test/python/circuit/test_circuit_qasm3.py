@@ -19,7 +19,7 @@ from io import StringIO
 import re
 import unittest
 
-import ddt
+from ddt import ddt, data
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
 from qiskit.circuit import Parameter, Qubit, Clbit, Instruction
@@ -66,7 +66,7 @@ class TestQASM3Functions(QiskitTestCase):
         self.assertEqual(result, self.expected_qasm)
 
 
-@ddt.ddt
+@ddt
 class TestCircuitQASM3(QiskitTestCase):
     """QASM3 exporter."""
 
@@ -1381,7 +1381,7 @@ class TestCircuitQASM3(QiskitTestCase):
         self.assertNotEqual(register_name["name"], parameter_name["name"])
 
     # Not necessarily all the reserved keywords, just a sensibly-sized subset.
-    @ddt.data("bit", "const", "def", "defcal", "float", "gate", "include", "int", "let", "measure")
+    @data("bit", "const", "def", "defcal", "float", "gate", "include", "int", "let", "measure")
     def test_reserved_keywords_as_names_are_escaped(self, keyword):
         """Test that reserved keywords used to name registers and parameters are escaped into
         another form when output, and the escaping cannot introduce new conflicts."""
@@ -1650,7 +1650,7 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
         self.assertEqual(Exporter(includes=[]).dumps(circuit), expected_qasm)
 
 
-@ddt.ddt
+@ddt
 class TestQASM3ExporterFailurePaths(QiskitTestCase):
     """Tests of the failure paths for the exporter."""
 
@@ -1665,7 +1665,7 @@ class TestQASM3ExporterFailurePaths(QiskitTestCase):
         with self.assertRaisesRegex(QASM3ExporterError, r"Clbit .* is in multiple registers.*"):
             exporter.dumps(qc)
 
-    @ddt.data([1, 2, 1.1], [1j, 2])
+    @data([1, 2, 1.1], [1j, 2])
     def test_disallow_for_loops_with_non_integers(self, indices):
         """Test that the exporter rejects ``for`` loops that include non-integer values in their
         index sets."""
