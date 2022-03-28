@@ -12,11 +12,10 @@
 
 """Test evolver problem class."""
 import unittest
-
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import data, ddt, unpack
 from numpy.testing import assert_raises
 
-from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit.algorithms.evolvers.evolution_problem import EvolutionProblem
 from qiskit.circuit import Parameter
 from qiskit.opflow import Y, Z, One, X, Zero
@@ -58,7 +57,12 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
         hamiltonian_value_dict = {t_parameter: 3.2}
 
         evo_problem = EvolutionProblem(
-            hamiltonian, time, initial_state, aux_operators, t_parameter, hamiltonian_value_dict
+            hamiltonian,
+            time,
+            initial_state,
+            aux_operators,
+            t_param=t_parameter,
+            hamiltonian_value_dict=hamiltonian_value_dict,
         )
 
         expected_hamiltonian = Y + t_parameter * Z

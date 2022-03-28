@@ -42,7 +42,7 @@ class TrotterQRTE(RealEvolver):
 
         .. jupyter-execute::
 
-            from qiskit.opflow import X, Y, Zero
+            from qiskit.opflow import X, Z, Zero
             from qiskit.algorithms import EvolutionProblem, TrotterQRTE
             from qiskit import BasicAer
             from qiskit.utils import QuantumInstance
