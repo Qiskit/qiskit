@@ -87,8 +87,8 @@ class Estimator(BaseEstimator):
             parameter_values = [[]] * len(circuit_indices)
         if len(circuit_indices) != len(parameter_values):
             raise QiskitError(
-                f"The number of circuits ({len(circuit_indices)}) does not match "
-                f"the number of parameter sets ({len(parameter_values)})."
+                f"The number of circuit indices ({len(circuit_indices)}) does not match "
+                f"the number of parameter value sets ({len(parameter_values)})."
             )
 
         bound_circuits = []

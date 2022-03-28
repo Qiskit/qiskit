@@ -32,7 +32,7 @@ class EstimatorResult:
         result = estimator(circuits, observables, params)
 
     where the i-th elements of ``result`` correspond to the circuit and observable given by
-    `circuit_indices[i]`, `observable_indices[i]`, and the parameter_values bounds by `params[i]`.
+    ``circuit_indices[i]``, ``observable_indices[i]``, and the parameter_values bounds by ``params[i]``.
     For example, ``results.values[i]`` gives the expectation value, and ``result.metadata[i]``
     is a metadata dictionary for this circuit and parameters.
 
