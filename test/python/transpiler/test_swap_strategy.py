@@ -93,7 +93,16 @@ class TestSwapStrategy(QiskitTestCase):
         with self.assertRaises(QiskitError):
             SwapStrategy(
                 coupling_map=self.line_coupling_map,
-                swap_layers=(((0, 1), (1, 2)), ((1, 3), (2, 4))),
+                swap_layers=(((0, 1), (2, 3)), ((1, 3), (2, 4))),
+            )
+
+    def test_only_one_swap_per_qubit_per_layer(self):
+        """Test that tries to initialize an invalid swap strategy."""
+        message = "The 0th swap layer contains a qubit with multiple swaps."
+        with self.assertRaises(QiskitError, msg=message):
+            SwapStrategy(
+                coupling_map=self.line_coupling_map,
+                swap_layers=(((0, 1), (1, 2)), ),
             )
 
     def test_distance_matrix(self):
@@ -194,8 +203,8 @@ class TestSwapStrategyExceptions(QiskitTestCase):
 
     def test_invalid_line_strategy(self):
         """Test the number of layers."""
-
-        with self.assertRaises(ValueError):
+        message = "Negative number -1 passed for number of swap layers."
+        with self.assertRaises(ValueError, msg=message):
             SwapStrategy.make_line_swap_strategy([0, 1, 2], -1)
 
 
@@ -204,7 +213,8 @@ class TestLineSwapStrategy(QiskitTestCase):
 
     def test_invalid_line(self):
         """Test that lines should be longer than 1."""
-        with self.assertRaises(ValueError):
+        message = "The line cannot have less than two elements, but is [1]"
+        with self.assertRaises(ValueError, msg=message):
             SwapStrategy.make_line_swap_strategy([1], 0)
 
     def test_full_line(self):

@@ -45,6 +45,7 @@ class SwapStrategy:
             QiskitError: If the coupling map is not specified.
             QiskitError: if the swap strategy is not valid. A swap strategy is valid if all
                 swap gates, specified as tuples, are contained in the edge set of the coupling map.
+                A swap strategy is also invalid if a layer has multiple swaps on the same qubit.
         """
         self._coupling_map = coupling_map
         self._num_vertices = coupling_map.size()
@@ -60,9 +61,13 @@ class SwapStrategy:
             for edge in layer:
                 if edge not in edge_set:
                     raise QiskitError(
-                        f"The {i}th SWAP layer contains the edge {edge} which is not "
+                        f"The {i}th swap layer contains the edge {edge} which is not "
                         f"part of the underlying coupling map with {edge_set} edges."
                     )
+
+            layer_qubits = list(qubit for edge in layer for qubit in edge)
+            if len(layer_qubits) != len(set(layer_qubits)):
+                raise QiskitError(f"The {i}th swap layer contains a qubit with multiple swaps.")
 
     @classmethod
     def make_line_swap_strategy(
