@@ -142,7 +142,7 @@ class SwapStrategyRouter(TransformationPass):
         accumulator = new_dag.copy_empty_like()
 
         for node in dag.topological_op_nodes():
-            if node in self._get_nodes_to_decompose(dag):
+            if isinstance(node.op, Commuting2qBlocks):
 
                 # Check that the swap strategy creates enough connectivity for the node.
                 self._check_edges(dag, node, swap_strategy)
@@ -295,21 +295,6 @@ class SwapStrategyRouter(TransformationPass):
                     current_layout.swap(j, k)
 
         return circuit_to_dag(circuit_with_swap)
-
-    def _get_nodes_to_decompose(self, dag: DAGCircuit) -> List[DAGOpNode]:
-        """Get the nodes that the pass will act on.
-
-        Returns:
-            A list of nodes in the dag to which this class will apply the :meth:`swap_decompose`
-            method.
-        """
-        nodes_to_decompose = []
-
-        for node in dag.op_nodes():
-            if isinstance(node.op, Commuting2qBlocks):
-                nodes_to_decompose.append(node)
-
-        return nodes_to_decompose
 
     @staticmethod
     def _make_op_layers(
