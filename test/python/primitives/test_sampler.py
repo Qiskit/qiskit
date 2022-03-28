@@ -353,7 +353,7 @@ class TestSampler(QiskitTestCase):
         k = 5
         params_array = np.random.rand(k, qc.num_parameters)
         params_list = params_array.tolist()
-        params_list_array = [param for param in params_array]
+        params_list_array = list(params_array)
         with Sampler(circuits=qc) as sampler:
             target = sampler([0] * k, params_list)
 

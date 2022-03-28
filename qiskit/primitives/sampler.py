@@ -15,9 +15,10 @@ Sampler class
 
 from __future__ import annotations
 
-import numpy as np
 from collections.abc import Iterable, Sequence
 from typing import cast
+
+import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.exceptions import QiskitError

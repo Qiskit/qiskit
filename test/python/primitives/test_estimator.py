@@ -13,6 +13,7 @@
 """Tests for Estimator."""
 
 import unittest
+
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
@@ -285,7 +286,7 @@ class TestEstimator(QiskitTestCase):
         k = 5
         params_array = np.random.rand(k, qc.num_parameters)
         params_list = params_array.tolist()
-        params_list_array = [param for param in params_array]
+        params_list_array = list(params_array)
         with Estimator(circuits=qc, observables=op) as estimator:
             target = estimator([0] * k, [0] * k, params_list)
 
