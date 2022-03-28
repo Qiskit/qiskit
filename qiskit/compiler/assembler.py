@@ -13,6 +13,7 @@
 """Assemble function for converting a list of circuits into a qobj"""
 import copy
 import logging
+import numbers
 import uuid
 import warnings
 from time import time
@@ -321,7 +322,7 @@ def _parse_common_args(
             shots = min(1024, max_shots)
         else:
             shots = 1024
-    elif not isinstance(shots, int):
+    elif not isinstance(shots, numbers.Integral):
         raise QiskitError("Argument 'shots' should be of type 'int'")
     elif max_shots and max_shots < shots:
         raise QiskitError(
