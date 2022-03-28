@@ -31,12 +31,17 @@ class SwapStrategy:
     algorithms.
     """
 
-    def __init__(self, coupling_map: CouplingMap, swap_layers: List[List[Tuple[int, int]]]) -> None:
+    def __init__(
+        self,
+        coupling_map: CouplingMap,
+        swap_layers: Tuple[Tuple[Tuple[int, int], ...], ...]
+    ) -> None:
         """
         Args:
             coupling_map: The coupling map the strategy is implemented for.
-            swap_layers: The swap layers of the strategy, specified as a list of sets of
-                edges (edges can be represented as lists, sets or tuples containing two integers).
+            swap_layers: The swap layers of the strategy, specified as tuple of swap layers.
+                Each swap layer is a tuple of edges to which swaps are applied simultaneously.
+                Each swap is specified as an edge which is a tuple of two integers.
 
         Raises:
             QiskitError: If the coupling map is not specified.
@@ -90,19 +95,19 @@ class SwapStrategy:
         elif num_swap_layers < 0:
             raise ValueError(f"Negative number {num_swap_layers} passed for number of swap layers.")
 
-        swap_layer0 = [(line[i], line[i + 1]) for i in range(0, len(line) - 1, 2)]
-        swap_layer1 = [(line[i], line[i + 1]) for i in range(1, len(line) - 1, 2)]
+        swap_layer0 = tuple((line[i], line[i + 1]) for i in range(0, len(line) - 1, 2))
+        swap_layer1 = tuple((line[i], line[i + 1]) for i in range(1, len(line) - 1, 2))
 
         base_layers = [swap_layer0, swap_layer1]
 
-        swap_layers = [base_layers[i % 2] for i in range(num_swap_layers)]
+        swap_layers = tuple(base_layers[i % 2] for i in range(num_swap_layers))
 
         couplings = []
         for idx in range(len(line) - 1):
             couplings.append((line[idx], line[idx + 1]))
             couplings.append((line[idx + 1], line[idx]))
 
-        return cls(coupling_map=CouplingMap(couplings), swap_layers=swap_layers)
+        return cls(coupling_map=CouplingMap(couplings), swap_layers=tuple(swap_layers))
 
     def __len__(self) -> int:
         """Return the length of the strategy as the number of layers.

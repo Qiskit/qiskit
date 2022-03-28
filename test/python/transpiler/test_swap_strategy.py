@@ -42,13 +42,13 @@ class TestSwapStrategy(QiskitTestCase):
             ]
         )
 
-        self.line_swap_layers = [
-            [(0, 1), (2, 3)],
-            [(1, 2), (3, 4)],
-            [(0, 1), (2, 3)],
-            [(1, 2), (3, 4)],
-            [(0, 1), (2, 3)],
-        ]
+        self.line_swap_layers = (
+            ((0, 1), (2, 3)),
+            ((1, 2), (3, 4)),
+            ((0, 1), (2, 3)),
+            ((1, 2), (3, 4)),
+            ((0, 1), (2, 3)),
+        )
 
         self.line_edge_coloring = {(0, 1): 0, (1, 2): 1, (2, 3): 0, (3, 4): 1}
         self.line_strategy = SwapStrategy(self.line_coupling_map, self.line_swap_layers)
@@ -93,7 +93,7 @@ class TestSwapStrategy(QiskitTestCase):
         with self.assertRaises(QiskitError):
             SwapStrategy(
                 coupling_map=self.line_coupling_map,
-                swap_layers=[[(0, 1), (1, 2)], [(1, 3), (2, 4)]],
+                swap_layers=(((0, 1), (1, 2)), ((1, 3), (2, 4))),
             )
 
     def test_distance_matrix(self):
@@ -143,8 +143,8 @@ class TestSwapStrategy(QiskitTestCase):
         ll27_map += [[ll27[idx + 1], ll27[idx]] for idx in range(len(ll27) - 1)]
 
         # Create a line swap strategy on this line
-        layer1 = [(ll27[idx], ll27[idx + 1]) for idx in range(0, len(ll27) - 1, 2)]
-        layer2 = [(ll27[idx], ll27[idx + 1]) for idx in range(1, len(ll27), 2)]
+        layer1 = tuple((ll27[idx], ll27[idx + 1]) for idx in range(0, len(ll27) - 1, 2))
+        layer2 = tuple((ll27[idx], ll27[idx + 1]) for idx in range(1, len(ll27), 2))
 
         n = len(ll27)
         for n_layers, result in [
@@ -160,14 +160,14 @@ class TestSwapStrategy(QiskitTestCase):
                 else:
                     swap_strat_ll.append(layer2)
 
-            strat = SwapStrategy(CouplingMap(ll27_map), swap_strat_ll)
+            strat = SwapStrategy(CouplingMap(ll27_map), tuple(swap_strat_ll))
             self.assertEqual(strat.reaches_full_connectivity, result)
 
     def test_possible_edges(self):
         """Test that possible edges works as expected."""
         coupling_map = CouplingMap(couplinglist=[(0, 1), (1, 2), (2, 3)])
 
-        strat = SwapStrategy(coupling_map, [[(0, 1), (2, 3)], [(1, 2)]])
+        strat = SwapStrategy(coupling_map, (((0, 1), (2, 3)), ((1, 2), )))
 
         expected = set()
         for i in range(4):
@@ -185,7 +185,7 @@ class TestSwapStrategyExceptions(QiskitTestCase):
         """Test that a raise properly occurs."""
 
         coupling_map = CouplingMap(couplinglist=[(0, 1), (1, 2)])
-        swap_layers = [[(0, 1), (2, 3)], [(1, 2), (3, 4)]]
+        swap_layers = (((0, 1), (2, 3)), ((1, 2), (3, 4)))
 
         with self.assertRaises(QiskitError):
             SwapStrategy(coupling_map, swap_layers)
@@ -253,7 +253,7 @@ class TestLineSwapStrategy(QiskitTestCase):
     def test_repr(self):
         """The the representation."""
         expected = (
-            "SwapStrategy with swap layers:\n[(0, 1)],\non "
+            "SwapStrategy with swap layers:\n((0, 1),),\non "
             "[[0, 1], [1, 0], [1, 2], [2, 1]] coupling map."
         )
         self.assertEqual(repr(SwapStrategy.make_line_swap_strategy([0, 1, 2])), expected)
