@@ -1,15 +1,11 @@
 ---
 features:
   - |
-    New transpiler passes have been added. The transpiler pass
-    :class:`qiskit.transpiler.passes.routing.swap_strategies.swap_strategy_router.SwapStrategyRouter``
+    New transpiler passes have been added. The transpiler pass :class:`.SwapStrategyRouter`
     usees swap strategies to route a block of commuting gates to the coupling map. Indeed, routing
     is a hard problem but is significantly easier when the gates commute. This is often found in
     variational algorithms such as QAOA. Such cases can be dealt with using swap strategies that
     apply a predefined set of layers of SWAP gates. Furthermore, the new transpiler pass
-    :class:`qiskit.transpiler.passes.routing.swap_strategies.pauli_2q_evolution_commutation.FindCommutingPauliEvolutions``
-    identifies blocks of Pauli evolutions made of commuting two-qubit terms. These terms are then grouped in
-    :class:`qiskit.transpiler.passes.routing.swap_strategies.commuting_2q_block.Commuting2QBlocks`
-    gates that are consummed by the swap-strategy router. Here, a swap strategy is specified by the class
-    :class:`qiskit.transpiler.passes.routing.swap_strategies.swap_strategy.SwapStrategy`.
-    Swap strategies need to be tailored to the coupling map and, ideally, the circuit for the best results.
+    :class:`.FindCommutingPauliEvolutions` identifies blocks of Pauli evolutions made of commuting
+    two-qubit terms. Here, a swap strategy is specified by the class :class:`.SwapStrategy`. Swap
+    strategies need to be tailored to the coupling map and, ideally, the circuit for the best results.
