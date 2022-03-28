@@ -135,7 +135,7 @@ class FindCommutingPauliEvolutions(TransformationPass):
 
             qubits = [dag.qubits[edge[0]], dag.qubits[edge[1]]]
 
-            simple_pauli = Pauli(str(pauli).replace("I", ""))
+            simple_pauli = Pauli(pauli.to_label().replace("I", ""))
 
             pauli_2q = PauliEvolutionGate(simple_pauli, op.time * np.real(coeff))
             sub_dag.apply_operation_back(pauli_2q, qubits)
