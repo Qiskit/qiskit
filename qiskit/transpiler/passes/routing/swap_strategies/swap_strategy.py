@@ -138,7 +138,7 @@ class SwapStrategy:
             A copy of the swap layer at ``idx`` to avoid any unintentional modification to
             the swap strategy.
         """
-        return list(swap for swap in self._swap_layers[idx])
+        return list(self._swap_layers[idx])
 
     @property
     def distance_matrix(self) -> np.array:
