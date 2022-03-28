@@ -36,10 +36,11 @@ class LinCombFull(CircuitQFI):
     """
 
     # pylint: disable=signature-differs, arguments-differ
-    def __init__(self,
-                 aux_meas_op: OperatorBase = Z,
-                 phase_fix: bool = True,
-                 ):
+    def __init__(
+        self,
+        aux_meas_op: OperatorBase = Z,
+        phase_fix: bool = True,
+    ):
         """
         Initialize linear combination gradient object.
         Args:
@@ -64,7 +65,6 @@ class LinCombFull(CircuitQFI):
         self,
         operator: CircuitStateFn,
         params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]],
-
     ) -> ListOp:
         r"""
         Args:
@@ -79,8 +79,9 @@ class LinCombFull(CircuitQFI):
             TypeError: If ``operator`` is an unsupported type.
         """
         # QFI & phase fix observable
-        qfi_observable = StateFn(4 * self._aux_meas_op ^ (I ^ operator.num_qubits),
-                                 is_measurement=True)
+        qfi_observable = StateFn(
+            4 * self._aux_meas_op ^ (I ^ operator.num_qubits), is_measurement=True
+        )
         if self._aux_meas_op not in [Z, -Y, (Z - 1j * Y)]:
             raise ValueError(
                 "This auxiliary measurement operator is currently not supported. Please choose "

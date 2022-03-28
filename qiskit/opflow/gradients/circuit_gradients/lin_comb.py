@@ -99,8 +99,7 @@ class LinComb(CircuitGradient):
     }
 
     # pylint: disable=signature-differs, arguments-differ
-    def __init__(self,
-                 aux_meas_op: OperatorBase = Z):
+    def __init__(self, aux_meas_op: OperatorBase = Z):
         """
         Initialize linear combination gradient object.
         Args:
@@ -274,15 +273,11 @@ class LinComb(CircuitGradient):
                     isinstance(params, list)
                     and all(isinstance(param, ParameterExpression) for param in params)
                 ):
-                    return self._gradient_states(
-                        operator, target_params=params
-                    )
+                    return self._gradient_states(operator, target_params=params)
                 elif isinstance(params, tuple) or (
                     isinstance(params, list) and all(isinstance(param, tuple) for param in params)
                 ):
-                    return self._hessian_states(
-                        operator, target_params=params
-                    )  # type: ignore
+                    return self._hessian_states(operator, target_params=params)  # type: ignore
                 else:
                     raise OpflowError(
                         "The linear combination gradient does only support the computation "
@@ -749,8 +744,9 @@ class LinComb(CircuitGradient):
                         param_expression = gate.params[idx]
 
                         if isinstance(meas_op, OperatorBase):
-                            state = StateFn(self._aux_meas_op ^ meas_op, is_measurement=True) @ \
-                                    state
+                            state = (
+                                StateFn(self._aux_meas_op ^ meas_op, is_measurement=True) @ state
+                            )
 
                         else:
                             state = self._aux_meas_basis_trafo(
@@ -851,8 +847,8 @@ class LinComb(CircuitGradient):
 
                                 if meas_op is not None:
                                     state = (
-                                        StateFn(self._aux_meas_op ^ meas_op, is_measurement=True) @
-                                        state
+                                        StateFn(self._aux_meas_op ^ meas_op, is_measurement=True)
+                                        @ state
                                     )
                                 else:
                                     state = self._aux_meas_basis_trafo(
