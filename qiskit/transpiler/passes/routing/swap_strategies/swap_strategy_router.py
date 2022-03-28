@@ -331,7 +331,7 @@ class SwapStrategyRouter(TransformationPass):
             bit0 = layout.get_virtual_bits()[dag.qubits[edge[0]]]
             bit1 = layout.get_virtual_bits()[dag.qubits[edge[1]]]
 
-            distance = swap_strategy.distance_matrix[bit0][bit1]
+            distance = swap_strategy.distance_matrix[bit0, bit1]
 
             gate_layers[distance][edge] = node.op
 

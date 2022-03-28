@@ -14,6 +14,7 @@
 
 from typing import Any, List, Optional, Set, Tuple
 import copy
+import numpy as np
 
 from qiskit import QiskitError
 from qiskit.transpiler import CouplingMap
@@ -140,27 +141,29 @@ class SwapStrategy:
         return list(swap for swap in self._swap_layers[idx])
 
     @property
-    def distance_matrix(self) -> List[List[int]]:
+    def distance_matrix(self) -> np.array:
         """A matrix describing when qubits become adjacent in the swap strategy.
 
         Returns:
-            The distance matrix for the SWAP strategy as a nested list. Here the entry (i,j)
-            corresponds to the number of SWAP layers that need to be applied to obtain a connection
-            between physical qubits i and j.
+            The distance matrix for the SWAP strategy as an array that cannot be written to. Here,
+            the entry (i, j) corresponds to the number of SWAP layers that need to be applied to
+            obtain a connection between physical qubits i and j.
         """
         if self._distance_matrix is None:
-            self._distance_matrix = [[None] * self._num_vertices for _ in range(self._num_vertices)]
+            self._distance_matrix = np.full((self._num_vertices, self._num_vertices), -1, dtype=int)
 
             for i in range(self._num_vertices):
-                self._distance_matrix[i][i] = 0
+                self._distance_matrix[i, i] = 0
 
             for i in range(len(self._swap_layers) + 1):
                 for j, k in self.swapped_coupling_map(i).get_edges():
 
                     # This if ensures that the smallest distance is used.
-                    if self._distance_matrix[j][k] is None:
-                        self._distance_matrix[j][k] = i
-                        self._distance_matrix[k][j] = i
+                    if self._distance_matrix[j, k] == -1:
+                        self._distance_matrix[j, k] = i
+                        self._distance_matrix[k, j] = i
+
+            self._distance_matrix.setflags(write=False)
 
         return self._distance_matrix
 
@@ -180,7 +183,7 @@ class SwapStrategy:
         connections = []
         for i in range(self._num_vertices):
             for j in range(i):
-                if self.distance_matrix[i][j] == idx:
+                if self.distance_matrix[i, j] == idx:
                     connections.append({i, j})
         return connections
 

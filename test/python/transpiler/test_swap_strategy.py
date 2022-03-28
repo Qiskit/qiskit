@@ -14,6 +14,7 @@
 
 from typing import List
 from ddt import data, ddt, unpack
+import numpy as np
 
 from qiskit import QiskitError
 from qiskit.test import QiskitTestCase
@@ -97,14 +98,18 @@ class TestSwapStrategy(QiskitTestCase):
 
     def test_distance_matrix(self):
         """Test the computation of the swap strategy distance matrix."""
-        line_distance_matrix = [
+        line_distance_matrix = np.array([
             [0, 0, 3, 1, 2],
             [0, 0, 0, 2, 3],
             [3, 0, 0, 0, 1],
             [1, 2, 0, 0, 0],
             [2, 3, 1, 0, 0],
-        ]
-        self.assertEqual(line_distance_matrix, self.line_strategy.distance_matrix)
+        ])
+        self.assertTrue(np.all(line_distance_matrix == self.line_strategy.distance_matrix))
+
+        # Check that the distance matrix cannot be written to.
+        with self.assertRaises(ValueError):
+            self.line_strategy.distance_matrix[1, 2] = 5
 
     def test_reaches_full_connectivity(self):
         """Test to reach full connectivity on the longest line of Mumbai."""
