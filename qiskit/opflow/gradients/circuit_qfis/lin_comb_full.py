@@ -27,9 +27,6 @@ from ...state_fns.circuit_state_fn import CircuitStateFn
 from ..circuit_gradients.lin_comb import LinComb
 from .circuit_qfi import CircuitQFI
 
-# error tolerance variable
-ETOL = 1e-8
-
 
 class LinCombFull(CircuitQFI):
     r"""Compute the full Quantum Fisher Information (QFI).

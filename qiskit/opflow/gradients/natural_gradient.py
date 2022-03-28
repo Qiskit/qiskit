@@ -152,16 +152,16 @@ class NaturalGradient(GradientBase):
         metric = x[1]
         if np.amax(np.abs(np.imag(gradient))) > ETOL:
             raise ValueError(
-                f"The imaginary part of the gradient are non-negligible. The largest absolute "
-                f"imaginary value in the gradient is {np.amax(np.abs(np.imag(gradient)))}."
-                f"Please increase the number of shots."
+                "The imaginary part of the gradient are non-negligible. The largest absolute "
+                f"imaginary value in the gradient is {np.amax(np.abs(np.imag(gradient)))}. "
+                "Please increase the number of shots."
             )
         gradient = np.real(gradient)
 
         if np.amax(np.abs(np.imag(metric))) > ETOL:
             raise ValueError(
                 "The imaginary part of the metric are non-negligible. The largest "
-                f"absolute imaginary value in the gradient is "
+                "absolute imaginary value in the gradient is "
                 f"{np.amax(np.abs(np.imag(metric)))}. Please "
                 "increase the number of shots."
             )
@@ -180,8 +180,8 @@ class NaturalGradient(GradientBase):
             if not all(ew >= (-1) * ETOL for ew in w):
                 raise ValueError(
                     f"The underlying metric has ein Eigenvalue < -{ETOL}. "
-                    f"The smallest Eigenvalue is {np.amin(w)}"
-                    "Please use a regularized least-square solver for this problem or"
+                    f"The smallest Eigenvalue is {np.amin(w)} "
+                    "Please use a regularized least-square solver for this problem or "
                     "increase the number of backend shots.",
                 )
             if not all(ew >= 0 for ew in w):
