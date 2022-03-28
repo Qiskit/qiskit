@@ -293,19 +293,15 @@ class SwapStrategyRouter(TransformationPass):
 
         return circuit_to_dag(circuit_with_swap)
 
-    @staticmethod
     def _make_op_layers(
-        dag: DAGCircuit, op: Commuting2qBlocks, layout: Layout, swap_strategy: SwapStrategy
+        self, dag: DAGCircuit, op: Commuting2qBlocks, layout: Layout, swap_strategy: SwapStrategy
     ) -> Dict[int, Dict[tuple, Gate]]:
         """Creates layers of two-qubit gates based on the distance in the swap strategy."""
 
         gate_layers = defaultdict(dict)
 
-        register = dag.qregs["q"]
-
         for node in op.node_block:
-
-            edge = (register.index(node.qargs[0]), register.index(node.qargs[1]))
+            edge = (self._bit_indices[node.qargs[0]], self._bit_indices[node.qargs[1]])
 
             bit0 = layout.get_virtual_bits()[dag.qubits[edge[0]]]
             bit1 = layout.get_virtual_bits()[dag.qubits[edge[1]]]
