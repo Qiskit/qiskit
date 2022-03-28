@@ -15,7 +15,7 @@
 Swap routing is, in general, a hard problem. However, this problem is much simpler if
 the gates commute. Many variational algorithms such as QAOA are built with blocks of
 commuting gates. Transpiling such circuits with a general purpose SWAP router typically
-yields sub optimal results or is costly to run. This PR introduces a framework to
+yields sub optimal results or is costly to run. This module introduces a framework to
 transpile blocks of commuting gates by applying layers of a predefined swap strategy.
 Further details can also be found here: https://arxiv.org/abs/2202.03459.
 """
