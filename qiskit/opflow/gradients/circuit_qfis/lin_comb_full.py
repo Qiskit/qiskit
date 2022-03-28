@@ -82,11 +82,6 @@ class LinCombFull(CircuitQFI):
         qfi_observable = StateFn(
             4 * self._aux_meas_op ^ (I ^ operator.num_qubits), is_measurement=True
         )
-        if self._aux_meas_op not in [Z, -Y, (Z - 1j * Y)]:
-            raise ValueError(
-                "This auxiliary measurement operator is currently not supported. Please choose "
-                "either Z, -Y, or Z - 1j * Y. "
-            )
 
         # Check if the given operator corresponds to a quantum state given as a circuit.
         if not isinstance(operator, CircuitStateFn):
