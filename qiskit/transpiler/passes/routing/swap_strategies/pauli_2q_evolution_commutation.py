@@ -68,8 +68,7 @@ class FindCommutingPauliEvolutions(TransformationPass):
         """
 
         for pauli in operator.paulis:
-            num_terms = sum([char != "I" for char in str(pauli)])
-            if num_terms > 1:
+            if sum(np.logical_or(pauli.x, pauli.z)) > 1:
                 return False
 
         return True
