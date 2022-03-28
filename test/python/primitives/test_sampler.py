@@ -147,6 +147,7 @@ class TestSampler(QiskitTestCase):
             result = sampler([0, 0, 1], [theta1, theta2, theta3])
             self.assertIsInstance(result, SamplerResult)
             self.assertEqual(len(result.quasi_dists), 3)
+            self.assertEqual(len(result.metadata), 3)
 
             keys, values = zip(*sorted(result.quasi_dists[0].items()))
             self.assertTupleEqual(keys, tuple(range(4)))

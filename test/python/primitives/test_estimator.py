@@ -149,21 +149,25 @@ class TestEstimator(QiskitTestCase):
             result = est([0], [0], [theta1])
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [1.5555572817900956])
+            self.assertEqual(len(result.metadata), 1)
 
             # calculate [ <psi1(theta1)|op2|psi1(theta1)>, <psi1(theta1)|op3|psi1(theta1)> ]
             result = est([0, 0], [1, 2], [theta1] * 2)
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [-0.5516530027638437, 0.07535238795415422])
+            self.assertEqual(len(result.metadata), 2)
 
             # calculate [ <psi2(theta2)|op2|psi2(theta2)> ]
             result = est([1], [1], [theta2])
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [0.17849238433885167])
+            self.assertEqual(len(result.metadata), 1)
 
             # calculate [ <psi1(theta1)|op1|psi1(theta1)>, <psi1(theta3)|op1|psi1(theta3)> ]
             result = est([0, 0], [0, 0], [theta1, theta3])
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [1.5555572817900956, 1.0656325933346835])
+            self.assertEqual(len(result.metadata), 2)
 
             # calculate [ <psi1(theta1)|op1|psi1(theta1)>,
             #             <psi2(theta2)|op2|psi2(theta2)>,
@@ -173,6 +177,7 @@ class TestEstimator(QiskitTestCase):
             np.testing.assert_allclose(
                 result.values, [1.5555572817900956, 0.17849238433885167, -1.0876631752254926]
             )
+            self.assertEqual(len(result.metadata), 3)
 
     def test_1qubit(self):
         """Test for 1-qubit cases"""
@@ -252,6 +257,33 @@ class TestEstimator(QiskitTestCase):
                 est([0], [0], [[1e4]])
             with self.assertRaises(QiskitError):
                 est([1], [1], [[1, 2]])
+
+    def test_empty_parameter(self):
+        """Test for empty parameter"""
+        n = 2
+        qc = QuantumCircuit(n)
+        op = SparsePauliOp.from_list([("I" * n, 1)])
+        with Estimator(circuits=[qc] * 10, observables=[op] * 10) as estimator:
+            with self.subTest("one circuit"):
+                result = estimator([0], [1], shots=1000)
+                np.testing.assert_allclose(result.values, [1])
+                self.assertEqual(len(result.metadata), 1)
+
+            with self.subTest("two circuits"):
+                result = estimator([2, 4], [3, 5], shots=1000)
+                np.testing.assert_allclose(result.values, [1, 1])
+                self.assertEqual(len(result.metadata), 2)
+
+    def test_param_broadcast(self):
+        """Test for parameter broadcast"""
+        qc = RealAmplitudes(num_qubits=2, reps=2)
+        op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
+        params = np.random.rand(10, qc.num_parameters)
+        with Estimator(circuits=qc, observables=op) as estimator:
+            targets = [estimator(parameters=param).values[0] for param in params]
+            results = estimator(parameters=params)
+            self.assertEqual(len(results.metadata), 10)
+            np.testing.assert_allclose(results.values, targets)
 
 
 if __name__ == "__main__":

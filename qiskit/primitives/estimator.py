@@ -67,7 +67,9 @@ class Estimator(BaseEstimator):
         if self._is_closed:
             raise QiskitError("The primitive has been closed.")
 
-        if parameter_values and not isinstance(parameter_values[0], Sequence):
+        if isinstance(parameter_values, np.ndarray):
+            parameter_values = parameter_values.tolist()
+        if parameter_values and not isinstance(parameter_values[0], (np.ndarray, Sequence)):
             parameter_values = cast("Sequence[float]", parameter_values)
             parameter_values = [parameter_values]
         if (
@@ -111,7 +113,7 @@ class Estimator(BaseEstimator):
                 )
             expectation_values.append(Statevector(circ).expectation_value(obs))
 
-        return EstimatorResult(np.real_if_close(expectation_values), [])
+        return EstimatorResult(np.real_if_close(expectation_values), [{}] * len(expectation_values))
 
     def close(self):
         self._is_closed = True
