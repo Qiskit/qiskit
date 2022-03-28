@@ -47,7 +47,7 @@ class TestEstimator(QiskitTestCase):
             observable = PauliSumOp.from_list(lst)
             ansatz = RealAmplitudes(num_qubits=2, reps=2)
             with Estimator([ansatz], [observable]) as est:
-                result = est(parameters=[0, 1, 1, 2, 3, 5])
+                result = est(parameter_values=[0, 1, 1, 2, 3, 5])
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [1.84209213])
 
@@ -55,7 +55,7 @@ class TestEstimator(QiskitTestCase):
             observable = SparsePauliOp.from_list(lst)
             ansatz = RealAmplitudes(num_qubits=2, reps=2)
             with Estimator([ansatz], [observable]) as est:
-                result = est(parameters=[0, 1, 1, 2, 3, 5])
+                result = est(parameter_values=[0, 1, 1, 2, 3, 5])
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [1.84209213])
 
@@ -64,7 +64,7 @@ class TestEstimator(QiskitTestCase):
         observable = PauliSumOp.from_list([("XX", 1), ("YY", 2), ("ZZ", 3)])
         ansatz = RealAmplitudes(num_qubits=2, reps=2)
         with Estimator([ansatz], [observable], [ansatz.parameters[::-1]]) as est:
-            result = est(parameters=[0, 1, 1, 2, 3, 5][::-1])
+            result = est(parameter_values=[0, 1, 1, 2, 3, 5][::-1])
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1.84209213])
 
@@ -98,14 +98,14 @@ class TestEstimator(QiskitTestCase):
     def test_evaluate(self):
         """test for evaluate"""
         with Estimator([self.ansatz], [self.observable]) as est:
-            result = est(parameters=[0, 1, 1, 2, 3, 5])
+            result = est(parameter_values=[0, 1, 1, 2, 3, 5])
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.284366511861733])
 
     def test_evaluate_multi_params(self):
         """test for evaluate with multiple parameters"""
         with Estimator([self.ansatz], [self.observable]) as est:
-            result = est(parameters=[[0, 1, 1, 2, 3, 5], [1, 1, 2, 3, 5, 8]])
+            result = est(parameter_values=[[0, 1, 1, 2, 3, 5], [1, 1, 2, 3, 5, 8]])
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.284366511861733, -1.3187526349078742])
 
@@ -124,7 +124,7 @@ class TestEstimator(QiskitTestCase):
         circuit.cx(0, 1)
         circuit.cx(1, 2)
         with Estimator(circuit, ["ZZZ", "III"]) as est:
-            result = est(circuits=[0, 0], observables=[0, 1])
+            result = est(circuit_indices=[0, 0], observable_indices=[0, 1])
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [0.0, 1.0])
 
