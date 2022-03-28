@@ -137,9 +137,6 @@ class FindCommutingPauliEvolutions(TransformationPass):
 
             simple_pauli = Pauli(str(pauli).replace("I", ""))
 
-            if not np.isreal(coeff):
-                raise QiskitError(f"Pauli {pauli} has a complex coefficient.")
-
             pauli_2q = PauliEvolutionGate(simple_pauli, op.time * np.real(coeff))
             sub_dag.apply_operation_back(pauli_2q, qubits)
 
