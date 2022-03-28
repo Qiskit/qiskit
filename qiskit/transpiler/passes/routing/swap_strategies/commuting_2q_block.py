@@ -49,8 +49,8 @@ class Commuting2qBlocks(Gate):
             )
 
         super().__init__("Commuting 2Q gates", num_qubits=len(qubits), params=[])
-        self.node_block = list(node_block)
-        self.qubits = list(qubits)
+        self.node_block = node_block
+        self.qubits = qubits
 
     def __iter__(self):
         """Iterate through the nodes in the block."""
