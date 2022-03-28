@@ -25,18 +25,18 @@ from qiskit.transpiler.passes.routing.swap_strategies.commuting_2q_block import 
 
 
 class FindCommutingPauliEvolutions(TransformationPass):
-    """Finds PauliEvolutionGates where the operators, that are evolved, all commute."""
+    """Finds :class:`.PauliEvolutionGate`s where the operators, that are evolved, all commute."""
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
-        """Check for ``PauliEvolutionGate``s where the summands all commute.
+        """Check for :class:`.PauliEvolutionGate`s where the summands all commute.
 
         Args:
             The DAG circuit in which to look for the commuting evolutions.
 
         Returns:
-            The dag in which ``PauliEvolutionGate``s made of commuting two-qubit Paulis
-            have been replaced with ``Commuting2QBlocks`` gate instructions. These gates
-            contain nodes of two-qubit ``PauliEvolutionGate``s.
+            The dag in which :class:`.PauliEvolutionGate`s made of commuting two-qubit Paulis
+            have been replaced with :class:`.Commuting2qBlocks`` gate instructions. These gates
+            contain nodes of two-qubit :class:`.PauliEvolutionGate`s.
         """
 
         for node in dag.op_nodes():
@@ -119,10 +119,7 @@ class FindCommutingPauliEvolutions(TransformationPass):
             op: The operator with all the Pauli terms we need to apply.
 
         Returns:
-            A dag made of two-qubit PauliEvolutionGates.
-
-        Raises:
-           QiskitError: If the Pauli coefficient has an imaginary part.
+            A dag made of two-qubit :class:`.PauliEvolutionGate`.
         """
         sub_dag = dag.copy_empty_like()
 

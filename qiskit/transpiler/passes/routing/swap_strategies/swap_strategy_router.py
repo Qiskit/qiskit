@@ -104,8 +104,8 @@ class SwapStrategyRouter(TransformationPass):
     def __init__(self, swap_strategy: Optional[SwapStrategy] = None) -> None:
         """
         Args:
-            swap_strategy: An instance of a SwapStrategy that holds the swap layers that
-                are used, and the order in which to apply them, to map the instruction to
+            swap_strategy: An instance of a :class:`.SwapStrategy` that holds the swap layers
+                that are used, and the order in which to apply them, to map the instruction to
                 the hardware. If this field is not given if should be contained in the
                 property set of the pass. This allows other passes to determine the most
                 appropriate swap strategy at run-time.
@@ -243,20 +243,20 @@ class SwapStrategyRouter(TransformationPass):
     def swap_decompose(
         self, dag: DAGCircuit, node: DAGOpNode, current_layout: Layout, swap_strategy: SwapStrategy
     ) -> DAGCircuit:
-        """Take an instance of ``Commuting2qBlocks`` and map it to the coupling map.
+        """Take an instance of :class:`.Commuting2qBlocks` and map it to the coupling map.
 
         The mapping is done with the swap strategy.
 
         Args:
-            dag: The dag which contains the ``Commuting2qBlocks`` we route.
-            node: A node whose operation is a ``Commuting2qBlocks``.
+            dag: The dag which contains the :class:`.Commuting2qBlocks` we route.
+            node: A node whose operation is a :class:`.Commuting2qBlocks`.
             current_layout: The layout before the swaps are applied. This function will
                 modify the layout so that subsequent gates can be properly composed on the dag.
             swap_strategy: The swap strategy used to decompose the node.
 
         Returns:
             A dag that is compatible with the coupling map where swap gates have been added
-            to map the gates in the ``Commuting2qBlocks`` to the hardware.
+            to map the gates in the :class:`.Commuting2qBlocks` to the hardware.
         """
         trivial_layout = Layout().generate_trivial_layout(*dag.qregs.values())
         gate_layers = self._make_op_layers(dag, node.op, current_layout, swap_strategy)

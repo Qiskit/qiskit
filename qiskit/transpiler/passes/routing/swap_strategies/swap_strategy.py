@@ -32,9 +32,7 @@ class SwapStrategy:
     """
 
     def __init__(
-        self,
-        coupling_map: CouplingMap,
-        swap_layers: Tuple[Tuple[Tuple[int, int], ...], ...]
+        self, coupling_map: CouplingMap, swap_layers: Tuple[Tuple[Tuple[int, int], ...], ...]
     ) -> None:
         """
         Args:
@@ -68,9 +66,7 @@ class SwapStrategy:
 
     @classmethod
     def make_line_swap_strategy(
-        cls,
-        line: List[int],
-        num_swap_layers: Optional[int] = None
+        cls, line: List[int], num_swap_layers: Optional[int] = None
     ) -> "SwapStrategy":
         """Creates a swap strategy for a line graph with the specified number of SWAP layers.
 
@@ -81,6 +77,9 @@ class SwapStrategy:
         Args:
             line: A line given as a list of nodes, e.g. ``[0, 2, 3, 4]``.
             num_swap_layers: Number of swap layers the swap manager should be initialized with.
+
+        Returns:
+            A swap strategy that reaches full connectivity on a linear coupling map.
 
         Raises:
             ValueError: If the ``num_swap_layers`` is negative.
@@ -121,7 +120,7 @@ class SwapStrategy:
         """Representation of the swap strategy.
 
         Returns:
-            The represenation of the swap strategy.
+            The representation of the swap strategy.
         """
         description = [f"{self.__class__.__name__} with swap layers:\n"]
 
@@ -178,9 +177,8 @@ class SwapStrategy:
         a list of qubit pairs that are adjacent to one another after idx steps of the SWAP strategy.
 
         Args:
-            idx: The index of the SWAP layer. 1 refers to the first SWAP layer
-                whereas an ``idx`` of 0 will return the connections present in the original coupling
-                map.
+            idx: The index of the SWAP layer. 1 refers to the first SWAP layer whereas an ``idx``
+                of 0 will return the connections present in the original coupling map.
 
         Returns:
             A list of edges representing the new qubit connections.
@@ -270,7 +268,9 @@ class SwapStrategy:
 
         return CouplingMap(couplinglist=edges)
 
-    def apply_swap_layer(self, list_to_swap: List[Any], idx: int, inplace: bool = False) -> List[Any]:
+    def apply_swap_layer(
+        self, list_to_swap: List[Any], idx: int, inplace: bool = False
+    ) -> List[Any]:
         """Permute the elements of ``list_to_swap`` based on layer indexed by ``idx``.
 
         Args:

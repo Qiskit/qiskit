@@ -98,13 +98,15 @@ class TestSwapStrategy(QiskitTestCase):
 
     def test_distance_matrix(self):
         """Test the computation of the swap strategy distance matrix."""
-        line_distance_matrix = np.array([
-            [0, 0, 3, 1, 2],
-            [0, 0, 0, 2, 3],
-            [3, 0, 0, 0, 1],
-            [1, 2, 0, 0, 0],
-            [2, 3, 1, 0, 0],
-        ])
+        line_distance_matrix = np.array(
+            [
+                [0, 0, 3, 1, 2],
+                [0, 0, 0, 2, 3],
+                [3, 0, 0, 0, 1],
+                [1, 2, 0, 0, 0],
+                [2, 3, 1, 0, 0],
+            ]
+        )
         self.assertTrue(np.all(line_distance_matrix == self.line_strategy.distance_matrix))
 
         # Check that the distance matrix cannot be written to.
@@ -167,7 +169,7 @@ class TestSwapStrategy(QiskitTestCase):
         """Test that possible edges works as expected."""
         coupling_map = CouplingMap(couplinglist=[(0, 1), (1, 2), (2, 3)])
 
-        strat = SwapStrategy(coupling_map, (((0, 1), (2, 3)), ((1, 2), )))
+        strat = SwapStrategy(coupling_map, (((0, 1), (2, 3)), ((1, 2),)))
 
         expected = set()
         for i in range(4):
