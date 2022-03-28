@@ -22,7 +22,7 @@ from qiskit.transpiler import TransformationPass, Layout, TranspilerError
 from qiskit import QuantumCircuit
 
 from qiskit.transpiler.passes.routing.swap_strategies.swap_strategy import SwapStrategy
-from qiskit.transpiler.passes.routing.swap_strategies.commuting_2q_block import Commuting2QBlocks
+from qiskit.transpiler.passes.routing.swap_strategies.commuting_2q_block import Commuting2qBlocks
 
 
 class SwapStrategyRouter(TransformationPass):
@@ -102,7 +102,7 @@ class SwapStrategyRouter(TransformationPass):
     """
 
     # The node(s) that will be mapped must be of this type.
-    __instruction_type__ = Commuting2QBlocks
+    __instruction_type__ = Commuting2qBlocks
 
     def __init__(self, swap_strategy: Optional[SwapStrategy] = None) -> None:
         """
@@ -249,20 +249,20 @@ class SwapStrategyRouter(TransformationPass):
     def swap_decompose(
         self, dag: DAGCircuit, node: DAGOpNode, current_layout: Layout, swap_strategy: SwapStrategy
     ) -> DAGCircuit:
-        """Take an instance of ``Commuting2QBlocks`` and map it to the coupling map.
+        """Take an instance of ``Commuting2qBlocks`` and map it to the coupling map.
 
         The mapping is done with the swap strategy.
 
         Args:
-            dag: The dag which contains the ``Commuting2QBlocks`` we route.
-            node: A node whose operation is a ``Commuting2QBlocks``.
+            dag: The dag which contains the ``Commuting2qBlocks`` we route.
+            node: A node whose operation is a ``Commuting2qBlocks``.
             current_layout: The layout before the swaps are applied. This function will
                 modify the layout so that subsequent gates can be properly composed on the dag.
             swap_strategy: The swap strategy used to decompose the node.
 
         Returns:
             A dag that is compatible with the coupling map where swap gates have been added
-            to map the gates in the ``Commuting2QBlocks`` to the hardware.
+            to map the gates in the ``Commuting2qBlocks`` to the hardware.
         """
         trivial_layout = Layout().generate_trivial_layout(*dag.qregs.values())
         gate_layers = self._make_op_layers(dag, node.op, current_layout, swap_strategy)
@@ -316,7 +316,7 @@ class SwapStrategyRouter(TransformationPass):
 
     @staticmethod
     def _make_op_layers(
-        dag: DAGCircuit, op: Commuting2QBlocks, layout: Layout, swap_strategy: SwapStrategy
+        dag: DAGCircuit, op: Commuting2qBlocks, layout: Layout, swap_strategy: SwapStrategy
     ) -> Dict[int, Dict[tuple, Gate]]:
         """Creates layers of two-qubit gates based on the distance in the swap strategy."""
 

@@ -19,7 +19,7 @@ from qiskit.circuit import Gate
 from qiskit.dagcircuit import DAGOpNode
 
 
-class Commuting2QBlocks(Gate):
+class Commuting2qBlocks(Gate):
     """A gate made of commuting two-qubit gates.
 
     This gate is intended for use with commuting swap strategies to make it convenient
