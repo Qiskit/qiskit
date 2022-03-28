@@ -701,7 +701,7 @@ class TestGradients(QiskitOpflowTestCase):
         qc.p(a, q[0])
         op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
 
-        state_grad = LinComb().convert(operator=op, params=params, aux_meas_op=(-1) * Y)
+        state_grad = LinComb(aux_meas_op=(-1) * Y).convert(operator=op, params=params)
         values_dict = [{a: np.pi / 4}, {a: 0}, {a: np.pi / 2}]
         correct_values = [1 / np.sqrt(2), 1, 0]
 
@@ -744,8 +744,8 @@ class TestGradients(QiskitOpflowTestCase):
             )
         )
 
-        state_grad = LinCombFull().convert(
-            operator=state, params=[x, y], aux_meas_op=-1 * Y, phase_fix=False
+        state_grad = LinCombFull(aux_meas_op=-1 * Y, phase_fix=False).convert(
+            operator=state, params=[x, y]
         )
         values_dict = [{x: 0, y: np.pi / 4}, {x: 0, y: np.pi / 2}, {x: np.pi / 2, y: 0}]
 
@@ -1293,7 +1293,7 @@ class TestQFI(QiskitOpflowTestCase):
 
         # convert the circuit to a QFI object
         op = CircuitStateFn(qc)
-        qfi = LinCombFull().convert(operator=op, params=[a, b], phase_fix=False)
+        qfi = LinCombFull(phase_fix=False).convert(operator=op, params=[a, b])
 
         # test for different values
         value_dict = {a: np.pi / 4, b: 0.1}
@@ -1481,7 +1481,7 @@ class TestQFI(QiskitOpflowTestCase):
 
         shots = 10000
 
-        prob_grad = LinComb().convert(operator=op, params=params, aux_meas_op=aux_meas_op)
+        prob_grad = LinComb(aux_meas_op=aux_meas_op).convert(operator=op, params=params)
         value_dicts = [{a: [np.pi / 4], b: [0]}, {a: [np.pi / 2], b: [np.pi / 4]}]
         if aux_meas_op == -Y:
             correct_values = [
@@ -1540,7 +1540,7 @@ class TestQFI(QiskitOpflowTestCase):
         aux_meas_op = X
 
         with self.assertRaises(ValueError):
-            prob_grad = LinComb().convert(operator=op, params=params, aux_meas_op=aux_meas_op)
+            prob_grad = LinComb(aux_meas_op=aux_meas_op).convert(operator=op, params=params)
             value_dict = {a: [np.pi / 4], b: [0]}
 
             backend = BasicAer.get_backend("qasm_simulator")

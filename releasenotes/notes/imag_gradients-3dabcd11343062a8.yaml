@@ -31,4 +31,4 @@ features:
 
       aux_meas_op = -Y
 
-      prob_grad = LinComb().convert(operator=op, params=params, aux_meas_op=aux_meas_op)
+      prob_grad = LinComb(aux_meas_op=aux_meas_op).convert(operator=op, params=params)
