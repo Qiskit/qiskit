@@ -179,7 +179,7 @@ class NaturalGradient(GradientBase):
 
             if not all(ew >= (-1) * ETOL for ew in w):
                 raise ValueError(
-                    f"The underlying metric has ein Eigenvalue < -{ETOL}. "
+                    f"The underlying metric has at least one Eigenvalue < -{ETOL}. "
                     f"The smallest Eigenvalue is {np.amin(w)} "
                     "Please use a regularized least-square solver for this problem or "
                     "increase the number of backend shots.",
