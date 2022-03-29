@@ -52,9 +52,12 @@ class AlignMeasures(TransformationPass):
     thus one should select one of the scheduling passes
     (:class:`~qiskit.transpiler.passes.ALAPSchedule` or
     :class:`~qiskit.trasnpiler.passes.ASAPSchedule`) before calling this.
+
     Examples:
         We assume executing the following circuit on a backend with ``alignment=16``.
+
         .. parsed-literal::
+
                  ┌───┐┌────────────────┐┌─┐
             q_0: ┤ X ├┤ Delay(100[dt]) ├┤M├
                  └───┘└────────────────┘└╥┘
@@ -62,7 +65,9 @@ class AlignMeasures(TransformationPass):
                                          0
         Note that delay of 100 dt induces a misalignment of 4 dt at the measurement.
         This pass appends an extra 12 dt time shift to the input circuit.
+
         .. parsed-literal::
+
                  ┌───┐┌────────────────┐┌─┐
             q_0: ┤ X ├┤ Delay(112[dt]) ├┤M├
                  └───┘└────────────────┘└╥┘
@@ -70,6 +75,7 @@ class AlignMeasures(TransformationPass):
                                          0
         This pass always inserts a positive delay before measurements
         rather than reducing other delays.
+
     Notes:
         The Backend may allow users to execute circuits violating the alignment constraint.
         However, it may return meaningless measurement data mainly due to the phase error.
