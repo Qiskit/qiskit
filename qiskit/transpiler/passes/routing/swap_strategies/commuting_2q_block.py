@@ -26,9 +26,8 @@ class Commuting2qBlocks(Gate):
     for the swap strategy router to identify which blocks of operations commute.
     """
 
-    def __init__(self, node_block: Set[DAGOpNode]):
-        """Initialize the op.
-
+    def __init__(self, node_block: Iterable[DAGOpNode]) -> None:
+        """
         Args:
             node_block: A block of nodes that commute.
 
