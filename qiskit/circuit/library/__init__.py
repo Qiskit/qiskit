@@ -314,7 +314,7 @@ subclasses are used as initial guesses (a.k.a. ansatzes or variational forms) in
 Data encoding circuits
 ======================
 
-These :class:`~qiskit.circuit.library.blueprintcircuit.BlueprintCircuit`
+These :class:`~qiskit.circuit.library.BlueprintCircuit`
 subclasses are used for classification and data encoding circuits (a.k.a. feature maps).
 
 .. autosummary::
