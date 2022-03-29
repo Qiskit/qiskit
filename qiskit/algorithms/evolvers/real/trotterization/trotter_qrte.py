@@ -35,7 +35,7 @@ from qiskit.utils import QuantumInstance
 
 
 class TrotterQRTE(RealEvolver):
-    """Class for performing Quantum Real Time Evolution using Trotterization.
+    """Quantum Real Time Evolution using Trotterization.
     Type of Trotterization is defined by a ProductFormula provided.
 
     Examples:
@@ -162,6 +162,11 @@ class TrotterQRTE(RealEvolver):
                 "``quantum_instance`` was provided."
             )
         hamiltonian = evolution_problem.hamiltonian
+        if not isinstance(hamiltonian, (Pauli, PauliOp, SparsePauliOp, PauliSumOp, SummedOp)):
+            raise ValueError(
+                f"TrotterQRTE only accepts Pauli | PauliOp | SparsePauliOp | "
+                f"PauliSumOp | SummedOp, {type(hamiltonian)} provided."
+            )
         if not isinstance(hamiltonian, SparsePauliOp):  # TODO can we handle it better?
             hamiltonian = hamiltonian.bind_parameters(evolution_problem.hamiltonian_value_dict)
         if isinstance(hamiltonian, SummedOp):

@@ -18,7 +18,7 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.opflow import OperatorBase, StateFn
 from ..list_or_dict import ListOrDict
-from ...quantum_info import SparsePauliOp
+from ...quantum_info.operators.base_operator import BaseOperator
 
 
 class EvolutionProblem:
@@ -30,7 +30,7 @@ class EvolutionProblem:
 
     def __init__(
         self,
-        hamiltonian: OperatorBase,
+        hamiltonian: Union[OperatorBase, BaseOperator],
         time: float,
         initial_state: Union[StateFn, QuantumCircuit],
         aux_operators: Optional[ListOrDict[OperatorBase]] = None,
@@ -67,27 +67,25 @@ class EvolutionProblem:
         self.truncation_threshold = truncation_threshold
 
     @property
-    def hamiltonian(self) -> OperatorBase:
+    def hamiltonian(self) -> Union[OperatorBase, BaseOperator]:
         """Returns a hamiltonian."""
         return self._hamiltonian
 
     @hamiltonian.setter
-    def hamiltonian(self, hamiltonian) -> None:
+    def hamiltonian(self, hamiltonian: Union[OperatorBase, BaseOperator]) -> None:
         """
         Sets a hamiltonian and validates it.
 
         Raises:
             ValueError: If no Hamiltonian is provided.
-            ValueError: If Hamiltonian parameters cannot be bound with data provided.
         """
-        self._hamiltonian = None
         if hamiltonian is None:
             raise ValueError(
                 "No ``hamiltonian`` provided for the EvolutionProblem. It is required."
             )
-        # TODO SparsePauliOp does not have .parameters because it is not allowed to be parametrized.
-        #  Can we handle this better than with an if?
-        if not isinstance(hamiltonian, SparsePauliOp):
+        # TODO SparsePauliOp/BaseOperator does not have .parameters because it is not allowed to
+        #  be parametrized. Can we handle this better than with an if?
+        if not isinstance(hamiltonian, BaseOperator):
             self._check_parameters(hamiltonian, self.hamiltonian_value_dict, self.t_param)
 
         self._hamiltonian = hamiltonian
@@ -98,18 +96,15 @@ class EvolutionProblem:
         return self._time
 
     @time.setter
-    def time(self, time) -> None:
+    def time(self, time: float) -> None:
         """
         Sets time and validates it.
 
         Raises:
             ValueError: If time is not positive.
         """
-        self._time = None
         if time <= 0:
-            raise ValueError(
-                f"Time of evolution provided is not positive, detected ``time={time}``."
-            )
+            raise ValueError(f"Evolution time must be > 0 but was {time}.")
         self._time = time
 
     @property
@@ -118,14 +113,13 @@ class EvolutionProblem:
         return self._initial_state
 
     @initial_state.setter
-    def initial_state(self, initial_state) -> None:
+    def initial_state(self, initial_state: Union[StateFn, QuantumCircuit]) -> None:
         """
         Sets an initial state and validates it.
 
         Raises:
             ValueError: If no initial state is provided.
         """
-        self._initial_state = None
         if initial_state is None:
             raise ValueError(
                 "No ``initial_state`` provided for the EvolutionProblem. It is required."
@@ -149,7 +143,7 @@ class EvolutionProblem:
             free parameter must be within the ``hamiltonian``.
 
         Raises:
-            ValueError: If there are unbound parameters in the Hamiltonian.
+            ValueError: If Hamiltonian parameters cannot be bound with data provided.
         """
         t_param_set = set()
         if t_param is not None:
