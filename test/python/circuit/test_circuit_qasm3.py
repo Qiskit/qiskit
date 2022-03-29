@@ -16,9 +16,10 @@
 # pylint: disable=line-too-long
 
 from io import StringIO
+import re
 import unittest
 
-import ddt
+from ddt import ddt, data
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
 from qiskit.circuit import Parameter, Qubit, Clbit, Instruction
@@ -65,10 +66,32 @@ class TestQASM3Functions(QiskitTestCase):
         self.assertEqual(result, self.expected_qasm)
 
 
+@ddt
 class TestCircuitQASM3(QiskitTestCase):
     """QASM3 exporter."""
 
     maxDiff = 1_000_000
+
+    @classmethod
+    def setUpClass(cls):
+        # These regexes are not perfect by any means, but sufficient for simple tests on controlled
+        # input circuits.
+        cls.register_regex = re.compile(r"^\s*let\s+(?P<name>\w+\b)", re.U | re.M)
+        scalar_type_names = {
+            "angle",
+            "duration",
+            "float",
+            "int",
+            "stretch",
+            "uint",
+        }
+        cls.scalar_parameter_regex = re.compile(
+            r"^\s*((input|output|const)\s+)?"  # Modifier
+            rf"({'|'.join(scalar_type_names)})\s*(\[[^\]]+\])?\s+"  # Type name and designator
+            r"(?P<name>\w+\b)",  # Parameter name
+            re.U | re.M,
+        )
+        super().setUpClass()
 
     def test_regs_conds_qasm(self):
         """Test with registers and conditionals."""
@@ -1320,6 +1343,64 @@ class TestCircuitQASM3(QiskitTestCase):
         )
         self.assertEqual(dumps(qc), expected_qasm)
 
+    def test_parameter_expression_after_naming_escape(self):
+        """Test that :class:`.Parameter` instances are correctly renamed when they are used with
+        :class:`.ParameterExpression` blocks, even if they have names that needed to be escaped."""
+        param = Parameter("measure")  # an invalid name
+        qc = QuantumCircuit(1)
+        qc.u(2 * param, 0, 0, 0)
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3;",
+                'include "stdgates.inc";',
+                "input float[64] measure__generated0;",
+                "qubit[1] _all_qubits;",
+                "let q = _all_qubits[0:0];",
+                "U(2*measure__generated0, 0, 0) q[0];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc), expected_qasm)
+
+    def test_parameters_and_registers_cannot_have_naming_clashes(self):
+        """Test that parameters and registers are considered part of the same symbol table for the
+        purposes of avoiding clashes."""
+        qreg = QuantumRegister(1, "clash")
+        param = Parameter("clash")
+        qc = QuantumCircuit(qreg)
+        qc.u(param, 0, 0, 0)
+
+        out_qasm = dumps(qc)
+        register_name = self.register_regex.search(out_qasm)
+        parameter_name = self.scalar_parameter_regex.search(out_qasm)
+        self.assertTrue(register_name)
+        self.assertTrue(parameter_name)
+        self.assertIn("clash", register_name["name"])
+        self.assertIn("clash", parameter_name["name"])
+        self.assertNotEqual(register_name["name"], parameter_name["name"])
+
+    # Not necessarily all the reserved keywords, just a sensibly-sized subset.
+    @data("bit", "const", "def", "defcal", "float", "gate", "include", "int", "let", "measure")
+    def test_reserved_keywords_as_names_are_escaped(self, keyword):
+        """Test that reserved keywords used to name registers and parameters are escaped into
+        another form when output, and the escaping cannot introduce new conflicts."""
+        with self.subTest("register"):
+            qreg = QuantumRegister(1, keyword)
+            qc = QuantumCircuit(qreg)
+            out_qasm = dumps(qc)
+            register_name = self.register_regex.search(out_qasm)
+            self.assertTrue(register_name)
+            self.assertNotEqual(keyword, register_name["name"])
+        with self.subTest("parameter"):
+            qc = QuantumCircuit(1)
+            param = Parameter(keyword)
+            qc.u(param, 0, 0, 0)
+            out_qasm = dumps(qc)
+            parameter_name = self.scalar_parameter_regex.search(out_qasm)
+            self.assertTrue(parameter_name)
+            self.assertNotEqual(keyword, parameter_name["name"])
+
 
 class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCase):
     """Test functionality that is not what we _want_, but is what we need to do while the definition
@@ -1569,7 +1650,7 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
         self.assertEqual(Exporter(includes=[]).dumps(circuit), expected_qasm)
 
 
-@ddt.ddt
+@ddt
 class TestQASM3ExporterFailurePaths(QiskitTestCase):
     """Tests of the failure paths for the exporter."""
 
@@ -1584,7 +1665,7 @@ class TestQASM3ExporterFailurePaths(QiskitTestCase):
         with self.assertRaisesRegex(QASM3ExporterError, r"Clbit .* is in multiple registers.*"):
             exporter.dumps(qc)
 
-    @ddt.data([1, 2, 1.1], [1j, 2])
+    @data([1, 2, 1.1], [1j, 2])
     def test_disallow_for_loops_with_non_integers(self, indices):
         """Test that the exporter rejects ``for`` loops that include non-integer values in their
         index sets."""
