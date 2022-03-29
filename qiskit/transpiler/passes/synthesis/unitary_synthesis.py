@@ -39,59 +39,65 @@ from qiskit.transpiler.passes.synthesis import plugin
 from qiskit.providers.models import BackendProperties
 
 
-def _choose_kak_gate(basis_gates, target=None):
+KAK_GATE_NAMES = {
+    "cx": CXGate(),
+    "cz": CZGate(),
+    "iswap": iSwapGate(),
+    "rxx": RXXGate(pi / 2),
+    "ecr": ECRGate(),
+    "rzx": RZXGate(pi / 4),  # typically pi/6 is also available
+}
+
+
+def _choose_kak_gate(basis_gates):
     """Choose the first available 2q gate to use in the KAK decomposition."""
-    kak_gate_names = {
-        "cx": CXGate(),
-        "cz": CZGate(),
-        "iswap": iSwapGate(),
-        "rxx": RXXGate(pi / 2),
-        "ecr": ECRGate(),
-        "rzx": RZXGate(pi / 4),  # typically pi/6 is also available
-    }
-    if target is not None:
-        kak_gates = []
-        for name in target:
-            if name in kak_gate_names:
-                kak_gates.append(kak_gate_names[name])
-                continue
-            op = target.operation_from_name(name)
-            if isinstance(op, RXXGate) and (
-                isinstance(op.params[0], Parameter) or op.params[0] == pi / 2
-            ):
-                kak_gates.append((kak_gate_names["rxx"], name))
-            elif isinstance(op, RZXGate) and (
-                isinstance(op.params[0], Parameter) or op.params[0] == pi / 4
-            ):
-                kak_gates.append((kak_gate_names["rzx"], name))
-        return kak_gates
-    else:
-        kak_gate = None
-        kak_gates = set(basis_gates or []).intersection(kak_gate_names.keys())
-        if kak_gates:
-            kak_gate = kak_gate_names[kak_gates.pop()]
+    kak_gate = None
+    kak_gates = set(basis_gates or []).intersection(KAK_GATE_NAMES.keys())
+    if kak_gates:
+        kak_gate = KAK_GATE_NAMES[kak_gates.pop()]
 
-        return kak_gate
+    return kak_gate
 
 
-def _choose_euler_basis(basis_gates, target=None):
-    """ "Choose the first available 1q basis to use in the Euler decomposition."""
+def _find_matching_kak_gates(target):
+    """Return list of available 2q gates to use in the KAK decomposition."""
+    kak_gates = []
+    for name in target:
+        if name in KAK_GATE_NAMES:
+            kak_gates.append(KAK_GATE_NAMES[name])
+            continue
+        op = target.operation_from_name(name)
+        if isinstance(op, RXXGate) and (
+            isinstance(op.params[0], Parameter) or op.params[0] == pi / 2
+        ):
+            kak_gates.append((KAK_GATE_NAMES["rxx"], name))
+        elif isinstance(op, RZXGate) and (
+            isinstance(op.params[0], Parameter) or op.params[0] == pi / 4
+        ):
+            kak_gates.append((KAK_GATE_NAMES["rzx"], name))
+    return kak_gates
+
+
+def _choose_euler_basis(basis_gates):
+    """Choose the first available 1q basis to use in the Euler decomposition."""
+    basis_set = set(basis_gates or [])
+
+    for basis, gates in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.items():
+
+        if set(gates).issubset(basis_set):
+            return basis
+
+    return None
+
+
+def _find_matching_euler_bases(target):
+    """Find matching availablee 1q basis to use in the Euler decomposition."""
     euler_basis_gates = []
-    if target is not None:
-        basis_set = target.keys()
-        for basis, gates in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.items():
-            if set(gates).issubset(basis_set):
-                euler_basis_gates.append(basis)
-        return euler_basis_gates
-    else:
-        basis_set = set(basis_gates or [])
-
-        for basis, gates in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.items():
-
-            if set(gates).issubset(basis_set):
-                return basis
-
-        return None
+    basis_set = target.keys()
+    for basis, gates in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.items():
+        if set(gates).issubset(basis_set):
+            euler_basis_gates.append(basis)
+    return euler_basis_gates
 
 
 def _choose_bases(basis_gates, basis_dict=None):
@@ -112,50 +118,21 @@ def _choose_bases(basis_gates, basis_dict=None):
     return out_basis
 
 
-def _basis_gates_to_decomposer_2q(basis_gates, pulse_optimize=None, target=None):
+def _basis_gates_to_decomposer_2q(basis_gates, pulse_optimize=None):
+    kak_gate = _choose_kak_gate(basis_gates)
+    euler_basis = _choose_euler_basis(basis_gates)
 
-    if target is not None:
-        kak_gates = _choose_kak_gate(basis_gates, target=target)
-        euler_basis_gates = _choose_euler_basis(basis_gates, target=target)
-        decomposers_2q = []
-        for kak_gate, euler_basis in product(kak_gates, euler_basis_gates):
-            gate_name = None
-            if isinstance(kak_gate, tuple):
-                gate_name = kak_gate[1]
-                kak_gate = kak_gate[0]
-            if isinstance(kak_gate, RZXGate):
-                backup_optimizer = TwoQubitBasisDecomposer(
-                    CXGate(), euler_basis=euler_basis, pulse_optimize=pulse_optimize
-                )
-                decomposer = XXDecomposer(
-                    euler_basis=euler_basis, backup_optimizer=backup_optimizer
-                )
-                if gate_name is not None:
-                    decomposer.gate_name = gate_name
-                decomposers_2q.append(decomposer)
-            elif kak_gate is not None:
-                decomposer = TwoQubitBasisDecomposer(
-                    kak_gate, euler_basis=euler_basis, pulse_optimize=pulse_optimize
-                )
-                if gate_name is not None:
-                    decomposer.gate_name = gate_name
-                decomposers_2q.append(decomposer)
-        return decomposers_2q
+    if isinstance(kak_gate, RZXGate):
+        backup_optimizer = TwoQubitBasisDecomposer(
+            CXGate(), euler_basis=euler_basis, pulse_optimize=pulse_optimize
+        )
+        return XXDecomposer(euler_basis=euler_basis, backup_optimizer=backup_optimizer)
+    elif kak_gate is not None:
+        return TwoQubitBasisDecomposer(
+            kak_gate, euler_basis=euler_basis, pulse_optimize=pulse_optimize
+        )
     else:
-        kak_gate = _choose_kak_gate(basis_gates)
-        euler_basis = _choose_euler_basis(basis_gates)
-
-        if isinstance(kak_gate, RZXGate):
-            backup_optimizer = TwoQubitBasisDecomposer(
-                CXGate(), euler_basis=euler_basis, pulse_optimize=pulse_optimize
-            )
-            return XXDecomposer(euler_basis=euler_basis, backup_optimizer=backup_optimizer)
-        elif kak_gate is not None:
-            return TwoQubitBasisDecomposer(
-                kak_gate, euler_basis=euler_basis, pulse_optimize=pulse_optimize
-            )
-        else:
-            return None
+        return None
 
 
 class UnitarySynthesis(TransformationPass):
@@ -431,6 +408,78 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
     def supports_target(self):
         return True
 
+    def __init__(self):
+        super().__init__()
+        self._decomposer_cache = {}
+
+    def _find_decomposer_2q_from_target(self, target, qubits, pulse_optimize):
+        qubits_tuple = tuple(qubits)
+        reverse_tuple = (qubits[1], qubits[0])
+        if qubits_tuple in self._decomposer_cache:
+            return self._decomposer_cache[qubits_tuple]
+
+        matching = {}
+        reverse = {}
+        kak_gates = _find_matching_kak_gates(target)
+        euler_basis_gates = _find_matching_euler_bases(target)
+        decomposers_2q = []
+        # find all decomposers
+        for kak_gate, euler_basis in product(kak_gates, euler_basis_gates):
+            gate_name = None
+            if isinstance(kak_gate, tuple):
+                gate_name = kak_gate[1]
+                kak_gate = kak_gate[0]
+            if isinstance(kak_gate, RZXGate):
+                backup_optimizer = TwoQubitBasisDecomposer(
+                    CXGate(), euler_basis=euler_basis, pulse_optimize=pulse_optimize
+                )
+                decomposer = XXDecomposer(
+                    euler_basis=euler_basis, backup_optimizer=backup_optimizer
+                )
+                if gate_name is not None:
+                    decomposer.gate_name = gate_name
+                decomposers_2q.append(decomposer)
+            elif kak_gate is not None:
+                decomposer = TwoQubitBasisDecomposer(
+                    kak_gate, euler_basis=euler_basis, pulse_optimize=pulse_optimize
+                )
+                if gate_name is not None:
+                    decomposer.gate_name = gate_name
+                decomposers_2q.append(decomposer)
+
+        # Find lowest error matching or reverse decomposer and use that
+        for index, decomposer in enumerate(decomposers_2q):
+            gate_name = getattr(decomposer, "gate_name", decomposer.gate.name)
+            props_dict = target[gate_name]
+            if target.instruction_supported(gate_name, qubits_tuple):
+                if props_dict is None or None in props_dict:
+                    error = 0.0
+                else:
+                    error = getattr(props_dict[qubits_tuple], "error", 0.0)
+                    if error is None:
+                        error = 0.0
+                matching[index] = error
+            # Skip reverse check if we already have matching
+            elif not matching and target.instruction_supported(gate_name, reverse_tuple):
+                if props_dict is None or None in props_dict:
+                    error = 0.0
+                else:
+                    error = getattr(props_dict[reverse_tuple], "error", 0.0)
+                    if error is None:
+                        error = 0.0
+                reverse[index] = error
+        preferred_direction = None
+        if matching:
+            preferred_direction = [0, 1]
+            min_error_index = min(matching, key=matching.get)
+            decomposer2q = decomposers_2q[min_error_index]
+        elif reverse:
+            preferred_direction = [1, 0]
+            min_error_index = min(reverse, key=matching.get)
+            decomposer2q = decomposers_2q[min_error_index]
+        self._decomposer_cache[qubits_tuple] = (decomposer2q, preferred_direction)
+        return (decomposer2q, preferred_direction)
+
     def run(self, unitary, **options):
         # Approximation degree is set directly as an attribute on the
         # instance by the UnitarySynthesis pass here as it's not part of
@@ -452,9 +501,13 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         else:
             decomposer1q = None
 
-        decomposer2q = _basis_gates_to_decomposer_2q(
-            basis_gates, pulse_optimize=pulse_optimize, target=target
-        )
+        preferred_direction = None
+        if target:
+            decomposer2q, preferred_direction = self._find_decomposer_2q_from_target(
+                target, qubits, pulse_optimize
+            )
+        else:
+            decomposer2q = _basis_gates_to_decomposer_2q(basis_gates, pulse_optimize=pulse_optimize)
 
         synth_dag = None
         wires = None
@@ -476,6 +529,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                 approximation_degree,
                 pulse_optimize,
                 target,
+                preferred_direction,
             )
         else:
             synth_dag = circuit_to_dag(isometry.Isometry(unitary, 0, 0).definition)
@@ -494,57 +548,23 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         approximation_degree,
         pulse_optimize,
         target,
+        preferred_direction=None,
     ):
-        preferred_direction = None
         synth_direction = None
         physical_gate_fidelity = None
         wires = None
-        if natural_direction in {None, True} and (coupling_map or target):
-            if target is not None:
-                matching = {}
-                reverse = {}
-                # Find lowest error matching or reverse decomposer and use that
-                for index, decomposer in enumerate(decomposer2q):
-                    gate_name = getattr(decomposer, "gate_name", decomposer.gate.name)
-                    qubits_tuple = tuple(qubits)
-                    reverse_tuple = (qubits[1], qubits[0])
-                    props_dict = target[gate_name]
-                    if target.instruction_supported(gate_name, qubits_tuple):
-                        if props_dict is None or None in props_dict:
-                            error = 0.0
-                        else:
-                            error = getattr(props_dict[qubits_tuple], "error", 0.0)
-                            if error is None:
-                                error = 0.0
-                        matching[index] = error
-                    # Skip reverse check if we already have matching
-                    elif not matching and target.instruction_supported(gate_name, reverse_tuple):
-                        if props_dict is None or None in props_dict:
-                            error = 0.0
-                        else:
-                            error = getattr(props_dict[reverse_tuple], "error", 0.0)
-                            if error is None:
-                                error = 0.0
-                        reverse[index] = error
-                preferred_direction = None
-                if matching:
-                    preferred_direction = [0, 1]
-                    min_error_index = min(matching, key=matching.get)
-                    decomposer2q = decomposer2q[min_error_index]
-                elif reverse:
-                    preferred_direction = [1, 0]
-                    min_error_index = min(reverse, key=matching.get)
-                    decomposer2q = decomposer2q[min_error_index]
-            else:
-                cmap = coupling_map
-                neighbors0 = cmap.neighbors(qubits[0])
-                zero_one = qubits[1] in neighbors0
-                neighbors1 = cmap.neighbors(qubits[1])
-                one_zero = qubits[0] in neighbors1
-                if zero_one and not one_zero:
-                    preferred_direction = [0, 1]
-                if one_zero and not zero_one:
-                    preferred_direction = [1, 0]
+        if natural_direction in {None, True} and (
+            coupling_map or (target and decomposer2q and not preferred_direction)
+        ):
+            cmap = coupling_map
+            neighbors0 = cmap.neighbors(qubits[0])
+            zero_one = qubits[1] in neighbors0
+            neighbors1 = cmap.neighbors(qubits[1])
+            one_zero = qubits[0] in neighbors1
+            if zero_one and not one_zero:
+                preferred_direction = [0, 1]
+            if one_zero and not zero_one:
+                preferred_direction = [1, 0]
         if (
             natural_direction in {None, True}
             and preferred_direction is None
