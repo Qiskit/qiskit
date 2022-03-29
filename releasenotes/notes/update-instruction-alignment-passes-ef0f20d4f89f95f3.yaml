@@ -1,0 +1,31 @@
+---
+features:
+  - |
+    New pass group :mod:`qiskit.transpiler.passes.scheduling.alignments` has been added.
+    This consists of :class:`ConstrainedReschedule`, :class:`ValidatePulseGates`,
+    and :class:`InstructionDurationCheck`. The new pass :class:`ConstrainedReschedule`
+    considers both hardware alignment constraints of ``pulse_alignment`` and ``acquire_alignment``,
+    which is a drop-in replacement of :class:`AlignMeasures`.
+upgrade:
+  - |
+    The ordering of scheduling-relevant passes in the preset pass manager has been upgraded.
+    Note that now scheduling passes and alignment passes are all sub-class of the
+    :class:`AnalysisPass` that only updates the property set of the pass manager,
+    in which new property set ``node_start_time`` is created there to perform
+    these operation on nodes scheduled on the absolute time.
+
+    Previously, the pass chain had been implemented as ``scheduling -> alignment``
+    which were both transform passes thus there were multiple DAG instance regeneration.
+    In addition, scheduling occured in each pass to obtain instruction start time.
+
+    Now this chain becomes ``scheduling -> alignment -> padding``
+    where the DAG replacement only occurs at the end, i.e. at the ``padding`` pass.
+    Note that who wants to design a new pass manager must insert one of the padding passes
+    at the end of the pass chain. Without the padding pass, the scheduled nodes
+    are not reflected in the target code since the QASM payload has no notion of
+    the scheduling for underlying instructions.
+deprecations:
+  - |
+    Alignment pass :class:`AlignMeasures` has been deprecated and will be removed.
+    The constructor of this pass now internally calls :class:`ConstrainedReschedule`
+    and returns the instance of its instance.

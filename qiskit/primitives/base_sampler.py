@@ -162,19 +162,20 @@ class BaseSampler(ABC):
     @abstractmethod
     def __call__(
         self,
-        circuits: Sequence[int],
-        parameters: Sequence[Sequence[float]],
+        circuit_indices: Sequence[int],
+        parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> SamplerResult:
         """Run the sampling of bitstrings.
 
         Args:
-            circuits: indexes of the circuits to evaluate.
-            parameters: parameters to be bound.
+            circuit_indices: indexes of the circuits to evaluate.
+            parameter_values: parameters to be bound.
             run_options: backend runtime options used for circuit execution.
 
         Returns:
             the result of Sampler. The i-th result corresponds to
-            ``self.circuits[circuits[i]]`` evaluated with parameters bound as ``parameters[i]``.
+            ``self.circuits[circuit_indices[i]]`` evaluated with parameters bound as
+            ``parameter_values[i]``.
         """
         ...
