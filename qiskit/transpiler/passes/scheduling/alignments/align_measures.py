@@ -63,6 +63,7 @@ class AlignMeasures(TransformationPass):
                  └───┘└────────────────┘└╥┘
             c: 1/════════════════════════╩═
                                          0
+
         Note that delay of 100 dt induces a misalignment of 4 dt at the measurement.
         This pass appends an extra 12 dt time shift to the input circuit.
 
