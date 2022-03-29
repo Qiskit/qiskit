@@ -26,6 +26,9 @@ from qiskit.opflow import (
     CircuitSampler,
     PauliSumOp,
     StateFn,
+    ListOp,
+    CircuitStateFn,
+    OperatorBase,
 )
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.providers import Backend, BaseBackend
@@ -71,9 +74,15 @@ class TrotterQRTE(RealEvolver):
             expectation: An instance of ExpectationBase which defines a method for calculating
                 expectation values of EvolutionProblem.aux_operators.
             quantum_instance: A quantum instance used for calculations. If not provided,
-                calculations are performed clasically which work reasonably only for small systems.
+                calculations are performed classically which work reasonably only for small systems.
                 In case of auxiliary operators provided in ``EvolutionProblem``, a quantum instance
                 is required.
+
+            .. note::
+
+                Shot-based simulators like, e.g., the ``qasm_simulator`` will return counts sampled
+                from an evolved state, not the description of the state itself as it happens for the
+                ``statevector_simulator`` for example.
         """
         if product_formula is None:
             product_formula = LieTrotter()
@@ -167,7 +176,7 @@ class TrotterQRTE(RealEvolver):
                 f"TrotterQRTE only accepts Pauli | PauliOp | SparsePauliOp | "
                 f"PauliSumOp | SummedOp, {type(hamiltonian)} provided."
             )
-        if not isinstance(hamiltonian, SparsePauliOp):  # TODO can we handle it better?
+        if isinstance(hamiltonian, OperatorBase):
             hamiltonian = hamiltonian.bind_parameters(evolution_problem.hamiltonian_value_dict)
         if isinstance(hamiltonian, SummedOp):
             hamiltonian = self._summed_op_to_pauli_sum_op(hamiltonian)

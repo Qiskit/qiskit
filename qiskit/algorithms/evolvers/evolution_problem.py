@@ -83,11 +83,8 @@ class EvolutionProblem:
             raise ValueError(
                 "No ``hamiltonian`` provided for the EvolutionProblem. It is required."
             )
-        # TODO SparsePauliOp/BaseOperator does not have .parameters because it is not allowed to
-        #  be parametrized. Can we handle this better than with an if?
-        if not isinstance(hamiltonian, BaseOperator):
-            self._check_parameters(hamiltonian, self.hamiltonian_value_dict, self.t_param)
 
+        self._check_parameters(hamiltonian, self.hamiltonian_value_dict, self.t_param)
         self._hamiltonian = hamiltonian
 
     @property
@@ -128,7 +125,7 @@ class EvolutionProblem:
 
     def _check_parameters(
         self,
-        hamiltonian: OperatorBase,
+        hamiltonian: Union[OperatorBase, BaseOperator],
         hamiltonian_value_dict: Optional[Dict[Parameter, Union[complex]]] = None,
         t_param: Optional[Parameter] = None,
     ) -> None:
@@ -145,18 +142,19 @@ class EvolutionProblem:
         Raises:
             ValueError: If Hamiltonian parameters cannot be bound with data provided.
         """
-        t_param_set = set()
-        if t_param is not None:
-            t_param_set.add(t_param)
-        hamiltonian_dict_param_set = set()
-        if hamiltonian_value_dict is not None:
-            hamiltonian_dict_param_set = hamiltonian_dict_param_set.union(
-                set(hamiltonian_value_dict.keys())
-            )
-        params_set = t_param_set.union(hamiltonian_dict_param_set)
-        hamiltonian_param_set = set(hamiltonian.parameters)
-        if hamiltonian_param_set != params_set:
-            raise ValueError(
-                f"Provided parameters {params_set} do not match Hamiltonian parameters "
-                f"{hamiltonian_param_set}."
-            )
+        if isinstance(hamiltonian, OperatorBase):
+            t_param_set = set()
+            if t_param is not None:
+                t_param_set.add(t_param)
+            hamiltonian_dict_param_set = set()
+            if hamiltonian_value_dict is not None:
+                hamiltonian_dict_param_set = hamiltonian_dict_param_set.union(
+                    set(hamiltonian_value_dict.keys())
+                )
+            params_set = t_param_set.union(hamiltonian_dict_param_set)
+            hamiltonian_param_set = set(hamiltonian.parameters)
+            if hamiltonian_param_set != params_set:
+                raise ValueError(
+                    f"Provided parameters {params_set} do not match Hamiltonian parameters "
+                    f"{hamiltonian_param_set}."
+                )
