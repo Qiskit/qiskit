@@ -1,7 +1,7 @@
 
 features:
   - |
-    :class:`~.FlowControllers` classes (such as :class:`~.ConditionalController`)
+    :class:`~.FlowController` classes (such as :class:`~.ConditionalController`)
     can now be nested inside a :class:`~.PassManager` instance when using the
     :meth:`~.PassManager.append` method. This enables to use nested logic to
     control the execution of passes in the :class:`~.PassManager`. For example::
