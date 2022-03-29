@@ -1,0 +1,24 @@
+---
+features:
+  - |
+    Introduced a new class :class:`~qiskit.circuit.library.data_preparation.StatePreparation`.
+    This class allows users to prepare a desired state in the same fashion as
+    :class:`~qiskit.extensions.quantum_initializer.Initialize` without the reset being
+    automatically applied. The ``Initialize`` class now also calls the ``StatePrepartion``
+    class under the hood.
+
+    E.g. prepare a qubit in the state :math:`(|0\rangle - |1\rangle) / \sqrt{2}`::
+
+        import numpy as np
+        from qiskit import QuantumCircuit
+
+        circuit = QuantumCircuit(1)
+        circuit.prepare_state([1/np.sqrt(2), -1/np.sqrt(2)], 0)
+        circuit.draw()
+
+    The output is as::
+
+              ┌─────────────────────────────────────┐
+         q_0: ┤ State Preparation(0.70711,-0.70711) ├
+              └─────────────────────────────────────┘
+

@@ -12,9 +12,11 @@
 
 """Padding pass to fill empty timeslot."""
 
-from qiskit.circuit import Qubit
+from typing import List, Optional, Union
+
+from qiskit.circuit import Qubit, Clbit, Instruction
 from qiskit.circuit.delay import Delay
-from qiskit.dagcircuit import DAGCircuit, DAGNode, DAGOutNode
+from qiskit.dagcircuit import DAGCircuit, DAGNode
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -51,32 +53,35 @@ class BasePadding(TransformationPass):
         """Run the padding pass on ``dag``.
 
         Args:
-            dag (DAGCircuit): DAG to be checked.
+            dag: DAG to be checked.
 
         Returns:
             DAGCircuit: DAG with idle time filled with instructions.
 
         Raises:
-            TranspilerError: If the whole circuit or instruction is not scheduled.
+            TranspilerError: When a particular node is not scheduled, likely some transform pass
+                is inserted before this node is called.
         """
-        if "node_start_time" not in self.property_set:
-            raise TranspilerError(
-                f"The input circuit {dag.name} is not scheduled. Call one of scheduling passes "
-                f"before running the {self.__class__.__name__} pass."
-            )
-        node_start_time = self.property_set["node_start_time"]
+        self._pre_runhook(dag)
+
+        node_start_time = self.property_set["node_start_time"].copy()
 
         new_dag = DAGCircuit()
-
         for qreg in dag.qregs.values():
             new_dag.add_qreg(qreg)
         for creg in dag.cregs.values():
             new_dag.add_creg(creg)
 
+        # Update start time dictionary for the new_dag.
+        # This information may be used for further scheduling tasks,
+        # but this is immediately invalidated becasue node id is updated in the new_dag.
+        self.property_set["node_start_time"].clear()
+
         new_dag.name = dag.name
         new_dag.metadata = dag.metadata
         new_dag.unit = self.property_set["time_unit"]
         new_dag.calibrations = dag.calibrations
+        new_dag.global_phase = dag.global_phase
 
         idle_after = {bit: 0 for bit in dag.qubits}
 
@@ -99,24 +104,23 @@ class BasePadding(TransformationPass):
                     continue
 
                 for bit in node.qargs:
-                    # Find idle time from the latest instruction on the wire
-                    idle_time = t0 - idle_after[bit]
 
                     # Fill idle time with some sequence
-                    if idle_time > 0:
+                    if t0 - idle_after[bit] > 0:
                         # Find previous node on the wire, i.e. always the latest node on the wire
                         prev_node = next(new_dag.predecessors(new_dag.output_map[bit]))
                         self._pad(
                             dag=new_dag,
                             qubit=bit,
-                            time_interval=idle_time,
+                            t_start=idle_after[bit],
+                            t_end=t0,
                             next_node=node,
                             prev_node=prev_node,
                         )
 
                     idle_after[bit] = t1
 
-                new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
+                self._apply_scheduled_op(new_dag, t0, node.op, node.qargs, node.cargs)
             else:
                 raise TranspilerError(
                     f"Operation {repr(node)} is likely added after the circuit is scheduled. "
@@ -125,14 +129,14 @@ class BasePadding(TransformationPass):
 
         # Add delays until the end of circuit.
         for bit in new_dag.qubits:
-            idle_time = circuit_duration - idle_after[bit]
-            node = new_dag.output_map[bit]
-            prev_node = next(new_dag.predecessors(node))
-            if idle_time > 0:
+            if circuit_duration - idle_after[bit] > 0:
+                node = new_dag.output_map[bit]
+                prev_node = next(new_dag.predecessors(node))
                 self._pad(
                     dag=new_dag,
                     qubit=bit,
-                    time_interval=idle_time,
+                    t_start=idle_after[bit],
+                    t_end=circuit_duration,
                     next_node=node,
                     prev_node=prev_node,
                 )
@@ -141,75 +145,80 @@ class BasePadding(TransformationPass):
 
         return new_dag
 
+    def _pre_runhook(self, dag: DAGCircuit):
+        """Extra routine inserted before running the padding pass.
+
+        Args:
+            dag: DAG circuit on which the sequence is applied.
+
+        Raises:
+            TranspilerError: If the whole circuit or instruction is not scheduled.
+        """
+        if "node_start_time" not in self.property_set:
+            raise TranspilerError(
+                f"The input circuit {dag.name} is not scheduled. Call one of scheduling passes "
+                f"before running the {self.__class__.__name__} pass."
+            )
+
+    def _apply_scheduled_op(
+        self,
+        dag: DAGCircuit,
+        t_start: int,
+        oper: Instruction,
+        qubits: Union[Qubit, List[Qubit]],
+        clbits: Optional[Union[Clbit, List[Clbit]]] = None,
+    ):
+        """Add new operation to DAG with scheduled information.
+
+        This is identical to apply_operation_back + updating the node_start_time propety.
+
+        Args:
+            dag: DAG circuit on which the sequence is applied.
+            t_start: Start time of new node.
+            oper: New operation that is added to the DAG circuit.
+            qubits: The list of qubits that the operation acts on.
+            clbits: The list of clbits that the operation acts on.
+        """
+        if isinstance(qubits, Qubit):
+            qubits = [qubits]
+        if isinstance(clbits, Clbit):
+            clbits = [clbits]
+
+        new_node = dag.apply_operation_back(oper, qargs=qubits, cargs=clbits)
+        self.property_set["node_start_time"][new_node] = t_start
+
     def _pad(
         self,
         dag: DAGCircuit,
         qubit: Qubit,
-        time_interval: int,
+        t_start: int,
+        t_end: int,
         next_node: DAGNode,
         prev_node: DAGNode,
     ):
         """Interleave instruction sequence in between two nodes.
 
+        .. note::
+            If a DAGOpNode is added here, it should update node_start_time property
+            in the property set so that the added node is also scheduled.
+            This is achieved by adding operation via :meth:`_apply_scheduled_op`.
+
+        .. note::
+
+            This method doesn't check if the total duration of new DAGOpNode added here
+            is identical to the interval (``t_end - t_start``).
+            A developer of the pass must guarantee this is satisfied.
+            If the duration is greater than the interval, your circuit may be
+            compiled down to the target code with extra duration on the backend compiler,
+            which is then played normally without error. However, the outcome of your circuit
+            might be unexpected due to erroneous scheduling.
+
         Args:
             dag: DAG circuit that sequence is applied.
             qubit: The wire that the sequence is applied on.
-            time_interval: Duration of idle time in between two nodes.
+            t_start: Absolute start time of this interval.
+            t_end: Absolute end time of this interval.
             next_node: Node that follows the sequence.
             prev_node: Node ahead of the sequence.
         """
         raise NotImplementedError
-
-
-class PadDelay(BasePadding):
-    """Padding idle time with Delay instructions.
-
-    Consecutive delays will be merged in the output of this pass.
-
-    .. code-block::python
-
-        durations = InstructionDurations([("x", None, 160), ("cx", None, 800)])
-
-        qc = QuantumCircuit(2)
-        qc.delay(100, 0)
-        qc.x(1)
-        qc.cx(0, 1)
-
-    The ASAP-scheduled circuit output may become
-
-    .. parsed-literal::
-
-             ┌────────────────┐
-        q_0: ┤ Delay(160[dt]) ├──■──
-             └─────┬───┬──────┘┌─┴─┐
-        q_1: ──────┤ X ├───────┤ X ├
-                   └───┘       └───┘
-
-    Note that the additional idle time of 60dt on the ``q_0`` wire coming from the duration difference
-    between ``Delay`` of 100dt (``q_0``) and ``XGate`` of 160 dt (``q_1``) is absorbed in
-    the delay instruction on the ``q_0`` wire, i.e. in total 160 dt.
-
-    See :class:`BasePadding` pass for details.
-    """
-
-    def __init__(self, fill_very_end: bool = True):
-        """Create new padding delay pass.
-
-        Args:
-            fill_very_end: Set ``True`` to fill the end of circuit with delay.
-        """
-        super().__init__()
-        self.fill_very_end = fill_very_end
-
-    def _pad(
-        self,
-        dag: DAGCircuit,
-        qubit: Qubit,
-        time_interval: int,
-        next_node: DAGNode,
-        prev_node: DAGNode,
-    ):
-        if not self.fill_very_end and isinstance(next_node, DAGOutNode):
-            return
-
-        dag.apply_operation_back(Delay(time_interval, dag.unit), [qubit])

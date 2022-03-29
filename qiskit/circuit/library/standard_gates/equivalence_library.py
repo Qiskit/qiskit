@@ -584,13 +584,13 @@ _sel.add_equivalence(CSXGate(), def_csx)
 # q_1: ┤ Sx ├     q_1: ─────┤1          ├┤ sx^0.5 ├─────
 #      └────┘               └───────────┘└────────┘
 q = QuantumRegister(2, "q")
-csx_to_zx45 = QuantumCircuit(q, global_phase=pi / 8)
+csx_to_zx45 = QuantumCircuit(q, global_phase=pi / 4)
 for inst, qargs, cargs in [
     (XGate(), [q[0]], []),
     (RZXGate(pi / 4), [q[0], q[1]], []),
     (TdgGate(), [q[0]], []),
     (XGate(), [q[0]], []),
-    (SXGate().power(0.5), [q[1]], []),
+    (RXGate(pi / 4), [q[1]], []),
 ]:
     csx_to_zx45.append(inst, qargs, cargs)
 _sel.add_equivalence(CSXGate(), csx_to_zx45)
