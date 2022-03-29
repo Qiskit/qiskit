@@ -12,7 +12,7 @@
 
 """A gate made of commuting two-qubit gates."""
 
-from typing import Set
+from typing import Iterable
 
 from qiskit import QiskitError
 from qiskit.circuit import Gate

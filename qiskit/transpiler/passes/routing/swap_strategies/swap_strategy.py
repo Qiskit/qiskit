@@ -70,7 +70,7 @@ class SwapStrategy:
                 raise QiskitError(f"The {i}th swap layer contains a qubit with multiple swaps.")
 
     @classmethod
-    def make_line_swap_strategy(
+    def from_line(
         cls, line: List[int], num_swap_layers: Optional[int] = None
     ) -> "SwapStrategy":
         """Creates a swap strategy for a line graph with the specified number of SWAP layers.

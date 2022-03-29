@@ -205,7 +205,7 @@ class TestSwapStrategyExceptions(QiskitTestCase):
         """Test the number of layers."""
         message = "Negative number -1 passed for number of swap layers."
         with self.assertRaises(ValueError, msg=message):
-            SwapStrategy.make_line_swap_strategy([0, 1, 2], -1)
+            SwapStrategy.from_line([0, 1, 2], -1)
 
 
 class TestLineSwapStrategy(QiskitTestCase):
@@ -215,13 +215,13 @@ class TestLineSwapStrategy(QiskitTestCase):
         """Test that lines should be longer than 1."""
         message = "The line cannot have less than two elements, but is [1]"
         with self.assertRaises(ValueError, msg=message):
-            SwapStrategy.make_line_swap_strategy([1], 0)
+            SwapStrategy.from_line([1], 0)
 
     def test_full_line(self):
         """Test to reach full connectivity on a line."""
 
         n_nodes = 5
-        strategy = SwapStrategy.make_line_swap_strategy(list(range(n_nodes)))
+        strategy = SwapStrategy.from_line(list(range(n_nodes)))
 
         self.assertEqual(len(strategy._swap_layers), n_nodes - 2)
 
@@ -254,7 +254,7 @@ class TestLineSwapStrategy(QiskitTestCase):
         """Test the creation of a line swap strategy."""
 
         n_nodes = 5
-        strategy = SwapStrategy.make_line_swap_strategy(list(range(n_nodes)))
+        strategy = SwapStrategy.from_line(list(range(n_nodes)))
 
         self.assertEqual(strategy.swap_layer(0), [(0, 1), (2, 3)])
         self.assertEqual(strategy.swap_layer(1), [(1, 2), (3, 4)])
@@ -268,4 +268,4 @@ class TestLineSwapStrategy(QiskitTestCase):
             "SwapStrategy with swap layers:\n((0, 1),),\non "
             "[[0, 1], [1, 0], [1, 2], [2, 1]] coupling map."
         )
-        self.assertEqual(repr(SwapStrategy.make_line_swap_strategy([0, 1, 2])), expected)
+        self.assertEqual(repr(SwapStrategy.from_line([0, 1, 2])), expected)
