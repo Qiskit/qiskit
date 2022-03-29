@@ -1,0 +1,20 @@
+---
+deprecations:
+  - |
+    Qiskit's :func:`~.execute_function.execute` function is deprecated.
+    This function served as a high-level wrapper around transpiling
+    a circuit with some transpile options and running it on a backend
+    with some run options. To do the same thing, you can explicitly
+    use the :func:`~.transpile` function (with appropriate transpile
+    options) followed by `backend.run()` (with appropriate run options).
+
+   For example, instead of running::
+
+      from qiskit import execute
+      job = execute(circuit, backend)
+
+   you can run::
+
+      from qiskit import transpile
+      new_circuit = transpile(circuit)
+      job = backend.run(new_circuit)
