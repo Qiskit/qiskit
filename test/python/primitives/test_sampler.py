@@ -84,7 +84,7 @@ class TestSampler(QiskitTestCase):
         """test for sampler"""
         circuits, target = self._generate_circuits_target(indices)
         with Sampler(circuits=circuits) as sampler:
-            result = sampler(parameters=[[] for _ in indices])
+            result = sampler(parameter_values=[[] for _ in indices])
             self._compare_probs(result.quasi_dists, target)
 
     @combine(indices=[[0], [1], [0, 1]])
@@ -92,7 +92,7 @@ class TestSampler(QiskitTestCase):
         """test for sampler with a parametrized circuit"""
         params, target = self._generate_params_target(indices)
         with Sampler(circuits=self._pqc) as sampler:
-            result = sampler(parameters=params)
+            result = sampler(parameter_values=params)
             self._compare_probs(result.quasi_dists, target)
 
     @combine(indices=[[0, 0], [0, 1], [1, 1]])
@@ -101,7 +101,7 @@ class TestSampler(QiskitTestCase):
         circs = [self._pqc, self._pqc]
         params, target = self._generate_params_target(indices)
         with Sampler(circuits=circs) as sampler:
-            result = sampler(parameters=params)
+            result = sampler(parameter_values=params)
             self._compare_probs(result.quasi_dists, target)
 
     def test_sampler_example(self):
@@ -114,7 +114,7 @@ class TestSampler(QiskitTestCase):
 
         # executes a Bell circuit
         with Sampler(circuits=[bell], parameters=[[]]) as sampler:
-            result = sampler(parameters=[[]], circuits=[0])
+            result = sampler(parameter_values=[[]], circuits=[0])
             self.assertIsInstance(result, SamplerResult)
             self.assertEqual(len(result.quasi_dists), 1)
             keys, values = zip(*sorted(result.quasi_dists[0].items()))
