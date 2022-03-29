@@ -322,7 +322,7 @@ class Pauli(BasePauli, Operation):
         self._z[0, qubits] = value.z
         self._x[0, qubits] = value.x
         # Add extra phase from new Pauli to current
-        self._phase += value._phase
+        self._phase = self._phase + value._phase
 
     def delete(self, qubits):
         """Return a Pauli with qubits deleted.
