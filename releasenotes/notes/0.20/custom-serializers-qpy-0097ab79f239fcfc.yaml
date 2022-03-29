@@ -16,7 +16,7 @@ features:
     ``metadata_serializer`` argument for
     :func:`~qiskit.qpy.dump` enables users to specify a
     custom ``JSONEncoder`` that will be used with the internal ``json.dump()``
-    call for  serializing the :attr`.QuantumCircuit.metadata` dictionary. This
+    call for  serializing the :attr:`.QuantumCircuit.metadata` dictionary. This
     can then be paired with the new ``metadata_deserializer`` argument of the
     :func:`.qpy.load` function to decode those custom JSON
     encodings. If ``metadata_serializer`` is specified on

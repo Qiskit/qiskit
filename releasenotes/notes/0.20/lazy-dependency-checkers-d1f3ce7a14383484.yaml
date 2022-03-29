@@ -16,5 +16,5 @@ upgrade:
     The error raised by :class:`.HoareOptimizer` if the optional dependency
     ``z3`` is not available has changed from :class:`.TranspilerError` to
     :class:`.MissingOptionalLibraryError` (which is both a :class:`.QiskitError`
-    and an ``ImportError``).  This is for consistency with other optional
-    dependencies.
+    and an ``ImportError``).  This was done to be consistent with the other
+    optional dependencies.

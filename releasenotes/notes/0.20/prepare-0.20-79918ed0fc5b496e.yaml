@@ -4,7 +4,8 @@ prelude: |
 
   * The introduction of multithreaded modules written in Rust to accelerate
     the performance of certain portions of Qiskit Terra and improve scaling
-    with larger numbers of qubits.
+    with larger numbers of qubits. However, when building Qiskit from source a
+    Rust compiler is now required.
 
   * More native support for working with a :class:`~.Target` in the transpiler.
     Several passes now support working directly with a :class:`~.Target` object

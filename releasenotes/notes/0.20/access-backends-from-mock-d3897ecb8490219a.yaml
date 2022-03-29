@@ -1,6 +1,7 @@
 ---
-
-upgrade:
+feature:
   - |
-    Mock backends from `~qiskit.test.mock` are now accessible from `~qiskit.providers.fake_provider`.
-    The `~qiskit.test.mock` package will be deprecated soon.
+    The fake backend and fake provider classes which were previously available
+    in ``qiskit.test.mock`` are now also accessible in a new module:
+    ``qiskit.providers.fake_provider``. This new module superscedes the previous
+    module ``qiskit.test.mock`` which will be deprecated in Qiskit 0.21.0.
