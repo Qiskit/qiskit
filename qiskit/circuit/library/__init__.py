@@ -40,7 +40,7 @@ The library is organized in several sections.
 Standard gates
 ==============
 
-These instructions are reversible unitary gates and they all subclass
+These operations are reversible unitary gates and they all subclass
 :class:`~qiskit.circuit.gate.Gate`. As a consequence, they all have the methods
 :meth:`~qiskit.circuit.gate.Gate.to_matrix`, :meth:`~qiskit.circuit.gate.Gate.power`,
 and :meth:`~qiskit.circuit.gate.Gate.control`.
