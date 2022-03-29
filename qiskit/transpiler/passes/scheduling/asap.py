@@ -11,18 +11,32 @@
 # that they have been altered from the originals.
 
 """ASAP Scheduling."""
-from qiskit.circuit import Measure
+
+import warnings
+
+from qiskit.circuit import Delay, Qubit, Measure
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
 
-from qiskit.transpiler.passes.scheduling.scheduling.base_scheduler import BaseScheduler
+from .base_scheduler import BaseScheduler
 
 
-class ASAPScheduleAnalysis(BaseScheduler):
+class ASAPSchedule(BaseScheduler):
     """ASAP Scheduling pass, which schedules the start time of instructions as early as possible..
 
     See :class:`~qiskit.transpiler.passes.scheduling.base_scheduler.BaseScheduler` for the
     detailed behavior of the control flow operation, i.e. ``c_if``.
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        warnings.warn(
+            "The ASAPSchedule class has been supersceded by the ASAPScheduleAnalysis class "
+            "which performs the as analysis pass that requires a padding pass to later modify "
+            "the circuit. This class will be deprecated in a future release and subsequently "
+            "removed after that.",
+            PendingDeprecationWarning,
+        )
 
     def run(self, dag):
         """Run the ASAPSchedule pass on `dag`.
@@ -40,10 +54,14 @@ class ASAPScheduleAnalysis(BaseScheduler):
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("ASAP schedule runs on physical circuits only")
 
-        conditional_latency = self.property_set.get("conditional_latency", 0)
-        clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
+        time_unit = self.property_set["time_unit"]
 
-        node_start_time = dict()
+        new_dag = DAGCircuit()
+        for qreg in dag.qregs.values():
+            new_dag.add_qreg(qreg)
+        for creg in dag.cregs.values():
+            new_dag.add_creg(creg)
+
         idle_after = {q: 0 for q in dag.qubits + dag.clbits}
         bit_indices = {q: index for index, q in enumerate(dag.qubits)}
         for node in dag.topological_op_nodes():
@@ -72,8 +90,8 @@ class ASAPScheduleAnalysis(BaseScheduler):
                         # C ▒▒▒░░░▒▒░░░
                         #         |t0q - conditional_latency
                         #
-                        t0c = max(t0q - conditional_latency, t0c)
-                    t1c = t0c + conditional_latency
+                        t0c = max(t0q - self.conditional_latency, t0c)
+                    t1c = t0c + self.conditional_latency
                     for bit in node.op.condition_bits:
                         # Lock clbit until state is read
                         idle_after[bit] = t1c
@@ -114,7 +132,7 @@ class ASAPScheduleAnalysis(BaseScheduler):
                     # C ▒▒▒▒▒▒▒▒░░░▒▒▒▒▒
                     #              |t0c' = t0c + clbit_write_latency
                     #
-                    t0 = max(t0q, t0c - clbit_write_latency)
+                    t0 = max(t0q, t0c - self.clbit_write_latency)
                     t1 = t0 + op_duration
                     for clbit in node.cargs:
                         idle_after[clbit] = t1
@@ -123,9 +141,27 @@ class ASAPScheduleAnalysis(BaseScheduler):
                     t0 = max(idle_after[bit] for bit in node.qargs + node.cargs)
                     t1 = t0 + op_duration
 
+            # Add delay to qubit wire
             for bit in node.qargs:
+                delta = t0 - idle_after[bit]
+                if delta > 0 and isinstance(bit, Qubit):
+                    new_dag.apply_operation_back(Delay(delta, time_unit), [bit], [])
                 idle_after[bit] = t1
 
-            node_start_time[node] = t0
+            new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
 
-        self.property_set["node_start_time"] = node_start_time
+        circuit_duration = max(idle_after.values())
+        for bit, after in idle_after.items():
+            delta = circuit_duration - after
+            if not (delta > 0 and isinstance(bit, Qubit)):
+                continue
+            new_dag.apply_operation_back(Delay(delta, time_unit), [bit], [])
+
+        new_dag.name = dag.name
+        new_dag.metadata = dag.metadata
+        new_dag.calibrations = dag.calibrations
+
+        # set circuit duration and unit to indicate it is scheduled
+        new_dag.duration = circuit_duration
+        new_dag.unit = time_unit
+        return new_dag

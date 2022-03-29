@@ -21,7 +21,11 @@ from qiskit.circuit import QuantumCircuit, Delay
 from qiskit.circuit.library import XGate, YGate, RXGate, UGate
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.instruction_durations import InstructionDurations
-from qiskit.transpiler.passes import ASAPSchedule, ALAPSchedule, DynamicalDecoupling
+from qiskit.transpiler.passes import (
+    ASAPScheduleAnalysis,
+    ALAPScheduleAnalysis,
+    DynamicalDecouplingPadding,
+)
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -31,8 +35,8 @@ from qiskit.test import QiskitTestCase
 
 
 @ddt
-class TestDynamicalDecoupling(QiskitTestCase):
-    """Tests DynamicalDecoupling pass."""
+class TestDynamicalDecouplingPadding(QiskitTestCase):
+    """Tests DynamicalDecouplingPadding pass."""
 
     def setUp(self):
         """Circuits to test DD on.
@@ -112,7 +116,10 @@ class TestDynamicalDecoupling(QiskitTestCase):
         """
         dd_sequence = [XGate(), XGate()]
         pm = PassManager(
-            [ALAPSchedule(self.durations), DynamicalDecoupling(self.durations, dd_sequence)]
+            [
+                ALAPScheduleAnalysis(self.durations),
+                DynamicalDecouplingPadding(self.durations, dd_sequence),
+            ]
         )
 
         ghz4_dd = pm.run(self.ghz4)
@@ -165,8 +172,8 @@ class TestDynamicalDecoupling(QiskitTestCase):
         dd_sequence = [XGate(), XGate()]
         pm = PassManager(
             [
-                ALAPSchedule(self.durations),
-                DynamicalDecoupling(self.durations, dd_sequence, qubits=[0]),
+                ALAPScheduleAnalysis(self.durations),
+                DynamicalDecouplingPadding(self.durations, dd_sequence, qubits=[0]),
             ]
         )
 
@@ -214,8 +221,8 @@ class TestDynamicalDecoupling(QiskitTestCase):
         dd_sequence = [YGate(), YGate()]
         pm = PassManager(
             [
-                ALAPSchedule(self.durations),
-                DynamicalDecoupling(self.durations, dd_sequence, skip_reset_qubits=False),
+                ALAPScheduleAnalysis(self.durations),
+                DynamicalDecouplingPadding(self.durations, dd_sequence, skip_reset_qubits=False),
             ]
         )
 
@@ -282,7 +289,10 @@ class TestDynamicalDecoupling(QiskitTestCase):
         """
         dd_sequence = [XGate(), YGate(), XGate(), YGate()]
         pm = PassManager(
-            [ALAPSchedule(self.durations), DynamicalDecoupling(self.durations, dd_sequence)]
+            [
+                ALAPScheduleAnalysis(self.durations),
+                DynamicalDecouplingPadding(self.durations, dd_sequence),
+            ]
         )
 
         ghz4_dd = pm.run(self.ghz4)
@@ -338,7 +348,10 @@ class TestDynamicalDecoupling(QiskitTestCase):
         """
         dd_sequence = [XGate()]
         pm = PassManager(
-            [ALAPSchedule(self.durations), DynamicalDecoupling(self.durations, dd_sequence)]
+            [
+                ALAPScheduleAnalysis(self.durations),
+                DynamicalDecouplingPadding(self.durations, dd_sequence),
+            ]
         )
 
         midmeas_dd = pm.run(self.midmeas)
@@ -388,7 +401,10 @@ class TestDynamicalDecoupling(QiskitTestCase):
         """
         dd_sequence = [RXGate(pi / 4)]
         pm = PassManager(
-            [ASAPSchedule(self.durations), DynamicalDecoupling(self.durations, dd_sequence)]
+            [
+                ASAPScheduleAnalysis(self.durations),
+                DynamicalDecouplingPadding(self.durations, dd_sequence),
+            ]
         )
 
         midmeas_dd = pm.run(self.midmeas)
@@ -466,8 +482,10 @@ class TestDynamicalDecoupling(QiskitTestCase):
 
         pm = PassManager(
             [
-                ALAPSchedule(self.durations),
-                DynamicalDecoupling(self.durations, dd_sequence, qubits=[0], spacing=spacing),
+                ALAPScheduleAnalysis(self.durations),
+                DynamicalDecouplingPadding(
+                    self.durations, dd_sequence, qubits=[0], spacing=spacing
+                ),
             ]
         )
 
@@ -515,8 +533,8 @@ class TestDynamicalDecoupling(QiskitTestCase):
         spacing = [0] + [1 / 4] * 4
         pm = PassManager(
             [
-                ALAPSchedule(self.durations),
-                DynamicalDecoupling(self.durations, dd_sequence, spacing=spacing),
+                ALAPScheduleAnalysis(self.durations),
+                DynamicalDecouplingPadding(self.durations, dd_sequence, spacing=spacing),
             ]
         )
 
@@ -558,8 +576,8 @@ class TestDynamicalDecoupling(QiskitTestCase):
         spacing = [0.1, 0.9]
         pm = PassManager(
             [
-                ALAPSchedule(self.durations),
-                DynamicalDecoupling(
+                ALAPScheduleAnalysis(self.durations),
+                DynamicalDecouplingPadding(
                     self.durations, dd_sequence, spacing=spacing, skip_reset_qubits=True
                 ),
             ]
@@ -591,8 +609,8 @@ class TestDynamicalDecoupling(QiskitTestCase):
         dd_sequence = [XGate(), YGate()]
         pm = PassManager(
             [
-                ALAPSchedule(self.durations),
-                DynamicalDecoupling(self.durations, dd_sequence),
+                ALAPScheduleAnalysis(self.durations),
+                DynamicalDecouplingPadding(self.durations, dd_sequence),
             ]
         )
 
@@ -618,7 +636,9 @@ class TestDynamicalDecoupling(QiskitTestCase):
         durations = InstructionDurations([("x", None, 100), ("cx", None, 300)])
 
         dd_sequence = [XGate(), XGate()]
-        pm = PassManager([ALAPSchedule(durations), DynamicalDecoupling(durations, dd_sequence)])
+        pm = PassManager(
+            [ALAPScheduleAnalysis(durations), DynamicalDecouplingPadding(durations, dd_sequence)]
+        )
 
         self.assertEqual(pm.run(circ).duration, rx_duration + 100 + 300)
 
@@ -656,8 +676,8 @@ class TestDynamicalDecoupling(QiskitTestCase):
         dd_sequence = [XGate(), YGate(), XGate(), YGate()]
         pm = PassManager(
             [
-                ALAPSchedule(self.durations),
-                DynamicalDecoupling(
+                ALAPScheduleAnalysis(self.durations),
+                DynamicalDecouplingPadding(
                     self.durations,
                     dd_sequence,
                     pulse_alignment=10,
@@ -706,17 +726,17 @@ class TestDynamicalDecoupling(QiskitTestCase):
 
         pm1 = PassManager(
             [
-                ALAPSchedule(self.durations),
-                DynamicalDecoupling(self.durations, dd_sequence, qubits=[0]),
-                DynamicalDecoupling(self.durations, dd_sequence, qubits=[1]),
+                ALAPScheduleAnalysis(self.durations),
+                DynamicalDecouplingPadding(self.durations, dd_sequence, qubits=[0]),
+                DynamicalDecouplingPadding(self.durations, dd_sequence, qubits=[1]),
             ]
         )
         circ1 = pm1.run(self.ghz4)
 
         pm2 = PassManager(
             [
-                ALAPSchedule(self.durations),
-                DynamicalDecoupling(self.durations, dd_sequence, qubits=[0, 1]),
+                ALAPScheduleAnalysis(self.durations),
+                DynamicalDecouplingPadding(self.durations, dd_sequence, qubits=[0, 1]),
             ]
         )
         circ2 = pm2.run(self.ghz4)

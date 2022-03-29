@@ -12,5 +12,5 @@
 
 """Scheduling pass to fill idle times with gate sequence."""
 
-from .dynamical_decoupling import DynamicalDecoupling
+from .dynamical_decoupling import DynamicalDecouplingPadding
 from .pad_delay import PadDelay

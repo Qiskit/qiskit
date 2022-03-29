@@ -21,6 +21,8 @@ from qiskit.transpiler.passes import (
     InstructionDurationCheck,
     ConstrainedReschedule,
     ValidatePulseGates,
+    ALAPScheduleAnalysis,
+    ASAPScheduleAnalysis,
     ALAPSchedule,
     ASAPSchedule,
     PadDelay,
@@ -80,7 +82,7 @@ class TestAlignMeasures(QiskitTestCase):
                 # reproduce old behavior of 0.20.0 before #7655
                 # currently default write latency is 0
                 SetIOLatency(clbit_write_latency=1600, conditional_latency=0),
-                ALAPSchedule(durations=self.instruction_durations),
+                ALAPScheduleAnalysis(durations=self.instruction_durations),
                 ConstrainedReschedule(acquire_alignment=16),
                 PadDelay(),
             ]
@@ -131,7 +133,7 @@ class TestAlignMeasures(QiskitTestCase):
                 # reproduce old behavior of 0.20.0 before #7655
                 # currently default write latency is 0
                 SetIOLatency(clbit_write_latency=1600, conditional_latency=0),
-                ALAPSchedule(durations=self.instruction_durations),
+                ALAPScheduleAnalysis(durations=self.instruction_durations),
                 ConstrainedReschedule(acquire_alignment=16),
                 PadDelay(),
             ]
@@ -186,7 +188,7 @@ class TestAlignMeasures(QiskitTestCase):
                 # reproduce old behavior of 0.20.0 before #7655
                 # currently default write latency is 0
                 SetIOLatency(clbit_write_latency=1600, conditional_latency=0),
-                ALAPSchedule(durations=self.instruction_durations),
+                ALAPScheduleAnalysis(durations=self.instruction_durations),
                 ConstrainedReschedule(acquire_alignment=16),
                 PadDelay(),
             ]
@@ -252,7 +254,7 @@ class TestAlignMeasures(QiskitTestCase):
                 # reproduce old behavior of 0.20.0 before #7655
                 # currently default write latency is 0
                 SetIOLatency(clbit_write_latency=1600, conditional_latency=0),
-                ALAPSchedule(durations=self.instruction_durations),
+                ALAPScheduleAnalysis(durations=self.instruction_durations),
                 ConstrainedReschedule(acquire_alignment=16),
                 PadDelay(),
             ]
@@ -337,7 +339,7 @@ class TestAlignMeasures(QiskitTestCase):
                 # reproduce old behavior of 0.20.0 before #7655
                 # currently default write latency is 0
                 SetIOLatency(clbit_write_latency=1600, conditional_latency=0),
-                ALAPSchedule(durations=self.instruction_durations),
+                ALAPScheduleAnalysis(durations=self.instruction_durations),
                 ConstrainedReschedule(acquire_alignment=16),
                 PadDelay(fill_very_end=False),
             ]
@@ -399,7 +401,7 @@ class TestAlignMeasures(QiskitTestCase):
 
         pm = PassManager(
             [
-                ASAPSchedule(durations=self.instruction_durations),
+                ASAPScheduleAnalysis(durations=self.instruction_durations),
                 ConstrainedReschedule(pulse_alignment=16),
                 PadDelay(fill_very_end=False),
             ]
@@ -407,7 +409,7 @@ class TestAlignMeasures(QiskitTestCase):
 
         pm_only_schedule = PassManager(
             [
-                ASAPSchedule(durations=self.instruction_durations),
+                ASAPScheduleAnalysis(durations=self.instruction_durations),
                 PadDelay(fill_very_end=False),
             ]
         )
@@ -472,7 +474,7 @@ class TestAlignMeasures(QiskitTestCase):
         """
         pm = PassManager(
             [
-                ALAPSchedule(durations=self.instruction_durations),
+                ALAPScheduleAnalysis(durations=self.instruction_durations),
                 ConstrainedReschedule(pulse_alignment=16, acquire_alignment=16),
                 PadDelay(fill_very_end=False),
             ]
@@ -499,12 +501,11 @@ class TestAlignMeasures(QiskitTestCase):
         circuit.delay(100)
         circuit.measure(0, 0)
 
-        with self.assertWarns(FutureWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             pm_old = PassManager(
                 [
                     ALAPSchedule(durations=self.instruction_durations),
                     AlignMeasures(alignment=16),
-                    PadDelay(fill_very_end=False),
                 ]
             )
 
@@ -512,7 +513,6 @@ class TestAlignMeasures(QiskitTestCase):
             [
                 ALAPSchedule(durations=self.instruction_durations),
                 AlignMeasures(alignment=16),
-                PadDelay(fill_very_end=False),
             ]
         )
 
