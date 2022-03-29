@@ -255,10 +255,6 @@ class Target(Mapping):
                     )
         self.qubit_properties = qubit_properties
 
-    def get_qubit_properties(self, qubit):
-        """Return the qubit properties for the given qubit."""
-        return self.qubit_properties[qubit]
-
     def add_instruction(self, instruction, properties=None, name=None):
         """Add a new instruction to the :class:`~qiskit.transpiler.Target`
 

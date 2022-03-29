@@ -491,8 +491,8 @@ class BackendV2(Backend, ABC):
         if self.target.qubit_properties is None:
             raise NotImplementedError
         if isinstance(qubit, int):
-            return self.target.get_qubit_properties(qubit)
-        return [self.target.get_qubit_properties(q) for q in qubit]
+            return self.target.qubit_properties[qubit]
+        return [self.target.qubit_properties[q] for q in qubit]
 
     def drive_channel(self, qubit: int):
         """Return the drive channel for the given qubit.
