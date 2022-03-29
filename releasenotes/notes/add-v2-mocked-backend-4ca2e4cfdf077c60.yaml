@@ -7,7 +7,7 @@ features:
     System snapshots json files (configuration, properties and pulse defaults).
 
     Added V2 versions of existing fake backends except for three old backends
-    (`Rueschlikon`, `Tenerfie` and `Tokyo) that do not have snapshots files
+    (`Rueschlikon`, `Tenerfie` and `Tokyo`) that do not have snapshots files
     available.
 
     These V2 fake backends will enable testing and development of new features
