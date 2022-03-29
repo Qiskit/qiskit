@@ -233,7 +233,7 @@ class NaturalGradient(GradientBase):
             metric: See (1) and (2).
             gradient: See (1) and (2).
             reg_method: Given the metric, gradient and lambda the regularization method must return
-                ``x_lambda``. - see (2)
+                ``x_lambda`` - see (2).
             lambda1: Left starting point for L-curve corner search.
             lambda4: Right starting point for L-curve corner search.
             tol: Termination threshold.
