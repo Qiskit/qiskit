@@ -242,23 +242,23 @@ class FakeBackendV2(BackendV2):
                 "Invalid input object %s, must be either a "
                 "QuantumCircuit, Schedule, or a list of either" % circuits
             )
-        elif pulse_job:
+        if pulse_job: # pulse job
             raise QiskitError("Pulse simulation is currently not supported for V2 backends.")
-        else:  # circuit job
-            if _optionals.HAS_AER:
-                from qiskit.providers import aer
+        # circuit job
+        if _optionals.HAS_AER:
+            from qiskit.providers import aer
 
-                sim = aer.Aer.get_backend("qasm_simulator")
-                sim._options = self._options
-                if self._props_dict:
-                    noise_model = self._get_noise_model_from_backend_v2()
-                    job = sim.run(circuits, noise_model=noise_model, **options)
-                else:  # simulate without noise
-                    job = sim.run(circuits, **options)
-            else:
-                warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
-                sim = basicaer.BasicAer.get_backend("qasm_simulator")
+            sim = aer.Aer.get_backend("qasm_simulator")
+            sim._options = self._options
+            if self._props_dict:
+                noise_model = self._get_noise_model_from_backend_v2()
+                job = sim.run(circuits, noise_model=noise_model, **options)
+            else:  # simulate without noise
                 job = sim.run(circuits, **options)
+        else:
+            warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
+            sim = basicaer.BasicAer.get_backend("qasm_simulator")
+            job = sim.run(circuits, **options)
         return job
 
     def _get_noise_model_from_backend_v2(
