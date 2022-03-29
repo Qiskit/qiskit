@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    The OpenQASM 3 exporter will now escape register and parameter names that
+    clash with reserved OpenQASM 3 keywords by generating a new unique name.
+    Registers and parameters with the same name will no longer have naming
+    clashes in the code output from the OpenQASM 3 exporter.
