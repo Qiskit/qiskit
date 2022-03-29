@@ -8,6 +8,6 @@ features:
     on the constructor, ``coupling_map`` and ``backend_prop``.
   - |
     The :class:`~qiskit.transpiler.Target` class has a new method,
-    :meth:`~qiskit.transpiler.Target.operation_names_from_qargs`. This method is
+    :meth:`~qiskit.transpiler.Target.operation_names_for_qargs`. This method is
     used to get the operation names (i.e. lookup key in the target) for the
     operations on a given qargs tuple.

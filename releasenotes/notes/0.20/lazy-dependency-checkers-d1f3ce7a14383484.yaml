@@ -9,8 +9,8 @@ features:
     import their dependencies when they are queried, so you can use them in
     runtime code without affecting import time.
   - |
-    Import time for ``qiskit`` has been significantly improved, especially for
-    those with many of Qiskit Terra's optional dependencies installed.
+    Import time for :mod:`qiskit` has been significantly improved, especially
+    for those with many of Qiskit Terra's optional dependencies installed.
 upgrade:
   - |
     The error raised by :class:`.HoareOptimizer` if the optional dependency

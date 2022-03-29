@@ -4,7 +4,7 @@ features:
     Added a new kwarg, ``metadata_serializer`` to the
     :func:`.qpy.dump` function for specifying a custom
     ``JSONEncoder`` subclass for use when serializing the
-    :attr`.QuantumCircuit.metadata` attribute and a dual kwarg
+    :attr:`.QuantumCircuit.metadata` attribute and a dual kwarg
     ``metadata_deserializer`` to the :func:`.qpy.load` function
     for specifying a ``JSONDecoder`` subclass. By default the
     :func:`~qiskit.qpy.dump` and

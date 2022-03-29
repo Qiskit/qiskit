@@ -1,8 +1,8 @@
 ---
 features:
   - |
-    The :class:`~qiskit.circuit.opflow.Gradient` and
-    :class:`~qiskit.circuit.opflow.QFI` classes can now calculate the imaginary
+    The :class:`~qiskit.circuit.opflow.gradients.Gradient` and
+    :class:`~qiskit.circuit.opflow.gradients.QFI` classes can now calculate the imaginary
     part of expectation value gradients. When using a different measurement basis,
     i.e. ``-Y`` instead of ``Z``, we can measure the imaginary part of gradients
     The measurement basis can be set with the ``aux_meas_op`` argument.
