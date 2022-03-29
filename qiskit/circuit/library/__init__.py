@@ -117,8 +117,7 @@ Standard Directives
     This summary table deliberately does not generate toctree entries; these directives are "owned"
     by ``qiskit.circuit``.
 
-Directives are operations to the quantum stack that are not reversible. They are all interpreted
-by the backend.
+Directives are operations to the quantum stack that are meant to be intepreted by the backend.
 
 .. autosummary::
 
