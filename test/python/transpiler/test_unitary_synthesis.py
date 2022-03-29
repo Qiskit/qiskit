@@ -595,14 +595,8 @@ class TestUnitarySynthesis(QiskitTestCase):
         )
         circ_01_index = {qubit: index for index, qubit in enumerate(circ_01.qubits)}
         self.assertGreaterEqual(len(circ_01.get_instructions("cx")), 1)
-        self.assertTrue(
-            all(
-                (
-                    (0, 1) == (circ_01_index[qlist[0]], circ_01_index[qlist[1]])
-                    for _, qlist, _ in circ_01.get_instructions("cx")
-                )
-            )
-        )
+        for _, qlist, _ in circ_01.get_instructions("cx"):
+            self.assertEqual((0, 1), (circ_01_index[qlist[0]], circ_01_index[qlist[1]]))
 
     @data(1, 2, 3)
     def test_coupling_map_unequal_durations(self, opt):
@@ -652,24 +646,12 @@ class TestUnitarySynthesis(QiskitTestCase):
         tqc_index = {qubit: index for index, qubit in enumerate(tqc.qubits)}
         self.assertGreaterEqual(len(tqc.get_instructions("cx")), 1)
         if bidirectional:
-            self.assertTrue(
-                all(
-                    (
-                        (1, 0) == (tqc_index[qlist[0]], tqc_index[qlist[1]])
-                        for _, qlist, _ in tqc.get_instructions("cx")
-                    )
-                )
-            )
+            for _, qlist, _ in tqc.get_instructions("cx"):
+                self.assertEqual((1, 0), (tqc_index[qlist[0]], tqc_index[qlist[1]]))
 
         else:
-            self.assertTrue(
-                all(
-                    (
-                        (0, 1) == (tqc_index[qlist[0]], tqc_index[qlist[1]])
-                        for _, qlist, _ in tqc.get_instructions("cx")
-                    )
-                )
-            )
+            for _, qlist, _ in tqc.get_instructions("cx"):
+                self.assertEqual((0, 1), (tqc_index[qlist[0]], tqc_index[qlist[1]]))
 
     @combine(
         opt_level=[0, 1, 2, 3],
@@ -693,14 +675,8 @@ class TestUnitarySynthesis(QiskitTestCase):
         )
         tqc_index = {qubit: index for index, qubit in enumerate(tqc.qubits)}
         self.assertGreaterEqual(len(tqc.get_instructions("ecr")), 1)
-        self.assertTrue(
-            all(
-                (
-                    (1, 0) == (tqc_index[qlist[0]], tqc_index[qlist[1]])
-                    for _, qlist, _ in tqc.get_instructions("ecr")
-                )
-            )
-        )
+        for _, qlist, _ in tqc.get_instructions("ecr"):
+            self.assertEqual((1, 0), (tqc_index[qlist[0]], tqc_index[qlist[1]]))
 
     def test_fractional_cx_with_backendv2(self):
         """Test fractional CX gets used if present in target."""
@@ -712,14 +688,8 @@ class TestUnitarySynthesis(QiskitTestCase):
         tqc = synth_pass(circ)
         tqc_index = {qubit: index for index, qubit in enumerate(tqc.qubits)}
         self.assertGreaterEqual(len(tqc.get_instructions("rzx")), 1)
-        self.assertTrue(
-            all(
-                (
-                    (0, 1) == (tqc_index[qlist[0]], tqc_index[qlist[1]])
-                    for _, qlist, _ in tqc.get_instructions("rzx")
-                )
-            )
-        )
+        for _, qlist, _ in tqc.get_instructions("rzx"):
+            self.assertEqual((0, 1), (tqc_index[qlist[0]], tqc_index[qlist[1]]))
 
     @combine(
         opt_level=[0, 1, 2, 3],
