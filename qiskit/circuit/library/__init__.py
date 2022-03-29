@@ -43,7 +43,7 @@ Standard gates
 These operations are reversible unitary gates and they all subclass
 :class:`~qiskit.circuit.gate.Gate`. As a consequence, they all have the methods
 :meth:`~qiskit.circuit.Gate.to_matrix`, :meth:`~qiskit.circuit.Gate.power`,
-and :meth:`~qiskit.circuit.gate.Gate.control`.
+and :meth:`~qiskit.circuit.Gate.control`.
 
 For example:
 
