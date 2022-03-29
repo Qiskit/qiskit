@@ -179,7 +179,11 @@ class SabreSwap(TransformationPass):
         for _, input_node in dag.input_map.items():
             for successor in self._successors(input_node, dag):
                 self.applied_predecessors[successor] += 1
+        count = 0
         while front_layer:
+            count += 1
+            logger.debug(f"count: {count}")
+
             execute_gate_list = []
 
             # Remove as many immediately applicable gates as possible

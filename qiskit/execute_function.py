@@ -275,6 +275,12 @@ def execute(
 
             job = execute(qc, backend, shots=4321)
     """
+    warnings.warn('The execute() function in Qiskit is deprecated as of Qiskit Terra 0.20.0, '
+                  'and will be removed in a future release. '
+                  'Instead, please use transpile() followed by backend.run(). '
+                  'Alternatively, to achieve a similar high-level functionality, please '
+                  'use qiskit primitives.',
+                  DeprecationWarning, stacklevel=2)
     if isinstance(experiments, (Schedule, ScheduleBlock)) or (
         isinstance(experiments, list) and isinstance(experiments[0], (Schedule, ScheduleBlock))
     ):
