@@ -242,7 +242,7 @@ class FakeBackendV2(BackendV2):
                 "Invalid input object %s, must be either a "
                 "QuantumCircuit, Schedule, or a list of either" % circuits
             )
-        if pulse_job: # pulse job
+        if pulse_job:  # pulse job
             raise QiskitError("Pulse simulation is currently not supported for V2 backends.")
         # circuit job
         if _optionals.HAS_AER:
