@@ -41,7 +41,7 @@ Standard gates
 ==============
 
 These operations are reversible unitary gates and they all subclass
-:class:`~qiskit.circuit.gate.Gate`. As a consequence, they all have the methods
+:class:`~qiskit.circuit.Gate`. As a consequence, they all have the methods
 :meth:`~qiskit.circuit.Gate.to_matrix`, :meth:`~qiskit.circuit.Gate.power`,
 and :meth:`~qiskit.circuit.Gate.control`.
 
@@ -129,7 +129,7 @@ by the backend.
 Generalized Gates
 =================
 
-These "gates" (many are :class:`~qiskit.circuit.quantumcircuit.QuantumCircuit` subclasses) allow to
+These "gates" (many are :class:`~qiskit.circuit.QuantumCircuit` subclasses) allow to
 set the amount of qubits involved at instantiation time.
 
 
@@ -169,7 +169,7 @@ set the amount of qubits involved at instantiation time.
 Boolean Logic Circuits
 ======================
 
-These are :class:`~qiskit.circuit.quantumcircuit.QuantumCircuit` subclasses
+These are :class:`~qiskit.circuit.QuantumCircuit` subclasses
 that implement boolean logic operations.
 
 
@@ -185,7 +185,7 @@ that implement boolean logic operations.
 Basis Change Circuits
 =====================
 
-Basis change algorithms are :class:`~qiskit.circuit.library.blueprintcircuit.BlueprintCircuit` subclasses
+Basis change algorithms are :class:`~qiskit.circuit.library.BlueprintCircuit` subclasses
 that transform between bases. For example, in the case of the
 Quantum Fourier Transform (QFT), it transforms between the computational basis and the Fourier basis.
 
@@ -198,7 +198,7 @@ Quantum Fourier Transform (QFT), it transforms between the computational basis a
 Arithmetic Circuits
 ===================
 
-These :class:`~qiskit.circuit.quantumcircuit.QuantumCircuit`\\ s perform classical arithmetic,
+These :class:`~qiskit.circuit.QuantumCircuit`\\ s perform classical arithmetic,
 such as addition or multiplication.
 
 Amplitude Functions
@@ -295,7 +295,7 @@ Particular Quantum Circuits
 N-local circuits
 ================
 
-These :class:`~qiskit.circuit.library.blueprintcircuit.BlueprintCircuit`
+These :class:`~qiskit.circuit.library.BlueprintCircuit`
 subclasses are used as initial guesses (a.k.a. ansatzes or variational forms) in chemistry.
 
 .. autosummary::
@@ -349,9 +349,9 @@ In this example, the identity constant in a template is checked:
 NCT (Not-CNOT-Toffoli) template circuits
 ----------------------------------------
 
-Template circuits for :class:`~qiskit.circuit.library.standard_gates.x.XGate`,
-:class:`~qiskit.circuit.library.standard_gates.x.CXGate`,
-and :class:`~qiskit.circuit.library.standard_gates.x.CCXGate` (Toffoli) gates.
+Template circuits for :class:`~qiskit.circuit.library.XGate`,
+:class:`~qiskit.circuit.library.CXGate`,
+and :class:`~qiskit.circuit.library.CCXGate` (Toffoli) gates.
 
 **Reference:**
 Maslov, D. and Dueck, G. W. and Miller, D. M.,
