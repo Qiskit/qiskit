@@ -161,7 +161,7 @@ class SabreSwap(TransformationPass):
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
         mapped_dag = None
         if not self.fake_run:
-            mapped_dag = dag._copy_circuit_metadata()
+            mapped_dag = dag.copy_empty_like()
 
         canonical_register = dag.qregs["q"]
         current_layout = Layout.generate_trivial_layout(canonical_register)
