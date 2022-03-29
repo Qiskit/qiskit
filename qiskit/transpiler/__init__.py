@@ -377,6 +377,8 @@ Pass Manager Construction
    PassManagerConfig
    PropertySet
    FlowController
+   ConditionalController
+   DoWhileController
 
 Layout and Topology
 -------------------
@@ -423,7 +425,7 @@ Exceptions
    TranspilerAccessError
 """
 
-from .runningpassmanager import FlowController
+from .runningpassmanager import FlowController, ConditionalController, DoWhileController
 from .passmanager import PassManager
 from .passmanager_config import PassManagerConfig
 from .propertyset import PropertySet
