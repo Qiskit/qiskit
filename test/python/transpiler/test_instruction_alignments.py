@@ -24,7 +24,6 @@ from qiskit.transpiler.passes import (
     ALAPScheduleAnalysis,
     ASAPScheduleAnalysis,
     ALAPSchedule,
-    ASAPSchedule,
     PadDelay,
     SetIOLatency,
 )
