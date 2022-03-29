@@ -475,8 +475,12 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             decomposer2q = decomposers_2q[min_error_index]
         elif reverse:
             preferred_direction = [1, 0]
-            min_error_index = min(reverse, key=matching.get)
+            min_error_index = min(reverse, key=reverse.get)
             decomposer2q = decomposers_2q[min_error_index]
+        # If no matching or reverse direction is found just pick one, if natural direction is
+        # enforced it will fail later
+        else:
+            decomposer2q = decomposers_2q[0]
         self._decomposer_cache[qubits_tuple] = (decomposer2q, preferred_direction)
         return (decomposer2q, preferred_direction)
 

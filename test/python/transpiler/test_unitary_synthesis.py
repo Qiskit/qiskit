@@ -31,7 +31,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
-from qiskit.transpiler import PassManager, CouplingMap
+from qiskit.transpiler import PassManager, CouplingMap, Target, InstructionProperties
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler.passes import (
@@ -50,6 +50,8 @@ from qiskit.transpiler.passes import (
     SabreSwap,
     TrivialLayout,
 )
+from qiskit.circuit.library import CXGate, ECRGate, UGate
+from qiskit.circuit import Parameter
 
 
 @ddt
@@ -718,6 +720,36 @@ class TestUnitarySynthesis(QiskitTestCase):
                 )
             )
         )
+
+    @combine(
+        opt_level=[0, 1, 2, 3],
+        dsc=(
+            "Test direction with transpile using opt_level {opt_level} on"
+            "target with multiple 2q gates available in reverse direction"
+        ),
+        name="opt_level_{opt_level}",
+    )
+    def test_reverse_direction(self, opt_level):
+        target = Target(2)
+        target.add_instruction(CXGate(), {(0, 1): InstructionProperties(error=1.2e-6)})
+        target.add_instruction(ECRGate(), {(0, 1): InstructionProperties(error=1.2e-7)})
+        target.add_instruction(
+            UGate(Parameter("theta"), Parameter("phi"), Parameter("lam")), {(0,): None, (1,): None}
+        )
+        qr = QuantumRegister(2)
+        circ = QuantumCircuit(qr)
+        circ.append(random_unitary(4, seed=1), [1, 0])
+        tqc = transpile(
+            circ,
+            target=target,
+            optimization_level=opt_level,
+            translation_method="synthesis",
+            layout_method="trivial",
+        )
+        tqc_index = {qubit: index for index, qubit in enumerate(tqc.qubits)}
+        self.assertGreaterEqual(len(tqc.get_instructions("ecr")), 1)
+        for _, qlist, _ in tqc.get_instructions("ecr"):
+            self.assertEqual((0, 1), (tqc_index[qlist[0]], tqc_index[qlist[1]]))
 
 
 if __name__ == "__main__":
