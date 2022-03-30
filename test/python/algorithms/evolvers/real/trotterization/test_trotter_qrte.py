@@ -52,7 +52,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         self.seed = 50
         algorithm_globals.random_seed = self.seed
         backend_statevector = BasicAer.get_backend("statevector_simulator")
-        backend_qasm = BasicAer.get_backend("qasm_simulator")  # TODO add to tests
+        backend_qasm = BasicAer.get_backend("qasm_simulator")
         self.quantum_instance = QuantumInstance(
             backend=backend_statevector,
             shots=1,
@@ -74,159 +74,171 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         }
 
         self.backends_names = ["qi_qasm", "b_sv", "None", "b_qasm", "qi_sv"]
-        self.backends_names_not_none = ["qi_sv", "b_sv"]
-
-    def calculate_counts(self, statevector: VectorStateFn) -> List[float]:
-
-        primitive = statevector.primitive
-        coeff1 = primitive.data[0]
-        coeff2 = primitive.data[1]
-
-        sampled1 = sqrt(coeff1 * np.conjugate(coeff1))
-        sampled2 = sqrt(coeff2 * np.conjugate(coeff2))
-
-        return [sampled1, sampled2]
+        self.backends_names_not_none = ["qi_sv", "b_sv", "qi_qasm"]
 
     # TODO add valid param binding Hamiltonian
     @data(
-        (None, expm(-1j * Z.to_matrix()) @ expm(-1j * X.to_matrix())),
+        (
+            None,
+            VectorStateFn(
+                Statevector([0.29192658 - 0.45464871j, 0.70807342 - 0.45464871j], dims=(2,))
+            ),
+        ),
         (
             SuzukiTrotter(),
-            expm(-1j * X.to_matrix() * 0.5)
-            @ expm(-1j * Z.to_matrix())
-            @ expm(-1j * X.to_matrix() * 0.5),
+            VectorStateFn(Statevector([0.29192658 - 0.84147098j, 0.0 - 0.45464871j], dims=(2,))),
         ),
     )
     @unpack
-    def test_trotter_qrte_trotter_single_qubit(self, product_formula, expected_state_part):
+    def test_trotter_qrte_trotter_single_qubit(self, product_formula, expected_state):
         """Test for default TrotterQRTE on a single qubit."""
         operator = SummedOp([X, Z])
         initial_state = StateFn([1, 0])
         time = 1
         evolution_problem = EvolutionProblem(operator, time, initial_state)
-        # Calculate the expected state
-        expected_state = expected_state_part @ initial_state.to_matrix()
 
+        trotter_qrte = TrotterQRTE(product_formula=product_formula)
+        evolution_result_state_circuit = trotter_qrte.evolve(evolution_problem).evolved_state
+
+        np.testing.assert_equal(evolution_result_state_circuit.eval(), expected_state)
+
+    def test_trotter_qrte_trotter_single_qubit_aux_ops(self):
+        """Test for default TrotterQRTE on a single qubit with auxiliary operators."""
+        operator = SummedOp([X, Z])
+        # LieTrotter with 1 rep
+        aux_ops = [X, Y]
+        expectation = MatrixExpectation()
+
+        initial_state = Zero
+        time = 3
+        evolution_problem = EvolutionProblem(operator, time, initial_state, aux_ops)
+
+        expected_evolved_state = VectorStateFn(
+            Statevector([0.98008514 + 0.13970775j, 0.01991486 + 0.13970775j], dims=(2,))
+        )
+        expected_aux_ops_evaluated = [(0.078073, 0.0), (0.268286, 0.0)]
+
+        for backend_name in self.backends_names_not_none:
+            with self.subTest(msg=f"Test {backend_name} backend."):
+                algorithm_globals.random_seed = 0
+                backend = self.backends_dict[backend_name]
+                trotter_qrte = TrotterQRTE(quantum_instance=backend, expectation=expectation)
+                evolution_result = trotter_qrte.evolve(evolution_problem)
+                print(evolution_result.aux_ops_evaluated)
+                np.testing.assert_equal(
+                    evolution_result.evolved_state.eval(), expected_evolved_state
+                )
+                np.testing.assert_array_almost_equal(
+                    evolution_result.aux_ops_evaluated, expected_aux_ops_evaluated
+                )
+
+    @data(
+        (
+            SummedOp([(X ^ Y), (Y ^ X)]),
+            VectorStateFn(
+                Statevector(
+                    [-0.41614684 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.90929743 + 0.0j], dims=(2, 2)
+                )
+            ),
+        ),
+        (
+            (Z ^ Z) + (Z ^ I) + (I ^ Z),
+            VectorStateFn(
+                Statevector(
+                    [-0.9899925 - 0.14112001j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j], dims=(2, 2)
+                )
+            ),
+        ),
+        (
+            Y ^ Y,
+            VectorStateFn(
+                Statevector(
+                    [0.54030231 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.84147098j], dims=(2, 2)
+                )
+            ),
+        ),
+        (
+            SparsePauliOp(Pauli("XI")),
+            VectorStateFn(
+                Statevector(
+                    [0.54030231 + 0.0j, 0.0 + 0.0j, 0.0 - 0.84147098j, 0.0 + 0.0j], dims=(2, 2)
+                )
+            ),
+        ),
+        (
+            SparsePauliOp(PauliTable.from_labels(["XX", "ZZ"])),
+            VectorStateFn(
+                Statevector(
+                    [0.29192658 - 0.45464871j, 0.0 + 0.0j, 0.0 + 0.0j, -0.70807342 - 0.45464871j],
+                    dims=(2, 2),
+                )
+            ),
+        ),
+    )
+    @unpack
+    def test_trotter_qrte_trotter_two_qubits(self, operator, expected_state):
+        """Test for TrotterQRTE on two qubits with various types of a Hamiltonian."""
+        # LieTrotter with 1 rep
+        initial_state = StateFn([1, 0, 0, 0])
+
+        evolution_problem = EvolutionProblem(operator, 1, initial_state)
         for backend_name in self.backends_names:
             with self.subTest(msg=f"Test {backend_name} backend."):
                 backend = self.backends_dict[backend_name]
-                expected_evolved_state = VectorStateFn(Statevector(expected_state, dims=(2,)))
+                trotter_qrte = TrotterQRTE(quantum_instance=backend)
+                evolution_result = trotter_qrte.evolve(evolution_problem)
+                np.testing.assert_equal(evolution_result.evolved_state.eval(), expected_state)
 
-                trotter_qrte = TrotterQRTE(
-                    quantum_instance=backend, product_formula=product_formula
-                )
-                evolution_result_state = trotter_qrte.evolve(evolution_problem).evolved_state
+    @data(
+        (
+            Zero,
+            VectorStateFn(
+                Statevector([0.23071786 - 0.69436148j, 0.4646314 - 0.49874749j], dims=(2,))
+            ),
+        ),
+        (
+            QuantumCircuit(1).compose(Pauli("Z").to_instruction(), [0]),
+            VectorStateFn(
+                Statevector([0.23071786 - 0.69436148j, 0.4646314 - 0.49874749j], dims=(2,))
+            ),
+        ),
+    )
+    @unpack
+    def test_trotter_qrte_qdrift_fractional_time(self, initial_state, expected_state):
+        """Test for TrotterQRTE with QDrift."""
+        operator = SummedOp([X, Z])
+        time = 1
+        evolution_problem = EvolutionProblem(operator, time, initial_state)
 
-                if backend_name in {"qi_qasm", "b_qasm"}:
-                    evolution_result_state = evolution_result_state.to_matrix()[0]
-                    decimal = 1
-                    expected_evolved_state = self.calculate_counts(expected_evolved_state)
-                    np.testing.assert_almost_equal(
-                        evolution_result_state, expected_evolved_state, decimal=decimal
+        for backend_name in self.backends_names:
+            with self.subTest(msg=f"Test {backend_name} backend."):
+                algorithm_globals.random_seed = 0
+                backend = self.backends_dict[backend_name]
+                trotter_qrte = TrotterQRTE(quantum_instance=backend, product_formula=QDrift())
+                evolution_result = trotter_qrte.evolve(evolution_problem)
+                np.testing.assert_equal(evolution_result.evolved_state.eval(), expected_state)
+
+    @data((Parameter("t"), {}), (None, {Parameter("t"): 2}))
+    @unpack
+    def test_trotter_qrte_trotter_errors(self, t_param, hamiltonian_value_dict):
+        """Test TrotterQRTE with raising errors."""
+        operator = X * Parameter("t") + Z
+        initial_state = Zero
+        time = 1
+        for backend_name in self.backends_names:
+            with self.subTest(msg=f"Test {backend_name} backend."):
+                algorithm_globals.random_seed = 0
+                backend = self.backends_dict[backend_name]
+                trotter_qrte = TrotterQRTE(quantum_instance=backend)
+                with assert_raises(ValueError):
+                    evolution_problem = EvolutionProblem(
+                        operator,
+                        time,
+                        initial_state,
+                        t_param=t_param,
+                        hamiltonian_value_dict=hamiltonian_value_dict,
                     )
-                else:
-                    np.testing.assert_equal(evolution_result_state, expected_evolved_state)
-
-    # def test_trotter_qrte_trotter_single_qubit_aux_ops(self):
-    #     """Test for default TrotterQRTE on a single qubit with auxiliary operators."""
-    #     operator = SummedOp([X, Z])
-    #     # LieTrotter with 1 rep
-    #     aux_ops = [X, Y]
-    #     expectation = MatrixExpectation()
-    #
-    #     initial_state = Zero
-    #     time = 3
-    #     evolution_problem = EvolutionProblem(operator, time, initial_state, aux_ops)
-    #     # Calculate the expected state
-    #     expected_state = (
-    #         expm(-time * 1j * Z.to_matrix())
-    #         @ expm(-time * 1j * X.to_matrix())
-    #         @ initial_state.to_matrix()
-    #     )
-    #     expected_evolved_state = VectorStateFn(Statevector(expected_state, dims=(2,)))
-    #     expected_aux_ops_evaluated = [(0.078073, 0.0), (0.268286, 0.0)]
-    #
-    #     for backend_name in self.backends_names_not_none:
-    #         with self.subTest(msg=f"Test {backend_name} backend."):
-    #             backend = self.backends_dict[backend_name]
-    #             trotter_qrte = TrotterQRTE(quantum_instance=backend, expectation=expectation)
-    #             evolution_result = trotter_qrte.evolve(evolution_problem)
-    #
-    #             np.testing.assert_equal(evolution_result.evolved_state, expected_evolved_state)
-    #             np.testing.assert_array_almost_equal(
-    #                 evolution_result.aux_ops_evaluated, expected_aux_ops_evaluated
-    #             )
-    #
-    # @data(
-    #     SummedOp([(X ^ Y), (Y ^ X)]),
-    #     (Z ^ Z) + (Z ^ I) + (I ^ Z),
-    #     Y ^ Y,
-    #     SparsePauliOp(Pauli("XI")),
-    #     SparsePauliOp(PauliTable.from_labels(["XX", "ZZ"])),
-    # )
-    # def test_trotter_qrte_trotter_two_qubits(self, operator):
-    #     """Test for TrotterQRTE on two qubits with various types of a Hamiltonian."""
-    #     # LieTrotter with 1 rep
-    #     initial_state = StateFn([1, 0, 0, 0])
-    #     # Calculate the expected state
-    #     expected_state = initial_state.to_matrix()
-    #     expected_state = expm(-1j * operator.to_matrix()) @ expected_state
-    #     expected_evolved_state = VectorStateFn(Statevector(expected_state, dims=(2, 2)))
-    #
-    #     evolution_problem = EvolutionProblem(operator, 1, initial_state)
-    #
-    #     for backend_name in self.backends_names:
-    #         with self.subTest(msg=f"Test {backend_name} backend."):
-    #             backend = self.backends_dict[backend_name]
-    #             trotter_qrte = TrotterQRTE(quantum_instance=backend)
-    #             evolution_result = trotter_qrte.evolve(evolution_problem)
-    #             np.testing.assert_equal(evolution_result.evolved_state, expected_evolved_state)
-    #
-    # @data(Zero, QuantumCircuit(1).compose(Pauli("Z").to_instruction(), [0]))
-    # def test_trotter_qrte_qdrift_fractional_time(self, initial_state):
-    #     """Test for TrotterQRTE with QDrift."""
-    #     operator = SummedOp([X, Z])
-    #     time = 1
-    #     evolution_problem = EvolutionProblem(operator, time, initial_state)
-    #     sampled_ops = [Z, X, X, X, Z, Z, Z, Z]
-    #     evo_time = 0.25
-    #     # Calculate the expected state
-    #     if isinstance(initial_state, QuantumCircuit):
-    #         initial_state = StateFn(initial_state)
-    #     expected_state = initial_state.to_matrix()
-    #     for op in sampled_ops:
-    #         expected_state = expm(-1j * op.to_matrix() * evo_time) @ expected_state
-    #     expected_evolved_state = VectorStateFn(Statevector(expected_state, dims=(2,)))
-    #
-    #     for backend_name in self.backends_names:
-    #         with self.subTest(msg=f"Test {backend_name} backend."):
-    #             algorithm_globals.random_seed = 0
-    #             backend = self.backends_dict[backend_name]
-    #             trotter_qrte = TrotterQRTE(quantum_instance=backend, product_formula=QDrift())
-    #             evolution_result = trotter_qrte.evolve(evolution_problem)
-    #             np.testing.assert_equal(evolution_result.evolved_state, expected_evolved_state)
-    #
-    # @data((Parameter("t"), {}), (None, {Parameter("t"): 2}))
-    # @unpack
-    # def test_trotter_qrte_trotter_errors(self, t_param, hamiltonian_value_dict):
-    #     """Test TrotterQRTE with raising errors."""
-    #     operator = X * Parameter("t") + Z
-    #     initial_state = Zero
-    #     time = 1
-    #     for backend_name in self.backends_names:
-    #         with self.subTest(msg=f"Test {backend_name} backend."):
-    #             algorithm_globals.random_seed = 0
-    #             backend = self.backends_dict[backend_name]
-    #             trotter_qrte = TrotterQRTE(quantum_instance=backend)
-    #             with assert_raises(ValueError):
-    #                 evolution_problem = EvolutionProblem(
-    #                     operator,
-    #                     time,
-    #                     initial_state,
-    #                     t_param=t_param,
-    #                     hamiltonian_value_dict=hamiltonian_value_dict,
-    #                 )
-    #                 _ = trotter_qrte.evolve(evolution_problem)
+                    _ = trotter_qrte.evolve(evolution_problem)
 
 
 if __name__ == "__main__":
