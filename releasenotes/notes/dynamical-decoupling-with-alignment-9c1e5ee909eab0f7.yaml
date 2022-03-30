@@ -1,5 +1,5 @@
 ---
-feature:
+features:
   - |
     A new pass :class:`~.DynamicalDecouplingPadding` has been added to the
     :mod:`qiskit.transpiler.passes` module. This new pass superscedes the

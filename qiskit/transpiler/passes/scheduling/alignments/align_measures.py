@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Align measurement alignment."""
-
+"""Align measurement instructions."""
 import itertools
 import warnings
 from collections import defaultdict
@@ -30,10 +29,12 @@ class AlignMeasures(TransformationPass):
     """Measurement alignment.
 
     This is a control electronics aware optimization pass.
+
     In many quantum computing architectures gates (instructions) are implemented with
     shaped analog stimulus signals. These signals are digitally stored in the
     waveform memory of the control electronics and converted into analog voltage signals
     by electronic components called digital to analog converters (DAC).
+
     In a typical hardware implementation of superconducting quantum processors,
     a single qubit instruction is implemented by a
     microwave signal with the duration of around several tens of ns with a per-sample
@@ -41,9 +42,11 @@ class AlignMeasures(TransformationPass):
     In such systems requiring higher DAC bandwidth, control electronics often
     defines a `pulse granularity`, in other words a data chunk, to allow the DAC to
     perform the signal conversion in parallel to gain the bandwidth.
+
     Measurement alignment is required if a backend only allows triggering ``measure``
     instructions at a certain multiple value of this pulse granularity.
     This value is usually provided by ``backend.configuration().timing_constraints``.
+
     In Qiskit SDK, the duration of delay can take arbitrary value in units of ``dt``,
     thus circuits involving delays may violate the above alignment constraint (i.e. misalignment).
     This pass shifts measurement instructions to a new time position to fix the misalignment,
@@ -74,6 +77,7 @@ class AlignMeasures(TransformationPass):
                  └───┘└────────────────┘└╥┘
             c: 1/════════════════════════╩═
                                          0
+
         This pass always inserts a positive delay before measurements
         rather than reducing other delays.
 
@@ -84,11 +88,13 @@ class AlignMeasures(TransformationPass):
 
     def __init__(self, alignment: int = 1):
         """Create new pass.
+
         Args:
             alignment: Integer number representing the minimum time resolution to
                 trigger measure instruction in units of ``dt``. This value depends on
                 the control electronics of your quantum processor.
         """
+        super().__init__()
         warnings.warn(
             "The AlignMeasures class has been supersceded by the ConstrainedReschedule class "
             "which performs the same function but also supports aligning to additional timing "
@@ -96,15 +102,17 @@ class AlignMeasures(TransformationPass):
             "removed after that.",
             PendingDeprecationWarning,
         )
-        super().__init__()
         self.alignment = alignment
 
     def run(self, dag: DAGCircuit):
         """Run the measurement alignment pass on `dag`.
+
         Args:
             dag (DAGCircuit): DAG to be checked.
+
         Returns:
             DAGCircuit: DAG with consistent timing and op nodes annotated with duration.
+
         Raises:
             TranspilerError: If circuit is not scheduled.
         """
@@ -196,10 +204,12 @@ def _check_alignment_required(
     instructions: Union[Instruction, List[Instruction]],
 ) -> bool:
     """Check DAG nodes and return a boolean representing if instruction scheduling is necessary.
+
     Args:
         dag: DAG circuit to check.
         alignment: Instruction alignment condition.
         instructions: Target instructions.
+
     Returns:
         If instruction scheduling is necessary.
     """
