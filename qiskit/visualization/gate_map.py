@@ -512,7 +512,7 @@ def plot_gate_map(
             for i in range(num_qubits)
         ]
 
-    if any(x[0] < 1 or x[1] < 1 for x in qubit_coordinates):
+    if any(x[0] < 0 or x[1] < 0 for x in qubit_coordinates):
         min_entry = min(qubit_coordinates, key=lambda x: min(x[0], x[1]))
         negative_offset = 0 - min(min_entry)
         qubit_coordinates = [
