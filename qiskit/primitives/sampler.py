@@ -64,27 +64,25 @@ class Sampler(BaseSampler):
 
     def __call__(
         self,
-        circuits: Sequence[int] | None = None,
-        parameters: Sequence[Sequence[float]] | None = None,
+        circuit_indices: Sequence[int] | None = None,
+        parameter_values: Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> SamplerResult:
         if self._is_closed:
             raise QiskitError("The primitive has been closed.")
 
-        if circuits is None and parameters is not None and len(self._circuits) == 1:
-            circuits = [0] * len(parameters)
-        if circuits is None:
-            circuits = list(range(len(self._circuits)))
-        if parameters is None:
-            parameters = [[]] * len(circuits)
-        if len(circuits) != len(parameters):
+        if circuit_indices is None:
+            circuit_indices = list(range(len(self._circuits)))
+        if parameter_values is None:
+            parameter_values = [[]] * len(circuit_indices)
+        if len(circuit_indices) != len(parameter_values):
             raise QiskitError(
-                f"The number of circuits ({len(circuits)}) does not match "
-                f"the number of parameter sets ({len(parameters)})."
+                f"The number of circuit indices ({len(circuit_indices)}) does not match "
+                f"the number of parameter value sets ({len(parameter_values)})."
             )
 
         bound_circuits_qargs = []
-        for i, value in zip(circuits, parameters):
+        for i, value in zip(circuit_indices, parameter_values):
             if len(value) != len(self._parameters[i]):
                 raise QiskitError(
                     f"The number of values ({len(value)}) does not match "
@@ -101,7 +99,7 @@ class Sampler(BaseSampler):
         ]
         quasis = [QuasiDistribution(dict(enumerate(p))) for p in probabilities]
 
-        return SamplerResult(quasis, [{}] * len(circuits))
+        return SamplerResult(quasis, [{}] * len(circuit_indices))
 
     def close(self):
         self._is_closed = True
