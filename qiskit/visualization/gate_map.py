@@ -497,7 +497,7 @@ def plot_gate_map(
         num_qubits = backend.num_qubits
         coupling_map = backend.coupling_map
         name = backend.name
-    if "ibm" in name or "fake" in name:
+    if qubit_coordinates is None and ("ibm" in name or "fake" in name):
         qubit_coordinates = qubit_coordinates_map.get(num_qubits, None)
 
     if qubit_coordinates is None:
