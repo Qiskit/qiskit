@@ -1,5 +1,8 @@
 ---
 fixes:
   - |
-    Fix a bug in :class:`~qiskit.quantum_info.StabilizerState` expectation value calculation,
-    that occured when the Pauli operator has a non-trivial phase.
+    Fixed an issue in the :class:`.StabilizerState.expectation_value`
+    methodexpectation value calculation, where the output expectation value
+    would be incorrect if the input :class:`~.Pauli` operator for the ``oper``
+    argument had a non-trivial phase.
+    Fixed `#7441 <https://github.com/Qiskit/qiskit-terra/issues/7441>`__
