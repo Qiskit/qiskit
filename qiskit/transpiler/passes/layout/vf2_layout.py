@@ -82,7 +82,7 @@ class VF2Layout(AnalysisPass):
                 based on the number of edges in the interaction graph or the coupling graph
                 (whichever is larger). If set to a value <= 0 no limit on the number of trials
                 will be set.
-            target (Target): A target representing the backend device to run vf2layout on.
+            target (Target): A target representing the backend device to run ``VF2Layout`` on.
                 If specified it will supersede a set value for ``properties`` and
                 ``coupling_map``.
 
