@@ -18,10 +18,9 @@ import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
 from .instruction import Instruction
-from .operation import Operation
 
 
-class Gate(Instruction, Operation):
+class Gate(Instruction):
     """Unitary gate."""
 
     def __init__(
