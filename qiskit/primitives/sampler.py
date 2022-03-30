@@ -71,8 +71,6 @@ class Sampler(BaseSampler):
         if self._is_closed:
             raise QiskitError("The primitive has been closed.")
 
-        if circuit_indices is None and parameter_values is not None and len(self._circuits) == 1:
-            circuit_indices = [0] * len(parameter_values)
         if circuit_indices is None:
             circuit_indices = list(range(len(self._circuits)))
         if parameter_values is None:
