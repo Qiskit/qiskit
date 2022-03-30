@@ -34,7 +34,7 @@ with open(README_PATH) as readme_file:
 
 
 csplayout_requirements = [
-    # TODO: Move `python-constraint` from core requirements to here for Terra 0.21.
+    "python-constraint>=1.4",
 ]
 visualization_extras = [
     "matplotlib>=3.3",
