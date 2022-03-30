@@ -23,3 +23,19 @@ prelude: |
 
   This release no long has support for Python 3.6 with this release,
   Python 3.7 through Python 3.10.
+fixes:
+  - |
+    Fixed an issue with the :class:`~.ALAPSchedule` and :class:`~.ASAPSchedule`
+    transpiler passes when working with instructions that had custom pulse
+    calibrations (i.e. pulse gates) set. Previously, the scheduling passes
+    would not use the duration from the custom pulse calibration for thse
+    instructions which would result in the an incorrect scheduling being
+    generated for the circuit. This has been fixed so that now the scheduling
+    passes will use the duration of the custom pulse calibration for any
+    instruction in the circuit which has a custom calibration.
+  - |
+    Fixed support for using :class:`~.ParameterExpression` instruction
+    paramaters in the :class:`~.RZXCalibrationBuilder` transpiler pass.
+    Previously, if an instruction parameter included a
+    bound :class:`~.ParameterExpression` the pass would not be able to
+    handle this correctly.
