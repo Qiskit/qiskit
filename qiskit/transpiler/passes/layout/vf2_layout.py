@@ -213,15 +213,15 @@ class VF2Layout(AnalysisPass):
         bits = layout.get_physical_bits()
         score = 0
         if self.target is not None and "measure" in self.target:
-                for bit in bits:
-                    props = self.target["measure"].get((bit,))
-                    if props is None or props.error is None:
-                        score += (
-                            self.coupling_map.graph.out_degree(bit)
-                            + self.coupling_map.graph.in_degree(bit)
-                        ) / len(self.coupling_map.graph)
-                    else:
-                        score += props.error
+            for bit in bits:
+                props = self.target["measure"].get((bit,))
+                if props is None or props.error is None:
+                    score += (
+                        self.coupling_map.graph.out_degree(bit)
+                        + self.coupling_map.graph.in_degree(bit)
+                    ) / len(self.coupling_map.graph)
+                else:
+                    score += props.error
         else:
             if self.properties is None:
                 # Sum qubit degree for each qubit in chosen layout as really rough estimate of error
