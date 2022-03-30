@@ -48,7 +48,7 @@ def calculate(
     """
     operator = StateFn(observable, is_measurement=True) @ StateFn(ansatz)
     if grad_method == "lin_comb":
-        return LinComb().convert(operator, parameters, aux_meas_op=basis)
+        return LinComb(aux_meas_op=basis).convert(operator, parameters)
     return Gradient(grad_method).convert(operator, parameters)
 
 
