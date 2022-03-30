@@ -45,7 +45,7 @@ class VarQTEOdeSolver:
 
     def run(self, evolution_time: float) -> List[Union[float, complex]]:
         """
-        Find numerical solution with ODE Solver.
+        Finds numerical solution with ODE Solver.
 
         Args:
             evolution_time: Evolution time.

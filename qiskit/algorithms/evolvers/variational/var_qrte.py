@@ -10,35 +10,37 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Variational Quantum Imaginary Time Evolution algorithm."""
+"""Variational Quantum Real Time Evolution algorithm."""
 
 from typing import Optional, Union, Callable
 
 import numpy as np
 from scipy.integrate import OdeSolver, RK45
 
-from qiskit.algorithms import EvolutionProblem, EvolutionResult, ImaginaryEvolver, eval_observables
-from .var_qte import VarQTE
-from ..solvers.ode.abstract_ode_function_generator import (
-    AbstractOdeFunctionGenerator,
-)
-from ..variational_principles.imaginary.imaginary_variational_principle import (
-    ImaginaryVariationalPrinciple,
-)
+from qiskit.algorithms.aux_ops_evaluator import eval_observables
+from qiskit.algorithms.evolvers import EvolutionProblem, EvolutionResult
+from qiskit.algorithms.evolvers.real.real_evolver import RealEvolver
 from qiskit.opflow import (
     StateFn,
     ExpectationBase,
 )
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
+from .var_qte import VarQTE
+from ..variational.solvers.ode.abstract_ode_function_generator import (
+    AbstractOdeFunctionGenerator,
+)
+from ..variational.variational_principles.real.real_variational_principle import (
+    RealVariationalPrinciple,
+)
 
 
-class VarQITE(ImaginaryEvolver, VarQTE):
-    """Variational Quantum Imaginary Time Evolution algorithm."""
+class VarQRTE(RealEvolver, VarQTE):
+    """Variational Quantum Real Time Evolution algorithm."""
 
     def __init__(
         self,
-        variational_principle: ImaginaryVariationalPrinciple,
+        variational_principle: RealVariationalPrinciple,
         ode_function_generator: AbstractOdeFunctionGenerator,
         ode_solver_callable: OdeSolver = RK45,
         lse_solver_callable: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
@@ -51,15 +53,16 @@ class VarQITE(ImaginaryEvolver, VarQTE):
         Args:
             variational_principle: Variational Principle to be used.
             ode_function_generator: Generator for a function that ODE will use.
-            ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
+            ode_solver_callable: ODE solver callable that follows a SciPy ``OdeSolver`` interface.
             lse_solver_callable: Linear system of equations solver that follows a NumPy
-                np.linalg.lstsq interface.
-            expectation: An instance of ExpectationBase which defines a method for calculating
-                expectation values of EvolutionProblem.aux_operators.
+                ``np.linalg.lstsq`` interface.
+            expectation: An instance of ``ExpectationBase`` which defines a method for calculating
+                expectation values of ``EvolutionProblem.aux_operators``.
             allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
                 imaginary part is expected.
             allowed_num_instability_error: The amount of negative value that is allowed to be
-                rounded up to 0 for quantities that are expected to be non-negative.
+                rounded up to 0 for quantities that are expected to be
+                non-negative.
             quantum_instance: Backend used to evaluate the quantum circuit outputs.
         """
         super().__init__(
@@ -75,15 +78,15 @@ class VarQITE(ImaginaryEvolver, VarQTE):
 
     def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
         """
-        Apply Variational Quantum Imaginary Time Evolution (VarQITE) w.r.t. the given
-        operator.
+        Apply Variational Quantum Real Time Evolution (VarQRTE) w.r.t. the given operator.
 
         Args:
             evolution_problem: Instance defining evolution problem.
 
         Returns:
-            StateFn (parameters are bound) which represents an approximation to the
-            respective time evolution.
+            Result of the evolution which includes a quantum circuit with bound parameters as an
+            evolved state and, if provided, observables evaluated on the evolved state using
+            a ``quantum_instance`` and ``expectation`` provided.
         """
         init_state_param_dict = self._create_init_state_param_dict(
             evolution_problem.hamiltonian_value_dict,

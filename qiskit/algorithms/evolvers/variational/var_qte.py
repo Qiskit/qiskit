@@ -19,6 +19,15 @@ import numpy as np
 from scipy.integrate import RK45, OdeSolver
 
 from qiskit import QuantumCircuit
+from qiskit.circuit import Parameter
+from qiskit.providers import BaseBackend
+from qiskit.utils import QuantumInstance
+from qiskit.opflow import (
+    StateFn,
+    CircuitSampler,
+    OperatorBase,
+    ExpectationBase,
+)
 
 from qiskit.algorithms.evolvers.evolver import Evolver
 from qiskit.algorithms.evolvers.variational.solvers.var_qte_linear_solver import (
@@ -32,17 +41,6 @@ from qiskit.algorithms.evolvers.variational.solvers.ode.abstract_ode_function_ge
 )
 from qiskit.algorithms.evolvers.variational.solvers.ode.var_qte_ode_solver import (
     VarQTEOdeSolver,
-)
-from qiskit.circuit import Parameter
-from qiskit.providers import BaseBackend
-from qiskit.utils import QuantumInstance
-from qiskit.opflow import (
-    StateFn,
-    CircuitSampler,
-    ComposedOp,
-    PauliExpectation,
-    OperatorBase,
-    ExpectationBase,
 )
 
 
@@ -68,11 +66,11 @@ class VarQTE(Evolver, ABC):
         Args:
             variational_principle: Variational Principle to be used.
             ode_function_generator: Generator for a function that ODE will use.
-            ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
+            ode_solver_callable: ODE solver callable that follows a SciPy ``OdeSolver`` interface.
             lse_solver_callable: Linear system of equations solver that follows a NumPy
-                np.linalg.lstsq interface.
-            expectation: An instance of ExpectationBase which defines a method for calculating
-                expectation values of EvolutionProblem.aux_operators.
+                ``np.linalg.lstsq`` interface.
+            expectation: An instance of ``ExpectationBase`` which defines a method for calculating
+                expectation values of ``EvolutionProblem.aux_operators``.
             allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
                 imaginary part is expected.
             allowed_num_instability_error: The amount of negative value that is allowed to be
@@ -104,7 +102,7 @@ class VarQTE(Evolver, ABC):
         error_calculator=None,  # TODO will be supported in another PR
         initial_state: Optional[Union[OperatorBase, QuantumCircuit]] = None,
     ) -> OperatorBase:
-        """
+        r"""
         Helper method for performing time evolution. Works both for imaginary and real case.
 
         Args:
@@ -112,22 +110,19 @@ class VarQTE(Evolver, ABC):
                 parametrized state/ansatz.
             hamiltonian:
                 Operator used for Variational Quantum Imaginary Time Evolution (VarQTE)
-                The coefficient of the operator (operator.coeff) determines the evolution
+                The coefficient of the operator (``operator.coeff``) determines the evolution
                 time.
                 The operator may be given either as a composed op consisting of a Hermitian
-                observable and a CircuitStateFn or a ListOp of a CircuitStateFn with a
-                ComboFn.
+                observable and a ``CircuitStateFn`` or a ``ListOp`` of a ``CircuitStateFn`` with a
+                ``ComboFn``.
                 The latter case enables the evaluation of a Quantum Natural Gradient.
             time: Total time of evolution.
             initial_state: Quantum state to be evolved.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
 
         Returns:
-            StateFn (parameters are bound) which represents an approximation to the
-            respective time evolution.
-
-        Raises:
-            TypeError: If observable is provided - not supported by this algorithm.
+            Result of the evolution which is a quantum circuit with bound parameters as an
+            evolved state.
         """
 
         init_state_parameters = list(init_state_param_dict.keys())
@@ -164,9 +159,6 @@ class VarQTE(Evolver, ABC):
         parameter_values = ode_solver.run(time)
         param_dict_from_ode = dict(zip(init_state_parameters, parameter_values))
 
-        # TODO leads to an error
-        # if self._state_circ_sampler:
-        #     return self._state_circ_sampler.convert(initial_state, param_dict_from_ode)
         return initial_state.assign_parameters(param_dict_from_ode)
 
     def bind_initial_state(
@@ -174,8 +166,8 @@ class VarQTE(Evolver, ABC):
         state: Union[QuantumCircuit, StateFn],
         param_dict: Dict[Parameter, Union[float, complex]],
     ) -> None:
-        """
-        Bind parameters in a given quantum state to values provided. Uses a CircuitSampler if
+        r"""
+        Bind parameters in a given quantum state to values provided. Uses a ``CircuitSampler`` if
         available.
 
         Args:
@@ -197,24 +189,6 @@ class VarQTE(Evolver, ABC):
         self._metric_circ_sampler = CircuitSampler(self._backend) if self._backend else None
         self._energy_sampler = CircuitSampler(self._backend) if self._backend else None
 
-    def _hamiltonian_power(
-        self, hamiltonian: OperatorBase, initial_state, power: int
-    ) -> OperatorBase:
-        """
-        Calculates a Hamiltonian raised to a given power.
-
-        Args:
-            power: Power to which a Hamiltonian operator should be raised.
-
-        Returns:
-            Hamiltonian raised to a given power.
-        """
-        h_power = hamiltonian**power
-        h_power = ComposedOp([~StateFn(h_power.reduce()), StateFn(initial_state)])
-        h_power = PauliExpectation().convert(h_power)
-        # TODO Include Sampler here if backend is given
-        return h_power
-
     # TODO handle the case where quantum state params are not present in a dictionary; possibly
     #  rename the dictionary because it not only relates to a Hamiltonian but also to a state
     def _create_init_state_param_dict(
@@ -222,10 +196,10 @@ class VarQTE(Evolver, ABC):
         hamiltonian_value_dict: Dict[Parameter, Union[float, complex]],
         init_state_parameters: List[Parameter],
     ) -> Dict[Parameter, Union[float, complex]]:
-        """
-        Looks for parameters present in an initial state (an ansatz) in a hamiltonian_value_dict
+        r"""
+        Looks for parameters present in an initial state (an ansatz) in a ``hamiltonian_value_dict``
         provided. Based on that, it creates a new dictionary containing only parameters present
-        in an initial state and their respective values. If not hamiltonian_value_dict is
+        in an initial state and their respective values. If no ``hamiltonian_value_dict`` is
         present, values are chosen uniformly at random.
 
         Args:

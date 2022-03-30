@@ -64,12 +64,12 @@ def eval_grad_result(
     samplers if available.
 
     Args:
-        grad: Either an evolution gradient as an OperatorBase to be evaluated or a callable that
-            constructs an OperatorBase from a dictionairy of parameters and evalues and
-            potentially a CircuitSampler.
+        grad: Either an evolution gradient as an ``OperatorBase`` to be evaluated or a callable that
+            constructs an OperatorBase from a dictionary of parameters and evaluates it and
+            potentially a ``CircuitSampler``.
         param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
-        grad_circ_sampler: CircuitSampler for evolution gradients.
-        energy_sampler: CircuitSampler for energy.
+        grad_circ_sampler: ``CircuitSampler`` for evolution gradients.
+        energy_sampler: ``CircuitSampler`` for energy.
         allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
             imaginary part is expected.
 

@@ -102,8 +102,8 @@ VariationalPrinciples
     RealTimeDependentVariationalPrinciple
     ImaginaryMcLachlanVariationalPrinciple
 """
-from qiskit.algorithms.evolvers.variational.algorithms.var_qite import VarQITE
-from qiskit.algorithms.evolvers.variational.algorithms.var_qrte import VarQRTE
+from qiskit.algorithms.evolvers.variational.var_qrte import VarQRTE
+from qiskit.algorithms.evolvers.variational.var_qite import VarQITE
 from qiskit.algorithms.evolvers.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )

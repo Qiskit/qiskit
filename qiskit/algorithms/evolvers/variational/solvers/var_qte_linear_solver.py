@@ -46,7 +46,7 @@ class VarQTELinearSolver:
             metric_tensor: A parametrized operator that represents the left-hand side of an ODE.
             evolution_grad: A parametrized operator that represents the right-hand side of an ODE.
             lse_solver_callable: Linear system of equations solver that follows a NumPy
-                np.linalg.lstsq interface.
+                ``np.linalg.lstsq`` interface.
             grad_circ_sampler: CircuitSampler for evolution gradients.
             metric_circ_sampler: CircuitSampler for metric tensors.
             energy_sampler: CircuitSampler for energy.
@@ -75,11 +75,11 @@ class VarQTELinearSolver:
         Args:
             param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
-            time_value: Time value that will be bound to t_param. It is required if t_param is
-                not None.
+            time_value: Time value that will be bound to t_param. It is required if ``t_param`` is
+                not ``None``.
 
         Returns:
-            dω/dt, 2Re⟨dψ(ω)/dω|H|ψ(ω) for VarQITE/ 2Im⟨dψ(ω)/dω|H|ψ(ω) for VarQRTE, Fubini-Study
+            dω/dt, 2Re⟨dψ(ω)/dω|H|ψ(ω) for VarQITE/2Im⟨dψ(ω)/dω|H|ψ(ω) for VarQRTE, Fubini-Study
             Metric.
         """
 
