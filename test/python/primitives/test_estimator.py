@@ -105,7 +105,9 @@ class TestEstimator(QiskitTestCase):
     def test_evaluate_multi_params(self):
         """test for evaluate with multiple parameters"""
         with Estimator([self.ansatz], [self.observable]) as est:
-            result = est(parameter_values=[[0, 1, 1, 2, 3, 5], [1, 1, 2, 3, 5, 8]])
+            result = est(
+                [0] * 2, [0] * 2, parameter_values=[[0, 1, 1, 2, 3, 5], [1, 1, 2, 3, 5, 8]]
+            )
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.284366511861733, -1.3187526349078742])
 

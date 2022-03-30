@@ -30,7 +30,7 @@ from qiskit.test.mock.fake_backend_v2 import (
     FakeBackendSimple,
     FakeBackendV2LegacyQubitProps,
 )
-from qiskit.test.mock.fake_mumbai_v2 import FakeMumbaiV2
+from qiskit.test.mock.fake_mumbai_v2 import FakeMumbaiFractionalCX
 from qiskit.quantum_info import Operator
 
 
@@ -167,7 +167,7 @@ class TestBackendV2(QiskitTestCase):
 
     def test_transpile_mumbai_target(self):
         """Test that transpile respects a more involved target for a fake mumbai."""
-        backend = FakeMumbaiV2()
+        backend = FakeMumbaiFractionalCX()
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.cx(1, 0)
