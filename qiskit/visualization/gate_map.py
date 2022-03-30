@@ -67,7 +67,7 @@ def plot_gate_map(
         font_color (str): The font color for the qubit labels.
         ax (Axes): A Matplotlib axes instance.
         filename (str): file path to save image to.
-        qubit_coordinates (Sequence): A sequence type (list or array being the
+        qubit_coordinates (Sequence): An optional sequence input (list or array being the
             most common) of 2d coordinates for each qubit. The length of the
             sequence much match the number of qubits on the backend. The sequence
             should be the planar coordinates in a 0-based square grid where each
@@ -756,7 +756,7 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
         circuit (QuantumCircuit): Input quantum circuit.
         backend (BaseBackend): Target backend.
         view (str): Layout view: either 'virtual' or 'physical'.
-        qubit_coordinates (Sequence): A sequence type (list or array being the
+        qubit_coordinates (Sequence): An optional sequence input (list or array being the
             most common) of 2d coordinates for each qubit. The length of the
             sequence much mast the number of qubits on the backend. The sequence
             should be the planar coordinates in a 0-based square grid where each
@@ -868,7 +868,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
         backend (IBMQBackend): Given backend.
         figsize (tuple): Figure size in inches.
         show_title (bool): Show the title or not.
-        qubit_coordinates (Sequence): A sequence type (list or array being the
+        qubit_coordinates (Sequence): An optional sequence input (list or array being the
             most common) of 2d coordinates for each qubit. The length of the
             sequence much mast the number of qubits on the backend. The sequence
             should be the planar coordinates in a 0-based square grid where each
