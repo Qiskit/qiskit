@@ -73,16 +73,8 @@ class TrotterQRTE(RealEvolver):
                 first order product formula with a single repetition.
             expectation: An instance of ExpectationBase which defines a method for calculating
                 expectation values of EvolutionProblem.aux_operators.
-            quantum_instance: A quantum instance used for calculations. If not provided,
-                calculations are performed classically which work reasonably only for small systems.
-                In case of auxiliary operators provided in ``EvolutionProblem``, a quantum instance
-                is required.
-
-            .. note::
-
-                Shot-based simulators like, e.g., the ``qasm_simulator`` will return counts sampled
-                from an evolved state, not the description of the state itself as it happens for the
-                ``statevector_simulator`` for example.
+            quantum_instance: A quantum instance used for calculating expectation values of
+                EvolutionProblem.aux_operators.
         """
         if product_formula is None:
             product_formula = LieTrotter()
@@ -139,7 +131,9 @@ class TrotterQRTE(RealEvolver):
     def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
         """
         Evolves a quantum state for a given time using the Trotterization method
-        based on a product formula provided.
+        based on a product formula provided. The result is provided in the form of a quantum
+        circuit. If auxiliary operators are included in the ``evolution_problem``, they are
+        evaluated on an evolved state using a backend provided.
 
         .. note::
             Time-dependent Hamiltonians are not yet supported.
@@ -150,7 +144,8 @@ class TrotterQRTE(RealEvolver):
                 are supported by TrotterQRTE.
 
         Returns:
-            Evolution result that includes an evolved state.
+            Evolution result that includes an evolved state as a quantum circuit and, optionally,
+            auxiliary operators evaluated for a resulting state on a backend.
 
         Raises:
             ValueError: If ``t_param`` is not set to None in the EvolutionProblem (feature not
@@ -189,11 +184,7 @@ class TrotterQRTE(RealEvolver):
             initial_state = evolution_problem.initial_state
             if isinstance(initial_state, QuantumCircuit):
                 initial_state = StateFn(initial_state)
-            quantum_state = evolution_gate @ initial_state
-            if self._circuit_sampler is not None:
-                quantum_state = self._circuit_sampler.convert(quantum_state)
-
-            evolved_state = quantum_state.eval()
+            evolved_state = evolution_gate @ initial_state
 
         else:
             raise ValueError("``initial_state`` must be provided in the EvolutionProblem.")
@@ -202,7 +193,7 @@ class TrotterQRTE(RealEvolver):
         if evolution_problem.aux_operators is not None:
             evaluated_aux_ops = eval_observables(
                 self._quantum_instance,
-                quantum_state.primitive,
+                evolved_state.primitive,
                 evolution_problem.aux_operators,
                 self._expectation,
                 evolution_problem.truncation_threshold,
