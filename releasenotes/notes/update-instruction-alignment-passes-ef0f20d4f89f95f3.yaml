@@ -128,7 +128,7 @@ features:
     For those who are creating custom :class:`~.PassManager` objects that involve
     circuit scheduling you will need to adjust your :class:`~.PassManager`
     to include insert one of the :class:`~.BasePadding` passes (currently
-    either :class:`~.PadDelay` or :class:`~.DynamicalDecoupling` can be used)
+    either :class:`~.PadDelay` or :class:`~.DynamicalDecouplingPadding` can be used)
     at the end of the scheduling pass chain. Without the padding pass the scheduling
     passes will not be reflected in the output circuit of the :meth:`~.PassManager.run`
     method of your custom :class:`~.PassManager`.
