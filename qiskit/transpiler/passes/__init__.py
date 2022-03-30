@@ -103,7 +103,7 @@ Scheduling
    TimeUnitConversion
    ALAPScheduleAnalysis
    ASAPScheduleAnalysis
-   DynamicalDecouplingPadding
+   PadDynamicalDecoupling
    ConstrainedReschedule
    AlignMeasures
    ValidatePulseGates
@@ -234,7 +234,7 @@ from .scheduling import ALAPScheduleAnalysis
 from .scheduling import ASAPScheduleAnalysis
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
-from .scheduling import DynamicalDecouplingPadding
+from .scheduling import PadDynamicalDecoupling
 from .scheduling import DynamicalDecoupling
 from .scheduling import AlignMeasures  # Deprecated
 from .scheduling import ValidatePulseGates
