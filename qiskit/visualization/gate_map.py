@@ -941,8 +941,6 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
                     if item["qubits"] == line:
                         cx_errors.append(item["parameters"][0]["value"])
                         break
-                else:
-                    continue
         for qubit in range(num_qubits):
             for item in props["qubits"][qubit]:
                 if item["name"] == "readout_error":
