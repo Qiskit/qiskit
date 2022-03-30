@@ -10,6 +10,6 @@ deprecations:
   - |
     The ``qregs``, ``cregs``, ``layout``, and ``global_phase`` kwargs to
     the :class:`.MatplotlibDrawer`, :class:`.TextDrawing`, and
-    :class:`.QCircuitImage`, and the ``calibrations`` kwarg to the
-    :class:`.MatplotlibDrawer`, are being deprecated in 0.20.0 and will be
-    removed no earlier than 3 months after the release date.
+    :class:`.QCircuitImage` classes, and the ``calibrations`` kwarg to the
+    :class:`.MatplotlibDrawer` class, are now deprecated and will be removed
+    in a subsequent release.
