@@ -113,9 +113,9 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "1.8.0"
+version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "282a6247722caba404c065016bbfa522806e51714c34f5dfc3e4a3a46fcb4223"
+checksum = "0f647032dfaa1f8b6dc29bd3edb7bbef4861b8b8007ebb118d6db284fd59f6ee"
 dependencies = [
  "autocfg",
  "hashbrown",
@@ -239,9 +239,9 @@ dependencies = [
 
 [[package]]
 name = "numpy"
-version = "0.16.1"
+version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0b4680aec093ae7b5522c849b3e949de3d92bbca52acdb047fd5be8e3b668db"
+checksum = "383ae168529a39fc97cbc1d9d4fa865377731a519bc27553ed96f50594de7c45"
 dependencies = [
  "libc",
  "ndarray",
