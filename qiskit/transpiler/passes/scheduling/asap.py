@@ -18,14 +18,20 @@ from qiskit.circuit import Delay, Qubit, Measure
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
 
-from .base_scheduler import BaseScheduler
+from .base_scheduler import BaseSchedulerTransform
 
 
-class ASAPSchedule(BaseScheduler):
+class ASAPSchedule(BaseSchedulerTransform):
     """ASAP Scheduling pass, which schedules the start time of instructions as early as possible..
 
-    See :class:`~qiskit.transpiler.passes.scheduling.base_scheduler.BaseScheduler` for the
+    See :class:`~qiskit.transpiler.passes.scheduling.base_scheduler.BaseSchedulerTransform` for the
     detailed behavior of the control flow operation, i.e. ``c_if``.
+
+    .. note::
+
+        This base class has been superseded by :class:`~.ASAPScheduleAnalysis` and
+        the new scheduling workflow. It will be deprecated and subsequently
+        removed in a future release.
     """
 
     def __init__(self, *args, **kwargs):
