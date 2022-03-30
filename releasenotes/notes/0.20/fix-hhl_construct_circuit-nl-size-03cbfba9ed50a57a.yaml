@@ -1,4 +1,8 @@
 ---
 fixes:
   - |
-    Fixes an issue where HHL().construct_circuit() didn't always return a correct circuit. Issue arose for some matrices due to not allocating enough qubits to represent the eigenvalues.
+    Fixed an issue where the :meth:`.HHL.construct_circuit` method where under
+    certain conditions the method would not return a correct
+    :class:`~.QuantumCircuit`. Previously, the function had a rounding error in
+    calculating how many qubits were necessary to represent the eigenvalues
+    which would cause an incorrect circuit output.
