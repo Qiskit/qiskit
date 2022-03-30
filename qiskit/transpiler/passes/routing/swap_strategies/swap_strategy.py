@@ -23,12 +23,28 @@ from qiskit.transpiler import CouplingMap
 class SwapStrategy:
     """A class representing swap strategies for coupling maps.
 
-    A swap strategy is a list of swap layers to apply to the physical coupling map. Each swap layer
-    is specified by a set of tuples which correspond to the edges of the physical coupling map that
-    are swapped. At each swap layer SWAP gates are applied to the corresponding edges. This class
-    stores the permutations of the qubits resulting from the swap strategy. Swap strategies are
-    intended to be used on blocks of commuting gates which are often present in variational
-    algorithms.
+    A swap strategy is a tuple of swap layers to apply to the coupling map to
+    route blocks of commuting two-qubit gates. Each swap layer is specified by a set of tuples
+    which correspond to the edges of the coupling map that are swapped. At each swap layer
+    SWAP gates are applied to the corresponding edges. These SWAP gates must be executable in
+    parallel. This means that a qubit can only be present once in a swap layer. For example, the
+    following swap layers represent the optimal swap strategy for a line with five qubits
+
+    .. parsed-literal::
+
+        (
+            ((0, 1), (2, 3)),  # Swap layer no. 1
+            ((1, 2), (3, 4)),  # Swap layer no. 2
+            ((0, 1), (2, 3)),  # Swap layer no. 3
+        )
+
+    This strategy is optimal in the sense that it reaches full qubit-connectivity in the least
+    amount of swap gates. More generally, a swap strategy is optimal for a given block of
+    commuting two-qubit gates and a given coupling map if it minimizes the number of gates
+    applied when routing the commuting two-qubit gates to the coupling map. Finding the optimal
+    swap strategy is a non-trivial problem but can be done for certain coupling maps such as a
+    line coupling map. This class stores the permutations of the qubits resulting from the swap
+    strategy. See https://arxiv.org/abs/2202.03459 for more details.
     """
 
     def __init__(
