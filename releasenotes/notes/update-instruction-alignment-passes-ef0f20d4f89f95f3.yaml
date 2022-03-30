@@ -17,12 +17,6 @@ features:
     in the property set and relying on a :class:`~.BasePadding` pass to adjust the circuit
     based on all the scheduling alignment analysis.
 
-    These new passes also consider I/O latencies for measurement and conditional operations.
-    These information should be set by :class:`SetIOLatency` pass in advance.
-    The I/O latency to write classical register is represneted by ``clbit_write_latency``,
-    and one for reading the register is presented by ``conditional_latency``.
-    These properties are loaded from backend and set to the pass manager's property set.
-
     The standard behavior of these passes also aligns timing ordering with the topological
     ordering of the DAG nodes. This change may affect the scheduling outcome if it includes
     conditional operations, or simultaneously measuring two qubits with the same classical
@@ -155,7 +149,6 @@ features:
         pm = PassManager()
         scheduling = [
             ALAPScheduleAnalysis(instruction_durations), PadDelay()),
-            InstructionDurationCheck(acquire_alignment=timing_constraints.acquire_alignment, pulse_alignment=timing_constraints.pulse_alignment),
             ConstrainedReschedule(acquire_alignment=timing_constraints.acquire_alignment, pulse_alignment=timing_constraints.pulse_alignment),
             ValidatePulseGates(granularity=timing_constraints.granularity, min_length=timing_constraints.min_length),
             PadDelay()
