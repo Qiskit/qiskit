@@ -24,10 +24,10 @@ from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.execute_function import execute
 from qiskit.test.base import QiskitTestCase
-from qiskit.test.mock import FakeProvider, FakeLegacyProvider, FakeProviderV2
+from qiskit.test.mock import FakeProviderForBackendV2, FakeProvider, FakeLegacyProvider
 from qiskit.utils import optionals
 
-FAKE_PROVIDER_V2 = FakeProviderV2()
+FAKE_PROVIDER_FOR_BACKEND_V2 = FakeProviderForBackendV2()
 FAKE_PROVIDER = FakeProvider()
 FAKE_LEGACY_PROVIDER = FakeLegacyProvider()
 
@@ -47,7 +47,7 @@ class TestFakeBackends(QiskitTestCase):
         cls.circuit.measure_all()
 
     @combine(
-        backend=[be for be in FAKE_PROVIDER_V2.backends() if be.num_qubits > 1],
+        backend=[be for be in FAKE_PROVIDER_FOR_BACKEND_V2.backends() if be.num_qubits > 1],
         optimization_level=[0, 1, 2, 3],
     )
     def test_circuit_on_fake_backend_v2(self, backend, optimization_level):

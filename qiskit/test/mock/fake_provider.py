@@ -66,7 +66,7 @@ class FakeProviderFactory:
         return self.fake_provider
 
 
-class FakeProviderV2(ProviderV1):
+class FakeProviderForBackendV2(ProviderV1):
     """Dummy provider just for testing purposes.
 
     Only filtering backends by name is implemented.
