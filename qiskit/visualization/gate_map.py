@@ -69,7 +69,7 @@ def plot_gate_map(
         filename (str): file path to save image to.
         qubit_coordinates (Sequence): A sequence type (list or array being the
             most common) of 2d coordinates for each qubit. The length of the
-            sequence much mast the number of qubits on the backend. The sequence
+            sequence much match the number of qubits on the backend. The sequence
             should be the planar coordinates in a 0-based square grid where each
             qubit is located.
 
@@ -964,7 +964,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
                         read_err[qargs[0]] = inst_props.error
                 elif len(qargs) == 1:
                     if inst_props.error is not None:
-                        single_gate_errors = max(single_gate_errors[qargs[0]], inst_props.error)
+                        single_gate_errors[qargs[0]] = max(single_gate_errors[qargs[0]], inst_props.error)
                 elif len(qargs) == 2:
                     if inst_props.error is not None:
                         two_q_error_map[qargs] = max(
