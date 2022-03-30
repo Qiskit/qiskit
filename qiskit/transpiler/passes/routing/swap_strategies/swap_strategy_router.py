@@ -25,7 +25,7 @@ from qiskit.transpiler.passes.routing.swap_strategies.swap_strategy import SwapS
 from qiskit.transpiler.passes.routing.swap_strategies.commuting_2q_block import Commuting2qBlocks
 
 
-class SwapStrategyRouter(TransformationPass):
+class Commuting2qGateRouter(TransformationPass):
     """A class to swap route one or more commuting gates to the coupling map.
 
     The mapping to the coupling map is done using swap strategies, see :class:`.SwapStrategy`.
@@ -63,7 +63,7 @@ class SwapStrategyRouter(TransformationPass):
         from qiskit.transpiler.passes.routing.swap_strategies import (
             SwapStrategy,
             FindCommutingPauliEvolutions,
-            SwapStrategyRouter,
+            Commuting2qGateRouter,
         )
 
         # Define the circuit on logical qubits
@@ -82,7 +82,7 @@ class SwapStrategyRouter(TransformationPass):
         pm_pre = PassManager(
             [
                 FindCommutingPauliEvolutions(),
-                SwapStrategyRouter(swap_strat),
+                Commuting2qGateRouter(swap_strat),
                 SetLayout(initial_layout),
                 FullAncillaAllocation(backend_cmap),
                 EnlargeWithAncilla(),

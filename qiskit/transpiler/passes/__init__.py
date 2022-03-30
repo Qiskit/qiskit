@@ -178,7 +178,7 @@ from .routing import StochasticSwap
 from .routing import SabreSwap
 from .routing import BIPMapping
 from .routing import SwapStrategy
-from .routing import SwapStrategyRouter
+from .routing import Commuting2qGateRouter
 
 # basis change
 from .basis import Decompose

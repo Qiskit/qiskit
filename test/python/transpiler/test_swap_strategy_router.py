@@ -29,7 +29,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.transpiler.passes.routing.swap_strategies import (
     SwapStrategy,
     FindCommutingPauliEvolutions,
-    SwapStrategyRouter,
+    Commuting2qGateRouter,
 )
 
 
@@ -45,7 +45,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         self.pm_ = PassManager(
             [
                 FindCommutingPauliEvolutions(),
-                SwapStrategyRouter(swap_strat),
+                Commuting2qGateRouter(swap_strat),
             ]
         )
 
@@ -271,7 +271,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         pm_pre = PassManager(
             [
                 FindCommutingPauliEvolutions(),
-                SwapStrategyRouter(swap_strat),
+                Commuting2qGateRouter(swap_strat),
                 SetLayout(initial_layout),
                 FullAncillaAllocation(backend_cmap),
                 EnlargeWithAncilla(),
@@ -314,7 +314,7 @@ class TestSwapRouterExceptions(QiskitTestCase):
     def test_no_swap_strategy(self):
         """Test raise on no swap strategy."""
 
-        pm_ = PassManager([FindCommutingPauliEvolutions(), SwapStrategyRouter()])
+        pm_ = PassManager([FindCommutingPauliEvolutions(), Commuting2qGateRouter()])
 
         with self.assertRaises(TranspilerError):
             pm_.run(self.circ)
@@ -322,7 +322,7 @@ class TestSwapRouterExceptions(QiskitTestCase):
     def test_deficient_swap_strategy(self):
         """Test to raise when all edges cannot be implemented."""
 
-        pm_ = PassManager([FindCommutingPauliEvolutions(), SwapStrategyRouter()])
+        pm_ = PassManager([FindCommutingPauliEvolutions(), Commuting2qGateRouter()])
 
         with self.assertRaises(TranspilerError):
             pm_.run(self.circ)

@@ -18,5 +18,5 @@ from .lookahead_swap import LookaheadSwap
 from .stochastic_swap import StochasticSwap
 from .sabre_swap import SabreSwap
 from .bip_mapping import BIPMapping
-from .swap_strategies.swap_strategy_router import SwapStrategyRouter
+from .swap_strategies.swap_strategy_router import Commuting2qGateRouter
 from .swap_strategies.swap_strategy import SwapStrategy
