@@ -506,7 +506,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             decomposer1q = None
 
         preferred_direction = None
-        if target:
+        if target is not None:
             decomposer2q, preferred_direction = self._find_decomposer_2q_from_target(
                 target, qubits, pulse_optimize
             )
@@ -558,7 +558,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         physical_gate_fidelity = None
         wires = None
         if natural_direction in {None, True} and (
-            coupling_map or (target and decomposer2q and not preferred_direction)
+            coupling_map or (target is not None and decomposer2q and not preferred_direction)
         ):
             cmap = coupling_map
             neighbors0 = cmap.neighbors(qubits[0])

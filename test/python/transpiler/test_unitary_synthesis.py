@@ -581,7 +581,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         bidirectional=[True, False],
         dsc=(
             "test natural_direction works with transpile using opt_level {opt_level} on"
-            "target with multiple 2q gates with bidirectional={bidirectional}"
+            " target with multiple 2q gates with bidirectional={bidirectional}"
         ),
         name="opt_level_{opt_level}_bidirectional_{bidirectional}",
     )
@@ -627,7 +627,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         bidirectional=[True, False],
         dsc=(
             "Test direction with transpile using opt_level {opt_level} on"
-            "target with multiple 2q gates with bidirectional={bidirectional}"
+            " target with multiple 2q gates with bidirectional={bidirectional}"
         ),
         name="opt_level_{opt_level}_bidirectional_{bidirectional}",
     )
@@ -657,7 +657,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         opt_level=[0, 1, 2, 3],
         dsc=(
             "Test direction with transpile using opt_level {opt_level} on"
-            "target with multiple 2q gates"
+            " target with multiple 2q gates"
         ),
         name="opt_level_{opt_level}",
     )
