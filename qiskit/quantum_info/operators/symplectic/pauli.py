@@ -20,7 +20,7 @@ from typing import Dict
 
 import numpy as np
 
-from qiskit.circuit import Instruction, QuantumCircuit, Operation
+from qiskit.circuit import Instruction, QuantumCircuit
 from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
@@ -31,7 +31,7 @@ from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
 from qiskit.utils.deprecation import deprecate_function
 
 
-class Pauli(BasePauli, Operation):
+class Pauli(BasePauli):
     r"""N-qubit Pauli operator.
 
     This class represents an operator :math:`P` from the full :math:`n`-qubit
