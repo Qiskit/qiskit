@@ -57,7 +57,8 @@ approach is taken according to a variational principle chosen by a user.
     time = 1
 
     # define evolution problem
-    evolution_problem = EvolutionProblem(observable, time, ansatz, hamiltonian_value_dict=param_dict)
+    evolution_problem = EvolutionProblem(observable, time, ansatz,
+    hamiltonian_value_dict=param_dict)
 
     # instantiate the algorithm
     var_qite = VarQITE(
@@ -102,18 +103,20 @@ VariationalPrinciples
     RealTimeDependentVariationalPrinciple
     ImaginaryMcLachlanVariationalPrinciple
 """
-from qiskit.algorithms.evolvers.variational.var_qrte import VarQRTE
-from qiskit.algorithms.evolvers.variational.var_qite import VarQITE
-from qiskit.algorithms.evolvers.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
-    ImaginaryMcLachlanVariationalPrinciple,
+from ..variational.var_qrte import VarQRTE
+from .var_qite import VarQITE
+from ..variational.variational_principles.imaginary.implementations\
+    .imaginary_mc_lachlan_variational_principle import (
+        ImaginaryMcLachlanVariationalPrinciple,
 )
-from qiskit.algorithms.evolvers.variational.variational_principles.real.implementations.real_mc_lachlan_variational_principle import (
-    RealMcLachlanVariationalPrinciple,
+from ..variational.variational_principles.real.implementations\
+    .real_mc_lachlan_variational_principle import (
+        RealMcLachlanVariationalPrinciple,
 )
-from qiskit.algorithms.evolvers.variational.variational_principles.real.implementations.real_time_dependent_variational_principle import (
-    RealTimeDependentVariationalPrinciple,
+from ..variational.variational_principles.real.implementations\
+    .real_time_dependent_variational_principle import (
+        RealTimeDependentVariationalPrinciple,
 )
-
 
 __all__ = [
     "VarQITE",

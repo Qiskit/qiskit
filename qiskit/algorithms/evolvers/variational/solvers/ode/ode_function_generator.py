@@ -13,7 +13,7 @@
 """Class for generating ODE functions based on natural gradients."""
 from typing import Iterable
 
-from qiskit.algorithms.evolvers.variational.solvers.ode.abstract_ode_function_generator import (
+from ..ode.abstract_ode_function_generator import (
     AbstractOdeFunctionGenerator,
 )
 

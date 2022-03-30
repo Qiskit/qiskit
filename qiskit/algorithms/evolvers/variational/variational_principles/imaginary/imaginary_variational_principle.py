@@ -14,7 +14,7 @@
 
 from abc import ABC
 
-from qiskit.algorithms.evolvers.variational.variational_principles.variational_principle import (
+from ...variational_principles.variational_principle import (
     VariationalPrinciple,
 )
 

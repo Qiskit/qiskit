@@ -15,15 +15,15 @@
 from typing import Union, List
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.evolvers.variational.calculators import (
+from qiskit.circuit import Parameter
+from qiskit.opflow import Y, OperatorBase, ListOp, StateFn
+from ....calculators import (
     metric_tensor_calculator,
     evolution_grad_calculator,
 )
-from qiskit.algorithms.evolvers.variational.variational_principles.real.real_variational_principle import (
+from ....variational_principles.real.real_variational_principle import (
     RealVariationalPrinciple,
 )
-from qiskit.circuit import Parameter
-from qiskit.opflow import Y, OperatorBase, ListOp, StateFn
 
 
 class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):

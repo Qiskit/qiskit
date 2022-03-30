@@ -15,15 +15,15 @@
 from typing import Union, List
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.evolvers.variational.calculators import (
+from qiskit.circuit import Parameter
+from qiskit.opflow import StateFn, OperatorBase, ListOp
+from .....variational.calculators import (
     metric_tensor_calculator,
     evolution_grad_calculator,
 )
-from qiskit.algorithms.evolvers.variational.variational_principles.imaginary.imaginary_variational_principle import (
+from .....variational.variational_principles.imaginary.imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
-from qiskit.circuit import Parameter
-from qiskit.opflow import StateFn, OperatorBase, ListOp
 
 
 class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):

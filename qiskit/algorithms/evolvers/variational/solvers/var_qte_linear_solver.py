@@ -15,15 +15,14 @@
 from typing import Union, List, Dict, Optional, Callable
 
 import numpy as np
-
-from qiskit.algorithms.evolvers.variational.calculators.metric_tensor_calculator import (
-    eval_metric_result,
-)
-from qiskit.algorithms.evolvers.variational.calculators.evolution_grad_calculator import (
-    eval_grad_result,
-)
 from qiskit.circuit import Parameter
 from qiskit.opflow import CircuitSampler, OperatorBase
+from ..calculators.metric_tensor_calculator import (
+    eval_metric_result,
+)
+from ..calculators.evolution_grad_calculator import (
+    eval_grad_result,
+)
 
 
 #  TODO this might potentially be exposed to the user to instantiate (only with

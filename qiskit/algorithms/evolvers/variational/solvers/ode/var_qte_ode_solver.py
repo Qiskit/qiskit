@@ -17,7 +17,7 @@ from typing import List, Union
 
 from scipy.integrate import OdeSolver, solve_ivp, RK45
 
-from qiskit.algorithms.evolvers.variational.solvers.ode.abstract_ode_function_generator import (
+from .abstract_ode_function_generator import (
     AbstractOdeFunctionGenerator,
 )
 

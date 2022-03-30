@@ -15,11 +15,11 @@
 from abc import ABC
 from typing import Union
 
-from qiskit.algorithms.evolvers.variational.variational_principles.variational_principle import (
-    VariationalPrinciple,
-)
 from qiskit.opflow import (
     CircuitQFI,
+)
+from ..variational_principle import (
+    VariationalPrinciple,
 )
 
 

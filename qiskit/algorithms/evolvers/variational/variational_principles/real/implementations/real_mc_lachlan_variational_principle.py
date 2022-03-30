@@ -15,13 +15,6 @@
 from typing import Union, Dict, List, Callable, Optional
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.evolvers.variational.calculators import (
-    evolution_grad_calculator,
-    metric_tensor_calculator,
-)
-from qiskit.algorithms.evolvers.variational.variational_principles.real.real_variational_principle import (
-    RealVariationalPrinciple,
-)
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
     StateFn,
@@ -32,6 +25,13 @@ from qiskit.opflow import (
     CircuitSampler,
     ListOp,
     OperatorBase,
+)
+from ....calculators import (
+    evolution_grad_calculator,
+    metric_tensor_calculator,
+)
+from ..real_variational_principle import (
+    RealVariationalPrinciple,
 )
 
 
