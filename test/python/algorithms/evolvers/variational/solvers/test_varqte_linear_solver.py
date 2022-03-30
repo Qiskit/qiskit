@@ -57,8 +57,6 @@ class TestVarQTELinearSolver(QiskitAlgorithmsTestCase):
         for i in range(ansatz.num_qubits):
             init_param_values[-(ansatz.num_qubits + i + 1)] = np.pi / 2
 
-        print(init_param_values)
-
         param_dict = dict(zip(parameters, init_param_values))
 
         var_principle = ImaginaryMcLachlanVariationalPrinciple()

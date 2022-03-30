@@ -454,7 +454,6 @@ class ListOp(OperatorBase):
 
         if all(isinstance(op, OperatorBase) for op in evals):
             return self.__class__(evals)  # type: ignore
-
         elif any(isinstance(op, OperatorBase) for op in evals):
             raise TypeError("Cannot handle mixed scalar and Operator eval results.")
         else:
