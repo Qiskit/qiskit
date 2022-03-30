@@ -160,7 +160,10 @@ class UnitarySynthesis(TransformationPass):
         exactly.
 
         Args:
-            basis_gates (list[str]): List of gate names to target.
+            basis_gates (list[str]): List of gate names to target. If this is
+                not specified the ``target`` argument must be used. If both this
+                and the ``target`` are specified the value of ``target`` will
+                be used and this will be ignored.
             approximation_degree (float): Closeness of approximation
                 (0: lowest, 1: highest).
             coupling_map (CouplingMap): the coupling map of the backend
@@ -200,7 +203,7 @@ class UnitarySynthesis(TransformationPass):
                 plugin has no extra arguments. Refer to the documentation of
                 your unitary synthesis plugin on how to use this.
             target: The optional :class:`~.Target` for the target device the pass
-                is compiling for. IF specified this will supersede the values
+                is compiling for. If specified this will supersede the values
                 set for ``basis_gates``, ``coupling_map``, and ``backend_props``.
         """
         super().__init__()
