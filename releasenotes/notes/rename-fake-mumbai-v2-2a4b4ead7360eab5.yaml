@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    :class:`~qiskit.test.mock.fake_mumbai_v2.FakeMumbaiV2` has been renamed to
+    `FakeMumbaiFractionalCX` to avoid name conflict with the newer
+    :class:`~qiskit.test.mock.backends.FakeMumbaiV2` inherited from
+    :class:`~qiskit.test.fake_backend.FakeBackendV2` which creates fake backend
+    based on device snapshot payload files instead of hardcoded instruction
+    properties.
