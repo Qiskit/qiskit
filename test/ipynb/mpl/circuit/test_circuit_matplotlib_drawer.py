@@ -864,15 +864,6 @@ class TestMatplotlibDrawer(QiskitTestCase):
             circuit, cregbundle=False, reverse_bits=True, filename="cond_bits_reverse.png"
         )
 
-    def test_conditions_with_bits_list(self):
-        """Test gates with a list of bits for a condition"""
-        clbits = [Clbit(), Clbit(), Clbit()]
-        qr = QuantumRegister(2, "qr")
-        cr = ClassicalRegister(3, "cr")
-        circuit = QuantumCircuit(qr, clbits, cr)
-        circuit.x(0).c_if([cr[0], clbits[1], cr[1], clbits[2]], 11)
-        self.circuit_drawer(circuit, cregbundle=False, filename="condition_bits_list.png")
-
     def test_sidetext_with_condition(self):
         """Test that sidetext gates align properly with conditions"""
         qr = QuantumRegister(2, "q")

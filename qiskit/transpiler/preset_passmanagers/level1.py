@@ -53,7 +53,8 @@ from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import TimeUnitConversion
 from qiskit.transpiler.passes import ALAPSchedule
 from qiskit.transpiler.passes import ASAPSchedule
-from qiskit.transpiler.passes import AlignMeasures
+from qiskit.transpiler.passes import ConstrainedReschedule
+from qiskit.transpiler.passes import InstructionDurationCheck
 from qiskit.transpiler.passes import ValidatePulseGates
 from qiskit.transpiler.passes import PulseGates
 from qiskit.transpiler.passes import PadDelay
@@ -287,39 +288,6 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _opt = [Optimize1qGatesDecomposition(basis_gates), CXCancellation()]
 
-    # 10. Unify all durations (either SI, or convert to dt if known)
-    # Schedule the circuit only when scheduling_method is supplied
-    _time_unit_setup = [ContainsInstruction("delay")]
-    _time_unit_conversion = [TimeUnitConversion(instruction_durations)]
-
-    def _contains_delay(property_set):
-        return property_set["contains_delay"]
-
-    _scheduling = []
-    if scheduling_method:
-        _scheduling += _time_unit_conversion
-        if scheduling_method in {"alap", "as_late_as_possible"}:
-            _scheduling += [ALAPSchedule(instruction_durations), PadDelay()]
-        elif scheduling_method in {"asap", "as_soon_as_possible"}:
-            _scheduling += [ASAPSchedule(instruction_durations), PadDelay()]
-        else:
-            raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
-
-    # 11. Call measure alignment. Should come after scheduling.
-    if (
-        timing_constraints.granularity != 1
-        or timing_constraints.min_length != 1
-        or timing_constraints.acquire_alignment != 1
-    ):
-        _alignments = [
-            ValidatePulseGates(
-                granularity=timing_constraints.granularity, min_length=timing_constraints.min_length
-            ),
-            AlignMeasures(alignment=timing_constraints.acquire_alignment),
-        ]
-    else:
-        _alignments = []
-
     # Build pass manager
     pm1 = PassManager()
     if coupling_map or initial_layout:
@@ -338,14 +306,66 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm1.append(_direction_check)
         pm1.append(_direction, condition=_direction_condition)
     pm1.append(_reset)
-    pm1.append(_depth_check + _size_check + _opt + _unroll, do_while=_opt_control)
+    pm1.append(_depth_check + _size_check)
+    pm1.append(_opt + _unroll + _depth_check + _size_check, do_while=_opt_control)
     if inst_map and inst_map.has_custom_gate():
         pm1.append(PulseGates(inst_map=inst_map))
+
+    # 10. Unify all durations (either SI, or convert to dt if known)
+    # Schedule the circuit only when scheduling_method is supplied
+    # Apply alignment analysis regardless of scheduling for delay validation.
     if scheduling_method:
-        pm1.append(_scheduling)
+        # Do scheduling after unit conversion.
+        scheduler = {
+            "alap": ALAPSchedule,
+            "as_late_as_possible": ALAPSchedule,
+            "asap": ASAPSchedule,
+            "as_soon_as_possible": ASAPSchedule,
+        }
+        pm1.append(TimeUnitConversion(instruction_durations))
+        try:
+            pm1.append(scheduler[scheduling_method](instruction_durations))
+        except KeyError as ex:
+            raise TranspilerError("Invalid scheduling method %s." % scheduling_method) from ex
     elif instruction_durations:
-        pm1.append(_time_unit_setup)
-        pm1.append(_time_unit_conversion, condition=_contains_delay)
-    pm1.append(_alignments)
+        # No scheduling. But do unit conversion for delays.
+        def _contains_delay(property_set):
+            return property_set["contains_delay"]
+
+        pm1.append(ContainsInstruction("delay"))
+        pm1.append(TimeUnitConversion(instruction_durations), condition=_contains_delay)
+    if (
+        timing_constraints.granularity != 1
+        or timing_constraints.min_length != 1
+        or timing_constraints.acquire_alignment != 1
+        or timing_constraints.pulse_alignment != 1
+    ):
+        # Run alignment analysis regardless of scheduling.
+
+        def _require_alignment(property_set):
+            return property_set["reschedule_required"]
+
+        pm1.append(
+            InstructionDurationCheck(
+                acquire_alignment=timing_constraints.acquire_alignment,
+                pulse_alignment=timing_constraints.pulse_alignment,
+            )
+        )
+        pm1.append(
+            ConstrainedReschedule(
+                acquire_alignment=timing_constraints.acquire_alignment,
+                pulse_alignment=timing_constraints.pulse_alignment,
+            ),
+            condition=_require_alignment,
+        )
+        pm1.append(
+            ValidatePulseGates(
+                granularity=timing_constraints.granularity,
+                min_length=timing_constraints.min_length,
+            )
+        )
+    if scheduling_method:
+        # Call padding pass if circuit is scheduled
+        pm1.append(PadDelay())
 
     return pm1
