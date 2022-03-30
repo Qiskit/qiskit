@@ -121,13 +121,14 @@ class TestVF2LayoutSimple(LayoutTestCase):
 
     def test_coupling_map_and_target(self):
         """Test that a Target is used instead of a CouplingMap if both are specified."""
-        cmap = CouplingMap([[0, 1], [1, 2], [2, 0]])
+        cmap = CouplingMap([[0, 1], [1, 2]])
         target = Target()
         target.add_instruction(CXGate(), {(0, 1): None, (1, 2): None, (1, 0): None})
         qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])  # qr0-> qr1
         circuit.cx(qr[1], qr[2])  # qr1-> qr2
+        circuit.cx(qr[1], qr[0])  # qr1-> qr0
         dag = circuit_to_dag(circuit)
         pass_ = VF2Layout(cmap, seed=-1, max_trials=1, target=target)
         pass_.run(dag)
