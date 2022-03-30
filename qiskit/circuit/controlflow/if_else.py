@@ -137,7 +137,18 @@ class IfElseOp(ControlFlowOp):
         else:
             return (self.params[0], self.params[1])
 
-    def replace_blocks(self, blocks):
+    def replace_blocks(self, blocks: List[QuantumCircuit]) -> IfElseOp:
+        """Replace blocks and return new instruction.
+        Args:
+            blocks: List of circuits for "if" and "else" condition. If there is no "else"
+                circuit is maybe be set to None or ommited from the list.
+        Raises:
+            CircuitError: blocks list does not contain QuantumCircuit objects, or None for
+                "else" statement.
+        Returns:
+            New IfElseOp with replaced blocks.
+        """
+        
         if len(blocks) == 1:
             (true_body,) = blocks
             false_body = None
