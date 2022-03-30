@@ -158,6 +158,7 @@ class DerivativeBase(ConverterBase):
         Returns:
             An operator which is equal to the input operator but whose coefficients
             have all been set to 1.0
+
         Raises:
             TypeError: If unknown operator type is reached.
         """

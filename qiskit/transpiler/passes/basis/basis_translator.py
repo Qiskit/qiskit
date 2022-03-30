@@ -15,14 +15,13 @@
 import time
 import logging
 
-from heapq import heappush, heappop
 from itertools import zip_longest
-from itertools import count as iter_count
 from collections import defaultdict
 
-import numpy as np
+import retworkx
 
 from qiskit.circuit import Gate, ParameterVector, QuantumRegister
+from qiskit.circuit.equivalence import Key
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -38,11 +37,10 @@ class BasisTranslator(TransformationPass):
     This pass operates in several steps:
 
     * Determine the source basis from the input circuit.
-    * Perform an A* search over basis sets, starting from the source basis and
-      targeting the device's target_basis, with edges discovered from the
-      provided EquivalenceLibrary. The heuristic used by the A* search is the
-      number of distinct circuit basis gates not in the target_basis, plus the
-      number of distinct device basis gates not used in the current basis.
+    * Perform a Dijkstra search over basis sets, starting from the device's
+      target_basis new gates are being generated using the rules from the provided
+      EquivalenceLibrary and the search stops if all gates in the source basis have
+      been generated.
     * The found path, as a set of rules from the EquivalenceLibrary, is composed
       into a set of gate replacement rules.
     * The composed replacement rules are applied in-place to each op node which
@@ -143,7 +141,7 @@ class BasisTranslator(TransformationPass):
                 # do an extra non-local search for this op to ensure we include any
                 # single qubit operation for (1,) as valid. This pattern also holds
                 # true for > 2q ops too (so for 4q operations we need to check for 3q, 2q,
-                # and 1q opertaions in the same manner)
+                # and 1q operations in the same manner)
                 if qargs in self._qargs_with_non_global_operation or any(
                     frozenset(qargs).issuperset(incomplete_qargs)
                     for incomplete_qargs in self._qargs_with_non_global_operation
@@ -162,13 +160,11 @@ class BasisTranslator(TransformationPass):
 
         # Search for a path from source to target basis.
         search_start_time = time.time()
-        basis_transforms = _basis_search(
-            self._equiv_lib, source_basis, target_basis, _basis_heuristic
-        )
+        basis_transforms = _basis_search(self._equiv_lib, source_basis, target_basis)
 
         qarg_local_basis_transforms = {}
         for qarg, local_source_basis in qargs_local_source_basis.items():
-            expanded_target = target_basis | self._qargs_with_non_global_operation[qarg]
+            expanded_target = set(target_basis)
             # For any multiqubit operation that contains a subset of qubits that
             # has a non-local operation, include that non-local operation in the
             # search. This matches with the check we did above to include those
@@ -177,6 +173,8 @@ class BasisTranslator(TransformationPass):
                 for non_local_qarg, local_basis in self._qargs_with_non_global_operation.items():
                     if qarg.issuperset(non_local_qarg):
                         expanded_target |= local_basis
+            else:
+                expanded_target |= self._qargs_with_non_global_operation[tuple(qarg)]
 
             logger.info(
                 "Performing BasisTranslator search from source basis %s to target "
@@ -185,9 +183,19 @@ class BasisTranslator(TransformationPass):
                 expanded_target,
                 qarg,
             )
-            qarg_local_basis_transforms[qarg] = _basis_search(
-                self._equiv_lib, local_source_basis, expanded_target, _basis_heuristic
+            local_basis_transforms = _basis_search(
+                self._equiv_lib, local_source_basis, expanded_target
             )
+
+            if local_basis_transforms is None:
+                raise TranspilerError(
+                    "Unable to map source basis {} to target basis {} on qarg {} "
+                    "over library {}.".format(
+                        local_source_basis, expanded_target, qarg, self._equiv_lib
+                    )
+                )
+
+            qarg_local_basis_transforms[qarg] = local_basis_transforms
 
         search_end_time = time.time()
         logger.info(
@@ -288,22 +296,100 @@ class BasisTranslator(TransformationPass):
         return dag
 
 
-def _basis_heuristic(basis, target):
-    """Simple metric to gauge distance between two bases as the number of
-    elements in the symmetric difference of the circuit basis and the device
-    basis.
-    """
-    return len({gate_name for gate_name, gate_num_qubits in basis} ^ target)
+class StopIfBasisRewritable(Exception):
+    """Custom exception that signals `retworkx.dijkstra_search` to stop."""
 
 
-def _basis_search(equiv_lib, source_basis, target_basis, heuristic):
+class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):
+    """Handles events emitted during `retworkx.dijkstra_search`."""
+
+    def __init__(self, graph, source_basis, target_basis, num_gates_for_rule):
+        self.graph = graph
+        self.target_basis = set(target_basis)
+        self._source_gates_remain = set(source_basis)
+        self._num_gates_remain_for_rule = dict(num_gates_for_rule)
+        self._basis_transforms = []
+        self._predecessors = dict()
+        self._opt_cost_map = dict()
+
+    def discover_vertex(self, v, score):
+        gate = self.graph[v]
+        self._source_gates_remain.discard(gate)
+        self._opt_cost_map[gate] = score
+        rule = self._predecessors.get(gate, None)
+        if rule is not None:
+            logger.debug(
+                "Gate %s generated using rule \n%s\n with total cost of %s.",
+                gate.name,
+                rule.circuit,
+                score,
+            )
+            self._basis_transforms.append((gate.name, gate.num_qubits, rule.params, rule.circuit))
+        # we can stop the search if we have found all gates in the original ciruit.
+        if not self._source_gates_remain:
+            # if we start from source gates and apply `basis_transforms` in reverse order, we'll end
+            # up with gates in the target basis. Note though that `basis_transforms` may include
+            # additional transformations that are not required to map our source gates to the given
+            # target basis.
+            self._basis_transforms.reverse()
+            raise StopIfBasisRewritable
+
+    def examine_edge(self, edge):
+        _, target, edata = edge
+        if edata is None:
+            return
+
+        index = edata["index"]
+        self._num_gates_remain_for_rule[index] -= 1
+
+        target = self.graph[target]
+        # if there are gates in this `rule` that we have not yet generated, we can't apply
+        # this `rule`. if `target` is already in basis, it's not beneficial to use this rule.
+        if self._num_gates_remain_for_rule[index] > 0 or target in self.target_basis:
+            raise retworkx.visit.PruneSearch
+
+    def edge_relaxed(self, edge):
+        _, target, edata = edge
+        if edata is not None:
+            gate = self.graph[target]
+            self._predecessors[gate] = edata["rule"]
+
+    def edge_cost(self, edge):
+        """Returns the cost of an edge.
+
+        This function computes the cost of this edge rule by summing
+        the costs of all gates in the rule equivalence circuit. In the
+        end, we need to subtract the cost of the source since `dijkstra`
+        will later add it.
+        """
+
+        if edge is None:
+            # the target of the edge is a gate in the target basis,
+            # so we return a default value of 1.
+            return 1
+
+        cost_tot = 0
+        rule = edge["rule"]
+        for gate, qargs, _ in rule.circuit:
+            key = Key(name=gate.name, num_qubits=len(qargs))
+            cost_tot += self._opt_cost_map[key]
+
+        source = edge["source"]
+        return cost_tot - self._opt_cost_map[source]
+
+    @property
+    def basis_transforms(self):
+        """Returns the gate basis transforms."""
+        return self._basis_transforms
+
+
+def _basis_search(equiv_lib, source_basis, target_basis):
     """Search for a set of transformations from source_basis to target_basis.
 
     Args:
         equiv_lib (EquivalenceLibrary): Source of valid translations
         source_basis (Set[Tuple[gate_name: str, gate_num_qubits: int]]): Starting basis.
         target_basis (Set[gate_name: str]): Target basis.
-        heuristic (Callable[[source_basis, target_basis], int]): distance heuristic.
 
     Returns:
         Optional[List[Tuple[gate, equiv_params, equiv_circuit]]]: List of (gate,
@@ -312,100 +398,75 @@ def _basis_search(equiv_lib, source_basis, target_basis, heuristic):
             was found.
     """
 
-    source_basis = frozenset(source_basis)
-    target_basis = frozenset(target_basis)
-
-    open_set = set()  # Bases found but not yet inspected.
-    closed_set = set()  # Bases found and inspected.
-
-    # Priority queue for inspection order of open_set. Contains Tuple[priority, count, basis]
-    open_heap = []
-
-    # Map from bases in closed_set to predecessor with lowest cost_from_source.
-    # Values are Tuple[prev_basis, gate_name, params, circuit].
-    came_from = {}
-
-    basis_count = iter_count()  # Used to break ties in priority.
-
-    open_set.add(source_basis)
-    heappush(open_heap, (0, next(basis_count), source_basis))
-
-    # Map from basis to lowest found cost from source.
-    cost_from_source = defaultdict(lambda: np.inf)
-    cost_from_source[source_basis] = 0
-
-    # Map from basis to cost_from_source + heuristic.
-    est_total_cost = defaultdict(lambda: np.inf)
-    est_total_cost[source_basis] = heuristic(source_basis, target_basis)
-
     logger.debug("Begining basis search from %s to %s.", source_basis, target_basis)
 
-    while open_set:
-        _, _, current_basis = heappop(open_heap)
+    source_basis = {
+        (gate_name, gate_num_qubits)
+        for gate_name, gate_num_qubits in source_basis
+        if gate_name not in target_basis
+    }
 
-        if current_basis in closed_set:
-            # When we close a node, we don't remove it from the heap,
-            # so skip here.
-            continue
+    # if source basis is empty, no work to be done.
+    if not source_basis:
+        return []
 
-        if {gate_name for gate_name, gate_num_qubits in current_basis}.issubset(target_basis):
-            # Found target basis. Construct transform path.
-            rtn = []
-            last_basis = current_basis
-            while last_basis != source_basis:
-                prev_basis, gate_name, gate_num_qubits, params, equiv = came_from[last_basis]
+    all_gates_in_lib = set()
 
-                rtn.append((gate_name, gate_num_qubits, params, equiv))
-                last_basis = prev_basis
-            rtn.reverse()
+    graph = retworkx.PyDiGraph()
+    nodes_to_indices = dict()
+    num_gates_for_rule = dict()
 
-            logger.debug("Transformation path:")
-            for gate_name, gate_num_qubits, params, equiv in rtn:
-                logger.debug("%s/%s => %s\n%s", gate_name, gate_num_qubits, params, equiv)
-            return rtn
+    def lazy_setdefault(key):
+        if key not in nodes_to_indices:
+            nodes_to_indices[key] = graph.add_node(key)
+        return nodes_to_indices[key]
 
-        logger.debug("Inspecting basis %s.", current_basis)
-        open_set.remove(current_basis)
-        closed_set.add(current_basis)
-
-        for gate_name, gate_num_qubits in current_basis:
-            if gate_name in target_basis:
-                continue
-
-            equivs = equiv_lib._get_equivalences((gate_name, gate_num_qubits))
-
-            basis_remain = current_basis - {(gate_name, gate_num_qubits)}
-            neighbors = [
+    rcounter = 0  # running sum of the number of equivalence rules in the library.
+    for key in equiv_lib._get_all_keys():
+        target = lazy_setdefault(key)
+        all_gates_in_lib.add(key)
+        for equiv in equiv_lib._get_equivalences(key):
+            sources = {
+                Key(name=gate.name, num_qubits=len(qargs)) for gate, qargs, _ in equiv.circuit
+            }
+            all_gates_in_lib |= sources
+            edges = [
                 (
-                    frozenset(
-                        basis_remain
-                        | {(inst.name, inst.num_qubits) for inst, qargs, cargs in equiv.data}
-                    ),
-                    params,
-                    equiv,
+                    lazy_setdefault(source),
+                    target,
+                    {"index": rcounter, "rule": equiv, "source": source},
                 )
-                for params, equiv in equivs
+                for source in sources
             ]
 
-            # Weight total path length of transformation weakly.
-            tentative_cost_from_source = cost_from_source[current_basis] + 1e-3
+            num_gates_for_rule[rcounter] = len(sources)
+            graph.add_edges_from(edges)
+            rcounter += 1
 
-            for neighbor, params, equiv in neighbors:
-                if neighbor in closed_set:
-                    continue
+    # This is only neccessary since gates in target basis are currently reported by
+    # their names and we need to have in addition the number of qubits they act on.
+    target_basis_keys = [
+        key
+        for gate in target_basis
+        for key in filter(lambda key, name=gate: key.name == name, all_gates_in_lib)
+    ]
 
-                if tentative_cost_from_source >= cost_from_source[neighbor]:
-                    continue
+    vis = BasisSearchVisitor(graph, source_basis, target_basis_keys, num_gates_for_rule)
+    # we add a dummy node and connect it with gates in the target basis.
+    # we'll start the search from this dummy node.
+    dummy = graph.add_node("dummy starting node")
+    graph.add_edges_from_no_data([(dummy, nodes_to_indices[key]) for key in target_basis_keys])
+    rtn = None
+    try:
+        retworkx.digraph_dijkstra_search(graph, [dummy], vis.edge_cost, vis)
+    except StopIfBasisRewritable:
+        rtn = vis.basis_transforms
 
-                open_set.add(neighbor)
-                came_from[neighbor] = (current_basis, gate_name, gate_num_qubits, params, equiv)
-                cost_from_source[neighbor] = tentative_cost_from_source
-                est_total_cost[neighbor] = tentative_cost_from_source + heuristic(
-                    neighbor, target_basis
-                )
-                heappush(open_heap, (est_total_cost[neighbor], next(basis_count), neighbor))
+        logger.debug("Transformation path:")
+        for gate_name, gate_num_qubits, params, equiv in rtn:
+            logger.debug("%s/%s => %s\n%s", gate_name, gate_num_qubits, params, equiv)
 
-    return None
+    return rtn
 
 
 def _compose_transforms(basis_transforms, source_basis, source_dag):

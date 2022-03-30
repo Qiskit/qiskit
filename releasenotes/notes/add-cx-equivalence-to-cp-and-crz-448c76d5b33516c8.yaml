@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Added two equivalences for ``CXGate`` in the equivalence library:
+    - To ``UGate`` and ``CPhaseGate``.
+    - to ``UGate`` and ``CRZGate``.
+    This adds the ability to transpile the ``CXGate`` into the mentioned gates.
+    Refer to `#7013 <https://github.com/Qiskit/qiskit-terra/pull/7013>`__ for more.

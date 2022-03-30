@@ -32,29 +32,45 @@ class LinCombFull(CircuitQFI):
     r"""Compute the full Quantum Fisher Information (QFI).
 
     Given a pure, parameterized quantum state this class uses the linear combination of unitaries
-    approach, requiring one additional working qubit.
     See also :class:`~qiskit.opflow.QFI`.
     """
+
+    # pylint: disable=signature-differs, arguments-differ
+    def __init__(
+        self,
+        aux_meas_op: OperatorBase = Z,
+        phase_fix: bool = True,
+    ):
+        """
+        Args:
+            aux_meas_op: The operator that the auxiliary qubit is measured with respect to.
+                For ``aux_meas_op = Z`` we compute 4Re[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉],
+                for ``aux_meas_op = -Y`` we compute 4Im[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉], and
+                for ``aux_meas_op = Z - 1j * Y`` we compute 4(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉.
+            phase_fix: Whether or not to compute and add the additional phase fix term
+                Re[(dω⟨<ψ(ω)|)|ψ(ω)><ψ(ω)|(dω|ψ(ω))>].
+        Raises:
+            ValueError: If the provided auxiliary measurement operator is not supported.
+        """
+        super().__init__()
+        if aux_meas_op not in [Z, -Y, (Z - 1j * Y)]:
+            raise ValueError(
+                "This auxiliary measurement operator is currently not supported. Please choose "
+                "either Z, -Y, or Z - 1j * Y. "
+            )
+        self._aux_meas_op = aux_meas_op
+        self._phase_fix = phase_fix
 
     def convert(
         self,
         operator: CircuitStateFn,
         params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]],
-        aux_meas_op: OperatorBase = Z,
-        phase_fix: bool = True,
     ) -> ListOp:
         r"""
         Args:
             operator: The operator corresponding to the quantum state :math:`|\psi(\omega)\rangle`
                 for which we compute the QFI.
             params: The parameters :math:`\omega` with respect to which we are computing the QFI.
-            aux_meas_op: The operator that the auxiliary qubit is measured with respect to.
-                         for aux_meas_op = Z we compute Re[(dω⟨<ψ(ω)|)(dω|ψ(ω)〉)]
-                         for aux_meas_op = -iY we compute Im[(dω⟨<ψ(ω)|)(dω|ψ(ω)〉)]
-            phase_fix: Whether or not to compute the additional phase fix term
-                       Re[(dω⟨<ψ(ω)|)|ψ(ω)><ψ(ω)|(dω|ψ(ω))>]
-
-
         Returns:
             A ``ListOp[ListOp]`` where the operator at position ``[k][l]`` corresponds to the matrix
             element :math:`k, l` of the QFI.
@@ -64,13 +80,8 @@ class LinCombFull(CircuitQFI):
         """
         # QFI & phase fix observable
         qfi_observable = StateFn(
-            4 * aux_meas_op ^ (I ^ operator.num_qubits), is_measurement=True
-        ).reduce()
-        if phase_fix:
-            phase_fix_observable = SummedOp(
-                [Z ^ (I ^ operator.num_qubits), -1j * Y ^ (I ^ operator.num_qubits)]
-            )
-        # see https://arxiv.org/pdf/quant-ph/0108146.pdf
+            4 * self._aux_meas_op ^ (I ^ operator.num_qubits), is_measurement=True
+        )
 
         # Check if the given operator corresponds to a quantum state given as a circuit.
         if not isinstance(operator, CircuitStateFn):
@@ -85,18 +96,19 @@ class LinCombFull(CircuitQFI):
         elif isinstance(params, ParameterVector):
             params = params[:]  # unroll to list
 
-        if phase_fix:
+        if self._phase_fix:
             # First, the operators are computed which can compensate for a potential phase-mismatch
             # between target and trained state, i.e.〈ψ|∂lψ〉
-            gradient_states = LinComb()._gradient_states(
+            phase_fix_observable = I ^ operator.num_qubits
+            gradient_states = LinComb(aux_meas_op=(Z - 1j * Y))._gradient_states(
                 operator,
                 meas_op=phase_fix_observable,
                 target_params=params,
-                open_ctrl=True,
+                open_ctrl=False,
                 trim_after_grad_gate=True,
             )
-            # if type(gradient_states) in [ListOp, SummedOp]:  # pylint: disable=unidiomatic-typecheck
 
+            # pylint: disable=unidiomatic-typecheck
             if type(gradient_states) == ListOp:
                 phase_fix_states = gradient_states.oplist
             else:
@@ -195,7 +207,7 @@ class LinCombFull(CircuitQFI):
                 def phase_fix_combo_fn(x):
                     return -4 * np.real(x[0] * np.conjugate(x[1]))
 
-                if phase_fix:
+                if self._phase_fix:
                     phase_fix_op = ListOp(
                         [phase_fix_states[i], phase_fix_states[j]], combo_fn=phase_fix_combo_fn
                     )
@@ -206,5 +218,6 @@ class LinCombFull(CircuitQFI):
                     qfi_ops += [SummedOp(qfi_op)]
 
             qfi_operators.append(ListOp(qfi_ops))
-        # Return the full QFI
+
+        # Return estimate of the full QFI -- A QFI is by definition positive semi-definite.
         return ListOp(qfi_operators, combo_fn=triu_to_dense)

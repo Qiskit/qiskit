@@ -30,14 +30,24 @@ from .gradient import Gradient
 from .gradient_base import GradientBase
 from .qfi import QFI
 
+# Error tolerance variable
+ETOL = 1e-8
+# Cut-off ratio for small singular values for least square solver
+RCOND = 1e-2
+
 
 class NaturalGradient(GradientBase):
     r"""Convert an operator expression to the first-order gradient.
+
     Given an ill-posed inverse problem
+
         x = arg min{||Ax-C||^2} (1)
+
     one can use regularization schemes can be used to stabilize the system and find a numerical
     solution
+
         x_lambda = arg min{||Ax-C||^2 + lambda*R(x)} (2)
+
     where R(x) represents the penalization term.
     """
 
@@ -80,8 +90,10 @@ class NaturalGradient(GradientBase):
             operator: The operator we are taking the gradient of.
             params: The parameters we are taking the gradient with respect to. If not explicitly
                 passed, they are inferred from the operator and sorted by name.
+
         Returns:
             An operator whose evaluation yields the NaturalGradient.
+
         Raises:
             TypeError: If ``operator`` does not represent an expectation value or the quantum
                 state is not ``CircuitStateFn``.
@@ -121,70 +133,88 @@ class NaturalGradient(GradientBase):
         return ListOp([grad, metric], combo_fn=combo_fn)
 
     @staticmethod
-    def nat_grad_combo_fn(x, regularization=None):
-        """
-        Natural Gradient Function Implementation
+    def nat_grad_combo_fn(x: tuple, regularization: Optional[str] = None) -> np.ndarray:
+        r"""
+        Natural Gradient Function Implementation.
+
         Args:
-            x: Iterable consisting of Gradient, Quantum Geometric Tensor
-            regularization: Regularization method
+            x: Iterable consisting of Gradient, Quantum Fisher Information.
+            regularization: Regularization method.
 
-        Returns: Natural Gradient
+        Returns:
+            Natural Gradient.
+
+        Raises:
+            ValueError: If the gradient has imaginary components that are non-negligible.
 
         """
-        c = x[0]
-        a = x[1]
-        if any(np.abs(np.imag(c_item)) > 1e-8 for c_item in c):
-            raise Warning("The imaginary part of the gradient are non-negligible.")
-        if np.any([[np.abs(np.imag(a_item)) > 1e-8 for a_item in a_row] for a_row in a]):
-            raise Warning("The imaginary part of the gradient are non-negligible.")
-        c = np.real(c)
-        a = np.real(a)
+        gradient = x[0]
+        metric = x[1]
+        if np.amax(np.abs(np.imag(gradient))) > ETOL:
+            raise ValueError(
+                "The imaginary part of the gradient are non-negligible. The largest absolute "
+                f"imaginary value in the gradient is {np.amax(np.abs(np.imag(gradient)))}. "
+                "Please increase the number of shots."
+            )
+        gradient = np.real(gradient)
 
-        if regularization:
+        if np.amax(np.abs(np.imag(metric))) > ETOL:
+            raise ValueError(
+                "The imaginary part of the metric are non-negligible. The largest "
+                "absolute imaginary value in the gradient is "
+                f"{np.amax(np.abs(np.imag(metric)))}. Please "
+                "increase the number of shots."
+            )
+        metric = np.real(metric)
+
+        if regularization is not None:
             # If a regularization method is chosen then use a regularized solver to
             # construct the natural gradient.
-            nat_grad = NaturalGradient._regularized_sle_solver(a, c, regularization=regularization)
+            nat_grad = NaturalGradient._regularized_sle_solver(
+                metric, gradient, regularization=regularization
+            )
         else:
             # Check if numerical instabilities lead to a metric which is not positive semidefinite
-            while True:
-                w, v = np.linalg.eigh(a)
+            w, v = np.linalg.eigh(metric)
 
-                if not all(ew >= -1e-8 for ew in w):
-                    raise Warning(
-                        "The underlying metric has ein Eigenvalue < ",
-                        -1e-8,
-                        ". Please use a regularized least-square solver for this " "problem.",
-                    )
-                if not all(ew >= 0 for ew in w):
-                    # If not all eigenvalues are non-negative, set them to a small positive
-                    # value
-                    w = [max(1e-10, ew) for ew in w]
-                    # Recompose the adapted eigenvalues with the eigenvectors to get a new metric
-                    a = np.real(v @ np.diag(w) @ np.linalg.inv(v))
-                else:
-                    # If all eigenvalues are non-negative use the metric
-                    break
-            nat_grad = np.linalg.lstsq(a, c, rcond=1e-2)[0]
+            if not all(ew >= (-1) * ETOL for ew in w):
+                raise ValueError(
+                    f"The underlying metric has at least one Eigenvalue < -{ETOL}. "
+                    f"The smallest Eigenvalue is {np.amin(w)} "
+                    "Please use a regularized least-square solver for this problem or "
+                    "increase the number of backend shots.",
+                )
+            if not all(ew >= 0 for ew in w):
+                # If not all eigenvalues are non-negative, set them to a small positive
+                # value
+                w = [max(ETOL, ew) for ew in w]
+                # Recompose the adapted eigenvalues with the eigenvectors to get a new metric
+                metric = np.real(v @ np.diag(w) @ np.linalg.inv(v))
+            nat_grad = np.linalg.lstsq(metric, gradient, rcond=RCOND)[0]
         return nat_grad
 
     @property
     def qfi_method(self) -> CircuitQFI:
         """Returns ``CircuitQFI``.
-        Returns: ``CircuitQFI``
+
+        Returns: ``CircuitQFI``.
+
         """
         return self._qfi_method.qfi_method
 
     @property
     def regularization(self) -> Optional[str]:
         """Returns the regularization option.
+
         Returns: the regularization option.
+
         """
         return self._regularization
 
     @staticmethod
     def _reg_term_search(
-        a: np.ndarray,
-        c: np.ndarray,
+        metric: np.ndarray,
+        gradient: np.ndarray,
         reg_method: Callable[[np.ndarray, np.ndarray, float], float],
         lambda1: float = 1e-3,
         lambda4: float = 1.0,
@@ -192,41 +222,49 @@ class NaturalGradient(GradientBase):
     ) -> Tuple[float, np.ndarray]:
         """
         This method implements a search for a regularization parameter lambda by finding for the
-        corner of the L-curve
+        corner of the L-curve.
         More explicitly, one has to evaluate a suitable lambda by finding a compromise between
         the error in the solution and the norm of the regularization.
         This function implements a method presented in
         `A simple algorithm to find the L-curve corner in the regularization of inverse problems
          <https://arxiv.org/pdf/1608.04571.pdf>`
+
         Args:
-            a: see (1) and (2)
-            c: see (1) and (2)
-            reg_method: Given A, C and lambda the regularization method must return x_lambda
-            - see (2)
-            lambda1: left starting point for L-curve corner search
-            lambda4: right starting point for L-curve corner search
-            tol: termination threshold
+            metric: See (1) and (2).
+            gradient: See (1) and (2).
+            reg_method: Given the metric, gradient and lambda the regularization method must return
+                ``x_lambda`` - see (2).
+            lambda1: Left starting point for L-curve corner search.
+            lambda4: Right starting point for L-curve corner search.
+            tol: Termination threshold.
+
         Returns:
-            regularization coefficient, solution to the regularization inverse problem
+            Regularization coefficient which is the solution to the regularization inverse problem.
         """
 
         def _get_curvature(x_lambda: List) -> float:
             """Calculate Menger curvature
+
             Menger, K. (1930).  Untersuchungen  ̈uber Allgemeine Metrik. Math. Ann.,103(1), 466–501
+
             Args:
-                x_lambda: [[x_lambdaj], [x_lambdak], [x_lambdal]]
-                    lambdaj < lambdak < lambdal
+                ``x_lambda: [[x_lambdaj], [x_lambdak], [x_lambdal]]``
+                    ``lambdaj < lambdak < lambdal``
+
             Returns:
                 Menger Curvature
+
             """
             eps = []
             eta = []
             for x in x_lambda:
                 try:
-                    eps.append(np.log(np.linalg.norm(np.matmul(a, x) - c) ** 2))
+                    eps.append(np.log(np.linalg.norm(np.matmul(metric, x) - gradient) ** 2))
                 except ValueError:
-                    eps.append(np.log(np.linalg.norm(np.matmul(a, np.transpose(x)) - c) ** 2))
-                eta.append(np.log(max(np.linalg.norm(x) ** 2, 1e-6)))
+                    eps.append(
+                        np.log(np.linalg.norm(np.matmul(metric, np.transpose(x)) - gradient) ** 2)
+                    )
+                eta.append(np.log(max(np.linalg.norm(x) ** 2, ETOL)))
             p_temp = 1
             c_k = 0
             for i in range(3):
@@ -247,7 +285,7 @@ class NaturalGradient(GradientBase):
         lambda_ = [lambda1, lambda2, lambda3, lambda4]
         x_lambda = []
         for lam in lambda_:
-            x_lambda.append(reg_method(a, c, lam))
+            x_lambda.append(reg_method(metric, gradient, lam))
         counter = 0
         while (lambda_[3] - lambda_[0]) / lambda_[3] >= tol:
             counter += 1
@@ -260,7 +298,7 @@ class NaturalGradient(GradientBase):
                 x_lambda[2] = x_lambda[1]
                 lambda2, _ = get_lambda2_lambda3(lambda_[0], lambda_[3])
                 lambda_[1] = lambda2
-                x_lambda[1] = reg_method(a, c, lambda_[1])
+                x_lambda[1] = reg_method(metric, gradient, lambda_[1])
                 c_3 = _get_curvature(x_lambda[1:])
 
             if c_2 > c_3:
@@ -272,7 +310,7 @@ class NaturalGradient(GradientBase):
                 x_lambda[2] = x_lambda[1]
                 lambda2, _ = get_lambda2_lambda3(lambda_[0], lambda_[3])
                 lambda_[1] = lambda2
-                x_lambda[1] = reg_method(a, c, lambda_[1])
+                x_lambda[1] = reg_method(metric, gradient, lambda_[1])
             else:
                 lambda_mc = lambda_[2]
                 x_mc = x_lambda[2]
@@ -282,14 +320,14 @@ class NaturalGradient(GradientBase):
                 x_lambda[1] = x_lambda[2]
                 _, lambda3 = get_lambda2_lambda3(lambda_[0], lambda_[3])
                 lambda_[2] = lambda3
-                x_lambda[2] = reg_method(a, c, lambda_[2])
+                x_lambda[2] = reg_method(metric, gradient, lambda_[2])
         return lambda_mc, x_mc
 
     @staticmethod
     @_optionals.HAS_SKLEARN.require_in_call
     def _ridge(
-        a: np.ndarray,
-        c: np.ndarray,
+        metric: np.ndarray,
+        gradient: np.ndarray,
         lambda_: float = 1.0,
         lambda1: float = 1e-4,
         lambda4: float = 1e-1,
@@ -307,9 +345,10 @@ class NaturalGradient(GradientBase):
         x_lambda = arg min{||Ax-C||^2 + lambda*||x||_2^2} (3)
         `Scikit Learn Ridge Regression
         <https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Ridge.html>`
+
         Args:
-            a: see (1) and (2)
-            c: see (1) and (2)
+            metric: See (1) and (2).
+            gradient: See (1) and (2).
             lambda_ : regularization parameter used if auto_search = False
             lambda1: left starting point for L-curve corner search
             lambda4: right starting point for L-curve corner search
@@ -321,10 +360,13 @@ class NaturalGradient(GradientBase):
             tol: precision of the regression solution
             solver: solver {‘auto’, ‘svd’, ‘cholesky’, ‘lsqr’, ‘sparse_cg’, ‘sag’, ‘saga’}
             random_state: seed for the pseudo random number generator used when data is shuffled
+
         Returns:
            regularization coefficient, solution to the regularization inverse problem
+
         Raises:
             MissingOptionalLibraryError: scikit-learn not installed
+
         """
         from sklearn.linear_model import Ridge
 
@@ -345,15 +387,15 @@ class NaturalGradient(GradientBase):
             return reg.coef_
 
         lambda_mc, x_mc = NaturalGradient._reg_term_search(
-            a, c, reg_method, lambda1=lambda1, lambda4=lambda4, tol=tol_search
+            metric, gradient, reg_method, lambda1=lambda1, lambda4=lambda4, tol=tol_search
         )
         return lambda_mc, np.transpose(x_mc)
 
     @staticmethod
     @_optionals.HAS_SKLEARN.require_in_call
     def _lasso(
-        a: np.ndarray,
-        c: np.ndarray,
+        metric: np.ndarray,
+        gradient: np.ndarray,
         lambda_: float = 1.0,
         lambda1: float = 1e-4,
         lambda4: float = 1e-1,
@@ -374,9 +416,10 @@ class NaturalGradient(GradientBase):
         x_lambda = arg min{||Ax-C||^2/(2*n_samples) + lambda*||x||_1} (4)
         `Scikit Learn Lasso Regression
         <https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Lasso.html>`
+
         Args:
-            a: mxn matrix
-            c: m vector
+            metric: Matrix of size mxn.
+            gradient: Vector of size m.
             lambda_ : regularization parameter used if auto_search = False
             lambda1: left starting point for L-curve corner search
             lambda4: right starting point for L-curve corner search
@@ -392,10 +435,13 @@ class NaturalGradient(GradientBase):
             positive: if True force positive coefficients
             random_state: seed for the pseudo random number generator used when data is shuffled
             selection: {'cyclic', 'random'}
+
         Returns:
             regularization coefficient, solution to the regularization inverse problem
+
         Raises:
             MissingOptionalLibraryError: scikit-learn not installed
+
         """
         from sklearn.linear_model import Lasso
 
@@ -419,15 +465,15 @@ class NaturalGradient(GradientBase):
             return reg.coef_
 
         lambda_mc, x_mc = NaturalGradient._reg_term_search(
-            a, c, reg_method, lambda1=lambda1, lambda4=lambda4, tol=tol_search
+            metric, gradient, reg_method, lambda1=lambda1, lambda4=lambda4, tol=tol_search
         )
 
         return lambda_mc, x_mc
 
     @staticmethod
     def _regularized_sle_solver(
-        a: np.ndarray,
-        c: np.ndarray,
+        metric: np.ndarray,
+        gradient: np.ndarray,
         regularization: str = "perturb_diag",
         lambda1: float = 1e-3,
         lambda4: float = 1.0,
@@ -437,9 +483,10 @@ class NaturalGradient(GradientBase):
     ) -> np.ndarray:
         """
         Solve a linear system of equations with a regularization method and automatic lambda fitting
+
         Args:
-            a: mxn matrix
-            c: m vector
+            metric: Matrix of size mxn.
+            gradient: Vector of size m.
             regularization: Regularization scheme to be used: 'ridge', 'lasso',
                 'perturb_diag_elements' or 'perturb_diag'
             lambda1: left starting point for L-curve corner search (for 'ridge' and 'lasso')
@@ -447,51 +494,57 @@ class NaturalGradient(GradientBase):
             alpha: perturbation coefficient for 'perturb_diag_elements' and 'perturb_diag'
             tol_norm_x: tolerance for the norm of x
             tol_cond_a: tolerance for the condition number of A
+
         Returns:
             solution to the regularized system of linear equations
+
         """
         if regularization == "ridge":
-            _, x = NaturalGradient._ridge(a, c, lambda1=lambda1)
+            _, x = NaturalGradient._ridge(metric, gradient, lambda1=lambda1)
         elif regularization == "lasso":
-            _, x = NaturalGradient._lasso(a, c, lambda1=lambda1)
+            _, x = NaturalGradient._lasso(metric, gradient, lambda1=lambda1)
         elif regularization == "perturb_diag_elements":
             alpha = 1e-7
-            while np.linalg.cond(a + alpha * np.diag(a)) > tol_cond_a:
+            while np.linalg.cond(metric + alpha * np.diag(metric)) > tol_cond_a:
                 alpha *= 10
             # include perturbation in A to avoid singularity
-            x, _, _, _ = np.linalg.lstsq(a + alpha * np.diag(a), c, rcond=None)
+            x, _, _, _ = np.linalg.lstsq(metric + alpha * np.diag(metric), gradient, rcond=None)
         elif regularization == "perturb_diag":
             alpha = 1e-7
-            while np.linalg.cond(a + alpha * np.eye(len(c))) > tol_cond_a:
+            while np.linalg.cond(metric + alpha * np.eye(len(gradient))) > tol_cond_a:
                 alpha *= 10
             # include perturbation in A to avoid singularity
-            x, _, _, _ = np.linalg.lstsq(a + alpha * np.eye(len(c)), c, rcond=None)
+            x, _, _, _ = np.linalg.lstsq(
+                metric + alpha * np.eye(len(gradient)), gradient, rcond=None
+            )
         else:
             # include perturbation in A to avoid singularity
-            x, _, _, _ = np.linalg.lstsq(a, c, rcond=None)
+            x, _, _, _ = np.linalg.lstsq(metric, gradient, rcond=None)
 
         if np.linalg.norm(x) > tol_norm_x[1] or np.linalg.norm(x) < tol_norm_x[0]:
             if regularization == "ridge":
                 lambda1 = lambda1 / 10.0
-                _, x = NaturalGradient._ridge(a, c, lambda1=lambda1, lambda4=lambda4)
+                _, x = NaturalGradient._ridge(metric, gradient, lambda1=lambda1, lambda4=lambda4)
             elif regularization == "lasso":
                 lambda1 = lambda1 / 10.0
-                _, x = NaturalGradient._lasso(a, c, lambda1=lambda1)
+                _, x = NaturalGradient._lasso(metric, gradient, lambda1=lambda1)
             elif regularization == "perturb_diag_elements":
-                while np.linalg.cond(a + alpha * np.diag(a)) > tol_cond_a:
+                while np.linalg.cond(metric + alpha * np.diag(metric)) > tol_cond_a:
                     if alpha == 0:
                         alpha = 1e-7
                     else:
                         alpha *= 10
                 # include perturbation in A to avoid singularity
-                x, _, _, _ = np.linalg.lstsq(a + alpha * np.diag(a), c, rcond=None)
+                x, _, _, _ = np.linalg.lstsq(metric + alpha * np.diag(metric), gradient, rcond=None)
             else:
                 if alpha == 0:
                     alpha = 1e-7
                 else:
                     alpha *= 10
-                while np.linalg.cond(a + alpha * np.eye(len(c))) > tol_cond_a:
+                while np.linalg.cond(metric + alpha * np.eye(len(gradient))) > tol_cond_a:
                     # include perturbation in A to avoid singularity
-                    x, _, _, _ = np.linalg.lstsq(a + alpha * np.eye(len(c)), c, rcond=None)
+                    x, _, _, _ = np.linalg.lstsq(
+                        metric + alpha * np.eye(len(gradient)), gradient, rcond=None
+                    )
                     alpha *= 10
         return x

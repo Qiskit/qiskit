@@ -467,7 +467,7 @@ class Target(Mapping):
         return self._gate_name_map[instruction]
 
     def operations_for_qargs(self, qargs):
-        """Get the operation class object for a specified qarg
+        """Get the operation class object for a specified qargs tuple
 
         Args:
             qargs (tuple): A qargs tuple of the qubits to get the gates that apply
@@ -483,6 +483,24 @@ class Target(Mapping):
         if qargs not in self._qarg_gate_map:
             raise KeyError(f"{qargs} not in target.")
         return [self._gate_name_map[x] for x in self._qarg_gate_map[qargs]]
+
+    def operation_names_for_qargs(self, qargs):
+        """Get the operation names for a specified qargs tuple
+
+        Args:
+            qargs (tuple): A qargs tuple of the qubits to get the gates that apply
+                to it. For example, ``(0,)`` will return the set of all
+                instructions that apply to qubit 0.
+        Returns:
+            set: The set of operation names that apply to the specified
+            `qargs``.
+
+        Raises:
+            KeyError: If qargs is not in target
+        """
+        if qargs not in self._qarg_gate_map:
+            raise KeyError(f"{qargs} not in target.")
+        return self._qarg_gate_map[qargs]
 
     def instruction_supported(self, operation_name, qargs):
         """Return whether the instruction (operation + qubits) is supported by the target
