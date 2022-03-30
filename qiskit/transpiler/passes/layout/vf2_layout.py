@@ -87,7 +87,7 @@ class VF2Layout(AnalysisPass):
                 ``coupling_map``.
 
         Raises:
-            TypeError: If neither ``coupling_map`` or ``target`` are provided.
+            TypeError: At runtime, if neither ``coupling_map`` or ``target`` are provided.
         """
         super().__init__()
         self.target = target
@@ -212,7 +212,7 @@ class VF2Layout(AnalysisPass):
         to weight against higher connectivity qubits."""
         bits = layout.get_physical_bits()
         score = 0
-        if self.target:
+        if self.target is not None:
             if "measure" in self.target:
                 for bit in bits:
                     props = self.target["measure"].get((bit,))
