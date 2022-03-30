@@ -211,10 +211,8 @@ class VF2Layout(AnalysisPass):
         on the chosen qubits. If BackendProperties are not available it uses the coupling map degree
         to weight against higher connectivity qubits."""
         bits = layout.get_physical_bits()
-        score = None
-        if self.target is not None:
-            if "measure" in self.target:
-                score = 0
+        score = 0
+        if self.target is not None and "measure" in self.target:
                 for bit in bits:
                     props = self.target["measure"].get((bit,))
                     if props is None or props.error is None:
@@ -224,8 +222,7 @@ class VF2Layout(AnalysisPass):
                         ) / len(self.coupling_map.graph)
                     else:
                         score += props.error
-        if score is None:
-            score = 0
+        else:
             if self.properties is None:
                 # Sum qubit degree for each qubit in chosen layout as really rough estimate of error
                 for bit in bits:
