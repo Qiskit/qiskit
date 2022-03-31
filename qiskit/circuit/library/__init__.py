@@ -18,16 +18,12 @@ Circuit Library (:mod:`qiskit.circuit.library`)
 .. currentmodule:: qiskit.circuit.library
 
 The circuit library is a collection of well-studied and valuable circuits, directives, and gates.
-We call them valuable for different reasons, for instance they can serve as building blocks for 
+We call them valuable for different reasons, for instance they can serve as building blocks for
 algorithms or they are circuits that we think are hard to simulate classically.
 
 Each element can be plugged into a circuit using the :meth:`.QuantumCircuit.append`
 method and so the circuit library allows users to program at higher levels of abstraction.
-For example ... <your MCX example>
-
-
-Any element of the circuit library can be attached to a circuit with the method
-:meth:`.QuantumCircuit.append`. For example, to append a multi-controlled CNOT:
+For example, to append a multi-controlled CNOT:
 
 .. jupyter-execute::
 
@@ -135,7 +131,7 @@ Standard Operations
 Operations are non-reversible changes in the quantum state of the circuit.
 
 .. autosummary::
-    :toctree: ../stubs/ 
+    :toctree: ../stubs/
 
    ~qiskit.circuit.Measure
    ~qiskit.circuit.Reset
@@ -201,7 +197,7 @@ or of a set of qubit states.
 Basis Change Circuits
 =====================
 
-These circuits allow basis transformations of the qubit states. For example, 
+These circuits allow basis transformations of the qubit states. For example,
 in the case of the Quantum Fourier Transform (QFT), it transforms between
 the computational basis and the Fourier basis.
 
@@ -311,7 +307,7 @@ Particular Quantum Circuits
 N-local circuits
 ================
 
-These :class:`~qiskit.circuit.library.BlueprintCircuit` subclasses are used 
+These :class:`~qiskit.circuit.library.BlueprintCircuit` subclasses are used
 as parameterized models (a.k.a. ansatzes or variational forms) in variational algorithms.
 They are heavily used near-term algorithms in e.g. Chemistry, Physics or Optimization.
 .. autosummary::
@@ -330,7 +326,7 @@ They are heavily used near-term algorithms in e.g. Chemistry, Physics or Optimiz
 Data encoding circuits
 ======================
 
-These :class:`~qiskit.circuit.library.BlueprintCircuit` encode classical 
+These :class:`~qiskit.circuit.library.BlueprintCircuit` encode classical
 data in quantum states and are used as feature maps for classification.
 
 .. autosummary::
