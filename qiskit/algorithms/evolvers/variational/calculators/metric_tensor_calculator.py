@@ -48,6 +48,10 @@ def calculate(
 
     if qfi_method == "lin_comb_full":
         return LinCombFull(aux_meas_op=basis, phase_fix=phase_fix).convert(operator, parameters)
+    elif basis != Z or phase_fix == False:
+        raise ValueError(
+            f"Basis which is not Z or phase fix which is False are only supported for ``lin_comb_full`` method. Provided method is {qfi_method} with basis {basis} and phase fix set to {phase_fix}"
+        )
 
     return QFI(qfi_method).convert(operator, parameters)
 

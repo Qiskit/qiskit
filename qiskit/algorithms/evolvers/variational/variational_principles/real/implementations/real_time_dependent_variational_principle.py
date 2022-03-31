@@ -45,7 +45,7 @@ class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
             Transformed metric tensor.
         """
         raw_metric_tensor_imag = metric_tensor_calculator.calculate(
-            ansatz, parameters, self._qfi_method, basis=-1j * Y
+            ansatz, parameters, self._qfi_method, basis=-Y
         )
 
         return raw_metric_tensor_imag * 0.25
@@ -60,8 +60,7 @@ class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
         Calculates an evolution gradient according to the rules of this variational principle.
 
         Args:
-            hamiltonian: Observable for which an evolution gradient should be calculated,
-                e.g., a Hamiltonian of a system.
+            hamiltonian: Hamiltonian for which an evolution gradient should be calculated.
             ansatz: Quantum state to be used for calculating an evolution gradient.
             parameters: Parameters with respect to which gradients should be computed.
 

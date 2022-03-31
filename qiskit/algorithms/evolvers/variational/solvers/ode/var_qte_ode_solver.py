@@ -36,7 +36,7 @@ class VarQTEOdeSolver:
 
         Args:
             init_params: Set of initial parameters for time 0.
-            ode_function_generator: Generator for a function that ODE will use.
+            ode_function_generator: Generates the ODE function.
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
         """
         self._init_params = init_params

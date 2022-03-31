@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Class for generating ODE functions based on natural gradients."""
+"""Class for generating ODE functions based on ODE gradients."""
 from typing import Iterable
 
 from ..ode.abstract_ode_function_generator import (
@@ -19,7 +19,7 @@ from ..ode.abstract_ode_function_generator import (
 
 
 class OdeFunctionGenerator(AbstractOdeFunctionGenerator):
-    """Class for generating ODE functions based on natural gradients."""
+    """Class for generating ODE functions based on ODE gradients."""
 
     def var_qte_ode_function(self, time: float, parameters_values: Iterable) -> Iterable:
         """
@@ -31,14 +31,14 @@ class OdeFunctionGenerator(AbstractOdeFunctionGenerator):
             parameters_values: Current values of parameters.
 
         Returns:
-            Natural gradient arising from solving a system of linear equations.
+            ODE gradient arising from solving a system of linear equations.
         """
         current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
 
-        nat_grad_res, _, _ = self._varqte_linear_solver._solve_sle(
+        ode_grad_res, _, _ = self._varqte_linear_solver._solve_sle(
             current_param_dict,
             self._t_param,
             time,
         )
 
-        return nat_grad_res
+        return ode_grad_res

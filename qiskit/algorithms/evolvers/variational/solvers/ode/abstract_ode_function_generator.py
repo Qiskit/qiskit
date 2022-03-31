@@ -62,6 +62,6 @@ class AbstractOdeFunctionGenerator(ABC):
             parameters_values: Current values of parameters.
 
         Returns:
-            Natural gradient arising from solving a system of linear equations.
+            ODE gradient arising from solving a system of linear equations.
         """
         pass

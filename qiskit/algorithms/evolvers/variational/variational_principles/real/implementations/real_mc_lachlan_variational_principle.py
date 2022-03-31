@@ -69,8 +69,7 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
         Calculates an evolution gradient according to the rules of this variational principle.
 
         Args:
-            hamiltonian: Observable for which an evolution gradient should be calculated,
-                e.g., a Hamiltonian of a system.
+            hamiltonian: Hamiltonian for which an evolution gradient should be calculated.
             ansatz: Quantum state to be used for calculating an evolution gradient.
             parameters: Parameters with respect to which gradients should be computed.
 
@@ -91,6 +90,10 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
             Returns:
                 Calculated evolution gradient, according to the variational principle.
             """
+            if self._grad_method != "lin_comb":
+                raise ValueError(
+                    f"Only ``lin_comb`` method supported, provided method {self._grad_method}."
+                )
             energy = ~StateFn(hamiltonian) @ StateFn(ansatz)
             energy = PauliExpectation().convert(energy)
 

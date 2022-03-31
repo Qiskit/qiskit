@@ -105,17 +105,14 @@ VariationalPrinciples
 """
 from ..variational.var_qrte import VarQRTE
 from .var_qite import VarQITE
-from ..variational.variational_principles.imaginary.implementations\
-    .imaginary_mc_lachlan_variational_principle import (
-        ImaginaryMcLachlanVariationalPrinciple,
+from ..variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
+    ImaginaryMcLachlanVariationalPrinciple,
 )
-from ..variational.variational_principles.real.implementations\
-    .real_mc_lachlan_variational_principle import (
-        RealMcLachlanVariationalPrinciple,
+from ..variational.variational_principles.real.implementations.real_mc_lachlan_variational_principle import (
+    RealMcLachlanVariationalPrinciple,
 )
-from ..variational.variational_principles.real.implementations\
-    .real_time_dependent_variational_principle import (
-        RealTimeDependentVariationalPrinciple,
+from ..variational.variational_principles.real.implementations.real_time_dependent_variational_principle import (
+    RealTimeDependentVariationalPrinciple,
 )
 
 __all__ = [

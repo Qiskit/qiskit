@@ -65,7 +65,7 @@ class VarQTE(Evolver, ABC):
         r"""
         Args:
             variational_principle: Variational Principle to be used.
-            ode_function_generator: Generator for a function that ODE will use.
+            ode_function_generator: Generates the ODE function.
             ode_solver_callable: ODE solver callable that follows a SciPy ``OdeSolver`` interface.
             lse_solver_callable: Linear system of equations solver that follows a NumPy
                 ``np.linalg.lstsq`` interface.
@@ -99,8 +99,8 @@ class VarQTE(Evolver, ABC):
         hamiltonian: OperatorBase,
         time: float,
         t_param: Parameter,
-        error_calculator=None,  # TODO will be supported in another PR
         initial_state: Optional[Union[OperatorBase, QuantumCircuit]] = None,
+        error_calculator=None,
     ) -> OperatorBase:
         r"""
         Helper method for performing time evolution. Works both for imaginary and real case.
@@ -117,8 +117,10 @@ class VarQTE(Evolver, ABC):
                 ``ComboFn``.
                 The latter case enables the evaluation of a Quantum Natural Gradient.
             time: Total time of evolution.
-            initial_state: Quantum state to be evolved.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
+            initial_state: Quantum state to be evolved.
+            error_calculator: Calculator of errors for error-based ODE functions.
+
 
         Returns:
             Result of the evolution which is a quantum circuit with bound parameters as an
@@ -161,7 +163,7 @@ class VarQTE(Evolver, ABC):
 
         return initial_state.assign_parameters(param_dict_from_ode)
 
-    def bind_initial_state(
+    def bind_parameters_to_state(
         self,
         state: Union[QuantumCircuit, StateFn],
         param_dict: Dict[Parameter, Union[float, complex]],

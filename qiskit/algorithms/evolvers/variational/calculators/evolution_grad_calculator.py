@@ -49,6 +49,10 @@ def calculate(
     operator = StateFn(observable, is_measurement=True) @ StateFn(ansatz)
     if grad_method == "lin_comb":
         return LinComb(aux_meas_op=basis).convert(operator, parameters)
+    elif basis != Z:
+        raise ValueError(
+            f"Basis which is not Z is only supported for ``lin_comb`` method. Provided method is {grad_method} with basis {basis}"
+        )
     return Gradient(grad_method).convert(operator, parameters)
 
 
@@ -57,7 +61,7 @@ def eval_grad_result(
     param_dict: Dict[Parameter, Union[float, complex]],
     grad_circ_sampler: Optional[CircuitSampler] = None,
     energy_sampler: Optional[CircuitSampler] = None,
-    allowed_imaginary_part: float = 1e-7,
+    imag_part_tol: float = 1e-7,
 ) -> OperatorBase:
     """
     Binds a parametrized evolution grad object to parameters values provided. Uses circuit
@@ -70,7 +74,7 @@ def eval_grad_result(
         param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
         grad_circ_sampler: ``CircuitSampler`` for evolution gradients.
         energy_sampler: ``CircuitSampler`` for energy.
-        allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
+        imag_part_tol: Allowed value of an imaginary part that can be neglected if no
             imaginary part is expected.
 
     Returns:
@@ -90,7 +94,7 @@ def eval_grad_result(
     else:
         grad_result = grad_result.assign_parameters(param_dict)
     grad_result = grad_result.eval()
-    if any(np.abs(np.imag(grad_item)) > allowed_imaginary_part for grad_item in grad_result):
+    if any(np.abs(np.imag(grad_item)) > imag_part_tol for grad_item in grad_result):
         raise Warning("The imaginary part of the gradient are non-negligible.")
 
     return grad_result

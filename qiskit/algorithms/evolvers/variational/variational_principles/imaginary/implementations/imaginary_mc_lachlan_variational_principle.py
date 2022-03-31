@@ -60,8 +60,7 @@ class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
         Calculates an evolution gradient according to the rules of this variational principle.
 
         Args:
-            hamiltonian: Observable for which an evolution gradient should be calculated,
-                e.g., a Hamiltonian of a system.
+            hamiltonian: Hamiltonian for which an evolution gradient should be calculated.
             ansatz: Quantum state to be used for calculating an evolution gradient.
             parameters: Parameters with respect to which gradients should be computed.
 

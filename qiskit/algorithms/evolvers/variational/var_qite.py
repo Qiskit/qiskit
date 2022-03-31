@@ -52,7 +52,7 @@ class VarQITE(ImaginaryEvolver, VarQTE):
         r"""
         Args:
             variational_principle: Variational Principle to be used.
-            ode_function_generator: Generator for a function that ODE will use.
+            ode_function_generator: Generates the ODE function.
             ode_solver_callable: ODE solver callable that follows a SciPy ``OdeSolver`` interface.
             lse_solver_callable: Linear system of equations solver that follows a NumPy
                 ``np.linalg.lstsq`` interface.
@@ -92,7 +92,9 @@ class VarQITE(ImaginaryEvolver, VarQTE):
             evolution_problem.hamiltonian_value_dict,
             list(evolution_problem.initial_state.parameters),
         )
-        self.bind_initial_state(StateFn(evolution_problem.initial_state), init_state_param_dict)
+        self.bind_parameters_to_state(
+            StateFn(evolution_problem.initial_state), init_state_param_dict
+        )
 
         error_calculator = None  # TODO will be supported in another PR
 
@@ -101,8 +103,8 @@ class VarQITE(ImaginaryEvolver, VarQTE):
             evolution_problem.hamiltonian,
             evolution_problem.time,
             evolution_problem.t_param,
-            error_calculator,
             evolution_problem.initial_state,
+            error_calculator,
         )
 
         evaluated_aux_ops = None
