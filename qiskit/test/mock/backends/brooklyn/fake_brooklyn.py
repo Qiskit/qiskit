@@ -15,7 +15,17 @@ Fake Brooklyn device (65 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_pulse_backend
+from qiskit.test.mock import fake_pulse_backend, fake_backend
+
+
+class FakeBrooklynV2(fake_backend.FakeBackendV2):
+    """A fake Brooklyn V2 backend."""
+
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_brooklyn.json"
+    props_filename = "props_brooklyn.json"
+    defs_filename = "defs_brooklyn.json"
+    backend_name = "fake_brooklyn_v2"
 
 
 class FakeBrooklyn(fake_pulse_backend.FakePulseBackend):

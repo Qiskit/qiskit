@@ -92,7 +92,7 @@ class TestSampler(QiskitTestCase):
         """test for sampler with a parametrized circuit"""
         params, target = self._generate_params_target(indices)
         with Sampler(circuits=self._pqc) as sampler:
-            result = sampler(parameter_values=params)
+            result = sampler([0] * len(params), params)
             self._compare_probs(result.quasi_dists, target)
 
     @combine(indices=[[0, 0], [0, 1], [1, 1]])
