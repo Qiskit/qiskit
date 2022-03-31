@@ -17,9 +17,13 @@ Circuit Library (:mod:`qiskit.circuit.library`)
 
 .. currentmodule:: qiskit.circuit.library
 
-The circuit library is a collection of well studied circuits, directives, and gates that can be plugged
-into many experiments allowing users to program at higher levels of abstraction when developing and
-experimenting with circuits.
+The circuit library is a collection of well-studied and valuable circuits, directives, and gates.
+We call them valuable for different reasons, for instance they can serve as building blocks for 
+algorithms or they are circuits that we think are hard to simulate classically.
+
+Each element can be plugged into a circuit using the :meth:`.QuantumCircuit.append`
+method and so the circuit library allows users to program at higher levels of abstraction.
+For example ... <your MCX example>
 
 
 Any element of the circuit library can be attached to a circuit with the method
@@ -43,7 +47,7 @@ Standard gates
 These operations are reversible unitary gates and they all subclass
 :class:`~qiskit.circuit.Gate`. As a consequence, they all have the methods
 :meth:`~qiskit.circuit.Gate.to_matrix`, :meth:`~qiskit.circuit.Gate.power`,
-and :meth:`~qiskit.circuit.Gate.control`.
+and :meth:`~qiskit.circuit.Gate.control`, which we can generally only apply to unitary operations.
 
 For example:
 
@@ -128,7 +132,7 @@ implementation for them.
 Standard Operations
 ===================
 
-Operations are not reversible changes in the quantum state of the circuit.
+Operations are non-reversible changes in the quantum state of the circuit.
 
 .. autosummary::
     :toctree: ../stubs/ 
@@ -181,7 +185,8 @@ Boolean Logic Circuits
 ======================
 
 These are :class:`~qiskit.circuit.QuantumCircuit` subclasses
-that implement boolean logic operations.
+that implement boolean logic operations, such as the logical
+or of a set of qubit states.
 
 
 .. autosummary::
@@ -325,8 +330,8 @@ They are heavily used near-term algorithms in e.g. Chemistry, Physics or Optimiz
 Data encoding circuits
 ======================
 
-These :class:`~qiskit.circuit.library.BlueprintCircuit`
-subclasses are used for classification and data encoding circuits (a.k.a. feature maps).
+These :class:`~qiskit.circuit.library.BlueprintCircuit` encode classical 
+data in quantum states and are used as feature maps for classification.
 
 .. autosummary::
    :toctree: ../stubs/
