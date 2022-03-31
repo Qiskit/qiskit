@@ -47,7 +47,7 @@ Routing
    SabreSwap
    BIPMapping
    SwapStrategy
-   SwapStrategyRouter
+   Commuting2qGateRouter
 
 Basis Change
 ============
