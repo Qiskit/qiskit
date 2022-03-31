@@ -343,7 +343,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         expected.append(PauliEvolutionGate(Pauli("ZZ"), 1), (0, 1))
         expected.swap(0, 1)
         expected.append(PauliEvolutionGate(Pauli("ZZ"), 2), (1, 2))
-        expected.ccx(2, 1, 0)
+        expected.ccx(1, 2, 0)
 
         self.assertEqual(swapped, expected)
 
