@@ -9,7 +9,7 @@ Installation
 
 .. tabbed:: Start locally
 
-    Qiskit supports Python 3.6 or later. However, both Python and Qiskit are
+    Qiskit supports Python 3.7 or later. However, both Python and Qiskit are
     evolving ecosystems, and sometimes when new releases occur in one or the other,
     there can be problems with compatibility.
 
