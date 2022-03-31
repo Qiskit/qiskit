@@ -33,7 +33,7 @@ Any element of the circuit library can be attached to a circuit with the method
     from qiskit import QuantumCircuit
     circuit = QuantumCircuit(5)
     circuit.append(gate, [0, 1, 4, 2, 3])
-    circuit.draw('text')
+    circuit.draw('mpl')
 
 The library is organized in several sections.
 
