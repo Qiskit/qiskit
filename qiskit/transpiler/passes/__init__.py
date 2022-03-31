@@ -103,14 +103,17 @@ Scheduling
    :toctree: ../stubs/
 
    TimeUnitConversion
-   ALAPSchedule
-   ASAPSchedule
-   DynamicalDecoupling
+   ALAPScheduleAnalysis
+   ASAPScheduleAnalysis
+   PadDynamicalDecoupling
    ConstrainedReschedule
    AlignMeasures
    ValidatePulseGates
    InstructionDurationCheck
    SetIOLatency
+   ALAPSchedule
+   ASAPSchedule
+   DynamicalDecoupling
 
 Circuit Analysis
 ================
@@ -231,8 +234,11 @@ from .calibration import RZXCalibrationBuilderNoEcho
 
 # circuit scheduling
 from .scheduling import TimeUnitConversion
+from .scheduling import ALAPScheduleAnalysis
+from .scheduling import ASAPScheduleAnalysis
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
+from .scheduling import PadDynamicalDecoupling
 from .scheduling import DynamicalDecoupling
 from .scheduling import AlignMeasures  # Deprecated
 from .scheduling import ValidatePulseGates

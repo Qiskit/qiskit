@@ -10,7 +10,4 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Scheduling pass to fill idle times with gate sequence."""
-
-from .dynamical_decoupling import PadDynamicalDecoupling
-from .pad_delay import PadDelay
+"""Qiskit legacy scheduling transpiler pass unit tests."""
