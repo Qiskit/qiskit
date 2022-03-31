@@ -15,7 +15,23 @@ Fake Yorktown device (5 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_qasm_backend
+from qiskit.test.mock import fake_qasm_backend, fake_backend
+
+
+class FakeYorktownV2(fake_backend.FakeBackendV2):
+    """A fake 5 qubit backend.
+
+        1
+      / |
+    0 - 2 - 3
+        | /
+        4
+    """
+
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_yorktown.json"
+    props_filename = "props_yorktown.json"
+    backend_name = "fake_yorktown_v2"
 
 
 class FakeYorktown(fake_qasm_backend.FakeQasmBackend):

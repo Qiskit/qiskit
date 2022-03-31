@@ -20,7 +20,7 @@ testing local timeouts, arbitrary responses or behavior, etc.
 The mock devices are mainly for testing the compiler.
 """
 
-from .fake_provider import FakeProvider, FakeLegacyProvider
+from .fake_provider import FakeProviderForBackendV2, FakeProvider, FakeLegacyProvider
 from .fake_provider import FakeProviderFactory
 from .fake_backend import FakeBackend, FakeLegacyBackend
 from .fake_backend_v2 import FakeBackendV2, FakeBackend5QV2

@@ -157,6 +157,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             call_limit=int(3e7),  # Set call limit to ~60 sec with retworkx 0.10.2
             time_limit=60,
             properties=backend_properties,
+            target=target,
         )
     )
     # 2b. if VF2 didn't converge on a solution use layout_method (dense).
