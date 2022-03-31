@@ -201,6 +201,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     elif routing_method == "toqm":
         HAS_TOQM.require_now("TOQM-based routing")
         from qiskit_toqm import ToqmSwap, ToqmStrategyO3
+
         # Note: BarrierBeforeFinalMeasurements is skipped intentionally since ToqmSwap
         #       does not yet support barriers.
         _swap = [
@@ -210,7 +211,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 perform_layout=(layout_method == "toqm"),
                 strategy=ToqmStrategyO3(),
                 basis_gates=basis_gates,
-                backend_properties=backend_properties
+                backend_properties=backend_properties,
             )
         ]
     elif routing_method == "none":

@@ -210,11 +210,7 @@ HAS_IGNIS = _LazyImportTester(
     name="Qiskit Ignis",
     install="pip install qiskit-ignis",
 )
-HAS_TOQM = _LazyImportTester(
-    "qiskit_toqm",
-    name="Qiskit TOQM",
-    install="pip install qiskit-toqm"
-)
+HAS_TOQM = _LazyImportTester("qiskit_toqm", name="Qiskit TOQM", install="pip install qiskit-toqm")
 
 HAS_CPLEX = _LazyImportTester(
     "cplex",
