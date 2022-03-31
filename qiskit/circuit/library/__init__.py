@@ -131,6 +131,8 @@ Standard Operations
 Operations are not reversible changes in the quantum state of the circuit.
 
 .. autosummary::
+    :toctree: ../stubs/ 
+
    ~qiskit.circuit.Measure
    ~qiskit.circuit.Reset
    ~qiskit.extensions.Initialize
