@@ -2,10 +2,10 @@
 features:
   - |
     Added a new module to Qiskit: :mod:`qiskit.primitives`. The primitives
-    module is where APIs are defined which provide a higher level
-    abstraction around using :class:`~.QuantumCircuit` to perform certain
-    common functions. The concept behind a primitive is to provide a higher
-    level object that can be used to perform common computions using a given
+    module is where APIs are defined which provide different
+    abstractions around computing certain common functions from
+    :class:`~.QuantumCircuit`s. The concept behind a primitive is to provide a higher
+    level object that can be used to perform common computations using a given
     :class:`~.QuantumCircuit` which abstracts away the details of the underlying
     execution on a :class:`~Backend`. This enables higher level algorithms and
     applications to concentrate on performing the computation and not need to
