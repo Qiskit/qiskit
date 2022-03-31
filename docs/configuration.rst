@@ -83,6 +83,19 @@ behavior of Qiskit.
  * ``QISKIT_NUM_PROCS``: Specifies the maximum number of parallel processes to
    launch for parallel operations if parallel execution is enabled. It takes an
    integer > 0 as the expected value.
+ * ``RAYON_NUM_THREADS``: Specifies the number of threads to run multithreaded
+   operations in Qiskit Terra. By default this multithreaded code will launch
+   a thread for each logical CPU, if you'd like to adjust the number of threads
+   Qiskit will use you can set this to an integer value. For example, setting
+   ``RAYON_NUM_THREADS=4`` will only launch 4 threads for multithreaded
+   functions.
+ * ``QISKIT_FORCE_THREADS``: Specify that multithreaded code should always
+   execute in multiple threads. By default if you're running multithreaded code
+   in a section of Qiskit that is already running in parallel processes Qiskit
+   will not launch multiple threads and instead execute that function serially.
+   This is done to avoid potentially overloading limited CPU resources. However,
+   if you would like to force the use of multiple threads even when in a
+   multiprocess context you can set ``QISKIT_FORCE_THREADS=TRUE`` to do this.
  * ``QISKIT_IBMQ_PROVIDER_LOG_LEVEL``: Specifies the log level to use, for the
    ``qiskit-ibmq-provider`` modules. If an invalid level is set, the log level
    defaults to WARNING. The valid log levels are ``DEBUG``, ``INFO``,
