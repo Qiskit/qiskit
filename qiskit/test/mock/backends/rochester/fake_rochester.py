@@ -15,7 +15,16 @@ Fake Rochester device (53 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_qasm_backend
+from qiskit.test.mock import fake_qasm_backend, fake_backend
+
+
+class FakeRochesterV2(fake_backend.FakeBackendV2):
+    """A fake Rochester backend."""
+
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_rochester.json"
+    props_filename = "props_rochester.json"
+    backend_name = "fake_rochester_v2"
 
 
 class FakeRochester(fake_qasm_backend.FakeQasmBackend):
