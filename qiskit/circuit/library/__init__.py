@@ -61,6 +61,7 @@ Standard Gates
    RZZGate
    RZXGate
    XXPlusYYGate
+   XXMinusYYGate
    ECRGate
    SGate
    SdgGate
