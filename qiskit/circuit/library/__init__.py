@@ -117,13 +117,23 @@ Standard Directives
     This summary table deliberately does not generate toctree entries; these directives are "owned"
     by ``qiskit.circuit``.
 
-Directives are operations to the quantum stack that are meant to be intepreted by the backend.
+Directives are operations to the quantum stack that are meant to be interpreted by the backend or
+the transpiler. In general, they transpiler or backend might optionally ignore them if there is no
+implementation for them.
 
 .. autosummary::
 
    ~qiskit.circuit.Barrier
+
+Standard Operations
+===================
+
+Operations are not reversible changes in the quantum state of the circuit.
+
+.. autosummary::
    ~qiskit.circuit.Measure
    ~qiskit.circuit.Reset
+   ~qiskit.extensions.Initialize
 
 Generalized Gates
 =================
