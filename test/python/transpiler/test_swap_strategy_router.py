@@ -324,7 +324,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         as expected. I.e. the Toffoli is properly adjusted at the end.
         """
         cmap = CouplingMap(couplinglist=[(0, 1), (1, 2)])
-        swap_strat = SwapStrategy(cmap, swap_layers=(((0, 1), ), ))
+        swap_strat = SwapStrategy(cmap, swap_layers=(((0, 1),),))
 
         pm_ = PassManager(
             [
@@ -346,6 +346,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         expect.ccx(2, 1, 0)
 
         self.assertEqual(swapped, expected)
+
 
 class TestSwapRouterExceptions(QiskitTestCase):
     """Test that exceptions are properly raises."""
