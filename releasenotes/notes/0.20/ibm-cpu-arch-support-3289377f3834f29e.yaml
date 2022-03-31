@@ -9,5 +9,5 @@ features:
     these dependencies and a simple ``pip install qiskit-terra`` with just a
     working Python environment will not be sufficient to install Qiskit.
     Additionally, these same constraints prevent us from testing the
-    pre-compiled before publishing them so the same guarantees around platform
-    support that exist for the other platforms don't apply here.
+    pre-compiled wheels before publishing them, so the same guarantees around
+    platform support that exist for the other platforms don't apply here.

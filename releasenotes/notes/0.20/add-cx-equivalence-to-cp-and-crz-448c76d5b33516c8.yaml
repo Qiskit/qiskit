@@ -2,6 +2,5 @@
 fixes:
   - |
     Added a missing entry from the standard session equivalence library
-    between :class:`.~CXGate` and :class:`~.CPhaseGate`` as well as between
+    between :class:`.CXGate` and :class:`.CPhaseGate` as well as between
     :class:`~.CXGate` and :class:`~.CRZGate`.
-    Fixed `#7013 <https://github.com/Qiskit/qiskit-terra/pull/7013>`__.

@@ -7,4 +7,4 @@ fixes:
     a delay however in opflow we expect a mathematical identity -- meaning no operation at all.
   - |
     The :class:`~qiskit.circuit.library.PauliGate` no longer inserts an 
-    :class:`~qiskit.circuit.library.IGate` for Paulis with the label `"I"`.
+    :class:`~qiskit.circuit.library.IGate` for Paulis with the label ``"I"``.

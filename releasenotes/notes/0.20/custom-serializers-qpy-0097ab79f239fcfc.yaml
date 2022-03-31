@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Added a new kwarg, ``metadata_serializer`` to the
+    Added a new kwarg, ``metadata_serializer``, to the
     :func:`.qpy.dump` function for specifying a custom
     ``JSONEncoder`` subclass for use when serializing the
     :attr:`.QuantumCircuit.metadata` attribute and a dual kwarg
@@ -31,6 +31,7 @@ features:
         from qiskit.qpy import dump, load
         from qiskit.circuit import QuantumCircuit, Parameter
         import json
+        import io
 
         class CustomObject:
             """Custom string container object."""
@@ -52,12 +53,11 @@ features:
         class CustomDeserializer(json.JSONDecoder):
             """Custom json decoder to handle CustomObject."""
 
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, object_hook=self.object_hook, **kwargs)
+
             def object_hook(self, o):
-                """Hook to override default decoder.
-                Normally specified as a kwarg on load() that overloads the
-                default decoder. Done here to avoid reimplementing the
-                decode method.
-                """
+                """Hook to override default decoder."""
                 if "__type__" in o:
                     obj_type = o["__type__"]
                     if obj_type == "Custom":
@@ -75,4 +75,4 @@ features:
         with io.BytesIO() as qpy_buf:
             dump(circuits, qpy_buf, metadata_serializer=CustomSerializer)
             qpy_buf.seek(0)
-            new_circuits = load(qpy_file, metadata_deserializer=CustomDeserializer)
+            new_circuits = load(qpy_buf, metadata_deserializer=CustomDeserializer)

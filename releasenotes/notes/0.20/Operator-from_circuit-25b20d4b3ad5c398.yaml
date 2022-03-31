@@ -2,7 +2,7 @@
 features:
   - |
     Added a new constructor method for the :class:`.Operator` class,
-    :meth:`.Operator.from_circuit` for creating a new :class`.Operator`
+    :meth:`.Operator.from_circuit` for creating a new :class:`.Operator`
     object from a :class:`.QuantumCircuit`. While this was possible normally
     using the default constructor, the :meth:`.Operator.from_circuit` method
     provides additional options to adjust how the operator is created. Primarily

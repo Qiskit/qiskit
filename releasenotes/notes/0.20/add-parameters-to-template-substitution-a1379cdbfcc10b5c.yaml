@@ -1,12 +1,10 @@
 ---
 features:
   - |
-    The :class:`~TemplateOptimization` transpiler pass can now work
+    The :class:`.TemplateOptimization` transpiler pass can now work
     with :class:`~.Gate` objects that have :class:`.ParameterExpression`
     parameters. An illustrative example of using :class:`.Parameter`\s
-    with :class:`~TemplateOptimization` is the following:
-
-    .. code-block:: 
+    with :class:`.TemplateOptimization` is the following::
 
       from qiskit import QuantumCircuit, transpile, schedule
       from qiskit.circuit import Parameter

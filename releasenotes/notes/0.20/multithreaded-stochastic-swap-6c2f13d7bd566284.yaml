@@ -13,7 +13,7 @@ features:
     threads.
   - |
     A new environment variable ``QISKIT_FORCE_THREADS`` is available for users to
-    directly control whether potentially multithreaded portions of qiskit's code
+    directly control whether potentially multithreaded portions of Qiskit's code
     will run in multiple threads. Currently this is only used by the
     :class:`~.StochasticSwap` transpiler pass but it likely will be used other
     parts of Qiskit in the future. When this env variable is set to ``TRUE`` any
@@ -45,14 +45,14 @@ issues:
     When running :func:`.parallel_map` (which is done internally by
     performance sensitive functions such as :func:`.transpile` and
     :func:`.assemble`) in a subprocess launched outside of
-    :func:`.parallel_map` it is possible that the parallel dispatch performed
+    :func:`.parallel_map`, it is possible that the parallel dispatch performed
     inside :func:`.parallel_map` will hang and never return.
-    This is due to upstream issues in cpython (see:
-    https://bugs.python.org/issue40379 for more details) around the default
-    method to launch subprocesses on Linux and macOS (with Python 3.7). If you
-    encounter this you have two options you can either remove the nested
-    parallel processes as calling :func:`.parallel_map` from a main process
-    should work fine or you can manually call the cPython standard library
+    This is due to upstream issues in CPython around the default
+    method to launch subprocesses on Linux and macOS with Python 3.7 (see
+    https://bugs.python.org/issue40379 for more details). If you
+    encounter this, you have two options: you can either remove the nested
+    parallel processes, as calling :func:`.parallel_map` from a main process
+    should work fine; or you can manually call the CPython standard library
     ``multiprocessing`` module to perform similar parallel dispatch from a
-    subprocess but use the ``"spawn"`` or ``"forkserver"`` launch methods to
+    subprocess, but use the ``"spawn"`` or ``"forkserver"`` launch methods to
     avoid the potential to have things get stuck and never return.

@@ -1,6 +1,6 @@
 ---
 prelude: |
-  The Qiskit 0.20.0 release highlights are:
+  The Qiskit Terra 0.20.0 release highlights are:
 
   * The introduction of multithreaded modules written in Rust to accelerate
     the performance of certain portions of Qiskit Terra and improve scaling

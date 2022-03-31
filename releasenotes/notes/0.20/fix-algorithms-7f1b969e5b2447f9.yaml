@@ -5,7 +5,7 @@ upgrade:
     the Python standard library. This requires any subclass to implement the
     :meth:`~.AmplitudeEstimator.estimate` method when previously it wasn't
     required. This was done because the original intent of the class was to
-    always be a child class of ``ABC`` as the :meth:`~.AmplitudeEstimator.estimate`
+    always be a child class of ``ABC``, as the :meth:`~.AmplitudeEstimator.estimate`
     is required for the operation of an :class:`~.AmplitudeEstimator` object.
     However, if you were previously defining an :class:`~.AmplitudeEstimator`
     subclass that didn't implement :meth:`~.AmplitudeEstimator.estimate` this

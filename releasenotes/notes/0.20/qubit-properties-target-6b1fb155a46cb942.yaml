@@ -18,4 +18,4 @@ features:
     underlying :class:`~.Target` object and remove the specialized
     :meth:`.BackendV2.qubit_properties` implementation which will enable
     using qubit properties in the transpiler and also maintain API compatibility
-    with your previous implementation
+    with your previous implementation.

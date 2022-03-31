@@ -17,12 +17,12 @@ features:
             tol=1e-10,
         )
 
-    Per default coefficients are chopped with a tolerance of ``tol=1e-14``.
+    By default, coefficients are chopped with a tolerance of ``tol=1e-14``.
   - |
     Added a :meth:`~qiskit.quantum_info.SparsePauliOp.chop` method to the
     :class:`~qiskit.quantum_info.SparsePauliOp` class that truncates real and
     imaginary parts of coefficients individually. This is different
-    from the :meth:`qiskit.quantum_info.SparsePauliOp.simplify` method which
+    from the :meth:`.SparsePauliOp.simplify` method which
     removes a coefficient only if the absolute value is close to 0. For
     example::
 

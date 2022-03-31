@@ -18,7 +18,7 @@ features:
 
 
     To start the module contains two types of primitives,
-    the :class:`~.Sampler` (see for :class:`~.BaseSampler` for the abstract
+    the :class:`~.Sampler` (see :class:`~.BaseSampler` for the abstract
     class definition) and :class:`~.Estimator` (see :class:`~.BaseEstimator`
     for the abstract class definition). Reference implementations are included
     in the :mod:`qiskit.primitives` module and are built using the

@@ -6,7 +6,7 @@ features:
     keyword argument on its constructor, ``target``. This argument is used to
     specify a :class:`~qiskit.transpiler.Target` object representing the
     compilation target for the pass. If it is specified it supersedes the
-    ``basis_gates`` kwarg. If a target is specified the pass will respect the
+    ``basis_gates`` kwarg. If a target is specified, the pass will respect the
     gates and qubits for the instructions defined in the
     :class:`~qiskit.transpiler.Target` when deciding which gates to consolidate
     into a unitary.
