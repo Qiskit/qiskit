@@ -20,7 +20,11 @@ testing local timeouts, arbitrary responses or behavior, etc.
 The mock devices are mainly for testing the compiler.
 """
 
-from qiskit.test.mock.fake_provider import FakeProvider, FakeLegacyProvider
+from qiskit.test.mock.fake_provider import (
+    FakeProviderForBackendV2,
+    FakeProvider,
+    FakeLegacyProvider,
+)
 from qiskit.test.mock.fake_provider import FakeProviderFactory
 from qiskit.test.mock.fake_backend import FakeBackend, FakeLegacyBackend
 from qiskit.test.mock.fake_pulse_backend import FakePulseBackend, FakePulseLegacyBackend
