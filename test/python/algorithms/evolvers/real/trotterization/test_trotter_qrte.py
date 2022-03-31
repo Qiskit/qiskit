@@ -187,12 +187,9 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         initial_state = StateFn([1, 0, 0, 0])
         evolution_problem = EvolutionProblem(operator, 1, initial_state)
 
-        for backend_name in self.backends_names:
-            with self.subTest(msg=f"Test {backend_name} backend."):
-                backend = self.backends_dict[backend_name]
-                trotter_qrte = TrotterQRTE(quantum_instance=backend)
-                evolution_result = trotter_qrte.evolve(evolution_problem)
-                np.testing.assert_equal(evolution_result.evolved_state.eval(), expected_state)
+        trotter_qrte = TrotterQRTE()
+        evolution_result = trotter_qrte.evolve(evolution_problem)
+        np.testing.assert_equal(evolution_result.evolved_state.eval(), expected_state)
 
     def test_trotter_qrte_trotter_two_qubits_with_params(self):
         """Test for TrotterQRTE on two qubits with a parametrized Hamiltonian."""
@@ -209,12 +206,9 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         expected_state = VectorStateFn(
             Statevector([-0.9899925 - 0.14112001j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j], dims=(2, 2))
         )
-        for backend_name in self.backends_names:
-            with self.subTest(msg=f"Test {backend_name} backend."):
-                backend = self.backends_dict[backend_name]
-                trotter_qrte = TrotterQRTE(quantum_instance=backend)
-                evolution_result = trotter_qrte.evolve(evolution_problem)
-                np.testing.assert_equal(evolution_result.evolved_state.eval(), expected_state)
+        trotter_qrte = TrotterQRTE()
+        evolution_result = trotter_qrte.evolve(evolution_problem)
+        np.testing.assert_equal(evolution_result.evolved_state.eval(), expected_state)
 
     @data(
         (
@@ -237,13 +231,10 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         time = 1
         evolution_problem = EvolutionProblem(operator, time, initial_state)
 
-        for backend_name in self.backends_names:
-            with self.subTest(msg=f"Test {backend_name} backend."):
-                algorithm_globals.random_seed = 0
-                backend = self.backends_dict[backend_name]
-                trotter_qrte = TrotterQRTE(quantum_instance=backend, product_formula=QDrift())
-                evolution_result = trotter_qrte.evolve(evolution_problem)
-                np.testing.assert_equal(evolution_result.evolved_state.eval(), expected_state)
+        algorithm_globals.random_seed = 0
+        trotter_qrte = TrotterQRTE(product_formula=QDrift())
+        evolution_result = trotter_qrte.evolve(evolution_problem)
+        np.testing.assert_equal(evolution_result.evolved_state.eval(), expected_state)
 
     @data((Parameter("t"), {}), (None, {Parameter("t"): 2}))
     @unpack
@@ -252,20 +243,17 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         operator = X * Parameter("t") + Z
         initial_state = Zero
         time = 1
-        for backend_name in self.backends_names:
-            with self.subTest(msg=f"Test {backend_name} backend."):
-                algorithm_globals.random_seed = 0
-                backend = self.backends_dict[backend_name]
-                trotter_qrte = TrotterQRTE(quantum_instance=backend)
-                with assert_raises(ValueError):
-                    evolution_problem = EvolutionProblem(
-                        operator,
-                        time,
-                        initial_state,
-                        t_param=t_param,
-                        hamiltonian_value_dict=hamiltonian_value_dict,
-                    )
-                    _ = trotter_qrte.evolve(evolution_problem)
+        algorithm_globals.random_seed = 0
+        trotter_qrte = TrotterQRTE()
+        with assert_raises(ValueError):
+            evolution_problem = EvolutionProblem(
+                operator,
+                time,
+                initial_state,
+                t_param=t_param,
+                hamiltonian_value_dict=hamiltonian_value_dict,
+            )
+            _ = trotter_qrte.evolve(evolution_problem)
 
 
 if __name__ == "__main__":
