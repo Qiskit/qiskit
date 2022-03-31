@@ -437,3 +437,4 @@ from .layout import Layout
 from .instruction_durations import InstructionDurations
 from .target import Target
 from .target import InstructionProperties
+from .target import QubitProperties
