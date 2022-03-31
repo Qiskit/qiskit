@@ -90,6 +90,15 @@ class TrotterQRTE(RealEvolver):
         """Returns a product formula used in the algorithm."""
         return self._product_formula
 
+    @product_formula.setter
+    def product_formula(self, product_formula) -> None:
+        """
+        Sets a product formula.
+        Args:
+            product_formula: A formula that defines the Trotterization algorithm.
+        """
+        self._product_formula = product_formula
+
     @property
     def quantum_instance(self) -> Union[QuantumInstance, BaseBackend, Backend]:
         """Returns a quantum instance used in the algorithm."""
@@ -99,7 +108,8 @@ class TrotterQRTE(RealEvolver):
     def quantum_instance(
         self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
     ) -> None:
-        """Sets a quantum instance and a circuit sampler.
+        """
+        Sets a quantum instance and a circuit sampler.
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
         """
@@ -116,6 +126,16 @@ class TrotterQRTE(RealEvolver):
     def expectation(self) -> ExpectationBase:
         """Returns an expectation used in the algorithm."""
         return self._expectation
+
+    @expectation.setter
+    def expectation(self, expectation: ExpectationBase) -> None:
+        """
+        Sets an expectation.
+        Args:
+            expectation: An instance of ExpectationBase which defines a method for calculating
+                expectation values of EvolutionProblem.aux_operators.
+        """
+        self._expectation = expectation
 
     @classmethod
     def supports_aux_operators(cls) -> bool:
