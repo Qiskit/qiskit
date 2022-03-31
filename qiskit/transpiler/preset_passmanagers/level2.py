@@ -154,6 +154,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             call_limit=int(5e6),  # Set call limit to ~10 sec with retworkx 0.10.2
             time_limit=10.0,
             properties=backend_properties,
+            target=target,
         )
     )
 
