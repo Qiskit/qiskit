@@ -50,7 +50,9 @@ def calculate(
         return LinCombFull(aux_meas_op=basis, phase_fix=phase_fix).convert(operator, parameters)
     elif basis != Z or phase_fix == False:
         raise ValueError(
-            f"Basis which is not Z or phase fix which is False are only supported for ``lin_comb_full`` method. Provided method is {qfi_method} with basis {basis} and phase fix set to {phase_fix}"
+            f"Basis which is not Z or phase fix which is False are only supported for "
+            f"``lin_comb_full`` method. Provided method is {qfi_method} with basis {basis} and "
+            f"phase fix set to {phase_fix}."
         )
 
     return QFI(qfi_method).convert(operator, parameters)
@@ -59,7 +61,7 @@ def calculate(
 def eval_metric_result(
     metric: OperatorBase,
     param_dict: Dict[Parameter, Union[float, complex]],
-    metric_circ_sampler: Optional[CircuitSampler] = None,
+    circuit_sampler: Optional[CircuitSampler] = None,
 ) -> OperatorBase:
     """
     Binds a parametrized metric tensor object to parameters values provided. Uses a circuit
@@ -68,13 +70,13 @@ def eval_metric_result(
     Args:
         metric: Metric tensor to be evaluated.
         param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
-        metric_circ_sampler: CircuitSampler for metric tensors.
+        circuit_sampler: Samples circuits using an underlying backend.
 
     Returns:
         Metric tensor with all parameters bound.
     """
-    if metric_circ_sampler is not None:
-        metric_result = metric_circ_sampler.convert(metric, params=param_dict).eval()
+    if circuit_sampler is not None:
+        metric_result = circuit_sampler.convert(metric, params=param_dict).eval()
     else:
         metric_result = metric.assign_parameters(param_dict).eval()
 

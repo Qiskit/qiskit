@@ -79,13 +79,13 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
 
         def raw_evolution_grad_imag(
             param_dict: Dict[Parameter, Union[float, complex]],
-            energy_sampler: Optional[CircuitSampler] = None,
+            circuit_sampler: Optional[CircuitSampler] = None,
         ) -> OperatorBase:
             """
             Args:
                 param_dict: Dictionary which relates parameter values to the parameters in the
                     ansatz.
-                energy_sampler: CircuitSampler for energy.
+                circuit_sampler: Samples circuits using an underlying backend.
 
             Returns:
                 Calculated evolution gradient, according to the variational principle.
@@ -97,8 +97,8 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
             energy = ~StateFn(hamiltonian) @ StateFn(ansatz)
             energy = PauliExpectation().convert(energy)
 
-            if energy_sampler is not None:
-                energy = energy_sampler.convert(energy, param_dict).eval()
+            if circuit_sampler is not None:
+                energy = circuit_sampler.convert(energy, param_dict).eval()
             else:
                 energy = energy.assign_parameters(param_dict).eval()
 

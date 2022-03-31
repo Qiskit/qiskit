@@ -77,8 +77,6 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
             evolution_grad,
             linear_solver_callable,
             CircuitSampler(backend),
-            CircuitSampler(backend),
-            CircuitSampler(backend),
         )
 
         ode_function_generator = OdeFunctionGenerator()
@@ -141,8 +139,6 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
             metric_tensor,
             evolution_grad,
             linear_solver_callable,
-            CircuitSampler(backend),
-            CircuitSampler(backend),
             CircuitSampler(backend),
         )
         ode_function_generator._lazy_init(

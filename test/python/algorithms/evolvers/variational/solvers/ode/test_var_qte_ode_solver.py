@@ -87,8 +87,6 @@ class TestVarQTEOdeSolver(QiskitAlgorithmsTestCase):
             evolution_grad,
             linear_solver_callable,
             CircuitSampler(backend),
-            CircuitSampler(backend),
-            CircuitSampler(backend),
         )
         ode_function_generator._lazy_init(linear_solver, None, None, param_dict)
 

@@ -83,10 +83,7 @@ class VarQTE(Evolver, ABC):
 
         self._backend = quantum_instance
         self._expectation = expectation
-        # we define separate instances of CircuitSamplers as it caches aggressively according
-        # to its documentation
-        self._init_samplers()
-
+        self._circuit_sampler = CircuitSampler(self._backend) if self._backend else None
         self._ode_function_generator = ode_function_generator
         self._ode_solver_callable = ode_solver_callable
         self._lse_solver_callable = lse_solver_callable
@@ -141,9 +138,7 @@ class VarQTE(Evolver, ABC):
             metric_tensor,
             evolution_grad,
             self._lse_solver_callable,
-            self._grad_circ_sampler,
-            self._metric_circ_sampler,
-            self._energy_sampler,
+            self._circuit_sampler,
             self._allowed_imaginary_part,
         )
 
@@ -176,20 +171,11 @@ class VarQTE(Evolver, ABC):
             state: Parametrized quantum state to be bound.
             param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
         """
-        if self._state_circ_sampler:
-            initial_state = self._state_circ_sampler.convert(state, param_dict)
+        if self._circuit_sampler:
+            initial_state = self._circuit_sampler.convert(state, param_dict)
         else:
             initial_state = state.assign_parameters(param_dict)
         return initial_state.eval().primitive.data
-
-    def _init_samplers(self) -> None:
-        """Creates all possible samplers if a backend is present."""
-        self._operator_circ_sampler = CircuitSampler(self._backend) if self._backend else None
-        self._state_circ_sampler = CircuitSampler(self._backend) if self._backend else None
-        self._h_squared_circ_sampler = CircuitSampler(self._backend) if self._backend else None
-        self._grad_circ_sampler = CircuitSampler(self._backend) if self._backend else None
-        self._metric_circ_sampler = CircuitSampler(self._backend) if self._backend else None
-        self._energy_sampler = CircuitSampler(self._backend) if self._backend else None
 
     # TODO handle the case where quantum state params are not present in a dictionary; possibly
     #  rename the dictionary because it not only relates to a Hamiltonian but also to a state

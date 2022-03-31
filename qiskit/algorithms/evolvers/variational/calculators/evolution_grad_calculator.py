@@ -51,7 +51,8 @@ def calculate(
         return LinComb(aux_meas_op=basis).convert(operator, parameters)
     elif basis != Z:
         raise ValueError(
-            f"Basis which is not Z is only supported for ``lin_comb`` method. Provided method is {grad_method} with basis {basis}"
+            f"Basis which is not Z is only supported for ``lin_comb`` method. Provided method is "
+            f"{grad_method} with basis {basis}."
         )
     return Gradient(grad_method).convert(operator, parameters)
 
@@ -59,8 +60,7 @@ def calculate(
 def eval_grad_result(
     grad: Union[OperatorBase, Callable[[Dict[Parameter, float], CircuitSampler], OperatorBase]],
     param_dict: Dict[Parameter, Union[float, complex]],
-    grad_circ_sampler: Optional[CircuitSampler] = None,
-    energy_sampler: Optional[CircuitSampler] = None,
+    circuit_sampler: Optional[CircuitSampler] = None,
     imag_part_tol: float = 1e-7,
 ) -> OperatorBase:
     """
@@ -72,8 +72,7 @@ def eval_grad_result(
             constructs an OperatorBase from a dictionary of parameters and evaluates it and
             potentially a ``CircuitSampler``.
         param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
-        grad_circ_sampler: ``CircuitSampler`` for evolution gradients.
-        energy_sampler: ``CircuitSampler`` for energy.
+        circuit_sampler: Samples circuits using an underlying backend.
         imag_part_tol: Allowed value of an imaginary part that can be neglected if no
             imaginary part is expected.
 
@@ -87,10 +86,10 @@ def eval_grad_result(
     if isinstance(grad, OperatorBase):
         grad_result = grad
     else:
-        grad_result = grad(param_dict, energy_sampler)
+        grad_result = grad(param_dict, circuit_sampler)
 
-    if grad_circ_sampler is not None:
-        grad_result = grad_circ_sampler.convert(grad_result, param_dict)
+    if circuit_sampler is not None:
+        grad_result = circuit_sampler.convert(grad_result, param_dict)
     else:
         grad_result = grad_result.assign_parameters(param_dict)
     grad_result = grad_result.eval()

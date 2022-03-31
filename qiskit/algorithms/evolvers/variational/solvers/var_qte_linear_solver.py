@@ -35,9 +35,7 @@ class VarQTELinearSolver:
         metric_tensor: OperatorBase,
         evolution_grad: OperatorBase,
         lse_solver_callable: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
-        grad_circ_sampler: Optional[CircuitSampler] = None,
-        metric_circ_sampler: Optional[CircuitSampler] = None,
-        energy_sampler: Optional[CircuitSampler] = None,
+        circuit_sampler: Optional[CircuitSampler] = None,
         allowed_imaginary_part: float = 1e-7,
     ) -> None:
         """
@@ -46,9 +44,7 @@ class VarQTELinearSolver:
             evolution_grad: A parametrized operator that represents the right-hand side of an ODE.
             lse_solver_callable: Linear system of equations solver that follows a NumPy
                 ``np.linalg.lstsq`` interface.
-            grad_circ_sampler: CircuitSampler for evolution gradients.
-            metric_circ_sampler: CircuitSampler for metric tensors.
-            energy_sampler: CircuitSampler for energy.
+            circuit_sampler: Samples circuits using an underlying backend.
             allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
                 imaginary part is expected.
         """
@@ -56,9 +52,7 @@ class VarQTELinearSolver:
         self._metric_tensor = metric_tensor
         self._evolution_grad = evolution_grad
         self._lse_solver_callable = lse_solver_callable
-        self._grad_circ_sampler = grad_circ_sampler
-        self._metric_circ_sampler = metric_circ_sampler
-        self._energy_sampler = energy_sampler
+        self._circuit_sampler = circuit_sampler
         self._allowed_imaginary_part = allowed_imaginary_part
 
     def _solve_sle(
@@ -107,7 +101,7 @@ class VarQTELinearSolver:
         metric_tensor_lse_lhs = eval_metric_result(
             metric,
             param_dict,
-            self._metric_circ_sampler,
+            self._circuit_sampler,
         )
 
         return metric_tensor_lse_lhs
@@ -128,8 +122,7 @@ class VarQTELinearSolver:
         evolution_grad_lse_rhs = eval_grad_result(
             grad,
             param_dict,
-            self._grad_circ_sampler,
-            self._energy_sampler,
+            self._circuit_sampler,
             self._allowed_imaginary_part,
         )
 
