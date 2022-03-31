@@ -47,7 +47,9 @@ class Commuting2qBlocks(Gate):
                 f"{self.__class__.__name__} does not accept nodes with classical bits."
             )
 
-        super().__init__("commuting_2q_block", num_qubits=len(qubits), params=[], label="Commuting 2q gates")
+        super().__init__(
+            "commuting_2q_block", num_qubits=len(qubits), params=[], label="Commuting 2q gates"
+        )
         self.node_block = node_block
         self.qubits = qubits
 
