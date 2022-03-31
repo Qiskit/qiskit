@@ -16,7 +16,17 @@ Fake Guadalupe device (5 qubit).
 
 import os
 
-from qiskit.test.mock import fake_pulse_backend
+from qiskit.test.mock import fake_pulse_backend, fake_backend
+
+
+class FakeGuadalupeV2(fake_backend.FakeBackendV2):
+    """A fake 16 qubit backend."""
+
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_guadalupe.json"
+    props_filename = "props_guadalupe.json"
+    defs_filename = "defs_guadalupe.json"
+    backend_name = "fake_guadalupe_v2"
 
 
 class FakeGuadalupe(fake_pulse_backend.FakePulseBackend):
