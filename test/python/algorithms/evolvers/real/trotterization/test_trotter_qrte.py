@@ -13,13 +13,11 @@
 """ Test TrotterQRTE. """
 
 import unittest
+
 from test.python.opflow import QiskitOpflowTestCase
-from math import sqrt
-from typing import List
 from ddt import ddt, data, unpack
 import numpy as np
 from numpy.testing import assert_raises
-from scipy.linalg import expm
 
 from qiskit import BasicAer, QuantumCircuit
 from qiskit.algorithms import EvolutionProblem
@@ -37,8 +35,8 @@ from qiskit.opflow import (
     StateFn,
     I,
     Y,
-    MatrixExpectation,
     SummedOp,
+    ExpectationFactory,
 )
 from qiskit.synthesis import SuzukiTrotter, QDrift
 
@@ -61,7 +59,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         )
         self.quantum_instance_qasm = QuantumInstance(
             backend=backend_qasm,
-            shots=4000,
+            shots=8000,
             seed_simulator=self.seed,
             seed_transpiler=self.seed,
         )
@@ -69,11 +67,10 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
             "qi_sv": self.quantum_instance,
             "qi_qasm": self.quantum_instance_qasm,
             "b_sv": backend_statevector,
-            "b_qasm": backend_qasm,
             "None": None,
         }
 
-        self.backends_names = ["qi_qasm", "b_sv", "None", "b_qasm", "qi_sv"]
+        self.backends_names = ["qi_qasm", "b_sv", "None", "qi_sv"]
         self.backends_names_not_none = ["qi_sv", "b_sv", "qi_qasm"]
 
     # TODO add valid param binding Hamiltonian
@@ -107,7 +104,6 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         operator = SummedOp([X, Z])
         # LieTrotter with 1 rep
         aux_ops = [X, Y]
-        expectation = MatrixExpectation()
 
         initial_state = Zero
         time = 3
@@ -117,17 +113,27 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
             Statevector([0.98008514 + 0.13970775j, 0.01991486 + 0.13970775j], dims=(2,))
         )
         expected_aux_ops_evaluated = [(0.078073, 0.0), (0.268286, 0.0)]
+        expected_aux_ops_evaluated_qasm = [
+            (0.05799999999999995, 0.011161518713866855),
+            (0.2495, 0.010826759383582883),
+        ]
 
         for backend_name in self.backends_names_not_none:
             with self.subTest(msg=f"Test {backend_name} backend."):
                 algorithm_globals.random_seed = 0
                 backend = self.backends_dict[backend_name]
+                expectation = ExpectationFactory.build(
+                    operator=operator,
+                    backend=backend,
+                )
                 trotter_qrte = TrotterQRTE(quantum_instance=backend, expectation=expectation)
                 evolution_result = trotter_qrte.evolve(evolution_problem)
-                print(evolution_result.aux_ops_evaluated)
+
                 np.testing.assert_equal(
                     evolution_result.evolved_state.eval(), expected_evolved_state
                 )
+                if backend_name == "qi_qasm":
+                    expected_aux_ops_evaluated = expected_aux_ops_evaluated_qasm
                 np.testing.assert_array_almost_equal(
                     evolution_result.aux_ops_evaluated, expected_aux_ops_evaluated
                 )
