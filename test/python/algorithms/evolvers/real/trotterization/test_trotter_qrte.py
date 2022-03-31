@@ -73,7 +73,6 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         self.backends_names = ["qi_qasm", "b_sv", "None", "qi_sv"]
         self.backends_names_not_none = ["qi_sv", "b_sv", "qi_qasm"]
 
-    # TODO add valid param binding Hamiltonian
     @data(
         (
             None,
@@ -186,8 +185,30 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         """Test for TrotterQRTE on two qubits with various types of a Hamiltonian."""
         # LieTrotter with 1 rep
         initial_state = StateFn([1, 0, 0, 0])
-
         evolution_problem = EvolutionProblem(operator, 1, initial_state)
+
+        for backend_name in self.backends_names:
+            with self.subTest(msg=f"Test {backend_name} backend."):
+                backend = self.backends_dict[backend_name]
+                trotter_qrte = TrotterQRTE(quantum_instance=backend)
+                evolution_result = trotter_qrte.evolve(evolution_problem)
+                np.testing.assert_equal(evolution_result.evolved_state.eval(), expected_state)
+
+    def test_trotter_qrte_trotter_two_qubits_with_params(self):
+        """Test for TrotterQRTE on two qubits with a parametrized Hamiltonian."""
+        # LieTrotter with 1 rep
+        initial_state = StateFn([1, 0, 0, 0])
+        w_param = Parameter("w")
+        u_param = Parameter("u")
+        params_dict = {w_param: 2.0, u_param: 3.0}
+        operator = w_param * (Z ^ Z) / 2.0 + (Z ^ I) + u_param * (I ^ Z) / 3.0
+        time = 1
+        evolution_problem = EvolutionProblem(
+            operator, time, initial_state, hamiltonian_value_dict=params_dict
+        )
+        expected_state = VectorStateFn(
+            Statevector([-0.9899925 - 0.14112001j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j], dims=(2, 2))
+        )
         for backend_name in self.backends_names:
             with self.subTest(msg=f"Test {backend_name} backend."):
                 backend = self.backends_dict[backend_name]
@@ -210,7 +231,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         ),
     )
     @unpack
-    def test_trotter_qrte_qdrift_fractional_time(self, initial_state, expected_state):
+    def test_trotter_qrte_qdrift(self, initial_state, expected_state):
         """Test for TrotterQRTE with QDrift."""
         operator = SummedOp([X, Z])
         time = 1

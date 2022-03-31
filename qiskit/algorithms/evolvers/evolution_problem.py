@@ -36,7 +36,7 @@ class EvolutionProblem:
         aux_operators: Optional[ListOrDict[OperatorBase]] = None,
         truncation_threshold: float = 1e-12,
         t_param: Optional[Parameter] = None,
-        hamiltonian_value_dict: Optional[Dict[Parameter, Union[complex]]] = None,
+        hamiltonian_value_dict: Optional[Dict[Parameter, complex]] = None,
     ):
         """
         Args:
@@ -153,6 +153,7 @@ class EvolutionProblem:
                 )
             params_set = t_param_set.union(hamiltonian_dict_param_set)
             hamiltonian_param_set = set(hamiltonian.parameters)
+
             if hamiltonian_param_set != params_set:
                 raise ValueError(
                     f"Provided parameters {params_set} do not match Hamiltonian parameters "
