@@ -47,7 +47,6 @@ from qiskit.utils.validation import validate_min
 
 from ..aux_ops_evaluator import eval_observables
 from ..exceptions import AlgorithmError
-from ..list_or_dict import ListOrDict
 from ..optimizers import SLSQP, Optimizer, OptimizerResult
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult, ListOrDict
