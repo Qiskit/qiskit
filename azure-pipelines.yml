@@ -20,11 +20,9 @@ pr:
 
 stages:
   - stage: 'Wheel_Builds'
-    condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
     jobs:
     - job: 'linux'
       pool: {vmImage: 'ubuntu-latest'}
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         python.version: '3.7'
         TWINE_USERNAME: qiskit
@@ -39,32 +37,7 @@ stages:
         - task: PublishBuildArtifacts@1
           inputs: {pathtoPublish: 'wheelhouse'}
           condition: succeededOrFailed()
-        - bash: |
-            twine upload wheelhouse/*
-          env:
-            TWINE_PASSWORD: $(TWINE_PASSWORD)
-    - job: 'sdist'
-      pool: {vmImage: 'ubuntu-latest'}
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
-      variables:
-        TWINE_USERNAME: qiskit
-        python.version: '3.7'
-      steps:
-        - task: UsePythonVersion@0
-        - bash: |
-            set -e
-            python -m pip install --upgrade pip
-            pip install -U twine
-            python setup.py sdist
-        - task: PublishBuildArtifacts@1
-          inputs: {pathtoPublish: 'dist'}
-          condition: succeededOrFailed()
-        - bash: |
-            twine upload dist/*
-          env:
-            TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'macos'
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       pool: {vmImage: 'macOS-10.15'}
       variables:
         python.version: '3.7'
@@ -80,12 +53,7 @@ stages:
       - task: PublishBuildArtifacts@1
         inputs: {pathtoPublish: 'wheelhouse'}
         condition: succeededOrFailed()
-      - bash: |
-          twine upload wheelhouse/*
-        env:
-          TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'macos_arm'
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       pool: {vmImage: 'macOS-10.15'}
       variables:
         python.version: '3.7'
@@ -102,13 +70,8 @@ stages:
       - task: PublishBuildArtifacts@1
         inputs: {pathtoPublish: 'wheelhouse'}
         condition: succeededOrFailed()
-      - bash: |
-          twine upload wheelhouse/*
-        env:
-          TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'Windows'
       pool: {vmImage: 'windows-latest'}
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         TWINE_USERNAME: qiskit
       steps:
@@ -129,10 +92,6 @@ stages:
         - task: PublishBuildArtifacts@1
           inputs: {pathtoPublish: 'wheelhouse'}
           condition: succeededOrFailed()
-        - script: |
-            twine upload wheelhouse\*
-          env:
-            TWINE_PASSWORD: $(TWINE_PASSWORD)
   - stage: 'Lint_Docs_and_Tests'
     dependsOn: []
     jobs:
