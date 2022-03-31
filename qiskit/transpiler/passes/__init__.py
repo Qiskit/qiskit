@@ -104,6 +104,7 @@ Scheduling
    ALAPScheduleAnalysis
    ASAPScheduleAnalysis
    PadDynamicalDecoupling
+   PadDelay
    ConstrainedReschedule
    AlignMeasures
    ValidatePulseGates
