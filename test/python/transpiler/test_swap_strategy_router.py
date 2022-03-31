@@ -291,6 +291,61 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         self.assertEqual(embedded, expected)
 
+    def test_ccx(self):
+        """Test that extra multi-qubit operations are properly adjusted.
+
+        Here, we test that the circuit
+
+        .. parsed-literal::
+
+                 ┌──────────────────────────┐
+            q_0: ┤0                         ├──■──
+                 │                          │┌─┴─┐
+            q_1: ┤1 exp(-it (IZZ + ZIZ))(1) ├┤ X ├
+                 │                          │└─┬─┘
+            q_2: ┤2                         ├──■──
+                 └──────────────────────────┘
+            q_3: ─────────────────────────────────
+
+        becomes
+
+        .. parsed-literal::
+
+                 ┌─────────────────┐                      ┌───┐
+            q_0: ┤0                ├─X────────────────────┤ X ├
+                 │  exp(-it ZZ)(1) │ │ ┌─────────────────┐└─┬─┘
+            q_1: ┤1                ├─X─┤0                ├──■──
+                 └─────────────────┘   │  exp(-it ZZ)(2) │  │
+            q_2: ──────────────────────┤1                ├──■──
+                                       └─────────────────┘
+            q_3: ──────────────────────────────────────────────
+
+
+        as expected. I.e. the Toffoli is properly adjusted at the end.
+        """
+        cmap = CouplingMap(couplinglist=[(0, 1), (1, 2)])
+        swap_strat = SwapStrategy(cmap, swap_layers=(((0, 1), ), ))
+
+        pm_ = PassManager(
+            [
+                FindCommutingPauliEvolutions(),
+                Commuting2qGateRouter(swap_strat),
+            ]
+        )
+        op = PauliSumOp.from_list([("IZZ", 1), ("ZIZ", 2)])
+        circ = QuantumCircuit(4)
+        circ.append(PauliEvolutionGate(op, 1), range(3))
+        circ.ccx(0, 2, 1)
+
+        swapped = pm_.run(circ)
+
+        expected = QuantumCircuit(4)
+        expected.append(PauliEvolutionGate(Pauli("ZZ"), 1), (0, 1))
+        expected.swap(0, 1)
+        expected.append(PauliEvolutionGate(Pauli("ZZ"), 2), (1, 2))
+        expect.ccx(2, 1, 0)
+
+        self.assertEqual(swapped, expected)
 
 class TestSwapRouterExceptions(QiskitTestCase):
     """Test that exceptions are properly raises."""
