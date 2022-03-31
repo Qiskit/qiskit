@@ -53,7 +53,7 @@ from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 
 if sys.version_info >= (3, 8):
-    # pylint: disable=ungrouped-imports
+    # pylint: disable=no-name-in-module, ungrouped-imports
     from typing import Protocol
 else:
     from typing_extensions import Protocol
