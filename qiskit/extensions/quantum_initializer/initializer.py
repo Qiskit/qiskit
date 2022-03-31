@@ -17,13 +17,13 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit import Instruction, Operation
+from qiskit.circuit import Instruction
 from qiskit.circuit.library.data_preparation import StatePreparation
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class Initialize(Instruction, Operation):
+class Initialize(Instruction):
     """Complex amplitude initialization.
 
     Class that initializes some flexible collection of qubit registers, implemented by calling
