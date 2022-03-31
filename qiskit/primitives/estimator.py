@@ -70,15 +70,6 @@ class Estimator(BaseEstimator):
         if parameter_values and not isinstance(parameter_values[0], Sequence):
             parameter_values = cast("Sequence[float]", parameter_values)
             parameter_values = [parameter_values]
-        if (
-            circuit_indices is None
-            and len(self._circuits) == 1
-            and observable_indices is None
-            and len(self._observables) == 1
-            and parameter_values is not None
-        ):
-            circuit_indices = [0] * len(parameter_values)
-            observable_indices = [0] * len(parameter_values)
         if circuit_indices is None:
             circuit_indices = list(range(len(self._circuits)))
         if observable_indices is None:
