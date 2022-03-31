@@ -75,10 +75,10 @@ class Sampler(BaseSampler):
             raise QiskitError("The primitive has been closed.")
 
         if isinstance(parameter_values, np.ndarray):
-             parameter_values = parameter_values.tolist()
-         if parameter_values and not isinstance(parameter_values[0], (np.ndarray, Sequence)):
-             parameter_values = cast("Sequence[float]", parameter_values)
-             parameter_values = [parameter_values]
+            parameter_values = parameter_values.tolist()
+        if parameter_values and not isinstance(parameter_values[0], (np.ndarray, Sequence)):
+            parameter_values = cast("Sequence[float]", parameter_values)
+            parameter_values = [parameter_values]
         if circuit_indices is None:
             circuit_indices = list(range(len(self._circuits)))
         if parameter_values is None:
