@@ -407,6 +407,7 @@ class TestCliffordGates(QiskitTestCase):
         value = Clifford(circ)
         self.assertEqual(value, target)
 
+
 @ddt
 class TestCliffordSynthesis(QiskitTestCase):
     """Test Clifford synthesis methods."""
