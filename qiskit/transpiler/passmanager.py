@@ -16,7 +16,6 @@ from typing import Union, List, Callable, Dict, Any
 
 import dill
 
-from qiskit.visualization import pass_manager_drawer
 from qiskit.tools.parallel import parallel_map
 from qiskit.circuit import QuantumCircuit
 from .basepasses import BasePass
@@ -301,6 +300,8 @@ class PassManager:
         Raises:
             ImportError: when nxpd or pydot not installed.
         """
+        from qiskit.visualization import pass_manager_drawer
+
         return pass_manager_drawer(self, filename=filename, style=style, raw=raw)
 
     def passes(self) -> List[Dict[str, BasePass]]:
