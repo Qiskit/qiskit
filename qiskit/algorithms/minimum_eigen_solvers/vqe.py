@@ -50,7 +50,7 @@ from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
 from ..optimizers import SLSQP, Optimizer, OptimizerResult
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
-from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
+from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult, ListOrDict
 
 if sys.version_info >= (3, 8):
     # pylint: disable=no-name-in-module, ungrouped-imports
