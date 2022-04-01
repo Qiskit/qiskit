@@ -1,0 +1,201 @@
+# Trigger types.  This needs to include all the triggers for the different
+# pipelines we might want to run.
+trigger:
+  tags:
+    include: ["*"]
+  branches:
+    include: ["main", "stable/*"]
+
+pr:
+  branches:
+    include: ["*"]
+
+schedules:
+  - cron: "20 6 * * *"
+    displayName: "Complete matrix test"
+    branches:
+      include: [ "main", "stable/*" ]
+    always: false  # Only run if the code changed since the last cron sync.
+
+
+# Configuration.  In theory a manual trigger on the Azure website or embedding
+# this pipeline as a template can override these, but we're not interested in
+# that.  We just want to give names to things to make it easier to read.
+parameters:
+  - name: "supportedPythonVersions"
+    displayName: "All supported versions of Python"
+    type: object
+    default: ["3.7", "3.8", "3.9", "3.10"]
+
+  - name: "minimumPythonVersion"
+    displayName: "Minimum supported version of Python"
+    type: string
+    default: "3.7"
+
+  - name: "maximumPythonVersion"
+    displayName: "Maximum supported version of Python"
+    type: string
+    default: "3.10"
+
+  # These two versions of Python can be chosen somewhat arbitrarily, but we get
+  # slightly better coverage per PR if they're neither the maximum nor minimum
+  # supported versions.
+
+  - name: "branchPushPythonVersion"
+    displayName: "Version of Python to run simple tests on pushes to protected branches"
+    type: string
+    default: "3.9"
+
+  - name: "tutorialsPythonVersion"
+    displayName: "Version of Python to use to run the tutorials job"
+    type: string
+    default: "3.8"
+
+
+# Conditional compilation logic.  This is all the logic for "what to run"; each
+# stage in turn delegates to various templates in ".azure" that provide the
+# information on "how to run" them.
+stages:
+  # Nightly cron job.
+  - ${{ if eq(variables['Build.Reason'], 'Schedule') }}:
+    - stage: "Nightly"
+      displayName: "Nightly complete matrix tests"
+      jobs:
+        - ${{ each version in parameters.supportedPythonVersions }}:
+          - template: ".azure/test-linux.yml"
+            parameters:
+              pythonVersion: ${{ version }}
+              testQPY: false
+              testImages: false
+
+          - template: ".azure/test-macos.yml"
+            parameters:
+              pythonVersion: ${{ version }}
+
+          - template: ".azure/test-windows.yml"
+            parameters:
+              pythonVersion: ${{ version }}
+
+  # Full PR suite.
+  - ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
+    # The preliminary stage should be small in both total runtime (including
+    # provisioning) and resources required.  About half of PR commits result in
+    # a CI failure, and over 90% of these are in linting, documention or a test
+    # failure that would affect _any_ OS or Python version.  The goal in the
+    # first stage is to catch the vast majority of failures with minimal cost.
+    - stage: "Lint_Docs_Prelim_Tests"
+      displayName: "Preliminary tests"
+      jobs:
+        - template: ".azure/lint-linux.yml"
+          parameters:
+            pythonVersion: ${{ parameters.minimumPythonVersion }}
+
+        - template: ".azure/docs-linux.yml"
+          parameters:
+            pythonVersion: ${{ parameters.minimumPythonVersion }}
+
+        - template: ".azure/test-linux.yml"
+          parameters:
+            pythonVersion: ${{ parameters.minimumPythonVersion }}
+            testQPY: false
+            testImages: false
+
+    # The rest of the PR pipeline is to test the oldest and newest supported
+    # versions of Python, along with the integration tests (via the tutorials).
+    # It's very rare for a failure to be specific to an intermediate version of
+    # Python, so we just catch those in the cron-job pipeline to reduce the
+    # amount of resources used.
+    - stage: "Tutorials_and_Tests"
+      displayName: "Main tests"
+      dependsOn: "Lint_Docs_Prelim_Tests"
+      jobs:
+        - template: ".azure/tutorials-linux.yml"
+          parameters:
+            pythonVersion: ${{ parameters.tutorialsPythonVersion }}
+
+        - template: ".azure/test-linux.yml"
+          parameters:
+            pythonVersion: ${{ parameters.maximumPythonVersion }}
+            testQPY: true
+            testImages: true
+
+        - template: ".azure/test-macos.yml"
+          parameters:
+            pythonVersion: ${{ parameters.minimumPythonVersion }}
+
+        - template: ".azure/test-macos.yml"
+          parameters:
+            pythonVersion: ${{ parameters.maximumPythonVersion }}
+
+        - template: ".azure/test-windows.yml"
+          parameters:
+            pythonVersion: ${{ parameters.minimumPythonVersion }}
+
+        - template: ".azure/test-windows.yml"
+          parameters:
+            pythonVersion: ${{ parameters.maximumPythonVersion }}
+
+  # Push to main or the stable branches.
+  - ${{ if and(eq(variables['Build.Reason'], 'IndividualCI'), startsWith(variables['Build.SourceBranch'], 'refs/heads/')) }}:
+    - stage: "Push"
+      jobs:
+        - template: ".azure/test-linux.yml"
+          parameters:
+            pythonVersion: ${{ parameters.branchPushPythonVersion }}
+            testQPY: true
+            testImages: true
+
+  # Push to a tag.
+  - ${{ if and(eq(variables['Build.Reason'], 'IndividualCI'), startsWith(variables['Build.SourceBranch'], 'refs/tags/')) }}:
+    - stage: "Deploy"
+      jobs:
+        - template: ".azure/wheels.yml"
+          parameters:
+            jobName: "linux"
+            pool: {vmImage: 'ubuntu-latest'}
+
+        - template: ".azure/wheels.yml"
+          parameters:
+            jobName: "macos"
+            pool: {vmImage: 'macOS-10.15'}
+
+        - template: ".azure/wheels.yml"
+          parameters:
+            jobName: "macos_arm"
+            pool: {vmImage: 'macOS-10.15'}
+            env:
+              CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
+              CIBW_ARCHS_MACOS: arm64 universal2
+              CIBW_ENVIRONMENT: CARGO_BUILD_TARGET="aarch64-apple-darwin" PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
+
+        - template: ".azure/wheels.yml"
+          parameters:
+            jobName: "windows"
+            pool: {vmImage: 'windows-latest'}
+            setupPython:
+              - ${{ each version in parameters.supportedPythonVersions }}:
+                - task: UsePythonVersion@0
+                  inputs:
+                    versionSpec: ${{ version }}
+                    architecture: x86
+                - task: UsePythonVersion@0
+                  inputs:
+                    versionSpec: ${{ version }}
+                    architecture: x64
+
+        - job: 'sdist'
+          pool: {vmImage: 'ubuntu-latest'}
+          steps:
+            - task: UsePythonVersion@0
+            - bash: |
+                set -e
+                python -m pip install --upgrade pip
+                python setup.py sdist
+            - task: PublishBuildArtifacts@1
+              inputs: {pathtoPublish: 'dist'}
+              condition: succeededOrFailed()
+            - bash: |
+                twine upload dist/*
+              env:
+                TWINE_USERNAME: "qiskit"
+                TWINE_PASSWORD: $(TWINE_PASSWORD)
