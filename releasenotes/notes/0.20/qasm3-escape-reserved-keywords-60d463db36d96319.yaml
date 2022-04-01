@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    The OpenQASM 3 exporter, :class:`.qasm3.Exporter`, will now escape register and
+    parameter names that clash with reserved OpenQASM 3 keywords by generating
+    a new unique name.  Registers and parameters with the same name will no
+    longer have naming clashes in the code output from the OpenQASM 3 exporter.
+    Fixed `#7742 <https://github.com/Qiskit/qiskit-terra/issues/7742>`__.

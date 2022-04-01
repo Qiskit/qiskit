@@ -20,6 +20,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.barrier import Barrier
+from qiskit.circuit.delay import Delay
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.mixins import AdjointMixin, MultiplyMixin
@@ -507,7 +508,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         Raises:
             QiskitError: if input gate cannot be decomposed into Clifford gates.
         """
-        if isinstance(circuit, Barrier):
+        if isinstance(circuit, (Barrier, Delay)):
             return self
 
         if qargs is None:
