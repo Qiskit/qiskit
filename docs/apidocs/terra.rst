@@ -23,6 +23,7 @@ Qiskit Terra API Reference
    scheduler
    synthesis
    primitives
+   qasm3
    qasm
    qobj
    qpy

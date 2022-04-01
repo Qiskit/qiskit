@@ -92,7 +92,7 @@ class TestSampler(QiskitTestCase):
         """test for sampler with a parametrized circuit"""
         params, target = self._generate_params_target(indices)
         with Sampler(circuits=self._pqc) as sampler:
-            result = sampler(parameter_values=params)
+            result = sampler([0] * len(params), params)
             self._compare_probs(result.quasi_dists, target)
 
     @combine(indices=[[0, 0], [0, 1], [1, 1]])
@@ -147,6 +147,7 @@ class TestSampler(QiskitTestCase):
             result = sampler([0, 0, 1], [theta1, theta2, theta3])
             self.assertIsInstance(result, SamplerResult)
             self.assertEqual(len(result.quasi_dists), 3)
+            self.assertEqual(len(result.metadata), 3)
 
             keys, values = zip(*sorted(result.quasi_dists[0].items()))
             self.assertTupleEqual(keys, tuple(range(4)))
@@ -344,6 +345,29 @@ class TestSampler(QiskitTestCase):
                     quasi_dist = {k: v for k, v in q_d.items() if v != 0.0}
                     self.assertDictEqual(quasi_dist, {0: 1.0})
                 self.assertEqual(len(result.metadata), 2)
+
+    def test_numpy_params(self):
+        """Test for numpy array as parameter values"""
+        qc = RealAmplitudes(num_qubits=2, reps=2)
+        qc.measure_all()
+        k = 5
+        params_array = np.random.rand(k, qc.num_parameters)
+        params_list = params_array.tolist()
+        params_list_array = list(params_array)
+        with Sampler(circuits=qc) as sampler:
+            target = sampler([0] * k, params_list)
+
+            with self.subTest("ndarrary"):
+                result = sampler([0] * k, params_array)
+                self.assertEqual(len(result.metadata), k)
+                for i in range(k):
+                    self.assertDictEqual(result.quasi_dists[i], target.quasi_dists[i])
+
+            with self.subTest("list of ndarray"):
+                result = sampler([0] * k, params_list_array)
+                self.assertEqual(len(result.metadata), k)
+                for i in range(k):
+                    self.assertDictEqual(result.quasi_dists[i], target.quasi_dists[i])
 
 
 if __name__ == "__main__":
