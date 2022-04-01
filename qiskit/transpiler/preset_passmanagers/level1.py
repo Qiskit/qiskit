@@ -311,7 +311,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     pm1.append(_depth_check + _size_check)
     pm1.append(_opt + _unroll + _depth_check + _size_check, do_while=_opt_control)
     if (
-        (target is not None or (coupling_map and backend_properties))
+        (coupling_map and backend_properties)
         and initial_layout is None
         and pass_manager_config.layout_method is None
     ):
