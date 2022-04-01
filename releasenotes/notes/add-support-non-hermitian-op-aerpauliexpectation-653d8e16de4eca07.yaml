@@ -1,0 +1,5 @@
+features:
+  - |
+    Added the support of non-hermitian operators for AerPauliExpectation.
+    This was used in :class:'.QEOM' which could previously only be used with
+    PauliExpectation for qasm simulators.
