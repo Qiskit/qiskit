@@ -14,6 +14,7 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
+from ddt import data, unpack, ddt
 import numpy as np
 
 from qiskit.algorithms.evolvers.variational.calculators.evolution_grad_calculator import (
@@ -23,6 +24,7 @@ from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import SummedOp, X, Y, I, Z
 
 
+@ddt
 class TestEvolutionGradCalculator(QiskitAlgorithmsTestCase):
     """Test evolution gradient calculator."""
 
@@ -88,6 +90,25 @@ class TestEvolutionGradCalculator(QiskitAlgorithmsTestCase):
             np.testing.assert_array_almost_equal(
                 evolution_grad.assign_parameters(value_dict).eval(), correct_values[i]
             )
+
+    @data(
+        ("param_shift", -Y),
+        ("fin_diff", -Y),
+        ("param_shift", Z - 1j * Y),
+        ("fin_diff", Z - 1j * Y),
+        ("lin_comb_full", Z),
+    )
+    @unpack
+    def test_calculate_with_errors(self, grad_method, basis):
+        """Test calculating evolution gradient when errors expected."""
+        observable = 0.2252 * (I ^ I)
+
+        d = 1
+        ansatz = EfficientSU2(observable.num_qubits, reps=d)
+
+        parameters = ansatz.ordered_parameters
+        with self.assertRaises(ValueError):
+            _ = calculate(observable, ansatz, parameters, grad_method, basis)
 
 
 if __name__ == "__main__":

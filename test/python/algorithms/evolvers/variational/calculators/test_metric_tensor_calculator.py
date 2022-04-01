@@ -14,6 +14,7 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
+from ddt import unpack, data, ddt
 import numpy as np
 from numpy import array
 
@@ -24,6 +25,7 @@ from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import SummedOp, X, Y, I, Z
 
 
+@ddt
 class TestMetricTensorCalculator(QiskitAlgorithmsTestCase):
     """Test metric tensor calculator."""
 
@@ -779,6 +781,25 @@ class TestMetricTensorCalculator(QiskitAlgorithmsTestCase):
         for i, value_dict in enumerate(values_dict):
             result = metric_tensor.assign_parameters(value_dict).eval()
             np.testing.assert_array_almost_equal(result, correct_values[i])
+
+    @data(
+        ("param_shift", Z, True),
+        ("circuit_qfi", -Y, True),
+        ("circuit_qfi", Z - 1j * Y, True),
+        ("circuit_qfi", Z, False),
+        ("circuit_qfi", Z, False),
+    )
+    @unpack
+    def test_calculate_with_errors(self, qfi_method, basis, phase_fix):
+        """Test calculating metric tensor when errors expected."""
+        observable = 0.2252 * (I ^ I)
+
+        d = 1
+        ansatz = EfficientSU2(observable.num_qubits, reps=d)
+
+        parameters = ansatz.ordered_parameters
+        with self.assertRaises(ValueError):
+            _ = calculate(ansatz, parameters, qfi_method, basis, phase_fix)
 
 
 if __name__ == "__main__":
