@@ -5,7 +5,7 @@ upgrade:
     :mod:`qiskit.circuit.library` has been removed. It was originally deprecated in the
     0.16.0 release. Instead the :class:`~qiskit.circuit.library.GMS` class should be used, as
     this allows you to create an equivalent 2 qubit MS gate in addition to
-    an MSGate for any number of qubits.
+    an ``MSGate`` for any number of qubits.
   - |
     The previously deprecated ``mirror()`` method of the :class:`~qiskit.circuit.Instruction`
     class has been removed. It was originally deprecated in 0.15.0 release. Instead you should
