@@ -16,7 +16,7 @@ from typing import Tuple, Union, List
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.eigen_solvers.eigen_solver import ListOrDict
+from qiskit.algorithms.minimum_eigen_solvers.minimum_eigen_solver import ListOrDict
 from qiskit.opflow import (
     CircuitSampler,
     ListOp,
