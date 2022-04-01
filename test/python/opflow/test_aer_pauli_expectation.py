@@ -38,6 +38,7 @@ from qiskit.opflow import (
     Y,
     Z,
     Zero,
+    MatrixOp,
 )
 from qiskit.utils import QuantumInstance
 
@@ -119,6 +120,22 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
             self.assertTrue(hasattr(composed_op[0], "execution_results"))
 
         np.testing.assert_array_almost_equal(sampled.eval(), [0, 0, 1, -1], decimal=1)
+
+    def test_pauli_expect_non_hermitian_state_vector(self):
+        """pauli expect state vector with non hermitian operator test"""
+        states_op = ListOp([One, Zero, Plus, Minus])
+
+        op = np.zeros((2, 2))
+        op[0, 0] = 0
+        op[0, 1] = 1
+        op[1, 0] = 2
+        op[1, 1] = 3
+        op_mat = MatrixOp(op)
+
+        converted_meas = self.expect.convert(~StateFn(op_mat) @ states_op)
+        sampled = self.sampler.convert(converted_meas)
+
+        np.testing.assert_array_almost_equal(sampled.eval(), [3, 0, 3, 0], decimal=1)
 
     def test_pauli_expect_op_vector_state_vector(self):
         """pauli expect op vector state vector test"""
