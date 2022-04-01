@@ -122,8 +122,10 @@ def _prepare_list_op(
     if isinstance(observables, dict):
         observables = list(observables.values())
 
-    state = StateFn(quantum_state)
-    return ListOp([StateFn(obs, is_measurement=True).compose(state) for obs in observables])
+    if not isinstance(quantum_state, StateFn):
+        quantum_state = StateFn(quantum_state)
+
+    return ListOp([StateFn(obs, is_measurement=True).compose(quantum_state) for obs in observables])
 
 
 def _prepare_result(
