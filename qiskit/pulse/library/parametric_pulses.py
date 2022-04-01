@@ -351,7 +351,8 @@ class Drag(ParametricPulse):
         f'(x) &= g(x) + 1j \\times \\text{beta} \\times \\frac{\\mathrm d}{\\mathrm{d}x} g(x)\\\\
               &= g(x) + 1j \\times \\text{beta} \\times\
                     \\Bigl(-\\frac{x - \\text{duration}/2}{\\text{sigma}^2}\\Bigr)g(x)\\\\
-        f(x) &= \\text{amp}\\times\\frac{f'(x)-f'(-1)}{1-f'(-1)}, \\quad 0 \\le x < \\text{duration}
+        f(x) &= \\text{amp}\\times\\frac{g(x)-g(-1)}{1-g(-1)} \\times \\Bigl(1 + 1j \\times \\text{beta} \\times\
+                    \\Bigl(-\\frac{x - \\text{duration}/2}{\\text{sigma}^2}\\Bigr)  \\Bigr), \\quad 0 \\le x < \\text{duration}
 
     where :math:`g(x)` is a standard unlifted gaussian waveform and
     :math:`f'(x)` is the DRAG waveform without lifting or amplitude scaling.
