@@ -4,7 +4,7 @@ features:
     The :class:`~qiskit.transpiler.passes.DenseLayout` pass has a new keyword
     argument on its constructor, ``target``. This argument is used to specify a
     :class:`~qiskit.transpiler.Target` object representing the compilation
-    target for the pass. If it is specified it superscedes the other arguments
+    target for the pass. If it is specified it supersedes the other arguments
     on the constructor, ``coupling_map`` and ``backend_prop``.
   - |
     The :class:`~qiskit.transpiler.Target` class has a new method,
