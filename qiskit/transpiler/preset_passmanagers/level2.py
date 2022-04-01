@@ -45,6 +45,7 @@ from qiskit.transpiler.passes import Size
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CommutativeCancellation
+from qiskit.transpiler.passes import SymmetricCancellation
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckGateDirection
 from qiskit.transpiler.passes import Collect2qBlocks
@@ -270,6 +271,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _opt_control(property_set):
         return (not property_set["depth_fixed_point"]) or (not property_set["size_fixed_point"])
 
+    _sym_cancel = [SymmetricCancellation()]
     _opt = [
         Optimize1qGatesDecomposition(basis_gates),
         CommutativeCancellation(basis_gates=basis_gates),
@@ -294,6 +296,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     pm2.append(_reset)
 
     pm2.append(_depth_check + _size_check)
+    pm2.append(_sym_cancel)
     pm2.append(_opt + _unroll + _depth_check + _size_check, do_while=_opt_control)
 
     if inst_map and inst_map.has_custom_gate():

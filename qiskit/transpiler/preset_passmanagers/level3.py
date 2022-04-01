@@ -46,6 +46,7 @@ from qiskit.transpiler.passes import Size
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CommutativeCancellation
+from qiskit.transpiler.passes import SymmetricCancellation
 from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure
 from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
 from qiskit.transpiler.passes import Collect2qBlocks
@@ -269,6 +270,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _meas = [OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
 
+    _sym_cancel = [SymmetricCancellation()]
     _opt = [
         Collect2qBlocks(),
         ConsolidateBlocks(basis_gates=basis_gates, target=target),
@@ -308,6 +310,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         # optimization loop to correct for incorrect directions that might be
         # inserted by UnitarySynthesis which is direction aware but only via
         # the coupling map which with a target doesn't give a full picture
+        pm3.append(_sym_cancel)
         if target is not None:
             pm3.append(
                 _opt + _unroll + _depth_check + _size_check + _direction, do_while=_opt_control
@@ -317,6 +320,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     else:
         pm3.append(_reset)
         pm3.append(_depth_check + _size_check)
+        pm3.append(_sym_cancel)
         pm3.append(_opt + _unroll + _depth_check + _size_check, do_while=_opt_control)
     if inst_map and inst_map.has_custom_gate():
         pm3.append(PulseGates(inst_map=inst_map))

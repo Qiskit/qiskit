@@ -188,6 +188,7 @@ from .optimization import Optimize1qGates
 from .optimization import Optimize1qGatesDecomposition
 from .optimization import Collect2qBlocks
 from .optimization import Collect1qRuns
+from .optimization import SymmetricCancellation
 from .optimization import CollectMultiQBlocks
 from .optimization import ConsolidateBlocks
 from .optimization import CommutationAnalysis
