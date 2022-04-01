@@ -9,7 +9,7 @@ features:
     Added a new method :meth:`~qiskit.quantum_info.SparsePauliOp.equiv` to the
     :class:`~.SparsePauliOp` class for testing the equivalence of a
     :class:`~.SparsePauliOp` with another :class:`.SparsePauliOp` object.
-    Unlike the ``==`` operator which compares operartors element-wise,
+    Unlike the ``==`` operator which compares operators element-wise,
     :meth:`~qiskit.quantum_info.SparsePauliOp.equiv` compares whether two
     operators are equivalent or not. For example::
 
