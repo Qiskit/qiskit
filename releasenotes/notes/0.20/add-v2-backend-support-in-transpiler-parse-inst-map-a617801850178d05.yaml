@@ -1,8 +1,8 @@
 ---
 fixes:
   - |
-    Fixed support in :func:`~qiskit.compiler.transpile` for passing a
-    :class:`~.InstructionScheduleMap` to object to the underlying
+    Fixed support in :func:`~qiskit.compiler.transpile` for passing an
+    :class:`~.InstructionScheduleMap` object to the underlying
     :class:`~qiskit.transpiler.PassManager` based on the
     :class:`~qiskit.transpiler.Target` for
     :class:`~qiskit.providers.backend.BackendV2` based backends. Previously,
