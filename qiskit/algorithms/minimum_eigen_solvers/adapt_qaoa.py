@@ -13,7 +13,7 @@
 """ The Adaptive Derivative Assembled Problem Tailored - Quantum Approximate Optimization Algorithm. """
 
 import logging
-from typing import Callable, List, Optional, Union
+from typing import Callable, List, Optional, Union, Tuple
 import warnings
 import numpy as np
 from scipy.stats import loguniform
@@ -38,7 +38,7 @@ from qiskit.providers import Backend, BaseBackend
 from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.circuit.library.n_local.adaptqaoa_ansatz import AdaptQAOAAnsatz, commutator
 from qiskit.algorithms.minimum_eigen_solvers import QAOA
-
+from ..exceptions import AlgorithmError
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +66,7 @@ class AdaptQAOA(QAOA):
 
     def __init__(
         self,
-        mixer_pool: Optional[Union[OperatorBase, QuantumCircuit]] = None,
+        mixer_pool: Optional[Union[List, OperatorBase, QuantumCircuit]] = None,
         mixer_pool_type: Optional[str] = None,
         threshold: Optional[Callable[[int, float], None]] = None,
         max_reps=1,
@@ -78,8 +78,8 @@ class AdaptQAOA(QAOA):
         expectation: Optional[ExpectationBase] = None,
         include_custom: bool = False,
         max_evals_grouped: int = 1,
-        callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
-        quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+        callback: Optional[Callable[[int, np.ndarray, float], None]] = None,
+        quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None,
     ) -> None:
         r"""
         Args:
@@ -157,7 +157,10 @@ class AdaptQAOA(QAOA):
         self.solution_tolerance = solution_tolerance
         
 
-    def _check_operator_ansatz(self, operator: OperatorBase) -> OperatorBase:
+    def _check_operator_ansatz(
+        self, 
+        operator: OperatorBase,
+        ) -> OperatorBase:
         if operator != self._cost_operator:
             self._cost_operator = operator
             self._solution = False      # Flag problem solution
@@ -166,7 +169,6 @@ class AdaptQAOA(QAOA):
                 mixer_pool_type=self._mixer_pool_type          
             )    
             self._ansatz._check_configuration()     # check the ansatz config without building it
-            self._update_ansatz_params()    # Initialise the problem parameters
             
     def energy_gradient_expectation(
         self, 
@@ -213,14 +215,28 @@ class AdaptQAOA(QAOA):
             operator = operator, 
             gamma_k = gamma_k,
             )
+        ret_expectation = self._get_ansatz_expectation(ansatz = ansatz, 
+            parameter = parameter, 
+            operator = energy_grad_op, 
+            return_expectation = return_expectation)
+        return ret_expectation
+
+    def _get_ansatz_expectation(
+        self,
+        ansatz: QuantumCircuit,
+        parameter: Union[List[float], List[Parameter], np.ndarray],
+        operator: OperatorBase,
+        return_expectation: bool = False,
+    ) -> Union[OperatorBase, Tuple[OperatorBase, ExpectationBase]]:
+
         expectation = ExpectationFactory.build(
-            operator=energy_grad_op,
+            operator=operator,
             backend=self.quantum_instance,
             include_custom=self._include_custom,
         )
         wave_function = ansatz.assign_parameters(parameter) if parameter else ansatz
         ansatz_circuit_op = CircuitStateFn(wave_function)
-        observable_meas = expectation.convert(StateFn(energy_grad_op, is_measurement=True))
+        observable_meas = expectation.convert(StateFn(operator, is_measurement=True))
         expect_op = observable_meas.compose(ansatz_circuit_op).reduce()
         if return_expectation:
             return expect_op, expectation
@@ -269,7 +285,7 @@ class AdaptQAOA(QAOA):
         self,
         operator: OperatorBase,
         aux_operators: Optional[List[Optional[OperatorBase]]] = None,
-        custom_mixers: Optional[Union[OperatorBase, QuantumCircuit]] = None, 
+        custom_mixers: Optional[Union[List, OperatorBase, QuantumCircuit]] = None, 
     ):
         """The Adaptive analogue to the compute_minimum_eigenvalue function of 
         QAOA. For each layer up to the maximum ansatz depth (via max_reps attribute),
@@ -283,22 +299,33 @@ class AdaptQAOA(QAOA):
             Optimal solution in the form of a VQEResult class.
 
         Raises:
+            AlgorithmError: If quantum instance is unspecified
             AttributeError: If the length of custom_mixers exceeds max_reps
         """
+
+        if self.quantum_instance is None:
+            raise AlgorithmError(
+                "A QuantumInstance or Backend must be supplied to run the quantum algorithm."
+            )
+
         custom_mixers = [] if custom_mixers is None else custom_mixers
+        if not isinstance(custom_mixers, list):
+            custom_mixers = [custom_mixers]
         if self.max_reps < len(custom_mixers):
             raise AttributeError("Length of custom ansatz mixer list {} must be less than maximum "
             "ansatz depth {}.".format(len(custom_mixers), self.max_reps))
         self._check_operator_ansatz(operator)
+        self._update_ansatz_params()    # set algorithm initial parameters
         while self._reps <= self.max_reps:  # loop over number of maximum reps
             if self._reps <= len(custom_mixers):
-                custom_mixers = custom_mixers[self._reps]
+                mixers = custom_mixers[self._reps - 1]
+                self._ansatz.set_mixer_operators(mixer_operators = mixers)
             else:
-                mixer_pool = self._ansatz._mixer_op_pool               
+                mixers = self._ansatz._mixer_op_pool               
             energy_gradients = self.compute_mixer_pool_energy_grads(
                 operator=operator, 
                 ansatz = self.__ansatz, 
-                mixer_pool = mixer_pool,
+                mixer_pool = mixers,
                 parameter = list(self._ret.optimal_point) if hasattr(self._ret,'optimal_point') else {},
                 gamma_k = float(self.initial_point[-1]),
                 )
@@ -324,13 +351,39 @@ class AdaptQAOA(QAOA):
             logger.info(f"Initial point: {self.initial_point}")
             logger.info(f"Optimal parameters: {self._ret.optimal_parameters}")
             logger.info(f"Relative Energy: {self._ret.optimal_value - self.ground_state_energy}")
-            print(self._reps, self._ret.optimal_value - self.ground_state_energy)
+            # print(self._reps, self._ret.optimal_value - self.ground_state_energy, energy_norm)
             self._reps += 1
             self._update_points()
         if self._solution:
             logger.info("Early stoppage condition satisfied; {}".format(stop_msg))
         self._solution = True
         return self._ret
+
+    def construct_circuit(
+        self, 
+        operator: OperatorBase,
+        mixer_operators: Optional[Union[List, OperatorBase, QuantumCircuit]] = None,
+        parameter: Union[List[float], List[Parameter], np.ndarray] = None,
+        ) -> AdaptQAOAAnsatz:
+        """Return a QAOA ansatz circuit used to compute the expectation value.
+        Custom mixing operators at each layer in the ansatz may be specified by an
+        an ordered list of operators, with a list length equating to the ansatz depth.
+        Args:
+            operator: Qubit operator of the Observable
+            mixer_operators: Operator or an ordered list of operators defining the
+                mixer to be inserted at each layer in the ansatz.
+            parameter: Parameters for the ansatz circuit.
+
+        Returns:
+            A QAOA-like ansatz circuit used to compute the expectation value.
+        """
+
+        self._check_operator_ansatz(operator)       
+        
+        self._ansatz.set_mixer_operators(mixer_operators = mixer_operators)
+        self._ansatz._build()
+        self._ansatz.assign_parameters(parameter, inplace=True)
+        return self._ansatz
 
     @property
     def ansatz(self) -> QuantumCircuit:
@@ -419,7 +472,6 @@ class AdaptQAOA(QAOA):
         """
         if initial_point is None:
             self.__user_ip = False
-            self._beta_ip, self._gamma_ip = [], []
         else:
             self.__user_ip = initial_point.tolist() if not isinstance(initial_point, list) else initial_point
             if len(initial_point) != 2 * self.max_reps:
@@ -491,9 +543,12 @@ class AdaptQAOA(QAOA):
             AttributeError: If mixer_pool and mixer_pool_type are not None, mixer_pool
             cannot be set.
         """
-        if (mixer_pool and self.mixer_pool_type) is not None:
-            raise AttributeError("Unable to set mixer pool as the provided mixer "
-            "pool type {} is not None".format(self._mixer_pool_type))
+        if mixer_pool is not None:
+            if not isinstance(mixer_pool, list):
+                mixer_pool = [mixer_pool]
+            if self._mixer_pool_type is not None:
+                raise AttributeError("Unable to set mixer pool as the provided mixer "
+                "pool type {} is not None".format(self._mixer_pool_type))
         self._mixer_pool = mixer_pool
         self._ansatz.mixer_pool = mixer_pool # reset the ansatz mixer pool
    
@@ -555,12 +610,15 @@ class AdaptQAOA(QAOA):
     def _update_ansatz_params(self):
         if self._ansatz._mixer_operators is None:   # set the initial parameters for iterative algorithm
             self._reps = 1 
+            self._beta_ip, self._gamma_ip = [], []
             self._ret, self._ground_state_energy = None, None
             mixer_operators = []         # initialise an empty list to append mixer operators to
             self.__ansatz = self._ansatz.initial_state     # an iterative circuit
         else:   # update ansatz parameters
-            mixer_operators = self._ansatz._mixer_pool[self.__energy_idx]
-        self._ansatz.construct_ansatz(mixer_operators = mixer_operators, append = True)
+            mixer_operators = self._ansatz._mixer_operators
+            if len(mixer_operators) < self._reps:
+                mixer_operators += [self._ansatz._mixer_pool[self.__energy_idx]]
+        self.construct_circuit(operator = self._cost_operator, mixer_operators = mixer_operators)
         self._num_gamma = self._ansatz._num_cost   # cost operator parameters
         self._num_beta = self._ansatz._num_mixer   # mixer parameters
 
