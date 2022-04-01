@@ -76,6 +76,21 @@ stages:
             parameters:
               pythonVersion: ${{ version }}
 
+    - stage: "Nightly_Failure"
+      displayName: "Comment on nightly failure"
+      dependsOn: "Nightly"
+      condition: failed()
+      pool: {vmImage: 'ubuntu-latest'}
+      jobs:
+        - job: "Comment"
+          steps:
+            - task: GitHubComment@0
+              inputs:
+                gitHubConnection: Qiskit
+                repositoryName: ${{ variables['Build.Repository.Name'] }}
+                id: 7864
+                comment: Nightly test job failed at commit $(Build.SourceVersion).  View the logs at $(System.TeamFoundationCollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId).
+
   # Full PR suite.
   - ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
     # The preliminary stage should be small in both total runtime (including
