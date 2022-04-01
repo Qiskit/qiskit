@@ -1,14 +1,19 @@
 # Trigger types.  This needs to include all the triggers for the different
 # pipelines we might want to run.
 trigger:
-  tags:
-    include: ["*"]
   branches:
-    include: ["main", "stable/*"]
+    include:
+      - 'main'
+      - 'stable/*'
+  tags:
+    include:
+      - '*'
 
 pr:
+  autoCancel: true
   branches:
-    include: ["*"]
+    include:
+      - '*'
 
 schedules:
   - cron: "20 6 * * *"
