@@ -254,6 +254,21 @@ class VF2PostLayout(AnalysisPass):
         if chosen_layout is None:
             stop_reason = VF2PostLayoutStopReason.NO_SOLUTION_FOUND
         else:
+            existing_layout = self.property_set["layout"]
+            # If any ancillas in initial layout map them back to the final layout output
+            if existing_layout is not None and len(existing_layout) != len(chosen_layout):
+                virtual_bits = chosen_layout.get_virtual_bits()
+                existing_physical = existing_layout.get_physical_bits()
+                used_bits = set(virtual_bits.values())
+                num_qubits = len(cm_graph)
+                for index, bit in enumerate(dag.qubits):
+                    if bit not in virtual_bits:
+                        for i in range(num_qubits):
+                            if i not in used_bits:
+                                used_bits.add(i)
+                                chosen_layout.add(existing_physical[index], i)
+                                break
+
             self.property_set["layout"] = chosen_layout
             for reg in dag.qregs.values():
                 self.property_set["layout"].add_register(reg)
