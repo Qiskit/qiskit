@@ -310,6 +310,31 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     pm1.append(_reset)
     pm1.append(_depth_check + _size_check)
     pm1.append(_opt + _unroll + _depth_check + _size_check, do_while=_opt_control)
+    if target is not None or (coupling_map and backend_properties):
+
+        def _post_layout_condition(property_set):
+            # if VF2 layout stopped for any reason other than solution found we need
+            # to run layout since VF2 didn't converge.
+            if (
+                property_set["VF2PostLayout_stop_reason"] is not None
+                and property_set["VF2PostLayout_stop_reason"]
+                is VF2PostLayoutStopReason.SOLUTION_FOUND
+            ):
+                return True
+            return False
+
+        pm1.append(
+            VF2PostLayout(
+                target,
+                coupling_map,
+                backend_properties,
+                seed_transpiler,
+                call_limit=int(5e4),  # Set call limit to ~100ms with retworkx 0.10.2
+                time_limit=0.1,
+            )
+        )
+        pm1.append(ApplyLayout(), condition=_post_layout_condition)
+
     if inst_map and inst_map.has_custom_gate():
         pm1.append(PulseGates(inst_map=inst_map))
 
@@ -369,30 +394,5 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if scheduling_method:
         # Call padding pass if circuit is scheduled
         pm1.append(PadDelay())
-
-    if target is not None or (coupling_map and backend_properties):
-
-        def _post_layout_condition(property_set):
-            # if VF2 layout stopped for any reason other than solution found we need
-            # to run layout since VF2 didn't converge.
-            if (
-                property_set["VF2PostLayout_stop_reason"] is not None
-                and property_set["VF2PostLayout_stop_reason"]
-                is VF2PostLayoutStopReason.SOLUTION_FOUND
-            ):
-                return True
-            return False
-
-        pm1.append(
-            VF2PostLayout(
-                target,
-                coupling_map,
-                backend_properties,
-                seed_transpiler,
-                call_limit=int(5e4),  # Set call limit to ~100ms with retworkx 0.10.2
-                time_limit=0.1,
-            )
-        )
-        pm1.append(ApplyLayout(), condition=_post_layout_condition)
 
     return pm1
