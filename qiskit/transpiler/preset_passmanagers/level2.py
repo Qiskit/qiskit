@@ -28,6 +28,7 @@ from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import GateDirection
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import VF2Layout
+from qiskit.transpiler.passes import VF2PostLayout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
@@ -61,6 +62,7 @@ from qiskit.transpiler.passes import PadDelay
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import ContainsInstruction
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
+from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
 
 from qiskit.transpiler import TranspilerError
 
@@ -356,5 +358,30 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if scheduling_method:
         # Call padding pass if circuit is scheduled
         pm2.append(PadDelay())
+
+    if target is not None or (coupling_map and backend_properties):
+
+        def _post_layout_condition(property_set):
+            # if VF2 layout stopped for any reason other than solution found we need
+            # to run layout since VF2 didn't converge.
+            if (
+                property_set["VF2PostLayout_stop_reason"] is not None
+                and property_set["VF2PostLayout_stop_reason"]
+                is VF2PostLayoutStopReason.SOLUTION_FOUND
+            ):
+                return True
+            return False
+
+        pm2.append(
+            VF2PostLayout(
+                target,
+                coupling_map,
+                backend_properties,
+                seed_transpiler,
+                call_limit=int(5e6),  # Set call limit to ~10 sec with retworkx 0.10.2
+                time_limit=10.0,
+            )
+        )
+        pm2.append(ApplyLayout(), condition=_post_layout_condition)
 
     return pm2
