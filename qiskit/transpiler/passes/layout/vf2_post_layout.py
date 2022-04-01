@@ -40,7 +40,7 @@ def _target_match(node_a, node_b):
     if isinstance(node_a, set):
         return node_a.issuperset(node_b.keys())
     else:
-        return set(node_a).issubset(node_a)
+        return set(node_b).issubset(node_a)
 
 
 class VF2PostLayout(AnalysisPass):
