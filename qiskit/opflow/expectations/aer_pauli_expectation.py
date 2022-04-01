@@ -51,7 +51,11 @@ class AerPauliExpectation(ExpectationBase):
         """
 
         if isinstance(operator, OperatorStateFn) and operator.is_measurement:
-            is_herm = operator.primitive.is_hermitian()
+            if isinstance(operator.primitive, ListOp):
+                is_herm = all([op.is_hermitian() for op in operator.primitive.oplist])
+            else:
+                is_herm = operator.primitive.is_hermitian()
+
             if not is_herm:
                 pauli_sum_re = (
                     self._replace_pauli_sums(
