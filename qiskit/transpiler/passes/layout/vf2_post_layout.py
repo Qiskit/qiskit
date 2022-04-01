@@ -17,7 +17,7 @@ import random
 import time
 from collections import defaultdict
 
-from retworkx import PyGraph, PyDiGraph, vf2_mapping
+from retworkx import PyDiGraph, vf2_mapping
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
@@ -118,10 +118,7 @@ class VF2PostLayout(AnalysisPass):
             raise TranspilerError(
                 "A target must be specified or a coupling map and properties must be provided"
             )
-
-        qubits = dag.qubits
         im_graph = PyDiGraph(multigraph=False)
-
         im_graph_node_map = {}
         reverse_im_graph_node_map = {}
 
