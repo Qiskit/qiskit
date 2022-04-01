@@ -144,7 +144,7 @@ Post Layout (Post transpile qubit selection)
 .. autosummary::
    :toctree: ../stubs/
 
-   Vf2PostLayout
+   VF2PostLayout
 
 Additional Passes
 =================
