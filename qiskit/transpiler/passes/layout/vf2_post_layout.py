@@ -256,7 +256,7 @@ class VF2PostLayout(AnalysisPass):
 
     def _score_layout(self, layout, bit_map, reverse_bit_map, im_graph):
         bits = layout.get_virtual_bits()
-        score = 0
+        fidelity = 1
         if self.target is not None:
             for bit, node_index in bit_map.items():
                 gate_counts = im_graph[node_index]
@@ -264,7 +264,7 @@ class VF2PostLayout(AnalysisPass):
                     if self.target[gate] is not None and None not in self.target[gate]:
                         props = self.target[gate][(bits[bit],)]
                         if props is not None and props.error is not None:
-                            score += props.error * count
+                            fidelity *= (1 - props.error) ** count
 
             for edge in im_graph.edge_index_map().values():
                 qargs = (bits[reverse_bit_map[edge[0]]], bits[reverse_bit_map[edge[1]]])
@@ -273,19 +273,19 @@ class VF2PostLayout(AnalysisPass):
                     if self.target[gate] is not None and None not in self.target[gate]:
                         props = self.target[gate][qargs]
                         if props is not None and props.error is not None:
-                            score += props.error * count
+                            fidelity *= (1 - props.error) ** count
         else:
             for bit, node_index in bit_map.items():
                 gate_counts = im_graph[node_index]
                 for gate, count in gate_counts.items():
                     if gate == "measure":
                         try:
-                            score += self.properties.readout_error(bits[bit]) * count
+                            fidelity *= (1 - self.properties.readout_error(bits[bit])) ** count
                         except BackendPropertyError:
                             pass
                     else:
                         try:
-                            score += self.properties.gate_error(gate, bits[bit]) * count
+                            fidelity *= (1 - self.properties.gate_error(gate, bits[bit])) ** count
                         except BackendPropertyError:
                             pass
             for edge in im_graph.edge_index_map().values():
@@ -293,7 +293,7 @@ class VF2PostLayout(AnalysisPass):
                 gate_counts = edge[2]
                 for gate, count in gate_counts.items():
                     try:
-                        score += self.properties.gate_error(gate, qargs) * count
+                        fidelity *= (1 - self.properties.gate_error(gate, qargs)) ** count
                     except BackendPropertyError:
                         pass
-        return score
+        return 1 - fidelity
