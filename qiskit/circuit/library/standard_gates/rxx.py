@@ -41,8 +41,8 @@ class RXXGate(Gate):
 
         R_{XX}(\theta) = \exp\left(-i \th X{\otimes}X\right) =
             \begin{pmatrix}
-                \cos\left(\th\right)   & 0           & 0           & -i\sin\left(\th\right) \\ 
-                0           & \cos\left(\th\right)   & -i\sin\left(\th\right) & 0 \\ 
+                \cos\left(\th\right)   & 0           & 0           & -i\sin\left(\th\right) \\
+                0           & \cos\left(\th\right)   & -i\sin\left(\th\right) & 0 \\
                 0           & -i\sin\left(\th\right) & \cos\left(\th\right)   & 0 \\
                 -i\sin\left(\th\right) & 0           & 0           & \cos\left(\th\right)
             \end{pmatrix}
