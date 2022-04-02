@@ -553,28 +553,27 @@ class TestFinalLayouts(QiskitTestCase):
         }
 
         vf2_layout = {
-            0: Qubit(QuantumRegister(15, "ancilla"), 0),
-            1: Qubit(QuantumRegister(15, "ancilla"), 1),
-            2: Qubit(QuantumRegister(15, "ancilla"), 2),
-            3: Qubit(QuantumRegister(15, "ancilla"), 3),
-            4: Qubit(QuantumRegister(3, "qr1"), 0),
-            5: Qubit(QuantumRegister(15, "ancilla"), 4),
-            6: Qubit(QuantumRegister(15, "ancilla"), 5),
-            7: Qubit(QuantumRegister(15, "ancilla"), 6),
-            8: Qubit(QuantumRegister(3, "qr1"), 1),
-            9: Qubit(QuantumRegister(15, "ancilla"), 7),
-            10: Qubit(QuantumRegister(15, "ancilla"), 8),
-            11: Qubit(QuantumRegister(15, "ancilla"), 9),
-            12: Qubit(QuantumRegister(15, "ancilla"), 10),
-            13: Qubit(QuantumRegister(3, "qr1"), 2),
-            14: Qubit(QuantumRegister(2, "qr2"), 0),
-            15: Qubit(QuantumRegister(15, "ancilla"), 11),
-            16: Qubit(QuantumRegister(15, "ancilla"), 12),
-            17: Qubit(QuantumRegister(15, "ancilla"), 13),
-            18: Qubit(QuantumRegister(15, "ancilla"), 14),
-            19: Qubit(QuantumRegister(2, "qr2"), 1),
+            0: Qubit(QuantumRegister(15, 'ancilla'), 0),
+            1: Qubit(QuantumRegister(15, 'ancilla'), 1),
+            2: Qubit(QuantumRegister(15, 'ancilla'), 2),
+            3: Qubit(QuantumRegister(15, 'ancilla'), 3),
+            4: Qubit(QuantumRegister(15, 'ancilla'), 4),
+            5: Qubit(QuantumRegister(15, 'ancilla'), 5),
+            6: Qubit(QuantumRegister(3, 'qr1'), 1),
+            7: Qubit(QuantumRegister(15, 'ancilla'), 6),
+            8: Qubit(QuantumRegister(15, 'ancilla'), 7),
+            9: Qubit(QuantumRegister(15, 'ancilla'), 8),
+            10: Qubit(QuantumRegister(3, 'qr1'), 0),
+            11: Qubit(QuantumRegister(3, 'qr1'), 2),
+            12: Qubit(QuantumRegister(15, 'ancilla'), 9),
+            13: Qubit(QuantumRegister(15, 'ancilla'), 10),
+            14: Qubit(QuantumRegister(15, 'ancilla'), 11),
+            15: Qubit(QuantumRegister(15, 'ancilla'), 12),
+            16: Qubit(QuantumRegister(2, 'qr2'), 0),
+            17: Qubit(QuantumRegister(2, 'qr2'), 1),
+            18: Qubit(QuantumRegister(15, 'ancilla'), 13),
+            19: Qubit(QuantumRegister(15, 'ancilla'), 14)
         }
-
         # Trivial layout
         expected_layout_level0 = trivial_layout
         # Dense layout
@@ -652,26 +651,26 @@ class TestFinalLayouts(QiskitTestCase):
         }
 
         sabre_layout = {
+            11: qr[0],
+            5: qr[1],
+            6: qr[2],
+            16: qr[3],
+            10: qr[4],
             0: ancilla[0],
             1: ancilla[1],
             2: ancilla[2],
             3: ancilla[3],
             4: ancilla[4],
-            5: ancilla[5],
-            6: ancilla[6],
-            7: qr[4],
-            8: qr[1],
+            7: ancilla[5],
+            8: ancilla[6],
             9: ancilla[7],
-            10: ancilla[8],
-            11: ancilla[9],
-            12: qr[2],
-            13: qr[0],
+            12: ancilla[8],
+            13: ancilla[9],
             14: ancilla[10],
             15: ancilla[11],
-            16: ancilla[12],
-            17: ancilla[13],
-            18: ancilla[14],
-            19: qr[3],
+            17: ancilla[12],
+            18: ancilla[13],
+            19: ancilla[14],
         }
 
         expected_layout_level0 = trivial_layout
