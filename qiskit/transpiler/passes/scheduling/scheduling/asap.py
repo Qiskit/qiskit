@@ -17,7 +17,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.scheduling.scheduling.base_scheduler import BaseScheduler
 
 
-class ASAPSchedule(BaseScheduler):
+class ASAPScheduleAnalysis(BaseScheduler):
     """ASAP Scheduling pass, which schedules the start time of instructions as early as possible..
 
     See :class:`~qiskit.transpiler.passes.scheduling.base_scheduler.BaseScheduler` for the

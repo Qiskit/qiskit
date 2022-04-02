@@ -13,6 +13,7 @@
 """Tests for Estimator."""
 
 import unittest
+
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
@@ -105,7 +106,9 @@ class TestEstimator(QiskitTestCase):
     def test_evaluate_multi_params(self):
         """test for evaluate with multiple parameters"""
         with Estimator([self.ansatz], [self.observable]) as est:
-            result = est(parameter_values=[[0, 1, 1, 2, 3, 5], [1, 1, 2, 3, 5, 8]])
+            result = est(
+                [0] * 2, [0] * 2, parameter_values=[[0, 1, 1, 2, 3, 5], [1, 1, 2, 3, 5, 8]]
+            )
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.284366511861733, -1.3187526349078742])
 
@@ -149,21 +152,25 @@ class TestEstimator(QiskitTestCase):
             result = est([0], [0], [theta1])
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [1.5555572817900956])
+            self.assertEqual(len(result.metadata), 1)
 
             # calculate [ <psi1(theta1)|op2|psi1(theta1)>, <psi1(theta1)|op3|psi1(theta1)> ]
             result = est([0, 0], [1, 2], [theta1] * 2)
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [-0.5516530027638437, 0.07535238795415422])
+            self.assertEqual(len(result.metadata), 2)
 
             # calculate [ <psi2(theta2)|op2|psi2(theta2)> ]
             result = est([1], [1], [theta2])
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [0.17849238433885167])
+            self.assertEqual(len(result.metadata), 1)
 
             # calculate [ <psi1(theta1)|op1|psi1(theta1)>, <psi1(theta3)|op1|psi1(theta3)> ]
             result = est([0, 0], [0, 0], [theta1, theta3])
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [1.5555572817900956, 1.0656325933346835])
+            self.assertEqual(len(result.metadata), 2)
 
             # calculate [ <psi1(theta1)|op1|psi1(theta1)>,
             #             <psi2(theta2)|op2|psi2(theta2)>,
@@ -173,6 +180,7 @@ class TestEstimator(QiskitTestCase):
             np.testing.assert_allclose(
                 result.values, [1.5555572817900956, 0.17849238433885167, -1.0876631752254926]
             )
+            self.assertEqual(len(result.metadata), 3)
 
     def test_1qubit(self):
         """Test for 1-qubit cases"""
@@ -252,6 +260,47 @@ class TestEstimator(QiskitTestCase):
                 est([0], [0], [[1e4]])
             with self.assertRaises(QiskitError):
                 est([1], [1], [[1, 2]])
+            with self.assertRaises(QiskitError):
+                est([0, 1], [1], [[1]])
+            with self.assertRaises(QiskitError):
+                est([0], [0, 1], [[1]])
+
+    def test_empty_parameter(self):
+        """Test for empty parameter"""
+        n = 2
+        qc = QuantumCircuit(n)
+        op = SparsePauliOp.from_list([("I" * n, 1)])
+        with Estimator(circuits=[qc] * 10, observables=[op] * 10) as estimator:
+            with self.subTest("one circuit"):
+                result = estimator([0], [1], shots=1000)
+                np.testing.assert_allclose(result.values, [1])
+                self.assertEqual(len(result.metadata), 1)
+
+            with self.subTest("two circuits"):
+                result = estimator([2, 4], [3, 5], shots=1000)
+                np.testing.assert_allclose(result.values, [1, 1])
+                self.assertEqual(len(result.metadata), 2)
+
+    def test_numpy_params(self):
+        """Test for numpy array as parameter values"""
+        qc = RealAmplitudes(num_qubits=2, reps=2)
+        op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
+        k = 5
+        params_array = np.random.rand(k, qc.num_parameters)
+        params_list = params_array.tolist()
+        params_list_array = list(params_array)
+        with Estimator(circuits=qc, observables=op) as estimator:
+            target = estimator([0] * k, [0] * k, params_list)
+
+            with self.subTest("ndarrary"):
+                result = estimator([0] * k, [0] * k, params_array)
+                self.assertEqual(len(result.metadata), k)
+                np.testing.assert_allclose(result.values, target.values)
+
+            with self.subTest("list of ndarray"):
+                result = estimator([0] * k, [0] * k, params_list_array)
+                self.assertEqual(len(result.metadata), k)
+                np.testing.assert_allclose(result.values, target.values)
 
 
 if __name__ == "__main__":
