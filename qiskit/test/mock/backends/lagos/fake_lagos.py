@@ -15,7 +15,17 @@ Fake Lagos device (7 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_pulse_backend
+from qiskit.test.mock import fake_pulse_backend, fake_backend
+
+
+class FakeLagosV2(fake_backend.FakeBackendV2):
+    """A fake 7 qubit backend."""
+
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_lagos.json"
+    props_filename = "props_lagos.json"
+    defs_filename = "defs_lagos.json"
+    backend_name = "fake_lagos_v2"
 
 
 class FakeLagos(fake_pulse_backend.FakePulseBackend):
