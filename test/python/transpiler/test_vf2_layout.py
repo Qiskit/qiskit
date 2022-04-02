@@ -17,12 +17,12 @@ import numpy
 import retworkx
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler import CouplingMap, Layout
+from qiskit.transpiler import CouplingMap, Layout, Target, TranspilerError
 from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout, VF2LayoutStopReason
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeTenerife, FakeRueschlikon, FakeManhattan, FakeYorktown
-from qiskit.circuit.library import GraphState
+from qiskit.circuit.library import GraphState, CXGate
 
 
 class LayoutTestCase(QiskitTestCase):
@@ -118,6 +118,29 @@ class TestVF2LayoutSimple(LayoutTestCase):
         self.assertEqual(
             pass_.property_set["VF2Layout_stop_reason"], VF2LayoutStopReason.NO_SOLUTION_FOUND
         )
+
+    def test_coupling_map_and_target(self):
+        """Test that a Target is used instead of a CouplingMap if both are specified."""
+        cmap = CouplingMap([[0, 1], [1, 2]])
+        target = Target()
+        target.add_instruction(CXGate(), {(0, 1): None, (1, 2): None, (1, 0): None})
+        qr = QuantumRegister(3, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[0], qr[1])  # qr0-> qr1
+        circuit.cx(qr[1], qr[2])  # qr1-> qr2
+        circuit.cx(qr[1], qr[0])  # qr1-> qr0
+        dag = circuit_to_dag(circuit)
+        pass_ = VF2Layout(cmap, seed=-1, max_trials=1, target=target)
+        pass_.run(dag)
+        self.assertLayout(dag, target.build_coupling_map(), pass_.property_set)
+
+    def test_neither_coupling_map_or_target(self):
+        """Test that we raise if neither a target or coupling map is specified."""
+        vf2_pass = VF2Layout(seed=123, call_limit=1000, time_limit=20, max_trials=7)
+        circuit = QuantumCircuit(2)
+        dag = circuit_to_dag(circuit)
+        with self.assertRaises(TranspilerError):
+            vf2_pass.run(dag)
 
 
 class TestVF2LayoutLattice(LayoutTestCase):
