@@ -40,7 +40,7 @@ class RXGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        RX(\theta) = exp(-i \th X) =
+        RX(\theta) = \exp\left(-i \th X\right) =
             \begin{pmatrix}
                 \cos{\th}   & -i\sin{\th} \\
                 -i\sin{\th} & \cos{\th}
