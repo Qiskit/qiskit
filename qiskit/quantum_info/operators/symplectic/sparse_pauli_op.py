@@ -13,10 +13,12 @@
 N-Qubit Sparse Pauli Operator class.
 """
 
+from collections import defaultdict
 from numbers import Number
 from typing import Dict
 
 import numpy as np
+import retworkx as rx
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
@@ -771,6 +773,35 @@ class SparsePauliOp(LinearOp):
                 return coeff * mat
 
         return MatrixIterator(self)
+   
+    
+    def _create_graph(self):
+        """Transform measurement operator grouping problem into graph coloring problem
+
+        Returns:
+            retworkx.PyGraph: A class of undirected graphs
+        """
+        edges = self.paulis._noncommutation_graph(qubit_wise=False)
+        graph = rx.PyGraph()
+        graph.add_nodes_from(range(self.size))
+        graph.add_edges_from_no_data(edges)
+        return graph   
+    
+    
+    def group_inter_qubit_commuting(self):
+        """Partition a SparsePauliOp into sets of commuting Pauli strings.
+
+        Returns:
+            List[SparsePauliOp]: List of SparsePauliOp where each SparsePauliOp contains commuting
+                Pauli operators.
+        """
+        graph = self._create_graph()
+        # Keys in coloring_dict are nodes, values are colors
+        coloring_dict = rx.graph_greedy_color(graph)
+        groups = defaultdict(list)
+        for idx, color in coloring_dict.items():
+            groups[color].append(idx)
+        return [self[group] for group in groups.values()]
 
 
 # Update docstrings for API docs

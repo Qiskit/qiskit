@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020
+# (C) Copyright IBM 2017, 2022
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -1070,10 +1070,13 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         base_z, base_x, base_phase = cls._from_array(z, x, phase)
         return cls(BasePauli(base_z, base_x, base_phase))
 
-    def _noncommutation_graph(self):
-        """Create an edge list representing the qubit-wise non-commutation graph.
+    def _noncommutation_graph(self, qubit_wise=True):
+        """Create an edge list representing the non-commutation graph (Pauli Graph).
 
         An edge (i, j) is present if i and j are not commutable.
+
+        Args:
+            qubit_wise (bool): the commutation rule is mutually qubit-wise or not.
 
         Returns:
             List[Tuple(int,int)]: A list of pairs of indices of the PauliList that are not commutable.
@@ -1085,9 +1088,16 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         )
         mat2 = mat1[:, None]
         # mat3[i, j] is True if i and j are qubit-wise commutable
-        mat3 = (((mat1 * mat2) * (mat1 - mat2)) == 0).all(axis=2)
+        mat3 = (mat1 * mat2) * (mat1 - mat2)
         # convert into list where tuple elements are qubit-wise non-commuting operators
-        return list(zip(*np.where(np.triu(np.logical_not(mat3), k=1))))
+        if qubit_wise:
+            return list(zip(*np.where(np.triu(np.logical_not((mat3 == 0).all(axis=2)), k=1))))
+        mat4 = mat3.copy()
+        mat4[mat3 == 0] = 1
+        mat4[mat3 != 0] = -1
+        mat5 = np.multiply.reduce(mat4, axis=2) == 1
+        return list(zip(*np.where(np.triu(np.logical_not(mat5), k=1))))
+ 
 
     def group_qubit_wise_commuting(self):
         """Partition a PauliList into sets of mutually qubit-wise commuting Pauli strings.
