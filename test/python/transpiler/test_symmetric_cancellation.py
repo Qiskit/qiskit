@@ -21,7 +21,7 @@ from qiskit.transpiler.passes import SymmetricCancellation
 
 
 class TestSymmetricCancellation(QiskitTestCase):
-    """Test the InverseCancellation transpiler pass."""
+    """Test the SymmetricCancellation transpiler pass."""
 
     def test_swap_gate_cancellation(self):
         qc = QuantumCircuit(3)
