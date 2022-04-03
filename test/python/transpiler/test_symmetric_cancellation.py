@@ -24,6 +24,8 @@ class TestSymmetricCancellation(QiskitTestCase):
     """Test the SymmetricCancellation transpiler pass."""
 
     def test_swap_gate_cancellation(self):
+        """A circuit with back to back swaps
+        with same and different qargs"""
         qc = QuantumCircuit(3)
         # same qargs
         qc.swap(0, 1)
