@@ -1091,13 +1091,15 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         mat3 = (mat1 * mat2) * (mat1 - mat2)
         # convert into list where tuple elements are qubit-wise non-commuting operators
         if qubit_wise:
-            return list(zip(*np.where(np.triu(np.logical_not((mat3 == 0).all(axis=2)), k=1))))
+            return list(
+                zip(*np.where(np.triu(np.logical_not((mat3 == 0).all(axis=2)), k=1)))
+            )
         mat4 = mat3.copy()
         mat4[mat3 == 0] = 1
         mat4[mat3 != 0] = -1
         mat5 = np.multiply.reduce(mat4, axis=2) == 1
         return list(zip(*np.where(np.triu(np.logical_not(mat5), k=1))))
- 
+
 
     def group_qubit_wise_commuting(self):
         """Partition a PauliList into sets of mutually qubit-wise commuting Pauli strings.
