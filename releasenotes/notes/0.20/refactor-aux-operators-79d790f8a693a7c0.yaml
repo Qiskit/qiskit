@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Added a  new function, :func:`qiskit.algorithms.eval_observables`, which is
+    used to evaluate observables given a bound
+    :class:`~qiskit.circuit.QuantumCircuit`. It originates from a private
+    method, ``_eval_aux_ops()``, of the :class:`qiskit.algorithms.VQE` class but
+    the new :func:`~qiskit.algorithms.eval_observables` function is now more
+    general so that it can be used in other algorithms, for example time
+    evolution algorithms.
