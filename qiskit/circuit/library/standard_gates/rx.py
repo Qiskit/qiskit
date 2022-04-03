@@ -122,7 +122,7 @@ class CRXGate(ControlledGate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        CRX(\lambda)\ q_0, q_1 =
+        CRX(\theta)\ q_0, q_1 =
             I \otimes |0\rangle\langle 0| + RX(\theta) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
