@@ -29,7 +29,7 @@ from qiskit.transpiler.passes.optimization import Optimize1qGates
 from .base_padding import BasePadding
 
 
-class DynamicalDecoupling(BasePadding):
+class PadDynamicalDecoupling(BasePadding):
     """Dynamical decoupling insertion pass.
 
     This pass works on a scheduled, physical circuit. It scans the circuit for

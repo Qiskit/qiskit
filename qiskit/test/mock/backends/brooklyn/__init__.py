@@ -12,4 +12,5 @@
 
 """Mock brooklyn backend"""
 
+from .fake_brooklyn import FakeBrooklynV2
 from .fake_brooklyn import FakeBrooklyn
