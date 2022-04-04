@@ -125,11 +125,7 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
         """pauli expect state vector with non hermitian operator test"""
         states_op = ListOp([One, Zero, Plus, Minus])
 
-        op = np.zeros((2, 2))
-        op[0, 0] = 0
-        op[0, 1] = 1
-        op[1, 0] = 2
-        op[1, 1] = 3
+        op = np.array([[0, 1], [2, 3]])
         op_mat = MatrixOp(op)
 
         converted_meas = self.expect.convert(~StateFn(op_mat) @ states_op)
