@@ -72,8 +72,7 @@ class VarQTELinearSolver:
                 not ``None``.
 
         Returns:
-            dω/dt, 2Re⟨dψ(ω)/dω|H|ψ(ω) for VarQITE/2Im⟨dψ(ω)/dω|H|ψ(ω) for VarQRTE, Fubini-Study
-            Metric.
+            Solution to the LSE, A from Ax=b, b from Ax=b.
         """
 
         metric_tensor_lse_lhs = self._calc_lse_lhs(param_dict, t_param, time_value)
