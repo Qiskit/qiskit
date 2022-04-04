@@ -37,10 +37,6 @@ _PROVIDER_CHECK = ProviderCheck()
 def _get_backend_interface_version(backend):
     """Get the backend version int."""
     backend_interface_version = getattr(backend, "version", None)
-    # Handle deprecated Backend based backends which have a version()
-    # method
-    if not isinstance(backend_interface_version, int):
-        backend_interface_version = 0
     return backend_interface_version
 
 

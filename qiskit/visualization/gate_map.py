@@ -27,10 +27,6 @@ from .utils import matplotlib_close_if_inline
 
 def _get_backend_interface_version(backend):
     backend_interface_version = getattr(backend, "version", None)
-    # Handle deprecated BaseBackend based backends which have a version()
-    # method
-    if not isinstance(backend_interface_version, int):
-        backend_interface_version = 0
     return backend_interface_version
 
 
