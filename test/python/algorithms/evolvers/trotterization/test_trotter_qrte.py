@@ -21,7 +21,7 @@ from numpy.testing import assert_raises
 
 from qiskit import BasicAer, QuantumCircuit
 from qiskit.algorithms import EvolutionProblem
-from qiskit.algorithms.evolvers.real.trotterization.trotter_qrte import (
+from qiskit.algorithms.evolvers.trotterization import (
     TrotterQRTE,
 )
 from qiskit.quantum_info import Statevector, SparsePauliOp, Pauli, PauliTable

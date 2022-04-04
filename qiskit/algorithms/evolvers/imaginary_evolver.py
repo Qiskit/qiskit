@@ -14,7 +14,7 @@
 
 from abc import ABC
 
-from ..evolver import Evolver
+from qiskit.algorithms.evolvers.evolver import Evolver
 
 
 class ImaginaryEvolver(Evolver, ABC):

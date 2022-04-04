@@ -10,12 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """This package contains Trotterization-based Quantum Real Time Evolution algorithm.
-It is compliant with the new Quantum Time Evolution Framework and makes use of `ProductFormula` and
-`PauliEvolutionGate` implementations.
-The evolution with gradients assumes that a Hamiltonian is a linear combination of `PauliOp` objects
-w.r.t. given parameters. It case of a single summand, it might be a `PauliOp`."""
+It is compliant with the new Quantum Time Evolution Framework and makes use of
+:class:`qiskit.synthesis.evolution.ProductFormula` and
+:class:`~qiskit.circuit.library.PauliEvolutionGate` implementations. """
 
-from qiskit.algorithms.evolvers.real.trotterization.trotter_qrte import (
+from qiskit.algorithms.evolvers.trotterization.trotter_qrte import (
     TrotterQRTE,
 )
 
