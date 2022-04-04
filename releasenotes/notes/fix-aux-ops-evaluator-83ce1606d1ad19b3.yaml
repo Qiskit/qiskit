@@ -1,6 +1,6 @@
 fixes:
   - |
-    The eval_observables() raised an error when the quantum_circuit is a 
-    StateFn. This comes from the fact that creating a StateFn from a StateFn
-    results in an OperatorStateFn. A check was added to avoid this error.
-    A test case was also added to assert that the error was indeed fixed.
+    The :fun:`~qiskit.algorithms.eval_observables` function raised an error when the 
+    ``quantum_state`` argument is a :class:`~qiskit.opflow.StateFn`. 
+    This error was fixed and ``eval_observables`` now correctly supports all input types
+    specifying in the type hints.
