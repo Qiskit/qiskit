@@ -186,7 +186,9 @@ stages:
             env:
               CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
               CIBW_ARCHS_MACOS: arm64 universal2
-              CIBW_ENVIRONMENT: CARGO_BUILD_TARGET="aarch64-apple-darwin" PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
+              CIBW_ENVIRONMENT: >-
+                CARGO_BUILD_TARGET="aarch64-apple-darwin"
+                PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
 
         - template: ".azure/wheels.yml"
           parameters:
