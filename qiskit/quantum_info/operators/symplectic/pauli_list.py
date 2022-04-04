@@ -1100,7 +1100,6 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         mat5 = np.multiply.reduce(mat4, axis=2) == 1
         return list(zip(*np.where(np.triu(np.logical_not(mat5), k=1))))
 
-
     def group_qubit_wise_commuting(self):
         """Partition a PauliList into sets of mutually qubit-wise commuting Pauli strings.
 
