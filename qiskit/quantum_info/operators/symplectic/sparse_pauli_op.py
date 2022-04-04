@@ -556,7 +556,7 @@ class SparsePauliOp(LinearOp):
         # Non-zero coefficients
         coeffs = []
         # Non-normalized basis factor
-        denom = 2**num_qubits
+        denom = 2 ** num_qubits
         # Compute coefficients from basis
         basis = pauli_basis(num_qubits, pauli_list=True)
         for i, mat in enumerate(basis.matrix_iter()):
@@ -785,7 +785,7 @@ class SparsePauliOp(LinearOp):
         graph = rx.PyGraph()
         graph.add_nodes_from(range(self.size))
         graph.add_edges_from_no_data(edges)
-        return graph   
+        return graph
 
     def group_inter_qubit_commuting(self):
         """Partition a SparsePauliOp into sets of commuting Pauli strings.
