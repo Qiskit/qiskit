@@ -28,7 +28,7 @@ deprecations:
     * ``init_qubits``
 
     The alternatives for each argument depend on their role and purpose. For flags
-    that control the compilation you should use the :func:`~.tranpsile` and
+    that control the compilation you should use the :func:`~.transpile` and
     :func:`~.schedule` functions first and then pass the output to
     :meth:`~.BackendV2.run` method directly for the backend you wish to execute
     on. For arguments that control the runtime behavior of the backend, these

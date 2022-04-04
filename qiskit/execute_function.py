@@ -92,7 +92,7 @@ def execute(
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        backend.run(tramspile(qc, backend, optimization_level=3))
+        backend.run(transpile(qc, backend, optimization_level=3))
 
 
     Args:
