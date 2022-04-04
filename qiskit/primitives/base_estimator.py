@@ -10,6 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 r"""
+
+.. estimator-desc:
+
 =====================
 Overview of Estimator
 =====================
@@ -198,36 +201,36 @@ class BaseEstimator(ABC):
     @abstractmethod
     def __call__(
         self,
-        circuits: Sequence[int],
-        observables: Sequence[int],
-        parameters: Sequence[Sequence[float]],
+        circuit_indices: Sequence[int],
+        observable_indices: Sequence[int],
+        parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> EstimatorResult:
         """Run the estimation of expectation value(s).
 
-        ``circuits``, ``observables``, and ``parameters`` should have the same length.
-        The i-th element of the result is the expectation of observable
+        ``circuit_indices``, ``observable_indices``, and ``parameter_values`` should have the same
+        length. The i-th element of the result is the expectation of observable
 
         .. code-block:: python
 
-            obs = self.observables[observables[i]]
+            obs = self.observables[observable_indices[i]]
 
         for the state prepared by
 
         .. code-block:: python
 
-            circ = self.circuits[circuits[i]]
+            circ = self.circuits[circuit_indices[i]]
 
         with bound parameters
 
         .. code-block:: python
 
-            values = parameters[i].
+            values = parameter_values[i].
 
         Args:
-            circuits: the list of circuit indices.
-            observables: the list of observable indices.
-            parameters: concrete parameters to be bound.
+            circuit_indices: the list of circuit indices.
+            observable_indices: the list of observable indices.
+            parameter_values: concrete parameters to be bound.
             run_options: runtime options used for circuit execution.
 
         Returns:

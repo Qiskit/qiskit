@@ -12,4 +12,5 @@
 
 """Mock cairo backend"""
 
+from .fake_cairo import FakeCairoV2
 from .fake_cairo import FakeCairo

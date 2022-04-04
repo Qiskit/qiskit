@@ -29,6 +29,7 @@ Estimator
    :toctree: ../stubs/
 
    BaseEstimator
+   Estimator
 
 Sampler
 =======
@@ -37,6 +38,7 @@ Sampler
    :toctree: ../stubs/
 
    BaseSampler
+   Sampler
 
 Results
 =======
@@ -50,5 +52,7 @@ Results
 
 from .base_estimator import BaseEstimator
 from .base_sampler import BaseSampler
+from .estimator import Estimator
 from .estimator_result import EstimatorResult
+from .sampler import Sampler
 from .sampler_result import SamplerResult

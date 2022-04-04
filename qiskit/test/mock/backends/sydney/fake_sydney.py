@@ -15,7 +15,17 @@ Fake Sydney device (27 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_pulse_backend
+from qiskit.test.mock import fake_pulse_backend, fake_backend
+
+
+class FakeSydneyV2(fake_backend.FakeBackendV2):
+    """A fake 27 qubit backend."""
+
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_sydney.json"
+    props_filename = "props_sydney.json"
+    defs_filename = "defs_sydney.json"
+    backend_name = "fake_sydney_v2"
 
 
 class FakeSydney(fake_pulse_backend.FakePulseBackend):
