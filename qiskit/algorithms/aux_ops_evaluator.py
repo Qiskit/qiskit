@@ -24,13 +24,13 @@ from qiskit.opflow import (
     OperatorBase,
     ExpectationBase,
 )
-from qiskit.providers import BaseBackend, Backend
+from qiskit.providers import Backend
 from qiskit.quantum_info import Statevector
 from qiskit.utils import QuantumInstance
 
 
 def eval_observables(
-    quantum_instance: Union[QuantumInstance, BaseBackend, Backend],
+    quantum_instance: Union[QuantumInstance, Backend],
     quantum_state: Union[
         Statevector,
         QuantumCircuit,
@@ -160,7 +160,7 @@ def _compute_std_devs(
     observables_expect_sampled: OperatorBase,
     observables: ListOrDict[OperatorBase],
     expectation: ExpectationBase,
-    quantum_instance: Union[QuantumInstance, BaseBackend, Backend],
+    quantum_instance: Union[QuantumInstance, Backend],
 ) -> List[complex]:
     """
     Calculates a list of standard deviations from expectation values of observables provided.
