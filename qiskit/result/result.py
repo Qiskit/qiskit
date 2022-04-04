@@ -62,8 +62,7 @@ class Result:
         self.job_id = job_id
         self.success = success
         self.results = results
-        if date is not None:
-            self.date = date
+        self.date = date
         if status is not None:
             self.status = status
         if header is not None:
