@@ -23,7 +23,7 @@ from qiskit.opflow import (
 )
 from qiskit.algorithms.aux_ops_evaluator import eval_observables
 from qiskit.algorithms.evolvers import EvolutionProblem, EvolutionResult
-from qiskit.algorithms.evolvers.imaginary.imaginary_evolver import ImaginaryEvolver
+from qiskit.algorithms.evolvers.imaginary_evolver import ImaginaryEvolver
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 from .var_qte import VarQTE

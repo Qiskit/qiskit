@@ -19,7 +19,7 @@ from scipy.integrate import OdeSolver, RK45
 
 from qiskit.algorithms.aux_ops_evaluator import eval_observables
 from qiskit.algorithms.evolvers import EvolutionProblem, EvolutionResult
-from qiskit.algorithms.evolvers.real.real_evolver import RealEvolver
+from qiskit.algorithms.evolvers.real_evolver import RealEvolver
 from qiskit.opflow import (
     StateFn,
     ExpectationBase,
