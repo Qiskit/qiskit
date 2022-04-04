@@ -37,10 +37,14 @@ class VF2PostLayoutStopReason(Enum):
 
 
 def _target_match(node_a, node_b):
+    # Node A is the set of operations in the target. Node B is the count dict
+    # of oeprations on the node or edge in the circuit.
     if isinstance(node_a, set):
         return node_a.issuperset(node_b.keys())
+    # Node A is the count dict of operations on the node or edge in the circuit
+    # Node B is the set of operations in the target on the same qubit(s).
     else:
-        return set(node_b).issubset(node_a)
+        return set(node_a).issubset(node_b)
 
 
 class VF2PostLayout(AnalysisPass):
