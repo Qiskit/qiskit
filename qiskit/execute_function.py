@@ -75,7 +75,25 @@ def execute(
     """Execute a list of :class:`qiskit.circuit.QuantumCircuit` or
     :class:`qiskit.pulse.Schedule` on a backend.
 
-    The execution is asynchronous, and a handle to a job instance is returned.
+    This function provides a higher level abstraction for applications where the details
+    of how the circuit is compiled and run on the backend don't matter and all that is
+    required is that you want to execute a :class:`~.QuantumCircuit` on a given backend.
+    The options on this function are minimal by design, if you desire more control over
+    the compilation of the circuit prior to execution you should instead use the
+    :class:`~.transpile` function with the :class:`.BackendV2.run` method to execute the
+    circuit. For example::
+
+        from qiskit.providers.fake_provider import FakeKolkata
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.compiler import transpile
+
+        backend = FakeKolkata()
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        backend.run(tramspile(qc, backend, optimization_level=3))
+
 
     Args:
         experiments (QuantumCircuit or list[QuantumCircuit] or Schedule or list[Schedule]):
@@ -89,11 +107,12 @@ def execute(
             will override the backend's.
 
         basis_gates (list[str]):
+            DEPRECATED:
             List of basis gate names to unroll to.
             e.g: ``['u1', 'u2', 'u3', 'cx']``
             If ``None``, do not unroll.
 
-        coupling_map (CouplingMap or list): Coupling map (perhaps custom) to
+        coupling_map (CouplingMap or list): DEPRECATED: Coupling map (perhaps custom) to
             target in mapping. Multiple formats are supported:
 
             #. CouplingMap instance
@@ -104,7 +123,7 @@ def execute(
                ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
 
         backend_properties (BackendProperties):
-            Properties returned by a backend, including information on gate
+            DEPRECATED: Properties returned by a backend, including information on gate
             errors, readout errors, qubit coherence times, etc. Find a backend
             that provides this information with:
             ``backend.properties()``
@@ -151,9 +170,11 @@ def execute(
             #. Highest optimization
             If None, level 1 will be chosen as default.
 
-        pass_manager (PassManager): The pass manager to use during transpilation. If this
+        pass_manager (PassManager): DEPRECATED the pass manager to use during transpilation. If this
             arg is present, auto-selection of pass manager based on the transpile options
-            will be turned off and this pass manager will be used directly.
+            will be turned off and this pass manager will be used directly. If you require compilation
+            with a custom passmanager you should use the :meth:`.PassManager.run` method directly to
+            compile the circuit and ``backend.run()`` to execute it.
 
         qobj_id (str): String identifier to annotate the Qobj
 
@@ -161,37 +182,42 @@ def execute(
             and will also be copied to the corresponding :class:`qiskit.result.Result`
             header. Headers do not affect the run.
 
-        shots (int): Number of repetitions of each circuit, for sampling. Default: 1024
+        shots (int): DEPRECATED: Number of repetitions of each circuit, for sampling. Default: 1024
 
-        memory (bool): If True, per-shot measurement bitstrings are returned as well
+        memory (bool): DEPRECATED If True, per-shot measurement bitstrings are returned as well
             (provided the backend supports it). For OpenPulse jobs, only
-            measurement level 2 supports this option. Default: False
+            measurement level 2 supports this option. Default: False. This is a per backend option
+            and should be part of run_config for backends that support it.
 
         max_credits (int): DEPRECATED This parameter is deprecated as of
         Qiskit Terra 0.20.0, and will be removed in a future release. This parameter has
         no effect on modern IBM Quantum systems, and no alternative is necessary.
 
-        seed_simulator (int): Random seed to control sampling, for when backend is a simulator
+        seed_simulator (int): DEPRECATED Random seed to control sampling, for when backend is a
+            simulator.
 
-        default_qubit_los (Optional[List[float]]): List of job level qubit drive LO frequencies
-            in Hz. Overridden by ``schedule_los`` if specified. Must have length ``n_qubits``.
+        default_qubit_los (Optional[List[float]]): DEPRECATED: List of job level qubit drive LO
+            frequencies in Hz. Overridden by ``schedule_los`` if specified. Must have length
+            ``n_qubits``. This is deprecated if control of the LO frequencies is needed that should
+            be done at the backend level
 
-        default_meas_los (Optional[List[float]]): List of job level measurement LO frequencies in
-            Hz. Overridden by ``schedule_los`` if specified. Must have length ``n_qubits``.
-
-        qubit_lo_range (Optional[List[List[float]]]): List of job level drive LO ranges each of form
-            ``[range_min, range_max]`` in Hz. Used to validate ``qubit_lo_freq``. Must have length
-            ``n_qubits``.
-
-        meas_lo_range (Optional[List[List[float]]]): List of job level measurement LO ranges each of
-            form ``[range_min, range_max]`` in Hz. Used to validate ``meas_lo_freq``. Must have
+        default_meas_los (Optional[List[float]]): DEPRECATED: List of job level measurement LO
+            frequencies in Hz. Overridden by ``schedule_los`` if specified. Must have
             length ``n_qubits``.
 
+        qubit_lo_range (Optional[List[List[float]]]): DEPRECATED: List of job level drive LO
+            anges each of form ``[range_min, range_max]`` in Hz. Used to validate
+            ``qubit_lo_freq``. Must have length ``n_qubits``.
+
+        meas_lo_range (Optional[List[List[float]]]): DEPRECATED: List of job level measurement
+            LO ranges each of form ``[range_min, range_max]`` in Hz. Used to
+            validate ``meas_lo_freq``. Must have length ``n_qubits``.
+
         schedule_los (list):
-            Experiment level (ie circuit or schedule) LO frequency configurations for qubit drive
-            and measurement channels. These values override the job level values from
-            ``default_qubit_los`` and ``default_meas_los``. Frequencies are in Hz. Settable for qasm
-            and pulse jobs.
+            DEPRECATED: Experiment level (ie circuit or schedule) LO frequency configurations
+            for qubit drive and measurement channels. These values override the job level
+            values from ``default_qubit_los`` and ``default_meas_los``. Frequencies
+            are in Hz. Settable for qasm and pulse jobs.
 
             If a single LO config or dict is used, the values are set at job level. If a list is
             used, the list must be the size of the number of experiments in the job, except in the
@@ -201,23 +227,23 @@ def execute(
             Not every channel is required to be specified. If not specified, the backend default
             value will be used.
 
-        meas_level (int or MeasLevel): Set the appropriate level of the
+        meas_level (int or MeasLevel): DEPRECATED: Set the appropriate level of the
             measurement output for pulse experiments.
 
-        meas_return (str or MeasReturn): Level of measurement data for the
+        meas_return (str or MeasReturn): DEPRECATED: Level of measurement data for the
             backend to return For ``meas_level`` 0 and 1:
             ``"single"`` returns information from every shot.
             ``"avg"`` returns average measurement output (averaged over number
             of shots).
 
-        memory_slots (int): Number of classical memory slots used in this job.
+        memory_slots (int): DEPRECATED: Number of classical memory slots used in this job.
 
-        memory_slot_size (int): Size of each memory slot if the output is Level 0.
+        memory_slot_size (int): DEPRECATED: Size of each memory slot if the output is Level 0.
 
-        rep_time (int): Time per program execution in seconds. Must be from the list provided
+        rep_time (int): DEPRECATED: Time per program execution in seconds. Must be from the list provided
             by the backend (``backend.configuration().rep_times``). Defaults to the first entry.
 
-        rep_delay (float): Delay between programs in seconds. Only supported on certain
+        rep_delay (float): DEPRECATED: Delay between programs in seconds. Only supported on certain
             backends (``backend.configuration().dynamic_reprate_enabled`` ). If supported,
             ``rep_delay`` will be used instead of ``rep_time`` and must be from the range supplied
             by the backend (``backend.configuration().rep_delay_range``). Default is given by
@@ -230,28 +256,29 @@ def execute(
             length-n list, and there are m experiments, a total of :math:`m x n`
             experiments will be run (one for each experiment/bind pair).
 
-        schedule_circuit (bool): If ``True``, ``experiments`` will be converted to
+        schedule_circuit (bool): DEPRECATED: If ``True``, ``experiments`` will be converted to
             :class:`qiskit.pulse.Schedule` objects prior to execution.
 
         inst_map (InstructionScheduleMap):
-            Mapping of circuit operations to pulse schedules. If None, defaults to the
+            DEPRECATED: Mapping of circuit operations to pulse schedules. If None, defaults to the
             ``instruction_schedule_map`` of ``backend``.
 
         meas_map (list(list(int))):
-            List of sets of qubits that must be measured together. If None, defaults to
+            DEPRECATED: List of sets of qubits that must be measured together. If None, defaults to
             the ``meas_map`` of ``backend``.
 
         scheduling_method (str or list(str)):
-            Optionally specify a particular scheduling method.
+            DEPRECATED: Optionally specify a particular scheduling method. If a custom scheduling method
+            is required :func:`~.transpile` and :func:`~.schedule` should be used and pass the output
+            to the ``backend.run()`` directly.
 
-        init_qubits (bool): Whether to reset the qubits to the ground state for each shot.
-                            Default: ``True``.
+        init_qubits (bool): DEPRECATED: Whether to reset the qubits to the ground state for each shot.
+            Default: ``True``. This is a backend specific option and should be set as part of
+            run_config on a specific backend
 
         run_config (dict):
-            Extra arguments used to configure the run (e.g. for Aer configurable backends).
-            Refer to the backend documentation for details on these arguments.
-            Note: for now, these keyword arguments will both be copied to the
-            Qobj config, and passed to backend.run()
+            Extra arguments used to configure the run. Refer to the backend documentation for
+            details on these arguments.
 
     Returns:
         BaseJob: returns job instance derived from BaseJob
@@ -275,6 +302,182 @@ def execute(
 
             job = execute(qc, backend, shots=4321)
     """
+    if basis_gates is not None:
+        warnings.warn(
+            "The basis_gates argument is deprecated as of Qiskit Terra 0.21.0, "
+            "and will be removed in a future release. If you require compiling to a "
+            "custom set of basis gates you should use the transpile() function instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    if coupling_map is not None:
+        warnings.warn(
+            "The coupling_map argument is deprecated as of Qiskit Terra 0.21.0, "
+            "and will be removed in a future release. If you require compiling to a "
+            "custom coupling graph you should use the transpile() function instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    if backend_properties is not None:
+        warnings.warn(
+            "The backend_properties argument is deprecated as of Qiskit Terra 0.21.0, "
+            "and will be removed in a future release. If you require compiling to a "
+            "custom BackendProperties object you should use the transpile() function instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    if pass_manager is not None:
+        warnings.warn(
+            "The pass_manager argument is deprecated as of Qiskit Terra 0.21.0, "
+            "and will be removed in a future release. If you require compiling with a "
+            "custom PassManager object you should use the run() method on that custom "
+            "Passmanager directly instead of using execute.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    if shots is not None:
+        if not hasattr(backend.options, "shots"):
+            warnings.warn(
+                "The shots argument is deprecated as of Qiskit Terra 0.21.0, "
+                "and will be removed in a future release. The backend you are running on does "
+                "not support setting the number of shots so this option will have no effect.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+    if memory is not None:
+        if not hasattr(backend.options, "memory"):
+            warnings.warn(
+                "The memory argument is deprecated as of Qiskit Terra 0.21.0, "
+                "and will be removed in a future release. The backend you are running on does "
+                "not support setting this as an option so the argument will have no effect.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+    if seed_simulator is not None:
+        if not hasattr(backend.options, "seed_simulator"):
+            warnings.warn(
+                "The seed_simulator argument is deprecated as of Qiskit Terra 0.21.0, "
+                "and will be removed in a future release. The backend you are running on does "
+                "not support setting this as an option so this argument will have no effect.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+    if default_qubit_los is not None:
+        warnings.warn(
+            "The default_qubit_los argument is deprecated as of Qiskit Terra 0.21.0, "
+            "and will be removed in a future release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    if default_meas_los is not None:
+        warnings.warn(
+            "The default_meas_los argument is deprecated as of Qiskit Terra 0.21.0, "
+            "and will be removed in a future release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    if qubit_lo_range is not None:
+        warnings.warn(
+            "The qubit_lo_range argument is deprecated as of Qiskit Terra 0.21.0, "
+            "and will be removed in a future release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    if meas_lo_range is not None:
+        warnings.warn(
+            "The meas_lo_range argument is deprecated as of Qiskit Terra 0.21.0, "
+            "and will be removed in a future release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    if schedule_los is not None:
+        warnings.warn(
+            "The schedule_los argument is deprecated as of Qiskit Terra 0.21.0, "
+            "and will be removed in a future release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    if meas_return is not None:
+        warnings.warn(
+            "The meas_return argument is deprecated as of Qiskit Terra 0.21.0, "
+            "and will be removed in a future release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    if memory_slots is not None:
+        warnings.warn(
+            "The memory_slots argument is deprecated as of Qiskit Terra 0.21.0, "
+            "and will be removed in a future release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    if memory_slot_size is not None:
+        warnings.warn(
+            "The memory_slot_size argument is deprecated as of Qiskit Terra 0.21.0, "
+            "and will be removed in a future release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    if rep_time is not None:
+        warnings.warn(
+            "The rep_time argument is deprecated as of Qiskit Terra 0.21.0, "
+            "and will be removed in a future release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    if rep_delay is not None:
+        warnings.warn(
+            "The rep_delay argument is deprecated as of Qiskit Terra 0.21.0, "
+            "and will be removed in a future release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    if not schedule_circuit:
+        warnings.warn(
+            "The schedule_circuit argument is deprecated as of Qiskit Terra 0.21.0, "
+            "and will be removed in a future release. If you require scheduling your circuit "
+            "prior to execution you should use the :func:`~.schedule` function explicitly with "
+            "prior to running the circuit.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    if inst_map is not None:
+        warnings.warn(
+            "The inst_map argument is deprecated as of Qiskit Terra 0.21.0, "
+            "and will be removed in a future release. If you require compiling to a "
+            "custom :class:`~.InstructionScheduleMap` you should use the transpile() function "
+            "instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    if meas_map is not None:
+        warnings.warn(
+            "The meas_map argument is deprecated as of Qiskit Terra 0.21.0, "
+            "and will be removed in a future release. If you require scheduling your circuit "
+            "prior to execution you should use the :func:`~.schedule` function explicitly with "
+            "prior to running the circuit.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    if scheduling_method is not None:
+        warnings.warn(
+            "The scheduling_method argument is deprecated as of Qiskit Terra 0.21.0, "
+            "and will be removed in a future release. If you require scheduling your circuit "
+            "prior to execution you should use the :func:`~.schedule` function explicitly with "
+            "prior to running the circuit.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    if init_qubits is not None:
+        warnings.warn(
+            "The init_qubits argument is deprecated as of Qiskit Terra 0.21.0, "
+            "and will be removed in a future release. If you require scheduling your circuit "
+            "prior to execution you should use the :func:`~.schedule` function explicitly with "
+            "prior to running the circuit.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
     if isinstance(experiments, (Schedule, ScheduleBlock)) or (
         isinstance(experiments, list) and isinstance(experiments[0], (Schedule, ScheduleBlock))
     ):

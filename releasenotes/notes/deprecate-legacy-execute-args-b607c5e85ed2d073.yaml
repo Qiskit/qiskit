@@ -1,0 +1,40 @@
+---
+deprecations:
+  - |
+    The following arguments of the :func:`~.execute` function are deprecated
+    and will be removed in a future release:
+
+    * ``basis_gates``
+    * ``coupling_map``
+    * ``backend_properties``
+    * ``pass_manager``
+    * ``shots``
+    * ``memory``
+    * ``seed_simulator``
+    * ``default_qubit_los``
+    * ``default_meas_los``
+    * ``qubit_lo_range``
+    * ``meas_lo_range``
+    * ``meas_level``
+    * ``meas_return``
+    * ``memory_slots``
+    * ``memory_slot_size``
+    * ``rep_time``
+    * ``rep_delay``
+    * ``schedule_circuit``
+    * ``inst_map``
+    * ``meas_map``
+    * ``scheduling_method``
+    * ``init_qubits``
+
+    The alternatives for each argument depend on their role and purpose. For flags
+    that control the compilation you should use the :func:`~.tranpsile` and
+    :func:`~.schedule` functions first and then pass the output to
+    :meth:`~.BackendV2.run` method directly for the backend you wish to execute
+    on. For arguments that control the runtime behavior of the backend, these
+    will still work after removal, but they depend on the
+    :attr:`~.BackendV2.options` attribute of the backend and whether they are
+    supported or not by the backend. In the future these runtime option
+    arguments will still be accepted even though the explict argument is
+    no longer listed, but if the backend doesn't support them they will be
+    ignored.
