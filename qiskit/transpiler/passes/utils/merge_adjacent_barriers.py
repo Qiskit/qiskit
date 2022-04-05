@@ -69,7 +69,7 @@ class MergeAdjacentBarriers(TransformationPass):
             return dag
 
         # add the merged barriers to a new DAG
-        new_dag = dag._copy_circuit_metadata()
+        new_dag = dag.copy_empty_like()
 
         # go over current nodes, and add them to the new dag
         for node in dag.topological_op_nodes():

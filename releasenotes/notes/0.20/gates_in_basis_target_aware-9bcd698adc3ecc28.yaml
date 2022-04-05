@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Added a new kwarg, ``target``, to the constructor for the
+    :class:`.GatesInBasis` transpiler pass. This new argument can be used to
+    optionally specify a :class:`.Target` object that represents the backend.
+    When set this :class:`.Target` will be used for determining whether
+    a :class:`.DAGCircuit` contains gates outside the basis set and the
+    ``basis_gates`` argument will not be used.

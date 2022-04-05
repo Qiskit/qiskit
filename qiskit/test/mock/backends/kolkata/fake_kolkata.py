@@ -15,7 +15,17 @@ Fake Kolkata device (27 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_pulse_backend
+from qiskit.test.mock import fake_pulse_backend, fake_backend
+
+
+class FakeKolkataV2(fake_backend.FakeBackendV2):
+    """A fake 27 qubit backend."""
+
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_kolkata.json"
+    props_filename = "props_kolkata.json"
+    defs_filename = "defs_kolkata.json"
+    backend_name = "fake_kolkata_v2"
 
 
 class FakeKolkata(fake_pulse_backend.FakePulseBackend):

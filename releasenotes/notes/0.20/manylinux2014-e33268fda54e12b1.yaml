@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    On Linux, the minimum library support has been raised from the
+    `manylinux2010 VM <https://www.python.org/dev/peps/pep-0571/>`__ to
+    `manylinux2014 <https://www.python.org/dev/peps/pep-0599/>`__.  This mirrors
+    similar changes in Numpy and Scipy.  There should be no meaningful effect
+    for most users, unless your system still contains a very old version of
+    ``glibc``.
