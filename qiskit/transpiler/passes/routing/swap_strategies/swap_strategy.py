@@ -259,15 +259,6 @@ class SwapStrategy:
 
         return self._missing_couplings
 
-    @property
-    def reaches_full_connectivity(self) -> bool:
-        """Returns whether the swap strategy reaches full connectivity.
-
-        Returns:
-            True if the swap strategy reaches full connectivity and False otherwise.
-        """
-        return len(self.missing_couplings) == 0
-
     def swapped_coupling_map(self, idx: int) -> CouplingMap:
         """Returns the coupling map after applying ``idx`` swap layers of strategy.
 

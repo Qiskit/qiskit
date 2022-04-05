@@ -172,7 +172,7 @@ class TestSwapStrategy(QiskitTestCase):
                     swap_strat_ll.append(layer2)
 
             strat = SwapStrategy(CouplingMap(ll27_map), tuple(swap_strat_ll))
-            self.assertEqual(strat.reaches_full_connectivity, result)
+            self.assertEqual(len(strat.missing_couplings) == 0, result)
 
     def test_possible_edges(self):
         """Test that possible edges works as expected."""
@@ -248,7 +248,7 @@ class TestLineSwapStrategy(QiskitTestCase):
         self.assertEqual(strategy.swap_layer(1), [(1, 2), (3, 4)])
         self.assertEqual(strategy.swap_layer(2), [(0, 1), (2, 3)])
 
-        self.assertTrue(strategy.reaches_full_connectivity)
+        self.assertEqual(len(strategy.missing_couplings), 0)
 
     def test_line(self):
         """Test the creation of a line swap strategy."""
@@ -260,7 +260,7 @@ class TestLineSwapStrategy(QiskitTestCase):
         self.assertEqual(strategy.swap_layer(1), [(1, 2), (3, 4)])
         self.assertEqual(strategy.swap_layer(2), [(0, 1), (2, 3)])
 
-        self.assertTrue(strategy.reaches_full_connectivity)
+        self.assertEqual(len(strategy.missing_couplings), 0)
 
     def test_repr(self):
         """The the representation."""
