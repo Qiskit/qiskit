@@ -20,6 +20,7 @@ import retworkx as rx
 
 from qiskit.exceptions import QiskitError
 from qiskit.utils import optionals as _optionals
+from qiskit.providers.exceptions import BackendPropertyError
 from .exceptions import VisualizationError
 from .utils import matplotlib_close_if_inline
 
@@ -910,14 +911,16 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
 
     backend_version = _get_backend_interface_version(backend)
     if backend_version <= 1:
+        backend_name = backend.name()
         num_qubits = backend.configuration().n_qubits
         cmap = backend.configuration().coupling_map
-        props = backend.properties().to_dict()
+        props = backend.properties()
+        props_dict = props.to_dict()
         single_gate_errors = [0] * num_qubits
         read_err = [0] * num_qubits
         cx_errors = []
         # sx error rates
-        for gate in props["gates"]:
+        for gate in props_dict["gates"]:
             if gate["gate"] == "sx":
                 _qubit = gate["qubits"][0]
                 for param in gate["parameters"]:
@@ -937,16 +940,18 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
                         break
 
             for line in cmap:
-                for item in props["gates"]:
+                for item in props_dict["gates"]:
                     if item["qubits"] == line:
                         cx_errors.append(item["parameters"][0]["value"])
                         break
         for qubit in range(num_qubits):
-            for item in props["qubits"][qubit]:
-                if item["name"] == "readout_error":
-                    read_err.append(item["value"])
+            try:
+                read_err[qubit] = props.readout_error(qubit)
+            except BackendPropertyError:
+                pass
 
     else:
+        backend_name = backend.name
         num_qubits = backend.num_qubits
         cmap = backend.coupling_map
         two_q_error_map = {}
@@ -977,7 +982,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
                     if not [edge[1], edge[0]] in cmap:
                         directed = True
                         break
-            for line in cmap:
+            for line in cmap.get_edges():
                 err = two_q_error_map.get(tuple(line), 0)
                 cx_errors.append(err)
 
@@ -1095,6 +1100,6 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
         spine.set_visible(False)
 
     if show_title:
-        fig.suptitle(f"{backend.name()} Error Map", fontsize=24, y=0.9)
+        fig.suptitle(f"{backend_name} Error Map", fontsize=24, y=0.9)
     matplotlib_close_if_inline(fig)
     return fig
