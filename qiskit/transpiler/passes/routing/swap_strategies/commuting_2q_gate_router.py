@@ -139,7 +139,7 @@ class Commuting2qGateRouter(TransformationPass):
 
         new_dag = dag.copy_empty_like()
 
-        current_layout = Layout.generate_trivial_layout(dag.qubits, *dag.qregs.values())
+        current_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
         # Used to keep track of nodes that do not decompose using swap strategies.
         accumulator = new_dag.copy_empty_like()
@@ -260,7 +260,7 @@ class Commuting2qGateRouter(TransformationPass):
             A dag that is compatible with the coupling map where swap gates have been added
             to map the gates in the :class:`.Commuting2qBlocks` to the hardware.
         """
-        trivial_layout = Layout.generate_trivial_layout(dag.qubits, *dag.qregs.values())
+        trivial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
         gate_layers = self._make_op_layers(dag, node.op, current_layout, swap_strategy)
 
         # Iterate over and apply gate layers
