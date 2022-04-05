@@ -21,7 +21,7 @@ notifications:
         - "@manoelmarques"
         - "@woodsp-ibm"
         - "@Cryoris"
-    "algorithms""
+    "algorithms":
         - "@manoelmarques"
         - "@woodsp-ibm"
     "circuit/library":
