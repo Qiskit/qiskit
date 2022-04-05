@@ -798,7 +798,7 @@ def _target_to_backend_properties(target: Target):
 def _parse_backend_properties(backend_properties, backend, num_circuits):
     # try getting backend_properties from user, else backend
     if backend_properties is None:
-        backend_version = getattr(backend, "version", None)
+        backend_version = getattr(backend, "version", 0)
         if backend_version <= 1:
             if getattr(backend, "properties", None):
                 backend_properties = backend.properties()
