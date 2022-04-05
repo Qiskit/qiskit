@@ -35,7 +35,22 @@ _DECOMPOSER1Q = OneQubitEulerDecomposer("U3")
 
 
 class UnitaryGate(Gate):
-    """Class for representing unitary gates"""
+    """Class for representing unitary gates
+
+    Example:
+
+        Create a quantum circuit from a unitary matrix
+
+        .. code-block::python
+
+            from qiskit import QuantumCircuit
+            matrix = [[0, 0, 0, 1],
+                      [0, 0, 1, 0],
+                      [1, 0, 0, 0],
+                      [0, 1, 0, 0]]
+            circuit = QuantumCircuit(2)
+            circuit.unitary(matrix, [0, 1])
+    """
 
     def __init__(self, data, label=None):
         """Create a gate from a numeric unitary matrix.
