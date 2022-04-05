@@ -200,9 +200,17 @@ class VF2PostLayout(AnalysisPass):
             )
         chosen_layout = None
         initial_layout = Layout(dict(enumerate(dag.qubits)))
-        chosen_layout_score = self._score_layout(
-            initial_layout, im_graph_node_map, reverse_im_graph_node_map, im_graph
-        )
+        try:
+            chosen_layout_score = self._score_layout(
+                initial_layout, im_graph_node_map, reverse_im_graph_node_map, im_graph
+            )
+        # Circuit not in basis so we have nothing to compare against return here
+        except KeyError:
+            self.property_set[
+                "VF2PostLayout_stop_reason"
+            ] = VF2PostLayoutStopReason.NO_SOLUTION_FOUND
+            return
+
         logger.debug("Initial layout has score %s", chosen_layout_score)
 
         start_time = time.time()
