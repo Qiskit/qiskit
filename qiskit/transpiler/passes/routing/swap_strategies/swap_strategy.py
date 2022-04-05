@@ -232,20 +232,6 @@ class SwapStrategy:
 
         return self._possible_edges
 
-    def _compute_missing_couplings(self):
-        """Compute the set of couplings that cannot be reached."""
-        physical_qubits = list(set(sum(self._coupling_map.get_edges(), ())))
-        self._missing_couplings = set()
-        for i, physical_qubit_i in enumerate(physical_qubits):
-            for j in range(i + 1, len(physical_qubits)):
-                self._missing_couplings.add((physical_qubit_i, physical_qubits[j]))
-                self._missing_couplings.add((physical_qubits[j], physical_qubit_i))
-
-        for layer_idx in range(len(self) + 1):
-            for edge in self.new_connections(layer_idx):
-                for edge_tuple in [tuple(edge), tuple(edge)[::-1]]:
-                    self._missing_couplings.discard(edge_tuple)
-
     @property
     def missing_couplings(self) -> Set[Tuple[int, int]]:
         """Return the set of couplings that cannot be reached.
@@ -255,7 +241,7 @@ class SwapStrategy:
             each int corresponds to a qubit in the coupling map.
         """
         if self._missing_couplings is None:
-            self._compute_missing_couplings()
+            self._missing_couplings = set(zip(*(self.distance_matrix == -1).nonzero()))
 
         return self._missing_couplings
 

@@ -125,30 +125,8 @@ class TestSwapStrategy(QiskitTestCase):
     def test_reaches_full_connectivity(self):
         """Test to reach full connectivity on the longest line of Mumbai."""
 
-        # The longest line on e.g. Mumbai has the qubits
-        ll27 = [
-            0,
-            1,
-            2,
-            3,
-            5,
-            8,
-            11,
-            14,
-            16,
-            19,
-            22,
-            25,
-            24,
-            23,
-            21,
-            18,
-            15,
-            12,
-            10,
-            7,
-            6,
-        ]
+        # The longest line on e.g. Mumbai has 21 qubits
+        ll27 = list(range(21))
 
         ll27_map = [[ll27[idx], ll27[idx + 1]] for idx in range(len(ll27) - 1)]
         ll27_map += [[ll27[idx + 1], ll27[idx]] for idx in range(len(ll27) - 1)]
