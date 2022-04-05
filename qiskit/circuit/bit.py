@@ -89,7 +89,7 @@ class Bit:
         if (self._register, self._index) == (None, None):
             # Similar to __hash__, use default repr method for new-style Bits.
             return object.__repr__(self)
-        return f'{self._index}'
+        return self._repr
 
     def __hash__(self):
         return self._hash
