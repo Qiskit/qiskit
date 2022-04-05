@@ -30,9 +30,7 @@ class TestPlotStateCity(QiskitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         state = DensityMatrix.from_instruction(qc)
-        fig = plot_state_city(state,
-                              color=['midnightblue', 'midnightblue'],
-                              title="New State City")
+        fig = plot_state_city(state, color=["midnightblue", "midnightblue"], title="New State City")
         self.assertIsInstance(fig, mpl.figure.Figure)
 
 
