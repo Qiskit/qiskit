@@ -128,6 +128,8 @@ class Commuting2qGateRouter(TransformationPass):
         Raises:
             TranspilerError: If the swap strategy was not given at init time and there is
                 no swap strategy in the property set.
+            TranspilerError: If the quantum circuit contains more than one qubit register.
+            TranspilerError: If there are qubits that are not contained in the quantum register.
         """
         if self._swap_strategy is None:
             swap_strategy = self.property_set["swap_strategy"]
@@ -136,6 +138,14 @@ class Commuting2qGateRouter(TransformationPass):
                 raise TranspilerError("No swap strategy given at init or in the property set.")
         else:
             swap_strategy = self._swap_strategy
+
+        if len(dag.qregs) != 1:
+            raise TranspilerError(
+                f"{self.__class__.__name__} runs on circuits with one quantum register."
+            )
+
+        if len(dag.qubits) != next(iter(dag.qregs.values())).size:
+            raise TranspilerError("Circuit has qubits not contained in the qubit register.")
 
         new_dag = dag.copy_empty_like()
 

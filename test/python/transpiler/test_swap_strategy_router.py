@@ -12,11 +12,12 @@
 
 """Tests for swap strategy routers."""
 
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, Qubit, QuantumRegister
 from qiskit.transpiler import PassManager, CouplingMap, Layout, TranspilerError
 
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.library.n_local import QAOAAnsatz
+from qiskit.converters import circuit_to_dag
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import Pauli
 from qiskit.transpiler.passes import FullAncillaAllocation
@@ -374,6 +375,25 @@ class TestSwapRouterExceptions(QiskitTestCase):
 
         with self.assertRaises(TranspilerError):
             pm_.run(self.circ)
+
+    def test_dangling_qubits(self):
+        """Test that dangling qubits are not allowed."""
+
+        loose = [Qubit() for _ in [None] * 5]
+        reg = QuantumRegister(5)
+        qc = QuantumCircuit(loose, reg)
+
+        message = "Circuit has qubits not contained in the qubit register."
+        with self.assertRaisesRegex(TranspilerError, message):
+            Commuting2qGateRouter(self.swap_strat).run(circuit_to_dag(qc))
+
+    def test_too_many_registers(self):
+        """Check that we raise if there are too many registers."""
+        qc = QuantumCircuit(QuantumRegister(5), QuantumRegister(4))
+
+        message = "Commuting2qGateRouter runs on circuits with one quantum register."
+        with self.assertRaisesRegex(TranspilerError, message):
+            Commuting2qGateRouter(self.swap_strat).run(circuit_to_dag(qc))
 
     def test_deficient_swap_strategy(self):
         """Test to raise when all edges cannot be implemented."""
