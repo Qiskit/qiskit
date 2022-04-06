@@ -16,8 +16,6 @@
 
 import warnings
 
-from qiskit.exceptions import QiskitError
-
 
 class DAGNode:
     """Parent class for DAGOpNode, DAGInNode, and DAGOutNode."""
