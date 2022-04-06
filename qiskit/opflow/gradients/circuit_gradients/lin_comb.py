@@ -587,7 +587,11 @@ class LinComb(CircuitGradient):
                 replacement += [(XGate(), qr_superpos[:], [])]
 
         else:
-            replacement.append((grad_gate, qr_superpos[:] + gate_qubits, []))
+            if grad_gate.num_qubits == 1:  # id gate
+                replacement.append((grad_gate, qr_superpos[:], []))
+                replacement.append((grad_gate, gate_qubits, []))
+            else:
+                replacement.append((grad_gate, qr_superpos[:] + gate_qubits, []))
             if open_ctrl:
                 replacement += [(XGate(), qr_superpos[:], [])]
             if not trim_after_grad_gate:
