@@ -23,7 +23,14 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
 def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:
-    """Initialize state."""
+    """Initialize state by converting the input to a quantum circuit.
+
+    Args:
+        state: The state as quantum circuit or statevector.
+
+    Returns:
+        The state as quantum circuit.
+    """
     if isinstance(state, QuantumCircuit):
         return state
     if not isinstance(state, Statevector):
@@ -34,13 +41,24 @@ def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:
 
 
 def init_observable(observable: BaseOperator | PauliSumOp) -> SparsePauliOp:
-    """Initialize observable"""
+    """Initialize observable by converting the input to a :class:`~qiskit.quantum_info.SparsePauliOp`.
+
+    Args:
+        observable: The observable.
+
+    Returns:
+        The observable as :class:`~qiskit.quantum_info.SparsePauliOp`.
+
+    Raises:
+        TypeError: If the observable is a :class:`~qiskit.opflow.PauliSumOp` and has a parameterized
+            coefficient.
+    """
     if isinstance(observable, SparsePauliOp):
         return observable
     if isinstance(observable, PauliSumOp):
         if isinstance(observable.coeff, ParameterExpression):
             raise TypeError(
-                f"observable must have numerical coefficient, not {type(observable.coeff)}"
+                f"Observable must have numerical coefficient, not {type(observable.coeff)}."
             )
         return observable.coeff * observable.primitive
     if isinstance(observable, BaseOperator):
@@ -59,7 +77,7 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     `mthree <https://github.com/Qiskit-Partners/mthree>`_.
 
     Parameters:
-        circuit: Input Qiskit QuantumCircuit.
+        circuit: Input quantum circuit.
 
     Returns:
         Mapping of qubits to classical bits for final measurements.
