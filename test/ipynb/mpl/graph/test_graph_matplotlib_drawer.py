@@ -357,6 +357,31 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             filename="coupling_map.png",
         )
 
+    def test_plot_bloch_with_points(self):
+        """Test plotting the bell state on the bloch sphere with points"""
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+
+        # getting the state using backend
+        backend = BasicAer.get_backend("statevector_simulator")
+        result = execute(circuit, backend).result()
+        state = result.get_statevector(circuit)
+        self.graph_state_drawer(state=state, output="bloch", filename="bloch_with_points.png",style="point")
+
+    def test_plot_bloch_with_x_annotation(self):
+        """Test plotting a 3 qubit state on the bloch sphere with points.
+        First two qubits is the bell state, 3 qubit has about a -pi/4 rotation around x"""
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.rx(-.7853,2)
+
+        # getting the state using backend
+        backend = BasicAer.get_backend("statevector_simulator")
+        result = execute(circuit, backend).result()
+        state = result.get_statevector(circuit)
+        self.graph_state_drawer(state=state, output="bloch", filename="bloch_with_x_annotation.png",style="X")
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)
