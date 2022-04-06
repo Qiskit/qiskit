@@ -24,7 +24,7 @@ from qiskit.tools.visualization import plot_state_city
 class TestPlotStateCity(QiskitTestCase):
     """Qiskit plot_state_city tests."""
 
-    def test_different_counts_lengths(self):
+    def test_bell_state(self):
         """Test plotting Pauli vector of the bell state"""
         qc = QuantumCircuit(2)
         qc.h(0)
