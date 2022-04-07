@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue that "lin_comb" mode of the gradient framework
+    (:class:`~qiskit.opflow.gradients.circuit_gradients.lin_comb.LinComb`)
+    generates an invalid id gate that has two qregs while the id gate is a 1-qubit gate.
