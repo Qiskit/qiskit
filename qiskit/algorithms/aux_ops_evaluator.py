@@ -16,7 +16,6 @@ from typing import Tuple, Union, List
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.eigen_solvers.eigen_solver import ListOrDict
 from qiskit.opflow import (
     CircuitSampler,
     ListOp,
@@ -27,6 +26,8 @@ from qiskit.opflow import (
 from qiskit.providers import BaseBackend, Backend
 from qiskit.quantum_info import Statevector
 from qiskit.utils import QuantumInstance
+
+from .list_or_dict import ListOrDict
 
 
 def eval_observables(

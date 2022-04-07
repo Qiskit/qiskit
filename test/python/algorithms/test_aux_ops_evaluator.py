@@ -18,7 +18,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from ddt import ddt, data
 
-from qiskit.algorithms.eigen_solvers.eigen_solver import ListOrDict
+from qiskit.algorithms.list_or_dict import ListOrDict
 from qiskit.providers import BaseBackend, Backend
 from qiskit.quantum_info import Statevector
 from qiskit.algorithms import eval_observables
