@@ -45,16 +45,6 @@ def _text_checker(
         status = job.status()
         msg = status.value
 
-        if status.name == "QUEUED":
-            msg += " (%s)" % job.queue_position()
-            if job.queue_position() is None:
-                interval = 2
-            elif not _interval_set:
-                interval = max(job.queue_position(), 2)
-        else:
-            if not _interval_set:
-                interval = 2
-
         # Adjust length of message so there are no artifacts
         if len(msg) < msg_len:
             msg += " " * (msg_len - len(msg))
