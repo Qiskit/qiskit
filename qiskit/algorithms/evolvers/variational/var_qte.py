@@ -29,7 +29,6 @@ from qiskit.opflow import (
     ExpectationBase,
 )
 
-from qiskit.algorithms.evolvers.evolver import Evolver
 from qiskit.algorithms.evolvers.variational.solvers.var_qte_linear_solver import (
     VarQTELinearSolver,
 )
@@ -44,7 +43,7 @@ from qiskit.algorithms.evolvers.variational.solvers.ode.var_qte_ode_solver impor
 )
 
 
-class VarQTE(Evolver, ABC):
+class VarQTE(ABC):
     """Variational Quantum Time Evolution.
        https://doi.org/10.22331/q-2019-10-07-191
     Algorithms that use variational variational_principles to compute a time evolution for a given
