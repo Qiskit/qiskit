@@ -323,11 +323,11 @@ class TestOperator(OperatorTestCase):
 
         targ = Operator(np.dot(self.UY, self.UX))
         self.assertEqual(op1.compose(op2), targ)
-        self.assertEqual(op1 & op2, targ)
+        self.assertEqual(op1 @ op2, targ)
 
         targ = Operator(np.dot(self.UX, self.UY))
         self.assertEqual(op2.compose(op1), targ)
-        self.assertEqual(op2 & op1, targ)
+        self.assertEqual(op2 @ op1, targ)
 
     def test_dot(self):
         """Test dot method."""
@@ -367,33 +367,33 @@ class TestOperator(OperatorTestCase):
         targ = np.dot(np.kron(mat_c, np.kron(mat_b, mat_a)), mat)
         self.assertEqual(op.compose(op3, qargs=[0, 1, 2]), Operator(targ))
         self.assertEqual(op.compose(op3([0, 1, 2])), Operator(targ))
-        self.assertEqual(op & op3([0, 1, 2]), Operator(targ))
+        self.assertEqual(op @ op3([0, 1, 2]), Operator(targ))
         # op3 qargs=[2, 1, 0]
         targ = np.dot(np.kron(mat_a, np.kron(mat_b, mat_c)), mat)
         self.assertEqual(op.compose(op3, qargs=[2, 1, 0]), Operator(targ))
-        self.assertEqual(op & op3([2, 1, 0]), Operator(targ))
+        self.assertEqual(op @ op3([2, 1, 0]), Operator(targ))
 
         # op2 qargs=[0, 1]
         targ = np.dot(np.kron(np.eye(2), np.kron(mat_b, mat_a)), mat)
         self.assertEqual(op.compose(op2, qargs=[0, 1]), Operator(targ))
-        self.assertEqual(op & op2([0, 1]), Operator(targ))
+        self.assertEqual(op @ op2([0, 1]), Operator(targ))
         # op2 qargs=[2, 0]
         targ = np.dot(np.kron(mat_a, np.kron(np.eye(2), mat_b)), mat)
         self.assertEqual(op.compose(op2, qargs=[2, 0]), Operator(targ))
-        self.assertEqual(op & op2([2, 0]), Operator(targ))
+        self.assertEqual(op @ op2([2, 0]), Operator(targ))
 
         # op1 qargs=[0]
         targ = np.dot(np.kron(np.eye(4), mat_a), mat)
         self.assertEqual(op.compose(op1, qargs=[0]), Operator(targ))
-        self.assertEqual(op & op1([0]), Operator(targ))
+        self.assertEqual(op @ op1([0]), Operator(targ))
         # op1 qargs=[1]
         targ = np.dot(np.kron(np.eye(2), np.kron(mat_a, np.eye(2))), mat)
         self.assertEqual(op.compose(op1, qargs=[1]), Operator(targ))
-        self.assertEqual(op & op1([1]), Operator(targ))
+        self.assertEqual(op @ op1([1]), Operator(targ))
         # op1 qargs=[2]
         targ = np.dot(np.kron(mat_a, np.eye(4)), mat)
         self.assertEqual(op.compose(op1, qargs=[2]), Operator(targ))
-        self.assertEqual(op & op1([2]), Operator(targ))
+        self.assertEqual(op @ op1([2]), Operator(targ))
 
     def test_dot_subsystem(self):
         """Test subsystem dot method."""

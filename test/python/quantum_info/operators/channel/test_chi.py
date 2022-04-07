@@ -118,7 +118,7 @@ class TestChi(ChannelTestCase):
         output = rho.evolve(chan)
         self.assertEqual(chan.dim, (2, 2))
         self.assertEqual(output, target)
-        chan = chan1 & chan2
+        chan = chan1 @ chan2
         output = rho.evolve(chan)
         self.assertEqual(chan.dim, (2, 2))
         self.assertEqual(output, target)

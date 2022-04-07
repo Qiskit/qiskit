@@ -52,7 +52,7 @@ class TestHoareOptimizer(QiskitTestCase):
         expected.z(1)
 
         stv = Statevector.from_label("0" * circuit.num_qubits)
-        self.assertEqual(stv & circuit, stv & expected)
+        self.assertEqual(stv @ circuit, stv @ expected)
 
         pass_ = HoareOptimizer(size=0)
         result = pass_.run(circuit_to_dag(circuit))
@@ -157,7 +157,7 @@ class TestHoareOptimizer(QiskitTestCase):
         expected.cswap(2, 4, 6)
 
         stv = Statevector.from_label("0" * circuit.num_qubits)
-        self.assertEqual(stv & circuit, stv & expected)
+        self.assertEqual(stv @ circuit, stv @ expected)
 
         pass_ = HoareOptimizer(size=0)
         result = pass_.run(circuit_to_dag(circuit))
@@ -223,7 +223,7 @@ class TestHoareOptimizer(QiskitTestCase):
             expected.cx(i, i - 1)
 
         stv = Statevector.from_label("0" * circuit.num_qubits)
-        self.assertEqual(stv & circuit, stv & expected)
+        self.assertEqual(stv @ circuit, stv @ expected)
 
         pass_ = HoareOptimizer(size=0)
         result = pass_.run(circuit_to_dag(circuit))
@@ -285,7 +285,7 @@ class TestHoareOptimizer(QiskitTestCase):
             expected.cx(i, i + 1)
 
         stv = Statevector.from_label("0" * circuit.num_qubits)
-        self.assertEqual(stv & circuit, stv & expected)
+        self.assertEqual(stv @ circuit, stv @ expected)
 
         pass_ = HoareOptimizer(size=6)
         result = pass_.run(circuit_to_dag(circuit))
@@ -305,7 +305,7 @@ class TestHoareOptimizer(QiskitTestCase):
         expected.h(0)
 
         stv = Statevector.from_label("0" * circuit.num_qubits)
-        self.assertEqual(stv & circuit, stv & expected)
+        self.assertEqual(stv @ circuit, stv @ expected)
 
         pass_ = HoareOptimizer(size=4)
         result = pass_.run(circuit_to_dag(circuit))
@@ -349,7 +349,7 @@ class TestHoareOptimizer(QiskitTestCase):
         expected.x(0)
 
         stv = Statevector.from_label("0" * circuit.num_qubits)
-        self.assertEqual(stv & circuit, stv & expected)
+        self.assertEqual(stv @ circuit, stv @ expected)
 
         pass_ = HoareOptimizer(size=4)
         result = pass_.run(circuit_to_dag(circuit))
@@ -359,7 +359,7 @@ class TestHoareOptimizer(QiskitTestCase):
     def test_targetsuccessive_identity_advanced_removal(self):
         """Should remove target successive identity gates
         with DIFFERENT sets of control qubits.
-        In this case CCCX(4,5,6,7) & CCX(5,6,7).
+        In this case CCCX(4,5,6,7) @ CCX(5,6,7).
         """
 
         #      ┌───┐┌───┐                                                            »
@@ -541,7 +541,7 @@ class TestHoareOptimizer(QiskitTestCase):
             expected.cx(i * 2 + 1, i * 2)
 
         stv = Statevector.from_label("0" * circuit.num_qubits)
-        self.assertEqual(stv & circuit, stv & expected)
+        self.assertEqual(stv @ circuit, stv @ expected)
 
         pass_ = HoareOptimizer(size=5)
         result = pass_.run(circuit_to_dag(circuit))
@@ -570,7 +570,7 @@ class TestHoareOptimizer(QiskitTestCase):
         expected.x(1)
 
         stv = Statevector.from_label("0" * circuit.num_qubits)
-        self.assertEqual(stv & circuit, stv & expected)
+        self.assertEqual(stv @ circuit, stv @ expected)
 
         pass_ = HoareOptimizer(size=5)
         result = pass_.run(circuit_to_dag(circuit))
@@ -602,7 +602,7 @@ class TestHoareOptimizer(QiskitTestCase):
         expected.h(0)
 
         stv = Statevector.from_label("0" * circuit.num_qubits)
-        self.assertEqual(stv & circuit, stv & expected)
+        self.assertEqual(stv @ circuit, stv @ expected)
 
         pass_ = HoareOptimizer(size=5)
         result = pass_.run(circuit_to_dag(circuit))
