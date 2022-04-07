@@ -34,6 +34,7 @@ class GroupMixin(ABC):
     And the following operator overloads:
 
         - ``&``, ``__and__`` -> :meth:`compose`
+        - ``@``, ``__matmul__`` -> :meth:`dot`
         - ``^``, ``__xor__`` -> `:meth:`tensor`
         - ``**``, ``__pow__`` -> :meth:`power`
 
@@ -53,6 +54,9 @@ class GroupMixin(ABC):
 
     def __xor__(self, other):
         return self.tensor(other)
+
+    def __mutmul__(self, other):
+        return self.dot(other)
 
     @abstractmethod
     def tensor(self, other):
@@ -131,6 +135,10 @@ class GroupMixin(ABC):
 
         Returns:
             CLASS: The right matrix multiplied CLASS.
+
+        .. note::
+            The dot product can be obtained using the ``@`` binary operator.
+            Hence ``a.dot(b)`` is equivalent to ``a @ b``.
         """
         return self.compose(other, qargs=qargs, front=True)
 
