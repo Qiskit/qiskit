@@ -24,7 +24,16 @@ from qiskit.quantum_info import Statevector
 from qiskit.algorithms import eval_observables
 from qiskit import BasicAer, QuantumCircuit
 from qiskit.circuit.library import EfficientSU2
-from qiskit.opflow import PauliSumOp, X, Z, I, ExpectationFactory, OperatorBase, ExpectationBase
+from qiskit.opflow import (
+    PauliSumOp,
+    X,
+    Z,
+    I,
+    ExpectationFactory,
+    OperatorBase,
+    ExpectationBase,
+    StateFn,
+)
 from qiskit.utils import QuantumInstance, algorithm_globals
 
 
@@ -149,6 +158,17 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
                     self._run_test(
                         expected_result,
                         statevector,
+                        decimal,
+                        expectation,
+                        observables,
+                        quantum_instance,
+                    )
+
+                with self.subTest(msg="Test StateFn."):
+                    statefn = StateFn(bound_ansatz)
+                    self._run_test(
+                        expected_result,
+                        statefn,
                         decimal,
                         expectation,
                         observables,

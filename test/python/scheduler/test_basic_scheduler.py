@@ -82,6 +82,16 @@ class TestBasicSchedule(QiskitTestCase):
             self.assertEqual(actual[0], expected[0])
             self.assertEqual(actual[1], expected[1])
 
+    def test_single_circuit_list_schedule(self):
+        """Test that passing a single circuit list to schedule() returns a list."""
+        q = QuantumRegister(2)
+        c = ClassicalRegister(2)
+        qc = QuantumCircuit(q, c)
+        sched = schedule([qc], self.backend, method="alap")
+        expected = Schedule()
+        self.assertIsInstance(sched, list)
+        self.assertEqual(sched[0].instructions, expected.instructions)
+
     def test_alap_with_barriers(self):
         """Test that ALAP respects barriers on new qubits."""
         q = QuantumRegister(2)
