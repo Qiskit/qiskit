@@ -89,7 +89,7 @@ class TrotterQRTE(RealEvolver):
         return self._product_formula
 
     @product_formula.setter
-    def product_formula(self, product_formula) -> None:
+    def product_formula(self, product_formula: ProductFormula) -> None:
         """
         Sets a product formula.
         Args:
