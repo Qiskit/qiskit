@@ -43,8 +43,8 @@ class AerPauliExpectation(ExpectationBase):
         AerSnapshot-based expectation circuits.
 
         Args:
-            operator: The operator to convert. If it contains non-hermitian terms, apply an
-                additional step.
+            operator: The operator to convert. If it contains non-hermitian terms, the 
+                operator is decomposed into hermitian and anti-hermitian parts.
 
         Returns:
             The converted operator.
