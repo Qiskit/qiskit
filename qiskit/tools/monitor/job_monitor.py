@@ -40,7 +40,7 @@ def _text_checker(
 
     if not quiet:
         print("{}{}: {}".format(line_discipline, "Job Status", msg), end="", file=output)
-    while status.name not in ["DONE", "CANCELLED", "ERROR", "QUEUED"]:
+    while status.name not in ["DONE", "CANCELLED", "ERROR"]:
         time.sleep(interval)
         status = job.status()
         msg = status.value
