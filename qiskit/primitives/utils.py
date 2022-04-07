@@ -20,6 +20,7 @@ from qiskit.extensions.quantum_initializer.initializer import Initialize
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
 
 
 def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:
@@ -55,15 +56,18 @@ def init_observable(observable: BaseOperator | PauliSumOp) -> SparsePauliOp:
     """
     if isinstance(observable, SparsePauliOp):
         return observable
-    if isinstance(observable, PauliSumOp):
+    elif isinstance(observable, PauliSumOp):
         if isinstance(observable.coeff, ParameterExpression):
             raise TypeError(
                 f"Observable must have numerical coefficient, not {type(observable.coeff)}."
             )
         return observable.coeff * observable.primitive
-    if isinstance(observable, BaseOperator):
+    elif isinstance(observable, BasePauli):
+        return SparsePauliOp(observable)
+    elif isinstance(observable, BaseOperator):
         return SparsePauliOp.from_operator(observable)
-    return SparsePauliOp(observable)
+    else:
+        return SparsePauliOp(observable)
 
 
 def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
