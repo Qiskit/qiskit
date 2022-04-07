@@ -350,8 +350,7 @@ class AdaptQAOA(QAOA):
             logger.info(f"Best mixer: {self._ansatz.mixer_operators[-1]}")
             logger.info(f"Initial point: {self.initial_point}")
             logger.info(f"Optimal parameters: {self._ret.optimal_parameters}")
-            logger.info(f"Relative Energy: {self._ret.optimal_value - self.ground_state_energy}")
-            # print(self._reps, self._ret.optimal_value - self.ground_state_energy, energy_norm)
+            logger.info(f"Relative Energy: {self._ret.optimal_value - self.ground_state_energy}")            
             self._reps += 1
             self._update_points()
         if self._solution:
