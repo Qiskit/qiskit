@@ -121,17 +121,28 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
 
         np.testing.assert_array_almost_equal(sampled.eval(), [0, 0, 1, -1], decimal=1)
 
-    def test_pauli_expect_non_hermitian_state_vector(self):
+    def test_pauli_expect_non_hermitian_matrixop(self):
         """pauli expect state vector with non hermitian operator test"""
         states_op = ListOp([One, Zero, Plus, Minus])
 
-        op = np.array([[0, 1], [2, 3]])
-        op_mat = MatrixOp(op)
+        op_mat = np.array([[0, 1], [2, 3]])
+        op = MatrixOp(op_mat)
 
-        converted_meas = self.expect.convert(~StateFn(op_mat) @ states_op)
+        converted_meas = self.expect.convert(~StateFn(op) @ states_op)
         sampled = self.sampler.convert(converted_meas)
 
         np.testing.assert_array_almost_equal(sampled.eval(), [3, 0, 3, 0], decimal=1)
+
+    def test_pauli_expect_non_hermitian_pauliop(self):
+        """pauli expect state vector with non hermitian operator test"""
+        states_op = ListOp([One, Zero, Plus, Minus])
+
+        op = 1j * X
+
+        converted_meas = self.expect.convert(~StateFn(op) @ states_op)
+        sampled = self.sampler.convert(converted_meas)
+
+        np.testing.assert_array_almost_equal(sampled.eval(), [0, 0, -1j, 1j], decimal=1)
 
     def test_pauli_expect_op_vector_state_vector(self):
         """pauli expect op vector state vector test"""
