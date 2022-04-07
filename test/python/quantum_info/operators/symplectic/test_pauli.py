@@ -21,6 +21,7 @@ from functools import lru_cache
 import numpy as np
 from ddt import ddt, data, unpack
 
+from qiskit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.library import (
     IGate,
@@ -412,6 +413,21 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(value, target)
         self.assertEqual(value, value_h)
         self.assertEqual(value_inv, value_s)
+
+    def test_barrier_delay_sim(self):
+        """Test barrier and delay instructions can be simulated"""
+        target_circ = QuantumCircuit(2)
+        target_circ.x(0)
+        target_circ.y(1)
+        target = Pauli(target_circ)
+
+        circ = QuantumCircuit(2)
+        circ.x(0)
+        circ.delay(100, 0)
+        circ.barrier([0, 1])
+        circ.y(1)
+        value = Pauli(circ)
+        self.assertEqual(value, target)
 
 
 if __name__ == "__main__":

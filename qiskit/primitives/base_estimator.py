@@ -10,6 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 r"""
+
+.. estimator-desc:
+
 =====================
 Overview of Estimator
 =====================
@@ -128,16 +131,15 @@ class BaseEstimator(ABC):
         holds resources until the instance is ``close()`` ed or the context is exited.
 
         Args:
-            circuits: quantum circuits that represent quantum states
-            observables: observables
-            parameters: parameters of quantum circuits, specifying the order in which values
-            will be bound.
-                Defaults to ``[circ.parameters for circ in circuits]``
+            circuits: Quantum circuits that represent quantum states.
+            observables: Observables.
+            parameters: Parameters of quantum circuits, specifying the order in which values
+                will be bound. Defaults to ``[circ.parameters for circ in circuits]``
                 The indexing is such that ``parameters[i, j]`` is the j-th formal parameter of
                 ``circuits[i]``.
 
         Raises:
-            QiskitError: for mismatch of circuits and parameters list.
+            QiskitError: For mismatch of circuits and parameters list.
         """
         self._circuits = tuple(circuits)
         self._observables = tuple(observables)
@@ -173,25 +175,25 @@ class BaseEstimator(ABC):
         """Quantum circuits that represents quantum states.
 
         Returns:
-            quantum circuits
+            The quantum circuits.
         """
         return self._circuits
 
     @property
     def observables(self) -> tuple[SparsePauliOp, ...]:
-        """Observables to be estimated
+        """Observables to be estimated.
 
         Returns:
-            observables
+            The observables.
         """
         return self._observables
 
     @property
     def parameters(self) -> tuple[ParameterView, ...]:
-        """Parameters of quantum circuits
+        """Parameters of the quantum circuits.
 
         Returns:
-            parameters, where ``parameters[i][j]`` is the j-th parameter of the i-th circuit.
+            Parameters, where ``parameters[i][j]`` is the j-th parameter of the i-th circuit.
         """
         return self._parameters
 
@@ -231,6 +233,6 @@ class BaseEstimator(ABC):
             run_options: runtime options used for circuit execution.
 
         Returns:
-            EstimatorResult: the result of Estimator.
+            EstimatorResult: The result of the estimator.
         """
         ...
