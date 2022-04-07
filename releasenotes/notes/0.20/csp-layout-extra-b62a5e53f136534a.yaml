@@ -1,0 +1,11 @@
+---
+upgrade:
+  - |
+    A new extra ``csp-layout-pass`` has been added to the install target for
+    ``pip install qiskit-terra``, and is also included in the ``all`` extra.
+    This has no effect in Qiskit Terra 0.20, but starting from Qiskit Terra 0.21,
+    the dependencies needed only for the :class:`.CSPLayout` transpiler pass will
+    be downgraded from requirements to optionals, and installed by this extra.
+    You can prepare a package that depends on this pass by setting its
+    requirements (or ``pip install`` command) to target
+    ``qiskit-terra[csp-layout-pass]``.

@@ -1,6 +1,0 @@
----
-features:
-  - |
-    The data elements of :class:`.DAGCircuit` (:class:`.DAGOpNode`,
-    :class:`.DAGInNode` and :class:`.DAGOutNode`) now have a more useful string
-    representation, to help debugging.

@@ -17,10 +17,9 @@ Qubit reset to computational zero.
 import warnings
 
 from qiskit.circuit.instruction import Instruction
-from qiskit.circuit.operation import Operation
 
 
-class Reset(Instruction, Operation):
+class Reset(Instruction):
     """Qubit reset."""
 
     def __init__(self):
