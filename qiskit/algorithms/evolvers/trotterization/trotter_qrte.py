@@ -29,7 +29,7 @@ from qiskit.opflow import (
     OperatorBase,
 )
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.providers import Backend, BaseBackend
+from qiskit.providers import Backend
 from qiskit.quantum_info import SparsePauliOp, Pauli
 from qiskit.synthesis import ProductFormula, LieTrotter
 from qiskit.utils import QuantumInstance
@@ -63,7 +63,7 @@ class TrotterQRTE(RealEvolver):
         self,
         product_formula: Optional[ProductFormula] = None,
         expectation: Optional[ExpectationBase] = None,
-        quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
     ) -> None:
         """
         Args:
@@ -98,20 +98,18 @@ class TrotterQRTE(RealEvolver):
         self._product_formula = product_formula
 
     @property
-    def quantum_instance(self) -> Union[QuantumInstance, BaseBackend, Backend]:
+    def quantum_instance(self) -> Union[QuantumInstance, Backend]:
         """Returns a quantum instance used in the algorithm."""
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(
-        self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
-    ) -> None:
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
         """
         Sets a quantum instance and a circuit sampler.
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
         """
-        if isinstance(quantum_instance, (BaseBackend, Backend)):
+        if isinstance(quantum_instance, (Backend)):
             quantum_instance = QuantumInstance(quantum_instance)
 
         self._circuit_sampler = None
