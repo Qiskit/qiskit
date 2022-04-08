@@ -42,15 +42,15 @@ def qs_decomposition(mat, opt_a1=True, opt_a2=False, decomposer_1q=None, decompo
        └───┘          └───┘     └───┘     └───┘     └───┘
 
     The number of CX gates generated with the decomposition without optimizations is,
-    
+
     .. math::
-    
+
         \frac{9}{16} 4^n - frac{3}{2} 2^n
 
     If opt_a1=True, the CX count is further reduced by,
 
     .. math::
-    
+
         \frac{1}{3} 4^{n - 2} - 1
 
     If opt_a2=True, the CX count is further reduced by,
