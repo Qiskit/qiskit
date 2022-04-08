@@ -21,11 +21,11 @@ import warnings
 import json
 import os
 
-from typing import List, Union
+from typing import List
 
 from qiskit import circuit
 from qiskit.providers.models import BackendProperties
-from qiskit.providers import BackendV2, BackendV1, BaseBackend, QubitProperties
+from qiskit.providers import BackendV2, BackendV1, BaseBackend
 from qiskit import pulse
 from qiskit.exceptions import QiskitError
 from qiskit.test.mock import fake_job
@@ -34,10 +34,7 @@ from qiskit.test.mock.utils.json_decoder import (
     decode_backend_properties,
     decode_pulse_defaults,
 )
-from qiskit.test.mock.utils.backend_converter import (
-    convert_to_target,
-    qubit_props_from_props,
-)
+from qiskit.test.mock.utils.backend_converter import convert_to_target
 from qiskit.utils import optionals as _optionals
 from qiskit.providers import basicaer
 from qiskit.transpiler import Target
@@ -86,7 +83,6 @@ class FakeBackendV2(BackendV2):
             backend_version=self._conf_dict.get("backend_version"),
         )
         self._target = None
-        self._qubit_properties = None
         self.sim = None
 
     def _setup_sim(self):
@@ -192,33 +188,6 @@ class FakeBackendV2(BackendV2):
             meas_map: The grouping of measurements which are multiplexed
         """
         return self._conf_dict.get("meas_map")
-
-    def qubit_properties(
-        self, qubit: Union[int, List[int]]
-    ) -> Union[QubitProperties, List[QubitProperties]]:
-        """Return QubitProperties for a given qubit.
-        Args:
-            qubit: The qubit to get the
-                :class:`~qiskit.provider.QubitProperties` object for. This can
-                be a single integer for 1 qubit or a list of qubits and a list
-                of :class:`~qiskit.provider.QubitProperties` objects will be
-                returned in the same order
-        Returns:
-            qubit_properties: The :class:`~qiskit.provider.QubitProperties`
-            object for the specified qubit. If a list of qubits is provided a
-            list will be returned. If properties are missing for a qubit this
-            can be ``None``.
-        """
-        if self._qubit_properties is None:
-            if self._props_dict is None:
-                self._set_props_dict_from_json()
-            self._qubit_properties = qubit_props_from_props(self._props_dict)
-
-        if isinstance(qubit, int):  # type: ignore[unreachable]
-            return self._qubit_properties.get(qubit)
-        if isinstance(qubit, List):
-            return [self._qubit_properties.get(q) for q in qubit]
-        return None
 
     def run(self, run_input, **options):
         """Run on the fake backend using a simulator.
