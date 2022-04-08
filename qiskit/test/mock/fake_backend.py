@@ -294,7 +294,6 @@ class FakeBackendV2(BackendV2):
         with warnings.catch_warnings():
             warnings.filterwarnings(
                 "ignore",
-                category=DeprecationWarning,
                 module="qiskit.providers.aer.noise.device.models",
             )
             gate_errors = basic_device_gate_errors(
