@@ -95,7 +95,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         ]
 
         parameter_values = evolved_state.data[0][0].params
-
+        # TODO remove print before merging
         print(
             state_fidelity(
                 Statevector(evolved_state),
@@ -160,7 +160,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
             0.699606368428206,
             0.610788576398685,
         ]
-
+        # TODO remove print before merging
         print(
             state_fidelity(
                 Statevector(evolved_state),

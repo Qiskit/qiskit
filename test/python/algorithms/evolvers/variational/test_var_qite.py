@@ -14,10 +14,11 @@
 
 import unittest
 
+from qiskit.utils import algorithm_globals, QuantumInstance
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
-from qiskit import Aer
+from qiskit import Aer, BasicAer
 from qiskit.algorithms import EvolutionProblem
 from qiskit.algorithms.evolvers.variational import VarQITE
 from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_generator import (
@@ -33,6 +34,9 @@ from qiskit.opflow import (
     Y,
     I,
     Z,
+    Zero,
+    VectorStateFn,
+    ExpectationFactory,
 )
 from qiskit.quantum_info import state_fidelity, Statevector
 
@@ -42,9 +46,31 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
     def setUp(self):
         super().setUp()
-        np.random.seed(11)
+        self.seed = 11
+        np.random.seed(self.seed)
+        backend_statevector = BasicAer.get_backend("statevector_simulator")
+        backend_qasm = BasicAer.get_backend("qasm_simulator")
+        self.quantum_instance = QuantumInstance(
+            backend=backend_statevector,
+            shots=1,
+            seed_simulator=self.seed,
+            seed_transpiler=self.seed,
+        )
+        self.quantum_instance_qasm = QuantumInstance(
+            backend=backend_qasm,
+            shots=4000,
+            seed_simulator=self.seed,
+            seed_transpiler=self.seed,
+        )
+        self.backends_dict = {
+            "qi_sv": self.quantum_instance,
+            "qi_qasm": self.quantum_instance_qasm,
+            "b_sv": backend_statevector,
+        }
 
-    def test_run_d_1(self):
+        self.backends_names = ["qi_qasm"]  # "b_sv",
+
+    def test_run_d_1_with_aux_ops(self):
         """Test VarQITE for d = 1 and t = 1."""
         observable = SummedOp(
             [
@@ -56,7 +82,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
                 0.091 * (X ^ X),
             ]
         ).reduce()
-
+        aux_ops = [X ^ X, Y ^ Z]
         d = 1
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
@@ -68,19 +94,14 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
 
         param_dict = dict(zip(parameters, init_param_values))
-        backend = Aer.get_backend("statevector_simulator")
 
         ode_function = OdeFunctionGenerator()
-        var_qite = VarQITE(var_principle, ode_function, quantum_instance=backend)
+
         time = 1
 
         evolution_problem = EvolutionProblem(
-            observable, time, ansatz, hamiltonian_value_dict=param_dict
+            observable, time, ansatz, aux_operators=aux_ops, hamiltonian_value_dict=param_dict
         )
-
-        evolution_result = var_qite.evolve(evolution_problem)
-
-        evolved_state = evolution_result.evolved_state
 
         # values from the prototype
         thetas_expected = [
@@ -93,18 +114,62 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             2.10770301585949,
             1.92775891861825,
         ]
-        print(
-            state_fidelity(
-                Statevector(evolved_state),
-                Statevector(
-                    ansatz.assign_parameters(dict(zip(ansatz.parameters, thetas_expected)))
-                ),
-            )
-        )
-        parameter_values = evolved_state.data[0][0].params
 
-        for i, parameter_value in enumerate(parameter_values):
-            np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=3)
+        thetas_expected_qasm = [
+            0.92928079575943,
+            1.70504715213865,
+            2.6955702603652,
+            2.70730190763444,
+            2.29297852544896,
+            1.51004167136585,
+            2.200898726865,
+            1.97021569662524,
+        ]
+
+        expected_aux_ops_evaluated = [(-0.204155479846185, 0.0), (0.25191789852257596, 0.0)]
+        expected_aux_ops_evaluated_qasm = [
+            (0.011999999999999927, 0.015810249839898167),
+            (0.32800000000000024, 0.014936666294725873),
+        ]
+
+        for backend_name in self.backends_names:
+            with self.subTest(msg=f"Test {backend_name} backend."):
+                algorithm_globals.random_seed = 0
+                backend = self.backends_dict[backend_name]
+                expectation = ExpectationFactory.build(
+                    operator=observable,
+                    backend=backend,
+                )
+                var_qite = VarQITE(
+                    var_principle, ode_function, quantum_instance=backend, expectation=expectation
+                )
+                evolution_result = var_qite.evolve(evolution_problem)
+
+                evolved_state = evolution_result.evolved_state
+                aux_ops = evolution_result.aux_ops_evaluated
+
+                # TODO remove print before merging
+                print(
+                    state_fidelity(
+                        Statevector(evolved_state),
+                        Statevector(
+                            ansatz.assign_parameters(dict(zip(ansatz.parameters, thetas_expected)))
+                        ),
+                    )
+                )
+                parameter_values = evolved_state.data[0][0].params
+
+                if backend_name == "qi_qasm":
+                    thetas_expected = thetas_expected_qasm
+                    expected_aux_ops_evaluated = expected_aux_ops_evaluated_qasm
+
+                for i, parameter_value in enumerate(parameter_values):
+                    np.testing.assert_almost_equal(
+                        float(parameter_value), thetas_expected[i], decimal=3
+                    )
+                np.testing.assert_array_almost_equal(
+                    aux_ops, expected_aux_ops_evaluated
+                )
 
     def test_run_d_1_t_7(self):
         """Test VarQITE for d = 1 and t = 7."""
@@ -156,6 +221,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             2.04214275514208,
             2.04009918594422,
         ]
+        # TODO remove print before merging
         print(
             state_fidelity(
                 Statevector(evolved_state),
@@ -223,6 +289,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             0.839305697704923,
             0.663689581255428,
         ]
+        # TODO remove print before merging
         print(
             state_fidelity(
                 Statevector(evolved_state),
