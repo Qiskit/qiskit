@@ -14,10 +14,10 @@
 
 import unittest
 
-from qiskit.utils import algorithm_globals, QuantumInstance
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
+from qiskit.utils import algorithm_globals, QuantumInstance
 from qiskit import Aer, BasicAer
 from qiskit.algorithms import EvolutionProblem
 from qiskit.algorithms.evolvers.variational import VarQITE
@@ -34,8 +34,6 @@ from qiskit.opflow import (
     Y,
     I,
     Z,
-    Zero,
-    VectorStateFn,
     ExpectationFactory,
 )
 from qiskit.quantum_info import state_fidelity, Statevector
@@ -71,7 +69,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         self.backends_names = ["qi_qasm", "b_sv", "qi_sv"]
 
     def test_run_d_1_with_aux_ops(self):
-        """Test VarQITE for d = 1 and t = 1."""
+        """Test VarQITE for d = 1 and t = 1 with evaluating auxiliary operator."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),
