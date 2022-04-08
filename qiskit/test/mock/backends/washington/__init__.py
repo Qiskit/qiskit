@@ -14,4 +14,5 @@
 Fake Washington backend (127 qubit).
 """
 
+from .fake_washington import FakeWashingtonV2
 from .fake_washington import FakeWashington

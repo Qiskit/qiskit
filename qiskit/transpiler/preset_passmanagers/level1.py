@@ -51,8 +51,8 @@ from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import TimeUnitConversion
-from qiskit.transpiler.passes import ALAPSchedule
-from qiskit.transpiler.passes import ASAPSchedule
+from qiskit.transpiler.passes import ALAPScheduleAnalysis
+from qiskit.transpiler.passes import ASAPScheduleAnalysis
 from qiskit.transpiler.passes import ConstrainedReschedule
 from qiskit.transpiler.passes import InstructionDurationCheck
 from qiskit.transpiler.passes import ValidatePulseGates
@@ -156,6 +156,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             call_limit=int(5e4),  # Set call limit to ~100ms with retworkx 0.10.2
             time_limit=0.1,
             properties=backend_properties,
+            target=target,
         )
     )
 
@@ -316,10 +317,10 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if scheduling_method:
         # Do scheduling after unit conversion.
         scheduler = {
-            "alap": ALAPSchedule,
-            "as_late_as_possible": ALAPSchedule,
-            "asap": ASAPSchedule,
-            "as_soon_as_possible": ASAPSchedule,
+            "alap": ALAPScheduleAnalysis,
+            "as_late_as_possible": ALAPScheduleAnalysis,
+            "asap": ASAPScheduleAnalysis,
+            "as_soon_as_possible": ASAPScheduleAnalysis,
         }
         pm1.append(TimeUnitConversion(instruction_durations))
         try:

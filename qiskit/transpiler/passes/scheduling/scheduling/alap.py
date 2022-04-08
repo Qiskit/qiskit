@@ -17,7 +17,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.scheduling.scheduling.base_scheduler import BaseScheduler
 
 
-class ALAPSchedule(BaseScheduler):
+class ALAPScheduleAnalysis(BaseScheduler):
     """ALAP Scheduling pass, which schedules the **stop** time of instructions as late as possible.
 
     See :class:`~qiskit.transpiler.passes.scheduling.base_scheduler.BaseScheduler` for the

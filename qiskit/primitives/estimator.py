@@ -67,24 +67,22 @@ class Estimator(BaseEstimator):
         if self._is_closed:
             raise QiskitError("The primitive has been closed.")
 
-        if parameter_values and not isinstance(parameter_values[0], Sequence):
+        if isinstance(parameter_values, np.ndarray):
+            parameter_values = parameter_values.tolist()
+        if parameter_values and not isinstance(parameter_values[0], (np.ndarray, Sequence)):
             parameter_values = cast("Sequence[float]", parameter_values)
             parameter_values = [parameter_values]
-        if (
-            circuit_indices is None
-            and len(self._circuits) == 1
-            and observable_indices is None
-            and len(self._observables) == 1
-            and parameter_values is not None
-        ):
-            circuit_indices = [0] * len(parameter_values)
-            observable_indices = [0] * len(parameter_values)
         if circuit_indices is None:
             circuit_indices = list(range(len(self._circuits)))
         if observable_indices is None:
             observable_indices = list(range(len(self._observables)))
         if parameter_values is None:
             parameter_values = [[]] * len(circuit_indices)
+        if len(circuit_indices) != len(observable_indices):
+            raise QiskitError(
+                f"The number of circuit indices ({len(circuit_indices)}) does not match "
+                f"the number of observable indices ({len(observable_indices)})."
+            )
         if len(circuit_indices) != len(parameter_values):
             raise QiskitError(
                 f"The number of circuit indices ({len(circuit_indices)}) does not match "
@@ -111,7 +109,7 @@ class Estimator(BaseEstimator):
                 )
             expectation_values.append(Statevector(circ).expectation_value(obs))
 
-        return EstimatorResult(np.real_if_close(expectation_values), [])
+        return EstimatorResult(np.real_if_close(expectation_values), [{}] * len(expectation_values))
 
     def close(self):
         self._is_closed = True
