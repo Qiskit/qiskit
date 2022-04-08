@@ -88,6 +88,8 @@ class VarQITE(ImaginaryEvolver, VarQTE):
             evolved state and, if provided, observables evaluated on the evolved state using
             a ``quantum_instance`` and ``expectation`` provided.
         """
+        self._validate_aux_ops(evolution_problem)
+
         init_state_param_dict = self._create_init_state_param_dict(
             evolution_problem.hamiltonian_value_dict,
             list(evolution_problem.initial_state.parameters),

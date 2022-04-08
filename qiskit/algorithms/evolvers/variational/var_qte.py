@@ -19,8 +19,9 @@ import numpy as np
 from scipy.integrate import RK45, OdeSolver
 
 from qiskit import QuantumCircuit
+from qiskit.algorithms import EvolutionProblem
 from qiskit.circuit import Parameter
-from qiskit.providers import BaseBackend
+from qiskit.providers import BaseBackend, Backend
 from qiskit.utils import QuantumInstance
 from qiskit.opflow import (
     StateFn,
@@ -79,7 +80,8 @@ class VarQTE(ABC):
         """
         super().__init__()
         self._variational_principle = variational_principle
-
+        if isinstance(quantum_instance, Backend):
+            quantum_instance = QuantumInstance(quantum_instance)
         self._backend = quantum_instance
         self._expectation = expectation
         self._circuit_sampler = CircuitSampler(self._backend) if self._backend else None
@@ -205,3 +207,12 @@ class VarQTE(ABC):
                     init_state_parameter_values.append(hamiltonian_value_dict[param])
         init_state_param_dict = dict(zip(init_state_parameters, init_state_parameter_values))
         return init_state_param_dict
+
+    def _validate_aux_ops(self, evolution_problem: EvolutionProblem) -> None:
+        if evolution_problem.aux_operators is not None and (
+            self._backend is None or self._expectation is None
+        ):
+            raise ValueError(
+                "aux_operators where provided for evaluations but no ``expectation`` or "
+                "``quantum_instance`` was provided."
+            )

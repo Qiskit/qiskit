@@ -68,7 +68,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             "b_sv": backend_statevector,
         }
 
-        self.backends_names = ["qi_qasm"]  # "b_sv",
+        self.backends_names = ["qi_qasm", "b_sv", "qi_sv"]
 
     def test_run_d_1_with_aux_ops(self):
         """Test VarQITE for d = 1 and t = 1."""
@@ -104,7 +104,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         )
 
         # values from the prototype
-        thetas_expected = [
+        thetas_expected_sv = [
             0.905901128153194,
             2.00336012271211,
             2.69398302961789,
@@ -126,7 +126,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             1.97021569662524,
         ]
 
-        expected_aux_ops_evaluated = [(-0.204155479846185, 0.0), (0.25191789852257596, 0.0)]
+        expected_aux_ops_evaluated_sv = [(-0.204155479846185, 0.0), (0.25191789852257596, 0.0)]
         expected_aux_ops_evaluated_qasm = [
             (0.011999999999999927, 0.015810249839898167),
             (0.32800000000000024, 0.014936666294725873),
@@ -134,7 +134,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         for backend_name in self.backends_names:
             with self.subTest(msg=f"Test {backend_name} backend."):
-                algorithm_globals.random_seed = 0
+                algorithm_globals.random_seed = self.seed
                 backend = self.backends_dict[backend_name]
                 expectation = ExpectationFactory.build(
                     operator=observable,
@@ -148,28 +148,20 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
                 evolved_state = evolution_result.evolved_state
                 aux_ops = evolution_result.aux_ops_evaluated
 
-                # TODO remove print before merging
-                print(
-                    state_fidelity(
-                        Statevector(evolved_state),
-                        Statevector(
-                            ansatz.assign_parameters(dict(zip(ansatz.parameters, thetas_expected)))
-                        ),
-                    )
-                )
                 parameter_values = evolved_state.data[0][0].params
 
                 if backend_name == "qi_qasm":
                     thetas_expected = thetas_expected_qasm
-                    expected_aux_ops_evaluated = expected_aux_ops_evaluated_qasm
+                    expected_aux_ops = expected_aux_ops_evaluated_qasm
+                else:
+                    thetas_expected = thetas_expected_sv
+                    expected_aux_ops = expected_aux_ops_evaluated_sv
 
                 for i, parameter_value in enumerate(parameter_values):
                     np.testing.assert_almost_equal(
                         float(parameter_value), thetas_expected[i], decimal=3
                     )
-                np.testing.assert_array_almost_equal(
-                    aux_ops, expected_aux_ops_evaluated
-                )
+                np.testing.assert_array_almost_equal(aux_ops, expected_aux_ops)
 
     def test_run_d_1_t_7(self):
         """Test VarQITE for d = 1 and t = 7."""
