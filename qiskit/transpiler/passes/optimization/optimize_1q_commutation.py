@@ -90,9 +90,15 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         adjoining_run = []
         for possibility in possibilities:
             if isinstance(possibility, DAGOpNode) and possibility.qargs == edge_node.qargs:
-                adjoining_run = next((run for run in runs if possibility in run), [])
+                adjoining_run = []
+                for single_run in runs:
+                    if (
+                        len(single_run) != 0 and single_run[0].qargs == possibility.qargs
+                    ):  # allows us to only check the run on a particular qubit
+                        if possibility in single_run:
+                            adjoining_run = single_run
+                            break
                 break
-
         return (blocker, adjoining_run)
 
     @staticmethod
