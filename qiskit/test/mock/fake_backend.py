@@ -76,8 +76,8 @@ class FakeBackendV2(BackendV2):
     def __init__(self):
         """FakeBackendV2 initializer."""
         self._conf_dict = self._get_conf_dict_from_json()
-        self._props_dict = self._set_props_dict_from_json()
-        self._defs_dict = self._set_defs_dict_from_json()
+        self._props_dict = None
+        self._defs_dict = None
         super().__init__(
             provider=None,
             name=self._conf_dict.get("backend_name"),
@@ -85,12 +85,11 @@ class FakeBackendV2(BackendV2):
             online_date=self._conf_dict.get("online_date"),
             backend_version=self._conf_dict.get("backend_version"),
         )
-        self._target = convert_to_target(
-            conf_dict=self._conf_dict,
-            props_dict=self._props_dict,
-            defs_dict=self._defs_dict,
-        )
-        self._qubit_properties = qubit_props_from_props(self._props_dict)
+        self._target = None
+        self._qubit_properties = None
+        self.sim = None
+
+    def _setup_sim(self):
         if _optionals.HAS_AER:
             from qiskit.providers import aer
 
@@ -101,10 +100,11 @@ class FakeBackendV2(BackendV2):
                 # Update fake backend default too to avoid overwriting
                 # it when run() is called
                 self.set_options(noise_model=noise_model)
+
         else:
             self.sim = basicaer.QasmSimulatorPy()
 
-    def _get_conf_dict_from_json(self) -> dict:
+    def _get_conf_dict_from_json(self):
         if not self.conf_filename:
             return None
         conf_dict = self._load_json(self.conf_filename)
@@ -112,19 +112,17 @@ class FakeBackendV2(BackendV2):
         conf_dict["backend_name"] = self.backend_name
         return conf_dict
 
-    def _set_props_dict_from_json(self) -> dict:
-        if not self.props_filename:
-            return None
-        props_dict = self._load_json(self.props_filename)
-        decode_backend_properties(props_dict)
-        return props_dict
+    def _set_props_dict_from_json(self):
+        if self.props_filename:
+            props_dict = self._load_json(self.props_filename)
+            decode_backend_properties(props_dict)
+            self._props_dict = props_dict
 
-    def _set_defs_dict_from_json(self) -> dict:
-        if not self.defs_filename:
-            return None
-        defs_dict = self._load_json(self.defs_filename)
-        decode_pulse_defaults(defs_dict)
-        return defs_dict
+    def _set_defs_dict_from_json(self):
+        if self.defs_filename:
+            defs_dict = self._load_json(self.defs_filename)
+            decode_pulse_defaults(defs_dict)
+            self._defs_dict = defs_dict
 
     def _load_json(self, filename: str) -> dict:
         with open(os.path.join(self.dirname, filename)) as f_json:
@@ -137,6 +135,18 @@ class FakeBackendV2(BackendV2):
 
         :rtype: Target
         """
+        if self._target is None:
+            self._get_conf_dict_from_json()
+            if self._props_dict is None:
+                self._set_props_dict_from_json()
+            if self._defs_dict is None:
+                self._set_defs_dict_from_json()
+            self._target = convert_to_target(
+                conf_dict=self._conf_dict,
+                props_dict=self._props_dict,
+                defs_dict=self._defs_dict,
+            )
+
         return self._target
 
     @property
@@ -199,6 +209,11 @@ class FakeBackendV2(BackendV2):
             list will be returned. If properties are missing for a qubit this
             can be ``None``.
         """
+        if self._qubit_properties is None:
+            if self._props_dict is None:
+                self._set_props_dict_from_json()
+            self._qubit_properties = qubit_props_from_props(self._props_dict)
+
         if isinstance(qubit, int):  # type: ignore[unreachable]
             return self._qubit_properties.get(qubit)
         if isinstance(qubit, List):
@@ -259,6 +274,8 @@ class FakeBackendV2(BackendV2):
         # circuit job
         if not _optionals.HAS_AER:
             warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
+        if self.sim is None:
+            self._setup_sim()
         self.sim._options = self._options
         job = self.sim.run(circuits, **options)
         return job
@@ -288,6 +305,9 @@ class FakeBackendV2(BackendV2):
             basic_device_readout_errors,
         )
         from qiskit.providers.aer.noise.passes import RelaxationNoisePass
+
+        if self._props_dict is None:
+            self._set_props_dict_from_json()
 
         properties = BackendProperties.from_dict(self._props_dict)
         basis_gates = self.operation_names
@@ -359,13 +379,20 @@ class FakeBackend(BackendV1):
         super().__init__(configuration)
         self.time_alive = time_alive
         self._credentials = _Credentials()
+        self.sim = None
+
+    def _setup_sim(self):
         if _optionals.HAS_AER:
             from qiskit.providers import aer
+            from qiskit.providers.aer.noise import NoiseModel
 
-            self.sim = aer.AerSimulator.from_backend(self)
-            # Update fake backend default options too to avoid overwriting
-            # it when run() is called
-            self._options = self.sim._options
+            self.sim = aer.AerSimulator()
+            if self.properties():
+                noise_model = NoiseModel.from_backend(self, warnings=False)
+                self.sim.set_options(noise_model=noise_model)
+                # Update fake backend default options too to avoid overwriting
+                # it when run() is called
+                self.set_options(noise_model=noise_model)
         else:
             self.sim = basicaer.QasmSimulatorPy()
 
@@ -458,6 +485,8 @@ class FakeBackend(BackendV1):
             else:
                 raise QiskitError("Unable to run pulse schedules without qiskit-aer installed")
         else:
+            if self.sim is None:
+                self._setup_sim()
             if not _optionals.HAS_AER:
                 warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
             self.sim._options = self._options
