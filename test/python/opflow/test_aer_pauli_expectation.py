@@ -128,7 +128,7 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
         op_mat = np.array([[0, 1], [2, 3]])
         op = MatrixOp(op_mat)
 
-        converted_meas = self.expect.convert(~StateFn(op) @ states_op)
+        converted_meas = self.expect.convert(StateFn(op, is_measurement=True) @ states_op)
         sampled = self.sampler.convert(converted_meas)
 
         np.testing.assert_array_almost_equal(sampled.eval(), [3, 0, 3, 0], decimal=1)
@@ -139,10 +139,10 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
 
         op = 1j * X
 
-        converted_meas = self.expect.convert(~StateFn(op) @ states_op)
+        converted_meas = self.expect.convert(StateFn(op, is_measurement=True) @ states_op)
         sampled = self.sampler.convert(converted_meas)
 
-        np.testing.assert_array_almost_equal(sampled.eval(), [0, 0, -1j, 1j], decimal=1)
+        np.testing.assert_array_almost_equal(sampled.eval(), [0, 0, 1j, -1j], decimal=1)
 
     def test_pauli_expect_op_vector_state_vector(self):
         """pauli expect op vector state vector test"""
