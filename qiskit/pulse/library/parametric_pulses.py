@@ -350,13 +350,15 @@ class Drag(ParametricPulse):
         g(x) &= \\exp\\Bigl(-\\frac12 \\frac{(x - \\text{duration}/2)^2}{\\text{sigma}^2}\\Bigr)\\\\
         g'(x) &= \\text{amp}\\times\\frac{g(x)-g(-1)}{1-g(-1)}\\\\
         f(x) &=  g'(x) \\times \\Bigl(1 + 1j \\times \\text{beta} \\times\
-                    \\Bigl(-\\frac{x - \\text{duration}/2}{\\text{sigma}^2}\\Bigr)  \\Bigr), \\quad 0 \\le x < \\text{duration}
+            \\Bigl(-\\frac{x - \\text{duration}/2}{\\text{sigma}^2}\\Bigr)  \\Bigr),
+            \\quad 0 \\le x < \\text{duration}
 
     where :math:`g(x)` is a standard unlifted Gaussian waveform and
-    :math:`g'(x)` is the lifted `Gaussian <https://qiskit.org/documentation/stubs/qiskit.pulse.library.Gaussian.html>`_ waveform.
+    :math:`g'(x)` is the lifted 
+    `Gaussian <https://qiskit.org/documentation/stubs/qiskit.pulse.library.Gaussian.html>`_ waveform.
 
-    This pulse, defined by :math:`f(x)`, would be more accurately named as ``LiftedDrag``, however, for historical
-    and practical DSP reasons it has the name ``Drag``.
+    This pulse, defined by :math:`f(x)`, would be more accurately named as ``LiftedDrag``, however,
+    for historical and practical DSP reasons it has the name ``Drag``.
 
     References:
         1. |citation1|_
