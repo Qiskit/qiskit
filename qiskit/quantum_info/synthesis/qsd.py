@@ -193,7 +193,7 @@ def _get_ucry_cz(nqubits, angles):
     unroll = Unroller(["ry", "cx"])
     dag2 = unroll.run(dag)
     cz = CZGate()
-    cxtype = type(CXGate())
+    cxtype = CXGate
     node = None
     for node in dag2.op_nodes(op=cxtype):
         dag2.substitute_node(node, cz, inplace=True)
