@@ -136,18 +136,16 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
                 next_gate = run_clone[0] if front else run_clone[-1]
                 if next_gate.name not in commutation_rule:
                     break
+                commuted.append(next_gate)
                 if front:
-                    commuted.append(next_gate)
                     del run_clone[0]
                 else:
-                    commuted.insert(0, next_gate)
                     del run_clone[-1]
-
+        if not front:
+            commuted = commuted[::-1]
         if front:
-            assert commuted + run_clone == run
             return commuted, run_clone
         else:
-            assert run_clone + commuted == run
             return run_clone, commuted
 
     def _resynthesize(self, new_run):
