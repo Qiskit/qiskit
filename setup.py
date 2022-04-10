@@ -33,6 +33,9 @@ with open(README_PATH) as readme_file:
     )
 
 
+csplayout_requirements = [
+    "python-constraint>=1.4",
+]
 visualization_extras = [
     "matplotlib>=3.3",
     "ipywidgets>=7.3.0",
@@ -50,7 +53,7 @@ bip_requirements = ["cplex", "docplex"]
 
 setup(
     name="qiskit-terra",
-    version="0.20.0",
+    version="0.21.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -82,10 +85,11 @@ setup(
         "visualization": visualization_extras,
         "bip-mapper": bip_requirements,
         "crosstalk-pass": z3_requirements,
+        "csp-layout-pass": csplayout_requirements,
         # Note: 'all' does not include 'bip-mapper' because cplex is too fiddly and too little
         # supported on various Python versions and OSes compared to Terra.  You have to ask for it
         # explicitly.
-        "all": visualization_extras + z3_requirements,
+        "all": visualization_extras + z3_requirements + csplayout_requirements,
     },
     project_urls={
         "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",
