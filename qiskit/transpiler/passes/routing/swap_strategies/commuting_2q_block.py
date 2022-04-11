@@ -14,7 +14,7 @@
 
 from typing import Iterable
 
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 from qiskit.circuit import Gate
 from qiskit.dagcircuit import DAGOpNode
 

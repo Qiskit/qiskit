@@ -16,7 +16,7 @@ from typing import Any, List, Optional, Set, Tuple
 import copy
 import numpy as np
 
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 from qiskit.transpiler import CouplingMap
 
 

@@ -16,7 +16,7 @@ from typing import Tuple
 
 import numpy as np
 
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import TransformationPass
