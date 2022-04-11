@@ -309,7 +309,7 @@ N-local circuits
 
 These :class:`~qiskit.circuit.library.BlueprintCircuit` subclasses are used
 as parameterized models (a.k.a. ansatzes or variational forms) in variational algorithms.
-They are heavily used near-term algorithms in e.g. Chemistry, Physics or Optimization.
+They are heavily used in near-term algorithms in e.g. Chemistry, Physics or Optimization.
 .. autosummary::
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
