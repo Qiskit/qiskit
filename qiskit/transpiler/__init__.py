@@ -398,8 +398,8 @@ Supplementary Information
    padding pass. The first part requires running a scheduling analysis pass such as
    :class:`~.ALAPSchedulingAnalysis` or :class:`~.ASAPSchedulingAnalysis` which analyzes the circuit
    and maps the start time of each instruction in the circuit using a scheduling algorithm ("as late
-   as possible" for    :class:`~.ALAPSchedulingAnalysis` and "as soon as possible" for
-   :class:~.ASAPSchedulingAnalysis) to the property set. Once the circuit has an initial scheduling
+   as possible" for  :class:`~.ALAPSchedulingAnalysis` and "as soon as possible" for
+   :class:`~.ASAPSchedulingAnalysis`) to the property set. Once the circuit has an initial scheduling
    additional passes can be run to account for any timing constraints on the target backend, such
    as alignment constraints. This is typically done with the
    :class:`~.ConstrainedReschedule` pass which will adjust the scheduling
