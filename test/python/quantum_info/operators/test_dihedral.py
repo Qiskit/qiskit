@@ -716,6 +716,21 @@ class TestCNOTDihedral(unittest.TestCase):
                 target = Operator(elem)
                 self.assertTrue(value.equiv(target), "Error: Pauli operator is not the same.")
 
+    def test_barrier_delay_sim(self):
+        """Test barrier and delay instructions can be simulated"""
+        target_circ = QuantumCircuit(2)
+        target_circ.x(0)
+        target_circ.cx(0, 1)
+        target = CNOTDihedral(target_circ)
+
+        circ = QuantumCircuit(2)
+        circ.x(0)
+        circ.delay(100, 0)
+        circ.barrier([0, 1])
+        circ.cx(0, 1)
+        value = CNOTDihedral(circ)
+        self.assertEqual(value, target)
+
 
 if __name__ == "__main__":
     unittest.main()

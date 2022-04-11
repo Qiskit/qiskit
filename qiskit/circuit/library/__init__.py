@@ -93,6 +93,7 @@ For example:
    RZZGate
    RZXGate
    XXPlusYYGate
+   XXMinusYYGate
    ECRGate
    SGate
    SdgGate
