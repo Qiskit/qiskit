@@ -14,6 +14,7 @@
 
 from copy import copy
 import logging
+from collections import deque
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import CXGate, RZXGate
@@ -112,8 +113,10 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
 
         if run == []:
             return [], []
-
-        run_clone = copy(run)
+        # use deque to have modification
+        # operations which are constant
+        # time
+        run_clone = deque(copy(run))
 
         commuted = []
         preindex, commutation_rule = None, None
@@ -132,21 +135,21 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
                 commutation_rule = commutation_table[type(blocker.op)][preindex]
 
         if commutation_rule is not None:
-            while run_clone != []:
+            while len(run_clone) > 0:
                 next_gate = run_clone[0] if front else run_clone[-1]
                 if next_gate.name not in commutation_rule:
                     break
                 commuted.append(next_gate)
                 if front:
-                    del run_clone[0]
+                    run_clone.popleft()
                 else:
-                    del run_clone[-1]
+                    run_clone.pop()
         if not front:
             commuted = commuted[::-1]
         if front:
-            return commuted, run_clone
+            return commuted, list(run_clone)
         else:
-            return run_clone, commuted
+            return list(run_clone), commuted
 
     def _resynthesize(self, new_run):
         """
