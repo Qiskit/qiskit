@@ -43,6 +43,8 @@ quantum circuit optimization methods and their usage, it is best to use one of
 these ready-made routines.
 
 
+.. _transpiler_supplemental:
+
 Supplementary Information
 =========================
 
@@ -405,8 +407,6 @@ Supplementary Information
    the scheduling and adjustments/rescheduling are finished a padding pass,
    such as :class:`~.PadDelay` or :class:`~.PadDynamicalDecoupling` are run
    to insert the instructions to the circuit to complete the scheduling.
-
-   .. _scheduling_passes_control_flow:
 
    Scheduling Anaylsis with control flow instructions:
 

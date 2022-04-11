@@ -20,7 +20,7 @@ from qiskit.transpiler.passes.scheduling.scheduling.base_scheduler import BaseSc
 class ALAPScheduleAnalysis(BaseScheduler):
     """ALAP Scheduling pass, which schedules the **stop** time of instructions as late as possible.
 
-    See :ref:`scheduling_passes_control_flow` for
+    See the Scheduling section in :ref:`transpiler_supplemental` for
     the detailed behavior of the control flow operation, i.e. ``c_if``.
     """
 
