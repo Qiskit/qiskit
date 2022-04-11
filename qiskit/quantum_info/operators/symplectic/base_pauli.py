@@ -339,7 +339,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         ret._phase = np.mod(self._phase + 2, 4)
         return ret
 
-    def _count_y(self, dtype=np.uint8):
+    def _count_y(self, dtype=None):
         """Count the number of I Pauli's"""
         return _count_y(self._x, self._z, dtype=dtype)
 
@@ -686,6 +686,8 @@ def _evolve_swap(base_pauli, q1, q2):
     return base_pauli
 
 
-def _count_y(x, z, dtype=np.uint8):
+def _count_y(x, z, dtype=None):
     """Count the number of I Pauli's"""
+    if dtype is None:
+        dtype = np.min_scalar_type(x.shape[0])
     return (x & z).sum(axis=1, dtype=dtype)
