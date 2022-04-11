@@ -19,10 +19,6 @@ from qiskit.transpiler.passes.synthesis.plugin import UnitarySynthesisPlugin
 from .solovay_kitaev import SolovayKitaev
 from .generate_basis_approximations import generate_basic_approximations
 
-# we globally cache an instance of the Solovay-Kitaev class to generate the
-# computationally expensive basis approximation of single qubit gates only once
-SK_ = None
-
 
 class SolovayKitaevSynthesisPlugin(UnitarySynthesisPlugin):
     """
@@ -58,6 +54,10 @@ class SolovayKitaevSynthesisPlugin(UnitarySynthesisPlugin):
     initial_point (:class:`~numpy.ndarray`)
         Initial values of angles/parameters to start the optimization process from.
     """
+
+    # we cache an instance of the Solovay-Kitaev class to generate the
+    # computationally expensive basis approximation of single qubit gates only once
+    solovay_kitaev = None
 
     @property
     def max_qubits(self):
@@ -116,20 +116,20 @@ class SolovayKitaevSynthesisPlugin(UnitarySynthesisPlugin):
 
         # if we didn't yet construct the Solovay-Kitaev instance, which contains
         # the basic approximations, do it now
-        global SK_  # pylint: disable=global-statement
-
-        if SK_ is None:
+        if SolovayKitaevSynthesisPlugin.solovay_kitaev is None:
             basic_approximations = config.get("basic_approximations", None)
-            basis_gates = options.get("basis_gates", None)
+            basis_gates = options.get("basis_gates", ["h", "t", "tdg"])
 
             # if the basic approximations are not generated and not given,
             # try to generate them if the basis set is specified
-            if basic_approximations is None and basis_gates is not None:
+            if basic_approximations is None:
                 depth = config.get("depth", 10)
                 basic_approximations = generate_basic_approximations(basis_gates, depth)
 
-                SK_ = SolovayKitaev(basic_approximations)
+            SolovayKitaevSynthesisPlugin.solovay_kitaev = SolovayKitaev(basic_approximations)
 
-        approximate_circuit = SK_.run(unitary, recursion_degree)
+        approximate_circuit = SolovayKitaevSynthesisPlugin.solovay_kitaev.run(
+            unitary, recursion_degree
+        )
         dag_circuit = circuit_to_dag(approximate_circuit)
         return dag_circuit

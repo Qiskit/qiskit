@@ -203,7 +203,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 
-    # 5. Unroll to the basis
     if translation_method == "unroller":
         _unroll = [Unroller(basis_gates)]
     elif translation_method == "translator":
