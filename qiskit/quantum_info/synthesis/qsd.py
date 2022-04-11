@@ -65,8 +65,11 @@ def qs_decomposition(mat, opt_a1=True, opt_a2=False, decomposer_1q=None, decompo
           per call. If True CZ gates are left in the output. If desired these can be further decomposed
           to CX.
        opt_a2 (bool): whether to try optimization A.2 from Shende. Not Implemented
-       decomposer_1q (None or Object): optional 1Q decomposer.
-       decomposer_2q (None or Object): optional 2Q decomposer.
+       decomposer_1q (None or Object): optional 1Q decomposer. If None, uses
+          :class:`~qiskit.quantum_info.synthesis.one_qubit_decomposer.OneQubitEulerDecomser`
+       decomposer_2q (None or Object): optional 2Q decomposer. If NOne, uses
+          :class:`~qiskit.quantum_info.synthesis.two_qubit_decomposer.TwoQubitBasisDecomposer`
+          with CXGate.
 
     Raises:
        NotImplementedError: Occurs if opt_a2=True.

@@ -539,10 +539,8 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                 target,
                 preferred_direction,
             )
-        elif unitary.shape[0] == unitary.shape[1]:
-            synth_dag = circuit_to_dag(qs_decomposition(unitary))
         else:
-            synth_dag = circuit_to_dag(isometry.Isometry(unitary, 0, 0).definition)
+            synth_dag = circuit_to_dag(qs_decomposition(unitary))
 
         return synth_dag, wires
 
