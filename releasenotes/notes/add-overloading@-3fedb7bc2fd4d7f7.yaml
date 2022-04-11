@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Adds a ``@`` (``__matmul__``) binary operator to ``GroupMixin`` class
+    in the :mod:`qiskit.quantum_info` module. This is shorthand to call the
+    classes ``dot`` method (``A @ B == A.dot(B)``).
+
+    Example
+
+    .. code:: python
+    
+      import qiskit.quantum_info as qi
+      qi.Pauli('X') @ qi.Pauli('Y')
