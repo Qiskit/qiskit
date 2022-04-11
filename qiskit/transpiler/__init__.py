@@ -410,9 +410,9 @@ Supplementary Information
 
    Scheduling Anaylsis with control flow instructions:
 
-   When scheduling analysis passes run there are additional constraints on classical conditions and control
-   flow instructions in a circuit. This section covers the details of these additional constraints that any
-   scheduling pass will need to account for.
+   When scheduling analysis passes run there are additional constraints on classical conditions
+   and control flow instructions in a circuit. This section covers the details of these additional
+   constraints that any scheduling pass will need to account for.
 
    Policy of topological node ordering in scheduling:
 
