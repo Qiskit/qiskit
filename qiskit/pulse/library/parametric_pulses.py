@@ -354,8 +354,7 @@ class Drag(ParametricPulse):
             \\quad 0 \\le x < \\text{duration}
 
     where :math:`g(x)` is a standard unlifted Gaussian waveform and
-    :math:`g'(x)` is the lifted 
-    :class:`~qiskit.pulse.library.Gaussian` waveform.
+    :math:`g'(x)` is the lifted :class:`~qiskit.pulse.library.Gaussian` waveform.
 
     This pulse, defined by :math:`f(x)`, would be more accurately named as ``LiftedDrag``, however,
     for historical and practical DSP reasons it has the name ``Drag``.
