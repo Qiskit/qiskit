@@ -185,7 +185,7 @@ class SymbolicPulse(Pulse):
             # Lambdify the constraints
             if not cls._define_constraints():
                 # No constraint is provided. Just an empty list.
-                cls.constraints = sym.true
+                cls.constraints = []
             else:
                 params = [sym.Symbol(p) for p in ["limit"] + cls.PARAM_DEF]
                 constraints = []
