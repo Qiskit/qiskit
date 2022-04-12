@@ -36,7 +36,6 @@ extensions = [
     "sphinx_autodoc_typehints",
     "reno.sphinxext",
     "sphinx_panels",
-    'sphinx.ext.intersphinx',
 ]
 templates_path = ["_templates"]
 
@@ -84,9 +83,3 @@ html_css_files = []
 autosummary_generate = True
 autosummary_generate_overwrite = False
 autoclass_content = "both"
-
-
-# Intersphinx configuration
-intersphinx_mapping = {
-    "retworkx": ("https://qiskit.org/documentation/retworkx", None),
-}
