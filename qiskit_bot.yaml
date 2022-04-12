@@ -32,7 +32,7 @@ notifications:
         - "@t-imamichi"
         - "@ajavadia"
         - "@levbishop"
-    ".*rs":
+    ".*\\.rs$|^Cargo":
         - "@mtreinish"
         - "@kevinhartman"
 always_notify: true
