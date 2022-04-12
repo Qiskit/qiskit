@@ -160,8 +160,6 @@ class EnvelopeDescriptor:
     This improves performance of repeated evaluation of waveform samples.
     """
 
-    # TODO add __set__
-
     global_envelopes = {}
 
     def __get__(self, instance, owner) -> Callable:
@@ -187,8 +185,6 @@ class ConstraintsDescriptor:
     it calls sympy lambdify to create callable and cache the function in the descriptor.
     This improves performance of repeated evaluation of waveform samples.
     """
-
-    # TODO add __set__
 
     global_constraints = {}
 
@@ -330,9 +326,6 @@ class SymbolicPulse(Pulse):
 
         times = np.arange(0, self.duration) + 1 / 2
         args = (times, *self.param_values)
-
-        # This is callable but default value is None
-        # pylint: disable=not-callable
         waveform = self.envelope(*args)
 
         return Waveform(samples=waveform, name=self.name)
