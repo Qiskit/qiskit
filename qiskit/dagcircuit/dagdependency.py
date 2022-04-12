@@ -142,7 +142,7 @@ class DAGDependency:
         # For backwards compatibility, return networkx structure from terra 0.12
         # where DAGNodes instances are used as indexes on the networkx graph.
         warnings.warn(
-            "The to_networkx() method is deprecated and will be removed in a future release."
+            "The to_networkx() method is deprecated and will be removed in a future release.",
             DeprecationWarning,
             stacklevel=2,
         )
