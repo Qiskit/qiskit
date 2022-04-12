@@ -17,11 +17,10 @@ Method is described in arXiv:quant-ph/0406176.
 import scipy
 import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.dagcircuit.dagnode import DAGOutNode
 from qiskit.quantum_info.synthesis import two_qubit_decompose, one_qubit_decompose
-from qiskit.converters import dag_to_circuit, circuit_to_dag
-from qiskit.circuit.library.standard_gates import CZGate, CXGate
+from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
+from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate, _EPS
 
 
 class QuantumShannonDecomposer:
@@ -185,33 +184,28 @@ def demultiplex(um0, um1, opt_a1=False, opt_a2=False):
 
 def _get_ucry_cz(nqubits, angles):
     """
-    Get uniformally controlled Ry gate in in CZ-Ry.
+    Get uniformally controlled Ry gate in in CZ-Ry as in UCPauliRotGate.
     """
-    # avoids circular import
-    from qiskit.transpiler.passes.basis.unroller import Unroller
-
+    nangles = len(angles)
     qc = QuantumCircuit(nqubits)
-    qc.ucry(angles, list(range(nqubits - 1)), [nqubits - 1])
-    dag = circuit_to_dag(qc)
-    unroll = Unroller(["ry", "cx"])
-    dag2 = unroll.run(dag)
-    cz = CZGate()
-    cxtype = CXGate
-    node = None
-    for node in dag2.op_nodes(op=cxtype):
-        dag2.substitute_node(node, cz, inplace=True)
-    last_node = _get_last_op_node(dag2)
-    if node.name != "cz":
-        raise ValueError("last node is not cz as expected")
-    dag2.remove_op_node(last_node)
-    qc2 = dag_to_circuit(dag2)
-    return qc2
-
-
-def _get_last_op_node(dag):
-    curr_node = None
-    for node in dag.topological_nodes():
-        if isinstance(node, DAGOutNode):
-            break
-        curr_node = node
-    return curr_node
+    q_controls = qc.qubits[:-1]
+    q_target = qc.qubits[-1]
+    if not q_controls:
+        if np.abs(angles[0]) > _EPS:
+            qc.ry(angles[0], q_target)
+    else:
+        angles = angles.copy()
+        UCPauliRotGate._dec_uc_rotations(angles, 0, len(angles), False)
+        for (i, angle) in enumerate(angles):
+            if np.abs(angle) > _EPS:
+                qc.ry(angle, q_target)
+            if not i == len(angles) - 1:
+                binary_rep = np.binary_repr(i + 1)
+                q_contr_index = len(binary_rep) - len(binary_rep.rstrip("0"))
+            else:
+                # Handle special case:
+                q_contr_index = len(q_controls) - 1
+            # leave off last CZ for merging with adjacent UCG
+            if i < nangles - 1:
+                qc.cz(q_controls[q_contr_index], q_target)
+    return qc

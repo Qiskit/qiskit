@@ -1457,7 +1457,6 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
         self.assertTrue(np.allclose(mat, Operator(ccirc).data))
         if nqubits > 1:
-            print(ccirc.count_ops())
             expected_cx = self._qsd_l2_cx_count(nqubits) - self._qsd_l2_a1_mod(nqubits)
             self.assertLessEqual(ccirc.count_ops().get("cx"), expected_cx)
 
