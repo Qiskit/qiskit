@@ -46,18 +46,10 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
 
-from qiskit.utils.optionals import HAS_SYMENGINE
-
-if HAS_SYMENGINE:
-    # Pulse module doesn't employ symengine. It doesn't automatically simply piecewise function
-    # which causes performance issue in the lambda function.
-    # In addition, there are several syntactic difference in boolean expression.
-    # Thanks to Lambdify at subclass instantiation, the performance regression is not significant.
-
-    # TODO QISKIT DOESN'T ALLOW THIS. WE SHOULD UPDATE.
-    import sympy as sym
-else:
-    import sympy as sym
+# Pulse module doesn't employ symengine due to some missing features.
+# In addition, there are several syntactic difference in boolean expression.
+# Thanks to Lambdify at subclass instantiation, the performance regression is not significant.
+# However, this will create some latency for the first sympy import.
 
 
 def _normalized_gaussian(
@@ -97,6 +89,7 @@ def _normalized_gaussian(
     Returns:
         Symbolic equation.
     """
+    import sympy as sym
 
     gauss = sym.exp(-(((t - center) / sigma) ** 2) / 2)
 
@@ -148,6 +141,7 @@ def _lambdify_ite(ite_expr: List["Expr"], params: List["Symbol"]) -> List[Union[
     Returns:
         Lambdified ITE-like expression.
     """
+    import sympy as sym
 
     lambda_lists = []
     for expr in ite_expr:
@@ -165,32 +159,38 @@ class SymbolicPulse(Pulse):
 
     PARAM_DEF = ["duration"]
 
+    # These are the cache of lambda functions created from symbolic expression.
+    # Functions are automatically created when an instance is created first time.
     envelope = None
     constraints = None
 
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
+    # pylint: disable=unused-argument
+    def __new__(cls, *args, **kwargs):
 
-        # Lambdify the envelope definition
-        if cls._define_envelope():
+        if cls.envelope is None and cls.constraints is None:
+            import sympy as sym
+
+            # Lambdify the envelope definition
             params = [sym.Symbol(p) for p in ["t"] + cls.PARAM_DEF]
             cls.envelope = staticmethod(sym.lambdify(params, cls._define_envelope()))
-        else:
-            raise PulseError(f"'{cls.__name__}' class has no waveform definition.")
 
-        # Lambdify the constraints
-        if cls._define_constraints():
-            params = [sym.Symbol(p) for p in ["limit"] + cls.PARAM_DEF]
-            constraints = []
-            for constraint in cls._define_constraints():
-                if isinstance(constraint, list):
-                    # If clause
-                    constraints.append(_lambdify_ite(constraint, params))
-                else:
-                    constraints.append(sym.lambdify(params, constraint))
-            cls.constraints = constraints
-        else:
-            cls.constraints = sym.true
+            # Lambdify the constraints
+            if not cls._define_constraints():
+                # No constraint is provided. Just an empty list.
+                cls.constraints = sym.true
+            else:
+                params = [sym.Symbol(p) for p in ["limit"] + cls.PARAM_DEF]
+                constraints = []
+                for constraint in cls._define_constraints():
+                    if isinstance(constraint, list):
+                        # If clause
+                        constraints.append(_lambdify_ite(constraint, params))
+                    else:
+                        constraints.append(sym.lambdify(params, constraint))
+                cls.constraints = constraints
+
+        instance = super().__new__(cls)
+        return instance
 
     @abstractmethod
     def __init__(
@@ -391,17 +391,17 @@ class Gaussian(SymbolicPulse):
 
     @classmethod
     def _define_envelope(cls) -> "Expr":
+        import sympy as sym
 
         t, duration, amp, sigma = sym.symbols("t, duration, amp, sigma")
         center = duration / 2
-
         return amp * _normalized_gaussian(t, center, duration + 2, sigma)
 
     @classmethod
     def _define_constraints(cls) -> List[Union["Expr", List]]:
+        import sympy as sym
 
         amp, sigma, lim_amp = sym.symbols("amp, sigma, limit")
-
         return [
             [lim_amp, sym.Abs(amp) <= 1.0, True],
             sigma > 0,
@@ -500,6 +500,7 @@ class GaussianSquare(SymbolicPulse):
 
     @classmethod
     def _define_envelope(cls) -> "Expr":
+        import sympy as sym
 
         t, duration, amp, sigma, width = sym.symbols("t, duration, amp, sigma, width")
         center = duration / 2
@@ -517,9 +518,9 @@ class GaussianSquare(SymbolicPulse):
 
     @classmethod
     def _define_constraints(cls) -> List[Union["Expr", List]]:
+        import sympy as sym
 
         duration, amp, sigma, width, lim_amp = sym.symbols("duration, amp, sigma, width, limit")
-
         return [
             [lim_amp, sym.Abs(amp) <= 1.0, True],
             sigma > 0,
@@ -603,6 +604,7 @@ class Drag(SymbolicPulse):
 
     @classmethod
     def _define_envelope(cls) -> "Expr":
+        import sympy as sym
 
         t, duration, amp, sigma, beta = sym.symbols("t, duration, amp, sigma, beta")
         center = duration / 2
@@ -614,9 +616,9 @@ class Drag(SymbolicPulse):
 
     @classmethod
     def _define_constraints(cls) -> List[Union["Expr", List]]:
+        import sympy as sym
 
         t, duration, amp, sigma, beta, lim_amp = sym.symbols("t, duration, amp, sigma, beta, limit")
-
         drag_eq = cls._define_envelope()
         return [
             [lim_amp, sym.Abs(amp) <= 1.0, True],
@@ -688,6 +690,7 @@ class Constant(SymbolicPulse):
 
     @classmethod
     def _define_envelope(cls) -> "Expr":
+        import sympy as sym
 
         t, duration, amp = sym.symbols("t, duration, amp")
 
@@ -702,9 +705,9 @@ class Constant(SymbolicPulse):
 
     @classmethod
     def _define_constraints(cls) -> List[Union["Expr", List]]:
+        import sympy as sym
 
         amp, lim_amp = sym.symbols("amp, limit")
-
         return [
             [lim_amp, sym.Abs(amp) <= 1.0, True],
         ]
