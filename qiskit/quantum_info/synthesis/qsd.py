@@ -27,7 +27,7 @@ class QuantumShannonDecomposer:
     """Class representation of Quantum Shannon Decomposition."""
 
     def __call__(self, unitary_matrix, opt_a1=True):
-        return qs_decomposition(unitary_matrix, opt_a1=opt_a1, opt_a2=opt_a2)
+        return qs_decomposition(unitary_matrix, opt_a1=opt_a1)
 
 
 def qs_decomposition(mat, opt_a1=True, decomposer_1q=None, decomposer_2q=None):

@@ -1393,7 +1393,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         """test decomposition of random SU(n) down to 2 qubits without optimizations."""
         dim = 2**nqubits
         mat = scipy.stats.unitary_group.rvs(dim)
-        circ = self.qsd(mat, opt_a1=False, opt_a2=False)
+        circ = self.qsd(mat, opt_a1=False)
         ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
         self.assertTrue(np.allclose(mat, Operator(ccirc).data))
         if nqubits > 1:
@@ -1406,7 +1406,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         """test decomposition of random SU(n) down to 2 qubits with 'a1' optimization."""
         dim = 2**nqubits
         mat = scipy.stats.unitary_group.rvs(dim)
-        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
+        circ = self.qsd(mat, opt_a1=True)
         ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
         self.assertTrue(np.allclose(mat, Operator(ccirc).data))
         if nqubits > 1:
@@ -1418,7 +1418,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         nqubits = 3
         dim = 2**nqubits
         mat = scipy.stats.ortho_group.rvs(dim)
-        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
+        circ = self.qsd(mat, opt_a1=True)
         ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
         self.assertTrue(np.allclose(mat, Operator(ccirc).data))
         expected_cx = self._qsd_l2_cx_count(nqubits) - self._qsd_l2_a1_mod(nqubits)
@@ -1429,7 +1429,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         nqubits = 3
         dim = 2**nqubits
         mat = np.identity(dim)
-        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
+        circ = self.qsd(mat, opt_a1=True)
         self.assertTrue(np.allclose(mat, Operator(circ).data))
         self.assertEqual(sum(circ.count_ops().values()), 0)
 
@@ -1438,7 +1438,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         """Test decomposition on diagonal -- qsd is not optimal"""
         dim = 2**nqubits
         mat = np.diag(np.exp(1j * np.random.normal(size=dim)))
-        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
+        circ = self.qsd(mat, opt_a1=True)
         ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
         self.assertTrue(np.allclose(mat, Operator(ccirc).data))
         if nqubits > 1:
@@ -1453,7 +1453,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         umat = scipy.stats.unitary_group.rvs(dim)
         dmat = np.diag(np.exp(1j * np.random.normal(size=dim)))
         mat = umat.T.conjugate() @ dmat @ umat
-        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
+        circ = self.qsd(mat, opt_a1=True)
         ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
         self.assertTrue(np.allclose(mat, Operator(ccirc).data))
         if nqubits > 1:
