@@ -205,6 +205,8 @@ class TestParametricPulses(QiskitTestCase):
             check_drag(duration=50, sigma=16, amp=1, beta=20)
         with self.assertRaises(PulseError):
             check_drag(duration=50, sigma=4, amp=0.8, beta=20)
+        with self.assertRaises(PulseError):
+            check_drag(duration=50, sigma=4, amp=0.8, beta=-20)
 
     def test_constant_samples(self):
         """Test the constant pulse and its sampled construction."""
