@@ -1,0 +1,36 @@
+---
+upgrade:
+  - |
+    The previously deprecated ``MSGate`` gate class previously found in
+    :mod:`qiskit.circuit.library` has been removed. It was originally deprecated in the
+    0.16.0 release. Instead the :class:`~qiskit.circuit.library.GMS` class should be used, as
+    this allows you to create an equivalent 2 qubit MS gate in addition to
+    an ``MSGate`` for any number of qubits.
+  - |
+    The previously deprecated ``mirror()`` method of the :class:`~qiskit.circuit.Instruction`
+    class has been removed. It was originally deprecated in 0.15.0 release. Instead you should
+    use :meth:`.Instruction.reverse_ops`.
+  - |
+    The previously deprecated ``num_ancilla_qubits()`` method of the
+    :class:`qiskit.circuit.library.PiecewiseLinearPauliRotations` and
+    :class:`qiskit.circuit.library.WeightedAdder` classes has been removed. It was originally
+    deprecated in the 0.16.0 release. Instead the
+    :meth:`.PiecewiseLinearPauliRotations.num_ancillas` and :meth:`.WeightedAdder.num_ancillas`
+    methods should be used.
+  - |
+    The previously deprecated ``reverse`` argument on the constructor for the
+    :class:`~qiskit.circuit.library.PolynomialPauliRotations` class has been removed. It
+    was originally deprecated in the 0.15.0 release. Instead you should use the
+    :meth:`.QuantumCircuit.reverse_bits` method to reverse the
+    :class:`~qiskit.circuit.library.PolynomialPauliRotations` circuit if needed.
+  - |
+    The previously deprecated ``angle`` argument on the constructors for the
+    :class:`~qiskit.circuit.library.C3SXGate` and :class:`~qiskit.circuit.library.C3XGate`
+    gate classes has been removed. It was originally deprecated in the 0.17.0 release. Instead
+    for fractional 3-controlled X gates you can use the :meth:`.C3XGate.power` method.
+  - |
+    Support for using ``np.ndarray`` objects as part of the :attr:`~qiskit.circuit.Gate.params` attribute
+    of a :class:`~qiskit.circuit.Gate` object has been removed. This has been deprecated
+    since Qiskit Terra 0.16.0 and now will no longer work. Instead one should create a new subclass
+    of :class:`~qiskit.circuit.Gate` and explicitly allow a ``np.ndarray`` input by overloading the
+    :meth:`~.Gate.validate_parameter` method.
