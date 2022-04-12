@@ -16,6 +16,8 @@
 import math
 import heapq
 from collections import OrderedDict, defaultdict
+import warnings
+
 import numpy as np
 import retworkx as rx
 
@@ -135,10 +137,23 @@ class DAGDependency:
         """
         self._calibrations = defaultdict(dict, calibrations)
 
+    @property
+    def multi_graph(self):
+        """Return the inner :class:`~retworkx.PyDiGraph` used for the DAG representation."""
+        return self._multi_graph
+
     def to_networkx(self):
         """Returns a copy of the DAGDependency in networkx format."""
         # For backwards compatibility, return networkx structure from terra 0.12
         # where DAGNodes instances are used as indexes on the networkx graph.
+        warnings.warn(
+            "The to_networkx() method is deprecated and will be removed in a future release."
+            "Instead you can leverage the retworkx graph representation of the dag via the "
+            "multi_graph attribute",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
         try:
             import networkx as nx
         except ImportError as ex:
