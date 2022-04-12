@@ -26,11 +26,11 @@ from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate, _
 class QuantumShannonDecomposer:
     """Class representation of Quantum Shannon Decomposition."""
 
-    def __call__(self, unitary_matrix, opt_a1=True, opt_a2=False):
+    def __call__(self, unitary_matrix, opt_a1=True):
         return qs_decomposition(unitary_matrix, opt_a1=opt_a1, opt_a2=opt_a2)
 
 
-def qs_decomposition(mat, opt_a1=True, opt_a2=False, decomposer_1q=None, decomposer_2q=None):
+def qs_decomposition(mat, opt_a1=True, decomposer_1q=None, decomposer_2q=None):
     """
     Decomposes unitary matrix into one and two qubit gates using Quantum Shannon Decomposition.
 
@@ -52,34 +52,22 @@ def qs_decomposition(mat, opt_a1=True, opt_a2=False, decomposer_1q=None, decompo
 
         \frac{1}{3} 4^{n - 2} - 1
 
-    If opt_a2=True, the CX count is further reduced by,
-
-    .. math::
-
-        4^{n - 1} - 1
-
     Arguments:
        mat (ndarray): unitary matrix to decompose
        opt_a1 (bool): whether to try optimization A.1 from Shende. This should elliminate 1 cnot
           per call. If True CZ gates are left in the output. If desired these can be further decomposed
           to CX.
-       opt_a2 (bool): whether to try optimization A.2 from Shende. Not Implemented
        decomposer_1q (None or Object): optional 1Q decomposer. If None, uses
           :class:`~qiskit.quantum_info.synthesis.one_qubit_decomposer.OneQubitEulerDecomser`
        decomposer_2q (None or Object): optional 2Q decomposer. If NOne, uses
           :class:`~qiskit.quantum_info.synthesis.two_qubit_decomposer.TwoQubitBasisDecomposer`
           with CXGate.
 
-    Raises:
-       NotImplementedError: Occurs if opt_a2=True.
-
     Return:
        QuantumCircuit: Decomposed quantum circuit.
     """
     dim = mat.shape[0]
     nqubits = int(np.log2(dim))
-    if opt_a2:
-        raise NotImplementedError("Optimization A.2 is not currently implemented.")
     if np.allclose(np.identity(dim), mat):
         return QuantumCircuit(nqubits)
     if dim == 2:
@@ -97,7 +85,7 @@ def qs_decomposition(mat, opt_a1=True, opt_a2=False, decomposer_1q=None, decompo
         # perform cosine-sine decomposition
         (u1, u2), vtheta, (v1h, v2h) = scipy.linalg.cossin(mat, separate=True, p=dim_o2, q=dim_o2)
         # left circ
-        left_circ = demultiplex(v1h, v2h, opt_a1=opt_a1, opt_a2=opt_a2)
+        left_circ = demultiplex(v1h, v2h, opt_a1=opt_a1)
         circ.append(left_circ.to_instruction(), qr)
         # middle circ
         if opt_a1:
@@ -111,13 +99,13 @@ def qs_decomposition(mat, opt_a1=True, opt_a2=False, decomposer_1q=None, decompo
         else:
             circ.ucry((2 * vtheta).tolist(), qr[:-1], qr[-1])
         # right circ
-        right_circ = demultiplex(u1, u2, opt_a1=opt_a1, opt_a2=opt_a2)
+        right_circ = demultiplex(u1, u2, opt_a1=opt_a1)
         circ.append(right_circ.to_instruction(), qr)
 
     return circ
 
 
-def demultiplex(um0, um1, opt_a1=False, opt_a2=False):
+def demultiplex(um0, um1, opt_a1=False):
     """decomposes a generic multiplexer.
 
           ────□────
@@ -146,9 +134,6 @@ def demultiplex(um0, um1, opt_a1=False, opt_a2=False):
        um1 (ndarray): applied if MSB is 1
        opt_a1 (bool): whether to try optimization A.1 from Shende. This should elliminate 1 cnot
           per call. If True CZ gates are left in the output. If desired these can be further decomposed
-       opt_a2 (bool): whether to try optimization A.2 from Shende. Not Implemented
-
-          to CX.
 
     Returns:
         QuantumCircuit: decomposed circuit
@@ -168,7 +153,7 @@ def demultiplex(um0, um1, opt_a1=False, opt_a2=False):
     circ = QuantumCircuit(nqubits)
 
     # left gate
-    left_gate = qs_decomposition(wmat, opt_a1=opt_a1, opt_a2=opt_a2).to_instruction()
+    left_gate = qs_decomposition(wmat, opt_a1=opt_a1).to_instruction()
     circ.append(left_gate, range(nqubits - 1))
 
     # multiplexed Rz
@@ -176,7 +161,7 @@ def demultiplex(um0, um1, opt_a1=False, opt_a2=False):
     circ.ucrz(angles.tolist(), list(range(nqubits - 1)), [nqubits - 1])
 
     # right gate
-    right_gate = qs_decomposition(vmat, opt_a1=opt_a1, opt_a2=opt_a2).to_instruction()
+    right_gate = qs_decomposition(vmat, opt_a1=opt_a1).to_instruction()
     circ.append(right_gate, range(nqubits - 1))
 
     return circ
