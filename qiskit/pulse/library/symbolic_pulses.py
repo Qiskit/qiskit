@@ -152,6 +152,70 @@ def _lambdify_ite(ite_expr: List["Expr"], params: List["Symbol"]) -> List[Union[
     return lambda_lists
 
 
+class EnvelopeDescriptor:
+    """Descriptor of pulse envelope.
+
+    When the descriptor of the symbolic pulse subclass is called first time,
+    it calls sympy lambdify to create callable and cache the function in the descriptor.
+    This improves performance of repeated evaluation of waveform samples.
+    """
+
+    # TODO add __set__
+
+    global_envelopes = {}
+
+    def __get__(self, instance, owner) -> Callable:
+        clsname = owner.__name__
+
+        if clsname not in EnvelopeDescriptor.global_envelopes:
+            import sympy as sym
+
+            gendef = getattr(owner, "_define_envelope")
+            params = [sym.Symbol(p) for p in ["t"] + owner.PARAM_DEF]
+            EnvelopeDescriptor.global_envelopes[clsname] = sym.lambdify(params, gendef())
+
+        return EnvelopeDescriptor.global_envelopes[clsname]
+
+
+class ConstraintsDescriptor:
+    """Descriptor of pulse parameter constraints.
+
+    A symbolic pulse subclass may provide multiple expressions to validate parameters,
+    thus it generates a list of callables that takes set of pulse parameters.
+
+    When the descriptor of the symbolic pulse subclass is called first time,
+    it calls sympy lambdify to create callable and cache the function in the descriptor.
+    This improves performance of repeated evaluation of waveform samples.
+    """
+
+    # TODO add __set__
+
+    global_constraints = {}
+
+    def __get__(self, instance, owner) -> List[Union[Callable, List]]:
+        clsname = owner.__name__
+
+        if clsname not in ConstraintsDescriptor.global_constraints:
+            import sympy as sym
+
+            gendef = getattr(owner, "_define_constraints")
+            source = gendef()
+            if not source:
+                constraints = []
+            else:
+                params = [sym.Symbol(p) for p in ["limit"] + owner.PARAM_DEF]
+                constraints = []
+                for constraint_expr in source:
+                    if isinstance(constraint_expr, list):
+                        # If clause
+                        constraints.append(_lambdify_ite(constraint_expr, params))
+                    else:
+                        constraints.append(sym.lambdify(params, constraint_expr))
+            ConstraintsDescriptor.global_constraints[clsname] = constraints
+
+        return ConstraintsDescriptor.global_constraints[clsname]
+
+
 class SymbolicPulse(Pulse):
     """The abstract superclass for parametric pulses.
 
@@ -166,39 +230,11 @@ class SymbolicPulse(Pulse):
             This attribute is populated when the subclass is instantiated first time.
     """
 
-    __slots__ = ("param_values", )
+    __slots__ = ("param_values",)
 
     PARAM_DEF = ["duration"]
-    envelope = None
-    constraints = None
-
-    # pylint: disable=unused-argument
-    def __new__(cls, *args, **kwargs):
-
-        if cls.envelope is None and cls.constraints is None:
-            import sympy as sym
-
-            # Lambdify the envelope definition
-            params = [sym.Symbol(p) for p in ["t"] + cls.PARAM_DEF]
-            cls.envelope = staticmethod(sym.lambdify(params, cls._define_envelope()))
-
-            # Lambdify the constraints
-            if not cls._define_constraints():
-                # No constraint is provided. Just an empty list.
-                cls.constraints = []
-            else:
-                params = [sym.Symbol(p) for p in ["limit"] + cls.PARAM_DEF]
-                constraints = []
-                for constraint in cls._define_constraints():
-                    if isinstance(constraint, list):
-                        # If clause
-                        constraints.append(_lambdify_ite(constraint, params))
-                    else:
-                        constraints.append(sym.lambdify(params, constraint))
-                cls.constraints = constraints
-
-        instance = super().__new__(cls)
-        return instance
+    envelope = EnvelopeDescriptor()
+    constraints = ConstraintsDescriptor()
 
     @abstractmethod
     def __init__(
