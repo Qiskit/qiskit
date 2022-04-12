@@ -166,7 +166,7 @@ class SymbolicPulse(Pulse):
             This attribute is populated when the subclass is instantiated first time.
     """
 
-    __slots__ = ("param_values", "pulse_type")
+    __slots__ = ("param_values", )
 
     PARAM_DEF = ["duration"]
     envelope = None
@@ -207,7 +207,6 @@ class SymbolicPulse(Pulse):
         parameters: Optional[Tuple[Union[ParameterExpression, complex], ...]] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
-        pulse_type: Optional[str] = None,
     ):
         """Create a parametric pulse and validate the input parameters.
 
@@ -217,13 +216,11 @@ class SymbolicPulse(Pulse):
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
-            pulse_type: Type of this waveform. This appears in the representation string.
 
         Raises:
             PulseError: When not all parameters are listed in the attribute :attr:`PARAM_DEF`.
         """
         super().__init__(duration=duration, name=name, limit_amplitude=limit_amplitude)
-        self.pulse_type = pulse_type
 
         if parameters:
             self.param_values = (duration,) + tuple(parameters)
@@ -345,7 +342,7 @@ class SymbolicPulse(Pulse):
         params_str = ", ".join(f"{p}={v}" for p, v in zip(self.PARAM_DEF, self.param_values))
 
         return "{}({}{})".format(
-            self.pulse_type,
+            self.__class__.__name__,
             params_str,
             f", name='{self.name}'" if self.name is not None else "",
         )
@@ -394,7 +391,6 @@ class Gaussian(SymbolicPulse):
             parameters=(amp, sigma),
             name=name,
             limit_amplitude=limit_amplitude,
-            pulse_type=self.__class__.__name__,
         )
 
     @classmethod
@@ -503,7 +499,6 @@ class GaussianSquare(SymbolicPulse):
             parameters=(amp, sigma, width, risefall_sigma_ratio),
             name=name,
             limit_amplitude=limit_amplitude,
-            pulse_type=self.__class__.__name__,
         )
 
     @classmethod
@@ -607,7 +602,6 @@ class Drag(SymbolicPulse):
             parameters=(amp, sigma, beta),
             name=name,
             limit_amplitude=limit_amplitude,
-            pulse_type=self.__class__.__name__,
         )
 
     @classmethod
@@ -693,7 +687,6 @@ class Constant(SymbolicPulse):
             parameters=(amp,),
             name=name,
             limit_amplitude=limit_amplitude,
-            pulse_type=self.__class__.__name__,
         )
 
     @classmethod
