@@ -116,7 +116,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         # use deque to have modification
         # operations which are constant
         # time
-        run_clone = deque(copy(run))
+        run_clone = deque(run)
 
         commuted = []
         preindex, commutation_rule = None, None
@@ -135,7 +135,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
                 commutation_rule = commutation_table[type(blocker.op)][preindex]
 
         if commutation_rule is not None:
-            while len(run_clone) > 0:
+            while run_clone:
                 next_gate = run_clone[0] if front else run_clone[-1]
                 if next_gate.name not in commutation_rule:
                     break
