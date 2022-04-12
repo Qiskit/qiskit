@@ -89,7 +89,9 @@ stages:
       pool: {vmImage: 'macOS-10.15'}
       variables:
         python.version: '3.7'
-        CIBW_ARCHS_MACOS: universal2
+        CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
+        CIBW_ARCHS_MACOS: arm64 universal2
+        CIBW_ENVIRONMENT: CARGO_BUILD_TARGET="aarch64-apple-darwin" PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
         TWINE_USERNAME: qiskit
       steps:
       - task: UsePythonVersion@0
@@ -180,6 +182,7 @@ stages:
             pip install -U "cplex" "qiskit-aer" "z3-solver" -c constraints.txt
             mkdir -p /tmp/terra-tests
             cp -r test /tmp/terra-tests/.
+            cp tools/verify_parallel_map.py /tmp/terra-tests/.
             cp .stestr.conf /tmp/terra-tests/.
             cp -r .stestr /tmp/terra-tests/. || :
             sudo apt-get update
@@ -193,8 +196,11 @@ stages:
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
+            python ./verify_parallel_map.py
             popd
           displayName: 'Run tests'
+          env:
+            QISKIT_PARALLEL: FALSE
         - task: CopyFiles@2
           condition: failed()
           displayName: 'Copy images'
@@ -239,7 +245,6 @@ stages:
             virtualenv image_tests
             image_tests/bin/pip install -U -r requirements.txt -c constraints.txt
             image_tests/bin/pip install -U -c constraints.txt -e ".[visualization]"
-            image_tests/bin/python setup.py build_ext --inplace
             sudo apt-get update
             sudo apt-get install -y graphviz pandoc
             image_tests/bin/pip check
@@ -286,6 +291,8 @@ stages:
             tools/verify_headers.py qiskit test
             python tools/find_optional_imports.py
             reno lint
+            cargo fmt --check
+            cargo clippy -- -D warnings
           displayName: 'Style and lint'
     - job: 'Docs'
       pool: {vmImage: 'ubuntu-latest'}
@@ -314,7 +321,6 @@ stages:
             set -e
             python -m pip install --upgrade pip setuptools wheel
             pip install -U tox
-            python setup.py build_ext --inplace
             sudo apt-get update
             sudo apt-get install -y graphviz
           displayName: 'Install dependencies'
@@ -384,7 +390,10 @@ stages:
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
+            python ./tools/verify_parallel_map.py
           displayName: 'Run tests'
+          env:
+            QISKIT_PARALLEL: FALSE
         - task: CopyFiles@2
           condition: failed()
           displayName: 'Copy images'
@@ -454,10 +463,12 @@ stages:
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 1024))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
+            python ./tools/verify_parallel_map.py
           displayName: 'Run tests'
           env:
             LANG: 'C.UTF-8'
             PYTHONIOENCODING: 'utf-8:backslashreplace'
+            QISKIT_PARALLEL: FALSE
         - task: CopyFiles@2
           condition: failed()
           displayName: 'Copy images'
@@ -538,6 +549,7 @@ stages:
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 1024))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
+            python ./tools/verify_parallel_map.py
           env:
             LANG: 'C.UTF-8'
             PYTHONIOENCODING: 'utf-8:backslashreplace'
@@ -630,7 +642,10 @@ stages:
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
+            python ./tools/verify_parallel_map.py
           displayName: 'Run tests'
+          env:
+            QISKIT_PARALLEL: FALSE
         - task: CopyFiles@2
           condition: failed()
           displayName: 'Copy images'
@@ -712,6 +727,7 @@ stages:
             export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
             echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
+            python ./tools/verify_parallel_map.py
           displayName: 'Run tests'
         - task: CopyFiles@2
           condition: failed()

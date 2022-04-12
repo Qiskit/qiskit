@@ -49,7 +49,6 @@ Standard Gates
    MCXGrayCode
    MCXRecursive
    MCXVChain
-   MSGate
    PhaseGate
    RCCXGate
    RC3XGate
@@ -61,7 +60,8 @@ Standard Gates
    RZGate
    RZZGate
    RZXGate
-   XYGate
+   XXPlusYYGate
+   XXMinusYYGate
    ECRGate
    SGate
    SdgGate
@@ -104,6 +104,7 @@ Generalized Gates
    MCMTVChain
    Permutation
    GMS
+   MSGate
    GR
    GRX
    GRY
@@ -262,6 +263,7 @@ Data encoding circuits
    PauliFeatureMap
    ZFeatureMap
    ZZFeatureMap
+   StatePreparation
 
 NCT (Not-CNOT-Toffoli) template circuits
 ========================================
@@ -371,6 +373,7 @@ from .generalized_gates import (
     MCMTVChain,
     Permutation,
     GMS,
+    MSGate,
     GR,
     GRX,
     GRY,
@@ -415,7 +418,7 @@ from .n_local import (
     ExcitationPreserving,
     QAOAAnsatz,
 )
-from .data_preparation import PauliFeatureMap, ZFeatureMap, ZZFeatureMap
+from .data_preparation import PauliFeatureMap, ZFeatureMap, ZZFeatureMap, StatePreparation
 from .quantum_volume import QuantumVolume
 from .fourier_checking import FourierChecking
 from .graph_state import GraphState
