@@ -153,14 +153,22 @@ def _lambdify_ite(ite_expr: List["Expr"], params: List["Symbol"]) -> List[Union[
 
 
 class SymbolicPulse(Pulse):
-    """The abstract superclass for parametric pulses."""
+    """The abstract superclass for parametric pulses.
+
+    Attributes:
+        PARAM_DEF (List[str]): A list of parameter names that constitutes a symbolic pulse.
+            Note that "t" and "limit" are reserved by the symbolic pulse superclass.
+            Subclass must define at least "duration" to define the length of instruction.
+        envelope (Callable): Lambdified symbolic equation to define the waveform envelope.
+            This attribute is populated when the subclass is instantiated first time.
+        constraints (List[Union[Callable, List]]): Lambdified symbolic equations to
+            provide validation for pulse parameters when assigned.
+            This attribute is populated when the subclass is instantiated first time.
+    """
 
     __slots__ = ("param_values", "pulse_type")
 
     PARAM_DEF = ["duration"]
-
-    # These are the cache of lambda functions created from symbolic expression.
-    # Functions are automatically created when an instance is created first time.
     envelope = None
     constraints = None
 
