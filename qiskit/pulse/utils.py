@@ -13,10 +13,9 @@
 """Module for common pulse programming utilities."""
 import functools
 import warnings
-from typing import List, Dict, Union, Callable
+from typing import List, Dict, Union
 
 import numpy as np
-import sympy
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import UnassignedDurationError, QiskitError
@@ -115,28 +114,3 @@ def deprecated_functionality(func):
         return func(*args, **kwargs)
 
     return wrapper
-
-
-def lambdify_symbolic_pulse(
-    expr: sympy.Expr,
-    parameters: List[str],
-) -> Callable:
-    """Lambdify symbolic pulse equation.
-
-    Args:
-        expr: Sympy or symengine symbolic equation of the pulse shape.
-        parameters: Name list of pulse parameters.
-
-    Returns:
-        Lambdified symbolic equation.
-    """
-    symbols = [sympy.Symbol(p) for p in parameters]
-
-    # if optionals.HAS_SYMENGINE:
-    #     # Fall back to sympy for lambda function creation until symengine's
-    #     # lambdify fully supports the features required by parametric
-    #     # pulses.
-    #     import symengine
-    #     expr = symengine.sympify(expr)
-
-    return sympy.lambdify(symbols, expr)

@@ -22,10 +22,11 @@ Arbitrary waveforms can be described with :py:class:`~qiskit.pulse.library.Wavef
 The :py:mod:`~qiskit.pulse.library.discrete` module will generate
 :py:class:`~qiskit.pulse.library.Waveform`\ s for common waveform envelopes.
 
-The parametric pulses, :py:class:`~qiskit.pulse.library.Gaussian`,
+The symbolic pulses, :py:class:`~qiskit.pulse.library.Gaussian`,
 :py:class:`~qiskit.pulse.library.GaussianSquare`, :py:class:`~qiskit.pulse.library.Drag` and
-:py:class:`~qiskit.pulse.library.Constant` will generate parameterized descriptions of
-those pulses, which can greatly reduce the size of the job sent to the backend.
+:py:class:`~qiskit.pulse.library.Constant` will generate symbolic descriptions of
+those pulses, which can greatly reduce the size of the job sent to the backend and
+ensure serialization of these pulse data in QPY binary format.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -39,6 +40,7 @@ those pulses, which can greatly reduce the size of the job sent to the backend.
 
 """
 from .discrete import *
-from .parametric_pulses import ParametricPulse, Gaussian, GaussianSquare, Drag, Constant
+from .parametric_pulses import ParametricPulse
+from .symbolic_pulses import SymbolicPulse, Gaussian, GaussianSquare, Drag, Constant
 from .pulse import Pulse
 from .waveform import Waveform

@@ -36,6 +36,7 @@ by following the existing pattern:
         ...
         new_supported_pulse_name = library.YourPulseWaveformClass
 """
+import warnings
 from abc import abstractmethod
 from typing import Any, Dict, Optional, Union
 
@@ -70,6 +71,14 @@ class ParametricPulse(Pulse):
                              amplitude is constrained to 1.
         """
         super().__init__(duration=duration, name=name, limit_amplitude=limit_amplitude)
+
+        warnings.warn(
+            "ParametricPulse and its subclass have been deprecated and will be replaced with "
+            "SymbolicPulse and its subclass because of QPY serialization support. "
+            "See qiskit.pulse.library.symbolic_pulses for details.",
+            DeprecationWarning,
+            stacklevel=3,
+        )
         self.validate_parameters()
 
     @abstractmethod

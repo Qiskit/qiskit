@@ -23,6 +23,7 @@ class Pulse(ABC):
     """The abstract superclass for pulses. Pulses are complex-valued waveform envelopes. The
     modulation phase and frequency are specified separately from ``Pulse``s.
     """
+
     __slots__ = ("duration", "name")
 
     limit_amplitude = True
@@ -48,7 +49,7 @@ class Pulse(ABC):
         self.duration = duration
         self.name = name
         if limit_amplitude is not None:
-            self.limit_amplitude = limit_amplitude
+            self.__class__.limit_amplitude = limit_amplitude
 
     @property
     def id(self) -> int:  # pylint: disable=invalid-name

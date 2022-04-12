@@ -548,7 +548,7 @@ def _parse_waveform(
     if isinstance(inst, instructions.Play):
         # pulse
         operand = inst.pulse
-        if isinstance(operand, pulse.ParametricPulse):
+        if isinstance(operand, (pulse.ParametricPulse, pulse.SymbolicPulse)):
             # parametric pulse
             params = operand.parameters
             duration = params.pop("duration", None)
