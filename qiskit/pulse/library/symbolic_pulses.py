@@ -275,6 +275,11 @@ class SymbolicPulse(Pulse):
         if not self.is_parameterized():
             self.validate_parameters()
 
+            # This is awkward but likely necessary to populate data for QPY
+            # Perhaps we need another idea
+            if not self.envelope:
+                self.get_waveform()
+
     def __getattr__(self, item):
         # For backward compatibility, return parameter names as property-like
 
