@@ -48,7 +48,7 @@ an iterator of drawings with the unique data key.
 If a plotter provides object handler for plotted shapes, the plotter API can manage
 the lookup table of the handler and the drawings by using this data key.
 """
-
+import warnings
 from copy import deepcopy
 from functools import partial
 from typing import Tuple, Iterator, Dict
@@ -144,6 +144,30 @@ class DrawerCanvas:
         """
         not_gate_like = (circuit.Barrier,)
 
+        if not getattr(program, "_op_start_times"):
+            # Run scheduling for backward compatibility
+            from qiskit import transpile
+            from qiskit.transpiler import InstructionDurations, TranspilerError
+
+            warnings.warn(
+                "Visualizing un-scheduled circuit with timeline drawer has been deprecated. "
+                "This circuit should be transpiled with scheduler though it consists of "
+                "instructions with explicit durations.",
+                DeprecationWarning,
+            )
+
+            try:
+                program = transpile(
+                    program,
+                    scheduling_method="alap",
+                    instruction_durations=InstructionDurations()
+                )
+            except TranspilerError:
+                raise VisualizationError(
+                    f"Input circuit {program.name} is not scheduled and it contains "
+                    "operations with unknown delays. This cannot be visualized."
+                )
+
         for t0, (inst, qargs, cargs) in zip(program.op_start_times, program.data):
             bits = qargs + cargs
             for bit_pos, bit in enumerate(qargs + cargs):
@@ -160,14 +184,14 @@ class DrawerCanvas:
                         obj_generator = partial(gen, formatter=self.formatter)
                         for datum in obj_generator(gate_source):
                             self.add_data(datum)
-                if len(bits) > 1 and bit_pos == 0:
-                    # Generate draw object for gate-gate link
-                    line_pos = t0 + 0.5 * inst.duration
-                    link_source = types.GateLink(t0=line_pos, opname=inst.name, bits=bits)
-                    for gen in self.generator["gate_links"]:
-                        obj_generator = partial(gen, formatter=self.formatter)
-                        for datum in obj_generator(link_source):
-                            self.add_data(datum)
+                    if len(bits) > 1 and bit_pos == 0:
+                        # Generate draw object for gate-gate link
+                        line_pos = t0 + 0.5 * inst.duration
+                        link_source = types.GateLink(t0=line_pos, opname=inst.name, bits=bits)
+                        for gen in self.generator["gate_links"]:
+                            obj_generator = partial(gen, formatter=self.formatter)
+                            for datum in obj_generator(link_source):
+                                self.add_data(datum)
                 if isinstance(inst, circuit.Barrier):
                     # Generate draw object for barrier
                     barrier_source = types.Barrier(t0=t0, bits=bits, bit_position=bit_pos)
