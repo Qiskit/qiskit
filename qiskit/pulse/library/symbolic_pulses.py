@@ -52,13 +52,13 @@ from qiskit.pulse.library.waveform import Waveform
 # However, this will create some latency for the first sympy import.
 
 
-def _normalized_gaussian(
+def _lifted_gaussian(
     t: "Symbol",
     center: Union["Symbol", "Expr"],
     zeroed_width: Union["Symbol", "Expr"],
     sigma: Union["Symbol", "Expr"],
 ) -> "Expr":
-    r"""Helper function to return normalized gaussian symboric equation.
+    r"""Helper function to return lifted gaussian symboric equation.
 
     For :math:`A=` ``amp`` and :math:`\sigma=` ``sigma``, the symbolic equation will be
 
@@ -434,7 +434,7 @@ class Gaussian(SymbolicPulse):
 
         t, duration, amp, sigma = sym.symbols("t, duration, amp, sigma")
         center = duration / 2
-        return amp * _normalized_gaussian(t, center, duration + 2, sigma)
+        return amp * _lifted_gaussian(t, center, duration + 2, sigma)
 
     @classmethod
     def _define_constraints(cls) -> List[Union["Expr", List]]:
@@ -556,8 +556,8 @@ class GaussianSquare(SymbolicPulse):
         sq_t1 = center + width / 2
         gaussian_zeroed_width = duration + 2 - width
 
-        gaussian_ledge = _normalized_gaussian(t, sq_t0, gaussian_zeroed_width, sigma)
-        gaussian_redge = _normalized_gaussian(t, sq_t1, gaussian_zeroed_width, sigma)
+        gaussian_ledge = _lifted_gaussian(t, sq_t0, gaussian_zeroed_width, sigma)
+        gaussian_redge = _lifted_gaussian(t, sq_t1, gaussian_zeroed_width, sigma)
 
         return amp * sym.Piecewise(
             (gaussian_ledge, t <= sq_t0), (gaussian_redge, t >= sq_t1), (1, True)
@@ -655,7 +655,7 @@ class Drag(SymbolicPulse):
         t, duration, amp, sigma, beta = sym.symbols("t, duration, amp, sigma, beta")
         center = duration / 2
 
-        gauss = amp * _normalized_gaussian(t, center, duration + 2, sigma)
+        gauss = amp * _lifted_gaussian(t, center, duration + 2, sigma)
         deriv = -(t - center) / (sigma**2) * gauss
 
         return gauss + 1j * beta * deriv
