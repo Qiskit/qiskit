@@ -161,6 +161,7 @@ class EnvelopeDescriptor:
     """
 
     global_envelopes = {}
+    source_exprs = {}
 
     def __get__(self, instance, owner) -> Callable:
         clsname = owner.__name__
@@ -169,8 +170,11 @@ class EnvelopeDescriptor:
             import sympy as sym
 
             gendef = getattr(owner, "_define_envelope")
+            source = gendef()
+
             params = [sym.Symbol(p) for p in ["t"] + owner.PARAM_DEF]
-            EnvelopeDescriptor.global_envelopes[clsname] = sym.lambdify(params, gendef())
+            EnvelopeDescriptor.global_envelopes[clsname] = sym.lambdify(params, source)
+            EnvelopeDescriptor.source_exprs[clsname] = source
 
         return EnvelopeDescriptor.global_envelopes[clsname]
 
@@ -187,6 +191,7 @@ class ConstraintsDescriptor:
     """
 
     global_constraints = {}
+    source_exprs = {}
 
     def __get__(self, instance, owner) -> List[Union[Callable, List]]:
         clsname = owner.__name__
@@ -208,6 +213,7 @@ class ConstraintsDescriptor:
                     else:
                         constraints.append(sym.lambdify(params, constraint_expr))
             ConstraintsDescriptor.global_constraints[clsname] = constraints
+            ConstraintsDescriptor.source_exprs[clsname] = source
 
         return ConstraintsDescriptor.global_constraints[clsname]
 
