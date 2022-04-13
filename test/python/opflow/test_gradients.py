@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2021.
+# (C) Copyright IBM 2019, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -1585,6 +1585,46 @@ class TestQFI(QiskitOpflowTestCase):
         )
         with self.assertRaises(ValueError):
             grad(value)
+
+    def test_lin_comb_phase_gate(self):
+        """Test lin_comb gradient with a phase gate"""
+        qc = QuantumCircuit(1)
+        t = Parameter("t")
+        qc.p(t, 0)
+        op = CircuitStateFn(qc)
+        grad = Gradient("lin_comb").convert(op)
+        circs = []
+        for e in grad.oplist:
+            for f in e.oplist:
+                for g in f.oplist:
+                    circs.append((g.primitive, g.coeff))
+        coeff = 0.7071067811865476
+
+        qc0 = QuantumCircuit(*circs[0][0].qregs)
+        qc0.p(t, 0)
+        qc0.h(1)
+        qc0.s(1)
+        qc0.h(1)
+        self.assertEqual(circs[0][0], qc0)
+        self.assertAlmostEqual(circs[0][1], coeff)
+
+        qc1 = QuantumCircuit(*circs[1][0].qregs)
+        qc1.h(1)
+        qc1.sdg(1)
+        qc1.cz(1, 0)
+        qc1.p(t, 0)
+        qc1.h(1)
+
+        # opposite CZ direction
+        qc2 = QuantumCircuit(*circs[1][0].qregs)
+        qc2.h(1)
+        qc2.sdg(1)
+        qc2.cz(0, 1)
+        qc2.p(t, 0)
+        qc2.h(1)
+
+        self.assertTrue(any(circs[1][0] == qc for qc in [qc1, qc2]))
+        self.assertAlmostEqual(circs[1][1], coeff)
 
 
 if __name__ == "__main__":
