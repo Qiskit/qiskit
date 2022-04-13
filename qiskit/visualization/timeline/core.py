@@ -141,6 +141,9 @@ class DrawerCanvas:
 
         Args:
             program: Scheduled circuit object to draw.
+
+        Raises:
+           VisualizationError: When circuit is not scheduled.
         """
         not_gate_like = (circuit.Barrier,)
 
@@ -158,15 +161,13 @@ class DrawerCanvas:
 
             try:
                 program = transpile(
-                    program,
-                    scheduling_method="alap",
-                    instruction_durations=InstructionDurations()
+                    program, scheduling_method="alap", instruction_durations=InstructionDurations()
                 )
-            except TranspilerError:
+            except TranspilerError as ex:
                 raise VisualizationError(
                     f"Input circuit {program.name} is not scheduled and it contains "
                     "operations with unknown delays. This cannot be visualized."
-                )
+                ) from ex
 
         for t0, (inst, qargs, cargs) in zip(program.op_start_times, program.data):
             bits = qargs + cargs
