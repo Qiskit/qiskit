@@ -163,6 +163,7 @@ stages:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
             testQPY: true
             testImages: true
+            installFromSdist: true
 
         - template: ".azure/test-macos.yml"
           parameters:
