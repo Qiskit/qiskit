@@ -1,9 +1,9 @@
 ---
-upgrade:
+features:
   - |
-    A protected attribute :attr:`_node_start_time` is silently added to
-    :class:`~QuantumCircuit` when one of scheduling analysis passes is run on the circuit.
-    This information can be used to obtain circuit instruction with instruction time.
+    New attribute :attr:`op_start_times` has been added to :class:`~QuantumCircuit`.
+    This information is populated when one of scheduling analysis passes is run on the circuit.
+    It can be used to obtain circuit instruction with instruction time, for example:
 
     .. code-block:: python
 
@@ -19,7 +19,7 @@ upgrade:
       qct = transpile(
           qc, backend, initial_layout=[0, 1], coupling_map=[[0, 1]], scheduling_method="alap"
       )
-      scheduled_insts = list(zip(qct._node_start_time, qct.data))
+      scheduled_insts = list(zip(qct.op_start_times, qct.data))
 
 fixes:
   - |

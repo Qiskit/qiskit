@@ -144,7 +144,7 @@ class DrawerCanvas:
         """
         not_gate_like = (circuit.Barrier,)
 
-        for t0, (inst, qargs, cargs) in zip(getattr(program, "_node_start_time"), program.data):
+        for t0, (inst, qargs, cargs) in zip(program.op_start_times, program.data):
             bits = qargs + cargs
             for bit_pos, bit in enumerate(qargs + cargs):
                 if not isinstance(inst, not_gate_like):

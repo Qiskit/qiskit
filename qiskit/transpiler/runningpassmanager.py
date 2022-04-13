@@ -140,7 +140,7 @@ class RunningPassManager:
             start_times = self.property_set["node_start_time"]
             for dag_node in dag.topological_op_nodes():
                 topological_start_times.append(start_times[dag_node])
-            circuit._node_start_time = topological_start_times
+            circuit._op_start_times = topological_start_times
 
         return circuit
 
