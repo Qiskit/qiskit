@@ -1,0 +1,27 @@
+---
+upgrade:
+  - |
+    A protected attribute :attr:`_node_start_time` is silently added to
+    :class:`~QuantumCircuit` when one of scheduling analysis passes is run on the circuit.
+    This information can be used to obtain circuit instruction with instruction time.
+
+    .. code-block:: python
+
+      from qiskit import QuantumCircuit, transpile
+      from qiskit.test.mock import FakeMontreal
+
+      backend = FakeMontreal()
+
+      qc = QuantumCircuit(2)
+      qc.h(0)
+      qc.cx(0, 1)
+
+      qct = transpile(
+          qc, backend, initial_layout=[0, 1], coupling_map=[[0, 1]], scheduling_method="alap"
+      )
+      scheduled_insts = list(zip(qct._node_start_time, qct.data))
+
+fixes:
+  - |
+    Time misalignment bug of drawing classical register with :func:`~timeline_drawer`
+    has been fixed. Now classical register slots are drawn at correct position.

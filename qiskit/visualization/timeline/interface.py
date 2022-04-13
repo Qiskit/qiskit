@@ -346,6 +346,11 @@ def draw(
         This feature enables you to control the most of appearance of the output image
         without modifying the codebase of the scheduled circuit drawer.
     """
+    if not hasattr(program, "_node_start_time"):
+        raise VisualizationError(
+            f"Input circuit {program.name} is not scheduled. Run one of scheduling analysis passes."
+        )
+
     # update stylesheet
     temp_style = stylesheet.QiskitTimelineStyle()
     temp_style.update(style or stylesheet.IQXStandard())
