@@ -245,7 +245,7 @@ class QuantumCircuit:
         # Data contains a list of instructions and their contexts,
         # in the order they were applied.
         self._data = []
-        self._op_start_times = []
+        self._op_start_times = None
 
         # A stack to hold the instruction sets that are being built up during for-, if- and
         # while-block construction.  These are stored as a stripped down sequence of instructions,
@@ -310,10 +310,14 @@ class QuantumCircuit:
         Returns:
             List of integers representing instruction start times.
             The index corresponds to the index of instruction in :attr:`QuantumCircuit.data`.
+
+        Raises:
+            AttributeError: When circuit is not scheduled.
         """
-        if not self._op_start_times:
+        if self._op_start_times is None:
             raise AttributeError(
-                "This circuit is not scheduled. Run one of scheduling passes."
+                "This circuit is not scheduled. "
+                "To schedule it run the circuit through one of the transpiler scheduling passes."
             )
         return self._op_start_times
 

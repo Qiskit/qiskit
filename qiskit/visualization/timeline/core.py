@@ -144,7 +144,7 @@ class DrawerCanvas:
         """
         not_gate_like = (circuit.Barrier,)
 
-        if not getattr(program, "_op_start_times"):
+        if getattr(program, "_op_start_times") is None:
             # Run scheduling for backward compatibility
             from qiskit import transpile
             from qiskit.transpiler import InstructionDurations, TranspilerError
