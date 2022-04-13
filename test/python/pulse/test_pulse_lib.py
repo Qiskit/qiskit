@@ -16,7 +16,6 @@ import unittest
 from unittest.mock import patch
 import numpy as np
 
-import qiskit
 from qiskit.pulse.library import (
     Waveform,
     Constant,
@@ -27,6 +26,7 @@ from qiskit.pulse.library import (
     gaussian_square,
     drag as pl_drag,
 )
+from qiskit.pulse.library.symbolic_pulses import EnvelopeDescriptor, ConstraintsDescriptor
 
 from qiskit.pulse import functional_pulse, PulseError
 from qiskit.test import QiskitTestCase
@@ -81,16 +81,9 @@ class TestWaveform(QiskitTestCase):
         with self.assertRaises(PulseError):
             Waveform(invalid_const * np.exp(1j * 2 * np.pi * np.linspace(0, 1, 1000)))
 
-        invalid_const = 1.1
-        Waveform.limit_amplitude = False
-        wave = Waveform(invalid_const * np.exp(1j * 2 * np.pi * np.linspace(0, 1, 1000)))
-        self.assertGreater(np.max(np.abs(wave.samples)), 1.0)
-        with self.assertRaises(PulseError):
-            wave = Waveform(
-                invalid_const * np.exp(1j * 2 * np.pi * np.linspace(0, 1, 1000)),
-                limit_amplitude=True,
-            )
-        Waveform.limit_amplitude = True
+        with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
+            wave = Waveform(invalid_const * np.exp(1j * 2 * np.pi * np.linspace(0, 1, 1000)))
+            self.assertGreater(np.max(np.abs(wave.samples)), 1.0)
 
         # Test case where data is converted to python types with complex as a list
         # with form [re, im] and back to a numpy array.
@@ -214,12 +207,6 @@ class TestParametricPulses(QiskitTestCase):
         self.assertEqual(const.get_waveform().samples[0], 0.1 + 0.4j)
         self.assertEqual(len(const.get_waveform().samples), 150)
 
-        with self.assertRaises(PulseError):
-            const = Constant(duration=150, amp=1.1 + 0.4j)
-
-        with patch("qiskit.pulse.library.symbolic_pulses.Pulse.limit_amplitude", new=False):
-            const = qiskit.pulse.library.symbolic_pulses.Constant(duration=150, amp=1.1 + 0.4j)
-
     def test_parameters(self):
         """Test that the parameters can be extracted as a dict through the `parameters`
         attribute."""
@@ -288,6 +275,9 @@ class TestParametricPulses(QiskitTestCase):
         with self.assertRaises(PulseError):
             Gaussian(duration=100, sigma=1.0, amp=1.1 + 0.8j, limit_amplitude=True)
 
+        with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
+            Gaussian(duration=100, sigma=1.0, amp=1.1 + 0.8j, limit_amplitude=True)
+
     def test_gaussian_square_limit_amplitude(self):
         """Test that the check for amplitude less than or equal to 1 can be disabled."""
         waveform = GaussianSquare(
@@ -298,12 +288,18 @@ class TestParametricPulses(QiskitTestCase):
         with self.assertRaises(PulseError):
             GaussianSquare(duration=100, sigma=1.0, amp=1.1 + 0.8j, width=10, limit_amplitude=True)
 
+        with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
+            GaussianSquare(duration=100, sigma=1.0, amp=1.1 + 0.8j, width=10, limit_amplitude=True)
+
     def test_drag_limit_amplitude(self):
         """Test that the check for amplitude less than or equal to 1 can be disabled."""
         waveform = Drag(duration=100, sigma=1.0, beta=1.0, amp=1.1 + 0.8j, limit_amplitude=False)
         self.assertGreater(np.abs(waveform.amp), 1.0)
 
         with self.assertRaises(PulseError):
+            Drag(duration=100, sigma=1.0, beta=1.0, amp=1.1 + 0.8j, limit_amplitude=True)
+
+        with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
             Drag(duration=100, sigma=1.0, beta=1.0, amp=1.1 + 0.8j, limit_amplitude=True)
 
     def test_constant_limit_amplitude(self):
@@ -314,13 +310,48 @@ class TestParametricPulses(QiskitTestCase):
         with self.assertRaises(PulseError):
             Constant(duration=100, amp=1.1 + 0.8j, limit_amplitude=True)
 
+        with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
+            Constant(duration=100, amp=1.1 + 0.8j, limit_amplitude=True)
 
-# pylint: disable=invalid-name,unexpected-keyword-arg
+    def test_get_parameters(self):
+        """Test getting pulse parameters as attribute."""
+        drag_pulse = Drag(duration=100, amp=0.1, sigma=40, beta=3)
+        self.assertEqual(drag_pulse.duration, 100)
+        self.assertEqual(drag_pulse.amp, 0.1)
+        self.assertEqual(drag_pulse.sigma, 40)
+        self.assertEqual(drag_pulse.beta, 3)
+
+        with self.assertWarns(AttributeError):
+            drag_pulse.non_existing_parameter
+
+    def test_descriptor(self):
+        """Test lambdify cache is created in the descriptor when instance is first created."""
+        ConstraintsDescriptor.global_constraints = {}
+        ConstraintsDescriptor.source_exprs = {}
+        EnvelopeDescriptor.global_envelopes = {}
+        EnvelopeDescriptor.source_exprs = {}
+
+        Drag(duration=100, amp=0.1, sigma=40, beta=3)
+        GaussianSquare(duration=800, amp=0.1, sigma=64, risefall_sigma_ratio=2)
+
+        self.assertSetEqual(
+            set(ConstraintsDescriptor.global_constraints.keys()), {"Drag", "GaussianSquare"}
+        )
+        self.assertSetEqual(
+            set(ConstraintsDescriptor.source_exprs.keys()), {"Drag", "GaussianSquare"}
+        )
+        self.assertSetEqual(
+            set(EnvelopeDescriptor.global_envelopes.keys()), {"Drag", "GaussianSquare"}
+        )
+        self.assertSetEqual(
+            set(EnvelopeDescriptor.source_exprs.keys()), {"Drag", "GaussianSquare"}
+        )
 
 
 class TestFunctionalPulse(QiskitTestCase):
     """Waveform tests."""
 
+    # pylint: disable=invalid-name, unexpected-keyword-arg
     def test_gaussian(self):
         """Test gaussian pulse."""
 
@@ -340,6 +371,7 @@ class TestFunctionalPulse(QiskitTestCase):
         # check duration
         self.assertEqual(pulse_wf_inst.duration, 10)
 
+    # pylint: disable=invalid-name
     def test_variable_duration(self):
         """Test generation of sample pulse with variable duration."""
 
