@@ -35,4 +35,6 @@ notifications:
     ".*\\.rs$|^Cargo":
         - "@mtreinish"
         - "@kevinhartman"
+    "(?!.*pulse.*)\\bvisualization\\b":
+        - "enavarro51"
 always_notify: true
