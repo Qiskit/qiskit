@@ -448,7 +448,7 @@ class Drag(ParametricPulse):
         if (
             not _is_parameterized(self.beta)
             and not _is_parameterized(self.sigma)
-            and self.beta > self.sigma
+            and np.abs(self.beta) > self.sigma
             and self.limit_amplitude
         ):
             # If beta <= sigma, then the maximum amplitude is at duration / 2, which is
