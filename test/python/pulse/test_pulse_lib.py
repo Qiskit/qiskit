@@ -322,6 +322,7 @@ class TestParametricPulses(QiskitTestCase):
         self.assertEqual(drag_pulse.beta, 3)
 
         with self.assertWarns(AttributeError):
+            # pylint: disable=pointless-statement
             drag_pulse.non_existing_parameter
 
     def test_descriptor(self):
@@ -343,9 +344,7 @@ class TestParametricPulses(QiskitTestCase):
         self.assertSetEqual(
             set(EnvelopeDescriptor.global_envelopes.keys()), {"Drag", "GaussianSquare"}
         )
-        self.assertSetEqual(
-            set(EnvelopeDescriptor.source_exprs.keys()), {"Drag", "GaussianSquare"}
-        )
+        self.assertSetEqual(set(EnvelopeDescriptor.source_exprs.keys()), {"Drag", "GaussianSquare"})
 
 
 class TestFunctionalPulse(QiskitTestCase):
