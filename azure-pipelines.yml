@@ -1,5 +1,8 @@
 # Trigger types.  This needs to include all the triggers for the different
 # pipelines we might want to run.
+# 
+# Each of these individually triggers the pipeline compilation step, but it's
+# the templating expressions in the `stages` list that actually set what runs.
 trigger:
   branches:
     include:
@@ -60,6 +63,28 @@ parameters:
 # Conditional compilation logic.  This is all the logic for "what to run"; each
 # stage in turn delegates to various templates in ".azure" that provide the
 # information on "how to run" them.
+#
+# The conditional conditions use the template-expression syntax `${{ }}` so only
+# the relevant stages even appear in the job list.  The documentation on the
+# expression syntax is here:
+#
+#   https://docs.microsoft.com/en-us/azure/devops/pipelines/process/expressions?view=azure-devops
+#
+# Not all variables are available at template-expansion time - this happens
+# before any machine is provisioned, so mostly you can access things from
+# GitHub, but nothing about the actual machine.  This is the list of variables
+# (look in the "available in templates" column):
+#
+#   https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops&tabs=yaml
+#
+# The main differentiator is `variables['Build.Reason']`, which contains the
+# trigger type:
+#   - cron (`Schedule`)
+#   - push to a git reference like a branch or tag (`IndividualCI`)
+#   - push to a pull request (`PullRequest`)
+# For `IndividualCI` (push/merge to a branch/tag on Qiskit/qiskit-terra), you
+# need to examine `variables['Build.SourceBranch']` to determine whether it's a
+# branch or a tag.
 stages:
   # Nightly cron job.
   - ${{ if eq(variables['Build.Reason'], 'Schedule') }}:
@@ -155,7 +180,8 @@ stages:
           parameters:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
 
-  # Push to main or the stable branches.
+  # Push to main or the stable branches.  The triggering branches are set in the
+  # triggers at the top of this file.
   - ${{ if and(eq(variables['Build.Reason'], 'IndividualCI'), startsWith(variables['Build.SourceBranch'], 'refs/heads/')) }}:
     - stage: "Push"
       jobs:
@@ -165,7 +191,8 @@ stages:
             testQPY: true
             testImages: true
 
-  # Push to a tag.
+  # Push to a tag.  The triggering tags are set in the triggers at the top of
+  # this file.
   - ${{ if and(eq(variables['Build.Reason'], 'IndividualCI'), startsWith(variables['Build.SourceBranch'], 'refs/tags/')) }}:
     - stage: "Deploy"
       jobs:
