@@ -188,7 +188,7 @@ def _assemble_instructions(
     for time, instruction in sched.instructions:
 
         if isinstance(instruction, instructions.Play) and isinstance(
-            instruction.pulse, library.ParametricPulse
+            instruction.pulse, (library.ParametricPulse, library.SymbolicPulse)
         ):
             pulse_shape = ParametricPulseShapes(type(instruction.pulse)).name
             if pulse_shape not in run_config.parametric_pulses:

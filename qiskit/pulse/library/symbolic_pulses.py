@@ -482,15 +482,15 @@ class GaussianSquare(SymbolicPulse):
     This pulse would be more accurately named as ``LiftedGaussianSquare``, however, for historical
     and practical DSP reasons it has the name ``GaussianSquare``.
     """
-    PARAM_DEF = ["duration", "amp", "sigma", "width", "risefall_sigma_ratio"]
+    PARAM_DEF = ["duration", "amp", "sigma", "width"]
 
     def __init__(
         self,
         duration: Union[int, ParameterExpression],
         amp: Union[complex, ParameterExpression],
         sigma: Union[float, ParameterExpression],
-        width: Union[float, ParameterExpression] = None,
-        risefall_sigma_ratio: Union[float, ParameterExpression] = None,
+        width: Optional[Union[float, ParameterExpression]] = None,
+        risefall_sigma_ratio: Optional[Union[float, ParameterExpression]] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
     ):
@@ -518,17 +518,26 @@ class GaussianSquare(SymbolicPulse):
             raise PulseError(
                 "Either the pulse width or the risefall_sigma_ratio parameter must be specified."
             )
-        if width is None:
+        if width is not None and risefall_sigma_ratio is not None:
+            raise PulseError(
+                "Either the pulse width or the risefall_sigma_ratio parameter can be specified"
+                " but not both."
+            )
+        if width is None and risefall_sigma_ratio is not None:
             width = duration - 2.0 * risefall_sigma_ratio * sigma
-        else:
-            risefall_sigma_ratio = (duration - width) / (2.0 * sigma)
 
         super().__init__(
             duration=duration,
-            parameters=(amp, sigma, width, risefall_sigma_ratio),
+            parameters=(amp, sigma, width),
             name=name,
             limit_amplitude=limit_amplitude,
         )
+
+    @property
+    def risefall_sigma_ratio(self) -> Union[float, ParameterExpression]:
+        """Return risefall sigma ratio of the Gaussian rising and falling edges."""
+        # (duration - width) / (2.0 sigma)
+        return (self.param_values[0] - self.param_values[3]) / (2.0 * self.param_values[2])
 
     @classmethod
     def _define_envelope(cls) -> "Expr":
@@ -565,23 +574,23 @@ class Drag(SymbolicPulse):
     """The Derivative Removal by Adiabatic Gate (DRAG) pulse is a standard Gaussian pulse
     with an additional Gaussian derivative component and lifting applied.
 
-    It is designed to reduce the frequency spectrum of a normal gaussian pulse near
+    It is designed to reduce the frequency spectrum of a standard Gaussian pulse near
     the :math:`|1\\rangle\\leftrightarrow|2\\rangle` transition,
     reducing the chance of leakage to the :math:`|2\\rangle` state.
 
     .. math::
 
         g(x) &= \\exp\\Bigl(-\\frac12 \\frac{(x - \\text{duration}/2)^2}{\\text{sigma}^2}\\Bigr)\\\\
-        f'(x) &= g(x) + 1j \\times \\text{beta} \\times \\frac{\\mathrm d}{\\mathrm{d}x} g(x)\\\\
-              &= g(x) + 1j \\times \\text{beta} \\times\
-                    \\Bigl(-\\frac{x - \\text{duration}/2}{\\text{sigma}^2}\\Bigr)g(x)\\\\
-        f(x) &= \\text{amp}\\times\\frac{f'(x)-f'(-1)}{1-f'(-1)}, \\quad 0 \\le x < \\text{duration}
+        g'(x) &= \\text{amp}\\times\\frac{g(x)-g(-1)}{1-g(-1)}\\\\
+        f(x) &=  g'(x) \\times \\Bigl(1 + 1j \\times \\text{beta} \\times\
+            \\Bigl(-\\frac{x - \\text{duration}/2}{\\text{sigma}^2}\\Bigr)  \\Bigr),
+            \\quad 0 \\le x < \\text{duration}
 
-    where :math:`g(x)` is a standard unlifted gaussian waveform and
-    :math:`f'(x)` is the DRAG waveform without lifting or amplitude scaling.
+    where :math:`g(x)` is a standard unlifted Gaussian waveform and
+    :math:`g'(x)` is the lifted :class:`~qiskit.pulse.library.Gaussian` waveform.
 
-    This pulse would be more accurately named as ``LiftedDrag``, however, for historical
-    and practical DSP reasons it has the name ``Drag``.
+    This pulse, defined by :math:`f(x)`, would be more accurately named as ``LiftedDrag``, however,
+    for historical and practical DSP reasons it has the name ``Drag``.
 
     References:
         1. |citation1|_
