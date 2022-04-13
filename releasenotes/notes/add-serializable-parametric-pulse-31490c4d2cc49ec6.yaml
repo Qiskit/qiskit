@@ -1,0 +1,30 @@
+---
+features:
+  - |
+    New pulse base class :class:`~SymbolicPulse` has been added. This is a
+    drop-in replacement of the conventional :class:`~ParametricPulse` which has been deprecated.
+    In new base class, pulse envelope and parameter validation functions are
+    represented by sympy symbolic expression objects, which are lambidfied immediately when
+    the first instance of symbolic pulse subclass is created.
+    These new pulse subclasses can be QPY serialized through serialization mechanism of
+    sympy symboilic expression objects, and now user can save custom pulse instance
+    in parametric form, i.e. without converting it into raw samples (:class:`~Waveform`).
+
+    To define new subclass of :class:`~SymbolicPulse`, one must override two class methods
+    :meth:`~SymbolicPulse._define_envelope` and :meth:`~SymbolicPulse._define_constraints`
+    which return symbolic expression for envelope and parameter constraints, respectively.
+upgrade:
+  - |
+    Importing pulse class from ``qiskit.pulse.library.*`` now import :class:`~SymbolicPulse`
+    subclass rather than :class:`~ParametricPulse` subclass.
+    There are same set of pulse subclass in the symbolic pulse module,
+    :class:`~qiskit.pulse.library.symbolic_pulse.Gaussian`,
+    :class:`~qiskit.pulse.library.symbolic_pulse.GaussianSquare`,
+    :class:`~qiskit.pulse.library.symbolic_pulse.Drag`, and
+    :class:`~qiskit.pulse.library.symbolic_pulse.Constant`.
+    Becasue :class:`~SymbolicPulse` supports full backward compatibility,
+    there is no loss of functionality due to the switching of the base class.
+deprecations:
+  - |
+    A pulse base class :class:`~ParametricPulse` has been deprecated and replaced with
+    :class:`~SymbolicPulse`.
