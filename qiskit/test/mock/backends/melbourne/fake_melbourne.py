@@ -19,6 +19,16 @@ import json
 
 from qiskit.providers.models import GateConfig, QasmBackendConfiguration, BackendProperties
 from qiskit.test.mock.fake_backend import FakeBackend, FakeLegacyBackend
+from qiskit.test.mock import fake_backend
+
+
+class FakeMelbourneV2(fake_backend.FakeBackendV2):
+    """A fake 14 qubit backend."""
+
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_melbourne.json"
+    props_filename = "props_melbourne.json"
+    backend_name = "fake_melbourne_v2"
 
 
 class FakeMelbourne(FakeBackend):

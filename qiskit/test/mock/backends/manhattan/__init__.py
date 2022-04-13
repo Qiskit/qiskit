@@ -12,5 +12,6 @@
 
 """Mock manhattan backend"""
 
+from .fake_manhattan import FakeManhattanV2
 from .fake_manhattan import FakeManhattan
 from .fake_manhattan import FakeLegacyManhattan
