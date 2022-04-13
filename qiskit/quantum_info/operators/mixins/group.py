@@ -55,7 +55,7 @@ class GroupMixin(ABC):
     def __xor__(self, other):
         return self.tensor(other)
 
-    def __mutmul__(self, other):
+    def __matmul__(self, other):
         return self.dot(other)
 
     @abstractmethod
