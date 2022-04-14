@@ -941,3 +941,16 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
+
+    def test_ucr_gates(self):
+        """Test qpy with UCRX, UCRY, and UCRZ gates."""
+        qc = QuantumCircuit(3)
+        qc.ucrz([0, 0, 0, -np.pi], [0, 1], 2)
+        qc.ucry([0, 0, 0, -np.pi], [0, 2], 1)
+        qc.ucrx([0, 0, 0, -np.pi], [2, 1], 0)
+        qc.measure_all()
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc.decompose().decompose(), new_circuit.decompose().decompose())
