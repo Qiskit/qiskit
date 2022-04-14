@@ -7,6 +7,17 @@ features:
     :class:`qiskit.circuit.library.PauliEvolutionGate` implementations.
 
     .. code-block:: python
+
+      from qiskit.algorithms import EvolutionProblem
+      from qiskit.algorithms.evolvers.trotterization import (
+          TrotterQRTE,
+      )
+      from qiskit.opflow import (
+          X,
+          Z,
+          StateFn,
+          SummedOp,
+      )
       operator = SummedOp([X, Z])
       initial_state = StateFn([1, 0])
       time = 1
