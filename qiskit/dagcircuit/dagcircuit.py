@@ -36,6 +36,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.dagcircuit.dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_function
 
 
 class DAGCircuit:
@@ -94,6 +95,9 @@ class DAGCircuit:
         self.unit = "dt"
 
     @_optionals.HAS_NETWORKX.require_in_call
+    @deprecate_function(
+        "The to_networkx() method is deprecated and will be removed in a future release."
+    )
     def to_networkx(self):
         """Returns a copy of the DAGCircuit in networkx format."""
         import networkx as nx
@@ -108,6 +112,9 @@ class DAGCircuit:
 
     @classmethod
     @_optionals.HAS_NETWORKX.require_in_call
+    @deprecate_function(
+        "The from_networkx() method is deprecated and will be removed in a future release."
+    )
     def from_networkx(cls, graph):
         """Take a networkx MultiDigraph and create a new DAGCircuit.
 
@@ -491,8 +498,28 @@ class DAGCircuit:
         self._increment_op(op)
         return node_index
 
+    @deprecate_function(
+        """The DAGCircuit._copy_circuit_metadata method is deprecated as of 0.20.0. It will be removed
+        no earlier than 3 months after the release date. You should use the DAGCircuit.copy_empty_like
+        method instead, which acts identically.
+        """
+    )
     def _copy_circuit_metadata(self):
-        """Return a copy of source_dag with metadata but empty."""
+        """DEPRECATED"""
+        return self.copy_empty_like()
+
+    def copy_empty_like(self):
+        """Return a copy of self with the same structure but empty.
+
+        That structure includes:
+            * name and other metadata
+            * global phase
+            * duration
+            * all the qubits and clbits, including the registers.
+
+        Returns:
+            DAGCircuit: An empty copy of self.
+        """
         target_dag = DAGCircuit()
         target_dag.name = self.name
         target_dag._global_phase = self._global_phase
@@ -1550,7 +1577,7 @@ class DAGCircuit:
                 return
 
             # Construct a shallow copy of self
-            new_layer = self._copy_circuit_metadata()
+            new_layer = self.copy_empty_like()
 
             for node in op_nodes:
                 # this creates new DAGOpNodes in the new_layer
@@ -1570,7 +1597,7 @@ class DAGCircuit:
         same structure as in layers().
         """
         for next_node in self.topological_op_nodes():
-            new_layer = self._copy_circuit_metadata()
+            new_layer = self.copy_empty_like()
 
             # Save the support of the operation we add to the layer
             support_list = []

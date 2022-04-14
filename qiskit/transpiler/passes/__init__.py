@@ -70,6 +70,7 @@ Optimizations
    Collect1qRuns
    Collect2qBlocks
    CollectMultiQBlocks
+   CollectLinearFunctions
    ConsolidateBlocks
    CXCancellation
    InverseCancellation
@@ -100,11 +101,18 @@ Scheduling
    :toctree: ../stubs/
 
    TimeUnitConversion
+   ALAPScheduleAnalysis
+   ASAPScheduleAnalysis
+   PadDynamicalDecoupling
+   PadDelay
+   ConstrainedReschedule
+   AlignMeasures
+   ValidatePulseGates
+   InstructionDurationCheck
+   SetIOLatency
    ALAPSchedule
    ASAPSchedule
    DynamicalDecoupling
-   AlignMeasures
-   ValidatePulseGates
 
 Circuit Analysis
 ================
@@ -127,6 +135,8 @@ Synthesis
    :toctree: ../stubs/
 
    UnitarySynthesis
+   LinearFunctionsSynthesis
+   LinearFunctionsToPermutations
 
 Additional Passes
 =================
@@ -196,6 +206,7 @@ from .optimization import HoareOptimizer
 from .optimization import TemplateOptimization
 from .optimization import InverseCancellation
 from .optimization import EchoRZXWeylDecomposition
+from .optimization import CollectLinearFunctions
 
 # circuit analysis
 from .analysis import ResourceEstimation
@@ -210,6 +221,8 @@ from .analysis import DAGLongestPath
 # synthesis
 from .synthesis import UnitarySynthesis
 from .synthesis import unitary_synthesis_plugin_names
+from .synthesis import LinearFunctionsSynthesis
+from .synthesis import LinearFunctionsToPermutations
 
 # calibration
 from .calibration import PulseGates
@@ -218,11 +231,18 @@ from .calibration import RZXCalibrationBuilderNoEcho
 
 # circuit scheduling
 from .scheduling import TimeUnitConversion
+from .scheduling import ALAPScheduleAnalysis
+from .scheduling import ASAPScheduleAnalysis
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
+from .scheduling import PadDynamicalDecoupling
 from .scheduling import DynamicalDecoupling
-from .scheduling import AlignMeasures
+from .scheduling import AlignMeasures  # Deprecated
 from .scheduling import ValidatePulseGates
+from .scheduling import PadDelay
+from .scheduling import ConstrainedReschedule
+from .scheduling import InstructionDurationCheck
+from .scheduling import SetIOLatency
 
 # additional utility passes
 from .utils import CheckMap
