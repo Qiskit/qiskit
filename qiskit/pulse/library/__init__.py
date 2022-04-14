@@ -10,36 +10,89 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-r"""
-=====================================================
-Pulse Library (waveforms :mod:`qiskit.pulse.library`)
-=====================================================
+"""
+===========================================
+Pulse Library (:mod:`qiskit.pulse.library`)
+===========================================
 
 This library provides Pulse users with convenient methods to build Pulse waveforms.
 
-Arbitrary waveforms can be described with :py:class:`~qiskit.pulse.library.Waveform`\ s.
+A pulse programmer can choose of one of pulse representation models to create a pulse program.
+The :class:`~Waveform` model directly stores waveform data points in a class instance.
+This model provides flexibility for the expression of waveform shape and allows us
+a rapid prototyping of new control technique. However, this model usually suffers poor memory
+efficiency, and it might be hard to scale with large-size quantum processors.
+Standard waveform functions are also provided by :mod:`~qiskit.pulse.library.discrete`,
+but a user can also directly create a :class:`~Waveform` instance with raw array-like data.
 
-The :py:mod:`~qiskit.pulse.library.discrete` module will generate
-:py:class:`~qiskit.pulse.library.Waveform`\ s for common waveform envelopes.
+In contrast, the parametric form model, or :class:`~SymbolicPulse`,
+only stores a waveform function itself with its parameter values in a class instance,
+and thus it provides greater memory efficiency at the price of flexibility of waveforms.
+This model also defines a small set of parametric-form pulse subclasses
+which is conventionally used in the superconducting quantum processors.
+An instance of these subclasses can be serialized in the QPY binary format
+while keeping the memory-efficient parametric representation of waveforms.
 
-The symbolic pulses, :py:class:`~qiskit.pulse.library.Gaussian`,
-:py:class:`~qiskit.pulse.library.GaussianSquare`, :py:class:`~qiskit.pulse.library.Drag` and
-:py:class:`~qiskit.pulse.library.Constant` will generate symbolic descriptions of
-those pulses, which can greatly reduce the size of the job sent to the backend and
-ensure serialization of these pulse data in QPY binary format.
+
+Pulse Models
+============
 
 .. autosummary::
    :toctree: ../stubs/
 
-   ~qiskit.pulse.library.discrete
    Waveform
+   SymbolicPulse
+
+
+Waveform Functions
+==================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   constant
+   zero
+   square
+   sawtooth
+   triangle
+   cos
+   sin
+   gaussian
+   gaussian_deriv
+   sech
+   sech_deriv
+   gaussian_square
+   drag
+
+
+Parametric-form Pulses
+======================
+
+.. autosummary::
+   :toctree: ../stubs/
+
    Constant
    Drag
    Gaussian
    GaussianSquare
 
 """
-from .discrete import *
+
+from .discrete import (
+    constant,
+    zero,
+    square,
+    sawtooth,
+    triangle,
+    cos,
+    sin,
+    gaussian,
+    gaussian_deriv,
+    sech,
+    sech_deriv,
+    gaussian_square,
+    drag,
+)
 from .parametric_pulses import ParametricPulse
 from .symbolic_pulses import SymbolicPulse, Gaussian, GaussianSquare, Drag, Constant
 from .pulse import Pulse

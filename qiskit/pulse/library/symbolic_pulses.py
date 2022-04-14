@@ -12,28 +12,14 @@
 
 # pylint: disable=invalid-name
 
-"""Symbolic waveform module. These are pulses which are described by a
-set of symbolic equations for envelope and parameter constraints.
+"""Symbolic waveform module.
 
-User can define any subclass of :class:`~SymbolicPulse` that implements
-arbitrary waveform. A custom pulse instance can be serialized with :mod:`~qiskit.qpy` serializer
-so that one can transmit arbitrary waveform data in compact format
-that only describes serializable symbolic expression along with raw parameter values.
+These are pulses which are described by symbolic equations for envelope and parameter constraints.
 
-This module can easily be extended to describe more pulse shapes. The new class should:
-  - have a descriptive name
-  - be a well known and/or well described formula (include the formula in the class docstring)
-  - take some parameters (at least `duration`) that are defined in :attr:`SymbolicPulse.PARAM_DEF`
-  - implement :meth:`SymbolicPulse._define_envelope` to describe symbolic expression for envelope
-  - implement :meth:`SymbolicPulse._define_constraints` which is a list of
-    symbolic expressions that describes list of validation conditions for assigned parameters.
-    A symbolic pulse instance can be created when all constraints return ``True``.
-    One can implement if clause as a list of three expressions for evaluating "if", "then", "else".
-
-The defined parameter expressions are immediately lambdified and stored in the class attribute
-when the symbolic pulse subclass is loaded. This cache mechanism drastically improves the
-performance when waveform samples are repeatedly generated for, for example, visualization.
-
+Note that symbolic pulse module doesn't employ symengine due to some missing features.
+In addition, there are several syntactic difference in boolean expression.
+Thanks to Lambdify at subclass instantiation, the performance regression is not significant.
+However, this will still create significant latency for the first sympy import.
 """
 
 from abc import abstractmethod
@@ -45,11 +31,6 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
-
-# Pulse module doesn't employ symengine due to some missing features.
-# In addition, there are several syntactic difference in boolean expression.
-# Thanks to Lambdify at subclass instantiation, the performance regression is not significant.
-# However, this will create some latency for the first sympy import.
 
 
 def _lifted_gaussian(
@@ -219,17 +200,98 @@ class ConstraintsDescriptor:
 
 
 class SymbolicPulse(Pulse):
-    """The abstract superclass for parametric pulses.
+    """The abstract superclass for parametric pulses with symbolic expression.
 
-    Attributes:
-        PARAM_DEF (List[str]): A list of parameter names that constitutes a symbolic pulse.
-            Note that "t" and "limit" are reserved by the symbolic pulse superclass.
-            Subclass must define at least "duration" to define the length of instruction.
-        envelope (Callable): Lambdified symbolic equation to define the waveform envelope.
-            This attribute is populated when the subclass is instantiated first time.
-        constraints (List[Union[Callable, List]]): Lambdified symbolic equations to
-            provide validation for pulse parameters when assigned.
-            This attribute is populated when the subclass is instantiated first time.
+    A symbolic pulse subclass can be defined with an envelope and parameter constraints.
+    The parameters constitute the waveform should be defined in the class attribute
+    :attr:`SymbolicPulse.PARAM_DEF`. This must include ``duration`` to define
+    the length of pulse instruction for scheduling.
+    For now, envelope and constraints must be defined with SymPy expressions.
+
+    .. rubric:: Envelope function
+
+    This is defined with a class method :meth:`_define_envelope` that returns
+    a single symbolic expression which is a function of ``t`` and ``duration``.
+    The time ``t`` and ``duration`` are in units of dt, i.e. system cycle time,
+    and this function is sampled with a discrete time vector in [0, ``duration``]
+    sampling the pulse envelope at every 0.5 dt (middle sampling strategy) when
+    :meth:`get_waveform` method is called.
+    The function can generate complex-valued samples representing a phase in Gaussian plane,
+    and real and imaginary part may be supplied to two quadratures of
+    the IQ mixer in the control electronics.
+    The sample data is not generated until the get method is called thus
+    a symbolic pulse instance only stores parameter values and waveform shape,
+    which greatly reduces memory footprint during the program generation.
+
+
+    .. rubric:: Constraint functions
+
+    This is defined with a class method :meth:`_define_constraints` that returns
+    a list of symbolic expressions. These constraint functions are called
+    when a symbolic pulse instance is created with assigned parameter values,
+    i.e. when it doesn't contain any ``Parameter`` object, and the symbolic pulse
+    subclass will be instantiated only when all constraint functions return ``True``.
+    This means the return value of these symbolic expressions should be boolean.
+    Any number of expression can be defined in the class method.
+    When branching logic (if clause) is necessary, one can use `SymPy ITE`_ class
+    or a list of expressions consisting of expression for "IF", "THEN", and "ELSE".
+    Typically, it evaluates the maximum pulse amplitude so that it doesn't exceed the
+    signal dynamic range [-1.0, 1.0]. When validation is not necessary,
+    this method can return an empty list.
+
+    .. _SymPy ITE: https://docs.sympy.org/latest/modules/logic.html#sympy.logic.boolalg.ITE
+
+
+    .. rubric:: Examples
+
+    This is an example of how a pulse author can define new pulse subclass.
+
+    .. code-block:: python
+
+        import sympy as sym
+
+        class CustomPulse(SymbolicPulse):
+
+            PARAM_DEF = ["duration", "p0", "p1"]
+
+            def __init__(self, duration, p0, p1, name):
+                super().__init__(duration=duration, parameters=(p0, p1), name=name)
+
+            @classmethod
+            def __define_envelope(cls):
+                duration, t, p0, p1 = sym.symbols("duration, t, p0, p0")
+                ...
+
+                return ...
+
+            @classmethod
+            def _define_constraints(cls):
+                duration, t, p0, p1 = sym.symbols("duration, p0, p0")
+
+                const1 = ...
+                const2 = ...
+
+                return [const1, const2, ...]
+
+    Then a user can create the ``CustomPulse`` instance as follows.
+
+    .. code-block:: python
+
+        my_pulse = CustomPulse(duration=160, p0=1.0, p1=2.0)
+
+
+    .. rubric:: Serialization
+
+    The :class:`~SymbolicPulse` subclass can be QPY serialized with symbolic expressions.
+    This means, a user can create a custom pulse subclass with novel envelope and constraints
+    expressions, then one can instantiate the class with certain parameters to run on backend.
+    This pulse instance can be saved in the QPY binary, which can be loaded afterwards
+    even within the environment having original class definition loaded.
+    This mechanism allows us to easily share a pulse program including custom pulse instructions
+    with collaborators, or, directly submit the program to the quantum computer backend
+    in the parametric form (i.e. not sample data), which greatly reduces required
+    network bandwidths. The waveform sample data to be loaded in the control electronics
+    will be reconstructed with parameters and deserialized expression objects.
     """
 
     __slots__ = ("param_values",)
