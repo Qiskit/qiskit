@@ -218,7 +218,7 @@ class TestParametricPulses(QiskitTestCase):
             const = Constant(duration=150, amp=1.1 + 0.4j)
 
         with patch("qiskit.pulse.library.parametric_pulses.Pulse.limit_amplitude", new=False):
-            const = qiskit.pulse.library.parametric_pulses.Constant(duration=150, amp=0.1 + 0.4j)
+            const = qiskit.pulse.library.parametric_pulses.Constant(duration=150, amp=1.1 + 0.4j)
 
     def test_parameters(self):
         """Test that the parameters can be extracted as a dict through the `parameters`
