@@ -36,5 +36,5 @@ notifications:
         - "@mtreinish"
         - "@kevinhartman"
     "(?!.*pulse.*)\\bvisualization\\b":
-        - "enavarro51"
+        - "@enavarro51"
 always_notify: true
