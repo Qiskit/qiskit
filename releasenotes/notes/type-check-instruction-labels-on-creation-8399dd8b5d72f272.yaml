@@ -1,4 +1,4 @@
 ---
 upgrade:
   - |
-    Instruction labels are now type-checked on instruction creation.
+    :class:`.Instruction` labels are now type-checked on instruction creation.
