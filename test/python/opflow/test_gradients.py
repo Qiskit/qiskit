@@ -1589,19 +1589,19 @@ class TestQFI(QiskitOpflowTestCase):
     def test_lin_comb_phase_gate(self):
         """Test lin_comb gradient with a phase gate"""
         qc = QuantumCircuit(1)
-        t = Parameter("t")
-        qc.p(t, 0)
+        param_t = Parameter("t")
+        qc.p(param_t, 0)
         op = CircuitStateFn(qc)
         grad = Gradient("lin_comb").convert(op)
         circs = []
-        for e in grad.oplist:
-            for f in e.oplist:
-                for g in f.oplist:
-                    circs.append((g.primitive, g.coeff))
+        for summed_op in grad:
+            for list_op in summed_op:
+                for circ_st in list_op:
+                    circs.append((circ_st.primitive, circ_st.coeff))
         coeff = 0.7071067811865476
 
         qc0 = QuantumCircuit(*circs[0][0].qregs)
-        qc0.p(t, 0)
+        qc0.p(param_t, 0)
         qc0.h(1)
         qc0.s(1)
         qc0.h(1)
@@ -1612,7 +1612,7 @@ class TestQFI(QiskitOpflowTestCase):
         qc1.h(1)
         qc1.sdg(1)
         qc1.cz(1, 0)
-        qc1.p(t, 0)
+        qc1.p(param_t, 0)
         qc1.h(1)
 
         # opposite CZ direction
@@ -1620,7 +1620,7 @@ class TestQFI(QiskitOpflowTestCase):
         qc2.h(1)
         qc2.sdg(1)
         qc2.cz(0, 1)
-        qc2.p(t, 0)
+        qc2.p(param_t, 0)
         qc2.h(1)
 
         self.assertTrue(any(circs[1][0] == qc for qc in [qc1, qc2]))
