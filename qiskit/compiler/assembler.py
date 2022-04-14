@@ -18,6 +18,8 @@ import warnings
 from time import time
 from typing import Union, List, Dict, Optional
 
+import numpy as np
+
 from qiskit.assembler import assemble_circuits, assemble_schedules
 from qiskit.assembler.run_config import RunConfig
 from qiskit.circuit import QuantumCircuit, Qubit, Parameter
@@ -321,7 +323,7 @@ def _parse_common_args(
             shots = min(1024, max_shots)
         else:
             shots = 1024
-    elif not isinstance(shots, int):
+    elif not isinstance(shots, (int, np.integer)):
         raise QiskitError("Argument 'shots' should be of type 'int'")
     elif max_shots and max_shots < shots:
         raise QiskitError(
