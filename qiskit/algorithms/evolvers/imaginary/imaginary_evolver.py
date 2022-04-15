@@ -10,12 +10,28 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Base class for Quantum Imaginary Time Evolution used for typing purposes."""
+"""Interface for Quantum Imaginary Time Evolution."""
 
-from abc import ABC
+from abc import ABC, abstractmethod
 
-from ..evolver import Evolver
+from ..evolution_problem import EvolutionProblem
+from ..evolution_result import EvolutionResult
 
 
-class ImaginaryEvolver(Evolver, ABC):
-    """Base class for Quantum Imaginary Time Evolution used for typing purposes."""
+class ImaginaryEvolver(ABC):
+    """Interface for Quantum Imaginary Time Evolution."""
+
+    @abstractmethod
+    def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
+        r"""Perform imaginary time evolution :math:`\exp(-\tau H)|\Psi\rangle`.
+
+        Evolves an initial state :math:`|\Psi\rangle` for an imaginary time :math:`\tau`
+        under a Hamiltonian  :math:`H`, as provided in the ``evolution_problem``.
+
+        Args:
+            evolution_problem: The definition of the evolution problem.
+
+        Returns:
+            Evolution result which includes an evolved quantum state.
+        """
+        raise NotImplementedError()

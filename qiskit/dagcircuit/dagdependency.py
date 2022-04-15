@@ -16,6 +16,8 @@
 import math
 import heapq
 from collections import OrderedDict, defaultdict
+import warnings
+
 import numpy as np
 import retworkx as rx
 
@@ -139,6 +141,12 @@ class DAGDependency:
         """Returns a copy of the DAGDependency in networkx format."""
         # For backwards compatibility, return networkx structure from terra 0.12
         # where DAGNodes instances are used as indexes on the networkx graph.
+        warnings.warn(
+            "The to_networkx() method is deprecated and will be removed in a future release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
         try:
             import networkx as nx
         except ImportError as ex:

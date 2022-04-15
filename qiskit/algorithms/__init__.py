@@ -183,6 +183,7 @@ Algorithms that estimate the phases of eigenstates of a unitary.
    PhaseEstimationResult
    IterativePhaseEstimation
 
+
 Exceptions
 ==========
 
@@ -190,6 +191,17 @@ Exceptions
    :toctree: ../stubs/
 
    AlgorithmError
+
+
+Utility methods
+---------------
+
+Utility methods used by algorithms.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   eval_observables
 """
 
 from .algorithm_result import AlgorithmResult
@@ -231,6 +243,7 @@ from .phase_estimators import (
     IterativePhaseEstimation,
 )
 from .exceptions import AlgorithmError
+from .aux_ops_evaluator import eval_observables
 
 __all__ = [
     "AlgorithmResult",
@@ -278,4 +291,5 @@ __all__ = [
     "PhaseEstimationResult",
     "IterativePhaseEstimation",
     "AlgorithmError",
+    "eval_observables",
 ]
