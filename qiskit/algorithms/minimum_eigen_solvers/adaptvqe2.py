@@ -22,6 +22,7 @@ import numpy as np
 from qiskit import QiskitError
 
 from qiskit.algorithms import VQE
+from qiskit.algorithms.minimum_eigen_solvers.vqe import VQEResult
 from qiskit.circuit import QuantumCircuit
 from qiskit.opflow import OperatorBase, PauliSumOp, ExpectationBase, CircuitSampler
 from qiskit.opflow.gradients import GradientBase, Gradient
@@ -123,13 +124,11 @@ class AdaptVQE2(VQE):
         self._max_iterations = max_iterations
         self._gradient = gradient
         self._excitation_pool = excitation_pool
-        #self._operator= operator
         self._operator = operator
         self._tmp_ansatz = ansatz
 
         self._excitation_pool: List[OperatorBase] = []
         self._excitation_list: List[OperatorBase] = []
-        #self._main_operator: OperatorBase = None
 
     @property
     def gradient(self) -> Optional[GradientBase]:
@@ -153,8 +152,8 @@ class AdaptVQE2(VQE):
         Computes the gradients for all available excitation operators.
 
         Args:
-            theta: list of (up to now) optimal parameters
-            vqe: the variational quantum eigensolver instance used for solving
+            theta: List of (up to now) optimal parameters
+            vqe: The variational quantum eigensolver instance used for solving
 
         Returns:
             List of pairs consisting of gradient and excitation operator.
@@ -164,14 +163,10 @@ class AdaptVQE2(VQE):
         sampler = CircuitSampler(self.quantum_instance)
         for exc in self._excitation_pool:
             # add next excitation to ansatz
-            print(exc)
-            print(len(self._excitation_list))
             self._tmp_ansatz.operators = self._excitation_list + [exc]
             # the ansatz needs to be decomposed for the gradient to work
             self.ansatz = self._tmp_ansatz.decompose()
-            print(self.ansatz)
             param_sets = list(self.ansatz.parameters)
-            print(param_sets)
             # zip will only iterate the length of the shorter list
             theta1 = dict(zip(self.ansatz.parameters, theta))
             op, expectation = self.construct_expectation(theta1, self._operator, return_expectation=True)
@@ -179,9 +174,7 @@ class AdaptVQE2(VQE):
             state_grad = self.gradient.convert(operator=op, params=param_sets)
             # Assign the parameters and evaluate the gradient
             value_dict = {param_sets[-1]: 0.0}
-            print(value_dict)
             state_grad_result = sampler.convert(state_grad, params=value_dict).eval()
-            print(state_grad_result)
             logger.info("Gradient computed : %s", str(state_grad_result))
             res.append((np.abs(state_grad_result[-1]), exc))
         return res, expectation
@@ -192,47 +185,34 @@ class AdaptVQE2(VQE):
         Auxiliary function to check for cycles in the indices of the selected excitations.
 
         Args:
-            indices: the list of chosen gradient indices.
+            indices: The list of chosen gradient indices.
         Returns:
             Whether repeating sequences of indices have been detected.
         """
         cycle_regex = re.compile(r"(\b.+ .+\b)( \b\1\b)+")
-        # reg-ex explanation:
-        # 1. (\b.+ .+\b) will match at least two numbers and try to match as many as possible. The
-        #    word boundaries in the beginning and end ensure that now numbers are split into digits.
-        # 2. the match of this part is placed into capture group 1
-        # 3. ( \b\1\b)+ will match a space followed by the contents of capture group 1 (again
-        #    delimited by word boundaries to avoid separation into digits).
-        # -> this results in any sequence of at least two numbers being detected
         match = cycle_regex.search(" ".join(map(str, indices)))
         logger.debug("Cycle detected: %s", match)
-        # Additionally we also need to check whether the last two numbers are identical, because the
-        # reg-ex above will only find cycles of at least two consecutive numbers.
-        # It is sufficient to assert that the last two numbers are different due to the iterative
-        # nature of the algorithm.
         return match is not None or (len(indices) > 1 and indices[-2] == indices[-1])
 
     def solve(
         self,
         aux_operators: Optional[ListOrDictType[PauliSumOp]] = None,
-        #operator: OperatorBase = None
     ) -> "AdaptVQEResult":
         """Computes the ground state.
 
         Args:
-            problem: a class encoding a problem to be solved.
             aux_operators: Additional auxiliary operators to evaluate.
 
         Raises:
             QiskitNatureError: if a solver other than VQE or a ansatz other than UCCSD is provided
                 or if the algorithm finishes due to an unforeseen reason.
-            ValueError: if the grouped property object returned by the driver does not contain a
+            ValueError: If the grouped property object returned by the driver does not contain a
                 main property as requested by the problem being solved (`problem.main_property_name`)
-            QiskitNatureError: if the user-provided `aux_operators` contain a name which clashes
+            QiskitNatureError: If the user-provided `aux_operators` contain a name which clashes
                 with an internally constructed auxiliary operator. Note: the names used for the
                 internal auxiliary operators correspond to the `Property.name` attributes which
                 generated the respective operators.
-            QiskitNatureError: if the chosen gradient method appears to result in all-zero gradients.
+            QiskitNatureError: If the chosen gradient method appears to result in all-zero gradients.
 
         Returns:
             An AdaptVQEResult which is an ElectronicStructureResult but also includes runtime
@@ -245,10 +225,11 @@ class AdaptVQE2(VQE):
         # We construct the ansatz once to be able to extract the full set of excitation operators.
         self._tmp_ansatz._build()
         self._excitation_pool = copy.deepcopy(self._tmp_ansatz.operators)
-
+       
         threshold_satisfied = False
         alternating_sequence = False
         max_iterations_exceeded = False
+        finishing_criterion=""
         prev_op_indices: List[int] = []
         theta: List[float] = []
         max_grad: Tuple[float, Optional[PauliSumOp]] = (0.0, None)
@@ -285,12 +266,14 @@ class AdaptVQE2(VQE):
                     str(np.abs(max_grad[0])),
                 )
                 threshold_satisfied = True
+                finishing_criterion = "Threshold converged"
                 break
             # check indices of picked gradients for cycles
             if self._check_cyclicity(prev_op_indices):
                 logger.info("Alternating sequence found. Finishing.")
                 logger.info("Final maximum gradient: %s", str(np.abs(max_grad[0])))
                 alternating_sequence = True
+                finishing_criterion = "Aborted due to cyclicity"
                 break
             # add new excitation to self._ansatz
             self._excitation_list.append(max_grad[1])
@@ -304,6 +287,7 @@ class AdaptVQE2(VQE):
         else:
             # reached maximum number of iterations
             max_iterations_exceeded = True
+            finishing_criterion = "Maximum number of iterations reached"
             logger.info("Maximum number of iterations reached. Finishing.")
             logger.info("Final maximum gradient: %s", str(np.abs(max_grad[0])))
 
@@ -314,13 +298,7 @@ class AdaptVQE2(VQE):
             aux_values = None
         raw_vqe_result.aux_operator_eigenvalues = aux_values
 
-        if threshold_satisfied:
-            finishing_criterion = "Threshold converged"
-        elif alternating_sequence:
-            finishing_criterion = "Aborted due to cyclicity"
-        elif max_iterations_exceeded:
-            finishing_criterion = "Maximum number of iterations reached"
-        else:
+        if finishing_criterion==False:
             raise QiskitNatureError("The algorithm finished due to an unforeseen reason!")
 
         electronic_result = self._get_eigenstate(theta)
@@ -335,7 +313,7 @@ class AdaptVQE2(VQE):
         return result
 
 
-class AdaptVQEResult(ElectronicStructureResult):
+class AdaptVQEResult(VQEResult):
     """AdaptVQE Result."""
 
     def __init__(self) -> None:

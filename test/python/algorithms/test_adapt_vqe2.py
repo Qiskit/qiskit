@@ -40,9 +40,6 @@ class TestAdaptVQE2(QiskitAlgorithmsTestCase):
                 ("ZXZX", -0.04523279994605788),
             ]
         )
-        self.h2_energy = -1.85727503
-
-        self.expected = -1.85727503
 
     def test_default(self):
         """TODO."""
@@ -78,7 +75,10 @@ class TestAdaptVQE2(QiskitAlgorithmsTestCase):
             quantum_instance=Aer.get_backend("statevector_simulator"),
         )
         res = calc.solve()
-        self.assertAlmostEqual(res.electronic_energies[0], self.expected, places=6)
+        
+        expected = -1.85727503
+
+        self.assertAlmostEqual(res.electronic_energies[0], expected, places=6)
 
 
 if __name__ == "__main__":
