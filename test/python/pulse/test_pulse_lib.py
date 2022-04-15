@@ -318,23 +318,28 @@ class TestParametricPulses(QiskitTestCase):
     def test_descriptor(self):
         """Test lambdify cache is created in the descriptor when instance is first created."""
         ConstraintsDescriptor.global_constraints = {}
-        ConstraintsDescriptor.source_exprs = {}
         EnvelopeDescriptor.global_envelopes = {}
-        EnvelopeDescriptor.source_exprs = {}
 
-        Drag(duration=100, amp=0.1, sigma=40, beta=3)
+        drag_waveform = Drag(duration=100, amp=0.1, sigma=40, beta=3)
         GaussianSquare(duration=800, amp=0.1, sigma=64, risefall_sigma_ratio=2)
+
+        # pylint: disable=pointless-statement
+        drag_waveform.get_waveform()
 
         self.assertSetEqual(
             set(ConstraintsDescriptor.global_constraints.keys()), {"Drag", "GaussianSquare"}
         )
-        self.assertSetEqual(
-            set(ConstraintsDescriptor.source_exprs.keys()), {"Drag", "GaussianSquare"}
+        self.assertListEqual(
+            ConstraintsDescriptor.global_constraints["Drag"],
+            drag_waveform.constraints,
         )
         self.assertSetEqual(
-            set(EnvelopeDescriptor.global_envelopes.keys()), {"Drag", "GaussianSquare"}
+            set(EnvelopeDescriptor.global_envelopes.keys()), {"Drag"}
         )
-        self.assertSetEqual(set(EnvelopeDescriptor.source_exprs.keys()), {"Drag", "GaussianSquare"})
+        self.assertEqual(
+            EnvelopeDescriptor.global_envelopes["Drag"],
+            drag_waveform.envelope,
+        )
 
 
 class TestFunctionalPulse(QiskitTestCase):

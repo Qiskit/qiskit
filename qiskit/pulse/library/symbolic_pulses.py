@@ -142,22 +142,30 @@ class EnvelopeDescriptor:
     """
 
     global_envelopes = {}
-    source_exprs = {}
 
     def __get__(self, instance, owner) -> Callable:
         clsname = owner.__name__
 
         if clsname not in EnvelopeDescriptor.global_envelopes:
-            import sympy as sym
-
             gendef = getattr(owner, "_define_envelope")
             source = gendef()
-
-            params = [sym.Symbol(p) for p in ["t"] + owner.PARAM_DEF]
-            EnvelopeDescriptor.global_envelopes[clsname] = sym.lambdify(params, source)
-            EnvelopeDescriptor.source_exprs[clsname] = source
+            self.add_new_pulse(clsname, owner.PARAM_DEF, source)
 
         return EnvelopeDescriptor.global_envelopes[clsname]
+
+    @classmethod
+    def add_new_pulse(cls, pulse_name: str, params: List[str], expr: "Expr"):
+        """Add new pulse envelope to descriptor.
+
+        Args:
+            pulse_name: Name of pulse subclass.
+            params: List of parameter names.
+            expr: Symbolic expression of pulse envelope.
+        """
+        import sympy as sym
+
+        param_symbols = [sym.Symbol(p) for p in ["t"] + params]
+        cls.global_envelopes[pulse_name] = sym.lambdify(param_symbols, expr)
 
 
 class ConstraintsDescriptor:
@@ -172,7 +180,6 @@ class ConstraintsDescriptor:
     """
 
     global_constraints = {}
-    source_exprs = {}
 
     def __get__(self, instance, owner) -> List[Union[Callable, List]]:
         clsname = owner.__name__
@@ -182,21 +189,30 @@ class ConstraintsDescriptor:
 
             gendef = getattr(owner, "_define_constraints")
             source = gendef()
-            if not source:
-                constraints = []
-            else:
-                params = [sym.Symbol(p) for p in ["limit"] + owner.PARAM_DEF]
-                constraints = []
-                for constraint_expr in source:
-                    if isinstance(constraint_expr, list):
-                        # If clause
-                        constraints.append(_lambdify_ite(constraint_expr, params))
-                    else:
-                        constraints.append(sym.lambdify(params, constraint_expr))
-            ConstraintsDescriptor.global_constraints[clsname] = constraints
-            ConstraintsDescriptor.source_exprs[clsname] = source
+            self.add_new_constraints(clsname, owner.PARAM_DEF, *source)
 
         return ConstraintsDescriptor.global_constraints[clsname]
+
+    @classmethod
+    def add_new_constraints(cls, pulse_name: str, params: List[str], *exprs: Union["Expr", List]):
+        """Add new pulse parameter constraints to descriptor.
+
+        Args:
+            pulse_name: Name of pulse subclass.
+            params: List of parameter names.
+            exprs: Symbolic expressions to validate assigned parameters.
+        """
+        import sympy as sym
+
+        params = [sym.Symbol(p) for p in ["limit"] + params]
+        constraints = []
+        for expr in exprs:
+            if isinstance(expr, list):
+                # If clause
+                constraints.append(_lambdify_ite(expr, params))
+            else:
+                constraints.append(sym.lambdify(params, expr))
+        cls.global_constraints[pulse_name] = constraints
 
 
 class SymbolicPulse(Pulse):
@@ -204,8 +220,8 @@ class SymbolicPulse(Pulse):
 
     A symbolic pulse subclass can be defined with an envelope and parameter constraints.
     The parameters constitute the waveform should be defined in the class attribute
-    :attr:`SymbolicPulse.PARAM_DEF`. This must include ``duration`` to define
-    the length of pulse instruction for scheduling.
+    :attr:`SymbolicPulse.PARAM_DEF`. This must include ``duration`` as a first element
+    to define the length of pulse instruction for scheduling.
     For now, envelope and constraints must be defined with SymPy expressions.
 
     .. rubric:: Envelope function
@@ -337,11 +353,6 @@ class SymbolicPulse(Pulse):
         if not self.is_parameterized():
             self.validate_parameters()
 
-            # This is awkward but likely necessary to populate data for QPY
-            # Perhaps we need another idea
-            if not self.envelope:
-                self.get_waveform()
-
     def __getattr__(self, item):
         # For backward compatibility, return parameter names as property-like
 
@@ -374,6 +385,14 @@ class SymbolicPulse(Pulse):
         "if", "else", and "then", respectively. This list can be nested.
         """
         raise NotImplementedError
+
+    @property
+    def definition(self) -> Tuple["Expr", List[Union["Expr", List]]]:
+        """Return definition of this pulse subclass."""
+        envelope_expr = self.__class__._define_envelope()
+        const_expr = self.__class__._define_constraints()
+
+        return envelope_expr, const_expr
 
     def get_waveform(self) -> Waveform:
         r"""Return a Waveform with samples filled according to the formula that the pulse
@@ -509,7 +528,7 @@ class Gaussian(SymbolicPulse):
 
         amp, sigma, lim_amp = sym.symbols("amp, sigma, limit")
         return [
-            [lim_amp, sym.Abs(amp) <= 1.0, True],
+            sym.ITE(lim_amp, sym.Abs(amp) <= 1.0, sym.true),
             sigma > 0,
         ]
 
@@ -636,7 +655,7 @@ class GaussianSquare(SymbolicPulse):
 
         duration, amp, sigma, width, lim_amp = sym.symbols("duration, amp, sigma, width, limit")
         return [
-            [lim_amp, sym.Abs(amp) <= 1.0, True],
+            sym.ITE(lim_amp, sym.Abs(amp) <= 1.0, sym.true),
             sigma > 0,
             width >= 0,
             duration >= width,
@@ -732,27 +751,29 @@ class Drag(SymbolicPulse):
         import sympy as sym
 
         t, duration, amp, sigma, beta, lim_amp = sym.symbols("t, duration, amp, sigma, beta, limit")
+
         drag_eq = cls._define_envelope()
+        t_drag_max = duration / 2 - (sigma / beta) * sym.sqrt(beta ** 2 - sigma ** 2)
         return [
-            [lim_amp, sym.Abs(amp) <= 1.0, True],
+            sym.ITE(lim_amp, sym.Abs(amp) <= 1.0, sym.true),
             # When large beta
             [
+                # IF:
+                # Avoid using sympy ITE because beta could be approximately zero.
+                # Then, evaluation of THEN expression causes zero-division error.
                 lim_amp & (sym.Abs(beta) > sigma),
-                [
-                    # Find the first maxima associated with the beta * d/dx gaussian term
-                    # This eq is derived from solving for the roots of the norm of the drag function.
-                    # There is a second maxima mirrored around the center of the pulse with the same
-                    # norm as the first, so checking the value at the first x maxima is sufficient.
-                    duration / 2 - (sigma / beta) * sym.sqrt(beta**2 - sigma**2) >= 0,
-                    sym.Abs(
-                        drag_eq.subs(
-                            [(t, duration / 2 - (sigma / beta) * sym.sqrt(beta**2 - sigma**2))]
-                        )
-                    )
-                    <= 1,
-                    sym.Abs(drag_eq.subs([(t, 0)])) <= 1,
-                ],
-                # If beta <= sigma, then the maximum amplitude is at duration / 2, which is
+                # THEN:
+                # Find the first maxima associated with the beta * d/dx gaussian term
+                # This eq is derived from solving for the roots of the norm of the drag function.
+                # There is a second maxima mirrored around the center of the pulse with the same
+                # norm as the first, so checking the value at the first x maxima is sufficient.
+                sym.ITE(
+                    t_drag_max > 0,
+                    sym.Abs(drag_eq.subs([(t, t_drag_max)])) < 1.0,
+                    sym.Abs(drag_eq.subs([(t, 0)])) <= 1.0,
+                ),
+                # ELSE:
+                # When beta <= sigma, then the maximum amplitude is at duration / 2, which is
                 # already constrained by amp <= 1
                 True,
             ],
@@ -821,5 +842,5 @@ class Constant(SymbolicPulse):
 
         amp, lim_amp = sym.symbols("amp, limit")
         return [
-            [lim_amp, sym.Abs(amp) <= 1.0, True],
+            sym.ITE(lim_amp, sym.Abs(amp) <= 1.0, sym.true),
         ]

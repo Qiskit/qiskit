@@ -76,7 +76,7 @@ class ParametricPulse(Pulse):
             "ParametricPulse and its subclass have been deprecated and will be replaced with "
             "SymbolicPulse and its subclass because of QPY serialization support. "
             "See qiskit.pulse.library.symbolic_pulses for details.",
-            DeprecationWarning,
+            PendingDeprecationWarning,
             stacklevel=3,
         )
         self.validate_parameters()

@@ -18,10 +18,10 @@ upgrade:
     Importing pulse class from ``qiskit.pulse.library.*`` now import :class:`~SymbolicPulse`
     subclass rather than :class:`~ParametricPulse` subclass.
     There are same set of pulse subclass in the symbolic pulse module,
-    :class:`~qiskit.pulse.library.symbolic_pulse.Gaussian`,
-    :class:`~qiskit.pulse.library.symbolic_pulse.GaussianSquare`,
-    :class:`~qiskit.pulse.library.symbolic_pulse.Drag`, and
-    :class:`~qiskit.pulse.library.symbolic_pulse.Constant`.
+    :class:`~qiskit.pulse.library.Gaussian`,
+    :class:`~qiskit.pulse.library.GaussianSquare`,
+    :class:`~qiskit.pulse.library.Drag`, and
+    :class:`~qiskit.pulse.library.Constant`.
     Becasue :class:`~SymbolicPulse` supports full backward compatibility,
     there is no loss of functionality due to the switching of the base class.
 deprecations:
