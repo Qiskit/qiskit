@@ -117,13 +117,10 @@ class Optimize1qGatesDecomposition(TransformationPass):
         uncalibrated_p = not has_cals_p or any(not dag.has_calibration_for(g) for g in old_run)
         # does this run have gates not in the image of ._decomposers _and_ uncalibrated?
         def _not_in_basis(gate):
-            """To check if gate in basis or not
+            """
+            To check if gate in basis or not
 
-            Args:
-                gate (Gate): gate to check
-
-            Returns:
-                Bool : whether Gate is supported by target or in basis set
+            Returns `True` when Gate is not supported by target or in basis set.
             """
             if self._target:
                 in_target = self._target.instruction_supported(
