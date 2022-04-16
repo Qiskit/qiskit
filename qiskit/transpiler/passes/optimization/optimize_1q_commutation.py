@@ -118,7 +118,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         # time
         run_clone = deque(run)
 
-        commuted = []
+        commuted = deque([])
         preindex, commutation_rule = None, None
         if isinstance(blocker, DAGOpNode):
             preindex = None
@@ -139,17 +139,16 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
                 next_gate = run_clone[0] if front else run_clone[-1]
                 if next_gate.name not in commutation_rule:
                     break
-                commuted.append(next_gate)
                 if front:
                     run_clone.popleft()
+                    commuted.append(next_gate)
                 else:
                     run_clone.pop()
-        if not front:
-            commuted = commuted[::-1]
+                    commuted.appendleft(next_gate)
         if front:
-            return commuted, list(run_clone)
+            return list(commuted), list(run_clone)
         else:
-            return list(run_clone), commuted
+            return list(run_clone), list(commuted)
 
     def _resynthesize(self, new_run):
         """
