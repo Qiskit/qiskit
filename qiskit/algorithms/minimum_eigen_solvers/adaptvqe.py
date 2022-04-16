@@ -12,6 +12,7 @@
 
 """A ground state calculation employing the AdaptVQE algorithm."""
 #figure out which ansatz is used by qiskit nature
+from __future__ import annotations
 from typing import Optional, List, Tuple, Union, Callable
 
 import copy
@@ -22,6 +23,7 @@ import numpy as np
 from qiskit import QiskitError
 
 from qiskit.algorithms import VQE
+from qiskit.algorithms.list_or_dict import ListOrDict
 from qiskit.algorithms.minimum_eigen_solvers.vqe import VQEResult
 from qiskit.circuit import QuantumCircuit
 from qiskit.opflow import OperatorBase, PauliSumOp, ExpectationBase, CircuitSampler
@@ -30,19 +32,10 @@ from qiskit.algorithms.minimum_eigen_solvers import MinimumEigensolver
 from qiskit.circuit.library import EvolvedOperatorAnsatz, RealAmplitudes,PauliEvolutionGate
 from qiskit.circuit.library import NLocal
 from qiskit.utils.validation import validate_min
-from qiskit_nature import ListOrDictType
-from qiskit_nature.algorithms.ground_state_solvers.minimum_eigensolver_factories.minimum_eigensolver_factory import MinimumEigensolverFactory
-from qiskit_nature.exceptions import QiskitNatureError
-from qiskit_nature.circuit.library import UCC
-from qiskit_nature.operators.second_quantization import SecondQuantizedOp
-from qiskit_nature.converters.second_quantization import QubitConverter
-from qiskit_nature.converters.second_quantization.utils import ListOrDict
-from qiskit_nature.problems.second_quantization import BaseProblem
-from qiskit_nature.results import ElectronicStructureResult
-from qiskit_nature.deprecation import deprecate_arguments
+
+
 from qiskit.algorithms.optimizers import Optimizer
 from qiskit.utils import QuantumInstance
-from qiskit.providers import BaseBackend
 from qiskit.providers import Backend
 
 #from .minimum_eigensolver_factories import MinimumEigensolverFactory
@@ -51,7 +44,7 @@ from qiskit.providers import Backend
 logger = logging.getLogger(__name__)
 
 
-class AdaptVQE2(VQE):
+class AdaptVQE(VQE):
     """A ground state calculation employing the AdaptVQE algorithm.
 
     The performance of AdaptVQE can significantly depend on the choice of gradient method, QFI
@@ -63,14 +56,6 @@ class AdaptVQE2(VQE):
     [https://qiskit.org/documentation/tutorials/operators/02_gradients_framework.html]
     """
 
-    @deprecate_arguments(
-        "0.4.0",
-        {"delta": "gradient"},
-        additional_msg=(
-            "Instead of `delta=1.0` you have to construct a gradient, like so "
-            "`gradient=Gradient(grad_method='fin_diff', epsilon=1.0)`."
-        ),
-    )
     # pylint: disable=unused-argument
     def __init__(
         self,
@@ -85,7 +70,7 @@ class AdaptVQE2(VQE):
         include_custom: bool = False,
         max_evals_grouped: int = 1,
         callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
-        quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
         excitation_pool: List[Union[OperatorBase, QuantumCircuit]] = None,
         operator: OperatorBase = None,
     ) -> None:
@@ -196,23 +181,23 @@ class AdaptVQE2(VQE):
 
     def solve(
         self,
-        aux_operators: Optional[ListOrDictType[PauliSumOp]] = None,
-    ) -> "AdaptVQEResult":
+        aux_operators: Optional[ListOrDict[PauliSumOp]] = None,
+    ) -> AdaptVQEResult:
         """Computes the ground state.
 
         Args:
             aux_operators: Additional auxiliary operators to evaluate.
 
         Raises:
-            QiskitNatureError: if a solver other than VQE or a ansatz other than UCCSD is provided
+            QiskitError: if a solver other than VQE or a ansatz other than UCCSD is provided
                 or if the algorithm finishes due to an unforeseen reason.
             ValueError: If the grouped property object returned by the driver does not contain a
                 main property as requested by the problem being solved (`problem.main_property_name`)
-            QiskitNatureError: If the user-provided `aux_operators` contain a name which clashes
+            QiskitError: If the user-provided `aux_operators` contain a name which clashes
                 with an internally constructed auxiliary operator. Note: the names used for the
                 internal auxiliary operators correspond to the `Property.name` attributes which
                 generated the respective operators.
-            QiskitNatureError: If the chosen gradient method appears to result in all-zero gradients.
+            QiskitError: If the chosen gradient method appears to result in all-zero gradients.
 
         Returns:
             An AdaptVQEResult which is an ElectronicStructureResult but also includes runtime
@@ -257,7 +242,7 @@ class AdaptVQE2(VQE):
                 logger.info(gradlog)
             if np.abs(max_grad[0]) < self._threshold:
                 if iteration == 1:
-                    raise QiskitNatureError(
+                    raise QiskitError(
                         "Gradient choice is not suited as it leads to all zero gradients gradients. "
                         "Try a different gradient method."
                     )
@@ -299,7 +284,7 @@ class AdaptVQE2(VQE):
         raw_vqe_result.aux_operator_eigenvalues = aux_values
 
         if finishing_criterion==False:
-            raise QiskitNatureError("The algorithm finished due to an unforeseen reason!")
+            raise QiskitError("The algorithm finished due to an unforeseen reason!")
 
         electronic_result = self._get_eigenstate(theta)
 

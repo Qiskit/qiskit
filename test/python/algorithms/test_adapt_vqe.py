@@ -7,14 +7,12 @@ from qiskit.circuit.library import EvolvedOperatorAnsatz
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.opflow import PauliSumOp
 from qiskit.utils import algorithm_globals, has_aer
+from qiskit import BasicAer
 
-if has_aer():
-    from qiskit import Aer
-
-from qiskit.algorithms.minimum_eigen_solvers.adaptvqe2 import AdaptVQE2
+from qiskit.algorithms.minimum_eigen_solvers.adaptvqe import AdaptVQE
 
 
-class TestAdaptVQE2(QiskitAlgorithmsTestCase):
+class TestAdaptVQE(QiskitAlgorithmsTestCase):
     """Test Adaptive VQE Ground State Calculation"""
 
     def setUp(self):
@@ -43,7 +41,6 @@ class TestAdaptVQE2(QiskitAlgorithmsTestCase):
 
     def test_default(self):
         """TODO."""
-        print("qubits:", self.h2_op.num_qubits)
         excitation_pool = [
             PauliSumOp(
                 SparsePauliOp(["IIIY", "IIZY"], coeffs=[0.5 + 0.0j, -0.5 + 0.0j]), coeff=1.0
@@ -69,10 +66,10 @@ class TestAdaptVQE2(QiskitAlgorithmsTestCase):
             ),
         ]
         ansatz = EvolvedOperatorAnsatz(excitation_pool)
-        calc = AdaptVQE2(
+        calc = AdaptVQE(
             ansatz=ansatz,
             operator=self.h2_op,
-            quantum_instance=Aer.get_backend("statevector_simulator"),
+            quantum_instance=BasicAer.get_backend("statevector_simulator"),
         )
         res = calc.solve()
         
