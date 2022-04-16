@@ -28,23 +28,39 @@ logger = logging.getLogger(__name__)
 class Optimize1qGatesDecomposition(TransformationPass):
     """Optimize chains of single-qubit gates by combining them into a single gate."""
 
-    def __init__(self, basis=None):
+    def __init__(self, basis=None, target=None):
         """Optimize1qGatesDecomposition initializer.
 
         Args:
             basis (list[str]): Basis gates to consider, e.g. `['u3', 'cx']`. For the effects
                 of this pass, the basis is the set intersection between the `basis` parameter
                 and the Euler basis.
+            target (Target): The target representing the backend. If specified
+                this will be used instead of the ``basis_gates`` parameter
+
         """
         super().__init__()
 
-        self._target_basis = basis
+        # change name so as to not confuse with target basis
+        self._basis_set = basis
         self._decomposers = None
+        self._target = target
 
-        if basis:
+        # try to get the op names of the target to see what are
+        # the needed decomposers
+        if basis or target:
             self._decomposers = {}
-            basis_set = set(basis)
             euler_basis_gates = one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES
+
+            if basis:
+                basis_set = set(basis)
+            # get all the possible operations that could be
+            # performed in the target
+
+            # target basis supersedes original
+            if target:
+                basis_set = target.operation_names
+
             for euler_basis_name, gates in euler_basis_gates.items():
                 if set(gates).issubset(basis_set):
                     basis_copy = copy.copy(self._decomposers)
@@ -76,14 +92,13 @@ class Optimize1qGatesDecomposition(TransformationPass):
             operator = gate.op.to_matrix().dot(operator)
 
         new_circs = {k: v._decompose(operator) for k, v in self._decomposers.items()}
-
         new_basis, new_circ = None, None
         if len(new_circs) > 0:
             new_basis, new_circ = min(new_circs.items(), key=lambda x: len(x[1]))
 
         return new_basis, new_circ
 
-    def _substitution_checks(self, dag, old_run, new_circ, new_basis):
+    def _substitution_checks(self, dag, old_run, new_circ, new_basis, qubit_map):
         """
         Returns `True` when it is recommended to replace `old_run` with `new_circ`.
         """
@@ -101,9 +116,28 @@ class Optimize1qGatesDecomposition(TransformationPass):
         # does this run have uncalibrated gates?
         uncalibrated_p = not has_cals_p or any(not dag.has_calibration_for(g) for g in old_run)
         # does this run have gates not in the image of ._decomposers _and_ uncalibrated?
+        def _not_in_basis(gate):
+            """To check if gate in basis or not
+
+            Args:
+                gate (Gate): gate to check
+
+            Returns:
+                Bool : whether Gate is supported by target or in basis set
+            """
+            if self._target:
+                in_target = self._target.instruction_supported(
+                    gate.name, tuple(qubit_map[bit] for bit in gate.qargs)
+                )
+                return not in_target
+            if self._basis_set:
+                in_basis = gate.name in self._basis_set
+                return not in_basis
+
+            return True  # basis is None and target is None too
+
         uncalibrated_and_not_basis_p = any(
-            g.name not in self._target_basis and (not has_cals_p or not dag.has_calibration_for(g))
-            for g in old_run
+            _not_in_basis(g) and (not has_cals_p or not dag.has_calibration_for(g)) for g in old_run
         )
 
         if rewriteable_and_in_basis_p and len(old_run) < len(new_circ):
@@ -114,7 +148,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 + "\n".join([str(node.op) for node in old_run])
                 + "\n\nand got\n\n"
                 + "\n".join([str(node[0]) for node in new_circ])
-                + f"\n\nbut the original was native (for {self._target_basis}) and the new value "
+                + f"\n\nbut the original was native (for {self._basis_set}) and the new value "
                 "is longer.  This indicates an efficiency bug in synthesis.  Please report it by "
                 "opening an issue here: "
                 "https://github.com/Qiskit/qiskit-terra/issues/new/choose",
@@ -153,21 +187,49 @@ class Optimize1qGatesDecomposition(TransformationPass):
             return dag
 
         runs = dag.collect_1q_runs()
+
+        # required for checking instruction support
+        qubit_map = None
+        if self._target:
+            qubit_map = {qubit: index for index, qubit in enumerate(dag.qubits)}
+
         for run in runs:
             # SPECIAL CASE: Don't bother to optimize single U3 gates which are in the basis set.
             #     The U3 decomposer is only going to emit a sequence of length 1 anyhow.
-            if "u3" in self._target_basis and len(run) == 1 and isinstance(run[0].op, U3Gate):
-                # Toss U3 gates equivalent to the identity; there we get off easy.
-                if np.allclose(run[0].op.to_matrix(), np.eye(2), 1e-15, 0):
-                    dag.remove_op_node(run[0])
-                    continue
-                # We might rewrite into lower `u`s if they're available.
-                if "u2" not in self._target_basis and "u1" not in self._target_basis:
-                    continue
+            if isinstance(run[0].op, U3Gate) and len(run) == 1:
+                # try to optimize
+                if self._target:
+                    if self._target.instruction_supported(
+                        "u3", tuple(qubit_map[bit] for bit in run[0].qargs)
+                    ):
+                        if np.allclose(run[0].op.to_matrix(), np.eye(2), 1e-15, 0):
+                            dag.remove_op_node(run[0])
+                            continue
+                        # if u2 or u1 supported on this qubit, we may try decomposition
+                        u21_in_target = "u2" in self._target.instruction_supported(
+                            "u2", tuple(qubit_map[bit] for bit in run[0].qargs)
+                        ) or "u1" in self._target.instruction_supported(
+                            "u1", tuple(qubit_map[bit] for bit in run[0].qargs)
+                        )
+                        if not u21_in_target:
+                            continue
+
+                elif "u3" in self._basis_set:
+                    # Toss U3 gates equivalent to the identity; there we get off easy.
+                    if np.allclose(run[0].op.to_matrix(), np.eye(2), 1e-15, 0):
+                        dag.remove_op_node(run[0])
+                        continue
+                    # if u21 supported, try to decompose, else continue
+                    u21_in_basis = "u2" in self._basis_set or "u1" in self._basis_set
+
+                    if not u21_in_basis:
+                        continue
 
             new_basis, new_circ = self._resynthesize_run(run)
 
-            if new_circ is not None and self._substitution_checks(dag, run, new_circ, new_basis):
+            if new_circ is not None and self._substitution_checks(
+                dag, run, new_circ, new_basis, qubit_map
+            ):
                 new_dag = circuit_to_dag(new_circ)
                 dag.substitute_node_with_dag(run[0], new_dag)
                 # Delete the other nodes in the run
