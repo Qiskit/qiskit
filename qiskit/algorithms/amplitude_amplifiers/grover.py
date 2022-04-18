@@ -31,10 +31,11 @@ class Grover(AmplitudeAmplifier):
 
         .. note::
 
-            If you want to learn more about Grover's Search algorithm, check out the
-            `Qiskit Textbook <https://qiskit.org/textbook/ch-algorithms/grover.html>`_.
+            If you want to learn more about the theory behind Grover's Search algorithm, check 
+            out the `Qiskit Textbook <https://qiskit.org/textbook/ch-algorithms/grover.html>`_.
             or the `Qiskit Tutorials
-            <https://qiskit.org/documentation/tutorials/algorithms/07_grover_examples.html>`_.
+            <https://qiskit.org/documentation/tutorials/algorithms/07_grover_examples.html>`_
+            for more concrete how-to examples.
 
     Grover's Search [1, 2] is a well known quantum algorithm that can be used for
     searching through unstructured collections of records for particular targets
