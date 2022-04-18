@@ -16,25 +16,11 @@
 import os
 from math import pi
 
-from distutils.util import strtobool
 from hypothesis import assume, settings, HealthCheck
 from hypothesis.stateful import multiple, rule, precondition, invariant
 from hypothesis.stateful import Bundle, RuleBasedStateMachine
 
 import hypothesis.strategies as st
-
-from hypothesis import settings
-
-default_profile = "transpiler_equivalence"
-settings.register_profile(
-    default_profile,
-    report_multiple_bugs=False,
-    max_examples=25,
-    deadline=None,
-    suppress_health_check=[HealthCheck.filter_too_much],
-)
-
-settings.load_profile(os.getenv("HYPOTHESIS_PROFILE", default_profile))
 
 from qiskit import execute, transpile, Aer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
@@ -75,6 +61,17 @@ from qiskit.test.base import dicts_almost_equal
 # pylint: disable=wildcard-import,unused-wildcard-import
 from qiskit.circuit.library.standard_gates import *
 
+default_profile = "transpiler_equivalence"
+settings.register_profile(
+    default_profile,
+    report_multiple_bugs=False,
+    max_examples=25,
+    deadline=None,
+    suppress_health_check=[HealthCheck.filter_too_much],
+)
+
+settings.load_profile(os.getenv("HYPOTHESIS_PROFILE", default_profile))
+
 oneQ_gates = [HGate, IGate, SGate, SdgGate, TGate, TdgGate, XGate, YGate, ZGate, Reset]
 twoQ_gates = [CXGate, CYGate, CZGate, SwapGate, CHGate]
 threeQ_gates = [CCXGate, CSwapGate]
@@ -89,11 +86,16 @@ twoQ_threeP_gates = [CU3Gate]
 oneQ_oneC_gates = [Measure]
 variadic_gates = [Barrier]
 
-if not strtobool(os.getenv("QISKIT_RANDOMIZED_TEST_ALLOW_BARRIERS", "True")):
+
+def _strtobool(s):
+    return s.lower() in ("y", "yes", "t", "true", "on", "1")
+
+
+if not _strtobool(os.getenv("QISKIT_RANDOMIZED_TEST_ALLOW_BARRIERS", "True")):
     variadic_gates.remove(Barrier)
 
 
-def getenv_list(var_name):
+def _getenv_list(var_name):
     value = os.getenv(var_name)
     return None if value is None else value.split()
 
@@ -104,32 +106,32 @@ def getenv_list(var_name):
 # variables. Really, `None` is useful only for testing Terra's pass managers,
 # and if you're overriding these, your goal is probably to test a specific
 # pass or set of passes instead.
-layout_methods = getenv_list("QISKIT_RANDOMIZED_TEST_LAYOUT_METHODS") or [
+layout_methods = _getenv_list("QISKIT_RANDOMIZED_TEST_LAYOUT_METHODS") or [
     None,
     "trivial",
     "dense",
     "noise_adaptive",
     "sabre",
 ]
-routing_methods = getenv_list("QISKIT_RANDOMIZED_TEST_ROUTING_METHODS") or [
+routing_methods = _getenv_list("QISKIT_RANDOMIZED_TEST_ROUTING_METHODS") or [
     None,
     "basic",
     "stochastic",
     "lookahead",
     "sabre",
 ]
-scheduling_methods = getenv_list("QISKIT_RANDOMIZED_TEST_SCHEDULING_METHODS") or [
+scheduling_methods = _getenv_list("QISKIT_RANDOMIZED_TEST_SCHEDULING_METHODS") or [
     None,
     "alap",
     "asap",
 ]
 
-backend_needs_durations = strtobool(
+backend_needs_durations = _strtobool(
     os.getenv("QISKIT_RANDOMIZED_TEST_BACKEND_NEEDS_DURATIONS", "False")
 )
 
 
-def fully_supports_scheduling(backend):
+def _fully_supports_scheduling(backend):
     """Checks if backend is not in the set of backends known not to have specified gate durations."""
     return not isinstance(
         backend,
@@ -187,7 +189,24 @@ def fully_supports_scheduling(backend):
 
 fake_provider = FakeProvider()
 mock_backends = fake_provider.backends()
-mock_backends_with_scheduling = [b for b in mock_backends if fully_supports_scheduling(b)]
+mock_backends_with_scheduling = [b for b in mock_backends if _fully_supports_scheduling(b)]
+
+
+@st.composite
+def transpiler_conf(draw):
+    """Composite search strategy to pick a valid transpiler config."""
+    opt_level = draw(st.integers(min_value=0, max_value=3))
+    layout_method = draw(st.sampled_from(layout_methods))
+    routing_method = draw(st.sampled_from(routing_methods))
+    scheduling_method = draw(st.sampled_from(scheduling_methods))
+
+    compatible_backends = st.one_of(st.none(), st.sampled_from(mock_backends))
+    if scheduling_method is not None or backend_needs_durations:
+        compatible_backends = st.sampled_from(mock_backends_with_scheduling)
+
+    backend = draw(st.one_of(compatible_backends))
+
+    return (backend, opt_level, layout_method, routing_method, scheduling_method)
 
 
 class QCircuitMachine(RuleBasedStateMachine):
@@ -371,21 +390,6 @@ class QCircuitMachine(RuleBasedStateMachine):
     def qasm(self):
         """After each circuit operation, it should be possible to build QASM."""
         self.qc.qasm()
-
-    @st.composite
-    def transpiler_conf(draw):
-        opt_level = draw(st.integers(min_value=0, max_value=3))
-        layout_method = draw(st.sampled_from(layout_methods))
-        routing_method = draw(st.sampled_from(routing_methods))
-        scheduling_method = draw(st.sampled_from(scheduling_methods))
-
-        compatible_backends = st.one_of(st.none(), st.sampled_from(mock_backends))
-        if scheduling_method is not None or backend_needs_durations:
-            compatible_backends = st.sampled_from(mock_backends_with_scheduling)
-
-        backend = draw(st.one_of(compatible_backends))
-
-        return (backend, opt_level, layout_method, routing_method, scheduling_method)
 
     @precondition(lambda self: any(isinstance(d[0], Measure) for d in self.qc.data))
     @rule(conf=transpiler_conf())
