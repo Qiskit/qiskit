@@ -1353,8 +1353,10 @@ class TestDagEquivalence(QiskitTestCase):
         from copy import deepcopy
         from collections import OrderedDict
 
-        nx_graph = self.dag1.to_networkx()
-        from_nx_dag = DAGCircuit.from_networkx(nx_graph)
+        with self.assertWarns(DeprecationWarning):
+            nx_graph = self.dag1.to_networkx()
+        with self.assertWarns(DeprecationWarning):
+            from_nx_dag = DAGCircuit.from_networkx(nx_graph)
 
         # to_/from_networkx does not preserve Registers or bit indexing,
         # so remove them from reference DAG.
