@@ -23,7 +23,7 @@ However, this will still create significant latency for the first sympy import.
 """
 
 from abc import abstractmethod
-from typing import Any, Dict, List, Tuple, Optional, Union, Callable
+from typing import Any, Dict, List, Tuple, Optional, Union, Callable, TYPE_CHECKING
 
 import numpy as np
 
@@ -31,6 +31,9 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
+
+if TYPE_CHECKING:
+    from sympy import Expr, Symbol
 
 
 def _lifted_gaussian(
@@ -242,10 +245,12 @@ class SymbolicPulse(Pulse):
 
     This is defined with a class method :meth:`_define_constraints` that returns
     a list of symbolic expressions. These constraint functions are called
-    when a symbolic pulse instance is created with assigned parameter values,
-    i.e. when it doesn't contain any ``Parameter`` object, and the symbolic pulse
-    subclass will be instantiated only when all constraint functions return ``True``.
-    This means the return value of these symbolic expressions should be boolean.
+    when a symbolic pulse instance is created with assigned parameter values with ``limit``
+    representing the policy of allowing the maximum amplitude exceeding 1.0
+    (defaults to ``True``, i.e. it doesn't allow amplitude > 1.0).
+    The symbolic pulse subclass will be instantiated
+    only when all constraint functions return ``True``.
+    This means the return value of these symbolic expressions must be boolean.
     Any number of expression can be defined in the class method.
     When branching logic (if clause) is necessary, one can use `SymPy ITE`_ class
     or a list of expressions consisting of expression for "IF", "THEN", and "ELSE".
@@ -273,14 +278,14 @@ class SymbolicPulse(Pulse):
 
             @classmethod
             def __define_envelope(cls):
-                duration, t, p0, p1 = sym.symbols("duration, t, p0, p0")
+                duration, t, p0, p1 = sym.symbols("duration, t, p0, p1")
                 ...
 
                 return ...
 
             @classmethod
             def _define_constraints(cls):
-                duration, t, p0, p1 = sym.symbols("duration, p0, p0")
+                limit, duration, p0, p1 = sym.symbols("limit, duration, p0, p1")
 
                 const1 = ...
                 const2 = ...
