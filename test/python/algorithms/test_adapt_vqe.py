@@ -72,7 +72,7 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
             quantum_instance=BasicAer.get_backend("statevector_simulator"),
         )
         res = calc.solve()
-        
+
         expected = -1.85727503
 
         self.assertAlmostEqual(res.electronic_energies[0], expected, places=6)
