@@ -52,6 +52,7 @@ class Pulse(ABC):
                 "Instantiating a pulse instance with 'limit_amplitude' has been deprecated. "
                 f"Please directly update class variable '{self.__class__.__name__}.limit_amplitude.'",
                 DeprecationWarning,
+                stacklevel=4,
             )
             self.limit_amplitude = limit_amplitude
 

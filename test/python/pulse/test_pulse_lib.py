@@ -309,6 +309,12 @@ class TestParametricPulses(QiskitTestCase):
             waveform = Constant(duration=100, amp=1.1 + 0.8j)
             self.assertGreater(np.abs(waveform.amp), 1.0)
 
+    def test_deprecate_instantiating_with_limit(self):
+        """Test if deprecation warning is thrown when instance is created with limit option."""
+        with self.assertWarns(DeprecationWarning):
+            GaussianSquare(duration=100, sigma=1.0, amp=1.1 + 0.8j, width=10, limit_amplitude=False)
+
+
 # pylint: disable=invalid-name,unexpected-keyword-arg
 
 
