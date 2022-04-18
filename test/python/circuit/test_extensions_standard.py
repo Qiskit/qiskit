@@ -1388,8 +1388,6 @@ class TestStandard2Q(QiskitTestCase):
     def test_xx_minus_yy_exponential_formula(self):
         """Test XX-YY exponential formula."""
         theta, beta = np.random.uniform(-10, 10, size=2)
-        theta = np.random.uniform(-10, 10)
-        beta = np.random.uniform(-10, 10)
         gate = XXMinusYYGate(theta, beta)
         x = np.array(XGate())
         y = np.array(YGate())
@@ -1405,8 +1403,6 @@ class TestStandard2Q(QiskitTestCase):
     def test_xx_plus_yy_exponential_formula(self):
         """Test XX+YY exponential formula."""
         theta, beta = np.random.uniform(-10, 10, size=2)
-        theta = np.random.uniform(-10, 10)
-        beta = np.random.uniform(-10, 10)
         gate = XXPlusYYGate(theta, beta)
         x = np.array(XGate())
         y = np.array(YGate())
