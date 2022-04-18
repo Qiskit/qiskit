@@ -73,6 +73,7 @@ class BIPMapping(TransformationPass):
         max_swaps_inbetween_layers=None,
         depth_obj_weight=0.1,
         default_cx_error_rate=5e-3,
+        user_constraints=None,
     ):
         """BIPMapping initializer.
 
@@ -107,6 +108,9 @@ class BIPMapping(TransformationPass):
             default_cx_error_rate (float):
                 Default CX error rate to be used if backend_prop is not available.
 
+            user_constraints (function):
+                A function that takes as input a BIPMapperModel class, and adds any user constraints.
+
         Raises:
             MissingOptionalLibraryError: if cplex or docplex are not installed.
             TranspilerError: if invalid options are specified.
@@ -123,6 +127,7 @@ class BIPMapping(TransformationPass):
         self.max_swaps_inbetween_layers = max_swaps_inbetween_layers
         self.depth_obj_weight = depth_obj_weight
         self.default_cx_error_rate = default_cx_error_rate
+        self.user_constraints = user_constraints
 
     def run(self, dag):
         """Run the BIPMapping pass on `dag`, assuming the number of virtual qubits (defined in
@@ -173,6 +178,7 @@ class BIPMapping(TransformationPass):
             backend_prop=self.backend_prop,
             depth_obj_weight=self.depth_obj_weight,
             default_cx_error_rate=self.default_cx_error_rate,
+            user_constraints=self.user_constraints,
         )
 
         status = model.solve_cpx_problem(time_limit=self.time_limit, threads=self.threads)

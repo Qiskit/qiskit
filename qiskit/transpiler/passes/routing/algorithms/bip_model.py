@@ -13,6 +13,7 @@
 import copy
 import logging
 from functools import lru_cache
+from typing import Optional
 
 import numpy as np
 
@@ -155,6 +156,7 @@ class BIPMappingModel:
         line_symm: bool = False,
         depth_obj_weight: float = 0.1,
         default_cx_error_rate: float = 5e-3,
+        user_constraints: Optional[callable] = None,
     ):
         """Create integer programming model to compile a circuit.
 
@@ -182,6 +184,10 @@ class BIPMappingModel:
 
             default_cx_error_rate:
                 Default CX error rate to be used if backend_prop is not available.
+
+            user_constraints:
+                A function that takes a BIPMappingModel as input and adds user constraints
+                directly to the model.
 
         Raises:
             TranspilerError: if unknown objective type is specified or invalid options are specified.
@@ -216,6 +222,11 @@ class BIPMappingModel:
                     x[t, q, i, i] = mdl.binary_var(name=f"x_{t}_{q}_{i}_{i}")
                     for j in self._coupling.neighbors(i):
                         x[t, q, i, j] = mdl.binary_var(name=f"x_{t}_{q}_{i}_{j}")
+
+        # Store for future reference (e.g., user constraints)
+        self.w = w
+        self.y = y
+        self.x = x
 
         # *** Define main constraints ***
         # Assignment constraints for w variables
@@ -335,15 +346,16 @@ class BIPMappingModel:
             if self._is_dummy_step(t) and self._is_dummy_step(t + 1):
                 # We cannot use the next time step unless this one is used too
                 mdl.add_constraint(z[t] >= z[t + 1], ctname=f"dummy_precedence_{t}")
+
         # Symmetry breaking on the line -- only works on line topology!
-        if line_symm:
-            for h in range(1, self.num_vqubits):
-                mdl.add_constraint(
-                    sum(w[0, p, 0] for p in range(h))
-                    + sum(w[0, q, self.num_pqubits - 1] for q in range(h, self.num_vqubits))
-                    >= 1,
-                    ctname=f"sym_break_line_{h}",
-                )
+        # if line_symm:
+        #     for h in range(1, self.num_vqubits):
+        #         mdl.add_constraint(
+        #             sum(w[0, p, 0] for p in range(h))
+        #             + sum(w[0, q, self.num_pqubits - 1] for q in range(h, self.num_vqubits))
+        #             >= 1,
+        #             ctname=f"sym_break_line_{h}",
+        #         )
 
         # *** Define objevtive function ***
         if objective == "depth":
@@ -386,7 +398,11 @@ class BIPMappingModel:
         else:
             raise TranspilerError(f"Unknown objective type: {objective}")
 
+        self.x = x
+        self.w = w
         self.problem = mdl
+        if (user_constraints is not None):
+            user_constraints(self)
         logger.info("BIP problem stats: %s", self.problem.statistics)
 
     def _max_expected_fidelity(self, node, i, j):
