@@ -13,6 +13,7 @@
 """Pulses are descriptions of waveform envelopes. They can be transmitted by control electronics
 to the device.
 """
+import warnings
 from abc import ABC, abstractmethod
 from typing import Dict, Optional, Any, Tuple, Union
 
@@ -47,6 +48,11 @@ class Pulse(ABC):
         self.duration = duration
         self.name = name
         if limit_amplitude is not None:
+            warnings.warn(
+                "Instantiating a pulse instance with 'limit_amplitude' has been deprecated. "
+                f"Please directly update class variable '{self.__class__.__name__}.limit_amplitude.'",
+                DeprecationWarning,
+            )
             self.limit_amplitude = limit_amplitude
 
     @property

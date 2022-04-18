@@ -81,16 +81,9 @@ class TestWaveform(QiskitTestCase):
         with self.assertRaises(PulseError):
             Waveform(invalid_const * np.exp(1j * 2 * np.pi * np.linspace(0, 1, 1000)))
 
-        invalid_const = 1.1
-        Waveform.limit_amplitude = False
-        wave = Waveform(invalid_const * np.exp(1j * 2 * np.pi * np.linspace(0, 1, 1000)))
-        self.assertGreater(np.max(np.abs(wave.samples)), 1.0)
-        with self.assertRaises(PulseError):
-            wave = Waveform(
-                invalid_const * np.exp(1j * 2 * np.pi * np.linspace(0, 1, 1000)),
-                limit_amplitude=True,
-            )
-        Waveform.limit_amplitude = True
+        with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
+            wave = Waveform(invalid_const * np.exp(1j * 2 * np.pi * np.linspace(0, 1, 1000)))
+            self.assertGreater(np.max(np.abs(wave.samples)), 1.0)
 
         # Test case where data is converted to python types with complex as a list
         # with form [re, im] and back to a numpy array.
@@ -282,38 +275,39 @@ class TestParametricPulses(QiskitTestCase):
 
     def test_gaussian_limit_amplitude(self):
         """Test that the check for amplitude less than or equal to 1 can be disabled."""
-        waveform = Gaussian(duration=100, sigma=1.0, amp=1.1 + 0.8j, limit_amplitude=False)
-        self.assertGreater(np.abs(waveform.amp), 1.0)
-
         with self.assertRaises(PulseError):
-            Gaussian(duration=100, sigma=1.0, amp=1.1 + 0.8j, limit_amplitude=True)
+            GaussianSquare(duration=100, sigma=1.0, amp=1.1 + 0.8j, width=10)
+
+        with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
+            waveform = GaussianSquare(duration=100, sigma=1.0, amp=1.1 + 0.8j, width=10)
+            self.assertGreater(np.abs(waveform.amp), 1.0)
 
     def test_gaussian_square_limit_amplitude(self):
         """Test that the check for amplitude less than or equal to 1 can be disabled."""
-        waveform = GaussianSquare(
-            duration=100, sigma=1.0, amp=1.1 + 0.8j, width=10, limit_amplitude=False
-        )
-        self.assertGreater(np.abs(waveform.amp), 1.0)
-
         with self.assertRaises(PulseError):
-            GaussianSquare(duration=100, sigma=1.0, amp=1.1 + 0.8j, width=10, limit_amplitude=True)
+            GaussianSquare(duration=100, sigma=1.0, amp=1.1 + 0.8j, width=10)
+
+        with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
+            waveform = GaussianSquare(duration=100, sigma=1.0, amp=1.1 + 0.8j, width=10)
+            self.assertGreater(np.abs(waveform.amp), 1.0)
 
     def test_drag_limit_amplitude(self):
         """Test that the check for amplitude less than or equal to 1 can be disabled."""
-        waveform = Drag(duration=100, sigma=1.0, beta=1.0, amp=1.1 + 0.8j, limit_amplitude=False)
-        self.assertGreater(np.abs(waveform.amp), 1.0)
-
         with self.assertRaises(PulseError):
-            Drag(duration=100, sigma=1.0, beta=1.0, amp=1.1 + 0.8j, limit_amplitude=True)
+            Drag(duration=100, sigma=1.0, beta=1.0, amp=1.1 + 0.8j)
+
+        with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
+            waveform = Drag(duration=100, sigma=1.0, beta=1.0, amp=1.1 + 0.8j)
+            self.assertGreater(np.abs(waveform.amp), 1.0)
 
     def test_constant_limit_amplitude(self):
         """Test that the check for amplitude less than or equal to 1 can be disabled."""
-        waveform = Constant(duration=100, amp=1.1 + 0.8j, limit_amplitude=False)
-        self.assertGreater(np.abs(waveform.amp), 1.0)
-
         with self.assertRaises(PulseError):
-            Constant(duration=100, amp=1.1 + 0.8j, limit_amplitude=True)
+            Constant(duration=100, amp=1.1 + 0.8j)
 
+        with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
+            waveform = Constant(duration=100, amp=1.1 + 0.8j)
+            self.assertGreater(np.abs(waveform.amp), 1.0)
 
 # pylint: disable=invalid-name,unexpected-keyword-arg
 

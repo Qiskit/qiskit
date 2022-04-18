@@ -1,0 +1,14 @@
+---
+deprecations:
+  - |
+    Instantiating a :class:`Pulse` subclass instance with ``limit_amplitude`` has been deprecated.
+    Though this is a constructor argument, it implicitly updates other instance settings
+    since this actually updates a class variable. To avoid confusion, user must explicitly
+    update the class variable. For example,
+
+    .. code-block:: python
+
+      from qiskit.pulse.library import Pulse, Gaussian
+
+      Pulse.limit_amplitude = False
+      waveform = Gaussian(duration=160, amp=120, sigma=40)
