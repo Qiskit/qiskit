@@ -123,8 +123,9 @@ the transpiler. In general, they transpiler or backend might optionally ignore t
 implementation for them.
 
 .. autosummary::
+   :toctree: ../stubs/
 
-   ~qiskit.circuit.Barrier
+   Barrier
 
 Standard Operations
 ===================
@@ -132,11 +133,10 @@ Standard Operations
 Operations are non-reversible changes in the quantum state of the circuit.
 
 .. autosummary::
-    :toctree: ../stubs/
+   :toctree: ../stubs/
 
-   ~qiskit.circuit.Measure
-   ~qiskit.circuit.Reset
-   ~qiskit.extensions.Initialize
+   Measure
+   Reset
 
 Generalized Gates
 =================
