@@ -11,7 +11,41 @@
 # that they have been altered from the originals.
 # pylint: disable=invalid-name
 
-"""Randomized tests of transpiler circuit equivalence."""
+"""Randomized tests of transpiler circuit equivalence.
+
+This test can be optionally configured (e.g. by CI) via the
+following env vars:
+
+QISKIT_RANDOMIZED_TEST_LAYOUT_METHODS
+
+    A space-delimited list of layout method names from which the
+    randomizer should pick the layout method. Defaults to all
+    available built-in methods if unspecified.
+
+QISKIT_RANDOMIZED_TEST_ROUTING_METHODS
+
+    A space-delimited list of routing method names from which the
+    randomizer should pick the routing method. Defaults to all
+    available built-in methods if unspecified.
+
+QISKIT_RANDOMIZED_TEST_SCHEDULING_METHODS
+
+    A space-delimited list of scheduling method names from which the
+    randomizer should pick the scheduling method. Defaults to all
+    available built-in methods if unspecified.
+
+QISKIT_RANDOMIZED_TEST_BACKEND_NEEDS_DURATIONS
+
+    A boolean value (e.g. "true", "Y", etc.) which, when true, forces
+    the randomizer to pick a backend which fully supports scheduling
+    (i.e. has fully specified duration info). Defaults to False.
+
+QISKIT_RANDOMIZED_TEST_ALLOW_BARRIERS
+
+    A boolean value (e.g. "true", "Y", etc.) which, when false,
+    prevents the randomizer from emitting barrier instructions.
+    Defaults to True.
+"""
 
 import os
 from math import pi
@@ -427,9 +461,7 @@ class QCircuitMachine(RuleBasedStateMachine):
             )
             raise RuntimeError(failed_qasm) from e
 
-        xpiled_aer_counts = (
-            execute(xpiled_qc, backend=self.backend, shots=shots).result().get_counts()
-        )
+        xpiled_aer_counts = self.backend.run(xpiled_qc, shots=shots).result().get_counts()
 
         count_differences = dicts_almost_equal(aer_counts, xpiled_aer_counts, 0.05 * shots)
 
