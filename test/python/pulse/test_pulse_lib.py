@@ -333,9 +333,7 @@ class TestParametricPulses(QiskitTestCase):
             ConstraintsDescriptor.global_constraints["Drag"],
             drag_waveform.constraints,
         )
-        self.assertSetEqual(
-            set(EnvelopeDescriptor.global_envelopes.keys()), {"Drag"}
-        )
+        self.assertSetEqual(set(EnvelopeDescriptor.global_envelopes.keys()), {"Drag"})
         self.assertEqual(
             EnvelopeDescriptor.global_envelopes["Drag"],
             drag_waveform.envelope,

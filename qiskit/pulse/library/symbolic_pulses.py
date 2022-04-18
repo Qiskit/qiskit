@@ -185,8 +185,6 @@ class ConstraintsDescriptor:
         clsname = owner.__name__
 
         if clsname not in ConstraintsDescriptor.global_constraints:
-            import sympy as sym
-
             gendef = getattr(owner, "_define_constraints")
             source = gendef()
             self.add_new_constraints(clsname, owner.PARAM_DEF, *source)
@@ -753,7 +751,7 @@ class Drag(SymbolicPulse):
         t, duration, amp, sigma, beta, lim_amp = sym.symbols("t, duration, amp, sigma, beta, limit")
 
         drag_eq = cls._define_envelope()
-        t_drag_max = duration / 2 - (sigma / beta) * sym.sqrt(beta ** 2 - sigma ** 2)
+        t_drag_max = duration / 2 - (sigma / beta) * sym.sqrt(beta**2 - sigma**2)
         return [
             sym.ITE(lim_amp, sym.Abs(amp) <= 1.0, sym.true),
             # When large beta
