@@ -39,12 +39,12 @@ class RXXGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        R_{XX}(\theta) = exp(-i \th X{\otimes}X) =
+        R_{XX}(\theta) = \exp\left(-i \th X{\otimes}X\right) =
             \begin{pmatrix}
-                \cos(\th)   & 0           & 0           & -i\sin(\th) \\
-                0           & \cos(\th)   & -i\sin(\th) & 0 \\
-                0           & -i\sin(\th) & \cos(\th)   & 0 \\
-                -i\sin(\th) & 0           & 0           & \cos(\th)
+                \cos\left(\th\right)   & 0           & 0           & -i\sin\left(\th\right) \\
+                0           & \cos\left(\th\right)   & -i\sin\left(\th\right) & 0 \\
+                0           & -i\sin\left(\th\right) & \cos\left(\th\right)   & 0 \\
+                -i\sin\left(\th\right) & 0           & 0           & \cos\left(\th\right)
             \end{pmatrix}
 
     **Examples:**
@@ -59,7 +59,7 @@ class RXXGate(Gate):
 
         .. math::
 
-            R_{XX}(\theta = \frac{\pi}{2}) = \frac{1}{\sqrt{2}}
+            R_{XX}\left(\theta = \frac{\pi}{2}\right) = \frac{1}{\sqrt{2}}
                                     \begin{pmatrix}
                                         1  & 0  & 0  & -i \\
                                         0  & 1  & -i & 0 \\

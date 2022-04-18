@@ -151,7 +151,7 @@ class CU1Gate(ControlledGate):
 
     .. math::
 
-        CU1 =
+        CU1(\lambda) =
             |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes U1 =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\

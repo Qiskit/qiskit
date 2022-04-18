@@ -819,6 +819,51 @@ class TestBasisExamples(QiskitTestCase):
 
         self.assertEqual(out_dag, expected_dag)
 
+    def test_cx_bell_to_cp(self):
+        """Verify we can translate a CX bell to CP,U."""
+        bell = QuantumCircuit(2)
+        bell.h(0)
+        bell.cx(0, 1)
+
+        in_dag = circuit_to_dag(bell)
+        out_dag = BasisTranslator(std_eqlib, ["cp", "u"]).run(in_dag)
+
+        self.assertTrue(set(out_dag.count_ops()).issubset(["cp", "u"]))
+        self.assertEqual(Operator(bell), Operator(dag_to_circuit(out_dag)))
+
+        qr = QuantumRegister(2, "q")
+        expected = QuantumCircuit(qr)
+        expected.u(pi / 2, 0, pi, 0)
+        expected.u(pi / 2, 0, pi, 1)
+        expected.cp(pi, 0, 1)
+        expected.u(pi / 2, 0, pi, 1)
+        expected_dag = circuit_to_dag(expected)
+
+        self.assertEqual(out_dag, expected_dag)
+
+    def test_cx_bell_to_crz(self):
+        """Verify we can translate a CX bell to CRZ,U."""
+        bell = QuantumCircuit(2)
+        bell.h(0)
+        bell.cx(0, 1)
+
+        in_dag = circuit_to_dag(bell)
+        out_dag = BasisTranslator(std_eqlib, ["crz", "u"]).run(in_dag)
+
+        self.assertTrue(set(out_dag.count_ops()).issubset(["crz", "u"]))
+        self.assertEqual(Operator(bell), Operator(dag_to_circuit(out_dag)))
+
+        qr = QuantumRegister(2, "q")
+        expected = QuantumCircuit(qr)
+        expected.u(pi / 2, 0, pi, 0)
+        expected.u(0, 0, pi / 2, 0)
+        expected.u(pi / 2, 0, pi, 1)
+        expected.crz(pi, 0, 1)
+        expected.u(pi / 2, 0, pi, 1)
+        expected_dag = circuit_to_dag(expected)
+
+        self.assertEqual(out_dag, expected_dag)
+
     def test_global_phase(self):
         """Verify global phase preserved in basis translation"""
         circ = QuantumCircuit(1)
@@ -946,12 +991,20 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
 
         bt_pass = BasisTranslator(std_eqlib, target_basis=None, target=self.target)
         output = bt_pass(qc)
-        expected = QuantumCircuit(2, global_phase=pi / 2)
-        expected.rz(pi / 2, 1)
+        # We need a second run of BasisTranslator to correct gates outside of
+        # the target basis. This is a known isssue, see:
+        #  https://qiskit.org/documentation/release_notes.html#release-notes-0-19-0-known-issues
+        output = bt_pass(output)
+        expected = QuantumCircuit(2)
+        expected.rz(pi, 1)
         expected.sx(1)
-        expected.rz(pi / 2, 1)
+        expected.rz(3 * pi / 2, 1)
+        expected.sx(1)
+        expected.rz(3 * pi, 1)
         expected.cx(0, 1)
-        expected.rz(pi / 2, 1)
+        expected.rz(pi, 1)
         expected.sx(1)
-        expected.rz(pi / 2, 1)
+        expected.rz(3 * pi / 2, 1)
+        expected.sx(1)
+        expected.rz(3 * pi, 1)
         self.assertEqual(output, expected)
