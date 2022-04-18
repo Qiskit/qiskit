@@ -359,11 +359,10 @@ Supplementary Information
 .. dropdown:: Scheduling
    :animate: fade-in-slide-down
 
-   After the circuit has been translated to the target basis, mapped to the device, and optimized
-   another optional phase to the compiler is scheduling. The scheduling phase is used to optionally
-   account for all the idle time in the circuit. At a high level the scheduling
-   can be thought of as inserting delays into the circuit to account for idle
-   time on the qubits between the execution of instructions. For example, if we start with a
+   After the circuit has been translated to the target basis, mapped to the device, and optimized,
+   a scheduling phase can be applied to optionally account for all the idle time in the circuit.
+   At a high level the scheduling can be thought of as inserting delays into the circuit to account
+   for idle time on the qubits between the execution of instructions. For example, if we start with a
    circuit such as:
 
    .. jupyter-execute::
@@ -397,16 +396,16 @@ Supplementary Information
    The scheduling of a circuit involves two parts, analysis and constraint mapping followed by a
    padding pass. The first part requires running a scheduling analysis pass such as
    :class:`~.ALAPSchedulingAnalysis` or :class:`~.ASAPSchedulingAnalysis` which analyzes the circuit
-   and maps the start time of each instruction in the circuit using a scheduling algorithm ("as late
+   and records the start time of each instruction in the circuit using a scheduling algorithm ("as late
    as possible" for  :class:`~.ALAPSchedulingAnalysis` and "as soon as possible" for
-   :class:`~.ASAPSchedulingAnalysis`) to the property set. Once the circuit has an initial scheduling
+   :class:`~.ASAPSchedulingAnalysis`) in the property set. Once the circuit has an initial scheduling
    additional passes can be run to account for any timing constraints on the target backend, such
    as alignment constraints. This is typically done with the
    :class:`~.ConstrainedReschedule` pass which will adjust the scheduling
    set in the property set to the contraints of the target backend. Once all
    the scheduling and adjustments/rescheduling are finished a padding pass,
-   such as :class:`~.PadDelay` or :class:`~.PadDynamicalDecoupling` are run
-   to insert the instructions to the circuit to complete the scheduling.
+   such as :class:`~.PadDelay` or :class:`~.PadDynamicalDecoupling` is run
+   to insert the instructions into the circuit, which completes the scheduling.
 
    Scheduling Anaylsis with control flow instructions:
 
