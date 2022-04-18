@@ -13,6 +13,7 @@
 """Quantum Fourier Transform Circuit."""
 
 from typing import Optional
+import warnings
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
@@ -82,7 +83,7 @@ class QFT(BlueprintCircuit):
         do_swaps: bool = True,
         inverse: bool = False,
         insert_barriers: bool = False,
-        name: str = "QFT",
+        name: Optional[str] = None,
     ) -> None:
         """Construct a new QFT circuit.
 
@@ -94,12 +95,14 @@ class QFT(BlueprintCircuit):
             insert_barriers: If True, barriers are inserted as visualization improvement.
             name: The name of the circuit.
         """
+        if name is None:
+            name = "IQFT" if inverse else "QFT"
+
         super().__init__(name=name)
         self._approximation_degree = approximation_degree
         self._do_swaps = do_swaps
         self._insert_barriers = insert_barriers
         self._inverse = inverse
-        self._data = None
         self.num_qubits = num_qubits
 
     @property
@@ -108,11 +111,9 @@ class QFT(BlueprintCircuit):
 
         Returns:
             The number of qubits in the circuit.
-
-        Note:
-            This method needs to be overwritten to allow adding the setter for num_qubits while
-            still complying to pylint.
         """
+        # This method needs to be overwritten to allow adding the setter for num_qubits while still
+        # complying to pylint.
         return super().num_qubits
 
     @num_qubits.setter
@@ -127,10 +128,9 @@ class QFT(BlueprintCircuit):
         if num_qubits != self.num_qubits:
             self._invalidate()
 
-            if num_qubits:
+            self.qregs = []
+            if num_qubits is not None and num_qubits > 0:
                 self.qregs = [QuantumRegister(num_qubits, name="q")]
-            else:
-                self.qregs = []
 
     @property
     def approximation_degree(self) -> int:
@@ -206,10 +206,6 @@ class QFT(BlueprintCircuit):
         """
         return self._inverse
 
-    def _invalidate(self) -> None:
-        """Invalidate the current build of the circuit."""
-        self._data = None
-
     def inverse(self) -> "QFT":
         """Invert this circuit.
 
@@ -223,29 +219,48 @@ class QFT(BlueprintCircuit):
             name = self.name + "_dg"
 
         inverted = self.copy(name=name)
-        inverted._data = []
 
-        from qiskit.circuit.parametertable import ParameterTable
+        # data consists of the QFT gate only
+        iqft = self.data[0][0].inverse()
+        iqft.name = name
 
-        inverted._parameter_table = ParameterTable()
-
-        for inst, qargs, cargs in reversed(self._data):
-            inverted._append(inst.inverse(), qargs, cargs)
+        inverted.data.clear()
+        inverted._append(iqft, inverted.qubits, [])
 
         inverted._inverse = not self._inverse
         return inverted
 
+    def _warn_if_precision_loss(self):
+        """Issue a warning if constructing the circuit will lose precision.
+
+        If we need an angle smaller than ``pi * 2**-1022``, we start to lose precision by going into
+        the subnormal numbers.  We won't lose _all_ precision until an exponent of about 1075, but
+        beyond 1022 we're using fractional bits to represent leading zeros."""
+        max_num_entanglements = self.num_qubits - self.approximation_degree - 1
+        if max_num_entanglements > -np.finfo(float).minexp:  # > 1022 for doubles.
+            warnings.warn(
+                "precision loss in QFT."
+                f" The rotation needed to represent {max_num_entanglements} entanglements"
+                " is smaller than the smallest normal floating-point number.",
+                category=RuntimeWarning,
+                stacklevel=3,
+            )
+
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """Check if the current configuration is valid."""
         valid = True
         if self.num_qubits is None:
             valid = False
             if raise_on_failure:
                 raise AttributeError("The number of qubits has not been set.")
-
+        self._warn_if_precision_loss()
         return valid
 
     def _build(self) -> None:
-        """Construct the circuit representing the desired state vector."""
+        """If not already built, build the circuit."""
+        if self._is_built:
+            return
+
         super()._build()
 
         num_qubits = self.num_qubits
@@ -258,7 +273,9 @@ class QFT(BlueprintCircuit):
             circuit.h(j)
             num_entanglements = max(0, j - max(0, self.approximation_degree - (num_qubits - j - 1)))
             for k in reversed(range(j - num_entanglements, j)):
-                lam = np.pi / (2 ** (j - k))
+                # Use negative exponents so that the angle safely underflows to zero, rather than
+                # using a temporary variable that overflows to infinity in the worst case.
+                lam = np.pi * (2.0 ** (k - j))
                 circuit.cp(lam, j, k)
 
             if self.insert_barriers:
@@ -269,7 +286,7 @@ class QFT(BlueprintCircuit):
                 circuit.swap(i, num_qubits - i - 1)
 
         if self._inverse:
-            circuit._data = circuit.inverse()
+            circuit = circuit.inverse()
 
         wrapped = circuit.to_instruction() if self.insert_barriers else circuit.to_gate()
         self.compose(wrapped, qubits=self.qubits, inplace=True)

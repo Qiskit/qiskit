@@ -15,7 +15,28 @@ Fake Paris device (20 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_pulse_backend
+from qiskit.test.mock import fake_pulse_backend, fake_backend
+
+
+class FakeParisV2(fake_backend.FakeBackendV2):
+    """A fake Paris backend.
+
+                   06                  17
+                   ↕                    ↕
+    00 ↔ 01 ↔ 04 ↔ 07 ↔ 10 ↔ 12 ↔ 15 ↔ 18 ↔ 20 ↔ 23
+         ↕                   ↕                    ↕
+         02                  13                  24
+         ↕                   ↕                    ↕
+         03 ↔ 05 ↔ 08 ↔ 11 ↔ 14 ↔ 16 ↔ 19 ↔ 22 ↔ 25 ↔ 26
+                   ↕                    ↕
+                   09                  20
+    """
+
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_paris.json"
+    props_filename = "props_paris.json"
+    defs_filename = "defs_paris.json"
+    backend_name = "fake_paris_v2"
 
 
 class FakeParis(fake_pulse_backend.FakePulseBackend):

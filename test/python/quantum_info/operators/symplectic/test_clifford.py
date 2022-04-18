@@ -392,6 +392,21 @@ class TestCliffordGates(QiskitTestCase):
             cliff = _append_circuit(cliff, "sdg", [0])
             self.assertEqual(cliff, cliff1)
 
+    def test_barrier_delay_sim(self):
+        """Test barrier and delay instructions can be simulated"""
+        target_circ = QuantumCircuit(2)
+        target_circ.h(0)
+        target_circ.cx(0, 1)
+        target = Clifford(target_circ)
+
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.delay(100, 0)
+        circ.barrier([0, 1])
+        circ.cx(0, 1)
+        value = Clifford(circ)
+        self.assertEqual(value, target)
+
 
 @ddt
 class TestCliffordSynthesis(QiskitTestCase):
@@ -539,7 +554,7 @@ class TestCliffordDecomposition(QiskitTestCase):
             circ = random_clifford_circuit(num_qubits, num_gates, gates=gates, seed=seed + i)
             mat = Clifford(circ).to_matrix()
             self.assertIsInstance(mat, np.ndarray)
-            self.assertEqual(mat.shape, 2 * (2 ** num_qubits,))
+            self.assertEqual(mat.shape, 2 * (2**num_qubits,))
             value = Operator(mat)
             target = Operator(circ)
             self.assertTrue(value.equiv(target))

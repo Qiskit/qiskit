@@ -358,6 +358,15 @@ Supplementary Information
 Transpiler API
 ==============
 
+Transpiler Target
+-----------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Target
+   InstructionProperties
+
 Pass Manager Construction
 -------------------------
 
@@ -368,6 +377,8 @@ Pass Manager Construction
    PassManagerConfig
    PropertySet
    FlowController
+   ConditionalController
+   DoWhileController
 
 Layout and Topology
 -------------------
@@ -414,7 +425,7 @@ Exceptions
    TranspilerAccessError
 """
 
-from .runningpassmanager import FlowController
+from .runningpassmanager import FlowController, ConditionalController, DoWhileController
 from .passmanager import PassManager
 from .passmanager_config import PassManagerConfig
 from .propertyset import PropertySet
@@ -424,3 +435,6 @@ from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap
 from .layout import Layout
 from .instruction_durations import InstructionDurations
+from .target import Target
+from .target import InstructionProperties
+from .target import QubitProperties

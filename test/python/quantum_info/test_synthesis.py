@@ -37,7 +37,13 @@ from qiskit.circuit.library import (
     CXGate,
     CZGate,
     iSwapGate,
+    SwapGate,
     RXXGate,
+    RYYGate,
+    RZZGate,
+    RZXGate,
+    CPhaseGate,
+    CRZGate,
     RXGate,
     RYGate,
     RZGate,
@@ -60,6 +66,7 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (
     TwoQubitWeylGeneral,
     two_qubit_cnot_decompose,
     TwoQubitBasisDecomposer,
+    TwoQubitControlledUDecomposer,
     Ud,
     decompose_two_qubit_product_gate,
 )
@@ -89,14 +96,14 @@ ONEQ_CLIFFORDS = make_oneq_cliffords()
 def make_hard_thetas_oneq(smallest=1e-18, factor=3.2, steps=22, phi=0.7, lam=0.9):
     """Make 1q gates with theta/2 close to 0, pi/2, pi, 3pi/2"""
     return (
-        [U3Gate(smallest * factor ** i, phi, lam) for i in range(steps)]
-        + [U3Gate(-smallest * factor ** i, phi, lam) for i in range(steps)]
-        + [U3Gate(np.pi / 2 + smallest * factor ** i, phi, lam) for i in range(steps)]
-        + [U3Gate(np.pi / 2 - smallest * factor ** i, phi, lam) for i in range(steps)]
-        + [U3Gate(np.pi + smallest * factor ** i, phi, lam) for i in range(steps)]
-        + [U3Gate(np.pi - smallest * factor ** i, phi, lam) for i in range(steps)]
-        + [U3Gate(3 * np.pi / 2 + smallest * factor ** i, phi, lam) for i in range(steps)]
-        + [U3Gate(3 * np.pi / 2 - smallest * factor ** i, phi, lam) for i in range(steps)]
+        [U3Gate(smallest * factor**i, phi, lam) for i in range(steps)]
+        + [U3Gate(-smallest * factor**i, phi, lam) for i in range(steps)]
+        + [U3Gate(np.pi / 2 + smallest * factor**i, phi, lam) for i in range(steps)]
+        + [U3Gate(np.pi / 2 - smallest * factor**i, phi, lam) for i in range(steps)]
+        + [U3Gate(np.pi + smallest * factor**i, phi, lam) for i in range(steps)]
+        + [U3Gate(np.pi - smallest * factor**i, phi, lam) for i in range(steps)]
+        + [U3Gate(3 * np.pi / 2 + smallest * factor**i, phi, lam) for i in range(steps)]
+        + [U3Gate(3 * np.pi / 2 - smallest * factor**i, phi, lam) for i in range(steps)]
     )
 
 
@@ -600,8 +607,8 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
     def test_two_qubit_weyl_decomposition_a00(self, smallest=1e-18, factor=9.8, steps=11):
         """Verify Weyl KAK decomposition for U~Ud(a,0,0)"""
         for aaa in (
-            [smallest * factor ** i for i in range(steps)]
-            + [np.pi / 4 - smallest * factor ** i for i in range(steps)]
+            [smallest * factor**i for i in range(steps)]
+            + [np.pi / 4 - smallest * factor**i for i in range(steps)]
             + [np.pi / 8, 0.113 * np.pi, 0.1972 * np.pi]
         ):
             for k1l, k1r, k2l, k2r in K1K2S:
@@ -613,8 +620,8 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
     def test_two_qubit_weyl_decomposition_aa0(self, smallest=1e-18, factor=9.8, steps=11):
         """Verify Weyl KAK decomposition for U~Ud(a,a,0)"""
         for aaa in (
-            [smallest * factor ** i for i in range(steps)]
-            + [np.pi / 4 - smallest * factor ** i for i in range(steps)]
+            [smallest * factor**i for i in range(steps)]
+            + [np.pi / 4 - smallest * factor**i for i in range(steps)]
             + [np.pi / 8, 0.113 * np.pi, 0.1972 * np.pi]
         ):
             for k1l, k1r, k2l, k2r in K1K2S:
@@ -626,8 +633,8 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
     def test_two_qubit_weyl_decomposition_aaa(self, smallest=1e-18, factor=9.8, steps=11):
         """Verify Weyl KAK decomposition for U~Ud(a,a,a)"""
         for aaa in (
-            [smallest * factor ** i for i in range(steps)]
-            + [np.pi / 4 - smallest * factor ** i for i in range(steps)]
+            [smallest * factor**i for i in range(steps)]
+            + [np.pi / 4 - smallest * factor**i for i in range(steps)]
             + [np.pi / 8, 0.113 * np.pi, 0.1972 * np.pi]
         ):
             for k1l, k1r, k2l, k2r in K1K2S:
@@ -639,8 +646,8 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
     def test_two_qubit_weyl_decomposition_aama(self, smallest=1e-18, factor=9.8, steps=11):
         """Verify Weyl KAK decomposition for U~Ud(a,a,-a)"""
         for aaa in (
-            [smallest * factor ** i for i in range(steps)]
-            + [np.pi / 4 - smallest * factor ** i for i in range(steps)]
+            [smallest * factor**i for i in range(steps)]
+            + [np.pi / 4 - smallest * factor**i for i in range(steps)]
             + [np.pi / 8, 0.113 * np.pi, 0.1972 * np.pi]
         ):
             for k1l, k1r, k2l, k2r in K1K2S:
@@ -652,8 +659,8 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
     def test_two_qubit_weyl_decomposition_ab0(self, smallest=1e-18, factor=9.8, steps=11):
         """Verify Weyl KAK decomposition for U~Ud(a,b,0)"""
         for aaa in (
-            [smallest * factor ** i for i in range(steps)]
-            + [np.pi / 4 - smallest * factor ** i for i in range(steps)]
+            [smallest * factor**i for i in range(steps)]
+            + [np.pi / 4 - smallest * factor**i for i in range(steps)]
             + [np.pi / 8, 0.113 * np.pi, 0.1972 * np.pi]
         ):
             for bbb in np.linspace(0, aaa, 10):
@@ -666,8 +673,8 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
     def test_two_qubit_weyl_decomposition_abb(self, smallest=1e-18, factor=9.8, steps=11):
         """Verify Weyl KAK decomposition for U~Ud(a,b,b)"""
         for aaa in (
-            [smallest * factor ** i for i in range(steps)]
-            + [np.pi / 4 - smallest * factor ** i for i in range(steps)]
+            [smallest * factor**i for i in range(steps)]
+            + [np.pi / 4 - smallest * factor**i for i in range(steps)]
             + [np.pi / 8, 0.113 * np.pi, 0.1972 * np.pi]
         ):
             for bbb in np.linspace(0, aaa, 6):
@@ -680,8 +687,8 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
     def test_two_qubit_weyl_decomposition_abmb(self, smallest=1e-18, factor=9.8, steps=11):
         """Verify Weyl KAK decomposition for U~Ud(a,b,-b)"""
         for aaa in (
-            [smallest * factor ** i for i in range(steps)]
-            + [np.pi / 4 - smallest * factor ** i for i in range(steps)]
+            [smallest * factor**i for i in range(steps)]
+            + [np.pi / 4 - smallest * factor**i for i in range(steps)]
             + [np.pi / 8, 0.113 * np.pi, 0.1972 * np.pi]
         ):
             for bbb in np.linspace(0, aaa, 6):
@@ -694,8 +701,8 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
     def test_two_qubit_weyl_decomposition_aac(self, smallest=1e-18, factor=9.8, steps=11):
         """Verify Weyl KAK decomposition for U~Ud(a,a,c)"""
         for aaa in (
-            [smallest * factor ** i for i in range(steps)]
-            + [np.pi / 4 - smallest * factor ** i for i in range(steps)]
+            [smallest * factor**i for i in range(steps)]
+            + [np.pi / 4 - smallest * factor**i for i in range(steps)]
             + [np.pi / 8, 0.113 * np.pi, 0.1972 * np.pi]
         ):
             for ccc in np.linspace(-aaa, aaa, 6):
@@ -708,8 +715,8 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
     def test_two_qubit_weyl_decomposition_abc(self, smallest=1e-18, factor=9.8, steps=11):
         """Verify Weyl KAK decomposition for U~Ud(a,b,c)"""
         for aaa in (
-            [smallest * factor ** i for i in range(steps)]
-            + [np.pi / 4 - smallest * factor ** i for i in range(steps)]
+            [smallest * factor**i for i in range(steps)]
+            + [np.pi / 4 - smallest * factor**i for i in range(steps)]
             + [np.pi / 8, 0.113 * np.pi, 0.1972 * np.pi]
         ):
             for bbb in np.linspace(0, aaa, 4):
@@ -936,7 +943,6 @@ class TestTwoQubitDecompose(CheckDecompositions):
     @combine(seed=range(10), name="test_exact_supercontrolled_decompose_random_{seed}")
     def test_exact_supercontrolled_decompose_random(self, seed):
         """Exact decomposition for random supercontrolled basis and random target (seed={seed})"""
-        # pylint: disable=invalid-name
         state = np.random.default_rng(seed)
         decomposer = self.make_random_supercontrolled_decomposer(state)
         self.check_exact_decomposition(random_unitary(4, seed=state).data, decomposer)
@@ -1300,6 +1306,29 @@ class TestTwoQubitDecomposeApprox(CheckDecompositions):
             np.exp(1j * tgt_phase) * tgt_k1 @ Ud(tgt_a + d1, tgt_b + d2, tgt_c + d3) @ tgt_k2
         )
         self.check_approx_decomposition(tgt_unitary, decomposer, num_basis_uses=3)
+
+
+@ddt
+class TestTwoQubitControlledUDecompose(CheckDecompositions):
+    """Test TwoQubitControlledUDecomposer() for exact decompositions and raised exceptions"""
+
+    @combine(seed=range(10), name="seed_{seed}")
+    def test_correct_unitary(self, seed):
+        """Verify unitary for different gates in the decomposition"""
+        unitary = random_unitary(4, seed=seed)
+        for gate in [RXXGate, RYYGate, RZZGate, RZXGate, CPhaseGate, CRZGate]:
+            decomposer = TwoQubitControlledUDecomposer(gate)
+            circ = decomposer(unitary)
+            self.assertEqual(Operator(unitary), Operator(circ))
+
+    def test_not_rxx_equivalent(self):
+        """Test that an exception is raised if the gate is not equivalent to an RXXGate"""
+        gate = SwapGate
+        with self.assertRaises(QiskitError) as exc:
+            TwoQubitControlledUDecomposer(gate)
+        self.assertIn(
+            "Equivalent gate needs to take exactly 1 angle parameter.", exc.exception.message
+        )
 
 
 class TestDecomposeProductRaises(QiskitTestCase):

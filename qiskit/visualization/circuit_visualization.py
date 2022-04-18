@@ -25,31 +25,19 @@ This provides a single function entry point to drawing a circuit object with
 any of the backends.
 """
 
-import errno
 import logging
 import os
 import subprocess
 import tempfile
 
-try:
-    from PIL import Image
-
-    HAS_PIL = True
-except ImportError:
-    HAS_PIL = False
-
 from qiskit import user_config
-from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.utils import optionals as _optionals
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization import latex as _latex
 from qiskit.visualization import text as _text
 from qiskit.visualization import utils
 from qiskit.visualization import matplotlib as _matplotlib
 
-try:
-    subprocess.run("pdflatex -v", check=True)
-except OSError as ex:
-    HAS_PDFLATEX = False
 
 logger = logging.getLogger(__name__)
 
@@ -190,7 +178,7 @@ def circuit_drawer(
     if config:
         default_output = config.get("circuit_drawer", "text")
         if default_output == "auto":
-            if _matplotlib.HAS_MATPLOTLIB:
+            if _optionals.HAS_MATPLOTLIB:
                 default_output = "mpl"
             else:
                 default_output = "text"
@@ -319,32 +307,26 @@ def _text_circuit_drawer(
     qubits, clbits, nodes = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
-
-    if with_layout:
-        layout = circuit._layout
-    else:
-        layout = None
-    global_phase = circuit.global_phase if hasattr(circuit, "global_phase") else None
     text_drawing = _text.TextDrawing(
         qubits,
         clbits,
         nodes,
         reverse_bits=reverse_bits,
-        layout=layout,
+        layout=None,
         initial_state=initial_state,
         cregbundle=cregbundle,
-        global_phase=global_phase,
+        global_phase=None,
         encoding=encoding,
-        qregs=circuit.qregs,
-        cregs=circuit.cregs,
+        qregs=None,
+        cregs=None,
+        with_layout=with_layout,
+        circuit=circuit,
     )
     text_drawing.plotbarriers = plot_barriers
     text_drawing.line_length = fold
     text_drawing.vertical_compression = vertical_compression
 
     if filename:
-        if not filename.endswith(".txt"):
-            raise VisualizationError("ERROR: filename parameter does not use .txt extension.")
         text_drawing.dump(filename, encoding=encoding)
     return text_drawing
 
@@ -354,6 +336,9 @@ def _text_circuit_drawer(
 # -----------------------------------------------------------------------------
 
 
+@_optionals.HAS_PDFLATEX.require_in_call("LaTeX circuit drawing")
+@_optionals.HAS_PDFTOCAIRO.require_in_call("LaTeX circuit drawing")
+@_optionals.HAS_PIL.require_in_call("LaTeX circuit drawing")
 def _latex_circuit_drawer(
     circuit,
     scale=0.7,
@@ -394,12 +379,12 @@ def _latex_circuit_drawer(
         PIL.Image: an in-memory representation of the circuit diagram
 
     Raises:
-        OSError: usually indicates that ```pdflatex``` or ```pdftocairo``` is
-                 missing.
-        CalledProcessError: usually points to errors during diagram creation.
-        MissingOptionalLibraryError: if pillow is not installed
-        VisualizationError: If unsupported image format is given as filename extension.
+        MissingOptionalLibraryError: if pillow, pdflatex, or poppler are not installed
+        VisualizationError: if one of the conversion utilities failed for some internal or
+            file-access reason.
     """
+    from PIL import Image
+
     tmpfilename = "circuit"
     with tempfile.TemporaryDirectory() as tmpdirname:
         tmppath = os.path.join(tmpdirname, tmpfilename + ".tex")
@@ -416,8 +401,8 @@ def _latex_circuit_drawer(
             initial_state=initial_state,
             cregbundle=cregbundle,
         )
-        try:
 
+        try:
             subprocess.run(
                 [
                     "pdflatex",
@@ -429,55 +414,42 @@ def _latex_circuit_drawer(
                 stderr=subprocess.DEVNULL,
                 check=True,
             )
-        except OSError as ex:
-            if ex.errno == errno.ENOENT:
-                logger.warning(
-                    "WARNING: Unable to compile latex. "
-                    "Is `pdflatex` installed? "
-                    "Skipping latex circuit drawing..."
-                )
-            raise
-        except subprocess.CalledProcessError as ex:
+        except OSError as exc:
+            # OSError should generally not occur, because it's usually only triggered if `pdflatex`
+            # doesn't exist as a command, but we've already checked that.
+            raise VisualizationError("`pdflatex` command could not be run.") from exc
+        except subprocess.CalledProcessError as exc:
             with open("latex_error.log", "wb") as error_file:
-                error_file.write(ex.stdout)
+                error_file.write(exc.stdout)
             logger.warning(
-                "WARNING Unable to compile latex. "
-                "The output from the pdflatex command can "
-                "be found in latex_error.log"
+                "Unable to compile LaTeX. Perhaps you are missing the `qcircuit` package."
+                " The output from the `pdflatex` command is in `latex_error.log`."
             )
-            raise
-        else:
-            if not HAS_PIL:
-                raise MissingOptionalLibraryError(
-                    libname="pillow",
-                    name="latex drawer",
-                    pip_install="pip install pillow",
-                )
-            try:
-                base = os.path.join(tmpdirname, tmpfilename)
-                subprocess.run(
-                    ["pdftocairo", "-singlefile", "-png", "-q", base + ".pdf", base], check=True
-                )
-                image = Image.open(base + ".png")
-                image = utils._trim(image)
-                os.remove(base + ".png")
-                if filename:
-                    if filename.endswith(".pdf"):
-                        os.rename(base + ".pdf", filename)
-                    else:
-                        try:
-                            image.save(filename)
-                        except VisualizationError as ve:
-                            raise VisualizationError(
-                                "ERROR: filename parameter does not use a supported extension."
-                            ) from ve
-            except (OSError, subprocess.CalledProcessError) as ex:
-                logger.warning(
-                    "WARNING: Unable to convert pdf to image. "
-                    "Is `poppler` installed? "
-                    "Skipping circuit drawing..."
-                )
-                raise
+            raise VisualizationError(
+                "`pdflatex` call did not succeed: see `latex_error.log`."
+            ) from exc
+        base = os.path.join(tmpdirname, tmpfilename)
+        try:
+            subprocess.run(
+                ["pdftocairo", "-singlefile", "-png", "-q", base + ".pdf", base],
+                check=True,
+            )
+        except (OSError, subprocess.CalledProcessError) as exc:
+            message = "`pdftocairo` failed to produce an image."
+            logger.warning(message)
+            raise VisualizationError(message) from exc
+        image = Image.open(base + ".png")
+        image = utils._trim(image)
+        if filename:
+            if filename.endswith(".pdf"):
+                os.rename(base + ".pdf", filename)
+            else:
+                try:
+                    image.save(filename)
+                except (ValueError, OSError) as exc:
+                    raise VisualizationError(
+                        f"Pillow could not write the image file '{filename}'."
+                    ) from exc
         return image
 
 
@@ -521,12 +493,6 @@ def _generate_latex_source(
     qubits, clbits, nodes = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
-    if with_layout:
-        layout = circuit._layout
-    else:
-        layout = None
-
-    global_phase = circuit.global_phase if hasattr(circuit, "global_phase") else None
     qcimg = _latex.QCircuitImage(
         qubits,
         clbits,
@@ -535,12 +501,14 @@ def _generate_latex_source(
         style=style,
         reverse_bits=reverse_bits,
         plot_barriers=plot_barriers,
-        layout=layout,
+        layout=None,
         initial_state=initial_state,
         cregbundle=cregbundle,
-        global_phase=global_phase,
-        qregs=circuit.qregs,
-        cregs=circuit.cregs,
+        global_phase=None,
+        qregs=None,
+        cregs=None,
+        with_layout=with_layout,
+        circuit=circuit,
     )
     latex = qcimg.latex()
     if filename:
@@ -607,15 +575,9 @@ def _matplotlib_circuit_drawer(
     qubits, clbits, nodes = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
-    if with_layout:
-        layout = circuit._layout
-    else:
-        layout = None
-
     if fold is None:
         fold = 25
 
-    global_phase = circuit.global_phase if hasattr(circuit, "global_phase") else None
     qcd = _matplotlib.MatplotlibDrawer(
         qubits,
         clbits,
@@ -624,13 +586,16 @@ def _matplotlib_circuit_drawer(
         style=style,
         reverse_bits=reverse_bits,
         plot_barriers=plot_barriers,
-        layout=layout,
+        layout=None,
         fold=fold,
         ax=ax,
         initial_state=initial_state,
         cregbundle=cregbundle,
-        global_phase=global_phase,
-        qregs=circuit.qregs,
-        cregs=circuit.cregs,
+        global_phase=None,
+        calibrations=None,
+        qregs=None,
+        cregs=None,
+        with_layout=with_layout,
+        circuit=circuit,
     )
     return qcd.draw(filename)

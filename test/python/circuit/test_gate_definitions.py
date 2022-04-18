@@ -62,6 +62,7 @@ from qiskit.circuit.library import (
     SXdgGate,
     CSXGate,
     RVGate,
+    XXMinusYYGate,
 )
 
 from qiskit.circuit.library.standard_gates.equivalence_library import (
@@ -163,12 +164,25 @@ class TestGateDefinitions(QiskitTestCase):
         axis = np.array([np.cos(phi), np.sin(phi), 0])  # RGate axis
         rotvec = theta * axis
         rv = RVGate(*rotvec)
-        self.assertTrue(np.array_equal(rgate.to_matrix(), rv.to_matrix()))
+        rg_matrix = rgate.to_matrix()
+        rv_matrix = rv.to_matrix()
+        np.testing.assert_array_max_ulp(rg_matrix.real, rv_matrix.real, 4)
+        np.testing.assert_array_max_ulp(rg_matrix.imag, rv_matrix.imag, 4)
 
     def test_rv_zero(self):
         """Test R(v) gate with zero vector returns identity"""
         rv = RVGate(0, 0, 0)
         self.assertTrue(np.array_equal(rv.to_matrix(), np.array([[1, 0], [0, 1]])))
+
+    def test_xx_minus_yy_definition(self):
+        """Test XX-YY gate decomposition."""
+        theta, beta = np.random.uniform(-10, 10, size=2)
+        gate = XXMinusYYGate(theta, beta)
+        circuit = QuantumCircuit(2)
+        circuit.append(gate, [0, 1])
+        decomposed_circuit = circuit.decompose()
+        self.assertTrue(len(decomposed_circuit) > len(circuit))
+        self.assertTrue(Operator(circuit).equiv(Operator(decomposed_circuit), atol=1e-7))
 
 
 @ddt
@@ -227,10 +241,6 @@ class TestStandardGates(QiskitTestCase):
             num_ctrl_qubits = 3
             float_vector = float_vector[:-1]
             gate = gate_class(num_ctrl_qubits, *float_vector)
-        elif class_name == "MSGate":
-            num_qubits = 3
-            float_vector = float_vector[:-1]
-            gate = gate_class(num_qubits, *float_vector)
         elif class_name == "PauliGate":
             pauli_string = "IXYZ"
             gate = gate_class(pauli_string)
@@ -269,6 +279,8 @@ class TestGateEquivalenceEqual(QiskitTestCase):
             "VariadicZeroParamGate",
             "ClassicalFunction",
             "ClassicalElement",
+            "StatePreparation",
+            "LinearFunction",
         }
         cls._gate_classes = []
         for aclass in class_list:
@@ -290,6 +302,9 @@ class TestGateEquivalenceEqual(QiskitTestCase):
                     params = ["IXYZ"]
                 if gate_class.__name__ in ["BooleanExpression"]:
                     params = ["x | y"]
+                if gate_class.__name__ in ["PauliEvolutionGate", "PauliEvolutionGate"]:
+                    continue
+
                 gate = gate_class(*params)
                 equiv_lib_list = std_eqlib.get_entry(gate)
                 for ieq, equivalency in enumerate(equiv_lib_list):

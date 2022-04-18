@@ -10,40 +10,19 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=unused-import
+
 """
 Convenience function to load RZXGate based templates.
 """
 
-from typing import List
+import warnings
+from qiskit.transpiler.passes.calibration.rzx_templates import rzx_templates
 
-from qiskit.circuit.library.templates.rzx import rzx_zz1, rzx_zz2, rzx_zz3, rzx_yz, rzx_xz, rzx_cy
+# TODO remove this import after sufficient deprecation period
 
-
-def rzx_templates(template_list: List[str] = None):
-    """
-    Convenience function to get the cost_dict and
-    templates for template matching.
-    """
-
-    if template_list is None:
-        template_list = ["zz1", "zz2", "zz3", "yz", "xz", "cy"]
-
-    templates = []
-    if "zz1" in template_list:
-        templates.append(rzx_zz1())
-    if "zz2" in template_list:
-        templates.append(rzx_zz2())
-    if "zz3" in template_list:
-        templates.append(rzx_zz3())
-    if "yz" in template_list:
-        templates.append(rzx_yz())
-    if "xz" in template_list:
-        templates.append(rzx_xz())
-    if "cy" in template_list:
-        templates.append(rzx_cy())
-
-    cost_dict = {"rzx": 0, "cx": 6, "rz": 0, "sx": 1, "p": 0, "h": 1, "rx": 1, "ry": 1}
-
-    rzx_dict = {"template_list": templates, "user_cost_dict": cost_dict}
-
-    return rzx_dict
+warnings.warn(
+    "rzx_templates function is moved to `qiskit.transpiler.passes.calibration.rzx_templates`. "
+    "This import path is being deprecated.",
+    DeprecationWarning,
+)

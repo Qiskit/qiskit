@@ -33,6 +33,7 @@ from .backend_utils import (
     is_simulator_backend,
     is_local_backend,
     is_ibmq_provider,
+    _get_backend_interface_version,
 )
 
 MAX_CIRCUITS_PER_JOB = os.environ.get("QISKIT_AQUA_MAX_CIRCUITS_PER_JOB", None)
@@ -144,9 +145,10 @@ def _safe_submit_qobj(
     backend_options: Dict,
     noise_config: Dict,
     skip_qobj_validation: bool,
+    max_job_retries: int,
 ) -> Tuple[BaseJob, str]:
     # assure get job ids
-    while True:
+    for _ in range(max_job_retries):
         try:
             job = run_on_backend(
                 backend,
@@ -185,7 +187,7 @@ def _safe_submit_qobj(
                             oldest_running.wait_for_final_state(timeout=300)
                         except Exception:  # pylint: disable=broad-except
                             # If the wait somehow fails or times out, we'll just re-try
-                            # the job submit and see if it works now.
+                            # the job submit and see if it works now ( but a finite number of times )
                             pass
             if failure_warn:
                 logger.warning(
@@ -197,13 +199,14 @@ def _safe_submit_qobj(
             logger.warning(
                 "FAILURE: Can not get job id, Resubmit the qobj to get job id. Error: %s ", ex
             )
+    else:
+        raise QiskitError("Max retry limit reached. Could not submit the qobj correctly")
 
     return job, job_id
 
 
-def _safe_get_job_status(job: BaseJob, job_id: str) -> JobStatus:
-
-    while True:
+def _safe_get_job_status(job: BaseJob, job_id: str, max_job_retries: int, wait: float) -> JobStatus:
+    for _ in range(max_job_retries):
         try:
             job_status = job.status()
             break
@@ -213,13 +216,14 @@ def _safe_get_job_status(job: BaseJob, job_id: str) -> JobStatus:
                 job_id,
                 ex,
             )
-            time.sleep(5)
+            time.sleep(wait)
         except Exception as ex:
             raise QiskitError(
-                "FAILURE: job id: {}, "
-                "status: 'FAIL_TO_GET_STATUS' "
-                "Unknown error: ({})".format(job_id, ex)
+                f"job id: {job_id}, status: 'FAIL_TO_GET_STATUS' Unknown error: ({ex})"
             ) from ex
+    else:
+        raise QiskitError(f"Max retry limit reached. Failed to get status for job with id {job_id}")
+
     return job_status
 
 
@@ -231,6 +235,7 @@ def run_qobj(
     noise_config: Optional[Dict] = None,
     skip_qobj_validation: bool = False,
     job_callback: Optional[Callable] = None,
+    max_job_retries: int = 50,
 ) -> Result:
     """
     An execution wrapper with Qiskit-Terra, with job auto recover capability.
@@ -244,11 +249,12 @@ def run_qobj(
         qjob_config: configuration for quantum job object
         backend_options: configuration for simulator
         noise_config: configuration for noise model
-        skip_qobj_validation: Bypass Qobj validation to decrease submission time,
-                                               only works for Aer and BasicAer providers
-        job_callback: callback used in querying info of the submitted job, and
-                                           providing the following arguments:
-                                            job_id, job_status, queue_position, job
+        skip_qobj_validation: Bypass Qobj validation to decrease submission time, only works for Aer
+            and BasicAer providers
+        job_callback: callback used in querying info of the submitted job, and providing the
+            following arguments: job_id, job_status, queue_position, job
+        max_job_retries(int): positive non-zero number of trials for the job set (-1 for infinite
+            trials) (default: 50).
 
     Returns:
         Result object
@@ -272,7 +278,11 @@ def run_qobj(
         if is_local_backend(backend):
             max_circuits_per_job = sys.maxsize
         else:
-            max_circuits_per_job = backend.configuration().max_experiments
+            backend_interface_version = _get_backend_interface_version(backend)
+            if backend_interface_version <= 1:
+                max_circuits_per_job = backend.configuration().max_experiments
+            else:
+                max_circuits_per_job = backend.max_circuits
 
     # split qobj if it exceeds the payload of the backend
 
@@ -281,7 +291,7 @@ def run_qobj(
     job_ids = []
     for qob in qobjs:
         job, job_id = _safe_submit_qobj(
-            qob, backend, backend_options, noise_config, skip_qobj_validation
+            qob, backend, backend_options, noise_config, skip_qobj_validation, max_job_retries
         )
         job_ids.append(job_id)
         jobs.append(job)
@@ -294,11 +304,13 @@ def run_qobj(
         for idx, _ in enumerate(jobs):
             job = jobs[idx]
             job_id = job_ids[idx]
-            while True:
+            for _ in range(max_job_retries):
                 logger.info("Running %s-th qobj, job id: %s", idx, job_id)
                 # try to get result if possible
                 while True:
-                    job_status = _safe_get_job_status(job, job_id)
+                    job_status = _safe_get_job_status(
+                        job, job_id, max_job_retries, qjob_config["wait"]
+                    )
                     queue_position = 0
                     if job_status in JOB_FINAL_STATES:
                         # do callback again after the job is in the final states
@@ -316,22 +328,25 @@ def run_qobj(
 
                 # get result after the status is DONE
                 if job_status == JobStatus.DONE:
-                    while True:
+                    for _ in range(max_job_retries):
                         result = job.result(**qjob_config)
                         if result.success:
                             results.append(result)
                             logger.info("COMPLETED the %s-th qobj, job id: %s", idx, job_id)
                             break
-
                         logger.warning("FAILURE: Job id: %s", job_id)
                         logger.warning(
                             "Job (%s) is completed anyway, retrieve result from backend again.",
                             job_id,
                         )
                         job = backend.retrieve_job(job_id)
+                    else:
+                        raise QiskitError(
+                            f"Max retry limit reached. Failed to get result for job id {job_id}"
+                        )
                     break
                 # for other cases, resubmit the qobj until the result is available.
-                # since if there is no result returned, there is no way algorithm can do any process
+                # since if there is no result returned, there is no way algorithm can do any processing
                 # get back the qobj first to avoid for job is consumed
                 qobj = job.qobj()
                 if job_status == JobStatus.CANCELLED:
@@ -349,12 +364,20 @@ def run_qobj(
                         job_id,
                         job_status,
                     )
-
                 job, job_id = _safe_submit_qobj(
-                    qobj, backend, backend_options, noise_config, skip_qobj_validation
+                    qobj,
+                    backend,
+                    backend_options,
+                    noise_config,
+                    skip_qobj_validation,
+                    max_job_retries,
                 )
                 jobs[idx] = job
                 job_ids[idx] = job_id
+            else:
+                raise QiskitError(
+                    f"Max retry limit reached. Failed to get result for job with id {job_id}."
+                )
     else:
         results = []
         for job in jobs:
@@ -428,6 +451,7 @@ def run_circuits(
     noise_config: Optional[Dict] = None,
     run_config: Optional[Dict] = None,
     job_callback: Optional[Callable] = None,
+    max_job_retries: int = 50,
 ) -> Result:
     """
     An execution wrapper with Qiskit-Terra, with job auto recover capability.
@@ -442,9 +466,10 @@ def run_circuits(
         backend_options: backend options
         noise_config: configuration for noise model
         run_config: configuration for run
-        job_callback: callback used in querying info of the submitted job, and
-                                           providing the following arguments:
-                                            job_id, job_status, queue_position, job
+        job_callback: callback used in querying info of the submitted job, and providing the
+            following arguments: job_id, job_status, queue_position, job.
+        max_job_retries(int): positive non-zero number of trials for the job set (-1 for infinite
+            trials) (default: 50)
 
     Returns:
         Result object
@@ -452,18 +477,29 @@ def run_circuits(
     Raises:
         QiskitError: Any error except for JobError raised by Qiskit Terra
     """
+    backend_interface_version = _get_backend_interface_version(backend)
+
     backend_options = backend_options or {}
     noise_config = noise_config or {}
     run_config = run_config or {}
-    with_autorecover = not is_simulator_backend(backend)
+    if backend_interface_version <= 1:
+        with_autorecover = not is_simulator_backend(backend)
+    else:
+        with_autorecover = False
 
     if MAX_CIRCUITS_PER_JOB is not None:
         max_circuits_per_job = int(MAX_CIRCUITS_PER_JOB)
     else:
-        if is_local_backend(backend):
-            max_circuits_per_job = sys.maxsize
+        if backend_interface_version <= 1:
+            if is_local_backend(backend):
+                max_circuits_per_job = sys.maxsize
+            else:
+                max_circuits_per_job = backend.configuration().max_experiments
         else:
-            max_circuits_per_job = backend.configuration().max_experiments
+            if backend.max_circuits is not None:
+                max_circuits_per_job = backend.max_circuits
+            else:
+                max_circuits_per_job = sys.maxsize
 
     if len(circuits) > max_circuits_per_job:
         jobs = []
@@ -480,6 +516,7 @@ def run_circuits(
                 backend_options=backend_options,
                 noise_config=noise_config,
                 run_config=run_config,
+                max_job_retries=max_job_retries,
             )
             jobs.append(job)
             job_ids.append(job_id)
@@ -492,6 +529,7 @@ def run_circuits(
             backend_options=backend_options,
             noise_config=noise_config,
             run_config=run_config,
+            max_job_retries=max_job_retries,
         )
         jobs = [job]
         job_ids = [job_id]
@@ -507,11 +545,13 @@ def run_circuits(
             logger.info("There is one jobs are submitted: id: %s", job_id)
             job = jobs[idx]
             job_id = job_ids[idx]
-            while True:
+            for _ in range(max_job_retries):
                 logger.info("Running job id: %s", job_id)
                 # try to get result if possible
                 while True:
-                    job_status = _safe_get_job_status(job, job_id)
+                    job_status = _safe_get_job_status(
+                        job, job_id, max_job_retries, qjob_config["wait"]
+                    )  # if the status was broken, an Exception would be raised anyway
                     queue_position = 0
                     if job_status in JOB_FINAL_STATES:
                         # do callback again after the job is in the final states
@@ -529,7 +569,7 @@ def run_circuits(
 
                 # get result after the status is DONE
                 if job_status == JobStatus.DONE:
-                    while True:
+                    for _ in range(max_job_retries):
                         result = job.result()
                         if result.success:
                             results.append(result)
@@ -542,6 +582,10 @@ def run_circuits(
                             job_id,
                         )
                         job = backend.retrieve_job(job_id)
+                    else:
+                        raise QiskitError(
+                            f"Max retry limit reached. Failed to get result for job id {job_id}"
+                        )
                     break
                 # for other cases, resubmit the circuit until the result is available.
                 # since if there is no result returned, there is no way algorithm can do any process
@@ -562,7 +606,6 @@ def run_circuits(
                         job_id,
                         job_status,
                     )
-
                 job, job_id = _safe_submit_circuits(
                     split_circuits[idx],
                     backend,
@@ -570,6 +613,11 @@ def run_circuits(
                     backend_options=backend_options,
                     noise_config=noise_config,
                     run_config=run_config,
+                    max_job_retries=max_job_retries,
+                )
+            else:
+                raise QiskitError(
+                    f"Max retry limit reached. Failed to get result for job with id {job_id} "
                 )
     else:
         results = []
@@ -577,7 +625,6 @@ def run_circuits(
             results.append(job.result())
 
     result = _combine_result_objects(results) if results else None
-
     # If result was not successful then raise an exception with either the status msg or
     # extra information if this was an Aer partial result return
     if not result.success:
@@ -605,9 +652,10 @@ def _safe_submit_circuits(
     backend_options: Dict,
     noise_config: Dict,
     run_config: Dict,
+    max_job_retries: int,
 ) -> Tuple[BaseJob, str]:
     # assure get job ids
-    while True:
+    for _ in range(max_job_retries):
         try:
             job = _run_circuits_on_backend(
                 backend,
@@ -660,6 +708,8 @@ def _safe_submit_circuits(
             logger.warning(
                 "FAILURE: Can not get job id, Resubmit the qobj to get job id. Error: %s ", ex
             )
+    else:
+        raise QiskitError("Max retry limit reached. Failed to submit the qobj correctly")
 
     return job, job_id
 

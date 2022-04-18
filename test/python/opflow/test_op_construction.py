@@ -24,7 +24,13 @@ from ddt import data, ddt
 from scipy.stats import unitary_group
 
 from qiskit import QiskitError
-from qiskit.circuit import Instruction, Parameter, ParameterVector, QuantumCircuit, QuantumRegister
+from qiskit.circuit import (
+    Instruction,
+    Parameter,
+    ParameterVector,
+    QuantumCircuit,
+    QuantumRegister,
+)
 from qiskit.circuit.library import CZGate, ZGate
 from qiskit.extensions.exceptions import ExtensionError
 from qiskit.opflow import (
@@ -83,7 +89,7 @@ class TestOpConstruction(QiskitOpflowTestCase):
 
     def test_composed_eval(self):
         """Test eval of ComposedOp"""
-        self.assertAlmostEqual(Minus.eval("1"), -(0.5 ** 0.5))
+        self.assertAlmostEqual(Minus.eval("1"), -(0.5**0.5))
 
     def test_xz_compose_phase(self):
         """Test phase composition"""
@@ -607,7 +613,7 @@ class TestOpConstruction(QiskitOpflowTestCase):
         self.assertEqual(dsfn_exp.num_qubits, num_qubits + add_qubits)
 
         # case VectorStateFn
-        vsfn = VectorStateFn(np.ones(2 ** num_qubits, dtype=complex))
+        vsfn = VectorStateFn(np.ones(2**num_qubits, dtype=complex))
         self.assertEqual(vsfn.num_qubits, num_qubits)
 
         vsfn_exp = vsfn._expand_dim(add_qubits)
@@ -617,7 +623,7 @@ class TestOpConstruction(QiskitOpflowTestCase):
         """Test if StateFns permute are consistent."""
 
         num_qubits = 4
-        dim = 2 ** num_qubits
+        dim = 2**num_qubits
         primitive_list = [1.0 / (i + 1) for i in range(dim)]
         primitive_dict = {format(i, "b").zfill(num_qubits): 1.0 / (i + 1) for i in range(dim)}
 
@@ -718,7 +724,7 @@ class TestOpConstruction(QiskitOpflowTestCase):
 
         # StateFn
         num_qubits = 3
-        dim = 2 ** num_qubits
+        dim = 2**num_qubits
         vec = [1.0 / (i + 1) for i in range(dim)]
         dic = {format(i, "b").zfill(num_qubits): 1.0 / (i + 1) for i in range(dim)}
 
@@ -888,8 +894,12 @@ class TestOpConstruction(QiskitOpflowTestCase):
             self.assertEqual(pauli.to_circuit(), expected)
             expected = QuantumCircuit(2)
             expected.x(0)
-            expected.id(1)
             self.assertEqual(pauli.to_circuit().decompose(), expected)
+
+        with self.subTest("Pauli identity"):
+            pauli = PauliOp(Pauli("I"))
+            expected = QuantumCircuit(1)
+            self.assertEqual(pauli.to_circuit(), expected)
 
         with self.subTest("two qubit with phase"):
             pauli = PauliOp(Pauli("iXZ"))
@@ -1092,6 +1102,29 @@ class TestOpMethods(QiskitOpflowTestCase):
             with self.assertRaises(ValueError):
                 X @ op  # pylint: disable=pointless-statement
 
+    def test_is_hermitian(self):
+        """Test is_hermitian method."""
+        with self.subTest("I"):
+            self.assertTrue(I.is_hermitian())
+
+        with self.subTest("X"):
+            self.assertTrue(X.is_hermitian())
+
+        with self.subTest("Y"):
+            self.assertTrue(Y.is_hermitian())
+
+        with self.subTest("Z"):
+            self.assertTrue(Z.is_hermitian())
+
+        with self.subTest("XY"):
+            self.assertFalse((X @ Y).is_hermitian())
+
+        with self.subTest("CX"):
+            self.assertTrue(CX.is_hermitian())
+
+        with self.subTest("T"):
+            self.assertFalse(T.is_hermitian())
+
 
 @ddt
 class TestListOpMethods(QiskitOpflowTestCase):
@@ -1127,7 +1160,7 @@ class TestListOpComboFn(QiskitOpflowTestCase):
 
     def setUp(self):
         super().setUp()
-        self.combo_fn = lambda x: [x_i ** 2 for x_i in x]
+        self.combo_fn = lambda x: [x_i**2 for x_i in x]
         self.listop = ListOp([X], combo_fn=self.combo_fn)
 
     def assertComboFnPreserved(self, processed_op):

@@ -12,5 +12,6 @@
 
 """Mock mumbai backend"""
 
+from .fake_mumbai import FakeMumbaiV2
 from .fake_mumbai import FakeMumbai
 from .fake_mumbai import FakeLegacyMumbai

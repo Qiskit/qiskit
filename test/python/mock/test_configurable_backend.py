@@ -12,7 +12,7 @@
 
 """Test of configurable backend generation."""
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock.utils import ConfigurableFakeBackend
+from qiskit.test.mock.utils.configurable_backend import ConfigurableFakeBackend
 
 
 class TestConfigurableFakeBackend(QiskitTestCase):
@@ -137,3 +137,9 @@ class TestConfigurableFakeBackend(QiskitTestCase):
 
         self.assertEqual(controlled_not_qubits, target_coupling_map)
         self.assertEqual(configured_cmap, target_coupling_map)
+
+    def test_get_name_with_method(self):
+        """Get backend name."""
+        fake_backend = ConfigurableFakeBackend("Tashkent", n_qubits=4)
+
+        self.assertEqual(fake_backend.name(), "Tashkent")

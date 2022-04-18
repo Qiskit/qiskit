@@ -34,8 +34,9 @@ class AbsoluteAverage(LinearSystemObservable):
 
             import numpy as np
             from qiskit import QuantumCircuit
-            from qiskit.algorithms.linear_solvers.observables.absolute_average import
-             AbsoluteAverage
+            from qiskit.algorithms.linear_solvers.observables.absolute_average import \
+            AbsoluteAverage
+            from qiskit.opflow import StateFn
 
             observable = AbsoluteAverage()
             vector = [1.0, -2.1, 3.2, -4.3]
@@ -105,7 +106,7 @@ class AbsoluteAverage(LinearSystemObservable):
             else:
                 raise ValueError("Solution probability must be given as a single value.")
 
-        return np.real(np.sqrt(solution / (2 ** num_qubits)) / scaling)
+        return np.real(np.sqrt(solution / (2**num_qubits)) / scaling)
 
     def evaluate_classically(self, solution: Union[np.array, QuantumCircuit]) -> float:
         """Evaluates the given observable on the solution to the linear system.

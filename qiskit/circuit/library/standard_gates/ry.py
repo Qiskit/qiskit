@@ -39,7 +39,7 @@ class RYGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        RY(\theta) = exp(-i \th Y) =
+        RY(\theta) = \exp\left(-i \th Y\right) =
             \begin{pmatrix}
                 \cos{\th} & -\sin{\th} \\
                 \sin{\th} & \cos{\th}
@@ -186,6 +186,10 @@ class CRYGate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
 
+        # q_0: ─────────────■───────────────■──
+        #      ┌─────────┐┌─┴─┐┌─────────┐┌─┴─┐
+        # q_1: ┤ Ry(λ/2) ├┤ X ├┤ Ry(λ/2) ├┤ X ├
+        #      └─────────┘└───┘└─────────┘└───┘
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
