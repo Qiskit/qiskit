@@ -42,11 +42,11 @@ class XXPlusYYGate(Gate):
         \newcommand{\th}{\frac{\theta}{2}}
 
         R_{XX+YY}(\theta, \beta)\ q_0, q_1 =
-          RZ_1(\beta) \cdot \exp\left(-i \frac{\theta}{2} \frac{XX+YY}{2}\right) \cdot RZ_1(-\beta) =
+          RZ_0(-\beta) \cdot \exp\left(-i \frac{\theta}{2} \frac{XX+YY}{2}\right) \cdot RZ_0(\beta) =
             \begin{pmatrix}
                 1 & 0                     & 0                    & 0  \\
-                0 & \cos\left(\th\right)             & i\sin\left(\th\right)e^{i\beta} & 0  \\
-                0 & i\sin\left(\th\right)e^{-i\beta} & \cos\left(\th\right)            & 0  \\
+                0 & \cos\left(\th\right)             & -i\sin\left(\th\right)e^{-i\beta} & 0  \\
+                0 & -i\sin\left(\th\right)e^{i\beta} & \cos\left(\th\right)            & 0  \\
                 0 & 0                     & 0                    & 1
             \end{pmatrix}
 
@@ -72,11 +72,11 @@ class XXPlusYYGate(Gate):
             \newcommand{\th}{\frac{\theta}{2}}
 
             R_{XX+YY}(\theta, \beta)\ q_1, q_0 =
-            RZ_0(\beta) \cdot exp(-i \frac{\theta}{2} \frac{XX+YY}{2}) \cdot RZ_0(-\beta) =
+            RZ_1(-\beta) \cdot exp(-i \frac{\theta}{2} \frac{XX+YY}{2}) \cdot RZ_1(\beta) =
                 \begin{pmatrix}
                     1 & 0                     & 0                     & 0  \\
-                    0 & \cos(\th)             & i\sin(\th)e^{-i\beta} & 0  \\
-                    0 & i\sin(\th)e^{i\beta}  & \cos(\th)             & 0  \\
+                    0 & \cos(\th)             & -i\sin(\th)e^{i\beta} & 0  \\
+                    0 & -i\sin(\th)e^{-i\beta}  & \cos(\th)             & 0  \\
                     0 & 0                     & 0                     & 1
                 \end{pmatrix}
     """
@@ -128,20 +128,20 @@ class XXPlusYYGate(Gate):
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
-            (RZGate(beta), [q[1]], []),
-            (RZGate(-pi / 2), [q[0]], []),
-            (SXGate(), [q[0]], []),
-            (RZGate(pi / 2), [q[0]], []),
-            (SGate(), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (RYGate(theta / 2), [q[0]], []),
-            (RYGate(theta / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (SdgGate(), [q[1]], []),
-            (RZGate(-pi / 2), [q[0]], []),
-            (SXdgGate(), [q[0]], []),
-            (RZGate(pi / 2), [q[0]], []),
-            (RZGate(-beta), [q[1]], []),
+            (RZGate(beta), [q[0]], []),
+            (RZGate(-pi / 2), [q[1]], []),
+            (SXGate(), [q[1]], []),
+            (RZGate(pi / 2), [q[1]], []),
+            (SGate(), [q[0]], []),
+            (CXGate(), [q[1], q[0]], []),
+            (RYGate(-theta / 2), [q[1]], []),
+            (RYGate(-theta / 2), [q[0]], []),
+            (CXGate(), [q[1], q[0]], []),
+            (SdgGate(), [q[0]], []),
+            (RZGate(-pi / 2), [q[1]], []),
+            (SXdgGate(), [q[1]], []),
+            (RZGate(pi / 2), [q[1]], []),
+            (RZGate(-beta), [q[0]], []),
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
@@ -163,8 +163,8 @@ class XXPlusYYGate(Gate):
         return numpy.array(
             [
                 [1, 0, 0, 0],
-                [0, cos, 1j * sin * numpy.exp(1j * beta), 0],
-                [0, 1j * sin * numpy.exp(-1j * beta), cos, 0],
+                [0, cos, -1j * sin * numpy.exp(-1j * beta), 0],
+                [0, -1j * sin * numpy.exp(1j * beta), cos, 0],
                 [0, 0, 0, 1],
             ],
             dtype=dtype,
