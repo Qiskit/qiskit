@@ -18,7 +18,6 @@ from copy import copy, deepcopy
 import numpy as np
 
 from qiskit.circuit.library.standard_gates import SwapGate
-from qiskit.circuit.quantumregister import Qubit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
@@ -276,15 +275,18 @@ class SabreSwap(TransformationPass):
         self.qubits_decay = {k: 1 for k in self.qubits_decay.keys()}
 
     def _successors(self, node, dag):
-        for _, successor, edge_data in dag.edges(node):
-            if not isinstance(successor, DAGOpNode):
-                continue
-            if isinstance(edge_data, Qubit):
+        """Return an iterable of the successors along each wire from the given node.
+
+        This yields the same successor multiple times if there are parallel wires (e.g. two adjacent
+        operations that have one clbit and qubit in common), which is important in the swapping
+        algorithm for detecting if each wire has been accounted for."""
+        for _, successor, _ in dag.edges(node):
+            if isinstance(successor, DAGOpNode):
                 yield successor
 
     def _is_resolved(self, node):
         """Return True if all of a node's predecessors in dag are applied."""
-        return self.applied_predecessors[node] == len(node.qargs)
+        return self.applied_predecessors[node] == len(node.qargs) + len(node.cargs)
 
     def _obtain_extended_set(self, dag, front_layer):
         """Populate extended_set by looking ahead a fixed number of gates.
