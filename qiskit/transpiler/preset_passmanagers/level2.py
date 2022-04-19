@@ -170,7 +170,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     elif layout_method == "toqm":
         HAS_TOQM.require_now("TOQM-based layout")
         if routing_method != "toqm":
-            raise TranspilerError(f"Layout method 'toqm' requires routing method 'toqm'.")
+            raise TranspilerError("Layout method 'toqm' requires routing method 'toqm'.")
         _choose_layout_1 = TrivialLayout(coupling_map)
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)

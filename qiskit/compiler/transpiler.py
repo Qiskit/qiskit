@@ -137,8 +137,10 @@ def transpile(
 
                     [qr[0], None, None, qr[1], None, qr[2]]
 
-        layout_method: Name of layout selection pass ('trivial', 'dense', 'noise_adaptive', 'sabre')
-        routing_method: Name of routing pass ('basic', 'lookahead', 'stochastic', 'sabre', 'none')
+        layout_method: Name of layout selection pass
+            ('trivial', 'dense', 'noise_adaptive', 'sabre', 'toqm')
+        routing_method: Name of routing pass
+            ('basic', 'lookahead', 'stochastic', 'sabre', 'toqm', 'none')
         translation_method: Name of translation pass ('unroller', 'translator', 'synthesis')
         scheduling_method: Name of scheduling pass.
             * ``'as_soon_as_possible'``: Schedule instructions greedily, as early as possible
