@@ -12,15 +12,14 @@
 
 """Wrapper class of scipy.optimize.minimize."""
 
-from collections.abc import Sequence
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, Union, List, Optional, Tuple
 
 import numpy as np
-from scipy.optimize import Bounds, minimize
+from scipy.optimize import minimize
 
 from qiskit.utils.validation import validate_min
 
-from .optimizer import Optimizer, OptimizerSupportLevel
+from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
 
 class SciPyOptimizer(Optimizer):
@@ -98,55 +97,68 @@ class SciPyOptimizer(Optimizer):
 
         return settings
 
-    def optimize(
+    def minimize(
         self,
-        num_vars,
-        objective_function,
-        gradient_function=None,
-        variable_bounds: Optional[Union[Sequence, Bounds]] = None,
-        initial_point=None,
-    ):
+        fun: Callable[[POINT], float],
+        x0: POINT,
+        jac: Optional[Callable[[POINT], POINT]] = None,
+        bounds: Optional[List[Tuple[float, float]]] = None,
+    ) -> OptimizerResult:
         # Remove ignored parameters to supress the warning of scipy.optimize.minimize
         if self.is_bounds_ignored:
-            variable_bounds = None
+            bounds = None
         if self.is_gradient_ignored:
-            gradient_function = None
+            jac = None
 
-        if self.is_gradient_supported and gradient_function is None and self._max_evals_grouped > 1:
+        if self.is_gradient_supported and jac is None and self._max_evals_grouped > 1:
             if "eps" in self._options:
                 epsilon = self._options["eps"]
             else:
                 epsilon = (
                     1e-8 if self._method in {"l-bfgs-b", "tnc"} else np.sqrt(np.finfo(float).eps)
                 )
-            gradient_function = Optimizer.wrap_function(
-                Optimizer.gradient_num_diff, (objective_function, epsilon, self._max_evals_grouped)
+            jac = Optimizer.wrap_function(
+                Optimizer.gradient_num_diff, (fun, epsilon, self._max_evals_grouped)
             )
 
         # Workaround for L_BFGS_B because it does not accept np.ndarray.
         # See https://github.com/Qiskit/qiskit-terra/pull/6373.
-        if gradient_function is not None and self._method == "l-bfgs-b":
-            gradient_function = self._wrap_gradient(gradient_function)
+        if jac is not None and self._method == "l-bfgs-b":
+            jac = self._wrap_gradient(jac)
 
-        # Validate the input
-        super().optimize(
-            num_vars,
-            objective_function,
-            gradient_function=gradient_function,
-            variable_bounds=variable_bounds,
-            initial_point=initial_point,
-        )
-
-        res = minimize(
-            fun=objective_function,
-            x0=initial_point,
+        raw_result = minimize(
+            fun=fun,
+            x0=x0,
             method=self._method,
-            jac=gradient_function,
-            bounds=variable_bounds,
+            jac=jac,
+            bounds=bounds,
             options=self._options,
             **self._kwargs,
         )
-        return res.x, res.fun, res.nfev
+        result = OptimizerResult()
+        result.x = raw_result.x
+        result.fun = raw_result.fun
+        result.nfev = raw_result.nfev
+        result.njev = raw_result.get("njev", None)
+        result.nit = raw_result.get("nit", None)
+
+        return result
+
+    def optimize(
+        self,
+        num_vars,
+        objective_function,
+        gradient_function=None,
+        variable_bounds=None,
+        initial_point=None,
+    ):
+        super().optimize(
+            num_vars, objective_function, gradient_function, variable_bounds, initial_point
+        )
+        result = self.minimize(
+            objective_function, initial_point, gradient_function, variable_bounds
+        )
+        return result.x, result.fun, result.nfev
 
     @staticmethod
     def _wrap_gradient(gradient_function):

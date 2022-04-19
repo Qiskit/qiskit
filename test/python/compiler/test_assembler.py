@@ -19,7 +19,7 @@ import sys
 import copy
 
 import numpy as np
-import qiskit.pulse as pulse
+from qiskit import pulse
 from qiskit.circuit import Instruction, Gate, Parameter, ParameterVector
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler.assembler import assemble
@@ -124,6 +124,11 @@ class TestCircuitAssembler(QiskitTestCase):
     def test_shots_not_of_type_int(self):
         """Test assembling with shots having type other than int"""
         self.assertRaises(QiskitError, assemble, self.backend, shots="1024")
+
+    def test_shots_of_type_numpy_int64(self):
+        """Test assembling with shots having type numpy.int64"""
+        qobj = assemble(self.circ, shots=np.int64(2048))
+        self.assertEqual(qobj.config.shots, 2048)
 
     def test_default_shots_greater_than_max_shots(self):
         """Test assembling with default shots greater than max shots"""
@@ -1317,6 +1322,36 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertNotEqual(qobj.config.pulse_library, [])
         qobj_insts = qobj.experiments[0].instructions
         self.assertFalse(hasattr(qobj_insts[0], "pulse_shape"))
+
+    def test_assemble_parametric_pulse_kwarg_with_backend_setting(self):
+        """Test that parametric pulses respect the kwarg over backend"""
+        backend = FakeAlmaden()
+
+        qc = QuantumCircuit(1, 1)
+        qc.x(0)
+        qc.measure(0, 0)
+        with pulse.build(backend, name="x") as x_q0:
+            pulse.play(pulse.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(0))
+
+        qc.add_calibration("x", (0,), x_q0)
+
+        qobj = assemble(qc, backend, parametric_pulses=["gaussian"])
+        self.assertEqual(qobj.config.parametric_pulses, ["gaussian"])
+
+    def test_assemble_parametric_pulse_kwarg_empty_list_with_backend_setting(self):
+        """Test that parametric pulses respect the kwarg as empty list over backend"""
+        backend = FakeAlmaden()
+
+        qc = QuantumCircuit(1, 1)
+        qc.x(0)
+        qc.measure(0, 0)
+        with pulse.build(backend, name="x") as x_q0:
+            pulse.play(pulse.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(0))
+
+        qc.add_calibration("x", (0,), x_q0)
+
+        qobj = assemble(qc, backend, parametric_pulses=[])
+        self.assertEqual(qobj.config.parametric_pulses, [])
 
     def test_init_qubits_default(self):
         """Check that the init_qubits=None assemble option is passed on to the qobj."""

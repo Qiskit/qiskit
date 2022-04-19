@@ -208,3 +208,7 @@ class Counts(UserDict, dict):
             if other.get(k, 0) != v:
                 return False
         return True
+
+      def shots(self):
+        """Return the number of shots"""
+        return sum(self.values())

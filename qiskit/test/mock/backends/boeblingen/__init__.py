@@ -12,5 +12,6 @@
 
 """Mock boeblingen backend"""
 
+from .fake_boeblingen import FakeBoeblingenV2
 from .fake_boeblingen import FakeBoeblingen
 from .fake_boeblingen import FakeLegacyBoeblingen

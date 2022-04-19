@@ -73,3 +73,7 @@ class MissingOptionalLibraryError(QiskitError, ImportError):
     def __str__(self) -> str:
         """Return the message."""
         return repr(self.message)
+
+
+class InvalidFileError(QiskitError):
+    """Raised when the file provided is not valid for the specific task."""

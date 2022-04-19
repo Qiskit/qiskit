@@ -18,6 +18,8 @@ import warnings
 from time import time
 from typing import Union, List, Dict, Optional
 
+import numpy as np
+
 from qiskit.assembler import assemble_circuits, assemble_schedules
 from qiskit.assembler.run_config import RunConfig
 from qiskit.circuit import QuantumCircuit, Qubit, Parameter
@@ -82,6 +84,10 @@ def assemble(
     to create ``Qobj`` "experiments". It further annotates the experiment payload with
     header and configurations.
 
+    NOTE: Backend.options is not used within assemble. The required values
+    (previously given by backend.set_options) should be manually extracted
+    from options and supplied directly when calling.
+
     Args:
         experiments: Circuit(s) or pulse schedule(s) to execute
         backend: If set, some runtime options are automatically grabbed from
@@ -98,7 +104,9 @@ def assemble(
         memory: If ``True``, per-shot measurement bitstrings are returned as well
             (provided the backend supports it). For OpenPulse jobs, only
             measurement level 2 supports this option.
-        max_credits: Maximum credits to spend on job. Default: 10
+        max_credits: DEPRECATED This parameter is deprecated as of
+            Qiskit Terra 0.20.0, and will be removed in a future release. This parameter has
+            no effect on modern IBM Quantum systems, and no alternative is necessary.
         seed_simulator: Random seed to control sampling, for when backend is a simulator
         qubit_lo_freq: List of job level qubit drive LO frequencies in Hz. Overridden by
             ``schedule_los`` if specified. Must have length ``n_qubits.``
@@ -151,8 +159,18 @@ def assemble(
     Raises:
         QiskitError: if the input cannot be interpreted as either circuits or schedules
     """
+    if max_credits is not None:
+        max_credits = None
+        warnings.warn(
+            "The `max_credits` parameter is deprecated as of Qiskit Terra 0.20.0, "
+            "and will be removed in a future release. This parameter has no effect on "
+            "modern IBM Quantum systems, and no alternative is necessary.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
     start_time = time()
     experiments = experiments if isinstance(experiments, list) else [experiments]
+    pulse_qobj = any(isinstance(exp, (ScheduleBlock, Schedule, Instruction)) for exp in experiments)
     qobj_id, qobj_header, run_config_common_dict = _parse_common_args(
         backend,
         qobj_id,
@@ -168,6 +186,7 @@ def assemble(
         qubit_lo_range,
         meas_lo_range,
         schedule_los,
+        pulse_qobj=pulse_qobj,
         **run_config,
     )
 
@@ -233,6 +252,7 @@ def _parse_common_args(
     qubit_lo_range,
     meas_lo_range,
     schedule_los,
+    pulse_qobj=False,
     **run_config,
 ):
     """Resolve the various types of args allowed to the assemble() function through
@@ -268,7 +288,14 @@ def _parse_common_args(
             raise QiskitError(f"memory not supported by backend {backend_config.backend_name}")
 
         # try to set defaults for pulse, other leave as None
-        if backend_config.open_pulse:
+        pulse_param_set = (
+            qubit_lo_freq is not None
+            or meas_lo_freq is not None
+            or qubit_lo_range is not None
+            or meas_lo_range is not None
+            or schedule_los is not None
+        )
+        if pulse_qobj or (backend_config.open_pulse and pulse_param_set):
             try:
                 backend_defaults = backend.defaults()
             except AttributeError:
@@ -296,7 +323,7 @@ def _parse_common_args(
             shots = min(1024, max_shots)
         else:
             shots = 1024
-    elif not isinstance(shots, int):
+    elif not isinstance(shots, (int, np.integer)):
         raise QiskitError("Argument 'shots' should be of type 'int'")
     elif max_shots and max_shots < shots:
         raise QiskitError(
@@ -438,8 +465,8 @@ def _parse_pulse_args(
         if isinstance(rep_time, list):
             rep_time = rep_time[0]
         rep_time = int(rep_time * 1e6)  # convert sec to μs
-
-    parametric_pulses = parametric_pulses or getattr(backend_config, "parametric_pulses", [])
+    if parametric_pulses is None:
+        parametric_pulses = getattr(backend_config, "parametric_pulses", [])
 
     # create run configuration and populate
     run_config_dict = dict(

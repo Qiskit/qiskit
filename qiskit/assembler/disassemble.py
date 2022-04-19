@@ -13,6 +13,7 @@
 """Disassemble function for a qobj into a list of circuits and its config"""
 from typing import Any, Dict, List, NewType, Tuple, Union
 import collections
+import math
 
 from qiskit import pulse
 from qiskit.circuit.classicalregister import ClassicalRegister
@@ -38,6 +39,14 @@ PulseModule = NewType("PulseModule", Tuple[List[pulse.Schedule], Dict[str, Any],
 
 def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
     """Disassemble a qobj and return the circuits or pulse schedules, run_config, and user header.
+
+    .. note::
+
+        ``disassemble(assemble(qc))`` is not guaranteed to produce an exactly equal circuit to the
+        input, due to limitations in the :obj:`.QasmQobj` format that need to be maintained for
+        backend system compatibility.  This is most likely to be the case when using newer features
+        of :obj:`.QuantumCircuit`.  In most cases, the output should be equivalent, if not quite
+        equal.
 
     Args:
         qobj (Qobj): The input qobj object to disassemble
@@ -174,10 +183,27 @@ def _experiments_to_circuits(qobj):
                     mask = [0] * (full_bit_size - len(raw)) + raw
                     raw_map[creg] = mask
                     mask_map[int("".join(str(x) for x in mask), 2)] = creg
-                creg = mask_map[int(i.mask, 16)]
-                conditional["register"] = creg_dict[creg]
+                if bin(int(i.mask, 16)).count("1") == 1:
+                    # The condition is on a single bit.  This might be a single-bit condition, or it
+                    # might be a register of length one.  The case that it's a single-bit condition
+                    # in a register of length one is ambiguous, and we choose to return a condition
+                    # on the register.  This may not match the input circuit exactly, but is at
+                    # least equivalent.
+                    cbit = int(math.log2(int(i.mask, 16)))
+                    for reg in creg_dict.values():
+                        size = reg.size
+                        if cbit >= size:
+                            cbit -= size
+                        else:
+                            conditional["register"] = reg if reg.size == 1 else reg[cbit]
+                            break
+                    mask_str = bin(int(i.mask, 16))[2:].zfill(full_bit_size)
+                    mask = [int(item) for item in list(mask_str)]
+                else:
+                    creg = mask_map[int(i.mask, 16)]
+                    conditional["register"] = creg_dict[creg]
+                    mask = raw_map[creg]
                 val = int(i.val, 16)
-                mask = raw_map[creg]
                 for j in reversed(mask):
                     if j == 0:
                         val = val >> 1

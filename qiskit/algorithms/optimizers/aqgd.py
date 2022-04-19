@@ -13,11 +13,11 @@
 """Analytical Quantum Gradient Descent (AQGD) optimizer."""
 
 import logging
-from typing import Callable, Tuple, List, Dict, Union, Any
+from typing import Callable, Tuple, List, Dict, Union, Any, Optional
 
 import numpy as np
 from qiskit.utils.validation import validate_range_exclusive_max
-from .optimizer import Optimizer, OptimizerSupportLevel
+from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 from ..exceptions import AlgorithmError
 
 logger = logging.getLogger(__name__)
@@ -302,9 +302,20 @@ class AQGD(Optimizer):
         super().optimize(
             num_vars, objective_function, gradient_function, variable_bounds, initial_point
         )
+        result = self.minimize(
+            objective_function, initial_point, gradient_function, variable_bounds
+        )
+        return result.x, result.fun, result.nfev
 
-        params = np.array(initial_point)
-        momentum = np.zeros(shape=(num_vars,))
+    def minimize(
+        self,
+        fun: Callable[[POINT], float],
+        x0: POINT,
+        jac: Optional[Callable[[POINT], POINT]] = None,
+        bounds: Optional[List[Tuple[float, float]]] = None,
+    ) -> OptimizerResult:
+        params = np.asarray(x0)
+        momentum = np.zeros(shape=(params.size,))
         # empty out history of previous objectives/gradients/parameters
         # (in case this object is re-used)
         self._prev_loss = []
@@ -331,13 +342,11 @@ class AQGD(Optimizer):
                     break
 
                 # Calculate objective function and estimate of analytical gradient
-                if gradient_function is None:
-                    objval, gradient = self._compute_objective_fn_and_gradient(
-                        params, objective_function
-                    )
+                if jac is None:
+                    objval, gradient = self._compute_objective_fn_and_gradient(params, fun)
                 else:
-                    objval = objective_function(params)
-                    gradient = gradient_function(params)
+                    objval = fun(params)
+                    gradient = jac(params)
 
                 logger.info(
                     " Iter: %4d | Obj: %11.6f | Grad Norm: %f",
@@ -360,5 +369,10 @@ class AQGD(Optimizer):
             epoch += 1
         # end epoch iteration
 
-        # return last parameter values, objval estimate, and objective evaluation count
-        return params, objval, self._eval_count
+        result = OptimizerResult()
+        result.x = params
+        result.fun = objval
+        result.nfev = self._eval_count
+        result.nit = iter_count
+
+        return result

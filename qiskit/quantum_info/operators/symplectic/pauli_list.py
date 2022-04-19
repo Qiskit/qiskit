@@ -74,7 +74,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         z = np.array([[True, True], [False, False]])
         x = np.array([[False, True], [True, False]])
         phase = np.array([0, 1])
-        pauli_list = PauliList.from_symplectic(z, x)
+        pauli_list = PauliList.from_symplectic(z, x, phase)
         print("4. ", pauli_list)
 
     **Data Access**
@@ -133,10 +133,15 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
     # Representation conversions
     # ---------------------------------------------------------------------
 
+    @property
+    def settings(self):
+        """Return settings."""
+        return {"data": self.to_labels()}
+
     def __array__(self, dtype=None):
         """Convert to numpy array"""
         # pylint: disable=unused-argument
-        shape = (len(self),) + 2 * (2 ** self.num_qubits,)
+        shape = (len(self),) + 2 * (2**self.num_qubits,)
         ret = np.zeros(shape, dtype=complex)
         for i, mat in enumerate(self.matrix_iter()):
             ret[i] = mat
@@ -632,11 +637,6 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         """
         if not isinstance(other, PauliList):
             other = PauliList(other)
-        if len(other) not in [1, len(self)]:
-            raise QiskitError(
-                "Incompatible PauliLists. Other list must "
-                "have either 1 or the same number of Paulis."
-            )
         return PauliList(super().tensor(other))
 
     def expand(self, other):
@@ -723,7 +723,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
                                   (Default: None)
 
         Returns:
-            PauliList: the concatinated list self + other.
+            PauliList: the concatenated list self + other.
         """
         if qargs is None:
             qargs = getattr(other, "qargs", None)
@@ -741,9 +741,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         else:
             # Pad other with identity and then add
             padded = BasePauli(
-                np.zeros((self.size, self.num_qubits), dtype=bool),
-                np.zeros((self.size, self.num_qubits), dtype=bool),
-                np.zeros(self.size, dtype=int),
+                np.zeros((other.size, self.num_qubits), dtype=bool),
+                np.zeros((other.size, self.num_qubits), dtype=bool),
+                np.zeros(other.size, dtype=int),
             )
             padded = padded.compose(other, qargs=qargs, inplace=True)
             base_z = np.vstack([self._z, padded._z])
@@ -867,14 +867,18 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             inds = inds[new_inds]
         return inds
 
-    def evolve(self, other, qargs=None):
+    def evolve(self, other, qargs=None, frame="h"):
         r"""Evolve the Pauli by a Clifford.
 
         This returns the Pauli :math:`P^\prime = C.P.C^\dagger`.
 
+        By choosing the parameter frame='s', this function returns the Schrödinger evolution of the Pauli
+        :math:`P^\prime = C.P.C^\dagger`. This option yields a faster calculation.
+
         Args:
             other (Pauli or Clifford or QuantumCircuit): The Clifford operator to evolve by.
             qargs (list): a list of qubits to apply the Clifford to.
+            frame (string): 'h' for Heisenberg or 's' for Schrödinger framework.
 
         Returns:
             Pauli: the Pauli :math:`C.P.C^\dagger`.
@@ -892,7 +896,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             # Convert to a PauliList
             other = PauliList(other)
 
-        return PauliList(super().evolve(other, qargs=qargs))
+        return PauliList(super().evolve(other, qargs=qargs, frame=frame))
 
     def to_labels(self, array=False):
         r"""Convert a PauliList to a list Pauli string labels.
@@ -985,7 +989,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         # For efficiency we also allow returning a single rank-3
         # array where first index is the Pauli row, and second two
         # indices are the matrix indices
-        dim = 2 ** self.num_qubits
+        dim = 2**self.num_qubits
         ret = np.zeros((self.size, dim, dim), dtype=complex)
         iterator = self.matrix_iter(sparse=sparse)
         for i in range(self.size):

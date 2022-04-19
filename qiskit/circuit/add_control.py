@@ -52,7 +52,7 @@ def add_control(
 
     """
     if ctrl_state is None:
-        ctrl_state = 2 ** num_ctrl_qubits - 1
+        ctrl_state = 2**num_ctrl_qubits - 1
     if isinstance(operation, UnitaryGate):
         # attempt decomposition
         operation._define()
@@ -91,7 +91,7 @@ def control(
     from math import pi
 
     # pylint: disable=cyclic-import
-    import qiskit.circuit.controlledgate as controlledgate
+    from qiskit.circuit import controlledgate
 
     q_control = QuantumRegister(num_ctrl_qubits, name="control")
     q_target = QuantumRegister(operation.num_qubits, name="target")

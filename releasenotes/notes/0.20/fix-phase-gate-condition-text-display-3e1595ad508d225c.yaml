@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed an issue with the ``text`` backend for the circuit drawer function
+    :func:`~.circuit_drawer` and the :meth:`.QuantumCircuit.draw` method
+    when gates that use side text, such as the :class:`~.CPhaseGate` and
+    :class:`~.RZZGate` gate classes, with classical conditions set would not
+    display properly.
+    Fixed `#7532 <https://github.com/Qiskit/qiskit-terra/issues/7532>`__.

@@ -229,6 +229,12 @@ class TestPauliListInit(QiskitTestCase):
             value[0] = "II"
             self.assertEqual(value, target)
 
+    def test_init_from_settings(self):
+        """Test initializing from the settings dictionary."""
+        pauli_list = PauliList(["IX", "-iYZ", "YY"])
+        from_settings = PauliList(**pauli_list.settings)
+        self.assertEqual(pauli_list, from_settings)
+
 
 @ddt
 class TestPauliListProperties(QiskitTestCase):
@@ -338,6 +344,7 @@ class TestPauliListProperties(QiskitTestCase):
         """Test add method with qargs."""
         pauli1 = PauliList(["IIII", "YYYY"])
         pauli2 = PauliList(["XY", "YZ"])
+        pauli3 = PauliList(["X", "Y", "Z"])
 
         with self.subTest(msg="qargs=[0, 1]"):
             target = PauliList(["IIII", "YYYY", "IIXY", "IIYZ"])
@@ -354,6 +361,22 @@ class TestPauliListProperties(QiskitTestCase):
         with self.subTest(msg="qargs=[3, 1]"):
             target = PauliList(["IIII", "YYYY", "YIXI", "ZIYI"])
             self.assertEqual(pauli1 + pauli2([3, 1]), target)
+
+        with self.subTest(msg="qargs=[0]"):
+            target = PauliList(["IIII", "YYYY", "IIIX", "IIIY", "IIIZ"])
+            self.assertEqual(pauli1 + pauli3([0]), target)
+
+        with self.subTest(msg="qargs=[1]"):
+            target = PauliList(["IIII", "YYYY", "IIXI", "IIYI", "IIZI"])
+            self.assertEqual(pauli1 + pauli3([1]), target)
+
+        with self.subTest(msg="qargs=[2]"):
+            target = PauliList(["IIII", "YYYY", "IXII", "IYII", "IZII"])
+            self.assertEqual(pauli1 + pauli3([2]), target)
+
+        with self.subTest(msg="qargs=[3]"):
+            target = PauliList(["IIII", "YYYY", "XIII", "YIII", "ZIII"])
+            self.assertEqual(pauli1 + pauli3([3]), target)
 
     def test_getitem_methods(self):
         """Test __getitem__ method."""
@@ -1964,8 +1987,16 @@ class TestPauliListMethods(QiskitTestCase):
         op = Operator(gate)
         pauli_list = PauliList(pauli_group_labels(1, True))
         value = [Operator(pauli) for pauli in pauli_list.evolve(gate)]
+        value_h = [Operator(pauli) for pauli in pauli_list.evolve(gate, frame="h")]
+        value_s = [Operator(pauli) for pauli in pauli_list.evolve(gate, frame="s")]
+        if isinstance(gate, Clifford):
+            value_inv = [Operator(pauli) for pauli in pauli_list.evolve(gate.adjoint())]
+        else:
+            value_inv = [Operator(pauli) for pauli in pauli_list.evolve(gate.inverse())]
         target = [op.adjoint().dot(pauli).dot(op) for pauli in pauli_list]
         self.assertListEqual(value, target)
+        self.assertListEqual(value, value_h)
+        self.assertListEqual(value_inv, value_s)
 
     @combine(
         gate=(
@@ -1984,8 +2015,16 @@ class TestPauliListMethods(QiskitTestCase):
         op = Operator(gate)
         pauli_list = PauliList(pauli_group_labels(2, True))
         value = [Operator(pauli) for pauli in pauli_list.evolve(gate)]
+        value_h = [Operator(pauli) for pauli in pauli_list.evolve(gate, frame="h")]
+        value_s = [Operator(pauli) for pauli in pauli_list.evolve(gate, frame="s")]
+        if isinstance(gate, Clifford):
+            value_inv = [Operator(pauli) for pauli in pauli_list.evolve(gate.adjoint())]
+        else:
+            value_inv = [Operator(pauli) for pauli in pauli_list.evolve(gate.inverse())]
         target = [op.adjoint().dot(pauli).dot(op) for pauli in pauli_list]
         self.assertListEqual(value, target)
+        self.assertListEqual(value, value_h)
+        self.assertListEqual(value_inv, value_s)
 
     @combine(phase=(True, False))
     def test_evolve_clifford_qargs(self, phase):
@@ -1995,11 +2034,16 @@ class TestPauliListMethods(QiskitTestCase):
         pauli_list = random_pauli_list(5, 3, seed=10, phase=phase)
         qargs = [3, 0, 1]
         value = [Operator(pauli) for pauli in pauli_list.evolve(cliff, qargs=qargs)]
+        value_inv = [Operator(pauli) for pauli in pauli_list.evolve(cliff.adjoint(), qargs=qargs)]
+        value_h = [Operator(pauli) for pauli in pauli_list.evolve(cliff, qargs=qargs, frame="h")]
+        value_s = [Operator(pauli) for pauli in pauli_list.evolve(cliff, qargs=qargs, frame="s")]
         target = [
             Operator(pauli).compose(op.adjoint(), qargs=qargs).dot(op, qargs=qargs)
             for pauli in pauli_list
         ]
         self.assertListEqual(value, target)
+        self.assertListEqual(value, value_h)
+        self.assertListEqual(value_inv, value_s)
 
     def test_group_qubit_wise_commuting(self):
         """Test grouping qubit-wise commuting operators"""
