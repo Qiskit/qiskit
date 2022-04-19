@@ -25,3 +25,9 @@ fixes:
   - |
     Time misalignment bug of drawing classical register with :func:`~timeline_drawer`
     has been fixed. Now classical register slots are drawn at correct position.
+deprecations:
+  - |
+    Calling :func:`~timeline_drawer` with unscheduled circuit has been deprecated.
+    All circuits, e.g. even though one consisting only of delay instructions,
+    must be transpiled with ``scheduling_method`` option to generate
+    schedule information being stored in :attr:`QuantumCircuit.op_start_times`.
