@@ -119,7 +119,7 @@ Standard Directives
     by ``qiskit.circuit``.
 
 Directives are operations to the quantum stack that are meant to be interpreted by the backend or
-the transpiler. In general, they transpiler or backend might optionally ignore them if there is no
+the transpiler. In general, the transpiler or backend might optionally ignore them if there is no
 implementation for them.
 
 .. autosummary::
