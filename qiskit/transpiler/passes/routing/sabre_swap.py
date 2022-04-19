@@ -18,7 +18,6 @@ from copy import copy, deepcopy
 import numpy as np
 
 from qiskit.circuit.library.standard_gates import SwapGate
-from qiskit.circuit.quantumregister import Qubit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout

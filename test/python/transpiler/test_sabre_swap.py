@@ -13,7 +13,7 @@
 """Test the Sabre Swap pass"""
 
 import unittest
-from qiskit.circuit.library import CCXGate, HGate
+from qiskit.circuit.library import CCXGate, HGate, Measure
 from qiskit.transpiler.passes import SabreSwap
 from qiskit.transpiler import CouplingMap, PassManager
 from qiskit import QuantumRegister, QuantumCircuit
@@ -116,6 +116,8 @@ class TestSabreSwap(QiskitTestCase):
         self.assertIsInstance(last_h, HGate)
         first_measure, first_measure_qubits, _ = transpiled.data[-2]
         second_measure, second_measure_qubits, _ = transpiled.data[-1]
+        self.assertIsInstance(first_measure, Measure)
+        self.assertIsInstance(second_measure, Measure)
         # Assert that the first measure is on the same qubit that the HGate was applied to, and the
         # second measurement is on a different qubit (though we don't care which exactly - that
         # depends a little on the randomisation of the pass).
