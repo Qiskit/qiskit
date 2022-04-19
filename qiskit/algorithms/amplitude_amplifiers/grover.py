@@ -29,6 +29,14 @@ from .amplitude_amplifier import AmplitudeAmplifier, AmplitudeAmplifierResult
 class Grover(AmplitudeAmplifier):
     r"""Grover's Search algorithm.
 
+    .. note::
+
+        If you want to learn more about the theory behind Grover's Search algorithm, check
+        out the `Qiskit Textbook <https://qiskit.org/textbook/ch-algorithms/grover.html>`_.
+        or the `Qiskit Tutorials
+        <https://qiskit.org/documentation/tutorials/algorithms/07_grover_examples.html>`_
+        for more concrete how-to examples.
+
     Grover's Search [1, 2] is a well known quantum algorithm that can be used for
     searching through unstructured collections of records for particular targets
     with quadratic speedup compared to classical algorithms.
@@ -97,7 +105,6 @@ class Grover(AmplitudeAmplifier):
         [3]: Brassard, G., Hoyer, P., Mosca, M., & Tapp, A. (2000).
             Quantum Amplitude Amplification and Estimation.
             `arXiv:quant-ph/0005055 <http://arxiv.org/abs/quant-ph/0005055>`_.
-
     """
 
     def __init__(
