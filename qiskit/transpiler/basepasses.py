@@ -144,7 +144,7 @@ class BasePass(metaclass=MetaPass):
             start_times = self.property_set["node_start_time"]
             for dag_node in result.topological_op_nodes():
                 topological_start_times.append(start_times[dag_node])
-            result_circuit._op_start_times = self.property_set["node_start_time"]
+            result_circuit._op_start_times = topological_start_times
 
         return result_circuit
 
