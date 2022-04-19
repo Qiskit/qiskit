@@ -275,7 +275,14 @@ class SabreSwap(TransformationPass):
         self.qubits_decay = {k: 1 for k in self.qubits_decay.keys()}
 
     def _successors(self, node, dag):
-        return filter(lambda successor: isinstance(successor, DAGOpNode), dag.successors(node))
+        """Return an iterable of the successors along each wire from the given node.
+
+        This yields the same successor multiple times if there are parallel wires (e.g. two adjacent
+        operations that have one clbit and qubit in common), which is important in the swapping
+        algorithm for detecting if each wire has been accounted for."""
+        for _, successor, _ in dag.edges(node):
+            if isinstance(successor, DAGOpNode):
+                yield successor
 
     def _is_resolved(self, node):
         """Return True if all of a node's predecessors in dag are applied."""
