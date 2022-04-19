@@ -71,7 +71,7 @@ class XXPlusYYGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        R_{XX+YY}(\theta, \beta)\ q_0, q_1 =
+        R_{XX+YY}(\theta, \beta)\ q_1, q_0 =
           RZ_0(-\beta) \cdot \exp\left(i \frac{\theta}{2} \frac{XX+YY}{2}\right) \cdot RZ_0(\beta) =
             \begin{pmatrix}
                 1 & 0                     & 0                    & 0  \\
