@@ -52,6 +52,8 @@ def qs_decomposition(mat, opt_a1=True, decomposer_1q=None, decomposer_2q=None):
 
         \frac{1}{3} 4^{n - 2} - 1
 
+    This decomposition is described in arXiv:quant-ph/0406176.
+
     Arguments:
        mat (ndarray): unitary matrix to decompose
        opt_a1 (bool): whether to try optimization A.1 from Shende. This should elliminate 1 cnot
