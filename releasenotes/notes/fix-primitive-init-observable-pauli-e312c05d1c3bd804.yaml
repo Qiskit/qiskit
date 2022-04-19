@@ -1,6 +1,6 @@
 ---
 fixes:
   - |
-    Fixes the bug that take exponential time and does not terminate when
-    :class:`~qiskit.quantum_info.Pauli` is input to
+    Fixed a bug that could result in exponential runtime and nontermination when
+    a :class:`~qiskit.quantum_info.Pauli` instance is given to method
     :meth:`~qiskit.primitives.utils.init_observables`.
