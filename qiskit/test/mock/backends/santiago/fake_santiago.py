@@ -36,13 +36,3 @@ class FakeSantiago(fake_pulse_backend.FakePulseBackend):
     props_filename = "props_santiago.json"
     defs_filename = "defs_santiago.json"
     backend_name = "fake_santiago"
-
-
-class FakeLegacySantiago(fake_pulse_backend.FakePulseLegacyBackend):
-    """A fake Santiago backend."""
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_santiago.json"
-    props_filename = "props_santiago.json"
-    defs_filename = "defs_santiago.json"
-    backend_name = "fake_santiago"

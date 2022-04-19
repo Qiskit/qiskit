@@ -24,7 +24,6 @@ from qiskit.assembler import assemble_circuits, assemble_schedules
 from qiskit.assembler.run_config import RunConfig
 from qiskit.circuit import QuantumCircuit, Qubit, Parameter
 from qiskit.exceptions import QiskitError
-from qiskit.providers import BaseBackend
 from qiskit.providers.backend import Backend
 from qiskit.pulse import LoConfig, Instruction
 from qiskit.pulse import Schedule, ScheduleBlock
@@ -50,7 +49,7 @@ def assemble(
         ScheduleBlock,
         List[ScheduleBlock],
     ],
-    backend: Optional[Union[Backend, BaseBackend]] = None,
+    backend: Optional[Backend] = None,
     qobj_id: Optional[str] = None,
     qobj_header: Optional[Union[QobjHeader, Dict]] = None,
     shots: Optional[int] = None,
