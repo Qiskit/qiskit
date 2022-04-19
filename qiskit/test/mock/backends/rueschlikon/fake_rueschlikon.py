@@ -16,6 +16,7 @@ Fake Reuschlikon device (16 qubit).
 
 from qiskit.providers.models import GateConfig, QasmBackendConfiguration
 from qiskit.test.mock.fake_backend import FakeBackend, FakeLegacyBackend
+import warnings
 
 
 class FakeRueschlikon(FakeBackend):
@@ -67,6 +68,8 @@ class FakeRueschlikon(FakeBackend):
             gates=[GateConfig(name="TODO", parameters=[], qasm_def="TODO")],
             coupling_map=cmap,
         )
+
+        warnings.warn("FakeRueschlikon does not provide noise information")
 
         super().__init__(configuration)
 
