@@ -275,10 +275,7 @@ class SabreSwap(TransformationPass):
         self.qubits_decay = {k: 1 for k in self.qubits_decay.keys()}
 
     def _successors(self, node, dag):
-        for _, successor, _ in dag.edges(node):
-            if not isinstance(successor, DAGOpNode):
-                continue
-            yield successor
+        return filter(lambda successor: isinstance(successor, DAGOpNode), dag.successors(node))
 
     def _is_resolved(self, node):
         """Return True if all of a node's predecessors in dag are applied."""
