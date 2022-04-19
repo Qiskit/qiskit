@@ -20,8 +20,8 @@ from qiskit.transpiler.passes.scheduling.scheduling.base_scheduler import BaseSc
 class ASAPScheduleAnalysis(BaseScheduler):
     """ASAP Scheduling pass, which schedules the start time of instructions as early as possible..
 
-    See :class:`~qiskit.transpiler.passes.scheduling.base_scheduler.BaseScheduler` for the
-    detailed behavior of the control flow operation, i.e. ``c_if``.
+    See Scheduling section in :ref:`transpiler_supplemental` for
+    the detailed behavior of the control flow operation, i.e. ``c_if``.
     """
 
     def run(self, dag):
