@@ -87,7 +87,7 @@ def qs_decomposition(mat, opt_a1=True, decomposer_1q=None, decomposer_2q=None):
         # perform cosine-sine decomposition
         (u1, u2), vtheta, (v1h, v2h) = scipy.linalg.cossin(mat, separate=True, p=dim_o2, q=dim_o2)
         # left circ
-        left_circ = demultiplex(v1h, v2h, opt_a1=opt_a1)
+        left_circ = _demultiplex(v1h, v2h, opt_a1=opt_a1)
         circ.append(left_circ.to_instruction(), qr)
         # middle circ
         if opt_a1:
@@ -101,13 +101,13 @@ def qs_decomposition(mat, opt_a1=True, decomposer_1q=None, decomposer_2q=None):
         else:
             circ.ucry((2 * vtheta).tolist(), qr[:-1], qr[-1])
         # right circ
-        right_circ = demultiplex(u1, u2, opt_a1=opt_a1)
+        right_circ = _demultiplex(u1, u2, opt_a1=opt_a1)
         circ.append(right_circ.to_instruction(), qr)
 
     return circ
 
 
-def demultiplex(um0, um1, opt_a1=False):
+def _demultiplex(um0, um1, opt_a1=False):
     """decomposes a generic multiplexer.
 
           ────□────
