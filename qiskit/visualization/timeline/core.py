@@ -136,6 +136,7 @@ class DrawerCanvas:
             data.bits = [b for b in data.bits if not isinstance(b, circuit.Clbit)]
         self._collections[data.data_key] = data
 
+    # pylint: disable=cyclic-import
     def load_program(self, program: circuit.QuantumCircuit):
         """Load quantum circuit and create drawing..
 
@@ -149,7 +150,7 @@ class DrawerCanvas:
 
         if getattr(program, "_op_start_times") is None:
             # Run scheduling for backward compatibility
-            from qiskit.compiler import transpile
+            from qiskit import transpile
             from qiskit.transpiler import InstructionDurations, TranspilerError
 
             warnings.warn(
