@@ -12,10 +12,9 @@
 
 """Unroll a circuit to a given basis."""
 
-import copy
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import ControlledGate, ControlFlowOp, QuantumCircuit
+from qiskit.circuit import ControlledGate, ControlFlowOp
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
 

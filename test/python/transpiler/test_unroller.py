@@ -22,7 +22,7 @@ from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import Parameter, Qubit, Clbit, ControlFlowOp
+from qiskit.circuit import Parameter, Qubit, Clbit
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate
 
 
@@ -405,7 +405,6 @@ class TestUnroller(QiskitTestCase):
             qc.rx(param, 0)
         dag = circuit_to_dag(qc)
         unrolled_dag = Unroller(["u", "cx"]).run(dag)
-        unrolled_circ = dag_to_circuit(unrolled_dag)
 
         expected = QuantumCircuit(1)
         with expected.for_loop((0, 0.5 * pi), index) as param:

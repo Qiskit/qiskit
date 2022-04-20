@@ -13,7 +13,6 @@
 "Circuit operation representing a ``while`` loop."
 
 from typing import Optional, Tuple, Union
-from copy import copy
 
 from qiskit.circuit import Clbit, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
