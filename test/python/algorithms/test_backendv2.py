@@ -13,10 +13,10 @@
 """ Test Providers that support BackendV2 interface """
 
 import unittest
+from qiskit.test.mock.backends.manila.fake_manila import FakeManilaV2
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import QuantumCircuit
 from qiskit.test.mock import FakeProvider
-from qiskit.test.mock.fake_backend_v2 import FakeBackendSimple
 from qiskit.utils import QuantumInstance
 from qiskit.algorithms import Shor, VQE, Grover, AmplificationProblem
 from qiskit.opflow import X, Z, I
@@ -30,7 +30,7 @@ class TestBackendV2(QiskitAlgorithmsTestCase):
     def setUp(self):
         super().setUp()
         self._provider = FakeProvider()
-        self._qasm = FakeBackendSimple()
+        self._qasm = FakeManilaV2()
         self.seed = 50
 
     def test_shor_factoring(self):

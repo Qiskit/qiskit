@@ -14,7 +14,6 @@
 # pylint: disable=missing-module-docstring
 
 import math
-from qiskit.test.mock.backends.manila.fake_manila import FakeManilaV2
 
 from test import combine
 
@@ -27,7 +26,6 @@ from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.test.base import QiskitTestCase
 from qiskit.providers.fake_provider import FakeManilaV2
 from qiskit.test.mock.fake_backend_v2 import (
-    FakeBackendSimple,
     FakeBackendV2LegacyQubitProps,
 )
 from qiskit.test.mock.fake_mumbai_v2 import FakeMumbaiFractionalCX
@@ -68,7 +66,7 @@ class TestBackendV2(QiskitTestCase):
     def test_no_qubit_properties_raises(self):
         """Ensure that if no qubit properties are defined we raise correctly."""
         with self.assertRaises(NotImplementedError):
-            FakeBackendSimple().qubit_properties(0)
+            FakeManilaV2().qubit_properties(0)
 
     def test_option_bounds(self):
         """Test that option bounds are enforced."""
