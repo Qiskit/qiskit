@@ -38,13 +38,13 @@ from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler import Target
 from qiskit.transpiler import InstructionProperties
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock.fake_backend_v2 import FakeBackendV2
+from qiskit.providers.fake_provider import FakeManilaV2
 
 
 class TestTarget(QiskitTestCase):
     def setUp(self):
         super().setUp()
-        self.fake_backend = FakeBackendV2()
+        self.fake_backend = FakeManilaV2()
         self.fake_backend_target = self.fake_backend.target
         self.theta = Parameter("theta")
         self.phi = Parameter("phi")

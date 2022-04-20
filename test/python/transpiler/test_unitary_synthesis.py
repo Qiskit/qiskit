@@ -24,7 +24,8 @@ from ddt import ddt, data
 
 from qiskit import transpile
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeVigo, FakeBackend5QV2, FakeBackendV2, FakeMumbaiFractionalCX
+from qiskit.test.mock import FakeVigo, FakeBackend5QV2, FakeMumbaiFractionalCX
+from qiskit.providers.fake_provider import FakeManilaV2
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import QuantumVolume
 from qiskit.converters import circuit_to_dag
@@ -665,7 +666,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)
         circ.append(random_unitary(4, seed=1), [1, 0])
-        backend = FakeBackendV2()
+        backend = FakeManilaV2()
         tqc = transpile(
             circ,
             backend=backend,

@@ -14,6 +14,7 @@
 # pylint: disable=missing-module-docstring
 
 import math
+from qiskit.test.mock.backends.manila.fake_manila import FakeManilaV2
 
 from test import combine
 
@@ -24,8 +25,8 @@ from qiskit.compiler import transpile
 from qiskit.compiler.transpiler import _parse_inst_map
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.test.base import QiskitTestCase
+from qiskit.providers.fake_provider import FakeManilaV2
 from qiskit.test.mock.fake_backend_v2 import (
-    FakeBackendV2,
     FakeBackend5QV2,
     FakeBackendSimple,
     FakeBackendV2LegacyQubitProps,
@@ -38,7 +39,7 @@ from qiskit.quantum_info import Operator
 class TestBackendV2(QiskitTestCase):
     def setUp(self):
         super().setUp()
-        self.backend = FakeBackendV2()
+        self.backend = FakeManilaV2()
 
     def assertMatchesTargetConstraints(self, tqc, target):
         qubit_indices = {qubit: index for index, qubit in enumerate(tqc.qubits)}
