@@ -3,4 +3,4 @@ fixes:
   - |
     Fixed parameter validation for class :class:`~Drag`. Previously, it was not
     sensitive to large beta values with negative signs, which may have resulted in
-    waveform samples with a maximum value exceeing the amplitude limit of 1.0.
+    waveform samples with a maximum value exceeding the amplitude limit of 1.0.
