@@ -13,7 +13,7 @@
 """ Test Providers that support BackendV2 interface """
 
 import unittest
-from qiskit.test.mock.backends.manila.fake_manila import FakeManilaV2
+from qiskit.providers.fake_provider import FakeManilaV2
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import QuantumCircuit
 from qiskit.test.mock import FakeProvider

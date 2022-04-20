@@ -16,7 +16,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import HGate, CXGate, UGate
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary
-from qiskit.test.mock.backends.manila.fake_manila import FakeManilaV2
+from qiskit.providers.fake_provider import FakeManilaV2
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import GatesInBasis
