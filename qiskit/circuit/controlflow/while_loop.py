@@ -112,6 +112,12 @@ class WhileLoopOp(ControlFlowOp):
             raise CircuitError("WhileLoopOp expects a single QuantumCircuit when setting blocks")
         return WhileLoopOp(self.condition, body, label=self.label)
 
+    def replace_blocks(self, blocks):
+        (body,) = blocks
+        if not isinstance(body, QuantumCircuit):
+            raise CircuitError("WhileLoopOp expects a single QuantumCircuit when setting blocks")
+        return WhileLoopOp(self.condition, body, label=self.label)
+
     def c_if(self, classical, val):
         raise NotImplementedError(
             "WhileLoopOp cannot be classically controlled through Instruction.c_if. "

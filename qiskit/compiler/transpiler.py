@@ -22,7 +22,6 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.converters import isinstanceint, isinstancelist, dag_to_circuit, circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.providers import BaseBackend
 from qiskit.providers.backend import Backend
 from qiskit.providers.models import BackendProperties
 from qiskit.providers.models.backendproperties import Gate
@@ -48,7 +47,7 @@ logger = logging.getLogger(__name__)
 
 def transpile(
     circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-    backend: Optional[Union[Backend, BaseBackend]] = None,
+    backend: Optional[Backend] = None,
     basis_gates: Optional[List[str]] = None,
     inst_map: Optional[List[InstructionScheduleMap]] = None,
     coupling_map: Optional[Union[CouplingMap, List[List[int]]]] = None,
@@ -327,8 +326,6 @@ def _check_circuits_coupling_map(circuits, transpile_args, backend):
         # If coupling_map is None, the limit might be in the backend (like in 1Q devices)
         elif backend is not None:
             backend_version = getattr(backend, "version", 0)
-            if not isinstance(backend_version, int):
-                backend_version = 0
             if backend_version <= 1:
                 if not backend.configuration().simulator:
                     max_qubits = backend.configuration().n_qubits
@@ -611,8 +608,6 @@ def _create_faulty_qubits_map(backend):
     faulty_qubits_map = None
     if backend is not None:
         backend_version = getattr(backend, "version", 0)
-        if not isinstance(backend_version, int):
-            backend_version = 0
         if backend_version > 1:
             return None
         if backend.properties():
@@ -647,8 +642,6 @@ def _parse_basis_gates(basis_gates, backend, circuits):
     # try getting basis_gates from user, else backend
     if basis_gates is None:
         backend_version = getattr(backend, "version", 0)
-        if not isinstance(backend_version, int):
-            backend_version = 0
         if backend_version <= 1:
             if getattr(backend, "configuration", None):
                 basis_gates = getattr(backend.configuration(), "basis_gates", None)
@@ -666,9 +659,12 @@ def _parse_basis_gates(basis_gates, backend, circuits):
 def _parse_inst_map(inst_map, backend, num_circuits):
     # try getting inst_map from user, else backend
     if inst_map is None:
-        if hasattr(backend, "defaults"):
-            inst_map = getattr(backend.defaults(), "instruction_schedule_map", None)
-
+        backend_version = getattr(backend, "version", 0)
+        if backend_version <= 1:
+            if hasattr(backend, "defaults"):
+                inst_map = getattr(backend.defaults(), "instruction_schedule_map", None)
+        else:
+            inst_map = backend.target.instruction_schedule_map()
     # inst_maps could be None, or single entry
     if inst_map is None or isinstance(inst_map, InstructionScheduleMap):
         inst_map = [inst_map] * num_circuits
@@ -680,8 +676,6 @@ def _parse_coupling_map(coupling_map, backend, num_circuits):
     # try getting coupling_map from user, else backend
     if coupling_map is None:
         backend_version = getattr(backend, "version", 0)
-        if not isinstance(backend_version, int):
-            backend_version = 0
         if backend_version <= 1:
             if getattr(backend, "configuration", None):
                 configuration = backend.configuration()
@@ -804,9 +798,7 @@ def _target_to_backend_properties(target: Target):
 def _parse_backend_properties(backend_properties, backend, num_circuits):
     # try getting backend_properties from user, else backend
     if backend_properties is None:
-        backend_version = getattr(backend, "version", None)
-        if not isinstance(backend_version, int):
-            backend_version = 0
+        backend_version = getattr(backend, "version", 0)
         if backend_version <= 1:
             if getattr(backend, "properties", None):
                 backend_properties = backend.properties()
@@ -849,8 +841,6 @@ def _parse_backend_num_qubits(backend, num_circuits):
         return [None] * num_circuits
     if not isinstance(backend, list):
         backend_version = getattr(backend, "version", 0)
-        if not isinstance(backend_version, int):
-            backend_version = 0
         if backend_version <= 1:
             return [backend.configuration().n_qubits] * num_circuits
         else:
@@ -858,8 +848,6 @@ def _parse_backend_num_qubits(backend, num_circuits):
     backend_num_qubits = []
     for a_backend in backend:
         backend_version = getattr(backend, "version", 0)
-        if not isinstance(backend_version, int):
-            backend_version = 0
         if backend_version <= 1:
             backend_num_qubits.append(a_backend.configuration().n_qubits)
         else:
@@ -1060,8 +1048,6 @@ def _parse_timing_constraints(backend, timing_constraints, num_circuits):
         timing_constraints = TimingConstraints()
     else:
         backend_version = getattr(backend, "version", 0)
-        if not isinstance(backend_version, int):
-            backend_version = 0
         if backend_version <= 1:
             if timing_constraints is None:
                 # get constraints from backend

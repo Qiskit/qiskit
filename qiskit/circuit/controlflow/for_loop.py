@@ -117,21 +117,8 @@ class ForLoopOp(ControlFlowOp):
     def blocks(self):
         return (self._params[2],)
 
-    def replace_blocks(self, blocks: Iterable[QuantumCircuit]) -> "ForLoopOp":
-        """Return new instruction with replaced blocks.
-
-        Args:
-            blocks: Single element list of QuantumCircuit.
-
-        Raises:
-            CircuitError: not passing list of QuantumCircuit as argument
-
-        Returns:
-            ForLoopOp: new instruction with supplied block.
-        """
+    def replace_blocks(self, blocks):
         (body,) = blocks
-        if not isinstance(body, QuantumCircuit):
-            raise CircuitError("ForLoopOp expects a single QuantumCircuit when setting blocks")
         return ForLoopOp(self.params[0], self.params[1], body, label=self.label)
 
 

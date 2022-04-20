@@ -896,3 +896,48 @@ class TestOptimizationWithCondition(QiskitTestCase):
         qc.cx(1, 0)
         circ = transpile(qc, basis_gates=["u3", "cz"])
         self.assertIsInstance(circ, QuantumCircuit)
+
+
+@ddt
+class TestOptimizationOnSize(QiskitTestCase):
+    """Test the optimization levels for optimization based on
+    both size and depth of the circuit.
+    See https://github.com/Qiskit/qiskit-terra/pull/7542
+    """
+
+    @data(2, 3)
+    def test_size_optimization(self, level):
+        """Test the levels for optimization based on size of circuit"""
+        qc = QuantumCircuit(8)
+        qc.cx(1, 2)
+        qc.cx(2, 3)
+        qc.cx(5, 4)
+        qc.cx(6, 5)
+        qc.cx(4, 5)
+        qc.cx(3, 4)
+        qc.cx(5, 6)
+        qc.cx(5, 4)
+        qc.cx(3, 4)
+        qc.cx(2, 3)
+        qc.cx(1, 2)
+        qc.cx(6, 7)
+        qc.cx(6, 5)
+        qc.cx(5, 4)
+        qc.cx(7, 6)
+        qc.cx(6, 7)
+
+        circ = transpile(qc, optimization_level=level).decompose()
+
+        circ_data = circ.data
+        free_qubits = set([0, 1, 2, 3])
+
+        # ensure no gates are using qubits - [0,1,2,3]
+        for gate in circ_data:
+            qubits = gate[1]
+            indices = {circ.find_bit(qubit).index for qubit in qubits}
+            common = indices.intersection(free_qubits)
+            for common_qubit in common:
+                self.assertTrue(common_qubit not in free_qubits)
+
+        self.assertLess(circ.size(), qc.size())
+        self.assertLessEqual(circ.depth(), qc.depth())
