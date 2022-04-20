@@ -42,12 +42,13 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
+from qiskit.circuit.operation import Operation
 from .tools import pi_check
 
 _CUTOFF_PRECISION = 1e-10
 
 
-class Instruction:
+class Instruction(Operation):
     """Generic quantum instruction."""
 
     # Class attribute to treat like barrier for transpiler, unroller, drawer

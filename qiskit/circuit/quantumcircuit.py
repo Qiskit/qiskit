@@ -52,6 +52,7 @@ from .classicalregister import ClassicalRegister, Clbit
 from .parametertable import ParameterTable, ParameterView
 from .parametervector import ParameterVector, ParameterVectorElement
 from .instructionset import InstructionSet
+from .operation import Operation
 from .register import Register
 from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData
@@ -1160,7 +1161,7 @@ class QuantumCircuit:
 
     def append(
         self,
-        instruction: Instruction,
+        instruction: Operation,
         qargs: Optional[Sequence[QubitSpecifier]] = None,
         cargs: Optional[Sequence[ClbitSpecifier]] = None,
     ) -> InstructionSet:
@@ -1180,20 +1181,20 @@ class QuantumCircuit:
             CircuitError: if object passed is neither subclass nor an instance of Instruction
         """
         # Convert input to instruction
-        if not isinstance(instruction, Instruction) and not hasattr(instruction, "to_instruction"):
-            if issubclass(instruction, Instruction):
+        if not isinstance(instruction, Operation) and not hasattr(instruction, "to_instruction"):
+            if issubclass(instruction, Operation):
                 raise CircuitError(
-                    "Object is a subclass of Instruction, please add () to "
+                    "Object is a subclass of Operation, please add () to "
                     "pass an instance of this object."
                 )
 
             raise CircuitError(
-                "Object to append must be an Instruction or have a to_instruction() method."
+                "Object to append must be an Operation or have a to_instruction() method."
             )
-        if not isinstance(instruction, Instruction) and hasattr(instruction, "to_instruction"):
+        if not isinstance(instruction, Operation) and hasattr(instruction, "to_instruction"):
             instruction = instruction.to_instruction()
-        if not isinstance(instruction, Instruction):
-            raise CircuitError("object is not an Instruction.")
+        if not isinstance(instruction, Operation):
+            raise CircuitError("object is not an Operation.")
 
         # Make copy of parameterized gate instances
         if hasattr(instruction, "params"):
@@ -1218,7 +1219,7 @@ class QuantumCircuit:
 
     def _append(
         self,
-        instruction: Instruction,
+        instruction: Operation,
         qargs: Sequence[Qubit],
         cargs: Sequence[Clbit],
     ) -> Instruction:
@@ -1261,7 +1262,11 @@ class QuantumCircuit:
 
         return instruction
 
-    def _update_parameter_table(self, instruction: Instruction) -> Instruction:
+    def _update_parameter_table(self, instruction: Operation) -> Operation:
+        # A generic Operation object at the moment does not require to have params.
+        if not hasattr(instruction, "params"):
+            return instruction
+
         for param_index, param in enumerate(instruction.params):
             if isinstance(param, (ParameterExpression, QuantumCircuit)):
                 # Scoped constructs like the control-flow ops use QuantumCircuit as a parameter.

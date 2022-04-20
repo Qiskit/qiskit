@@ -59,3 +59,26 @@ class Operation(ABC):
     def num_clbits(self):
         """Number of classical bits."""
         raise NotImplementedError
+
+    @abstractmethod
+    def broadcast_arguments(self, qargs, cargs):
+        """Expanding (broadcasting) arguments."""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def _directive(self):
+        """Class attribute to treat like barrier for transpiler, unroller, drawer."""
+        raise NotImplementedError
+
+    # @property
+    # @abstractmethod
+    # def condition(self):
+    #    """Condition for when the instruction has a conditional if."""
+    #    raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def definition(self):
+        """Definition of the operation in terms of more basic gates."""
+        raise NotImplementedError

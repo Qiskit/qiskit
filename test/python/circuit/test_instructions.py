@@ -400,7 +400,7 @@ class TestInstructions(QiskitTestCase):
 
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
-        with self.assertRaisesRegex(CircuitError, r"Object is a subclass of Instruction"):
+        with self.assertRaisesRegex(CircuitError, r"Object is a subclass of Operation"):
             qc.append(HGate, qr[:], [])
 
     def test_repr_of_instructions(self):

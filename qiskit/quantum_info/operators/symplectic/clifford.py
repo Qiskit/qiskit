@@ -23,11 +23,12 @@ from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.synthesis.clifford_decompose import decompose_clifford
 from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
+from qiskit.circuit.operation import Operation
 from .stabilizer_table import StabilizerTable
 from .clifford_circuits import _append_circuit
 
 
-class Clifford(BaseOperator, AdjointMixin):
+class Clifford(BaseOperator, AdjointMixin, Operation):
     """An N-qubit unitary operator from the Clifford group.
 
     **Representation**
@@ -101,6 +102,10 @@ class Clifford(BaseOperator, AdjointMixin):
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
     """
 
+    # Fields that are currently required to add an object as an Operation.
+    condition = None
+    _directive = False
+
     def __array__(self, dtype=None):
         if dtype:
             return np.asarray(self.to_matrix(), dtype=dtype)
@@ -133,6 +138,9 @@ class Clifford(BaseOperator, AdjointMixin):
                 raise QiskitError(
                     "Invalid Clifford. Input StabilizerTable is not a valid symplectic matrix."
                 )
+
+        # When required, we will compute the QuantumCircuit for this Clifford.
+        self._definition = None
 
         # Initialize BaseOperator
         super().__init__(num_qubits=self._table.num_qubits)
@@ -539,6 +547,34 @@ class Clifford(BaseOperator, AdjointMixin):
         padded.table.phase[inds] = clifford.table.phase
 
         return padded
+
+    def broadcast_arguments(self, qargs, cargs):
+        """
+        Broadcasting of the arguments.
+        This code is currently copied from Instruction.
+        This will be cleaned up when broadcasting is moved
+        to a separate model.
+
+        Args:
+            qargs (List): List of quantum bit arguments.
+            cargs (List): List of classical bit arguments.
+
+        Yields:
+            Tuple(List, List): A tuple with single arguments.
+        """
+
+        #  [[q[0], q[1]], [c[0], c[1]]] -> [q[0], c[0]], [q[1], c[1]]
+        flat_qargs = [qarg for sublist in qargs for qarg in sublist]
+        flat_cargs = [carg for sublist in cargs for carg in sublist]
+        yield flat_qargs, flat_cargs
+
+    @property
+    def definition(self):
+        """Computes and returns the circuit for this Clifford."""
+        if self._definition is None:
+            self._definition = self.to_circuit()
+
+        return self._definition
 
 
 # Update docstrings for API docs

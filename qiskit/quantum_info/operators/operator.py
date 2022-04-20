@@ -21,7 +21,7 @@ from numbers import Number
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.operation import Operation
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate, HGate, SGate, TGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix, matrix_equal
@@ -53,7 +53,7 @@ class Operator(LinearOp):
 
         Args:
             data (QuantumCircuit or
-                  Instruction or
+                  Operation or
                   BaseOperator or
                   matrix): data to initialize operator.
             input_dims (tuple): the input subsystem dimensions.
@@ -75,7 +75,7 @@ class Operator(LinearOp):
         if isinstance(data, (list, np.ndarray)):
             # Default initialization from list or numpy array matrix
             self._data = np.asarray(data, dtype=complex)
-        elif isinstance(data, (QuantumCircuit, Instruction)):
+        elif isinstance(data, (QuantumCircuit, Operation)):
             # If the input is a Terra QuantumCircuit or Instruction we
             # perform a simulation to construct the unitary operator.
             # This will only work if the circuit or instruction can be
@@ -514,7 +514,7 @@ class Operator(LinearOp):
     @classmethod
     def _instruction_to_matrix(cls, obj):
         """Return Operator for instruction if defined or None otherwise."""
-        if not isinstance(obj, Instruction):
+        if not isinstance(obj, Operation):
             raise QiskitError("Input is not an instruction.")
         mat = None
         if hasattr(obj, "to_matrix"):

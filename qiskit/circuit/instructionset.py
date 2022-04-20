@@ -19,8 +19,8 @@ import warnings
 from typing import Callable, Optional, Tuple, Union
 
 from qiskit.circuit.exceptions import CircuitError
-from .instruction import Instruction
 from .classicalregister import Clbit, ClassicalRegister
+from .operation import Operation
 
 
 # ClassicalRegister is hashable, and generally the registers in a circuit are completely fixed after
@@ -150,8 +150,8 @@ class InstructionSet:
 
     def add(self, gate, qargs, cargs):
         """Add an instruction and its context (where it is attached)."""
-        if not isinstance(gate, Instruction):
-            raise CircuitError("attempt to add non-Instruction" + " to InstructionSet")
+        if not isinstance(gate, Operation):
+            raise CircuitError("attempt to add non-Operation" + " to InstructionSet")
         self.instructions.append(gate)
         self.qargs.append(qargs)
         self.cargs.append(cargs)
