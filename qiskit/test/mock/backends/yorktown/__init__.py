@@ -14,4 +14,3 @@
 
 from .fake_yorktown import FakeYorktownV2
 from .fake_yorktown import FakeYorktown
-from .fake_yorktown import FakeLegacyYorktown

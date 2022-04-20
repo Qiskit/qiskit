@@ -14,4 +14,3 @@
 
 from .fake_vigo import FakeVigoV2
 from .fake_vigo import FakeVigo
-from .fake_vigo import FakeLegacyVigo
