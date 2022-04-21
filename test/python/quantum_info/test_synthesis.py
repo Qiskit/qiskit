@@ -1373,7 +1373,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         super().setUp()
         seed = (hash(self.id())) % 10000
         np.random.seed(seed)
-        self.qsd = qsd.QuantumShannonDecomposer()
+        self.qsd = qsd.qs_decomposition
 
     def _get_lower_cx_bound(self, n):
         return 1 / 4 * (4**n - 3 * n - 1)

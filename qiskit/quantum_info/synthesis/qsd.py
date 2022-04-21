@@ -23,13 +23,6 @@ from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate, _EPS
 
 
-class QuantumShannonDecomposer:
-    """Class representation of Quantum Shannon Decomposition."""
-
-    def __call__(self, unitary_matrix, opt_a1=True):
-        return qs_decomposition(unitary_matrix, opt_a1=opt_a1)
-
-
 def qs_decomposition(mat, opt_a1=True, decomposer_1q=None, decomposer_2q=None):
     """
     Decomposes unitary matrix into one and two qubit gates using Quantum Shannon Decomposition.
