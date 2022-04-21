@@ -11,8 +11,43 @@
 # that they have been altered from the originals.
 # pylint: disable=invalid-name
 
-"""Randomized tests of transpiler circuit equivalence."""
+"""Randomized tests of transpiler circuit equivalence.
 
+This test can be optionally configured (e.g. by CI) via the
+following env vars:
+
+QISKIT_RANDOMIZED_TEST_LAYOUT_METHODS
+
+    A space-delimited list of layout method names from which the
+    randomizer should pick the layout method. Defaults to all
+    available built-in methods if unspecified.
+
+QISKIT_RANDOMIZED_TEST_ROUTING_METHODS
+
+    A space-delimited list of routing method names from which the
+    randomizer should pick the routing method. Defaults to all
+    available built-in methods if unspecified.
+
+QISKIT_RANDOMIZED_TEST_SCHEDULING_METHODS
+
+    A space-delimited list of scheduling method names from which the
+    randomizer should pick the scheduling method. Defaults to all
+    available built-in methods if unspecified.
+
+QISKIT_RANDOMIZED_TEST_BACKEND_NEEDS_DURATIONS
+
+    A boolean value (e.g. "true", "Y", etc.) which, when true, forces
+    the randomizer to pick a backend which fully supports scheduling
+    (i.e. has fully specified duration info). Defaults to False.
+
+QISKIT_RANDOMIZED_TEST_ALLOW_BARRIERS
+
+    A boolean value (e.g. "true", "Y", etc.) which, when false,
+    prevents the randomizer from emitting barrier instructions.
+    Defaults to True.
+"""
+
+import os
 from math import pi
 
 from hypothesis import assume, settings, HealthCheck
@@ -25,6 +60,9 @@ from qiskit import execute, transpile, Aer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import Measure, Reset, Gate, Barrier
 from qiskit.test.mock import (
+    FakeProvider,
+    FakeOpenPulse2Q,
+    FakeOpenPulse3Q,
     FakeYorktown,
     FakeTenerife,
     FakeOurense,
@@ -37,12 +75,36 @@ from qiskit.test.mock import (
     FakeSingapore,
     FakeJohannesburg,
     FakeBoeblingen,
+    FakeRochester,
+    FakeBurlington,
+    FakeCambridge,
+    FakeCambridgeAlternativeBasis,
+    FakeEssex,
+    FakeLondon,
+    FakeQasmSimulator,
+    FakeArmonk,
+    FakeRome,
+    FakeSantiago,
+    FakeSydney,
+    FakeToronto,
+    FakeValencia,
 )
 from qiskit.test.base import dicts_almost_equal
 
 
 # pylint: disable=wildcard-import,unused-wildcard-import
 from qiskit.circuit.library.standard_gates import *
+
+default_profile = "transpiler_equivalence"
+settings.register_profile(
+    default_profile,
+    report_multiple_bugs=False,
+    max_examples=25,
+    deadline=None,
+    suppress_health_check=[HealthCheck.filter_too_much],
+)
+
+settings.load_profile(os.getenv("HYPOTHESIS_PROFILE", default_profile))
 
 oneQ_gates = [HGate, IGate, SGate, SdgGate, TGate, TdgGate, XGate, YGate, ZGate, Reset]
 twoQ_gates = [CXGate, CYGate, CZGate, SwapGate, CHGate]
@@ -58,30 +120,129 @@ twoQ_threeP_gates = [CU3Gate]
 oneQ_oneC_gates = [Measure]
 variadic_gates = [Barrier]
 
-mock_backends = [
-    FakeYorktown(),
-    FakeTenerife(),
-    FakeOurense(),
-    FakeVigo(),
-    FakeMelbourne(),
-    FakeRueschlikon(),
-    FakeTokyo(),
-    FakePoughkeepsie(),
-    FakeAlmaden(),
-    FakeSingapore(),
-    FakeJohannesburg(),
-    FakeBoeblingen(),
+
+def _strtobool(s):
+    return s.lower() in ("y", "yes", "t", "true", "on", "1")
+
+
+if not _strtobool(os.getenv("QISKIT_RANDOMIZED_TEST_ALLOW_BARRIERS", "True")):
+    variadic_gates.remove(Barrier)
+
+
+def _getenv_list(var_name):
+    value = os.getenv(var_name)
+    return None if value is None else value.split()
+
+
+# Note: a value of `None` for any of the following methods means that
+# the selected pass manager gets to choose. However, to avoid complexity,
+# its not possible to specify `None` when overriding these with environment
+# variables. Really, `None` is useful only for testing Terra's pass managers,
+# and if you're overriding these, your goal is probably to test a specific
+# pass or set of passes instead.
+layout_methods = _getenv_list("QISKIT_RANDOMIZED_TEST_LAYOUT_METHODS") or [
+    None,
+    "trivial",
+    "dense",
+    "noise_adaptive",
+    "sabre",
+]
+routing_methods = _getenv_list("QISKIT_RANDOMIZED_TEST_ROUTING_METHODS") or [
+    None,
+    "basic",
+    "stochastic",
+    "lookahead",
+    "sabre",
+]
+scheduling_methods = _getenv_list("QISKIT_RANDOMIZED_TEST_SCHEDULING_METHODS") or [
+    None,
+    "alap",
+    "asap",
 ]
 
-# FakeRochester disabled until https://github.com/Qiskit/qiskit-aer/pull/693 is released.
-
-
-@settings(
-    report_multiple_bugs=False,
-    max_examples=25,
-    deadline=None,
-    suppress_health_check=[HealthCheck.filter_too_much],
+backend_needs_durations = _strtobool(
+    os.getenv("QISKIT_RANDOMIZED_TEST_BACKEND_NEEDS_DURATIONS", "False")
 )
+
+
+def _fully_supports_scheduling(backend):
+    """Checks if backend is not in the set of backends known not to have specified gate durations."""
+    return not isinstance(
+        backend,
+        (
+            # no coupling map
+            FakeArmonk,
+            # no measure durations
+            FakeAlmaden,
+            FakeBurlington,
+            FakeCambridge,
+            FakeCambridgeAlternativeBasis,
+            FakeEssex,
+            FakeJohannesburg,
+            FakeLondon,
+            FakeOpenPulse2Q,
+            FakeOpenPulse3Q,
+            FakePoughkeepsie,
+            FakeQasmSimulator,
+            FakeRochester,
+            FakeRueschlikon,
+            FakeSingapore,
+            FakeTenerife,
+            FakeTokyo,
+            # No reset duration
+            FakeAlmaden,
+            FakeArmonk,
+            FakeBoeblingen,
+            FakeBurlington,
+            FakeCambridge,
+            FakeCambridgeAlternativeBasis,
+            FakeEssex,
+            FakeJohannesburg,
+            FakeLondon,
+            FakeMelbourne,
+            FakeOpenPulse2Q,
+            FakeOpenPulse3Q,
+            FakeOurense,
+            FakePoughkeepsie,
+            FakeQasmSimulator,
+            FakeRochester,
+            FakeRome,
+            FakeRueschlikon,
+            FakeSantiago,
+            FakeSingapore,
+            FakeSydney,
+            FakeTenerife,
+            FakeTokyo,
+            FakeToronto,
+            FakeValencia,
+            FakeVigo,
+            FakeYorktown,
+        ),
+    )
+
+
+fake_provider = FakeProvider()
+mock_backends = fake_provider.backends()
+mock_backends_with_scheduling = [b for b in mock_backends if _fully_supports_scheduling(b)]
+
+
+@st.composite
+def transpiler_conf(draw):
+    """Composite search strategy to pick a valid transpiler config."""
+    opt_level = draw(st.integers(min_value=0, max_value=3))
+    layout_method = draw(st.sampled_from(layout_methods))
+    routing_method = draw(st.sampled_from(routing_methods))
+    scheduling_method = draw(st.sampled_from(scheduling_methods))
+
+    compatible_backends = st.one_of(st.none(), st.sampled_from(mock_backends))
+    if scheduling_method is not None or backend_needs_durations:
+        compatible_backends = st.sampled_from(mock_backends_with_scheduling)
+
+    backend = draw(st.one_of(compatible_backends))
+
+    return (backend, opt_level, layout_method, routing_method, scheduling_method)
+
+
 class QCircuitMachine(RuleBasedStateMachine):
     """Build a Hypothesis rule based state machine for constructing, transpiling
     and simulating a series of random QuantumCircuits.
@@ -104,6 +265,7 @@ class QCircuitMachine(RuleBasedStateMachine):
     def __init__(self):
         super().__init__()
         self.qc = QuantumCircuit()
+        self.enable_variadic = bool(variadic_gates)
 
     @precondition(lambda self: len(self.qc.qubits) < self.max_qubits)
     @rule(target=qubits, n=st.integers(min_value=1, max_value=max_qubits))
@@ -210,6 +372,7 @@ class QCircuitMachine(RuleBasedStateMachine):
         """Append a random 1q, 1c gate."""
         self.qc.append(gate(), [qarg], [carg])
 
+    @precondition(lambda self: self.enable_variadic)
     @rule(gate=st.sampled_from(variadic_gates), qargs=st.lists(qubits, min_size=1, unique=True))
     def add_variQ_gate(self, gate, qargs):
         """Append a gate with a variable number of qargs."""
@@ -237,40 +400,49 @@ class QCircuitMachine(RuleBasedStateMachine):
         self.qc.qasm()
 
     @precondition(lambda self: any(isinstance(d[0], Measure) for d in self.qc.data))
-    @rule(
-        backend=st.one_of(st.none(), st.sampled_from(mock_backends)),
-        opt_level=st.integers(min_value=0, max_value=3),
-    )
-    def equivalent_transpile(self, backend, opt_level):
+    @rule(conf=transpiler_conf())
+    def equivalent_transpile(self, conf):
         """Simulate, transpile and simulate the present circuit. Verify that the
         counts are not significantly different before and after transpilation.
 
         """
-
-        print(f"Evaluating circuit at level {opt_level} on {backend}:\n{self.qc.qasm()}")
+        backend, opt_level, layout_method, routing_method, scheduling_method = conf
 
         assume(backend is None or backend.configuration().n_qubits >= len(self.qc.qubits))
+
+        print(
+            f"Evaluating circuit at level {opt_level} on {backend} "
+            f"using layout_method={layout_method} routing_method={routing_method} "
+            f"and scheduling_method={scheduling_method}:\n{self.qc.qasm()}"
+        )
 
         shots = 4096
 
         aer_counts = execute(self.qc, backend=self.backend, shots=shots).result().get_counts()
 
         try:
-            xpiled_qc = transpile(self.qc, backend=backend, optimization_level=opt_level)
+            xpiled_qc = transpile(
+                self.qc,
+                backend=backend,
+                optimization_level=opt_level,
+                layout_method=layout_method,
+                routing_method=routing_method,
+                scheduling_method=scheduling_method,
+            )
         except Exception as e:
             failed_qasm = "Exception caught during transpilation of circuit: \n{}".format(
                 self.qc.qasm()
             )
             raise RuntimeError(failed_qasm) from e
 
-        xpiled_aer_counts = (
-            execute(xpiled_qc, backend=self.backend, shots=shots).result().get_counts()
-        )
+        xpiled_aer_counts = self.backend.run(xpiled_qc, shots=shots).result().get_counts()
 
         count_differences = dicts_almost_equal(aer_counts, xpiled_aer_counts, 0.05 * shots)
 
-        assert count_differences == "", "Counts not equivalent: {}\nFailing QASM: \n{}".format(
-            count_differences, self.qc.qasm()
+        assert (
+            count_differences == ""
+        ), "Counts not equivalent: {}\nFailing QASM Input:\n{}\n\nFailing QASM Output:\n{}".format(
+            count_differences, self.qc.qasm(), xpiled_qc.qasm()
         )
 
 
