@@ -20,8 +20,8 @@ import os
 from qiskit.compiler import transpile
 from qiskit import QuantumCircuit
 from qiskit.transpiler import InstructionDurations
+from qiskit.providers.fake_provider import FakeMelbourne
 
-from .backends.fake_melbourne import FakeMelbourne
 from .utils import build_qv_model_circuit
 
 
