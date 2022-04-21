@@ -39,7 +39,10 @@ def convert_to_target(conf_dict: dict, props_dict: dict = None, defs_dict: dict 
         "reset": Reset(),
     }
     custom_gates = {}
-    target = Target()
+    qubit_props = None
+    if props_dict:
+        qubit_props = qubit_props_from_props(props_dict)
+    target = Target(qubit_properties=qubit_props)
     # Parse from properties if it exsits
     if props_dict is not None:
         # Parse instructions
@@ -123,12 +126,11 @@ def convert_to_target(conf_dict: dict, props_dict: dict = None, defs_dict: dict 
     return target
 
 
-def qubit_props_from_props(properties: dict) -> dict:
+def qubit_props_from_props(properties: dict) -> list:
     """Returns a dictionary of `qiskit.providers.backend.QubitProperties` using
     a backend properties dictionary created by loading props.json payload.
     """
-    count = 0
-    qubit_props_dict = {}
+    qubit_props = []
     for qubit in properties["qubits"]:
         qubit_properties = {}
         for prop_dict in qubit:
@@ -138,6 +140,5 @@ def qubit_props_from_props(properties: dict) -> dict:
                 qubit_properties["t2"] = apply_prefix(prop_dict["value"], prop_dict["unit"])
             elif prop_dict["name"] == "frequency":
                 qubit_properties["frequency"] = apply_prefix(prop_dict["value"], prop_dict["unit"])
-        qubit_props_dict[count] = QubitProperties(**qubit_properties)
-        count += 1
-    return qubit_props_dict
+        qubit_props.append(QubitProperties(**qubit_properties))
+    return qubit_props

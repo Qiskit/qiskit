@@ -17,7 +17,6 @@ Fake provider class that provides access to fake backends.
 """
 
 from qiskit.providers.provider import ProviderV1
-from qiskit.providers.baseprovider import BaseProvider
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 
 from .backends import *
@@ -203,67 +202,6 @@ class FakeProvider(ProviderV1):
             FakeVigo(),
             FakeWashington(),
             FakeYorktown(),
-        ]
-
-        super().__init__()
-
-
-class FakeLegacyProvider(BaseProvider):
-    """Dummy provider just for testing purposes.
-
-    Only filtering backends by name is implemented.
-    """
-
-    def get_backend(self, name=None, **kwargs):
-        backend = self._backends[0]
-        if name:
-            filtered_backends = [backend for backend in self._backends if backend.name() == name]
-            if not filtered_backends:
-                raise QiskitBackendNotFoundError()
-
-            backend = filtered_backends[0]
-
-        return backend
-
-    def backends(self, name=None, **kwargs):
-        return self._backends
-
-    def __init__(self):
-        self._backends = [
-            FakeLegacyAlmaden(),
-            FakeLegacyArmonk(),
-            FakeLegacyAthens(),
-            FakeLegacyBelem(),
-            FakeLegacyBoeblingen(),
-            FakeLegacyBogota(),
-            FakeLegacyBurlington(),
-            FakeLegacyCambridge(),
-            FakeLegacyCambridgeAlternativeBasis(),
-            FakeLegacyCasablanca(),
-            FakeLegacyEssex(),
-            FakeLegacyJohannesburg(),
-            FakeLegacyLima(),
-            FakeLegacyLondon(),
-            FakeLegacyManhattan(),
-            FakeLegacyMelbourne(),
-            FakeLegacyMontreal(),
-            FakeLegacyMumbai(),
-            FakeLegacyOurense(),
-            FakeLegacyParis(),
-            FakeLegacyPoughkeepsie(),
-            FakeLegacyQuito(),
-            FakeLegacyRochester(),
-            FakeLegacyRome(),
-            FakeLegacyRueschlikon(),
-            FakeLegacySantiago(),
-            FakeLegacySingapore(),
-            FakeLegacySydney(),
-            FakeLegacyTenerife(),
-            FakeLegacyTokyo(),
-            FakeLegacyToronto(),
-            FakeLegacyValencia(),
-            FakeLegacyVigo(),
-            FakeLegacyYorktown(),
         ]
 
         super().__init__()
