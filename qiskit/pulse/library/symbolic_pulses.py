@@ -16,7 +16,7 @@
 
 These are pulses which are described by symbolic equations for envelope and parameter constraints.
 
-Note that symbolic pulse module doesn't employ symengine due to some missing features.
+Note that the symbolic pulse module doesn't employ symengine due to some missing features.
 In addition, there are several syntactic difference in boolean expression.
 Thanks to Lambdify at subclass instantiation, the performance regression is not significant.
 However, this will still create significant latency for the first sympy import.
@@ -42,7 +42,7 @@ def _lifted_gaussian(
     zeroed_width: Union["Symbol", "Expr"],
     sigma: Union["Symbol", "Expr"],
 ) -> "Expr":
-    r"""Helper function to return lifted gaussian symboric equation.
+    r"""Helper function that returns a lifted Gaussian symbolic equation.
 
     For :math:`A=` ``amp`` and :math:`\sigma=` ``sigma``, the symbolic equation will be
 
@@ -65,10 +65,10 @@ def _lifted_gaussian(
     Integrated area under the full curve is ``amp * np.sqrt(2*np.pi*sigma**2)``
 
     Args:
-        t: Symbol object represents time.
-        center: Symbol or expression represents the middle point of the samples.
-        zeroed_width: Symbol or expression represents the endpoints the samples.
-        sigma: Symbol or expression represents Gaussian sigma.
+        t: Symbol object representing time.
+        center: Symbol or expression representing the middle point of the samples.
+        zeroed_width: Symbol or expression representing the endpoints the samples.
+        sigma: Symbol or expression representing Gaussian sigma.
 
     Returns:
         Symbolic equation.
@@ -139,11 +139,19 @@ def _lambdify_ite(ite_expr: List["Expr"], params: List["Symbol"]) -> List[Union[
 class EnvelopeDescriptor:
     """Descriptor of pulse envelope.
 
-    When the descriptor of the symbolic pulse subclass is called first time,
-    it calls sympy lambdify to create callable and cache the function in the descriptor.
+    When the descriptor of the symbolic pulse subclass is called for the first time,
+    it calls sympy lambdify to create callable and caches the function in the descriptor,
+    which alleviates computational overhead for compiling the symbolic equation.
     This improves performance of repeated evaluation of waveform samples.
+
+    This descriptor is used when the :class:`SymbolicPulse` creates waveform samples.
     """
 
+    # Dictionary to store envelope lambda functions for symbolic pulse subclass.
+    # This is keyed on the pulse subclass name.
+    # Note that this is a class variable.
+    # Once envelope is registered here it will be reused for all objects
+    # that will be instantiated in the future, i.e. cache mechanism.
     global_envelopes = {}
 
     def __get__(self, instance, owner) -> Callable:
@@ -175,13 +183,21 @@ class ConstraintsDescriptor:
     """Descriptor of pulse parameter constraints.
 
     A symbolic pulse subclass may provide multiple expressions to validate parameters,
-    thus it generates a list of callables that takes set of pulse parameters.
+    thus it generates a list of callables that takes a set of pulse parameters.
 
-    When the descriptor of the symbolic pulse subclass is called first time,
-    it calls sympy lambdify to create callable and cache the function in the descriptor.
+    When the descriptor of the symbolic pulse subclass is called for the first time,
+    it calls sympy lambdify to create a callable which it caches in the descriptor,
+    which alleviates computational overhead for compiling the symbolic equations.
     This improves performance of repeated evaluation of waveform samples.
+
+    This descriptor is used when the :class:`SymbolicPulse` validates pulse parameters.
     """
 
+    # Dictionary to store constraint lambda functions for symbolic pulse subclass.
+    # This is keyed on the pulse subclass name.
+    # Note that this is a class variable.
+    # Once constraint is registered here it will be reused for all objects
+    # that will be instantiated in the future, i.e. cache mechanism.
     global_constraints = {}
 
     def __get__(self, instance, owner) -> List[Union[Callable, List]]:
@@ -217,10 +233,10 @@ class ConstraintsDescriptor:
 
 
 class SymbolicPulse(Pulse):
-    """The abstract superclass for parametric pulses with symbolic expression.
+    """The abstract superclass for parametric pulses described by a symbolic expression.
 
     A symbolic pulse subclass can be defined with an envelope and parameter constraints.
-    The parameters constitute the waveform should be defined in the class attribute
+    The parameters of the waveform should be defined in the class attribute
     :attr:`SymbolicPulse.PARAM_DEF`. This must include ``duration`` as a first element
     to define the length of pulse instruction for scheduling.
     For now, envelope and constraints must be defined with SymPy expressions.
@@ -229,34 +245,35 @@ class SymbolicPulse(Pulse):
 
     This is defined with a class method :meth:`_define_envelope` that returns
     a single symbolic expression which is a function of ``t`` and ``duration``.
-    The time ``t`` and ``duration`` are in units of dt, i.e. system cycle time,
+    The time ``t`` and ``duration`` are in units of dt, i.e. sample time resolution,
     and this function is sampled with a discrete time vector in [0, ``duration``]
     sampling the pulse envelope at every 0.5 dt (middle sampling strategy) when
     :meth:`get_waveform` method is called.
-    The function can generate complex-valued samples representing a phase in Gaussian plane,
-    and real and imaginary part may be supplied to two quadratures of
-    the IQ mixer in the control electronics.
-    The sample data is not generated until the get method is called thus
+    The function can generate complex-valued samples and real and imaginary part may
+    be supplied to two quadratures of the IQ mixer in the control electronics.
+    The sample data is not generated until the :meth:`get_waveform` method is called thus
     a symbolic pulse instance only stores parameter values and waveform shape,
     which greatly reduces memory footprint during the program generation.
 
 
     .. rubric:: Constraint functions
 
-    This is defined with a class method :meth:`_define_constraints` that returns
-    a list of symbolic expressions. These constraint functions are called
-    when a symbolic pulse instance is created with assigned parameter values with ``limit``
-    representing the policy of allowing the maximum amplitude exceeding 1.0
-    (defaults to ``True``, i.e. it doesn't allow amplitude > 1.0).
-    The symbolic pulse subclass will be instantiated
-    only when all constraint functions return ``True``.
-    This means the return value of these symbolic expressions must be boolean.
+    Constraints on the parameters are defined with a class method :meth:`_define_constraints`
+    that returns a list of symbolic expressions. These constraint functions are called
+    when a symbolic pulse instance is created with assigned parameter values.
+    The ``limit`` variable represents the policy of allowing the maximum amplitude to exceed 1.0
+    (its default value is ``True``, i.e. it doesn't allow amplitude > 1.0).
+    Note that in Qiskit the pulse envelope is represented by complex samples.
+    Strictly speaking, the maximum amplitude indicates the maximum norm of the complex values.
+
+    The symbolic pulse subclass will be instantiated only when all constraint functions
+    return ``True``. This means the return value of these symbolic expressions must be boolean.
     Any number of expression can be defined in the class method.
     When branching logic (if clause) is necessary, one can use `SymPy ITE`_ class
-    or a list of expressions consisting of expression for "IF", "THEN", and "ELSE".
-    Typically, it evaluates the maximum pulse amplitude so that it doesn't exceed the
-    signal dynamic range [-1.0, 1.0]. When validation is not necessary,
-    this method can return an empty list.
+    or a list of expressions consisting of expressions for "IF", "THEN", and "ELSE".
+    Typically, list of constraints involves evaluation of the maximum pulse amplitude
+    so that it doesn't exceed the signal dynamic range [-1.0, 1.0].
+    When validation is not necessary, this method can return an empty list.
 
     .. _SymPy ITE: https://docs.sympy.org/latest/modules/logic.html#sympy.logic.boolalg.ITE
 
@@ -301,16 +318,16 @@ class SymbolicPulse(Pulse):
 
     .. rubric:: Serialization
 
-    The :class:`~SymbolicPulse` subclass can be QPY serialized with symbolic expressions.
-    This means, a user can create a custom pulse subclass with novel envelope and constraints
-    expressions, then one can instantiate the class with certain parameters to run on backend.
+    The :class:`~SymbolicPulse` subclass is QPY serialized with symbolic expressions.
+    A user can therefore create a custom pulse subclass with a novel envelope and constraints,
+    then one can instantiate the class with certain parameters to run on a backend.
     This pulse instance can be saved in the QPY binary, which can be loaded afterwards
     even within the environment having original class definition loaded.
     This mechanism allows us to easily share a pulse program including custom pulse instructions
     with collaborators, or, directly submit the program to the quantum computer backend
-    in the parametric form (i.e. not sample data), which greatly reduces required
-    network bandwidths. The waveform sample data to be loaded in the control electronics
-    will be reconstructed with parameters and deserialized expression objects.
+    in the parametric form (i.e. not sample data). This greatly reduces amount of data transferred.
+    The waveform sample data to be loaded in the control electronics
+    will be reconstructed with parameters and deserialized expression objects by the backend.
     """
 
     __slots__ = ("param_values",)
@@ -333,7 +350,7 @@ class SymbolicPulse(Pulse):
             duration: Pulse length in terms of the sampling period `dt`.
             parameters: Other parameters to form waveform.
             name: Display name for this pulse envelope.
-            limit_amplitude: If ``True``, then limit the amplitude of the
+            limit_amplitude: If ``True``, then limit the absolute value of the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
 
         Raises:
@@ -368,7 +385,7 @@ class SymbolicPulse(Pulse):
         """Return symbolic expression of pulse waveform.
 
         A custom pulse without having this method implemented cannot be QPY serialized.
-        The subclass must override :meth:`get_waveform` method to return waveform.
+        The subclass must override the :meth:`get_waveform` method to return waveform.
         Note that the expression should contain symbol ``t`` that represents a
         sampling time, along with parameters defined in :meth:`.parameters`.
         """
@@ -376,15 +393,15 @@ class SymbolicPulse(Pulse):
 
     @classmethod
     def _define_constraints(cls) -> List[Union["Expr", List]]:
-        """Return a list of symbolic expression for parameter validation.
+        """Return a list of symbolic expressions for parameter validation.
 
         A custom pulse without having this method implemented cannot be QPY serialized.
-        The subclass must override :meth:`validate_parameters` method to evaluate parameters instead.
+        The subclass must override the :meth:`validate_parameters` method to evaluate parameters instead.
         The expressions may contain parameters defined in :attr:`.PARAM_DEF` along with
         ``limit`` that is a class attribute to specify the policy for accepting
         the waveform with the max amplitude exceeding 1.0.
 
-        IF clause can be defined as a list of three expressions representing
+        IF clauses in the constraints can be defined as a list of three expressions representing
         "if", "else", and "then", respectively. This list can be nested.
         """
         raise NotImplementedError
@@ -482,9 +499,6 @@ class Gaussian(SymbolicPulse):
         f(x) &= \text{amp} \times \frac{f'(x) - f'(-1)}{1-f'(-1)}, \quad 0 \le x < \text{duration}
 
     where :math:`f'(x)` is the gaussian waveform without lifting or amplitude scaling.
-
-    This pulse would be more accurately named as ``LiftedGaussian``, however, for historical
-    and practical DSP reasons it has the name ``Gaussian``.
     """
     PARAM_DEF = ["duration", "amp", "sigma"]
 
@@ -573,9 +587,6 @@ class GaussianSquare(SymbolicPulse):
             \\quad 0 \\le x < \\text{duration}
 
     where :math:`f'(x)` is the gaussian square waveform without lifting or amplitude scaling.
-
-    This pulse would be more accurately named as ``LiftedGaussianSquare``, however, for historical
-    and practical DSP reasons it has the name ``GaussianSquare``.
     """
     PARAM_DEF = ["duration", "amp", "sigma", "width"]
 
@@ -683,9 +694,6 @@ class Drag(SymbolicPulse):
 
     where :math:`g(x)` is a standard unlifted Gaussian waveform and
     :math:`g'(x)` is the lifted :class:`~qiskit.pulse.library.Gaussian` waveform.
-
-    This pulse, defined by :math:`f(x)`, would be more accurately named as ``LiftedDrag``, however,
-    for historical and practical DSP reasons it has the name ``Drag``.
 
     References:
         1. |citation1|_

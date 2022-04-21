@@ -17,22 +17,25 @@ Pulse Library (:mod:`qiskit.pulse.library`)
 
 This library provides Pulse users with convenient methods to build Pulse waveforms.
 
-A pulse programmer can choose of one of pulse representation models to create a pulse program.
-The :class:`~Waveform` model directly stores waveform data points in a class instance.
-This model provides flexibility for the expression of waveform shape and allows us
-a rapid prototyping of new control technique. However, this model usually suffers poor memory
-efficiency, and it might be hard to scale with large-size quantum processors.
-Standard waveform functions are also provided by :mod:`~qiskit.pulse.library.discrete`,
-but a user can also directly create a :class:`~Waveform` instance with raw array-like data.
+A pulse programmer can choose from one of several :ref:`pulse_models` to create a pulse program.
+The :class:`~Waveform` model directly stores the waveform data points in each class instance.
+This model provides the most flexibility to express arbitrary waveforms and allows
+a rapid prototyping of new control techniques. However, this model is typically memory
+inefficiency and might be hard to scale to large-size quantum processors.
+Several waveform subclasses are defined by :ref:`waveforms`,
+but a user can also directly instantiate the :class:`~Waveform` class with ``samples`` argument
+which is usually a complex numpy array or any kind of array-like data.
 
-In contrast, the parametric form model, or :class:`~SymbolicPulse`,
-only stores a waveform function itself with its parameter values in a class instance,
-and thus it provides greater memory efficiency at the price of flexibility of waveforms.
-This model also defines a small set of parametric-form pulse subclasses
-which is conventionally used in the superconducting quantum processors.
+In contrast, :class:`~SymbolicPulse` model only stores the function and its parameters
+that generate the waveform in a class instance.
+It thus provides greater memory efficiency at the price of less flexibility in the waveform.
+This model also defines a small set of pulse subclasses in :ref:`symbolic_pulses`
+which are commonly used in superconducting quantum processors.
 An instance of these subclasses can be serialized in the QPY binary format
 while keeping the memory-efficient parametric representation of waveforms.
 
+
+.. _pulse_models:
 
 Pulse Models
 ============
@@ -44,8 +47,10 @@ Pulse Models
    SymbolicPulse
 
 
-Waveform Functions
-==================
+.. _waveforms:
+
+Waveform Pulse Representation
+=============================
 
 .. autosummary::
    :toctree: ../stubs/
@@ -65,8 +70,10 @@ Waveform Functions
    drag
 
 
-Parametric-form Pulses
-======================
+.. _symbolic_pulses:
+
+Parametric Pulse Representation
+===============================
 
 .. autosummary::
    :toctree: ../stubs/
