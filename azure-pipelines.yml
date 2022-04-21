@@ -54,7 +54,7 @@ stages:
         - bash: |
             set -e
             python -m pip install --upgrade pip
-            pip install -U twine
+            pip install -U twine setuptools_rust
             python setup.py sdist
         - task: PublishBuildArtifacts@1
           inputs: {pathtoPublish: 'dist'}
