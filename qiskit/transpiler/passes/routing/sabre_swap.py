@@ -72,7 +72,6 @@ class SabreSwap(TransformationPass):
         heuristic="basic",
         seed=None,
         fake_run=False,
-        max_iterations_without_progress=None,
     ):
         r"""SabreSwap initializer.
 
@@ -83,12 +82,6 @@ class SabreSwap(TransformationPass):
             seed (int): random seed used to tie-break among candidate swaps.
             fake_run (bool): if true, it only pretend to do routing, i.e., no
                 swap is effectively added.
-            max_iterations_without_progress (int): The maximum number of swaps that will be
-                attempted if no progress seems to be being made (i.e. without additional gates being
-                routed).  Once this value is exceeded, swaps will be greedily inserted (ignoring the
-                heuristic) to force a new gate to be routed, and the pass will then continue
-                normally.  If not specified, this defaults to being proportional to the number of
-                qubits in the given :class:`.DAGCircuit`.
 
         Additional Information:
 
@@ -150,7 +143,6 @@ class SabreSwap(TransformationPass):
         self.qubits_decay = None
         self._bit_indices = None
         self.dist_matrix = None
-        self.max_iterations_without_progress = max_iterations_without_progress
 
     def run(self, dag):
         """Run the SabreSwap pass on `dag`.
@@ -169,11 +161,7 @@ class SabreSwap(TransformationPass):
         if len(dag.qubits) > self.coupling_map.size():
             raise TranspilerError("More virtual qubits exist than physical.")
 
-        if self.max_iterations_without_progress is None:
-            max_iterations_without_progress = 10 * len(dag.qubits)  # Arbitrary.
-        else:
-            max_iterations_without_progress = self.max_iterations_without_progress
-
+        max_iterations_without_progress = 10 * len(dag.qubits)  # Arbitrary.
         ops_since_progress = []
         extended_set = None
 

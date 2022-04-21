@@ -195,7 +195,7 @@ class TestSabreSwap(QiskitTestCase):
     def test_no_infinite_loop(self, method):
         """Test that the 'release value' mechanisms allow SabreSwap to make progress even on
         circuits that get stuck in a stable local minimum of the lookahead parameters."""
-        qc = looping_circuit(2, 1)
+        qc = looping_circuit(3, 1)
         qc.measure_all()
         coupling_map = CouplingMap.from_line(qc.num_qubits)
         routing_pass = PassManager(SabreSwap(coupling_map, method))
@@ -224,51 +224,17 @@ class TestSabreSwap(QiskitTestCase):
         # Asserting equality to the empty set gives better errors on failure than asserting that
         # `couplings <= coupling_map`.
         self.assertEqual(couplings - set(coupling_map.get_edges()), set())
-        self.assertProducesSameKeys(qc, routed)
 
-    def test_backtracking_correctness(self):
-        """Test that swaps inserted by the backtracker result in a correctly routed circuit.
-
-        It's tricky to do this as part of the infinite-loop test because the very smallest circuit
-        that produces a loop is still 10+ qubits, which requires comparing very large operators."""
-        qc = QuantumCircuit(8)
-        qc.h(0)
-        qc.cx(0, 3)
-        qc.h(1)
-        qc.cx(1, 5)
-        qc.h(2)
-        qc.cx(2, 7)
-        qc.measure_all()
-        coupling_map = CouplingMap.from_line(8)
-        routing_pass = PassManager(
-            SabreSwap(coupling_map, "lookahead", max_iterations_without_progress=1)
-        )
-        routed = routing_pass.run(qc)
-
-        routed_ops = routed.count_ops()
-        del routed_ops["swap"]
-        self.assertEqual(routed_ops, qc.count_ops())
-        couplings = {
-            tuple(routed.find_bit(bit).index for bit in qargs)
-            for _, qargs, _ in routed.data
-            if len(qargs) == 2
-        }
-        self.assertEqual(couplings - set(coupling_map.get_edges()), set())
-        self.assertProducesSameKeys(qc, routed)
-
-    def assertProducesSameKeys(self, expected, actual):
-        """If Aer is available, run simulations of both circuits and assert that the same set of
-        bitstrings are produced.  This is useful for testing that gates were routed to the correct
-        qubits."""
+        # Assert that the same keys are produced by a simulation - this is a test that the inserted
+        # swaps route the qubits correctly.
         if not optionals.HAS_AER:
-            # If Aer isn't available, this just turns into a no-op.
             return
 
         from qiskit import Aer
 
         sim = Aer.get_backend("aer_simulator")
-        in_results = sim.run(expected, shots=4096).result().get_counts()
-        out_results = sim.run(actual, shots=4096).result().get_counts()
+        in_results = sim.run(qc, shots=4096).result().get_counts()
+        out_results = sim.run(routed, shots=4096).result().get_counts()
         self.assertEqual(set(in_results), set(out_results))
 
 
