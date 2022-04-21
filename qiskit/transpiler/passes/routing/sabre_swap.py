@@ -221,9 +221,7 @@ class SabreSwap(TransformationPass):
                 # valve for the algorithm to avoid infinite loops only, and should generally not
                 # come into play for most circuits.
                 self._undo_operations(ops_since_progress, mapped_dag, current_layout)
-                node = self._add_greedy_swaps(
-                    front_layer, mapped_dag, current_layout, canonical_register
-                )
+                self._add_greedy_swaps(front_layer, mapped_dag, current_layout, canonical_register)
                 continue
 
             if execute_gate_list:
@@ -378,7 +376,7 @@ class SabreSwap(TransformationPass):
 
     def _add_greedy_swaps(self, front_layer, dag, layout, qubits):
         """Mutate ``dag`` and ``layout`` by applying greedy swaps to ensure that at least one gate
-        can be routed.  Returns the gate (as a :class:`.DAGOpNode`) that can now be routed."""
+        can be routed."""
         layout_map = layout._v2p
         target_node = min(
             front_layer,
@@ -387,7 +385,6 @@ class SabreSwap(TransformationPass):
         for pair in _shortest_swap_path(tuple(target_node.qargs), self.coupling_map, layout):
             self._apply_gate(dag, DAGOpNode(op=SwapGate(), qargs=pair), layout, qubits)
             layout.swap(*pair)
-        return target_node
 
     def _compute_cost(self, layer, layout):
         cost = 0
