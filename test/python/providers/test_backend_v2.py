@@ -26,6 +26,7 @@ from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.test.base import QiskitTestCase
 from qiskit.providers.fake_provider import FakeManilaV2
 from qiskit.test.mock.fake_backend_v2 import (
+    FakeBackend5QV2,
     FakeBackendV2LegacyQubitProps,
 )
 from qiskit.test.mock.fake_mumbai_v2 import FakeMumbaiFractionalCX
@@ -108,7 +109,7 @@ class TestBackendV2(QiskitTestCase):
         name="{gate}_level_{opt_level}_bidirectional_{bidirectional}",
     )
     def test_5q_ghz(self, opt_level, gate, bidirectional):
-        backend = FakeManilaV2(bidirectional)
+        backend = FakeBackend5QV2(bidirectional)
         qc = QuantumCircuit(5)
         qc.h(0)
         getattr(qc, gate)(0, 1)

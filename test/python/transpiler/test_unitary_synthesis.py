@@ -24,7 +24,7 @@ from ddt import ddt, data
 
 from qiskit import transpile
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeVigo, FakeMumbaiFractionalCX
+from qiskit.test.mock import FakeVigo, FakeBackend5QV2, FakeMumbaiFractionalCX
 from qiskit.providers.fake_provider import FakeManilaV2
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import QuantumVolume
@@ -587,7 +587,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         name="opt_level_{opt_level}_bidirectional_{bidirectional}",
     )
     def test_coupling_map_transpile_with_backendv2(self, opt_level, bidirectional):
-        backend = FakeManilaV2(bidirectional)
+        backend = FakeBackend5QV2(bidirectional)
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)
         circ.append(random_unitary(4, seed=1), [0, 1])
@@ -636,7 +636,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)
         circ.append(random_unitary(4, seed=1), [1, 0])
-        backend = FakeManilaV2(bidirectional)
+        backend = FakeBackend5QV2(bidirectional)
         tqc = transpile(
             circ,
             backend=backend,
