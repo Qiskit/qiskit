@@ -22,6 +22,167 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.36.1
+*************
+
+Terra 0.20.1
+============
+
+.. _Release Notes_Terra_0.20.1_Prelude:
+
+Prelude
+-------
+
+.. releasenotes/notes/prepare-0.20.1-72b215a1ca1f34c8.yaml @ b'625b202a4dd0c223579dca44eec530b8a0813d76'
+
+Qiskit Terra 0.20.1 is a bugfix release resolving issues identified in release 0.20.0.
+
+
+.. _Release Notes_Terra_0.20.1_Known Issues:
+
+Known Issues
+------------
+
+.. releasenotes/notes/ucr-gates-qpy-b8f6fb1e34fae258.yaml @ b'625b202a4dd0c223579dca44eec530b8a0813d76'
+
+- QPY deserialization with the :func:`.qpy.load` function of a directly
+  instantiated :class:`~.UCPauliRotGate` object in a circuit will fail
+  because the rotation axis argument to the class isn't stored in a standard
+  place. To workaround this you can instead use the subclasses:
+  :class:`~.UCRXGate`, :class:`~.UCRYGate`, or :class:`~.UCRZGate` (based on
+  whether you're using a rotation axis of ``"X"``, ``"Y"``, or ``"Z"``
+  respectively) which embeds the rotation axis in the class constructor and
+  will work correctly in QPY.
+
+.. releasenotes/notes/xxplusyy-doc-c6ddcc45044dcdcd.yaml @ b'625b202a4dd0c223579dca44eec530b8a0813d76'
+
+- Since its original introduction in Qiskit Terra 0.20, :class:`.XXPlusYYGate`
+  has used a negative angle convention compared to all other rotation gates.
+  In Qiskit Terra 0.21, this will be corrected to be consistent with the
+  other rotation gates.  This does not affect any other rotation gates, nor
+  :class:`.XXMinusYYGate`.
+
+
+.. _Release Notes_Terra_0.20.1_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/clifford_delay-be1a835413e2531e.yaml @ b'625b202a4dd0c223579dca44eec530b8a0813d76'
+
+- Fixed :class:`.Clifford`, :class:`.Pauli` and :class:`.CNOTDihedral`
+  operator initialization from compatible circuits that contain
+  :class:`~qiskit.circuit.Delay` instructions. These instructions are
+  treated as identities when converting to operators.
+
+.. releasenotes/notes/fix-aux-ops-evaluator-83ce1606d1ad19b3.yaml @ b'625b202a4dd0c223579dca44eec530b8a0813d76'
+
+- Fixed an issue where the :func:`~qiskit.algorithms.eval_observables` function would raise an
+  error if its ``quantum_state`` argument was of type :class:`~qiskit.opflow.StateFn`.
+  ``eval_observables`` now correctly supports all input types denoted by its type hints.
+
+.. releasenotes/notes/fix-dag-drawer-no-reg-6eee9d1f6e4b9261.yaml @ b'625b202a4dd0c223579dca44eec530b8a0813d76'
+
+- Fixed an issue with the visualization function :func:`~.dag_drawer` and
+  method :meth:`.DAGCircuit.draw` where previously the drawer would fail
+  when attempting to generate a visualization for a :class:`~.DAGCircuit`
+  object that contained a :class:`~.Qubit` or :class:`~.Clbit` which wasn't
+  part of a :class:`~QuantumRegister` or :class:`~ClassicalRegister`.
+  Fixed `#7915 <https://github.com/Qiskit/qiskit-terra/issues/7915>`__.
+
+.. releasenotes/notes/fix-drag-pulse-validation-905f9b6353a0f2d1.yaml @ b'625b202a4dd0c223579dca44eec530b8a0813d76'
+
+- Fixed parameter validation for class :class:`~Drag`. Previously, it was not
+  sensitive to large beta values with negative signs, which may have resulted in
+  waveform samples with a maximum value exceeding the amplitude limit of 1.0.
+
+.. releasenotes/notes/fix-hard-coded-sleep-run-circuits-a1588164e61d5336.yaml @ b'625b202a4dd0c223579dca44eec530b8a0813d76'
+
+- The :class:`~qiskit.utils.QuantumInstance` class used by many algorithms (like :class:`~.VQE`)
+  was hard-coding the value for a sleep while it looped waiting for the job status to be updated.
+  It now respects the configured sleep value as set per the ``wait`` attribute in the
+  initializer of :class:`~qiskit.utils.QuantumInstance`.
+
+.. releasenotes/notes/fix-list-input-schedule-14fc48895a061735.yaml @ b'625b202a4dd0c223579dca44eec530b8a0813d76'
+
+- Fixed an issue with the :class:`~qiskit.compiler.schedule` function where
+  callers specifying a ``list`` of :class:`~qiskit.circuit.QuantumCircuit`
+  objects with a single entry would incorrectly be returned a single
+  :class:`~.Schedule` object instead of a ``list``.
+
+.. releasenotes/notes/fix-plot-error-map-f3b4cc754b589d8f.yaml @ b'625b202a4dd0c223579dca44eec530b8a0813d76'
+
+- Fixed an issue with the :class:`~.plot_error_map` visualization function
+  which prevented it from working when run with a backend that had readout
+  error defined in the provided backend's :class:`~.BackendProperties` or
+  when running with a :class:`~.BackendV2` backend.
+  Fixed `#7879 <https://github.com/Qiskit/qiskit-terra/issues/7879>`__.
+
+.. releasenotes/notes/fix-primitive-init-observable-pauli-e312c05d1c3bd804.yaml @ b'625b202a4dd0c223579dca44eec530b8a0813d76'
+
+- Fixed a bug that could result in exponential runtime and nontermination when
+  a :class:`~qiskit.quantum_info.Pauli` instance is given to method
+  :meth:`~qiskit.primitives.utils.init_observables`.
+
+.. releasenotes/notes/fix-sabreswap-clbits-428eb5f3a46063da.yaml @ b'35645aaba47e317a5eb36748fd3900aaf4e45597'
+
+- Fixed :class:`.SabreSwap`, and by extension :func:`.transpile` with
+  ``optimization_level=3``, occasionally re-ordering measurements invalidly.
+  Previously, if two measurements wrote to the same classical bit,
+  :class:`.SabreSwap` could (depending on the coupling map) re-order them to
+  produce a non-equivalent circuit.  This behaviour was stochastic, so may
+  not have appeared reliably.
+  Fixed `#7950 <https://github.com/Qiskit/qiskit-terra/issues/7950>`__
+
+.. releasenotes/notes/sabreswap-loop-230ef99e61358105.yaml @ b'a75c9a609b77a4807fcafc4c111d99edb434048e'
+
+- The :class:`.SabreSwap` transpiler pass, and by extension
+  :class:`.SabreLayout` and :func:`.transpile` at ``optimization_level=3``,
+  now has an escape mechanism to guarantee that it can never get stuck in an
+  infinite loop.  Certain inputs previously could, with a great amount of bad
+  luck, get stuck in a stable local minimum of the search space and the pass
+  would never make further progress.  It will now force a series of swaps that
+  allow the routing to continue if it detects it has not made progress
+  recently.  Fixed `#7707 <https://github.com/Qiskit/qiskit-terra/issues/7707>`__.
+
+.. releasenotes/notes/ucr-gates-qpy-b8f6fb1e34fae258.yaml @ b'625b202a4dd0c223579dca44eec530b8a0813d76'
+
+- Fixed an issue with QPY deserialization via the :func:`.qpy.load` function
+  of the :class:`~.UCRXGate`, :class:`~.UCRYGate`, and :class:`~.UCRZGate`
+  classes.
+  Previously, a QPY file that contained any of these gates would error
+  when trying to load the file.
+  Fixed `#7847 <https://github.com/Qiskit/qiskit-terra/issues/7847>`__.
+
+Aer 0.10.4
+==========
+
+No change
+
+Ignis 0.7.0
+===========
+
+No change
+
+IBM Q Provider 0.19.1
+=====================
+
+.. _Release Notes_0.19.1_IBMQ:
+
+0.19.1
+======
+
+.. _Release Notes_0.19.1_IBMQ_Bug Fixes:
+
+Bug Fixes
+---------
+
+- PR `#1129 <https://github.com/Qiskit/qiskit-ibmq-provider/pull/1129>`__ updates
+  :meth:`~qiskit.providers.ibmq.least_busy` method to no longer support `BaseBackend` as a valid
+  input or output type since it has been long deprecated in qiskit-terra and has recently
+  been removed.
+
+*************
 Qiskit 0.36.0
 *************
 
