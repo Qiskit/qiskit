@@ -204,27 +204,32 @@ class TridiagonalToeplitz(LinearSystemMatrix):
     def eigs_bounds(self) -> Tuple[float, float]:
         """Return lower and upper bounds on the absolute eigenvalues of the matrix."""
         n_b = 2**self.num_state_qubits
-        
-        # Calculate minimum and maximum of absolute value of eigenvalues 
-        # according to the formula for Toeplitz 3-diagonal matrices 
+
+        # Calculate minimum and maximum of absolute value of eigenvalues
+        # according to the formula for Toeplitz 3-diagonal matrices
 
         # For maximum it's enough to check border points of segment [1, n_b]
         candidate_eig_ids = [1, n_b]
 
-        # Trying to add candidates near the minimum value of absolute eigenvalues 
+        # Trying to add candidates near the minimum value of absolute eigenvalues
         # function abs(main_diag - 2 * off_diag * cos(i * pi / (nb + 1))
         if abs(self.main_diag) < 2 * abs(self.off_diag):
             optimal_index = int(np.arccos(self.main_diag / 2 / self.off_diag) / np.pi * (n_b + 1))
 
             def add_candidate_index_if_valid(index_to_add: int) -> None:
-                if (index_to_add >= 1) and (index_to_add <= n_b):
+                if 1 <= index_to_add <= n_b:
                     candidate_eig_ids.append(index_to_add)
 
             add_candidate_index_if_valid(optimal_index - 1)
             add_candidate_index_if_valid(optimal_index)
             add_candidate_index_if_valid(optimal_index + 1)
 
-        candidate_abs_eigs = np.abs([self.main_diag - 2 * self.off_diag * np.cos(eig_id * np.pi / (n_b + 1)) for eig_id in candidate_eig_ids])
+        candidate_abs_eigs = np.abs(
+            [
+                self.main_diag - 2 * self.off_diag * np.cos(eig_id * np.pi / (n_b + 1))
+                for eig_id in candidate_eig_ids
+            ]
+        )
 
         lambda_min = np.min(candidate_abs_eigs)
         lambda_max = np.max(candidate_abs_eigs)
