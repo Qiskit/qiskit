@@ -238,6 +238,23 @@ class TestLinearFunctions(QiskitTestCase):
         with self.assertRaises(CircuitError):
             linear_function.permutation_pattern()
 
+    def test_original_definition(self):
+        """Tests that when a linear function is constructed from
+        a QuantumCircuit, it saves the original definition."""
+        linear_circuit = QuantumCircuit(4)
+        linear_circuit.cx(0, 1)
+        linear_circuit.cx(1, 2)
+        linear_circuit.cx(2, 3)
+        linear_function = LinearFunction(linear_circuit)
+        self.assertIsNotNone(linear_function.original_circuit)
+
+    def test_no_original_definition(self):
+        """Tests that when a linear function is constructed from
+        a matrix, there is no original definition."""
+        mat = [[1, 0, 0, 0], [0, 0, 0, 1], [0, 1, 0, 0], [0, 0, 1, 0]]
+        linear_function = LinearFunction(mat)
+        self.assertIsNone(linear_function.original_circuit)
+
 
 if __name__ == "__main__":
     unittest.main()

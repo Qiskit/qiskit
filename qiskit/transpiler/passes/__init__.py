@@ -46,6 +46,8 @@ Routing
    StochasticSwap
    SabreSwap
    BIPMapping
+   SwapStrategy
+   Commuting2qGateRouter
 
 Basis Change
 ============
@@ -101,11 +103,18 @@ Scheduling
    :toctree: ../stubs/
 
    TimeUnitConversion
+   ALAPScheduleAnalysis
+   ASAPScheduleAnalysis
+   PadDynamicalDecoupling
+   PadDelay
+   ConstrainedReschedule
+   AlignMeasures
+   ValidatePulseGates
+   InstructionDurationCheck
+   SetIOLatency
    ALAPSchedule
    ASAPSchedule
    DynamicalDecoupling
-   AlignMeasures
-   ValidatePulseGates
 
 Circuit Analysis
 ================
@@ -172,6 +181,8 @@ from .routing import LookaheadSwap
 from .routing import StochasticSwap
 from .routing import SabreSwap
 from .routing import BIPMapping
+from .routing import SwapStrategy
+from .routing import Commuting2qGateRouter
 
 # basis change
 from .basis import Decompose
@@ -224,12 +235,18 @@ from .calibration import RZXCalibrationBuilderNoEcho
 
 # circuit scheduling
 from .scheduling import TimeUnitConversion
+from .scheduling import ALAPScheduleAnalysis
+from .scheduling import ASAPScheduleAnalysis
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
+from .scheduling import PadDynamicalDecoupling
 from .scheduling import DynamicalDecoupling
-from .scheduling import AlignMeasures
+from .scheduling import AlignMeasures  # Deprecated
 from .scheduling import ValidatePulseGates
 from .scheduling import PadDelay
+from .scheduling import ConstrainedReschedule
+from .scheduling import InstructionDurationCheck
+from .scheduling import SetIOLatency
 
 # additional utility passes
 from .utils import CheckMap

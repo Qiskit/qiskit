@@ -15,10 +15,10 @@ Fake Lima device (5 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_pulse_backend
+from qiskit.test.mock import fake_pulse_backend, fake_backend
 
 
-class FakeLima(fake_pulse_backend.FakePulseBackend):
+class FakeLimaV2(fake_backend.FakeBackendV2):
     """A fake 5 qubit backend."""
 
     dirname = os.path.dirname(__file__)
@@ -28,7 +28,7 @@ class FakeLima(fake_pulse_backend.FakePulseBackend):
     backend_name = "fake_lima"
 
 
-class FakeLegacyLima(fake_pulse_backend.FakePulseLegacyBackend):
+class FakeLima(fake_pulse_backend.FakePulseBackend):
     """A fake 5 qubit backend."""
 
     dirname = os.path.dirname(__file__)
