@@ -12,5 +12,5 @@
 
 """Mock quito backend"""
 
+from .fake_quito import FakeQuitoV2
 from .fake_quito import FakeQuito
-from .fake_quito import FakeLegacyQuito
