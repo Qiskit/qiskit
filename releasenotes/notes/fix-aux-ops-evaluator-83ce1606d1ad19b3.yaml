@@ -1,5 +1,5 @@
 fixes:
   - |
     Fixed an issue where the :func:`~qiskit.algorithms.eval_observables` function would raise an
-    error if its ``quantum_state`` argument were of type :class:`~qiskit.opflow.StateFn`. 
+    error if its ``quantum_state`` argument was of type :class:`~qiskit.opflow.StateFn`. 
     ``eval_observables`` now correctly supports all input types denoted by its type hints.

@@ -6,7 +6,7 @@ fixes:
     classes.
     Previously, a QPY file that contained any of these gates would error
     when trying to load the file.
-    Fixed `#7847 <https://github.com/Qiskit/qiskit-terra/issues/7847>`__
+    Fixed `#7847 <https://github.com/Qiskit/qiskit-terra/issues/7847>`__.
 issues:
   - |
     QPY deserialization with the :func:`.qpy.load` function of a directly
