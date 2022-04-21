@@ -455,8 +455,18 @@ def _transform_gate_for_layout(op_node, layout, device_qreg):
     return mapped_op_node
 
 
-def _shortest_swap_path(target, coupling_map, layout):
-    v_start, v_goal = target
+def _shortest_swap_path(target_qubits, coupling_map, layout):
+    """Return an iterator that yields the swaps between virtual qubits needed to bring the two
+    virtual qubits in ``target_qubits`` together in the coupling map."""
+    v_start, v_goal = target_qubits
     start, goal = layout._v2p[v_start], layout._v2p[v_goal]
-    for swap in list(retworkx.dijkstra_shortest_paths(coupling_map.graph, start)[goal])[1:-1]:
+    # TODO: remove the list call once using retworkx 0.12, as the return value can be sliced.
+    path = list(retworkx.dijkstra_shortest_paths(coupling_map.graph, start, target=goal)[goal])
+    # Swap both qubits towards the "centre" (as opposed to applying the same swaps to one) to
+    # parallelise and reduce depth.
+    split = len(path) // 2
+    forwards, backwards = path[1:split], reversed(path[split:-1])
+    for swap in forwards:
         yield v_start, layout._p2v[swap]
+    for swap in backwards:
+        yield v_goal, layout._p2v[swap]
