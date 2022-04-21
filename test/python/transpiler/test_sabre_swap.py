@@ -13,13 +13,79 @@
 """Test the Sabre Swap pass"""
 
 import unittest
-from qiskit.circuit.library import CCXGate, HGate, Measure
+
+import ddt
+
+from qiskit.circuit.library import CCXGate, HGate, Measure, SwapGate
 from qiskit.transpiler.passes import SabreSwap
 from qiskit.transpiler import CouplingMap, PassManager
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
+from qiskit.utils import optionals
 
 
+def looping_circuit(uphill_swaps=1, additional_local_minimum_gates=0):
+    """A circuit that causes SabreSwap to loop infinitely.
+
+    This looks like (using cz gates to show the symmetry, though we actually output cx for testing
+    purposes):
+
+    .. parsed-literal::
+
+         q_0: ─■────────────────
+               │
+         q_1: ─┼──■─────────────
+               │  │
+         q_2: ─┼──┼──■──────────
+               │  │  │
+         q_3: ─┼──┼──┼──■───────
+               │  │  │  │
+         q_4: ─┼──┼──┼──┼─────■─
+               │  │  │  │     │
+         q_5: ─┼──┼──┼──┼──■──■─
+               │  │  │  │  │
+         q_6: ─┼──┼──┼──┼──┼────
+               │  │  │  │  │
+         q_7: ─┼──┼──┼──┼──■──■─
+               │  │  │  │     │
+         q_8: ─┼──┼──┼──┼─────■─
+               │  │  │  │
+         q_9: ─┼──┼──┼──■───────
+               │  │  │
+        q_10: ─┼──┼──■──────────
+               │  │
+        q_11: ─┼──■─────────────
+               │
+        q_12: ─■────────────────
+
+    where `uphill_swaps` is the number of qubits separating the inner-most gate (representing how
+    many swaps need to be made that all increase the heuristics), and
+    `additional_local_minimum_gates` is how many extra gates to add on the outside (these increase
+    the size of the region of stability).
+    """
+    outers = 4 + additional_local_minimum_gates
+    n_qubits = 2 * outers + 4 + uphill_swaps
+    # This is (most of) the front layer, which is a bunch of outer qubits in the
+    # coupling map.
+    outer_pairs = [(i, n_qubits - i - 1) for i in range(outers)]
+    inner_heuristic_peak = [
+        # This gate is completely "inside" all the others in the front layer in
+        # terms of the coupling map, so it's the only one that we can in theory
+        # make progress towards without making the others worse.
+        (outers + 1, outers + 2 + uphill_swaps),
+        # These are the only two gates in the extended set, and they both get
+        # further apart if you make a swap to bring the above gate closer
+        # together, which is the trick that creates the "heuristic hill".
+        (outers, outers + 1),
+        (outers + 2 + uphill_swaps, outers + 3 + uphill_swaps),
+    ]
+    qc = QuantumCircuit(n_qubits)
+    for pair in outer_pairs + inner_heuristic_peak:
+        qc.cx(*pair)
+    return qc
+
+
+@ddt.ddt
 class TestSabreSwap(QiskitTestCase):
     """Tests the SabreSwap pass."""
 
@@ -123,6 +189,53 @@ class TestSabreSwap(QiskitTestCase):
         # depends a little on the randomisation of the pass).
         self.assertEqual(h_qubits, first_measure_qubits)
         self.assertNotEqual(h_qubits, second_measure_qubits)
+
+    # The 'basic' method can't get stuck in the same way.
+    @ddt.data("lookahead", "decay")
+    def test_no_infinite_loop(self, method):
+        """Test that the 'release value' mechanisms allow SabreSwap to make progress even on
+        circuits that get stuck in a stable local minimum of the lookahead parameters."""
+        qc = looping_circuit(3, 1)
+        qc.measure_all()
+        coupling_map = CouplingMap.from_line(qc.num_qubits)
+        routing_pass = PassManager(SabreSwap(coupling_map, method))
+
+        n_swap_gates = 0
+
+        def leak_number_of_swaps(cls, *args, **kwargs):
+            nonlocal n_swap_gates
+            n_swap_gates += 1
+            if n_swap_gates > 1_000:
+                raise Exception("SabreSwap seems to be stuck in a loop")
+            # pylint: disable=bad-super-call
+            return super(SwapGate, cls).__new__(cls, *args, **kwargs)
+
+        with unittest.mock.patch.object(SwapGate, "__new__", leak_number_of_swaps):
+            routed = routing_pass.run(qc)
+
+        routed_ops = routed.count_ops()
+        del routed_ops["swap"]
+        self.assertEqual(routed_ops, qc.count_ops())
+        couplings = {
+            tuple(routed.find_bit(bit).index for bit in qargs)
+            for _, qargs, _ in routed.data
+            if len(qargs) == 2
+        }
+        # Asserting equality to the empty set gives better errors on failure than asserting that
+        # `couplings <= coupling_map`.
+        self.assertEqual(couplings - set(coupling_map.get_edges()), set())
+
+        # Assert that the same keys are produced by a simulation - this is a test that the inserted
+        # swaps route the qubits correctly.
+        if not optionals.HAS_AER:
+            return
+
+        from qiskit import Aer
+
+        sim = Aer.get_backend("aer_simulator")
+        in_results = sim.run(qc, shots=4096).result().get_counts()
+        out_results = sim.run(routed, shots=4096).result().get_counts()
+        self.assertEqual(set(in_results), set(out_results))
 
 
 if __name__ == "__main__":
