@@ -8,4 +8,4 @@ fixes:
     luck, get stuck in a stable local minimum of the search space and the pass
     would never make further progress.  It will now force a series of swaps that
     allow the routing to continue if it detects it has not made progress
-    recently.
+    recently.  Fixed `#7707 <https://github.com/Qiskit/qiskit-terra/issues/7707>`__.
