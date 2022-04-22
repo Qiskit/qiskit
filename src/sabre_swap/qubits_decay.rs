@@ -80,8 +80,6 @@ impl QubitsDecay {
     }
 
     pub fn reset(mut slf: PyRefMut<Self>) {
-        for v in &mut slf.decay {
-            *v = 1.;
-        }
+        slf.decay.fill_with(|| 1.);
     }
 }
