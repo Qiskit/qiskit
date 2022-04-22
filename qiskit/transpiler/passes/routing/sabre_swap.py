@@ -24,6 +24,8 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.dagcircuit import DAGOpNode
+
+# pylint: disable=import-error
 from qiskit._accelerate.sabre_swap import (
     sabre_score_heuristic,
     SwapScores,
@@ -31,7 +33,7 @@ from qiskit._accelerate.sabre_swap import (
     EdgeList,
     QubitsDecay,
 )
-from qiskit._accelerate.stochastic_swap import NLayout
+from qiskit._accelerate.stochastic_swap import NLayout  # pylint: disable=import-error
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +92,9 @@ class SabreSwap(TransformationPass):
             seed (int): random seed used to tie-break among candidate swaps.
             fake_run (bool): if true, it only pretend to do routing, i.e., no
                 swap is effectively added.
+
+        Raises:
+            TranspilerError: If the specified heuristic is not valid.
 
         Additional Information:
 
