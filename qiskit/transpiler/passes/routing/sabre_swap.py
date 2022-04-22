@@ -384,7 +384,7 @@ class SabreSwap(TransformationPass):
             self.applied_predecessors[node] -= 1
         return extended_set
 
-    def _obtain_swaps(self, front_layer, current_layout, qreg):
+    def _obtain_swaps(self, front_layer, current_layout):
         """Return a set of candidate swaps that affect qubits in front_layer.
 
         For each virtual qubit in front_layer, find its current location
