@@ -27,7 +27,7 @@ from qiskit.transpiler.passes.routing.commuting_2q_gate_routing.commuting_2q_blo
 class Commuting2qGateRouter(TransformationPass):
     """A class to swap route one or more commuting gates to the coupling map.
 
-    This pass routs blocks of commuting two-qubit gates encapsulated as
+    This pass routes blocks of commuting two-qubit gates encapsulated as
     :class:`.Commuting2qBlocks` instructions. This pass will not apply to other instructions.
     The mapping to the coupling map is done using swap strategies, see :class:`.SwapStrategy`.
     The swap strategy should suit the problem and the coupling map. This transpiler pass
