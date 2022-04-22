@@ -12,7 +12,7 @@
 
 use pyo3::prelude::*;
 
-use hashbrown::HashMap;
+use indexmap::IndexMap;
 
 /// An unsigned integer Vector based layout class
 ///
@@ -28,7 +28,7 @@ use hashbrown::HashMap;
 #[pyo3(text_signature = "(qubit_indices, logical_qubits, physical_qubits, /)")]
 #[derive(Clone, Debug)]
 pub struct SwapScores {
-    pub scores: HashMap<[usize; 2], f64>,
+    pub scores: IndexMap<[usize; 2], f64>,
 }
 
 #[pymethods]

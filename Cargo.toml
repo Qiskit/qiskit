@@ -15,7 +15,6 @@ numpy = "0.16.2"
 rand = "0.8"
 rand_pcg = "0.3"
 rand_distr = "0.4.3"
-indexmap = "1.8.1"
 ahash = "0.7.6"
 num-complex = "0.4"
 
@@ -29,6 +28,10 @@ features = ["rayon"]
 
 [dependencies.hashbrown]
 version = "0.11.2"
+features = ["rayon"]
+
+[dependencies.indexmap]
+version = "1.8.1"
 features = ["rayon"]
 
 [profile.release]
