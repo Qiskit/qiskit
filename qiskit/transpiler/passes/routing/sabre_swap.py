@@ -244,7 +244,7 @@ class SabreSwap(TransformationPass):
                 # come into play for most circuits.
                 self._undo_operations(ops_since_progress, mapped_dag, layout)
                 self._add_greedy_swaps(
-                    front_layer, mapped_dag, layout, canonical_register, canonical_register
+                    front_layer, mapped_dag, layout, canonical_register
                 )
                 continue
 
@@ -410,17 +410,17 @@ class SabreSwap(TransformationPass):
                     candidate_swaps.add(tuple(swap))
         return candidate_swaps
 
-    def _add_greedy_swaps(self, front_layer, dag, layout, qubits, qreg):
+    def _add_greedy_swaps(self, front_layer, dag, layout, qubits):
         """Mutate ``dag`` and ``layout`` by applying greedy swaps to ensure that at least one gate
         can be routed."""
         target_node = min(
             front_layer,
             key=lambda node: self.dist_matrix[
-                layout.get_item_logic(node.qargs[0].index),
-                layout.get_item_logic(node.qargs[1].index),
+                layout.get_item_logic(self._bit_indices[node.qargs[0]]),
+                layout.get_item_logic(self._bit_indices[node.qargs[1]]),
             ],
         )
-        for pair in _shortest_swap_path(tuple(target_node.qargs), self.coupling_map, layout, qreg):
+        for pair in _shortest_swap_path(tuple(target_node.qargs), self.coupling_map, layout, qubits):
             self._apply_gate(dag, DAGOpNode(op=SwapGate(), qargs=pair), layout, qubits)
             layout.swap_logic(*[self._bit_indices[x] for x in pair])
 
