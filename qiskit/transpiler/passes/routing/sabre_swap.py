@@ -226,9 +226,9 @@ class SabreSwap(TransformationPass):
             new_front_layer = []
             for node in front_layer:
                 if len(node.qargs) == 2:
-                    v0, v1 = node.qargs
+                    v0, v1 = [self._bit_indices[x] for x in node.qargs]
                     if self.coupling_map.graph.has_edge(
-                        layout.get_item_logic(v0._index), layout.get_item_logic(v1._index)
+                        layout.get_item_logic(v0), layout.get_item_logic(v1)
                     ):
                         execute_gate_list.append(node)
                     else:
@@ -403,7 +403,7 @@ class SabreSwap(TransformationPass):
         candidate_swaps = set()
         for node in front_layer:
             for virtual in node.qargs:
-                physical = current_layout.get_item_logic(virtual._index)
+                physical = current_layout.get_item_logic(self._bit_indices[virtual])
                 for neighbor in self.coupling_map.neighbors(physical):
                     virtual_neighbor = qreg[current_layout.get_item_phys(neighbor)]
                     swap = sorted([virtual, virtual_neighbor], key=lambda q: self._bit_indices[q])
@@ -422,13 +422,13 @@ class SabreSwap(TransformationPass):
         )
         for pair in _shortest_swap_path(tuple(target_node.qargs), self.coupling_map, layout, qreg):
             self._apply_gate(dag, DAGOpNode(op=SwapGate(), qargs=pair), layout, qubits)
-            layout.swap_logic(*[x._index for x in pair])
+            layout.swap_logic(*[self._bit_indices[x] for x in pair])
 
     def _undo_operations(self, operations, dag, layout):
         """Mutate ``dag`` and ``layout`` by undoing the swap gates listed in ``operations``."""
         if dag is None:
             for operation in reversed(operations):
-                layout.swap_logic(*[x._index for x in operation.qargs])
+                layout.swap_logic(*[self._bit_indices[x] for x in operation.qargs])
         else:
             for operation in reversed(operations):
                 dag.remove_op_node(operation)
@@ -440,7 +440,9 @@ class SabreSwap(TransformationPass):
 def _transform_gate_for_layout(op_node, layout, device_qreg):
     """Return node implementing a virtual op on given layout."""
     mapped_op_node = copy(op_node)
-    mapped_op_node.qargs = [device_qreg[layout.get_item_logic(x._index)] for x in op_node.qargs]
+    mapped_op_node.qargs = [
+        device_qreg[layout.get_item_logic(device_qreg.index(x))] for x in op_node.qargs
+    ]
     return mapped_op_node
 
 
