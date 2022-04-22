@@ -153,29 +153,6 @@ class IfElseOp(ControlFlowOp):
         )
         return IfElseOp(self.condition, true_body, false_body=false_body, label=self.label)
 
-    def replace_blocks(self, blocks: Iterable[QuantumCircuit]) -> "IfElseOp":
-        """Return new instruction with replaced blocks.
-
-        Args:
-            blocks: List of QuantumCircuits and or None for the 'else' block.
-
-        Raises:
-            CircuitError: not passing list of QuantumCircuit as argument
-
-        Returns:
-            IfElseOp: new instruction with supplied conditional blocks.
-        """
-        if len(blocks) == 1:
-            (true_body,) = blocks
-            false_body = None
-        else:
-            (true_body, false_body) = blocks
-        if not isinstance(true_body, QuantumCircuit) or not isinstance(
-            false_body, (QuantumCircuit, type(None))
-        ):
-            raise CircuitError("Setting blocks of IfElseOp expects QuantumCircuit objects.")
-        return IfElseOp(self.condition, true_body, false_body=false_body, label=self.label)
-
     def c_if(self, classical, val):
         raise NotImplementedError(
             "IfElseOp cannot be classically controlled through Instruction.c_if. "

@@ -128,7 +128,7 @@ class BasisTranslator(TransformationPass):
             source_basis = set()
             target_basis = self._target.keys() - set(self._non_global_operations)
             qargs_local_source_basis = defaultdict(set)
-            self._update_basis_target(source_basis, qarg_local_source_basis, dag)
+            self._update_basis_target(source_basis, qargs_local_source_basis, qarg_indices, dag)
 
         target_basis = set(target_basis).union(basic_instrs)
 
@@ -205,6 +205,7 @@ class BasisTranslator(TransformationPass):
         # Replace source instructions with target translations.
 
         replace_start_time = time.time()
+
         def apply_translation(dag):
             for node in dag.op_nodes():
                 node_qargs = tuple(qarg_indices[bit] for bit in node.qargs)
@@ -291,9 +292,8 @@ class BasisTranslator(TransformationPass):
                 for block in node.op.blocks:
                     block_dag = circuit_to_dag(block)
                     self._update_basis(source_basis, block_dag)
-        
 
-    def _update_basis_target(self, source_basis, qargs_local_source_basis, dag):
+    def _update_basis_target(self, source_basis, qargs_local_source_basis, qarg_indices, dag):
         for node in dag.op_nodes():
             qargs = tuple(qarg_indices[bit] for bit in node.qargs)
             if dag.has_calibration_for(node):
@@ -317,22 +317,10 @@ class BasisTranslator(TransformationPass):
             if isinstance(node.op, ControlFlowOp):
                 for block in node.op.blocks:
                     block_dag = circuit_to_dag(block)
-                    self._update_basis_target(source_basis, qargs_local_source_basis, block_dag)
+                    self._update_basis_target(
+                        source_basis, qargs_local_source_basis, qarg_indices, block_dag
+                    )
 
-
-    # def _update_cf_op(self, op, instr_map):
-    #     for block in op.blocks:
-    #         block_dag = circuit_to_dag(block)
-    #         for node in block_dag.nodes():
-    #             if node.op
-
-    #             if qubit_set in extra_instr_map:
-    #                 replace_node(node, extra_instr_map[qubit_set])
-    #             elif (node.op.name, node.op.num_qubits) in instr_map:
-    #                 replace_node(node, instr_map)
-    #             else:
-    #                 raise TranspilerError(f"BasisTranslator did not map {node.name}.")
-            
 
 class StopIfBasisRewritable(Exception):
     """Custom exception that signals `retworkx.dijkstra_search` to stop."""
@@ -561,7 +549,6 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
             ]
 
             if doomed_nodes and logger.isEnabledFor(logging.DEBUG):
-                from qiskit.converters import dag_to_circuit
 
                 logger.debug(
                     "Updating transform for mapped instr %s %s from \n%s",
@@ -571,7 +558,6 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
                 )
 
             for node in doomed_nodes:
-                from qiskit.converters import circuit_to_dag
 
                 replacement = equiv.assign_parameters(
                     dict(zip_longest(equiv_params, node.op.params))
@@ -582,7 +568,6 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
                 dag.substitute_node_with_dag(node, replacement_dag)
 
             if doomed_nodes and logger.isEnabledFor(logging.DEBUG):
-                from qiskit.converters import dag_to_circuit
 
                 logger.debug(
                     "Updated transform for mapped instr %s %s to\n%s",
