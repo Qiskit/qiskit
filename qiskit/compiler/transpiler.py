@@ -137,8 +137,7 @@ def transpile(
 
                     [qr[0], None, None, qr[1], None, qr[2]]
 
-        layout_method: Name of layout selection pass
-            ('trivial', 'dense', 'noise_adaptive', 'sabre', 'toqm')
+        layout_method: Name of layout selection pass ('trivial', 'dense', 'noise_adaptive', 'sabre')
         routing_method: Name of routing pass
             ('basic', 'lookahead', 'stochastic', 'sabre', 'toqm', 'none')
         translation_method: Name of translation pass ('unroller', 'translator', 'synthesis')

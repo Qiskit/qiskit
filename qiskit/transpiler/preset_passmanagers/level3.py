@@ -169,11 +169,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _choose_layout_1 = NoiseAdaptiveLayout(backend_properties)
     elif layout_method == "sabre":
         _choose_layout_1 = SabreLayout(coupling_map, max_iterations=4, seed=seed_transpiler)
-    elif layout_method == "toqm":
-        HAS_TOQM.require_now("TOQM-based layout")
-        if routing_method != "toqm":
-            raise TranspilerError("Layout method 'toqm' requires routing method 'toqm'.")
-        _choose_layout_1 = TrivialLayout(coupling_map)
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
 
@@ -202,13 +197,15 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         HAS_TOQM.require_now("TOQM-based routing")
         from qiskit_toqm import ToqmSwap, ToqmStrategyO3
 
+        if initial_layout:
+            raise TranspilerError("Initial layouts are not supported with TOQM-based routing.")
+
         # Note: BarrierBeforeFinalMeasurements is skipped intentionally since ToqmSwap
         #       does not yet support barriers.
         _swap = [
             ToqmSwap(
                 coupling_map,
                 instruction_durations,
-                perform_layout=(layout_method == "toqm"),
                 strategy=ToqmStrategyO3(),
                 basis_gates=basis_gates,
                 backend_properties=backend_properties,
