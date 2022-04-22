@@ -295,7 +295,7 @@ class SabreSwap(TransformationPass):
                 front_layer_list.append(
                     self._bit_indices[x.qargs[0]], self._bit_indices[x.qargs[1]]
                 )
-            swap_candidates = self._obtain_swaps(front_layer, layout, canonical_register)
+            swap_candidates = self._obtain_swaps(front_layer, layout)
             swap_scores = SwapScores(list(swap_candidates))
             best_swaps = sabre_score_heuristic(
                 front_layer_list,
