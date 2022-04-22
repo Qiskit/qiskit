@@ -71,6 +71,7 @@ class TestBackendV2(QiskitTestCase):
 
     def test_option_bounds(self):
         """Test that option bounds are enforced."""
+        self.backend.options.set_validator("shots", (1, 4096))
         with self.assertRaises(ValueError) as cm:
             self.backend.set_options(shots=8192)
         self.assertEqual(
