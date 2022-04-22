@@ -24,6 +24,14 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.dagcircuit import DAGOpNode
+from qiskit._accelerate.sabre_swap import (
+    sabre_score_heuristic,
+    SwapScores,
+    Heuristic,
+    EdgeList,
+    QubitsDecay,
+)
+from qiskit._accelerate.stochastic_swap import NLayout
 
 logger = logging.getLogger(__name__)
 
@@ -136,7 +144,15 @@ class SabreSwap(TransformationPass):
             self.coupling_map = deepcopy(coupling_map)
             self.coupling_map.make_symmetric()
 
-        self.heuristic = heuristic
+        if heuristic == "basic":
+            self.heuristic = Heuristic.Basic
+        elif heuristic == "lookahead":
+            self.heuristic = Heuristic.Lookahead
+        elif heuristic == "decay":
+            self.heuristic = Heuristic.Decay
+        else:
+            raise TranspilerError("Heuristic %s not recognized." % heuristic)
+
         self.seed = seed
         self.fake_run = fake_run
         self.applied_predecessors = None
@@ -180,12 +196,15 @@ class SabreSwap(TransformationPass):
 
         canonical_register = dag.qregs["q"]
         current_layout = Layout.generate_trivial_layout(canonical_register)
-
         self._bit_indices = {bit: idx for idx, bit in enumerate(canonical_register)}
+        layout_mapping = {
+            self._bit_indices[k]: v for k, v in current_layout.get_virtual_bits().items()
+        }
+        layout = NLayout(layout_mapping, len(dag.qubits), self.coupling_map.size())
 
         # A decay factor for each qubit used to heuristically penalize recently
         # used qubits (to encourage parallelism).
-        self.qubits_decay = dict.fromkeys(dag.qubits, 1)
+        self.qubits_decay = QubitsDecay(len(dag.qubits))
 
         # Start algorithm from the front layer and iterate until all gates done.
         num_search_steps = 0
@@ -203,10 +222,8 @@ class SabreSwap(TransformationPass):
             for node in front_layer:
                 if len(node.qargs) == 2:
                     v0, v1 = node.qargs
-                    # Accessing layout._v2p directly to avoid overhead from __getitem__ and a
-                    # single access isn't feasible because the layout is updated on each iteration
                     if self.coupling_map.graph.has_edge(
-                        current_layout._v2p[v0], current_layout._v2p[v1]
+                        layout.get_item_logic(v0._index), layout.get_item_logic(v1._index)
                     ):
                         execute_gate_list.append(node)
                     else:
@@ -220,20 +237,22 @@ class SabreSwap(TransformationPass):
                 # the gate with the smallest distance between its arguments.  This is a release
                 # valve for the algorithm to avoid infinite loops only, and should generally not
                 # come into play for most circuits.
-                self._undo_operations(ops_since_progress, mapped_dag, current_layout)
-                self._add_greedy_swaps(front_layer, mapped_dag, current_layout, canonical_register)
+                self._undo_operations(ops_since_progress, mapped_dag, layout)
+                self._add_greedy_swaps(
+                    front_layer, mapped_dag, layout, canonical_register, canonical_register
+                )
                 continue
 
             if execute_gate_list:
                 for node in execute_gate_list:
-                    self._apply_gate(mapped_dag, node, current_layout, canonical_register)
+                    self._apply_gate(mapped_dag, node, layout, canonical_register)
                     for successor in self._successors(node, dag):
                         self.applied_predecessors[successor] += 1
                         if self._is_resolved(successor):
                             front_layer.append(successor)
 
                     if node.qargs:
-                        self._reset_qubits_decay()
+                        self.qubits_decay.reset()
 
                 # Diagnostics
                 if do_expensive_logging:
@@ -259,32 +278,50 @@ class SabreSwap(TransformationPass):
             # After all free gates are exhausted, heuristically find
             # the best swap and insert it. When two or more swaps tie
             # for best score, pick one randomly.
+
             if extended_set is None:
                 extended_set = self._obtain_extended_set(dag, front_layer)
-            swap_scores = {}
-            for swap_qubits in self._obtain_swaps(front_layer, current_layout):
-                trial_layout = current_layout.copy()
-                trial_layout.swap(*swap_qubits)
-                score = self._score_heuristic(
-                    self.heuristic, front_layer, extended_set, trial_layout, swap_qubits
+            extended_set_list = EdgeList(len(extended_set))
+            for x in extended_set:
+                extended_set_list.append(
+                    self._bit_indices[x.qargs[0]], self._bit_indices[x.qargs[1]]
                 )
-                swap_scores[swap_qubits] = score
-            min_score = min(swap_scores.values())
-            best_swaps = [k for k, v in swap_scores.items() if v == min_score]
-            best_swaps.sort(key=lambda x: (self._bit_indices[x[0]], self._bit_indices[x[1]]))
+
+            front_layer_list = EdgeList(len(front_layer))
+            for x in front_layer:
+                front_layer_list.append(
+                    self._bit_indices[x.qargs[0]], self._bit_indices[x.qargs[1]]
+                )
+            swap_candidates = self._obtain_swaps(front_layer, layout, canonical_register)
+            swap_candidates = [
+                (self._bit_indices[x[0]], self._bit_indices[x[1]]) for x in swap_candidates
+            ]
+            swap_scores = SwapScores(swap_candidates)
+
+            best_swaps = sabre_score_heuristic(
+                front_layer_list,
+                layout,
+                swap_scores,
+                extended_set_list,
+                self.dist_matrix,
+                self.qubits_decay,
+                self.heuristic,
+            )
             best_swap = rng.choice(best_swaps)
+            best_swap_qargs = [canonical_register[x] for x in best_swap]
             swap_node = self._apply_gate(
                 mapped_dag,
-                DAGOpNode(op=SwapGate(), qargs=best_swap),
-                current_layout,
+                DAGOpNode(op=SwapGate(), qargs=best_swap_qargs),
+                layout,
                 canonical_register,
             )
-            current_layout.swap(*best_swap)
+            layout.swap_logic(*best_swap)
             ops_since_progress.append(swap_node)
 
             num_search_steps += 1
-            if num_search_steps % DECAY_RESET_INTERVAL == 0:
-                self._reset_qubits_decay()
+            if num_search_steps >= DECAY_RESET_INTERVAL == 0:
+                num_search_steps = 0
+                self.qubits_decay.reset()
             else:
                 self.qubits_decay[best_swap[0]] += DECAY_RATE
                 self.qubits_decay[best_swap[1]] += DECAY_RATE
@@ -296,8 +333,9 @@ class SabreSwap(TransformationPass):
                 logger.debug("swap scores: %s", swap_scores)
                 logger.debug("best swap: %s", best_swap)
                 logger.debug("qubits decay: %s", self.qubits_decay)
-
-        self.property_set["final_layout"] = current_layout
+        layout_mapping = layout.layout_mapping()
+        output_layout = Layout({dag.qubits[k]: v for (k, v) in layout_mapping})
+        self.property_set["final_layout"] = output_layout
         if not self.fake_run:
             return mapped_dag
         return dag
@@ -307,12 +345,6 @@ class SabreSwap(TransformationPass):
         if self.fake_run:
             return new_node
         return mapped_dag.apply_operation_back(new_node.op, new_node.qargs, new_node.cargs)
-
-    def _reset_qubits_decay(self):
-        """Reset all qubit decay factors to 1 upon request (to forget about
-        past penalizations).
-        """
-        self.qubits_decay = {k: 1 for k in self.qubits_decay.keys()}
 
     def _successors(self, node, dag):
         """Return an iterable of the successors along each wire from the given node.
@@ -354,7 +386,7 @@ class SabreSwap(TransformationPass):
             self.applied_predecessors[node] -= 1
         return extended_set
 
-    def _obtain_swaps(self, front_layer, current_layout):
+    def _obtain_swaps(self, front_layer, current_layout, qreg):
         """Return a set of candidate swaps that affect qubits in front_layer.
 
         For each virtual qubit in front_layer, find its current location
@@ -367,84 +399,52 @@ class SabreSwap(TransformationPass):
         candidate_swaps = set()
         for node in front_layer:
             for virtual in node.qargs:
-                physical = current_layout[virtual]
+                physical = current_layout.get_item_logic(virtual._index)
                 for neighbor in self.coupling_map.neighbors(physical):
-                    virtual_neighbor = current_layout[neighbor]
+                    virtual_neighbor = qreg[current_layout.get_item_phys(neighbor)]
                     swap = sorted([virtual, virtual_neighbor], key=lambda q: self._bit_indices[q])
                     candidate_swaps.add(tuple(swap))
         return candidate_swaps
 
-    def _add_greedy_swaps(self, front_layer, dag, layout, qubits):
+    def _add_greedy_swaps(self, front_layer, dag, layout, qubits, qreg):
         """Mutate ``dag`` and ``layout`` by applying greedy swaps to ensure that at least one gate
         can be routed."""
-        layout_map = layout._v2p
         target_node = min(
             front_layer,
-            key=lambda node: self.dist_matrix[layout_map[node.qargs[0]], layout_map[node.qargs[1]]],
+            key=lambda node: self.dist_matrix[
+                layout.get_item_logic(node.qargs[0].index),
+                layout.get_item_logic(node.qargs[1].index),
+            ],
         )
-        for pair in _shortest_swap_path(tuple(target_node.qargs), self.coupling_map, layout):
+        for pair in _shortest_swap_path(tuple(target_node.qargs), self.coupling_map, layout, qreg):
             self._apply_gate(dag, DAGOpNode(op=SwapGate(), qargs=pair), layout, qubits)
-            layout.swap(*pair)
-
-    def _compute_cost(self, layer, layout):
-        cost = 0
-        layout_map = layout._v2p
-        for node in layer:
-            cost += self.dist_matrix[layout_map[node.qargs[0]], layout_map[node.qargs[1]]]
-        return cost
-
-    def _score_heuristic(self, heuristic, front_layer, extended_set, layout, swap_qubits=None):
-        """Return a heuristic score for a trial layout.
-
-        Assuming a trial layout has resulted from a SWAP, we now assign a cost
-        to it. The goodness of a layout is evaluated based on how viable it makes
-        the remaining virtual gates that must be applied.
-        """
-        first_cost = self._compute_cost(front_layer, layout)
-        if heuristic == "basic":
-            return first_cost
-
-        first_cost /= len(front_layer)
-        second_cost = 0
-        if extended_set:
-            second_cost = self._compute_cost(extended_set, layout) / len(extended_set)
-        total_cost = first_cost + EXTENDED_SET_WEIGHT * second_cost
-        if heuristic == "lookahead":
-            return total_cost
-
-        if heuristic == "decay":
-            return (
-                max(self.qubits_decay[swap_qubits[0]], self.qubits_decay[swap_qubits[1]])
-                * total_cost
-            )
-
-        raise TranspilerError("Heuristic %s not recognized." % heuristic)
+            layout.swap_logic(*[x._index for x in pair])
 
     def _undo_operations(self, operations, dag, layout):
         """Mutate ``dag`` and ``layout`` by undoing the swap gates listed in ``operations``."""
         if dag is None:
             for operation in reversed(operations):
-                layout.swap(*operation.qargs)
+                layout.swap_logic(*[x._index for x in operation.qargs])
         else:
             for operation in reversed(operations):
                 dag.remove_op_node(operation)
                 p0 = self._bit_indices[operation.qargs[0]]
                 p1 = self._bit_indices[operation.qargs[1]]
-                layout.swap(p0, p1)
+                layout.swap_phys(p0, p1)
 
 
 def _transform_gate_for_layout(op_node, layout, device_qreg):
     """Return node implementing a virtual op on given layout."""
     mapped_op_node = copy(op_node)
-    mapped_op_node.qargs = [device_qreg[layout._v2p[x]] for x in op_node.qargs]
+    mapped_op_node.qargs = [device_qreg[layout.get_item_logic(x._index)] for x in op_node.qargs]
     return mapped_op_node
 
 
-def _shortest_swap_path(target_qubits, coupling_map, layout):
+def _shortest_swap_path(target_qubits, coupling_map, layout, qreg):
     """Return an iterator that yields the swaps between virtual qubits needed to bring the two
     virtual qubits in ``target_qubits`` together in the coupling map."""
     v_start, v_goal = target_qubits
-    start, goal = layout._v2p[v_start], layout._v2p[v_goal]
+    start, goal = layout.get_item_logic(v_start.index), layout.get_item_logic(v_goal.index)
     # TODO: remove the list call once using retworkx 0.12, as the return value can be sliced.
     path = list(retworkx.dijkstra_shortest_paths(coupling_map.graph, start, target=goal)[goal])
     # Swap both qubits towards the "centre" (as opposed to applying the same swaps to one) to
@@ -452,6 +452,6 @@ def _shortest_swap_path(target_qubits, coupling_map, layout):
     split = len(path) // 2
     forwards, backwards = path[1:split], reversed(path[split:-1])
     for swap in forwards:
-        yield v_start, layout._p2v[swap]
+        yield v_start, qreg[layout.get_item_phys(swap)]
     for swap in backwards:
-        yield v_goal, layout._p2v[swap]
+        yield v_goal, qreg[layout.get_item_phys(swap)]

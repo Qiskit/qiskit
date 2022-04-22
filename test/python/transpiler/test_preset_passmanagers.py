@@ -659,19 +659,19 @@ class TestFinalLayouts(QiskitTestCase):
             4: ancilla[4],
             5: ancilla[5],
             6: ancilla[6],
-            7: qr[4],
-            8: qr[1],
+            7: qr[3],
+            8: qr[0],
             9: ancilla[7],
             10: ancilla[8],
             11: ancilla[9],
             12: qr[2],
-            13: qr[0],
+            13: qr[1],
             14: ancilla[10],
             15: ancilla[11],
             16: ancilla[12],
             17: ancilla[13],
             18: ancilla[14],
-            19: qr[3],
+            19: qr[4],
         }
 
         expected_layout_level0 = trivial_layout
