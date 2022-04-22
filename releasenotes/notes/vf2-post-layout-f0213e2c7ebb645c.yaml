@@ -4,12 +4,12 @@ features:
     Added a new transpiler pass, :class:`~.VF2PostLayout`. This pass is of a
     new type to perform a new phase/function in the compilation pipeline,
     post-layout or post optimization qubit selection. The idea behind this
-    pass is after we finish the optimization loop in transpiler we have a
+    pass is after we finish the optimization loop in transpiler we
     know what the final gate counts will be on each qubit in the circuit so
-    we can potentially find a better performing subset of qubits on a backend
+    we can potentially find a better-performing subset of qubits on a backend
     to execute the circuit. The pass will search for an isomorphic subgraph in
     the connectivity graph of the target backend and look at the full error
-    rate of the complete circuit on any subgraph found and use return the
+    rate of the complete circuit on any subgraph found and return the
     layout found with the lowest error rate for the circuit.
 
     This pass is similar to the :class:`~.VF2Layout` pass and both internally
