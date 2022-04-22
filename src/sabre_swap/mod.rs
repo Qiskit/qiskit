@@ -10,6 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+pub mod edge_list;
+pub mod qubits_decay;
+pub mod swap_scores;
+
 use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
@@ -18,10 +22,11 @@ use pyo3::Python;
 
 use rayon::prelude::*;
 
-use crate::edge_list::EdgeList;
 use crate::nlayout::NLayout;
-use crate::qubits_decay::QubitsDecay;
-use crate::swap_scores::SwapScores;
+
+use edge_list::EdgeList;
+use qubits_decay::QubitsDecay;
+use swap_scores::SwapScores;
 
 const EXTENDED_SET_WEIGHT: f64 = 0.5;
 

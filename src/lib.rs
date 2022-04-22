@@ -18,14 +18,11 @@ use pyo3::Python;
 
 mod dense_layout;
 mod edge_collections;
-mod edge_list;
 mod nlayout;
 mod pauli_exp_val;
-mod qubits_decay;
 mod sabre_swap;
 mod sparse_pauli_op;
 mod stochastic_swap;
-mod swap_scores;
 
 #[inline]
 pub fn getenv_use_multiple_threads() -> bool {
