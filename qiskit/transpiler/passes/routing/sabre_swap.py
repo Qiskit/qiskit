@@ -324,8 +324,7 @@ class SabreSwap(TransformationPass):
             ops_since_progress.append(swap_node)
 
             num_search_steps += 1
-            if num_search_steps >= DECAY_RESET_INTERVAL == 0:
-                num_search_steps = 0
+            if num_search_steps % DECAY_RESET_INTERVAL == 0:
                 self.qubits_decay.reset()
             else:
                 self.qubits_decay[best_swap[0]] += DECAY_RATE
