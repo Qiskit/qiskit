@@ -48,7 +48,7 @@ class Commuting2qGateRouter(TransformationPass):
              4
 
     To do this we use a line swap strategy for qubits 0, 1, 3, and 4 defined it in terms
-    of logical qubits 0, 1, 2, and 3.
+    of virtual qubits 0, 1, 2, and 3.
 
     .. code-block:: python
 
@@ -67,7 +67,7 @@ class Commuting2qGateRouter(TransformationPass):
             Commuting2qGateRouter,
         )
 
-        # Define the circuit on logical qubits
+        # Define the circuit on virtual qubits
         op = PauliSumOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
         circ = QuantumCircuit(4)
         circ.append(PauliEvolutionGate(op, 1), range(4))
@@ -201,15 +201,15 @@ class Commuting2qGateRouter(TransformationPass):
         return new_dag.copy_empty_like()
 
     def _position_in_cmap(self, j: int, k: int, layout: Layout) -> Tuple[int, ...]:
-        """A helper function to track the movement of logical qubits through the swaps.
+        """A helper function to track the movement of virtual qubits through the swaps.
 
         Args:
-            j: The index of decision variable j (i.e. logical qubit).
-            k: The index of decision variable k (i.e. logical qubit).
+            j: The index of decision variable j (i.e. virtual qubit).
+            k: The index of decision variable k (i.e. virtual qubit).
             layout: The current layout that takes into account previous swap gates.
 
         Returns:
-            The position in the coupling map of the logical qubits j and k as a tuple.
+            The position in the coupling map of the virtual qubits j and k as a tuple.
         """
         bit0 = self._bit_indices[layout.get_physical_bits()[j]]
         bit1 = self._bit_indices[layout.get_physical_bits()[k]]

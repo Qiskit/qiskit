@@ -99,7 +99,7 @@ class FindCommutingPauliEvolutions(TransformationPass):
 
         Returns:
             A tuple representing where the Paulis are. For example, the Pauli "IZIZ" will
-            return (0, 2) since logical qubits 0 and 2 interact.
+            return (0, 2) since virtual qubits 0 and 2 interact.
 
         Raises:
             QiskitError: If the pauli does not exactly have two non-identity terms.
