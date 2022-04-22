@@ -20,8 +20,8 @@ from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.transpiler import TransformationPass, Layout, TranspilerError
 
-from qiskit.transpiler.passes.routing.swap_strategies.swap_strategy import SwapStrategy
-from qiskit.transpiler.passes.routing.swap_strategies.commuting_2q_block import Commuting2qBlocks
+from qiskit.transpiler.passes.routing.commuting_2q_gate_routing.swap_strategy import SwapStrategy
+from qiskit.transpiler.passes.routing.commuting_2q_gate_routing.commuting_2q_block import Commuting2qBlocks
 
 
 class Commuting2qGateRouter(TransformationPass):
@@ -61,7 +61,7 @@ class Commuting2qGateRouter(TransformationPass):
         from qiskit.transpiler.passes import ApplyLayout
         from qiskit.transpiler.passes import SetLayout
 
-        from qiskit.transpiler.passes.routing.swap_strategies import (
+        from qiskit.transpiler.passes.routing.commuting_2q_gate_routing import (
             SwapStrategy,
             FindCommutingPauliEvolutions,
             Commuting2qGateRouter,

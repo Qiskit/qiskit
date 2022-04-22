@@ -27,7 +27,7 @@ from qiskit.transpiler.passes import SetLayout
 
 from qiskit.test import QiskitTestCase
 
-from qiskit.transpiler.passes.routing.swap_strategies import (
+from qiskit.transpiler.passes.routing.commuting_2q_gate_routing import (
     SwapStrategy,
     FindCommutingPauliEvolutions,
     Commuting2qGateRouter,

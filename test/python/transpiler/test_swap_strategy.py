@@ -20,7 +20,7 @@ from qiskit import QiskitError
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import CouplingMap
 
-from qiskit.transpiler.passes.routing.swap_strategies import SwapStrategy
+from qiskit.transpiler.passes.routing.commuting_2q_gate_routing import SwapStrategy
 
 
 @ddt
