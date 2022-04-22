@@ -36,13 +36,3 @@ class FakeAthens(fake_pulse_backend.FakePulseBackend):
     props_filename = "props_athens.json"
     defs_filename = "defs_athens.json"
     backend_name = "fake_athens"
-
-
-class FakeLegacyAthens(fake_pulse_backend.FakePulseLegacyBackend):
-    """A fake 5 qubit backend."""
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_athens.json"
-    props_filename = "props_athens.json"
-    defs_filename = "defs_athens.json"
-    backend_name = "fake_athens"
