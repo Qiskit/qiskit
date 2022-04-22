@@ -22,7 +22,7 @@ import numpy as np
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit import Qubit
 from qiskit.compiler import transpile, assemble
-from qiskit.transpiler import CouplingMap, Layout
+from qiskit.transpiler import CouplingMap, Layout, TranspilerError
 from qiskit.circuit.library import U2Gate, U3Gate
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import (
@@ -32,10 +32,13 @@ from qiskit.test.mock import (
     FakeRueschlikon,
     FakeTokyo,
     FakePoughkeepsie,
+    FakeWashington,
 )
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import GraphState
 from qiskit.quantum_info import random_unitary
+
+from qiskit.utils.optionals import HAS_TOQM
 
 
 def emptycircuit():
@@ -201,6 +204,48 @@ class TestPresetPassManager(QiskitTestCase):
         ) as mock:
             transpile(circuit, backend=FakeJohannesburg(), optimization_level=level)
         mock.assert_called_once()
+
+
+@ddt
+@unittest.skipUnless(HAS_TOQM, "qiskit-toqm needs to be installed")
+class TestToqmIntegration(QiskitTestCase):
+    """Test transpiler with TOQM-based routing"""
+
+    @combine(
+        level=[0, 1, 2, 3],
+        layout_method=[None, "trivial", "dense", "noise_adaptive", "sabre"],
+        backend=[FakeWashington()],
+        dsc="TOQM-based routing with '{layout_method}' layout"
+        + "method on '{backend}' backend at level '{level}'",
+        name="TOQM_{layout_method}_{backend}_level{level}",
+    )
+    def test_basic_circuit(self, level, layout_method, backend):
+        """
+        Basic circuits transpile across all opt levels and layout
+        methods when using TOQM-based routing.
+        """
+        qr = QuantumRegister(2, "q")
+        qc = QuantumCircuit(qr)
+        qc.h(qr[0])
+        qc.cx(qr[0], qr[1])
+
+        result = transpile(
+            qc,
+            layout_method=layout_method,
+            routing_method="toqm",
+            backend=backend,
+            optimization_level=level,
+            seed_transpiler=4222022,
+        )
+
+        self.assertIsInstance(result, QuantumCircuit)
+
+    def test_initial_layout_is_rejected(self):
+        """Initial layout is rejected when using TOQM-based routing"""
+        with self.assertRaisesRegex(
+            TranspilerError, "Initial layouts are not supported with TOQM-based routing."
+        ):
+            transpile(QuantumCircuit(2), initial_layout=[1, 0], routing_method="toqm")
 
 
 @ddt
