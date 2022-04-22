@@ -243,9 +243,7 @@ class SabreSwap(TransformationPass):
                 # valve for the algorithm to avoid infinite loops only, and should generally not
                 # come into play for most circuits.
                 self._undo_operations(ops_since_progress, mapped_dag, layout)
-                self._add_greedy_swaps(
-                    front_layer, mapped_dag, layout, canonical_register
-                )
+                self._add_greedy_swaps(front_layer, mapped_dag, layout, canonical_register)
                 continue
 
             if execute_gate_list:
@@ -298,11 +296,7 @@ class SabreSwap(TransformationPass):
                     self._bit_indices[x.qargs[0]], self._bit_indices[x.qargs[1]]
                 )
             swap_candidates = self._obtain_swaps(front_layer, layout, canonical_register)
-            swap_candidates = [
-                (self._bit_indices[x[0]], self._bit_indices[x[1]]) for x in swap_candidates
-            ]
-            swap_scores = SwapScores(swap_candidates)
-
+            swap_scores = SwapScores(list(swap_candidates))
             best_swaps = sabre_score_heuristic(
                 front_layer_list,
                 layout,
@@ -402,12 +396,13 @@ class SabreSwap(TransformationPass):
         """
         candidate_swaps = set()
         for node in front_layer:
-            for virtual in node.qargs:
-                physical = current_layout.get_item_logic(self._bit_indices[virtual])
+            for v in node.qargs:
+                virtual = self._bit_indices[v]
+                physical = current_layout.get_item_logic(virtual)
                 for neighbor in self.coupling_map.neighbors(physical):
-                    virtual_neighbor = qreg[current_layout.get_item_phys(neighbor)]
-                    swap = sorted([virtual, virtual_neighbor], key=lambda q: self._bit_indices[q])
-                    candidate_swaps.add(tuple(swap))
+                    virtual_neighbor = current_layout.get_item_phys(neighbor)
+                    swap = tuple(sorted([virtual, virtual_neighbor]))
+                    candidate_swaps.add(swap)
         return candidate_swaps
 
     def _add_greedy_swaps(self, front_layer, dag, layout, qubits):
@@ -420,7 +415,9 @@ class SabreSwap(TransformationPass):
                 layout.get_item_logic(self._bit_indices[node.qargs[1]]),
             ],
         )
-        for pair in _shortest_swap_path(tuple(target_node.qargs), self.coupling_map, layout, qubits):
+        for pair in _shortest_swap_path(
+            tuple(target_node.qargs), self.coupling_map, layout, qubits
+        ):
             self._apply_gate(dag, DAGOpNode(op=SwapGate(), qargs=pair), layout, qubits)
             layout.swap_logic(*[self._bit_indices[x] for x in pair])
 
@@ -450,7 +447,9 @@ def _shortest_swap_path(target_qubits, coupling_map, layout, qreg):
     """Return an iterator that yields the swaps between virtual qubits needed to bring the two
     virtual qubits in ``target_qubits`` together in the coupling map."""
     v_start, v_goal = target_qubits
-    start, goal = layout.get_item_logic(v_start.index), layout.get_item_logic(v_goal.index)
+    start, goal = layout.get_item_logic(qreg.index(v_start)), layout.get_item_logic(
+        qreg.index(v_goal)
+    )
     # TODO: remove the list call once using retworkx 0.12, as the return value can be sliced.
     path = list(retworkx.dijkstra_shortest_paths(coupling_map.graph, start, target=goal)[goal])
     # Swap both qubits towards the "centre" (as opposed to applying the same swaps to one) to
