@@ -363,6 +363,10 @@ class TestScalarOpCompose(ScalarOpTestCase):
         target = coeff1 * coeff2
         self.assertScalarOp(val, dims, target)
 
+        val = op1 @ op2
+        target = coeff1 * coeff2
+        self.assertScalarOp(val, dims, target)
+
     @combine(coeff1=[0, 1, -3.1, 1 + 3j], coeff2=[0, -1, -5.1 - 2j])
     def test_matmul_scalar(self, coeff1, coeff2):
         """Test matmul method with two ScalarOp. ({coeff1}, {coeff2})"""

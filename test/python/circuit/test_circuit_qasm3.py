@@ -760,6 +760,32 @@ class TestCircuitQASM3(QiskitTestCase):
         )
         self.assertEqual(Exporter(includes=[]).dumps(qc), expected_qasm)
 
+    def test_delay_statement(self):
+        """Test that delay operations get output into valid QASM 3."""
+        inner = QuantumCircuit(1, name="inner_gate")
+        inner.delay(50, unit="dt")
+        qreg = QuantumRegister(2, "qr")
+        qc = QuantumCircuit(qreg)
+        qc.delay(100, qreg[0], unit="ms")
+        qc.delay(2, qreg[1], unit="ps")  # "ps" is not a valid unit in OQ3, so we need to convert.
+        qc.append(inner, [1], [])
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3;",
+                "def inner_gate(qubit _gate_q_0) {",
+                "  delay[50dt] _gate_q_0;",
+                "}",
+                "qubit[2] _all_qubits;",
+                "let qr = _all_qubits[0:1];",
+                "delay[100ms] qr[0];",
+                "delay[2000ns] qr[1];",
+                "inner_gate qr[1];",
+                "",
+            ]
+        )
+        self.assertEqual(Exporter(includes=[]).dumps(qc), expected_qasm)
+
     def test_loose_qubits(self):
         """Test that qubits that are not in any register can be used without issue."""
         bits = [Qubit(), Qubit()]
