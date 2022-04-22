@@ -48,7 +48,7 @@ class Commuting2qBlocks(Gate):
             )
 
         super().__init__(
-            "commuting_2q_block", num_qubits=len(qubits), params=[], label="Commuting 2q gates"
+            "commuting_2q_blocks", num_qubits=len(qubits), params=[], label="Commuting 2q gates"
         )
         self.node_block = node_block
         self.qubits = qubits
