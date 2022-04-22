@@ -75,6 +75,10 @@ impl QubitsDecay {
         self.decay.clone().into_pyarray(py).into()
     }
 
+    pub fn __str__(&self) -> PyResult<String> {
+        Ok(format!("{:?}", self.decay))
+    }
+
     pub fn reset(mut slf: PyRefMut<Self>) {
         for v in &mut slf.decay {
             *v = 1.;

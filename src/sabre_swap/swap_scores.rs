@@ -55,4 +55,8 @@ impl SwapScores {
     pub fn __getitem__(&self, object: [usize; 2]) -> f64 {
         self.scores[&object]
     }
+
+    pub fn __str__(&self) -> PyResult<String> {
+        Ok(format!("{:?}", self.scores))
+    }
 }
