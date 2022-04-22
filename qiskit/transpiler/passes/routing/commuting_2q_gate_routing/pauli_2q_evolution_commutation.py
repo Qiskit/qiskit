@@ -21,7 +21,9 @@ from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import TransformationPass
 from qiskit.quantum_info import SparsePauliOp, Pauli
-from qiskit.transpiler.passes.routing.commuting_2q_gate_routing.commuting_2q_block import Commuting2qBlocks
+from qiskit.transpiler.passes.routing.commuting_2q_gate_routing.commuting_2q_block import (
+    Commuting2qBlocks,
+)
 
 
 class FindCommutingPauliEvolutions(TransformationPass):
