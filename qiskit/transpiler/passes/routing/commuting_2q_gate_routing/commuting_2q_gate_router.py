@@ -73,7 +73,6 @@ class Commuting2qGateRouter(TransformationPass):
         circ.append(PauliEvolutionGate(op, 1), range(4))
 
         # Define the swap strategy on qubits before the initial_layout is applied.
-        swap_cmap = CouplingMap(couplinglist=[(0, 1), (1, 2), (2, 3)])
         swap_strat = SwapStrategy.from_line([0, 1, 2, 3])
 
         # Chose qubits 0, 1, 3, and 4 from the backend coupling map shown above.
