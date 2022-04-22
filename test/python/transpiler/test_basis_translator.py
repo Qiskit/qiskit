@@ -406,6 +406,7 @@ class TestBasisTranslator(QiskitTestCase):
             circ.append(TwoQubitZeroParamGate(), [qubits[1], qubits[0]])
         dag = circuit_to_dag(circ)
         dag_translated = BasisTranslator(eq_lib, ["if_else", "1q0p_2", "1q1p_2", "2q0p"]).run(dag)
+        circ_translated = dag_to_circuit(dag_translated)
 
         expected = QuantumCircuit(qubits, clbits)
         expected.append(OneQubitZeroParamGate(name="1q0p_2"), [qubits[0]])
