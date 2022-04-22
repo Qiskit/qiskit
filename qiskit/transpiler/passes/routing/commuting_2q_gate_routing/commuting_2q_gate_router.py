@@ -74,7 +74,7 @@ class Commuting2qGateRouter(TransformationPass):
 
         # Define the swap strategy on qubits before the initial_layout is applied.
         swap_cmap = CouplingMap(couplinglist=[(0, 1), (1, 2), (2, 3)])
-        swap_strat = SwapStrategy(swap_cmap, swap_layers=[[(0, 1), (2, 3)], [(1, 2)]])
+        swap_strat = SwapStrategy.from_line([0, 1, 2, 3])
 
         # Chose qubits 0, 1, 3, and 4 from the backend coupling map shown above.
         backend_cmap = CouplingMap(couplinglist=[(0, 1), (1, 2), (1, 3), (3, 4)])
