@@ -66,7 +66,7 @@ pub fn sabre_score_heuristic(
         });
     let min_score = swap_scores
         .scores
-        .par_values()
+        .values()
         .min_by(|a, b| a.partial_cmp(b).unwrap())
         .unwrap();
     let mut best_swaps: Vec<[usize; 2]> = swap_scores
