@@ -288,6 +288,20 @@ class TestCSPLayout(QiskitTestCase):
 
         self.assertNotEqual(layout_1, layout_2)
 
+    def test_multi_qubit_gates(self):
+        """multi-qubit gates, like Toffoli, need a complete connection among the involved qubits"""
+        qr = QuantumRegister(3, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[0], qr[1])
+        circuit.ccx(qr[2], qr[0], qr[1])
+        dag = circuit_to_dag(circuit)
+
+        pass_ = CSPLayout(CouplingMap([(0, 1), (1, 2)]), seed=self.seed)
+        pass_.run(dag)
+        layout = pass_.property_set["layout"]
+        
+        self.assertIsNone(layout)
+        self.assertEqual(pass_.property_set["CSPLayout_stop_reason"], "nonexistent solution")
 
 if __name__ == "__main__":
     unittest.main()
