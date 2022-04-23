@@ -18,7 +18,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule,
 from qiskit.pulse import Schedule
 from qiskit.qobj import PulseQobj
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock.utils import ConfigurableFakeBackend
+from qiskit.test.mock.utils.configurable_backend import ConfigurableFakeBackend
 from qiskit.test.mock import FakeAthens
 from qiskit.utils import optionals
 

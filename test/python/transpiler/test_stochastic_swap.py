@@ -318,36 +318,30 @@ class TestStochasticSwap(QiskitTestCase):
         expected.z(qr[2])
         expected.y(qr[1])
         expected.x(qr[0])
-        expected.swap(qr[1], qr[2])
-        expected.cx(qr[0], qr[2])
-        expected.swap(qr[2], qr[3])
-        expected.cx(qr[1], qr[2])
-        expected.s(qr[3])
-        expected.t(qr[1])
-        expected.h(qr[2])
+        expected.swap(qr[0], qr[2])
+        expected.cx(qr[2], qr[1])
+        expected.swap(qr[0], qr[2])
+        expected.cx(qr[2], qr[3])
+        expected.s(qr[1])
+        expected.t(qr[2])
+        expected.h(qr[3])
         expected.measure(qr[0], cr[0])
-        expected.swap(qr[1], qr[2])
-        expected.cx(qr[3], qr[2])
-        expected.measure(qr[1], cr[3])
-        expected.measure(qr[3], cr[1])
+        expected.cx(qr[1], qr[2])
+        expected.measure(qr[3], cr[3])
+        expected.measure(qr[1], cr[1])
         expected.measure(qr[2], cr[2])
         expected_dag = circuit_to_dag(expected)
-        #                      ┌───┐     ┌─┐
-        # q_0: |0>─────────────┤ X ├──■──┤M├────────────────────────────────────────
-        #              ┌───┐   └───┘  │  └╥┘             ┌───┐        ┌───┐┌─┐
-        # q_1: |0>─────┤ Y ├─X────────┼───╫───────────■──┤ T ├────────┤ X ├┤M├──────
-        #         ┌───┐└───┘ │      ┌─┴─┐ ║         ┌─┴─┐└───┘┌───┐   └─┬─┘└╥┘┌─┐
-        # q_2: |0>┤ Z ├──────X──────┤ X ├─╫──X──────┤ X ├─────┤ H ├─X───■───╫─┤M├───
-        #         └───┘             └───┘ ║  │ ┌───┐└───┘     └───┘ │       ║ └╥┘┌─┐
-        # q_3: |0>────────────────────────╫──X─┤ S ├────────────────X───────╫──╫─┤M├
-        #                                 ║    └───┘                        ║  ║ └╥┘
-        #  c_0: 0 ════════════════════════╩═════════════════════════════════╬══╬══╬═
-        #                                                                   ║  ║  ║
-        #  c_1: 0 ══════════════════════════════════════════════════════════╬══╩══╬═
-        #                                                                   ║     ║
-        #  c_2: 0 ══════════════════════════════════════════════════════════╩═════╬═
-        #                                                                         ║
-        #  c_3: 0 ════════════════════════════════════════════════════════════════╩═
+        #      ┌───┐                ┌─┐
+        # q_0: ┤ X ├─X───────X──────┤M├────────────────
+        #      ├───┤ │ ┌───┐ │ ┌───┐└╥┘          ┌─┐
+        # q_1: ┤ Y ├─┼─┤ X ├─┼─┤ S ├─╫────────■──┤M├───
+        #      ├───┤ │ └─┬─┘ │ └───┘ ║ ┌───┐┌─┴─┐└╥┘┌─┐
+        # q_2: ┤ Z ├─X───■───X───■───╫─┤ T ├┤ X ├─╫─┤M├
+        #      └───┘           ┌─┴─┐ ║ ├───┤└┬─┬┘ ║ └╥┘
+        # q_3: ────────────────┤ X ├─╫─┤ H ├─┤M├──╫──╫─
+        #                      └───┘ ║ └───┘ └╥┘  ║  ║
+        # c: 4/══════════════════════╩════════╩═══╩══╩═
+        #                            0        3   1  2
 
         #
         # Layout --
@@ -428,6 +422,7 @@ class TestStochasticSwap(QiskitTestCase):
         circ.measure(qr[2], cr[2])
         circ.measure(qr[3], cr[3])
         dag = circuit_to_dag(circ)
+        # Input:
         #                                             ┌─┐┌───┐        ┌─┐
         # q_0: |0>─────────────────■──────────────────┤M├┤ H ├──■─────┤M├
         #                   ┌───┐  │                  └╥┘└───┘┌─┴─┐┌─┐└╥┘
@@ -445,23 +440,20 @@ class TestStochasticSwap(QiskitTestCase):
         #                                        ║
         #  c_3: 0 ═══════════════════════════════╩═══════════════════════
         #
-        #                    ┌───┐                      ┌───┐   ┌─┐
-        #  q_0: |0>───────X──┤ H ├──────────────────────┤ X ├───┤M├
-        #                 │  └───┘┌─┐        ┌───┐      └─┬─┘┌─┐└╥┘
-        #  q_1: |0>──■────X────■──┤M├──────X─┤ X ├─X──────■──┤M├─╫─
-        #          ┌─┴─┐┌───┐  │  └╥┘      │ └─┬─┘ │ ┌─┐     └╥┘ ║
-        #  q_2: |0>┤ X ├┤ H ├──┼───╫───────┼───■───┼─┤M├──────╫──╫─
-        #          └───┘└───┘┌─┴─┐ ║ ┌───┐ │ ┌───┐ │ └╥┘ ┌─┐  ║  ║
-        #  q_3: |0>──────────┤ X ├─╫─┤ H ├─X─┤ H ├─X──╫──┤M├──╫──╫─
-        #                    └───┘ ║ └───┘   └───┘    ║  └╥┘  ║  ║
-        #   c_0: 0 ════════════════╩══════════════════╬═══╬═══╩══╬═
-        #                                             ║   ║      ║
-        #   c_1: 0 ═══════════════════════════════════╬═══╬══════╩═
-        #                                             ║   ║
-        #   c_2: 0 ═══════════════════════════════════╩═══╬════════
-        #                                                 ║
-        #   c_3: 0 ═══════════════════════════════════════╩════════
+        # Expected output (with seed 999):
+        #                ┌───┐                        ┌─┐
+        # q_0: ───────X──┤ H ├─────────────────X──────┤M├──────
+        #             │  └───┘     ┌─┐   ┌───┐ │ ┌───┐└╥┘   ┌─┐
+        # q_1: ──■────X────■───────┤M├─X─┤ X ├─X─┤ X ├─╫────┤M├
+        #      ┌─┴─┐┌───┐  │       └╥┘ │ └─┬─┘┌─┐└─┬─┘ ║    └╥┘
+        # q_2: ┤ X ├┤ H ├──┼────────╫──┼───■──┤M├──┼───╫─────╫─
+        #      └───┘└───┘┌─┴─┐┌───┐ ║  │ ┌───┐└╥┘  │   ║ ┌─┐ ║
+        # q_3: ──────────┤ X ├┤ H ├─╫──X─┤ H ├─╫───■───╫─┤M├─╫─
+        #                └───┘└───┘ ║    └───┘ ║       ║ └╥┘ ║
+        # c: 4/═════════════════════╩══════════╩═══════╩══╩══╩═
+        #                           0          2       3  0  1
         #
+        # Target coupling graph:
         #     2
         #     |
         # 0 - 1 - 3
@@ -472,22 +464,21 @@ class TestStochasticSwap(QiskitTestCase):
         expected.swap(qr[0], qr[1])
         expected.h(qr[0])
         expected.cx(qr[1], qr[3])
-        expected.measure(qr[1], cr[0])
         expected.h(qr[3])
+        expected.measure(qr[1], cr[0])
         expected.swap(qr[1], qr[3])
         expected.cx(qr[2], qr[1])
         expected.h(qr[3])
-        expected.swap(qr[1], qr[3])
+        expected.swap(qr[0], qr[1])
         expected.measure(qr[2], cr[2])
-        expected.measure(qr[3], cr[3])
-        expected.cx(qr[1], qr[0])
-        expected.measure(qr[1], cr[0])
-        expected.measure(qr[0], cr[1])
+        expected.cx(qr[3], qr[1])
+        expected.measure(qr[0], cr[3])
+        expected.measure(qr[3], cr[0])
+        expected.measure(qr[1], cr[1])
         expected_dag = circuit_to_dag(expected)
 
         pass_ = StochasticSwap(coupling, 20, 999)
         after = pass_.run(dag)
-
         self.assertEqual(expected_dag, after)
 
     def test_only_output_cx_and_swaps_in_coupling_map(self):

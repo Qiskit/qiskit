@@ -23,7 +23,7 @@ the configured canvas is passed to the one of plotter APIs to generate visualiza
 
 from typing import Union, Optional, Dict, Any, Tuple, List
 
-from qiskit.providers import BaseBackend
+from qiskit.providers import Backend
 from qiskit.pulse import Waveform, ParametricPulse, Schedule, ScheduleBlock
 from qiskit.pulse.channels import Channel
 from qiskit.visualization.exceptions import VisualizationError
@@ -34,7 +34,7 @@ from qiskit.exceptions import MissingOptionalLibraryError
 def draw(
     program: Union[Waveform, ParametricPulse, Schedule, ScheduleBlock],
     style: Optional[Dict[str, Any]] = None,
-    backend: Optional[BaseBackend] = None,
+    backend: Optional[Backend] = None,
     time_range: Optional[Tuple[int, int]] = None,
     time_unit: str = types.TimeUnits.CYCLES.value,
     disable_channels: Optional[List[Channel]] = None,
@@ -314,7 +314,7 @@ def draw(
             qc.h(0)
             qc.cx(0, 1)
             qc.measure_all()
-            qc = transpile(qc, FakeAlmaden())
+            qc = transpile(qc, FakeAlmaden(), layout_method='trivial')
             sched = schedule(qc, FakeAlmaden())
 
             draw(sched, backend=FakeAlmaden())
@@ -331,7 +331,7 @@ def draw(
             qc.h(0)
             qc.cx(0, 1)
             qc.measure_all()
-            qc = transpile(qc, FakeAlmaden())
+            qc = transpile(qc, FakeAlmaden(), layout_method='trivial')
             sched = schedule(qc, FakeAlmaden())
 
             draw(sched, style=IQXSimple(), backend=FakeAlmaden())
@@ -348,7 +348,7 @@ def draw(
             qc.h(0)
             qc.cx(0, 1)
             qc.measure_all()
-            qc = transpile(qc, FakeAlmaden())
+            qc = transpile(qc, FakeAlmaden(), layout_method='trivial')
             sched = schedule(qc, FakeAlmaden())
 
             draw(sched, style=IQXDebugging(), backend=FakeAlmaden())

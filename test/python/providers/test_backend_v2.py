@@ -21,9 +21,16 @@ from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.compiler import transpile
+from qiskit.compiler.transpiler import _parse_inst_map
+from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.test.base import QiskitTestCase
-from qiskit.test.mock.fake_backend_v2 import FakeBackendV2, FakeBackend5QV2
-from qiskit.test.mock.fake_mumbai_v2 import FakeMumbaiV2
+from qiskit.test.mock.fake_backend_v2 import (
+    FakeBackendV2,
+    FakeBackend5QV2,
+    FakeBackendSimple,
+    FakeBackendV2LegacyQubitProps,
+)
+from qiskit.test.mock.fake_mumbai_v2 import FakeMumbaiFractionalCX
 from qiskit.quantum_info import Operator
 
 
@@ -51,6 +58,18 @@ class TestBackendV2(QiskitTestCase):
         self.assertEqual([126.83382e-6, 112.23246e-6], [x.t2 for x in props])
         self.assertEqual([5.26722e9, 5.17538e9], [x.frequency for x in props])
 
+    def test_legacy_qubit_properties(self):
+        """Test that qubit props work for backends not using properties in target."""
+        props = FakeBackendV2LegacyQubitProps().qubit_properties([1, 0])
+        self.assertEqual([73.09352e-6, 63.48783e-6], [x.t1 for x in props])
+        self.assertEqual([126.83382e-6, 112.23246e-6], [x.t2 for x in props])
+        self.assertEqual([5.26722e9, 5.17538e9], [x.frequency for x in props])
+
+    def test_no_qubit_properties_raises(self):
+        """Ensure that if no qubit properties are defined we raise correctly."""
+        with self.assertRaises(NotImplementedError):
+            FakeBackendSimple().qubit_properties(0)
+
     def test_option_bounds(self):
         """Test that option bounds are enforced."""
         with self.assertRaises(ValueError) as cm:
@@ -77,7 +96,7 @@ class TestBackendV2(QiskitTestCase):
                 "invalid output"
             ],
         )
-        self.assertTrue(Operator(tqc).equiv(qc))
+        self.assertTrue(Operator.from_circuit(tqc).equiv(qc))
         self.assertMatchesTargetConstraints(tqc, self.backend.target)
 
     @combine(
@@ -99,7 +118,8 @@ class TestBackendV2(QiskitTestCase):
         getattr(qc, gate)(2, 3)
         getattr(qc, gate)(4, 3)
         tqc = transpile(qc, backend, optimization_level=opt_level)
-        self.assertTrue(Operator(tqc).equiv(qc))
+        t_op = Operator.from_circuit(tqc)
+        self.assertTrue(t_op.equiv(qc))
         self.assertMatchesTargetConstraints(tqc, backend.target)
 
     def test_transpile_respects_arg_constraints(self):
@@ -109,7 +129,7 @@ class TestBackendV2(QiskitTestCase):
         qc.h(0)
         qc.cx(1, 0)
         tqc = transpile(qc, self.backend)
-        self.assertTrue(Operator(tqc).equiv(qc))
+        self.assertTrue(Operator.from_circuit(tqc).equiv(qc))
         # Below is done to check we're decomposing cx(1, 0) with extra
         # rotations to correct for direction. However because of fp
         # differences between windows and other platforms the optimization
@@ -125,7 +145,7 @@ class TestBackendV2(QiskitTestCase):
         qc.h(0)
         qc.ecr(0, 1)
         tqc = transpile(qc, self.backend)
-        self.assertTrue(Operator(tqc).equiv(qc))
+        self.assertTrue(Operator.from_circuit(tqc).equiv(qc))
         self.assertEqual(tqc.count_ops(), {"ecr": 1, "u": 4})
         self.assertMatchesTargetConstraints(tqc, self.backend.target)
 
@@ -141,13 +161,13 @@ class TestBackendV2(QiskitTestCase):
         expected.ecr(1, 0)
         expected.u(math.pi / 2, 0, -math.pi, 0)
         expected.u(math.pi / 2, 0, -math.pi, 1)
-        self.assertTrue(Operator(tqc).equiv(qc))
+        self.assertTrue(Operator.from_circuit(tqc).equiv(qc))
         self.assertEqual(tqc.count_ops(), {"ecr": 1, "u": 4})
         self.assertMatchesTargetConstraints(tqc, self.backend.target)
 
     def test_transpile_mumbai_target(self):
         """Test that transpile respects a more involved target for a fake mumbai."""
-        backend = FakeMumbaiV2()
+        backend = FakeMumbaiFractionalCX()
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.cx(1, 0)
@@ -164,3 +184,8 @@ class TestBackendV2(QiskitTestCase):
         expected.measure(qr[0], cr[0])
         expected.measure(qr[1], cr[1])
         self.assertEqual(expected, tqc)
+
+    def test_transpile_parse_inst_map(self):
+        """Test that transpiler._parse_inst_map() supports BackendV2."""
+        inst_map = _parse_inst_map(inst_map=None, backend=self.backend, num_circuits=1)[0]
+        self.assertIsInstance(inst_map, InstructionScheduleMap)
