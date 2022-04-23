@@ -93,5 +93,5 @@ class ValidatePulseGates(AnalysisPass):
                                 "This pulse cannot be played on the specified backend. "
                                 f"Please modify the duration of the custom gate pulse {pulse.name} "
                                 f"which is associated with the gate {gate} of "
-                                "qubit {qubit_param_pair[0]}."
+                                f"qubit {qubit_param_pair[0]}."
                             )

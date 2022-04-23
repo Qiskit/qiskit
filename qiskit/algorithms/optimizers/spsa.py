@@ -617,7 +617,7 @@ class SPSA(Optimizer):
                 if self.termination_checker(
                     self._nfev, x_next, fx_check, np.linalg.norm(update), True
                 ):
-                    logger.info("terminated optimization at {k}/{self.maxiter} iterations")
+                    logger.info(f"terminated optimization at {k}/{self.maxiter} iterations")
                     break
 
         logger.info("SPSA: Finished in %s", time() - start)
