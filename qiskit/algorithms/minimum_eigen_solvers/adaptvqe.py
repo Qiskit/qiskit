@@ -37,10 +37,15 @@ from qiskit.algorithms.optimizers import Optimizer
 from qiskit.utils import QuantumInstance
 from qiskit.providers import Backend
 from ..aux_ops_evaluator import eval_observables
+from enum import Enum
 
 # from .minimum_eigensolver_factories import MinimumEigensolverFactory
 # from .ground_state_eigensolver import GroundStateEigensolver
 logger = logging.getLogger(__name__)
+
+
+class Finishing_criterion(Enum):
+    finishing_criterion = ""
 
 
 class AdaptVQE(VQE):
@@ -56,37 +61,39 @@ class AdaptVQE(VQE):
         threshold: float = 1e-5,
         max_iterations: Optional[int] = None,
         gradient: Optional[GradientBase] = None,
-        #optimizer: Optional[Optimizer] = None,
+        # optimizer: Optional[Optimizer] = None,
         initial_point: Optional[np.ndarray] = None,
-        #expectation: Optional[ExpectationBase] = None,
-        #include_custom: bool = False,
-        #max_evals_grouped: int = 1,
-        #callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
-        #quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
+        # expectation: Optional[ExpectationBase] = None,
+        # include_custom: bool = False,
+        # max_evals_grouped: int = 1,
+        # callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
+        # quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
         excitation_pool: List[Union[OperatorBase, QuantumCircuit]] = None,
         **kwargs,
     ) -> None:
         """
         Args:
-            qubit_converter: a class that converts second quantized operator to qubit operator
+            ansatz: A parameterized circuit used as Ansatz for the wave function.
             solver: a factory for the VQE solver employing a UCCSD ansatz.
             threshold: the energy convergence threshold. It has a minimum value of 1e-15.
             max_iterations: the maximum number of iterations of the AdaptVQE algorithm.
             gradient: a class that converts operator expression to the first-order gradient based
                 on the method mentioned.
+            initial_point: An optional initial point (i.e. initial parameter values) for the optimizer.
+            excitation_pool: An entire list of excitations.
         """
         validate_min("threshold", threshold, 1e-15)
         super().__init__(
             ansatz=None,
-            #optimizer=optimizer,
+            # optimizer=optimizer,
             initial_point=initial_point,
             gradient=gradient,
-            #expectation=expectation,
-            #include_custom=include_custom,
-            #max_evals_grouped=max_evals_grouped,
-            #callback=callback,
-            #quantum_instance=quantum_instance,
-            **kwargs
+            # expectation=expectation,
+            # include_custom=include_custom,
+            # max_evals_grouped=max_evals_grouped,
+            # callback=callback,
+            # quantum_instance=quantum_instance,
+            **kwargs,
         )
         if gradient is None:
             gradient = Gradient(grad_method="param_shift")
@@ -123,9 +130,7 @@ class AdaptVQE(VQE):
             param_sets = list(self.ansatz.parameters)
             # zip will only iterate the length of the shorter list
             theta1 = dict(zip(self.ansatz.parameters, theta))
-            op, expectation = self.construct_expectation(
-                theta1, operator, return_expectation=True
-            )
+            op, expectation = self.construct_expectation(theta1, operator, return_expectation=True)
             # compute gradient
             state_grad = self.gradient.convert(operator=op, params=param_sets)
             # Assign the parameters and evaluate the gradient
@@ -148,22 +153,26 @@ class AdaptVQE(VQE):
         cycle_regex = re.compile(r"(\b.+ .+\b)( \b\1\b)+")
         match = cycle_regex.search(" ".join(map(str, indices)))
         logger.debug("Cycle detected: %s", match)
+        logger.info("Alternating sequence found. Finishing.")
         return match is not None or (len(indices) > 1 and indices[-2] == indices[-1])
 
     @staticmethod
     def _log_gradients(
         iteration: int,
         cur_grads: Tuple[float, PauliSumOp],
-        max_grad: Tuple[float, PauliSumOp | None]):
+        max_grad: Tuple[float, PauliSumOp | None],
+    ):
         if logger.isEnabledFor(logging.INFO):
-                gradlog = f"\nGradients in iteration #{str(iteration)}"
-                gradlog += "\nID: Excitation Operator: Gradient  <(*) maximum>"
-                for i, grad in enumerate(cur_grads):
-                    gradlog += f"\n{str(i)}: {str(grad[1])}: {str(grad[0])}"
-                    if grad[1] == max_grad[1]:
-                        gradlog += "\t(*)"
-                logger.info(gradlog)
-        
+            gradlog = f"\nGradients in iteration #{str(iteration)}"
+            gradlog += "\nID: Excitation Operator: Gradient  <(*) maximum>"
+            for i, grad in enumerate(cur_grads):
+                gradlog += f"\n{str(i)}: {str(grad[1])}: {str(grad[0])}"
+                if grad[1] == max_grad[1]:
+                    gradlog += "\t(*)"
+            logger.info(gradlog)
+        else:
+            return
+
     def compute_minimum_eigensolver(
         self,
         operator: OperatorBase,
@@ -175,7 +184,7 @@ class AdaptVQE(VQE):
             aux_operators: Additional auxiliary operators to evaluate.
 
         Raises:
-            QiskitError: if a solver other than VQE or a ansatz other than UCCSD is provided
+            QiskitError: if a solver other than VQE or a ansatz other than EvolvedOperatorAnsatz is provided
                 or if the algorithm finishes due to an unforeseen reason.
             ValueError: If the grouped property object returned by the driver does not contain a
                 main property as requested by the problem being solved (`problem.main_property_name`)
@@ -186,17 +195,17 @@ class AdaptVQE(VQE):
             QiskitError: If the chosen gradient method appears to result in all-zero gradients.
 
         Returns:
-            An AdaptVQEResult which is an ElectronicStructureResult but also includes runtime
+            An AdaptVQEResult which is an VQEResult but also includes runtime
             information about the AdaptVQE algorithm like the number of iterations, finishing
             criterion, and the final maximum gradient.
         """
-        # if not isinstance(self.ansatz, EvolvedOperatorAnsatz):
-        #     raise QiskitNatureError("The AdaptVQE algorithm requires the use of the 
-        # evolved operator ansatz")
+        if not isinstance(self._tmp_ansatz, EvolvedOperatorAnsatz):
+            raise QiskitError(
+                "The AdaptVQE algorithm requires the use of the  evolved operator ansatz"
+            )
         # We construct the ansatz once to be able to extract the full set of excitation operators.
         self._tmp_ansatz._build()
 
-        finishing_criterion = ""
         prev_op_indices: List[int] = []
         theta: List[float] = []
         max_grad: Tuple[float, Optional[PauliSumOp]] = (0.0, None)
@@ -206,7 +215,7 @@ class AdaptVQE(VQE):
             logger.info("--- Iteration #%s ---", str(iteration))
             # compute gradients
 
-            cur_grads, expectation = self._compute_gradients(theta,operator)
+            cur_grads, expectation = self._compute_gradients(theta, operator)
             # pick maximum gradient
             max_grad_index, max_grad = max(
                 enumerate(cur_grads), key=lambda item: np.abs(item[1][0])
@@ -214,7 +223,7 @@ class AdaptVQE(VQE):
             # store maximum gradient's index for cycle detection
             prev_op_indices.append(max_grad_index)
             # log gradients
-            self._log_gradients(iteration,cur_grads,max_grad)
+            self._log_gradients(iteration, cur_grads, max_grad)
             if np.abs(max_grad[0]) < self._threshold:
                 if iteration == 1:
                     raise QiskitError(
@@ -225,13 +234,12 @@ class AdaptVQE(VQE):
                     "Adaptive VQE terminated successfully with a final maximum gradient: %s",
                     str(np.abs(max_grad[0])),
                 )
-                finishing_criterion = "Threshold converged"
+                Finishing_criterion.finishing_criterion = "Threshold converged"
                 break
             # check indices of picked gradients for cycles
             if self._check_cyclicity(prev_op_indices):
-                logger.info("Alternating sequence found. Finishing.")
                 logger.info("Final maximum gradient: %s", str(np.abs(max_grad[0])))
-                finishing_criterion = "Aborted due to cyclicity"
+                Finishing_criterion.finishing_criterion = "Aborted due to cyclicity"
                 break
             # add new excitation to self._ansatz
             self._excitation_list.append(max_grad[1])
@@ -244,18 +252,18 @@ class AdaptVQE(VQE):
             theta = raw_vqe_result.optimal_point.tolist()
         else:
             # reached maximum number of iterations
-            finishing_criterion = "Maximum number of iterations reached"
+            Finishing_criterion.finishing_criterion = "Maximum number of iterations reached"
             logger.info("Maximum number of iterations reached. Finishing.")
             logger.info("Final maximum gradient: %s", str(np.abs(max_grad[0])))
 
-        if finishing_criterion == False:
+        if Finishing_criterion.finishing_criterion == False:
             raise QiskitError("The algorithm finished due to an unforeseen reason!")
 
         result = AdaptVQEResult()
         result.combine(raw_vqe_result)
         result.num_iterations = iteration
         result.final_max_gradient = max_grad[0]
-        result.finishing_criterion = finishing_criterion
+        result.finishing_criterion = Finishing_criterion.finishing_criterion
 
         # once finished evaluate auxiliary operators if any
         if aux_operators is not None:

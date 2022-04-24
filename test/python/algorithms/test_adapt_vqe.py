@@ -14,7 +14,7 @@ from qiskit.algorithms.minimum_eigen_solvers.adaptvqe import AdaptVQE
 
 
 class TestAdaptVQE(QiskitAlgorithmsTestCase):
-    """ Test of the AdaptVQE minimum eigensolver """
+    """Test of the AdaptVQE minimum eigensolver"""
 
     def setUp(self):
         super().setUp()
@@ -71,7 +71,7 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
             ansatz=ansatz,
             excitation_pool=excitation_pool,
             gradient=Gradient(grad_method="fin_diff"),
-            quantum_instance = BasicAer.get_backend("statevector_simulator"),
+            quantum_instance=BasicAer.get_backend("statevector_simulator"),
         )
         res = calc.compute_minimum_eigensolver(operator=self.h2_op)
 
