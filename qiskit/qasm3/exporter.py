@@ -531,9 +531,9 @@ class QASM3Builder:
         return [
             statement
             for source in (
-                definitions,
                 inputs,
                 outputs,
+                definitions,
                 variables,
                 bit_declarations,
                 quantum_declarations,
