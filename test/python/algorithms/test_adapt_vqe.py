@@ -1,5 +1,6 @@
-""" Test of the Adaptive VQE ground state calculations """
+""" Test of the AdaptVQE minimum eigensolver """
 import unittest
+from qiskit.opflow.gradients.gradient import Gradient
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
@@ -13,7 +14,7 @@ from qiskit.algorithms.minimum_eigen_solvers.adaptvqe import AdaptVQE
 
 
 class TestAdaptVQE(QiskitAlgorithmsTestCase):
-    """Test Adaptive VQE Ground State Calculation"""
+    """ Test of the AdaptVQE minimum eigensolver """
 
     def setUp(self):
         super().setUp()
@@ -68,10 +69,11 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
         ansatz = EvolvedOperatorAnsatz(excitation_pool)
         calc = AdaptVQE(
             ansatz=ansatz,
-            operator=self.h2_op,
-            quantum_instance=BasicAer.get_backend("statevector_simulator"),
+            excitation_pool=excitation_pool,
+            gradient=Gradient(grad_method="fin_diff"),
+            quantum_instance = BasicAer.get_backend("statevector_simulator"),
         )
-        res = calc.solve()
+        res = calc.compute_minimum_eigensolver(operator=self.h2_op)
 
         expected = -1.85727503
 
