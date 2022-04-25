@@ -288,6 +288,36 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm2.append(_embed)
         pm2.append(_swap_check)
         pm2.append(_swap, condition=_swap_condition)
+        if (
+            (coupling_map and backend_properties)
+            and initial_layout is None
+            and pass_manager_config.layout_method is None
+        ):
+
+            def _post_layout_condition(property_set):
+                # if VF2 layout stopped for any reason other than solution found we need
+                # to run layout since VF2 didn't converge.
+                if (
+                    property_set["VF2PostLayout_stop_reason"] is not None
+                    and property_set["VF2PostLayout_stop_reason"]
+                    is VF2PostLayoutStopReason.SOLUTION_FOUND
+                ):
+                    return True
+                return False
+
+            pm2.append(
+                VF2PostLayout(
+                    target,
+                    coupling_map,
+                    backend_properties,
+                    seed_transpiler,
+                    call_limit=int(5e6),  # Set call limit to ~10 sec with retworkx 0.10.2
+                    time_limit=10.0,
+                    strict_direction=False,
+                )
+            )
+            pm2.append(ApplyLayout(), condition=_post_layout_condition)
+
     pm2.append(_unroll)
     if (coupling_map and not coupling_map.is_symmetric) or (
         target is not None and target.get_non_global_operation_names(strict_direction=True)
@@ -298,35 +328,6 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     pm2.append(_depth_check + _size_check)
     pm2.append(_opt + _unroll + _depth_check + _size_check, do_while=_opt_control)
-
-    if (
-        (coupling_map and backend_properties)
-        and initial_layout is None
-        and pass_manager_config.layout_method is None
-    ):
-
-        def _post_layout_condition(property_set):
-            # if VF2 layout stopped for any reason other than solution found we need
-            # to run layout since VF2 didn't converge.
-            if (
-                property_set["VF2PostLayout_stop_reason"] is not None
-                and property_set["VF2PostLayout_stop_reason"]
-                is VF2PostLayoutStopReason.SOLUTION_FOUND
-            ):
-                return True
-            return False
-
-        pm2.append(
-            VF2PostLayout(
-                target,
-                coupling_map,
-                backend_properties,
-                seed_transpiler,
-                call_limit=int(5e6),  # Set call limit to ~10 sec with retworkx 0.10.2
-                time_limit=10.0,
-            )
-        )
-        pm2.append(ApplyLayout(), condition=_post_layout_condition)
 
     if inst_map and inst_map.has_custom_gate():
         pm2.append(PulseGates(inst_map=inst_map))

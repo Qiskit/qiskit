@@ -307,6 +307,8 @@ class VF2PostLayout(AnalysisPass):
         for edge in im_graph.edge_index_map().values():
             gate_count = sum(edge[2].values())
             qargs = (bits[reverse_bit_map[edge[0]]], bits[reverse_bit_map[edge[1]]])
+            if qargs not in self.avg_error_map:
+                qargs = (qargs[1], qargs[0])
             fidelity *= (1 - self.avg_error_map[qargs]) ** gate_count
         return 1 - fidelity
 
