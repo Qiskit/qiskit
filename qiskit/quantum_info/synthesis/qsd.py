@@ -49,7 +49,7 @@ def qs_decomposition(mat, opt_a1=True, decomposer_1q=None, decomposer_2q=None):
 
     Arguments:
        mat (ndarray): unitary matrix to decompose
-       opt_a1 (bool): whether to try optimization A.1 from Shende. This should elliminate 1 cnot
+       opt_a1 (bool): whether to try optimization A.1 from Shende. This should eliminate 1 cnot
           per call. If True CZ gates are left in the output. If desired these can be further decomposed
           to CX.
        decomposer_1q (None or Object): optional 1Q decomposer. If None, uses
