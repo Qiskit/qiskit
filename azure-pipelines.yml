@@ -240,11 +240,13 @@ stages:
             - bash: |
                 set -e
                 python -m pip install --upgrade pip
+                python -m pip install --upgrade setuptools_rust
                 python setup.py sdist
             - task: PublishBuildArtifacts@1
               inputs: {pathtoPublish: 'dist'}
               condition: succeededOrFailed()
             - bash: |
+                python -m pip install --upgrade twine
                 twine upload dist/*
               env:
                 TWINE_USERNAME: "qiskit"
