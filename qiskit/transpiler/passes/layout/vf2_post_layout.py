@@ -16,8 +16,9 @@ import logging
 import random
 import time
 from collections import defaultdict
+import statistics
 
-from retworkx import PyDiGraph, vf2_mapping
+from retworkx import PyDiGraph, vf2_mapping, PyGraph
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
@@ -82,6 +83,7 @@ class VF2PostLayout(AnalysisPass):
         seed=None,
         call_limit=None,
         time_limit=None,
+        strict_direction=True,
     ):
         """Initialize a ``VF2PostLayout`` pass instance
 
@@ -97,6 +99,13 @@ class VF2PostLayout(AnalysisPass):
             call_limit (int): The number of state visits to attempt in each execution of
                 VF2.
             time_limit (float): The total time limit in seconds to run ``VF2PostLayout``
+            strict_direction (bool): Whether the pass is configured to follow
+                the strict direction in the coupling graph. If this is set to
+                false, the pass will treat any edge in the coupling graph as
+                a weak edge and the interaction graph will be undirected. For
+                the purposes of evaluating layouts the avg error rate for
+                each qubit and 2q link will be used. This enables the pass to be
+                run prior to
 
         Raises:
             TypeError: At runtime, if neither ``coupling_map`` or ``target`` are provided.
@@ -108,6 +117,8 @@ class VF2PostLayout(AnalysisPass):
         self.call_limit = call_limit
         self.time_limit = time_limit
         self.seed = seed
+        self.strict_direction = strict_direction
+        self.avg_error_map = None
 
     def run(self, dag):
         """run the layout method"""
@@ -115,7 +126,12 @@ class VF2PostLayout(AnalysisPass):
             raise TranspilerError(
                 "A target must be specified or a coupling map and properties must be provided"
             )
-        im_graph = PyDiGraph(multigraph=False)
+        if self.strict_direction:
+            im_graph = PyDiGraph(multigraph=False)
+        else:
+            if self.avg_error_map is None:
+                self.avg_error_map = self._build_average_error_map()
+            im_graph = PyGraph(multigraph=False)
         im_graph_node_map = {}
         reverse_im_graph_node_map = {}
 
@@ -150,7 +166,10 @@ class VF2PostLayout(AnalysisPass):
                 return
 
         if self.target is not None:
-            cm_graph = PyDiGraph(multigraph=False)
+            if self.strict_direction:
+                cm_graph = PyDiGraph(multigraph=False)
+            else:
+                cm_graph = PyGraph(multigraph=False)
             cm_graph.add_nodes_from(
                 [self.target.operation_names_for_qargs((i,)) for i in range(self.target.num_qubits)]
             )
@@ -164,7 +183,10 @@ class VF2PostLayout(AnalysisPass):
                     )
             cm_nodes = list(cm_graph.node_indexes())
         else:
-            cm_graph = self.coupling_map.graph
+            if self.strict_direction:
+                cm_graph = self.coupling_map.graph
+            else:
+                cm_graph = self.coupling_map.graph.to_undirected(multigraph=False)
             cm_nodes = list(cm_graph.node_indexes())
             if self.seed != -1:
                 random.Random(self.seed).shuffle(cm_nodes)
@@ -178,7 +200,7 @@ class VF2PostLayout(AnalysisPass):
                 cm_graph = shuffled_cm_graph
 
         logger.debug("Running VF2 to find post transpile mappings")
-        if self.target:
+        if self.target and self.strict_direction:
             mappings = vf2_mapping(
                 cm_graph,
                 im_graph,
@@ -201,9 +223,14 @@ class VF2PostLayout(AnalysisPass):
         chosen_layout = None
         initial_layout = Layout(dict(enumerate(dag.qubits)))
         try:
-            chosen_layout_score = self._score_layout(
-                initial_layout, im_graph_node_map, reverse_im_graph_node_map, im_graph
-            )
+            if self.strict_direction:
+                chosen_layout_score = self._score_layout(
+                    initial_layout, im_graph_node_map, reverse_im_graph_node_map, im_graph
+                )
+            else:
+                chosen_layout_score = self._approx_score_layout(
+                    initial_layout, im_graph_node_map, reverse_im_graph_node_map, im_graph
+                )
         # Circuit not in basis so we have nothing to compare against return here
         except KeyError:
             self.property_set[
@@ -222,9 +249,14 @@ class VF2PostLayout(AnalysisPass):
             layout = Layout(
                 {reverse_im_graph_node_map[im_i]: cm_nodes[cm_i] for cm_i, im_i in mapping.items()}
             )
-            layout_score = self._score_layout(
-                layout, im_graph_node_map, reverse_im_graph_node_map, im_graph
-            )
+            if self.strict_direction:
+                layout_score = self._score_layout(
+                    layout, im_graph_node_map, reverse_im_graph_node_map, im_graph
+                )
+            else:
+                layout_score = self._approx_score_layout(
+                    layout, im_graph_node_map, reverse_im_graph_node_map, im_graph
+                )
             logger.debug("Trial %s has score %s", trials, layout_score)
             if layout_score < chosen_layout_score:
                 logger.debug(
@@ -265,6 +297,18 @@ class VF2PostLayout(AnalysisPass):
             self.property_set["post_layout"] = chosen_layout
 
         self.property_set["VF2PostLayout_stop_reason"] = stop_reason
+
+    def _approx_score_layout(self, layout, bit_map, reverse_bit_map, im_graph):
+        bits = layout.get_virtual_bits()
+        fidelity = 1
+        for bit, node_index in bit_map.items():
+            gate_count = sum(im_graph[node_index].values())
+            fidelity *= (1 - self.avg_error_map[(bits[bit],)]) ** gate_count
+        for edge in im_graph.edge_index_map().values():
+            gate_count = sum(edge[2].values())
+            qargs = (bits[reverse_bit_map[edge[0]]], bits[reverse_bit_map[edge[1]]])
+            fidelity *= (1 - self.avg_error_map[qargs]) ** gate_count
+        return 1 - fidelity
 
     def _score_layout(self, layout, bit_map, reverse_bit_map, im_graph):
         bits = layout.get_virtual_bits()
@@ -309,3 +353,27 @@ class VF2PostLayout(AnalysisPass):
                     except BackendPropertyError:
                         pass
         return 1 - fidelity
+
+    def _build_average_error_map(self):
+        avg_map = {}
+        if self.target is not None:
+            for qargs in self.target.qargs:
+                qarg_error = 0.0
+                count = 0
+                for op in self.target.operation_names_for_qargs(qargs):
+                    inst_props = self.target[op].get(qargs, None)
+                    if inst_props is not None and inst_props.error is not None:
+                        count += 1
+                        qarg_error += inst_props.error
+                avg_map[qargs] = qarg_error / count
+        else:
+            errors = defaultdict(list)
+            for qubit in range(len(self.properties.qubits)):
+                errors[(qubit,)].append(self.properties.readout_error(qubit))
+            for gate in self.properties.gates:
+                qubits = tuple(gate.qubits)
+                for param in gate.parameters:
+                    if param.name == "gate_error":
+                        errors[qubits].append(param.value)
+            avg_map = {k: statistics.mean(v) for k, v in errors.items()}
+        return avg_map
