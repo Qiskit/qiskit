@@ -54,7 +54,7 @@ def qs_decomposition(mat, opt_a1=True, decomposer_1q=None, decomposer_2q=None):
           to CX.
        decomposer_1q (None or Object): optional 1Q decomposer. If None, uses
           :class:`~qiskit.quantum_info.synthesis.one_qubit_decomposer.OneQubitEulerDecomser`
-       decomposer_2q (None or Object): optional 2Q decomposer. If NOne, uses
+       decomposer_2q (None or Object): optional 2Q decomposer. If None, uses
           :class:`~qiskit.quantum_info.synthesis.two_qubit_decomposer.TwoQubitBasisDecomposer`
           with CXGate.
 
