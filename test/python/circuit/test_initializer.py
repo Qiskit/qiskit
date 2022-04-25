@@ -17,6 +17,7 @@ Initialize test.
 import math
 import unittest
 import numpy as np
+from ddt import ddt, data
 
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
@@ -26,8 +27,10 @@ from qiskit import execute, assemble, BasicAer
 from qiskit.quantum_info import state_fidelity, Statevector, Operator
 from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase
+from qiskit.extensions.quantum_initializer import Initialize
 
 
+@ddt
 class TestInitialize(QiskitTestCase):
     """Qiskit Initialize tests."""
 
@@ -445,6 +448,29 @@ class TestInitialize(QiskitTestCase):
                 zero = Statevector.from_int(0, dim)
                 actual = zero & disentangler
                 self.assertEqual(target, actual)
+
+    @data(2, "11", [1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)])
+    def test_decompose_contains_stateprep(self, state):
+        """Test initialize decomposes to a StatePreparation and reset"""
+        qc = QuantumCircuit(2)
+        qc.initialize(state)
+        decom_circ = qc.decompose()
+
+        self.assertEqual(decom_circ.data[0][0].name, "reset")
+        self.assertEqual(decom_circ.data[1][0].name, "reset")
+        self.assertEqual(decom_circ.data[2][0].name, "state_preparation")
+
+    def test_mutating_params(self):
+        """Test mutating Initialize params correctly updates StatePreparation params"""
+        init = Initialize("11")
+        init.params = "00"
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr)
+        qc.append(init, qr)
+        decom_circ = qc.decompose()
+
+        self.assertEqual(decom_circ.data[2][0].name, "state_preparation")
+        self.assertEqual(decom_circ.data[2][0].params, ["0", "0"])
 
 
 class TestInstructionParam(QiskitTestCase):
