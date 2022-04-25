@@ -368,10 +368,10 @@ class TestCircuitQASM3(QiskitTestCase):
             [
                 "OPENQASM 3;",
                 'include "stdgates.inc";',
+                "input float[64] a;",
                 "gate custom(a) _gate_q_0 {",
                 "  rx(a) _gate_q_0;",
                 "}",
-                "input float[64] a;",
                 "qubit[1] _all_qubits;",
                 "let q = _all_qubits[0:0];",
                 "custom(a) q[0];",
@@ -504,6 +504,8 @@ class TestCircuitQASM3(QiskitTestCase):
         expected_qasm = "\n".join(
             [
                 "OPENQASM 3;",
+                "input float[64] x;",
+                "input float[64] y;",
                 "gate rzx(x) _gate_q_0, _gate_q_1 {",
                 "  h _gate_q_1;",
                 "  cx _gate_q_0, _gate_q_1;",
@@ -511,8 +513,6 @@ class TestCircuitQASM3(QiskitTestCase):
                 "  cx _gate_q_0, _gate_q_1;",
                 "  h _gate_q_1;",
                 "}",
-                "input float[64] x;",
-                "input float[64] y;",
                 "qubit[2] _all_qubits;",
                 "let q = _all_qubits[0:1];",
                 "rzx(x) q[0], q[1];",
