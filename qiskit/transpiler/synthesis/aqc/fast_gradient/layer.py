@@ -62,36 +62,34 @@ class Layer1Q(LayerBase):
     interleaves with the identity ones.
     """
 
-    def __init__(self, nbits: int, k: int, g2x2: Optional[np.ndarray] = None):
+    def __init__(self, num_qubits: int, k: int, g2x2: Optional[np.ndarray] = None):
         """
         Args:
-            nbits: number of qubits.
+            num_qubits: number of qubits.
             k: index of the bit where gate is applied.
             g2x2: 2x2 matrix that makes up this layer along with identity ones,
                   or None (should be set up later).
         """
         super().__init__()
 
-        self._nbits = nbits  # number of bits
-        self._idx_k = k  # index of the bit where gate is applied
-
         # 2x2 gate matrix (1-qubit gate).
         self._gmat = np.full((2, 2), fill_value=0, dtype=np.cfloat)
-        self._tmp_g = np.full_like(self._gmat, fill_value=0)
         if isinstance(g2x2, np.ndarray):
-            np.copyto(self._gmat, g2x2)  # todo: why copy?
+            np.copyto(self._gmat, g2x2)
 
         bit_flip = True
-        dim = 2**nbits
-        row_perm = reverse_bits(bit_permutation_1q(n=nbits, k=k), nbits=nbits, enable=bit_flip)
-        col_perm = reverse_bits(np.arange(dim, dtype=np.int64), nbits=nbits, enable=bit_flip)
+        dim = 2**num_qubits
+        row_perm = reverse_bits(
+            bit_permutation_1q(n=num_qubits, k=k), nbits=num_qubits, enable=bit_flip
+        )
+        col_perm = reverse_bits(np.arange(dim, dtype=np.int64), nbits=num_qubits, enable=bit_flip)
         self._perm = np.full((dim,), fill_value=0, dtype=np.int64)
         self._perm[row_perm] = col_perm
         self._inv_perm = inverse_permutation(self._perm)
 
     def set_from_matrix(self, mat: np.ndarray):
         """See base class description."""
-        np.copyto(self._gmat, mat)  # todo: why copy?
+        np.copyto(self._gmat, mat)
 
     def get_attr(self) -> (np.ndarray, np.ndarray, np.ndarray):
         """See base class description."""
@@ -104,10 +102,10 @@ class Layer2Q(LayerBase):
     interleaves with the identity ones.
     """
 
-    def __init__(self, nbits: int, j: int, k: int, g4x4: Optional[np.ndarray] = None):
+    def __init__(self, num_qubits: int, j: int, k: int, g4x4: Optional[np.ndarray] = None):
         """
         Args:
-            nbits: number of qubits.
+            num_qubits: number of qubits.
             j: index of the first (control) bit.
             k: index of the second (target) bit.
             g4x4: 4x4 matrix that makes up this layer along with identity ones,
@@ -115,20 +113,17 @@ class Layer2Q(LayerBase):
         """
         super().__init__()
 
-        self._nbits = nbits  # number of bits
-        self._idx_j = j  # index of the first (control) bit
-        self._idx_k = k  # index of the second (target) bit
-
         # 4x4 gate matrix (2-qubit gate).
         self._gmat = np.full((4, 4), fill_value=0, dtype=np.cfloat)
-        self._tmp_g = np.full_like(self._gmat, fill_value=0)
         if isinstance(g4x4, np.ndarray):
             np.copyto(self._gmat, g4x4)
 
         bit_flip = True
-        dim = 2**nbits
-        row_perm = reverse_bits(bit_permutation_2q(n=nbits, j=j, k=k), nbits=nbits, enable=bit_flip)
-        col_perm = reverse_bits(np.arange(dim, dtype=np.int64), nbits=nbits, enable=bit_flip)
+        dim = 2**num_qubits
+        row_perm = reverse_bits(
+            bit_permutation_2q(n=num_qubits, j=j, k=k), nbits=num_qubits, enable=bit_flip
+        )
+        col_perm = reverse_bits(np.arange(dim, dtype=np.int64), nbits=num_qubits, enable=bit_flip)
         self._perm = np.full((dim,), fill_value=0, dtype=np.int64)
         self._perm[row_perm] = col_perm
         self._inv_perm = inverse_permutation(self._perm)
@@ -181,8 +176,8 @@ def init_layer1q_deriv_matrices(thetas: np.ndarray, dst: np.ndarray) -> np.ndarr
         Returns the "dst" array.
     """
     n = thetas.shape[0]
-    y = np.array([[0, -0.5], [0.5, 0]], dtype=np.cfloat)
-    z = np.array([[-0.5j, 0], [0, 0.5j]], dtype=np.cfloat)
+    y = np.asarray([[0, -0.5], [0.5, 0]], dtype=np.cfloat)
+    z = np.asarray([[-0.5j, 0], [0, 0.5j]], dtype=np.cfloat)
     tmp = np.full((5, 2, 2), fill_value=0, dtype=np.cfloat)
     for k in range(n):
         th = thetas[k]

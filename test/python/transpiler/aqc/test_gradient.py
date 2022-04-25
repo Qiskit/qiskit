@@ -12,8 +12,6 @@
 """
 Tests analytical gradient vs the one computed via finite differences.
 """
-# pylint: disable=wrong-import-position
-
 
 import unittest
 from test.python.transpiler.aqc.sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
@@ -30,6 +28,10 @@ class TestGradientAgainstFiniteDiff(QiskitTestCase):
     analytical and numerical gradients is up to quadratic term in Taylor
     expansion for small deltas.
     """
+
+    def setUp(self):
+        super().setUp()
+        np.random.seed(0x0696969)
 
     def test_gradient(self):
         """
@@ -98,11 +100,9 @@ class TestGradientAgainstFiniteDiff(QiskitTestCase):
             prev_error = error
 
         # check orders, skipping first zero
-        # pylint:disable=misplaced-comparison-constant
-        self.assertTrue(np.count_nonzero(1.8 < np.asarray(orders[1:])) >= 3)
-        self.assertTrue(np.count_nonzero(np.asarray(orders[1:]) < 3) >= 3)
+        self.assertTrue(np.count_nonzero(np.asarray(orders[1:]) > 1.8) >= 3)
+        self.assertTrue(np.count_nonzero(np.asarray(orders[1:]) < 3.0) >= 3)
 
 
 if __name__ == "__main__":
-    np.set_printoptions(precision=6, linewidth=256)
     unittest.main()

@@ -37,10 +37,15 @@ class AQC:
       provides two methods for computing objective function and gradient with respect to approximate
       circuit parameters. This objective is passed to the optimizer. Currently, there are two
       implementations based on 4-rotations CNOT unit blocks: :class:`.DefaultCNOTUnitObjective` and
-      its accelerated version :class:`.FastCNOTUnitObjective`. Both realizations share the same idea
-      of maximization the Hilbert-Schmidt product between the target matrix and its approximation.
-      The latter approach should be considered as a baseline one. It may suffer from performance
-      and scalability issues, and is mostly suitable for a small number of qubits (up to 5 or 6).
+      its accelerated version :class:`.FastCNOTUnitObjective`. Both implementations share the same
+      idea of maximization the Hilbert-Schmidt product between the target matrix and its
+      approximation. The former implementation approach should be considered as a baseline one. It
+      may suffer from performance issues, and is mostly suitable for a small number of qubits
+      (up to 5 or 6), whereas the latter, accelerated one, can be applied to larger problems.
+
+    * One should take into consideration the exponential growth of matrix size with the number of
+      qubits because the implementation not only creates a potentially large target matrix, but
+      also allocates a number of temporary memory buffers comparable in size to the target matrix.
     """
 
     def __init__(

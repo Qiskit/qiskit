@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,19 +12,16 @@
 """
 Tests AQC plugin.
 """
-# pylint: disable=wrong-import-position
 
-
-import unittest
 import numpy as np
-from qiskit.circuit.quantumcircuit import QuantumCircuit
+
+from qiskit import QuantumCircuit
 from qiskit.algorithms.optimizers import SLSQP
-from qiskit.converters.dag_to_circuit import dag_to_circuit
-from qiskit.converters.circuit_to_dag import circuit_to_dag
-from qiskit.quantum_info.operators.operator import Operator
+from qiskit.converters import dag_to_circuit, circuit_to_dag
+from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler.passmanager import PassManager
-from qiskit.transpiler.passes.synthesis.unitary_synthesis import UnitarySynthesis
+from qiskit.transpiler import PassManager
+from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.synthesis.aqc.aqc_plugin import AQCSynthesisPlugin
 
 
@@ -34,7 +31,14 @@ class TestAQCSynthesisPlugin(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self._qc = QuantumCircuit(3)
-        self._qc.mcx([0, 1], 2)
+        self._qc.mcx(
+            [
+                0,
+                1,
+            ],
+            2,
+        )
+
         self._target_unitary = Operator(self._qc).data
         self._seed_config = {"seed": 12345}
 
@@ -96,7 +100,3 @@ class TestAQCSynthesisPlugin(QiskitTestCase):
         ).run(qc)
         approx_unitary = Operator(aqc).data
         np.testing.assert_array_almost_equal(np.eye(8), approx_unitary, 3)
-
-
-if __name__ == "__main__":
-    unittest.main()

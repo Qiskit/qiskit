@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,13 +12,11 @@
 """
 Tests building up CNOT unit structures.
 """
-# pylint: disable=wrong-import-position
-
-
-import unittest
 from test.python.transpiler.aqc.sample_data import CARTAN_4, CARTAN_3
-from ddt import ddt, data, unpack
+
 import numpy as np
+from ddt import ddt, data, unpack
+
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.synthesis.aqc import make_cnot_network
 
@@ -54,7 +52,3 @@ class TestCNOTNetworks(QiskitTestCase):
             depth=depth,
         )
         np.testing.assert_array_equal(cnots, output)
-
-
-if __name__ == "__main__":
-    unittest.main()

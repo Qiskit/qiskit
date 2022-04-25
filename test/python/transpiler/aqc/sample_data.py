@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,7 +14,7 @@
 import numpy as np
 
 # Circuit to optimize
-ORIGINAL_CIRCUIT = np.array(
+ORIGINAL_CIRCUIT = np.asarray(
     [
         [
             -0.07783734 + 0.22716113j,
@@ -100,7 +100,7 @@ ORIGINAL_CIRCUIT = np.array(
 )
 
 
-INITIAL_THETAS = np.array(
+INITIAL_THETAS = np.asarray(
     [
         5.840950175706398,
         1.9878462360990703,

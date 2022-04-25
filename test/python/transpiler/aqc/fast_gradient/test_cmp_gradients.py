@@ -13,14 +13,10 @@
 """
 Tests equivalence of the default and fast gradient computation routines.
 """
-# pylint: disable=wrong-import-position
 
-
+import unittest
 from typing import Tuple
 from time import perf_counter
-import gc
-import unittest
-import concurrent.futures
 from test.python.transpiler.aqc.fast_gradient.utils_for_testing import rand_circuit, rand_su_mat
 import numpy as np
 from qiskit.transpiler.synthesis.aqc.fast_gradient.fast_gradient import FastCNOTUnitObjective
@@ -29,15 +25,19 @@ from qiskit.test import QiskitTestCase
 
 
 class TestCompareGradientImpls(QiskitTestCase):
-
     """
     Tests equivalence of the default and fast gradient implementations.
     """
 
-    long_test = False  # enables thorough testing
+    max_num_qubits = 3  # maximum number of qubits in tests
+    max_depth = 10  # maximum circuit depth in tests
+
+    def setUp(self):
+        super().setUp()
+        np.random.seed(0x0696969)
 
     def _compare(
-        self, num_qubits: int, depth: int, verbose: bool
+        self, num_qubits: int, depth: int
     ) -> Tuple[int, int, float, float, float, float, float]:
         """
         Calculates gradient and objective function value for the original
@@ -46,7 +46,6 @@ class TestCompareGradientImpls(QiskitTestCase):
         """
         self.assertTrue(isinstance(num_qubits, (int, np.int64)))
         self.assertTrue(isinstance(depth, (int, np.int64)))
-        self.assertTrue(isinstance(verbose, bool))
 
         cnots = rand_circuit(num_qubits=num_qubits, depth=depth)
         depth = cnots.shape[1]  # might be less than initial depth
@@ -59,25 +58,17 @@ class TestCompareGradientImpls(QiskitTestCase):
         dflt_obj.target_matrix = u_mat
         fast_obj.target_matrix = u_mat
 
-        # Compute fast gradient. Disable garbage collection for a while.
-        gc_enabled = gc.isenabled()
-        gc.disable()
+        # Compute fast gradient.
         start = perf_counter()
         f1 = fast_obj.objective(param_values=thetas)
         g1 = fast_obj.gradient(param_values=thetas)
         t1 = perf_counter() - start
-        if gc_enabled:
-            gc.enable()
 
-        # Compute default gradient. Disable garbage collection for a while.
-        gc_enabled = gc.isenabled()
-        gc.disable()
+        # Compute default gradient.
         start = perf_counter()
         f2 = dflt_obj.objective(param_values=thetas)
         g2 = dflt_obj.gradient(param_values=thetas)
         t2 = perf_counter() - start
-        if gc_enabled:
-            gc.enable()
 
         fobj_rel_err = abs(f1 - f2) / f2
         grad_rel_err = np.linalg.norm(g1 - g2) / np.linalg.norm(g2)
@@ -95,28 +86,21 @@ class TestCompareGradientImpls(QiskitTestCase):
         """
 
         # Configurations of the number of qubits and depths we want to try.
-        max_depth = 100 if self.long_test else 10
         configs = [
             (n, depth)
-            for n in range(2, (8 if self.long_test else 3) + 1)
+            for n in range(2, self.max_num_qubits + 1)
             for depth in np.sort(
-                np.random.permutation(np.arange(3 if n <= 3 else 7, 9 if n <= 3 else max_depth))[
-                    0:10
-                ]
+                np.random.permutation(
+                    np.arange(3 if n <= 3 else 7, 9 if n <= 3 else self.max_depth)
+                )[0:10]
             )
         ]
 
         results = list()
-        if self.long_test:
-            with concurrent.futures.ProcessPoolExecutor() as executor:
-                tasks = [
-                    executor.submit(self._compare, int(nqubits), int(depth), bool(self.long_test))
-                    for nqubits, depth in configs
-                ]
-                results = [t.result() for t in tasks]
-        else:
-            for nqubits, depth in configs:
-                results.append(self._compare(int(nqubits), int(depth), bool(self.long_test)))
+
+        # Run the tests sequentially.
+        for nqubits, depth in configs:
+            results.append(self._compare(nqubits, depth))
 
         tol = float(np.sqrt(np.finfo(float).eps))
         for _, _, ferr, gerr, _, _, _ in results:
@@ -125,5 +109,4 @@ class TestCompareGradientImpls(QiskitTestCase):
 
 
 if __name__ == "__main__":
-    np.set_printoptions(precision=6, linewidth=256)
     unittest.main()

@@ -14,7 +14,6 @@
 Matrix designed for fast multiplication by permutation and block-diagonal ones.
 """
 
-from typing import Optional
 import numpy as np
 from .layer import Layer1Q, Layer2Q
 
@@ -25,49 +24,7 @@ class PMatrix:
     matrices and block-diagonal ones.
     """
 
-    def __init__(self, mat: Optional[np.ndarray] = None):
-        """
-        **Note**: the external matrix will be modified, i.e. this class keeps
-        the matrix reference and alters its content in-place. This is done on
-        purpose, because the matrix can be huge.
-
-        Args:
-            mat: matrix we want to multiply on the left and on the right by
-                 layer matrices.
-        """
-        if mat is not None:
-            dim = mat.shape[0]
-            self._dim = dim
-            self._mat = mat
-            self._temp_g2x2 = np.zeros((2, 2), dtype=np.cfloat)
-            self._temp_g4x4 = np.zeros((4, 4), dtype=np.cfloat)
-            self._temp_2x2 = self._temp_g2x2.copy()
-            self._temp_4x4 = self._temp_g4x4.copy()
-            self._identity_perm = np.arange(dim, dtype=np.int64)
-            self._left_perm = self._identity_perm.copy()
-            self._right_perm = self._identity_perm.copy()
-            self._temp_perm = self._identity_perm.copy()
-            self._temp_slice_dim_x_2 = np.zeros((dim, 2), dtype=np.cfloat)
-            self._temp_slice_dim_x_4 = np.zeros((dim, 4), dtype=np.cfloat)
-            self._idx_mat = self._init_index_matrix(dim)
-            self._temp_block_diag = np.zeros(self._idx_mat.shape, dtype=np.cfloat)
-        else:
-            self._dim = int(0)
-            self._mat = np.empty(0)
-            self._temp_g2x2 = np.empty(0)
-            self._temp_g4x4 = np.empty(0)
-            self._temp_2x2 = np.empty(0)
-            self._temp_4x4 = np.empty(0)
-            self._identity_perm = np.empty(0)
-            self._left_perm = np.empty(0)
-            self._right_perm = np.empty(0)
-            self._temp_perm = np.empty(0)
-            self._temp_slice_dim_x_2 = np.empty(0)
-            self._temp_slice_dim_x_4 = np.empty(0)
-            self._idx_mat = np.empty(0)
-            self._temp_block_diag = np.empty(0)
-
-    def initialize(self, num_qubits: int):
+    def __init__(self, num_qubits: int):
         """
         Initializes the internal structures of this object but does not set
         the matrix yet.
@@ -76,6 +33,7 @@ class PMatrix:
             num_qubits: number of qubits.
         """
         dim = 2**num_qubits
+        self._mat = np.empty(0)
         self._dim = dim
         self._temp_g2x2 = np.zeros((2, 2), dtype=np.cfloat)
         self._temp_g4x4 = np.zeros((4, 4), dtype=np.cfloat)
@@ -92,9 +50,9 @@ class PMatrix:
 
     def set_matrix(self, mat: np.ndarray):
         """
-        Copies specified matrix to internal storage. The call to this function
-        must be preceded by the call to self.initialize() one. Once the matrix
+        Copies specified matrix to internal storage. Once the matrix
         is set, the object is ready for use.
+
         **Note**, the matrix will be copied, mind the size issues.
 
         Args:
@@ -289,19 +247,12 @@ class PMatrix:
         np.take(np.take(mat, perm, axis=0, out=tmp1), perm, axis=1, out=tmp2)
 
         # matrix dot product = Tr(transposed(kron(I(dim/4), gmat)), (P @ mat @ P^T)):
-        _compact_version = False
-        if _compact_version:
-            bldia = self._temp_block_diag
-            np.take(tmp2.ravel(), self._idx_mat.ravel(), axis=0, out=bldia.ravel())
-            bldia *= gmat.reshape(-1, gmat.size)
-            return np.cfloat(np.sum(bldia))
-        else:
-            gmat_t, tmp3 = self._temp_g2x2, self._temp_2x2
-            np.copyto(gmat_t, gmat.T)
-            _sum = 0.0
-            for i in range(0, mat.shape[0], 2):
-                tmp3[:, :] = tmp2[i : i + 2, i : i + 2]
-                _sum += np.dot(gmat_t.ravel(), tmp3.ravel())
+        gmat_t, tmp3 = self._temp_g2x2, self._temp_2x2
+        np.copyto(gmat_t, gmat.T)
+        _sum = 0.0
+        for i in range(0, mat.shape[0], 2):
+            tmp3[:, :] = tmp2[i : i + 2, i : i + 2]
+            _sum += np.dot(gmat_t.ravel(), tmp3.ravel())
 
         return np.cfloat(_sum)
 
@@ -326,7 +277,8 @@ class PMatrix:
         mat = self._mat
         gmat, perm, _ = layer.get_attr()
 
-        # matrix dot product = Tr(transposed(kron(I(dim/4), gmat)), (P @ mat @ P^T)):
+        # Compute the matrix dot product:
+        # Tr(transposed(kron(I(dim/4), gmat)), (P @ mat @ P^T)):
 
         # The fastest version so far, but requires two NxN temp. matrices.
         # tmp2 = P @ mat @ P^T:

@@ -13,11 +13,9 @@
 """
 Tests for utility functions.
 """
-# pylint: disable=wrong-import-position
 
-
-import random
 import unittest
+import random
 import test.python.transpiler.aqc.fast_gradient.utils_for_testing as tut
 import numpy as np
 import qiskit.transpiler.synthesis.aqc.fast_gradient.fast_grad_utils as myu
@@ -32,14 +30,22 @@ class TestUtils(QiskitTestCase):
     Tests utility functions used by the fast gradient implementation.
     """
 
-    long_test = False  # enables thorough testing
+    max_nqubits_rev_bits = 7  # max. number of qubits in test_reverse_bits
+    max_nqubits_mk_unit = 5  # max. number of qubits in test_make_unit_vector
+    max_nqubits_swap = 7  # max. number of qubits in test_swap
+    max_nqubits_perms = 5  # max. number of qubits in test_permutations
+    num_repeats_gates2x2 = 100  # number of repetitions in test_gates2x2
+
+    def setUp(self):
+        super().setUp()
+        np.random.seed(0x0696969)
 
     def test_reverse_bits(self):
         """
         Tests the function utils.reverse_bits().
         """
 
-        nbits = myu.get_max_num_bits() if self.long_test else 7
+        nbits = self.max_nqubits_rev_bits
         for x in range(2**nbits):
             y = myu.reverse_bits(x, nbits, enable=True)
             self.assertTrue(x == myu.reverse_bits(y, nbits, enable=True))
@@ -62,14 +68,11 @@ class TestUtils(QiskitTestCase):
             vec = 1
             for i in range(nbits):
                 x = (num >> i) & 1
-                if myu.is_natural_bit_ordering():
-                    vec = np.kron(np.array([1 - x, x], dtype=np.int64), vec)
-                else:
-                    vec = np.kron(vec, np.array([1 - x, x], dtype=np.int64))
+                vec = np.kron(vec, np.asarray([1 - x, x], dtype=np.int64))
             self.assertTrue(vec.dtype == np.int64 and vec.shape == (2**nbits,))
             return vec
 
-        for n in range(1, (11 if self.long_test else 5) + 1):
+        for n in range(1, self.max_nqubits_mk_unit + 1):
             for k in range(2**n):
                 v1 = _make_unit_vector_simple(k, n)
                 v2 = tut.make_unit_vector(k, n)
@@ -80,7 +83,7 @@ class TestUtils(QiskitTestCase):
         Tests the function utils.swap_bits().
         """
 
-        nbits = myu.get_max_num_bits() if self.long_test else 7
+        nbits = self.max_nqubits_swap
         for x in range(2**nbits):
             for a in range(nbits):
                 for b in range(nbits):
@@ -105,14 +108,14 @@ class TestUtils(QiskitTestCase):
             p_mat, q_mat = _perm2_mat(perm), _perm2_mat(inv_perm)
             return perm, inv_perm, p_mat, q_mat
 
-        for n in range(1, (8 if self.long_test else 5) + 1):
+        for n in range(1, self.max_nqubits_perms + 1):
 
             dim = 2**n
             for _ in range(100):
                 perm1, inv_perm1, p1_mat, q1_mat = _permutation_and_matrix(dim)
                 perm2, inv_perm2, p2_mat, q2_mat = _permutation_and_matrix(dim)
 
-                iden = tut.identity_matrix(n)
+                iden = tut.eye_int(n)
                 self.assertTrue(np.all(p1_mat == q1_mat.T) and np.all(p1_mat.T == q1_mat))
                 self.assertTrue(np.all(p2_mat == q2_mat.T) and np.all(p2_mat.T == q2_mat))
                 self.assertTrue(np.all(p1_mat @ q1_mat == iden) and np.all(q1_mat @ p1_mat == iden))
@@ -162,7 +165,7 @@ class TestUtils(QiskitTestCase):
 
         tol = np.finfo(np.float64).eps * 2.0
         out = np.full((2, 2), fill_value=0, dtype=np.cfloat)
-        for test in range(1000 if self.long_test else 100):  # pylint: disable=unused-variable
+        for test in range(self.num_repeats_gates2x2):  # pylint: disable=unused-variable
             phi = random.random() * 2.0 * np.pi
             self.assertTrue(np.allclose(myu.make_rx(phi, out=out), _rx(phi), atol=tol, rtol=tol))
             self.assertTrue(np.allclose(myu.make_ry(phi, out=out), _ry(phi), atol=tol, rtol=tol))
@@ -170,5 +173,4 @@ class TestUtils(QiskitTestCase):
 
 
 if __name__ == "__main__":
-    np.set_printoptions(precision=6, linewidth=256)
     unittest.main()

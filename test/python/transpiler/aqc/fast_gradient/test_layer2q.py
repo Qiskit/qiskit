@@ -13,8 +13,6 @@
 """
 Tests for Layer2Q implementation.
 """
-# pylint: disable=wrong-import-position
-
 
 import unittest
 from random import randint
@@ -30,7 +28,12 @@ class TestLayer2q(QiskitTestCase):
     Tests for Layer2Q class.
     """
 
-    long_test = False  # enables thorough testing
+    max_num_qubits = 5  # maximum number of qubits in tests
+    num_repeats = 50  # number of repetitions in tests
+
+    def setUp(self):
+        super().setUp()
+        np.random.seed(0x0696969)
 
     def test_layer2q_matrix(self):
         """
@@ -41,23 +44,23 @@ class TestLayer2q(QiskitTestCase):
         mat_kind = "complex"
         _eps = 100.0 * np.finfo(float).eps
         max_rel_err = 0.0
-        for n in range(2, (8 if self.long_test else 5) + 1):
+        for n in range(2, self.max_num_qubits + 1):
 
             dim = 2**n
-            iden = tut.identity_matrix(n)
+            iden = tut.eye_int(n)
             for j in range(n):
                 for k in range(n):
                     if j == k:
                         continue
                     m_mat = tut.rand_matrix(dim=dim, kind=mat_kind)
                     t_mat, g_mat = tut.make_test_matrices4x4(n=n, j=j, k=k, kind=mat_kind)
-                    lmat = lr.Layer2Q(nbits=n, j=j, k=k, g4x4=g_mat)
+                    lmat = lr.Layer2Q(num_qubits=n, j=j, k=k, g4x4=g_mat)
                     g2, perm, inv_perm = lmat.get_attr()
                     self.assertTrue(m_mat.dtype == t_mat.dtype == g_mat.dtype == g2.dtype)
                     self.assertTrue(np.all(g_mat == g2))
                     self.assertTrue(np.all(iden[perm].T == iden[inv_perm]))
 
-                    g_mat = np.kron(tut.identity_matrix(n - 2), g_mat)
+                    g_mat = np.kron(tut.eye_int(n - 2), g_mat)
 
                     # T == P^t @ G @ P.
                     err = tut.relative_error(t_mat, iden[perm].T @ g_mat @ iden[perm])
@@ -91,12 +94,12 @@ class TestLayer2q(QiskitTestCase):
         _eps = 100.0 * np.finfo(float).eps
         mat_kind = "complex"
         max_rel_err = 0.0
-        for n in range(2, (8 if self.long_test else 5) + 1):
+        for n in range(2, self.max_num_qubits + 1):
 
             dim = 2**n
             tmp1 = np.ndarray((dim, dim), dtype=np.cfloat)
             tmp2 = tmp1.copy()
-            for _ in range(200 if self.long_test else 50):
+            for _ in range(self.num_repeats):
                 j0 = randint(0, n - 1)
                 k0 = (j0 + randint(1, n - 1)) % n
                 j1 = randint(0, n - 1)
@@ -114,16 +117,17 @@ class TestLayer2q(QiskitTestCase):
                 t3, g3 = tut.make_test_matrices4x4(n=n, j=j3, k=k3, kind=mat_kind)
                 t4, g4 = tut.make_test_matrices4x4(n=n, j=j4, k=k4, kind=mat_kind)
 
-                c0 = lr.Layer2Q(nbits=n, j=j0, k=k0, g4x4=g0)
-                c1 = lr.Layer2Q(nbits=n, j=j1, k=k1, g4x4=g1)
-                c2 = lr.Layer2Q(nbits=n, j=j2, k=k2, g4x4=g2)
-                c3 = lr.Layer2Q(nbits=n, j=j3, k=k3, g4x4=g3)
-                c4 = lr.Layer2Q(nbits=n, j=j4, k=k4, g4x4=g4)
+                c0 = lr.Layer2Q(num_qubits=n, j=j0, k=k0, g4x4=g0)
+                c1 = lr.Layer2Q(num_qubits=n, j=j1, k=k1, g4x4=g1)
+                c2 = lr.Layer2Q(num_qubits=n, j=j2, k=k2, g4x4=g2)
+                c3 = lr.Layer2Q(num_qubits=n, j=j3, k=k3, g4x4=g3)
+                c4 = lr.Layer2Q(num_qubits=n, j=j4, k=k4, g4x4=g4)
 
                 m_mat = tut.rand_matrix(dim=dim, kind=mat_kind)
                 ttmtt = t0 @ t1 @ m_mat @ np.conj(t2).T @ np.conj(t3).T
 
-                pmat = PMatrix(mat=m_mat.copy())  # we use copy for testing (!)
+                pmat = PMatrix(n)
+                pmat.set_matrix(m_mat)
                 pmat.mul_left_q2(layer=c1, temp_mat=tmp1)
                 pmat.mul_left_q2(layer=c0, temp_mat=tmp1)
                 pmat.mul_right_q2(layer=c2, temp_mat=tmp1)
@@ -142,5 +146,4 @@ class TestLayer2q(QiskitTestCase):
 
 
 if __name__ == "__main__":
-    np.set_printoptions(precision=6, linewidth=256)
     unittest.main()

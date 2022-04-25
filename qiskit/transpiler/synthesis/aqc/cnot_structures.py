@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,6 +13,7 @@
 These are the CNOT structure methods: anything that you need for creating CNOT structures.
 """
 import logging
+
 import numpy as np
 
 _NETWORK_LAYOUTS = ["sequ", "spin", "cart", "cyclic_spin", "cyclic_line"]
@@ -224,14 +225,14 @@ def _cartan_network(num_qubits: int) -> np.ndarray:
     """
     n = num_qubits
     if n > 3:
-        cnots = np.array([[0, 0, 0], [1, 1, 1]])
-        mult = np.array([[n - 2, n - 3, n - 2, n - 3], [n - 1, n - 1, n - 1, n - 1]])
+        cnots = np.asarray([[0, 0, 0], [1, 1, 1]])
+        mult = np.asarray([[n - 2, n - 3, n - 2, n - 3], [n - 1, n - 1, n - 1, n - 1]])
         for _ in range(n - 2):
             cnots = np.hstack((np.tile(np.hstack((cnots, mult)), 3), cnots))
             mult[0, -1] -= 1
             mult = np.tile(mult, 2)
     elif n == 3:
-        cnots = np.array(
+        cnots = np.asarray(
             [
                 [0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0],
                 [1, 1, 1, 2, 2, 2, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 2, 2, 2, 1, 1, 1],

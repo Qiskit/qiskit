@@ -156,7 +156,7 @@ This uses a helper function, :obj:`make_cnot_network`.
 
 One can take advantage of accelerated version of objective function. It implements the same
 mathematical algorithm as the default one ``DefaultCNOTUnitObjective`` but runs several times
-faster. Instantiation of accelerated objective function looks familiar::
+faster. Instantiation of accelerated objective function class is similar to the default case:
 
     # Create an objective that defines our optimization problem
     approximating_objective = FastCNOTUnitObjective(num_qubits=num_qubits, cnots=cnots)

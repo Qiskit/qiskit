@@ -13,17 +13,14 @@
 """
 Tests for Layer1Q implementation.
 """
-# pylint: disable=wrong-import-position
-# pylint: disable=wrong-import-order
-
 
 import unittest
 from random import randint
-import numpy as np
-from qiskit.test import QiskitTestCase
 import test.python.transpiler.aqc.fast_gradient.utils_for_testing as tut
+import numpy as np
 import qiskit.transpiler.synthesis.aqc.fast_gradient.layer as lr
 from qiskit.transpiler.synthesis.aqc.fast_gradient.pmatrix import PMatrix
+from qiskit.test import QiskitTestCase
 
 
 class TestLayer1q(QiskitTestCase):
@@ -31,7 +28,12 @@ class TestLayer1q(QiskitTestCase):
     Tests for Layer1Q class.
     """
 
-    long_test = False  # enables thorough testing
+    max_num_qubits = 5  # maximum number of qubits in tests
+    num_repeats = 50  # number of repetitions in tests
+
+    def setUp(self):
+        super().setUp()
+        np.random.seed(0x0696969)
 
     def test_layer1q_matrix(self):
         """
@@ -42,20 +44,20 @@ class TestLayer1q(QiskitTestCase):
         mat_kind = "complex"
         eps = 100.0 * np.finfo(float).eps
         max_rel_err = 0.0
-        for n in range(2, (8 if self.long_test else 5) + 1):
+        for n in range(2, self.max_num_qubits + 1):
 
             dim = 2**n
-            iden = tut.identity_matrix(n)
+            iden = tut.eye_int(n)
             for k in range(n):
                 m_mat = tut.rand_matrix(dim=dim, kind=mat_kind)
                 t_mat, g_mat = tut.make_test_matrices2x2(n=n, k=k, kind=mat_kind)
-                lmat = lr.Layer1Q(nbits=n, k=k, g2x2=g_mat)
+                lmat = lr.Layer1Q(num_qubits=n, k=k, g2x2=g_mat)
                 g2, perm, inv_perm = lmat.get_attr()
                 self.assertTrue(m_mat.dtype == t_mat.dtype == g_mat.dtype == g2.dtype)
                 self.assertTrue(np.all(g_mat == g2))
                 self.assertTrue(np.all(iden[perm].T == iden[inv_perm]))
 
-                g_mat = np.kron(tut.identity_matrix(n - 1), g_mat)
+                g_mat = np.kron(tut.eye_int(n - 1), g_mat)
 
                 # T == P^t @ G @ P.
                 err = tut.relative_error(t_mat, iden[perm].T @ g_mat @ iden[perm])
@@ -89,12 +91,12 @@ class TestLayer1q(QiskitTestCase):
         _eps = 100.0 * np.finfo(float).eps
         mat_kind = "complex"
         max_rel_err = 0.0
-        for n in range(2, (8 if self.long_test else 5) + 1):
+        for n in range(2, self.max_num_qubits + 1):
 
             dim = 2**n
             tmp1 = np.ndarray((dim, dim), dtype=np.cfloat)
             tmp2 = tmp1.copy()
-            for _ in range(200 if self.long_test else 50):
+            for _ in range(self.num_repeats):
                 k0 = randint(0, n - 1)
                 k1 = randint(0, n - 1)
                 k2 = randint(0, n - 1)
@@ -107,16 +109,17 @@ class TestLayer1q(QiskitTestCase):
                 t3, g3 = tut.make_test_matrices2x2(n=n, k=k3, kind=mat_kind)
                 t4, g4 = tut.make_test_matrices2x2(n=n, k=k4, kind=mat_kind)
 
-                c0 = lr.Layer1Q(nbits=n, k=k0, g2x2=g0)
-                c1 = lr.Layer1Q(nbits=n, k=k1, g2x2=g1)
-                c2 = lr.Layer1Q(nbits=n, k=k2, g2x2=g2)
-                c3 = lr.Layer1Q(nbits=n, k=k3, g2x2=g3)
-                c4 = lr.Layer1Q(nbits=n, k=k4, g2x2=g4)
+                c0 = lr.Layer1Q(num_qubits=n, k=k0, g2x2=g0)
+                c1 = lr.Layer1Q(num_qubits=n, k=k1, g2x2=g1)
+                c2 = lr.Layer1Q(num_qubits=n, k=k2, g2x2=g2)
+                c3 = lr.Layer1Q(num_qubits=n, k=k3, g2x2=g3)
+                c4 = lr.Layer1Q(num_qubits=n, k=k4, g2x2=g4)
 
                 m_mat = tut.rand_matrix(dim=dim, kind=mat_kind)
                 ttmtt = t0 @ t1 @ m_mat @ np.conj(t2).T @ np.conj(t3).T
 
-                pmat = PMatrix(mat=m_mat.copy())  # we use copy for testing (!)
+                pmat = PMatrix(n)
+                pmat.set_matrix(m_mat)
                 pmat.mul_left_q1(layer=c1, temp_mat=tmp1)
                 pmat.mul_left_q1(layer=c0, temp_mat=tmp1)
                 pmat.mul_right_q1(layer=c2, temp_mat=tmp1, dagger=True)
@@ -135,5 +138,4 @@ class TestLayer1q(QiskitTestCase):
 
 
 if __name__ == "__main__":
-    np.set_printoptions(precision=6, linewidth=256)
     unittest.main()

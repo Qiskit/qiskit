@@ -13,47 +13,11 @@
 """
 Utility functions for debugging and testing.
 """
-# pylint: disable=wrong-import-position
 
 from typing import Tuple
 import numpy as np
 from scipy.stats import unitary_group
-import qiskit.transpiler.synthesis.aqc.fast_gradient.fast_grad_utils as myu
-
-
-def _pp(perm: np.ndarray):
-    """
-    Prints a permutation. The least significant bit is on the left.
-    """
-    if np.amax(perm) >= 2**8:
-        print("WARNING: index in permutation should occupy 8 bits or less")
-        return
-    for i in range(perm.size):
-        print("{:3d}".format(i), " " * 6, end="")
-    print("")
-    for i in range(perm.size):
-        print("{0:08b}".format(i)[::-1], " ", end="")
-    print("")
-    for i in range(perm.size):
-        print("|  ||  |  ", end="")
-    print("")
-    for i in range(perm.size):
-        print("{0:08b}".format(perm[i])[::-1], " ", end="")
-    print("")
-    for i in range(perm.size):
-        print("{:3d}".format(perm[i]), " " * 6, end="")
-    print("", flush=True)
-
-
-def _pb(x: int):
-    """
-    Prints an integer number as a binary string.
-    The least significant bit is on the left.
-    """
-    if x >= 2**8:
-        print("WARNING: index value should occupy 8 bits or less")
-        return
-    print("{0:08b}".format(x)[::-1])
+import qiskit.transpiler.synthesis.aqc.fast_gradient.fast_grad_utils as fgu
 
 
 def relative_error(a_mat: np.ndarray, b_mat: np.ndarray) -> float:
@@ -75,14 +39,14 @@ def make_unit_vector(pos: int, nbits: int) -> np.ndarray:
     Returns:
         unit vector of size ``2^n``.
     """
-    vec = np.full((2**nbits,), fill_value=0, dtype=np.int64)
-    vec[myu.reverse_bits(pos, nbits, enable=not myu.is_natural_bit_ordering())] = 1
+    vec = np.zeros((2**nbits,), dtype=np.int64)
+    vec[fgu.reverse_bits(pos, nbits, enable=True)] = 1
     return vec
 
 
-def identity_matrix(n: int) -> np.ndarray:
+def eye_int(n: int) -> np.ndarray:
     """
-    Creates a unit matrix with integer entries.
+    Creates an identity matrix with integer entries.
 
     Args:
         n: number of bits.
@@ -145,10 +109,10 @@ def make_test_matrices2x2(n: int, k: int, kind: str = "complex") -> Tuple[np.nda
           gate used for matrix construction.
     """
     if kind == "primes":
-        a_mat = np.array([[2, 3], [5, 7]], dtype=np.int64)
+        a_mat = np.asarray([[2, 3], [5, 7]], dtype=np.int64)
     else:
         a_mat = rand_matrix(dim=2, kind=kind)
-    m_mat = kron3(identity_matrix(k), a_mat, identity_matrix(n - k - 1))
+    m_mat = kron3(eye_int(k), a_mat, eye_int(n - k - 1))
     return m_mat, a_mat
 
 
@@ -172,25 +136,21 @@ def make_test_matrices4x4(
         2-qubit gate used for matrix construction.
     """
     if kind == "primes":
-        a_mat = np.array([[2, 3], [5, 7]], dtype=np.int64)
-        b_mat = np.array([[11, 13], [17, 19]], dtype=np.int64)
-        c_mat = np.array([[47, 53], [41, 43]], dtype=np.int64)
-        d_mat = np.array([[31, 37], [23, 29]], dtype=np.int64)
+        a_mat = np.asarray([[2, 3], [5, 7]], dtype=np.int64)
+        b_mat = np.asarray([[11, 13], [17, 19]], dtype=np.int64)
+        c_mat = np.asarray([[47, 53], [41, 43]], dtype=np.int64)
+        d_mat = np.asarray([[31, 37], [23, 29]], dtype=np.int64)
     else:
         a_mat, b_mat = rand_matrix(dim=2, kind=kind), rand_matrix(dim=2, kind=kind)
         c_mat, d_mat = rand_matrix(dim=2, kind=kind), rand_matrix(dim=2, kind=kind)
 
     if j < k:
-        m_mat = kron5(
-            identity_matrix(j), a_mat, identity_matrix(k - j - 1), b_mat, identity_matrix(n - k - 1)
-        ) + kron5(
-            identity_matrix(j), c_mat, identity_matrix(k - j - 1), d_mat, identity_matrix(n - k - 1)
+        m_mat = kron5(eye_int(j), a_mat, eye_int(k - j - 1), b_mat, eye_int(n - k - 1)) + kron5(
+            eye_int(j), c_mat, eye_int(k - j - 1), d_mat, eye_int(n - k - 1)
         )
     else:
-        m_mat = kron5(
-            identity_matrix(k), b_mat, identity_matrix(j - k - 1), a_mat, identity_matrix(n - j - 1)
-        ) + kron5(
-            identity_matrix(k), d_mat, identity_matrix(j - k - 1), c_mat, identity_matrix(n - j - 1)
+        m_mat = kron5(eye_int(k), b_mat, eye_int(j - k - 1), a_mat, eye_int(n - j - 1)) + kron5(
+            eye_int(k), d_mat, eye_int(j - k - 1), c_mat, eye_int(n - j - 1)
         )
     g_mat = np.kron(a_mat, b_mat) + np.kron(c_mat, d_mat)
     return m_mat, g_mat

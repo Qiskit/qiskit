@@ -18,49 +18,6 @@ from typing import Union
 import numpy as np
 
 
-def get_max_num_bits() -> int:
-    """
-    Returns the maximum supported number of qubits handled by this approach.
-    Note, ``2^16`` means that the size of circuit matrix is ``2^16 x 2^16 = 2^32``,
-    which is huge.
-
-    Returns:
-        maximum supported number of qubits.
-    """
-    return int(16)
-
-
-def is_natural_bit_ordering() -> bool:
-    """
-    Returns True, if so called "natural" bit ordering is adopted.
-    **Important**:
-    The current code relies on "non-natural" bit ordering convention, where
-    the state vector is defined as a chain of Kronecker products of individual
-    qubit states as follows:
-    ``|state> = |least-significant-qubit> kron ... kron |most-significant-qubit>``
-    In quantum computation another ("natural") bit ordering is adopted:
-    ``|state> = |most-significant-qubit> kron ... kron |least-significant-qubit>``
-    Non-natural bit ordering is more linear algebra friendly. However, if we
-    consider a "natural" representation of a number:
-    ``|x> = |x1 x2 ... xn> = x1 * 2^{n-1} + x2 * 2^{n-2} + ... + xn * 2^{0}``, where
-    ``x1`` is a 0/1 value of the most significant bit, xn is a 0/1 value of the
-    least significant one, then representation becomes intuitive for enumerating
-    the quantum states. For example, ``|0> = (1 0 ... 0), |1> = (0 1 ... 0),
-    |2^n - 1> = (0 0 ... 1)``. In the case of non-natural settings, in order to
-    make a state ``|k>`` we have to flip bit ordering in the bit representation
-    of the number ``k``. This is the rational for the function ReverseBits().
-    **Important**:
-    At the moment we apply ReverseBits() even in case of natural ordering,
-    because we traverse a number starting from the least-significant bit. Had
-    it done the other way, the ReverseBits() would be unnecessary.
-
-    Returns:
-        True, if so called "natural" bit ordering is adopted,
-        otherwise returns False.
-    """
-    return False
-
-
 def is_permutation(x: np.ndarray) -> bool:
     """
     Checks if array is really an index permutation.
@@ -221,6 +178,7 @@ def inverse_permutation(perm: np.ndarray) -> np.ndarray:
 def make_rx(phi: float, out: np.ndarray) -> np.ndarray:
     """
     Makes a 2x2 matrix that corresponds to X-rotation gate.
+    This is a fast implementation that does not allocate the output matrix.
 
     Args:
         phi: rotation angle.
@@ -241,6 +199,7 @@ def make_rx(phi: float, out: np.ndarray) -> np.ndarray:
 def make_ry(phi: float, out: np.ndarray) -> np.ndarray:
     """
     Makes a 2x2 matrix that corresponds to Y-rotation gate.
+    This is a fast implementation that does not allocate the output matrix.
 
     Args:
         phi: rotation angle.
@@ -261,6 +220,7 @@ def make_ry(phi: float, out: np.ndarray) -> np.ndarray:
 def make_rz(phi: float, out: np.ndarray) -> np.ndarray:
     """
     Makes a 2x2 matrix that corresponds to Z-rotation gate.
+    This is a fast implementation that does not allocate the output matrix.
 
     Args:
         phi: rotation angle.
@@ -270,7 +230,7 @@ def make_rz(phi: float, out: np.ndarray) -> np.ndarray:
         rotation gate, same object as referenced by "out".
     """
     exp = np.exp(0.5j * phi).item()
-    out[0, 0] = 1 / exp
+    out[0, 0] = 1.0 / exp
     out[0, 1] = 0
     out[1, 0] = 0
     out[1, 1] = exp
