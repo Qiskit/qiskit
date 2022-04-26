@@ -14,6 +14,7 @@
 
 import unittest
 
+from qiskit.circuit.library import ZGate
 from test.python.opflow import QiskitOpflowTestCase
 from ddt import ddt, data, unpack
 import numpy as np
@@ -24,7 +25,7 @@ from qiskit.algorithms import EvolutionProblem
 from qiskit.algorithms.evolvers.trotterization import (
     TrotterQRTE,
 )
-from qiskit.quantum_info import Statevector, Pauli
+from qiskit.quantum_info import Statevector
 from qiskit.utils import algorithm_globals, QuantumInstance
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
@@ -201,7 +202,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
             ),
         ),
         (
-            QuantumCircuit(1).compose(Pauli("Z").to_instruction(), [0]),
+            QuantumCircuit(1).compose(ZGate(), [0]),
             VectorStateFn(
                 Statevector([0.23071786 - 0.69436148j, 0.4646314 - 0.49874749j], dims=(2,))
             ),
