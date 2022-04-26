@@ -79,6 +79,13 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         result = self.backend.run(self.qobj).result()
         self.assertEqual(result.success, True)
 
+    def test_qasm_simulator_max_shots(self):
+        """Test there is no limit for the number of shots."""
+        shots = int(2e6)
+        self.qobj.config.shots = shots
+        result = self.backend.run(self.qobj).result()
+        self.assertEqual(result.success, True)
+
     def test_measure_sampler_repeated_qubits(self):
         """Test measure sampler if qubits measured more than once."""
         shots = 100
