@@ -44,8 +44,6 @@ class TestCompareGradientImpls(QiskitTestCase):
         and the fast implementations, and compares the outputs from both.
         Returns relative errors. Also, accumulates performance metrics.
         """
-        self.assertTrue(isinstance(num_qubits, (int, np.int64)))
-        self.assertTrue(isinstance(depth, (int, np.int64)))
 
         cnots = rand_circuit(num_qubits=num_qubits, depth=depth)
         depth = cnots.shape[1]  # might be less than initial depth
