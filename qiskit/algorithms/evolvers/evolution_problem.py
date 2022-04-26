@@ -53,8 +53,6 @@ class EvolutionProblem:
 
         Raises:
             ValueError: If non-positive time of evolution is provided.
-            ValueError: If no ``initial_state`` is provided.
-            ValueError: If not all parameter values are provided.
         """
 
         self.t_param = t_param
