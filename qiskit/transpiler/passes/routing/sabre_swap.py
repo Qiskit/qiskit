@@ -431,7 +431,7 @@ class SabreSwap(TransformationPass):
                 dag.remove_op_node(operation)
                 p0 = self._bit_indices[operation.qargs[0]]
                 p1 = self._bit_indices[operation.qargs[1]]
-                layout.swap_physical(p0, p1)
+                layout.swap_logical(p0, p1)
 
 
 def _transform_gate_for_layout(op_node, layout, device_qreg):
