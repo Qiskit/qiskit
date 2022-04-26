@@ -14,7 +14,6 @@
 
 import unittest
 
-from qiskit.circuit.library import ZGate
 from test.python.opflow import QiskitOpflowTestCase
 from ddt import ddt, data, unpack
 import numpy as np
@@ -25,6 +24,7 @@ from qiskit.algorithms import EvolutionProblem
 from qiskit.algorithms.evolvers.trotterization import (
     TrotterQRTE,
 )
+from qiskit.circuit.library import ZGate
 from qiskit.quantum_info import Statevector
 from qiskit.utils import algorithm_globals, QuantumInstance
 from qiskit.circuit import Parameter
