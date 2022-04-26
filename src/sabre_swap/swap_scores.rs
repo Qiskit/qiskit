@@ -14,18 +14,13 @@ use pyo3::prelude::*;
 
 use indexmap::IndexMap;
 
-/// An unsigned integer Vector based layout class
+/// A mapping of swap candidates to their scores
 ///
-/// This class tracks the layout (or mapping between virtual qubits in the the
-/// circuit and physical qubits on the physical device) efficiently
-///
-/// Args:
-///     qubit_indices (dict): A dictionary mapping the virtual qubit index in the circuit to the
-///         physical qubit index on the coupling graph.
-///     logical_qubits (int): The number of logical qubits in the layout
-///     physical_qubits (int): The number of physical qubits in the layout
-#[pyclass(module = "qiskit._accelerate.sabre_swap")]
-#[pyo3(text_signature = "(qubit_indices, logical_qubits, physical_qubits, /)")]
+/// This class tracks the mapping of swap candidates to their float score. The
+/// scores can only be updated from rust but once initialized this can be
+/// used to access the scores from a particular swap candidate.
+#[pyclass(mapping, module = "qiskit._accelerate.sabre_swap")]
+#[pyo3(text_signature = "(swap_candidates, /)")]
 #[derive(Clone, Debug)]
 pub struct SwapScores {
     pub scores: IndexMap<[usize; 2], f64>,
