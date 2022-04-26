@@ -220,7 +220,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         evolution_result = trotter_qrte.evolve(evolution_problem)
         np.testing.assert_equal(evolution_result.evolved_state.eval(), expected_state)
 
-    @data((Parameter("t"), {}), (None, {Parameter("t"): 2}))
+    @data((Parameter("t"), {}), (None, {Parameter("x"): 2}), (None, None))
     @unpack
     def test_trotter_qrte_trotter_errors(self, t_param, hamiltonian_value_dict):
         """Test TrotterQRTE with raising errors."""

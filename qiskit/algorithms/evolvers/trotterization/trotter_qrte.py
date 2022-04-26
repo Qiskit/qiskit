@@ -168,6 +168,7 @@ class TrotterQRTE(RealEvolver):
                 currently supported).
             ValueError: If the ``initial_state`` is not provided in the EvolutionProblem.
         """
+        evolution_problem.validate_params()
         if evolution_problem.t_param is not None:
             raise ValueError(
                 "TrotterQRTE does not accept a time dependent hamiltonian,"

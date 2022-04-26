@@ -18,7 +18,7 @@ from numpy.testing import assert_raises
 
 from qiskit.algorithms.evolvers.evolution_problem import EvolutionProblem
 from qiskit.circuit import Parameter
-from qiskit.opflow import Y, Z, One, X
+from qiskit.opflow import Y, Z, One, X, Zero
 
 
 @ddt
@@ -82,9 +82,40 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
     @data([Y, -1, One], [Y, -1.2, One], [Y, 0, One])
     @unpack
     def test_init_errors(self, hamiltonian, time, initial_state):
-        """Tests expected errors are thrown on invalid input arguments."""
+        """Tests expected errors are thrown on invalid time argument."""
         with assert_raises(ValueError):
             _ = EvolutionProblem(hamiltonian, time, initial_state)
+
+    def test_validate_params(self):
+        """Tests expected errors are thrown on parameters mismatch."""
+        param_x = Parameter("x")
+        param_y = Parameter("y")
+        with self.subTest(msg="Parameter missing in dict."):
+            hamiltonian = param_x * X + param_y * Y
+            param_dict = {param_y: 2}
+            evolution_problem = EvolutionProblem(
+                hamiltonian, 2, Zero, hamiltonian_value_dict=param_dict
+            )
+            with assert_raises(ValueError):
+                evolution_problem.validate_params()
+
+        with self.subTest(msg="Empty dict."):
+            hamiltonian = param_x * X + param_y * Y
+            param_dict = {}
+            evolution_problem = EvolutionProblem(
+                hamiltonian, 2, Zero, hamiltonian_value_dict=param_dict
+            )
+            with assert_raises(ValueError):
+                evolution_problem.validate_params()
+
+        with self.subTest(msg="Extra parameter in dict."):
+            hamiltonian = param_x * X + param_y * Y
+            param_dict = {param_y: 2, param_x: 1, Parameter("z"): 1}
+            evolution_problem = EvolutionProblem(
+                hamiltonian, 2, Zero, hamiltonian_value_dict=param_dict
+            )
+            with assert_raises(ValueError):
+                evolution_problem.validate_params()
 
 
 if __name__ == "__main__":

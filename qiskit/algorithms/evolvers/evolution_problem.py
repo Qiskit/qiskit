@@ -76,8 +76,6 @@ class EvolutionProblem:
         Sets a hamiltonian and validates it.
 
         """
-
-        self._check_parameters(hamiltonian, self.hamiltonian_value_dict, self.t_param)
         self._hamiltonian = hamiltonian
 
     @property
@@ -110,36 +108,25 @@ class EvolutionProblem:
         """
         self._initial_state = initial_state
 
-    def _check_parameters(
-        self,
-        hamiltonian: OperatorBase,
-        hamiltonian_value_dict: Optional[Dict[Parameter, Union[complex]]] = None,
-        t_param: Optional[Parameter] = None,
-    ) -> None:
+    def validate_params(self) -> None:
         """
         Checks if all parameters present in the Hamiltonian are also present in the dictionary
         that maps them to values.
-        Args:
-            hamiltonian: The Hamiltonian under which to evolve the system.
-            hamiltonian_value_dict: If the Hamiltonian contains free parameters, this
-                dictionary maps all these parameters to values.
-            t_param: Time parameter in case of a time-dependent Hamiltonian. This
-            free parameter must be within the ``hamiltonian``.
 
         Raises:
             ValueError: If Hamiltonian parameters cannot be bound with data provided.
         """
-        if isinstance(hamiltonian, OperatorBase):
+        if isinstance(self.hamiltonian, OperatorBase):
             t_param_set = set()
-            if t_param is not None:
-                t_param_set.add(t_param)
+            if self.t_param is not None:
+                t_param_set.add(self.t_param)
             hamiltonian_dict_param_set = set()
-            if hamiltonian_value_dict is not None:
+            if self.hamiltonian_value_dict is not None:
                 hamiltonian_dict_param_set = hamiltonian_dict_param_set.union(
-                    set(hamiltonian_value_dict.keys())
+                    set(self.hamiltonian_value_dict.keys())
                 )
             params_set = t_param_set.union(hamiltonian_dict_param_set)
-            hamiltonian_param_set = set(hamiltonian.parameters)
+            hamiltonian_param_set = set(self.hamiltonian.parameters)
 
             if hamiltonian_param_set != params_set:
                 raise ValueError(
