@@ -26,19 +26,6 @@ class DAGNode:
         """Create a node"""
         self._node_id = nid
 
-    @property
-    def name(self):
-        """Returns the Instruction name corresponding to the op for this node"""
-        if isinstance(self, DAGOpNode):
-            return self.op.name
-        return None
-
-    @name.setter
-    def name(self, name):
-        """Sets the Instruction name corresponding to the op for this node"""
-        if isinstance(self, DagOpNode):
-            self.op.name = name
-
     def __lt__(self, other):
         return self._node_id < other._node_id
 
