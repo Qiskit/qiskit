@@ -78,6 +78,28 @@ class TestMatrices(QiskitAlgorithmsTestCase):
         exact_exp = expm(1j * matrix.evolution_time * power * matrix.matrix)
         np.testing.assert_array_almost_equal(approx_exp, exact_exp, decimal=2)
 
+    @idata(
+        [
+            [TridiagonalToeplitz(2, 1.5, 2.5)],
+            [TridiagonalToeplitz(4, -1, 1.6)],
+        ]
+    )
+    @unpack
+    def test_eigs_bounds(self, matrix):
+        """Test the capability of TridiagonalToeplitz matrix class
+        to find accurate absolute eigenvalues bounds."""
+
+        matrix_lambda_min, matrix_lambda_max = matrix.eigs_bounds()
+
+        numpy_matrix = matrix.matrix
+        eigenvalues, _ = np.linalg.eig(numpy_matrix)
+        abs_eigenvalues = np.abs(eigenvalues)
+        exact_lambda_min = np.min(abs_eigenvalues)
+        exact_lambda_max = np.max(abs_eigenvalues)
+
+        np.testing.assert_almost_equal(matrix_lambda_min, exact_lambda_min, decimal=6)
+        np.testing.assert_almost_equal(matrix_lambda_max, exact_lambda_max, decimal=6)
+
 
 @ddt
 class TestObservables(QiskitAlgorithmsTestCase):

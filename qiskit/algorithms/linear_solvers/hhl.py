@@ -29,7 +29,7 @@ from qiskit.opflow import (
     ListOp,
     ExpectationFactory,
 )
-from qiskit.providers import Backend, BaseBackend
+from qiskit.providers import Backend
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils import QuantumInstance
 
@@ -100,7 +100,7 @@ class HHL(LinearSolver):
         self,
         epsilon: float = 1e-2,
         expectation: Optional[ExpectationBase] = None,
-        quantum_instance: Optional[Union[Backend, BaseBackend, QuantumInstance]] = None,
+        quantum_instance: Optional[Union[Backend, QuantumInstance]] = None,
     ) -> None:
         r"""
         Args:
@@ -142,9 +142,7 @@ class HHL(LinearSolver):
         return None if self._sampler is None else self._sampler.quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(
-        self, quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]]
-    ) -> None:
+    def quantum_instance(self, quantum_instance: Optional[Union[QuantumInstance, Backend]]) -> None:
         """Set quantum instance.
 
         Args:
