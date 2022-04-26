@@ -238,7 +238,7 @@ class TrotterQRTE(RealEvolver):
         for op in hamiltonian.oplist:
             if not isinstance(op, PauliOp):
                 raise ValueError(
-                    f"Content of the Hamiltonian not of type PauliOp. The "
+                    "Content of the Hamiltonian not of type PauliOp. The "
                     f"following type detected: {type(op)}."
                 )
             op_list.append(op)
