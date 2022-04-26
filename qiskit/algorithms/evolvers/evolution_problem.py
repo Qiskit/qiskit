@@ -72,10 +72,7 @@ class EvolutionProblem:
 
     @hamiltonian.setter
     def hamiltonian(self, hamiltonian: OperatorBase) -> None:
-        """
-        Sets a hamiltonian and validates it.
-
-        """
+        """Sets a hamiltonian."""
         self._hamiltonian = hamiltonian
 
     @property
