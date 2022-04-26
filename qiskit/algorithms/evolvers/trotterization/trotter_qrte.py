@@ -224,7 +224,7 @@ class TrotterQRTE(RealEvolver):
         Tries binding parameters in a Hamiltonian.
 
         Args:
-            hamiltonian: The Hamiltonian of that defines an evolution.
+            hamiltonian: The Hamiltonian that defines an evolution.
 
         Returns:
             Hamiltonian.
