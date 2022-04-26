@@ -183,7 +183,7 @@ class TrotterQRTE(RealEvolver):
         hamiltonian = evolution_problem.hamiltonian
         if not isinstance(hamiltonian, (PauliOp, PauliSumOp, SummedOp)):
             raise ValueError(
-                f"TrotterQRTE only accepts PauliOp | "
+                "TrotterQRTE only accepts PauliOp | "
                 f"PauliSumOp | SummedOp, {type(hamiltonian)} provided."
             )
         if isinstance(hamiltonian, OperatorBase):
