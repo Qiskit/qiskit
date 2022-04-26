@@ -102,7 +102,7 @@ class TrotterQRTE(RealEvolver):
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
+    def quantum_instance(self, quantum_instance: Optional[Union[QuantumInstance, Backend]]) -> None:
         """
         Sets a quantum instance and a circuit sampler.
         Args:
