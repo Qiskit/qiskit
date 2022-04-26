@@ -66,16 +66,6 @@ class EvolutionProblem:
         self.truncation_threshold = truncation_threshold
 
     @property
-    def hamiltonian(self) -> OperatorBase:
-        """Returns a hamiltonian."""
-        return self._hamiltonian
-
-    @hamiltonian.setter
-    def hamiltonian(self, hamiltonian: OperatorBase) -> None:
-        """Sets a hamiltonian."""
-        self._hamiltonian = hamiltonian
-
-    @property
     def time(self) -> float:
         """Returns time."""
         return self._time
@@ -91,19 +81,6 @@ class EvolutionProblem:
         if time <= 0:
             raise ValueError(f"Evolution time must be > 0 but was {time}.")
         self._time = time
-
-    @property
-    def initial_state(self) -> Union[StateFn, QuantumCircuit]:
-        """Returns an initial state."""
-        return self._initial_state
-
-    @initial_state.setter
-    def initial_state(self, initial_state: Union[StateFn, QuantumCircuit]) -> None:
-        """
-        Sets an initial state and validates it.
-
-        """
-        self._initial_state = initial_state
 
     def validate_params(self) -> None:
         """

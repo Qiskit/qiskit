@@ -30,7 +30,6 @@ from qiskit.opflow import (
 )
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.providers import Backend
-from qiskit.quantum_info import SparsePauliOp, Pauli
 from qiskit.synthesis import ProductFormula, LieTrotter
 from qiskit.utils import QuantumInstance
 
@@ -156,8 +155,7 @@ class TrotterQRTE(RealEvolver):
 
         Args:
             evolution_problem: Instance defining evolution problem. For the included Hamiltonian,
-                ``PauliOp``, ``SparsePauliOp``, ``Pauli`` or ``SummedOp`` thereof or ``PauliSumOp``
-                are supported by TrotterQRTE.
+                ``PauliOp``, ``SummedOp`` or ``PauliSumOp`` are supported by TrotterQRTE.
 
         Returns:
             Evolution result that includes an evolved state as a quantum circuit and, optionally,
@@ -183,9 +181,9 @@ class TrotterQRTE(RealEvolver):
                 "``quantum_instance`` was provided."
             )
         hamiltonian = evolution_problem.hamiltonian
-        if not isinstance(hamiltonian, (Pauli, PauliOp, SparsePauliOp, PauliSumOp, SummedOp)):
+        if not isinstance(hamiltonian, (PauliOp, PauliSumOp, SummedOp)):
             raise ValueError(
-                f"TrotterQRTE only accepts Pauli | PauliOp | SparsePauliOp | "
+                f"TrotterQRTE only accepts PauliOp | "
                 f"PauliSumOp | SummedOp, {type(hamiltonian)} provided."
             )
         if isinstance(hamiltonian, OperatorBase):
@@ -238,9 +236,9 @@ class TrotterQRTE(RealEvolver):
         # we need to convert it into a PauliSumOp for the PauliEvolutionGate.
         op_list = []
         for op in hamiltonian.oplist:
-            if not isinstance(op, (PauliOp, Pauli, SparsePauliOp)):
+            if not isinstance(op, PauliOp):
                 raise ValueError(
-                    f"Content of the Hamiltonian not of type PauliOp, Pauli, or SparsePauliOp. The "
+                    f"Content of the Hamiltonian not of type PauliOp. The "
                     f"following type detected: {type(op)}."
                 )
             op_list.append(op)
