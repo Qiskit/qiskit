@@ -36,13 +36,3 @@ class FakeBelem(fake_pulse_backend.FakePulseBackend):
     props_filename = "props_belem.json"
     defs_filename = "defs_belem.json"
     backend_name = "fake_belem"
-
-
-class FakeLegacyBelem(fake_pulse_backend.FakePulseLegacyBackend):
-    """A fake 5 qubit backend."""
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_belem.json"
-    props_filename = "props_belem.json"
-    defs_filename = "defs_belem.json"
-    backend_name = "fake_belem"
