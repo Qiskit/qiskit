@@ -18,7 +18,7 @@ from numpy.testing import assert_raises
 
 from qiskit.algorithms.evolvers.evolution_problem import EvolutionProblem
 from qiskit.circuit import Parameter
-from qiskit.opflow import Y, Z, One, X, Zero
+from qiskit.opflow import Y, Z, One, X
 
 
 @ddt
@@ -79,7 +79,7 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
         self.assertEqual(evo_problem.t_param, expected_t_param)
         self.assertEqual(evo_problem.hamiltonian_value_dict, expected_hamiltonian_value_dict)
 
-    @data([Y, -1, One], [Y, -1.2, One], [Y, 0, One], [None, 1, Zero], [Y, 2.5, None])
+    @data([Y, -1, One], [Y, -1.2, One], [Y, 0, One])
     @unpack
     def test_init_errors(self, hamiltonian, time, initial_state):
         """Tests expected errors are thrown on invalid input arguments."""

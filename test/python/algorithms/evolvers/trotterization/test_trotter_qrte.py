@@ -24,7 +24,7 @@ from qiskit.algorithms import EvolutionProblem
 from qiskit.algorithms.evolvers.trotterization import (
     TrotterQRTE,
 )
-from qiskit.quantum_info import Statevector, SparsePauliOp, Pauli, PauliTable
+from qiskit.quantum_info import Statevector, Pauli
 from qiskit.utils import algorithm_globals, QuantumInstance
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
@@ -159,23 +159,6 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
             VectorStateFn(
                 Statevector(
                     [0.54030231 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.84147098j], dims=(2, 2)
-                )
-            ),
-        ),
-        (
-            SparsePauliOp(Pauli("XI")),
-            VectorStateFn(
-                Statevector(
-                    [0.54030231 + 0.0j, 0.0 + 0.0j, 0.0 - 0.84147098j, 0.0 + 0.0j], dims=(2, 2)
-                )
-            ),
-        ),
-        (
-            SparsePauliOp(PauliTable.from_labels(["XX", "ZZ"])),
-            VectorStateFn(
-                Statevector(
-                    [0.29192658 - 0.45464871j, 0.0 + 0.0j, 0.0 + 0.0j, -0.70807342 - 0.45464871j],
-                    dims=(2, 2),
                 )
             ),
         ),

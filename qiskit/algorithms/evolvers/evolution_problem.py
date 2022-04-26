@@ -18,7 +18,6 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.opflow import OperatorBase, StateFn
 from ..list_or_dict import ListOrDict
-from ...quantum_info.operators.base_operator import BaseOperator
 
 
 class EvolutionProblem:
@@ -30,7 +29,7 @@ class EvolutionProblem:
 
     def __init__(
         self,
-        hamiltonian: Union[OperatorBase, BaseOperator],
+        hamiltonian: OperatorBase,
         time: float,
         initial_state: Union[StateFn, QuantumCircuit],
         aux_operators: Optional[ListOrDict[OperatorBase]] = None,
@@ -67,22 +66,16 @@ class EvolutionProblem:
         self.truncation_threshold = truncation_threshold
 
     @property
-    def hamiltonian(self) -> Union[OperatorBase, BaseOperator]:
+    def hamiltonian(self) -> OperatorBase:
         """Returns a hamiltonian."""
         return self._hamiltonian
 
     @hamiltonian.setter
-    def hamiltonian(self, hamiltonian: Union[OperatorBase, BaseOperator]) -> None:
+    def hamiltonian(self, hamiltonian: OperatorBase) -> None:
         """
         Sets a hamiltonian and validates it.
 
-        Raises:
-            ValueError: If no Hamiltonian is provided.
         """
-        if hamiltonian is None:
-            raise ValueError(
-                "No ``hamiltonian`` provided for the EvolutionProblem. It is required."
-            )
 
         self._check_parameters(hamiltonian, self.hamiltonian_value_dict, self.t_param)
         self._hamiltonian = hamiltonian
@@ -114,18 +107,12 @@ class EvolutionProblem:
         """
         Sets an initial state and validates it.
 
-        Raises:
-            ValueError: If no initial state is provided.
         """
-        if initial_state is None:
-            raise ValueError(
-                "No ``initial_state`` provided for the EvolutionProblem. It is required."
-            )
         self._initial_state = initial_state
 
     def _check_parameters(
         self,
-        hamiltonian: Union[OperatorBase, BaseOperator],
+        hamiltonian: OperatorBase,
         hamiltonian_value_dict: Optional[Dict[Parameter, Union[complex]]] = None,
         t_param: Optional[Parameter] = None,
     ) -> None:

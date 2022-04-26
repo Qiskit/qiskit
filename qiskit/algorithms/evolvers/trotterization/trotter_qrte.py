@@ -109,7 +109,7 @@ class TrotterQRTE(RealEvolver):
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
         """
-        if isinstance(quantum_instance, (Backend)):
+        if isinstance(quantum_instance, Backend):
             quantum_instance = QuantumInstance(quantum_instance)
 
         self._circuit_sampler = None
