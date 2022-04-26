@@ -27,10 +27,6 @@ from .utils import matplotlib_close_if_inline
 
 def _get_backend_interface_version(backend):
     backend_interface_version = getattr(backend, "version", None)
-    # Handle deprecated BaseBackend based backends which have a version()
-    # method
-    if not isinstance(backend_interface_version, int):
-        backend_interface_version = 0
     return backend_interface_version
 
 
@@ -54,7 +50,7 @@ def plot_gate_map(
     """Plots the gate map of a device.
 
     Args:
-        backend (BaseBackend): The backend instance that will be used to plot the device
+        backend (Backend): The backend instance that will be used to plot the device
             gate map.
         figsize (tuple): Output figure size (wxh) in inches.
         plot_directed (bool): Plot directed coupling map.
@@ -755,7 +751,7 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
 
     Args:
         circuit (QuantumCircuit): Input quantum circuit.
-        backend (BaseBackend): Target backend.
+        backend (Backend): Target backend.
         view (str): Layout view: either 'virtual' or 'physical'.
         qubit_coordinates (Sequence): An optional sequence input (list or array being the
             most common) of 2d coordinates for each qubit. The length of the
