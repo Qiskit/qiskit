@@ -53,7 +53,7 @@ pub fn sabre_score_heuristic(
         .par_iter_mut()
         .for_each(|(swap_qubits, score)| {
             let mut trial_layout = layout.clone();
-            trial_layout.swap_logic(swap_qubits[0], swap_qubits[1]);
+            trial_layout.swap_logical(swap_qubits[0], swap_qubits[1]);
             *score = score_heuristic(
                 heuristic,
                 &layer.edges,

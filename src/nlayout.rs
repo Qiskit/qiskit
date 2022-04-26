@@ -88,26 +88,24 @@ impl NLayout {
     }
 
     /// Get physical bit from logical bit
-    fn get_item_logic(&self, logical_bit: usize) -> usize {
+    fn logical_to_physical(&self, logical_bit: usize) -> usize {
         self.logic_to_phys[logical_bit]
     }
 
     /// Get logical bit from physical bit
-    pub fn get_item_phys(&self, physical_bit: usize) -> usize {
+    pub fn physical_to_logical(&self, physical_bit: usize) -> usize {
         self.phys_to_logic[physical_bit]
     }
 
     /// Swap the specified virtual qubits
-    pub fn swap_logic(&mut self, bit_a: usize, bit_b: usize) {
-        self.phys_to_logic
-            .swap(self.logic_to_phys[bit_a], self.logic_to_phys[bit_b]);
+    pub fn swap_logical(&mut self, bit_a: usize, bit_b: usize) {
         self.logic_to_phys.swap(bit_a, bit_b);
+        self.phys_to_logic[self.logic_to_phys[bit_a]] = bit_a;
+        self.phys_to_logic[self.logic_to_phys[bit_b]] = bit_b;
     }
 
     /// Swap the specified physical qubits
-    pub fn swap_phys(&mut self, bit_a: usize, bit_b: usize) {
-        self.logic_to_phys
-            .swap(self.phys_to_logic[bit_a], self.phys_to_logic[bit_b]);
-        self.phys_to_logic.swap(bit_a, bit_b);
+    pub fn swap_physical(&mut self, bit_a: usize, bit_b: usize) {
+        self.swap(bit_a, bit_b)
     }
 }

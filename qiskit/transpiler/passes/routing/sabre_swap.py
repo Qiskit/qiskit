@@ -228,7 +228,7 @@ class SabreSwap(TransformationPass):
                 if len(node.qargs) == 2:
                     v0, v1 = [self._bit_indices[x] for x in node.qargs]
                     if self.coupling_map.graph.has_edge(
-                        layout.get_item_logic(v0), layout.get_item_logic(v1)
+                        layout.logical_to_physical(v0), layout.logical_to_physical(v1)
                     ):
                         execute_gate_list.append(node)
                     else:
@@ -314,7 +314,7 @@ class SabreSwap(TransformationPass):
                 layout,
                 canonical_register,
             )
-            layout.swap_logic(*best_swap)
+            layout.swap_logical(*best_swap)
             ops_since_progress.append(swap_node)
 
             num_search_steps += 1
@@ -398,9 +398,9 @@ class SabreSwap(TransformationPass):
         for node in front_layer:
             for v in node.qargs:
                 virtual = self._bit_indices[v]
-                physical = current_layout.get_item_logic(virtual)
+                physical = current_layout.logical_to_physical(virtual)
                 for neighbor in self.coupling_map.neighbors(physical):
-                    virtual_neighbor = current_layout.get_item_phys(neighbor)
+                    virtual_neighbor = current_layout.physical_to_logical(neighbor)
                     swap = tuple(sorted([virtual, virtual_neighbor]))
                     candidate_swaps.add(swap)
         return candidate_swaps
@@ -411,34 +411,34 @@ class SabreSwap(TransformationPass):
         target_node = min(
             front_layer,
             key=lambda node: self.dist_matrix[
-                layout.get_item_logic(self._bit_indices[node.qargs[0]]),
-                layout.get_item_logic(self._bit_indices[node.qargs[1]]),
+                layout.logical_to_physical(self._bit_indices[node.qargs[0]]),
+                layout.logical_to_physical(self._bit_indices[node.qargs[1]]),
             ],
         )
         for pair in _shortest_swap_path(
             tuple(target_node.qargs), self.coupling_map, layout, qubits
         ):
             self._apply_gate(dag, DAGOpNode(op=SwapGate(), qargs=pair), layout, qubits)
-            layout.swap_logic(*[self._bit_indices[x] for x in pair])
+            layout.swap_logical(*[self._bit_indices[x] for x in pair])
 
     def _undo_operations(self, operations, dag, layout):
         """Mutate ``dag`` and ``layout`` by undoing the swap gates listed in ``operations``."""
         if dag is None:
             for operation in reversed(operations):
-                layout.swap_logic(*[self._bit_indices[x] for x in operation.qargs])
+                layout.swap_logical(*[self._bit_indices[x] for x in operation.qargs])
         else:
             for operation in reversed(operations):
                 dag.remove_op_node(operation)
                 p0 = self._bit_indices[operation.qargs[0]]
                 p1 = self._bit_indices[operation.qargs[1]]
-                layout.swap_phys(p0, p1)
+                layout.swap_physical(p0, p1)
 
 
 def _transform_gate_for_layout(op_node, layout, device_qreg):
     """Return node implementing a virtual op on given layout."""
     mapped_op_node = copy(op_node)
     mapped_op_node.qargs = [
-        device_qreg[layout.get_item_logic(device_qreg.index(x))] for x in op_node.qargs
+        device_qreg[layout.logical_to_physical(device_qreg.index(x))] for x in op_node.qargs
     ]
     return mapped_op_node
 
@@ -447,7 +447,7 @@ def _shortest_swap_path(target_qubits, coupling_map, layout, qreg):
     """Return an iterator that yields the swaps between virtual qubits needed to bring the two
     virtual qubits in ``target_qubits`` together in the coupling map."""
     v_start, v_goal = target_qubits
-    start, goal = layout.get_item_logic(qreg.index(v_start)), layout.get_item_logic(
+    start, goal = layout.logical_to_physical(qreg.index(v_start)), layout.logical_to_physical(
         qreg.index(v_goal)
     )
     # TODO: remove the list call once using retworkx 0.12, as the return value can be sliced.
@@ -457,6 +457,6 @@ def _shortest_swap_path(target_qubits, coupling_map, layout, qreg):
     split = len(path) // 2
     forwards, backwards = path[1:split], reversed(path[split:-1])
     for swap in forwards:
-        yield v_start, qreg[layout.get_item_phys(swap)]
+        yield v_start, qreg[layout.physical_to_logical(swap)]
     for swap in backwards:
-        yield v_goal, qreg[layout.get_item_phys(swap)]
+        yield v_goal, qreg[layout.physical_to_logical(swap)]
