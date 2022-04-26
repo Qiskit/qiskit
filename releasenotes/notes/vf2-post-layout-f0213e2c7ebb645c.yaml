@@ -37,7 +37,7 @@ features:
     :func:`~.level_2_pass_manager`, and :func:`~.level_3_pass_manager` which
     correspond to ``optimization_level`` 1, 2, and 3 respectively on the
     :func:`~.transpile` function now run the :class:`~.VF2PostLayout` pass
-    after running the optimization loop. This enables the transpiler to
+    after running the routing pass. This enables the transpiler to
     potentially find a different set of physical qubits on the target backend
     to run the circuit on which have lower error rates. The
     :class:`~.VF2PostLayout` pass will not be run if you manually specify a

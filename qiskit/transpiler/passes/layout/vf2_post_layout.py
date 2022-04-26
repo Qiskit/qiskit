@@ -105,7 +105,10 @@ class VF2PostLayout(AnalysisPass):
                 a weak edge and the interaction graph will be undirected. For
                 the purposes of evaluating layouts the avg error rate for
                 each qubit and 2q link will be used. This enables the pass to be
-                run prior to
+                run prior to basis translation and work with any 1q and 2q operations.
+                However, if ``strict_direction=True`` the pass expects the input
+                :class:`~.DAGCircuit` object to :meth:`~.VF2PostLayout.run` to be in
+                the target set of instructions.
 
         Raises:
             TypeError: At runtime, if neither ``coupling_map`` or ``target`` are provided.
