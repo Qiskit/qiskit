@@ -29,14 +29,14 @@ class DAGNode:
     @property
     def name(self):
         """Returns the Instruction name corresponding to the op for this node"""
-        if self.type and self.type == "op":
+        if isinstance(self, DAGOpNode):
             return self.op.name
         return None
 
     @name.setter
     def name(self, name):
         """Sets the Instruction name corresponding to the op for this node"""
-        if self.type and self.type == "op":
+        if isinstance(self, DagOpNode):
             self.op.name = name
 
     def __lt__(self, other):
