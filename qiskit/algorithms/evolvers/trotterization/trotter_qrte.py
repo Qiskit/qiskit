@@ -177,7 +177,7 @@ class TrotterQRTE(RealEvolver):
             self._quantum_instance is None or self._expectation is None
         ):
             raise ValueError(
-                "aux_operators where provided for evaluations but no ``expectation`` or "
+                "aux_operators were provided for evaluations but no ``expectation`` or "
                 "``quantum_instance`` was provided."
             )
         hamiltonian = evolution_problem.hamiltonian
