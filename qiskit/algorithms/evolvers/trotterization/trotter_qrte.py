@@ -97,7 +97,7 @@ class TrotterQRTE(RealEvolver):
         self._product_formula = product_formula
 
     @property
-    def quantum_instance(self) -> Union[QuantumInstance, Backend]:
+    def quantum_instance(self) -> Optional[QuantumInstance]:
         """Returns a quantum instance used in the algorithm."""
         return self._quantum_instance
 
