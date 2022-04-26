@@ -218,7 +218,7 @@ class TrotterQRTE(RealEvolver):
 
     @staticmethod
     def _summed_op_to_pauli_sum_op(
-        hamiltonian: Union[SummedOp],
+        hamiltonian: SummedOp,
     ) -> Union[PauliSumOp, PauliOp]:
         """
         Tries binding parameters in a Hamiltonian.
