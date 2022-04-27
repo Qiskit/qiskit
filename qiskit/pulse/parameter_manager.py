@@ -58,6 +58,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse import instructions, channels
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library import ParametricPulse, Waveform
+from qiskit.pulse.dagschedule import DAGSchedule
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind
 from qiskit.pulse.utils import format_parameter_value
@@ -135,11 +136,33 @@ class ParameterSetter(NodeVisitor):
 
         .. note:: ``ScheduleBlock`` can have parameters in blocks and its alignment.
         """
-        # accessing to protected member
-        node._blocks = [self.visit(block) for block in node.blocks]
         node._alignment_context = self.visit_AlignmentKind(node.alignment_context)
 
+        if any(c.is_parameterized() for c in node.channels):
+            # Channel is parametrized.
+            # Assignment may change DAG edges thus DAG is regenerated.
+            new_blocks = DAGSchedule(node._alignment_context.is_sequential)
+            for block in node.blocks:
+                new_blocks.append(self.visit(block))
+            node._blocks = new_blocks
+        else:
+            # Instruction is mutably updated.
+            for block in node.blocks:
+                self.visit(block)
+
         self._update_parameter_manager(node)
+
+        # Update subroutines.
+        # Parameters in the main program and subroutines are managed with different managers
+        # attached to each scope. Thus updating subroutine parameters from the main program
+        # doesn't update parameter table of the main program.
+        for subroutine in node._references._program_map.values():
+            if subroutine is None:
+                # Reference is not yet assigned
+                continue
+            scope_params = self._param_map.keys() & subroutine.parameters
+            subroutine.assign_parameters({p: self._param_map[p] for p in scope_params}, inplace=True)
+
         return node
 
     def visit_Schedule(self, node: Schedule):
@@ -237,30 +260,29 @@ class ParameterSetter(NodeVisitor):
     def _assign_parameter_expression(self, param_expr: ParameterExpression):
         """A helper function to assign parameter value to parameter expression."""
         new_value = copy(param_expr)
-        for parameter in param_expr.parameters:
-            if parameter in self._param_map:
-                new_value = new_value.assign(parameter, self._param_map[parameter])
+        updated = param_expr.parameters & self._param_map.keys()
+        for param in updated:
+            new_value = new_value.assign(param, self._param_map[param])
 
         return format_parameter_value(new_value)
 
     def _update_parameter_manager(self, node: Union[Schedule, ScheduleBlock]):
         """A helper function to update parameter manager of pulse program."""
-        new_parameters = set()
-
-        for parameter in node.parameters:
-            if parameter in self._param_map:
-                value = self._param_map[parameter]
-                if isinstance(value, ParameterExpression):
-                    for new_parameter in value.parameters:
-                        new_parameters.add(new_parameter)
-            else:
-                new_parameters.add(parameter)
-
-        if hasattr(node, "_parameter_manager"):
-            node._parameter_manager._parameters = new_parameters
-        else:
+        if not hasattr(node, "_parameter_manager"):
             raise PulseError(f"Node type {node.__class__.__name__} has no parameter manager.")
 
+        param_manager = node._parameter_manager
+        updated = param_manager.parameters & self._param_map.keys()
+
+        new_parameters = set()
+        for param in param_manager.parameters:
+            if param not in updated:
+                new_parameters.add(param)
+                continue
+            new_value = self._param_map[param]
+            if isinstance(new_value, ParameterExpression):
+                new_parameters = new_parameters | new_value.parameters
+        param_manager._parameters = new_parameters
 
 class ParameterGetter(NodeVisitor):
     """Node visitor for parameter finding.
@@ -279,18 +301,19 @@ class ParameterGetter(NodeVisitor):
 
         .. note:: ``ScheduleBlock`` can have parameters in blocks and its alignment.
         """
-        for parameter in node.parameters:
-            self.parameters.add(parameter)
+        # Note that node.parameters returns parameters of main program with subroutines.
+        # The manager of main program is not aware of parameters in subroutines.
+        self.parameters = self.parameters | node._parameter_manager.parameters
 
     def visit_Schedule(self, node: Schedule):
         """Visit ``Schedule``. Recursively visit schedule children and search parameters."""
-        for parameter in node.parameters:
-            self.parameters.add(parameter)
+        self.parameters = self.parameters | node.parameters
 
     def visit_AlignmentKind(self, node: AlignmentKind):
         """Get parameters from block's ``AlignmentKind`` specification."""
         for param in node._context_params:
-            self.visit(param)
+            if isinstance(param, ParameterExpression):
+                self.parameters = self.parameters | param.parameters
 
     # Mid layer: Get parameters from instructions
 
@@ -300,8 +323,7 @@ class ParameterGetter(NodeVisitor):
         .. note:: ``Call`` instruction has a special parameter handling logic.
             This instruction separately keeps parameters and program.
         """
-        for parameter in node.parameters:
-            self.parameters.add(parameter)
+        self.parameters = self.parameters | node.parameters
 
     def visit_Instruction(self, node: instructions.Instruction):
         """Get parameters from general pulse instruction.
@@ -316,14 +338,13 @@ class ParameterGetter(NodeVisitor):
 
     def visit_Channel(self, node: channels.Channel):
         """Get parameters from ``Channel`` object."""
-        if isinstance(node.index, ParameterExpression):
-            self._add_parameters(node.index)
+        self.parameters = self.parameters | node.parameters
 
     def visit_ParametricPulse(self, node: ParametricPulse):
         """Get parameters from ``ParametricPulse`` object."""
         for op_value in node.parameters.values():
             if isinstance(op_value, ParameterExpression):
-                self._add_parameters(op_value)
+                self.parameters = self.parameters | op_value.parameters
 
     def visit_Waveform(self, node: Waveform):
         """Get parameters from ``Waveform`` object.
@@ -335,12 +356,7 @@ class ParameterGetter(NodeVisitor):
     def generic_visit(self, node: Any):
         """Get parameters from object that doesn't belong to Qiskit Pulse module."""
         if isinstance(node, ParameterExpression):
-            self._add_parameters(node)
-
-    def _add_parameters(self, param_expr: ParameterExpression):
-        """A helper function to get parameters from parameter expression."""
-        for parameter in param_expr.parameters:
-            self.parameters.add(parameter)
+            self.parameters = self.parameters | node.parameters
 
 
 class ParameterManager:
@@ -384,7 +400,6 @@ class ParameterManager:
         self,
         pulse_program: Any,
         value_dict: Dict[ParameterExpression, ParameterValueType],
-        inplace: bool = True,
     ) -> Any:
         """Modify and return program data with parameters assigned according to the input.
 
@@ -392,21 +407,15 @@ class ParameterManager:
             pulse_program: Arbitrary pulse program associated with this manager instance.
             value_dict: A mapping from Parameters to either numeric values or another
                 Parameter expression.
-            inplace: Set ``True`` to overwrite existing program data.
 
         Returns:
             Updated program data.
         """
-        if inplace:
-            source = pulse_program
-        else:
-            source = deepcopy(pulse_program)
-
-        valid_map = {par: val for par, val in value_dict.items() if par in self.parameters}
+        valid_map = {k: value_dict[k] for k in value_dict.keys() & self._parameters}
         if valid_map:
             visitor = ParameterSetter(param_map=valid_map)
-            return visitor.visit(source)
-        return source
+            return visitor.visit(pulse_program)
+        return pulse_program
 
     def update_parameter_table(self, new_node: Any):
         """A helper function to update parameter table with given data node.
@@ -416,6 +425,4 @@ class ParameterManager:
         """
         visitor = ParameterGetter()
         visitor.visit(new_node)
-
-        for parameter in visitor.parameters:
-            self._parameters.add(parameter)
+        self._parameters = self.parameters | visitor.parameters

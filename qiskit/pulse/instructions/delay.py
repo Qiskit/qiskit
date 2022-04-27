@@ -67,7 +67,3 @@ class Delay(Instruction):
     def duration(self) -> Union[int, ParameterExpression]:
         """Duration of this instruction."""
         return self.operands[0]
-
-    def is_parameterized(self) -> bool:
-        """Return ``True`` iff the instruction is parameterized."""
-        return isinstance(self.duration, ParameterExpression) or super().is_parameterized()

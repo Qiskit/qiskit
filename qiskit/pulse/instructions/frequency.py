@@ -73,10 +73,6 @@ class SetFrequency(Instruction):
         """Duration of this instruction."""
         return 0
 
-    def is_parameterized(self) -> bool:
-        """Return True iff the instruction is parameterized."""
-        return isinstance(self.frequency, ParameterExpression) or super().is_parameterized()
-
 
 class ShiftFrequency(Instruction):
     """Shift the channel frequency away from the current frequency."""
@@ -119,7 +115,3 @@ class ShiftFrequency(Instruction):
     def duration(self) -> int:
         """Duration of this instruction."""
         return 0
-
-    def is_parameterized(self) -> bool:
-        """Return True iff the instruction is parameterized."""
-        return isinstance(self.frequency, ParameterExpression) or super().is_parameterized()

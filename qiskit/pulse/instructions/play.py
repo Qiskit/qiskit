@@ -79,16 +79,14 @@ class Play(Instruction):
     def parameters(self) -> Set:
         """Parameters which determine the instruction behavior."""
         parameters = set()
+
+        # Note that Pulse.parameters returns dict rather than set for convention.
+        # We need special handling for Play instruction.
         for pulse_param_expr in self.pulse.parameters.values():
             if isinstance(pulse_param_expr, ParameterExpression):
-                for pulse_param in pulse_param_expr.parameters:
-                    parameters.add(pulse_param)
+                parameters = parameters | pulse_param_expr.parameters
+
         if self.channel.is_parameterized():
-            for ch_param in self.channel.parameters:
-                parameters.add(ch_param)
+            parameters = parameters | self.channel.parameters
 
         return parameters
-
-    def is_parameterized(self) -> bool:
-        """Return True iff the instruction is parameterized."""
-        return self.pulse.is_parameterized() or super().is_parameterized()

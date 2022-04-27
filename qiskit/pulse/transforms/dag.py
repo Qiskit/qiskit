@@ -11,12 +11,14 @@
 # that they have been altered from the originals.
 """A collection of functions to convert ScheduleBlock to DAG representation."""
 
+from typing import TYPE_CHECKING
 import retworkx as rx
 
-from qiskit.pulse.schedule import ScheduleBlock
+if TYPE_CHECKING:
+    from qiskit.pulse.schedule import ScheduleBlock, BlockComponent
 
 
-def block_to_dag(block: ScheduleBlock) -> rx.PyDAG:
+def block_to_dag(block: "ScheduleBlock") -> rx.PyDAG:
     """Convert schedule block instruction into DAG.
 
     ``ScheduleBlock`` can be represented as a DAG as needed.
@@ -65,7 +67,7 @@ def block_to_dag(block: ScheduleBlock) -> rx.PyDAG:
         return _parallel_allocation(block)
 
 
-def _sequential_allocation(block: ScheduleBlock) -> rx.PyDAG:
+def _sequential_allocation(block: "ScheduleBlock") -> rx.PyDAG:
     """A helper function to create a DAG of a sequential alignment context."""
     dag_blocks = rx.PyDAG()
 
@@ -76,24 +78,6 @@ def _sequential_allocation(block: ScheduleBlock) -> rx.PyDAG:
         if prev_node is not None:
             edges.append((prev_node, current_node))
         prev_node = current_node
-    dag_blocks.add_edges_from_no_data(edges)
-
-    return dag_blocks
-
-
-def _parallel_allocation(block: ScheduleBlock) -> rx.PyDAG:
-    """A helper function to create a DAG of a parallel alignment context."""
-    dag_blocks = rx.PyDAG()
-
-    slots = {}
-    edges = []
-    for inst in block.blocks:
-        current_node = dag_blocks.add_node(inst)
-        for chan in inst.channels:
-            prev_node = slots.pop(chan, None)
-            if prev_node is not None:
-                edges.append((prev_node, current_node))
-            slots[chan] = current_node
     dag_blocks.add_edges_from_no_data(edges)
 
     return dag_blocks

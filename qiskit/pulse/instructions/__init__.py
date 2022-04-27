@@ -42,6 +42,7 @@ sequence of scheduled Pulse ``Instruction`` s over many channels. ``Instruction`
 
    Acquire
    Call
+   Reference
    Delay
    Play
    SetFrequency
@@ -57,7 +58,7 @@ These are all instances of the same base class:
 from .acquire import Acquire
 from .delay import Delay
 from .directives import Directive, RelativeBarrier
-from .call import Call
+from .call import Call, Reference
 from .instruction import Instruction
 from .frequency import SetFrequency, ShiftFrequency
 from .phase import ShiftPhase, SetPhase

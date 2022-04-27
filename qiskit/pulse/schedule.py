@@ -37,15 +37,17 @@ import functools
 import itertools
 import multiprocessing as mp
 import sys
-from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Any
+import uuid
+from typing import List, Tuple, Iterable, Iterator, Union, Dict, Callable, Set, Optional, Any
 
 import numpy as np
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.pulse.dagschedule import DAGSchedule
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.instructions import Instruction
+from qiskit.pulse.instructions import Instruction, Reference
 from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.utils.multiprocessing import is_main_process
 
@@ -722,9 +724,11 @@ class Schedule:
         Returns:
             Schedule with updated parameters.
         """
-        return self._parameter_manager.assign_parameters(
-            pulse_program=self, value_dict=value_dict, inplace=inplace
-        )
+        if not inplace:
+            new_schedule = copy.deepcopy(self)
+            return new_schedule.assign_parameters(value_dict, inplace=True)
+
+        return self._parameter_manager.assign_parameters(pulse_program=self, value_dict=value_dict)
 
     def get_parameters(self, parameter_name: str) -> List[Parameter]:
         """Get parameter object bound to this schedule by string name.
@@ -814,67 +818,138 @@ def _require_schedule_conversion(function: Callable) -> Callable:
 
 
 class ScheduleBlock:
-    r"""A ``ScheduleBlock`` is a time-ordered sequence of instructions and transform macro to
-    manage their relative timing. The relative position of the instructions is managed by
-    the ``alignment_context``. This allows ``ScheduleBlock`` to support instructions with
-    a parametric duration and allows the lazy scheduling of instructions,
-    i.e. allocating the instruction time just before execution.
+    """Time-ordered sequence of instructions with alignment context.
 
-    ``ScheduleBlock``\ s should be initialized with one of the following alignment contexts:
+    :class:`ScheduleBlock` supports lazy scheduling of context instruction,
+    i.e. its timeslot is always generated at runtime.
+    This indicates we can parametrize instruction durations as well as
+    other parameters. In contrast to :class:`Schedule` being somewhat static,
+    :class:`ScheduleBlock` dynamic representation of pulse schedule.
 
-    - :class:`~qiskit.pulse.transforms.AlignLeft`: Align instructions in the
-      `as-soon-as-possible` manner. Instructions are scheduled at the earliest
-      possible time on the channel.
+    .. rubric:: Alignment contexts
 
-    - :class:`~qiskit.pulse.transforms.AlignRight`: Align instructions in the
-      `as-late-as-possible` manner. Instructions are scheduled at the latest
-      possible time on the channel.
+    Schedule block is always scheduled relatively.
+    Instead of taking individual instruction with absolute execution time ``t0``,
+    the schedule block defines a context of scheduling and instructions
+    under the same context are scheduled in the same manner (alignment).
+    Several preset contexts are available in :ref:`pulse_alignments`.
+    Schedule block is instantiated with one of above alignment contexts.
+    Default context is :class:`AlignLeft`, in which all instructions are left-justified,
+    in other word, as-soon-as-possible scheduling.
 
-    - :class:`~qiskit.pulse.transforms.AlignSequential`: Align instructions sequentially
-      even though they are allocated in different channels.
+    If you need absolute-time interval in between instructions, you can explicitly
+    insert :class:`~qiskit.pulse.instructions.Delay` instruction.
 
-    - :class:`~qiskit.pulse.transforms.AlignEquispaced`: Align instructions with
-      equal interval within a specified duration. Instructions on different channels
-      are aligned sequentially.
+    .. rubric:: Nested blocks
 
-    - :class:`~qiskit.pulse.transforms.AlignFunc`: Align instructions with
-      arbitrary position within the given duration. The position is specified by
-      a callback function taking a pulse index ``j`` and returning a
-      fractional coordinate in [0, 1].
+    Schedule block can nest other blocks with different alignment context.
+    This enables complicated scheduling, where a subset of instructions is
+    locally scheduled in different manner.
+    Note that :class:`Schedule` instance cannot be directly added to the schedule block.
+    Schedule should be wrapped by :class:`Call` instruction to be added.
+    This is implicitly performed when a schedule added through :ref:`pulse_builder`.
 
-    The ``ScheduleBlock`` defaults to the ``AlignLeft`` alignment.
-    The timing overlap constraint of instructions is not immediately evaluated,
-    and thus we can assign a parameter object to the instruction duration.
-    Instructions are implicitly scheduled at optimum time when the program is executed.
+    .. rubric:: Unsupported operations
 
-    Note that ``ScheduleBlock`` can contain :class:`~qiskit.pulse.instructions.Instruction`
-    and other ``ScheduleBlock`` to build an experimental program, but ``Schedule`` is not
-    supported. This should be added as a :class:`~qiskit.pulse.instructions.Call` instruction.
-    This conversion is automatically performed with the pulse builder.
+    Because the schedule block is the representation lacking timeslots, it cannot
+    perform particular operations such as :meth:`insert` or :meth:`shift` that
+    require instruction start time ``t0``.
+    In addition, :meth:`exclude` and :meth:`filter` methods are not supported
+    because these operations identify target instruction with ``t0``.
+    Except for these operations, :class:`ScheduleBlock` provides full compatibility
+    with :class:`Schedule`.
 
-    By using ``ScheduleBlock`` representation we can fully parametrize pulse waveforms.
-    For example, Rabi schedule generator can be defined as
+    .. rubric:: Subroutine
 
-    .. code-block:: python
+    Timeslots-free representation offers much higher flexibility to write pulse program.
+    Because it only cares the ordering of the child blocks,
+    we can add undefined pulse sequence as a subroutine of the main program.
+    If your program contains the same sequence multiple times, this representation
+    drastically reduces memory footprint required by the program construction.
+    Such subroutine is represented by a special compiler directive
+    :class:`~qiskit.pulse.instructions.Reference` that is defined by
+    a unique name of the subroutine and associated channels.
+    Substantial programs are separately stored in the main program as :attr:`references`
+    which is a dictionary of schedule blocks keyed on its name and channels.
+    Appended reference directives are resolved when the main program is executed.
+    Subroutines must be assigned through :meth:`assign_reference` before execution.
 
-        duration = Parameter('rabi_dur')
-        amp = Parameter('rabi_amp')
+    The schedule block is QPY serialized with stored subroutines.
+    Note that use of subroutine may also reduce the data volume of dumped binary.
 
-        block = ScheduleBlock()
-        rabi_pulse = pulse.Gaussian(duration=duration, amp=amp, sigma=duration/4)
+    .. rubric:: Pulse Builder
 
-        block += Play(rabi_pulse, pulse.DriveChannel(0))
-        block += Call(measure_schedule)
+    :ref:`pulse_builder` is the domain specific language that is developed on top of
+    the schedule block. Use of the builder syntax will improve the workflow of
+    the pulse programming. See some demonstrations of the power of the builder syntax
+    combined with the flexibility of the schedule block.
 
-    Note that such waveform cannot be appended to the ``Schedule`` representation.
+    Examples:
 
-    In the block representation, the interval between two instructions can be
-    managed with the ``Delay`` instruction. Because the schedule block lacks an instruction
-    start time ``t0``, we cannot ``insert`` or ``shift`` the target instruction.
-    In addition, stored instructions are not interchangable because the schedule block is
-    sensitive to the relative position of instructions.
-    Apart from these differences, the block representation can provide compatible
-    functionality with ``Schedule`` representation.
+        1. Define pulse with hard-coded parameters.
+
+        .. jupyter-execute:
+
+            from qiskit import pulse
+            from qiskit.circuit import Parameter
+
+            with pulse.build() as play_gaussian:
+                pulse.play(
+                    pulse.Gaussian(duration=160, amp=0.1, sigma=40),
+                    pulse.DriveChannel(0)
+                )
+
+            play_gaussian.draw()
+
+        2. Define pulse with unassigned parameters.
+
+        .. jupyter-execute:
+
+            duration = Parameter("duration")
+            amp = Parameter("amp")
+            sigma = Parameter("sigma")
+            ch = Parameter("ch")
+
+            with pulse.build(name="sub_prog") as parametric_gaussian:
+                pulse.play(
+                    pulse.Gaussian(duration=duration, amp=amp, sigma=sigma),
+                    pulse.DriveChannel(ch)
+                )
+
+            assigned = parametric_gaussian.assign_parameters(
+                {duration: 160, amp: 0.1, sigma: 40, ch: 0},
+                inplace=False,
+            )
+            assigned.draw()
+
+        3. Call subroutines from the main program.
+
+        .. jupyter-execute:
+
+            with pulse.build(name="main_prog") as main_program:
+                with pulse.align_sequential():
+                    pulse.call(name="sub_prog", channels=[pulse.DriveChannel(0)])
+                    pulse.call(name="sub_prog", channels=[pulse.DriveChannel(1)])
+
+            # Assign subroutine to reference
+            main_program.assign_reference(
+                name="sub_prog",
+                channels=[pulse.DriveChannel(0)],
+                schedule=parametric_gaussian.assign_parameters({ch: 0}, inplace=False),
+            )
+            main_program.assign_reference(
+                name="sub_prog",
+                channels=[pulse.DriveChannel(1)],
+                schedule=parametric_gaussian.assign_parameters({ch: 1}, inplace=False),
+            )
+
+            # Assign parameters
+            assigned = main_program.assign_parameters(
+                {duration: 160, amp: 0.1, sigma: 40},
+                inplace=False,
+            )
+            assigned.draw()
+
     """
 
     # Prefix to use for auto naming.
@@ -882,6 +957,76 @@ class ScheduleBlock:
 
     # Counter to count instance number.
     instances_counter = itertools.count()
+
+    class ReferenceManager:
+        """Helper class to collect subroutine management methods."""
+        def __init__(self):
+            self._program_map = {}
+
+        def __contains__(self, item):
+            if item in self._program_map:
+                return True
+            return False
+
+        def add_node(self, refinst: Reference):
+            """Add new reference instruction.
+
+            Args:
+                refinst: Reference instruction to manage.
+            """
+            key = refinst.name, refinst.channels
+            if not key in self:
+                self._program_map[key] = None
+
+        def get_program(self, refinst: Reference) -> "ScheduleBlock":
+            """Get subroutine of corresponding reference instruction.
+
+            Args:
+                refinst: Reference instruction.
+
+            Returns:
+                Assigned subtourine.
+            """
+            return self._program_map[(refinst.name, refinst.channels)]
+
+        def assign_program(self, name: str, channels: Tuple[Channel], program: "ScheduleBlock"):
+            """Assign subroutine to reference instruction.
+
+            Args:
+                name: Name of subroutine.
+                channels: Channels associated with the subroutine.
+                program: Schedule to assign.
+
+            Raises:
+                PulseError: When program is not ScheduleBlock.
+                PulseError: When corresponding reference instruction is not registered.
+            """
+            # It allows the case that channels != program.channels
+            # For example, user may want to add some pulse to spectator qubit.
+            # This check is intentionally skipped.
+            key = name, channels
+            if not isinstance(program, ScheduleBlock):
+                raise PulseError(
+                    f"Subroutine '{program.__class__.__name__}' is not valid program type."
+                )
+            if self._program_map[key] is not None:
+                if self._program_map[key] != program:
+                    channel_repr = ", ".join(map(str, channels))
+                    raise PulseError(
+                        f"Subroutine {name} for channels {channel_repr} has been already assigned. "
+                        "Newly assigned schedule has conflict with the previous assignment."
+                    )
+            else:
+                self._program_map[key] = program
+
+        @property
+        def subroutine_parameters(self) -> Set[Parameter]:
+            """Return union of parameter objects attached to all subroutines."""
+            sub_params = set()
+            for subroutine in self._program_map.values():
+                if subroutine is not None:
+                    sub_params = sub_params | subroutine.parameters
+            return sub_params
 
     def __init__(
         self, name: Optional[str] = None, metadata: Optional[dict] = None, alignment_context=None
@@ -915,7 +1060,8 @@ class ScheduleBlock:
         self._metadata = metadata or {}
 
         self._alignment_context = alignment_context or AlignLeft()
-        self._blocks = []
+        self._blocks = DAGSchedule(is_sequential=self._alignment_context.is_sequential)
+        self._references = ScheduleBlock.ReferenceManager()
 
         # get parameters from context
         self._parameter_manager.update_parameter_table(self._alignment_context)
@@ -993,6 +1139,14 @@ class ScheduleBlock:
 
         # check duration assignment
         for block in self.blocks:
+            if isinstance(block, Reference):
+                subroutine = self._references.get_program(block)
+                if subroutine is None:
+                    raise PulseError(
+                        f"Reference {block.name} has not been assigned yet. "
+                        "You must assign subroutine to the reference to run this operation."
+                    )
+                block = subroutine
             if isinstance(block, ScheduleBlock):
                 if not block.is_schedulable():
                     return False
@@ -1025,12 +1179,17 @@ class ScheduleBlock:
     @property
     def blocks(self) -> Tuple["BlockComponent", ...]:
         """Get the time-ordered instructions from self."""
-        return tuple(self._blocks)
+        return tuple(self._blocks.nodes())
 
     @property
     def parameters(self) -> Set:
         """Parameters which determine the schedule behavior."""
-        return self._parameter_manager.parameters
+        return self._parameter_manager.parameters | self._references.subroutine_parameters
+
+    @property
+    def references(self) -> List["ScheduleBlock"]:
+        """Return all subroutines associated with this schedule."""
+        return list(self._references._program_map.values())
 
     @_require_schedule_conversion
     def ch_duration(self, *channels: Channel) -> int:
@@ -1066,15 +1225,18 @@ class ScheduleBlock:
             )
 
         if not inplace:
-            ret_block = copy.deepcopy(self)
-            ret_block._name = name or self.name
-            ret_block.append(block, inplace=True)
-            return ret_block
-        else:
-            self._blocks.append(block)
-            self._parameter_manager.update_parameter_table(block)
+            schedule = copy.deepcopy(self)
+            schedule._name = name or self.name
+            schedule.append(block, inplace=True)
+            return schedule
 
-            return self
+        if isinstance(block, Reference):
+            self._references.add_node(block)
+
+        self._blocks.append(block)
+        self._parameter_manager.update_parameter_table(block)
+
+        return self
 
     def filter(
         self,
@@ -1180,35 +1342,27 @@ class ScheduleBlock:
         Returns:
             The modified schedule block with ``old`` replaced by ``new``.
         """
-        from qiskit.pulse.parameter_manager import ParameterManager
+        if not inplace:
+            schedule = copy.deepcopy(self)
+            return schedule.replace(old, new, inplace=True)
 
-        new_blocks = []
-        new_parameters = ParameterManager()
+        self._blocks.replace(old, new)
 
-        for block in self.blocks:
-            if block == old:
-                new_blocks.append(new)
-                new_parameters.update_parameter_table(new)
-            else:
-                if isinstance(block, ScheduleBlock):
-                    new_blocks.append(block.replace(old, new, inplace))
-                else:
-                    new_blocks.append(block)
-                new_parameters.update_parameter_table(block)
-
-        if inplace:
-            self._blocks = new_blocks
-            self._parameter_manager = new_parameters
+        if old.parameters == new.parameters:
             return self
-        else:
-            ret_block = copy.deepcopy(self)
-            ret_block._blocks = new_blocks
-            ret_block._parameter_manager = new_parameters
-            return ret_block
+
+        # Replaced with node with different parameters.
+        # Need to regenerate parameter manager.
+        manager = self._parameter_manager
+        manager._parameters = set()
+        manager.update_parameter_table(self._alignment_context)
+        for new_block in self.blocks:
+            manager.update_parameter_table(new_block)
+        return self
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
-        return self._parameter_manager.is_parameterized()
+        return any(self.parameters)
 
     def assign_parameters(
         self, value_dict: Dict[ParameterExpression, ParameterValueType], inplace: bool = True
@@ -1223,9 +1377,49 @@ class ScheduleBlock:
         Returns:
             Schedule with updated parameters.
         """
-        return self._parameter_manager.assign_parameters(
-            pulse_program=self, value_dict=value_dict, inplace=inplace
-        )
+        if not inplace:
+            new_schedule = copy.deepcopy(self)
+            return new_schedule.assign_parameters(value_dict, inplace=True)
+
+        self._parameter_manager.assign_parameters(pulse_program=self, value_dict=value_dict)
+
+        # Assign parameters to subroutines
+        for subroutine in self._references._program_map.values():
+            if subroutine is None:
+                continue
+            scope_params = subroutine.parameters & value_dict.keys()
+            if scope_params:
+                local_assignment = {p: value_dict[p] for p in scope_params}
+                subroutine.assign_parameters(local_assignment, inplace=True)
+        return self
+
+    def assign_reference(
+        self,
+        name: str,
+        channels: Tuple[Channel, ...],
+        schedule: "ScheduleBlock",
+        inplace: bool = True,
+    ) -> "ScheduleBlock":
+        """Assign schedule to reference.
+
+        Args:
+            name: Name of subroutine.
+            channels: Tuple of channels associated with subroutine.
+            schedule: Schedule block to assign as a subroutine.
+            inplace: Set ``True`` to override this instance with new subroutine.
+
+        Returns:
+            Schedule block with assigned subroutine.
+
+        Raises:
+            PulseError: When corresponding reference directive does not exist.
+        """
+        if not inplace:
+            new_schedule = copy.deepcopy(self)
+            return new_schedule.assign_reference(name, channels, schedule, inplace=True)
+
+        self._references.assign_program(name, channels, schedule)
+        return self
 
     def get_parameters(self, parameter_name: str) -> List[Parameter]:
         """Get parameter object bound to this schedule by string name.
@@ -1280,13 +1474,8 @@ class ScheduleBlock:
         if len(self) != len(other):
             return False
 
-        # 4. instruction check
-        import retworkx as rx
-        from qiskit.pulse.transforms import block_to_dag
-
-        return rx.is_isomorphic_node_match(
-            block_to_dag(self), block_to_dag(other), lambda x, y: x == y
-        )
+        # 4. instruction check with alignment
+        return self._blocks == other._blocks
 
     def __repr__(self) -> str:
         name = format(self._name) if self._name else ""

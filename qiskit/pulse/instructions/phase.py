@@ -77,10 +77,6 @@ class ShiftPhase(Instruction):
         """Duration of this instruction."""
         return 0
 
-    def is_parameterized(self) -> bool:
-        """Return True iff the instruction is parameterized."""
-        return isinstance(self.phase, ParameterExpression) or super().is_parameterized()
-
 
 class SetPhase(Instruction):
     r"""The set phase instruction sets the phase of the proceeding pulses on that channel
@@ -132,7 +128,3 @@ class SetPhase(Instruction):
     def duration(self) -> int:
         """Duration of this instruction."""
         return 0
-
-    def is_parameterized(self) -> bool:
-        """Return True iff the instruction is parameterized."""
-        return isinstance(self.phase, ParameterExpression) or super().is_parameterized()

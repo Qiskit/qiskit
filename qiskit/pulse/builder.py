@@ -11,6 +11,9 @@
 # that they have been altered from the originals.
 
 r"""
+
+.. _pulse_builder:
+
 =============
 Pulse Builder
 =============
@@ -740,6 +743,20 @@ class _PulseBuilder:
         if len(context_block) > 0:
             self._context_stack[-1].append(context_block)
 
+    def append_reference(
+        self,
+        name: str = None,
+        channels: Optional[List[chans.Channel]] = None,
+    ):
+        """Add external program as a reference instruction.
+
+        Args:
+            name: Name of the subroutine.
+            channels: Channels associated with the subroutine.
+        """
+        reference = instructions.Reference(name, channels)
+        self.append_instruction(reference)
+
     def call_subroutine(
         self,
         subroutine: Union[circuit.QuantumCircuit, Schedule, ScheduleBlock],
@@ -773,39 +790,46 @@ class _PulseBuilder:
             self._compile_lazy_circuit()
             subroutine = self._compile_circuit(subroutine)
 
-        empty_subroutine = True
-        if isinstance(subroutine, Schedule):
-            if len(subroutine.instructions) > 0:
-                empty_subroutine = False
-        elif isinstance(subroutine, ScheduleBlock):
-            if len(subroutine.blocks) > 0:
-                empty_subroutine = False
-        else:
+        if not isinstance(subroutine, (Schedule, ScheduleBlock)):
             raise exceptions.PulseError(
                 f"Subroutine type {subroutine.__class__.__name__} is "
                 "not valid data format. Call QuantumCircuit, "
                 "Schedule, or ScheduleBlock."
             )
 
-        if not empty_subroutine:
-            param_value_map = {}
-            for param_name, assigned_value in kw_params.items():
-                param_objs = subroutine.get_parameters(param_name)
-                if len(param_objs) > 0:
-                    for param_obj in param_objs:
-                        param_value_map[param_obj] = assigned_value
-                else:
-                    raise exceptions.PulseError(
-                        f"Parameter {param_name} is not defined in the target subroutine. "
-                        f'{", ".join(map(str, subroutine.parameters))} can be specified.'
-                    )
+        if len(subroutine) == 0:
+            return
 
-            if value_dict:
-                param_value_map.update(value_dict)
+        sub_name = name or subroutine.name
 
-            call_def = instructions.Call(subroutine, param_value_map, name)
+        # Create local parameter assignment
+        local_assignment = dict()
+        for param_name, value in kw_params.items():
+            params = subroutine.get_parameters(param_name)
+            if not params:
+                raise exceptions.PulseError(
+                    f"Parameter {param_name} is not defined in the target subroutine. "
+                    f'{", ".join(map(str, subroutine.parameters))} can be specified.'
+                )
+            for param in params:
+                local_assignment[param] = value
+        if value_dict:
+            local_assignment.update(value_dict)
 
-            self.append_instruction(call_def)
+        if isinstance(subroutine, ScheduleBlock):
+            # If subroutine is schedule block, use reference mechanism.
+            sub_channels = subroutine.channels
+            if local_assignment:
+                # Reference doesn't have mechanism to manage local scoped parameters.
+                # Assigned reference will become a new entry.
+                subroutine = subroutine.assign_parameters(local_assignment, inplace=False)
+                prefix = hex(hash(tuple(local_assignment.items())))
+                sub_name = f"{sub_name}_{prefix}"
+            self.append_reference(sub_name, sub_channels)
+            self._context_stack[0].assign_reference(sub_name, sub_channels, subroutine)
+        else:
+            call_instruction = instructions.Call(subroutine, local_assignment, sub_name)
+            self.append_instruction(call_instruction)
 
     @_requires_backend
     def call_gate(self, gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
@@ -1892,69 +1916,92 @@ def snapshot(label: str, snapshot_type: str = "statevector"):
 
 
 def call(
-    target: Union[circuit.QuantumCircuit, Schedule, ScheduleBlock],
+    target: Optional[Union[circuit.QuantumCircuit, Schedule, ScheduleBlock]] = None,
     name: Optional[str] = None,
+    channels: Optional[List[chans.Channel]] = None,
     value_dict: Optional[Dict[ParameterValueType, ParameterValueType]] = None,
     **kw_params: ParameterValueType,
 ):
-    """Call the ``target`` within the currently active builder context with arbitrary
+    """Call the subroutine within the currently active builder context with arbitrary
     parameters which will be assigned to the target program.
 
     .. note::
-        The ``target`` program is inserted as a ``Call`` instruction.
-        This instruction defines a subroutine. See :class:`~qiskit.pulse.instructions.Call`
-        for more details.
+        If the ``target`` program is instance of schedule or quantum cirucit,
+        it will be assigned as :class:`~qiskit.pulse.instructions.Call` instruction.
+        Otherwise :class:`~qiskit.pulse.instructions.Reference` instruction
+        is added and ``target`` is separately registered to the references.
 
     Examples:
 
-    .. code-block:: python
+        1. Call with substantial program.
 
-        from qiskit import circuit, pulse, schedule, transpile
-        from qiskit.test.mock import FakeOpenPulse2Q
+        .. code-block:: python
 
-        backend = FakeOpenPulse2Q()
+            from qiskit import circuit, pulse, schedule, transpile
+            from qiskit.test.mock import FakeOpenPulse2Q
 
-        qc = circuit.QuantumCircuit(2)
-        qc.cx(0, 1)
-        qc_transpiled = transpile(qc, optimization_level=3)
-        sched = schedule(qc_transpiled, backend)
+            backend = FakeOpenPulse2Q()
 
-        with pulse.build(backend) as pulse_prog:
-                pulse.call(sched)
-                pulse.call(qc)
+            qc = circuit.QuantumCircuit(2)
+            qc.cx(0, 1)
+            qc_transpiled = transpile(qc, optimization_level=3)
+            sched = schedule(qc_transpiled, backend)
 
-    This function can optionally take parameter dictionary with the parameterized target program.
+            with pulse.build(backend) as pulse_prog:
+                    pulse.call(sched)
+                    pulse.call(qc)
 
-    .. code-block:: python
+        This function can optionally take parameter dictionary with the parameterized target program.
 
-        from qiskit import circuit, pulse
+        .. code-block:: python
 
-        amp = circuit.Parameter('amp')
+            from qiskit import circuit, pulse
 
-        with pulse.build() as subroutine:
-            pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
+            amp = circuit.Parameter('amp')
 
-        with pulse.build() as main_prog:
-            pulse.call(subroutine, amp=0.1)
-            pulse.call(subroutine, amp=0.3)
+            with pulse.build() as subroutine:
+                pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
 
-    If there is any parameter name collision, you can distinguish them by specifying
-    each parameter object as a python dictionary. Otherwise ``amp1`` and ``amp2`` will be
-    updated with the same value.
+            with pulse.build() as main_prog:
+                pulse.call(subroutine, amp=0.1)
+                pulse.call(subroutine, amp=0.3)
 
-    .. code-block:: python
+        If there is any parameter name collision, you can distinguish them by specifying
+        each parameter object as a python dictionary. Otherwise ``amp1`` and ``amp2`` will be
+        updated with the same value.
 
-        from qiskit import circuit, pulse
+        .. code-block:: python
 
-        amp1 = circuit.Parameter('amp')
-        amp2 = circuit.Parameter('amp')
+            from qiskit import circuit, pulse
 
-        with pulse.build() as subroutine:
-            pulse.play(pulse.Gaussian(160, amp1, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, amp2, 40), pulse.DriveChannel(1))
+            amp1 = circuit.Parameter('amp')
+            amp2 = circuit.Parameter('amp')
 
-        with pulse.build() as main_prog:
-            pulse.call(subroutine, value_dict={amp1: 0.1, amp2: 0.2})
+            with pulse.build() as subroutine:
+                pulse.play(pulse.Gaussian(160, amp1, 40), pulse.DriveChannel(0))
+                pulse.play(pulse.Gaussian(160, amp2, 40), pulse.DriveChannel(1))
+
+            with pulse.build() as main_prog:
+                pulse.call(subroutine, value_dict={amp1: 0.1, amp2: 0.2})
+
+        2. Call with unassigned program.
+
+        .. code-block:: python
+
+            qiskit import pulse
+
+            with pulse.build() as main_prog:
+                pulse.call(name="subroutine", channels=[pulse.DriveChannel(0)])
+
+            with pulse.build() as subroutine:
+                pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
+
+            main_prog.assign_reference(
+                name="subroutine", channels=[pulse.DriveChannel(0)], schedule=subroutine,
+            )
+
+        When you call without actual program, you can assign the program afterwards
+        through the :meth:`ScheduleBlock.assign_reference` method.
 
     Args:
         target: Target circuit or pulse schedule to call.
@@ -1969,12 +2016,19 @@ def call(
     Raises:
         exceptions.PulseError: If the input ``target`` type is not supported.
     """
-    if not isinstance(target, (circuit.QuantumCircuit, Schedule, ScheduleBlock)):
-        raise exceptions.PulseError(
-            f'Target of type "{target.__class__.__name__}" is not supported.'
-        )
-
-    _active_builder().call_subroutine(target, name, value_dict, **kw_params)
+    if target is None:
+        if value_dict is not None or any(kw_params):
+            raise exceptions.PulseError(
+                f"Parameters are provided without target program. "
+                "These parameters cannot be assigned."
+            )
+        _active_builder().append_reference(name, channels)
+    else:
+        if not isinstance(target, (circuit.QuantumCircuit, Schedule, ScheduleBlock)):
+            raise exceptions.PulseError(
+                f'Target of type "{target.__class__.__name__}" is not supported.'
+            )
+        _active_builder().call_subroutine(target, name, value_dict, **kw_params)
 
 
 # Directives

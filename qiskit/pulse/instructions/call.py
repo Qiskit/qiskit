@@ -12,7 +12,7 @@
 
 """Call instruction that represents calling a schedule as a subroutine."""
 
-from typing import Optional, Union, Dict, Tuple, Set
+from typing import Optional, Union, Dict, Tuple, Sequence, Set
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
@@ -112,18 +112,13 @@ class Call(instruction.Instruction):
 
         return subroutine
 
-    def is_parameterized(self) -> bool:
-        """Return True iff the instruction is parameterized."""
-        return any(isinstance(value, ParameterExpression) for value in self.arguments.values())
-
     @property
     def parameters(self) -> Set:
         """Unassigned parameters which determine the instruction behavior."""
         params = set()
         for value in self._arguments.values():
             if isinstance(value, ParameterExpression):
-                for param in value.parameters:
-                    params.add(param)
+                params = params | value.parameters
         return params
 
     @property
@@ -173,3 +168,55 @@ class Call(instruction.Instruction):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.assigned_subroutine()}, name='{self.name}')"
+
+
+class Reference(instruction.Instruction):
+    """Pulse compiler directive that refers to subroutine.
+
+    If a pulse program uses same subset of instruction multiple times,
+    using :class:`Reference` drastically reduces memory footprint of the program.
+    This instruction only stores name and associated channels in an instance.
+
+    The actual pulse program is stored in the :attr:`ScheduleBlock.reference`
+    that this reference instruction belongs to.
+
+    You can later assign schedule through :meth:`ScheduleBlock.assign_reference` method.
+    This allows you the lazy evaluation of subroutine at the runtime.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        channels: Sequence[Channel],
+    ):
+        super().__init__(operands=(name, *channels), name=name)
+
+    @property
+    def name(self) -> str:
+        """Returns the name of referred program."""
+        return self.operands[0]
+
+    @property
+    def duration(self) -> Union[int, ParameterExpression]:
+        """Duration of this instruction."""
+        raise NotImplementedError(
+            "Reference to subroutine does not define duration."
+        )
+
+    @property
+    def channels(self) -> Tuple[Channel, ...]:
+        """Returns the channels that this schedule uses."""
+        return tuple(self.operands[1:])
+
+    def __repr__(self) -> str:
+        channels_repr = ", ".join(map(str, self.channels))
+        return f"{self.__class__.__name__}(name={self.name}, channels={channels_repr})"
+
+    def __eq__(self, other: "Instruction") -> bool:
+        if not isinstance(other, self.__class__):
+            return False
+        if self.name != other.name:
+            return False
+        if set(self.channels) != set(other.channels):
+            return False
+        return True
