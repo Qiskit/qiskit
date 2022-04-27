@@ -61,18 +61,22 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
     # NOTE: A run from `dag.collect_1q_runs` is always nonempty, so we sometimes use an empty list
     #       to signify the absence of a run.
 
-    def __init__(self, basis=None, run_to_completion=False):
+    def __init__(self, basis=None, run_to_completion=False, target=None):
         """
         Args:
             basis (List[str]): See also `Optimize1qGatesDecomposition`.
             run_to_completion (bool): If `True`, this pass retries until it is unable to do any more
                 work.  If `False`, it finds and performs one optimization, and for full optimization
                 the user is obligated to re-call the pass until the output stabilizes.
+            target (Target): The target representing the backend. If specified
+                this will be used instead of the ``basis_gates`` parameter
+
         """
         super().__init__()
 
         self._basis = basis
-        self._optimize1q = Optimize1qGatesDecomposition(basis)
+        self._target = target
+        self._optimize1q = Optimize1qGatesDecomposition(basis, target)
         self._run_to_completion = run_to_completion
 
     @staticmethod
@@ -219,6 +223,11 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
             new_basis, new_run = self._resynthesize(run_clone)
 
             # perform the replacement if it was indeed a good idea
+            qubit_map = None
+
+            if self._target:
+                qubit_map = {qubit: index for index, qubit in enumerate(dag.qubits)}
+
             if self._optimize1q._substitution_checks(
                 dag,
                 (preceding_run or []) + run + (succeeding_run or []),
@@ -228,6 +237,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
                     + (new_succeeding_run or QuantumCircuit(1)).data
                 ),
                 new_basis + new_preceding_basis + new_succeeding_basis,
+                qubit_map,
             ):
                 if preceding_run and new_preceding_run is not None:
                     self._replace_subdag(dag, preceding_run, new_preceding_run)
