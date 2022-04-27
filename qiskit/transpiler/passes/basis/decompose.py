@@ -44,7 +44,6 @@ class Decompose(TransformationPass):
             self.gates_to_decompose = gate
         else:
             self.gates_to_decompose = gates_to_decompose
-        self._make_gate_lists()
 
     @property
     def gate(self) -> Gate:
@@ -75,19 +74,6 @@ class Decompose(TransformationPass):
             stacklevel=2,
         )
         self.gates_to_decompose = value
-        self._make_gate_lists()
-
-    def _make_gate_lists(self):
-        """Make comparison lists for the gate list"""
-        if not isinstance(self.gates_to_decompose, list):
-            gates = [self.gates_to_decompose]
-        else:
-            gates = self.gates_to_decompose
-
-        self._strings_list, self._gate_type_list = [], []
-        if gates is not None:
-            self._strings_list = [s for s in gates if isinstance(s, str)]
-            self._gate_type_list = [g for g in gates if isinstance(g, type)]
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the Decompose pass on `dag`.
@@ -128,19 +114,22 @@ class Decompose(TransformationPass):
         else:
             gates = self.gates_to_decompose
 
+        strings_list = [s for s in gates if isinstance(s, str)]
+        gate_type_list = [g for g in gates if isinstance(g, type)]
+
         if hasattr(node.op, "label") and node.op.label is not None:
             has_label = True
 
         if has_label and (  # check if label or label wildcard is given
-            node.op.label in gates or any(fnmatch(node.op.label, p) for p in self._strings_list)
+            node.op.label in gates or any(fnmatch(node.op.label, p) for p in strings_list)
         ):
             return True
         elif not has_label and (  # check if name or name wildcard is given
-            node.name in gates or any(fnmatch(node.name, p) for p in self._strings_list)
+            node.name in gates or any(fnmatch(node.name, p) for p in strings_list)
         ):
             return True
         elif not has_label and (  # check if Gate type given
-            any(isinstance(node.op, op) for op in self._gate_type_list)
+            any(isinstance(node.op, op) for op in gate_type_list)
         ):
             return True
         else:
