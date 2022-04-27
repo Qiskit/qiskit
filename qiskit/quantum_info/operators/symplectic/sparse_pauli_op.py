@@ -438,6 +438,74 @@ class SparsePauliOp(LinearOp):
             PauliList.from_symplectic(z, x), coeffs, ignore_pauli_phase=True, copy=False
         )
 
+    def argsort(self, reverse=False):
+        """Return indices for sorting the rows of the table.
+
+        The default sort method is lexicographic sorting by qubit number.
+        By using the `weight` kwarg the output can additionally be sorted
+        by the number of non-identity terms in the Pauli, where the set of
+        all Pauli's of a given weight are still ordered lexicographically.
+
+        Args:
+            reverse (bool): Optionally sort by weight if True (Default: False).
+
+        Returns:
+            array: the indices for sorting the table.
+        """
+        key = np.abs(self._coeffs)
+        if reverse:
+            key = -key
+        sort_inds = np.argsort(key, kind="stable")
+        pauli_list = self._pauli_list[sort_inds]
+        return sort_inds, pauli_list.argsort(weight=True, phase=False)
+
+    def sort(self, reverse=False):
+        """Sort the rows of the table.
+
+        The default sort method is lexicographic sorting by qubit number.
+        By using the `weight` kwarg the output can additionally be sorted
+        by the number of non-identity terms in the Pauli, where the set of
+        all Pauli's of a given weight are still ordered lexicographically.
+
+        **Example**
+
+        Consider sorting all a random ordering of all 2-qubit Paulis
+
+        .. jupyter-execute::
+
+            from numpy.random import shuffle
+            from qiskit.quantum_info.operators import PauliList
+
+            # 2-qubit labels
+            labels = ['II', 'IX', 'IY', 'IZ', 'XI', 'XX', 'XY', 'XZ',
+                      'YI', 'YX', 'YY', 'YZ', 'ZI', 'ZX', 'ZY', 'ZZ']
+            # Shuffle Labels
+            shuffle(labels)
+            pt = PauliList(labels)
+            print('Initial Ordering')
+            print(pt)
+
+            # Lexicographic Ordering
+            srt = pt.sort()
+            print('Lexicographically sorted')
+            print(srt)
+
+            # Weight Ordering
+            srt = pt.sort(weight=True)
+            print('Weight sorted')
+            print(srt)
+
+        Args:
+            reverse (bool): optionally sort by weight if True (Default: False).
+
+        Returns:
+            SparsePauliOp: a sorted copy of the original table.
+        """
+        indices_coeffs, indices_pauli = self.argsort(reverse=reverse)
+        return SparsePauliOp(
+            self._pauli_list[indices_coeffs][indices_pauli], self._coeffs[indices_coeffs][indices_pauli]
+        )
+
     def chop(self, tol=1e-14):
         """Set real and imaginary parts of the coefficients to 0 if ``< tol`` in magnitude.
 

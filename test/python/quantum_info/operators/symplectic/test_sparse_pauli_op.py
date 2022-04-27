@@ -502,6 +502,33 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         np.testing.assert_array_equal(zero_op.paulis.phase, np.zeros(zero_op.size))
         np.testing.assert_array_equal(simplified_op.paulis.phase, np.zeros(simplified_op.size))
 
+    def test_sort(self):
+        """Test sort method."""
+        with self.subTest(msg="Pauli matrices & absolute values of coefficients are the same"):
+            target = SparsePauliOp(["I", "I", "I", "I"], [1.+0.j, 0.+1.j, 0.-1.j, -1.+0.j])
+            value = SparsePauliOp(["I", "I", "I", "I"], [1.+0.j, 0.+1.j, 0.-1.j, -1.+0.j]).sort()
+            self.assertEqual(target, value)
+
+        with self.subTest(msg="Pauli matrices are the same, the absolute values of the coefficients are different"):
+            target = SparsePauliOp(["I", "I", "I", "I"], [1.+0.j, 2.+0.j, -1.+2.j, 3.-4.j])
+            value = SparsePauliOp(["I", "I", "I", "I"], [2.+0.j, 1.+0.j, 3.-4.j, -1.+2.j]).sort()
+            self.assertEqual(target, value)
+
+        with self.subTest(msg="Pauli matrices are the same, the absolute values of the coefficients are different & reveree order"):
+            target = SparsePauliOp(["I", "I", "I", "I"], [3.-4.j, -1.+2.j, 2.+0.j, 1.+0.j])
+            value = SparsePauliOp(["I", "I", "I", "I"], [2.+0.j, 1.+0.j, 3.-4.j, -1.+2.j]).sort(reverse=True)
+            self.assertEqual(target, value)
+
+        with self.subTest(msg="Pauli matrices are different"):
+            target = SparsePauliOp(["I", "X", "Y", "Z"], [-1.+2.j, 1.+0.j, 2.+0.j, 3.-4.j])
+            value = SparsePauliOp(["Y", "X", "Z", "I"], [2.+0.j, 1.+0.j, 3.-4.j, -1.+2.j]).sort()
+            self.assertEqual(target, value)
+
+        with self.subTest(msg="Pauli matrices are different"):
+            target = SparsePauliOp(["I", "I", "I", "I", "X", "X", "Y", "Z"], [1.+0.j, 2.+0.j, -1.+2.j, 3.-4.j, -1.+4.j, -1.+5.j, -1.+3.j, -1.+2.j])
+            value = SparsePauliOp(["I", "I", "I", "I", "X", "Z", "Y", "X"], [2.+0.j, 1.+0.j, 3.-4.j, -1.+2.j, -1.+5.j, -1.+2.j, -1.+3.j, -1.+4.j]).sort()
+            self.assertEqual(target, value)
+
     def test_chop(self):
         """Test chop, which individually truncates real and imaginary parts of the coeffs."""
         eps = 1e-10
