@@ -189,10 +189,16 @@ class Reference(instruction.Instruction):
         name: str,
         channels: Sequence[Channel],
     ):
-        super().__init__(operands=(name, *channels), name=name)
+        # Create unique reference id based on name and channels.
+        # Since channel index can be parameterized, reference id may change
+        # by parameter assignment if we directly keyed on the channel objects.
+        # This key is somewhat static againt parameter assignment.
+        chanstr = ".".join([c.prefix + str(c.index) for c in channels])
+        ref_id = f"{name}.{chanstr}"
+        super().__init__(operands=(ref_id, *channels), name=name)
 
     @property
-    def name(self) -> str:
+    def ref_id(self) -> str:
         """Returns the name of referred program."""
         return self.operands[0]
 
@@ -209,8 +215,11 @@ class Reference(instruction.Instruction):
         return tuple(self.operands[1:])
 
     def __repr__(self) -> str:
-        channels_repr = ", ".join(map(str, self.channels))
-        return f"{self.__class__.__name__}(name={self.name}, channels={channels_repr})"
+        data_repr = []
+        data_repr.append(f"ref_id={self.ref_id}")
+        data_repr.append(f"channels=" + ", ".join(map(str, self.channels)))
+        data_repr.append(f"name={self.name}")
+        return f"{self.__class__.__name__}({', '.join(data_repr)})"
 
     def __eq__(self, other: "Instruction") -> bool:
         if not isinstance(other, self.__class__):

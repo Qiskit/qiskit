@@ -747,15 +747,20 @@ class _PulseBuilder:
         self,
         name: str = None,
         channels: Optional[List[chans.Channel]] = None,
-    ):
+    ) -> str:
         """Add external program as a reference instruction.
 
         Args:
             name: Name of the subroutine.
             channels: Channels associated with the subroutine.
+
+        Returns:
+            Reference ID.
         """
         reference = instructions.Reference(name, channels)
         self.append_instruction(reference)
+
+        return reference.ref_id
 
     def call_subroutine(
         self,
@@ -763,7 +768,7 @@ class _PulseBuilder:
         name: Optional[str] = None,
         value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None,
         **kw_params: ParameterValueType,
-    ):
+    ) -> Optional[str]:
         """Call a schedule or circuit defined outside of the current scope.
 
         The ``subroutine`` is appended to the context schedule as a call instruction.
@@ -800,8 +805,6 @@ class _PulseBuilder:
         if len(subroutine) == 0:
             return
 
-        sub_name = name or subroutine.name
-
         # Create local parameter assignment
         local_assignment = dict()
         for param_name, value in kw_params.items():
@@ -816,6 +819,8 @@ class _PulseBuilder:
         if value_dict:
             local_assignment.update(value_dict)
 
+        sub_name = name or subroutine.name
+
         if isinstance(subroutine, ScheduleBlock):
             # If subroutine is schedule block, use reference mechanism.
             sub_channels = subroutine.channels
@@ -825,11 +830,15 @@ class _PulseBuilder:
                 subroutine = subroutine.assign_parameters(local_assignment, inplace=False)
                 prefix = hex(hash(tuple(local_assignment.items())))
                 sub_name = f"{sub_name}_{prefix}"
-            self.append_reference(sub_name, sub_channels)
-            self._context_stack[0].assign_reference(sub_name, sub_channels, subroutine)
+            ref_id = self.append_reference(sub_name, sub_channels)
+            self._context_stack[0].assign_reference(ref_id, subroutine, inplace=True)
+
+            return ref_id
         else:
             call_instruction = instructions.Call(subroutine, local_assignment, sub_name)
             self.append_instruction(call_instruction)
+
+            return None
 
     @_requires_backend
     def call_gate(self, gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
@@ -1921,7 +1930,7 @@ def call(
     channels: Optional[List[chans.Channel]] = None,
     value_dict: Optional[Dict[ParameterValueType, ParameterValueType]] = None,
     **kw_params: ParameterValueType,
-):
+) -> Optional[str]:
     """Call the subroutine within the currently active builder context with arbitrary
     parameters which will be assigned to the target program.
 
@@ -1991,14 +2000,12 @@ def call(
             qiskit import pulse
 
             with pulse.build() as main_prog:
-                pulse.call(name="subroutine", channels=[pulse.DriveChannel(0)])
+                key = pulse.call(name="subroutine", channels=[pulse.DriveChannel(0)])
 
             with pulse.build() as subroutine:
                 pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
 
-            main_prog.assign_reference(
-                name="subroutine", channels=[pulse.DriveChannel(0)], schedule=subroutine,
-            )
+            main_prog.assign_reference(ref_id=key, schedule=subroutine)
 
         When you call without actual program, you can assign the program afterwards
         through the :meth:`ScheduleBlock.assign_reference` method.
@@ -2022,13 +2029,13 @@ def call(
                 f"Parameters are provided without target program. "
                 "These parameters cannot be assigned."
             )
-        _active_builder().append_reference(name, channels)
+        return _active_builder().append_reference(name, channels)
     else:
         if not isinstance(target, (circuit.QuantumCircuit, Schedule, ScheduleBlock)):
             raise exceptions.PulseError(
                 f'Target of type "{target.__class__.__name__}" is not supported.'
             )
-        _active_builder().call_subroutine(target, name, value_dict, **kw_params)
+        return _active_builder().call_subroutine(target, name, value_dict, **kw_params)
 
 
 # Directives
