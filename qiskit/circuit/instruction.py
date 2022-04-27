@@ -548,6 +548,16 @@ class Instruction(Operation):
         self._name = name
 
     @property
+    def condition(self):
+        """Returns the condition."""
+        return self._condition
+
+    @condition.setter
+    def condition(self, condition):
+        """Set condition."""
+        self._condition = condition
+
+    @property
     def num_qubits(self):
         """Return the number of qubits."""
         return self._num_qubits

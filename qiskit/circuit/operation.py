@@ -71,11 +71,11 @@ class Operation(ABC):
         """Class attribute to treat like barrier for transpiler, unroller, drawer."""
         raise NotImplementedError
 
-    # @property
-    # @abstractmethod
-    # def condition(self):
-    #    """Condition for when the instruction has a conditional if."""
-    #    raise NotImplementedError
+    @property
+    @abstractmethod
+    def condition(self):
+        """Condition for when the instruction has a conditional if."""
+        raise NotImplementedError
 
     @property
     @abstractmethod
