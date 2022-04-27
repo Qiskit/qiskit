@@ -99,7 +99,7 @@ default_profile = "transpiler_equivalence"
 settings.register_profile(
     default_profile,
     report_multiple_bugs=False,
-    max_examples=25,
+    max_examples=200,
     deadline=None,
     suppress_health_check=[HealthCheck.filter_too_much],
 )
@@ -261,12 +261,17 @@ class QCircuitMachine(RuleBasedStateMachine):
     backend = Aer.get_backend("aer_simulator")
     max_qubits = int(backend.configuration().n_qubits / 2)
 
+    # Limit reg generation for more interesting circuits
+    max_qregs = 3
+    max_cregs = 3
+
     def __init__(self):
         super().__init__()
         self.qc = QuantumCircuit()
         self.enable_variadic = bool(variadic_gates)
 
     @precondition(lambda self: len(self.qc.qubits) < self.max_qubits)
+    @precondition(lambda self: len(self.qc.qregs) < self.max_qregs)
     @rule(target=qubits, n=st.integers(min_value=1, max_value=max_qubits))
     def add_qreg(self, n):
         """Adds a new variable sized qreg to the circuit, up to max_qubits."""
@@ -275,6 +280,7 @@ class QCircuitMachine(RuleBasedStateMachine):
         self.qc.add_register(qreg)
         return multiple(*list(qreg))
 
+    @precondition(lambda self: len(self.qc.cregs) < self.max_cregs)
     @rule(target=clbits, n=st.integers(1, 5))
     def add_creg(self, n):
         """Add a new variable sized creg to the circuit."""
