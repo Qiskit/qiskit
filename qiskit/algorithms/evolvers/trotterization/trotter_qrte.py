@@ -118,12 +118,12 @@ class TrotterQRTE(RealEvolver):
         self._quantum_instance = quantum_instance
 
     @property
-    def expectation(self) -> ExpectationBase:
+    def expectation(self) -> Optional[ExpectationBase]:
         """Returns an expectation used in the algorithm."""
         return self._expectation
 
     @expectation.setter
-    def expectation(self, expectation: ExpectationBase) -> None:
+    def expectation(self, expectation: Optional[ExpectationBase]) -> None:
         """
         Sets an expectation.
         Args:
