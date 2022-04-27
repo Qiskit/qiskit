@@ -468,7 +468,7 @@ class TestMultipleTrials(QiskitTestCase):
         qc.measure_all()
         property_set = {}
         vf2_pass(qc, property_set)
-        self.assertEqual(set(property_set["layout"].get_physical_bits()), {5, 4})
+        self.assertEqual(set(property_set["layout"].get_physical_bits()), {4, 5})
 
     def test_with_properties(self):
         """Test it finds the least noise perfect layout with no properties."""
@@ -530,6 +530,7 @@ class TestMultipleTrials(QiskitTestCase):
         """Test that the default trials is set to a reasonable number."""
         backend = FakeManhattan()
         qc = QuantumCircuit(5)
+        qc.h(2)
         qc.cx(0, 1)
         cmap = CouplingMap(backend.configuration().coupling_map)
         properties = backend.properties()
@@ -542,7 +543,7 @@ class TestMultipleTrials(QiskitTestCase):
             "DEBUG:qiskit.transpiler.passes.layout.vf2_layout:Trial 159 is >= configured max trials 159",
             cm.output,
         )
-        self.assertEqual(set(property_set["layout"].get_physical_bits()), {48, 49, 40, 47, 58})
+        self.assertEqual(set(property_set["layout"].get_physical_bits()), {49, 40, 58, 3, 4})
 
     def test_no_limits_with_negative(self):
         """Test that we're not enforcing a trial limit if set to negative."""
@@ -550,21 +551,20 @@ class TestMultipleTrials(QiskitTestCase):
         qc = QuantumCircuit(3)
         qc.h(0)
         cmap = CouplingMap(backend.configuration().coupling_map)
-        implicit_max = len(cmap.graph.edge_list()) + 15
         properties = backend.properties()
         # Run without any limits set
-        vf2_pass = VF2Layout(cmap, properties=properties, seed=42, max_trials=0)
+        vf2_pass = VF2Layout(
+            cmap,
+            properties=properties,
+            seed=42,
+            max_trials=0,
+        )
         property_set = {}
         with self.assertLogs("qiskit.transpiler.passes.layout.vf2_layout", level="DEBUG") as cm:
             vf2_pass(qc, property_set)
         for output in cm.output:
             self.assertNotIn("is >= configured max trials", output)
-        last_line = cm.output[-1]
-        # The last line should be
-        # DEBUG:qiskit.transpiler.passes.layout.vf2_layout: Trial n has score 0.122
-        trials = int(last_line.split(" ")[1])
-        self.assertGreater(trials, implicit_max)
-        self.assertEqual(set(property_set["layout"].get_physical_bits()), {3, 1, 0})
+        self.assertEqual(set(property_set["layout"].get_physical_bits()), {3, 1, 2})
 
 
 if __name__ == "__main__":

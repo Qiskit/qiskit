@@ -305,7 +305,16 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             and pass_manager_config.layout_method is None
         ):
 
-            def _post_layout_condition(property_set):
+            def _run_post_layout_condition(property_set):
+                vf2_stop_reason = property_set["VF2Layout_stop_reason"]
+                if (
+                    vf2_stop_reason is not None
+                    and vf2_stop_reason == VF2LayoutStopReason.SOLUTION_FOUND
+                ):
+                    return False
+                return True
+
+            def _apply_post_layout_condition(property_set):
                 # if VF2 layout stopped for any reason other than solution found we need
                 # to run layout since VF2 didn't converge.
                 if (
@@ -325,9 +334,10 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                     call_limit=int(3e7),  # Set call limit to ~60 sec with retworkx 0.10.2
                     time_limit=60,
                     strict_direction=False,
-                )
+                ),
+                condition=_run_post_layout_condition,
             )
-            pm3.append(ApplyLayout(), condition=_post_layout_condition)
+            pm3.append(ApplyLayout(), condition=_apply_post_layout_condition)
 
     pm3.append(_unroll)
     if (coupling_map and not coupling_map.is_symmetric) or (
