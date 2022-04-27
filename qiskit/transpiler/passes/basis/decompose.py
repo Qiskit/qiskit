@@ -78,7 +78,7 @@ class Decompose(TransformationPass):
         self._make_gate_lists()
 
     def _make_gate_lists(self):
-        """Make comparison lists for the gates"""
+        """Make comparison lists for the gate list"""
         if not isinstance(self.gates_to_decompose, list):
             gates = [self.gates_to_decompose]
         else:
