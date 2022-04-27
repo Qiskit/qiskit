@@ -224,10 +224,12 @@ class TestToqmIntegration(QiskitTestCase):
         Basic circuits transpile across all opt levels and layout
         methods when using TOQM-based routing.
         """
-        qr = QuantumRegister(2, "q")
+        qr = QuantumRegister(10, "q")
         qc = QuantumCircuit(qr)
-        qc.h(qr[0])
-        qc.cx(qr[0], qr[1])
+
+        # Generate a circuit that should need swaps.
+        for i in range(1, qr.size):
+            qc.cx(0, i)
 
         result = transpile(
             qc,

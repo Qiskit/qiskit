@@ -152,7 +152,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _swap += [SabreSwap(coupling_map, heuristic="basic", seed=seed_transpiler)]
     elif routing_method == "toqm":
         HAS_TOQM.require_now("TOQM-based routing")
-        from qiskit_toqm import ToqmSwap, ToqmStrategyO0
+        from qiskit_toqm import ToqmSwap, ToqmStrategyO0, latencies_from_target
 
         if initial_layout:
             raise TranspilerError("Initial layouts are not supported with TOQM-based routing.")
@@ -162,10 +162,11 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _swap = [
             ToqmSwap(
                 coupling_map,
-                instruction_durations,
-                strategy=ToqmStrategyO0(),
-                basis_gates=basis_gates,
-                backend_properties=backend_properties,
+                strategy=ToqmStrategyO0(
+                    latencies_from_target(
+                        coupling_map, instruction_durations, basis_gates, backend_properties
+                    )
+                ),
             )
         ]
     elif routing_method == "none":
