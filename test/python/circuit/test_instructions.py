@@ -692,6 +692,19 @@ class TestInstructions(QiskitTestCase):
             for instruction in instruction_list:
                 self.assertIs(instruction.condition[0], sentinel_register)
 
+    def test_label_type_enforcement(self):
+        """Test instruction label type enforcement."""
+        with self.subTest("accepts string labels"):
+            instruction = Instruction("h", 1, 0, [], label="label")
+            self.assertEqual(instruction.label, "label")
+        with self.subTest("raises when a non-string label is provided to constructor"):
+            with self.assertRaisesRegex(TypeError, r"label expects a string or None"):
+                Instruction("h", 1, 0, [], label=0)
+        with self.subTest("raises when a non-string label is provided to setter"):
+            with self.assertRaisesRegex(TypeError, r"label expects a string or None"):
+                instruction = HGate()
+                instruction.label = 0
+
 
 if __name__ == "__main__":
     unittest.main()

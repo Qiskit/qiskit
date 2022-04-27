@@ -42,16 +42,3 @@ class FakeArmonk(fake_pulse_backend.FakePulseBackend):
     props_filename = "props_armonk.json"
     defs_filename = "defs_armonk.json"
     backend_name = "fake_armonk"
-
-
-class FakeLegacyArmonk(fake_pulse_backend.FakePulseLegacyBackend):
-    """A fake 1 qubit backend.
-
-    0
-    """
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_armonk.json"
-    props_filename = "props_armonk.json"
-    defs_filename = "defs_armonk.json"
-    backend_name = "fake_armonk"
