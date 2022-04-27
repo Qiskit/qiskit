@@ -10,20 +10,25 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test transpiler passes that deal with Cliffords."""
+"""Test transpiler passes and conversion methods that deal with Cliffords."""
 
 import unittest
+import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Gate
+from qiskit.converters import dag_to_circuit, circuit_to_dag
+from qiskit.dagcircuit import DAGOpNode
+from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes.optimization.optimize_cliffords import OptimizeCliffords
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators import Clifford
 from qiskit.transpiler import PassManager
-from qiskit.quantum_info import Operator
+from qiskit.quantum_info import Operator, random_clifford
 
 
 class TestCliffordPasses(QiskitTestCase):
-    """Tests to verify correctness of the transpiler passes that deal with Cliffords."""
+    """Tests to verify correctness of transpiler passes and
+    conversion methods that deal with Cliffords."""
 
     def create_cliff1(self):
         """Creates a simple Clifford."""
@@ -146,6 +151,83 @@ class TestCliffordPasses(QiskitTestCase):
         qc1.append(cliff2, [3, 2, 1])
         qc1 = PassManager(OptimizeCliffords()).run(qc1)
         self.assertEqual(qc1.count_ops()["clifford"], 2)
+
+    def test_circuit_to_dag_conversion_and_back(self):
+        """Test that converting a circuit containing Clifford to a DAG
+        and back preserves the Clifford.
+        """
+        # Create a Clifford
+        cliff_circ = QuantumCircuit(3)
+        cliff_circ.cx(0, 1)
+        cliff_circ.h(0)
+        cliff_circ.s(1)
+        cliff_circ.swap(1, 2)
+        cliff = Clifford(cliff_circ)
+
+        # Add this Clifford to a Quantum Circuit, and check that it remains a Clifford
+        circ0 = QuantumCircuit(4)
+        circ0.append(cliff, [0, 1, 2])
+        circ0_cliffords = [inst for inst, _, _ in circ0.data if isinstance(inst, Clifford)]
+        circ0_gates = [inst for inst, _, _ in circ0.data if isinstance(inst, Gate)]
+        self.assertEqual(len(circ0_cliffords), 1)
+        self.assertEqual(len(circ0_gates), 0)
+
+        # Check that converting circuit to DAG preserves Clifford.
+        dag0 = circuit_to_dag(circ0)
+        dag0_cliffords = [
+            node
+            for node in dag0.topological_nodes()
+            if isinstance(node, DAGOpNode) and isinstance(node.op, Clifford)
+        ]
+        self.assertEqual(len(dag0_cliffords), 1)
+
+        # Check that converted DAG to a circuit also preserves Clifford.
+        circ1 = dag_to_circuit(dag0)
+        circ1_cliffords = [inst for inst, _, _ in circ1.data if isinstance(inst, Clifford)]
+        circ1_gates = [inst for inst, _, _ in circ1.data if isinstance(inst, Gate)]
+        self.assertEqual(len(circ1_cliffords), 1)
+        self.assertEqual(len(circ1_gates), 0)
+
+        # However, test that running an unrolling pass on the DAG replaces Clifford
+        # by gates.
+        dag1 = Unroll3qOrMore().run(dag0)
+        dag1_cliffords = [
+            node
+            for node in dag1.topological_nodes()
+            if isinstance(node, DAGOpNode) and isinstance(node.op, Clifford)
+        ]
+        self.assertEqual(len(dag1_cliffords), 0)
+
+    def test_optimize_cliffords(self):
+        """Test OptimizeCliffords pass."""
+
+        rng = np.random.default_rng(1234)
+        for _ in range(20):
+            # Create several random Cliffords
+            cliffs = [random_clifford(3, rng) for _ in range(5)]
+
+            # The first circuit contains these cliffords
+            qc1 = QuantumCircuit(5)
+            for cliff in cliffs:
+                qc1.append(cliff, [4, 0, 2])
+            self.assertEqual(qc1.count_ops()["clifford"], 5)
+
+            # The second circuit is obtained by running the OptimizeCliffords pass.
+            qc2 = PassManager(OptimizeCliffords()).run(qc1)
+            self.assertEqual(qc2.count_ops()["clifford"], 1)
+
+            # The third circuit contains the decompositions of Cliffods.
+            qc3 = QuantumCircuit(5)
+            for cliff in cliffs:
+                qc3.append(cliff.definition, [4, 0, 2])
+            self.assertNotIn("clifford", qc3.count_ops())
+
+            # Check that qc1, qc2 and qc3 and their decompositions are all equivalent.
+            self.assertTrue(Operator(qc1).equiv(Operator(qc1.decompose())))
+            self.assertTrue(Operator(qc2).equiv(Operator(qc2.decompose())))
+            self.assertTrue(Operator(qc3).equiv(Operator(qc3.decompose())))
+            self.assertTrue(Operator(qc1).equiv(Operator(qc2)))
+            self.assertTrue(Operator(qc1).equiv(Operator(qc3)))
 
 
 if __name__ == "__main__":

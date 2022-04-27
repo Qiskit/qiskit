@@ -18,7 +18,7 @@ from qiskit.quantum_info.operators import Clifford
 
 class OptimizeCliffords(TransformationPass):
     """Combine consecutive Cliffords over the same qubits.
-    For now, this only serves as an example of extra capabilities enabled by storing
+    This serves as an example of extra capabilities enabled by storing
     Cliffords natively on the circuit.
     """
 
@@ -39,7 +39,9 @@ class OptimizeCliffords(TransformationPass):
         # Iterate over all nodes and collect consecutive Cliffords over the
         # same qubits. In this very first proof-of-concept implementation
         # we require the same ordering of qubits, but this restriction will
-        # be shortly removed.
+        # be shortly removed. An interesting question is whether we may also
+        # want to compose Cliffords over different sets of qubits, such as
+        # cliff1 over qubits [1, 2, 3] and cliff2 over [2, 3, 4].
         for node in dag.op_nodes():
             if isinstance(node.op, Clifford):
                 if prev_node is None:
