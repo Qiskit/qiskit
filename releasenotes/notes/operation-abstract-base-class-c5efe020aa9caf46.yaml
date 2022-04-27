@@ -1,0 +1,15 @@
+---
+
+features:
+  - |
+    A new :class:`.Operation` base class for objects that can be added to a :class:`.QuantumCircuit`.
+    These objects include :class:`.Gate`, :class:`.Reset`, :class:`.Barrier`, :class:.Measure`,
+    and operators such as :class:`.Clifford`.
+  - |
+    A Clifford gate is now added to a quantum circuit as an :class:`.Operation`, without first
+    synthesizing a subcircuit implementing this Clifford gate. The actual synthesis is postponed
+    to a later transpilation pass.
+  - |
+    Added a new transpiler pass :class:`.OptimizeCliffords` that collects blocks of consecutive
+    Clifford gates in a circuit, and replaces each block with a single Clifford object.
+
