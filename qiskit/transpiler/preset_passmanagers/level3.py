@@ -29,6 +29,7 @@ from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import GateDirection
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import VF2Layout
+from qiskit.transpiler.passes import VF2PostLayout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
@@ -54,8 +55,8 @@ from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckGateDirection
 from qiskit.transpiler.passes import TimeUnitConversion
-from qiskit.transpiler.passes import ALAPSchedule
-from qiskit.transpiler.passes import ASAPSchedule
+from qiskit.transpiler.passes import ALAPScheduleAnalysis
+from qiskit.transpiler.passes import ASAPScheduleAnalysis
 from qiskit.transpiler.passes import ConstrainedReschedule
 from qiskit.transpiler.passes import InstructionDurationCheck
 from qiskit.transpiler.passes import ValidatePulseGates
@@ -64,6 +65,7 @@ from qiskit.transpiler.passes import PadDelay
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import ContainsInstruction
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
+from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
 
 from qiskit.transpiler import TranspilerError
 
@@ -157,6 +159,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             call_limit=int(3e7),  # Set call limit to ~60 sec with retworkx 0.10.2
             time_limit=60,
             properties=backend_properties,
+            target=target,
         )
     )
     # 2b. if VF2 didn't converge on a solution use layout_method (dense).
@@ -296,6 +299,36 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm3.append(_embed)
         pm3.append(_swap_check)
         pm3.append(_swap, condition=_swap_condition)
+        if (
+            (coupling_map and backend_properties)
+            and initial_layout is None
+            and pass_manager_config.layout_method is None
+        ):
+
+            def _post_layout_condition(property_set):
+                # if VF2 layout stopped for any reason other than solution found we need
+                # to run layout since VF2 didn't converge.
+                if (
+                    property_set["VF2PostLayout_stop_reason"] is not None
+                    and property_set["VF2PostLayout_stop_reason"]
+                    is VF2PostLayoutStopReason.SOLUTION_FOUND
+                ):
+                    return True
+                return False
+
+            pm3.append(
+                VF2PostLayout(
+                    target,
+                    coupling_map,
+                    backend_properties,
+                    seed_transpiler,
+                    call_limit=int(3e7),  # Set call limit to ~60 sec with retworkx 0.10.2
+                    time_limit=60,
+                    strict_direction=False,
+                )
+            )
+            pm3.append(ApplyLayout(), condition=_post_layout_condition)
+
     pm3.append(_unroll)
     if (coupling_map and not coupling_map.is_symmetric) or (
         target is not None and target.get_non_global_operation_names(strict_direction=True)
@@ -318,6 +351,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm3.append(_reset)
         pm3.append(_depth_check + _size_check)
         pm3.append(_opt + _unroll + _depth_check + _size_check, do_while=_opt_control)
+
     if inst_map and inst_map.has_custom_gate():
         pm3.append(PulseGates(inst_map=inst_map))
 
@@ -327,10 +361,10 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if scheduling_method:
         # Do scheduling after unit conversion.
         scheduler = {
-            "alap": ALAPSchedule,
-            "as_late_as_possible": ALAPSchedule,
-            "asap": ASAPSchedule,
-            "as_soon_as_possible": ASAPSchedule,
+            "alap": ALAPScheduleAnalysis,
+            "as_late_as_possible": ALAPScheduleAnalysis,
+            "asap": ASAPScheduleAnalysis,
+            "as_soon_as_possible": ASAPScheduleAnalysis,
         }
         pm3.append(TimeUnitConversion(instruction_durations))
         try:
