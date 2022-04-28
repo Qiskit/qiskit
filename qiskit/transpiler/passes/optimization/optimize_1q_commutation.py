@@ -14,9 +14,6 @@
 
 from copy import copy
 import logging
-from collections import deque
-
-from more_itertools import first
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import CXGate, RZXGate
