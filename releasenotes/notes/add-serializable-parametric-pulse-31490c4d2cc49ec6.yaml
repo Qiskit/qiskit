@@ -2,13 +2,12 @@
 features:
   - |
     New pulse base class :class:`~SymbolicPulse` has been added. This is a
-    drop-in replacement of the conventional :class:`~ParametricPulse` which has been deprecated.
+    replacement of the conventional :class:`~ParametricPulse` which will be deprecated.
     In new base class, pulse envelope and parameter validation functions are
     represented by sympy symbolic expression objects, which are lambidfied immediately when
     the first instance of symbolic pulse subclass is created.
-    These new pulse subclasses can be QPY serialized through serialization mechanism of
-    sympy symboilic expression objects, and now user can save custom pulse instance
-    in parametric form, i.e. without converting it into raw samples (:class:`~Waveform`).
+    The new class provides a self-contained and portable pulse data since these symbolic equations
+    can be easily serialized through sympy.
 
     To define new subclass of :class:`~SymbolicPulse`, one must override two class methods
     :meth:`~SymbolicPulse._define_envelope` and :meth:`~SymbolicPulse._define_constraints`

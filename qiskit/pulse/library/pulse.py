@@ -49,7 +49,7 @@ class Pulse(ABC):
         self.duration = duration
         self.name = name
         if limit_amplitude is not None:
-            self.__class__.limit_amplitude = limit_amplitude
+            self.limit_amplitude = limit_amplitude
 
     @property
     def id(self) -> int:  # pylint: disable=invalid-name
