@@ -14,15 +14,14 @@
 
 import math
 import unittest
-from itertools import combinations_with_replacement, permutations, product
-from qiskit.test import QiskitTestCase  # test.python.algorithms import QiskitAlgorithmsTestCase
-
 import random
+from itertools import combinations_with_replacement, permutations, product
 import numpy as np
 import networkx as nx
 import retworkx as rx
-from qiskit.circuit import Parameter
 from ddt import ddt, idata, unpack
+from qiskit.test import QiskitTestCase  # test.python.algorithms import QiskitAlgorithmsTestCase
+from qiskit.circuit import Parameter
 from qiskit import BasicAer, QuantumCircuit, QuantumRegister
 from qiskit.algorithms import AdaptQAOA
 from qiskit.circuit.library import IGate, XGate, YGate, ZGate
@@ -162,8 +161,8 @@ class TestAdaptQAOA(QiskitTestCase):
 
     @idata(
         [
-            [W1, P1, S1, False],
-            [W2, P2, S2, False],    
+            [W1, P1, S1, False],    #TODO: mismatch err
+            [W2, P2, S2, False],
             [W1, P1, S1, True],
             [W2, P2, S2, True],
         ]
@@ -453,3 +452,10 @@ class TestAdaptQAOA(QiskitTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+    """ To fix:
+        - test_adapt_qaoa_qc_mixer:
+            - Doesn't like circuits as mixers
+        - test_adapt_qaoa_qc_mixer_many_parameters
+    """
