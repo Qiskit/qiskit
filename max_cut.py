@@ -69,6 +69,7 @@ def max_cut_hamiltonian(D, nq):
     import random
     import networkx as nx
     G = nx.random_regular_graph(D, nq, seed=1234) # connectivity, vertices
+    random.seed(42)
     for (u, v) in G.edges():
         G.edges[u,v]['weight'] = random.randint(0,1000)/1000
     w = np.zeros([nq,nq])
