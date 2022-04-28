@@ -505,38 +505,124 @@ class TestSparsePauliOpMethods(QiskitTestCase):
     def test_sort(self):
         """Test sort method."""
         with self.subTest(msg="1 qubit real number"):
-            target = SparsePauliOp(["I", "I", "I", "I"], [-3.+0.j,  1.+0.j,  2.+0.j,  4.+0.j])
+            target = SparsePauliOp(
+                ["I", "I", "I", "I"], [-3.0 + 0.0j, 1.0 + 0.0j, 2.0 + 0.0j, 4.0 + 0.0j]
+            )
             value = SparsePauliOp(["I", "I", "I", "I"], [1, 2, -3, 4]).sort()
             self.assertEqual(target, value)
 
         with self.subTest(msg="1 qubit complex"):
-            target = SparsePauliOp(["I", "I", "I", "I"], [-1.+0.j,  0.-1.j,  0.+1.j,  1.+0.j])
-            value = SparsePauliOp(["I", "I", "I", "I"], [1.+0.j, 0.+1.j, 0.-1.j, -1.+0.j]).sort()
+            target = SparsePauliOp(
+                ["I", "I", "I", "I"], [-1.0 + 0.0j, 0.0 - 1.0j, 0.0 + 1.0j, 1.0 + 0.0j]
+            )
+            value = SparsePauliOp(
+                ["I", "I", "I", "I"], [1.0 + 0.0j, 0.0 + 1.0j, 0.0 - 1.0j, -1.0 + 0.0j]
+            ).sort()
             self.assertEqual(target, value)
 
         with self.subTest(msg="1 qubit Pauli I, X, Y, Z"):
-            target = SparsePauliOp(["I", "X", "Y", "Z"], [-1.+2.j,  1.+0.j,  2.+0.j,  3.-4.j])
-            value = SparsePauliOp(["Y", "X", "Z", "I"], [2.+0.j, 1.+0.j, 3.-4.j, -1.+2.j]).sort()
+            target = SparsePauliOp(
+                ["I", "X", "Y", "Z"], [-1.0 + 2.0j, 1.0 + 0.0j, 2.0 + 0.0j, 3.0 - 4.0j]
+            )
+            value = SparsePauliOp(
+                ["Y", "X", "Z", "I"], [2.0 + 0.0j, 1.0 + 0.0j, 3.0 - 4.0j, -1.0 + 2.0j]
+            ).sort()
             self.assertEqual(target, value)
 
         with self.subTest(msg="1 qubit weight order"):
-            target = SparsePauliOp(["I", "X", "Y", "Z"], [-1.+2.j,  1.+0.j,  2.+0.j,  3.-4.j])
-            value = SparsePauliOp(["Y", "X", "Z", "I"], [2.+0.j, 1.+0.j, 3.-4.j, -1.+2.j]).sort(weight=True)
+            target = SparsePauliOp(
+                ["I", "X", "Y", "Z"], [-1.0 + 2.0j, 1.0 + 0.0j, 2.0 + 0.0j, 3.0 - 4.0j]
+            )
+            value = SparsePauliOp(
+                ["Y", "X", "Z", "I"], [2.0 + 0.0j, 1.0 + 0.0j, 3.0 - 4.0j, -1.0 + 2.0j]
+            ).sort(weight=True)
             self.assertEqual(target, value)
 
         with self.subTest(msg="1 qubit multi Pauli"):
-            target = SparsePauliOp(["I", "I", "I", "I", "X", "X", "Y", "Z"], [-1.+2.j,  1.+0.j,  2.+0.j,  3.-4.j, -1.+4.j, -1.+5.j, -1.+3.j, -1.+2.j])
-            value = SparsePauliOp(["I", "I", "I", "I", "X", "Z", "Y", "X"], [2.+0.j, 1.+0.j, 3.-4.j, -1.+2.j, -1.+5.j, -1.+2.j, -1.+3.j, -1.+4.j]).sort()
+            target = SparsePauliOp(
+                ["I", "I", "I", "I", "X", "X", "Y", "Z"],
+                [
+                    -1.0 + 2.0j,
+                    1.0 + 0.0j,
+                    2.0 + 0.0j,
+                    3.0 - 4.0j,
+                    -1.0 + 4.0j,
+                    -1.0 + 5.0j,
+                    -1.0 + 3.0j,
+                    -1.0 + 2.0j,
+                ],
+            )
+            value = SparsePauliOp(
+                ["I", "I", "I", "I", "X", "Z", "Y", "X"],
+                [
+                    2.0 + 0.0j,
+                    1.0 + 0.0j,
+                    3.0 - 4.0j,
+                    -1.0 + 2.0j,
+                    -1.0 + 5.0j,
+                    -1.0 + 2.0j,
+                    -1.0 + 3.0j,
+                    -1.0 + 4.0j,
+                ],
+            ).sort()
             self.assertEqual(target, value)
 
         with self.subTest(msg="2 qubit standard order"):
-            target = SparsePauliOp(["II", "XI", "XX", "XX", "XX", "XY", "XZ", "YI"], [4.+0.j, 7.+0.j, 2.+1.j, 2.+2.j, 3.+0.j, 6.+0.j, 5.+0.j, 3.+0.j])
-            value = SparsePauliOp(["XX", "XX", "XX", "YI", "II", "XZ", "XY", "XI"], [2.+1.j, 2.+2.j, 3.+0.j, 3.+0.j, 4.+0.j, 5.+0.j, 6.+0.j, 7.+0.j]).sort()
+            target = SparsePauliOp(
+                ["II", "XI", "XX", "XX", "XX", "XY", "XZ", "YI"],
+                [
+                    4.0 + 0.0j,
+                    7.0 + 0.0j,
+                    2.0 + 1.0j,
+                    2.0 + 2.0j,
+                    3.0 + 0.0j,
+                    6.0 + 0.0j,
+                    5.0 + 0.0j,
+                    3.0 + 0.0j,
+                ],
+            )
+            value = SparsePauliOp(
+                ["XX", "XX", "XX", "YI", "II", "XZ", "XY", "XI"],
+                [
+                    2.0 + 1.0j,
+                    2.0 + 2.0j,
+                    3.0 + 0.0j,
+                    3.0 + 0.0j,
+                    4.0 + 0.0j,
+                    5.0 + 0.0j,
+                    6.0 + 0.0j,
+                    7.0 + 0.0j,
+                ],
+            ).sort()
             self.assertEqual(target, value)
-        
+
         with self.subTest(msg="2 qubit weight order"):
-            target = SparsePauliOp(["II", "XI", "YI", "XX", "XX", "XX", "XY", "XZ"], [4.+0.j, 7.+0.j, 3.+0.j, 2.+1.j, 2.+2.j, 3.+0.j, 6.+0.j, 5.+0.j])
-            value = SparsePauliOp(["XX", "XX", "XX", "YI", "II", "XZ", "XY", "XI"], [2.+1.j, 2.+2.j, 3.+0.j, 3.+0.j, 4.+0.j, 5.+0.j, 6.+0.j, 7.+0.j]).sort(weight=True)
+            target = SparsePauliOp(
+                ["II", "XI", "YI", "XX", "XX", "XX", "XY", "XZ"],
+                [
+                    4.0 + 0.0j,
+                    7.0 + 0.0j,
+                    3.0 + 0.0j,
+                    2.0 + 1.0j,
+                    2.0 + 2.0j,
+                    3.0 + 0.0j,
+                    6.0 + 0.0j,
+                    5.0 + 0.0j,
+                ],
+            )
+            value = SparsePauliOp(
+                ["XX", "XX", "XX", "YI", "II", "XZ", "XY", "XI"],
+                [
+                    2.0 + 1.0j,
+                    2.0 + 2.0j,
+                    3.0 + 0.0j,
+                    3.0 + 0.0j,
+                    4.0 + 0.0j,
+                    5.0 + 0.0j,
+                    6.0 + 0.0j,
+                    7.0 + 0.0j,
+                ],
+            ).sort(weight=True)
             self.assertEqual(target, value)
 
     def test_chop(self):

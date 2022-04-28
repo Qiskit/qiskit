@@ -498,9 +498,7 @@ class SparsePauliOp(LinearOp):
             SparsePauliOp: a sorted copy of the original table.
         """
         indices = self.argsort(weight=weight)
-        return SparsePauliOp(
-            self._pauli_list[indices], self._coeffs[indices]
-        )
+        return SparsePauliOp(self._pauli_list[indices], self._coeffs[indices])
 
     def chop(self, tol=1e-14):
         """Set real and imaginary parts of the coefficients to 0 if ``< tol`` in magnitude.
