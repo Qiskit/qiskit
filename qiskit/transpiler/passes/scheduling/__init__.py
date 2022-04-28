@@ -15,6 +15,7 @@
 from .alap import ALAPSchedule
 from .asap import ASAPSchedule
 from .dynamical_decoupling import DynamicalDecoupling
+<<<<<<< HEAD
 from .scheduling import ALAPScheduleAnalysis, ASAPScheduleAnalysis, SetIOLatency
 from .time_unit_conversion import TimeUnitConversion
 from .padding import PadDelay, PadDynamicalDecoupling
@@ -25,3 +26,6 @@ from . import alignments as instruction_alignments
 
 # TODO Deprecated pass. Will be removed after deprecation period.
 from .alignments import AlignMeasures
+=======
+from .instruction_alignment import AlignMeasures, ValidatePulseGates
+>>>>>>> 8b57d7703 (Revert "Working update")

@@ -15,24 +15,39 @@ Fake Bogota device (5 qubit).
 """
 
 import os
+<<<<<<< HEAD
 from qiskit.test.mock import fake_pulse_backend, fake_backend
+=======
+>>>>>>> 8b57d7703 (Revert "Working update")
 
+from qiskit.test.mock import fake_qasm_backend
 
+<<<<<<< HEAD
 class FakeBogotaV2(fake_backend.FakeBackendV2):
+=======
+
+class FakeBogota(fake_qasm_backend.FakeQasmBackend):
+>>>>>>> 8b57d7703 (Revert "Working update")
     """A fake 5 qubit backend."""
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_bogota.json"
     props_filename = "props_bogota.json"
+<<<<<<< HEAD
     defs_filename = "defs_bogota.json"
     backend_name = "fake_bogota_v2"
 
 
 class FakeBogota(fake_pulse_backend.FakePulseBackend):
+=======
+    backend_name = "fake_bogota"
+
+
+class FakeLegacyBogota(fake_qasm_backend.FakeQasmLegacyBackend):
+>>>>>>> 8b57d7703 (Revert "Working update")
     """A fake 5 qubit backend."""
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_bogota.json"
     props_filename = "props_bogota.json"
-    defs_filename = "defs_bogota.json"
     backend_name = "fake_bogota"

@@ -72,7 +72,6 @@ Optimizations
    Collect1qRuns
    Collect2qBlocks
    CollectMultiQBlocks
-   CollectLinearFunctions
    ConsolidateBlocks
    CXCancellation
    InverseCancellation
@@ -137,8 +136,6 @@ Synthesis
    :toctree: ../stubs/
 
    UnitarySynthesis
-   LinearFunctionsSynthesis
-   LinearFunctionsToPermutations
 
 Post Layout (Post transpile qubit selection)
 ============================================
@@ -219,7 +216,6 @@ from .optimization import HoareOptimizer
 from .optimization import TemplateOptimization
 from .optimization import InverseCancellation
 from .optimization import EchoRZXWeylDecomposition
-from .optimization import CollectLinearFunctions
 
 # circuit analysis
 from .analysis import ResourceEstimation
@@ -234,8 +230,6 @@ from .analysis import DAGLongestPath
 # synthesis
 from .synthesis import UnitarySynthesis
 from .synthesis import unitary_synthesis_plugin_names
-from .synthesis import LinearFunctionsSynthesis
-from .synthesis import LinearFunctionsToPermutations
 
 # calibration
 from .calibration import PulseGates
@@ -252,10 +246,13 @@ from .scheduling import PadDynamicalDecoupling
 from .scheduling import DynamicalDecoupling
 from .scheduling import AlignMeasures  # Deprecated
 from .scheduling import ValidatePulseGates
+<<<<<<< HEAD
 from .scheduling import PadDelay
 from .scheduling import ConstrainedReschedule
 from .scheduling import InstructionDurationCheck
 from .scheduling import SetIOLatency
+=======
+>>>>>>> 8b57d7703 (Revert "Working update")
 
 # additional utility passes
 from .utils import CheckMap

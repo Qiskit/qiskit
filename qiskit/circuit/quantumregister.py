@@ -23,8 +23,6 @@ from .bit import Bit
 class Qubit(Bit):
     """Implement a quantum bit."""
 
-    __slots__ = ()
-
     def __init__(self, register=None, index=None):
         """Creates a qubit.
 
@@ -60,8 +58,6 @@ class QuantumRegister(Register):
 
 class AncillaQubit(Qubit):
     """A qubit used as ancillary qubit."""
-
-    __slots__ = ()
 
     pass
 

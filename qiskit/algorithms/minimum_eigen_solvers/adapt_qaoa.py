@@ -168,6 +168,7 @@ class AdaptQAOA(QAOA):
         self.threshold = threshold
         self.solution_tolerance = solution_tolerance
         
+
     def _check_operator_ansatz(self, operator: OperatorBase) -> OperatorBase:
         # Initialises the algorithms necessary operators 
         if operator != self._cost_operator:
@@ -193,10 +194,10 @@ class AdaptQAOA(QAOA):
                 self._mixer_pool = self._ansatz.mixer_operators
 
     def compute_energy_gradient(
-        self,
+        self, 
         mixer: OperatorBase,
-        operator: OperatorBase,
-        parameters: dict = None,
+        operator: OperatorBase, 
+        parameters: dict = None, 
         ansatz: QuantumCircuit = None
         ) -> ComposedOp:
         """
@@ -214,7 +215,7 @@ class AdaptQAOA(QAOA):
 
         if mixer.parameters:
             num_beta = mixer.num_parameters
-            if self._num_beta[-1] != num_beta:
+            if self._num_beta[-1] != num_beta: 
                 self._num_beta[-1] = num_beta
                 self._update_initial_points()
             param_dict = dict(zip(mixer.parameters, list(np.zeros(num_beta))))
@@ -260,7 +261,7 @@ class AdaptQAOA(QAOA):
             energy_gradients.append(meas)
         energy_gradients = np.abs(np.real(energy_gradients)) # get the norm
         # Compute mixer index associated with the largest gradient change
-        max_energy_idx = np.argmax(energy_gradients)
+        max_energy_idx = np.argmax(energy_gradients) 
         self.mixer_operators.append(self.mixer_pool[max_energy_idx]) # Append mixer to mixer_operators list
         return energy_gradients[max_energy_idx] # return the norm of the energy gradient
 
@@ -331,7 +332,7 @@ class AdaptQAOA(QAOA):
 
         """
         if ansatz is None:
-            ansatz = RealAmplitudes()
+            ansatz = RealAmplitudes()  
         
         if (self.__ansatz == ansatz):   # update the ansatz with mixer_operators
             update_dict = {'mixer_operators': self.mixer_operators,
@@ -419,7 +420,7 @@ class AdaptQAOA(QAOA):
         """      
         if not self._solution:
             num_params = self._num_gamma + sum(self._num_beta[:self._reps])
-            num_pts = len(self._gamma_ip) + len(self._beta_ip)
+            num_pts = len(self._gamma_ip) + len(self._beta_ip) 
             if num_pts < num_params:
                 self._update_initial_points()
             return self._init_point_rep
@@ -440,7 +441,7 @@ class AdaptQAOA(QAOA):
             if len(initial_point) != 2 * self.max_reps:
                 raise AttributeError(
                     "The number of user specified initial points ({}) must "
-                    "be at least twice the maximum ansatz depth ({})".format( 
+                    "be at least twice the maximum ansatz depth ({})".format(       
                         len(initial_point), 2 * self.max_reps
                     )
                 )
@@ -523,5 +524,5 @@ class AdaptQAOA(QAOA):
 def commutator(a,b):
     "Qiskit commutator produces incorrect results, using this instead."
     a = a if isinstance(a, np.ndarray) else a.to_matrix()
-    b = b if isinstance(b, np.ndarray) else b.to_matrix()
+    b = b if isinstance(b, np.ndarray) else b.to_matrix()    
     return np.matmul(a, b) - np.matmul(b, a)

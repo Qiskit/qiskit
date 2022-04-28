@@ -15,13 +15,11 @@
 import math
 import unittest
 import random
-from itertools import combinations_with_replacement, permutations, product
 import numpy as np
 import networkx as nx
 import retworkx as rx
-from ddt import ddt, idata, unpack
-from qiskit.test import QiskitTestCase  # test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit.circuit import Parameter
+from ddt import ddt, idata, unpack
 from qiskit import BasicAer, QuantumCircuit, QuantumRegister
 from qiskit.algorithms import AdaptQAOA
 from qiskit.circuit.library import IGate, XGate, YGate, ZGate

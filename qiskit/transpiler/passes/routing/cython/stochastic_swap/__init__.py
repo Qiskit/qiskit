@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2017, 2018.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,18 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Exception for errors raised by the pulse module."""
-from qiskit.exceptions import QiskitError
+<<<<<<< HEAD:qiskit/test/mock/backends/cairo/__init__.py
+"""Mock cairo backend"""
 
-
-class QpyError(QiskitError):
-    """Errors raised by the qpy module."""
-
-    def __init__(self, *message):
-        """Set the error message."""
-        super().__init__(*message)
-        self.message = " ".join(message)
-
-    def __str__(self):
-        """Return the message."""
-        return repr(self.message)
+from .fake_cairo import FakeCairoV2
+from .fake_cairo import FakeCairo
+=======
+"""Module containing Cython code for StochasticSwap mapper."""
+>>>>>>> 8b57d7703 (Revert "Working update"):qiskit/transpiler/passes/routing/cython/stochastic_swap/__init__.py

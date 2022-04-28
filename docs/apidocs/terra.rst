@@ -22,8 +22,11 @@ Qiskit Terra API Reference
    pulse
    scheduler
    synthesis
+<<<<<<< HEAD
    primitives
    qasm3
+=======
+>>>>>>> 8b57d7703 (Revert "Working update")
    qasm
    qobj
    qpy

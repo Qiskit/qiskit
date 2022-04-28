@@ -241,6 +241,10 @@ class TestStandardGates(QiskitTestCase):
             num_ctrl_qubits = 3
             float_vector = float_vector[:-1]
             gate = gate_class(num_ctrl_qubits, *float_vector)
+        elif class_name == "MSGate":
+            num_qubits = 3
+            float_vector = float_vector[:-1]
+            gate = gate_class(num_qubits, *float_vector)
         elif class_name == "PauliGate":
             pauli_string = "IXYZ"
             gate = gate_class(pauli_string)
@@ -279,9 +283,12 @@ class TestGateEquivalenceEqual(QiskitTestCase):
             "VariadicZeroParamGate",
             "ClassicalFunction",
             "ClassicalElement",
+<<<<<<< HEAD
             "StatePreparation",
             "LinearFunction",
             "Commuting2qBlocks",
+=======
+>>>>>>> 8b57d7703 (Revert "Working update")
         }
         cls._gate_classes = []
         for aclass in class_list:

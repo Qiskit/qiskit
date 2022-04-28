@@ -80,6 +80,14 @@ For example:
    CZGate
    HGate
    IGate
+<<<<<<< HEAD
+=======
+   MCPhaseGate
+   MCXGate
+   MCXGrayCode
+   MCXRecursive
+   MCXVChain
+>>>>>>> 8b57d7703 (Revert "Working update")
    MSGate
    PhaseGate
    RCCXGate
@@ -176,7 +184,6 @@ set the amount of qubits involved at instantiation time.
    MCXVChain
    RVGate
    PauliGate
-   LinearFunction
 
 Boolean Logic Circuits
 ======================
@@ -483,14 +490,12 @@ from .generalized_gates import (
     MCMTVChain,
     Permutation,
     GMS,
-    MSGate,
     GR,
     GRX,
     GRY,
     GRZ,
     RVGate,
     PauliGate,
-    LinearFunction,
 )
 from .pauli_evolution import PauliEvolutionGate
 from .boolean_logic import (

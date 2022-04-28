@@ -19,7 +19,6 @@ from test.python.transpiler._dummy_passes import DummyAP
 
 from functools import partial
 import numpy as np
-from scipy.optimize import minimize as scipy_minimize
 from ddt import data, ddt, unpack
 
 from qiskit import BasicAer, QuantumCircuit
@@ -33,7 +32,6 @@ from qiskit.algorithms.optimizers import (
     SLSQP,
     SPSA,
     TNC,
-    OptimizerResult,
 )
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes, TwoLocal
 from qiskit.exceptions import MissingOptionalLibraryError
@@ -69,16 +67,6 @@ class LogPass(DummyAP):
 
     def run(self, dag):
         logging.getLogger(logger).info(self.message)
-
-
-# pylint: disable=invalid-name, unused-argument
-def _mock_optimizer(fun, x0, jac=None, bounds=None) -> OptimizerResult:
-    """A mock of a callable that can be used as minimizer in the VQE."""
-    result = OptimizerResult()
-    result.x = np.zeros_like(x0)
-    result.fun = fun(result.x)
-    result.nit = 0
-    return result
 
 
 @ddt
@@ -213,14 +201,32 @@ class TestVQE(QiskitAlgorithmsTestCase):
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.86823, places=2)
 
-    def test_qasm_eigenvector_normalized(self):
-        """Test VQE with qasm_simulator returns normalized eigenvector."""
+    def test_qasm_aux_operators_normalized(self):
+        """Test VQE with qasm_simulator returns normalized aux_operator eigenvalues."""
         wavefunction = self.ry_wavefunction
         vqe = VQE(ansatz=wavefunction, quantum_instance=self.qasm_simulator)
-        result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
+        _ = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
-        amplitudes = list(result.eigenstate.values())
-        self.assertAlmostEqual(np.linalg.norm(amplitudes), 1.0, places=4)
+        opt_params = [
+            3.50437328,
+            3.87415376,
+            0.93684363,
+            5.92219622,
+            -1.53527887,
+            1.87941418,
+            -4.5708326,
+            0.70187027,
+        ]
+
+        vqe._ret.optimal_point = opt_params
+        vqe._ret.optimal_parameters = dict(
+            zip(sorted(wavefunction.parameters, key=lambda p: p.name), opt_params)
+        )
+
+        with self.assertWarns(DeprecationWarning):
+            optimal_vector = vqe.get_optimal_vector()
+
+        self.assertAlmostEqual(sum(v**2 for v in optimal_vector.values()), 1.0, places=4)
 
     @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
     def test_with_aer_statevector(self):
@@ -500,24 +506,6 @@ class TestVQE(QiskitAlgorithmsTestCase):
         )
         vqe.optimizer = None
         self.assertIsInstance(vqe.optimizer, SLSQP)
-
-    def test_optimizer_scipy_callable(self):
-        """Test passing a SciPy optimizer directly as callable."""
-        vqe = VQE(
-            optimizer=partial(scipy_minimize, method="L-BFGS-B", options={"maxiter": 2}),
-            quantum_instance=self.statevector_simulator,
-        )
-        result = vqe.compute_minimum_eigenvalue(Z)
-        self.assertEqual(result.cost_function_evals, 20)
-
-    def test_optimizer_callable(self):
-        """Test passing a optimizer directly as callable."""
-        ansatz = RealAmplitudes(1, reps=1)
-        vqe = VQE(
-            ansatz=ansatz, optimizer=_mock_optimizer, quantum_instance=self.statevector_simulator
-        )
-        result = vqe.compute_minimum_eigenvalue(Z)
-        self.assertTrue(np.all(result.optimal_point == np.zeros(ansatz.num_parameters)))
 
     def test_aux_operators_list(self):
         """Test list-based aux_operators."""

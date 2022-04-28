@@ -15,7 +15,6 @@
 import unittest
 import numpy as np
 from numpy import pi
-from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, Delay
 from qiskit.circuit.library import XGate, YGate, RXGate, UGate
@@ -29,14 +28,17 @@ from qiskit.transpiler.passes import (
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 
-import qiskit.pulse as pulse
-
 from qiskit.test import QiskitTestCase
 
 
+<<<<<<< HEAD
 @ddt
 class TestPadDynamicalDecoupling(QiskitTestCase):
     """Tests PadDynamicalDecoupling pass."""
+=======
+class TestDynamicalDecoupling(QiskitTestCase):
+    """Tests DynamicalDecoupling pass."""
+>>>>>>> 8b57d7703 (Revert "Working update")
 
     def setUp(self):
         """Circuits to test DD on.
@@ -615,6 +617,7 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         with self.assertRaises(TranspilerError):
             pm.run(self.ghz4)
 
+<<<<<<< HEAD
     @data(0.5, 1.5)
     def test_dd_with_calibrations_with_parameters(self, param_value):
         """Check that calibrations in a circuit with parameters work fine."""
@@ -741,6 +744,8 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
 
         self.assertEqual(circ1, circ2)
 
+=======
+>>>>>>> 8b57d7703 (Revert "Working update")
 
 if __name__ == "__main__":
     unittest.main()

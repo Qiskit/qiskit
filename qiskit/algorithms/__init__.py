@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2022.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -47,7 +47,6 @@ Amplitude Amplifiers
    :nosignatures:
 
    AmplificationProblem
-   AmplitudeAmplifier
    Grover
    GroverResult
 
@@ -93,6 +92,7 @@ knowledge to do this in that application domain.
    NumPyEigensolver
 
 
+<<<<<<< HEAD
 Evolvers
 --------
 
@@ -110,6 +110,8 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
     EvolutionResult
     EvolutionProblem
 
+=======
+>>>>>>> 8b57d7703 (Revert "Working update")
 Factorizers
 -----------
 
@@ -205,11 +207,14 @@ Utility methods used by algorithms.
 """
 
 from .algorithm_result import AlgorithmResult
+<<<<<<< HEAD
 from .evolvers import EvolutionResult, EvolutionProblem
 from .evolvers.real_evolver import RealEvolver
 from .evolvers.imaginary_evolver import ImaginaryEvolver
+=======
+>>>>>>> 8b57d7703 (Revert "Working update")
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
-from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem, AmplitudeAmplifier
+from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem
 from .amplitude_estimators import (
     AmplitudeEstimator,
     AmplitudeEstimatorResult,
@@ -251,7 +256,6 @@ __all__ = [
     "AlgorithmResult",
     "VariationalAlgorithm",
     "VariationalResult",
-    "AmplitudeAmplifier",
     "AmplificationProblem",
     "Grover",
     "GroverResult",
@@ -267,11 +271,14 @@ __all__ = [
     "MaximumLikelihoodAmplitudeEstimationResult",
     "EstimationProblem",
     "NumPyEigensolver",
+<<<<<<< HEAD
     "RealEvolver",
     "ImaginaryEvolver",
     "TrotterQRTE",
     "EvolutionResult",
     "EvolutionProblem",
+=======
+>>>>>>> 8b57d7703 (Revert "Working update")
     "LinearSolverResult",
     "Eigensolver",
     "EigensolverResult",
