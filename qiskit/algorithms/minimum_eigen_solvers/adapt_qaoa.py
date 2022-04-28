@@ -20,7 +20,8 @@ from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.opflow import I, X, Y, Z
 
 # CHANGEBACK TODO
-from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
+from ...circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
+#from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
 
 
 class AdaptQAOA(QAOA):
@@ -351,6 +352,7 @@ def adapt_mixer_pool(num_qubits: int, add_single: bool = True, add_multi: bool =
 
     mixer_pool = [string_to_op(mixer) for mixer in mixer_pool]
     return mixer_pool
+
 
 
 # num, reps = 6, 2
