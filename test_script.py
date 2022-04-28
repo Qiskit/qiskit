@@ -23,7 +23,13 @@ optimiser = NELDER_MEAD()
 "--------------------------------------------------------------"
 "run adapt"
 "--------------------------------------------------------------"
+<<<<<<< HEAD
 adapt_vals_dict = {'Multi':0}#, 'Single':0, 'Singular':0}
+=======
+import copy
+adapt_vals_dict = {'multi':0, 'single':0, 'singular':0}
+adapt_val_dict = copy.copy(adapt_vals_dict)
+>>>>>>> e9f020029 (change mixer pool type to lowercase)
 for mt in adapt_vals_dict.keys():
     print("Running adapt with mixer pool type {}".format(mt))
     adaptqaoa = AdaptQAOA(max_reps=max_reps, quantum_instance=quantum_instance,mixer_pool_type=mt, 
