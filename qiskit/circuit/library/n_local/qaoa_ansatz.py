@@ -86,8 +86,9 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             valid = False
             if raise_on_failure:
                 raise ValueError(
-                    f"The number of qubits of the initial state {self.initial_state.num_qubits}"
-                    f"does not match the number of qubits of the cost operator {self.num_qubits}"
+                    "The number of qubits of the initial state {}"
+                    "does not match the number of qubits of the "
+                    "cost operator {}".format(self.initial_state.num_qubits, self.num_qubits)
                 )
 
         if self.mixer_operator is not None:
@@ -99,19 +100,19 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                     valid = False
                     if raise_on_failure:
                         raise AttributeError(
-                            f"The number of qubits of the mixer operator(s)"
-                            f"{[_.num_qubits for _ in self.mixer_operator[mixer_qubit_check]]} at "
-                            f"argument(s) {mixer_qubit_check[0]} does not match the number of qubits of "
-                            f"the cost operator {self.num_qubits}"
+                            "The number of qubits of the mixer operator(s) {} at argument(s) "
+                            "{} does not match the number of qubits of the cost operator "
+                            "{}".format([_.num_qubits for _ in self.mixer_operator[mixer_qubit_check]],
+                                mixer_qubit_check[0], self.num_qubits)
                         )
             else:
                 if self.mixer_operator.num_qubits != self.num_qubits:
                     valid = False
                     if raise_on_failure:
                         raise AttributeError(
-                            f"The number of qubits of the mixer {self.mixer_operator.num_qubits}"
-                            "does not match the number of qubits of the cost operator "
-                            f"{self.num_qubits}."
+                            "The number of qubits of the mixer {} does not match the number of "
+                            "qubits of the cost operator {}.".format(self.mixer_operator.num_qubits,
+                                self.num_qubits)
                         )
 
         return valid
