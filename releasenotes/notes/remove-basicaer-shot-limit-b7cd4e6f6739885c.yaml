@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    The maximum number of shots in BasicAer backend has been removed. Now, by default, it has been set to zero which is the special case for no evaluation of a maximum number of shots.
