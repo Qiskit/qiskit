@@ -107,7 +107,6 @@ S2 = {"1011", "0100"}
 
 CUSTOM_SUPERPOSITION = [1 / math.sqrt(15)] * 15 + [0]
 
-" python -m unittest test_adapt_qaoa.py "
 @ddt
 # class TestAdaptQAOA(QiskitAlgorithmsTestCase):
 class TestAdaptQAOA(QiskitTestCase):
@@ -147,11 +146,7 @@ class TestAdaptQAOA(QiskitTestCase):
             qubit_op = qubit_op.to_matrix_op()
 
         adapt_qaoa = AdaptQAOA(
-            optimizer=COBYLA(maxiter=1000000, tol=0),
-            max_reps=prob,
-            mixer_pool=m,
-            quantum_instance=self.statevector_simulator,
-        )
+            optimizer=COBYLA(maxiter=1000000, tol=0), max_reps=prob, mixer_pool=m, quantum_instance=self.statevector_simulator)
         result = adapt_qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
