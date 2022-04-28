@@ -41,7 +41,7 @@ from qiskit.transpiler import Target
 from qiskit.transpiler import InstructionProperties
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock.fake_backend_v2 import FakeBackendV2
-from qiskit.test.mock.fake_mumbai_v2 import FakeMumbaiV2
+from qiskit.test.mock.fake_mumbai_v2 import FakeMumbaiFractionalCX
 
 
 class TestTarget(QiskitTestCase):

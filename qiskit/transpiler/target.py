@@ -525,15 +525,15 @@ class Target(Mapping):
                 the target supports a particular operation by class rather
                 than by name. This lookup is more expensive as it needs to
                 iterate over all operations in the target instead of just a
-                single lookup. If this is specified it will superscede the
+                single lookup. If this is specified it will supersede the
                 ``operation_name`` argument. The typical use case for this
                 operation is to check whether a specific variant of an operation
-                is supported on the backend. For example, if you wanted to look
+                is supported on the backend. For example, if you wanted to
                 check whether a :class:`~.RXGate` was supported on a specific
                 qubit with a fixed angle. That fixed angle variant will
                 typically have a name different than the object's
                 :attr:`~.Instruction.name` attribute (``"rx"``) in the target.
-                This can be used to check if any instnaces of the class are
+                This can be used to check if any instances of the class are
                 available in such a case.
             parameters (list): A list of parameters to check if the target
                 supports them on the specified qubits. If the instruction
@@ -548,7 +548,7 @@ class Target(Mapping):
                 will not be checked (for example if an operation in the target
                 is listed as parameterized with ``"theta"`` and ``"phi"`` is
                 passed into this function that will return ``True``). For
-                exmample, if called with::
+                example, if called with::
 
                     parameters = [Parameter("theta")]
                     target.instruction_supported("rx", (0,), parameters=parameters)
@@ -560,7 +560,7 @@ class Target(Mapping):
 
                     target.instruction_supported("rx", (0,), RXGate, parameters=[pi / 4])
 
-                will return ``True`` if any RXGate
+                will return ``True`` if an RXGate(pi/4) exists on qubit 0.
 
         Returns:
             bool: Returns ``True`` if the instruction is supported and ``False`` if it isn't.
