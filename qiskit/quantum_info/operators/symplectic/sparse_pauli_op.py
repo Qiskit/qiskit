@@ -438,7 +438,7 @@ class SparsePauliOp(LinearOp):
             PauliList.from_symplectic(z, x), coeffs, ignore_pauli_phase=True, copy=False
         )
 
-    def argsort(self, reverse=False):
+    def argsort(self, weight=False):
         """Return indices for sorting the rows of the table.
 
         The default sort method is lexicographic sorting by qubit number.
@@ -447,25 +447,21 @@ class SparsePauliOp(LinearOp):
         all Pauli's of a given weight are still ordered lexicographically.
 
         Args:
-            reverse (bool): Optionally sort by weight if True (Default: False).
+            weight (bool): optionally sort by weight if True (Default: False).
 
         Returns:
             array: the indices for sorting the table.
         """
-        key = np.abs(self._coeffs)
-        if reverse:
-            key = -key
-        sort_inds = np.argsort(key, kind="stable")
-        pauli_list = self._pauli_list[sort_inds]
-        return sort_inds, pauli_list.argsort(weight=True, phase=False)
+        sort_coeffs_inds = np.argsort(self._coeffs, kind="stable")
+        pauli_list = self._pauli_list[sort_coeffs_inds]
+        sort_pauli_inds = pauli_list.argsort(weight=weight, phase=False)
+        return sort_coeffs_inds[sort_pauli_inds]
 
-    def sort(self, reverse=False):
+    def sort(self, weight=False):
         """Sort the rows of the table.
 
-        The default sort method is lexicographic sorting by qubit number.
-        By using the `weight` kwarg the output can additionally be sorted
-        by the number of non-identity terms in the Pauli, where the set of
-        all Pauli's of a given weight are still ordered lexicographically.
+        The default sorting method is ascending order by the magnitude of the coefficients. You can also specify the reverse option in descending order.
+        This method sorts by the magnitude of the coefficient and then further by the number of non-identity terms in Pauli.
 
         **Example**
 
@@ -496,14 +492,14 @@ class SparsePauliOp(LinearOp):
             print(srt)
 
         Args:
-            reverse (bool): optionally sort by weight if True (Default: False).
+            weight (bool): optionally sort by weight if True (Default: False).
 
         Returns:
             SparsePauliOp: a sorted copy of the original table.
         """
-        indices_coeffs, indices_pauli = self.argsort(reverse=reverse)
+        indices = self.argsort(weight=weight)
         return SparsePauliOp(
-            self._pauli_list[indices_coeffs][indices_pauli], self._coeffs[indices_coeffs][indices_pauli]
+            self._pauli_list[indices], self._coeffs[indices]
         )
 
     def chop(self, tol=1e-14):
