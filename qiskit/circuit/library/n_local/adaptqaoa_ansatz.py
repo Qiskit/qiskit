@@ -24,7 +24,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.converters import isinstanceint
 from qiskit.opflow import PauliSumOp, PauliOp, OperatorBase, PrimitiveOp
 from qiskit.quantum_info import Pauli, SparsePauliOp, Operator
-from qiskit.circuit import ParameterVector
+from qiskit.circuit import ParameterVector, Parameter
 from qiskit.circuit.library.evolved_operator_ansatz import _is_pauli_identity
 from qiskit.circuit.library.n_local import QAOAAnsatz
 
@@ -166,8 +166,8 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
         cost_operator=None,
         reps: int = 1,
         initial_state: Optional[QuantumCircuit] = None,
-        mixer_pool: Optional[Union[OperatorBase, QuantumCircuit]] = None,
-        mixer_pool_type: str = None,
+        mixer_pool: Optional[Union[List, OperatorBase, QuantumCircuit]] = None,
+        mixer_pool_type: Optional[str] = None,
         name: str = "AdaptQAOA",
     ):
         r"""
@@ -222,14 +222,19 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
 
         if not self._config_check:
             # Check that the dimensionality of the mixer operator pool is equal to the cost operator
-            if self._mixer_operators is not None:
-                _, valid = self._check_mixers(self._mixer_operators)
-            if valid:
-                self._mixer_op_pool, valid  = self._check_mixers(self.mixer_pool) # set self._mixer_pool as the operator representation
+            self._mixer_op_pool, valid  = self._check_mixers(self.mixer_pool) # sets self._mixer_pool as operator representation
+            if self._mixer_operators is not None:   # if custom mixers have been specified, check that they aren't in the mixer_pool
+                if np.any([mixer not in self._mixer_pool for mixer in self._mixer_operators]):
+                    _, valid = self._check_mixers(self._mixer_operators)    # if not, then check the custom mixers
             self._config_check = True   # set class attribute to avoid doing this check twice
         return valid
 
-    def _check_mixers(self, mixer_operators: Optional[Union[OperatorBase, QuantumCircuit]], raise_on_failure: bool = True):
+    def _check_mixers(
+        self, 
+        mixer_operators: Optional[Union[List, OperatorBase, QuantumCircuit]], 
+        raise_on_failure: bool = True):
+
+        mixer_operators = mixer_operators if isinstance(mixer_operators, list) else [mixer_operators]
         valid = True
         nmix_qubits, nmix_params, mixer_list = [], [], []
         for mixer in mixer_operators:
@@ -324,7 +329,7 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
         """
         self._cost_operator = cost_operator
         self.qregs = [QuantumRegister(self.num_qubits, name="q")]
-        self._num_cost = 0 if _is_pauli_identity(self.cost_operator) else 1
+        self._num_cost = 0 if _is_pauli_identity(cost_operator) else 1
         self._num_mixer = [0]
         self._config_check = False
         self._invalidate()
@@ -337,13 +342,12 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
             List of mixers to be used on ansatz layers.
         Raises:
             AttributeError: If the circuit is not built & mixer operators aren't set.
-            Further, if the 
         """
         if self._mixer_operators is None:
             if not self._is_built:
                 raise AttributeError("Unable to construct ansatz as custom mixer operators "
                 "must be set by first calling the class method set_mixer_operators.")
-            self._mixer_operators = []
+            return [self.mixer_operator]
         return self._mixer_operators
 
     @mixer_operators.setter
@@ -352,8 +356,9 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
         Args:
             mixer_operator: a list of operators or circuits to set.
         """
-        if not isinstance(mixer_operators, list):
-            mixer_operators = [mixer_operators] 
+        if mixer_operators is None:
+            mixer_operators = self.mixer_operator
+        mixer_operators = mixer_operators if isinstance(mixer_operators, list) else [mixer_operators] 
         self._mixer_operators = mixer_operators
         self._operators = None
         self._invalidate()
@@ -387,6 +392,7 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
         Args:
             mixer_pool: a list of operators or circuits that define the mixer pool
         """
+        self._mixer_pool = mixer_pool if isinstance(mixer_pool, list) else [mixer_pool]
         self._mixer_pool = mixer_pool
         self._config_check = False
         self._invalidate()
@@ -410,31 +416,7 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
             KeyError: If mixer pool type is not in the set of presets.
         """
         self._mixer_pool_type = mixer_pool_type
-
-    def construct_ansatz(self, mixer_operators: Optional[Union[OperatorBase, QuantumCircuit]] = None, append = False):
-        """ Constructs an ansatz with an ordered list of mixer operators, 
-            where the circuit depth is equal to the mixer_operator list length.        
-        Args:
-            mixer_operators: A list of mixer operators.
-        """
-
-        mixer_operators = [] if mixer_operators is None else mixer_operators
-
-        if not isinstance(mixer_operators, list):
-            mixer_operators = [mixer_operators] 
-
-        if append and self._mixer_operators is not None:
-            mixer_operators = self._mixer_operators + mixer_operators
-        self.set_mixer_operators(mixer_operators = mixer_operators) # set the mixer operators
-        _config_check = self._config_check  # save
-        if self._mixer_pool is None:
-            self._check_mixers(mixer_operators = mixer_operators)
-        elif np.any([_ not in self._mixer_pool for _ in mixer_operators]):
-            self._check_mixers(mixer_operators)
-            self._config_check = True
-        self._build()
-        self._config_check = _config_check
-    
+   
     def _build(self):
         if self._is_built:
             return
@@ -461,4 +443,4 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
 
     def set_mixer_operators(self, mixer_operators):
         """User-friendly way to set mixer operators."""
-        self._mixer_operators = mixer_operators
+        self.mixer_operators = mixer_operators
