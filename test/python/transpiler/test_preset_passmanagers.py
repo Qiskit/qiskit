@@ -33,6 +33,7 @@ from qiskit.test.mock import (
     FakeTokyo,
     FakePoughkeepsie,
     FakeWashington,
+    FakeLima,
 )
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import GraphState
@@ -214,17 +215,18 @@ class TestToqmIntegration(QiskitTestCase):
     @combine(
         level=[0, 1, 2, 3],
         layout_method=[None, "trivial", "dense", "noise_adaptive", "sabre"],
-        backend=[FakeWashington()],
+        backend_vbits_pair=[(FakeWashington(), 10), (FakeLima(), 5)],
         dsc="TOQM-based routing with '{layout_method}' layout"
-        + "method on '{backend}' backend at level '{level}'",
-        name="TOQM_{layout_method}_{backend}_level{level}",
+        + "method on '{backend_vbits_pair[0]}' backend at level '{level}'",
+        name="TOQM_{layout_method}_{backend_vbits_pair[0]}_level{level}",
     )
-    def test_basic_circuit(self, level, layout_method, backend):
+    def test_basic_circuit(self, level, layout_method, backend_vbits_pair):
         """
         Basic circuits transpile across all opt levels and layout
         methods when using TOQM-based routing.
         """
-        qr = QuantumRegister(10, "q")
+        backend, circuit_size = backend_vbits_pair
+        qr = QuantumRegister(circuit_size, "q")
         qc = QuantumCircuit(qr)
 
         # Generate a circuit that should need swaps.
