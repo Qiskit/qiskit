@@ -131,8 +131,9 @@ class AdaptQAOA(QAOA):
                 "A custom mixer pool can be passed in or a mixer pool type can be passed in but not both"
             )
 
-        if type(mixer_pool[0]) == QuantumCircuit:
-            mixer_pool = [PrimitiveOp(Operator(mixer)) for mixer in mixer_pool]
+        if mixer_pool is not None:
+            if isinstance(mixer_pool[0], QuantumCircuit):
+                mixer_pool = [PrimitiveOp(Operator(mixer)) for mixer in mixer_pool]
 
         self.mixer_pool = mixer_pool
         self.mixer_pool_type = mixer_pool_type
@@ -164,9 +165,8 @@ class AdaptQAOA(QAOA):
             mixer_operator=self.optimal_mixer_list,
             name=self.name,
         )
-        beta_bounds = self._reps * [(-2*np.pi, 2 * np.pi)]
-        gamma_bounds = self._reps * [(-np.pi, np.pi)]
-
+        beta_bounds = self._reps * [(0, 2 * np.pi)]
+        gamma_bounds = self._reps * [(None, None)]
         self.ansatz._bounds = beta_bounds + gamma_bounds
 
     def compute_energy_gradient(self, mixer, operator, ansatz=None) -> ComposedOp:
@@ -198,10 +198,10 @@ class AdaptQAOA(QAOA):
         observable_meas = expectation.convert(StateFn(energy_grad_op, is_measurement=True))
         ansatz_circuit_op = CircuitStateFn(wave_function)
         expect_op = observable_meas.compose(ansatz_circuit_op).reduce()
-        return 1j * expect_op
+        return expect_op
 
     def _test_mixer_pool(self, operator: OperatorBase):
-        self._check_problem_configuration(operator)
+        self._check_problem_configuration()
         energy_gradients, test_grads = [], []
         for mixer in self.mixer_pool:
             new_mixer_list = self.optimal_mixer_list + [mixer]
@@ -214,54 +214,46 @@ class AdaptQAOA(QAOA):
                 expect_op, params=self.hyperparameter_dict
             )
             meas = sampled_expect_op.eval()
-            energy_gradients.append(meas)
-        max_energy_idx = np.argmax(np.abs(energy_gradients))
-        # print("ENERGY GRADIENTS:")
-        # for i in range(len(energy_gradients)):
-        #     print(i, energy_gradients[i])
-        # print()
-        # print()
-        # print("ABS ENERGY GRADEINTS:")
-        # for i in range(len(energy_gradients)):
-        #     print(i, np.abs(energy_gradients[i]))
-        # print()
-        # print()
-        # print("Index of best mixer:", max_energy_idx)
+            energy_gradients.append(np.real(meas))
+            test_grads.append(meas)
+        max_energy_idx = np.argmax(energy_gradients)
         return self.mixer_pool[max_energy_idx], np.abs(energy_gradients[max_energy_idx])
 
     def compute_minimum_eigenvalue(
-        self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None,
-        iter_results = False
+        self,
+        operator: OperatorBase,
+        aux_operators: Optional[List[Optional[OperatorBase]]] = None,
+        iter_results=True,
     ):
         """Runs ADAPT-QAOA for each iteration"""
         self._reps, self.ansatz = 1, self.initial_state  # initialise layer loop counter and ansatz
-        print("--------------------------------------------------------")
-        print("Cost operator {}".format(operator))
+        # print("--------------------------------------------------------")
+        # print("Cost operator {}".format(operator))
         result_p = []
         while self._reps < self.max_reps + 1:  # loop over number of maximum reps
             best_mixer, energy_norm = self._test_mixer_pool(operator=operator)
-            print(best_mixer)
-            print(f"REPETITION: {self._reps}")
-            print(f"Current energy norm | Threshold  =====> | {energy_norm} | {self.threshold} |")
+            # print(best_mixer)
+            # print(f"REPETITION: {self._reps}")
+            # print(f"Current energy norm | Threshold  =====> | {energy_norm} | {self.threshold} |")
             if energy_norm < self.threshold:  # Threshold stoppage condition
                 break
             self.optimal_mixer_list.append(
                 best_mixer
             )  # Append mixer associated with largest energy gradient to list
-            self._update_ansatz(operator)
-            result = super().compute_minimum_eigenvalue(operator=operator, aux_operators=aux_operators)
+            self._update_ansatz(operator=operator)
+            result = super().compute_minimum_eigenvalue(
+                operator=operator, aux_operators=aux_operators
+            )
             opt_params = result.optimal_point
             result_p.append(result)
             # self._update_initial_point()
             self.best_beta = list(np.split(opt_params, 2)[0])
             self.best_gamma = list(np.split(opt_params, 2)[1])
-            print()
-            print("Optimal value", result.optimal_value)
-            print("--------------------------------------------------------")
+            # print()
+            # print("Optimal value", result.optimal_value)
+            # print("--------------------------------------------------------")
             self._reps += 1
-            print(self.initial_point)
-            print(result.optimal_parameters)
-        print("Optimal mixers:", self.optimal_mixer_list)
+        # print("Optimal mixers:", self.optimal_mixer_list)
         if iter_results:
             return result, result_p
         return result
@@ -446,11 +438,11 @@ def adapt_mixer_pool(
         ValueError: If an unrecognisible mixer type has been provided.
     """
     if pool_type:
-        if pool_type == "multi":
+        if pool_type == "Multi":
             add_multi, add_single = True, True
-        elif pool_type == "singular":
+        elif pool_type == "Singular":
             add_multi, add_single = False, True
-        elif pool_type == "single":
+        elif pool_type == "Single":
             add_multi, add_single = False, False
         else:
             raise ValueError(
