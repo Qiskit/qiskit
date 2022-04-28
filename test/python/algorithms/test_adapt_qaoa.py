@@ -44,7 +44,8 @@ def _string_to_qiskit(qstring):
         return sum([reduce(lambda a, b: a ^ b, [qis_dict[char.upper()] for char in x]) for x in list_string])
     return reduce(lambda a, b: a ^ b, [qis_dict[char.upper()] for char in qstring])
 
-def _create_mixer_pool(num_q, add_multi, circ, parameterize):
+
+def _create_mixer_pool(num_q, add_multi, circ):
     """Compute the mixer pool
     Args:
         num_q (int): number of qubits
@@ -81,9 +82,7 @@ def _create_mixer_pool(num_q, add_multi, circ, parameterize):
             qr = QuantumRegister(num_q)
             qc = QuantumCircuit(qr)
             for i, mix in enumerate(mix_str):
-                qiskit_dict = {"I": IGate(), "X": XGate(), "Y":YGate(), "Z":ZGate()}
-                if parameterize:
-                    qiskit_dict = {"I": IGate(), "X": XGate(), "Y":YGate(), "Z":ZGate()}
+                qiskit_dict = {"I": IGate(), "X": XGate(), "Y": YGate(), "Z": ZGate()}
 
                 mix_qis_gate = qiskit_dict[mix]
                 qc.append(mix_qis_gate, [i])
@@ -151,7 +150,7 @@ class TestAdaptQAOA(QiskitAlgorithmsTestCase):
         if convert_to_matrix_op:
             qubit_op = qubit_op.to_matrix_op()
 
-        adapt_qaoa = AdaptQAOA(COBYLA(), prob, mixer=m, quantum_instance=self.statevector_simulator)
+        adapt_qaoa = AdaptQAOA(COBYLA(), prob, mixer_pool=m, quantum_instance=self.statevector_simulator)
 
         result = adapt_qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
@@ -182,9 +181,11 @@ class TestAdaptQAOA(QiskitAlgorithmsTestCase):
             qubit_op = qubit_op.to_matrix_op()
 
         num_qubits = qubit_op.num_qubits
-        mixer = _create_mixer_pool(num_qubits, add_multi=True, circ=True, parameterize=True)
+        mixer = _create_mixer_pool(num_qubits, add_multi=True, circ=True)
 
-        adapt_qaoa = AdaptQAOA(optimizer, prob, mixer=mixer, quantum_instance=self.statevector_simulator)
+        adapt_qaoa = AdaptQAOA(
+            optimizer, prob, mixer_pool=mixer, quantum_instance=self.statevector_simulator
+        )
 
         result = adapt_qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
@@ -198,9 +199,12 @@ class TestAdaptQAOA(QiskitAlgorithmsTestCase):
 
         num_qubits = qubit_op.num_qubits
         # TODO: differentiate between this function (>1 params) and prev function (=1 params) or delete one
-        mixer = _create_mixer_pool(num_qubits, add_multi=True, circ=True, parameterize=True)
+        mixer = _create_mixer_pool(num_qubits, add_multi=True, circ=True)
 
-        adapt_qaoa = AdaptQAOA(optimizer, reps=2, mixer=mixer, quantum_instance=self.statevector_simulator)
+        adapt_qaoa = AdaptQAOA(
+            optimizer, reps=2, mixer_pool=mixer, quantum_instance=self.statevector_simulator
+        )
+
         result = adapt_qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         self.log.debug(x)
@@ -212,8 +216,12 @@ class TestAdaptQAOA(QiskitAlgorithmsTestCase):
         qubit_op, _ = self._get_operator(W1)
 
         num_qubits = qubit_op.num_qubits
-        mixer = _create_mixer_pool(num_qubits, add_multi=True, circ=True, parameterize=False)
-        adapt_qaoa = AdaptQAOA(COBYLA(), reps=1, mixer=mixer, quantum_instance=self.statevector_simulator)
+        mixer = _create_mixer_pool(num_qubits, add_multi=True, circ=True)
+
+        adapt_qaoa = AdaptQAOA(
+            COBYLA(), reps=1, mixer_pool=mixer, quantum_instance=self.statevector_simulator
+        )
+
         result = adapt_qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         # we just assert that we get a result, it is not meaningful.
         self.assertIsNotNone(result.eigenstate)
