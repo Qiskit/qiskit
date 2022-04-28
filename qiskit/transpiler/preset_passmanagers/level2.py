@@ -28,11 +28,15 @@ from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import GateDirection
 from qiskit.transpiler.passes import SetLayout
 <<<<<<< HEAD
+<<<<<<< HEAD
 from qiskit.transpiler.passes import VF2Layout
 from qiskit.transpiler.passes import VF2PostLayout
 =======
 from qiskit.transpiler.passes import CSPLayout
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+from qiskit.transpiler.passes import CSPLayout
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
@@ -66,10 +70,13 @@ from qiskit.transpiler.passes import PulseGates
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import ContainsInstruction
 <<<<<<< HEAD
+<<<<<<< HEAD
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
 =======
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
 
 from qiskit.transpiler import TranspilerError
 
@@ -179,6 +186,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         return False
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     # 2a. Try using VF2 layout to find a perfect layout
     _choose_layout_0 = (
         []
@@ -205,6 +213,13 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 =======
         _choose_layout_2 = DenseLayout(coupling_map, backend_properties)
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+    # 2c. if CSP layout doesn't converge on a solution use layout_method (dense) to get a layout
+    if layout_method == "trivial":
+        _choose_layout_2 = TrivialLayout(coupling_map)
+    elif layout_method == "dense":
+        _choose_layout_2 = DenseLayout(coupling_map, backend_properties)
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
     elif layout_method == "noise_adaptive":
         _choose_layout_2 = NoiseAdaptiveLayout(backend_properties)
     elif layout_method == "sabre":

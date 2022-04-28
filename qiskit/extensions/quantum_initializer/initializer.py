@@ -182,18 +182,24 @@ def initialize(self, params, qubits=None):
     if qubits is None:
         qubits = self.qubits
 <<<<<<< HEAD
+<<<<<<< HEAD
     elif isinstance(qubits, (int, np.integer, slice)):
         qubits = [qubits]
     num_qubits = len(qubits) if isinstance(params, int) else None
 
 =======
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
     else:
         if isinstance(qubits, int):
             qubits = [qubits]
         qubits = self._bit_argument_conversion(qubits, self.qubits)
 
     num_qubits = None if not isinstance(params, int) else len(qubits)
+<<<<<<< HEAD
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
     return self.append(Initialize(params, num_qubits), qubits)
 
 

@@ -29,11 +29,15 @@ from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import GateDirection
 from qiskit.transpiler.passes import SetLayout
 <<<<<<< HEAD
+<<<<<<< HEAD
 from qiskit.transpiler.passes import VF2Layout
 from qiskit.transpiler.passes import VF2PostLayout
 =======
 from qiskit.transpiler.passes import CSPLayout
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+from qiskit.transpiler.passes import CSPLayout
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
@@ -69,10 +73,13 @@ from qiskit.transpiler.passes import PulseGates
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import ContainsInstruction
 <<<<<<< HEAD
+<<<<<<< HEAD
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
 =======
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
 
 from qiskit.transpiler import TranspilerError
 
@@ -160,6 +167,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         []
         if pass_manager_config.layout_method
 <<<<<<< HEAD
+<<<<<<< HEAD
         else VF2Layout(
             coupling_map,
             seed=seed_transpiler,
@@ -169,10 +177,13 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             target=target,
         )
 =======
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
         else [
             TrivialLayout(coupling_map),
             Layout2qDistance(coupling_map, property_name="trivial_layout_score"),
         ]
+<<<<<<< HEAD
     )
     # 2b. If trivial layout wasn't perfect (ie no swaps are needed) then try
     # using CSP layout to find a perfect layout
@@ -182,6 +193,16 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         else CSPLayout(coupling_map, call_limit=10000, time_limit=60, seed=seed_transpiler)
 >>>>>>> 8b57d7703 (Revert "Working update")
     )
+=======
+    )
+    # 2b. If trivial layout wasn't perfect (ie no swaps are needed) then try
+    # using CSP layout to find a perfect layout
+    _choose_layout_1 = (
+        []
+        if pass_manager_config.layout_method
+        else CSPLayout(coupling_map, call_limit=10000, time_limit=60, seed=seed_transpiler)
+    )
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
 
     def _trivial_not_perfect(property_set):
         # Verify that a trivial layout  is perfect. If trivial_layout_score > 0
@@ -197,10 +218,14 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _choose_layout_2 = TrivialLayout(coupling_map)
     elif layout_method == "dense":
 <<<<<<< HEAD
+<<<<<<< HEAD
         _choose_layout_1 = DenseLayout(coupling_map, backend_properties, target=target)
 =======
         _choose_layout_2 = DenseLayout(coupling_map, backend_properties)
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+        _choose_layout_2 = DenseLayout(coupling_map, backend_properties)
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
     elif layout_method == "noise_adaptive":
         _choose_layout_2 = NoiseAdaptiveLayout(backend_properties)
     elif layout_method == "sabre":

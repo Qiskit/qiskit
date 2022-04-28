@@ -700,6 +700,7 @@ def _parse_inst_map(inst_map, backend, num_circuits):
     # try getting inst_map from user, else backend
     if inst_map is None:
 <<<<<<< HEAD
+<<<<<<< HEAD
         backend_version = getattr(backend, "version", 0)
         if backend_version <= 1:
             if hasattr(backend, "defaults"):
@@ -711,6 +712,11 @@ def _parse_inst_map(inst_map, backend, num_circuits):
             inst_map = getattr(backend.defaults(), "instruction_schedule_map", None)
 
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+        if hasattr(backend, "defaults"):
+            inst_map = getattr(backend.defaults(), "instruction_schedule_map", None)
+
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
     # inst_maps could be None, or single entry
     if inst_map is None or isinstance(inst_map, InstructionScheduleMap):
         inst_map = [inst_map] * num_circuits

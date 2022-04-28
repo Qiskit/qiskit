@@ -284,11 +284,14 @@ class TestGateEquivalenceEqual(QiskitTestCase):
             "ClassicalFunction",
             "ClassicalElement",
 <<<<<<< HEAD
+<<<<<<< HEAD
             "StatePreparation",
             "LinearFunction",
             "Commuting2qBlocks",
 =======
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
         }
         cls._gate_classes = []
         for aclass in class_list:

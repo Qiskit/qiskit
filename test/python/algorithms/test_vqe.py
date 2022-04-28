@@ -217,6 +217,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
             -4.5708326,
             0.70187027,
         ]
+<<<<<<< HEAD
 
         vqe._ret.optimal_point = opt_params
         vqe._ret.optimal_parameters = dict(
@@ -226,6 +227,17 @@ class TestVQE(QiskitAlgorithmsTestCase):
         with self.assertWarns(DeprecationWarning):
             optimal_vector = vqe.get_optimal_vector()
 
+=======
+
+        vqe._ret.optimal_point = opt_params
+        vqe._ret.optimal_parameters = dict(
+            zip(sorted(wavefunction.parameters, key=lambda p: p.name), opt_params)
+        )
+
+        with self.assertWarns(DeprecationWarning):
+            optimal_vector = vqe.get_optimal_vector()
+
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
         self.assertAlmostEqual(sum(v**2 for v in optimal_vector.values()), 1.0, places=4)
 
     @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")

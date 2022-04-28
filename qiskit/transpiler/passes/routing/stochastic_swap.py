@@ -183,20 +183,28 @@ class StochasticSwap(TransformationPass):
         int_qubit_subset = np.fromiter(
             (self._qubit_indices[bit] for bit in qubit_subset),
 <<<<<<< HEAD
+<<<<<<< HEAD
             dtype=np.uintp,
 =======
             dtype=np.int32,
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+            dtype=np.int32,
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
             count=len(qubit_subset),
         )
 
         int_gates = np.fromiter(
             (self._qubit_indices[bit] for gate in gates for bit in gate),
 <<<<<<< HEAD
+<<<<<<< HEAD
             dtype=np.uintp,
 =======
             dtype=np.int32,
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+            dtype=np.int32,
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
             count=2 * len(gates),
         )
 
@@ -206,10 +214,14 @@ class StochasticSwap(TransformationPass):
         trial_circuit.add_qubits(layout.get_virtual_bits())
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         edges = np.asarray(coupling.get_edges(), dtype=np.uintp).ravel()
 =======
         edges = np.asarray(coupling.get_edges(), dtype=np.int32).ravel()
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+        edges = np.asarray(coupling.get_edges(), dtype=np.int32).ravel()
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
         cdist = coupling._dist_matrix
         for trial in range(trials):
             logger.debug("layer_permutation: trial %s", trial)

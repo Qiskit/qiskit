@@ -12,6 +12,7 @@
 
 """ASAP Scheduling."""
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 import warnings
 
@@ -69,6 +70,32 @@ class ASAPSchedule(TransformationPass):
         when the circuit contains control flows (e.g. conditional instructions).
     """
 
+=======
+import itertools
+from collections import defaultdict
+from typing import List
+
+from qiskit.circuit import Delay, Measure
+from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
+
+
+class ASAPSchedule(TransformationPass):
+    """ASAP Scheduling pass, which schedules the start time of instructions as early as possible..
+
+    For circuits with instructions writing or reading clbits (e.g. measurements, conditional gates),
+    the scheduler assumes clbits I/O operations take no time, ``measure`` locks clbits to be written
+    at its end and ``c_if`` locks clbits to be read at its beginning.
+
+    Notes:
+        The ASAP scheduler may not schedule a circuit exactly the same as any real backend does
+        when the circuit contains control flows (e.g. conditional instructions).
+    """
+
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
     def __init__(self, durations):
         """ASAPSchedule initializer.
 
@@ -79,7 +106,10 @@ class ASAPSchedule(TransformationPass):
         self.durations = durations
         # ensure op node durations are attached and in consistent unit
         self.requires.append(TimeUnitConversion(durations))
+<<<<<<< HEAD
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
 
     def run(self, dag):
         """Run the ASAPSchedule pass on `dag`.
@@ -105,8 +135,11 @@ class ASAPSchedule(TransformationPass):
             new_dag.add_creg(creg)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         idle_after = {q: 0 for q in dag.qubits + dag.clbits}
 =======
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
         qubit_time_available = defaultdict(int)
         clbit_readable = defaultdict(int)
         clbit_writeable = defaultdict(int)
@@ -118,7 +151,10 @@ class ASAPSchedule(TransformationPass):
                     idle_duration = until - qubit_time_available[q]
                     new_dag.apply_operation_back(Delay(idle_duration, unit), [q])
 
+<<<<<<< HEAD
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
         bit_indices = {q: index for index, q in enumerate(dag.qubits)}
         for node in dag.topological_op_nodes():
             # validate node.op.duration
@@ -165,6 +201,7 @@ class ASAPSchedule(TransformationPass):
                 clbit_writeable[c] = clbit_readable[c] = stop_time
             for c in node.op.condition_bits:  # conditional op
                 clbit_writeable[c] = max(start_time, clbit_writeable[c])
+<<<<<<< HEAD
 
         working_qubits = qubit_time_available.keys()
         circuit_duration = max(qubit_time_available[q] for q in working_qubits)
@@ -230,6 +267,15 @@ class ASAPSchedule(TransformationPass):
         new_dag.name = dag.name
         new_dag.metadata = dag.metadata
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+
+        working_qubits = qubit_time_available.keys()
+        circuit_duration = max(qubit_time_available[q] for q in working_qubits)
+        pad_with_delays(new_dag.qubits, until=circuit_duration, unit=time_unit)
+
+        new_dag.name = dag.name
+        new_dag.metadata = dag.metadata
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
         # set circuit duration and unit to indicate it is scheduled
         new_dag.duration = circuit_duration
         new_dag.unit = time_unit

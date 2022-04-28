@@ -16,6 +16,7 @@ Fake Rome device (5 qubit).
 
 import os
 <<<<<<< HEAD
+<<<<<<< HEAD
 from qiskit.test.mock import fake_pulse_backend, fake_backend
 
 
@@ -26,11 +27,18 @@ from qiskit.test.mock import fake_qasm_backend
 
 class FakeRome(fake_qasm_backend.FakeQasmBackend):
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+from qiskit.test.mock import fake_qasm_backend
+
+
+class FakeRome(fake_qasm_backend.FakeQasmBackend):
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
     """A fake 5 qubit backend."""
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_rome.json"
     props_filename = "props_rome.json"
+<<<<<<< HEAD
 <<<<<<< HEAD
     defs_filename = "defs_rome.json"
     backend_name = "fake_rome_v2"
@@ -38,11 +46,16 @@ class FakeRome(fake_qasm_backend.FakeQasmBackend):
 
 class FakeRome(fake_pulse_backend.FakePulseBackend):
 =======
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
     backend_name = "fake_rome"
 
 
 class FakeLegacyRome(fake_qasm_backend.FakeQasmLegacyBackend):
+<<<<<<< HEAD
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
     """A fake 5 qubit backend."""
 
     dirname = os.path.dirname(__file__)

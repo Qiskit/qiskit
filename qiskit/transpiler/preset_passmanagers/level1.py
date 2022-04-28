@@ -28,10 +28,13 @@ from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import GateDirection
 from qiskit.transpiler.passes import SetLayout
 <<<<<<< HEAD
+<<<<<<< HEAD
 from qiskit.transpiler.passes import VF2Layout
 from qiskit.transpiler.passes import VF2PostLayout
 =======
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
@@ -64,10 +67,13 @@ from qiskit.transpiler.passes import PulseGates
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import ContainsInstruction
 <<<<<<< HEAD
+<<<<<<< HEAD
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
 =======
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
 
 from qiskit.transpiler import TranspilerError
 
@@ -126,6 +132,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         return not property_set["layout"]
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def _trivial_not_perfect(property_set):
         # Verify that a trivial layout is perfect. If trivial_layout_score > 0
         # the layout is not perfect. The layout is unconditionally set by trivial
@@ -175,6 +182,8 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
 =======
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
     # 2. Decompose so only 1-qubit and 2-qubit gates remain
     _unroll3q = [
         # Use unitary synthesis for basis aware decomposition of UnitaryGates

@@ -588,6 +588,7 @@ class TestFinalLayouts(QiskitTestCase):
             4: Qubit(QuantumRegister(15, "ancilla"), 4),
             5: Qubit(QuantumRegister(15, "ancilla"), 5),
 <<<<<<< HEAD
+<<<<<<< HEAD
             6: Qubit(QuantumRegister(3, "qr1"), 1),
             7: Qubit(QuantumRegister(15, "ancilla"), 6),
             8: Qubit(QuantumRegister(15, "ancilla"), 7),
@@ -603,6 +604,8 @@ class TestFinalLayouts(QiskitTestCase):
             18: Qubit(QuantumRegister(15, "ancilla"), 13),
             19: Qubit(QuantumRegister(15, "ancilla"), 14),
 =======
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
             6: Qubit(QuantumRegister(15, "ancilla"), 6),
             7: Qubit(QuantumRegister(15, "ancilla"), 7),
             8: Qubit(QuantumRegister(15, "ancilla"), 8),
@@ -612,7 +615,10 @@ class TestFinalLayouts(QiskitTestCase):
             12: Qubit(QuantumRegister(15, "ancilla"), 12),
             15: Qubit(QuantumRegister(15, "ancilla"), 13),
             16: Qubit(QuantumRegister(15, "ancilla"), 14),
+<<<<<<< HEAD
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
         }
         # Trivial layout
         expected_layout_level0 = trivial_layout

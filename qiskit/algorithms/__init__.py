@@ -93,6 +93,7 @@ knowledge to do this in that application domain.
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 Evolvers
 --------
 
@@ -112,6 +113,8 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
 
 =======
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
 Factorizers
 -----------
 
@@ -208,11 +211,14 @@ Utility methods used by algorithms.
 
 from .algorithm_result import AlgorithmResult
 <<<<<<< HEAD
+<<<<<<< HEAD
 from .evolvers import EvolutionResult, EvolutionProblem
 from .evolvers.real_evolver import RealEvolver
 from .evolvers.imaginary_evolver import ImaginaryEvolver
 =======
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
 from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem
 from .amplitude_estimators import (
@@ -272,6 +278,7 @@ __all__ = [
     "EstimationProblem",
     "NumPyEigensolver",
 <<<<<<< HEAD
+<<<<<<< HEAD
     "RealEvolver",
     "ImaginaryEvolver",
     "TrotterQRTE",
@@ -279,6 +286,8 @@ __all__ = [
     "EvolutionProblem",
 =======
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
     "LinearSolverResult",
     "Eigensolver",
     "EigensolverResult",

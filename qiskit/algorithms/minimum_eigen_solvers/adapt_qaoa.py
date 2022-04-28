@@ -408,6 +408,7 @@ class AdaptQAOA(QAOA):
             self._ansatz = ansatz
         self._ansatz_params = list(self._ansatz.parameters)
 
+<<<<<<< HEAD
 
     @property
     def mixer_pool(self) -> List:
@@ -431,6 +432,8 @@ class AdaptQAOA(QAOA):
 
         self._mixer_pool = mixer_pool
 
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
     @property
     def ground_state_energy(self) -> float:
         """Returns the ground state energy of the cost operator
@@ -451,9 +454,13 @@ class AdaptQAOA(QAOA):
                 Float: Specifies the minimum value, or 'threshold' of the energy gradient
                 with respect to the mixer pool that will stop the algorithm.
             """
+<<<<<<< HEAD
         if self._threshold is None:
             self._threshold = 0
         return self._threshold
+=======
+        return self._threshold      
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
 
     @threshold.setter
     def threshold(self, threshold) -> Optional[Callable[[int, float], None]]:
@@ -673,4 +680,8 @@ def energy_grad_operator(
         @ (commutator(mat_op, mixer))
         @ exp_hc
     )
+<<<<<<< HEAD
     return PrimitiveOp(energy_grad_op)
+=======
+    return PrimitiveOp(energy_grad_op)
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da

@@ -12,12 +12,15 @@
 
 """ALAP Scheduling."""
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 import warnings
 
 from qiskit.circuit import Delay, Qubit, Measure
 from qiskit.dagcircuit import DAGCircuit
 =======
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
 import itertools
 from collections import defaultdict
 from typing import List
@@ -26,6 +29,7 @@ from qiskit.circuit import Delay, Measure
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
+<<<<<<< HEAD
 >>>>>>> 8b57d7703 (Revert "Working update")
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
@@ -70,6 +74,24 @@ class ALAPSchedule(TransformationPass):
         when the circuit contains control flows (e.g. conditional instructions).
     """
 
+=======
+from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
+
+
+class ALAPSchedule(TransformationPass):
+    """ALAP Scheduling pass, which schedules the **stop** time of instructions as late as possible.
+
+    For circuits with instructions writing or reading clbits (e.g. measurements, conditional gates),
+    the scheduler assumes clbits I/O operations take no time, ``measure`` locks clbits to be written
+    at its end and ``c_if`` locks clbits to be read at its beginning.
+
+    Notes:
+        The ALAP scheduler may not schedule a circuit exactly the same as any real backend does
+        when the circuit contains control flows (e.g. conditional instructions).
+    """
+
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
     def __init__(self, durations):
         """ALAPSchedule initializer.
 
@@ -80,7 +102,10 @@ class ALAPSchedule(TransformationPass):
         self.durations = durations
         # ensure op node durations are attached and in consistent unit
         self.requires.append(TimeUnitConversion(durations))
+<<<<<<< HEAD
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
 
     def run(self, dag):
         """Run the ALAPSchedule pass on `dag`.
@@ -105,8 +130,11 @@ class ALAPSchedule(TransformationPass):
             new_dag.add_creg(creg)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         idle_before = {q: 0 for q in dag.qubits + dag.clbits}
 =======
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
         qubit_time_available = defaultdict(int)
         clbit_readable = defaultdict(int)
         clbit_writeable = defaultdict(int)
@@ -118,7 +146,10 @@ class ALAPSchedule(TransformationPass):
                     idle_duration = until - qubit_time_available[q]
                     new_dag.apply_operation_front(Delay(idle_duration, unit), [q], [])
 
+<<<<<<< HEAD
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
         bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for node in reversed(list(dag.topological_op_nodes())):
             # validate node.op.duration
@@ -133,6 +164,7 @@ class ALAPSchedule(TransformationPass):
                     raise TranspilerError(
                         f"Duration of {node.op.name} on qubits {indices} is not found."
                     )
+<<<<<<< HEAD
 <<<<<<< HEAD
 
                 if isinstance(node.op, Measure):
@@ -176,6 +208,8 @@ class ALAPSchedule(TransformationPass):
         new_dag.unit = time_unit
 
 =======
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
             if isinstance(node.op.duration, ParameterExpression):
                 indices = [bit_indices[qarg] for qarg in node.qargs]
                 raise TranspilerError(
@@ -218,5 +252,8 @@ class ALAPSchedule(TransformationPass):
         # set circuit duration and unit to indicate it is scheduled
         new_dag.duration = circuit_duration
         new_dag.unit = time_unit
+<<<<<<< HEAD
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
         return new_dag

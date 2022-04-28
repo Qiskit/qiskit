@@ -87,7 +87,10 @@ For example:
    MCXGrayCode
    MCXRecursive
    MCXVChain
+<<<<<<< HEAD
 >>>>>>> 8b57d7703 (Revert "Working update")
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
    MSGate
    PhaseGate
    RCCXGate
