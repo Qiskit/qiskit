@@ -233,11 +233,11 @@ class AdaptQAOA(QAOA):
             opt_params = result.optimal_point
             self.best_gamma = list(opt_params[0:][::2])
             self.best_beta = list(opt_params[1:][::2])
-            print()
+            print(self.ansatz.decompose().draw())
             print("Optimal parameters: {}".format(opt_params))
             print("Initial point: {}".format(self.initial_point))
+            print("New mixer {}".format(self.optimal_mixer_list[-1]))
             print("--------------------------------------------------------")
-            self._reps+=1
             p += 1
         pass
 
@@ -471,8 +471,7 @@ if __name__ == "__main__":
     quantum_instance = QuantumInstance(Aer.get_backend("qasm_simulator"), shots=1024)
 
     adapt = AdaptQAOA(mixer_pool_type="multi", max_reps=10, quantum_instance=quantum_instance)
-    # print(adapt.run_adapt(cost_op))
-    print(adapt.mixer_pool)
+    print(adapt.run_adapt(cost_op))
 
     # qaoa = QAOA(reps=5, quantum_instance=quantum_instance)
     # out = qaoa.compute_minimum_eigenvalue(cost_op)
