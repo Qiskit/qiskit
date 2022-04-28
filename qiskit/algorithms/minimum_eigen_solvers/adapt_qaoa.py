@@ -222,8 +222,9 @@ class AdaptQAOA(QAOA):
         p, self.ansatz = 0, self.initial_state  # initialise layer loop counter and ansatz
         while p < self.max_reps:  # loop over number of maximum reps
             best_mixer, energy_norm = self._test_mixer_pool(operator=operator)
+            print(f"REPETITION: {p}")
             print(f"Current energy norm | Threshold  =====> | {energy_norm} | {self.threshold} |")
-            if energy_norm < self.threshold:  # Threshold stoppage condition
+            if energy_norm < self.threshold:          # Threshold stoppage condition
                 break
             self.optimal_mixer_list.append(
                 best_mixer
@@ -238,10 +239,11 @@ class AdaptQAOA(QAOA):
             opt_params = result.optimal_point
             self.best_gamma = list(opt_params[0:][::2])
             self.best_beta = list(opt_params[1:][::2])
-            print()
+            print(self.ansatz.decompose().draw())
             print(f"Optimal parameters: {opt_params}")
             print(f"Initial point: {self.initial_point}")
-            print()
+            print(f"New mixer {self.optimal_mixer_list[-1]}")
+            print("--------------------------------------------------------")
             p += 1
         pass
 
