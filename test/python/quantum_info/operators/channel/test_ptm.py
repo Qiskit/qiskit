@@ -137,7 +137,6 @@ class TestPTM(ChannelTestCase):
         chan2 = PTM(self.ptmY)
         rho_targ = rho.evolve(PTM(self.ptmZ))
         self.assertEqual(rho.evolve(chan2.dot(chan1)), rho_targ)
-        self.assertEqual(rho.evolve(chan2 * chan1), rho_targ)
 
         # Compose random
         ptm1 = self.rand_matrix(4, 4, real=True)
@@ -146,7 +145,6 @@ class TestPTM(ChannelTestCase):
         chan2 = PTM(ptm2, input_dims=2, output_dims=2)
         rho_targ = rho.evolve(chan1).evolve(chan2)
         self.assertEqual(rho.evolve(chan2.dot(chan1)), rho_targ)
-        self.assertEqual(rho.evolve(chan2 * chan1), rho_targ)
 
     def test_compose_front(self):
         """Test deprecated front compose method."""
@@ -229,7 +227,7 @@ class TestPTM(ChannelTestCase):
         depol = PTM(self.depol_ptm(1 - p_id))
 
         # Compose 3 times
-        p_id3 = p_id ** 3
+        p_id3 = p_id**3
         chan3 = depol.power(3)
         targ3 = PTM(self.depol_ptm(1 - p_id3))
         self.assertEqual(chan3, targ3)
@@ -250,7 +248,7 @@ class TestPTM(ChannelTestCase):
 
     def test_add_qargs(self):
         """Test add method with qargs."""
-        mat = self.rand_matrix(8 ** 2, 8 ** 2)
+        mat = self.rand_matrix(8**2, 8**2)
         mat0 = self.rand_matrix(4, 4)
         mat1 = self.rand_matrix(4, 4)
 
@@ -297,7 +295,7 @@ class TestPTM(ChannelTestCase):
 
     def test_sub_qargs(self):
         """Test subtract method with qargs."""
-        mat = self.rand_matrix(8 ** 2, 8 ** 2)
+        mat = self.rand_matrix(8**2, 8**2)
         mat0 = self.rand_matrix(4, 4)
         mat1 = self.rand_matrix(4, 4)
 

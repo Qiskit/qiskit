@@ -1,3 +1,5 @@
+
+   
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2018, 2021.
@@ -15,10 +17,12 @@
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
+from functools import partial
 import math
 import numpy as np
-import retworkx as rx
+from scipy.optimize import minimize as scipy_minimize
 from ddt import ddt, idata, unpack
+import retworkx as rx
 
 from qiskit.algorithms import QAOA
 from qiskit.algorithms.optimizers import COBYLA, NELDER_MEAD
@@ -309,16 +313,22 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         circ4 = qaoa.construct_circuit([0, 0], I ^ Z)[0]
         self.assertEqual(circ4, ref)
 
+    def test_optimizer_scipy_callable(self):
+        """Test passing a SciPy optimizer directly as callable."""
+        qaoa = QAOA(
+            optimizer=partial(scipy_minimize, method="Nelder-Mead", options={"maxiter": 2}),
+            quantum_instance=self.statevector_simulator,
+        )
+        result = qaoa.compute_minimum_eigenvalue(Z)
+        self.assertEqual(result.cost_function_evals, 4)
+
     def _get_operator(self, weight_matrix):
         """Generate Hamiltonian for the max-cut problem of a graph.
-
         Args:
             weight_matrix (numpy.ndarray) : adjacency matrix.
-
         Returns:
             PauliSumOp: operator for the Hamiltonian
             float: a constant shift for the obj function.
-
         """
         num_nodes = weight_matrix.shape[0]
         pauli_list = []
@@ -337,10 +347,8 @@ class TestQAOA(QiskitAlgorithmsTestCase):
 
     def _get_graph_solution(self, x: np.ndarray) -> str:
         """Get graph solution from binary string.
-
         Args:
             x : binary string as numpy array.
-
         Returns:
             a graph solution as string.
         """
@@ -351,7 +359,6 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         """Compute the most likely binary string from state vector.
         Args:
             state_vector (numpy.ndarray or dict): state vector or counts.
-
         Returns:
             numpy.ndarray: binary string as numpy.ndarray of ints.
         """

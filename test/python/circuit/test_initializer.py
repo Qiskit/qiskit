@@ -416,7 +416,7 @@ class TestInitialize(QiskitTestCase):
         for n_qubits in [1, 2, 4]:
             for irep in range(repeats):
                 with self.subTest(i=f"{n_qubits}_{irep}"):
-                    dim = 2 ** n_qubits
+                    dim = 2**n_qubits
                     qr = QuantumRegister(n_qubits)
                     initializer = QuantumCircuit(qr)
                     target = random_statevector(dim)
@@ -434,7 +434,7 @@ class TestInitialize(QiskitTestCase):
             Statevector([1j / np.sqrt(2), 1j / np.sqrt(2)]),
         ]
         n_qubits = 1
-        dim = 2 ** n_qubits
+        dim = 2**n_qubits
         qr = QuantumRegister(n_qubits)
         for target in target_list:
             with self.subTest(i=target):
@@ -443,7 +443,7 @@ class TestInitialize(QiskitTestCase):
                 # need to get rid of the resets in order to use the Operator class
                 disentangler = Operator(initializer.data[0][0].definition.data[1][0])
                 zero = Statevector.from_int(0, dim)
-                actual = zero @ disentangler
+                actual = zero & disentangler
                 self.assertEqual(target, actual)
 
 

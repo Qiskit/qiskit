@@ -19,6 +19,7 @@ from .real_amplitudes import RealAmplitudes
 from .efficient_su2 import EfficientSU2
 from .excitation_preserving import ExcitationPreserving
 from .qaoa_ansatz import QAOAAnsatz
+# from .adaptqaoa_ansatz import AdaptQAOAAnsatz
 
 __all__ = [
     "NLocal",
@@ -28,4 +29,5 @@ __all__ = [
     "EfficientSU2",
     "ExcitationPreserving",
     "QAOAAnsatz",
+    # "AdaptQAOAAnsatz",
 ]

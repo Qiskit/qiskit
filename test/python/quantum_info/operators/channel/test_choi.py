@@ -186,13 +186,11 @@ class TestChoi(ChannelTestCase):
         chan2 = Choi(self.choiY)
         targ = Choi(self.choiZ)
         self.assertEqual(chan1.dot(chan2), targ)
-        self.assertEqual(chan1 * chan2, targ)
 
         # 50% depolarizing channel
         chan1 = Choi(self.depol_choi(0.5))
         targ = Choi(self.depol_choi(0.75))
         self.assertEqual(chan1.dot(chan1), targ)
-        self.assertEqual(chan1 * chan1, targ)
 
         # Measure and rotation
         Zp, Zm = np.diag([1, 0]), np.diag([0, 1])
@@ -202,11 +200,9 @@ class TestChoi(ChannelTestCase):
         # X-gate second does nothing
         targ = Choi(np.kron(Zp, Xp) + np.kron(Zm, Xm))
         self.assertEqual(chan2.dot(chan1), targ)
-        self.assertEqual(chan2 * chan1, targ)
         # X-gate first swaps Z states
         targ = Choi(np.kron(Zm, Xp) + np.kron(Zp, Xm))
         self.assertEqual(chan1.dot(chan2), targ)
-        self.assertEqual(chan1 * chan2, targ)
 
         # Compose different dimensions
         chan1 = Choi(np.eye(8) / 4, input_dims=2, output_dims=4)
@@ -321,7 +317,7 @@ class TestChoi(ChannelTestCase):
         depol = Choi(self.depol_choi(1 - p_id))
 
         # Compose 3 times
-        p_id3 = p_id ** 3
+        p_id3 = p_id**3
         chan3 = depol.power(3)
         targ3 = Choi(self.depol_choi(1 - p_id3))
         self.assertEqual(chan3, targ3)
@@ -340,7 +336,7 @@ class TestChoi(ChannelTestCase):
 
     def test_add_qargs(self):
         """Test add method with qargs."""
-        mat = self.rand_matrix(8 ** 2, 8 ** 2)
+        mat = self.rand_matrix(8**2, 8**2)
         mat0 = self.rand_matrix(4, 4)
         mat1 = self.rand_matrix(4, 4)
 
@@ -387,7 +383,7 @@ class TestChoi(ChannelTestCase):
 
     def test_sub_qargs(self):
         """Test subtract method with qargs."""
-        mat = self.rand_matrix(8 ** 2, 8 ** 2)
+        mat = self.rand_matrix(8**2, 8**2)
         mat0 = self.rand_matrix(4, 4)
         mat1 = self.rand_matrix(4, 4)
 

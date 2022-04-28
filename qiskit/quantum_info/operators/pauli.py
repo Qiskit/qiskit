@@ -60,14 +60,14 @@ def pauli_group(number_of_qubits, case="weight"):
             return sorted(tmp, key=lambda x: -np.count_nonzero(np.array(x.to_label(), "c") == b"I"))
         elif case == "tensor":
             # the Pauli set is in tensor order II IX IY IZ XI ...
-            for k in range(4 ** number_of_qubits):
+            for k in range(4**number_of_qubits):
                 z = np.zeros(number_of_qubits, dtype=bool)
                 x = np.zeros(number_of_qubits, dtype=bool)
                 # looping over all the qubits
                 for j in range(number_of_qubits):
                     # making the Pauli for each j fill it in from the
                     # end first
-                    element = (k // (4 ** j)) % 4
+                    element = (k // (4**j)) % 4
                     if element == 1:
                         x[j] = True
                     elif element == 2:

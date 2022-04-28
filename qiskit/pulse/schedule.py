@@ -12,9 +12,23 @@
 
 # pylint: disable=cyclic-import, missing-return-doc
 
-"""The Schedule is one of the most fundamental objects to this pulse-level programming module.
+"""
+=========
+Schedules
+=========
+
+.. currentmodule:: qiskit.pulse
+
+Schedules are Pulse programs. They describe instruction sequences for the control hardware.
+The Schedule is one of the most fundamental objects to this pulse-level programming module.
 A ``Schedule`` is a representation of a *program* in Pulse. Each schedule tracks the time of each
 instruction occuring in parallel over multiple signal *channels*.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Schedule
+   ScheduleBlock
 """
 
 import abc
@@ -23,7 +37,6 @@ import functools
 import itertools
 import multiprocessing as mp
 import sys
-import warnings
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Any
 
 import numpy as np
@@ -43,12 +56,6 @@ Interval = Tuple[int, int]
 TimeSlots = Dict[Channel, List[Interval]]
 """List of timeslots occupied by instructions for each channel."""
 
-ScheduleComponent = Union["Schedule", Instruction]
-"""An element that composes a pulse schedule."""
-
-BlockComponent = Union["ScheduleBlock", Instruction]
-"""An element that composes a pulse schedule block."""
-
 
 class Schedule:
     """A quantum program *schedule* with exact time constraints for its instructions, operating
@@ -66,30 +73,30 @@ class Schedule:
 
     - Appending an instruction to the end of a channel
 
-    .. code-block:: python
+      .. code-block:: python
 
-        sched = Schedule()
-        sched += Play(Gaussian(160, 0.1, 40), DriveChannel(0))
+          sched = Schedule()
+          sched += Play(Gaussian(160, 0.1, 40), DriveChannel(0))
 
     - Appending an instruction shifted in time by a given amount
 
-    .. code-block:: python
+      .. code-block:: python
 
-        sched = Schedule()
-        sched += Play(Gaussian(160, 0.1, 40), DriveChannel(0)) << 30
+          sched = Schedule()
+          sched += Play(Gaussian(160, 0.1, 40), DriveChannel(0)) << 30
 
     - Merge two schedules
 
-    .. code-block:: python
+      .. code-block:: python
 
-        sched1 = Schedule()
-        sched1 += Play(Gaussian(160, 0.1, 40), DriveChannel(0))
+          sched1 = Schedule()
+          sched1 += Play(Gaussian(160, 0.1, 40), DriveChannel(0))
 
-        sched2 = Schedule()
-        sched2 += Play(Gaussian(160, 0.1, 40), DriveChannel(1))
-        sched2 = sched1 | sched2
+          sched2 = Schedule()
+          sched2 += Play(Gaussian(160, 0.1, 40), DriveChannel(1))
+          sched2 = sched1 | sched2
 
-    A ``PulseError`` is immediately raised when the overlap constraint is violated.
+    A :obj:`.PulseError` is immediately raised when the overlap constraint is violated.
 
     In the schedule representation, we cannot parametrize the duration of instructions.
     Thus we need to create a new schedule object for each duration.
@@ -109,7 +116,7 @@ class Schedule:
 
     def __init__(
         self,
-        *schedules: Union[ScheduleComponent, Tuple[int, ScheduleComponent]],
+        *schedules: Union["ScheduleComponent", Tuple[int, "ScheduleComponent"]],
         name: Optional[str] = None,
         metadata: Optional[dict] = None,
     ):
@@ -233,7 +240,7 @@ class Schedule:
         return tuple(self._timeslots.keys())
 
     @property
-    def children(self) -> Tuple[Tuple[int, ScheduleComponent], ...]:
+    def children(self) -> Tuple[Tuple[int, "ScheduleComponent"], ...]:
         """Return the child schedule components of this ``Schedule`` in the
         order they were added to the schedule.
 
@@ -362,7 +369,7 @@ class Schedule:
     def insert(
         self,
         start_time: int,
-        schedule: ScheduleComponent,
+        schedule: "ScheduleComponent",
         name: Optional[str] = None,
         inplace: bool = False,
     ) -> "Schedule":
@@ -379,7 +386,7 @@ class Schedule:
             return self._mutable_insert(start_time, schedule)
         return self._immutable_insert(start_time, schedule, name=name)
 
-    def _mutable_insert(self, start_time: int, schedule: ScheduleComponent) -> "Schedule":
+    def _mutable_insert(self, start_time: int, schedule: "ScheduleComponent") -> "Schedule":
         """Mutably insert `schedule` into `self` at `start_time`.
 
         Args:
@@ -394,7 +401,7 @@ class Schedule:
     def _immutable_insert(
         self,
         start_time: int,
-        schedule: ScheduleComponent,
+        schedule: "ScheduleComponent",
         name: Optional[str] = None,
     ) -> "Schedule":
         """Return a new schedule with ``schedule`` inserted into ``self`` at ``start_time``.
@@ -409,7 +416,7 @@ class Schedule:
         return new_sched
 
     def append(
-        self, schedule: ScheduleComponent, name: Optional[str] = None, inplace: bool = False
+        self, schedule: "ScheduleComponent", name: Optional[str] = None, inplace: bool = False
     ) -> "Schedule":
         r"""Return a new schedule with ``schedule`` inserted at the maximum time over
         all channels shared between ``self`` and ``schedule``.
@@ -500,7 +507,7 @@ class Schedule:
             self, filters=filters, negate=True, recurse_subroutines=check_subroutine
         )
 
-    def _add_timeslots(self, time: int, schedule: ScheduleComponent) -> None:
+    def _add_timeslots(self, time: int, schedule: "ScheduleComponent") -> None:
         """Update all time tracking within this schedule based on the given schedule.
 
         Args:
@@ -555,7 +562,7 @@ class Schedule:
 
         _check_nonnegative_timeslot(self._timeslots)
 
-    def _remove_timeslots(self, time: int, schedule: ScheduleComponent):
+    def _remove_timeslots(self, time: int, schedule: "ScheduleComponent"):
         """Delete the timeslots if present for the respective schedule component.
 
         Args:
@@ -594,7 +601,7 @@ class Schedule:
             if not channel_timeslots:
                 self._timeslots.pop(channel)
 
-    def _replace_timeslots(self, time: int, old: ScheduleComponent, new: ScheduleComponent):
+    def _replace_timeslots(self, time: int, old: "ScheduleComponent", new: "ScheduleComponent"):
         """Replace the timeslots of ``old`` if present with the timeslots of ``new``.
 
         Args:
@@ -613,8 +620,8 @@ class Schedule:
 
     def replace(
         self,
-        old: ScheduleComponent,
-        new: ScheduleComponent,
+        old: "ScheduleComponent",
+        new: "ScheduleComponent",
         inplace: bool = False,
     ) -> "Schedule":
         """Return a ``Schedule`` with the ``old`` instruction replaced with a ``new``
@@ -737,11 +744,11 @@ class Schedule:
         """Return number of instructions in the schedule."""
         return len(self.instructions)
 
-    def __add__(self, other: ScheduleComponent) -> "Schedule":
+    def __add__(self, other: "ScheduleComponent") -> "Schedule":
         """Return a new schedule with ``other`` inserted within ``self`` at ``start_time``."""
         return self.append(other)
 
-    def __or__(self, other: ScheduleComponent) -> "Schedule":
+    def __or__(self, other: "ScheduleComponent") -> "Schedule":
         """Return a new schedule which is the union of `self` and `other`."""
         return self.insert(0, other)
 
@@ -749,7 +756,7 @@ class Schedule:
         """Return a new schedule which is shifted forward by ``time``."""
         return self.shift(time)
 
-    def __eq__(self, other: ScheduleComponent) -> bool:
+    def __eq__(self, other: "ScheduleComponent") -> bool:
         """Test if two Schedule are equal.
 
         Equality is checked by verifying there is an equal instruction at every time
@@ -807,13 +814,13 @@ def _require_schedule_conversion(function: Callable) -> Callable:
 
 
 class ScheduleBlock:
-    """A ``ScheduleBlock`` is a time-ordered sequence of instructions and transform macro to
+    r"""A ``ScheduleBlock`` is a time-ordered sequence of instructions and transform macro to
     manage their relative timing. The relative position of the instructions is managed by
-    the ``context_alignment``. This allows ``ScheduleBlock`` to support instructions with
+    the ``alignment_context``. This allows ``ScheduleBlock`` to support instructions with
     a parametric duration and allows the lazy scheduling of instructions,
     i.e. allocating the instruction time just before execution.
 
-    ``ScheduleBlock`` s should be initialized with one of the following alignment contexts:
+    ``ScheduleBlock``\ s should be initialized with one of the following alignment contexts:
 
     - :class:`~qiskit.pulse.transforms.AlignLeft`: Align instructions in the
       `as-soon-as-possible` manner. Instructions are scheduled at the earliest
@@ -1016,7 +1023,7 @@ class ScheduleBlock:
         return self.instructions
 
     @property
-    def blocks(self) -> Tuple[BlockComponent]:
+    def blocks(self) -> Tuple["BlockComponent", ...]:
         """Get the time-ordered instructions from self."""
         return tuple(self._blocks)
 
@@ -1035,7 +1042,7 @@ class ScheduleBlock:
         return self.ch_duration(*channels)
 
     def append(
-        self, block: BlockComponent, name: Optional[str] = None, inplace: bool = True
+        self, block: "BlockComponent", name: Optional[str] = None, inplace: bool = True
     ) -> "ScheduleBlock":
         """Return a new schedule block with ``block`` appended to the context block.
         The execution time is automatically assigned when the block is converted into schedule.
@@ -1158,8 +1165,8 @@ class ScheduleBlock:
 
     def replace(
         self,
-        old: BlockComponent,
-        new: BlockComponent,
+        old: "BlockComponent",
+        new: "BlockComponent",
         inplace: bool = True,
     ) -> "ScheduleBlock":
         """Return a ``ScheduleBlock`` with the ``old`` component replaced with a ``new``
@@ -1290,109 +1297,9 @@ class ScheduleBlock:
             self.__class__.__name__, blocks, name, repr(self.alignment_context)
         )
 
-    def __add__(self, other: BlockComponent) -> "ScheduleBlock":
+    def __add__(self, other: "BlockComponent") -> "ScheduleBlock":
         """Return a new schedule with ``other`` inserted within ``self`` at ``start_time``."""
         return self.append(other)
-
-
-class ParameterizedSchedule:
-    """Temporary parameterized schedule class.
-    This should not be returned to users as it is currently only a helper class.
-    This class is takes an input command definition that accepts
-    a set of parameters. Calling ``bind`` on the class will return a ``Schedule``.
-    """
-
-    def __init__(
-        self,
-        *schedules,
-        parameters: Optional[Dict[str, complex]] = None,
-        name: Optional[str] = None,
-    ):
-
-        warnings.warn(
-            "ParameterizedSchedule is deprecated. Use Schedule with circuit.Parameter objects.",
-            DeprecationWarning,
-        )
-
-        full_schedules = []
-        parameterized = []
-        parameters = parameters or []
-        self.name = name or ""
-        # partition schedules into callable and schedules
-        for schedule in schedules:
-            if isinstance(schedule, ParameterizedSchedule):
-                parameterized.append(schedule)
-                parameters += schedule.parameters
-            elif callable(schedule):
-                parameterized.append(schedule)
-            elif isinstance(schedule, Schedule):
-                full_schedules.append(schedule)
-            else:
-                raise PulseError(f"Input type: {type(schedule)} not supported")
-
-        self._parameterized = tuple(parameterized)
-        self._schedules = tuple(full_schedules)
-        self._parameters = tuple(sorted(set(parameters)))
-
-    @property
-    def parameters(self) -> Tuple[str]:
-        """Schedule parameters."""
-        return self._parameters
-
-    def bind_parameters(
-        self,
-        *args: Union[complex, ParameterExpression],
-        **kwargs: Union[complex, ParameterExpression],
-    ) -> Schedule:
-        """Generate the Schedule from params to evaluate command expressions"""
-        bound_schedule = Schedule(name=self.name)
-        schedules = list(self._schedules)
-
-        named_parameters = {}
-        if args:
-            for key, val in zip(self.parameters, args):
-                named_parameters[key] = val
-        if kwargs:
-            for key, val in kwargs.items():
-                if key in self.parameters:
-                    if key not in named_parameters.keys():
-                        named_parameters[key] = val
-                    else:
-                        raise PulseError(
-                            "%s got multiple values for argument '%s'"
-                            % (self.__class__.__name__, key)
-                        )
-                else:
-                    raise PulseError(
-                        "%s got an unexpected keyword argument '%s'"
-                        % (self.__class__.__name__, key)
-                    )
-
-        for param_sched in self._parameterized:
-            # recursively call until based callable is reached
-            if isinstance(param_sched, type(self)):
-                predefined = param_sched.parameters
-            else:
-                # assuming no other parameterized instructions
-                predefined = self.parameters
-            sub_params = {k: v for k, v in named_parameters.items() if k in predefined}
-            schedules.append(param_sched(**sub_params))
-
-        # construct evaluated schedules
-        for sched in schedules:
-            if isinstance(sched, tuple):
-                bound_schedule.insert(sched[0], sched[1])
-            else:
-                bound_schedule |= sched
-
-        return bound_schedule
-
-    def __call__(
-        self,
-        *args: Union[complex, ParameterExpression],
-        **kwargs: Union[complex, ParameterExpression],
-    ) -> Schedule:
-        return self.bind_parameters(*args, **kwargs)
 
 
 def _common_method(*classes):
@@ -1576,7 +1483,7 @@ def _check_nonnegative_timeslot(timeslots: TimeSlots):
                 raise PulseError(f"An instruction on {chan} has a negative starting time.")
 
 
-def _get_timeslots(schedule: ScheduleComponent) -> TimeSlots:
+def _get_timeslots(schedule: "ScheduleComponent") -> TimeSlots:
     """Generate timeslots from given schedule component.
 
     Args:
@@ -1595,3 +1502,18 @@ def _get_timeslots(schedule: ScheduleComponent) -> TimeSlots:
         raise PulseError(f"Invalid schedule type {type(schedule)} is specified.")
 
     return timeslots
+
+
+# These type aliases are defined at the bottom of the file, because as of 2022-01-18 they are
+# imported into other parts of Terra.  Previously, the aliases were at the top of the file and used
+# forwards references within themselves.  This was fine within the same file, but causes scoping
+# issues when the aliases are imported into different scopes, in which the `ForwardRef` instances
+# would no longer resolve.  Instead, we only use forward references in the annotations of _this_
+# file to reference the aliases, which are guaranteed to resolve in scope, so the aliases can all be
+# concrete.
+
+ScheduleComponent = Union[Schedule, Instruction]
+"""An element that composes a pulse schedule."""
+
+BlockComponent = Union[ScheduleBlock, Instruction]
+"""An element that composes a pulse schedule block."""

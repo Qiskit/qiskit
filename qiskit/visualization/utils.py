@@ -25,28 +25,15 @@ from qiskit.circuit import (
     Gate,
     Instruction,
     Measure,
+    ControlFlowOp,
 )
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
-from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.quantum_info.operators.symplectic import PauliList, SparsePauliOp
 from qiskit.quantum_info.states import DensityMatrix
+from qiskit.utils import optionals as _optionals
 from qiskit.visualization.exceptions import VisualizationError
-
-try:
-    import PIL
-
-    HAS_PIL = True
-except ImportError:
-    HAS_PIL = False
-
-try:
-    from pylatexenc.latexencode import utf8tolatex
-
-    HAS_PYLATEX = True
-except ImportError:
-    HAS_PYLATEX = False
 
 
 def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
@@ -129,6 +116,9 @@ def get_param_str(op, drawer, ndigits=3):
     if not hasattr(op, "params") or any(isinstance(param, np.ndarray) for param in op.params):
         return ""
 
+    if isinstance(op, ControlFlowOp):
+        return ""
+
     if isinstance(op, Delay):
         param_list = [f"{op.params[0]}[{op.unit}]"]
     else:
@@ -181,14 +171,18 @@ def get_bit_label(drawer, register, index, qubit=True, layout=None, cregbundle=T
         reg_name = f"{register.name}"
         reg_name_index = f"{register.name}_{index}"
     else:
-        reg_name = f"{{{register.name}}}"
-        reg_name_index = f"{{{register.name}}}_{{{index}}}"
+        reg_name = f"{{{fix_special_characters(register.name)}}}"
+        reg_name_index = f"{reg_name}_{{{index}}}"
 
     # Clbits
     if not qubit:
-        if cregbundle:
+        if cregbundle and drawer != "latex":
             bit_label = f"{register.name}"
-        elif register.size == 1:
+            return bit_label
+
+        size = register.size
+        if size == 1 or cregbundle:
+            size = 1
             bit_label = reg_name
         else:
             bit_label = reg_name_index
@@ -214,20 +208,82 @@ def get_bit_label(drawer, register, index, qubit=True, layout=None, cregbundle=T
                 bit_label = f"{virt_bit} -> {index}"
             else:
                 bit_label = f"{{{virt_bit}}} \\mapsto {{{index}}}"
+        if drawer != "text":
+            bit_label = bit_label.replace(" ", "\\;")  # use wider spaces
     else:
         bit_label = index_str
 
     return bit_label
 
 
+def get_condition_label(condition, clbits, bit_locations, cregbundle):
+    """Get the label to display as a condition
+
+    Args:
+        condition (Union[Clbit, ClassicalRegister], int): classical condition
+        clbits (list(Clbit)): the classical bits in the circuit
+        bit_locations (dict): the bits in the circuit with register and index
+        cregbundle (bool): if set True bundle classical registers
+
+    Returns:
+        str: label to display for the condition
+        list(str): list of 1's and 0's with 1's indicating a bit that's part of the condition
+        list(str): list of 1's and 0's indicating values of condition at that position
+    """
+    cond_is_bit = bool(isinstance(condition[0], Clbit))
+    mask = 0
+    if cond_is_bit:
+        for index, cbit in enumerate(clbits):
+            if cbit == condition[0]:
+                mask = 1 << index
+                break
+    else:
+        for index, cbit in enumerate(clbits):
+            if bit_locations[cbit]["register"] == condition[0]:
+                mask |= 1 << index
+    val = condition[1]
+
+    # cbit list to consider
+    fmt_c = f"{{:0{len(clbits)}b}}"
+    clbit_mask = list(fmt_c.format(mask))[::-1]
+
+    # value
+    fmt_v = f"{{:0{clbit_mask.count('1')}b}}"
+    vlist = list(fmt_v.format(val))
+
+    label = ""
+    if cond_is_bit and cregbundle:
+        cond_reg = bit_locations[condition[0]]["register"]
+        ctrl_bit = bit_locations[condition[0]]["index"]
+        truth = "0x1" if val else "0x0"
+        if cond_reg is not None:
+            label = f"{cond_reg.name}_{ctrl_bit}={truth}"
+    elif not cond_is_bit:
+        label = hex(val)
+
+    return label, clbit_mask, vlist
+
+
+def fix_special_characters(label):
+    """
+    Convert any special characters for mpl and latex drawers.
+    Currently only checks for multiple underscores in register names
+    and uses wider space for mpl and latex drawers.
+
+    Args:
+        label (str): the label to fix
+
+    Returns:
+        str: label to display
+    """
+    label = label.replace("_", r"\_").replace(" ", "\\;")
+    return label
+
+
+@_optionals.HAS_PYLATEX.require_in_call("the latex and latex_source circuit drawers")
 def generate_latex_label(label):
     """Convert a label to a valid latex string."""
-    if not HAS_PYLATEX:
-        raise MissingOptionalLibraryError(
-            libname="pylatexenc",
-            name="the latex and latex_source circuit drawers",
-            pip_install="pip install pylatexenc",
-        )
+    from pylatexenc.latexencode import utf8tolatex
 
     regex = re.compile(r"(?<!\\)\$(.*)(?<!\\)\$")
     match = regex.search(label)
@@ -248,14 +304,11 @@ def generate_latex_label(label):
     return final_str.replace(" ", "\\,")  # Put in proper spaces
 
 
+@_optionals.HAS_PIL.require_in_call("the latex circuit drawer")
 def _trim(image):
     """Trim a PIL image and remove white space."""
-    if not HAS_PIL:
-        raise MissingOptionalLibraryError(
-            libname="pillow",
-            name="the latex circuit drawer",
-            pip_install="pip install pillow",
-        )
+    import PIL
+
     background = PIL.Image.new(image.mode, image.size, image.getpixel((0, 0)))
     diff = PIL.ImageChops.difference(image, background)
     diff = PIL.ImageChops.add(diff, diff, 2.0, -100)
@@ -297,7 +350,7 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wi
     # Create a mapping of each register to the max layer number for all measure ops
     # with that register as the target. Then when an op with condition is seen,
     # it will be placed to the right of the measure op if the register matches.
-    measure_map = OrderedDict([(c, -1) for c in circuit.cregs])
+    measure_map = OrderedDict([(c, -1) for c in clbits])
 
     if justify == "none":
         for node in dag.topological_op_nodes():
@@ -374,6 +427,7 @@ class _LayerSpooler(list):
         super().__init__()
         self.dag = dag
         self.qubits = dag.qubits
+        self.clbits = dag.clbits
         self.justification = justification
         self.measure_map = measure_map
         self.cregs = [self.dag.cregs[reg] for reg in self.dag.cregs]
@@ -415,7 +469,7 @@ class _LayerSpooler(list):
         """Insert node into first layer where there is no conflict going l > r"""
         measure_layer = None
         if isinstance(node.op, Measure):
-            measure_reg = next(reg for reg in self.measure_map if node.cargs[0] in reg)
+            measure_bit = next(bit for bit in self.measure_map if node.cargs[0] == bit)
 
         if not self:
             inserted = True
@@ -427,19 +481,22 @@ class _LayerSpooler(list):
             index_stop = -1
             if node.op.condition:
                 if isinstance(node.op.condition[0], Clbit):
-                    cond_reg = [creg for creg in self.cregs if node.op.condition[0] in creg]
-                    index_stop = self.measure_map[cond_reg[0]]
+                    cond_bit = [clbit for clbit in self.clbits if node.op.condition[0] == clbit]
+                    index_stop = self.measure_map[cond_bit[0]]
                 else:
-                    index_stop = self.measure_map[node.op.condition[0]]
-            elif node.cargs:
+                    for bit in node.op.condition[0]:
+                        max_index = -1
+                        if bit in self.measure_map:
+                            if self.measure_map[bit] > max_index:
+                                index_stop = max_index = self.measure_map[bit]
+            if node.cargs:
                 for carg in node.cargs:
                     try:
-                        carg_reg = next(reg for reg in self.measure_map if carg in reg)
-                        if self.measure_map[carg_reg] > index_stop:
-                            index_stop = self.measure_map[carg_reg]
+                        carg_bit = next(bit for bit in self.measure_map if carg == bit)
+                        if self.measure_map[carg_bit] > index_stop:
+                            index_stop = self.measure_map[carg_bit]
                     except StopIteration:
                         pass
-
             while curr_index > index_stop:
                 if self.is_found_in(node, self[curr_index]):
                     break
@@ -468,8 +525,8 @@ class _LayerSpooler(list):
         if isinstance(node.op, Measure):
             if not measure_layer:
                 measure_layer = len(self) - 1
-            if measure_layer > self.measure_map[measure_reg]:
-                self.measure_map[measure_reg] = measure_layer
+            if measure_layer > self.measure_map[measure_bit]:
+                self.measure_map[measure_bit] = measure_layer
 
     def slide_from_right(self, node, index):
         """Insert node into rightmost layer as long there is no conflict."""
