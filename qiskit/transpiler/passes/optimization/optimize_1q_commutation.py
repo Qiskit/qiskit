@@ -16,6 +16,8 @@ from copy import copy
 import logging
 from collections import deque
 
+from more_itertools import first
+
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import CXGate, RZXGate
 from qiskit.converters import circuit_to_dag
@@ -113,12 +115,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
 
         if run == []:
             return [], []
-        # use deque to have modification
-        # operations which are constant
-        # time
-        run_clone = deque(run)
-
-        commuted = deque([])
+        # find the first or last subarray of commuting ops
         preindex, commutation_rule = None, None
         if isinstance(blocker, DAGOpNode):
             preindex = None
@@ -133,22 +130,25 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
                 and type(blocker.op) in commutation_table
             ):
                 commutation_rule = commutation_table[type(blocker.op)][preindex]
-
+        # Indices for the commuting subarray of ops
+        last_id = 0
+        first_id = len(run) - 1
         if commutation_rule is not None:
-            while run_clone:
-                next_gate = run_clone[0] if front else run_clone[-1]
-                if next_gate.name not in commutation_rule:
-                    break
-                if front:
-                    run_clone.popleft()
-                    commuted.append(next_gate)
-                else:
-                    run_clone.pop()
-                    commuted.appendleft(next_gate)
+            if front:
+                while last_id < len(run) and run[last_id].name in commutation_rule:
+                    last_id += 1
+            else:
+                while first_id >= 0 and run[first_id].name in commutation_rule:
+                    first_id -= 1
+        # commuted is the first / last
+        # subarray which has all gates in
+        # commutation rule
         if front:
-            return list(commuted), list(run_clone)
+            commuted = run[:last_id]
+            return commuted, run[last_id:]
         else:
-            return list(run_clone), list(commuted)
+            commuted = run[first_id + 1 :]
+            return run[: first_id + 1], commuted
 
     def _resynthesize(self, new_run):
         """
