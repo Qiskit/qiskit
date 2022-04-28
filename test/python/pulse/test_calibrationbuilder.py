@@ -98,7 +98,7 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
         area = gaussian_area + abs(amp) * width
         target_area = abs(theta) / (np.pi / 2.0) * area
         width = (target_area - gaussian_area) / abs(amp)
-        duration = ceil((width + n_sigmas * sigma) / sample_mult) * sample_mult
+        duration = round((width + n_sigmas * sigma) / sample_mult) * sample_mult
 
         # Check whether the durations of the RZX pulse and
         # the scaled CR pulse from the CX gate match.
