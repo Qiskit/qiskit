@@ -25,7 +25,6 @@ from qiskit.converters import isinstanceint
 from qiskit.opflow import PauliSumOp, PauliOp, OperatorBase, PrimitiveOp
 from qiskit.quantum_info import Pauli, SparsePauliOp, Operator
 from qiskit.circuit import ParameterVector
-from qiskit.circuit.parametertable import ParameterTable
 from qiskit.circuit.library.evolved_operator_ansatz import _is_pauli_identity
 from qiskit.circuit.library.n_local import QAOAAnsatz
 
@@ -40,9 +39,10 @@ def _reordered_indices(num_cost: int, num_mixer: list):
     # to (cost_1, cost_2, ..., mixer_1, mixer_2, ...), or if the mixer is a circuit
     # with more than 1 parameters, from (cost_1, mixer_1a, mixer_1b, cost_2, ...)
     # to (cost_1, cost_2, ..., mixer_1a, mixer_1b, mixer_2a, mixer_2b, ...)
+    iter_count = num_cost if num_cost>0 else len(num_mixer)
     gamma_indices, beta_indices = [], []
-    rep = 0
-    for rep_cost in range(num_cost):
+    rep, rep_mix = 0, 0
+    for rep_cost in range(iter_count):
         if num_cost>0:
             gamma_indices.extend(list(range(rep,rep+1)))
         rep+=1
@@ -50,21 +50,9 @@ def _reordered_indices(num_cost: int, num_mixer: list):
             rep_mix = num_mixer[rep_cost]
             beta_indices.extend(list(range(rep,rep_mix+rep)))
         rep+=rep_mix
+    if num_cost == 0:
+        beta_indices = [_ - len(num_mixer) for _ in beta_indices]
     return gamma_indices, beta_indices
-
-# TODO: Implement compute_energy_gradient in here rather than adapt_qaoa.
-"""
-I think it makes more logical sense for compute_energy_gradient/ _test_mixer_pool functions 
-to be placed in adaptansatz. The reason is because we would like to build the ansatz based
-on the user-defined cost function.
-
-The parameter reps is somewhat useless here since the length of mixer_operators should define
-the ansatz depth. This is because for len(mixer_operators)==1 and reps>1, parameter optimisation
-for a set of initial values must completed (which is the function of adaptqaoa class.)
-
-
-
-"""
 
 def adapt_mixer_pool(
     num_qubits: int, add_single: bool = True, add_multi: bool = True, pool_type: str = None,
@@ -139,19 +127,19 @@ def adapt_mixer_pool(
 
     mixer_circ_list = []
     for mix_str in mixer_pool:
-        if circuit_rep:
+        if circuit_rep: # if a circuit representation of the mixers is required
             mixer = QuantumCircuit(num_qubits)
-            for p_i in range(num_params):
+            for p_i in range(num_params):   # loop over the number of parameters for each qubit
                 param = [Parameter("θ"+str(p_i))]
-                for q_i, mix in enumerate(mix_str):
-                    if q_i in circ_params:
-                        qbit_op = param_op_dict[mix]
+                for q_i, mix in enumerate(mix_str): # loop operator indicies to parameterise
+                    if q_i in circ_params:  # if the index is in the specified parameters
+                        qbit_op = param_op_dict[mix]    # assign a parameter to the operator
                         qbit_op.params = param
                         mixer.append(qbit_op,[q_i])
-                    else:
+                    else:                   # otherwise just append the operator without parameter
                         qbit_op = op_dict[mix]
                         mixer.append(qbit_op,[q_i])
-        else:
+        else:       # otherwise just convert the string representation of Pauli's to operators
             if mix_str == len(mix_str) * mix_str[0]:
                 gate = mix_str[0]
                 list_string = [
@@ -176,6 +164,7 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
     def __init__(
         self,
         cost_operator=None,
+        reps: int = 1,
         initial_state: Optional[QuantumCircuit] = None,
         mixer_pool: Optional[Union[OperatorBase, QuantumCircuit]] = None,
         mixer_pool_type: str = None,
@@ -186,6 +175,8 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
             cost_operator (OperatorBase, optional): The operator representing the cost of
                 the optimization problem, denoted as :math:`U(C, \gamma)` in the original paper.
                 Must be set either in the constructor or via property setter.
+            reps (int): The integer parameter p, which determines the depth of the circuit,
+                as specified in the original paper, default is 1.
             initial_state (QuantumCircuit, optional): An optional initial state to use.
                 If `None` is passed then a set of Hadamard gates is applied as an initial state
                 to all qubits.
@@ -205,6 +196,7 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
         super().__init__(name=name)
         self._initial_state = initial_state
         self._mixer_pool = mixer_pool
+        self._mixer_op_pool = None
         self._mixer_operators = None
         self._mixer_pool_type = mixer_pool_type
         # set this circuit as a not-built circuit
@@ -214,8 +206,8 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         valid = True
-        if self.mixer_operators and not isinstance(self.mixer_operators, list):
-            self.mixer_operator = self.mixer_operators
+        if self._mixer_operators and not isinstance(self._mixer_operators, list):
+            self.mixer_operator = self._mixer_operators
             return super()._check_configuration()
 
         if not super(QAOAAnsatz, self)._check_configuration(raise_on_failure):
@@ -230,10 +222,10 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
 
         if not self._config_check:
             # Check that the dimensionality of the mixer operator pool is equal to the cost operator
-            if self.mixer_operators:
-                _, valid = self._check_mixers(self.mixer_operators)
+            if self._mixer_operators is not None:
+                _, valid = self._check_mixers(self._mixer_operators)
             if valid:
-                self._mixer_pool, valid  = self._check_mixers(self.mixer_pool) # set self._mixer_pool as the operator representation
+                self._mixer_op_pool, valid  = self._check_mixers(self.mixer_pool) # set self._mixer_pool as the operator representation
             self._config_check = True   # set class attribute to avoid doing this check twice
         return valid
 
@@ -273,9 +265,8 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
         """The parameter bounds for the unbound parameters in the circuit.
 
         Returns:
-            A list of pairs indicating the bounds, as (lower, upper). None indicates an unbounded
-            parameter in the corresponding direction. If None is returned, problem is fully
-            unbounded.
+            A list of pairs indicating the bounds, as (lower, upper) according to the variational
+            parameter bounds specified in the supplementary material of <https://arxiv.org/abs/2005.10258>.
         """
         self._bounds = [(-0.5 * np.pi, 0.5 * np.pi)] * sum(self._num_mixer)
         self._bounds += [(-2 * np.pi, 2 * np.pi)] * self._num_cost
@@ -301,10 +292,10 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
                 in this ansatz.
         """
         if self._operators is None:
-            if isinstance(self.mixer_operators, list) and self._config_check:
+            if isinstance(self._mixer_operators, list) and self._config_check:
                 varied_operators = list(
             itertools.chain.from_iterable(
-                [[self.cost_operator, mixer] for mixer in self.mixer_operators]
+                [[self.cost_operator, mixer] for mixer in self._mixer_operators]
             )
         )
                 self._operators = varied_operators
@@ -340,13 +331,19 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
         
     @property
     def mixer_operators(self):
-        """An ordered list of mixer operators to be used in the construction of the ansatz
-        with length equivalent to the circuit depth.
+        """Returns an ordered list of mixer operators to be used in the construction of 
+        the ansat up to a depth specified by the reps class attribute.
         Returns:
             List of mixers to be used on ansatz layers.
         Raises:
-            AttributeError: If operator and thus num_qubits has not yet been defined.
+            AttributeError: If the circuit is not built & mixer operators aren't set.
+            Further, if the 
         """
+        if self._mixer_operators is None:
+            if not self._is_built:
+                raise AttributeError("Unable to construct ansatz as custom mixer operators "
+                "must be set by first calling the class method set_mixer_operators.")
+            self._mixer_operators = []
         return self._mixer_operators
 
     @mixer_operators.setter
@@ -355,12 +352,20 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
         Args:
             mixer_operator: a list of operators or circuits to set.
         """
-        self._operators = None
-        self._is_built = False
+        if not isinstance(mixer_operators, list):
+            mixer_operators = [mixer_operators] 
         self._mixer_operators = mixer_operators
+        self._operators = None
+        self._invalidate()
 
     @property
     def mixer_pool(self):
+        """Returns a list of operators that defines the pool of mixers for the given 
+            cost operator. If no mixer pool is specified a complete list of operators will
+            be generated of type specified specified by mixer_pool_type.
+        Returns: 
+            List: A list of mixer operators that define the mixer pool.         
+        """
         if self._mixer_pool is not None:
             return self._mixer_pool
         # if no mixer pool is passed and we know the number of qubits, then initialize it.
@@ -370,7 +375,7 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
             )
             mixer_pool = []
             for mix in all_mixers:  # remove mixers that commute with cost operator
-                comm = commutator(self.cost_operator,mix)
+                comm = commutator(self.cost_operator,mix)   # to save time
                 if np.count_nonzero(comm)>0: 
                     mixer_pool.append(mix)
             self._mixer_pool = mixer_pool
@@ -378,6 +383,10 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
         
     @mixer_pool.setter
     def mixer_pool(self, mixer_pool) -> None:
+        """Sets the mixer pool
+        Args:
+            mixer_pool: a list of operators or circuits that define the mixer pool
+        """
         self._mixer_pool = mixer_pool
         self._config_check = False
         self._invalidate()
@@ -402,30 +411,34 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
         """
         self._mixer_pool_type = mixer_pool_type
 
-    def construct_ansatz(self, mixer_operators: List):
+    def construct_ansatz(self, mixer_operators: Optional[Union[OperatorBase, QuantumCircuit]] = None, append = False):
         """ Constructs an ansatz with an ordered list of mixer operators, 
-        where the circuit depth is equal to the mixer_operator list length.
-
+            where the circuit depth is equal to the mixer_operator list length.        
         Args:
             mixer_operators: A list of mixer operators.
         """
-        if not isinstance(mixer_operators, list):
-            mixer_operators = [mixer_operators]
 
+        mixer_operators = [] if mixer_operators is None else mixer_operators
+
+        if not isinstance(mixer_operators, list):
+            mixer_operators = [mixer_operators] 
+
+        if append and self._mixer_operators is not None:
+            mixer_operators = self._mixer_operators + mixer_operators
+        self.set_mixer_operators(mixer_operators = mixer_operators) # set the mixer operators
         _config_check = self._config_check  # save
         if self._mixer_pool is None:
             self._check_mixers(mixer_operators = mixer_operators)
         elif np.any([_ not in self._mixer_pool for _ in mixer_operators]):
             self._check_mixers(mixer_operators)
             self._config_check = True
-        self.mixer_operators = mixer_operators
         self._build()
         self._config_check = _config_check
     
     def _build(self):
         if self._is_built:
             return
-        super(QAOAAnsatz, self)._build()
+        super(QAOAAnsatz, self)._build() 
 
         num_mixer = []
         for mix in self.mixer_operators:
@@ -434,7 +447,8 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
             else:
                 num_mixer.append(0 if _is_pauli_identity(mix) else 1)
         self._num_mixer = num_mixer
-        self._num_cost = 0 if _is_pauli_identity(self.cost_operator) else len(num_mixer)
+        n_cost = 1 if len(num_mixer) == 0 else len(num_mixer)
+        self._num_cost = 0 if _is_pauli_identity(self.cost_operator) else n_cost
 
         betas = ParameterVector("β", sum(self._num_mixer))
         gammas = ParameterVector("γ", self._num_cost)
@@ -444,3 +458,7 @@ class AdaptQAOAAnsatz(QAOAAnsatz):
         reordered[gamma_index] = [_ for _ in gammas]
         reordered[beta_index] = [_ for _ in betas]
         self.assign_parameters(dict(zip(self.ordered_parameters, reordered)), inplace=True)
+
+    def set_mixer_operators(self, mixer_operators):
+        """User-friendly way to set mixer operators."""
+        self._mixer_operators = mixer_operators

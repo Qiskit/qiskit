@@ -33,14 +33,32 @@ from qiskit.test import QiskitTestCase
         
         """
     
+class unittesthelper:
+    def __init__(self) -> None:
+        pass
 
-@ddt
-class TestQAOAAnsatz(QiskitTestCase):
+    def assertEqual(self, a, b):
+        assert a == b
+
+    def assertIsInstance(self, a, b):
+        assert isinstance(a, b)
+
+    def assertAlmostEqual(self, a, b):
+        assert round(a-b, 7) == 0
+
+    def assertIsNone(self, a):
+        assert a == None
+
+    def assertIn(self, a, b):
+        assert a in b      
+# @ddt
+# class TestQAOAAnsatz(QiskitTestCase):
+class TestQAOAAnsatz(unittesthelper):
     """Test QAOAAnsatz."""
 
     def test_default_qaoa(self):
         """Test construction of the default circuit."""
-        circuit = AdaptQAOAAnsatz(I, 1)
+        circuit = AdaptQAOAAnsatz(I)
 
         parameters = circuit.parameters
 
@@ -53,7 +71,7 @@ class TestQAOAAnsatz(QiskitTestCase):
         """Test circuit with a custom initial state."""
         initial_state = QuantumCircuit(1)
         initial_state.y(0)
-        circuit = AdaptQAOAAnsatz(initial_state=initial_state, cost_operator=I, reps=1)
+        circuit = AdaptQAOAAnsatz(initial_state=initial_state, cost_operator=I)
 
         parameters = circuit.parameters
         circuit = circuit.decompose()
@@ -61,14 +79,10 @@ class TestQAOAAnsatz(QiskitTestCase):
         self.assertIsInstance(circuit.data[0][0], YGate)
         self.assertIsInstance(circuit.decompose().data[1][0], RXGate)
 
-    def test_invalid_reps(self):
-        """Test negative reps."""
-        with self.assertRaises(ValueError):
-            _ = AdaptQAOAAnsatz(I, reps=-1)
-
     def test_zero_reps(self):
         """Test zero reps."""
-        circuit = AdaptQAOAAnsatz(I ^ 4, reps=0)
+        circuit = AdaptQAOAAnsatz(I ^ 4)
+        circuit.set_mixer_operators(mixer_operators = [])
         reference = QuantumCircuit(4)
         reference.h(range(4))
 
@@ -78,7 +92,8 @@ class TestQAOAAnsatz(QiskitTestCase):
         """Test circuit with a custom mixer as a circuit"""
         mixer = QuantumCircuit(1)
         mixer.ry(1, 0)
-        circuit = AdaptQAOAAnsatz(cost_operator=I, reps=1, mixer_operator=mixer)
+        circuit = AdaptQAOAAnsatz(cost_operator=I)
+        circuit.mixer_operators = mixer
 
         parameters = circuit.parameters
         circuit = circuit.decompose()
@@ -89,7 +104,8 @@ class TestQAOAAnsatz(QiskitTestCase):
     def test_custom_operator_mixer(self):
         """Test circuit with a custom mixer as an operator."""
         mixer = Y
-        circuit = AdaptQAOAAnsatz(cost_operator=I, reps=1, mixer_operator=mixer)
+        circuit = AdaptQAOAAnsatz(cost_operator=I)
+        circuit.mixer_operators = mixer
 
         parameters = circuit.parameters
         circuit = circuit.decompose()
@@ -99,7 +115,7 @@ class TestQAOAAnsatz(QiskitTestCase):
 
     def test_parameter_bounds(self):
         """Test the parameter bounds."""
-        circuit = AdaptQAOAAnsatz(Z, reps=2)
+        circuit = AdaptQAOAAnsatz(Z)
         bounds = circuit.parameter_bounds
 
         for lower, upper in bounds[:2]:
@@ -185,4 +201,13 @@ class TestQAOAAnsatz(QiskitTestCase):
                     self.assertEqual(circuit.num_parameters, target)
 
 if __name__ == "__main__":
-    unittest.main()
+    # unittest.main()
+    tqaa = TestQAOAAnsatz()
+    tqaa.test_default_qaoa()
+    tqaa.test_custom_initial_state()
+    tqaa.test_custom_circuit_mixer()
+    tqaa.test_custom_operator_mixer()
+    tqaa.test_parameter_bounds()
+    # tqaa.test_all_custom_parameters()
+    # tqaa.test_default_qaoa()
+    # tqaa.test_default_qaoa()

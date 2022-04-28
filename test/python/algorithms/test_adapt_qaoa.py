@@ -69,7 +69,7 @@ class TestAdaptQAOA(QiskitTestCase):
         )
         self.statevector_simulator = QuantumInstance(
             BasicAer.get_backend("statevector_simulator"),
-            shots=4096,
+            shots=2**14,
             seed_simulator=self.seed,
             seed_transpiler=self.seed,
         )
