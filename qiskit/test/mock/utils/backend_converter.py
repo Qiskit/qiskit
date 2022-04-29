@@ -21,6 +21,7 @@ from qiskit.utils.units import apply_prefix
 from qiskit.circuit.library.standard_gates import IGate, SXGate, XGate, CXGate, RZGate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.delay import Delay
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
 from qiskit.providers.models.pulsedefaults import PulseDefaults
@@ -43,6 +44,7 @@ def convert_to_target(conf_dict: dict, props_dict: dict = None, defs_dict: dict 
     if props_dict:
         qubit_props = qubit_props_from_props(props_dict)
     target = Target(qubit_properties=qubit_props)
+    target.add_instruction(Delay(Parameter("t")))
     # Parse from properties if it exsits
     if props_dict is not None:
         # Parse instructions
