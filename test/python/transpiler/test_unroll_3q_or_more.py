@@ -104,8 +104,8 @@ class TestUnroll3qOrMore(QiskitTestCase):
         qc.append(RCCXGate(), [0, 1, 2])
         unroll_pass = Unroll3qOrMore(target=target)
         res = unroll_pass(qc)
-        self.assertIn('ccx', res.count_ops())
-        self.assertNotIn('rccx', res.count_ops())
+        self.assertIn("ccx", res.count_ops())
+        self.assertNotIn("rccx", res.count_ops())
 
     def test_basis_gates(self):
         """Test basis_gates are respected by the unroll 3q or more pass."""
@@ -115,18 +115,18 @@ class TestUnroll3qOrMore(QiskitTestCase):
         qc.append(RCCXGate(), [0, 1, 2])
         unroll_pass = Unroll3qOrMore(basis_gates=basis_gates)
         res = unroll_pass(qc)
-        self.assertNotIn('ccx', res.count_ops())
-        self.assertIn('rccx', res.count_ops())
+        self.assertNotIn("ccx", res.count_ops())
+        self.assertIn("rccx", res.count_ops())
 
     def test_target_over_basis_gates(self):
         """Test target is respected over basis_gates  by the unroll 3q or more pass."""
         target = Target(num_qubits=3)
-        basis_gates = ['rccx']
+        basis_gates = ["rccx"]
         target.add_instruction(CCXGate())
         qc = QuantumCircuit(3)
         qc.ccx(0, 1, 2)
         qc.append(RCCXGate(), [0, 1, 2])
         unroll_pass = Unroll3qOrMore(target=target, basis_gates=basis_gates)
         res = unroll_pass(qc)
-        self.assertIn('ccx', res.count_ops())
-        self.assertNotIn('rccx', res.count_ops())
+        self.assertIn("ccx", res.count_ops())
+        self.assertNotIn("rccx", res.count_ops())
