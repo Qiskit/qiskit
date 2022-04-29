@@ -12,6 +12,7 @@
 
 """A container class for counts from a circuit execution."""
 
+from collections import defaultdict
 import re
 
 from qiskit.result import postprocess
@@ -24,7 +25,7 @@ from qiskit import exceptions
 # methods are not always used as expected. For example, update() doesn't call
 # __setitem__ so overloading __setitem__ would not always provide the expected
 # result
-class Counts(dict):
+class Counts(defaultdict):
     """A class to store a counts result from a circuit execution."""
 
     bitstring_regex = re.compile(r"^[01\s]+$")
@@ -112,7 +113,7 @@ class Counts(dict):
             header["memory_slots"] = self.memory_slots
         if not bin_data:
             bin_data = postprocess.format_counts(self.hex_raw, header=header)
-        super().__init__(bin_data)
+        super().__init__(int, bin_data)
         self.time_taken = time_taken
 
     def most_frequent(self):

@@ -326,3 +326,7 @@ class TestCounts(unittest.TestCase):
         counts_obj = counts.Counts(raw_counts)
         result = counts_obj.hex_outcomes()
         self.assertEqual(expected, result)
+
+    def test_default_zero(self):
+        counts_obj = counts.Counts({})
+        self.assertEqual(counts_obj["0"], 0)
