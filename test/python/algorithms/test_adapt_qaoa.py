@@ -100,13 +100,8 @@ class TestAdaptQAOA(QiskitTestCase):
 
     @idata(
         [
-<<<<<<< HEAD
-            [W1, P1, S1, False],    #TODO: mismatch err
-            [W2, P2, S2, False],
-=======
             [W1, P1, S1, False],
             [W2, P2, S2, False],    
->>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
             [W1, P1, S1, True],
             [W2, P2, S2, True],
         ]
@@ -436,15 +431,4 @@ class TestAdaptQAOA(QiskitTestCase):
 
 
 if __name__ == "__main__":
-<<<<<<< HEAD
     unittest.main()
-
-
-    """ To fix:
-        - test_adapt_qaoa_qc_mixer:
-            - Doesn't like circuits as mixers
-        - test_adapt_qaoa_qc_mixer_many_parameters
-    """
-=======
-    unittest.main()
->>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
