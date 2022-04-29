@@ -46,7 +46,7 @@ z3_requirements = [
     "z3-solver>=4.7",
 ]
 bip_requirements = ["cplex", "docplex"]
-
+toqm_requirements = ["qiskit-toqm>=0.0.4"]
 
 setup(
     name="qiskit-terra",
@@ -82,9 +82,9 @@ setup(
         "visualization": visualization_extras,
         "bip-mapper": bip_requirements,
         "crosstalk-pass": z3_requirements,
-        # Note: 'all' does not include 'bip-mapper' because cplex is too fiddly and too little
-        # supported on various Python versions and OSes compared to Terra.  You have to ask for it
-        # explicitly.
+        "toqm": toqm_requirements,
+        # Note: 'all' only includes extras that are stable and work on the majority of Python
+        # versions and OSes supported by Terra. You have to ask for anything else explicitly.
         "all": visualization_extras + z3_requirements,
     },
     project_urls={
