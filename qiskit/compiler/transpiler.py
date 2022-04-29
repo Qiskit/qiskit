@@ -139,7 +139,8 @@ def transpile(
 
         layout_method: Name of layout selection pass ('trivial', 'dense', 'noise_adaptive', 'sabre')
         routing_method: Name of routing pass
-            ('basic', 'lookahead', 'stochastic', 'sabre', 'toqm', 'none')
+            ('basic', 'lookahead', 'stochastic', 'sabre', 'toqm', 'none'). Note
+            that to use method 'toqm', package 'qiskit-toqm' must be installed.
         translation_method: Name of translation pass ('unroller', 'translator', 'synthesis')
         scheduling_method: Name of scheduling pass.
             * ``'as_soon_as_possible'``: Schedule instructions greedily, as early as possible

@@ -1,10 +1,10 @@
 ---
 features:
   - |
-    Adds new layout and routing methods based on paper
+    Adds a new layout and routing method based on paper
     `Time-optimal Qubit mapping` <https://dl.acm.org/doi/10.1145/3445814.3446706>`__
-    to :func:`~qiskit.compiler.transpile`. To use them, optional package
+    to :func:`~qiskit.compiler.transpile`. To use it, optional package
     `Qiskit TOQM <https://github.com/qiskit-toqm/qiskit-toqm>`__ must be
-    installed. The ``layout_method`` and ``routing_method`` kwargs of 
-    :func:`~qiskit.compiler.transpile` support an additional value, ``'toqm'``
-    which is used to enable layout and or routing via TOQM.
+    installed. The ``routing_method`` kwarg of 
+    :func:`~qiskit.compiler.transpile` supports an additional value, ``'toqm'``
+    which is used to enable layout and routing via TOQM.

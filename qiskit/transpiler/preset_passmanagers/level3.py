@@ -207,7 +207,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 coupling_map,
                 strategy=ToqmStrategyO3(
                     latencies_from_target(
-                        coupling_map, instruction_durations, basis_gates, backend_properties
+                        coupling_map, instruction_durations, basis_gates, backend_properties, target
                     )
                 ),
             )
