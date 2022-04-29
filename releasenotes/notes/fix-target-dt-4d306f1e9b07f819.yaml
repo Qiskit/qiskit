@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed an issue with test util :func:`~qiskit.test.mock.utils.convert_to_target`
+    in which ``dt`` was not being converted to seconds when reading from parameter
+    ``conf_dict``.
