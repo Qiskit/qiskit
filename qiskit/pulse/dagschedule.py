@@ -41,6 +41,7 @@ class DAGSchedule:
     however the actual location of blocks in the timeslot is unknown before scheduling.
     In DAG representation, we can easily compare the topological odering of these components.
     """
+
     def __init__(self, is_sequential: bool):
         """Create new DAG.
 

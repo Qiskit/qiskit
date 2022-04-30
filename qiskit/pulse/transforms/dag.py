@@ -14,10 +14,13 @@
 from typing import TYPE_CHECKING
 import retworkx as rx
 
+from qiskit.pulse.utils import deprecated_functionality
+
 if TYPE_CHECKING:
     from qiskit.pulse.schedule import ScheduleBlock, BlockComponent
 
 
+@deprecated_functionality
 def block_to_dag(block: "ScheduleBlock") -> rx.PyDAG:
     """Convert schedule block instruction into DAG.
 
@@ -61,23 +64,4 @@ def block_to_dag(block: "ScheduleBlock") -> rx.PyDAG:
     Returns:
         Instructions in DAG representation.
     """
-    if block.alignment_context.is_sequential:
-        return _sequential_allocation(block)
-    else:
-        return _parallel_allocation(block)
-
-
-def _sequential_allocation(block: "ScheduleBlock") -> rx.PyDAG:
-    """A helper function to create a DAG of a sequential alignment context."""
-    dag_blocks = rx.PyDAG()
-
-    prev_node = None
-    edges = []
-    for inst in block.blocks:
-        current_node = dag_blocks.add_node(inst)
-        if prev_node is not None:
-            edges.append((prev_node, current_node))
-        prev_node = current_node
-    dag_blocks.add_edges_from_no_data(edges)
-
-    return dag_blocks
+    return block._blocks._dag

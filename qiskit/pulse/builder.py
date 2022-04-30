@@ -745,22 +745,17 @@ class _PulseBuilder:
 
     def append_reference(
         self,
-        name: str = None,
-        channels: Optional[List[chans.Channel]] = None,
-    ) -> str:
+        reference_key: str,
+        channels: List[chans.Channel],
+    ):
         """Add external program as a reference instruction.
 
         Args:
-            name: Name of the subroutine.
+            reference_key: Unique key of the subroutine.
             channels: Channels associated with the subroutine.
-
-        Returns:
-            Reference ID.
         """
-        reference = instructions.Reference(name, channels)
+        reference = instructions.Reference(ref_key=reference_key, channels=channels)
         self.append_instruction(reference)
-
-        return reference.ref_id
 
     def call_subroutine(
         self,
@@ -768,7 +763,7 @@ class _PulseBuilder:
         name: Optional[str] = None,
         value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None,
         **kw_params: ParameterValueType,
-    ) -> Optional[str]:
+    ):
         """Call a schedule or circuit defined outside of the current scope.
 
         The ``subroutine`` is appended to the context schedule as a call instruction.
@@ -825,20 +820,17 @@ class _PulseBuilder:
             # If subroutine is schedule block, use reference mechanism.
             sub_channels = subroutine.channels
             if local_assignment:
-                # Reference doesn't have mechanism to manage local scoped parameters.
+                # Reference doesn't have mechanism to manage local-scoped parameters.
                 # Assigned reference will become a new entry.
                 subroutine = subroutine.assign_parameters(local_assignment, inplace=False)
                 prefix = hex(hash(tuple(local_assignment.items())))
                 sub_name = f"{sub_name}_{prefix}"
-            ref_id = self.append_reference(sub_name, sub_channels)
-            self._context_stack[0].assign_reference(ref_id, subroutine, inplace=True)
-
-            return ref_id
+            self.append_reference(reference_key=sub_name, channels=sub_channels)
+            self._context_stack[-1].assign_reference(sub_name, subroutine, inplace=True)
         else:
+            # If subroutine is schedule, use Call instruction.
             call_instruction = instructions.Call(subroutine, local_assignment, sub_name)
             self.append_instruction(call_instruction)
-
-            return None
 
     @_requires_backend
     def call_gate(self, gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
@@ -1930,7 +1922,7 @@ def call(
     channels: Optional[List[chans.Channel]] = None,
     value_dict: Optional[Dict[ParameterValueType, ParameterValueType]] = None,
     **kw_params: ParameterValueType,
-) -> Optional[str]:
+):
     """Call the subroutine within the currently active builder context with arbitrary
     parameters which will be assigned to the target program.
 
@@ -2000,42 +1992,60 @@ def call(
             qiskit import pulse
 
             with pulse.build() as main_prog:
-                key = pulse.call(name="subroutine", channels=[pulse.DriveChannel(0)])
+                ref_key = "my_subroutine"
+                pulse.call(name=ref_key, channels=[pulse.DriveChannel(0)])
 
             with pulse.build() as subroutine:
                 pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
 
-            main_prog.assign_reference(ref_id=key, schedule=subroutine)
+            main_prog.assign_reference(ref_key=ref_key, schedule=subroutine)
 
         When you call without actual program, you can assign the program afterwards
         through the :meth:`ScheduleBlock.assign_reference` method.
 
     Args:
-        target: Target circuit or pulse schedule to call.
+        target: Target circuit or pulse schedule to call. If this program is not
+            provided, both ``name`` and ``channels`` should be provided instead.
         name: Name of subroutine if defined.
-        value_dict: Parameter object and assigned value mapping. This is more precise way to
-            identify a parameter since mapping is managed with unique object id rather than
-            name. Especially there is any name collision in a parameter table.
-        kw_params: Parameter values to bind to the target subroutine
-            with string parameter names. If there are parameter name overlapping,
-            these parameters are updated with the same assigned value.
+        channels: Optional. Channels associated to the subroutine.
+        value_dict: Optional. Local scoped parameters assigned to the subroutine.
+            If this dictionary is provided, the ``target`` program is copied and
+            then stored in the main built schedule with having parameters assigned.
+            This dictionary is keyed on the :class:`~.Parameter` object,
+            thus parameter name collision can be avoided.
+            This option is valid only when the subroutine is called with ``target``.
+        kw_params: Alternative way to provide local scoped parameters.
+            Since this is keyed on the string parameter name,
+            the parameters having the same name are all updated together.
+            If you want to avoid name collision, use ``value_dict`` with :class:`~.Parameter`
+            object instead.
 
     Raises:
         exceptions.PulseError: If the input ``target`` type is not supported.
+        exceptions.PulseError: Target program is empty and name and channels are not both provided.
+        exceptions.PulseError: Subroutine is called by name and channels but
+            local scoped parameters are also provided.
     """
     if target is None:
         if value_dict is not None or any(kw_params):
             raise exceptions.PulseError(
-                f"Parameters are provided without target program. "
+                "Parameters are provided without target program. "
                 "These parameters cannot be assigned."
             )
-        return _active_builder().append_reference(name, channels)
+        if name is None or channels is None:
+            raise exceptions.PulseError(
+                "Subroutine name and channels are not both provided. "
+                "Please call subroutine with target program, or both name and channels."
+            )
+        _active_builder().append_reference(reference_key=name, channels=channels)
     else:
         if not isinstance(target, (circuit.QuantumCircuit, Schedule, ScheduleBlock)):
             raise exceptions.PulseError(
                 f'Target of type "{target.__class__.__name__}" is not supported.'
             )
-        return _active_builder().call_subroutine(target, name, value_dict, **kw_params)
+        _active_builder().call_subroutine(
+            subroutine=target, name=name, value_dict=value_dict, **kw_params
+        )
 
 
 # Directives

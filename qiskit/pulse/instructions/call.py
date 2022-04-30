@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2021, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -173,41 +173,48 @@ class Call(instruction.Instruction):
 class Reference(instruction.Instruction):
     """Pulse compiler directive that refers to subroutine.
 
-    If a pulse program uses same subset of instruction multiple times,
-    using :class:`Reference` drastically reduces memory footprint of the program.
-    This instruction only stores name and associated channels in an instance.
+    If a pulse program uses same subset of instructions multiple times,
+    using :class:`~.Reference` may significantly reduces memory footprint of the program.
+    This instruction only stores name and associated channels in its instance.
 
-    The actual pulse program is stored in the :attr:`ScheduleBlock.reference`
+    The actual pulse program is stored in the :attr:`ScheduleBlock.references`
     that this reference instruction belongs to.
 
     You can later assign schedule through :meth:`ScheduleBlock.assign_reference` method.
-    This allows you the lazy evaluation of subroutine at the runtime.
+    This allows you to build the main program without knowing the actual subroutine,
+    that is spplied later at the run time.
     """
 
     def __init__(
         self,
-        name: str,
+        ref_key: str,
         channels: Sequence[Channel],
     ):
-        # Create unique reference id based on name and channels.
-        # Since channel index can be parameterized, reference id may change
-        # by parameter assignment if we directly keyed on the channel objects.
-        # This key is somewhat static againt parameter assignment.
-        chanstr = ".".join([c.prefix + str(c.index) for c in channels])
-        ref_id = f"{name}.{chanstr}"
-        super().__init__(operands=(ref_id, *channels), name=name)
+        """Create new reference.
+
+        Args:
+            ref_key: Unique reference key to the subroutine.
+            channels: Channels associated to the subroutine referred by the instruction.
+
+        Raises:
+            PulseError: When "." is used in the reference name.
+        """
+        if "." in ref_key:
+            raise PulseError(
+                f"'{ref_key}' is not valid reference key. "
+                "'.' is reserved for the separator of the program scope information."
+            )
+        super().__init__(operands=(ref_key, *channels), name=ref_key)
 
     @property
-    def ref_id(self) -> str:
-        """Returns the name of referred program."""
+    def ref_key(self) -> str:
+        """Returns unique key of the subroutine."""
         return self.operands[0]
 
     @property
     def duration(self) -> Union[int, ParameterExpression]:
         """Duration of this instruction."""
-        raise NotImplementedError(
-            "Reference to subroutine does not define duration."
-        )
+        raise NotImplementedError("Reference to subroutine does not define duration.")
 
     @property
     def channels(self) -> Tuple[Channel, ...]:
@@ -216,15 +223,14 @@ class Reference(instruction.Instruction):
 
     def __repr__(self) -> str:
         data_repr = []
-        data_repr.append(f"ref_id={self.ref_id}")
-        data_repr.append(f"channels=" + ", ".join(map(str, self.channels)))
-        data_repr.append(f"name={self.name}")
+        data_repr.append(f"ref_key={self.ref_key}")
+        data_repr.append("channels=" + ", ".join(map(str, self.channels)))
         return f"{self.__class__.__name__}({', '.join(data_repr)})"
 
     def __eq__(self, other: "Instruction") -> bool:
         if not isinstance(other, self.__class__):
             return False
-        if self.name != other.name:
+        if self.ref_key != other.ref_key:
             return False
         if set(self.channels) != set(other.channels):
             return False

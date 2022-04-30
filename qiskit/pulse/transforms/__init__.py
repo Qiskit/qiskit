@@ -89,7 +89,7 @@ A sequence of transformations to generate a target code.
 
 """
 
-from.alignments import (
+from .alignments import (
     AlignEquispaced,
     AlignFunc,
     AlignLeft,

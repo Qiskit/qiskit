@@ -50,7 +50,7 @@ as the data amount scales.
 Note that we don't need to write any parameter management logic for each object,
 and thus this parameter framework gives greater scalability to the pulse module.
 """
-from copy import deepcopy, copy
+from copy import copy
 from typing import List, Dict, Set, Any, Union
 
 from qiskit.circuit.parameter import Parameter
@@ -151,18 +151,6 @@ class ParameterSetter(NodeVisitor):
                 self.visit(block)
 
         self._update_parameter_manager(node)
-
-        # Update subroutines.
-        # Parameters in the main program and subroutines are managed with different managers
-        # attached to each scope. Thus updating subroutine parameters from the main program
-        # doesn't update parameter table of the main program.
-        for subroutine in node._references._program_map.values():
-            if subroutine is None:
-                # Reference is not yet assigned
-                continue
-            scope_params = self._param_map.keys() & subroutine.parameters
-            subroutine.assign_parameters({p: self._param_map[p] for p in scope_params}, inplace=True)
-
         return node
 
     def visit_Schedule(self, node: Schedule):
@@ -283,6 +271,7 @@ class ParameterSetter(NodeVisitor):
             if isinstance(new_value, ParameterExpression):
                 new_parameters = new_parameters | new_value.parameters
         param_manager._parameters = new_parameters
+
 
 class ParameterGetter(NodeVisitor):
     """Node visitor for parameter finding.

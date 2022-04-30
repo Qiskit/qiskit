@@ -17,6 +17,7 @@ from typing import List, Dict, Union
 
 import numpy as np
 
+from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import UnassignedDurationError, QiskitError
 
@@ -114,3 +115,12 @@ def deprecated_functionality(func):
         return func(*args, **kwargs)
 
     return wrapper
+
+
+def scoping_parameter(param: Parameter, scope: str) -> Parameter:
+    """Override parameter object with program scope information."""
+    new_name = f"{scope}.{param.name}"
+    scoped_param = Parameter.__new__(Parameter, new_name, uuid=getattr(param, "_uuid"))
+    scoped_param.__init__(new_name)
+
+    return scoped_param

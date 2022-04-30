@@ -50,7 +50,10 @@ def block_to_schedule(block: ScheduleBlock) -> Schedule:
 
     for op_data in block.blocks:
         if isinstance(op_data, instructions.Reference):
-            op_data = block._references.get_program(op_data)
+            op_data = block._references.get_subroutine_with_key(
+                ref_key=op_data.ref_key,
+                scope=block.name,
+            )
         if isinstance(op_data, ScheduleBlock):
             context_schedule = block_to_schedule(op_data)
             if hasattr(op_data.alignment_context, "duration"):
@@ -205,7 +208,10 @@ def _inline_block(block: ScheduleBlock) -> ScheduleBlock:
             inline_block = _inline_block(subroutine)
             ret_block.append(inline_block, inplace=True)
         elif isinstance(inst, instructions.Reference):
-            subroutine = block._references.get_program(inst)
+            subroutine = block._references.get_subroutine_with_key(
+                ref_key=inst.ref_key,
+                scope=block.name,
+            )
             inline_block = _inline_block(subroutine)
             ret_block.append(inline_block, inplace=True)
         elif isinstance(inst, ScheduleBlock):
