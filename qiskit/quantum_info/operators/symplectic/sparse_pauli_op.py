@@ -441,7 +441,8 @@ class SparsePauliOp(LinearOp):
     def argsort(self, weight=False):
         """Return indices for sorting the rows of the table.
 
-        The default sort method is lexicographic sorting by qubit number.
+        Returns the composition of permutations in the order of sorting
+        by coefficient and sorting by Pauli.
         By using the `weight` kwarg the output can additionally be sorted
         by the number of non-identity terms in the Pauli, where the set of
         all Pauli's of a given weight are still ordered lexicographically.
@@ -460,34 +461,39 @@ class SparsePauliOp(LinearOp):
     def sort(self, weight=False):
         """Sort the rows of the table.
 
-        The default sorting method is ascending order by the magnitude of the coefficients. You can also specify the reverse option in descending order.
-        This method sorts by the magnitude of the coefficient and then further by the number of non-identity terms in Pauli.
+        After sorting the coefficients using numpy's argsort, sort by Pauli.
+        Pauli sort takes precedence.
+        If Pauli is the same, it will be sorted by coefficient.
+        By using the `weight` kwarg the output can additionally be sorted
+        by the number of non-identity terms in the Pauli, where the set of
+        all Pauli's of a given weight are still ordered lexicographically.
 
         **Example**
 
-        Consider sorting all a random ordering of all 2-qubit Paulis
+        Here is an example of how to use SparcePauliOp sort.
 
         .. jupyter-execute::
 
-            from numpy.random import shuffle
-            from qiskit.quantum_info.operators import PauliList
+            import numpy as np
+            from qiskit.quantum_info import SparsePauliOp
 
             # 2-qubit labels
-            labels = ['II', 'IX', 'IY', 'IZ', 'XI', 'XX', 'XY', 'XZ',
-                      'YI', 'YX', 'YY', 'YZ', 'ZI', 'ZX', 'ZY', 'ZZ']
-            # Shuffle Labels
-            shuffle(labels)
-            pt = PauliList(labels)
+            labels = ["XX", "XX", "XX", "YI", "II", "XZ", "XY", "XI"]
+            # coeffs
+            coeffs = [2.+1.j, 2.+2.j, 3.+0.j, 3.+0.j, 4.+0.j, 5.+0.j, 6.+0.j, 7.+0.j]
+
+            # init
+            spo = SparsePauliOp(labels, coeffs)
             print('Initial Ordering')
-            print(pt)
+            print(spo)
 
             # Lexicographic Ordering
-            srt = pt.sort()
+            srt = spo.sort()
             print('Lexicographically sorted')
             print(srt)
 
             # Weight Ordering
-            srt = pt.sort(weight=True)
+            srt = spo.sort(weight=True)
             print('Weight sorted')
             print(srt)
 
