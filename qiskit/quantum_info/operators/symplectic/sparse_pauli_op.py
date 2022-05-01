@@ -788,20 +788,24 @@ class SparsePauliOp(LinearOp):
         return graph
 
     def group_commuting(self, qubit_wise=False):
-        r"""Partition a SparsePauliOp into sets of commuting Pauli strings.
+        """Partition a SparsePauliOp into sets of commuting Pauli strings.
 
         Args:
             qubit_wise (bool): the commutation rule is mutually qubit-wise or not.
 
                 For example:
 
-                    * ``SparsePauliOp.from_list([('XX', 2), ('YY', 1),("IZ",2j),("ZZ",1j)])\ ``
-                                 * ``.group_commuting()``
+                    * ``SparsePauliOp.from_list([('XX', 2),``
+                    * ``                               ('YY', 1),``
+                    * ``                               ("IZ",2j),``
+                    * ``                               ("ZZ",1j)]).group_commuting()``
                             Returns [SparsePauliOp(['IZ', 'ZZ'], coeffs=[0.+2.j, 0.+1.j]),
                                             SparsePauliOp(['XX', 'YY'], coeffs=[2.+0.j, 1.+0.j])]
 
-                    * ``SparsePauliOp.from_list([('XX', 2), ('YY', 1),("IZ",2j),("ZZ",1j)])\ ``
-                               * `` .group_commuting(qubit_wise=True)``
+                    * ``SparsePauliOp.from_list([('XX', 2),``
+                    * ``                               ('YY', 1),``
+                    * ``                               ("IZ",2j),``
+                    * ``                               ("ZZ",1j)]).group_commuting(qubit_wise=True)``
                             Returns [SparsePauliOp(['XX'], coeffs=[2.+0.j]),
                                             SparsePauliOp(['YY'], coeffs=[1.+0.j]),
                                             SparsePauliOp(['IZ', 'ZZ'], coeffs=[0.+2.j, 0.+1.j])]
