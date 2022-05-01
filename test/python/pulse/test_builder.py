@@ -1431,6 +1431,23 @@ class TestSubroutineWithCXGate(QiskitTestCase):
         ref_params = {"main.xp.dur", "main.xp.beta", "main.ctrl", "main.xp.amp", "main.xp.sigma"}
         self.assertSetEqual(scoped_params, ref_params)
 
+    def test_builder_alignment_context_no_scope(self):
+        """Test nested builder context doesn't create reference."""
+        with pulse.build(name="main") as main_prog:
+            with pulse.align_right():  # another block is created here, but this is not reference
+                pulse.call(self.xp_sched)
+
+        refs = list(main_prog.references)
+
+        # main directly refers to grand_child. this is not 'called'.
+        self.assertEqual(len(refs), 1)
+        self.assertEqual(refs[0].schedule, self.xp_sched)
+
+        # all parameters are now main scope
+        scoped_params = set(p.name for p in main_prog.scoped_parameters)
+        ref_params = {"main.xp.dur", "main.xp.beta", "main.ctrl", "main.xp.amp", "main.xp.sigma"}
+        self.assertSetEqual(scoped_params, ref_params)
+
     def test_cnot(self):
         """Integration test with CNOT schedule construction."""
         # echeod cross resonance
