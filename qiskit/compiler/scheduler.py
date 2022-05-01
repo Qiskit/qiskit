@@ -22,7 +22,6 @@ from typing import List, Optional, Union
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import InstructionScheduleMap, Schedule
-from qiskit.providers import BaseBackend
 from qiskit.providers.backend import Backend
 from qiskit.scheduler import ScheduleConfig
 from qiskit.scheduler.schedule_circuit import schedule_circuit
@@ -37,7 +36,7 @@ def _log_schedule_time(start_time, end_time):
 
 def schedule(
     circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-    backend: Optional[Union[Backend, BaseBackend]] = None,
+    backend: Optional[Backend] = None,
     inst_map: Optional[InstructionScheduleMap] = None,
     meas_map: Optional[List[List[int]]] = None,
     dt: Optional[float] = None,
@@ -65,6 +64,7 @@ def schedule(
     Raises:
         QiskitError: If ``inst_map`` and ``meas_map`` are not passed and ``backend`` is not passed
     """
+    arg_circuits_list = isinstance(circuits, list)
     start_time = time()
     if backend and getattr(backend, "version", 0) > 1:
         if inst_map is None:
@@ -100,4 +100,7 @@ def schedule(
     schedules = [schedule_circuit(circuit, schedule_config, method) for circuit in circuits]
     end_time = time()
     _log_schedule_time(start_time, end_time)
-    return schedules[0] if len(schedules) == 1 else schedules
+    if arg_circuits_list:
+        return schedules
+    else:
+        return schedules[0]

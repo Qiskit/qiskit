@@ -34,12 +34,3 @@ class FakeRochester(fake_qasm_backend.FakeQasmBackend):
     conf_filename = "conf_rochester.json"
     props_filename = "props_rochester.json"
     backend_name = "fake_rochester"
-
-
-class FakeLegacyRochester(fake_qasm_backend.FakeQasmLegacyBackend):
-    """A fake Rochester backend."""
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_rochester.json"
-    props_filename = "props_rochester.json"
-    backend_name = "fake_rochester"
