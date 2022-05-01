@@ -30,7 +30,7 @@ class SubroutineSpec:
 
     scope: str
     ref_key: str
-    channels: Tuple["Channel"]
+    channels: Tuple["Channel", ...]
     schedule: "ScheduleBlock"
 
     @property
@@ -156,15 +156,16 @@ class ReferenceManager:
         """
         sub_params = set()
         for scoped_keys, subroutine in self._program_map.items():
+            _, ref_key = scoped_keys.split(".")
             if subroutine is None:
                 continue
-            full_scope = ".".join([current_scope] + scoped_keys.split(".")[1:])
+            full_scoped_key = f"{current_scope}.{ref_key}"
             scoped_params = set()
             for param in subroutine.parameters:
-                scoped_params.add(scoping_parameter(param, full_scope))
+                scoped_params.add(scoping_parameter(param, full_scoped_key))
             sub_params = sub_params | scoped_params
             if subroutine.is_referenced():
-                nested_params = subroutine._references.scoped_parameters(scoped_keys)
+                nested_params = subroutine._references.scoped_parameters(full_scoped_key)
                 sub_params = sub_params | nested_params
         return sub_params
 

@@ -1528,3 +1528,24 @@ class TestSubroutineWithCXGate(QiskitTestCase):
                     )
 
         self.assertEqual(flatten_cx, ref_cx)
+
+    def test_scoped_parameters(self):
+        """Test scoped parameters."""
+        p0 = circuit.Parameter("P0")
+
+        with pulse.build(name="A") as sa:
+            pulse.play(pulse.Constant(100, p0), pulse.DriveChannel(0))
+        with pulse.build(name="B") as sb:
+            pulse.call(sa)
+        with pulse.build(name="C") as sc:
+            pulse.call(sb)
+        with pulse.build(name="D") as sd:
+            pulse.call(sc)
+        with pulse.build(name="E") as se:
+            pulse.call(sd)
+
+        self.assertEqual(next(iter(se.scoped_parameters)).name, "E.D.C.B.A.P0")
+
+        # check object equality
+        retrieved_param = se.get_parameters(parameter_name="P0", scope="E.D.C.B.A")[0]
+        self.assertEqual(retrieved_param, p0)
