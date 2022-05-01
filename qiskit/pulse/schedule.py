@@ -36,6 +36,7 @@ import copy
 import functools
 import itertools
 import multiprocessing as mp
+import re
 import sys
 from typing import List, Tuple, Iterable, Iterator, Union, Dict, Callable, Set, Optional, Any
 
@@ -1426,6 +1427,7 @@ class ScheduleBlock:
         Args:
             parameter_name: Name of parameter.
             scope: Scope of the program to investigate. Defaults to the current block.
+                Scope can be specified with regular expression.
 
         Returns:
             Parameter objects that have corresponding name.
@@ -1443,7 +1445,7 @@ class ScheduleBlock:
             scope_and_name = param.name.split(".")
             param_scope = ".".join(scope_and_name[:-1])
             name = scope_and_name[-1]
-            if scope == param_scope and parameter_name == name:
+            if re.search(scope, param_scope) and parameter_name == name:
                 matched.append(param)
 
         return matched

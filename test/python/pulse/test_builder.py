@@ -1401,11 +1401,11 @@ class TestSubroutineWithCXGate(QiskitTestCase):
         # all parameters are exposed with scope
         scoped_params = set(p.name for p in sched3.scoped_parameters)
         ref_params = {
-            "child.grand_child.xp.dur",
-            "child.grand_child.xp.beta",
+            "main.child.grand_child.xp.dur",
+            "main.child.grand_child.xp.beta",
             "main.ctrl",
-            "child.grand_child.xp.amp",
-            "child.grand_child.xp.sigma",
+            "main.child.grand_child.xp.amp",
+            "main.child.grand_child.xp.sigma",
         }
         self.assertSetEqual(scoped_params, ref_params)
 
@@ -1464,6 +1464,15 @@ class TestSubroutineWithCXGate(QiskitTestCase):
             pulse.call(self.sx_sched)
             pulse.call(ecr_sched)
 
+        # get parameter with scope, full scope is not needed
+        xp_amp = cx_sched.get_parameters("amp", scope="xp")[0]
+        self.assertEqual(self.xp_amp, xp_amp)
+
+        # get parameter with scope, of course full scope can be specified
+        xp_amp_full_scoped = cx_sched.get_parameters("amp", scope="cx.ecr.xp")[0]
+        self.assertEqual(xp_amp_full_scoped, xp_amp)
+
+        # assign parameters
         assigned_cx = cx_sched.assign_parameters(
             value_dict={
                 self.cr_ch: 0,
