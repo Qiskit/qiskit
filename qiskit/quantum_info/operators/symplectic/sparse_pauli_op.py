@@ -788,7 +788,7 @@ class SparsePauliOp(LinearOp):
         return graph
 
     def group_commuting(self, qubit_wise=False):
-        """Partition a SparsePauliOp into sets of commuting Pauli strings.
+        r"""Partition a SparsePauliOp into sets of commuting Pauli strings.
 
         Args:
             qubit_wise (bool): the commutation rule is mutually qubit-wise or not.
