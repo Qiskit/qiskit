@@ -616,10 +616,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         # Within each group, every operator qubit-wise commutes with every other operator.
         for group in groups:
             self.assertTrue(
-                all(
-                    commutes(pauli1, pauli2)
-                    for pauli1, pauli2 in it.combinations(group.paulis, 2)
-                )
+                all(commutes(pauli1, pauli2) for pauli1, pauli2 in it.combinations(group.paulis, 2))
             )
         # For every pair of groups, at least one element from one does not qubit-wise commute with
         # at least one element of the other.
@@ -627,9 +624,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             self.assertFalse(
                 all(
                     commutes(group1_pauli, group2_pauli)
-                    for group1_pauli, group2_pauli in it.product(
-                        group1.paulis, group2.paulis
-                    )
+                    for group1_pauli, group2_pauli in it.product(group1.paulis, group2.paulis)
                 )
             )
 
