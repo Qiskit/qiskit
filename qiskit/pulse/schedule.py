@@ -899,9 +899,9 @@ class ScheduleBlock:
         print(sched1.scoped_parameters)
 
     The :attr:`~ScheduleBlock.scoped_parameters` property returns all :class:`~.Parameter`
-    objects defined in the schedule block. The parmeter name is updated to reflect
-    scope information, i.e. name of schedule.
-    Note that the :class:`Parameter` object is evaluated by the hidden UUID key,
+    objects defined in the schedule block. The parameter name is updated to reflect
+    its scope information, i.e. where it is defined, namely, the name of schedule.
+    Note that the :class:`Parameter` object is evaluated by the hidden `UUID`_ key,
     the updated name doesn't break its reference.
 
     You may want to call this program from another program.
@@ -925,9 +925,7 @@ class ScheduleBlock:
 
     .. jupyter-execute::
 
-        child_references = list(sched2.references)
-
-        for ref in child_references:
+        for ref in sched2.references:
             print(ref)
 
     This indicates ``grand_child`` is defined under the scope of ``child``.
@@ -956,13 +954,13 @@ class ScheduleBlock:
 
     .. jupyter-execute::
 
-        main_references = list(main.references)
-
-        for ref in main_references:
+        for ref in main.references:
             print(ref)
 
-    Note that the ``main`` program cannot directly access to the ``grand_child`` because
+    As you can see the main program cannot directly access to the ``grand_child`` because
     this subroutine is not called within the scope of ``main``.
+
+    .. _UUID: https://docs.python.org/3/library/uuid.html#module-uuid
     """
 
     # Prefix to use for auto naming.
