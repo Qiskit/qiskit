@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Introduced a left side scaler multiplication to :class:`.Operator` objects.
+    It can be used by using * decorator,
+    for example::
+
+      from qiskit.quantum_info import Pauli
+      Pauli("X") * -1j
