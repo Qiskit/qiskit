@@ -13,6 +13,7 @@
 """Tests for SparsePauliOp class."""
 
 import itertools as it
+from tokenize import Number
 import unittest
 from test import combine
 
@@ -450,8 +451,13 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         spp_op = self.random_spp_op(num_qubits, 2**num_qubits)
         target = value * Operator(spp_op)
         op = value * spp_op
-        value = op.to_operator()
-        self.assertEqual(value, target)
+        value_mat = op.to_operator()
+        self.assertEqual(value_mat, target)
+        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
+        target = Operator(spp_op) * value
+        op = spp_op * value
+        value_mat = op.to_operator()
+        self.assertEqual(value_mat, target)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
     @combine(num_qubits=[1, 2, 3], value=[1, 1j, -3 + 4.4j])
