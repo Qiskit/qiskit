@@ -340,6 +340,11 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         self.assertEqual(value, target)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
+        op = spp_op1 @ spp_op2
+        value = op.to_operator()
+        self.assertEqual(value, target)
+        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
+
     @combine(num_qubits=[1, 2, 3])
     def test_qargs_compose(self, num_qubits):
         """Test 3-qubit compose method with {num_qubits}-qubit qargs."""
