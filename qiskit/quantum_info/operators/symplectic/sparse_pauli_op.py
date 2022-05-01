@@ -774,28 +774,42 @@ class SparsePauliOp(LinearOp):
 
         return MatrixIterator(self)
 
-    def _create_graph(self):
+    def _create_graph(self, qubit_wise):
         """Transform measurement operator grouping problem into graph coloring problem
 
         Returns:
             retworkx.PyGraph: A class of undirected graphs
         """
 
-        edges = self.paulis._noncommutation_graph(qubit_wise=False)
+        edges = self.paulis._noncommutation_graph(qubit_wise)
         graph = rx.PyGraph()
         graph.add_nodes_from(range(self.size))
         graph.add_edges_from_no_data(edges)
         return graph
 
-    def group_inter_qubit_commuting(self):
+    def group_commuting(self, qubit_wise=False):
         """Partition a SparsePauliOp into sets of commuting Pauli strings.
+
+        Args:
+            qubit_wise (bool): the commutation rule is mutually qubit-wise or not.
+
+                For example:
+
+                    * ``SparsePauliOp.from_list([('XX', 2), ('YY', 1),("IZ",2j),("ZZ",1j)]).group_commuting()``
+                            Returns [SparsePauliOp(['IZ', 'ZZ'], coeffs=[0.+2.j, 0.+1.j]),
+                                            SparsePauliOp(['XX', 'YY'], coeffs=[2.+0.j, 1.+0.j])]
+
+                    * ``SparsePauliOp.from_list([('XX', 2), ('YY', 1),("IZ",2j),("ZZ",1j)]).group_commuting(qubit_wise=True)``
+                            Returns [SparsePauliOp(['XX'], coeffs=[2.+0.j]),
+                                            SparsePauliOp(['YY'], coeffs=[1.+0.j]),
+                                            SparsePauliOp(['IZ', 'ZZ'], coeffs=[0.+2.j, 0.+1.j])]
 
         Returns:
             List[SparsePauliOp]: List of SparsePauliOp where each SparsePauliOp contains commuting
                 Pauli operators.
         """
 
-        graph = self._create_graph()
+        graph = self._create_graph(qubit_wise)
         # Keys in coloring_dict are nodes, values are colors
         coloring_dict = rx.graph_greedy_color(graph)
         groups = defaultdict(list)
@@ -803,6 +817,9 @@ class SparsePauliOp(LinearOp):
             groups[color].append(idx)
         return [self[group] for group in groups.values()]
 
+
+# Update docstrings for API docs
+generate_apidocs(SparsePauliOp)
 
 # Update docstrings for API docs
 generate_apidocs(SparsePauliOp)

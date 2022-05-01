@@ -1070,7 +1070,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         base_z, base_x, base_phase = cls._from_array(z, x, phase)
         return cls(BasePauli(base_z, base_x, base_phase))
 
-    def _noncommutation_graph(self, qubit_wise=True):
+    def _noncommutation_graph(self, qubit_wise):
         """Create an edge list representing the non-commutation graph (Pauli Graph).
 
         An edge (i, j) is present if i and j are not commutable.
@@ -1087,16 +1087,27 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             dtype=np.int8,
         )
         mat2 = mat1[:, None]
-        # mat3[i, j] is True if i and j are qubit-wise commutable
-        mat3 = (mat1 * mat2) * (mat1 - mat2)
-        # convert into list where tuple elements are qubit-wise non-commuting operators
+        qubit_commutation_mat = (mat1 * mat2) * (mat1 - mat2)
+        # adjacency_mat[i, j] is True if i and j are commutable
         if qubit_wise:
-            return list(zip(*np.where(np.triu(np.logical_not((mat3 == 0).all(axis=2)), k=1))))
-        mat4 = mat3.copy()
-        mat4[mat3 == 0] = 1
-        mat4[mat3 != 0] = -1
-        mat5 = np.multiply.reduce(mat4, axis=2) == 1
-        return list(zip(*np.where(np.triu(np.logical_not(mat5), k=1))))
+            adjacency_mat = np.logical_or.reduce(qubit_commutation_mat, axis=2)
+        else:
+            adjacency_mat = np.logical_xor.reduce(qubit_commutation_mat, axis=2)
+        # convert into list where tuple elements are non-commuting operators
+        return list(zip(*np.where(np.triu(adjacency_mat, k=1))))
+
+    def _create_graph(self, qubit_wise):
+        """Transform measurement operator grouping problem into graph coloring problem
+
+        Returns:
+            retworkx.PyGraph: A class of undirected graphs
+        """
+
+        edges = self._noncommutation_graph(qubit_wise)
+        graph = rx.PyGraph()
+        graph.add_nodes_from(range(self.size))
+        graph.add_edges_from_no_data(edges)
+        return graph
 
     def group_qubit_wise_commuting(self):
         """Partition a PauliList into sets of mutually qubit-wise commuting Pauli strings.
@@ -1104,14 +1115,30 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         Returns:
             List[PauliList]: List of PauliLists where each PauliList contains commutable Pauli operators.
         """
-        nodes = range(self._num_paulis)
-        edges = self._noncommutation_graph()
-        graph = rx.PyGraph()
-        graph.add_nodes_from(nodes)
-        graph.add_edges_from_no_data(edges)
+        return self.group_commuting(qubit_wise=True)
+
+    def group_commuting(self, qubit_wise=False):
+        """Partition a PauliList into sets of commuting Pauli strings.
+
+        Args:
+            qubit_wise (bool): the commutation rule is mutually qubit-wise or not.
+
+                For example:
+
+                    * ``PauliList(["XX", "YY", "IZ", "ZZ"]).group_commuting()``
+                        Returns [PauliList(['XX', 'YY']), PauliList(['IZ', 'ZZ'])]
+
+                    * ``PauliList(["XX", "YY", "IZ", "ZZ"]).group_commuting(qubit_wise=True)``
+                        Returns [PauliList(['XX']), PauliList(['YY']), PauliList(['IZ', 'ZZ'])]
+
+        Returns:
+            List[PauliList]: List of PauliLists where each PauliList contains commuting Pauli operators.
+        """
+
+        graph = self._create_graph(qubit_wise)
         # Keys in coloring_dict are nodes, values are colors
         coloring_dict = rx.graph_greedy_color(graph)
         groups = defaultdict(list)
         for idx, color in coloring_dict.items():
             groups[color].append(idx)
-        return [PauliList([self[i] for i in x]) for x in groups.values()]
+        return [self[group] for group in groups.values()]
