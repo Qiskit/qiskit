@@ -35,7 +35,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate, RXGate, RYGate, RZGate, UGate
 from qiskit.circuit.measure import Measure
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeMelbourne, FakeRueschlikon, FakeAlmaden
+from qiskit.test.mock import FakeMelbourne, FakeRueschlikon, FakeAlmaden, FakeMumbaiV2
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.target import Target
@@ -1241,6 +1241,18 @@ class TestTranspile(QiskitTestCase):
 
         out = transpile(qc, dt=1e-9)
         self.assertEqual(out.data[0][0].unit, "dt")
+
+    def test_scheduling_backend_v2(self):
+        """Test that scheduling method works with Backendv2."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+
+        backend = FakeMumbaiV2()
+        out = transpile([qc, qc], backend, scheduling_method="alap")
+        self.assertIn("delay", out[0].count_ops())
+        self.assertIn("delay", out[1].count_ops())
 
     @data(1, 2, 3)
     def test_no_infinite_loop(self, optimization_level):
