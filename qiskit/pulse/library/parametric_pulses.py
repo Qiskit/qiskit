@@ -164,7 +164,7 @@ class Gaussian(ParametricPulse):
         return gaussian(duration=self.duration, amp=self.amp, sigma=self.sigma, zero_ends=True)
 
     def validate_parameters(self) -> None:
-        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self.limit_amplitude:
+        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self._limit_amplitude:
             raise PulseError(
                 f"The amplitude norm must be <= 1, found: {abs(self.amp)}"
                 + "This can be overruled by setting Pulse.limit_amplitude."
@@ -286,7 +286,7 @@ class GaussianSquare(ParametricPulse):
         )
 
     def validate_parameters(self) -> None:
-        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self.limit_amplitude:
+        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self._limit_amplitude:
             raise PulseError(
                 f"The amplitude norm must be <= 1, found: {abs(self.amp)}"
                 + "This can be overruled by setting Pulse.limit_amplitude."
@@ -435,7 +435,7 @@ class Drag(ParametricPulse):
         )
 
     def validate_parameters(self) -> None:
-        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self.limit_amplitude:
+        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self._limit_amplitude:
             raise PulseError(
                 f"The amplitude norm must be <= 1, found: {abs(self.amp)}"
                 + "This can be overruled by setting Pulse.limit_amplitude."
@@ -449,7 +449,7 @@ class Drag(ParametricPulse):
             not _is_parameterized(self.beta)
             and not _is_parameterized(self.sigma)
             and np.abs(self.beta) > self.sigma
-            and self.limit_amplitude
+            and self._limit_amplitude
         ):
             # If beta <= sigma, then the maximum amplitude is at duration / 2, which is
             # already constrained by self.amp <= 1
@@ -532,7 +532,7 @@ class Constant(ParametricPulse):
         return constant(duration=self.duration, amp=self.amp)
 
     def validate_parameters(self) -> None:
-        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self.limit_amplitude:
+        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self._limit_amplitude:
             raise PulseError(
                 f"The amplitude norm must be <= 1, found: {abs(self.amp)}"
                 + "This can be overruled by setting Pulse.limit_amplitude."

@@ -315,29 +315,41 @@ class TestParametricPulses(QiskitTestCase):
             # pylint: disable=pointless-statement
             drag_pulse.non_existing_parameter
 
-    def test_descriptor(self):
-        """Test lambdify cache is created in the descriptor when instance is first created."""
-        ConstraintsDescriptor.global_constraints = {}
-        EnvelopeDescriptor.global_envelopes = {}
+    def test_envelope_cache(self):
+        """Test speed up of instantiation with lambdify envelope cache."""
+        drag_instance = Drag(duration=100, amp=0.1, sigma=40, beta=3)
+        drag_expr = drag_instance.envelope
+        key = hash(drag_expr)
 
-        drag_waveform = Drag(duration=100, amp=0.1, sigma=40, beta=3)
-        GaussianSquare(duration=800, amp=0.1, sigma=64, risefall_sigma_ratio=2)
+        descriptor = EnvelopeDescriptor()
+        descriptor.__set__(drag_instance, drag_expr)
 
-        # pylint: disable=pointless-statement
-        drag_waveform.get_waveform()
+        self.assertTrue(callable(descriptor.lambda_funcs[key]))
 
-        self.assertSetEqual(
-            set(ConstraintsDescriptor.global_constraints.keys()), {"Drag", "GaussianSquare"}
-        )
-        self.assertListEqual(
-            ConstraintsDescriptor.global_constraints["Drag"],
-            drag_waveform.constraints,
-        )
-        self.assertSetEqual(set(EnvelopeDescriptor.global_envelopes.keys()), {"Drag"})
-        self.assertEqual(
-            EnvelopeDescriptor.global_envelopes["Drag"],
-            drag_waveform.envelope,
-        )
+    def test_constraints_cache(self):
+        """Test speed up of instantiation with lambdify constraints cache."""
+        drag_instance = Drag(duration=100, amp=0.1, sigma=40, beta=3)
+        drag_constraints = drag_instance.constraints
+        key = hash(tuple(drag_constraints))
+
+        descriptor = ConstraintsDescriptor()
+        descriptor.__set__(drag_instance, drag_constraints)
+
+        self.assertEqual(len(descriptor.lambda_funcs[key]), len(drag_constraints))
+
+    def test_deepcopy(self):
+        """Test deep copying instance."""
+        import copy
+
+        drag = Drag(duration=100, amp=0.1, sigma=40, beta=3)
+        drag_copied = copy.deepcopy(drag)
+
+        self.assertNotEqual(id(drag), id(drag_copied))
+
+        orig_wf = drag.get_waveform()
+        copied_wf = drag_copied.get_waveform()
+
+        np.testing.assert_almost_equal(orig_wf.samples, copied_wf.samples)
 
 
 class TestFunctionalPulse(QiskitTestCase):

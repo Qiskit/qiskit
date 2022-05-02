@@ -17,7 +17,6 @@
 These are pulses which are described by symbolic equations for envelope and parameter constraints.
 """
 
-from abc import abstractmethod
 from typing import Any, Dict, List, Tuple, Optional, Union, Callable, TYPE_CHECKING
 
 import numpy as np
@@ -37,9 +36,9 @@ if TYPE_CHECKING:
 
 def _lifted_gaussian(
     t: "Symbol",
-    center: Union["Symbol", "Expr"],
-    t_zero: Union["Symbol", "Expr"],
-    sigma: Union["Symbol", "Expr"],
+    center: Union["Symbol", "Expr", complex],
+    t_zero: Union["Symbol", "Expr", complex],
+    sigma: Union["Symbol", "Expr", complex],
 ) -> "Expr":
     r"""Helper function that returns a lifted Gaussian symbolic equation.
 
@@ -77,7 +76,7 @@ def _lifted_gaussian(
     return (gauss - offset) / (1 - offset)
 
 
-def _evaluate_ite(ite_lambda_func: List[Union[Callable, List]], *values: complex) -> bool:
+def _evaluate_ite(ite_lambda_func: Tuple[Union[Callable, Tuple], ...], *values: complex) -> bool:
     """Helper function to evaluate ITE-like symbolic expression.
 
     Args:
@@ -95,28 +94,30 @@ def _evaluate_ite(ite_lambda_func: List[Union[Callable, List]], *values: complex
     except ValueError as ex:
         raise PulseError(
             f"Invalid ITE expression with length {len(ite_lambda_func)}. "
-            "This should be a list of callables for evaluating if, then, else."
+            "This should be a tuple of callables for evaluating if, then, else."
         ) from ex
 
     if bool(if_func(*values)):
-        if isinstance(then_func, list):
+        if isinstance(then_func, tuple):
             # Nested if clause
             return _evaluate_ite(then_func, *values)
         return bool(then_func(*values))
-    if isinstance(else_func, list):
+    if isinstance(else_func, tuple):
         # Nested if clause
         return _evaluate_ite(else_func, *values)
     return bool(else_func(*values))
 
 
-def _lambdify_ite(params: List["Symbol"], ite_expr: List["Expr"]) -> List[Union[Callable, List]]:
+def _lambdify_ite(
+    params: List["Symbol"], ite_expr: Tuple["Expr", ...]
+) -> Tuple[Union[Callable, List], ...]:
     """Helper function to lambdify ITE-like symbolic expression.
 
     "ITE" is short for "if, then, else." which is convention of SymPy.
 
     Args:
         params: Symbols to be used in the expression.
-        ite_expr: Symbolic expression which is a list of "IF", "THEN", "ELSE".
+        ite_expr: Symbolic expression which is a tuple of "IF", "THEN", "ELSE".
 
     Returns:
         Lambdified ITE-like expression.
@@ -125,133 +126,110 @@ def _lambdify_ite(params: List["Symbol"], ite_expr: List["Expr"]) -> List[Union[
 
     lambda_lists = []
     for expr in ite_expr:
-        if isinstance(expr, list):
+        if isinstance(expr, tuple):
             lambda_lists.append(_lambdify_ite(params, expr))
         else:
             lambda_lists.append(sym.lambdify(params, expr))
-    return lambda_lists
+    return tuple(lambda_lists)
 
 
 class EnvelopeDescriptor:
     """Descriptor of pulse envelope.
 
-    When the descriptor of the symbolic pulse subclass is called for the first time,
-    it calls sympy lambdify to create callable and caches the function in the descriptor,
-    which alleviates computational overhead for compiling the symbolic equation.
-    This improves performance of repeated evaluation of waveform samples.
+    When new symbolic expression is set for the first time,
+    this will internally lambdify the expression and store the callback in the instance cache.
+    For the next time it will just return the cached callback for speed up.
 
-    This descriptor is used when the :class:`SymbolicPulse` creates waveform samples.
+    Envelope callback is used to generate waveform samples from the symbolic pulse instance.
     """
 
-    # Dictionary to store envelope lambda functions for symbolic pulse subclass.
-    # This is keyed on the pulse subclass name.
-    # Note that this is a class variable.
-    # Once envelope is registered here it will be reused for all objects
-    # that will be instantiated in the future, i.e. cache mechanism.
-    global_envelopes = {}
+    def __init__(self):
+        # : Dict[Expr, Callable]
+        self.lambda_funcs = dict()
 
     def __get__(self, instance, owner) -> Callable:
-        clsname = owner.__name__
+        key = hash(instance.envelope)
+        if key not in self.lambda_funcs:
+            if instance.envelope is None:
+                raise PulseError(f"Envelope of '{instance.pulse_type}' is not assigned.")
+            self.__set__(instance, instance.envelope)
 
-        if clsname not in EnvelopeDescriptor.global_envelopes:
-            gendef = getattr(owner, "_define_envelope")
-            source = gendef()
-            self.add_new_pulse(clsname, owner.PARAM_DEF, source)
+        return self.lambda_funcs[key]
 
-        return EnvelopeDescriptor.global_envelopes[clsname]
+    def __set__(self, instance, value):
+        key = hash(value)
+        if key not in self.lambda_funcs:
+            import sympy as sym
 
-    @classmethod
-    def add_new_pulse(cls, pulse_name: str, params: List[str], expr: "Expr"):
-        """Add new pulse envelope to descriptor.
-
-        Args:
-            pulse_name: Name of pulse subclass.
-            params: List of parameter names.
-            expr: Symbolic expression of pulse envelope.
-        """
-        import sympy as sym
-
-        param_symbols = [sym.Symbol(p) for p in ["t"] + params]
-        cls.global_envelopes[pulse_name] = sym.lambdify(param_symbols, expr)
+            if not isinstance(value, sym.Expr):
+                raise PulseError(f"'{repr(value)}' is not a valid symbolic expression.")
+            params = [sym.Symbol(p) for p in ["t", "duration"] + instance._param_names]
+            self.lambda_funcs[key] = sym.lambdify(params, value)
 
 
 class ConstraintsDescriptor:
     """Descriptor of pulse parameter constraints.
 
-    A symbolic pulse subclass may provide multiple expressions to validate parameters,
-    thus it generates a list of callables that takes a set of pulse parameters.
+    When new symbolic expressions are set for the first time,
+    this will internally lambdify the expressions and store the callbacks in the instance cache.
+    For the next time it will just return the cached callbacks for speed up.
 
-    When the descriptor of the symbolic pulse subclass is called for the first time,
-    it calls sympy lambdify to create a callable which it caches in the descriptor,
-    which alleviates computational overhead for compiling the symbolic equations.
-    This improves performance of repeated evaluation of waveform samples.
-
-    This descriptor is used when the :class:`SymbolicPulse` validates pulse parameters.
+    Constraints callbacks are used to validate assigned pulse parameters.
     """
 
-    # Dictionary to store constraint lambda functions for symbolic pulse subclass.
-    # This is keyed on the pulse subclass name.
-    # Note that this is a class variable.
-    # Once constraint is registered here it will be reused for all objects
-    # that will be instantiated in the future, i.e. cache mechanism.
-    global_constraints = {}
+    def __init__(self):
+        # : Dict[Expr, Callable]
+        self.lambda_funcs = dict()
 
-    def __get__(self, instance, owner) -> List[Union[Callable, List]]:
-        clsname = owner.__name__
+    def __get__(self, instance, owner) -> List[Callable]:
+        key = hash(tuple(instance.constraints))
+        if key not in self.lambda_funcs:
+            self.__set__(instance, instance.constraints)
 
-        if clsname not in ConstraintsDescriptor.global_constraints:
-            gendef = getattr(owner, "_define_constraints")
-            source = gendef()
-            self.add_new_constraints(clsname, owner.PARAM_DEF, *source)
+        return self.lambda_funcs[key]
 
-        return ConstraintsDescriptor.global_constraints[clsname]
+    def __set__(self, instance, value):
+        key = hash(tuple(value))
+        if key not in self.lambda_funcs:
+            import sympy as sym
 
-    @classmethod
-    def add_new_constraints(cls, pulse_name: str, params: List[str], *exprs: Union["Expr", List]):
-        """Add new pulse parameter constraints to descriptor.
-
-        Args:
-            pulse_name: Name of pulse subclass.
-            params: List of parameter names.
-            exprs: Symbolic expressions to validate assigned parameters.
-        """
-        import sympy as sym
-
-        params = [sym.Symbol(p) for p in ["limit"] + params]
-        constraints = []
-        for expr in exprs:
-            if isinstance(expr, list):
-                # If clause
-                constraints.append(_lambdify_ite(params, expr))
-            else:
-                constraints.append(sym.lambdify(params, expr))
-        cls.global_constraints[pulse_name] = constraints
+            params = [sym.Symbol(p) for p in ["limit", "duration"] + instance._param_names]
+            constraints = []
+            for expr in value:
+                if isinstance(expr, tuple):
+                    # If clause
+                    constraints.append(_lambdify_ite(params, expr))
+                else:
+                    constraints.append(sym.lambdify(params, expr))
+            self.lambda_funcs[key] = constraints
 
 
 class SymbolicPulse(Pulse):
-    """The abstract superclass for parametric pulses described by a symbolic expression.
+    """The pulse representation model with parameters and symbolic expressions.
 
-    A symbolic pulse subclass can be defined with an envelope and parameter constraints.
-    The parameters of the waveform should be defined in the class attribute
-    :attr:`SymbolicPulse.PARAM_DEF`. This must include ``duration`` as a first element
-    to define the length of pulse instruction for scheduling.
-    For now, envelope and constraints must be defined with SymPy expressions.
+    A symbolic pulse instance can be defined with an envelope and parameter constraints.
+    Envelope and parameter constraints should be provided with symbolic expressions.
+    Rather than creating a subclass, different pulse shapes can be distinguished by
+    the instance attributes :attr:`SymbolicPulse.envelope` and :attr:`SymbolicPulse.constraints`,
+    together with the ``pulse_type`` argument of the :class:`SymbolicPulse` constructor.
+
 
     .. _symbolic_pulse_envelope:
 
     .. rubric:: Envelope function
 
-    This is defined with a class method :meth:`_define_envelope` that returns
-    a single symbolic expression which is a function of ``t`` and ``duration``
-    and any additional parameters specified for the pulse shape to implement.
+    This is defined with an instance attribute :attr:`SymbolicPulse.envelope`
+    which can be provided through its setter method.
+    The expression must be a function of ``t`` and ``duration`` and
+    any additional parameters specified for the pulse shape to implement.
     The time ``t`` and ``duration`` are in units of dt, i.e. sample time resolution,
     and this function is sampled with a discrete time vector in [0, ``duration``]
     sampling the pulse envelope at every 0.5 dt (middle sampling strategy) when
-    :meth:`get_waveform` method is called.
-    The function can generate complex-valued samples and real and imaginary part may
+    :meth:`SymbolicPulse.get_waveform` method is called.
+    The function can compute complex-valued samples and real and imaginary part may
     be supplied to two quadratures of the IQ mixer in the control electronics.
-    The sample data is not generated until the :meth:`get_waveform` method is called thus
-    a symbolic pulse instance only stores parameter values and waveform shape,
+    The sample data is not generated until the :meth:`SymbolicPulse.get_waveform` method is called
+    thus a symbolic pulse instance only stores parameter values and waveform shape,
     which greatly reduces memory footprint during the program generation.
 
 
@@ -259,62 +237,82 @@ class SymbolicPulse(Pulse):
 
     .. rubric:: Constraint functions
 
-    Constraints on the parameters are defined with a class method :meth:`_define_constraints`
-    that returns a list of symbolic expressions. These constraint functions are called
-    when a symbolic pulse instance is created with assigned parameter values.
+    Constraints on the parameters are defined with an instance attribute
+    :attr:`SymbolicPulse.constraints` which can be provided through its setter method.
+    The constraints value must be a list of symbolic expressions, which is a
+    function of ``limit`` variable and any additional parameters to be validated
+    and must return a boolean value being ``True`` when parameters are valid.
+    The symbolic pulse instance can be played only when all constraint functions return ``True``.
+    Any number of expressions can be defined. These constraint functions are called when
+    a :meth:`SymbolicPulse.validate_parameters` method is called.
+
     The ``limit`` variable represents the policy of forbidding the maximum amplitude
     from exceeding 1.0 (its default value is ``True``, i.e. it doesn't allow amplitude > 1.0).
     Note that in Qiskit the pulse envelope is represented by complex samples.
     Strictly speaking, the maximum amplitude indicates the maximum norm of the complex values.
 
-    The symbolic pulse subclass will be instantiated only when all constraint functions
-    return ``True``. This means the return value of these symbolic expressions must be boolean.
-    Any number of expressions can be defined in the class method.
     When branching logic (if clause) is necessary, one can use `SymPy ITE`_ class
-    or a list of expressions consisting of expressions for "IF", "THEN", and "ELSE".
+    or a tuple of expressions consisting of expressions for "IF", "THEN", and "ELSE".
     Typically, the list of constraints includes conditions to ensure the maximum pulse
     amplitude doesn't exceed the signal dynamic range [-1.0, 1.0].
-    When validation is not necessary, this method can return an empty list.
+    When validation is not necessary, this can be an empty list.
 
     .. _SymPy ITE: https://docs.sympy.org/latest/modules/logic.html#sympy.logic.boolalg.ITE
 
 
     .. rubric:: Examples
 
-    This is an example of how a pulse author can define a new pulse subclass.
+    This is how user can instantiate symbolic pulse instance.
+    In this example, we instantiate a custom `Sawtooth` envelope.
+
+    .. jupyter-execute::
+
+        from qiskit.pulse.library import SymbolicPulse
+
+        my_pulse = SymbolicPulse(
+            pulse_type="Sawtooth",
+            parameters={"duration": 100, "amp": 0.1, "freq": 0.05},
+            name="pulse1",
+        )
+
+    Note that :class:`SymbolicPulse` can be instantiated without providing
+    the envelope and constraints. However, this instance cannot generate waveforms
+    without knowing the envelope definition. Now you need to provide the envelope.
+
+    .. jupyter-execute::
+
+        import sympy
+
+        t, amp, freq = sympy.symbols("t, amp, freq")
+        envelope = amp * 2 * (freq * t - sympy.floor(1 / 2 + freq * t))
+        my_pulse.envelope = envelope
+
+        my_pulse.draw()
+
+    Likewise, you can define :attr:`SymbolicPulse.constraints` for ``my_pulse``.
+    After providing the envelope definition, you can generate the waveform data.
+    Note that it would be convenient to define a factory function that automatically
+    accomplishes this procedure.
 
     .. code-block:: python
 
-        import sympy as sym
+        def Sawtooth(duration, amp, freq, name):
+            instance = SymbolicPulse(
+                pulse_type="Sawtooth",
+                parameters={"duration": duration, "amp": amp, "freq": freq},
+                name=name,
+            )
 
-        class CustomPulse(SymbolicPulse):
+            t, amp, freq = sympy.symbols("t, amp, freq")
+            instance.envelope = amp * 2 * (freq * t - sympy.floor(1 / 2 + freq * t))
 
-            PARAM_DEF = ["duration", "p0", "p1"]
+            return instance
 
-            def __init__(self, duration, p0, p1, name):
-                super().__init__(duration=duration, parameters=(p0, p1), name=name)
+    You can also provide a :class:`Parameter` object in the ``parameters`` dictionary
+    when you instantiate the symbolic pulse instance. Waveform cannot be
+    generated until you assign all unbounded parameters.
+    Note that parameters will be assigned through the schedule playing the pulse.
 
-            @classmethod
-            def __define_envelope(cls):
-                duration, t, p0, p1 = sym.symbols("duration, t, p0, p1")
-                ...
-
-                return ...
-
-            @classmethod
-            def _define_constraints(cls):
-                limit, duration, p0, p1 = sym.symbols("limit, duration, p0, p1")
-
-                const1 = ...
-                const2 = ...
-
-                return [const1, const2, ...]
-
-    Then a user can create the ``CustomPulse`` instance as follows.
-
-    .. code-block:: python
-
-        my_pulse = CustomPulse(duration=160, p0=1.0, p1=2.0)
 
     .. _symbolic_pulse_serialize:
 
@@ -336,81 +334,89 @@ class SymbolicPulse(Pulse):
         Currently QPY serialization of :class:`SymbolicPulse` is not available.
         This feature will be implemented shortly.
         Note that data transmission in the parametric form requires your quantum computer backend
-        to support QPY framework with :class:`SymbolicPulse` available. Otherwise the pulse data
+        to support QPY framework with :class:`SymbolicPulse` available. Otherwise, the pulse data
         might be converted into :class:`Waveform`.
     """
 
-    __slots__ = ("param_values",)
+    # Lambdify caches keyed on sympy expressions. Returns the corresponding callable.
+    _lambda_envelope_cache = EnvelopeDescriptor()
+    _lambda_constraints_cache = ConstraintsDescriptor()
 
-    PARAM_DEF = ["duration"]
-    envelope = EnvelopeDescriptor()
-    constraints = ConstraintsDescriptor()
-
-    @abstractmethod
     def __init__(
         self,
-        duration: Union[int, ParameterExpression],
-        parameters: Optional[Tuple[Union[ParameterExpression, complex], ...]] = None,
+        pulse_type: str,
+        parameters: Dict[str, Union[ParameterExpression, complex]],
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
     ):
         """Create a parametric pulse and validate the input parameters.
 
         Args:
-            duration: Pulse length in terms of the sampling period `dt`.
-            parameters: Other parameters to form waveform.
-            name: Display name for this pulse envelope.
+            pulse_type: Display name of this pulse shape.
+            parameters: Dictionary of pulse parameters. This must include "duration".
+            name: Display name for this particular pulse envelope.
             limit_amplitude: If ``True``, then limit the absolute value of the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
 
         Raises:
             PulseError: When not all parameters are listed in the attribute :attr:`PARAM_DEF`.
         """
+        if "duration" not in parameters:
+            raise PulseError("'duration' is not defined for this pulse.")
+        duration = parameters.pop("duration")
+
         super().__init__(duration=duration, name=name, limit_amplitude=limit_amplitude)
 
-        if parameters:
-            self.param_values = (duration,) + tuple(parameters)
-        else:
-            self.param_values = (duration,)
-
-        if len(self.param_values) != len(self.PARAM_DEF):
-            raise PulseError(
-                f"Number of parameters {len(self.param_values)} does not match "
-                f"with these defined parameters {self.PARAM_DEF}"
-            )
-
-        # Validate parameters when they are all assigned.
-        if not self.is_parameterized():
-            self.validate_parameters()
+        self._pulse_type = pulse_type
+        self._param_names = list(parameters.keys())
+        self._param_vals = list(parameters.values())
+        self._envelope_expr = None
+        self._constraint_exprs = []
 
     def __getattr__(self, item):
-        # For backward compatibility, return parameter names as property-like
+        # For backward compatibility. ParametricPulse implements these property methods.
 
-        if item not in self.PARAM_DEF:
-            raise AttributeError(f"'{self.__class__.__name__}' object has not attribute '{item}'")
-        return self.parameters[item]
+        # Need to use __dict__ property to get instance values inside the __getattr__.
+        # Otherwise, run into the maximum recursion error. This class cannot define __slots__.
+        defined_params = self.__dict__.get("_param_names", [])
+        if item not in defined_params:
+            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{item}'")
 
-    @classmethod
-    def _define_envelope(cls) -> "Expr":
-        """Return symbolic expression of pulse waveform.
+        return self.__dict__["_param_vals"][defined_params.index(item)]
+
+    @property
+    def pulse_type(self) -> str:
+        """Return display name of the pulse shape."""
+        return self._pulse_type
+
+    @property
+    def envelope(self) -> "Expr":
+        """Return envelope function of the pulse.
 
         See :ref:`symbolic_pulse_envelope` for details.
 
-        A custom pulse without having this method implemented cannot be QPY serialized.
-        The subclass must override the :meth:`get_waveform` method to return waveform.
+        A pulse instance without this value cannot generate waveform samples.
         Note that the expression should contain symbol ``t`` that represents a
         sampling time, along with parameters defined in :meth:`.parameters`.
         """
-        raise NotImplementedError
+        return self._envelope_expr
 
-    def _define_constraints(cls) -> List[Union["Expr", List]]:
-        """Return a list of symbolic expressions for parameter validation.
+    @envelope.setter
+    def envelope(self, new_expr: "Expr"):
+        """Add new envelope function to the pulse."""
+        self._envelope_expr = new_expr
+        self._lambda_envelope_cache = new_expr
+
+    @property
+    def constraints(self) -> List["Expr"]:
+        """Returns pulse parameter constrains.
 
         See :ref:`symbolic_pulse_constraints` for details.
 
-        The expressions may contain parameters defined in :attr:`.PARAM_DEF` along with
+        A pulse instance without this value doesn't validate assigned parameters.
+        The expressions may contain parameters defined in :attr:`.parameters` along with
         ``limit`` that is a common parameter to specify the policy of forbidding the
-        maximum amplitude of the wavefrom from exceeding 1.0.
+        maximum amplitude of the waveform from exceeding 1.0.
         For example, if your waveform defines the parameter ``amp``, this constraint
         could be written as
 
@@ -420,30 +426,22 @@ class SymbolicPulse(Pulse):
 
         this expression returns ``amp <= 1.0`` when ``limit`` is set to ``True``,
         otherwise it always returns ``True``, i.e. ``amp`` always passes the validation.
-        IF clauses can be also defined as a list of three expressions representing
+        IF clauses can be also defined as a tuple of three expressions representing
         "if", "else", and "then", respectively.
 
         .. code-block:: python
 
-            [limit, sympy.Abs(amp) <= 1.0, sympy.true]
+            (limit, sympy.Abs(amp) <= 1.0, sympy.true)
 
-        Likewise, you can write any number of expressions for parameters you have defiend.
-
-        Alternatively, the subclass can directly override the :meth:`validate_parameters` method
-        to evaluate parameters instead of defining symbolic constraint equations.
-        In this case, the constraints hard-coded in the :meth:`validate_parameters` cannot be
-        serialized and thus validation of parameters will be just skipped
-        in the deserialized pulse instance.
+        Likewise, you can write any number of expressions for parameters you have defined.
         """
-        return []
+        return self._constraint_exprs
 
-    @property
-    def definition(self) -> Tuple["Expr", List[Union["Expr", List]]]:
-        """Return envelope and constraints of this pulse subclass."""
-        envelope_expr = self.__class__._define_envelope()
-        const_expr = self.__class__._define_constraints()
-
-        return envelope_expr, const_expr
+    @constraints.setter
+    def constraints(self, new_constraints: List["Expr"]):
+        """Add new parameter constraints to the pulse."""
+        self._constraint_exprs = new_constraints
+        self._lambda_constraints_cache = new_constraints
 
     def get_waveform(self) -> Waveform:
         r"""Return a Waveform with samples filled according to the formula that the pulse
@@ -463,59 +461,70 @@ class SymbolicPulse(Pulse):
             PulseError: When parameters are not bound.
         """
         if self.is_parameterized():
-            raise PulseError(
-                f"Unassigned parameter exists: {self.parameters}. All parameters should be assigned."
-            )
+            raise PulseError("Unassigned parameter exists. All parameters must be assigned.")
 
         times = np.arange(0, self.duration) + 1 / 2
-        args = (times, *self.param_values)
-        waveform = self.envelope(*args)
+        args = (times, self.duration, *self._param_vals)
+        waveform = self._lambda_envelope_cache(*args)
 
         return Waveform(samples=waveform, name=self.name)
 
     def validate_parameters(self) -> None:
-        """
-        Validate parameters.
+        """Validate parameters.
 
         Raises:
             PulseError: If the parameters passed are not valid.
         """
-        args = (self.limit_amplitude, *self.param_values)
+        if self.is_parameterized():
+            return
 
-        for i, constraint in enumerate(self.constraints):
-            if isinstance(constraint, list):
+        args = (self._limit_amplitude, self.duration, *self._param_vals)
+
+        for i, constraint in enumerate(self._lambda_constraints_cache):
+            if isinstance(constraint, tuple):
                 # Cannot use sympy.ITE because it doesn't support lazy evaluation.
                 # See https://github.com/sympy/sympy/issues/23295
                 eval_res = _evaluate_ite(constraint, *args)
             else:
                 eval_res = bool(constraint(*args))
             if not eval_res:
-                dict_repr = ", ".join(f"{p} = {v}" for p, v in self.parameters.items())
-                const = str(self._define_constraints()[i])
+                param_repr = ", ".join(f"{p}={v}" for p, v in self.parameters.items())
+                const_repr = str(self._constraint_exprs[i])
                 raise PulseError(
-                    f"Assigned parameters {dict_repr} violate following constraint: {const}."
+                    f"Assigned parameters {param_repr} violate following constraint: {const_repr}."
                 )
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
-        return any(isinstance(val, ParameterExpression) for val in self.param_values)
+        return any(
+            isinstance(val, ParameterExpression) for val in (self.duration, *self._param_vals)
+        )
 
     @property
     def parameters(self) -> Dict[str, Any]:
-        return dict(zip(self.PARAM_DEF, self.param_values))
+        params = {"duration": self.duration}
+        params.update(dict(zip(self._param_names, self._param_vals)))
+        return params
 
-    def __eq__(self, other: Pulse) -> bool:
-        return super().__eq__(other) and self.parameters == other.parameters
+    def __eq__(self, other: "SymbolicPulse") -> bool:
+        # Not aware of expressions.
+        if not isinstance(other, SymbolicPulse):
+            return False
+        if self._pulse_type != other._pulse_type:
+            # Use pulse type equality rather than class.
+            return False
+        if self.parameters != other.parameters:
+            return False
+        return True
 
     def __hash__(self) -> int:
-        return hash(tuple(self.parameters[k] for k in sorted(self.parameters)))
+        return hash((self._pulse_type, self.duration, *self._param_names, *self._param_vals))
 
     def __repr__(self) -> str:
-        params_str = ", ".join(f"{p}={v}" for p, v in zip(self.PARAM_DEF, self.param_values))
-
+        param_repr = ", ".join(f"{p}={v}" for p, v in self.parameters.items())
         return "{}({}{})".format(
-            self.__class__.__name__,
-            params_str,
+            self._pulse_type,
+            param_repr,
             f", name='{self.name}'" if self.name is not None else "",
         )
 
@@ -531,7 +540,6 @@ class Gaussian(SymbolicPulse):
 
     where :math:`f'(x)` is the gaussian waveform without lifting or amplitude scaling.
     """
-    PARAM_DEF = ["duration", "amp", "sigma"]
 
     def __init__(
         self,
@@ -541,7 +549,7 @@ class Gaussian(SymbolicPulse):
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
     ):
-        """Initialize the gaussian pulse.
+        """Create new pulse instance.
 
         Args:
             duration: Pulse length in terms of the sampling period `dt`.
@@ -551,38 +559,36 @@ class Gaussian(SymbolicPulse):
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
         """
-        if not isinstance(amp, ParameterExpression):
-            amp = complex(amp)
+        import sympy as sym
+
+        parameters = {
+            "duration": duration,
+            "amp": complex(amp) if not isinstance(amp, ParameterExpression) else amp,
+            "sigma": sigma,
+        }
 
         super().__init__(
-            duration=duration,
-            parameters=(amp, sigma),
+            pulse_type=self.__class__.__name__,
+            parameters=parameters,
             name=name,
             limit_amplitude=limit_amplitude,
         )
 
-    @classmethod
-    def _define_envelope(cls) -> "Expr":
-        import sympy as sym
-
-        t, duration, amp, sigma = sym.symbols("t, duration, amp, sigma")
+        # Add definitions
+        t, limit, duration, amp, sigma = sym.symbols("t, limit, duration, amp, sigma")
         center = duration / 2
-        return amp * _lifted_gaussian(t, center, duration + 1, sigma)
 
-    @classmethod
-    def _define_constraints(cls) -> List[Union["Expr", List]]:
-        import sympy as sym
-
-        amp, sigma, lim_amp = sym.symbols("amp, sigma, limit")
-        return [
-            sym.ITE(lim_amp, sym.Abs(amp) <= 1.0, sym.true),
+        self.envelope = amp * _lifted_gaussian(t, center, duration + 1, sigma)
+        self.constraints = [
+            sym.ITE(limit, sym.Abs(amp) <= 1.0, sym.true),
             sigma > 0,
         ]
+        self.validate_parameters()
 
 
 class GaussianSquare(SymbolicPulse):
-    # Not a raw string because we need to be able to split lines.
     """A square pulse with a Gaussian shaped risefall on both sides lifted such that
     its first sample is zero.
 
@@ -619,7 +625,6 @@ class GaussianSquare(SymbolicPulse):
 
     where :math:`f'(x)` is the gaussian square waveform without lifting or amplitude scaling.
     """
-    PARAM_DEF = ["duration", "amp", "sigma", "width"]
 
     def __init__(
         self,
@@ -631,7 +636,7 @@ class GaussianSquare(SymbolicPulse):
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
     ):
-        """Initialize the gaussian square pulse.
+        """Create new pulse instance.
 
         Args:
             duration: Pulse length in terms of the sampling period `dt`.
@@ -647,8 +652,7 @@ class GaussianSquare(SymbolicPulse):
         Raises:
             PulseError: When width and risefall_sigma_ratio are both empty or both non-empty.
         """
-        if not isinstance(amp, ParameterExpression):
-            amp = complex(amp)
+        import sympy as sym
 
         # Convert risefall_sigma_ratio into width which is defined in OpenPulse spec
         if width is None and risefall_sigma_ratio is None:
@@ -662,25 +666,25 @@ class GaussianSquare(SymbolicPulse):
             )
         if width is None and risefall_sigma_ratio is not None:
             width = duration - 2.0 * risefall_sigma_ratio * sigma
+        else:
+            risefall_sigma_ratio = (duration - width) / (2.0 * sigma)
+
+        parameters = {
+            "duration": duration,
+            "amp": complex(amp) if not isinstance(amp, ParameterExpression) else amp,
+            "sigma": sigma,
+            "width": width,
+        }
 
         super().__init__(
-            duration=duration,
-            parameters=(amp, sigma, width),
+            pulse_type=self.__class__.__name__,
+            parameters=parameters,
             name=name,
             limit_amplitude=limit_amplitude,
         )
 
-    @property
-    def risefall_sigma_ratio(self) -> Union[float, ParameterExpression]:
-        """Return risefall sigma ratio of the Gaussian rising and falling edges."""
-        # (duration - width) / (2.0 sigma)
-        return (self.param_values[0] - self.param_values[3]) / (2.0 * self.param_values[2])
-
-    @classmethod
-    def _define_envelope(cls) -> "Expr":
-        import sympy as sym
-
-        t, duration, amp, sigma, width = sym.symbols("t, duration, amp, sigma, width")
+        # Add definitions
+        t, limit, duration, amp, sigma, width = sym.symbols("t, limit, duration, amp, sigma, width")
         center = duration / 2
 
         sq_t0 = center - width / 2
@@ -689,21 +693,21 @@ class GaussianSquare(SymbolicPulse):
         gaussian_ledge = _lifted_gaussian(t, sq_t0, -1, sigma)
         gaussian_redge = _lifted_gaussian(t, sq_t1, duration + 1, sigma)
 
-        return amp * sym.Piecewise(
+        self.envelope = amp * sym.Piecewise(
             (gaussian_ledge, t <= sq_t0), (gaussian_redge, t >= sq_t1), (1, True)
         )
-
-    @classmethod
-    def _define_constraints(cls) -> List[Union["Expr", List]]:
-        import sympy as sym
-
-        duration, amp, sigma, width, lim_amp = sym.symbols("duration, amp, sigma, width, limit")
-        return [
-            sym.ITE(lim_amp, sym.Abs(amp) <= 1.0, sym.true),
+        self.constraints = [
+            sym.ITE(limit, sym.Abs(amp) <= 1.0, sym.true),
             sigma > 0,
             width >= 0,
             duration >= width,
         ]
+        self.validate_parameters()
+
+    @property
+    def risefall_sigma_ratio(self):
+        """Return risefall_sigma_ratio. This is auxiliary parameter to define width."""
+        return (self.duration - self.width) / (2.0 * self.sigma)
 
 
 class Drag(SymbolicPulse):
@@ -742,8 +746,6 @@ class Drag(SymbolicPulse):
            Phys. Rev. Lett. 103, 110501 – Published 8 September 2009.*
     """
 
-    PARAM_DEF = ["duration", "amp", "sigma", "beta"]
-
     def __init__(
         self,
         duration: Union[int, ParameterExpression],
@@ -753,7 +755,7 @@ class Drag(SymbolicPulse):
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
     ):
-        """Initialize the drag pulse.
+        """Create new pulse instance.
 
         Args:
             duration: Pulse length in terms of the sampling period `dt`.
@@ -765,44 +767,41 @@ class Drag(SymbolicPulse):
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
         """
-        if not isinstance(amp, ParameterExpression):
-            amp = complex(amp)
+        import sympy as sym
+
+        parameters = {
+            "duration": duration,
+            "amp": complex(amp) if not isinstance(amp, ParameterExpression) else amp,
+            "sigma": sigma,
+            "beta": beta,
+        }
 
         super().__init__(
-            duration=duration,
-            parameters=(amp, sigma, beta),
+            pulse_type=self.__class__.__name__,
+            parameters=parameters,
             name=name,
             limit_amplitude=limit_amplitude,
         )
 
-    @classmethod
-    def _define_envelope(cls) -> "Expr":
-        import sympy as sym
-
-        t, duration, amp, sigma, beta = sym.symbols("t, duration, amp, sigma, beta")
+        # Add definitions
+        t, limit, duration, amp, sigma, beta = sym.symbols("t, limit, duration, amp, sigma, beta")
         center = duration / 2
 
         gauss = amp * _lifted_gaussian(t, center, duration + 1, sigma)
         deriv = -(t - center) / (sigma**2) * gauss
 
-        return gauss + 1j * beta * deriv
-
-    @classmethod
-    def _define_constraints(cls) -> List[Union["Expr", List]]:
-        import sympy as sym
-
-        t, duration, amp, sigma, beta, lim_amp = sym.symbols("t, duration, amp, sigma, beta, limit")
-
-        drag_eq = cls._define_envelope()
+        drag_eq = gauss + 1j * beta * deriv
         t_drag_max = duration / 2 - (sigma / beta) * sym.sqrt(beta**2 - sigma**2)
-        return [
-            sym.ITE(lim_amp, sym.Abs(amp) <= 1.0, sym.true),
+
+        self.envelope = drag_eq
+        self.constraints = [
+            sym.ITE(limit, sym.Abs(amp) <= 1.0, sym.true),
             # When large beta
-            [
+            (
                 # IF:
                 # Avoid using sympy ITE because beta could be approximately zero.
                 # Then, evaluation of THEN expression causes zero-division error.
-                lim_amp & (sym.Abs(beta) > sigma),
+                limit & (sym.Abs(beta) > sigma),
                 # THEN:
                 # Find the first maxima associated with the beta * d/dx gaussian term
                 # This eq is derived from solving for the roots of the norm of the drag function.
@@ -817,23 +816,21 @@ class Drag(SymbolicPulse):
                 # When beta <= sigma, then the maximum amplitude is at duration / 2, which is
                 # already constrained by amp <= 1
                 True,
-            ],
+            ),
             sigma > 0,
             sym.Eq(sym.im(beta), 0),
         ]
+        self.validate_parameters()
 
 
 class Constant(SymbolicPulse):
-    """
-    A simple constant pulse, with an amplitude value and a duration:
+    """A simple constant pulse, with an amplitude value and a duration:
 
     .. math::
 
         f(x) = amp    ,  0 <= x < duration
         f(x) = 0      ,  elsewhere
     """
-
-    PARAM_DEF = ["duration", "amp"]
 
     def __init__(
         self,
@@ -842,8 +839,7 @@ class Constant(SymbolicPulse):
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
     ):
-        """
-        Initialize the constant-valued pulse.
+        """Create new pulse instance.
 
         Args:
             duration: Pulse length in terms of the sampling period `dt`.
@@ -852,21 +848,22 @@ class Constant(SymbolicPulse):
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
         """
-        if not isinstance(amp, ParameterExpression):
-            amp = complex(amp)
+        import sympy as sym
+
+        parameters = {
+            "duration": duration,
+            "amp": complex(amp) if not isinstance(amp, ParameterExpression) else amp,
+        }
 
         super().__init__(
-            duration=duration,
-            parameters=(amp,),
+            pulse_type=self.__class__.__name__,
+            parameters=parameters,
             name=name,
             limit_amplitude=limit_amplitude,
         )
 
-    @classmethod
-    def _define_envelope(cls) -> "Expr":
-        import sympy as sym
-
-        t, duration, amp = sym.symbols("t, duration, amp")
+        # Add definitions
+        t, limit, duration, amp = sym.symbols("t, limit, duration, amp")
 
         # Note this is implemented using Piecewise instead of just returning amp
         # directly because otherwise the expression has no t dependence and sympy's
@@ -875,13 +872,6 @@ class Constant(SymbolicPulse):
         # ParametricPulse.get_waveform().
         #
         # See: https://github.com/sympy/sympy/issues/5642
-        return amp * sym.Piecewise((1, (t >= 0) & (t <= duration)), (0, True))
-
-    @classmethod
-    def _define_constraints(cls) -> List[Union["Expr", List]]:
-        import sympy as sym
-
-        amp, lim_amp = sym.symbols("amp, limit")
-        return [
-            sym.ITE(lim_amp, sym.Abs(amp) <= 1.0, sym.true),
-        ]
+        self.envelope = amp * sym.Piecewise((1, (t >= 0) & (t <= duration)), (0, True))
+        self.constraints = [sym.ITE(limit, sym.Abs(amp) <= 1.0, sym.true)]
+        self.validate_parameters()

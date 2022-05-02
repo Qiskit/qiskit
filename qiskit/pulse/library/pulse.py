@@ -24,8 +24,6 @@ class Pulse(ABC):
     modulation phase and frequency are specified separately from ``Pulse``s.
     """
 
-    __slots__ = ("duration", "name")
-
     limit_amplitude = True
 
     @abstractmethod
@@ -48,8 +46,7 @@ class Pulse(ABC):
 
         self.duration = duration
         self.name = name
-        if limit_amplitude is not None:
-            self.limit_amplitude = limit_amplitude
+        self._limit_amplitude = limit_amplitude or self.__class__.limit_amplitude
 
     @property
     def id(self) -> int:  # pylint: disable=invalid-name

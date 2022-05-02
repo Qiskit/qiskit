@@ -223,13 +223,18 @@ class ParameterSetter(NodeVisitor):
     def visit_SymbolicPulse(self, node: SymbolicPulse):
         """Assign parameters to ``SymbolicPulse`` object."""
         if node.is_parameterized():
-            new_parameters = {}
-            for op, op_value in node.parameters.items():
+            new_values = []
+            # Assign duration
+            if isinstance(node.duration, ParameterExpression):
+                node.duration = self._assign_parameter_expression(node.duration)
+            # Assign other parameters
+            for op_value in node._param_vals:
                 if isinstance(op_value, ParameterExpression):
-                    op_value = self._assign_parameter_expression(op_value)
-                new_parameters[op] = op_value
-
-            return node.__class__(**new_parameters, name=node.name)
+                    new_values.append(self._assign_parameter_expression(op_value))
+                else:
+                    new_values.append(op_value)
+            node._param_vals = new_values
+            node.validate_parameters()
 
         return node
 
