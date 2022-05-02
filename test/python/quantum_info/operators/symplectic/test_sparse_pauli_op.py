@@ -13,7 +13,6 @@
 """Tests for SparsePauliOp class."""
 
 import itertools as it
-from tokenize import Number
 import unittest
 from test import combine
 
