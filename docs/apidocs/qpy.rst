@@ -1,6 +1,6 @@
-.. _qiskit-qpy:
+.. _qiskit-circuit-qpy_serialization:
 
-.. automodule:: qiskit.qpy
+.. automodule:: qiskit.circuit.qpy_serialization
    :no-members:
    :no-inherited-members:
    :no-special-members:

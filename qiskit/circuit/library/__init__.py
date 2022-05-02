@@ -80,6 +80,17 @@ For example:
    CZGate
    HGate
    IGate
+<<<<<<< HEAD
+=======
+   MCPhaseGate
+   MCXGate
+   MCXGrayCode
+   MCXRecursive
+   MCXVChain
+<<<<<<< HEAD
+>>>>>>> 8b57d7703 (Revert "Working update")
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
    MSGate
    PhaseGate
    RCCXGate
@@ -176,7 +187,6 @@ set the amount of qubits involved at instantiation time.
    MCXVChain
    RVGate
    PauliGate
-   LinearFunction
 
 Boolean Logic Circuits
 ======================
@@ -323,6 +333,7 @@ They are heavily used in near-term algorithms in e.g. Chemistry, Physics or Opti
    EfficientSU2
    ExcitationPreserving
    QAOAAnsatz
+   AdaptQAOAAnsatz
 
 
 Data encoding circuits
@@ -482,14 +493,12 @@ from .generalized_gates import (
     MCMTVChain,
     Permutation,
     GMS,
-    MSGate,
     GR,
     GRX,
     GRY,
     GRZ,
     RVGate,
     PauliGate,
-    LinearFunction,
 )
 from .pauli_evolution import PauliEvolutionGate
 from .boolean_logic import (
@@ -526,6 +535,7 @@ from .n_local import (
     EfficientSU2,
     ExcitationPreserving,
     QAOAAnsatz,
+   #  AdaptQAOAAnsatz,
 )
 from .data_preparation import PauliFeatureMap, ZFeatureMap, ZZFeatureMap, StatePreparation
 from .quantum_volume import QuantumVolume

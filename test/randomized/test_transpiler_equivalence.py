@@ -290,6 +290,7 @@ class QCircuitMachine(RuleBasedStateMachine):
 
     # Gates of various shapes
 
+<<<<<<< HEAD
     @precondition(lambda self: self.qc.num_qubits > 0 and self.qc.num_clbits > 0)
     @rule(n_arguments=st.sampled_from(sorted(BASE_INSTRUCTIONS.keys())), data=st.data())
     def add_gate(self, n_arguments, data):
@@ -308,6 +309,94 @@ class QCircuitMachine(RuleBasedStateMachine):
             )
         )
         self.qc.append(gate_class(*params), qubits, clbits)
+=======
+    @rule(gate=st.sampled_from(oneQ_gates), qarg=qubits)
+    def add_1q_gate(self, gate, qarg):
+        """Append a random 1q gate on a random qubit."""
+        self.qc.append(gate(), [qarg], [])
+
+    @rule(
+        gate=st.sampled_from(twoQ_gates),
+        qargs=st.lists(qubits, max_size=2, min_size=2, unique=True),
+    )
+    def add_2q_gate(self, gate, qargs):
+        """Append a random 2q gate across two random qubits."""
+        self.qc.append(gate(), qargs)
+
+    @rule(
+        gate=st.sampled_from(threeQ_gates),
+        qargs=st.lists(qubits, max_size=3, min_size=3, unique=True),
+    )
+    def add_3q_gate(self, gate, qargs):
+        """Append a random 3q gate across three random qubits."""
+        self.qc.append(gate(), qargs)
+
+    @rule(
+        gate=st.sampled_from(oneQ_oneP_gates),
+        qarg=qubits,
+        param=st.floats(
+            allow_nan=False, allow_infinity=False, min_value=-10 * pi, max_value=10 * pi
+        ),
+    )
+    def add_1q1p_gate(self, gate, qarg, param):
+        """Append a random 1q gate with 1 random float parameter."""
+        self.qc.append(gate(param), [qarg])
+
+    @rule(
+        gate=st.sampled_from(oneQ_twoP_gates),
+        qarg=qubits,
+        params=st.lists(
+            st.floats(allow_nan=False, allow_infinity=False, min_value=-10 * pi, max_value=10 * pi),
+            min_size=2,
+            max_size=2,
+        ),
+    )
+    def add_1q2p_gate(self, gate, qarg, params):
+        """Append a random 1q gate with 2 random float parameters."""
+        self.qc.append(gate(*params), [qarg])
+
+    @rule(
+        gate=st.sampled_from(oneQ_threeP_gates),
+        qarg=qubits,
+        params=st.lists(
+            st.floats(allow_nan=False, allow_infinity=False, min_value=-10 * pi, max_value=10 * pi),
+            min_size=3,
+            max_size=3,
+        ),
+    )
+    def add_1q3p_gate(self, gate, qarg, params):
+        """Append a random 1q gate with 3 random float parameters."""
+        self.qc.append(gate(*params), [qarg])
+
+    @rule(
+        gate=st.sampled_from(twoQ_oneP_gates),
+        qargs=st.lists(qubits, max_size=2, min_size=2, unique=True),
+        param=st.floats(
+            allow_nan=False, allow_infinity=False, min_value=-10 * pi, max_value=10 * pi
+        ),
+    )
+    def add_2q1p_gate(self, gate, qargs, param):
+        """Append a random 2q gate with 1 random float parameter."""
+        self.qc.append(gate(param), qargs)
+
+    @rule(
+        gate=st.sampled_from(twoQ_threeP_gates),
+        qargs=st.lists(qubits, max_size=2, min_size=2, unique=True),
+        params=st.lists(
+            st.floats(allow_nan=False, allow_infinity=False, min_value=-10 * pi, max_value=10 * pi),
+            min_size=3,
+            max_size=3,
+        ),
+    )
+    def add_2q3p_gate(self, gate, qargs, params):
+        """Append a random 2q gate with 3 random float parameters."""
+        self.qc.append(gate(*params), qargs)
+
+    @rule(gate=st.sampled_from(oneQ_oneC_gates), qarg=qubits, carg=clbits)
+    def add_1q1c_gate(self, gate, qarg, carg):
+        """Append a random 1q, 1c gate."""
+        self.qc.append(gate(), [qarg], [carg])
+>>>>>>> 8b57d7703 (Revert "Working update")
 
     @precondition(lambda self: self.enable_variadic)
     @rule(gate=st.sampled_from(variadic_gates), qargs=st.lists(qubits, min_size=1, unique=True))

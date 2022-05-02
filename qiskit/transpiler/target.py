@@ -511,6 +511,8 @@ class Target(Mapping):
             raise KeyError(f"{qargs} not in target.")
         return [self._gate_name_map[x] for x in self._qarg_gate_map[qargs]]
 
+<<<<<<< HEAD
+<<<<<<< HEAD
     def operation_names_for_qargs(self, qargs):
         """Get the operation names for a specified qargs tuple
 
@@ -551,6 +553,10 @@ class Target(Mapping):
                 )
         return False
 
+=======
+>>>>>>> 8b57d7703 (Revert "Working update")
+=======
+>>>>>>> 0018e5f8ea5a8ff60d855ca8b317a1b1e27a83da
     @property
     def operation_names(self):
         """Get the operation names in the target."""

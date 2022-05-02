@@ -12,6 +12,7 @@
 
 """Test QAOA ansatz from the library."""
 
+import unittest
 import numpy as np
 from ddt import ddt, data
 
@@ -171,3 +172,6 @@ class TestQAOAAnsatz(QiskitTestCase):
                     circuit = QAOAAnsatz(cost_operator=cost, mixer_operator=mixer, reps=reps)
                     target = reps if mixer is None else 0
                     self.assertEqual(circuit.num_parameters, target)
+
+if __name__ == "__main__":
+    unittest.main()

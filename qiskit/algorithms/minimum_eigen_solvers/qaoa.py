@@ -23,7 +23,7 @@ from qiskit.providers import Backend
 from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.utils.validation import validate_min
 from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
-from qiskit.algorithms.minimum_eigen_solvers.vqe import VQE, MINIMIZER
+from qiskit.algorithms.minimum_eigen_solvers.vqe import VQE
 
 
 class QAOA(VQE):
@@ -54,7 +54,7 @@ class QAOA(VQE):
 
     def __init__(
         self,
-        optimizer: Optional[Union[Optimizer, MINIMIZER]] = None,
+        optimizer: Optimizer = None,
         reps: int = 1,
         initial_state: Optional[QuantumCircuit] = None,
         mixer: Union[QuantumCircuit, OperatorBase] = None,
@@ -68,8 +68,7 @@ class QAOA(VQE):
     ) -> None:
         """
         Args:
-            optimizer: A classical optimizer, see also :class:`~qiskit.algorithms.VQE` for
-                more details on the possible types.
+            optimizer: A classical optimizer.
             reps: the integer parameter :math:`p` as specified in https://arxiv.org/abs/1411.4028,
                 Has a minimum valid value of 1.
             initial_state: An optional initial state to prepend the QAOA circuit with
@@ -132,7 +131,7 @@ class QAOA(VQE):
             self._cost_operator = operator
             self.ansatz = QAOAAnsatz(
                 operator, self._reps, initial_state=self._initial_state, mixer_operator=self._mixer
-            ).decompose()  # TODO remove decompose once #6674 is fixed
+            ).decompose()  # TODO: remove decompose once #6674 is fixed
 
     @property
     def initial_state(self) -> Optional[QuantumCircuit]:

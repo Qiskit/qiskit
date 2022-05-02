@@ -21,8 +21,6 @@ from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.compiler import transpile
-from qiskit.compiler.transpiler import _parse_inst_map
-from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.test.base import QiskitTestCase
 from qiskit.test.mock.fake_backend_v2 import (
     FakeBackendV2,
@@ -96,7 +94,7 @@ class TestBackendV2(QiskitTestCase):
                 "invalid output"
             ],
         )
-        self.assertTrue(Operator.from_circuit(tqc).equiv(qc))
+        self.assertTrue(Operator(tqc).equiv(qc))
         self.assertMatchesTargetConstraints(tqc, self.backend.target)
 
     @combine(
@@ -118,8 +116,7 @@ class TestBackendV2(QiskitTestCase):
         getattr(qc, gate)(2, 3)
         getattr(qc, gate)(4, 3)
         tqc = transpile(qc, backend, optimization_level=opt_level)
-        t_op = Operator.from_circuit(tqc)
-        self.assertTrue(t_op.equiv(qc))
+        self.assertTrue(Operator(tqc).equiv(qc))
         self.assertMatchesTargetConstraints(tqc, backend.target)
 
     def test_transpile_respects_arg_constraints(self):
@@ -129,7 +126,7 @@ class TestBackendV2(QiskitTestCase):
         qc.h(0)
         qc.cx(1, 0)
         tqc = transpile(qc, self.backend)
-        self.assertTrue(Operator.from_circuit(tqc).equiv(qc))
+        self.assertTrue(Operator(tqc).equiv(qc))
         # Below is done to check we're decomposing cx(1, 0) with extra
         # rotations to correct for direction. However because of fp
         # differences between windows and other platforms the optimization
@@ -145,7 +142,7 @@ class TestBackendV2(QiskitTestCase):
         qc.h(0)
         qc.ecr(0, 1)
         tqc = transpile(qc, self.backend)
-        self.assertTrue(Operator.from_circuit(tqc).equiv(qc))
+        self.assertTrue(Operator(tqc).equiv(qc))
         self.assertEqual(tqc.count_ops(), {"ecr": 1, "u": 4})
         self.assertMatchesTargetConstraints(tqc, self.backend.target)
 
@@ -161,7 +158,7 @@ class TestBackendV2(QiskitTestCase):
         expected.ecr(1, 0)
         expected.u(math.pi / 2, 0, -math.pi, 0)
         expected.u(math.pi / 2, 0, -math.pi, 1)
-        self.assertTrue(Operator.from_circuit(tqc).equiv(qc))
+        self.assertTrue(Operator(tqc).equiv(qc))
         self.assertEqual(tqc.count_ops(), {"ecr": 1, "u": 4})
         self.assertMatchesTargetConstraints(tqc, self.backend.target)
 
@@ -184,8 +181,3 @@ class TestBackendV2(QiskitTestCase):
         expected.measure(qr[0], cr[0])
         expected.measure(qr[1], cr[1])
         self.assertEqual(expected, tqc)
-
-    def test_transpile_parse_inst_map(self):
-        """Test that transpiler._parse_inst_map() supports BackendV2."""
-        inst_map = _parse_inst_map(inst_map=None, backend=self.backend, num_circuits=1)[0]
-        self.assertIsInstance(inst_map, InstructionScheduleMap)
