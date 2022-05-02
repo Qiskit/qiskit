@@ -1250,7 +1250,6 @@ class TestTranspile(QiskitTestCase):
         qc.measure_all()
 
         backend = FakeMumbaiV2()
-        backend.target.dt = 1e-6
         out = transpile([qc, qc], backend, scheduling_method="alap")
         self.assertIn("delay", out[0].count_ops())
         self.assertIn("delay", out[1].count_ops())
