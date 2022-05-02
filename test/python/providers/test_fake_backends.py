@@ -103,6 +103,12 @@ class TestFakeBackends(QiskitTestCase):
         else:
             self.assertTrue(backend.configuration().simulator)
 
+    @data(*FAKE_PROVIDER_FOR_BACKEND_V2.backends())
+    def test_convert_to_target(self, backend):
+        target = backend.target
+        if target.dt is not None:
+            self.assertLess(target.dt, 1e-6)
+
     @data(*FAKE_PROVIDER.backends())
     def test_to_dict_configuration(self, backend):
         configuration = backend.configuration()
