@@ -36,7 +36,7 @@ class MultiplyMixin(ABC):
         return self._multiply(other)
 
     def __mul__(self, other):
-        return self.__rmul__(other)
+        return self._multiply(other)
 
     def __truediv__(self, other):
         return self._multiply(1 / other)
