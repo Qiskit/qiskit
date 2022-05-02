@@ -99,7 +99,7 @@ def convert_to_target(conf_dict: dict, props_dict: dict = None, defs_dict: dict 
     # parse global configuration properties
     dt = conf_dict.get("dt")
     if dt:
-        target.dt = dt
+        target.dt = dt * 1e-9
     if "timing_constraints" in conf_dict:
         target.granularity = conf_dict["timing_constraints"].get("granularity")
         target.min_length = conf_dict["timing_constraints"].get("min_length")
