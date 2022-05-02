@@ -348,6 +348,59 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         self.assertEqual(swapped, expected)
 
+    def test_t_device(self):
+        """Test the swap strategy to route a complete problem on a T device.
+
+        The coupling map in this test corresponds to
+
+        .. parsed-literal::
+
+            0 -- 1 -- 2
+                 |
+                 3
+                 |
+                 4
+
+        """
+
+        swaps = (
+            ((1, 3), ),
+            ((0, 1), (3, 4)),
+            ((1, 3), ),
+        )
+
+        cmap = CouplingMap([[0, 1], [1, 2], [1, 3], [3, 4]])
+        cmap.make_symmetric()
+
+        swap_strat = SwapStrategy(cmap, swaps)
+
+        # A dense Pauli op.
+        op = PauliSumOp.from_list(
+            [
+                ("IIIZZ", 1), ("IIZIZ", 2), ("IZIIZ", 3), ("ZIIIZ", 4),
+                ("IIZZI", 5), ("IZIZI", 6), ("ZIIZI", 7),
+                ("IZZII", 8), ("ZIZII", 9),
+                ("ZZIII", 10),
+            ]
+        )
+
+        circ = QuantumCircuit(5)
+        circ.append(PauliEvolutionGate(op, 1), range(5))
+
+        pm_ = PassManager(
+            [
+                FindCommutingPauliEvolutions(),
+                Commuting2qGateRouter(swap_strat),
+            ]
+        )
+
+        swapped = pm_.run(circ)
+
+        expected = QuantumCircuit(5)
+
+        #TODO
+        self.assertEqual(swapped, expected)
+
 
 class TestSwapRouterExceptions(QiskitTestCase):
     """Test that exceptions are properly raises."""
