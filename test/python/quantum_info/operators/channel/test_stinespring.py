@@ -415,7 +415,6 @@ class TestStinespring(ChannelTestCase):
         chan = chan1 * val
         self.assertEqual(rho_init.evolve(chan), rho_targ)
 
-
         # Double Stinespring set
         chan2 = Stinespring((stine1, stine2), input_dims=2, output_dims=4)
         rho_targ = val * (rho_init & chan2)
