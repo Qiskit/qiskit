@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes a bug in RZXCalibrationBuilder that was causing pulses to sometimes be
+    constructed with incorrect durations.
