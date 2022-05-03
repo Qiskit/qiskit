@@ -361,8 +361,11 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
                  |
                  4
 
-        """
+        The problem being routed is a fully connect ZZ graph. It has 10 terms since there are
+        five qubits in the coupling map. This test checks that the circuit produced by the
+        commuting gate router is the one we expect.
 
+        """
         swaps = (
             ((1, 3), ),
             ((0, 1), (3, 4)),
@@ -397,8 +400,36 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         swapped = pm_.run(circ)
 
         expected = QuantumCircuit(5)
+        # hardware native gates
+        expected.append(PauliEvolutionGate(Pauli("ZZ"), 5), (1, 2))
+        expected.append(PauliEvolutionGate(Pauli("ZZ"), 1), (0, 1))
+        expected.append(PauliEvolutionGate(Pauli("ZZ"), 10), (3, 4))
+        expected.append(PauliEvolutionGate(Pauli("ZZ"), 6), (1, 3))
 
-        #TODO
+        # First swap layer, swaps (1, 3)
+        for swap in swaps[0]:
+            expected.swap(swap[0], swap[1])
+
+        # Second ZZ layer, has three new connections (0, 3), (2, 3), (1, 4)
+        expected.append(PauliEvolutionGate(Pauli("ZZ"), 3), (0, 1))  # ("IZIIZ", 3)
+        expected.append(PauliEvolutionGate(Pauli("ZZ"), 7), (3, 4))  # ("ZIIZI", 7)
+        expected.append(PauliEvolutionGate(Pauli("ZZ"), 8), (2, 1))  # ("IZZII", 8)
+
+        # Second swap layer, swaps (0, 1) and (3, 4)
+        for swap in swaps[1]:
+            expected.swap(swap[0], swap[1])
+
+        # Third ZZ layer, has two new connections (0, 2) and (0, 4)
+        expected.append(PauliEvolutionGate(Pauli("ZZ"), 2), (1, 2))  # ("IIZIZ", 2)
+        expected.append(PauliEvolutionGate(Pauli("ZZ"), 4), (1, 3))  # ("ZIIIZ", 4)
+
+        # Last swap layer, swaps (1, 3) again
+        for swap in swaps[2]:
+            expected.swap(swap[0], swap[1])
+
+        # Last ZZ layer, has one new connection (2, 4)
+        expected.append(PauliEvolutionGate(Pauli("ZZ"), 9), (2, 1))  # ("ZIZII", 9)
+
         self.assertEqual(swapped, expected)
 
 
