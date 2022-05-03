@@ -21,6 +21,7 @@ from qiskit.utils.units import apply_prefix
 from qiskit.circuit.library.standard_gates import IGate, SXGate, XGate, CXGate, RZGate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.delay import Delay
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
 from qiskit.providers.models.pulsedefaults import PulseDefaults
@@ -123,6 +124,9 @@ def convert_to_target(conf_dict: dict, props_dict: dict = None, defs_dict: dict 
                             target[inst][(qubit,)].calibration = sched
                     else:
                         target[inst][qarg].calibration = sched
+    target.add_instruction(
+        Delay(Parameter("t")), {(bit,): None for bit in range(target.num_qubits)}
+    )
     return target
 
 
