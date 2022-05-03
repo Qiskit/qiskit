@@ -15,7 +15,17 @@ Fake Cairo device (27 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_pulse_backend
+from qiskit.test.mock import fake_pulse_backend, fake_backend
+
+
+class FakeCairoV2(fake_backend.FakeBackendV2):
+    """A fake 27 qubit backend."""
+
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_cairo.json"
+    props_filename = "props_cairo.json"
+    defs_filename = "defs_cairo.json"
+    backend_name = "fake_cairo_v2"
 
 
 class FakeCairo(fake_pulse_backend.FakePulseBackend):

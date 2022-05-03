@@ -69,6 +69,7 @@ class Instruction:
 
         Raises:
             CircuitError: when the register is not in the correct format.
+            TypeError: when the optional label is provided, but it is not a string.
         """
         if not isinstance(num_qubits, int) or not isinstance(num_clbits, int):
             raise CircuitError("num_qubits and num_clbits must be integer.")
@@ -86,6 +87,8 @@ class Instruction:
         #       already set is a temporary work around that can be removed after
         #       the next stable qiskit-aer release
         if not hasattr(self, "_label"):
+            if label is not None and not isinstance(label, str):
+                raise TypeError("label expects a string or None")
             self._label = label
         # tuple (ClassicalRegister, int), tuple (Clbit, bool) or tuple (Clbit, int)
         # when the instruction has a conditional ("if")
@@ -391,30 +394,17 @@ class Instruction:
 
     def c_if(self, classical, val):
         """Set a classical equality condition on this instruction between the register or cbit
-        or list of cbits, ``classical`` and value ``val``.
+        ``classical`` and value ``val``.
 
         .. note::
 
             This is a setter method, not an additive one.  Calling this multiple times will silently
             override any previously set condition; it does not stack.
         """
-        if not isinstance(classical, (ClassicalRegister, Clbit)) and not all(
-            isinstance(cbit, Clbit) for cbit in classical
-        ):
-            raise CircuitError(
-                "c_if must be used with a classical register, a bit or a list of classical bits"
-            )
+        if not isinstance(classical, (ClassicalRegister, Clbit)):
+            raise CircuitError("c_if must be used with a classical register or classical bit")
         if val < 0:
             raise CircuitError("condition value should be non-negative")
-
-        if (isinstance(classical, ClassicalRegister) and val >= 2**classical.size) or (
-            isinstance(classical, list) and val >= 2 ** len(classical)
-        ):
-            raise CircuitError("condition value should be less than 2 ^ number of bits")
-
-        if isinstance(classical, Clbit) and int(val) > 1:
-            raise CircuitError("condition value should be 0/1 or True/False")
-
         if isinstance(classical, Clbit):
             # Casting the conditional value as Boolean when
             # the classical condition is on a classical bit.

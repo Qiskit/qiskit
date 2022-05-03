@@ -1,0 +1,7 @@
+---
+feature:
+  - |
+    The fake backend and fake provider classes which were previously available
+    in ``qiskit.test.mock`` are now also accessible in a new module:
+    ``qiskit.providers.fake_provider``. This new module supersedes the previous
+    module ``qiskit.test.mock`` which will be deprecated in Qiskit 0.21.0.
