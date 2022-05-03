@@ -315,8 +315,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 return True
 
             def _apply_post_layout_condition(property_set):
-                # if VF2 layout stopped for any reason other than solution found we need
-                # to run layout since VF2 didn't converge.
+                # if VF2 Post layout found a solution we need to re-apply the better
+                # layout. Otherwise we can skip apply layout.
                 if (
                     property_set["VF2PostLayout_stop_reason"] is not None
                     and property_set["VF2PostLayout_stop_reason"]
