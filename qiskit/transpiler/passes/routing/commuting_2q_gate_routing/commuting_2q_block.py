@@ -19,7 +19,7 @@ from qiskit.circuit import Gate
 from qiskit.dagcircuit import DAGOpNode
 
 
-class Commuting2qBlocks(Gate):
+class Commuting2qBlock(Gate):
     """A gate made of commuting two-qubit gates.
 
     This gate is intended for use with commuting swap strategies to make it convenient
@@ -48,7 +48,7 @@ class Commuting2qBlocks(Gate):
             )
 
         super().__init__(
-            "commuting_2q_blocks", num_qubits=len(qubits), params=[], label="Commuting 2q gates"
+            "commuting_2q_block", num_qubits=len(qubits), params=[], label="Commuting 2q gates"
         )
         self.node_block = node_block
         self.qubits = qubits

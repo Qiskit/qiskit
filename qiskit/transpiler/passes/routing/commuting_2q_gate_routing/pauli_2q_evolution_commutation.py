@@ -22,7 +22,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import TransformationPass
 from qiskit.quantum_info import SparsePauliOp, Pauli
 from qiskit.transpiler.passes.routing.commuting_2q_gate_routing.commuting_2q_block import (
-    Commuting2qBlocks,
+    Commuting2qBlock,
 )
 
 
@@ -50,7 +50,7 @@ class FindCommutingPauliEvolutions(TransformationPass):
                 if self.summands_commute(node.op.operator):
                     sub_dag = self._decompose_to_2q(dag, node.op)
 
-                    block_op = Commuting2qBlocks(set(sub_dag.op_nodes()))
+                    block_op = Commuting2qBlock(set(sub_dag.op_nodes()))
                     register = dag.qregs["q"]
                     wire_order = {qubit: register.index(qubit) for qubit in block_op.qubits}
                     dag.replace_block_with_op([node], block_op, wire_order)

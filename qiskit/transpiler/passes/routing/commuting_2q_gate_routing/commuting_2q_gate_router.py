@@ -22,7 +22,7 @@ from qiskit.transpiler import TransformationPass, Layout, TranspilerError
 
 from qiskit.transpiler.passes.routing.commuting_2q_gate_routing.swap_strategy import SwapStrategy
 from qiskit.transpiler.passes.routing.commuting_2q_gate_routing.commuting_2q_block import (
-    Commuting2qBlocks,
+    Commuting2qBlock,
 )
 
 
@@ -30,7 +30,7 @@ class Commuting2qGateRouter(TransformationPass):
     """A class to swap route one or more commuting gates to the coupling map.
 
     This pass routes blocks of commuting two-qubit gates encapsulated as
-    :class:`.Commuting2qBlocks` instructions. This pass will not apply to other instructions.
+    :class:`.Commuting2qBlock` instructions. This pass will not apply to other instructions.
     The mapping to the coupling map is done using swap strategies, see :class:`.SwapStrategy`.
     The swap strategy should suit the problem and the coupling map. This transpiler pass
     should ideally be executed before the quantum circuit is enlarged with any idle ancilla
@@ -157,7 +157,7 @@ class Commuting2qGateRouter(TransformationPass):
         self._bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
 
         for node in dag.topological_op_nodes():
-            if isinstance(node.op, Commuting2qBlocks):
+            if isinstance(node.op, Commuting2qBlock):
 
                 # Check that the swap strategy creates enough connectivity for the node.
                 self._check_edges(node, swap_strategy)
@@ -255,20 +255,20 @@ class Commuting2qGateRouter(TransformationPass):
     def swap_decompose(
         self, dag: DAGCircuit, node: DAGOpNode, current_layout: Layout, swap_strategy: SwapStrategy
     ) -> DAGCircuit:
-        """Take an instance of :class:`.Commuting2qBlocks` and map it to the coupling map.
+        """Take an instance of :class:`.Commuting2qBlock` and map it to the coupling map.
 
         The mapping is done with the swap strategy.
 
         Args:
-            dag: The dag which contains the :class:`.Commuting2qBlocks` we route.
-            node: A node whose operation is a :class:`.Commuting2qBlocks`.
+            dag: The dag which contains the :class:`.Commuting2qBlock` we route.
+            node: A node whose operation is a :class:`.Commuting2qBlock`.
             current_layout: The layout before the swaps are applied. This function will
                 modify the layout so that subsequent gates can be properly composed on the dag.
             swap_strategy: The swap strategy used to decompose the node.
 
         Returns:
             A dag that is compatible with the coupling map where swap gates have been added
-            to map the gates in the :class:`.Commuting2qBlocks` to the hardware.
+            to map the gates in the :class:`.Commuting2qBlock` to the hardware.
         """
         trivial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
         gate_layers = self._make_op_layers(dag, node.op, current_layout, swap_strategy)
@@ -306,7 +306,7 @@ class Commuting2qGateRouter(TransformationPass):
         return circuit_to_dag(circuit_with_swap)
 
     def _make_op_layers(
-        self, dag: DAGCircuit, op: Commuting2qBlocks, layout: Layout, swap_strategy: SwapStrategy
+        self, dag: DAGCircuit, op: Commuting2qBlock, layout: Layout, swap_strategy: SwapStrategy
     ) -> Dict[int, Dict[tuple, Gate]]:
         """Creates layers of two-qubit gates based on the distance in the swap strategy."""
 
