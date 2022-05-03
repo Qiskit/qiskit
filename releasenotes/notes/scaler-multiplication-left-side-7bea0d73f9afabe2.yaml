@@ -1,9 +1,6 @@
 ---
 features:
   - |
-    Introduced a left side scaler multiplication to :class:`.Operator` objects.
-    It can be used by using * decorator,
-    for example::
-
-      from qiskit.quantum_info import Pauli
-      Pauli("X") * -1j
+    Classes in the :mod:`.quantum_info` module that support scalar multiplication
+    can now be multiplied by a scalar from either the left or the right.
+    Previously, they would only accept scalar multipliers from the left.
