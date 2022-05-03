@@ -174,7 +174,8 @@ class FakeBackendV2(BackendV2):
         Returns:
             dtm: The output signal timestep in seconds.
         """
-        return self._conf_dict.get("dtm")
+        # converting `dtm` in nanoseconds in configuration file to seconds
+        return self._conf_dict.get("dtm") * 1e-9
 
     @property
     def meas_map(self) -> List[List[int]]:
