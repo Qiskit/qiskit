@@ -66,8 +66,10 @@ class TestCompiler(QiskitTestCase):
         ghz_backend = transpile(ghz, backend=backend, coupling_map=coupling_map)
         bell_qobj = assemble(bell_backend, shots=shots, seed_simulator=10)
         ghz_qobj = assemble(ghz_backend, shots=shots, seed_simulator=10)
-        bell_result = backend.run(bell_qobj).result()
-        ghz_result = backend.run(ghz_qobj).result()
+        with self.assertWarns(DeprecationWarning):
+            bell_result = backend.run(bell_qobj).result()
+        with self.assertWarns(DeprecationWarning):
+            ghz_result = backend.run(ghz_qobj).result()
 
         threshold = 0.05 * shots
         counts_bell = bell_result.get_counts()
@@ -101,7 +103,8 @@ class TestCompiler(QiskitTestCase):
             qc, backend=backend, coupling_map=coupling_map, initial_layout=initial_layout
         )
         qobj = assemble(qc_b, shots=shots, seed_simulator=88)
-        job = backend.run(qobj)
+        with self.assertWarns(DeprecationWarning):
+            job = backend.run(qobj)
         result = job.result()
         qasm_to_check = qc.qasm()
         self.assertEqual(len(qasm_to_check), 173)
@@ -261,9 +264,11 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qr, cr)
         backend = BasicAer.get_backend("qasm_simulator")
         qrtrue = assemble(transpile(qc, backend, seed_transpiler=8), seed_simulator=42)
-        rtrue = backend.run(qrtrue).result()
+        with self.assertWarns(DeprecationWarning):
+            rtrue = backend.run(qrtrue).result()
         qrfalse = assemble(PassManager().run(qc), seed_simulator=42)
-        rfalse = backend.run(qrfalse).result()
+        with self.assertWarns(DeprecationWarning):
+            rfalse = backend.run(qrfalse).result()
         self.assertEqual(rtrue.get_counts(), rfalse.get_counts())
 
     def test_mapper_overoptimization(self):

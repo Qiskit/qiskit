@@ -254,6 +254,11 @@ class UnitarySimulatorPy(BackendV1):
             qobj = assemble(qobj, self, **out_options)
             qobj_options = qobj.config
         else:
+            warnings.warn(
+                "Using a qobj for run() is deprecated and will be removed in a future release.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             qobj_options = None
         self._set_options(qobj_config=qobj_options, backend_options=backend_options)
         job_id = str(uuid.uuid4())

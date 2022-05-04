@@ -411,7 +411,7 @@ class QasmSimulatorPy(BackendV1):
         else:
             warnings.warn(
                 "Using a qobj for run() is deprecated and will be removed in a future release.",
-                PendingDeprecationWarning,
+                DeprecationWarning,
                 stacklevel=2,
             )
             qobj_options = qobj.config

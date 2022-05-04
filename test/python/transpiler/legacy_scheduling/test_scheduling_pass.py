@@ -38,10 +38,12 @@ class TestSchedulingPass(QiskitTestCase):
             [("h", 0, 200), ("cx", [0, 1], 700), ("measure", None, 1000)]
         )
 
-        pm = PassManager(ALAPSchedule(durations))
+        with self.assertWarns(DeprecationWarning):
+            pm = PassManager(ALAPSchedule(durations))
         alap_qc = pm.run(qc)
 
-        pm = PassManager(ASAPSchedule(durations))
+        with self.assertWarns(DeprecationWarning):
+            pm = PassManager(ASAPSchedule(durations))
         new_qc = pm.run(qc.reverse_ops())
         new_qc = new_qc.reverse_ops()
         new_qc.name = new_qc.name
@@ -78,7 +80,8 @@ class TestSchedulingPass(QiskitTestCase):
         qc.x(1).c_if(0, True)
 
         durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
-        pm = PassManager(schedule_pass(durations))
+        with self.assertWarns(DeprecationWarning):
+            pm = PassManager(schedule_pass(durations))
         scheduled = pm.run(qc)
 
         expected = QuantumCircuit(2, 1)
@@ -118,7 +121,8 @@ class TestSchedulingPass(QiskitTestCase):
         qc.measure(1, 0)
 
         durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
-        pm = PassManager(schedule_pass(durations))
+        with self.assertWarns(DeprecationWarning):
+            pm = PassManager(schedule_pass(durations))
         scheduled = pm.run(qc)
 
         expected = QuantumCircuit(2, 1)
@@ -165,7 +169,8 @@ class TestSchedulingPass(QiskitTestCase):
         qc.x(2).c_if(0, True)
 
         durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
-        pm = PassManager(schedule_pass(durations))
+        with self.assertWarns(DeprecationWarning):
+            pm = PassManager(schedule_pass(durations))
         scheduled = pm.run(qc)
 
         expected = QuantumCircuit(3, 1)
@@ -205,7 +210,8 @@ class TestSchedulingPass(QiskitTestCase):
         qc.measure(1, 0)
 
         durations = InstructionDurations([("measure", [0], 1000), ("measure", [1], 700)])
-        pm = PassManager(schedule_pass(durations))
+        with self.assertWarns(DeprecationWarning):
+            pm = PassManager(schedule_pass(durations))
         scheduled = pm.run(qc)
 
         expected = QuantumCircuit(2, 1)
@@ -248,7 +254,8 @@ class TestSchedulingPass(QiskitTestCase):
         qc.measure(2, 0)
 
         durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
-        pm = PassManager(schedule_pass(durations))
+        with self.assertWarns(DeprecationWarning):
+            pm = PassManager(schedule_pass(durations))
         scheduled = pm.run(qc)
 
         expected = QuantumCircuit(3, 1)
@@ -302,7 +309,8 @@ class TestSchedulingPass(QiskitTestCase):
         durations = InstructionDurations(
             [("x", [0], 200), ("x", [1], 400), ("measure", None, 1000)]
         )
-        pm = PassManager(ALAPSchedule(durations))
+        with self.assertWarns(DeprecationWarning):
+            pm = PassManager(ALAPSchedule(durations))
         qc_alap = pm.run(qc)
 
         alap_expected = QuantumCircuit(2, 2)
@@ -314,7 +322,8 @@ class TestSchedulingPass(QiskitTestCase):
 
         self.assertEqual(qc_alap, alap_expected)
 
-        pm = PassManager(ASAPSchedule(durations))
+        with self.assertWarns(DeprecationWarning):
+            pm = PassManager(ASAPSchedule(durations))
         qc_asap = pm.run(qc)
 
         asap_expected = QuantumCircuit(2, 2)
@@ -366,7 +375,8 @@ class TestSchedulingPass(QiskitTestCase):
         durations = InstructionDurations(
             [("x", [0], 200), ("x", [1], 400), ("measure", None, 1000)]
         )
-        pm = PassManager(ALAPSchedule(durations))
+        with self.assertWarns(DeprecationWarning):
+            pm = PassManager(ALAPSchedule(durations))
         qc_alap = pm.run(qc)
 
         alap_expected = QuantumCircuit(2, 2)
@@ -379,7 +389,8 @@ class TestSchedulingPass(QiskitTestCase):
 
         self.assertEqual(qc_alap, alap_expected)
 
-        pm = PassManager(ASAPSchedule(durations))
+        with self.assertWarns(DeprecationWarning):
+            pm = PassManager(ASAPSchedule(durations))
         qc_asap = pm.run(qc)
 
         asap_expected = QuantumCircuit(2, 2)
@@ -441,8 +452,10 @@ class TestSchedulingPass(QiskitTestCase):
         durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
 
         # lock at the end edge
-        actual_asap = PassManager(ASAPSchedule(durations, clbit_write_latency=1000)).run(qc)
-        actual_alap = PassManager(ALAPSchedule(durations, clbit_write_latency=1000)).run(qc)
+        with self.assertWarns(DeprecationWarning):
+            actual_asap = PassManager(ASAPSchedule(durations, clbit_write_latency=1000)).run(qc)
+        with self.assertWarns(DeprecationWarning):
+            actual_alap = PassManager(ALAPSchedule(durations, clbit_write_latency=1000)).run(qc)
 
         # start times of 2nd measure depends on ASAP/ALAP
         expected_asap = QuantumCircuit(3, 1)
@@ -490,12 +503,14 @@ class TestSchedulingPass(QiskitTestCase):
         qc.x(0).c_if(0, 1)
 
         durations = InstructionDurations([("x", None, 100), ("measure", None, 1000)])
-        actual_asap = PassManager(
-            ASAPSchedule(durations, clbit_write_latency=write_lat, conditional_latency=cond_lat)
-        ).run(qc)
-        actual_alap = PassManager(
-            ALAPSchedule(durations, clbit_write_latency=write_lat, conditional_latency=cond_lat)
-        ).run(qc)
+        with self.assertWarns(DeprecationWarning):
+            actual_asap = PassManager(
+                ASAPSchedule(durations, clbit_write_latency=write_lat, conditional_latency=cond_lat)
+            ).run(qc)
+        with self.assertWarns(DeprecationWarning):
+            actual_alap = PassManager(
+                ALAPSchedule(durations, clbit_write_latency=write_lat, conditional_latency=cond_lat)
+            ).run(qc)
 
         expected = QuantumCircuit(1, 1)
         expected.measure(0, 0)
@@ -613,12 +628,14 @@ class TestSchedulingPass(QiskitTestCase):
             [("x", None, 100), ("measure", None, 1000), ("cx", None, 200)]
         )
 
-        actual_asap = PassManager(
-            ASAPSchedule(durations, clbit_write_latency=100, conditional_latency=200)
-        ).run(qc)
-        actual_alap = PassManager(
-            ALAPSchedule(durations, clbit_write_latency=100, conditional_latency=200)
-        ).run(qc)
+        with self.assertWarns(DeprecationWarning):
+            actual_asap = PassManager(
+                ASAPSchedule(durations, clbit_write_latency=100, conditional_latency=200)
+            ).run(qc)
+        with self.assertWarns(DeprecationWarning):
+            actual_alap = PassManager(
+                ALAPSchedule(durations, clbit_write_latency=100, conditional_latency=200)
+            ).run(qc)
 
         expected_asap = QuantumCircuit(3, 1)
         expected_asap.delay(100, 0)
@@ -707,7 +724,8 @@ class TestSchedulingPass(QiskitTestCase):
         qc.x(1).c_if(0, True)
 
         durations = InstructionDurations([("x", None, 160)])
-        pm = PassManager(ASAPSchedule(durations))
+        with self.assertWarns(DeprecationWarning):
+            pm = PassManager(ASAPSchedule(durations))
         scheduled = pm.run(qc)
 
         expected = QuantumCircuit(2, 1)

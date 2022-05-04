@@ -61,7 +61,7 @@ class TestBasicAerQobj(QiskitTestCase):
                 qobj.header = QobjHeader.from_dict(custom_qobj_header)
                 # Update the Qobj.experiment header.
                 qobj.experiments[0].header.some_field = "extra info"
-
-                result = backend.run(qobj).result()
+                with self.assertWarns(DeprecationWarning):
+                    result = backend.run(qobj).result()
                 self.assertEqual(result.header.to_dict(), custom_qobj_header)
                 self.assertEqual(result.results[0].header.some_field, "extra info")

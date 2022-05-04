@@ -41,7 +41,7 @@ class ALAPSchedule(BaseSchedulerTransform):
             "which performs the as analysis pass that requires a padding pass to later modify "
             "the circuit. This class will be deprecated in a future release and subsequently "
             "removed after that.",
-            PendingDeprecationWarning,
+            DeprecationWarning,
         )
 
     def run(self, dag):

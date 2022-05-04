@@ -1,0 +1,35 @@
+---
+deprecations:
+  - |
+    The ``qiskit.circuit.qpy_serialization`` module has been deprecated and
+    will be removed in a future release. It has been replaced by the by the
+    :mod:`qiskit.qpy` module. This was done as ``qpy`` is no longer isolated to
+    just serializing :class:`~.QuantumCircuit` objects. You can just update
+    imports from ``qiskit.circuit.qpy_serialization`` to :mod:`qiskit.qpy` and
+    everything should behave as before.
+  - |
+    Support for passing a :class:`~.QasmQobj` object as the input to the
+    :meth:`~.QasmSimulatorPy.run` methods of the BasicAer simulator
+    backends classes: :class:`~.QasmSimulatorPy`,
+    :class:`~.StatevectorSimulatorPy`, and :class:`~.UnitarySimulatorPy` has
+    been deprecated and will be removed in a future release. Instead you should
+    directly pass the :class:`~QuantumCircuit` objects and run time options
+    to the :meth:`~.QasmSimulatorPy.run` method directly and using
+    :func:`~.assemble` to build a :class:`~.QasmQobj` prior to calling
+    :meth:`~.QasmSimulatorPy.run` is no longer necessary.
+  - |
+    The :class:`~.DynamicalDecoupling` transpiler pass has been deprecated and
+    will be removed in a future release. Instead the
+    :class:`~.PadDynamicalDecoupling` pass should be used in conjunction with
+    a scheduling analysis pass such as :class:`~.ALAPScheduleAnalysis` or
+    :class:`~.ASAPScheduleAnalysis`.
+  - |
+    The :class:`~.ASAPSchedule` pass has been deprecated and will be removed
+    in a future release. Instead the :class:`~.ASAPScheduleAnalysis` pass should
+    be used in conjunction with a padding pass such as :class:`~PadDelay` or
+    :class:`~.PadDynamicalDecoupling`.
+  - |
+    The :class:`~.ALAPSchedule` pass has been deprecated and will be removed
+    in a future release. Instead the :class:`~.ALAPScheduleAnalysis` pass should
+    be used in conjunction with a padding pass such as :class:`~PadDelay` or
+    :class:`~.PadDynamicalDecoupling`.

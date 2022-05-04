@@ -500,20 +500,20 @@ class TestAlignMeasures(QiskitTestCase):
         circuit.delay(100)
         circuit.measure(0, 0)
 
-        with self.assertWarns(PendingDeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             pm_old = PassManager(
                 [
                     ALAPSchedule(durations=self.instruction_durations),
                     AlignMeasures(alignment=16),
                 ]
             )
-
-        pm_new = PassManager(
-            [
-                ALAPSchedule(durations=self.instruction_durations),
-                AlignMeasures(alignment=16),
-            ]
-        )
+        with self.assertWarns(DeprecationWarning):
+            pm_new = PassManager(
+                [
+                    ALAPSchedule(durations=self.instruction_durations),
+                    AlignMeasures(alignment=16),
+                ]
+            )
 
         self.assertEqual(pm_old.run(circuit), pm_new.run(circuit))
 

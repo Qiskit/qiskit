@@ -119,7 +119,7 @@ class DynamicalDecoupling(TransformationPass):
             "requires scheduling and alignment analysis passes to run prior to it. "
             "This class will be deprecated in a future release and subsequently "
             "removed after that.",
-            PendingDeprecationWarning,
+            DeprecationWarning,
         )
         super().__init__()
         self._durations = durations
