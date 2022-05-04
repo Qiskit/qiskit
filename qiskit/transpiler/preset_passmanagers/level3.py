@@ -125,7 +125,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             min_qubits=3,
             target=target,
         ),
-        Unroll3qOrMore(),
+        Unroll3qOrMore(target=target, basis_gates=basis_gates),
     ]
 
     # 2. Layout on good qubits if calibration info available, otherwise on dense links
@@ -157,7 +157,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             coupling_map,
             seed=seed_transpiler,
             call_limit=int(3e7),  # Set call limit to ~60 sec with retworkx 0.10.2
-            time_limit=60,
             properties=backend_properties,
             target=target,
         )
@@ -236,7 +235,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 min_qubits=3,
                 target=target,
             ),
-            Unroll3qOrMore(),
+            Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates, target=target),
             UnitarySynthesis(
@@ -332,7 +331,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                     backend_properties,
                     seed_transpiler,
                     call_limit=int(3e7),  # Set call limit to ~60 sec with retworkx 0.10.2
-                    time_limit=60,
                     strict_direction=False,
                 ),
                 condition=_run_post_layout_condition,

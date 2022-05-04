@@ -122,7 +122,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             plugin_config=unitary_synthesis_plugin_config,
             target=target,
         ),
-        Unroll3qOrMore(),
+        Unroll3qOrMore(target=target, basis_gates=basis_gates),
     ]
 
     # 2. Search for a perfect layout, or choose a dense layout, if no layout given
@@ -154,7 +154,6 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             coupling_map,
             seed=seed_transpiler,
             call_limit=int(5e6),  # Set call limit to ~10 sec with retworkx 0.10.2
-            time_limit=10.0,
             properties=backend_properties,
             target=target,
         )
@@ -238,7 +237,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 min_qubits=3,
                 target=target,
             ),
-            Unroll3qOrMore(),
+            Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates, target=target),
             UnitarySynthesis(
@@ -321,7 +320,6 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                     backend_properties,
                     seed_transpiler,
                     call_limit=int(5e6),  # Set call limit to ~10 sec with retworkx 0.10.2
-                    time_limit=10.0,
                     strict_direction=False,
                 ),
                 condition=_run_post_layout_condition,

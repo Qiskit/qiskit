@@ -156,7 +156,6 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             coupling_map,
             seed=seed_transpiler,
             call_limit=int(5e4),  # Set call limit to ~100ms with retworkx 0.10.2
-            time_limit=0.1,
             properties=backend_properties,
             target=target,
         )
@@ -173,7 +172,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             plugin_config=unitary_synthesis_plugin_config,
             target=target,
         ),
-        Unroll3qOrMore(),
+        Unroll3qOrMore(target=target, basis_gates=basis_gates),
     ]
 
     # 3. Use a better layout on densely connected qubits, if circuit needs swaps
@@ -253,7 +252,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 min_qubits=3,
                 target=target,
             ),
-            Unroll3qOrMore(),
+            Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates, target=target),
             UnitarySynthesis(
@@ -335,7 +334,6 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                     backend_properties,
                     seed_transpiler,
                     call_limit=int(5e4),  # Set call limit to ~100ms with retworkx 0.10.2
-                    time_limit=0.1,
                     strict_direction=False,
                 ),
                 condition=_run_post_layout_condition,
