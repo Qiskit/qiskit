@@ -20,7 +20,6 @@ from retworkx import vf2_mapping
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.transpiler.passes.layout import vf2_utils
 
 
@@ -196,39 +195,3 @@ class VF2Layout(AnalysisPass):
                 self.property_set["layout"].add_register(reg)
 
         self.property_set["VF2Layout_stop_reason"] = stop_reason
-
-    def _score_layout(self, layout):
-        """Score heurstic to determine the quality of the layout by looking at the readout fidelity
-        on the chosen qubits. If BackendProperties are not available it uses the coupling map degree
-        to weight against higher connectivity qubits."""
-        bits = layout.get_physical_bits()
-        score = 0
-        if self.target is not None and "measure" in self.target:
-            for bit in bits:
-                props = self.target["measure"].get((bit,))
-                if props is None or props.error is None:
-                    score += (
-                        self.coupling_map.graph.out_degree(bit)
-                        + self.coupling_map.graph.in_degree(bit)
-                    ) / len(self.coupling_map.graph)
-                else:
-                    score += props.error
-        else:
-            if self.properties is None:
-                # Sum qubit degree for each qubit in chosen layout as really rough estimate of error
-                for bit in bits:
-                    score += self.coupling_map.graph.out_degree(
-                        bit
-                    ) + self.coupling_map.graph.in_degree(bit)
-                return score
-            for bit in bits:
-                try:
-                    score += self.properties.readout_error(bit)
-                # If readout error can't be found in properties fallback to degree
-                # divided by number of qubits as a terrible approximation
-                except BackendPropertyError:
-                    score += (
-                        self.coupling_map.graph.out_degree(bit)
-                        + self.coupling_map.graph.in_degree(bit)
-                    ) / len(self.coupling_map.graph)
-        return score

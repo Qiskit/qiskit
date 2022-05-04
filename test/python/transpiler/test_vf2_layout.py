@@ -17,7 +17,7 @@ import numpy
 import retworkx
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler import CouplingMap, Layout, Target, TranspilerError
+from qiskit.transpiler import CouplingMap, Target, TranspilerError
 from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout, VF2LayoutStopReason
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
@@ -381,57 +381,6 @@ class TestVF2LayoutOther(LayoutTestCase):
         self.assertEqual(
             pass_1.property_set["VF2Layout_stop_reason"], VF2LayoutStopReason.MORE_THAN_2Q
         )
-
-
-class TestScoreHeuristic(QiskitTestCase):
-    """Test the internal score heuristic of the pass."""
-
-    def test_no_properties(self):
-        """Test scores with no properties."""
-        vf2_pass = VF2Layout(
-            CouplingMap(
-                [
-                    (0, 1),
-                    (0, 2),
-                    (0, 3),
-                    (1, 0),
-                    (1, 2),
-                    (1, 3),
-                    (2, 0),
-                    (2, 1),
-                    (2, 2),
-                    (2, 3),
-                    (3, 0),
-                    (3, 1),
-                    (3, 2),
-                    (4, 0),
-                    (0, 4),
-                    (5, 1),
-                    (1, 5),
-                ]
-            )
-        )
-        qr = QuantumRegister(2)
-        layout = Layout({qr[0]: 0, qr[1]: 1})
-        score = vf2_pass._score_layout(layout)
-        self.assertEqual(score, 16)
-        better_layout = Layout({qr[0]: 4, qr[1]: 5})
-        better_score = vf2_pass._score_layout(better_layout)
-        self.assertEqual(4, better_score)
-
-    def test_with_properties(self):
-        """Test scores with properties."""
-        backend = FakeYorktown()
-        cmap = CouplingMap(backend.configuration().coupling_map)
-        properties = backend.properties()
-        vf2_pass = VF2Layout(cmap, properties=properties)
-        qr = QuantumRegister(2)
-        layout = Layout({qr[0]: 4, qr[1]: 2})
-        bad_score = vf2_pass._score_layout(layout)
-        self.assertAlmostEqual(0.4075, bad_score)
-        better_layout = Layout({qr[0]: 1, qr[1]: 3})
-        better_score = vf2_pass._score_layout(better_layout)
-        self.assertAlmostEqual(0.0588, better_score)
 
 
 class TestMultipleTrials(QiskitTestCase):
