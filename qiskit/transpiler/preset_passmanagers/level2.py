@@ -154,7 +154,6 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             coupling_map,
             seed=seed_transpiler,
             call_limit=int(5e6),  # Set call limit to ~10 sec with retworkx 0.10.2
-            time_limit=10.0,
             properties=backend_properties,
             target=target,
         )
@@ -312,7 +311,6 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                     backend_properties,
                     seed_transpiler,
                     call_limit=int(5e6),  # Set call limit to ~10 sec with retworkx 0.10.2
-                    time_limit=10.0,
                     strict_direction=False,
                 )
             )
