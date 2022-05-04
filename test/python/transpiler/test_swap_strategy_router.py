@@ -363,8 +363,8 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         The problem being routed is a fully connect ZZ graph. It has 10 terms since there are
         five qubits in the coupling map. This test checks that the circuit produced by the
-        commuting gate router is the one we expect.
-
+        commuting gate router has the instructions we expect. There are several circuits that are
+        valid since some of the Rzz gates commute.
         """
         swaps = (
             ((1, 3), ),
@@ -397,41 +397,57 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
             ]
         )
 
-        swapped = pm_.run(circ)
+        swapped = circuit_to_dag(pm_.run(circ))
 
-        expected = QuantumCircuit(5)
-        # hardware native gates
-        expected.append(PauliEvolutionGate(Pauli("ZZ"), 5), (1, 2))
-        expected.append(PauliEvolutionGate(Pauli("ZZ"), 1), (0, 1))
-        expected.append(PauliEvolutionGate(Pauli("ZZ"), 10), (3, 4))
-        expected.append(PauliEvolutionGate(Pauli("ZZ"), 6), (1, 3))
+        # The swapped circuit can take on several forms as some of the gates commute.
+        # We test that sets of gates are where we expected them in the circuit data
+        def inst_info(op, qargs, qreg):
+            """Get a tuple we can easily test."""
+            param = None
+            if len(op.params) > 0:
+                param = op.params[0]
 
-        # First swap layer, swaps (1, 3)
-        for swap in swaps[0]:
-            expected.swap(swap[0], swap[1])
+            return op.name, param, qreg.index(qargs[0]), qreg.index(qargs[1])
 
-        # Second ZZ layer, has three new connections (0, 3), (2, 3), (1, 4)
-        expected.append(PauliEvolutionGate(Pauli("ZZ"), 3), (0, 1))  # ("IZIIZ", 3)
-        expected.append(PauliEvolutionGate(Pauli("ZZ"), 7), (3, 4))  # ("ZIIZI", 7)
-        expected.append(PauliEvolutionGate(Pauli("ZZ"), 8), (2, 1))  # ("IZZII", 8)
+        qreg = swapped.qregs["q"]
+        inst_list = list(inst_info(node.op, node.qargs, qreg) for node in swapped.op_nodes())
 
-        # Second swap layer, swaps (0, 1) and (3, 4)
-        for swap in swaps[1]:
-            expected.swap(swap[0], swap[1])
+        # First block has the Rzz gates ("IIIZZ", 1), ("IIZZI", 5), ("IZIZI", 6), ("ZZIII", 10)
+        expected = {
+            ("PauliEvolution", 1.0, 0, 1),
+            ("PauliEvolution", 5.0, 1, 2),
+            ("PauliEvolution", 6.0, 1, 3),
+            ("PauliEvolution", 10.0, 3, 4),
+        }
+        self.assertSetEqual(set(inst_list[0:4]), expected)
 
-        # Third ZZ layer, has two new connections (0, 2) and (0, 4)
-        expected.append(PauliEvolutionGate(Pauli("ZZ"), 2), (1, 2))  # ("IIZIZ", 2)
-        expected.append(PauliEvolutionGate(Pauli("ZZ"), 4), (1, 3))  # ("ZIIIZ", 4)
+        # Block 2 is a swap
+        self.assertSetEqual({inst_list[4]}, {("swap", None, 1, 3)})
 
-        # Last swap layer, swaps (1, 3) again
-        for swap in swaps[2]:
-            expected.swap(swap[0], swap[1])
+        # Block 3 This combines a swap layer and two layers of Rzz gates.
+        expected = {
+            ("PauliEvolution", 8.0, 2, 1),
+            ("PauliEvolution", 7.0, 3, 4),
+            ("PauliEvolution", 3.0, 0, 1),
+            ("swap", None, 0, 1),
+            ('PauliEvolution', 2.0, 1, 2),
+            ('PauliEvolution', 4.0, 1, 3),
+            ("swap", None, 3, 4),
+        }
+        self.assertSetEqual(set(inst_list[5:12]), expected)
 
-        # Last ZZ layer, has one new connection (2, 4)
-        expected.append(PauliEvolutionGate(Pauli("ZZ"), 9), (2, 1))  # ("ZIZII", 9)
+        # Test the remaining instructions.
+        self.assertSetEqual({inst_list[12]}, {('swap', None, 1, 3)})
+        self.assertSetEqual({inst_list[13]}, {('PauliEvolution', 9.0, 2, 1)})
 
-        self.assertEqual(swapped, expected)
+    def test_single_qubit_circuit(self):
+        """Test that a circuit with only single qubit gates is left unchanged."""
+        op = PauliSumOp.from_list([("IIIX", 1), ("IIXI", 2), ("IZII", 3), ("XIII", 4)])
 
+        circ = QuantumCircuit(4)
+        circ.append(PauliEvolutionGate(op, 1), range(4))
+
+        self.assertEqual(circ, self.pm_.run(circ))
 
 class TestSwapRouterExceptions(QiskitTestCase):
     """Test that exceptions are properly raises."""

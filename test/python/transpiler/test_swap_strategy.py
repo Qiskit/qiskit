@@ -152,6 +152,19 @@ class TestSwapStrategy(QiskitTestCase):
             strat = SwapStrategy(CouplingMap(ll27_map), tuple(swap_strat_ll))
             self.assertEqual(len(strat.missing_couplings) == 0, result)
 
+    def test_new_connections(self):
+        """Test the new connections method."""
+        new_cnx = self.line_strategy.new_connections(0)
+        expected = [{1, 0}, {2, 1}, {3, 2}, {4, 3}]
+
+        self.assertListEqual(new_cnx, expected)
+
+        # Test after first swap layer (0, 1) first
+        new_cnx = self.line_strategy.new_connections(1)
+        expected = [{3, 0}, {4, 2}]
+
+        self.assertListEqual(new_cnx, expected)
+
     def test_possible_edges(self):
         """Test that possible edges works as expected."""
         coupling_map = CouplingMap(couplinglist=[(0, 1), (1, 2), (2, 3)])
