@@ -125,7 +125,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             min_qubits=3,
             target=target,
         ),
-        Unroll3qOrMore(),
+        Unroll3qOrMore(target=target, basis_gates=basis_gates),
     ]
 
     # 2. Layout on good qubits if calibration info available, otherwise on dense links
@@ -236,7 +236,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 min_qubits=3,
                 target=target,
             ),
-            Unroll3qOrMore(),
+            Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates, target=target),
             UnitarySynthesis(
