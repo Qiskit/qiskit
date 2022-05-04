@@ -941,7 +941,7 @@ def _parse_instruction_durations(backend, inst_durations, dt, circuits):
         backend_version = getattr(backend, "version", 0)
         if not isinstance(backend_version, int):
             # Legacy BaseBackend still has `version` as a method.
-            backend_version = backend_version()
+            backend_version = 0
         if backend_version <= 1:
             backend_durations = InstructionDurations()
             try:
