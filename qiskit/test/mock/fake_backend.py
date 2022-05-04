@@ -175,7 +175,7 @@ class FakeBackendV2(BackendV2):
             dtm: The output signal timestep in seconds.
         """
         dtm = self._conf_dict.get("dtm")
-        if dtm:
+        if dtm is not None:
             # converting `dtm` in nanoseconds in configuration file to seconds
             return dtm * 1e-9
         else:
