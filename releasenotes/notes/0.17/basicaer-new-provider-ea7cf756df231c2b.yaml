@@ -1,0 +1,49 @@
+---
+features:
+  - |
+    The :meth:`~qiskit.providers.basicaer.QasmSimulatorPy.run` method for the 
+    :class:`~qiskit.providers.basicaer.QasmSimulatorPy`,
+    :class:`~qiskit.providers.basicaer.StatevectorSimulatorPy`, and
+    :class:`~qiskit.providers.basicaer.UnitarySimulatorPy` backends now takes a
+    :class:`~qiskit.circuit.QuantumCircuit` (or a list of
+    :class:`~qiskit.circuit.QuantumCircuit` objects) as its input.
+    The previous :class:`~qiskit.qobj.QasmQobj` object is still supported for
+    now, but will be deprecated in a future release.
+
+    For an example of how to use this see::
+
+      from qiskit import transpile, QuantumCircuit
+
+      from qiskit.providers.basicaer import BasicAer
+
+      backend = BasicAer.get_backend('qasm_simulator')
+
+      circuit = QuantumCircuit(2)
+      qc.h(0)
+      qc.cx(0, 1)
+      qc.measure_all()
+
+      tqc = transpile(circuit, backend)
+      result = backend.run(tqc, shots=4096).result()
+upgrade:
+  - |
+    The :class:`~qiskit.providers.basicaer.BasicAerJob` job objects returned
+    from BasicAer backends are now synchronous instances of
+    :class:`~qiskit.providers.JobV1`. This means that calls to
+    the :meth:`~qiskit.providers.basicaer.QasmSimulatorPy.run` will block
+    until the simulation finishes executing. If you want to restore the
+    previous async behavior you'll need to wrap the
+    :meth:`~qiskit.providers.basicaer.QasmSimulatorPy.run` with something that
+    will run in a seperate thread or process like ``futures.ThreadPoolExecutor``
+    or ``futures.ProcessPoolExecutor``.
+  - |
+    The ``allow_sample_measuring`` option for the
+    BasicAer simulator :class:`~qiskit.providers.basicaer.QasmSimulatorPy` has
+    changed from a default of ``False`` to ``True``. This was done to better
+    reflect the actual default behavior of the simulator, which would use
+    sample measuring if the input circuit supported it (even if it was not
+    enabled). If you are running a circuit that doesn't support sample
+    measurement (ie it has :class:`~qiskit.circuit.Reset` operations or if
+    there are operations after a measurement on a qubit) you should make sure
+    to explicitly set this option to ``False`` when you call
+    :meth:`~qiskit.providers.basicaer.QasmSimulatorPy.run`.

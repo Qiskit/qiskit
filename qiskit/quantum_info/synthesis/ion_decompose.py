@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 Decomposition methods for trapped-ion basis gates RXXGate, RXGate, RYGate.
 """

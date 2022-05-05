@@ -13,7 +13,6 @@
 """
 Mixin for gate operator interface.
 """
-# pylint: disable=abstract-method
 
 from abc import ABC, abstractmethod
 from numbers import Integral
@@ -34,10 +33,10 @@ class GroupMixin(ABC):
 
     And the following operator overloads:
 
-        - ``*``, ``__mul__`` -> :meth:`dot`
-        - ``@``, ``__matmul__`` -> :meth:`compose`
-        - ``**``, ``__pow__`` -> :meth:`power`
+        - ``&``, ``__and__`` -> :meth:`compose`
+        - ``@``, ``__matmul__`` -> :meth:`dot`
         - ``^``, ``__xor__`` -> `:meth:`tensor`
+        - ``**``, ``__pow__`` -> :meth:`power`
 
     The following abstract methods must be implemented by subclasses
     using this mixin
@@ -47,10 +46,7 @@ class GroupMixin(ABC):
         - ``expand(self, other)``
     """
 
-    def __mul__(self, other):
-        return self.dot(other)
-
-    def __matmul__(self, other):
+    def __and__(self, other):
         return self.compose(other)
 
     def __pow__(self, n):
@@ -58,6 +54,9 @@ class GroupMixin(ABC):
 
     def __xor__(self, other):
         return self.tensor(other)
+
+    def __matmul__(self, other):
+        return self.dot(other)
 
     @abstractmethod
     def tensor(self, other):
@@ -68,7 +67,7 @@ class GroupMixin(ABC):
 
         Returns:
             CLASS: the tensor product :math:`a \otimes b`, where :math:`a`
-                   is the current CLASS, and :math:`b` is the other CLASS.
+                is the current CLASS, and :math:`b` is the other CLASS.
 
         .. note::
             The tensor product can be obtained using the ``^`` binary operator.
@@ -88,7 +87,7 @@ class GroupMixin(ABC):
 
         Returns:
             CLASS: the tensor product :math:`b \otimes a`, where :math:`a`
-                   is the current CLASS, and :math:`b` is the other CLASS.
+                is the current CLASS, and :math:`b` is the other CLASS.
 
         .. note:
             Expand is the opposite operator ordering to :meth:`tensor`.
@@ -115,10 +114,14 @@ class GroupMixin(ABC):
                          incompatible dimensions for specified subsystems.
 
         .. note::
-            Composition (``@``) is defined as `left` matrix multiplication for
-            matrix operators. That is that ``A @ B`` is equal to ``B * A``.
-            Setting ``front=True`` returns `right` matrix multiplication
-            ``A * B`` and is equivalent to the :meth:`dot` method.
+            Composition (``&``) by default is defined as `left` matrix multiplication for
+            matrix operators, while ``@`` (equivalent to :meth:`dot`) is defined as `right` matrix
+            multiplication. That is that ``A & B == A.compose(B)`` is equivalent to
+            ``B @ A == B.dot(A)`` when ``A`` and ``B`` are of the same type.
+
+            Setting the ``front=True`` kwarg changes this to `right` matrix
+            multiplication and is equivalent to the :meth:`dot` method
+            ``A.dot(B) == A.compose(B, front=True)``.
         """
 
     def dot(self, other, qargs=None):
@@ -131,13 +134,11 @@ class GroupMixin(ABC):
                                   subsystems (default: None).
 
         Returns:
-            CLASS: The operator self * other.
+            CLASS: The right matrix multiplied CLASS.
 
         .. note::
-            The dot product can be obtained using the ``*`` binary operator.
-            Hence ``a.dot(b)`` is equivalent to ``a * b``. Left operator
-            multiplication can be obtained using the :meth:`compose` method.
-
+            The dot product can be obtained using the ``@`` binary operator.
+            Hence ``a.dot(b)`` is equivalent to ``a @ b``.
         """
         return self.compose(other, qargs=qargs, front=True)
 

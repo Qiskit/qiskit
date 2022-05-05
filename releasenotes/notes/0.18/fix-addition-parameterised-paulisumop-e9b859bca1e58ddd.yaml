@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed an issue with addition between
+    :class:`~qiskit.opflow.primitive_ops.PauliSumOp` objects that had
+    :class:`~qiskit.circuit.ParameterExpression` coefficients. Previously
+    this would result in a ``QiskitError`` exception being raised because
+    the addition of the :class:`~qiskit.circuit.ParameterExpression` was
+    not handled correctly. This has been fixed so that addition can be
+    performed between :class:`~qiskit.opflow.primitive_ops.PauliSumOp`
+    objects with :class:`~qiskit.circuit.ParameterExpression` coefficients.

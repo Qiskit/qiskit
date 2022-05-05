@@ -14,19 +14,17 @@
 """A module for monitoring backends."""
 
 import datetime
-from IPython.display import HTML, display               # pylint: disable=import-error
-from IPython.core.magic import (line_magic,             # pylint: disable=import-error
-                                Magics, magics_class)
+from IPython.display import HTML, display
+from IPython.core.magic import line_magic, Magics, magics_class
 
 
 @magics_class
 class Copyright(Magics):
-    """A class of status magic functions.
-    """
+    """A class of status magic functions."""
+
     @line_magic
-    def qiskit_copyright(self, line='', cell=None):
-        """A Jupyter magic function return qiskit copyright
-        """
+    def qiskit_copyright(self, line="", cell=None):
+        """A Jupyter magic function return qiskit copyright"""
         now = datetime.datetime.now()
 
         html = "<div style='width: 100%; background-color:#d5d9e0;"

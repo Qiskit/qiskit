@@ -13,11 +13,13 @@
 """The Minimum Eigensolver interface"""
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Optional, Tuple
 
 import numpy as np
+
 from qiskit.opflow import OperatorBase
 from ..algorithm_result import AlgorithmResult
+from ..list_or_dict import ListOrDict
 
 
 class MinimumEigensolver(ABC):
@@ -30,10 +32,8 @@ class MinimumEigensolver(ABC):
 
     @abstractmethod
     def compute_minimum_eigenvalue(
-            self,
-            operator: OperatorBase,
-            aux_operators: Optional[List[Optional[OperatorBase]]] = None
-    ) -> 'MinimumEigensolverResult':
+        self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]] = None
+    ) -> "MinimumEigensolverResult":
         """
         Computes minimum eigenvalue. Operator and aux_operators can be supplied here and
         if not None will override any already set into algorithm so it can be reused with
@@ -67,7 +67,7 @@ class MinimumEigensolver(ABC):
 
 
 class MinimumEigensolverResult(AlgorithmResult):
-    """ Minimum Eigensolver Result."""
+    """Minimum Eigensolver Result."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -77,30 +77,33 @@ class MinimumEigensolverResult(AlgorithmResult):
 
     @property
     def eigenvalue(self) -> Optional[complex]:
-        """ returns eigen value """
+        """returns eigen value"""
         return self._eigenvalue
 
     @eigenvalue.setter
     def eigenvalue(self, value: complex) -> None:
-        """ set eigen value """
+        """set eigen value"""
         self._eigenvalue = value
 
     @property
     def eigenstate(self) -> Optional[np.ndarray]:
-        """ return eigen state """
+        """return eigen state"""
         return self._eigenstate
 
     @eigenstate.setter
     def eigenstate(self, value: np.ndarray) -> None:
-        """ set eigen state """
+        """set eigen state"""
         self._eigenstate = value
 
     @property
-    def aux_operator_eigenvalues(self) -> Optional[np.ndarray]:
-        """ return aux operator eigen values """
+    def aux_operator_eigenvalues(self) -> Optional[ListOrDict[Tuple[complex, complex]]]:
+        """Return aux operator expectation values.
+
+        These values are in fact tuples formatted as (mean, standard deviation).
+        """
         return self._aux_operator_eigenvalues
 
     @aux_operator_eigenvalues.setter
-    def aux_operator_eigenvalues(self, value: np.ndarray) -> None:
-        """ set aux operator eigen values """
+    def aux_operator_eigenvalues(self, value: ListOrDict[Tuple[complex, complex]]) -> None:
+        """set aux operator eigen values"""
         self._aux_operator_eigenvalues = value

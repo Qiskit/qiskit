@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unpacking-non-sequence
 
 """
 Chi-matrix representation of a Quantum Channel.
@@ -51,6 +50,7 @@ class Chi(QuantumChannel):
            for open quantum systems*, Quant. Inf. Comp. 15, 0579-0811 (2015).
            `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
     """
+
     def __init__(self, data, input_dims=None, output_dims=None):
         """Initialize a quantum channel Chi-matrix operator.
 
@@ -81,7 +81,7 @@ class Chi(QuantumChannel):
             # Determine input and output dimensions
             dim_l, dim_r = chi_mat.shape
             if dim_l != dim_r:
-                raise QiskitError('Invalid Chi-matrix input.')
+                raise QiskitError("Invalid Chi-matrix input.")
             if input_dims:
                 input_dim = np.product(input_dims)
             if output_dims:
@@ -109,7 +109,7 @@ class Chi(QuantumChannel):
                 data = self._init_transformer(data)
             input_dim, output_dim = data.dim
             # Now that the input is an operator we convert it to a Chi object
-            rep = getattr(data, '_channel_rep', 'Operator')
+            rep = getattr(data, "_channel_rep", "Operator")
             chi_mat = _to_chi(rep, data._data, input_dim, output_dim)
             if input_dims is None:
                 input_dims = data.input_dims()
@@ -129,8 +129,7 @@ class Chi(QuantumChannel):
     @property
     def _bipartite_shape(self):
         """Return the shape for bipartite matrix"""
-        return (self._input_dim, self._output_dim, self._input_dim,
-                self._output_dim)
+        return (self._input_dim, self._output_dim, self._input_dim, self._output_dim)
 
     def _evolve(self, state, qargs=None):
         return SuperOp(self)._evolve(state, qargs)
@@ -153,10 +152,9 @@ class Chi(QuantumChannel):
 
     def compose(self, other, qargs=None, front=False):
         if qargs is None:
-            qargs = getattr(other, 'qargs', None)
+            qargs = getattr(other, "qargs", None)
         if qargs is not None:
-            return Chi(
-                SuperOp(self).compose(other, qargs=qargs, front=front))
+            return Chi(SuperOp(self).compose(other, qargs=qargs, front=front))
         # If no qargs we compose via Choi representation to avoid an additional
         # representation conversion to SuperOp and then convert back to Chi
         return Chi(Choi(self).compose(other, front=front))

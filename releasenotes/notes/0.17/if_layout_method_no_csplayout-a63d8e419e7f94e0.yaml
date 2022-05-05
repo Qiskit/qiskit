@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Previously, when the option ``layout_method`` kwarg was provided to
+    the :func:`~qiskit.compiler.transpile` function and the
+    ``optimization_level`` kwarg was set to >= 2 so that the pass
+    :class:`qiskit.transpiler.passes.CSPLayout` would run, if
+    :class:`~qiskit.transpiler.passes.CSPLayout` found a solution then
+    the method in ``layout_method`` was not executed. This has been fixed so
+    that if specified, the ``layout_method`` is always honored.
+    Fixed `#5409 <https://github.com/Qiskit/qiskit-terra/issues/5409>`__

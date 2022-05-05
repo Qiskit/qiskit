@@ -10,37 +10,29 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=wrong-import-order,invalid-name,wrong-import-position
+# pylint: disable=wrong-import-position
 
 """Main Qiskit public functionality."""
 
 import sys
 import warnings
-import os
+
+import qiskit._accelerate
+
+# Globally define compiled modules. The normal import mechanism will not
+# find compiled submodules in _accelerate because it relies on file paths
+# manually define them on import so people can directly import
+# qiskit._accelerate.* submodules and not have to rely on attribute access
+sys.modules["qiskit._accelerate.stochastic_swap"] = qiskit._accelerate.stochastic_swap
+sys.modules["qiskit._accelerate.pauli_expval"] = qiskit._accelerate.pauli_expval
+sys.modules["qiskit._accelerate.dense_layout"] = qiskit._accelerate.dense_layout
+sys.modules["qiskit._accelerate.sparse_pauli_op"] = qiskit._accelerate.sparse_pauli_op
 
 # Extend namespace for backwards compat
 from qiskit import namespace
 new_meta_path = []
 new_meta_path.append(namespace.QiskitElementImport(
     'qiskit_aer', 'qiskit.providers.aer'))
-new_meta_path.append(namespace.QiskitElementImport(
-    'qiskit_ignis', 'qiskit.ignis'))
-new_meta_path.append(namespace.QiskitElementImport(
-    'qiskit_aqua', 'qiskit.aqua'))
-new_meta_path.append(namespace.QiskitElementImport(
-    'qiskit_aqua.chemistry', 'qiskit.chemistry'))
-new_meta_path.append(namespace.QiskitElementImport(
-    'qiskit_aqua.finance', 'qiskit.finance'))
-new_meta_path.append(namespace.QiskitElementImport(
-    'qiskit_aqua.ml', 'qiskit.ml'))
-new_meta_path.append(namespace.QiskitElementImport(
-    'qiskit_aqua.optimization', 'qiskit.optimization'))
-new_meta_path.append(namespace.QiskitElementImport(
-    'qiskit_ibmq_provider', 'qiskit.providers.ibmq'))
-new_meta_path.append(namespace.QiskitElementImport(
-    'qiskit_aqt_provider', 'qiskit.providers.aqt'))
-new_meta_path.append(namespace.QiskitElementImport(
-    'qiskit_honeywell_provider', 'qiskit.providers.honeywell'))
 # Add Qiskit importers to meta_path before PathFinder in the default
 # sys.meta_path to avoid the miss penalty on trying to import a module
 # which does not exist
@@ -48,7 +40,7 @@ old_meta_path = sys.meta_path
 sys.meta_path = old_meta_path[:-1] + new_meta_path + [old_meta_path[-1]]
 
 # qiskit errors operator
-from qiskit.exceptions import QiskitError  # noqa
+from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
 # The main qiskit operators
 from qiskit.circuit import ClassicalRegister  # noqa
@@ -82,13 +74,6 @@ from .version import QiskitVersion  # noqa
 __qiskit_version__ = QiskitVersion()
 
 
-if sys.version_info[0] == 3 and sys.version_info[1] == 6:
-    warnings.warn(
-        "Using Qiskit with Python 3.6 is deprecated as of the 0.17.0 release. "
-        "Support for running Qiskit with Python 3.6 will be removed in a "
-        "future release.", DeprecationWarning)
-
-
 class AerWrapper:
     """Lazy loading wrapper for Aer provider."""
 
@@ -98,8 +83,9 @@ class AerWrapper:
     def __bool__(self):
         if self.aer is None:
             try:
-                import qiskit_aer
-                self.aer = qiskit_aer.Aer
+                from qiskit.providers import aer
+
+                self.aer = aer.Aer
             except ImportError:
                 return False
         return True
@@ -107,17 +93,18 @@ class AerWrapper:
     def __getattr__(self, attr):
         if not self.aer:
             try:
-                import qiskit_aer
-                self.aer = qiskit_aer.Aer
-            except ImportError as exc:
-                raise ImportError('Could not import the Aer provider from the '
-                                  'qiskit-aer package. Install qiskit-aer or '
-                                  'check your installation.') from exc
+                from qiskit.providers import aer
+
+                self.aer = aer.Aer
+            except ImportError as ex:
+                raise MissingOptionalLibraryError(
+                    "qiskit-aer", "Aer provider", "pip install qiskit-aer"
+                ) from ex
         return getattr(self.aer, attr)
 
 
 class IBMQWrapper:
-    """Lazy loading wraooer for IBMQ provider."""
+    """Lazy loading wrapper for IBMQ provider."""
 
     def __init__(self):
         self.ibmq = None
@@ -125,7 +112,8 @@ class IBMQWrapper:
     def __bool__(self):
         if self.ibmq is None:
             try:
-                import qiskit_ibmq_provider as ibmq
+                from qiskit.providers import ibmq
+
                 self.ibmq = ibmq.IBMQ
             except ImportError:
                 return False
@@ -134,15 +122,32 @@ class IBMQWrapper:
     def __getattr__(self, attr):
         if not self.ibmq:
             try:
-                import qiskit_ibmq_provider as ibmq
+                from qiskit.providers import ibmq
+
                 self.ibmq = ibmq.IBMQ
-            except ImportError as exc:
-                raise ImportError('Could not import the IBMQ provider from the '
-                                  'qiskit-ibmq-provider package. Install '
-                                  'qiskit-ibmq-provider or check your  '
-                                  'installation.') from exc
+            except ImportError as ex:
+                raise MissingOptionalLibraryError(
+                    "qiskit-ibmq-provider", "IBMQ provider", "pip install qiskit-ibmq-provider"
+                ) from ex
         return getattr(self.ibmq, attr)
 
 
 Aer = AerWrapper()
 IBMQ = IBMQWrapper()
+
+__all__ = [
+    "Aer",
+    "AncillaRegister",
+    "BasicAer",
+    "ClassicalRegister",
+    "IBMQ",
+    "MissingOptionalLibraryError",
+    "QiskitError",
+    "QuantumCircuit",
+    "QuantumRegister",
+    "assemble",
+    "execute",
+    "schedule",
+    "sequence",
+    "transpile",
+]

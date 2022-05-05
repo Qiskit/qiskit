@@ -1,7 +1,0 @@
----
-features:
-  - |
-    The objects :class:`~qiskit.circuit.Register` and 
-    :class:`~qiskit.circuit.QuantumCircuit` now require the number of qubits
-    to be integers (or castable to unambiguous integers, e.g. 2.0). Non-integer now raise
-    errors.

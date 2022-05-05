@@ -37,8 +37,13 @@ Backend Objects
    JobStatus
 """
 
-from .backendconfiguration import (BackendConfiguration, PulseBackendConfiguration,
-                                   QasmBackendConfiguration, UchannelLO, GateConfig)
+from .backendconfiguration import (
+    BackendConfiguration,
+    PulseBackendConfiguration,
+    QasmBackendConfiguration,
+    UchannelLO,
+    GateConfig,
+)
 from .backendproperties import BackendProperties
 from .backendstatus import BackendStatus
 from .jobstatus import JobStatus

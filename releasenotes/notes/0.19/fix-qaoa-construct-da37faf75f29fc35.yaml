@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Fixed an issue where :meth:`.QAOA.construct_circuit` with different
+    operators with same number of qubits would generate the same circuit each
+    time.  See `#7223 <https://github.com/Qiskit/qiskit-terra/issues/7223>`__
+    for more detail.
+  - |
+    Fixed an issue where :class:`~qiskit.circuit.library.QAOAAnsatz` had an
+    incorrect number of parameters if identities of
+    :class:`~qiskit.opflow.PauliSumOp` were given, e.g.,
+    ``PauliSumOp.from_list([("III", 1)])``.  See `#7225
+    <https://github.com/Qiskit/qiskit-terra/pull/7225>`__ for more detail.

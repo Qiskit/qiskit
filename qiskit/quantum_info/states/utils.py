@@ -15,7 +15,6 @@ Quantum information utility functions for states.
 """
 
 import numpy as np
-import scipy.linalg as la
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.statevector import Statevector
@@ -56,21 +55,21 @@ def partial_trace(state, qargs):
     if isinstance(state, Statevector):
         trace_systems = len(state._op_shape.dims_l()) - 1 - np.array(qargs)
         arr = state._data.reshape(state._op_shape.tensor_shape)
-        rho = np.tensordot(arr, arr.conj(),
-                           axes=(trace_systems, trace_systems))
+        rho = np.tensordot(arr, arr.conj(), axes=(trace_systems, trace_systems))
         rho = np.reshape(rho, traced_shape.shape)
         return DensityMatrix(rho, dims=traced_shape._dims_l)
 
     # Density matrix case
+    # Empty partial trace case.
+    if not qargs:
+        return state.copy()
     # Trace first subsystem to avoid coping whole density matrix
     dims = state.dims(qargs)
-    tr_op = SuperOp(np.eye(dims[0]).reshape(1, dims[0] ** 2),
-                    input_dims=[dims[0]], output_dims=[1])
+    tr_op = SuperOp(np.eye(dims[0]).reshape(1, dims[0] ** 2), input_dims=[dims[0]], output_dims=[1])
     ret = state.evolve(tr_op, [qargs[0]])
     # Trace over remaining subsystems
     for qarg, dim in zip(qargs[1:], dims[1:]):
-        tr_op = SuperOp(np.eye(dim).reshape(1, dim ** 2),
-                        input_dims=[dim], output_dims=[1])
+        tr_op = SuperOp(np.eye(dim).reshape(1, dim**2), input_dims=[dim], output_dims=[1])
         ret = ret.evolve(tr_op, [qarg])
     # Remove traced over subsystems which are listed as dimension 1
     ret._op_shape = traced_shape
@@ -98,16 +97,21 @@ def shannon_entropy(pvec, base=2):
         float: The Shannon entropy H(pvec).
     """
     if base == 2:
+
         def logfn(x):
-            return - x * np.log2(x)
+            return -x * np.log2(x)
+
     elif base == np.e:
+
         def logfn(x):
-            return - x * np.log(x)
+            return -x * np.log(x)
+
     else:
+
         def logfn(x):
             return -x * np.log(x) / np.log(base)
 
-    h_val = 0.
+    h_val = 0.0
     for x in pvec:
         if 0 < x < 1:
             h_val += logfn(x)
@@ -146,6 +150,8 @@ def _funm_svd(matrix, func):
         ndarray: funm (N, N) Value of the matrix function specified by func
                  evaluated at `A`.
     """
+    import scipy.linalg as la
+
     unitary1, singular_values, unitary2 = la.svd(matrix)
     diag_func_singular = np.diag(func(singular_values))
     return unitary1.dot(diag_func_singular).dot(unitary2)

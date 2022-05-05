@@ -1,0 +1,54 @@
+---
+features:
+
+  - |
+    Added two new passes :class:`~qiskit.transpiler.passes.AlignMeasures` and
+    :class:`~qiskit.transpiler.passes.ValidatePulseGates` to the
+    :mod:`qiskit.transpiler.passes` module. These passes are a hardware-aware
+    optimization, and a validation routine that are used to manage alignment
+    restrictions on time allocation of instructions for a backend.
+
+    If a backend has a restriction on the alignment of
+    :class:`~qiskit.circuit.Measure` instructions (in terms of quantization in time), the
+    :class:`~qiskit.transpiler.passes.AlignMeasures` pass is used to adjust
+    delays in a scheduled circuit to ensure that any
+    :class:`~qiskit.circuit.Measure` instructions in the circuit
+    are aligned given the constraints of the backend. The
+    :class:`~qiskit.transpiler.passes.ValidatePulseGates` pass is used to
+    check if any custom pulse gates (gates that have a custom pulse definition
+    in the :attr:`~qiskit.circuit.QuantumCircuit.calibrations` attribute of
+    a :class:`~qiskit.circuit.QuantumCircuit` object) are valid given
+    an alignment constraint for the target backend.
+
+    In the built-in :mod:`~qiskit.transpiler.preset_passmangers` used by the
+    :func:`~qiskit.compiler.transpile` function, these passes get automatically
+    triggered if the alignment constraint, either via the dedicated
+    ``timing_constraints`` kwarg on :func:`~qiskit.compiler.transpile` or has an
+    ``timing_constraints`` attribute in the
+    :class:`~qiskit.providers.models.BackendConfiguration` object of the
+    backend being targetted.
+
+    The backends from IBM Quantum Services (accessible via the
+    `qiskit-ibmq-provider <https://pypi.org/project/qiskit-ibmq-provider/>`__
+    package) will provide the alignment information in the near future.
+     
+     For example:
+
+    .. jupyter-execute::
+
+      from qiskit import circuit, transpile
+      from qiskit.test.mock import FakeArmonk
+
+      backend = FakeArmonk()
+
+      qc = circuit.QuantumCircuit(1, 1)
+      qc.x(0)
+      qc.delay(110, 0, unit="dt")
+      qc.measure(0, 0)
+      qc.draw('mpl')
+
+    .. jupyter-execute::
+
+      qct = transpile(qc, backend, scheduling_method='alap',
+                      timing_constraints={'acquire_alignment': 16})
+      qct.draw('mpl')

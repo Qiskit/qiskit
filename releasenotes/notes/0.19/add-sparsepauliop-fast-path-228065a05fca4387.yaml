@@ -1,0 +1,25 @@
+---
+features:
+  - |
+    Added the ``ignore_pauli_phase`` and ``copy`` arguments to the constructor
+    of :obj:`~qiskit.quantum_info.SparsePauliOp`.  ``ignore_pauli_phase``
+    prevents the ``phase`` attribute of an input
+    :class:`~qiskit.quantum_info.PauliList` from being read, which is more
+    performant if the :obj:`.PauliList` is already known to have all phases as
+    zero in the internal ZX convention.  ``copy`` allows users to avoid the copy
+    of the input data when they explicitly set ``copy=False``.
+  - |
+    Improved performance of the following :class:`~qiskit.quantum_info.SparsePauliOp` operations:
+
+    * :meth:`~qiskit.quantum_info.SparsePauliOp.simplify` (see `#7122 <https://github.com/Qiskit/qiskit-terra/issues/7122>`__)
+    * :meth:`~qiskit.quantum_info.SparsePauliOp.compose`
+      (see `#7126 <https://github.com/Qiskit/qiskit-terra/issues/7126>`__)
+    * :meth:`~qiskit.quantum_info.SparsePauliOp._add`
+      (see `#7138 <https://github.com/Qiskit/qiskit-terra/issues/7138>`__)
+    * :meth:`~qiskit.quantum_info.SparsePauliOp.from_list` and :meth:`~qiskit.quantum_info.PauliList.__init__`
+      (see other discussion in `#7138 <https://github.com/Qiskit/qiskit-terra/issues/7138>`__).
+
+fixes:
+  - |
+    Fixed addition of :obj:`.PauliList`\ s with ``qargs``. The method used to raise a runtime error
+    if the operands had different numbers of qubits.

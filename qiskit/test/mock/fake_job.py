@@ -17,13 +17,14 @@ Base class for dummy jobs.
 
 from concurrent import futures
 
-from qiskit.providers import BaseJob
+from qiskit.providers import JobV1
 from qiskit.providers.jobstatus import JobStatus
 
 
-class FakeJob(BaseJob):
+class FakeJob(JobV1):
     """Fake simulator job"""
-    _executor = futures.ProcessPoolExecutor()
+
+    _executor = futures.ThreadPoolExecutor()  # pylint: disable=consider-using-with
 
     def __init__(self, backend, job_id, fn):
         super().__init__(backend, job_id)
@@ -54,11 +55,9 @@ class FakeJob(BaseJob):
         elif self._error:
             _status = JobStatus.ERROR
         else:
-            raise Exception('Unexpected state of {}'.format(
-                self.__class__.__name__))
+            raise Exception(f"Unexpected state of {self.__class__.__name__}")
         _status_msg = None
-        return {'status': _status,
-                'status_msg': _status_msg}
+        return {"status": _status, "status_msg": _status_msg}
 
     def job_id(self):
         return self._job_id

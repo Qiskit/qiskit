@@ -1,0 +1,25 @@
+---
+upgrade:
+  - |
+    The `tweedledum <https://pypi.org/project/tweedledum/>`__ library which
+    was previously an optional dependency has been made a requirement. This
+    was done because of the wide use of the
+    :class:`~qiskit.circuit.library.PhaseOracle` (which depends on
+    having tweedledum installed) with several algorithms
+    from :mod:`qiskit.algorithms`.
+  - |
+    The optional extra ``full-featured-simulators`` which could previously used
+    to install ``qiskit-aer`` with something like
+    ``pip install qiskit-terra[full-featured-simulators]`` has been removed
+    from the qiskit-terra package. If this was being used to install
+    ``qiskit-aer`` with ``qiskit-terra`` instead you should rely on the
+    `qiskit <https://pypi.org/project/qiskit/>`__ metapackage or just install
+    qiskit-terra and qiskit-aer together with
+    ``pip install qiskit-terra qiskit-aer``.
+features:
+  - |
+    A new optional extra ``all`` has been added to the qiskit-terra package.
+    This enables installing all the optional requirements with a single
+    extra, for example: ``pip install 'qiskit-terra[all]'``, Previously, it
+    was necessary to list all the extras individually to install all the
+    optional dependencies simultaneously.

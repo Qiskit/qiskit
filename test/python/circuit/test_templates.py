@@ -40,9 +40,9 @@ class TestTemplates(QiskitTestCase):
         """test to verify that all templates are equivalent to the identity"""
 
         target = Operator(template_circuit)
-        value = Operator(np.eye(2 ** template_circuit.num_qubits))
+        value = Operator(np.eye(2**template_circuit.num_qubits))
         self.assertTrue(target.equiv(value))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
