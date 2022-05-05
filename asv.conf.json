@@ -27,12 +27,12 @@
         "python -mpip install seaborn",
         "python -mpip install pygments",
         "python -mpip install {wheel_file}",
-        "python -mpip install -U qiskit-ignis==0.6.0",
+        "python -mpip install -U qiskit-experiments==0.3.0",
         "python -mpip install -U python-constraint"
       ],
     "uninstall_command": [
         "return-code=any python -mpip uninstall -y {project}",
-        "return-code=any python -mpip uninstall -y qiskit-ignis"
+        "return-code=any python -mpip uninstall -y qiskit-experiments"
     ],
     "build_command": [
         "pip install -U Cython setuptools-rust",
