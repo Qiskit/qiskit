@@ -150,17 +150,16 @@ def marginal_distribution(
         QiskitError: If any value in ``indices`` is invalid or the ``counts`` dict
         is invalid.
     """
-    num_clbits = len(next(iter(counts)).replace(" ", ""))
-
+    num_clbits = len(max(counts.keys()).replace(" ", ""))
     if indices is not None and (not indices or not set(indices).issubset(range(num_clbits))):
         raise QiskitError(f"indices must be in range [0, {num_clbits - 1}].")
 
     if isinstance(counts, Counts):
         res = results_rs.marginal_counts(counts, indices)
-    elif isinstance(counts, ProbDistribution, QuasiDistribution):
+    elif isinstance(counts, (ProbDistribution, QuasiDistribution)):
         res = results_rs.marginal_distribution(counts, indices)
     else:
-        first_value = next(counts.values())
+        first_value = next(iter(counts.values()))
         if isinstance(first_value, int):
             res = results_rs.marginal_counts(counts, indices)
         elif isinstance(first_value, float):
