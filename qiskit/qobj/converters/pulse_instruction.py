@@ -494,7 +494,6 @@ class QobjToInstructionConverter:
         Returns:
             Schedule: Converted and scheduled Instruction
         """
-        t0 = instruction.t0
         duration = instruction.duration
         qubits = instruction.qubits
         acquire_channels = [channels.AcquireChannel(qubit) for qubit in qubits]
@@ -537,19 +536,20 @@ class QobjToInstructionConverter:
         schedule = Schedule()
 
         for acquire_channel, mem_slot, reg_slot in zip(acquire_channels, mem_slots, register_slots):
-            schedule |= (
-                instructions.Acquire(
+            schedule.insert(
+                start_time=0,
+                schedule=instructions.Acquire(
                     duration,
                     acquire_channel,
                     mem_slot=mem_slot,
                     reg_slot=reg_slot,
                     kernel=kernel,
                     discriminator=discriminator,
-                )
-                << t0
+                ),
+                inplace=True,
+                validate=False,
             )
-
-        return schedule
+        return instruction.t0, schedule
 
     @bind_name("setp")
     def convert_set_phase(self, instruction):
@@ -560,11 +560,10 @@ class QobjToInstructionConverter:
         Returns:
             Schedule: Converted and scheduled Instruction
         """
-        t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
         phase = self.disassemble_value(instruction.phase)
 
-        return instructions.SetPhase(phase, channel) << t0
+        return instruction.t0, instructions.SetPhase(phase, channel)
 
     @bind_name("fc")
     def convert_shift_phase(self, instruction):
@@ -575,11 +574,10 @@ class QobjToInstructionConverter:
         Returns:
             Schedule: Converted and scheduled Instruction
         """
-        t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
         phase = self.disassemble_value(instruction.phase)
 
-        return instructions.ShiftPhase(phase, channel) << t0
+        return instruction.t0, instructions.ShiftPhase(phase, channel)
 
     @bind_name("setf")
     def convert_set_frequency(self, instruction):
@@ -592,11 +590,10 @@ class QobjToInstructionConverter:
         Returns:
             Schedule: Converted and scheduled Instruction
         """
-        t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
         frequency = self.disassemble_value(instruction.frequency) * GIGAHERTZ_TO_SI_UNITS
 
-        return instructions.SetFrequency(frequency, channel) << t0
+        return instruction.t0, instructions.SetFrequency(frequency, channel)
 
     @bind_name("shiftf")
     def convert_shift_frequency(self, instruction):
@@ -610,11 +607,10 @@ class QobjToInstructionConverter:
         Returns:
             Schedule: Converted and scheduled Instruction
         """
-        t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
         frequency = self.disassemble_value(instruction.frequency) * GIGAHERTZ_TO_SI_UNITS
 
-        return instructions.ShiftFrequency(frequency, channel) << t0
+        return instruction.t0, instructions.ShiftFrequency(frequency, channel)
 
     @bind_name("delay")
     def convert_delay(self, instruction):
@@ -626,10 +622,9 @@ class QobjToInstructionConverter:
         Returns:
             Schedule: Converted and scheduled Instruction
         """
-        t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
         duration = instruction.duration
-        return instructions.Delay(duration, channel) << t0
+        return instruction.t0, instructions.Delay(duration, channel)
 
     def bind_pulse(self, pulse):
         """Bind the supplied pulse to a converter method by pulse name.
@@ -648,9 +643,8 @@ class QobjToInstructionConverter:
             Returns:
                 Schedule: Converted and scheduled pulse
             """
-            t0 = instruction.t0
             channel = self.get_channel(instruction.ch)
-            return instructions.Play(pulse, channel) << t0
+            return instruction.t0, instructions.Play(pulse, channel)
 
     @bind_name("parametric_pulse")
     def convert_parametric(self, instruction):
@@ -670,7 +664,6 @@ class QobjToInstructionConverter:
         Returns:
             Schedule: Schedule containing the converted pulse
         """
-        t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
 
         try:
@@ -686,7 +679,7 @@ class QobjToInstructionConverter:
         pulse = ParametricPulseShapes[instruction.pulse_shape].value(
             **instruction.parameters, name=pulse_name
         )
-        return instructions.Play(pulse, channel) << t0
+        return instruction.t0, instructions.Play(pulse, channel)
 
     @bind_name("snapshot")
     def convert_snapshot(self, instruction):
@@ -697,5 +690,4 @@ class QobjToInstructionConverter:
         Returns:
             Schedule: Converted and scheduled Snapshot
         """
-        t0 = instruction.t0
-        return instructions.Snapshot(instruction.label, instruction.type) << t0
+        return instruction.t0, instructions.Snapshot(instruction.label, instruction.type)

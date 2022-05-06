@@ -56,7 +56,7 @@ def filter_instructions(
 
     filter_schedule = Schedule.initialize_from(sched)
     for time, inst in time_inst_tuples[valid_insts]:
-        filter_schedule.insert(time, inst, inplace=True)
+        filter_schedule.insert(time, inst, inplace=True, validate=False)
 
     return filter_schedule
 

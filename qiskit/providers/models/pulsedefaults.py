@@ -202,11 +202,13 @@ class PulseDefaults:
         self.instruction_schedule_map = InstructionScheduleMap()
 
         self.converter = QobjToInstructionConverter(pulse_library)
-        for inst in cmd_def:
-            pulse_insts = [self.converter(inst) for inst in inst.sequence]
-            schedule = Schedule(*pulse_insts, name=inst.name)
+        for command in cmd_def:
+            schedule = Schedule(name=command.name)
+            for qobj_inst in command.sequence:
+                t0, pulse_inst = self.converter(qobj_inst)
+                schedule.insert(t0, pulse_inst, inplace=True, validate=False)
             schedule.metadata["publisher"] = CalibrationPublisher.BACKEND_PROVIDER
-            self.instruction_schedule_map.add(inst.name, inst.qubits, schedule)
+            self.instruction_schedule_map.add(command.name, command.qubits, schedule)
 
         if meas_kernel is not None:
             self.meas_kernel = meas_kernel

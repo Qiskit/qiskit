@@ -124,13 +124,20 @@ def flatten(program: Schedule) -> Schedule:
     Raises:
         PulseError: When invalid data format is given.
     """
-    if isinstance(program, Schedule):
-        flat_sched = Schedule.initialize_from(program)
-        for time, inst in program.instructions:
-            flat_sched.insert(time, inst, inplace=True)
-        return flat_sched
-    else:
+    if not isinstance(program, Schedule):
         raise PulseError(f"Invalid input program {program.__class__.__name__} is specified.")
+
+    def _recursive_flatten(t0_inst_tups, dist):
+        for time, inst in t0_inst_tups:
+            if isinstance(inst, Schedule):
+                _recursive_flatten(inst.children, dist)
+            else:
+                dist.insert(time, inst, inplace=True, validate=False)
+
+    flat_sched = Schedule.initialize_from(program)
+    _recursive_flatten(t0_inst_tups=program.children, dist=flat_sched)
+
+    return flat_sched
 
 
 def inline_subroutines(program: Union[Schedule, ScheduleBlock]) -> Union[Schedule, ScheduleBlock]:

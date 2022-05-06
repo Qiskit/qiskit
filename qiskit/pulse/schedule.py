@@ -37,12 +37,13 @@ import functools
 import itertools
 import multiprocessing as mp
 import sys
-from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Any
+from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Sequence, Optional, Any
 
 import numpy as np
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.pulse.timeslot_manager import TimeslotManager
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions import Instruction
@@ -55,6 +56,14 @@ Interval = Tuple[int, int]
 
 TimeSlots = Dict[Channel, List[Interval]]
 """List of timeslots occupied by instructions for each channel."""
+
+
+def _sync_timeslot(function: Callable) -> Callable:
+    def wrapper(self, *args, **kwargs):
+        if len(self._timeslots.timeslots) != len(self._data):
+            self._timeslots.regenerate(iter(self._data))
+        return function(self, *args, **kwargs)
+    return wrapper
 
 
 class Schedule:
@@ -142,23 +151,20 @@ class Schedule:
 
         self._name = name
         self._parameter_manager = ParameterManager()
+        self._timeslots = TimeslotManager()
+        self._data = []
 
         if not isinstance(metadata, dict) and metadata is not None:
             raise TypeError("Only a dictionary or None is accepted for schedule metadata")
         self._metadata = metadata or {}
 
-        self._duration = 0
-
-        # These attributes are populated by ``_mutable_insert``
-        self._timeslots = {}
-        self._children = []
         for sched_pair in schedules:
             try:
                 time, sched = sched_pair
             except TypeError:
                 # recreate as sequence starting at 0.
                 time, sched = 0, sched_pair
-            self._mutable_insert(time, sched)
+            self.insert(time, sched, inplace=True)
 
     @classmethod
     def initialize_from(cls, other_program: Any, name: Optional[str] = None) -> "Schedule":
@@ -215,29 +221,33 @@ class Schedule:
         self._metadata = metadata or {}
 
     @property
+    @_sync_timeslot
     def timeslots(self) -> TimeSlots:
         """Time keeping attribute."""
-        return self._timeslots
+        return self._timeslots.timeslots
 
     @property
     def duration(self) -> int:
         """Duration of this schedule."""
-        return self._duration
+        return self.stop_time
 
     @property
+    @_sync_timeslot
     def start_time(self) -> int:
         """Starting time of this schedule."""
-        return self.ch_start_time(*self.channels)
+        return self._timeslots.find_start_at()
 
     @property
+    @_sync_timeslot
     def stop_time(self) -> int:
         """Stopping time of this schedule."""
-        return self.duration
+        return self._timeslots.find_idle_after()
 
     @property
+    @_sync_timeslot
     def channels(self) -> Tuple[Channel]:
         """Returns channels that this schedule uses."""
-        return tuple(self._timeslots.keys())
+        return self._timeslots.channels
 
     @property
     def children(self) -> Tuple[Tuple[int, "ScheduleComponent"], ...]:
@@ -253,72 +263,61 @@ class Schedule:
             scheduled time of each ``NamedValue`` and the component
             itself.
         """
-        return tuple(self._children)
+        return tuple(self._data)
 
     @property
     def instructions(self) -> Tuple[Tuple[int, Instruction]]:
         """Get the time-ordered instructions from self."""
+        # TODO This can be also deprecated, one can obtain the same result with flatten + children.
+        #  Then, we can drastically simplify the private methods of Instruction, i.e.
+        #  originally Schedule and Instruction are designed based on composite pattern,
+        #  but now this pattern is no longer used due to separation of instruction and program.
+        from qiskit.pulse.transforms import flatten
 
-        def key(time_inst_pair):
-            inst = time_inst_pair[1]
-            return time_inst_pair[0], inst.duration, sorted(chan.name for chan in inst.channels)
+        def key(time, inst):
+            return time, inst.duration, sorted(chan.name for chan in inst.channels)
 
-        return tuple(sorted(self._instructions(), key=key))
+        return tuple(sorted(flatten(self).children, key=key))
 
     @property
     def parameters(self) -> Set:
         """Parameters which determine the schedule behavior."""
         return self._parameter_manager.parameters
 
+    @_sync_timeslot
     def ch_duration(self, *channels: Channel) -> int:
         """Return the time of the end of the last instruction over the supplied channels.
 
         Args:
             *channels: Channels within ``self`` to include.
         """
-        return self.ch_stop_time(*channels)
+        return self._timeslots.find_idle_after(channels)
 
+    @_sync_timeslot
     def ch_start_time(self, *channels: Channel) -> int:
         """Return the time of the start of the first instruction over the supplied channels.
 
         Args:
             *channels: Channels within ``self`` to include.
         """
-        try:
-            chan_intervals = (self._timeslots[chan] for chan in channels if chan in self._timeslots)
-            return min(intervals[0][0] for intervals in chan_intervals)
-        except ValueError:
-            # If there are no instructions over channels
-            return 0
+        return self._timeslots.find_start_at(channels)
 
+    @_sync_timeslot
     def ch_stop_time(self, *channels: Channel) -> int:
         """Return maximum start time over supplied channels.
 
         Args:
             *channels: Channels within ``self`` to include.
         """
-        try:
-            chan_intervals = (self._timeslots[chan] for chan in channels if chan in self._timeslots)
-            return max(intervals[-1][1] for intervals in chan_intervals)
-        except ValueError:
-            # If there are no instructions over channels
-            return 0
+        return self._timeslots.find_idle_after(channels)
 
-    def _instructions(self, time: int = 0):
-        """Iterable for flattening Schedule tree.
-
-        Args:
-            time: Shifted time due to parent.
-
-        Yields:
-            Iterable[Tuple[int, Instruction]]: Tuple containing the time each
-                :class:`~qiskit.pulse.Instruction`
-                starts at and the flattened :class:`~qiskit.pulse.Instruction` s.
-        """
-        for insert_time, child_sched in self.children:
-            yield from child_sched._instructions(time + insert_time)
-
-    def shift(self, time: int, name: Optional[str] = None, inplace: bool = False) -> "Schedule":
+    def shift(
+        self,
+        time: int,
+        name: Optional[str] = None,
+        inplace: bool = False,
+        validate: bool = True,
+    ) -> "Schedule":
         """Return a schedule shifted forward by ``time``.
 
         Args:
@@ -326,45 +325,20 @@ class Schedule:
             name: Name of the new schedule. Defaults to the name of self.
             inplace: Perform operation inplace on this schedule. Otherwise
                 return a new ``Schedule``.
+            validate: Set ``True`` to regenerate timeslot and check timing overlap.
         """
-        if inplace:
-            return self._mutable_shift(time)
-        return self._immutable_shift(time, name=name)
+        if not inplace:
+            new_schedule = copy.deepcopy(self)
+            new_schedule._name = name
+            return new_schedule.shift(
+                time=time,
+                inplace=True,
+                validate=validate
+            )
+        self._data = [(t0 + time, datum) for t0, datum in self._data]
 
-    def _immutable_shift(self, time: int, name: Optional[str] = None) -> "Schedule":
-        """Return a new schedule shifted forward by `time`.
-
-        Args:
-            time: Time to shift by
-            name: Name of the new schedule if call was mutable. Defaults to name of self
-        """
-        shift_sched = Schedule.initialize_from(self, name)
-        shift_sched.insert(time, self, inplace=True)
-
-        return shift_sched
-
-    def _mutable_shift(self, time: int) -> "Schedule":
-        """Return this schedule shifted forward by `time`.
-
-        Args:
-            time: Time to shift by
-
-        Raises:
-            PulseError: if ``time`` is not an integer.
-        """
-        if not isinstance(time, int):
-            raise PulseError("Schedule start time must be an integer.")
-
-        timeslots = {}
-        for chan, ch_timeslots in self._timeslots.items():
-            timeslots[chan] = [(ts[0] + time, ts[1] + time) for ts in ch_timeslots]
-
-        _check_nonnegative_timeslot(timeslots)
-
-        self._duration = self._duration + time
-        self._timeslots = timeslots
-        self._children = [(orig_time + time, child) for orig_time, child in self.children]
-        return self
+        if validate:
+            self._timeslots.regenerate(iter(self._data))
 
     def insert(
         self,
@@ -372,6 +346,7 @@ class Schedule:
         schedule: "ScheduleComponent",
         name: Optional[str] = None,
         inplace: bool = False,
+        validate: bool = True,
     ) -> "Schedule":
         """Return a new schedule with ``schedule`` inserted into ``self`` at ``start_time``.
 
@@ -381,42 +356,39 @@ class Schedule:
             name: Name of the new schedule. Defaults to the name of self.
             inplace: Perform operation inplace on this schedule. Otherwise
                 return a new ``Schedule``.
+            validate: Set ``True`` to regenerate timeslot and check timing overlap.
         """
-        if inplace:
-            return self._mutable_insert(start_time, schedule)
-        return self._immutable_insert(start_time, schedule, name=name)
+        if not inplace:
+            new_schedule = copy.deepcopy(self)
+            new_schedule._name = name
+            return new_schedule.insert(
+                start_time=start_time,
+                schedule=schedule,
+                inplace=True,
+                validate=validate
+            )
 
-    def _mutable_insert(self, start_time: int, schedule: "ScheduleComponent") -> "Schedule":
-        """Mutably insert `schedule` into `self` at `start_time`.
-
-        Args:
-            start_time: Time to insert the second schedule.
-            schedule: Schedule to mutably insert.
-        """
-        self._add_timeslots(start_time, schedule)
-        self._children.append((start_time, schedule))
+        self._data.append((start_time, schedule))
         self._parameter_manager.update_parameter_table(schedule)
+
+        # We can skip implicit timeslot validation for fast-building mode,
+        # if added schedule is already scheduled.
+        if validate:
+            if len(self._timeslots.timeslots) != len(self._data):
+                self._timeslots.regenerate(iter(self._data))
+            self._timeslots.add(
+                inst_name=schedule.name,
+                channels=schedule.channels,
+                interval=(start_time, start_time + schedule.duration),
+            )
         return self
 
-    def _immutable_insert(
+    @_sync_timeslot
+    def append(
         self,
-        start_time: int,
         schedule: "ScheduleComponent",
         name: Optional[str] = None,
-    ) -> "Schedule":
-        """Return a new schedule with ``schedule`` inserted into ``self`` at ``start_time``.
-        Args:
-            start_time: Time to insert the schedule.
-            schedule: Schedule to insert.
-            name: Name of the new ``Schedule``. Defaults to name of ``self``.
-        """
-        new_sched = Schedule.initialize_from(self, name)
-        new_sched._mutable_insert(0, self)
-        new_sched._mutable_insert(start_time, schedule)
-        return new_sched
-
-    def append(
-        self, schedule: "ScheduleComponent", name: Optional[str] = None, inplace: bool = False
+        inplace: bool = False,
     ) -> "Schedule":
         r"""Return a new schedule with ``schedule`` inserted at the maximum time over
         all channels shared between ``self`` and ``schedule``.
@@ -432,9 +404,20 @@ class Schedule:
             inplace: Perform operation inplace on this schedule. Otherwise
                 return a new ``Schedule``.
         """
-        common_channels = set(self.channels) & set(schedule.channels)
-        time = self.ch_stop_time(*common_channels)
-        return self.insert(time, schedule, name=name, inplace=inplace)
+        # TODO this method can be removed, by forcing user to always directly use insert.
+        #  Because this method doesn't have performance gain.
+
+        t0 = self._timeslots.find_idle_after(schedule.channels)
+        return self.insert(
+            start_time=t0,
+            schedule=schedule,
+            name=name,
+            inplace=inplace,
+            # This is always true. If we append multiple times, it needs to regenerate
+            # time slot everytime because slot is not updated without validation.
+            # Append requires fresh timeslot to evaluate valid t0.
+            validate=True,
+        )
 
     def filter(
         self,
@@ -507,117 +490,6 @@ class Schedule:
             self, filters=filters, negate=True, recurse_subroutines=check_subroutine
         )
 
-    def _add_timeslots(self, time: int, schedule: "ScheduleComponent") -> None:
-        """Update all time tracking within this schedule based on the given schedule.
-
-        Args:
-            time: The time to insert the schedule into self.
-            schedule: The schedule to insert into self.
-
-        Raises:
-            PulseError: If timeslots overlap or an invalid start time is provided.
-        """
-        if not np.issubdtype(type(time), np.integer):
-            raise PulseError("Schedule start time must be an integer.")
-
-        other_timeslots = _get_timeslots(schedule)
-        self._duration = max(self._duration, time + schedule.duration)
-
-        for channel in schedule.channels:
-            if channel not in self._timeslots:
-                if time == 0:
-                    self._timeslots[channel] = copy.copy(other_timeslots[channel])
-                else:
-                    self._timeslots[channel] = [
-                        (i[0] + time, i[1] + time) for i in other_timeslots[channel]
-                    ]
-                continue
-
-            for idx, interval in enumerate(other_timeslots[channel]):
-                if interval[0] + time >= self._timeslots[channel][-1][1]:
-                    # Can append the remaining intervals
-                    self._timeslots[channel].extend(
-                        [(i[0] + time, i[1] + time) for i in other_timeslots[channel][idx:]]
-                    )
-                    break
-
-                try:
-                    interval = (interval[0] + time, interval[1] + time)
-                    index = _find_insertion_index(self._timeslots[channel], interval)
-                    self._timeslots[channel].insert(index, interval)
-                except PulseError as ex:
-                    raise PulseError(
-                        "Schedule(name='{new}') cannot be inserted into Schedule(name='{old}') at "
-                        "time {time} because its instruction on channel {ch} scheduled from time "
-                        "{t0} to {tf} overlaps with an existing instruction."
-                        "".format(
-                            new=schedule.name or "",
-                            old=self.name or "",
-                            time=time,
-                            ch=channel,
-                            t0=interval[0],
-                            tf=interval[1],
-                        )
-                    ) from ex
-
-        _check_nonnegative_timeslot(self._timeslots)
-
-    def _remove_timeslots(self, time: int, schedule: "ScheduleComponent"):
-        """Delete the timeslots if present for the respective schedule component.
-
-        Args:
-            time: The time to remove the timeslots for the ``schedule`` component.
-            schedule: The schedule to insert into self.
-
-        Raises:
-            PulseError: If timeslots overlap or an invalid start time is provided.
-        """
-        if not isinstance(time, int):
-            raise PulseError("Schedule start time must be an integer.")
-
-        for channel in schedule.channels:
-
-            if channel not in self._timeslots:
-                raise PulseError(f"The channel {channel} is not present in the schedule")
-
-            channel_timeslots = self._timeslots[channel]
-            other_timeslots = _get_timeslots(schedule)
-
-            for interval in other_timeslots[channel]:
-                if channel_timeslots:
-                    interval = (interval[0] + time, interval[1] + time)
-                    index = _interval_index(channel_timeslots, interval)
-                    if channel_timeslots[index] == interval:
-                        channel_timeslots.pop(index)
-                        continue
-
-                raise PulseError(
-                    "Cannot find interval ({t0}, {tf}) to remove from "
-                    "channel {ch} in Schedule(name='{name}').".format(
-                        ch=channel, t0=interval[0], tf=interval[1], name=schedule.name
-                    )
-                )
-
-            if not channel_timeslots:
-                self._timeslots.pop(channel)
-
-    def _replace_timeslots(self, time: int, old: "ScheduleComponent", new: "ScheduleComponent"):
-        """Replace the timeslots of ``old`` if present with the timeslots of ``new``.
-
-        Args:
-            time: The time to remove the timeslots for the ``schedule`` component.
-            old: Instruction to replace.
-            new: Instruction to replace with.
-        """
-        self._remove_timeslots(time, old)
-        self._add_timeslots(time, new)
-
-    def _renew_timeslots(self):
-        """Regenerate timeslots based on current instructions."""
-        self._timeslots.clear()
-        for t0, inst in self.instructions:
-            self._add_timeslots(t0, inst)
-
     def replace(
         self,
         old: "ScheduleComponent",
@@ -676,34 +548,24 @@ class Schedule:
         Raises:
             PulseError: If the ``Schedule`` after replacements will has a timing overlap.
         """
-        from qiskit.pulse.parameter_manager import ParameterManager
+        # TODO this method can be removed, not sure how this method is convenient
+        #  Currently directly coding with Schedule is discouraged.
+        #  Internal code doesn't use replace method.
+        if not inplace:
+            new_schedule = copy.deepcopy(self)
+            return new_schedule.replace(old=old, new=new)
 
-        new_children = []
-        new_parameters = ParameterManager()
-
-        for time, child in self.children:
-            if child == old:
-                new_children.append((time, new))
-                new_parameters.update_parameter_table(new)
+        self._parameter_manager._parameters.clear()
+        new_data = []
+        for t0, datum in self._data:
+            if datum == old:
+                new_data.append((t0, new))
+                self._parameter_manager.update_parameter_table(new)
             else:
-                new_children.append((time, child))
-                new_parameters.update_parameter_table(child)
-
-        if inplace:
-            self._children = new_children
-            self._parameter_manager = new_parameters
-            self._renew_timeslots()
-            return self
-        else:
-            try:
-                new_sched = Schedule.initialize_from(self)
-                for time, inst in new_children:
-                    new_sched.insert(time, inst, inplace=True)
-                return new_sched
-            except PulseError as err:
-                raise PulseError(
-                    f"Replacement of {old} with {new} results in overlapping instructions."
-                ) from err
+                new_data.append((t0, datum))
+                self._parameter_manager.update_parameter_table(datum)
+        self._data = new_data
+        self._timeslots.regenerate(iter(self._data))
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
