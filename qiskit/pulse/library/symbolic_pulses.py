@@ -163,7 +163,7 @@ class EnvelopeDescriptor:
 
             if not isinstance(value, sym.Expr):
                 raise PulseError(f"'{repr(value)}' is not a valid symbolic expression.")
-            params = [sym.Symbol(p) for p in ["t", "duration"] + instance._param_names]
+            params = [sym.Symbol(p) for p in ["t", "duration", "amp"] + instance._param_names]
             self.lambda_funcs[key] = sym.lambdify(params, value)
 
 
@@ -193,7 +193,7 @@ class ConstraintsDescriptor:
         if key not in self.lambda_funcs:
             import sympy as sym
 
-            params = [sym.Symbol(p) for p in ["limit", "duration"] + instance._param_names]
+            params = [sym.Symbol(p) for p in ["limit", "duration", "amp"] + instance._param_names]
             constraints = []
             for expr in value:
                 if isinstance(expr, tuple):
@@ -220,14 +220,17 @@ class SymbolicPulse(Pulse):
 
     This is defined with an instance attribute :attr:`SymbolicPulse.envelope`
     which can be provided through its setter method.
-    The expression must be a function of ``t`` and ``duration`` and
+    The expression must be a function of ``t``, ``duration``, ``amp`` and
     any additional parameters specified for the pulse shape to implement.
     The time ``t`` and ``duration`` are in units of dt, i.e. sample time resolution,
     and this function is sampled with a discrete time vector in [0, ``duration``]
     sampling the pulse envelope at every 0.5 dt (middle sampling strategy) when
     :meth:`SymbolicPulse.get_waveform` method is called.
-    The function can compute complex-valued samples and real and imaginary part may
-    be supplied to two quadratures of the IQ mixer in the control electronics.
+    The ``amp`` is a complex-valued coefficient that scales the symbolic pulse envelope.
+    This indicates conventionally the Qiskit Pulse conforms to the IQ format rather
+    than the phasor representation. When a real value is assigned to the ``amp``,
+    it is internally typecasted to the complex. The real and imaginary part may be
+    directly supplied to two quadratures of the IQ mixer in the control electronics.
     The sample data is not generated until the :meth:`SymbolicPulse.get_waveform` method is called
     thus a symbolic pulse instance only stores parameter values and waveform shape,
     which greatly reduces memory footprint during the program generation.
@@ -363,9 +366,18 @@ class SymbolicPulse(Pulse):
         """
         if "duration" not in parameters:
             raise PulseError("'duration' is not defined for this pulse.")
-        duration = parameters.pop("duration")
+        if "amp" not in parameters:
+            raise PulseError("'amp' is not defined for this pulse.")
 
-        super().__init__(duration=duration, name=name, limit_amplitude=limit_amplitude)
+        super().__init__(
+            duration=parameters.pop("duration"),
+            name=name,
+            limit_amplitude=limit_amplitude,
+        )
+        amp = parameters.pop("amp")
+        if not isinstance(amp, ParameterExpression):
+            amp = complex(amp)
+        self.amp = amp
 
         self._pulse_type = pulse_type
         self._param_names = list(parameters.keys())
@@ -464,7 +476,7 @@ class SymbolicPulse(Pulse):
             raise PulseError("Unassigned parameter exists. All parameters must be assigned.")
 
         times = np.arange(0, self.duration) + 1 / 2
-        args = (times, self.duration, *self._param_vals)
+        args = (times, self.duration, self.amp, *self._param_vals)
         waveform = self._lambda_envelope_cache(*args)
 
         return Waveform(samples=waveform, name=self.name)
@@ -478,8 +490,7 @@ class SymbolicPulse(Pulse):
         if self.is_parameterized():
             return
 
-        args = (self._limit_amplitude, self.duration, *self._param_vals)
-
+        args = (self._limit_amplitude, self.duration, self.amp, *self._param_vals)
         for i, constraint in enumerate(self._lambda_constraints_cache):
             if isinstance(constraint, tuple):
                 # Cannot use sympy.ITE because it doesn't support lazy evaluation.
@@ -496,13 +507,12 @@ class SymbolicPulse(Pulse):
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
-        return any(
-            isinstance(val, ParameterExpression) for val in (self.duration, *self._param_vals)
-        )
+        args = (self.duration, self.amp, *self._param_vals)
+        return any(isinstance(val, ParameterExpression) for val in args)
 
     @property
     def parameters(self) -> Dict[str, Any]:
-        params = {"duration": self.duration}
+        params = {"duration": self.duration, "amp": self.amp}
         params.update(dict(zip(self._param_names, self._param_vals)))
         return params
 
@@ -518,7 +528,9 @@ class SymbolicPulse(Pulse):
         return True
 
     def __hash__(self) -> int:
-        return hash((self._pulse_type, self.duration, *self._param_names, *self._param_vals))
+        return hash(
+            (self._pulse_type, self.duration, self.amp, *self._param_names, *self._param_vals)
+        )
 
     def __repr__(self) -> str:
         param_repr = ", ".join(f"{p}={v}" for p, v in self.parameters.items())
@@ -565,7 +577,7 @@ class Gaussian(SymbolicPulse):
 
         parameters = {
             "duration": duration,
-            "amp": complex(amp) if not isinstance(amp, ParameterExpression) else amp,
+            "amp": amp,
             "sigma": sigma,
         }
 
@@ -671,7 +683,7 @@ class GaussianSquare(SymbolicPulse):
 
         parameters = {
             "duration": duration,
-            "amp": complex(amp) if not isinstance(amp, ParameterExpression) else amp,
+            "amp": amp,
             "sigma": sigma,
             "width": width,
         }
@@ -771,7 +783,7 @@ class Drag(SymbolicPulse):
 
         parameters = {
             "duration": duration,
-            "amp": complex(amp) if not isinstance(amp, ParameterExpression) else amp,
+            "amp": amp,
             "sigma": sigma,
             "beta": beta,
         }
@@ -852,7 +864,7 @@ class Constant(SymbolicPulse):
 
         parameters = {
             "duration": duration,
-            "amp": complex(amp) if not isinstance(amp, ParameterExpression) else amp,
+            "amp": amp,
         }
 
         super().__init__(

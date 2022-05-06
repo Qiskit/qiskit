@@ -227,15 +227,16 @@ class ParameterSetter(NodeVisitor):
             # Assign duration
             if isinstance(node.duration, ParameterExpression):
                 node.duration = self._assign_parameter_expression(node.duration)
+            if isinstance(node.amp, ParameterExpression):
+                assigned_amp = self._assign_parameter_expression(node.amp)
+                if not isinstance(assigned_amp, ParameterExpression):
+                    # Amplitude is complex value
+                    assigned_amp = complex(assigned_amp)
+                node.amp = assigned_amp
             # Assign other parameters
-            for name, op_value in zip(node._param_names, node._param_vals):
+            for op_value in node._param_vals:
                 if isinstance(op_value, ParameterExpression):
-                    assigned = self._assign_parameter_expression(op_value)
-                    if name == "amp" and not isinstance(assigned, ParameterExpression):
-                        # Amp should be complex format otherwise IBM backends raise 8042 error.
-                        # Pulse parameter "amp" must be specified as a list of the form [real, imag]
-                        assigned = complex(assigned)
-                    new_values.append(assigned)
+                    new_values.append(self._assign_parameter_expression(op_value))
                 else:
                     new_values.append(op_value)
             node._param_vals = new_values
