@@ -33,6 +33,7 @@ from typing import ClassVar, Optional, Type
 import logging
 
 import numpy as np
+import scipy
 
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
@@ -88,6 +89,109 @@ _ipx = np.array([[0, 1j], [1j, 0]], dtype=complex)
 _ipy = np.array([[0, 1], [-1, 0]], dtype=complex)
 _ipz = np.array([[1j, 0], [0, -1j]], dtype=complex)
 _id = np.array([[1, 0], [0, 1]], dtype=complex)
+
+
+class TwoQubitDecomposeUpToDiagonal:
+
+    def __init__(self):
+        self.sx = np.array([[0, 1], [1, 0]])
+        self.sy = np.array([[0, -1j], [1j, 0]])
+        self.sz = np.array([[1, 0], [0, -1]])
+        self._cx01 = np.array([[1, 0, 0, 0],
+                               [0, 0, 0, 1],
+                               [0, 0, 1, 0],
+                               [0, 1, 0, 0]])
+        self._cx10 = np.array([[1, 0, 0, 0],
+                               [0, 1, 0, 0],
+                               [0, 0, 0, 1],
+                               [0, 0, 1, 0]])
+        self._kak = TwoQubitWeylDecomposition
+
+    def _rx(theta):
+        return scipy.linalg.expm(-1j * theta * self.sx / 2)
+
+    def _ry(theta):
+        return scipy.linalg.expm(-1j * theta * self.sy / 2)
+
+    def _rz(theta):
+        return scipy.linalg.expm(-1j * theta * self.sz / 2)
+
+    def _u4_to_su4(self, u4):
+        phase_factor = np.conj(scipy.linalg.det(u4)**(-1 / u4.shape[0]))
+        su4 = u4 / phase_factor
+        assert(cmath.isclose(scipy.linalg.det(su4), 1))
+        return su4, cmath.phase(phase_factor)
+
+    def _gamma(self, mat):
+        """
+        proposition II.1: this invariant characterizes when two operators in U(4),
+        say u, v, are equivalent up to single qubit gates:
+
+           u ≡ v -> Det(γ(u)) = Det(±(γ(v)))
+        """
+        sumat, _ = self._u4_to_su4(mat)
+        sysy = np.kron(self.sy, self.sy)
+        return sumat @ sysy @ sumat.T @ sysy
+
+    def _cx0_test(self, mat):
+        # proposition III.1: zero cx sufficient
+        gamma = self._gamma(mat)
+        evals = np.linalg.eigvals(gamma)
+        return np.all(np.isclose(evals, np.ones(4)))
+
+    def _cx1_test(self, mat):
+        # proposition III.2: one cx sufficient
+        gamma = self._gamma(mat)
+        evals = np.linalg.eigvals(gamma)
+        uvals, ucnts = np.unique(np.round(evals, 10), return_counts=True)
+        return (len(uvals) == 2 and
+                all(ucnts == 2) and
+                all((np.isclose(x, 1j)) or np.isclose(x, -1j) for x in uvals))
+    
+    def _cx2_test(self, mat):
+        # proposition III.3: two cx sufficient
+        gamma = self._gamma(mat)
+        return np.isclose(np.trace(gamma).imag, 0)
+
+    def _real_trace_transform(self, mat):
+        """From UniversalQCompiler. This may be from Proposition 6 in
+        V. V. Shende, I. L. Markov, and S. S. Bullock, ``Minimal
+        Universal Two-qubit Controlled-NOT-based Circuits,''
+        """
+        a = (mat[0, 3] * mat[3, 0] -
+             mat[0, 2] * mat[3, 1] -
+             mat[0, 1] * mat[3, 2] +
+             mat[0, 0] * mat[3, 3])
+        b  = (-mat[1, 3] * mat[2, 0] +
+              mat[1, 2] * mat[2, 1] +
+              mat[1, 1] * mat[2, 2] -
+              mat[1, 0] * mat[2, 3])
+        aAbs = abs(a)
+        bAbs = abs(b)
+        alpha = cmath.phase(a)
+        beta = cmath.phase(b)
+        delta = cmath.phase(np.linalg.det(mat))
+        dba = delta - beta - alpha
+        theta = -alpha - math.atan2(-bAbs * math.sin(dba),
+                                    aAbs - bAbs * math.cos(dba))
+        phi = -delta - theta
+        return np.diag((cmath.exp(1j * theta/2),
+                        cmath.exp(1j * phi/2),
+                        cmath.exp(1j * phi/2),
+                        cmath.exp(1j * theta/2)))
+
+    def __call__(self, mat):
+        """do the decomposition"""
+        su4, phase = self._u4_to_su4(mat)
+        real_map = self._real_trace_transform(su4)
+        try:
+            assert(self._cx2_test(real_map @ su4))
+        except AssertionError as aerr:
+            breakpoint()
+            pass
+        circ = two_qubit_cnot_decompose(real_map @ su4)
+        circ.global_phase += phase
+        return real_map.conj(), circ
 
 
 class TwoQubitWeylDecomposition:

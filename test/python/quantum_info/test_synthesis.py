@@ -71,6 +71,7 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (
     TwoQubitControlledUDecomposer,
     Ud,
     decompose_two_qubit_product_gate,
+    TwoQubitDecomposeUpToDiagonal,
 )
 
 from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
@@ -1393,7 +1394,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         """test decomposition of random SU(n) down to 2 qubits without optimizations."""
         dim = 2**nqubits
         mat = scipy.stats.unitary_group.rvs(dim)
-        circ = self.qsd(mat, opt_a1=False)
+        circ = self.qsd(mat, opt_a1=False, opt_a2=False)
         ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
         self.assertTrue(np.allclose(mat, Operator(ccirc).data))
         if nqubits > 1:
@@ -1406,7 +1407,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         """test decomposition of random SU(n) down to 2 qubits with 'a1' optimization."""
         dim = 2**nqubits
         mat = scipy.stats.unitary_group.rvs(dim)
-        circ = self.qsd(mat, opt_a1=True)
+        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
         ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
         self.assertTrue(np.allclose(mat, Operator(ccirc).data))
         if nqubits > 1:
@@ -1418,7 +1419,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         nqubits = 3
         dim = 2**nqubits
         mat = scipy.stats.ortho_group.rvs(dim)
-        circ = self.qsd(mat, opt_a1=True)
+        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
         ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
         self.assertTrue(np.allclose(mat, Operator(ccirc).data))
         expected_cx = self._qsd_l2_cx_count(nqubits) - self._qsd_l2_a1_mod(nqubits)
@@ -1429,7 +1430,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         nqubits = 3
         dim = 2**nqubits
         mat = np.identity(dim)
-        circ = self.qsd(mat, opt_a1=True)
+        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
         self.assertTrue(np.allclose(mat, Operator(circ).data))
         self.assertEqual(sum(circ.count_ops().values()), 0)
 
@@ -1438,7 +1439,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         """Test decomposition on diagonal -- qsd is not optimal"""
         dim = 2**nqubits
         mat = np.diag(np.exp(1j * np.random.normal(size=dim)))
-        circ = self.qsd(mat, opt_a1=True)
+        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
         ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
         self.assertTrue(np.allclose(mat, Operator(ccirc).data))
         if nqubits > 1:
@@ -1453,13 +1454,169 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         umat = scipy.stats.unitary_group.rvs(dim)
         dmat = np.diag(np.exp(1j * np.random.normal(size=dim)))
         mat = umat.T.conjugate() @ dmat @ umat
-        circ = self.qsd(mat, opt_a1=True)
+        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
         ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
         self.assertTrue(np.allclose(mat, Operator(ccirc).data))
         if nqubits > 1:
             expected_cx = self._qsd_l2_cx_count(nqubits) - self._qsd_l2_a1_mod(nqubits)
             self.assertLessEqual(ccirc.count_ops().get("cx"), expected_cx)
 
+    @data(*list(range(3, 4)))
+    def test_opt_a1a2(self, nqubits):
+        dim = 2**nqubits
+        umat = scipy.stats.unitary_group.rvs(dim)
+        circ = self.qsd(umat, opt_a1=True, opt_a2=True)
+        ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
+        self.assertTrue(Operator(umat) == Operator(ccirc))
+
+
+class TestTwoQubitDecomposeUpToDiagonal(QiskitTestCase):
+
+    def test_prop31(self):
+        """test proposition III.1: no CNOTs needed"""
+        np.set_printoptions(linewidth=200, precision=3, suppress=True)
+        dec = TwoQubitDecomposeUpToDiagonal()
+        # test identity
+        mat = np.identity(4)
+        self.assertTrue(dec._cx0_test(mat))
+
+        zz = np.kron(dec.sz, dec.sz)
+        self.assertTrue(dec._cx0_test(zz))
+        
+        had = np.matrix([[1, 1], [1, -1]]) / np.sqrt(2)
+        hh = np.kron(had, had)
+        self.assertTrue(dec._cx0_test(hh))
+
+        hy = np.kron(had, dec.sy)
+        self.assertTrue(dec._cx0_test(hy))
+
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        self.assertFalse(dec._cx0_test(Operator(qc).data))
+
+    def test_prop32_true(self):
+        """test proposition III.2: 1 CNOT sufficient"""
+        np.set_printoptions(linewidth=200, precision=3, suppress=True)
+        dec = TwoQubitDecomposeUpToDiagonal()
+        qc = QuantumCircuit(2)
+        qc.ry(np.pi/4, 0)
+        qc.ry(np.pi/3, 1)
+        qc.cx(0, 1)
+        qc.ry(np.pi/4, 0)
+        qc.y(1)
+        mat = Operator(qc).data
+        self.assertTrue(dec._cx1_test(mat))
+
+        qc = QuantumCircuit(2)
+        qc.ry(np.pi/5, 0)
+        qc.ry(np.pi/3, 1)
+        qc.cx(1, 0)
+        qc.ry(np.pi/2, 0)
+        qc.y(1)
+        mat = Operator(qc).data
+        self.assertTrue(dec._cx1_test(mat))
+
+        # this SU4 is non-local
+        mat = scipy.stats.unitary_group.rvs(4, random_state=84)
+        self.assertFalse(dec._cx1_test(mat))
+        
+    def test_prop32_false(self):
+        """test proposition III.2: 1 CNOT not sufficient"""
+        np.set_printoptions(linewidth=200, precision=3, suppress=True)
+        dec = TwoQubitDecomposeUpToDiagonal()
+        qc = QuantumCircuit(2)
+        qc.ry(np.pi/4, 0)
+        qc.ry(np.pi/3, 1)
+        qc.cx(0, 1)
+        qc.ry(np.pi/4, 0)
+        qc.y(1)
+        qc.cx(0, 1)
+        qc.ry(np.pi/3, 0)
+        qc.rx(np.pi/2, 1)
+        mat = Operator(qc).data
+        self.assertFalse(dec._cx1_test(mat))
+
+    def test_prop33_true(self):
+        """test proposition III.3: 2 CNOT sufficient"""
+        np.set_printoptions(linewidth=200, precision=3, suppress=True)
+        dec = TwoQubitDecomposeUpToDiagonal()
+        qc = QuantumCircuit(2)
+        qc.rx(np.pi/4, 0)
+        qc.ry(np.pi/2, 1)
+        qc.cx(0, 1)
+        qc.rx(np.pi/4, 0)
+        qc.ry(np.pi/2, 1)
+        qc.cx(0, 1)
+        qc.rx(np.pi/4, 0)
+        qc.y(1)
+        mat = Operator(qc).data
+        self.assertTrue(dec._cx2_test(mat))
+
+    def test_prop33_false(self):
+        """test whether circuit which requires 3 cx fails 2 cx test"""
+        np.set_printoptions(linewidth=200, precision=3, suppress=True)
+        dec = TwoQubitDecomposeUpToDiagonal()
+        qc = QuantumCircuit(2)
+        qc.u(0.1, 0.2, 0.3, 0)
+        qc.u(0.4, 0.5, 0.6, 1)        
+        qc.cx(0, 1)
+        qc.u(0.1, 0.2, 0.3, 0)
+        qc.u(0.4, 0.5, 0.6, 1)        
+        qc.cx(0, 1)
+        qc.u(0.5, 0.2, 0.3, 0)
+        qc.u(0.2, 0.4, 0.1, 1)        
+        qc.cx(1, 0)
+        qc.u(0.1, 0.2, 0.3, 0)
+        qc.u(0.4, 0.5, 0.6, 1)
+        mat = Operator(qc).data
+        self.assertFalse(dec._cx2_test(mat))
+
+    def test_ortho_local_map(self):
+        """test map of SO4 to SU2⊗SU2"""
+        import math, scipy
+        dec = TwoQubitDecomposeUpToDiagonal()        
+        np.set_printoptions(linewidth=200, precision=3, suppress=True)        
+        emap = np.array([[1, 1j, 0, 0],
+                         [0, 0, 1j, 1],
+                         [0, 0, 1j, -1],
+                         [1, -1j, 0, 0]]) / math.sqrt(2)
+        so4 = scipy.stats.ortho_group.rvs(4, random_state=284)
+        sy = np.array([[0, -1j], [1j, 0]])
+        self.assertTrue(np.allclose(-np.kron(sy, sy), emap @ emap.T))
+        self.assertFalse(dec._cx0_test(so4))
+        self.assertTrue(dec._cx0_test(emap @ so4 @ emap.T.conj()))
+        
+    def test_ortho_local_map2(self):
+        """test map of SO4 to SU2⊗SU2"""
+        import math, scipy
+        dec = TwoQubitDecomposeUpToDiagonal()        
+        np.set_printoptions(linewidth=200, precision=3, suppress=True)        
+        emap = np.array([[1, 0, 0, 1j],
+                         [0, 1j, 1, 0],
+                         [0, 1j, -1, 0],                     
+                         [1, 0, 0, -1j]]) / math.sqrt(2)
+        so4 = scipy.stats.ortho_group.rvs(4, random_state=284)
+        sy = np.array([[0, -1j], [1j, 0]])
+        self.assertTrue(np.allclose(-np.kron(sy, sy), emap @ emap.T))
+        self.assertFalse(dec._cx0_test(so4))
+        self.assertTrue(dec._cx0_test(emap @ so4 @ emap.T.conj()))
+
+    def test_real_trace_transform(self):
+        np.set_printoptions(linewidth=200, precision=3, suppress=True)        
+        dec = TwoQubitDecomposeUpToDiagonal()                  
+        u4 = scipy.stats.unitary_group.rvs(4, random_state=83)
+        su4 = dec._u4_to_su4(u4)
+        real_map = dec._real_trace_transform(su4)
+        self.asserTrue(dec._cx2_test(real_map @ su4))
+
+    def test_call_decompose(self):
+        np.set_printoptions(linewidth=200, precision=3, suppress=True)        
+        dec = TwoQubitDecomposeUpToDiagonal()                  
+        u4 = scipy.stats.unitary_group.rvs(4, random_state=47)
+        dmat, circ2cx = dec(u4)
+        dec_diag = dmat @ Operator(circ2cx).data
+        self.assertTrue(Operator(u4) == Operator(dec_diag))
+        
 
 if __name__ == "__main__":
     unittest.main()

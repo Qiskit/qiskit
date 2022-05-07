@@ -23,7 +23,8 @@ from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate, _EPS
 
 
-def qs_decomposition(mat, opt_a1=True, decomposer_1q=None, decomposer_2q=None):
+def qs_decomposition(mat, opt_a1=True, opt_a2=True,
+                     decomposer_1q=None, decomposer_2q=None, _depth=0):
     """
     Decomposes unitary matrix into one and two qubit gates using Quantum Shannon Decomposition.
 
@@ -63,6 +64,7 @@ def qs_decomposition(mat, opt_a1=True, decomposer_1q=None, decomposer_2q=None):
     """
     dim = mat.shape[0]
     nqubits = int(np.log2(dim))
+    a2_diag = None
     if np.allclose(np.identity(dim), mat):
         return QuantumCircuit(nqubits)
     if dim == 2:
@@ -71,7 +73,16 @@ def qs_decomposition(mat, opt_a1=True, decomposer_1q=None, decomposer_2q=None):
         circ = decomposer_1q(mat)
     elif dim == 4:
         if decomposer_2q is None:
-            decomposer_2q = two_qubit_decompose.TwoQubitBasisDecomposer(CXGate())
+            if opt_a2:
+                # avoids circular import
+                from qiskit.extensions.unitary import UnitaryGate
+                def decomposer_2q(mat):
+                    ugate = UnitaryGate(mat)
+                    qc = QuantumCircuit(2, name='qsd2q')
+                    qc.append(ugate, [0, 1])
+                    return qc
+            else:
+                decomposer_2q = two_qubit_decompose.TwoQubitBasisDecomposer(CXGate())
         circ = decomposer_2q(mat)
     else:
         qr = QuantumRegister(nqubits)
@@ -80,7 +91,7 @@ def qs_decomposition(mat, opt_a1=True, decomposer_1q=None, decomposer_2q=None):
         # perform cosine-sine decomposition
         (u1, u2), vtheta, (v1h, v2h) = scipy.linalg.cossin(mat, separate=True, p=dim_o2, q=dim_o2)
         # left circ
-        left_circ = _demultiplex(v1h, v2h, opt_a1=opt_a1)
+        left_circ = _demultiplex(v1h, v2h, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth)
         circ.append(left_circ.to_instruction(), qr)
         # middle circ
         if opt_a1:
@@ -94,13 +105,15 @@ def qs_decomposition(mat, opt_a1=True, decomposer_1q=None, decomposer_2q=None):
         else:
             circ.ucry((2 * vtheta).tolist(), qr[:-1], qr[-1])
         # right circ
-        right_circ = _demultiplex(u1, u2, opt_a1=opt_a1)
+        right_circ = _demultiplex(u1, u2, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth)
         circ.append(right_circ.to_instruction(), qr)
 
+    if opt_a2 and _depth == 0:
+        return _apply_a2(circ)
     return circ
 
 
-def _demultiplex(um0, um1, opt_a1=False):
+def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, _depth=0):
     """decomposes a generic multiplexer.
 
           ────□────
@@ -148,7 +161,7 @@ def _demultiplex(um0, um1, opt_a1=False):
     circ = QuantumCircuit(nqubits)
 
     # left gate
-    left_gate = qs_decomposition(wmat, opt_a1=opt_a1).to_instruction()
+    left_gate = qs_decomposition(wmat, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth+1).to_instruction()
     circ.append(left_gate, range(nqubits - 1))
 
     # multiplexed Rz
@@ -156,7 +169,7 @@ def _demultiplex(um0, um1, opt_a1=False):
     circ.ucrz(angles.tolist(), list(range(nqubits - 1)), [nqubits - 1])
 
     # right gate
-    right_gate = qs_decomposition(vmat, opt_a1=opt_a1).to_instruction()
+    right_gate = qs_decomposition(vmat, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth+1).to_instruction()
     circ.append(right_gate, range(nqubits - 1))
 
     return circ
@@ -189,3 +202,34 @@ def _get_ucry_cz(nqubits, angles):
             if i < nangles - 1:
                 qc.cz(q_controls[q_contr_index], q_target)
     return qc
+
+def _apply_a2(circ):
+    from qiskit import transpile
+    from qiskit.quantum_info import Operator
+    from qiskit.extensions.unitary import UnitaryGate    
+    np.set_printoptions(linewidth=200, precision=3, suppress=True)    
+    decomposer = two_qubit_decompose.TwoQubitDecomposeUpToDiagonal()
+    ccirc = transpile(circ, basis_gates=["u", "cx", "qsd2q"], optimization_level=0)
+    num_2q = ccirc.count_ops().get('qsd2q')
+    num_ops = len(ccirc)
+    cnt = 0
+    cmat = np.eye(4)
+    for i, instr_context in enumerate(ccirc.data[::-1]):
+        instr, qargs, cargs = instr_context
+        if not instr.name == 'qsd2q':
+            continue
+        if cnt < num_2q - 1:
+            mat = Operator(instr).data
+            dmat, qc2cx = decomposer(mat @ cmat)
+            ccirc.data[num_ops - i - 1] = (qc2cx.to_instruction(), qargs, cargs)
+            cmat = dmat
+            cnt += 1
+        else:
+            mat = Operator(instr).data
+            decomposer3cx = two_qubit_decompose.TwoQubitBasisDecomposer(CXGate())
+            new_instr = decomposer3cx(mat @ cmat).to_instruction()
+            breakpoint()
+            ccirc.data[num_ops - i - 1] = (new_instr, qargs, cargs)
+    print('lets stop here')
+    breakpoint()
+    return ccirc
