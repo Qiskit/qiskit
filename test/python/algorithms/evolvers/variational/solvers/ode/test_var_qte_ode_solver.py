@@ -26,7 +26,7 @@ from qiskit.algorithms.evolvers.variational.solvers.ode.var_qte_ode_solver impor
 from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_generator import (
     OdeFunctionGenerator,
 )
-from qiskit import Aer
+from qiskit import BasicAer
 from qiskit.algorithms.evolvers.variational.variational_principles.imaginary.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
@@ -70,7 +70,7 @@ class TestVarQTEOdeSolver(QiskitAlgorithmsTestCase):
 
         param_dict = dict(zip(parameters, init_param_values))
 
-        backend = Aer.get_backend("statevector_simulator")
+        backend = BasicAer.get_backend("statevector_simulator")
 
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
 

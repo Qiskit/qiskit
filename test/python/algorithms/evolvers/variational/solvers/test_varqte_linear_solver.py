@@ -16,7 +16,7 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
-from qiskit import Aer
+from qiskit import BasicAer
 from qiskit.algorithms.evolvers.variational.variational_principles.imaginary.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
@@ -33,7 +33,7 @@ class TestVarQTELinearSolver(QiskitAlgorithmsTestCase):
     # TODO use ddt
     def test_solve_sle_no_backend(self):
         """Test SLE solver with no backend."""
-        backend = Aer.get_backend("statevector_simulator")
+        backend = BasicAer.get_backend("statevector_simulator")
 
         # Define the Hamiltonian for the simulation
         observable = SummedOp(
