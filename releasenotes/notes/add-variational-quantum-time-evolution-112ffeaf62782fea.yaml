@@ -2,7 +2,7 @@
 features:
   - |
     Add algorithms for Variational Quantum Time Evolution that implement a new interface for
-    Qantum Time Evolution. The feature supports real (:class:`qiskit.algorithms.VarQRTE`.) and
+    Quantum Time Evolution. The feature supports real (:class:`qiskit.algorithms.VarQRTE`.) and
     imaginary (:class:`qiskit.algorithms.VarQITE`.) quantum time evolution according to a
     variational principle provided.
 
