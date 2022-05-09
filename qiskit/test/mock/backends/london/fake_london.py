@@ -48,19 +48,3 @@ class FakeLondon(fake_qasm_backend.FakeQasmBackend):
     conf_filename = "conf_london.json"
     props_filename = "props_london.json"
     backend_name = "fake_london"
-
-
-class FakeLegacyLondon(fake_qasm_backend.FakeQasmLegacyBackend):
-    """A fake 5 qubit backend.
-
-    0 ↔ 1 ↔ 2
-        ↕
-        3
-        ↕
-        4
-    """
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_london.json"
-    props_filename = "props_london.json"
-    backend_name = "fake_london"

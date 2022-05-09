@@ -18,7 +18,18 @@ from io import BytesIO
 from PIL import Image
 from ddt import ddt, data
 from qiskit.test.mock import FakeProvider
-from qiskit.visualization.gate_map import plot_gate_map, plot_coupling_map, plot_circuit_layout
+from qiskit.providers.fake_provider import (
+    FakeKolkata,
+    FakeWashington,
+    FakeKolkataV2,
+    FakeWashingtonV2,
+)
+from qiskit.visualization.gate_map import (
+    plot_gate_map,
+    plot_coupling_map,
+    plot_circuit_layout,
+    plot_error_map,
+)
 from qiskit.utils import optionals
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import Layout
@@ -87,6 +98,54 @@ class TestGateMap(QiskitVisualizationTestCase):
         fig = plot_coupling_map(
             num_qubits=n_qubits, qubit_coordinates=qubit_coordinates, coupling_map=coupling_map
         )
+        with BytesIO() as img_buffer:
+            fig.savefig(img_buffer, format="png")
+            img_buffer.seek(0)
+            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.2)
+        plt.close(fig)
+
+    @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+    def test_plot_error_map_backend_v1(self):
+        """Test plotting error map with fake backend v1."""
+        backend = FakeKolkata()
+        img_ref = path_to_diagram_reference("kolkata_error.png")
+        fig = plot_error_map(backend)
+        with BytesIO() as img_buffer:
+            fig.savefig(img_buffer, format="png")
+            img_buffer.seek(0)
+            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.2)
+        plt.close(fig)
+
+    @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+    def test_plot_error_map_backend_v2(self):
+        """Test plotting error map with fake backend v2."""
+        backend = FakeKolkataV2()
+        img_ref = path_to_diagram_reference("kolkata_v2_error.png")
+        fig = plot_error_map(backend)
+        with BytesIO() as img_buffer:
+            fig.savefig(img_buffer, format="png")
+            img_buffer.seek(0)
+            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.2)
+        plt.close(fig)
+
+    @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+    def test_plot_error_map_over_100_qubit(self):
+        """Test plotting error map with large fake backend."""
+        backend = FakeWashington()
+        img_ref = path_to_diagram_reference("washington_error.png")
+        fig = plot_error_map(backend)
+        with BytesIO() as img_buffer:
+            fig.savefig(img_buffer, format="png")
+            img_buffer.seek(0)
+            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.2)
+        plt.close(fig)
+
+    @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+    def test_plot_error_map_over_100_qubit_backend_v2(self):
+        """Test plotting error map with large fake backendv2."""
+        backend = FakeWashingtonV2()
+        img_ref = path_to_diagram_reference("washington_v2_error.png")
+        fig = plot_error_map(backend)
         with BytesIO() as img_buffer:
             fig.savefig(img_buffer, format="png")
             img_buffer.seek(0)

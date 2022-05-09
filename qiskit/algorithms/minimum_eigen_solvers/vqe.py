@@ -29,6 +29,7 @@ import scipy
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
+from qiskit.providers import Backend
 from qiskit.opflow import (
     CircuitSampler,
     CircuitStateFn,
@@ -47,9 +48,10 @@ from qiskit.utils.validation import validate_min
 
 from ..aux_ops_evaluator import eval_observables
 from ..exceptions import AlgorithmError
+from ..list_or_dict import ListOrDict
 from ..optimizers import SLSQP, Optimizer, OptimizerResult
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
-from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult, ListOrDict
+from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 
 if sys.version_info >= (3, 8):
     # pylint: disable=no-name-in-module, ungrouped-imports
@@ -167,7 +169,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         include_custom: bool = False,
         max_evals_grouped: int = 1,
         callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
-        quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
     ) -> None:
         """
 
@@ -276,9 +278,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(
-        self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
-    ) -> None:
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
         """Sets quantum_instance"""
         if not isinstance(quantum_instance, QuantumInstance):
             quantum_instance = QuantumInstance(quantum_instance)
