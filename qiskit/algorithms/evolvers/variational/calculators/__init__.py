@@ -12,7 +12,7 @@
 
 """
 Calculators (:mod:`qiskit.algorithms.evolvers.variational.calculators`)
-=====================================================
+=======================================================================
 The calculators include helper functions to evaluate the quantities which define the ordinary
 differential equations underlying the variational quantum time evolution, i.e., the
 quantum geometric tensor and the time evolution gradient.

@@ -17,7 +17,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
 from qiskit import Aer
-from qiskit.algorithms.evolvers.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.evolvers.variational.variational_principles.imaginary.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.algorithms.evolvers.variational.solvers.var_qte_linear_solver import (
@@ -72,7 +72,7 @@ class TestVarQTELinearSolver(QiskitAlgorithmsTestCase):
             CircuitSampler(backend),
         )
 
-        nat_grad_res, metric_res, grad_res = linear_solver._solve_sle(param_dict)
+        nat_grad_res, metric_res, grad_res = linear_solver.solve_sle(param_dict)
 
         # TODO verify all values below if correct
         expected_nat_grad_res = [

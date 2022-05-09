@@ -15,7 +15,7 @@
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
-from qiskit.algorithms.evolvers.variational.variational_principles.real.implementations.real_time_dependent_variational_principle import (
+from qiskit.algorithms.evolvers.variational.variational_principles.real.real_time_dependent_variational_principle import (
     RealTimeDependentVariationalPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2

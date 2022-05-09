@@ -21,7 +21,7 @@ from scipy.integrate import RK45, OdeSolver
 from qiskit import QuantumCircuit
 from qiskit.algorithms import EvolutionProblem
 from qiskit.circuit import Parameter
-from qiskit.providers import BaseBackend, Backend
+from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
 from qiskit.opflow import (
     StateFn,
@@ -60,7 +60,7 @@ class VarQTE(ABC):
         expectation: Optional[ExpectationBase] = None,
         allowed_imaginary_part: float = 1e-7,
         allowed_num_instability_error: float = 1e-7,
-        quantum_instance: Optional[Union[BaseBackend, QuantumInstance]] = None,
+        quantum_instance: Optional[QuantumInstance] = None,
     ) -> None:
         r"""
         Args:
@@ -93,7 +93,7 @@ class VarQTE(ABC):
 
     def _evolve_helper(
         self,
-        init_state_param_dict: Dict[Parameter, Union[float, complex]],
+        init_state_param_dict: Dict[Parameter, complex],
         hamiltonian: OperatorBase,
         time: float,
         t_param: Parameter,
@@ -162,7 +162,7 @@ class VarQTE(ABC):
     def bind_parameters_to_state(
         self,
         state: Union[QuantumCircuit, StateFn],
-        param_dict: Dict[Parameter, Union[float, complex]],
+        param_dict: Dict[Parameter, complex],
     ) -> None:
         r"""
         Bind parameters in a given quantum state to values provided. Uses a ``CircuitSampler`` if
@@ -182,9 +182,9 @@ class VarQTE(ABC):
     #  rename the dictionary because it not only relates to a Hamiltonian but also to a state
     def _create_init_state_param_dict(
         self,
-        hamiltonian_value_dict: Dict[Parameter, Union[float, complex]],
+        hamiltonian_value_dict: Dict[Parameter, complex],
         init_state_parameters: List[Parameter],
-    ) -> Dict[Parameter, Union[float, complex]]:
+    ) -> Dict[Parameter, complex]:
         r"""
         Looks for parameters present in an initial state (an ansatz) in a ``hamiltonian_value_dict``
         provided. Based on that, it creates a new dictionary containing only parameters present

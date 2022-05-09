@@ -27,7 +27,7 @@ class VarQTEOdeSolver:
 
     def __init__(
         self,
-        init_params: List[Union[float, complex]],
+        init_params: List[complex],
         ode_function_generator: AbstractOdeFunctionGenerator,
         ode_solver_callable: OdeSolver = RK45,
     ) -> None:
@@ -43,7 +43,7 @@ class VarQTEOdeSolver:
         self._ode_function = ode_function_generator.var_qte_ode_function
         self._ode_solver_callable = ode_solver_callable
 
-    def run(self, evolution_time: float) -> List[Union[float, complex]]:
+    def run(self, evolution_time: float) -> List[complex]:
         """
         Finds numerical solution with ODE Solver.
 

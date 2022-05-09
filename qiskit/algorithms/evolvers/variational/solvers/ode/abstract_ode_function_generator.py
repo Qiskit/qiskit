@@ -35,7 +35,7 @@ class AbstractOdeFunctionGenerator(ABC):
         varqte_linear_solver: VarQTELinearSolver,
         error_calculator,  # TODO will be supported in another PR
         t_param: Parameter,
-        param_dict: Dict[Parameter, Union[float, complex]],
+        param_dict: Dict[Parameter, complex],
     ) -> None:
         """
         Lazily initializes important fields once the evolution data is provided by the user.

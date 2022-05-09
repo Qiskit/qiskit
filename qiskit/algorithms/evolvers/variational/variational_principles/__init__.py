@@ -12,7 +12,7 @@
 
 """
 Principles (:mod:`qiskit.algorithms.evolvers.variational.variational_principles`)
-=====================================================
+=================================================================================
 
 It  contains a variety of variational variational_principles which can be used to simulate quantum
 time evolution by propagating the parameters of a parameterized quantum circuit.

@@ -10,28 +10,28 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Class for a Real Time Dependent Variational Principle."""
+"""Class for an Imaginary McLachlan's Variational Principle."""
 
 from typing import Union, List
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
-from qiskit.opflow import Y, OperatorBase, ListOp, StateFn
-from ....calculators import (
+from qiskit.opflow import StateFn, OperatorBase, ListOp
+from ...calculators import (
     metric_tensor_calculator,
     evolution_grad_calculator,
 )
-from ....variational_principles.real.real_variational_principle import (
-    RealVariationalPrinciple,
+from .imaginary_variational_principle import (
+    ImaginaryVariationalPrinciple,
 )
 
 
-class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
-    """Class for a Real Time Dependent Variational Principle."""
+class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
+    """Class for an Imaginary McLachlan's Variational Principle."""
 
     def calc_metric_tensor(
         self,
-        ansatz: QuantumCircuit,
+        ansatz: Union[StateFn, QuantumCircuit],
         parameters: List[Parameter],
     ) -> ListOp:
         """
@@ -44,11 +44,11 @@ class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
         Returns:
             Transformed metric tensor.
         """
-        raw_metric_tensor_imag = metric_tensor_calculator.calculate(
-            ansatz, parameters, self._qfi_method, basis=-Y
+        metric_tensor_real = metric_tensor_calculator.calculate(
+            ansatz, parameters, self._qfi_method
         )
 
-        return raw_metric_tensor_imag * 0.25
+        return metric_tensor_real * 0.25
 
     def calc_evolution_grad(
         self,
@@ -67,8 +67,8 @@ class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
         Returns:
             Transformed evolution gradient.
         """
-        raw_evolution_grad_real = evolution_grad_calculator.calculate(
+        evolution_grad_real = evolution_grad_calculator.calculate(
             hamiltonian, ansatz, parameters, self._grad_method
         )
 
-        return raw_evolution_grad_real * 0.5
+        return (-1) * evolution_grad_real * 0.5

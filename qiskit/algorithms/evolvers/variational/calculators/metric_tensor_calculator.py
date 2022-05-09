@@ -60,7 +60,7 @@ def calculate(
 
 def eval_metric_result(
     metric: OperatorBase,
-    param_dict: Dict[Parameter, Union[float, complex]],
+    param_dict: Dict[Parameter, complex],
     circuit_sampler: Optional[CircuitSampler] = None,
 ) -> OperatorBase:
     """

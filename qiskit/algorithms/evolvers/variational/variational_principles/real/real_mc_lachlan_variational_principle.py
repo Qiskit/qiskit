@@ -26,11 +26,11 @@ from qiskit.opflow import (
     ListOp,
     OperatorBase,
 )
-from ....calculators import (
+from ...calculators import (
     evolution_grad_calculator,
     metric_tensor_calculator,
 )
-from ..real_variational_principle import (
+from .real_variational_principle import (
     RealVariationalPrinciple,
 )
 
@@ -78,7 +78,7 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
         """
 
         def raw_evolution_grad_imag(
-            param_dict: Dict[Parameter, Union[float, complex]],
+            param_dict: Dict[Parameter, complex],
             circuit_sampler: Optional[CircuitSampler] = None,
         ) -> OperatorBase:
             """

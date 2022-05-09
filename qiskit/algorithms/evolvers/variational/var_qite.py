@@ -12,7 +12,7 @@
 
 """Variational Quantum Imaginary Time Evolution algorithm."""
 
-from typing import Optional, Union, Callable
+from typing import Optional, Callable
 
 import numpy as np
 from scipy.integrate import OdeSolver, RK45
@@ -24,7 +24,6 @@ from qiskit.opflow import (
 from qiskit.algorithms.aux_ops_evaluator import eval_observables
 from qiskit.algorithms.evolvers import EvolutionProblem, EvolutionResult
 from qiskit.algorithms.evolvers.imaginary_evolver import ImaginaryEvolver
-from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 from .var_qte import VarQTE
 from ..variational.solvers.ode.abstract_ode_function_generator import (
@@ -47,7 +46,7 @@ class VarQITE(ImaginaryEvolver, VarQTE):
         expectation: Optional[ExpectationBase] = None,
         allowed_imaginary_part: float = 1e-7,
         allowed_num_instability_error: float = 1e-7,
-        quantum_instance: Optional[Union[BaseBackend, QuantumInstance]] = None,
+        quantum_instance: Optional[QuantumInstance] = None,
     ) -> None:
         r"""
         Args:

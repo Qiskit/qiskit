@@ -55,9 +55,9 @@ class VarQTELinearSolver:
         self._circuit_sampler = circuit_sampler
         self._allowed_imaginary_part = allowed_imaginary_part
 
-    def _solve_sle(
+    def solve_sle(
         self,
-        param_dict: Dict[Parameter, Union[float, complex]],
+        param_dict: Dict[Parameter, complex],
         t_param: Optional[Parameter] = None,
         time_value: Optional[float] = None,
     ) -> (Union[List, np.ndarray], Union[List, np.ndarray], np.ndarray):
@@ -86,7 +86,7 @@ class VarQTELinearSolver:
 
     def _calc_lse_lhs(
         self,
-        param_dict: Dict[Parameter, Union[float, complex]],
+        param_dict: Dict[Parameter, complex],
         t_param: Optional[Parameter] = None,
         time_value: Optional[float] = None,
     ) -> OperatorBase:
@@ -107,7 +107,7 @@ class VarQTELinearSolver:
 
     def _calc_lse_rhs(
         self,
-        param_dict: Dict[Parameter, Union[float, complex]],
+        param_dict: Dict[Parameter, complex],
         t_param: Optional[Parameter] = None,
         time_value: Optional[float] = None,
     ) -> OperatorBase:

@@ -35,7 +35,7 @@ class OdeFunctionGenerator(AbstractOdeFunctionGenerator):
         """
         current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
 
-        ode_grad_res, _, _ = self._varqte_linear_solver._solve_sle(
+        ode_grad_res, _, _ = self._varqte_linear_solver.solve_sle(
             current_param_dict,
             self._t_param,
             time,

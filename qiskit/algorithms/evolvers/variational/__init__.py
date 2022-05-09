@@ -12,7 +12,7 @@
 
 """
 Variational Quantum Time Evolutions (:mod:`qiskit.algorithms.evolvers.variational`)
-=====================================================
+===================================================================================
 
 Algorithms for performing Variational Quantum Time Evolution of quantum states and their
 gradients which might be suitable for NISQ devices. VarQTE base class exposes an interface,
@@ -105,13 +105,13 @@ VariationalPrinciples
 """
 from ..variational.var_qrte import VarQRTE
 from .var_qite import VarQITE
-from ..variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.evolvers.variational.variational_principles.imaginary.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
-from ..variational.variational_principles.real.implementations.real_mc_lachlan_variational_principle import (
+from qiskit.algorithms.evolvers.variational.variational_principles.real.real_mc_lachlan_variational_principle import (
     RealMcLachlanVariationalPrinciple,
 )
-from ..variational.variational_principles.real.implementations.real_time_dependent_variational_principle import (
+from qiskit.algorithms.evolvers.variational.variational_principles.real.real_time_dependent_variational_principle import (
     RealTimeDependentVariationalPrinciple,
 )
 

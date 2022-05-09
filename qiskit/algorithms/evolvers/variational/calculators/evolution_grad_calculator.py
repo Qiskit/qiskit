@@ -59,7 +59,7 @@ def calculate(
 
 def eval_grad_result(
     grad: Union[OperatorBase, Callable[[Dict[Parameter, float], CircuitSampler], OperatorBase]],
-    param_dict: Dict[Parameter, Union[float, complex]],
+    param_dict: Dict[Parameter, complex],
     circuit_sampler: Optional[CircuitSampler] = None,
     imag_part_tol: float = 1e-7,
 ) -> OperatorBase:

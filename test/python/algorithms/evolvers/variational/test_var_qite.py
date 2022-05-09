@@ -24,7 +24,7 @@ from qiskit.algorithms.evolvers.variational import VarQITE
 from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_generator import (
     OdeFunctionGenerator,
 )
-from qiskit.algorithms.evolvers.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.evolvers.variational.variational_principles.imaginary.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
@@ -186,7 +186,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         param_dict = dict(zip(parameters, init_param_values))
 
-        backend = Aer.get_backend("statevector_simulator")
+        backend = BasicAer.get_backend("statevector_simulator")
 
         ode_function = OdeFunctionGenerator()
         var_qite = VarQITE(var_principle, ode_function, quantum_instance=backend)
@@ -250,7 +250,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         param_dict = dict(zip(parameters, init_param_values))
 
-        backend = Aer.get_backend("statevector_simulator")
+        backend = BasicAer.get_backend("statevector_simulator")
 
         ode_function = OdeFunctionGenerator()
         var_qite = VarQITE(var_principle, ode_function, quantum_instance=backend)
