@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Classes in the :mod:`.quantum_info` module that support scalar multiplication
+    can now be multiplied by a scalar from either the left or the right.
+    Previously, they would only accept scalar multipliers from the left.
