@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+pub mod converters;
 pub mod marginalization;
 
 use pyo3::prelude::*;
@@ -19,5 +20,6 @@ use pyo3::wrap_pyfunction;
 pub fn results(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(marginalization::marginal_counts))?;
     m.add_wrapped(wrap_pyfunction!(marginalization::marginal_distribution))?;
+    m.add_wrapped(wrap_pyfunction!(marginalization::marginal_memory))?;
     Ok(())
 }

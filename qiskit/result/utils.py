@@ -18,6 +18,8 @@ from typing import List, Union, Optional, Dict
 from collections import Counter
 from copy import deepcopy
 
+import numpy as np
+
 from qiskit.exceptions import QiskitError
 from qiskit.result.result import Result
 from qiskit.result.counts import Counts
@@ -87,12 +89,9 @@ def marginal_counts(
                     sorted_indices = sorted(
                         indices, reverse=True
                     )  # same convention as for the counts
-                    bit_strings = [_hex_to_bin(s) for s in experiment_result.data.memory]
-                    marginal_bit_strings = [
-                        "".join([s[-idx - 1] for idx in sorted_indices if idx < len(s)]) or "0"
-                        for s in bit_strings
-                    ]
-                    experiment_result.data.memory = [_bin_to_hex(s) for s in marginal_bit_strings]
+                    experiment_result.data.memory = results_rs.marginal_memory(
+                        experiment_result.data.memory, sorted_indices, return_hex=True
+                    )
         return result
     else:
         marg_counts = _marginalize(result, indices)
@@ -125,6 +124,52 @@ def _adjust_creg_sizes(creg_sizes, indices):
     # Throw away any cregs with 0 size
     new_creg_sizes = [creg for creg in new_creg_sizes if creg[1] != 0]
     return new_creg_sizes
+
+
+def marginal_memory(
+    memory: List[str],
+    indices: Optional[List[int]] = None,
+    int_return: bool = False,
+    hex_return: bool = False,
+    parallel_threshold: int = 50,
+) -> Union[List[str], np.ndarray]:
+    """Marginalize memory
+
+    This function is multithreaded and will launch a thread pool with threads equal to the number
+    of CPUs by default. You can tune the number of threads with the ``RAYON_NUM_THREADS``
+    environment variable. For example, setting ``RAYON_NUM_THREADS=4`` would limit the thread pool
+    to 4 threads.
+
+    Args:
+        memory: The input memory list, this is a list of hexadecimal strings to be marginalized
+        indices: THe The bit positions of interest to marginalize over. If
+            ``None`` (default), do not marginalize at all.
+        int_return: If set to ``True`` the output will be a list of integers.
+            By default the return type is a bit string. This amd ``hex_return``
+            are mutually exclusive and can not be specified at the same time.
+        hex_return: If set to ``True`` the output will be a list of hexadecimal
+            strings. By default the return type is a bit string. This and
+            ``int_return`` are mutually exclusive and can not be specified
+            at the same time.
+        parallel_threshold: The number of elements in ``memory`` to start running in multiple
+            threads. If ``len(memory)`` is >= this value this function will run in multiple
+            threads. By default this is set to 50.
+
+    Returns:
+        marginal_memory: The list of marginalized memory
+
+    Raises:
+        ValueError: if both ``int_return`` and ``hex_return`` are set to ``True``
+    """
+    if int_return and hex_return:
+        raise ValueError("Either int_return or hex_return can be specified but not both")
+    return results_rs.marginal_memory(
+        memory,
+        indices,
+        return_int=int_return,
+        return_hex=hex_return,
+        parallel_threshold=parallel_threshold,
+    )
 
 
 def marginal_distribution(

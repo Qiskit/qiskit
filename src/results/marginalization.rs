@@ -10,8 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use super::converters::hex_to_bin;
 use hashbrown::HashMap;
+use num_bigint::BigUint;
 use pyo3::prelude::*;
+use rayon::prelude::*;
+use crate::getenv_use_multiple_threads;
 
 fn marginalize<T: std::ops::AddAssign + Copy>(
     counts: HashMap<String, T>,
@@ -67,4 +71,84 @@ pub fn marginal_distribution(
     indices: Option<Vec<usize>>,
 ) -> HashMap<String, f64> {
     marginalize(counts, indices)
+}
+
+#[inline]
+fn map_memory(
+    hexstring: &str,
+    indices: &Option<Vec<usize>>,
+    clbit_size: usize,
+    return_hex: bool,
+) -> String {
+    let out = match indices {
+        Some(indices) => {
+            let bitstring = hex_to_bin(hexstring);
+            let bit_array = bitstring.as_bytes();
+            indices
+                .iter()
+                .map(|bit| {
+                    let index = clbit_size - *bit - 1;
+                    match bit_array.get(index) {
+                        Some(bit) => *bit as char,
+                        None => '0',
+                    }
+                })
+                .rev()
+                .collect()
+        }
+        None => hex_to_bin(hexstring),
+    };
+    if return_hex {
+        format!("0x{:x}", BigUint::parse_bytes(out.as_bytes(), 2).unwrap())
+    } else {
+        out
+    }
+}
+
+#[pyfunction(return_int = "false", return_hex = "false", parallel_threshold = "50")]
+pub fn marginal_memory(
+    py: Python,
+    memory: Vec<String>,
+    indices: Option<Vec<usize>>,
+    return_int: bool,
+    return_hex: bool,
+    parallel_threshold: usize
+) -> PyResult<PyObject> {
+    let run_in_parallel = getenv_use_multiple_threads();
+    let first_elem = memory.get(0);
+    if first_elem.is_none() {
+        let res: Vec<String> = Vec::new();
+        return Ok(res.to_object(py));
+    }
+
+    let clbit_size = hex_to_bin(first_elem.unwrap()).len();
+
+    let out_mem: Vec<String> = if memory.len() < parallel_threshold || !run_in_parallel {
+        memory
+            .iter()
+            .map(|x| map_memory(x, &indices, clbit_size, return_hex))
+            .collect()
+    } else {
+        memory
+            .par_iter()
+            .map(|x| map_memory(x, &indices, clbit_size, return_hex))
+            .collect()
+    };
+    if return_int {
+        if out_mem.len() < parallel_threshold || !run_in_parallel {
+            Ok(out_mem
+                .iter()
+                .map(|x| BigUint::parse_bytes(x.as_bytes(), 2).unwrap())
+                .collect::<Vec<BigUint>>()
+                .to_object(py))
+        } else {
+            Ok(out_mem
+                .par_iter()
+                .map(|x| BigUint::parse_bytes(x.as_bytes(), 2).unwrap())
+                .collect::<Vec<BigUint>>()
+                .to_object(py))
+        }
+    } else {
+        Ok(out_mem.to_object(py))
+    }
 }
