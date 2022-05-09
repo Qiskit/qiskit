@@ -30,9 +30,9 @@ sys.modules["qiskit._accelerate.sparse_pauli_op"] = qiskit._accelerate.sparse_pa
 
 # Extend namespace for backwards compat
 from qiskit import namespace
+
 new_meta_path = []
-new_meta_path.append(namespace.QiskitElementImport(
-    'qiskit_aer', 'qiskit.providers.aer'))
+new_meta_path.append(namespace.QiskitElementImport("qiskit_aer", "qiskit.providers.aer"))
 # Add Qiskit importers to meta_path before PathFinder in the default
 # sys.meta_path to avoid the miss penalty on trying to import a module
 # which does not exist

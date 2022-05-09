@@ -23,6 +23,7 @@ import importlib
 
 class QiskitLoader(Loader):
     """Load qiskit element as a namespace package."""
+
     def __init__(self, new_package, old_namespace):
         super().__init__()
         self.new_package = new_package
@@ -34,10 +35,9 @@ class QiskitLoader(Loader):
     def load_module(self, fullname):
         old_name = fullname
         names = fullname.split(".")
-        new_namespace_names = self.new_package.split('.')
-        old_namespace_names = self.old_namespace.split('.')
-        fullname = ".".join(
-            new_namespace_names + names[len(old_namespace_names):])
+        new_namespace_names = self.new_package.split(".")
+        old_namespace_names = self.old_namespace.split(".")
+        fullname = ".".join(new_namespace_names + names[len(old_namespace_names) :])
         module = importlib.import_module(fullname)
         sys.modules[old_name] = module
         return module
@@ -45,6 +45,7 @@ class QiskitLoader(Loader):
 
 class QiskitElementImport(MetaPathFinder):
     """Meta importer to enable unified qiskit namespace."""
+
     def __init__(self, new_package, old_namespace):
         super().__init__()
         self.new_package = new_package
@@ -54,7 +55,6 @@ class QiskitElementImport(MetaPathFinder):
         """Return the ModuleSpec for Qiskit element."""
         if fullname.startswith(self.old_namespace):
             return importlib.util.spec_from_loader(
-                fullname,
-                QiskitLoader(self.new_package, self.old_namespace),
-                origin='qiskit')
+                fullname, QiskitLoader(self.new_package, self.old_namespace), origin="qiskit"
+            )
         return None
