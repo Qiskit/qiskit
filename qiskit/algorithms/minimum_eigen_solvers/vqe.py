@@ -41,7 +41,6 @@ from qiskit.opflow import (
     StateFn,
 )
 from qiskit.opflow.gradients import GradientBase
-from qiskit.providers import Backend, BaseBackend
 from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.utils.backend_utils import is_aer_provider
 from qiskit.utils.validation import validate_min
