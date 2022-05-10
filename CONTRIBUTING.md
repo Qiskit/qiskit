@@ -464,7 +464,7 @@ merged to it are bugfixes.
 In the lead up to a release there are a few things to keep in mind. Prior to
 the release date there is a feature, removal, and deprecation proposal freeze
 date. This date in each release cycle is the last day where a new PR adding a
-new feature, removal something, or adding a new deprecation can be proposed (in
+new feature, removing something, or adding a new deprecation can be proposed (in
 a ready for review state) for potential inclusion in the release. If a new
 PR is opened after this date it will not be considered for inclusion in that
 release. Note, that meeting these deadlines does not guarantee inclusion in a
