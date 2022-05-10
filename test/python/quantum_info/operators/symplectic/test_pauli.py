@@ -336,6 +336,9 @@ class TestPauli(QiskitTestCase):
         op = val * Pauli(([True, True], [False, False], 0))
         phase = (-1j) ** op.phase
         self.assertEqual(phase, val)
+        op = Pauli(([True, True], [False, False], 0)) * val
+        phase = (-1j) ** op.phase
+        self.assertEqual(phase, val)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""

@@ -958,6 +958,8 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
             if prop_dict is None or None in prop_dict:
                 continue
             for qargs, inst_props in prop_dict.items():
+                if inst_props is None:
+                    continue
                 if gate == "measure":
                     if inst_props.error is not None:
                         read_err[qargs[0]] = inst_props.error
