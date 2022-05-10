@@ -468,7 +468,7 @@ new feature, removal something, or adding a new deprecation can be proposed (in
 a ready for review state) for potential inclusion in the release. If a new
 PR is opened after this date it will not be considered for inclusion in that
 release. Note, that meeting these deadlines does not guarantee inclusion in a
-release they are precondtions. You can refer to the milestone page for each
+release: they are preconditions. You can refer to the milestone page for each
 release to see these dates for each release (for example for 0.21.0 the page is:
 https://github.com/Qiskit/qiskit-terra/milestone/23).
 
