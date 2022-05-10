@@ -140,6 +140,14 @@ Synthesis
    LinearFunctionsSynthesis
    LinearFunctionsToPermutations
 
+Post Layout (Post transpile qubit selection)
+============================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   VF2PostLayout
+
 Additional Passes
 =================
 
@@ -169,6 +177,7 @@ from .layout import NoiseAdaptiveLayout
 from .layout import SabreLayout
 from .layout import CSPLayout
 from .layout import VF2Layout
+from .layout import VF2PostLayout
 from .layout import ApplyLayout
 from .layout import Layout2qDistance
 from .layout import EnlargeWithAncilla

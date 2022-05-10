@@ -106,6 +106,7 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
 
     RealEvolver
     ImaginaryEvolver
+    TrotterQRTE
     EvolutionResult
     EvolutionProblem
 
@@ -205,8 +206,8 @@ Utility methods used by algorithms.
 
 from .algorithm_result import AlgorithmResult
 from .evolvers import EvolutionResult, EvolutionProblem
-from .evolvers.real.real_evolver import RealEvolver
-from .evolvers.imaginary.imaginary_evolver import ImaginaryEvolver
+from .evolvers.real_evolver import RealEvolver
+from .evolvers.imaginary_evolver import ImaginaryEvolver
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
 from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem, AmplitudeAmplifier
 from .amplitude_estimators import (
@@ -243,6 +244,7 @@ from .phase_estimators import (
 )
 from .exceptions import AlgorithmError
 from .aux_ops_evaluator import eval_observables
+from .evolvers.trotterization import TrotterQRTE
 
 __all__ = [
     "AlgorithmResult",
@@ -266,6 +268,7 @@ __all__ = [
     "NumPyEigensolver",
     "RealEvolver",
     "ImaginaryEvolver",
+    "TrotterQRTE",
     "EvolutionResult",
     "EvolutionProblem",
     "LinearSolverResult",
