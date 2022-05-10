@@ -84,7 +84,9 @@ For example, the following code works:
         )
     print(result)
 
-Note that since qiskit's circuit objects and observable objects are not immutable,
+Object equivalency is determined by the object ID. Thus, note that even if they represent the same
+circuit (e.g. ``copy()``), they will not match if they are different objects.
+Also, note that since qiskit's circuit objects and observable objects are not immutable,
 if the object is changed after the construction of the primitives, it may behave unexpectedly.
 
 

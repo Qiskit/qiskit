@@ -254,6 +254,11 @@ def allow_objects(cls=None) -> type[BaseEstimator] | type[BaseSampler] | Primiti
     """
     Allow objects as inputs of indices instead of integer.
 
+    Equivalency of objects is determined by the object ID. Thus, note that even if they represent
+    the same circuit (e.g. ``copy()``), they will not match if they are different objects.
+    Also, note that since qiskit's circuit objects and observable objects are not immutable,
+    if the object is changed after the construction of the primitives, it may behave unexpectedly.
+
     Args:
         cls: class to be decorated.
 
