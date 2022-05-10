@@ -326,7 +326,8 @@ class SabreSwap(TransformationPass):
 
     def _is_resolved(self, node):
         """Return True if all of a node's predecessors in dag are applied."""
-        return self.applied_predecessors[node] == len(node.qargs) + len(node.cargs)
+        n_condition = int(node.op.condition is not None)
+        return self.applied_predecessors[node] == len(node.qargs) + len(node.cargs) + n_condition
 
     def _obtain_extended_set(self, dag, front_layer):
         """Populate extended_set by looking ahead a fixed number of gates.

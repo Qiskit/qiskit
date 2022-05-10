@@ -17,7 +17,7 @@ import unittest
 import ddt
 
 from qiskit.circuit.library import CCXGate, HGate, Measure, SwapGate
-from qiskit.transpiler.passes import SabreSwap
+from qiskit.transpiler.passes import SabreSwap, TrivialLayout
 from qiskit.transpiler import CouplingMap, PassManager
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
@@ -236,6 +236,20 @@ class TestSabreSwap(QiskitTestCase):
         in_results = sim.run(qc, shots=4096).result().get_counts()
         out_results = sim.run(routed, shots=4096).result().get_counts()
         self.assertEqual(set(in_results), set(out_results))
+
+    def test_classical_condition(self):
+        """Test that :class:`.SabreSwap` correctly accounts for classical conditions in its
+        reckoning on whether a node is resolved or not.  If it is not handled correctly, the second
+        gate might not appear in the output.
+
+        Regression test of gh-8040."""
+        qc = QuantumCircuit(2, 1)
+        qc.z(0)
+        qc.z(0).c_if(qc.cregs[0], 0)
+        cm = CouplingMap([(0, 1), (1, 0)])
+        expected = PassManager([TrivialLayout(cm)]).run(qc)
+        actual = PassManager([TrivialLayout(cm), SabreSwap(cm)]).run(qc)
+        self.assertEqual(expected, actual)
 
 
 if __name__ == "__main__":
