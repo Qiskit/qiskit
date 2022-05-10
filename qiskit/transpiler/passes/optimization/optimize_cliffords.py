@@ -58,11 +58,13 @@ class OptimizeCliffords(TransformationPass):
 
             else:
                 # not a clifford
-                blocks.append(cur_block)
+                if cur_block:
+                    blocks.append(cur_block)
                 prev_node = None
                 cur_block = []
 
-        blocks.append(cur_block)
+        if cur_block:
+            blocks.append(cur_block)
 
         # Replace every discovered block of cliffords by a single clifford
         # based on the Cliffords' compose function.

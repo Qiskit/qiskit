@@ -76,7 +76,7 @@ class Operator(LinearOp):
             # Default initialization from list or numpy array matrix
             self._data = np.asarray(data, dtype=complex)
         elif isinstance(data, (QuantumCircuit, Operation)):
-            # If the input is a Terra QuantumCircuit or Instruction we
+            # If the input is a Terra QuantumCircuit or Operation we
             # perform a simulation to construct the unitary operator.
             # This will only work if the circuit or instruction can be
             # defined in terms of unitary gate instructions which have a
@@ -498,7 +498,7 @@ class Operator(LinearOp):
 
     @classmethod
     def _init_instruction(cls, instruction):
-        """Convert a QuantumCircuit or Instruction to an Operator."""
+        """Convert a QuantumCircuit or Operation to an Operator."""
         # Initialize an identity operator of the correct size of the circuit
         if hasattr(instruction, "__array__"):
             return Operator(np.array(instruction, dtype=complex))
@@ -544,10 +544,10 @@ class Operator(LinearOp):
             # circuit decomposition definition if it exists, otherwise we
             # cannot compose this gate and raise an error.
             if obj.definition is None:
-                raise QiskitError(f"Cannot apply Instruction: {obj.name}")
+                raise QiskitError(f"Cannot apply Operation: {obj.name}")
             if not isinstance(obj.definition, QuantumCircuit):
                 raise QiskitError(
-                    'Instruction "{}" '
+                    'Operation "{}" '
                     "definition is {} but expected QuantumCircuit.".format(
                         obj.name, type(obj.definition)
                     )
@@ -569,7 +569,7 @@ class Operator(LinearOp):
             for instr, qregs, cregs in flat_instr:
                 if cregs:
                     raise QiskitError(
-                        f"Cannot apply instruction with classical registers: {instr.name}"
+                        f"Cannot apply operation with classical registers: {instr.name}"
                     )
                 # Get the integer position of the flat register
                 if qargs is None:

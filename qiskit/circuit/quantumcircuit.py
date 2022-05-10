@@ -1165,20 +1165,20 @@ class QuantumCircuit:
         qargs: Optional[Sequence[QubitSpecifier]] = None,
         cargs: Optional[Sequence[ClbitSpecifier]] = None,
     ) -> InstructionSet:
-        """Append one or more instructions to the end of the circuit, modifying
+        """Append one or more operations to the end of the circuit, modifying
         the circuit in place. Expands qargs and cargs.
 
         Args:
-            instruction (qiskit.circuit.Instruction): Instruction instance to append
+            instruction (qiskit.circuit.Operation): Operation instance to append
             qargs (list(argument)): qubits to attach instruction to
             cargs (list(argument)): clbits to attach instruction to
 
         Returns:
-            qiskit.circuit.Instruction: a handle to the instruction that was just added
+            qiskit.circuit.InstructionSet: a handle to the instruction that was just added
 
         Raises:
-            CircuitError: if object passed is a subclass of Instruction
-            CircuitError: if object passed is neither subclass nor an instance of Instruction
+            CircuitError: if object passed is a subclass of Operation
+            CircuitError: if object passed is neither subclass nor an instance of Operation
         """
         # Convert input to instruction
         if not isinstance(instruction, Operation) and not hasattr(instruction, "to_instruction"):
@@ -1222,8 +1222,8 @@ class QuantumCircuit:
         instruction: Operation,
         qargs: Sequence[Qubit],
         cargs: Sequence[Clbit],
-    ) -> Instruction:
-        """Append an instruction to the end of the circuit, modifying the circuit in place.
+    ) -> Operation:
+        """Append an operation to the end of the circuit, modifying the circuit in place.
 
         .. warning::
 
@@ -1243,12 +1243,12 @@ class QuantumCircuit:
             constructs of the control-flow builder interface.
 
         Args:
-            instruction: Instruction instance to append
+            instruction: Operation instance to append
             qargs: Qubits to attach the instruction to.
             cargs: Clbits to attach the instruction to.
 
         Returns:
-            Instruction: a handle to the instruction that was just added
+            Operation: a handle to the instruction that was just added
 
         :meta public:
         """
@@ -1264,7 +1264,7 @@ class QuantumCircuit:
 
     def _update_parameter_table(self, instruction: Operation) -> Operation:
         # A generic Operation object at the moment does not require to have params.
-        if not hasattr(instruction, "params"):
+        if not isinstance(instruction, Instruction):
             return instruction
 
         for param_index, param in enumerate(instruction.params):
