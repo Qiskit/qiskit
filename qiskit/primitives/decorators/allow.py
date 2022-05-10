@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Iterator, Sequence
 from functools import wraps
 import sys
 from typing import overload
@@ -309,15 +309,7 @@ def _allow_objects(cls):
         ) -> EstimatorResult:
             try:
                 circuit_indices = [
-                    next(
-                        map(
-                            lambda x: x[0],
-                            filter(
-                                lambda x: x[1] == id(i),  # pylint: disable=cell-var-from-loop
-                                enumerate(self.__circuit_ids),
-                            ),
-                        )
-                    )
+                    next(_finditer(i, self.__circuit_ids))
                     if not isinstance(i, (int, np.integer))
                     else i
                     for i in circuit_indices
@@ -326,15 +318,7 @@ def _allow_objects(cls):
                 raise QiskitError("The object id does not match.") from err
             try:
                 observable_indices = [
-                    next(
-                        map(
-                            lambda x: x[0],
-                            filter(
-                                lambda x: x[1] == id(i),  # pylint: disable=cell-var-from-loop
-                                enumerate(self.__observable_ids),
-                            ),
-                        )
-                    )
+                    next(_finditer(i, self.__observable_ids))
                     if not isinstance(i, (int, np.integer))
                     else i
                     for i in observable_indices
@@ -355,7 +339,7 @@ def _allow_objects(cls):
             parameters: Iterable[Iterable[Parameter]] | None = None,
             **kwargs,
         ):
-            self._circuit_ids = [id(i) for i in circuits]
+            self.__circuit_ids = [id(i) for i in circuits]
             original_init_method(self, circuits, parameters, *args, **kwargs)
 
         @wraps(cls.__call__)
@@ -367,15 +351,7 @@ def _allow_objects(cls):
         ) -> SamplerResult:
             try:
                 circuit_indices = [
-                    next(
-                        map(
-                            lambda x: x[0],
-                            filter(
-                                lambda x: x[1] == id(i),  # pylint: disable=cell-var-from-loop
-                                enumerate(self._circuit_ids),
-                            ),
-                        )
-                    )
+                    next(_finditer(i, self.__circuit_ids))
                     if not isinstance(i, (int, np.integer))
                     else i
                     for i in circuit_indices
@@ -393,3 +369,8 @@ def _allow_objects(cls):
     setattr(cls, "__call__", wrapper)
     setattr(cls, "__init__", init_wrapper)
     return cls
+
+
+def _finditer(obj: object, object_ids: list[int]) -> Iterator[int]:
+    """Return an iterator yielding the indices matching obj."""
+    return map(lambda x: x[0], filter(lambda x: x[1] == id(obj), enumerate(object_ids)))
