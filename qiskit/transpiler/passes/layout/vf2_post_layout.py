@@ -13,10 +13,7 @@
 """VF2PostLayout pass to find a layout after transpile using subgraph isomorphism"""
 from enum import Enum
 import logging
-import random
 import time
-from collections import defaultdict
-import statistics
 
 from retworkx import PyDiGraph, vf2_mapping, PyGraph
 
@@ -24,6 +21,7 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.providers.exceptions import BackendPropertyError
+from qiskit.transpiler.passes.layout import vf2_utils
 
 
 logger = logging.getLogger(__name__)
@@ -129,44 +127,15 @@ class VF2PostLayout(AnalysisPass):
             raise TranspilerError(
                 "A target must be specified or a coupling map and properties must be provided"
             )
-        if self.strict_direction:
-            im_graph = PyDiGraph(multigraph=False)
-        else:
-            if self.avg_error_map is None:
-                self.avg_error_map = self._build_average_error_map()
-            im_graph = PyGraph(multigraph=False)
-        im_graph_node_map = {}
-        reverse_im_graph_node_map = {}
-
-        for node in dag.op_nodes(include_directives=False):
-            len_args = len(node.qargs)
-            if len_args == 1:
-                if node.qargs[0] not in im_graph_node_map:
-                    weight = defaultdict(int)
-                    weight[node.name] += 1
-                    im_graph_node_map[node.qargs[0]] = im_graph.add_node(weight)
-                    reverse_im_graph_node_map[im_graph_node_map[node.qargs[0]]] = node.qargs[0]
-                else:
-                    im_graph[im_graph_node_map[node.qargs[0]]][node.op.name] += 1
-            if len_args == 2:
-                if node.qargs[0] not in im_graph_node_map:
-                    im_graph_node_map[node.qargs[0]] = im_graph.add_node(defaultdict(int))
-                    reverse_im_graph_node_map[im_graph_node_map[node.qargs[0]]] = node.qargs[0]
-                if node.qargs[1] not in im_graph_node_map:
-                    im_graph_node_map[node.qargs[1]] = im_graph.add_node(defaultdict(int))
-                    reverse_im_graph_node_map[im_graph_node_map[node.qargs[1]]] = node.qargs[1]
-                edge = (im_graph_node_map[node.qargs[0]], im_graph_node_map[node.qargs[1]])
-                if im_graph.has_edge(*edge):
-                    im_graph.get_edge_data(*edge)[node.name] += 1
-                else:
-                    weight = defaultdict(int)
-                    weight[node.name] += 1
-                    im_graph.add_edge(*edge, weight)
-            if len_args >= 3:
-                self.property_set[
-                    "VF2PostLayout_stop_reason"
-                ] = VF2PostLayoutStopReason.MORE_THAN_2Q
-                return
+        if not self.strict_direction and self.avg_error_map is None:
+            self.avg_error_map = vf2_utils.build_average_error_map(
+                self.target, self.properties, self.coupling_map
+            )
+        result = vf2_utils.build_interaction_graph(dag, self.strict_direction)
+        if result is None:
+            self.property_set["VF2PostLayout_stop_reason"] = VF2PostLayoutStopReason.MORE_THAN_2Q
+            return
+        im_graph, im_graph_node_map, reverse_im_graph_node_map = result
 
         if self.target is not None:
             if self.strict_direction:
@@ -186,21 +155,9 @@ class VF2PostLayout(AnalysisPass):
                     )
             cm_nodes = list(cm_graph.node_indexes())
         else:
-            if self.strict_direction:
-                cm_graph = self.coupling_map.graph
-            else:
-                cm_graph = self.coupling_map.graph.to_undirected(multigraph=False)
-            cm_nodes = list(cm_graph.node_indexes())
-            if self.seed != -1:
-                random.Random(self.seed).shuffle(cm_nodes)
-                shuffled_cm_graph = type(cm_graph)()
-                shuffled_cm_graph.add_nodes_from(cm_nodes)
-                new_edges = [
-                    (cm_nodes[edge[0]], cm_nodes[edge[1]]) for edge in cm_graph.edge_list()
-                ]
-                shuffled_cm_graph.add_edges_from_no_data(new_edges)
-                cm_nodes = [k for k, v in sorted(enumerate(cm_nodes), key=lambda item: item[1])]
-                cm_graph = shuffled_cm_graph
+            cm_graph, cm_nodes = vf2_utils.shuffle_coupling_graph(
+                self.coupling_map, self.seed, self.strict_direction
+            )
 
         logger.debug("Running VF2 to find post transpile mappings")
         if self.target and self.strict_direction:
@@ -231,8 +188,13 @@ class VF2PostLayout(AnalysisPass):
                     initial_layout, im_graph_node_map, reverse_im_graph_node_map, im_graph
                 )
             else:
-                chosen_layout_score = self._approx_score_layout(
-                    initial_layout, im_graph_node_map, reverse_im_graph_node_map, im_graph
+                chosen_layout_score = vf2_utils.score_layout(
+                    self.avg_error_map,
+                    initial_layout,
+                    im_graph_node_map,
+                    reverse_im_graph_node_map,
+                    im_graph,
+                    self.strict_direction,
                 )
         # Circuit not in basis so we have nothing to compare against return here
         except KeyError:
@@ -257,8 +219,13 @@ class VF2PostLayout(AnalysisPass):
                     layout, im_graph_node_map, reverse_im_graph_node_map, im_graph
                 )
             else:
-                layout_score = self._approx_score_layout(
-                    layout, im_graph_node_map, reverse_im_graph_node_map, im_graph
+                layout_score = vf2_utils.score_layout(
+                    self.avg_error_map,
+                    layout,
+                    im_graph_node_map,
+                    reverse_im_graph_node_map,
+                    im_graph,
+                    self.strict_direction,
                 )
             logger.debug("Trial %s has score %s", trials, layout_score)
             if layout_score < chosen_layout_score:
@@ -300,20 +267,6 @@ class VF2PostLayout(AnalysisPass):
             self.property_set["post_layout"] = chosen_layout
 
         self.property_set["VF2PostLayout_stop_reason"] = stop_reason
-
-    def _approx_score_layout(self, layout, bit_map, reverse_bit_map, im_graph):
-        bits = layout.get_virtual_bits()
-        fidelity = 1
-        for bit, node_index in bit_map.items():
-            gate_count = sum(im_graph[node_index].values())
-            fidelity *= (1 - self.avg_error_map[(bits[bit],)]) ** gate_count
-        for edge in im_graph.edge_index_map().values():
-            gate_count = sum(edge[2].values())
-            qargs = (bits[reverse_bit_map[edge[0]]], bits[reverse_bit_map[edge[1]]])
-            if qargs not in self.avg_error_map:
-                qargs = (qargs[1], qargs[0])
-            fidelity *= (1 - self.avg_error_map[qargs]) ** gate_count
-        return 1 - fidelity
 
     def _score_layout(self, layout, bit_map, reverse_bit_map, im_graph):
         bits = layout.get_virtual_bits()
@@ -358,27 +311,3 @@ class VF2PostLayout(AnalysisPass):
                     except BackendPropertyError:
                         pass
         return 1 - fidelity
-
-    def _build_average_error_map(self):
-        avg_map = {}
-        if self.target is not None:
-            for qargs in self.target.qargs:
-                qarg_error = 0.0
-                count = 0
-                for op in self.target.operation_names_for_qargs(qargs):
-                    inst_props = self.target[op].get(qargs, None)
-                    if inst_props is not None and inst_props.error is not None:
-                        count += 1
-                        qarg_error += inst_props.error
-                avg_map[qargs] = qarg_error / count
-        else:
-            errors = defaultdict(list)
-            for qubit in range(len(self.properties.qubits)):
-                errors[(qubit,)].append(self.properties.readout_error(qubit))
-            for gate in self.properties.gates:
-                qubits = tuple(gate.qubits)
-                for param in gate.parameters:
-                    if param.name == "gate_error":
-                        errors[qubits].append(param.value)
-            avg_map = {k: statistics.mean(v) for k, v in errors.items()}
-        return avg_map
