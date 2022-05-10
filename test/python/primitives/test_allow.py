@@ -69,7 +69,7 @@ class TestAllowOptional(QiskitTestCase):
 
         with CustomSampler([self.ansatz_with_meas]) as sampler:
             result = sampler(parameter_values=[list(range(6))])
-        self.assertDictEqual(result.quasi_dists[0], self.quasi_dists[0])
+        self.assertDictAlmostEqual(result.quasi_dists[0], self.quasi_dists[0])
 
     def test_allow_optional_estimator(self):
         """Test allow optional decorator for Estimator."""
@@ -94,8 +94,8 @@ class TestAllowOptional(QiskitTestCase):
 
         with CustomSampler([self.ansatz_with_meas]) as sampler:
             result = sampler(parameter_values=[list(range(6)), [0, 1, 1, 2, 3, 5]])
-        self.assertDictEqual(result.quasi_dists[0], self.quasi_dists[0])
-        self.assertDictEqual(result.quasi_dists[1], self.quasi_dists[1])
+        self.assertDictAlmostEqual(result.quasi_dists[0], self.quasi_dists[0])
+        self.assertDictAlmostEqual(result.quasi_dists[1], self.quasi_dists[1])
 
     def test_allow_broadcasting_estimator(self):
         """Test allow broadcasting decorator for Estimator."""
@@ -122,7 +122,7 @@ class TestAllowOptional(QiskitTestCase):
             result = sampler(
                 circuit_indices=[self.ansatz_with_meas], parameter_values=[list(range(6))]
             )
-        self.assertDictEqual(result.quasi_dists[0], self.quasi_dists[0])
+        self.assertDictAlmostEqual(result.quasi_dists[0], self.quasi_dists[0])
 
     def test_allow_objects_estimator(self):
         """Test allow object decorator for Estimator."""
