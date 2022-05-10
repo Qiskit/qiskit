@@ -18,7 +18,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
 from qiskit.utils import algorithm_globals, QuantumInstance
-from qiskit import Aer, BasicAer
+from qiskit import BasicAer
 from qiskit.algorithms import EvolutionProblem
 from qiskit.algorithms.evolvers.variational import VarQITE
 from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_generator import (

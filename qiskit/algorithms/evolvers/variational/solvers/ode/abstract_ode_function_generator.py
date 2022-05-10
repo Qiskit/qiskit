@@ -13,7 +13,7 @@
 """Abstract class for generating ODE functions."""
 
 from abc import ABC, abstractmethod
-from typing import Iterable, Union, Dict
+from typing import Iterable, Dict
 from qiskit.circuit import Parameter
 from ..var_qte_linear_solver import (
     VarQTELinearSolver,

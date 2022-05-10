@@ -45,6 +45,8 @@ def calculate(
 
     Returns:
         Parametrized evolution gradient as an OperatorBase.
+    Raises:
+        ValueError: If unsupported value for ``basis`` is provided for a given gradient method.
     """
     operator = StateFn(observable, is_measurement=True) @ StateFn(ansatz)
     if grad_method == "lin_comb":

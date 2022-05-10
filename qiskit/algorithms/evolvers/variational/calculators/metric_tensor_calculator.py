@@ -43,12 +43,15 @@ def calculate(
 
     Returns:
         Parametrized metric tensor as a ListOp.
+    Raises:
+        ValueError: If unsupported values for ``basis`` or ``phase_fix`` are provided for a given
+            QFI method.
     """
     operator = CircuitStateFn(ansatz)
 
     if qfi_method == "lin_comb_full":
         return LinCombFull(aux_meas_op=basis, phase_fix=phase_fix).convert(operator, parameters)
-    elif basis != Z or phase_fix == False:
+    elif basis != Z or phase_fix is False:
         raise ValueError(
             f"Basis which is not Z or phase fix which is False are only supported for "
             f"``lin_comb_full`` method. Provided method is {qfi_method} with basis {basis} and "

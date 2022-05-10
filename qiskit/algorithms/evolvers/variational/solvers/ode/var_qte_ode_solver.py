@@ -13,7 +13,7 @@
 """Class for solving ODEs for Quantum Time Evolution."""
 
 import itertools
-from typing import List, Union
+from typing import List
 
 from scipy.integrate import OdeSolver, solve_ivp, RK45
 

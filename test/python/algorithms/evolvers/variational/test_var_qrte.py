@@ -27,7 +27,7 @@ from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_generator i
 from qiskit.algorithms.evolvers.variational.variational_principles.real.real_mc_lachlan_variational_principle import (
     RealMcLachlanVariationalPrinciple,
 )
-from qiskit import Aer, BasicAer
+from qiskit import BasicAer
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import (
     SummedOp,
