@@ -17,6 +17,7 @@ found, no ``property_set['layout']`` is set.
 """
 import random
 from time import time
+from warnings import warn
 from constraint import Problem, RecursiveBacktrackingSolver, AllDifferentConstraint
 
 from qiskit.transpiler.layout import Layout
@@ -63,7 +64,7 @@ class CustomSolver(RecursiveBacktrackingSolver):
 
 
 class CSPLayout(AnalysisPass):
-    """If possible, chooses a Layout as a CSP, using backtracking."""
+    """Deprecated: use :class:`qiskit.transpiler.passes.VF2Layout` pass instead."""
 
     def __init__(
         self, coupling_map, strict_direction=False, seed=None, call_limit=1000, time_limit=10
@@ -96,6 +97,12 @@ class CSPLayout(AnalysisPass):
         self.call_limit = call_limit
         self.time_limit = time_limit
         self.seed = seed
+        warn(
+            "The CSPLayout pass has been deprecated "
+            "and replaced by a more generic and faster VF2Layout pass.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
     def run(self, dag):
         """run the layout method"""

@@ -1,0 +1,5 @@
+---
+deprecations:
+  - |
+    The pass :class:`~.CSPLayout` is been deprecated in favor of :class:`~.VF2Layout`.
+    Both passes work under the same principle of subgraph isomorphism and :class:`~.VF2Layout` is not only faster, but also noise-aware.
