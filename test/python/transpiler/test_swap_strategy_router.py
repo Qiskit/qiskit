@@ -126,6 +126,44 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         self.assertEqual(swapped, expected)
 
+    def test_idle_qubit(self):
+        """Test to route on an op that has an idle qubit.
+
+        The op is :code:`[("IIXX", 1), ("IXIX", 2)]`.
+
+        The expected circuit is:
+
+        ..parsed-literal::
+
+                 ┌─────────────────┐
+            q_0: ┤0                ├─X────────────────────
+                 │  exp(-it XX)(3) │ │ ┌─────────────────┐
+            q_1: ┤1                ├─X─┤0                ├
+                 └─────────────────┘   │  exp(-it XX)(6) │
+            q_2: ──────────────────────┤1                ├
+                                       └─────────────────┘
+            q_3: ─────────────────────────────────────────
+
+        """
+        op = PauliSumOp.from_list([("IIXX", 1), ("IXIX", 2)])
+
+        cmap = CouplingMap(couplinglist=[(0, 1), (1, 2), (2, 3)])
+        swap_strat = SwapStrategy(cmap, swap_layers=(((0, 1), ), ))
+
+        pm_ = PassManager([FindCommutingPauliEvolutions(), Commuting2qGateRouter(swap_strat)])
+
+        circ = QuantumCircuit(4)
+        circ.append(PauliEvolutionGate(op, 3), range(4))
+
+        swapped = pm_.run(circ)
+
+        expected = QuantumCircuit(4)
+        expected.append(PauliEvolutionGate(Pauli("XX"), 3), (0, 1))
+        expected.swap(0, 1)
+        expected.append(PauliEvolutionGate(Pauli("XX"), 6), (1, 2))
+
+        self.assertEqual(swapped, expected)
+
     def test_basic_xx_with_measure(self):
         """Test to route an XX-based evolution op with measures.
 
