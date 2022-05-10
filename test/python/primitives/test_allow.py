@@ -82,7 +82,7 @@ class TestAllowOptional(QiskitTestCase):
         with CustomEstimator([self.ansatz], [self.observable]) as estimator:
             result = estimator(parameter_values=[list(range(6))])
 
-        self.assertEqual(result.values[0], self.expvals[0])
+        self.assertAlmostEqual(result.values[0], self.expvals[0])
 
     def test_allow_broadcasting_sampler(self):
         """Test allow broadcasting decorator for Sampler."""
@@ -107,8 +107,8 @@ class TestAllowOptional(QiskitTestCase):
 
         with CustomEstimator([self.ansatz], [self.observable]) as estimator:
             result = estimator(parameter_values=[list(range(6)), [0, 1, 1, 2, 3, 5]])
-        self.assertEqual(result.values[0], self.expvals[0])
-        self.assertEqual(result.values[1], self.expvals[1])
+        self.assertAlmostEqual(result.values[0], self.expvals[0])
+        self.assertAlmostEqual(result.values[1], self.expvals[1])
 
     def test_allow_objects_sampler(self):
         """Test allow objects decorator for Sampler."""
@@ -138,8 +138,8 @@ class TestAllowOptional(QiskitTestCase):
                 observable_indices=[self.observable, self.observable],
                 parameter_values=[list(range(6)), [0, 1, 1, 2, 3, 5]],
             )
-        self.assertEqual(result.values[0], self.expvals[0])
-        self.assertEqual(result.values[1], self.expvals[1])
+        self.assertAlmostEqual(result.values[0], self.expvals[0])
+        self.assertAlmostEqual(result.values[1], self.expvals[1])
 
 
 if __name__ == "__main__":
