@@ -24,7 +24,8 @@ from ..variational_principle import (
 
 
 class RealVariationalPrinciple(VariationalPrinciple, ABC):
-    """Class for a Real Variational Principle."""
+    """Class for a Real Variational Principle. The real variant means that we consider real time
+    dynamics."""
 
     def __init__(
         self,

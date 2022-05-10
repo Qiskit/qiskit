@@ -36,7 +36,12 @@ from .real_variational_principle import (
 
 
 class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
-    """Class for a Real McLachlan's Variational Principle."""
+    """Class for an Imaginary McLachlan's Variational Principle. It aims to minimize the distance
+    between both sides of the Wick-rotated Schrödinger equation with a quantum state given as a
+    parametrized trial state. The principle leads to a system of linear equations handled by the
+    `~qiskit.algorithms.evolvers.variational.solvers.VarQTELinearSolver` class. The real variant
+    means that we consider real time dynamics.
+    """
 
     def calc_metric_tensor(
         self,
@@ -91,6 +96,8 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
 
             Returns:
                 Calculated evolution gradient, according to the variational principle.
+            Raises:
+                ValueError: If an unsupported gradient method is provided.
             """
             if self._grad_method != "lin_comb":
                 raise ValueError(

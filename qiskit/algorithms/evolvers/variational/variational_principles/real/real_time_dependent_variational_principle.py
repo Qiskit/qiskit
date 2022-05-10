@@ -27,7 +27,12 @@ from .real_variational_principle import (
 
 
 class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
-    """Class for a Real Time Dependent Variational Principle."""
+    """Class for a Real Time Dependent Variational Principle. It works by evaluating the Lagrangian
+    corresponding the given system at a parametrized trial state and applying the Euler-Lagrange
+    equation. The principle leads to a system of linear equations handled by the
+    `~qiskit.algorithms.evolvers.variational.solvers.VarQTELinearSolver` class. The real variant
+    means that we consider real time dynamics.
+    """
 
     def calc_metric_tensor(
         self,

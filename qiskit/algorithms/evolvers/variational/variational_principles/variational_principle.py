@@ -27,7 +27,8 @@ from qiskit.opflow import (
 
 
 class VariationalPrinciple(ABC):
-    """Class for a Variational Principle."""
+    """A Variational Principle class. It determines the time propagation of parameters in a
+    quantum state provided as a parametrized quantum circuit (ansatz)."""
 
     def __init__(
         self,
