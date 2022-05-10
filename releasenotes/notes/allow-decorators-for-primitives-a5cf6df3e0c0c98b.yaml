@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Added allow decorators, which extend the primitive interface. See
+    :mod:`qiskit.primitives.decorators` for details.
+upgrade:
+  - |
+    Removed out-of-specification interfaces. Specifically, Optional is no longer allowed when
+    calling primitives. Use explicit :func:`~qiskit.primitives.allow_optional` decorator.

@@ -12,11 +12,11 @@
 
 """Tests for Sampler."""
 
-import unittest
 from test import combine
+import unittest
 
-import numpy as np
 from ddt import ddt
+import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
@@ -84,7 +84,9 @@ class TestSampler(QiskitTestCase):
         """test for sampler"""
         circuits, target = self._generate_circuits_target(indices)
         with Sampler(circuits=circuits) as sampler:
-            result = sampler(parameter_values=[[] for _ in indices])
+            result = sampler(
+                circuit_indices=list(range(len(indices))), parameter_values=[[]] * len(indices)
+            )
             self._compare_probs(result.quasi_dists, target)
 
     @combine(indices=[[0], [1], [0, 1]])
@@ -101,7 +103,7 @@ class TestSampler(QiskitTestCase):
         circs = [self._pqc, self._pqc]
         params, target = self._generate_params_target(indices)
         with Sampler(circuits=circs) as sampler:
-            result = sampler(parameter_values=params)
+            result = sampler(circuit_indices=[0, 0], parameter_values=params)
             self._compare_probs(result.quasi_dists, target)
 
     def test_sampler_example(self):
@@ -114,7 +116,7 @@ class TestSampler(QiskitTestCase):
 
         # executes a Bell circuit
         with Sampler(circuits=[bell], parameters=[[]]) as sampler:
-            result = sampler(parameter_values=[[]], circuits=[0])
+            result = sampler(parameter_values=[[]], circuit_indices=[0])
             self.assertIsInstance(result, SamplerResult)
             self.assertEqual(len(result.quasi_dists), 1)
             keys, values = zip(*sorted(result.quasi_dists[0].items()))
@@ -331,7 +333,7 @@ class TestSampler(QiskitTestCase):
         qc.measure(range(n - 1), range(n - 1))
         with Sampler(circuits=[qc] * 10) as sampler:
             with self.subTest("one circuit"):
-                result = sampler([0], shots=1000)
+                result = sampler([0], [[]], shots=1000)
                 self.assertEqual(len(result.quasi_dists), 1)
                 for q_d in result.quasi_dists:
                     quasi_dist = {k: v for k, v in q_d.items() if v != 0.0}
@@ -339,7 +341,7 @@ class TestSampler(QiskitTestCase):
                 self.assertEqual(len(result.metadata), 1)
 
             with self.subTest("two circuits"):
-                result = sampler([2, 4], shots=1000)
+                result = sampler([2, 4], [[], []], shots=1000)
                 self.assertEqual(len(result.quasi_dists), 2)
                 for q_d in result.quasi_dists:
                     quasi_dist = {k: v for k, v in q_d.items() if v != 0.0}

@@ -48,10 +48,19 @@ Results
 
    EstimatorResult
    SamplerResult
+
+Decorators
+==================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   decorators
 """
 
 from .base_estimator import BaseEstimator
 from .base_sampler import BaseSampler
+from .decorators import allow_broadcasting, allow_objects, allow_optional
 from .estimator import Estimator
 from .estimator_result import EstimatorResult
 from .sampler import Sampler

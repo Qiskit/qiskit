@@ -48,7 +48,7 @@ class TestEstimator(QiskitTestCase):
             observable = PauliSumOp.from_list(lst)
             ansatz = RealAmplitudes(num_qubits=2, reps=2)
             with Estimator([ansatz], [observable]) as est:
-                result = est(parameter_values=[0, 1, 1, 2, 3, 5])
+                result = est([0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]])
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [1.84209213])
 
@@ -56,7 +56,7 @@ class TestEstimator(QiskitTestCase):
             observable = SparsePauliOp.from_list(lst)
             ansatz = RealAmplitudes(num_qubits=2, reps=2)
             with Estimator([ansatz], [observable]) as est:
-                result = est(parameter_values=[0, 1, 1, 2, 3, 5])
+                result = est([0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]])
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [1.84209213])
 
@@ -65,7 +65,7 @@ class TestEstimator(QiskitTestCase):
         observable = PauliSumOp.from_list([("XX", 1), ("YY", 2), ("ZZ", 3)])
         ansatz = RealAmplitudes(num_qubits=2, reps=2)
         with Estimator([ansatz], [observable], [ansatz.parameters[::-1]]) as est:
-            result = est(parameter_values=[0, 1, 1, 2, 3, 5][::-1])
+            result = est([0], [0], parameter_values=[[0, 1, 1, 2, 3, 5][::-1]])
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1.84209213])
 
@@ -76,7 +76,7 @@ class TestEstimator(QiskitTestCase):
         with Estimator([statevector], [self.observable]) as est:
             self.assertIsInstance(est.circuits[0], QuantumCircuit)
             np.testing.assert_allclose(est.circuits[0][0][0].params, vector)
-            result = est()
+            result = est([0], [0], [[]])
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-0.88272215])
 
@@ -92,14 +92,14 @@ class TestEstimator(QiskitTestCase):
             ]
         )
         with Estimator([circuit], [matrix]) as est:
-            result = est()
+            result = est([0], [0], [[]])
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.284366511861733])
 
     def test_evaluate(self):
         """test for evaluate"""
         with Estimator([self.ansatz], [self.observable]) as est:
-            result = est(parameter_values=[0, 1, 1, 2, 3, 5])
+            result = est([0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]])
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.284366511861733])
 
@@ -116,7 +116,7 @@ class TestEstimator(QiskitTestCase):
         """test for evaluate without parameters"""
         circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
         with Estimator([circuit], [self.observable]) as est:
-            result = est()
+            result = est([0], [0], [[]])
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.284366511861733])
 
@@ -127,7 +127,9 @@ class TestEstimator(QiskitTestCase):
         circuit.cx(0, 1)
         circuit.cx(1, 2)
         with Estimator(circuit, ["ZZZ", "III"]) as est:
-            result = est(circuit_indices=[0, 0], observable_indices=[0, 1])
+            result = est(
+                circuit_indices=[0, 0], observable_indices=[0, 1], parameter_values=[[], []]
+            )
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [0.0, 1.0])
 
@@ -272,12 +274,12 @@ class TestEstimator(QiskitTestCase):
         op = SparsePauliOp.from_list([("I" * n, 1)])
         with Estimator(circuits=[qc] * 10, observables=[op] * 10) as estimator:
             with self.subTest("one circuit"):
-                result = estimator([0], [1], shots=1000)
+                result = estimator([0], [1], [[]], shots=1000)
                 np.testing.assert_allclose(result.values, [1])
                 self.assertEqual(len(result.metadata), 1)
 
             with self.subTest("two circuits"):
-                result = estimator([2, 4], [3, 5], shots=1000)
+                result = estimator([2, 4], [3, 5], [[], []], shots=1000)
                 np.testing.assert_allclose(result.values, [1, 1])
                 self.assertEqual(len(result.metadata), 2)
 

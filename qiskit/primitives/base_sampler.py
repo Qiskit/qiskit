@@ -56,7 +56,7 @@ Here is an example of how sampler is used.
 
     # executes a Bell circuit
     with Sampler(circuits=[bell], parameters=[[]]) as sampler:
-        result = sampler(parameters=[[]], circuits=[0])
+        result = sampler(parameters=[[]], circuit_indices=[0])
         print([q.binary_probabilities() for q in result.quasi_dists])
 
     # executes three Bell circuits
