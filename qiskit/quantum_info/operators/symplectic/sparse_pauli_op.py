@@ -20,6 +20,7 @@ from typing import Dict
 import numpy as np
 import retworkx as rx
 
+from qiskit._accelerate.sparse_pauli_op import unordered_unique  # pylint: disable=import-error
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from qiskit.quantum_info.operators.linear_op import LinearOp
@@ -30,7 +31,6 @@ from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.symplectic.pauli_utils import pauli_basis
 from qiskit.utils.deprecation import deprecate_function
-from qiskit._accelerate.sparse_pauli_op import unordered_unique  # pylint: disable=import-error
 
 
 class SparsePauliOp(LinearOp):
@@ -777,6 +777,10 @@ class SparsePauliOp(LinearOp):
     def _create_graph(self, qubit_wise):
         """Transform measurement operator grouping problem into graph coloring problem
 
+        Args:
+            qubit_wise (bool): whether the commutation rule is applied to the whole operator,
+                or on a per-qubit basis.
+
         Returns:
             retworkx.PyGraph: A class of undirected graphs
         """
@@ -791,24 +795,19 @@ class SparsePauliOp(LinearOp):
         """Partition a SparsePauliOp into sets of commuting Pauli strings.
 
         Args:
-            qubit_wise (bool): the commutation rule is mutually qubit-wise or not.
+            qubit_wise (bool): whether the commutation rule is applied to the whole operator,
+                or on a per-qubit basis.  For example:
 
-                For example:
+                .. code-block:: python
 
-                    * ``SparsePauliOp.from_list([('XX', 2),``
-                    * ``                               ('YY', 1),``
-                    * ``                               ("IZ",2j),``
-                    * ``                               ("ZZ",1j)]).group_commuting()``
-                            Returns [SparsePauliOp(['IZ', 'ZZ'], coeffs=[0.+2.j, 0.+1.j]),
-                                            SparsePauliOp(['XX', 'YY'], coeffs=[2.+0.j, 1.+0.j])]
-
-                    * ``SparsePauliOp.from_list([('XX', 2),``
-                    * ``                               ('YY', 1),``
-                    * ``                               ("IZ",2j),``
-                    * ``                               ("ZZ",1j)]).group_commuting(qubit_wise=True)``
-                            Returns [SparsePauliOp(['XX'], coeffs=[2.+0.j]),
-                                            SparsePauliOp(['YY'], coeffs=[1.+0.j]),
-                                            SparsePauliOp(['IZ', 'ZZ'], coeffs=[0.+2.j, 0.+1.j])]
+                    >>> op = SparsePauliOp.from_list([("XX", 2), ("YY", 1), ("IZ",2j), ("ZZ",1j)])
+                    >>> op.group_commuting()
+                    [SparsePauliOp(["IZ", "ZZ"], coeffs=[0.+2.j, 0.+1j]),
+                     SparsePauliOp(["XX", "YY"], coeffs=[2.+0.j, 1.+0.j])]
+                    >>> op.group_commuting(qubit_wise=True)
+                    [SparsePauliOp(['XX'], coeffs=[2.+0.j]),
+                     SparsePauliOp(['YY'], coeffs=[1.+0.j]),
+                     SparsePauliOp(['IZ', 'ZZ'], coeffs=[0.+2.j, 0.+1.j])]
 
         Returns:
             List[SparsePauliOp]: List of SparsePauliOp where each SparsePauliOp contains
@@ -823,9 +822,6 @@ class SparsePauliOp(LinearOp):
             groups[color].append(idx)
         return [self[group] for group in groups.values()]
 
-
-# Update docstrings for API docs
-generate_apidocs(SparsePauliOp)
 
 # Update docstrings for API docs
 generate_apidocs(SparsePauliOp)

@@ -12,10 +12,10 @@
 
 """Tests for PauliList class."""
 
+import itertools
 import unittest
 from test import combine
 
-import itertools
 import numpy as np
 from ddt import ddt
 from scipy.sparse import csr_matrix
@@ -2092,14 +2092,13 @@ class TestPauliListMethods(QiskitTestCase):
 
         # checking that every input Pauli in pauli_list is in a group in the ouput
         output_labels = [pauli.to_label() for group in groups for pauli in group]
-        #     assert sorted(output_labels) == sorted(input_labels)
         self.assertListEqual(sorted(output_labels), sorted(input_labels))
-        # Within each group, every operator qubit-wise commutes with every other operator.
+        # Within each group, every operator commutes with every other operator.
         for group in groups:
             self.assertTrue(
                 all(commutes(pauli1, pauli2) for pauli1, pauli2 in itertools.combinations(group, 2))
             )
-        # For every pair of groups, at least one element from one does not qubit-wise commute with
+        # For every pair of groups, at least one element from one group does not commute with
         # at least one element of the other.
         for group1, group2 in itertools.combinations(groups, 2):
             self.assertFalse(

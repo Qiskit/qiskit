@@ -1076,7 +1076,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         An edge (i, j) is present if i and j are not commutable.
 
         Args:
-            qubit_wise (bool): the commutation rule is mutually qubit-wise or not.
+            qubit_wise (bool): whether the commutation rule is applied to the whole operator,
+                or on a per-qubit basis.
 
         Returns:
             List[Tuple(int,int)]: A list of pairs of indices of the PauliList that are not commutable.
@@ -1088,7 +1089,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         )
         mat2 = mat1[:, None]
         qubit_commutation_mat = (mat1 * mat2) * (mat1 - mat2)
-        # adjacency_mat[i, j] is True if i and j are commutable
+        # adjacency_mat[i, j] is True if an edge (i, j) is present, i.e. i and j are non-commuting
         if qubit_wise:
             adjacency_mat = np.logical_or.reduce(qubit_commutation_mat, axis=2)
         else:
@@ -1098,6 +1099,10 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
     def _create_graph(self, qubit_wise):
         """Transform measurement operator grouping problem into graph coloring problem
+
+        Args:
+            qubit_wise (bool): whether the commutation rule is applied to the whole operator,
+                or on a per-qubit basis.
 
         Returns:
             retworkx.PyGraph: A class of undirected graphs
@@ -1121,15 +1126,16 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         """Partition a PauliList into sets of commuting Pauli strings.
 
         Args:
-            qubit_wise (bool): the commutation rule is mutually qubit-wise or not.
+            qubit_wise (bool): whether the commutation rule is applied to the whole operator,
+                or on a per-qubit basis.  For example:
 
-                For example:
+                .. code-block:: python
 
-                    * ``PauliList(["XX", "YY", "IZ", "ZZ"]).group_commuting()``
-                        Returns [PauliList(['XX', 'YY']), PauliList(['IZ', 'ZZ'])]
-
-                    * ``PauliList(["XX", "YY", "IZ", "ZZ"]).group_commuting(qubit_wise=True)``
-                        Returns [PauliList(['XX']), PauliList(['YY']), PauliList(['IZ', 'ZZ'])]
+                    >>> op = PauliList(["XX", "YY", "IZ", "ZZ"])
+                    >>> op.group_commuting()
+                    [PauliList(['XX', 'YY']), PauliList(['IZ', 'ZZ'])]
+                    >>> op.group_commuting(qubit_wise=True)
+                    [PauliList(['XX']), PauliList(['YY']), PauliList(['IZ', 'ZZ'])]
 
         Returns:
             List[PauliList]: List of PauliLists where each PauliList contains commuting Pauli operators.
