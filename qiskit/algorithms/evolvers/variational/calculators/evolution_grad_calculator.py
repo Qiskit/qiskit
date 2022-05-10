@@ -35,8 +35,8 @@ def calculate(
     Args:
         observable: Observable for which an evolution gradient should be calculated,
             e.g., a Hamiltonian of a system.
-        ansatz: Quantum state to be evolved.
-        parameters: Parameters with respect to which gradients should be computed.
+        ansatz: Quantum state to be evolved in the form of a parametrized quantum circuit.
+        parameters: Parameters with respect to which gradients of an ansatz should be computed.
         grad_method: The method used to compute the state gradient. Can be either
             ``'param_shift'`` or ``'lin_comb'`` or ``'fin_diff'``.
         basis: Basis with respect to which evolution gradient is calculated. In case of a default

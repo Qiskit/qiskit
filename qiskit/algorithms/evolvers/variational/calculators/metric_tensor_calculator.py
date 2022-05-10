@@ -31,8 +31,8 @@ def calculate(
     Calculates a parametrized metric tensor object.
 
     Args:
-        ansatz: Quantum state to be evolved.
-        parameters: Parameters with respect to which gradients should be computed.
+        ansatz: Quantum state to be evolved in the form of a parametrized quantum circuit.
+        parameters: Parameters with respect to which gradients of an ansatz should be computed.
         qfi_method: The method used to compute the QFI. Can be either
             ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'``.
         basis: Basis with respect to which metric tensor is calculated. In case of a default Z

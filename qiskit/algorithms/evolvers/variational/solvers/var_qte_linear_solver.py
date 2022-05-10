@@ -36,7 +36,7 @@ class VarQTELinearSolver:
         evolution_grad: OperatorBase,
         lse_solver_callable: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
         circuit_sampler: Optional[CircuitSampler] = None,
-        allowed_imaginary_part: float = 1e-7,
+        imag_part_tol: float = 1e-7,
     ) -> None:
         """
         Args:
@@ -45,7 +45,7 @@ class VarQTELinearSolver:
             lse_solver_callable: Linear system of equations solver that follows a NumPy
                 ``np.linalg.lstsq`` interface.
             circuit_sampler: Samples circuits using an underlying backend.
-            allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
+            imag_part_tol: Allowed value of an imaginary part that can be neglected if no
                 imaginary part is expected.
         """
 
@@ -53,7 +53,7 @@ class VarQTELinearSolver:
         self._evolution_grad = evolution_grad
         self._lse_solver_callable = lse_solver_callable
         self._circuit_sampler = circuit_sampler
-        self._allowed_imaginary_part = allowed_imaginary_part
+        self._imag_part_tol = imag_part_tol
 
     def solve_sle(
         self,
@@ -122,7 +122,7 @@ class VarQTELinearSolver:
             grad,
             param_dict,
             self._circuit_sampler,
-            self._allowed_imaginary_part,
+            self._imag_part_tol,
         )
 
         return evolution_grad_lse_rhs

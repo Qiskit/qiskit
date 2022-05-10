@@ -44,7 +44,7 @@ class VarQITE(ImaginaryEvolver, VarQTE):
         ode_solver_callable: OdeSolver = RK45,
         lse_solver_callable: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
         expectation: Optional[ExpectationBase] = None,
-        allowed_imaginary_part: float = 1e-7,
+        imag_part_tol: float = 1e-7,
         allowed_num_instability_error: float = 1e-7,
         quantum_instance: Optional[QuantumInstance] = None,
     ) -> None:
@@ -57,7 +57,7 @@ class VarQITE(ImaginaryEvolver, VarQTE):
                 ``np.linalg.lstsq`` interface.
             expectation: An instance of ``ExpectationBase`` which defines a method for calculating
                 expectation values of ``EvolutionProblem.aux_operators``.
-            allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
+            imag_part_tol: Allowed value of an imaginary part that can be neglected if no
                 imaginary part is expected.
             allowed_num_instability_error: The amount of negative value that is allowed to be
                 rounded up to 0 for quantities that are expected to be non-negative.
@@ -69,7 +69,7 @@ class VarQITE(ImaginaryEvolver, VarQTE):
             ode_solver_callable,
             lse_solver_callable,
             expectation,
-            allowed_imaginary_part,
+            imag_part_tol,
             allowed_num_instability_error,
             quantum_instance,
         )

@@ -58,7 +58,7 @@ class VarQTE(ABC):
         ode_solver_callable: OdeSolver = RK45,
         lse_solver_callable: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
         expectation: Optional[ExpectationBase] = None,
-        allowed_imaginary_part: float = 1e-7,
+        imag_part_tol: float = 1e-7,
         allowed_num_instability_error: float = 1e-7,
         quantum_instance: Optional[QuantumInstance] = None,
     ) -> None:
@@ -71,7 +71,7 @@ class VarQTE(ABC):
                 ``np.linalg.lstsq`` interface.
             expectation: An instance of ``ExpectationBase`` which defines a method for calculating
                 expectation values of ``EvolutionProblem.aux_operators``.
-            allowed_imaginary_part: Allowed value of an imaginary part that can be neglected if no
+            imag_part_tol: Allowed value of an imaginary part that can be neglected if no
                 imaginary part is expected.
             allowed_num_instability_error: The amount of negative value that is allowed to be
                 rounded up to 0 for quantities that are expected to be
@@ -88,7 +88,7 @@ class VarQTE(ABC):
         self._ode_function_generator = ode_function_generator
         self._ode_solver_callable = ode_solver_callable
         self._lse_solver_callable = lse_solver_callable
-        self._allowed_imaginary_part = allowed_imaginary_part
+        self._imag_part_tol = imag_part_tol
         self._allowed_num_instability_error = allowed_num_instability_error
 
     def _evolve_helper(
@@ -140,7 +140,7 @@ class VarQTE(ABC):
             evolution_grad,
             self._lse_solver_callable,
             self._circuit_sampler,
-            self._allowed_imaginary_part,
+            self._imag_part_tol,
         )
 
         # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator

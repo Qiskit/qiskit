@@ -47,7 +47,8 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
         Calculates a metric tensor according to the rules of this variational principle.
 
         Args:
-            ansatz: Quantum state to be used for calculating a metric tensor.
+            ansatz: Quantum state in the form of a parametrized quantum circuit to be used for
+                calculating a metric tensor.
             parameters: Parameters with respect to which gradients should be computed.
 
         Returns:
@@ -70,7 +71,8 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
 
         Args:
             hamiltonian: Hamiltonian for which an evolution gradient should be calculated.
-            ansatz: Quantum state to be used for calculating an evolution gradient.
+            ansatz: Quantum state in the form of a parametrized quantum circuit to be used for
+                calculating an evolution gradient.
             parameters: Parameters with respect to which gradients should be computed.
 
         Returns:
