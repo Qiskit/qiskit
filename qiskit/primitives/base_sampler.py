@@ -112,12 +112,12 @@ class BaseSampler(ABC):
     ):
         """
         Args:
-            circuits: quantum circuits to be executed
-            parameters: parameters of quantum circuits
-                Defaults to ``[circ.parameters for circ in circuits]``
+            circuits: Quantum circuits to be executed.
+            parameters: Parameters of each of the quantum circuits.
+                Defaults to ``[circ.parameters for circ in circuits]``.
 
         Raises:
-            QiskitError: for mismatch of circuits and parameters list.
+            QiskitError: For mismatch of circuits and parameters list.
         """
         self._circuits = tuple(circuits)
         if parameters is None:
@@ -143,19 +143,19 @@ class BaseSampler(ABC):
 
     @property
     def circuits(self) -> tuple[QuantumCircuit, ...]:
-        """Quantum circuits
+        """Quantum circuits to be sampled.
 
         Returns:
-            quantum circuits
+            The quantum circuits to be sampled.
         """
         return self._circuits
 
     @property
     def parameters(self) -> tuple[ParameterView, ...]:
-        """Parameters of quantum circuits
+        """Parameters of quantum circuits.
 
         Returns:
-            Parameter list of the quantum circuits
+            List of the parameters in each quantum circuit.
         """
         return self._parameters
 
@@ -169,12 +169,12 @@ class BaseSampler(ABC):
         """Run the sampling of bitstrings.
 
         Args:
-            circuit_indices: indexes of the circuits to evaluate.
-            parameter_values: parameters to be bound.
-            run_options: backend runtime options used for circuit execution.
+            circuit_indices: Indices of the circuits to evaluate.
+            parameter_values: Parameters to be bound to the circuit.
+            run_options: Backend runtime options used for circuit execution.
 
         Returns:
-            the result of Sampler. The i-th result corresponds to
+            The result of the sampler. The i-th result corresponds to
             ``self.circuits[circuit_indices[i]]`` evaluated with parameters bound as
             ``parameter_values[i]``.
         """

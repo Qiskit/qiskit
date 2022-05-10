@@ -258,6 +258,8 @@ class TestPauli(QiskitTestCase):
         op2 = operator_from_label(label2)
         target = op1.dot(op2)
         self.assertEqual(value, target)
+        target = op1 @ op2
+        self.assertEqual(value, target)
 
     @data(*pauli_group_labels(1))
     def test_dot_qargs(self, label2):
@@ -332,6 +334,9 @@ class TestPauli(QiskitTestCase):
     def test_multiply(self, val):
         """Test multiply method."""
         op = val * Pauli(([True, True], [False, False], 0))
+        phase = (-1j) ** op.phase
+        self.assertEqual(phase, val)
+        op = Pauli(([True, True], [False, False], 0)) * val
         phase = (-1j) ** op.phase
         self.assertEqual(phase, val)
 
