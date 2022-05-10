@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from copy import deepcopy
 from functools import wraps
 import sys
 from typing import overload
@@ -31,6 +30,8 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from ..base_estimator import BaseEstimator
 from ..base_sampler import BaseSampler
+from ..estimator_result import EstimatorResult
+from ..sampler_result import SamplerResult
 
 if sys.version_info >= (3, 8):
     # pylint: disable=no-name-in-module, ungrouped-imports
@@ -81,7 +82,7 @@ def allow_optional(cls: None) -> PrimitiveDecorator:
     ...
 
 
-def allow_optional(cls=None):
+def allow_optional(cls=None) -> type[BaseEstimator] | type[BaseSampler] | PrimitiveDecorator:
     """
     Allow optional. If indices are not given, indices are the list of all circuits (and observables)
     i.e. ``[0, 1, ..., len(circuits) - 1]`` (and ``[0, 1, ..., len(observables) - 1]``).
@@ -162,7 +163,7 @@ def allow_broadcasting(cls: None) -> PrimitiveDecorator:
     ...
 
 
-def allow_broadcasting(cls=None):
+def allow_broadcasting(cls=None) -> type[BaseEstimator] | type[BaseSampler] | PrimitiveDecorator:
     """
     Allow broadcasting. Broadcasting means that if the number of circuits (and observables) is one
     and indices are not given, it generates as many indices as the number of parameters, i.e.
@@ -249,7 +250,7 @@ def allow_objects(cls: None) -> PrimitiveDecorator:
     ...
 
 
-def allow_objects(cls=None):
+def allow_objects(cls=None) -> type[BaseEstimator] | type[BaseSampler] | PrimitiveDecorator:
     """
     Allow objects as inputs of indices instead of integer.
 
@@ -277,8 +278,8 @@ def _allow_objects(cls):
             self: BaseEstimator,
             circuits: Iterable[QuantumCircuit],
             observables: Iterable[SparsePauliOp],
-            parameters: Iterable[Iterable[Parameter]] | None = None,
             *args,
+            parameters: Iterable[Iterable[Parameter]] | None = None,
             **kwargs,
         ):
             if isinstance(circuits, QuantumCircuit):
@@ -306,29 +307,35 @@ def _allow_objects(cls):
                     next(
                         map(
                             lambda x: x[0],
-                            filter(lambda x: x[1] == id(i), enumerate(self.__circuit_ids)),
+                            filter(
+                                lambda x: x[1] == id(i),  # pylint: disable=cell-var-from-loop
+                                enumerate(self.__circuit_ids),
+                            ),
                         )
                     )
                     if not isinstance(i, (int, np.integer))
                     else i
                     for i in circuit_indices
                 ]
-            except StopIteration:
-                raise QiskitError("The object id does not match.")
+            except StopIteration as err:
+                raise QiskitError("The object id does not match.") from err
             try:
                 observable_indices = [
                     next(
                         map(
                             lambda x: x[0],
-                            filter(lambda x: x[1] == id(i), enumerate(self.__observable_ids)),
+                            filter(
+                                lambda x: x[1] == id(i),  # pylint: disable=cell-var-from-loop
+                                enumerate(self.__observable_ids),
+                            ),
                         )
                     )
                     if not isinstance(i, (int, np.integer))
                     else i
                     for i in observable_indices
                 ]
-            except StopIteration:
-                raise QiskitError("The object id does not match.")
+            except StopIteration as err:
+                raise QiskitError("The object id does not match.") from err
             return original_call_method(
                 self, circuit_indices, observable_indices, parameter_values, **run_options
             )
@@ -339,8 +346,8 @@ def _allow_objects(cls):
         def init_wrapper(
             self: BaseEstimator,
             circuits: Iterable[QuantumCircuit],
-            parameters: Iterable[Iterable[Parameter]] | None = None,
             *args,
+            parameters: Iterable[Iterable[Parameter]] | None = None,
             **kwargs,
         ):
             self._circuit_ids = [id(i) for i in circuits]
@@ -358,15 +365,18 @@ def _allow_objects(cls):
                     next(
                         map(
                             lambda x: x[0],
-                            filter(lambda x: x[1] == id(i), enumerate(self._circuit_ids)),
+                            filter(
+                                lambda x: x[1] == id(i),  # pylint: disable=cell-var-from-loop
+                                enumerate(self._circuit_ids),
+                            ),
                         )
                     )
                     if not isinstance(i, (int, np.integer))
                     else i
                     for i in circuit_indices
                 ]
-            except StopIteration as e:
-                raise QiskitError("The object id does not match.") from e
+            except StopIteration as err:
+                raise QiskitError("The object id does not match.") from err
 
             return original_call_method(self, circuit_indices, parameter_values, **run_options)
 

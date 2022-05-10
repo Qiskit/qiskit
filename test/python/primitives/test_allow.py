@@ -14,11 +14,7 @@
 
 import unittest
 
-import numpy as np
-
-from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import (
     Estimator,
@@ -27,7 +23,6 @@ from qiskit.primitives import (
     allow_objects,
     allow_optional,
 )
-from qiskit.quantum_info import Operator, SparsePauliOp, Statevector
 from qiskit.test import QiskitTestCase
 
 
@@ -67,17 +62,19 @@ class TestAllowOptional(QiskitTestCase):
     def test_allow_optional_sampler(self):
         """Test allow optional decorator for Sampler."""
 
+        # pylint: disable=missing-class-docstring
         @allow_optional
         class CustomSampler(Sampler):
             ...
 
         with CustomSampler([self.ansatz_with_meas]) as sampler:
             result = sampler(parameter_values=[list(range(6))])
-        self.assertEqual(result.quasi_dists[0], self.quasi_dists[0])
+        self.assertDictEqual(result.quasi_dists[0], self.quasi_dists[0])
 
     def test_allow_optional_estimator(self):
         """Test allow optional decorator for Estimator."""
 
+        # pylint: disable=missing-class-docstring
         @allow_optional
         class CustomEstimator(Estimator):
             ...
@@ -85,35 +82,38 @@ class TestAllowOptional(QiskitTestCase):
         with CustomEstimator([self.ansatz], [self.observable]) as estimator:
             result = estimator(parameter_values=[list(range(6))])
 
-        self.assertEquals(result.values[0], self.expvals[0])
+        self.assertEqual(result.values[0], self.expvals[0])
 
     def test_allow_broadcasting_sampler(self):
         """Test allow broadcasting decorator for Sampler."""
 
+        # pylint: disable=missing-class-docstring
         @allow_broadcasting()
         class CustomSampler(Sampler):
             ...
 
         with CustomSampler([self.ansatz_with_meas]) as sampler:
             result = sampler(parameter_values=[list(range(6)), [0, 1, 1, 2, 3, 5]])
-        self.assertEqual(result.quasi_dists[0], self.quasi_dists[0])
-        self.assertEqual(result.quasi_dists[1], self.quasi_dists[1])
+        self.assertDictEqual(result.quasi_dists[0], self.quasi_dists[0])
+        self.assertDictEqual(result.quasi_dists[1], self.quasi_dists[1])
 
     def test_allow_broadcasting_estimator(self):
         """Test allow broadcasting decorator for Estimator."""
 
+        # pylint: disable=missing-class-docstring
         @allow_broadcasting()
         class CustomEstimator(Estimator):
             ...
 
         with CustomEstimator([self.ansatz], [self.observable]) as estimator:
             result = estimator(parameter_values=[list(range(6)), [0, 1, 1, 2, 3, 5]])
-        self.assertEquals(result.values[0], self.expvals[0])
-        self.assertEquals(result.values[1], self.expvals[1])
+        self.assertEqual(result.values[0], self.expvals[0])
+        self.assertEqual(result.values[1], self.expvals[1])
 
     def test_allow_objects_sampler(self):
         """Test allow objects decorator for Sampler."""
 
+        # pylint: disable=missing-class-docstring
         @allow_objects
         class CustomSampler(Sampler):
             ...
@@ -122,11 +122,12 @@ class TestAllowOptional(QiskitTestCase):
             result = sampler(
                 circuit_indices=[self.ansatz_with_meas], parameter_values=[list(range(6))]
             )
-        self.assertEqual(result.quasi_dists[0], self.quasi_dists[0])
+        self.assertDictEqual(result.quasi_dists[0], self.quasi_dists[0])
 
     def test_allow_objects_estimator(self):
         """Test allow object decorator for Estimator."""
 
+        # pylint: disable=missing-class-docstring
         @allow_objects
         class CustomEstimator(Estimator):
             ...
@@ -137,8 +138,8 @@ class TestAllowOptional(QiskitTestCase):
                 observable_indices=[self.observable, self.observable],
                 parameter_values=[list(range(6)), [0, 1, 1, 2, 3, 5]],
             )
-        self.assertEquals(result.values[0], self.expvals[0])
-        self.assertEquals(result.values[1], self.expvals[1])
+        self.assertEqual(result.values[0], self.expvals[0])
+        self.assertEqual(result.values[1], self.expvals[1])
 
 
 if __name__ == "__main__":
