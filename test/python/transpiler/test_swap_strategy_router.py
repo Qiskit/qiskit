@@ -148,7 +148,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         op = PauliSumOp.from_list([("IIXX", 1), ("IXIX", 2)])
 
         cmap = CouplingMap(couplinglist=[(0, 1), (1, 2), (2, 3)])
-        swap_strat = SwapStrategy(cmap, swap_layers=(((0, 1), ), ))
+        swap_strat = SwapStrategy(cmap, swap_layers=(((0, 1),),))
 
         pm_ = PassManager([FindCommutingPauliEvolutions(), Commuting2qGateRouter(swap_strat)])
 
