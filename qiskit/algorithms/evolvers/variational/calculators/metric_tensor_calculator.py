@@ -38,8 +38,7 @@ def calculate(
         basis: Basis with respect to which metric tensor is calculated. In case of a default Z
             basis a real part of a metric tensor is returned. In case of a Y basis,
             an imaginary part of a metric tensor is returned.
-        phase_fix: Flag that indicates whether a phase fix should be applied. It depends on the
-            type of a variational principle.
+        phase_fix: Flag that indicates whether a phase fix should be applied.
 
     Returns:
         Parametrized metric tensor as a ListOp.
