@@ -38,7 +38,10 @@ fn marginalize<T: std::ops::AddAssign + Copy>(
                         .iter()
                         .map(|bit| {
                             let index = clbit_size - *bit - 1;
-                            key_arr[index] as char
+                            match key_arr.get(index) {
+                                Some(bit) => *bit as char,
+                                None => '0',
+                            }
                         })
                         .rev()
                         .collect();
