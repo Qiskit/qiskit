@@ -72,19 +72,20 @@ class Minimizer(Protocol):
         jac: Callable[[np.ndarray], np.ndarray] | None,
         bounds: list[tuple[float, float]] | None,
     ) -> scipy.optimize.OptimizeResult | OptimizerResult:
-        """
-        Function call of minimizer.
-        The detail description can be found in `SciPy's documentation <https://docs.scipy.org/doc
+        """Minimize the objective function.
+        
+        This interface is based on `SciPy's optimize module <https://docs.scipy.org/doc
         /scipy/reference/generated/scipy.optimize.minimize.html>`__.
 
         Args:
-            fun: the objective function to minimize (the energy in the case of the VQE)
-            x0: the initial point for the optimization
-            jac: the gradient of the objective function
-            bounds: parameters bounds for the optimization
+            fun: The objective function to minimize (for example the energy in the case of the VQE).
+            x0: The initial point for the optimization.
+            jac: The gradient of the objective function.
+            bounds: Parameters bounds for the optimization. Note that these might not be supported
+                by all optimizers.
 
         Returns:
-             a result object (either SciPy's or Qiskit's)
+             The minimization result object (either SciPy's or Qiskit's).
         """
         ...
 
