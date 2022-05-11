@@ -16,11 +16,10 @@ import unittest
 
 import ddt
 
-from qiskit.circuit import ClassicalRegister, QuantumRegister
 from qiskit.circuit.library import CCXGate, HGate, Measure, SwapGate
 from qiskit.transpiler.passes import SabreSwap, TrivialLayout
 from qiskit.transpiler import CouplingMap, PassManager
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.utils import optionals
 
