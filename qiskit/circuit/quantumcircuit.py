@@ -61,7 +61,8 @@ from .quantumregister import AncillaQubit, AncillaRegister, QuantumRegister, Qub
 from .register import Register
 from .reset import Reset
 
-from qiskit.circuit.gate import Gate  # isort: skip (hack to avoid circular-import)
+# hack to avoid circular-import
+from qiskit.circuit.gate import Gate  # isort: skip, pylint: disable=wrong-import-order
 
 
 try:
