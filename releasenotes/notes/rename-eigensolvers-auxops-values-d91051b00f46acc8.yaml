@@ -1,7 +1,7 @@
 deprecations:
   - |
-    Renamed the ``aux_operator_eigenvalues`` attribute of the 
+    The ``aux_operator_eigenvalues`` attribute of the
     :class:`~qiskit.algorithms.MinimumEigensolverResult` and :class:`~qiskit.algorithms.EigensolverResult`
-    to ``aux_operator_values``. This naming reflects that the returned values are the 
-    expectation values of the auxiliary operators which are generally _not_ eigenvalues 
-    of these operators.
+    are pending deprecation in favor of ``aux_operator_values``. This naming reflects that the
+    returned values are the expectation values of the auxiliary operators which are generally _not_
+    eigenvalues of these operators.

@@ -59,7 +59,7 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
 
         with self.subTest(msg="Test deprecated aux_operator_eigenvalues"):
             with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                warnings.filterwarnings("ignore", category=PendingDeprecationWarning)
                 np.testing.assert_array_almost_equal(result.aux_operator_eigenvalues[0], [2, 0])
                 np.testing.assert_array_almost_equal(result.aux_operator_eigenvalues[1], [0, 0])
 

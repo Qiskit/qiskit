@@ -31,21 +31,25 @@ def deprecate_arguments(kwarg_map):
     return decorator
 
 
-def deprecate_function(msg, stacklevel=2):
+def deprecate_function(msg, stacklevel=2, pending_deprecation=False):
     """Emit a warning prior to calling decorated function.
 
     Args:
         msg (str): Warning message to emit.
         stacklevel (int): The warning stackevel to use, defaults to 2.
+        pending_deprecation (bool): If True emit a ``PendingDeprecationWarning``, else a
+            ``DeprecationWarning``.
 
     Returns:
         Callable: The decorated, deprecated callable.
     """
 
+    deprecation_cls = PendingDeprecationWarning if pending_deprecation else DeprecationWarning
+
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            warnings.warn(msg, DeprecationWarning, stacklevel=stacklevel)
+            warnings.warn(msg, deprecation_cls, stacklevel=stacklevel)
             return func(*args, **kwargs)
 
         return wrapper

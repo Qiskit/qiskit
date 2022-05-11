@@ -108,25 +108,29 @@ class EigensolverResult(AlgorithmResult):
     @property
     @deprecate_function(
         """
-The EigensolverResult.aux_operator_eigenvalues property is deprecated as of Qiskit Terra 0.21.0
-and will be removed no sooner than 3 months after the release date. You can use
-EigensolverResult.aux_operator_values as a direct replacement instead, which reflects that these
-values are no eigenvalues of the operators but just expectation values.
-    """
+The EigensolverResult.aux_operator_eigenvalues property is pending deprecation as of
+Qiskit Terra 0.21.0. It will be deprecated in the release 0.22.0 and removed no sooner than 3 months
+after that release date. You can use EigensolverResult.aux_operator_values as a direct
+replacement instead, which reflects that these values are no eigenvalues of the operators but just
+expectation values.
+    """,
+        pending_deprecation=True,
     )
     def aux_operator_eigenvalues(self) -> Optional[List[ListOrDict[Tuple[complex, complex]]]]:
-        """DEPRECATED. Use the ``aux_operator_values`` property instead."""
+        """Pending deprecation. Use the ``aux_operator_values`` property instead."""
         return self.aux_operator_values
 
     @aux_operator_eigenvalues.setter
     @deprecate_function(
         """
-The EigensolverResult.aux_operator_eigenvalues property is deprecated as of Qiskit Terra 0.21.0
-and will be removed no sooner than 3 months after the release date. You can use
-EigensolverResult.aux_operator_values as a direct replacement instead, which reflects that these
-values are no eigenvalues of the operators but just expectation values.
-    """
+The EigensolverResult.aux_operator_eigenvalues setter is pending deprecation as of
+Qiskit Terra 0.21.0. It will be deprecated in the release 0.22.0 and removed no sooner than 3 months
+after that release date. You can use EigensolverResult.aux_operator_values as a direct
+replacement instead, which reflects that these values are no eigenvalues of the operators but just
+expectation values.
+    """,
+        pending_deprecation=True,
     )
     def aux_operator_eigenvalues(self, value: List[ListOrDict[Tuple[complex, complex]]]) -> None:
-        """DEPRECATED. Use the ``aux_operator_values`` setter instead."""
+        """Pending deprecation. Use the ``aux_operator_values`` setter instead."""
         self.aux_operator_values = value

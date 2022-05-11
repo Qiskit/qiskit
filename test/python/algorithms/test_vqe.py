@@ -747,22 +747,22 @@ class TestVQE(QiskitAlgorithmsTestCase):
         result.aux_operator_values = [0, 1, 2]
 
         with self.subTest(msg="Getter raises warning"):
-            with self.assertRaises(DeprecationWarning):
+            with self.assertRaises(PendingDeprecationWarning):
                 _ = result.aux_operator_eigenvalues
 
         with self.subTest(msg="Eigenvalues getter is correctly set"):
             with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                warnings.filterwarnings("ignore", category=PendingDeprecationWarning)
                 self.assertListEqual(result.aux_operator_eigenvalues, [0, 1, 2])
 
         with self.subTest(msg="Setter raises warning"):
-            with self.assertRaises(DeprecationWarning):
+            with self.assertRaises(PendingDeprecationWarning):
                 # note that this does NOT correctly set the values in this context manager
                 result.aux_operator_eigenvalues = [2, 4]
 
         with self.subTest(msg="Deprecated eigenvalues setter works"):
             with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                warnings.filterwarnings("ignore", category=PendingDeprecationWarning)
                 result.aux_operator_eigenvalues = [2, 4]
 
             self.assertListEqual(result.aux_operator_values, [2, 4])
