@@ -11,11 +11,11 @@
 // that they have been altered from the originals.
 
 use super::converters::hex_to_bin;
+use crate::getenv_use_multiple_threads;
 use hashbrown::HashMap;
 use num_bigint::BigUint;
 use pyo3::prelude::*;
 use rayon::prelude::*;
-use crate::getenv_use_multiple_threads;
 
 fn marginalize<T: std::ops::AddAssign + Copy>(
     counts: HashMap<String, T>,
@@ -112,7 +112,7 @@ pub fn marginal_memory(
     indices: Option<Vec<usize>>,
     return_int: bool,
     return_hex: bool,
-    parallel_threshold: usize
+    parallel_threshold: usize,
 ) -> PyResult<PyObject> {
     let run_in_parallel = getenv_use_multiple_threads();
     let first_elem = memory.get(0);
