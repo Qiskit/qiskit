@@ -20,15 +20,17 @@ from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.transpiler import TransformationPass, Layout, TranspilerError
 
-from qiskit.transpiler.passes.routing.swap_strategies.swap_strategy import SwapStrategy
-from qiskit.transpiler.passes.routing.swap_strategies.commuting_2q_block import Commuting2qBlocks
+from qiskit.transpiler.passes.routing.commuting_2q_gate_routing.swap_strategy import SwapStrategy
+from qiskit.transpiler.passes.routing.commuting_2q_gate_routing.commuting_2q_block import (
+    Commuting2qBlock,
+)
 
 
 class Commuting2qGateRouter(TransformationPass):
     """A class to swap route one or more commuting gates to the coupling map.
 
-    This pass routs blocks of commuting two-qubit gates encapsulated as
-    :class:`.Commuting2qBlocks` instructions. This pass will not apply to other instructions.
+    This pass routes blocks of commuting two-qubit gates encapsulated as
+    :class:`.Commuting2qBlock` instructions. This pass will not apply to other instructions.
     The mapping to the coupling map is done using swap strategies, see :class:`.SwapStrategy`.
     The swap strategy should suit the problem and the coupling map. This transpiler pass
     should ideally be executed before the quantum circuit is enlarged with any idle ancilla
@@ -48,7 +50,7 @@ class Commuting2qGateRouter(TransformationPass):
              4
 
     To do this we use a line swap strategy for qubits 0, 1, 3, and 4 defined it in terms
-    of logical qubits 0, 1, 2, and 3.
+    of virtual qubits 0, 1, 2, and 3.
 
     .. code-block:: python
 
@@ -61,20 +63,19 @@ class Commuting2qGateRouter(TransformationPass):
         from qiskit.transpiler.passes import ApplyLayout
         from qiskit.transpiler.passes import SetLayout
 
-        from qiskit.transpiler.passes.routing.swap_strategies import (
+        from qiskit.transpiler.passes.routing.commuting_2q_gate_routing import (
             SwapStrategy,
             FindCommutingPauliEvolutions,
             Commuting2qGateRouter,
         )
 
-        # Define the circuit on logical qubits
+        # Define the circuit on virtual qubits
         op = PauliSumOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
         circ = QuantumCircuit(4)
         circ.append(PauliEvolutionGate(op, 1), range(4))
 
         # Define the swap strategy on qubits before the initial_layout is applied.
-        swap_cmap = CouplingMap(couplinglist=[(0, 1), (1, 2), (2, 3)])
-        swap_strat = SwapStrategy(swap_cmap, swap_layers=[[(0, 1), (2, 3)], [(1, 2)]])
+        swap_strat = SwapStrategy.from_line([0, 1, 2, 3])
 
         # Chose qubits 0, 1, 3, and 4 from the backend coupling map shown above.
         backend_cmap = CouplingMap(couplinglist=[(0, 1), (1, 2), (1, 3), (3, 4)])
@@ -156,7 +157,7 @@ class Commuting2qGateRouter(TransformationPass):
         self._bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
 
         for node in dag.topological_op_nodes():
-            if isinstance(node.op, Commuting2qBlocks):
+            if isinstance(node.op, Commuting2qBlock):
 
                 # Check that the swap strategy creates enough connectivity for the node.
                 self._check_edges(node, swap_strategy)
@@ -201,15 +202,15 @@ class Commuting2qGateRouter(TransformationPass):
         return new_dag.copy_empty_like()
 
     def _position_in_cmap(self, j: int, k: int, layout: Layout) -> Tuple[int, ...]:
-        """A helper function to track the movement of logical qubits through the swaps.
+        """A helper function to track the movement of virtual qubits through the swaps.
 
         Args:
-            j: The index of decision variable j (i.e. logical qubit).
-            k: The index of decision variable k (i.e. logical qubit).
+            j: The index of decision variable j (i.e. virtual qubit).
+            k: The index of decision variable k (i.e. virtual qubit).
             layout: The current layout that takes into account previous swap gates.
 
         Returns:
-            The position in the coupling map of the logical qubits j and k as a tuple.
+            The position in the coupling map of the virtual qubits j and k as a tuple.
         """
         bit0 = self._bit_indices[layout.get_physical_bits()[j]]
         bit1 = self._bit_indices[layout.get_physical_bits()[k]]
@@ -254,20 +255,20 @@ class Commuting2qGateRouter(TransformationPass):
     def swap_decompose(
         self, dag: DAGCircuit, node: DAGOpNode, current_layout: Layout, swap_strategy: SwapStrategy
     ) -> DAGCircuit:
-        """Take an instance of :class:`.Commuting2qBlocks` and map it to the coupling map.
+        """Take an instance of :class:`.Commuting2qBlock` and map it to the coupling map.
 
         The mapping is done with the swap strategy.
 
         Args:
-            dag: The dag which contains the :class:`.Commuting2qBlocks` we route.
-            node: A node whose operation is a :class:`.Commuting2qBlocks`.
+            dag: The dag which contains the :class:`.Commuting2qBlock` we route.
+            node: A node whose operation is a :class:`.Commuting2qBlock`.
             current_layout: The layout before the swaps are applied. This function will
                 modify the layout so that subsequent gates can be properly composed on the dag.
             swap_strategy: The swap strategy used to decompose the node.
 
         Returns:
             A dag that is compatible with the coupling map where swap gates have been added
-            to map the gates in the :class:`.Commuting2qBlocks` to the hardware.
+            to map the gates in the :class:`.Commuting2qBlock` to the hardware.
         """
         trivial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
         gate_layers = self._make_op_layers(dag, node.op, current_layout, swap_strategy)
@@ -305,7 +306,7 @@ class Commuting2qGateRouter(TransformationPass):
         return circuit_to_dag(circuit_with_swap)
 
     def _make_op_layers(
-        self, dag: DAGCircuit, op: Commuting2qBlocks, layout: Layout, swap_strategy: SwapStrategy
+        self, dag: DAGCircuit, op: Commuting2qBlock, layout: Layout, swap_strategy: SwapStrategy
     ) -> Dict[int, Dict[tuple, Gate]]:
         """Creates layers of two-qubit gates based on the distance in the swap strategy."""
 
