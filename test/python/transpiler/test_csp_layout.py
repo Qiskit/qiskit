@@ -38,7 +38,8 @@ class TestCSPLayout(QiskitTestCase):
         circuit.cx(qr[1], qr[0])  # qr1 -> qr0
 
         dag = circuit_to_dag(circuit)
-        pass_ = CSPLayout(CouplingMap([[0, 1]]), strict_direction=False, seed=self.seed)
+        with self.assertWarns(DeprecationWarning):
+            pass_ = CSPLayout(CouplingMap([[0, 1]]), strict_direction=False, seed=self.seed)
         pass_.run(dag)
         layout = pass_.property_set["layout"]
 
@@ -63,7 +64,8 @@ class TestCSPLayout(QiskitTestCase):
         circuit.cx(qr[1], qr[2])  # qr1 -> qr2
 
         dag = circuit_to_dag(circuit)
-        pass_ = CSPLayout(CouplingMap(cmap5), strict_direction=False, seed=self.seed)
+        with self.assertWarns(DeprecationWarning):
+            pass_ = CSPLayout(CouplingMap(cmap5), strict_direction=False, seed=self.seed)
         pass_.run(dag)
         layout = pass_.property_set["layout"]
 
@@ -88,7 +90,8 @@ class TestCSPLayout(QiskitTestCase):
         circuit.cx(qr1[4], qr0[2])  # q1[4] -> q0[2]
 
         dag = circuit_to_dag(circuit)
-        pass_ = CSPLayout(CouplingMap(cmap16), strict_direction=False, seed=self.seed)
+        with self.assertWarns(DeprecationWarning):
+            pass_ = CSPLayout(CouplingMap(cmap16), strict_direction=False, seed=self.seed)
         pass_.run(dag)
         layout = pass_.property_set["layout"]
 
@@ -113,7 +116,8 @@ class TestCSPLayout(QiskitTestCase):
         circuit.cx(qr[1], qr[0])  # qr1 -> qr0
 
         dag = circuit_to_dag(circuit)
-        pass_ = CSPLayout(CouplingMap([[0, 1]]), strict_direction=True, seed=self.seed)
+        with self.assertWarns(DeprecationWarning):
+            pass_ = CSPLayout(CouplingMap([[0, 1]]), strict_direction=True, seed=self.seed)
         pass_.run(dag)
         layout = pass_.property_set["layout"]
 
@@ -138,7 +142,8 @@ class TestCSPLayout(QiskitTestCase):
         circuit.cx(qr[1], qr[2])  # qr1 -> qr2
 
         dag = circuit_to_dag(circuit)
-        pass_ = CSPLayout(CouplingMap(cmap5), strict_direction=True, seed=self.seed)
+        with self.assertWarns(DeprecationWarning):
+            pass_ = CSPLayout(CouplingMap(cmap5), strict_direction=True, seed=self.seed)
         pass_.run(dag)
         layout = pass_.property_set["layout"]
 
@@ -163,7 +168,8 @@ class TestCSPLayout(QiskitTestCase):
         circuit.cx(qr1[4], qr0[2])  # q1[4] -> q0[2]
 
         dag = circuit_to_dag(circuit)
-        pass_ = CSPLayout(CouplingMap(cmap16), strict_direction=True, seed=self.seed)
+        with self.assertWarns(DeprecationWarning):
+            pass_ = CSPLayout(CouplingMap(cmap16), strict_direction=True, seed=self.seed)
         pass_.run(dag)
         layout = pass_.property_set["layout"]
 
@@ -194,7 +200,8 @@ class TestCSPLayout(QiskitTestCase):
         circuit.cx(qr[0], qr[3])
         circuit.cx(qr[0], qr[4])
         dag = circuit_to_dag(circuit)
-        pass_ = CSPLayout(CouplingMap(cmap16), seed=self.seed)
+        with self.assertWarns(DeprecationWarning):
+            pass_ = CSPLayout(CouplingMap(cmap16), seed=self.seed)
         pass_.run(dag)
         layout = pass_.property_set["layout"]
         self.assertIsNone(layout)
@@ -242,7 +249,8 @@ class TestCSPLayout(QiskitTestCase):
         """Hard to solve situations hit the time limit"""
         dag = TestCSPLayout.create_hard_dag()
         coupling_map = CouplingMap(FakeTokyo().configuration().coupling_map)
-        pass_ = CSPLayout(coupling_map, call_limit=None, time_limit=1)
+        with self.assertWarns(DeprecationWarning):
+            pass_ = CSPLayout(coupling_map, call_limit=None, time_limit=1)
 
         start = process_time()
         pass_.run(dag)
@@ -255,7 +263,8 @@ class TestCSPLayout(QiskitTestCase):
         """Hard to solve situations hit the call limit"""
         dag = TestCSPLayout.create_hard_dag()
         coupling_map = CouplingMap(FakeTokyo().configuration().coupling_map)
-        pass_ = CSPLayout(coupling_map, call_limit=1, time_limit=None)
+        with self.assertWarns(DeprecationWarning):
+            pass_ = CSPLayout(coupling_map, call_limit=1, time_limit=None)
 
         start = process_time()
         pass_.run(dag)
@@ -278,11 +287,13 @@ class TestCSPLayout(QiskitTestCase):
         circuit.cx(qr[1], qr[2])  # qr1 -> qr2
         dag = circuit_to_dag(circuit)
 
-        pass_1 = CSPLayout(CouplingMap(cmap5), seed=seed_1)
+        with self.assertWarns(DeprecationWarning):
+            pass_1 = CSPLayout(CouplingMap(cmap5), seed=seed_1)
         pass_1.run(dag)
         layout_1 = pass_1.property_set["layout"]
 
-        pass_2 = CSPLayout(CouplingMap(cmap5), seed=seed_2)
+        with self.assertWarns(DeprecationWarning):
+            pass_2 = CSPLayout(CouplingMap(cmap5), seed=seed_2)
         pass_2.run(dag)
         layout_2 = pass_2.property_set["layout"]
 
