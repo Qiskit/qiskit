@@ -18,10 +18,10 @@ import numpy as np
 
 from ..base_estimator import BaseEstimator
 from ..estimator_result import EstimatorResult
-from .base_gradient import BaseGradient
+from .base_estimator_gradient import BaseEstimatorGradient
 
 
-class FiniteDiffGradient(BaseGradient):
+class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
     def __init__(self, estimator: BaseEstimator, epsilon: float = 1e-6):
         self._epsilon = epsilon
         super().__init__(estimator)

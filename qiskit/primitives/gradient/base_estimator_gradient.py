@@ -22,7 +22,7 @@ from collections.abc import Sequence
 from ..base_estimator import BaseEstimator
 
 
-class BaseGradient(ABC):
+class BaseEstimatorGradient(ABC):
     def __init__(self, estimator: BaseEstimator):
         self._estimator = estimator
 
