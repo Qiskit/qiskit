@@ -103,15 +103,15 @@ VariationalPrinciples
     RealTimeDependentVariationalPrinciple
     ImaginaryMcLachlanVariationalPrinciple
 """
-from ..variational.var_qrte import VarQRTE
-from .var_qite import VarQITE
-from .variational_principles.imaginary.imaginary_mc_lachlan_variational_principle import (
+from .variational_principles.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
-from .variational_principles.real.real_mc_lachlan_variational_principle import (
+from .variational_principles.real_mc_lachlan_variational_principle import (
     RealMcLachlanVariationalPrinciple,
 )
-from .variational_principles.real.real_time_dependent_variational_principle import (
+from ..variational.var_qrte import VarQRTE
+from .var_qite import VarQITE
+from .variational_principles.real_time_dependent_variational_principle import (
     RealTimeDependentVariationalPrinciple,
 )
 

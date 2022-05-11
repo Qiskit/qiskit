@@ -26,7 +26,7 @@ from qiskit.opflow import (
     ListOp,
     OperatorBase,
 )
-from ...calculators import (
+from ..calculators import (
     evolution_grad_calculator,
     metric_tensor_calculator,
 )
@@ -37,8 +37,8 @@ from .real_variational_principle import (
 
 class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
     """Class for an Imaginary McLachlan's Variational Principle. It aims to minimize the distance
-    between both sides of the Wick-rotated Schrödinger equation with a quantum state given as a
-    parametrized trial state. The principle leads to a system of linear equations handled by the
+    between both sides of the Schrödinger equation with a quantum state given as a parametrized
+    trial state. The principle leads to a system of linear equations handled by the
     `~qiskit.algorithms.evolvers.variational.solvers.VarQTELinearSolver` class. The real variant
     means that we consider real time dynamics.
     """

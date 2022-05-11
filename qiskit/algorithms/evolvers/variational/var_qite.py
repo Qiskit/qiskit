@@ -26,10 +26,10 @@ from qiskit.algorithms.evolvers import EvolutionProblem, EvolutionResult
 from qiskit.algorithms.evolvers.imaginary_evolver import ImaginaryEvolver
 from qiskit.utils import QuantumInstance
 from .var_qte import VarQTE
-from ..variational.solvers.ode.abstract_ode_function_generator import (
+from .solvers.ode.abstract_ode_function_generator import (
     AbstractOdeFunctionGenerator,
 )
-from ..variational.variational_principles.imaginary.imaginary_variational_principle import (
+from .variational_principles.imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
 

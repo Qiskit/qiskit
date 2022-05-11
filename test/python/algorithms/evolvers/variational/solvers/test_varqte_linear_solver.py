@@ -17,7 +17,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
 from qiskit import BasicAer
-from qiskit.algorithms.evolvers.variational.variational_principles.imaginary.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.algorithms.evolvers.variational.solvers.var_qte_linear_solver import (

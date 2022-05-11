@@ -18,7 +18,7 @@ from typing import Union
 from qiskit.opflow import (
     CircuitQFI,
 )
-from ..variational_principle import (
+from .variational_principle import (
     VariationalPrinciple,
 )
 

@@ -30,16 +30,16 @@ from qiskit.opflow import (
     ExpectationBase,
 )
 
-from qiskit.algorithms.evolvers.variational.solvers.var_qte_linear_solver import (
+from .solvers.var_qte_linear_solver import (
     VarQTELinearSolver,
 )
-from qiskit.algorithms.evolvers.variational.variational_principles.variational_principle import (
+from .variational_principles.variational_principle import (
     VariationalPrinciple,
 )
-from qiskit.algorithms.evolvers.variational.solvers.ode.abstract_ode_function_generator import (
+from .solvers.ode.abstract_ode_function_generator import (
     AbstractOdeFunctionGenerator,
 )
-from qiskit.algorithms.evolvers.variational.solvers.ode.var_qte_ode_solver import (
+from .solvers.ode.var_qte_ode_solver import (
     VarQTEOdeSolver,
 )
 

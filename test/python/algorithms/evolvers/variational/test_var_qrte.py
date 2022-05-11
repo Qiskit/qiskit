@@ -24,7 +24,7 @@ from qiskit.algorithms.evolvers.variational import VarQRTE
 from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_generator import (
     OdeFunctionGenerator,
 )
-from qiskit.algorithms.evolvers.variational.variational_principles.real.real_mc_lachlan_variational_principle import (
+from qiskit.algorithms.evolvers.variational.variational_principles.real_mc_lachlan_variational_principle import (
     RealMcLachlanVariationalPrinciple,
 )
 from qiskit import BasicAer

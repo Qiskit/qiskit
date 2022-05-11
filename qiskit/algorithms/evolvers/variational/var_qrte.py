@@ -26,10 +26,10 @@ from qiskit.opflow import (
 )
 from qiskit.utils import QuantumInstance
 from .var_qte import VarQTE
-from ..variational.solvers.ode.abstract_ode_function_generator import (
+from .solvers.ode.abstract_ode_function_generator import (
     AbstractOdeFunctionGenerator,
 )
-from ..variational.variational_principles.real.real_variational_principle import (
+from .variational_principles.real_variational_principle import (
     RealVariationalPrinciple,
 )
 

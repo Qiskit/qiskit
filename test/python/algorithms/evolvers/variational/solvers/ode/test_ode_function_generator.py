@@ -24,7 +24,7 @@ from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_generator i
     OdeFunctionGenerator,
 )
 from qiskit import BasicAer
-from qiskit.algorithms.evolvers.variational.variational_principles.imaginary.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.circuit import Parameter

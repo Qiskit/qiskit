@@ -17,7 +17,7 @@ from typing import Union, List
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.opflow import Y, OperatorBase, ListOp, StateFn
-from ...calculators import (
+from ..calculators import (
     metric_tensor_calculator,
     evolution_grad_calculator,
 )

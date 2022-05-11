@@ -24,7 +24,7 @@ from qiskit.algorithms.evolvers.variational import VarQITE
 from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_generator import (
     OdeFunctionGenerator,
 )
-from qiskit.algorithms.evolvers.variational.variational_principles.imaginary.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
