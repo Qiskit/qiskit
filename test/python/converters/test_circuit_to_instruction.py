@@ -14,12 +14,11 @@
 
 import unittest
 
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.circuit import Clbit, Instruction, Parameter, Qubit
 from qiskit.converters import circuit_to_instruction
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit import Qubit, Clbit, Instruction
-from qiskit.circuit import Parameter
-from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
+from qiskit.test import QiskitTestCase
 
 
 class TestCircuitToInstruction(QiskitTestCase):

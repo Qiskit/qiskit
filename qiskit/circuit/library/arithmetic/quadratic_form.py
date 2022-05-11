@@ -12,11 +12,12 @@
 
 """A circuit implementing a quadratic form on binary variables."""
 
-from typing import Union, Optional, List
+from typing import List, Optional, Union
 
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, ParameterExpression
+from qiskit.circuit import ParameterExpression, QuantumCircuit, QuantumRegister
+
 from ..basis_change import QFT
 
 

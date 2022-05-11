@@ -1030,9 +1030,7 @@ class Pauli(BasePauli):
             Pauli: the random pauli
         """
         # pylint: disable=cyclic-import
-        from qiskit.quantum_info.operators.symplectic.random import (
-            random_pauli,
-        )
+        from qiskit.quantum_info.operators.symplectic.random import random_pauli
 
         return random_pauli(num_qubits, group_phase=False, seed=seed)
 

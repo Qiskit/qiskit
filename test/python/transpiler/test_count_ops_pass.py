@@ -16,8 +16,8 @@ import unittest
 
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
-from qiskit.transpiler.passes import CountOps
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler.passes import CountOps
 
 
 class TestCountOpsPass(QiskitTestCase):

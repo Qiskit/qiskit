@@ -24,7 +24,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule
 from qiskit.pulse import instructions as pulse_inst
-from qiskit.pulse.channels import AcquireChannel, MemorySlot, DriveChannel
+from qiskit.pulse.channels import AcquireChannel, DriveChannel, MemorySlot
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.macros import measure
 from qiskit.scheduler.config import ScheduleConfig

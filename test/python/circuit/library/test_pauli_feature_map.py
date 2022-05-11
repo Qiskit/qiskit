@@ -14,14 +14,13 @@
 
 import unittest
 
+from ddt import data, ddt, unpack
 import numpy as np
 
-from ddt import ddt, data, unpack
-
-from qiskit.test.base import QiskitTestCase
-from qiskit.circuit import QuantumCircuit, Parameter, ParameterVector
-from qiskit.circuit.library import PauliFeatureMap, ZFeatureMap, ZZFeatureMap, HGate
+from qiskit.circuit import Parameter, ParameterVector, QuantumCircuit
+from qiskit.circuit.library import HGate, PauliFeatureMap, ZFeatureMap, ZZFeatureMap
 from qiskit.quantum_info import Operator
+from qiskit.test.base import QiskitTestCase
 
 
 @ddt

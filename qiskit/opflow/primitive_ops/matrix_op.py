@@ -197,7 +197,7 @@ class MatrixOp(PrimitiveOp):
 
         # pylint: disable=cyclic-import
         from ..list_ops import ListOp
-        from ..state_fns import StateFn, VectorStateFn, OperatorStateFn
+        from ..state_fns import OperatorStateFn, StateFn, VectorStateFn
 
         new_front = None
 

@@ -19,16 +19,15 @@ from io import StringIO
 import re
 import unittest
 
-from ddt import ddt, data
+from ddt import data, ddt
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
-from qiskit.circuit import Parameter, Qubit, Clbit, Instruction
-from qiskit.test import QiskitTestCase
-from qiskit.qasm3 import Exporter, dumps, dump, QASM3ExporterError
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
+from qiskit.circuit import Clbit, Instruction, Parameter, Qubit
+from qiskit.qasm3 import Exporter, QASM3ExporterError, dump, dumps
 from qiskit.qasm3.exporter import QASM3Builder
 from qiskit.qasm3.printer import BasicPrinter
 from qiskit.qasm import pi
-
+from qiskit.test import QiskitTestCase
 
 # Tests marked with this decorator should be restored after gate definition with parameters is fixed
 # properly, and the dummy tests after them should be deleted.  See gh-7335.

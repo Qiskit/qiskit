@@ -12,40 +12,41 @@
 
 """ `_text_circuit_drawer` "draws" a circuit in "ascii art" """
 
-import os
-import unittest
 from codecs import encode
 from math import pi
+import os
+import unittest
 
 import numpy
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.circuit import Gate, Parameter, Qubit, Clbit
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
+from qiskit.circuit import Clbit, Gate, Parameter, Qubit
+from qiskit.circuit.library import (
+    CPhaseGate,
+    CU1Gate,
+    CU3Gate,
+    CZGate,
+    HGate,
+    RZZGate,
+    SwapGate,
+    U1Gate,
+    U2Gate,
+    U3Gate,
+    XGate,
+    YGate,
+    ZGate,
+)
+from qiskit.extensions import HamiltonianGate, UnitaryGate
+from qiskit.extensions.quantum_initializer import UCGate
 from qiskit.quantum_info.operators import SuperOp
 from qiskit.quantum_info.random import random_unitary
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import Layout
+from qiskit.transpiler.passes import ApplyLayout
 from qiskit.visualization import text as elements
 from qiskit.visualization.circuit_visualization import _text_circuit_drawer
-from qiskit.extensions import UnitaryGate, HamiltonianGate
-from qiskit.extensions.quantum_initializer import UCGate
-from qiskit.circuit.library import (
-    HGate,
-    U2Gate,
-    U3Gate,
-    XGate,
-    CZGate,
-    ZGate,
-    YGate,
-    U1Gate,
-    SwapGate,
-    RZZGate,
-    CU3Gate,
-    CU1Gate,
-    CPhaseGate,
-)
-from qiskit.transpiler.passes import ApplyLayout
-from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
+
+from .visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 
 
 class TestTextDrawerElement(QiskitTestCase):

@@ -47,53 +47,56 @@ QISKIT_RANDOMIZED_TEST_ALLOW_BARRIERS
     Defaults to True.
 """
 
-import os
 from math import pi
+import os
 
-from hypothesis import assume, settings, HealthCheck
-from hypothesis.stateful import multiple, rule, precondition, invariant
-from hypothesis.stateful import Bundle, RuleBasedStateMachine
-
+from hypothesis import HealthCheck, assume, settings
+from hypothesis.stateful import (
+    Bundle,
+    RuleBasedStateMachine,
+    invariant,
+    multiple,
+    precondition,
+    rule,
+)
 import hypothesis.strategies as st
 
-from qiskit import transpile, Aer
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.circuit import Measure, Reset, Gate, Barrier
+from qiskit import Aer, ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
+from qiskit.circuit import Barrier, Gate, Measure, Reset
+
+# pylint: disable=wildcard-import,unused-wildcard-import
+from qiskit.circuit.library.standard_gates import *
+from qiskit.test.base import dicts_almost_equal
 from qiskit.test.mock import (
-    FakeProvider,
-    FakeOpenPulse2Q,
-    FakeOpenPulse3Q,
-    FakeYorktown,
-    FakeTenerife,
-    FakeOurense,
-    FakeVigo,
-    FakeMelbourne,
-    FakeRueschlikon,
-    FakeTokyo,
-    FakePoughkeepsie,
     FakeAlmaden,
-    FakeSingapore,
-    FakeJohannesburg,
+    FakeArmonk,
     FakeBoeblingen,
-    FakeRochester,
     FakeBurlington,
     FakeCambridge,
     FakeCambridgeAlternativeBasis,
     FakeEssex,
+    FakeJohannesburg,
     FakeLondon,
+    FakeMelbourne,
+    FakeOpenPulse2Q,
+    FakeOpenPulse3Q,
+    FakeOurense,
+    FakePoughkeepsie,
+    FakeProvider,
     FakeQasmSimulator,
-    FakeArmonk,
+    FakeRochester,
     FakeRome,
+    FakeRueschlikon,
     FakeSantiago,
+    FakeSingapore,
     FakeSydney,
+    FakeTenerife,
+    FakeTokyo,
     FakeToronto,
     FakeValencia,
+    FakeVigo,
+    FakeYorktown,
 )
-from qiskit.test.base import dicts_almost_equal
-
-
-# pylint: disable=wildcard-import,unused-wildcard-import
-from qiskit.circuit.library.standard_gates import *
 
 default_profile = "transpiler_equivalence"
 settings.register_profile(

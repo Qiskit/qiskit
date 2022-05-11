@@ -16,15 +16,16 @@ import itertools
 import warnings
 
 import numpy as np
+
 from qiskit.circuit.delay import Delay
+from qiskit.circuit.library.standard_gates import IGate, U3Gate, UGate
 from qiskit.circuit.reset import Reset
-from qiskit.circuit.library.standard_gates import IGate, UGate, U3Gate
-from qiskit.dagcircuit import DAGOpNode, DAGInNode
+from qiskit.dagcircuit import DAGInNode, DAGOpNode
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
-from qiskit.transpiler.passes.optimization import Optimize1qGates
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes.optimization import Optimize1qGates
 
 
 class DynamicalDecoupling(TransformationPass):

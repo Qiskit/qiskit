@@ -12,9 +12,9 @@
 
 """Reduce 1Q gate complexity by commuting through 2Q gates and resynthesizing."""
 
+from collections import deque
 from copy import copy
 import logging
-from collections import deque
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import CXGate, RZXGate

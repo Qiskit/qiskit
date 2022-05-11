@@ -13,17 +13,16 @@
 """Tests for LinearFunction class."""
 
 import unittest
+
+from ddt import data, ddt
 import numpy as np
-from ddt import ddt, data
 
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
-
-from qiskit.circuit.library.standard_gates import CXGate, SwapGate
-from qiskit.circuit.library.generalized_gates import LinearFunction
 from qiskit.circuit.exceptions import CircuitError
-
+from qiskit.circuit.library.generalized_gates import LinearFunction
+from qiskit.circuit.library.standard_gates import CXGate, SwapGate
 from qiskit.quantum_info.operators import Operator
+from qiskit.test import QiskitTestCase
 
 
 def random_linear_circuit(num_qubits, num_gates, seed=None):

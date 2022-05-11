@@ -20,8 +20,7 @@ Transformations between QuantumChannel representations.
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
-from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT
+from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, is_hermitian_matrix
 
 
 def _transform_rep(input_rep, output_rep, data, input_dim, output_dim):

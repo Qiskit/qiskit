@@ -13,37 +13,33 @@
 """Tests basic functionality of the transpile function"""
 
 import io
+from logging import StreamHandler, getLogger
+import math
 import os
 import sys
-import math
-
-from logging import StreamHandler, getLogger
+from test import combine  # pylint: disable=wrong-import-order
 from unittest.mock import patch
 
-from ddt import ddt, data, unpack
-from test import combine  # pylint: disable=wrong-import-order
-
+from ddt import data, ddt, unpack
 import numpy as np
 
-from qiskit.exceptions import QiskitError
-from qiskit import BasicAer
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
-from qiskit.circuit import Parameter, Gate, Qubit, Clbit
-from qiskit.compiler import transpile
-from qiskit.dagcircuit import DAGOutNode
-from qiskit.converters import circuit_to_dag
-from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate, RXGate, RYGate, RZGate, UGate
+from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister, pulse
+from qiskit.circuit import Clbit, Gate, Parameter, Qubit
+from qiskit.circuit.library import CXGate, RXGate, RYGate, RZGate, U1Gate, U2Gate, U3Gate, UGate
 from qiskit.circuit.measure import Measure
+from qiskit.compiler import transpile
+from qiskit.converters import circuit_to_dag
+from qiskit.dagcircuit import DAGOutNode
+from qiskit.exceptions import QiskitError
+from qiskit.quantum_info import Operator, random_unitary
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeMelbourne, FakeRueschlikon, FakeAlmaden, FakeMumbaiV2
-from qiskit.transpiler import Layout, CouplingMap
-from qiskit.transpiler import PassManager
-from qiskit.transpiler.target import Target
+from qiskit.test.mock import FakeAlmaden, FakeMelbourne, FakeMumbaiV2, FakeRueschlikon
+from qiskit.transpiler import CouplingMap, Layout, PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection
-from qiskit.quantum_info import Operator, random_unitary
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import level_0_pass_manager
+from qiskit.transpiler.target import Target
 
 
 @ddt

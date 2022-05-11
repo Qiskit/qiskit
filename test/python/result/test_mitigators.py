@@ -13,19 +13,15 @@
 
 """Tests for error mitigation routines."""
 
-import unittest
 from collections import Counter
+import unittest
 
 import numpy as np
 
 from qiskit import QiskitError, QuantumCircuit
 from qiskit.quantum_info import Statevector
 from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.result import (
-    CorrelatedReadoutMitigator,
-    Counts,
-    LocalReadoutMitigator,
-)
+from qiskit.result import CorrelatedReadoutMitigator, Counts, LocalReadoutMitigator
 from qiskit.result.mitigation.utils import (
     counts_probability_vector,
     expval_with_stddev,

@@ -14,21 +14,20 @@
 
 import math
 
-from ddt import ddt, data
+from ddt import data, ddt
 
-from qiskit.test import QiskitTestCase
-from qiskit.circuit import Clbit, ClassicalRegister, Instruction, Parameter, QuantumCircuit
-from qiskit.circuit.library import XGate, RXGate
-from qiskit.circuit.exceptions import CircuitError
-
+from qiskit.circuit import ClassicalRegister, Clbit, Instruction, Parameter, QuantumCircuit
 from qiskit.circuit.controlflow import (
+    BreakLoopOp,
+    ContinueLoopOp,
     ControlFlowOp,
-    WhileLoopOp,
     ForLoopOp,
     IfElseOp,
-    ContinueLoopOp,
-    BreakLoopOp,
+    WhileLoopOp,
 )
+from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.library import RXGate, XGate
+from qiskit.test import QiskitTestCase
 
 
 @ddt

@@ -24,14 +24,14 @@ import numpy as np
 
 from qiskit import circuit as circuit_mod
 from qiskit import extensions
-from qiskit.circuit import library, controlflow
+from qiskit.circuit import controlflow, library
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.extensions import quantum_initializer
-from qiskit.qpy import common, formats, exceptions
+from qiskit.qpy import common, exceptions, formats
 from qiskit.qpy.binary_io import value
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.synthesis import evolution as evo_synth

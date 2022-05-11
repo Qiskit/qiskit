@@ -13,10 +13,12 @@
 """Result of running PhaseEstimation"""
 
 from typing import Dict, Union
+
 import numpy
 
-from qiskit.utils.deprecation import deprecate_function
 from qiskit.result import Result
+from qiskit.utils.deprecation import deprecate_function
+
 from .phase_estimator import PhaseEstimatorResult
 
 

@@ -15,7 +15,7 @@ Convenience function to load RZXGate based templates.
 """
 
 from enum import Enum
-from typing import List, Dict
+from typing import Dict, List
 
 from qiskit.circuit.library.templates import rzx
 

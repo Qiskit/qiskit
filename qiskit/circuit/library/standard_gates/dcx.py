@@ -13,6 +13,7 @@
 """Double-CNOT gate."""
 
 import numpy as np
+
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 
@@ -54,6 +55,7 @@ class DCXGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .x import CXGate
 
         q = QuantumRegister(2, "q")

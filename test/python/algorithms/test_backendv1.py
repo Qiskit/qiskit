@@ -12,15 +12,16 @@
 
 """ Test Providers that support BackendV1 interface """
 
-import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
+import unittest
+
 from qiskit import QuantumCircuit
+from qiskit.algorithms import VQE, AmplificationProblem, Grover, Shor
+from qiskit.algorithms.optimizers import SPSA
+from qiskit.circuit.library import EfficientSU2, TwoLocal
+from qiskit.opflow import I, X, Z
 from qiskit.test.mock import FakeProvider
 from qiskit.utils import QuantumInstance, algorithm_globals
-from qiskit.algorithms import Shor, VQE, Grover, AmplificationProblem
-from qiskit.opflow import X, Z, I
-from qiskit.algorithms.optimizers import SPSA
-from qiskit.circuit.library import TwoLocal, EfficientSU2
 from qiskit.utils.mitigation import CompleteMeasFitter
 
 

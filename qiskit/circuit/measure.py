@@ -16,8 +16,8 @@ Quantum measurement in the computational basis.
 
 import warnings
 
-from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.instruction import Instruction
 
 
 class Measure(Instruction):

@@ -15,10 +15,11 @@
 """Tests class with methods for comparing the outputs of visualization tools with expected ones.
 Useful for refactoring purposes."""
 
-import os
-import unittest
 from filecmp import cmp as cmpfile
+import os
 from shutil import copyfile
+import unittest
+
 import matplotlib
 
 from qiskit.test import QiskitTestCase

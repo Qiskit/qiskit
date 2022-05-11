@@ -11,29 +11,31 @@
 # that they have been altered from the originals.
 
 """A test for visualizing device coupling maps"""
-import unittest
-import sys
-
 from io import BytesIO
+import sys
+import unittest
+
 from PIL import Image
-from ddt import ddt, data
-from qiskit.test.mock import FakeProvider
+from ddt import data, ddt
+
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.providers.fake_provider import (
     FakeKolkata,
-    FakeWashington,
     FakeKolkataV2,
+    FakeWashington,
     FakeWashingtonV2,
 )
-from qiskit.visualization.gate_map import (
-    plot_gate_map,
-    plot_coupling_map,
-    plot_circuit_layout,
-    plot_error_map,
-)
-from qiskit.utils import optionals
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.test.mock import FakeProvider
 from qiskit.transpiler import Layout
-from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
+from qiskit.utils import optionals
+from qiskit.visualization.gate_map import (
+    plot_circuit_layout,
+    plot_coupling_map,
+    plot_error_map,
+    plot_gate_map,
+)
+
+from .visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 
 if optionals.HAS_MATPLOTLIB:
     import matplotlib.pyplot as plt

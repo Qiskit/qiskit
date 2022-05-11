@@ -12,12 +12,13 @@
 
 """Multiple-Control, Multiple-Target Gate."""
 
+from typing import Callable, List, Optional, Tuple, Union
 import warnings
-from typing import Union, Callable, List, Tuple, Optional
 
-from qiskit.circuit import ControlledGate, Gate, Instruction, Qubit, QuantumRegister, QuantumCircuit
+from qiskit.circuit import ControlledGate, Gate, Instruction, QuantumCircuit, QuantumRegister, Qubit
 from qiskit.exceptions import QiskitError
-from ..standard_gates import XGate, YGate, ZGate, HGate, TGate, TdgGate, SGate, SdgGate
+
+from ..standard_gates import HGate, SdgGate, SGate, TdgGate, TGate, XGate, YGate, ZGate
 
 
 class MCMT(QuantumCircuit):

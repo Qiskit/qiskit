@@ -12,14 +12,13 @@
 
 # pylint: disable=missing-docstring
 
-import unittest
 import os
+import unittest
 from unittest.mock import patch
 
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, visualization
 from qiskit.test import QiskitTestCase
 from qiskit.utils import optionals
-from qiskit import visualization
 from qiskit.visualization import text
 from qiskit.visualization.exceptions import VisualizationError
 

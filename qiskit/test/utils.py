@@ -12,10 +12,10 @@
 
 """Utils for using with Qiskit unit tests."""
 
-import logging
-import os
 from enum import Enum
 from itertools import product
+import logging
+import os
 
 from qiskit import __path__ as qiskit_path
 

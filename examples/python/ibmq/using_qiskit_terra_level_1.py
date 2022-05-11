@@ -30,7 +30,7 @@ for the level 2 user.
 # Import the Qiskit modules
 from qiskit import IBMQ, BasicAer
 from qiskit.circuit import QuantumCircuit
-from qiskit.compiler import transpile, assemble
+from qiskit.compiler import assemble, transpile
 from qiskit.providers.ibmq import least_busy
 from qiskit.tools.monitor import job_monitor
 

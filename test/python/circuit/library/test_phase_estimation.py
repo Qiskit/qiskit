@@ -16,11 +16,11 @@ import unittest
 
 import numpy as np
 
-from qiskit.test.base import QiskitTestCase
 from qiskit import BasicAer, execute
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import PhaseEstimation, QFT
+from qiskit.circuit.library import QFT, PhaseEstimation
 from qiskit.quantum_info import Statevector
+from qiskit.test.base import QiskitTestCase
 
 
 class TestPhaseEstimation(QiskitTestCase):

@@ -15,9 +15,10 @@
 from typing import Optional, Union
 
 import numpy as np
-from qiskit.quantum_info.random import random_unitary
+
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.generalized_gates.permutation import Permutation
+from qiskit.quantum_info.random import random_unitary
 
 
 class QuantumVolume(QuantumCircuit):

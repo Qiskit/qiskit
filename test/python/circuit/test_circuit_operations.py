@@ -13,20 +13,19 @@
 
 """Test Qiskit's QuantumCircuit class."""
 
-from ddt import ddt, data
+from ddt import data, ddt
 import numpy as np
-from qiskit import BasicAer
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import execute
-from qiskit.circuit import Gate, Instruction, Parameter, Measure
+
+from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister, execute
+from qiskit.circuit import Gate, Instruction, Measure, Parameter
 from qiskit.circuit.bit import Bit
 from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.library.standard_gates import SGate
 from qiskit.circuit.quantumcircuit import BitLocations
 from qiskit.circuit.quantumregister import AncillaQubit, AncillaRegister, Qubit
-from qiskit.test import QiskitTestCase
-from qiskit.circuit.library.standard_gates import SGate
 from qiskit.quantum_info import Operator
+from qiskit.test import QiskitTestCase
 
 
 @ddt

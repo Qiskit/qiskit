@@ -13,8 +13,8 @@
 """ CircuitSampler Class """
 
 
-import logging
 from functools import partial
+import logging
 from time import time
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 

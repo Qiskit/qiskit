@@ -11,10 +11,10 @@
 # that they have been altered from the originals.
 
 """Align measurement instructions."""
-import itertools
-import warnings
 from collections import defaultdict
+import itertools
 from typing import List, Union
+import warnings
 
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.instruction import Instruction

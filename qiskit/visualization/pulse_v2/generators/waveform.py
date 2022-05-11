@@ -37,16 +37,16 @@ Arbitrary generator function satisfying the above format can be accepted.
 Returned `ElementaryData` can be arbitrary subclasses that are implemented in
 the plotter API.
 """
-import re
 from fractions import Fraction
-from typing import Dict, Any, List, Union
+import re
+from typing import Any, Dict, List, Union
 
 import numpy as np
 
-from qiskit import pulse, circuit
+from qiskit import circuit, pulse
 from qiskit.pulse import instructions
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.pulse_v2 import drawings, types, device_info
+from qiskit.visualization.pulse_v2 import device_info, drawings, types
 
 
 def gen_filled_waveform_stepwise(

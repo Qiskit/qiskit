@@ -32,12 +32,11 @@ import tempfile
 
 from qiskit import user_config
 from qiskit.utils import optionals as _optionals
-from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization import latex as _latex
+from qiskit.visualization import matplotlib as _matplotlib
 from qiskit.visualization import text as _text
 from qiskit.visualization import utils
-from qiskit.visualization import matplotlib as _matplotlib
-
+from qiskit.visualization.exceptions import VisualizationError
 
 logger = logging.getLogger(__name__)
 

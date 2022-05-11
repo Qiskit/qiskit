@@ -20,10 +20,11 @@ import os
 import sys
 import tempfile
 
-from qiskit.dagcircuit.dagnode import DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.circuit import Qubit
-from qiskit.utils import optionals as _optionals
+from qiskit.dagcircuit.dagnode import DAGInNode, DAGOpNode, DAGOutNode
 from qiskit.exceptions import InvalidFileError
+from qiskit.utils import optionals as _optionals
+
 from .exceptions import VisualizationError
 
 FILENAME_EXTENSIONS = {

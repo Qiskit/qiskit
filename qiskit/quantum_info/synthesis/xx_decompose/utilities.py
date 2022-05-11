@@ -18,7 +18,6 @@ import warnings
 
 import numpy as np
 
-
 EPSILON = 1e-6  # Fraction(1, 1_000_000)
 
 

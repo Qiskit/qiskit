@@ -14,9 +14,9 @@
 
 import unittest
 
-from qiskit.transpiler.passes import Error
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes import Error
 
 
 class TestErrorPass(QiskitTestCase):

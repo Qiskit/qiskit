@@ -12,7 +12,7 @@
 
 """ SummedOp Class """
 
-from typing import List, Union, cast, Dict
+from typing import Dict, List, Union, cast
 
 import numpy as np
 

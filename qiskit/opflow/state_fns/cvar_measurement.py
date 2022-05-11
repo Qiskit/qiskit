@@ -13,7 +13,7 @@
 """CVaRMeasurement class."""
 
 
-from typing import Callable, Optional, Tuple, Union, cast, Dict
+from typing import Callable, Dict, Optional, Tuple, Union, cast
 
 import numpy as np
 

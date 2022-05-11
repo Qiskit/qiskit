@@ -17,12 +17,12 @@
 
 import copy
 import pprint
-from typing import Union, List
+from typing import List, Union
 import warnings
+
 import numpy
-from qiskit.qobj.common import QobjDictField
-from qiskit.qobj.common import QobjHeader
-from qiskit.qobj.common import QobjExperimentHeader
+
+from qiskit.qobj.common import QobjDictField, QobjExperimentHeader, QobjHeader
 
 
 class QobjMeasurementOption:

@@ -16,9 +16,9 @@ Multi-partite matrix and vector shape class
 
 import copy
 from functools import reduce
-from operator import mul
 from math import log2
 from numbers import Integral
+from operator import mul
 
 from qiskit.exceptions import QiskitError
 

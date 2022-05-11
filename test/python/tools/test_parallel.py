@@ -14,10 +14,10 @@
 import os
 import time
 
-from qiskit.tools.parallel import parallel_map
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.pulse import Schedule
 from qiskit.test import QiskitTestCase
+from qiskit.tools.parallel import parallel_map
 
 
 def _parfunc(x):

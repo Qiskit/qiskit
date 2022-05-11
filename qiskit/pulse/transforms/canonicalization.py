@@ -11,15 +11,15 @@
 # that they have been altered from the originals.
 """Basic rescheduling functions which take schedule or instructions and return new schedules."""
 
-import warnings
 from collections import defaultdict
-from typing import List, Optional, Iterable, Union
+from typing import Iterable, List, Optional, Union
+import warnings
 
 import numpy as np
 
-from qiskit.pulse import channels as chans, exceptions, instructions
-from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.exceptions import UnassignedDurationError
+from qiskit.pulse import channels as chans
+from qiskit.pulse import exceptions, instructions
+from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule, ScheduleBlock, ScheduleComponent

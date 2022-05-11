@@ -13,8 +13,8 @@
 """Test conversion to probability distribution"""
 from math import sqrt
 
-from qiskit.test import QiskitTestCase
 from qiskit.result import QuasiDistribution
+from qiskit.test import QiskitTestCase
 
 
 class TestQuasi(QiskitTestCase):

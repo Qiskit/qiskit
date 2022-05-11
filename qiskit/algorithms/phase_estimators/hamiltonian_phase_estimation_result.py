@@ -14,7 +14,9 @@
 
 
 from typing import Dict, Union, cast
+
 from qiskit.algorithms.algorithm_result import AlgorithmResult
+
 from .phase_estimation_result import PhaseEstimationResult
 from .phase_estimation_scale import PhaseEstimationScale
 

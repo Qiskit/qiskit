@@ -13,12 +13,13 @@
 """Test the Stochastic Swap pass"""
 
 import unittest
-from qiskit.transpiler.passes import StochasticSwap
+
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.test import QiskitTestCase
 from qiskit.transpiler import CouplingMap, PassManager
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.test import QiskitTestCase
+from qiskit.transpiler.passes import StochasticSwap
 
 
 class TestStochasticSwap(QiskitTestCase):

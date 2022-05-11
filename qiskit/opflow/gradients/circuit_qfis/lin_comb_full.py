@@ -15,15 +15,16 @@
 from typing import List, Union
 
 import numpy as np
-from qiskit.circuit import QuantumCircuit, QuantumRegister, ParameterVector, ParameterExpression
+
+from qiskit.circuit import ParameterExpression, ParameterVector, QuantumCircuit, QuantumRegister
 from qiskit.utils.arithmetic import triu_to_dense
 
-from ...operator_base import OperatorBase
 from ...list_ops.list_op import ListOp
 from ...list_ops.summed_op import SummedOp
-from ...operator_globals import I, Z, Y
-from ...state_fns.state_fn import StateFn
+from ...operator_base import OperatorBase
+from ...operator_globals import I, Y, Z
 from ...state_fns.circuit_state_fn import CircuitStateFn
+from ...state_fns.state_fn import StateFn
 from ..circuit_gradients.lin_comb import LinComb
 from .circuit_qfi import CircuitQFI
 

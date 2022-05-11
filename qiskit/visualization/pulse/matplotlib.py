@@ -15,35 +15,35 @@
 """Matplotlib classes for pulse visualization."""
 
 import collections
-from typing import Dict, List, Tuple, Callable, Union, Any
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 import numpy as np
 
-from qiskit.utils import optionals as _optionals
-from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
-from qiskit.visualization.pulse.interpolation import step_wise
-from qiskit.pulse.channels import (
-    DriveChannel,
-    ControlChannel,
-    MeasureChannel,
-    AcquireChannel,
-    SnapshotChannel,
-    Channel,
-)
 from qiskit.pulse import (
-    Waveform,
-    Snapshot,
-    Play,
     Acquire,
-    PulseError,
-    ParametricPulse,
-    SetFrequency,
-    ShiftPhase,
     Instruction,
-    ShiftFrequency,
+    ParametricPulse,
+    Play,
+    PulseError,
+    SetFrequency,
     SetPhase,
+    ShiftFrequency,
+    ShiftPhase,
+    Snapshot,
+    Waveform,
+)
+from qiskit.pulse.channels import (
+    AcquireChannel,
+    Channel,
+    ControlChannel,
+    DriveChannel,
+    MeasureChannel,
+    SnapshotChannel,
 )
 from qiskit.pulse.schedule import ScheduleComponent
+from qiskit.utils import optionals as _optionals
+from qiskit.visualization.pulse.interpolation import step_wise
+from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 
 
 class EventsOutputChannels:
@@ -381,8 +381,8 @@ class ScheduleDrawer:
         Raises:
             MissingOptionalLibraryError: If matplotlib is not installed
         """
-        from matplotlib import pyplot as plt
         from matplotlib import gridspec
+        from matplotlib import pyplot as plt
 
         self.plt_mod = plt
         self.gridspec_mod = gridspec

@@ -12,9 +12,10 @@
 
 """Result object to analyse image comparisons"""
 
-import os
 import json
+import os
 import zipfile
+
 from PIL import Image, ImageChops, ImageDraw
 
 SWD = os.path.dirname(os.path.abspath(__file__))

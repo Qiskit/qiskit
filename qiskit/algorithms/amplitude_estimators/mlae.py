@@ -12,18 +12,19 @@
 
 """The Maximum Likelihood Amplitude Estimation algorithm."""
 
-from typing import Optional, List, Union, Tuple, Dict, Callable
+from typing import Callable, Dict, List, Optional, Tuple, Union
+
 import numpy as np
 from scipy.optimize import brute
-from scipy.stats import norm, chi2
+from scipy.stats import chi2, norm
 
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.providers import Backend
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.utils import QuantumInstance
 
+from ..exceptions import AlgorithmError
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .estimation_problem import EstimationProblem
-from ..exceptions import AlgorithmError
 
 MINIMIZER = Callable[[Callable[[float], float], List[Tuple[float, float]]], float]
 

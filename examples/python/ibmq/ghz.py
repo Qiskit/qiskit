@@ -14,8 +14,7 @@
 GHZ state example. It also compares running on experiment and simulator.
 """
 
-from qiskit import QuantumCircuit
-from qiskit import IBMQ, execute
+from qiskit import IBMQ, QuantumCircuit, execute
 from qiskit.providers.ibmq import least_busy
 
 ###############################################################

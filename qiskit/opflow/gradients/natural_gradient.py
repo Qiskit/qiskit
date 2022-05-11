@@ -13,16 +13,18 @@
 """ Natural Gradient. """
 
 from collections.abc import Iterable
-from typing import List, Tuple, Callable, Optional, Union
 import functools
+from typing import Callable, List, Optional, Tuple, Union
+
 import numpy as np
 
+from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.circuit.quantumcircuit import _compare_parameters
-from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.utils import optionals as _optionals
-from ..operator_base import OperatorBase
-from ..list_ops.list_op import ListOp
+
 from ..list_ops.composed_op import ComposedOp
+from ..list_ops.list_op import ListOp
+from ..operator_base import OperatorBase
 from ..state_fns.circuit_state_fn import CircuitStateFn
 from .circuit_gradients import CircuitGradient
 from .circuit_qfis import CircuitQFI

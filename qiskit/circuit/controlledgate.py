@@ -17,11 +17,12 @@ from typing import List, Optional, Union
 
 from qiskit.circuit.exceptions import CircuitError
 
+from ._utils import _ctrl_state_to_int
+from .gate import Gate
+
 # pylint: disable=cyclic-import
 from .quantumcircuit import QuantumCircuit
-from .gate import Gate
 from .quantumregister import QuantumRegister
-from ._utils import _ctrl_state_to_int
 
 
 class ControlledGate(Gate):

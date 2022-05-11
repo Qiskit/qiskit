@@ -16,10 +16,9 @@ The most straightforward scheduling methods: scheduling **as early** or **as lat
 from collections import defaultdict
 from typing import List
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.barrier import Barrier
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.pulse.schedule import Schedule
-
 from qiskit.scheduler.config import ScheduleConfig
 from qiskit.scheduler.lowering import lower_gates
 

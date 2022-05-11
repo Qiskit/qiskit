@@ -15,7 +15,7 @@
 
 from typing import List, Optional
 
-from qiskit.circuit import QuantumRegister, QuantumCircuit, AncillaRegister
+from qiskit.circuit import AncillaRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import MCXGate
 
 

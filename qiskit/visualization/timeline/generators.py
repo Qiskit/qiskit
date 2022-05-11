@@ -90,12 +90,11 @@ Returned `ElementaryData` can be arbitrary subclasses that are implemented in
 the plotter API.
 """
 
+from typing import Any, Dict, List, Union
 import warnings
 
-from typing import List, Union, Dict, Any
-
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.visualization.timeline import types, drawings
+from qiskit.visualization.timeline import drawings, types
 
 
 def gen_sched_gate(

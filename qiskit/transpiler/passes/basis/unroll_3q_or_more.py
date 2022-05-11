@@ -12,9 +12,9 @@
 
 """Recursively expands 3q+ gates until the circuit only contains 2q or 1q gates."""
 
-from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.exceptions import QiskitError
 from qiskit.converters.circuit_to_dag import circuit_to_dag
+from qiskit.exceptions import QiskitError
+from qiskit.transpiler.basepasses import TransformationPass
 
 
 class Unroll3qOrMore(TransformationPass):

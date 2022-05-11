@@ -13,13 +13,16 @@
 """Hadamard gate."""
 
 from typing import Optional, Union
+
 import numpy
+
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.qasm import pi
-from .t import TGate, TdgGate
-from .s import SGate, SdgGate
+
+from .s import SdgGate, SGate
+from .t import TdgGate, TGate
 
 
 class HGate(Gate):
@@ -58,6 +61,7 @@ class HGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .u2 import U2Gate
 
         q = QuantumRegister(1, "q")
@@ -186,6 +190,7 @@ class CHGate(ControlledGate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .x import CXGate  # pylint: disable=cyclic-import
 
         q = QuantumRegister(2, "q")

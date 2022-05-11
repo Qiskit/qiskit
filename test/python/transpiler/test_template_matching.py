@@ -14,18 +14,20 @@
 """Test the TemplateOptimization pass."""
 
 import unittest
+
 import numpy as np
-from qiskit import QuantumRegister, QuantumCircuit
+
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit import Parameter
-from qiskit.quantum_info import Operator
 from qiskit.circuit.library.templates import template_nct_2a_2, template_nct_5a_3
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
+from qiskit.quantum_info import Operator
+from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import TemplateOptimization
 from qiskit.transpiler.passes.calibration.rzx_templates import rzx_templates
-from qiskit.test import QiskitTestCase
-from qiskit.transpiler.exceptions import TranspilerError
 
 
 def _ry_to_rz_template_pass(parameter: Parameter = None, extra_costs=None):

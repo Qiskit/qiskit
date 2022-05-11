@@ -27,7 +27,6 @@ from typing import Callable, Iterable, List, Optional, Set, Tuple
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 
-
 # pylint: disable=missing-return-doc
 
 

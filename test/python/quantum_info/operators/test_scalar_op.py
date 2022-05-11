@@ -12,11 +12,11 @@
 
 """Tests for ScalarOp class."""
 
-import unittest
 from test import combine
+import unittest
 
-import numpy as np
 from ddt import ddt
+import numpy as np
 
 from qiskit.quantum_info.operators import Operator, ScalarOp
 from qiskit.test import QiskitTestCase

@@ -13,18 +13,20 @@
 Clifford operator class.
 """
 import re
+
 import numpy as np
 
+from qiskit.circuit import Instruction, QuantumCircuit
+from qiskit.circuit.library.standard_gates import HGate, IGate, SGate, XGate, YGate, ZGate
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import QuantumCircuit, Instruction
-from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate, HGate, SGate
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.mixins import AdjointMixin, generate_apidocs
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.synthesis.clifford_decompose import decompose_clifford
-from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
-from .stabilizer_table import StabilizerTable
+
 from .clifford_circuits import _append_circuit
+from .stabilizer_table import StabilizerTable
 
 
 class Clifford(BaseOperator, AdjointMixin):

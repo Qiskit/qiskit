@@ -11,18 +11,12 @@
 # that they have been altered from the originals.
 """Evaluator of auxiliary operators for algorithms."""
 
-from typing import Tuple, Union, List
+from typing import List, Tuple, Union
 
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.opflow import (
-    CircuitSampler,
-    ListOp,
-    StateFn,
-    OperatorBase,
-    ExpectationBase,
-)
+from qiskit.opflow import CircuitSampler, ExpectationBase, ListOp, OperatorBase, StateFn
 from qiskit.providers import Backend
 from qiskit.quantum_info import Statevector
 from qiskit.utils import QuantumInstance

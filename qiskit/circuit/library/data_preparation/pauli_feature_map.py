@@ -12,12 +12,12 @@
 
 """The Pauli expansion circuit module."""
 
-from typing import Optional, Callable, List, Union
 from functools import reduce
+from typing import Callable, List, Optional, Union
+
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import Parameter, ParameterVector
+from qiskit.circuit import Parameter, ParameterVector, QuantumCircuit
 from qiskit.circuit.library.standard_gates import HGate
 
 from ..n_local.n_local import NLocal

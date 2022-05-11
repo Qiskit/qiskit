@@ -16,11 +16,11 @@ import os
 import sys
 import unittest
 
-import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
-from qiskit.utils import optionals
-from qiskit.test import Path, QiskitTestCase, slow_test
+import nbformat
 
+from qiskit.test import Path, QiskitTestCase, slow_test
+from qiskit.utils import optionals
 
 # Timeout (in seconds) for a single notebook.
 TIMEOUT = 1000

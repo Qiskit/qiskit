@@ -15,7 +15,8 @@ Fake Cambridge device (20 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_qasm_backend, fake_backend
+
+from qiskit.test.mock import fake_backend, fake_qasm_backend
 
 
 class FakeCambridgeV2(fake_backend.FakeBackendV2):

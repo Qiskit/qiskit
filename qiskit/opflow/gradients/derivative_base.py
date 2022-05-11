@@ -12,14 +12,15 @@
 
 """ DerivativeBase Class """
 
-import warnings
 from abc import abstractmethod
 from typing import Callable, Iterable, List, Optional, Tuple, Union
+import warnings
 
 import numpy as np
-from qiskit.utils.quantum_instance import QuantumInstance
+
 from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.providers import Backend
+from qiskit.utils.quantum_instance import QuantumInstance
 
 from ..converters.converter_base import ConverterBase
 from ..expectations import ExpectationBase, PauliExpectation
@@ -28,7 +29,7 @@ from ..list_ops.list_op import ListOp
 from ..list_ops.tensored_op import TensoredOp
 from ..operator_base import OperatorBase
 from ..primitive_ops.primitive_op import PrimitiveOp
-from ..state_fns import StateFn, OperatorStateFn
+from ..state_fns import OperatorStateFn, StateFn
 
 OperatorType = Union[StateFn, PrimitiveOp, ListOp]
 

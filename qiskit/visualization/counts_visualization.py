@@ -16,9 +16,11 @@ Visualization functions for measurement counts.
 
 from collections import Counter, OrderedDict
 import functools
+
 import numpy as np
 
 from qiskit.utils import optionals as _optionals
+
 from .exceptions import VisualizationError
 from .utils import matplotlib_close_if_inline
 

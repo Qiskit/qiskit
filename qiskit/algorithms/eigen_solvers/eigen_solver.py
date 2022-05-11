@@ -13,11 +13,12 @@
 """The Eigensolver interface"""
 
 from abc import ABC, abstractmethod
-from typing import Optional, List, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 
 from qiskit.opflow import OperatorBase
+
 from ..algorithm_result import AlgorithmResult
 from ..list_or_dict import ListOrDict
 

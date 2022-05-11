@@ -13,12 +13,11 @@
 
 """Polynomially controlled Pauli-rotations."""
 
-import warnings
-from typing import List, Optional, Dict, Sequence
-
 from itertools import product
+from typing import Dict, List, Optional, Sequence
+import warnings
 
-from qiskit.circuit import QuantumRegister, QuantumCircuit
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
 
 from .functional_pauli_rotations import FunctionalPauliRotations

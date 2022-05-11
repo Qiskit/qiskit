@@ -11,29 +11,29 @@
 # that they have been altered from the originals.
 """Tests evaluator of auxiliary operators for algorithms."""
 
-import unittest
-from typing import Tuple, Union
-
 from test.python.algorithms import QiskitAlgorithmsTestCase
-import numpy as np
-from ddt import ddt, data
+from typing import Tuple, Union
+import unittest
 
-from qiskit.algorithms.list_or_dict import ListOrDict
-from qiskit.providers import Backend
-from qiskit.quantum_info import Statevector
-from qiskit.algorithms import eval_observables
+from ddt import data, ddt
+import numpy as np
+
 from qiskit import BasicAer, QuantumCircuit
+from qiskit.algorithms import eval_observables
+from qiskit.algorithms.list_or_dict import ListOrDict
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import (
+    ExpectationBase,
+    ExpectationFactory,
+    I,
+    OperatorBase,
     PauliSumOp,
+    StateFn,
     X,
     Z,
-    I,
-    ExpectationFactory,
-    OperatorBase,
-    ExpectationBase,
-    StateFn,
 )
+from qiskit.providers import Backend
+from qiskit.quantum_info import Statevector
 from qiskit.utils import QuantumInstance, algorithm_globals
 
 

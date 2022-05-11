@@ -12,7 +12,7 @@
 
 """Session gates."""
 
-from .library.standard_gates.equivalence_library import StandardEquivalenceLibrary
 from .equivalence import EquivalenceLibrary
+from .library.standard_gates.equivalence_library import StandardEquivalenceLibrary
 
 SessionEquivalenceLibrary = EquivalenceLibrary(base=StandardEquivalenceLibrary)

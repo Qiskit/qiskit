@@ -12,27 +12,25 @@
 
 """ Tests for graph MPL drawer"""
 
-import unittest
-
+from contextlib import contextmanager
 import json
 import os
-from contextlib import contextmanager
+import unittest
 
-from qiskit.visualization.state_visualization import state_drawer
-from qiskit import BasicAer, execute
+from qiskit import BasicAer, QuantumCircuit, execute
 from qiskit.test import QiskitTestCase
-from qiskit import QuantumCircuit
-from qiskit.utils import optionals
-from qiskit.visualization.counts_visualization import plot_histogram
-from qiskit.visualization.gate_map import plot_gate_map, plot_coupling_map
 from qiskit.test.mock.fake_provider import (
     FakeArmonk,
     FakeBelem,
     FakeCasablanca,
-    FakeRueschlikon,
-    FakeMumbai,
     FakeManhattan,
+    FakeMumbai,
+    FakeRueschlikon,
 )
+from qiskit.utils import optionals
+from qiskit.visualization.counts_visualization import plot_histogram
+from qiskit.visualization.gate_map import plot_coupling_map, plot_gate_map
+from qiskit.visualization.state_visualization import state_drawer
 
 if optionals.HAS_MATPLOTLIB:
     from matplotlib.pyplot import close as mpl_close

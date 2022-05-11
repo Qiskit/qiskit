@@ -12,11 +12,11 @@
 
 """Map (with minimum effort) a DAGCircuit onto a `coupling_map` adding swap gates."""
 
+from qiskit.circuit.library.standard_gates import SwapGate
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.layout import Layout
-from qiskit.circuit.library.standard_gates import SwapGate
 
 
 class BasicSwap(TransformationPass):

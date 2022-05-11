@@ -12,8 +12,9 @@
 
 """Blueprint circuit object."""
 
-from typing import Optional
 from abc import ABC, abstractmethod
+from typing import Optional
+
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterTable, ParameterView
 

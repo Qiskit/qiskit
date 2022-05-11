@@ -13,13 +13,14 @@
 """Test the phase oracle circuits."""
 
 import unittest
-from ddt import ddt, data, unpack
-from numpy import sqrt, isclose
+
+from ddt import data, ddt, unpack
+from numpy import isclose, sqrt
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.test.base import QiskitTestCase
 from qiskit.circuit.library import PhaseOracle
 from qiskit.quantum_info import Statevector
+from qiskit.test.base import QiskitTestCase
 
 
 @ddt

@@ -22,8 +22,7 @@ as a level 1 user.
 """
 
 # Import the Qiskit modules
-from qiskit import QuantumCircuit
-from qiskit import execute, BasicAer
+from qiskit import BasicAer, QuantumCircuit, execute
 
 # making first circuit: bell state
 qc1 = QuantumCircuit(2, 2)

@@ -14,8 +14,10 @@
 """A module for monitoring backends."""
 
 import time
+
+from IPython.core.magic import Magics, line_magic, magics_class
 from IPython.display import HTML, display
-from IPython.core.magic import line_magic, Magics, magics_class
+
 import qiskit
 from qiskit.utils import local_hardware_info
 

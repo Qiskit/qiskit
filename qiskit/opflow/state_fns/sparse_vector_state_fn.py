@@ -178,9 +178,9 @@ class SparseVectorStateFn(StateFn):
 
         # pylint: disable=cyclic-import
         from ..operator_globals import EVAL_SIG_DIGITS
-        from .operator_state_fn import OperatorStateFn
         from .circuit_state_fn import CircuitStateFn
         from .dict_state_fn import DictStateFn
+        from .operator_state_fn import OperatorStateFn
 
         if isinstance(front, DictStateFn):
             return np.round(

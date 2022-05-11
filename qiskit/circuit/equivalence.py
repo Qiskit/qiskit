@@ -12,15 +12,15 @@
 
 """Gate equivalence library."""
 
-import io
 from collections import namedtuple
+import io
 
 import retworkx as rx
 
 from qiskit.exceptions import MissingOptionalLibraryError
+
 from .exceptions import CircuitError
 from .parameterexpression import ParameterExpression
-
 
 Key = namedtuple("Key", ["name", "num_qubits"])
 

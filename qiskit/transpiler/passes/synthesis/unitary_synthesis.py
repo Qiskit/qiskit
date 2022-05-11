@@ -12,32 +12,31 @@
 
 """Synthesize UnitaryGates."""
 
-from math import pi, inf
-from typing import List, Union
 from copy import deepcopy
 from itertools import product
+from math import inf, pi
+from typing import List, Union
 
+from qiskit.circuit.library.standard_gates import (
+    CXGate,
+    CZGate,
+    ECRGate,
+    RXXGate,
+    RZXGate,
+    iSwapGate,
+)
+from qiskit.circuit.parameter import Parameter
 from qiskit.converters import circuit_to_dag
+from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.providers.models import BackendProperties
+from qiskit.quantum_info.synthesis import one_qubit_decompose
+from qiskit.quantum_info.synthesis.qsd import qs_decomposition
+from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitBasisDecomposer
+from qiskit.quantum_info.synthesis.xx_decompose import XXDecomposer
 from qiskit.transpiler import CouplingMap, Target
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.quantum_info.synthesis import one_qubit_decompose
-from qiskit.quantum_info.synthesis.xx_decompose import XXDecomposer
-from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitBasisDecomposer
-from qiskit.quantum_info.synthesis.qsd import qs_decomposition
-from qiskit.circuit.parameter import Parameter
-from qiskit.circuit.library.standard_gates import (
-    iSwapGate,
-    CXGate,
-    CZGate,
-    RXXGate,
-    RZXGate,
-    ECRGate,
-)
 from qiskit.transpiler.passes.synthesis import plugin
-from qiskit.providers.models import BackendProperties
-
 
 KAK_GATE_NAMES = {
     "cx": CXGate(),

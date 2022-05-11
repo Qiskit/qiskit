@@ -26,6 +26,7 @@ q_1: ┤ X ├┤ P(ϴ) ├┤ X ├┤ P(-ϴ) ├┤ RZ(π/2) ├┤ RX(π/2) �
 """
 
 import numpy as np
+
 from qiskit.circuit import Parameter, QuantumCircuit
 
 

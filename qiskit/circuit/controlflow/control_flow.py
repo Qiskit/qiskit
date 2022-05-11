@@ -13,9 +13,9 @@
 "Container to encapsulate all control flow operations."
 
 from abc import ABC, abstractmethod
-from typing import Tuple, Iterable
+from typing import Iterable, Tuple
 
-from qiskit.circuit import QuantumCircuit, Instruction
+from qiskit.circuit import Instruction, QuantumCircuit
 
 
 class ControlFlowOp(Instruction, ABC):

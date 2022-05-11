@@ -15,8 +15,8 @@
 
 from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import SwapGate
-from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGOutNode
+from qiskit.transpiler.basepasses import TransformationPass
 
 
 class OptimizeSwapBeforeMeasure(TransformationPass):

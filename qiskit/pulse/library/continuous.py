@@ -15,9 +15,10 @@
 """Module for builtin continuous pulse functions."""
 
 import functools
-from typing import Union, Tuple, Optional
+from typing import Optional, Tuple, Union
 
 import numpy as np
+
 from qiskit.pulse.exceptions import PulseError
 
 

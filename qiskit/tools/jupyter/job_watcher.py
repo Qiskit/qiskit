@@ -13,11 +13,12 @@
 
 """A module for the job watcher"""
 
-from IPython.core.magic import line_magic, Magics, magics_class
+from IPython.core.magic import Magics, line_magic, magics_class
+
 from qiskit.tools.events.pubsub import Subscriber
 from qiskit.utils import optionals as _optionals
 
-from .job_widgets import build_job_viewer, make_clear_button, make_labels, create_job_widget
+from .job_widgets import build_job_viewer, create_job_widget, make_clear_button, make_labels
 from .watcher_monitor import _job_monitor
 
 

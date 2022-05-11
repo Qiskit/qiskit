@@ -12,23 +12,19 @@
 
 """Test the EchoRZXWeylDecomposition pass"""
 
-import unittest
 from math import pi
+import unittest
+
 import numpy as np
 
-from qiskit import QuantumRegister, QuantumCircuit
-
-from qiskit.transpiler.passes.optimization.echo_rzx_weyl_decomposition import (
-    EchoRZXWeylDecomposition,
-)
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag, dag_to_circuit
+import qiskit.quantum_info as qi
+from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylDecomposition
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeParis
-
-import qiskit.quantum_info as qi
-
-from qiskit.quantum_info.synthesis.two_qubit_decompose import (
-    TwoQubitWeylDecomposition,
+from qiskit.transpiler.passes.optimization.echo_rzx_weyl_decomposition import (
+    EchoRZXWeylDecomposition,
 )
 
 

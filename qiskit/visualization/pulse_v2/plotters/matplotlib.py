@@ -17,9 +17,9 @@
 from typing import Optional
 
 import matplotlib
+from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.patches import Rectangle
 
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import core, drawings, types

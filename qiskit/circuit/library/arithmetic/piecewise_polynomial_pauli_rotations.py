@@ -13,14 +13,15 @@
 """Piecewise-polynomially-controlled Pauli rotations."""
 
 from typing import List, Optional
+
 import numpy as np
 
-from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit
+from qiskit.circuit import AncillaRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
 
 from .functional_pauli_rotations import FunctionalPauliRotations
-from .polynomial_pauli_rotations import PolynomialPauliRotations
 from .integer_comparator import IntegerComparator
+from .polynomial_pauli_rotations import PolynomialPauliRotations
 
 
 class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):

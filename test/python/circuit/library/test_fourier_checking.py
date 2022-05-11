@@ -13,13 +13,14 @@
 """Test library of quantum circuits."""
 
 import unittest
-from ddt import ddt, data, unpack
+
+from ddt import data, ddt, unpack
 import numpy as np
 
-from qiskit.test.base import QiskitTestCase
-from qiskit.circuit.library import FourierChecking
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.library import FourierChecking
 from qiskit.quantum_info import Operator
+from qiskit.test.base import QiskitTestCase
 
 
 @ddt

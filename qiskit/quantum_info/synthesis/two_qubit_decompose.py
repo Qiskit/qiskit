@@ -23,27 +23,23 @@ Method is described in Appendix B of Cross, A. W., Bishop, L. S., Sheldon, S., N
 Gambetta, J. M. Validating quantum computers using randomized model circuits.
 arXiv:1811.12926 [quant-ph] (2018).
 """
-import cmath
-import math
-import io
 import base64
-import warnings
-from typing import ClassVar, Optional, Type
-
+import cmath
+import io
 import logging
+import math
+from typing import ClassVar, Optional, Type
+import warnings
 
 import numpy as np
 
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
 from qiskit.circuit.library.standard_gates import CXGate, RXGate, RYGate, RZGate
+from qiskit.circuit.quantumcircuit import Gate, QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
-from qiskit.quantum_info.synthesis.weyl import weyl_coordinates, transform_to_magic_basis
-from qiskit.quantum_info.synthesis.one_qubit_decompose import (
-    OneQubitEulerDecomposer,
-    DEFAULT_ATOL,
-)
+from qiskit.quantum_info.synthesis.one_qubit_decompose import DEFAULT_ATOL, OneQubitEulerDecomposer
+from qiskit.quantum_info.synthesis.weyl import transform_to_magic_basis, weyl_coordinates
 
 logger = logging.getLogger(__name__)
 

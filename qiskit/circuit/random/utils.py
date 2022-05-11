@@ -14,37 +14,36 @@
 
 import numpy as np
 
-from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit import Reset
+from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister, Reset
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library.standard_gates import (
+    CCXGate,
+    CHGate,
+    CRZGate,
+    CSwapGate,
+    CU1Gate,
+    CU3Gate,
+    CXGate,
+    CYGate,
+    CZGate,
+    HGate,
     IGate,
+    RXGate,
+    RYGate,
+    RZGate,
+    RZZGate,
+    SdgGate,
+    SGate,
+    SwapGate,
+    TdgGate,
+    TGate,
     U1Gate,
     U2Gate,
     U3Gate,
     XGate,
     YGate,
     ZGate,
-    HGate,
-    SGate,
-    SdgGate,
-    TGate,
-    TdgGate,
-    RXGate,
-    RYGate,
-    RZGate,
-    CXGate,
-    CYGate,
-    CZGate,
-    CHGate,
-    CRZGate,
-    CU1Gate,
-    CU3Gate,
-    SwapGate,
-    RZZGate,
-    CCXGate,
-    CSwapGate,
 )
-from qiskit.circuit.exceptions import CircuitError
 
 
 def random_circuit(

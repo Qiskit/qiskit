@@ -12,9 +12,9 @@
 
 """Choose a Layout by assigning ``n`` circuit qubits to device qubits ``0, .., n-1``."""
 
-from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.layout import Layout
 
 
 class TrivialLayout(AnalysisPass):

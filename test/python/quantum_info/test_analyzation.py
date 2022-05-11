@@ -16,9 +16,9 @@ import unittest
 
 import qiskit
 from qiskit import BasicAer
+from qiskit.quantum_info.analysis import hellinger_fidelity
 from qiskit.quantum_info.analysis.average import average_data
 from qiskit.quantum_info.analysis.make_observable import make_dict_observable
-from qiskit.quantum_info.analysis import hellinger_fidelity
 from qiskit.test import QiskitTestCase
 
 

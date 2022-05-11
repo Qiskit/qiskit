@@ -13,10 +13,10 @@
 """Test QuantumCircuit.find_bit."""
 
 
-from ddt import ddt, data, unpack
+from ddt import data, ddt, unpack
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit import Qubit, Clbit, AncillaRegister
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.circuit import AncillaRegister, Clbit, Qubit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
 

@@ -12,8 +12,8 @@
 
 """A module of widgets for job monitoring"""
 import sys
-import time
 import threading
+import time
 
 
 def _job_monitor(job, status, watcher):

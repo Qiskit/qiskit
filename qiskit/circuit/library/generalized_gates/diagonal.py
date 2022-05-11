@@ -15,12 +15,13 @@
 
 """Diagonal matrix circuit."""
 
-from typing import Union, List
 import cmath
+from typing import List, Union
+
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 _EPS = 1e-10
 

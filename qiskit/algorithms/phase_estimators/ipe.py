@@ -15,14 +15,16 @@
 
 
 from typing import Optional, Union
+
 import numpy
+
 import qiskit
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
-from .phase_estimator import PhaseEstimator
-from .phase_estimator import PhaseEstimatorResult
+
+from .phase_estimator import PhaseEstimator, PhaseEstimatorResult
 
 
 class IterativePhaseEstimation(PhaseEstimator):

@@ -12,17 +12,16 @@
 
 """Test QASM simulator."""
 
-import os
-import unittest
 import io
 from logging import StreamHandler, getLogger
+import os
 import sys
+import unittest
 
 import numpy as np
 
-from qiskit import execute
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.compiler import transpile, assemble
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, execute
+from qiskit.compiler import assemble, transpile
 from qiskit.providers.basicaer import QasmSimulatorPy
 from qiskit.test import providers
 

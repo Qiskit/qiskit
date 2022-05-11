@@ -21,11 +21,11 @@ import cmath
 
 import numpy as np
 
-from qiskit.circuit import QuantumRegister, Qubit, QuantumCircuit
-from qiskit.circuit.gate import Gate
+from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.quantum_info.operators.predicates import is_unitary_matrix
+from qiskit.circuit.gate import Gate
 from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 

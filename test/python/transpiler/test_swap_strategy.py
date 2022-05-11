@@ -13,13 +13,13 @@
 """Tests for swap strategies."""
 
 from typing import List
+
 from ddt import data, ddt, unpack
 import numpy as np
 
 from qiskit import QiskitError
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import CouplingMap
-
 from qiskit.transpiler.passes.routing.swap_strategies import SwapStrategy
 
 

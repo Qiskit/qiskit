@@ -14,19 +14,20 @@
 
 """Tests for visualization of circuit with Latex drawer."""
 
+import math
 import os
 import unittest
-import math
+
 import numpy as np
 
-from qiskit.visualization import circuit_drawer
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.test.mock import FakeTenerife
-from qiskit.circuit.library import XGate, MCXGate, RZZGate, SwapGate, DCXGate, CPhaseGate
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
+from qiskit.circuit import Clbit, Parameter, Qubit
+from qiskit.circuit.library import IQP, CPhaseGate, DCXGate, MCXGate, RZZGate, SwapGate, XGate
 from qiskit.extensions import HamiltonianGate
-from qiskit.circuit import Parameter, Qubit, Clbit
-from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
+from qiskit.test.mock import FakeTenerife
+from qiskit.visualization import circuit_drawer
+
 from .visualization import QiskitVisualizationTestCase
 
 pi = np.pi
@@ -336,7 +337,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
     def test_u_gates(self):
         """Test U 1, 2, & 3 gates"""
         filename = self._get_resource_path("test_latex_u_gates.tex")
-        from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate
+        from qiskit.circuit.library import CU1Gate, CU3Gate, U1Gate, U2Gate, U3Gate
 
         qr = QuantumRegister(4, "q")
         circuit = QuantumCircuit(qr)

@@ -12,18 +12,18 @@
 
 """Routing via SWAP insertion using the SABRE method from Li et al."""
 
-import logging
 from collections import defaultdict
 from copy import copy, deepcopy
+import logging
 
 import numpy as np
 import retworkx
 
 from qiskit.circuit.library.standard_gates import SwapGate
+from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
-from qiskit.dagcircuit import DAGOpNode
 
 logger = logging.getLogger(__name__)
 

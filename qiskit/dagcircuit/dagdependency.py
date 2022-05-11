@@ -13,20 +13,20 @@
 """DAGDependency class for representing non-commutativity in a circuit.
 """
 
-import math
-import heapq
 from collections import OrderedDict, defaultdict
+import heapq
+import math
 import warnings
 
 import numpy as np
 import retworkx as rx
 
-from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
-from qiskit.dagcircuit.exceptions import DAGDependencyError
+from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.dagcircuit.dagdepnode import DAGDepNode
-from qiskit.quantum_info.operators import Operator
+from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.quantum_info.operators import Operator
 
 
 class DAGDependency:

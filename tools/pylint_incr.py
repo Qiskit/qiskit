@@ -14,9 +14,9 @@
 
 """Run pylint incrementally on only changed files"""
 
-import subprocess
 import argparse
 import os
+import subprocess
 import sys
 
 from pylint import lint

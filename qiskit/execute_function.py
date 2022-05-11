@@ -22,10 +22,11 @@ Executing Experiments (:mod:`qiskit.execute_function`)
 import logging
 from time import time
 import warnings
-from qiskit.compiler import transpile, schedule
+
+from qiskit.compiler import schedule, transpile
+from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import Backend
 from qiskit.pulse import Schedule, ScheduleBlock
-from qiskit.exceptions import QiskitError
 
 logger = logging.getLogger(__name__)
 

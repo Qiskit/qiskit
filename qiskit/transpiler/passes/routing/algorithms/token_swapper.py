@@ -28,14 +28,13 @@
 
 import copy
 import logging
-from typing import Iterator, Mapping, MutableMapping, MutableSet, List, Iterable, Union
+from typing import Iterable, Iterator, List, Mapping, MutableMapping, MutableSet, Union
 
 import numpy as np
 import retworkx as rx
 
-from .types import Swap, Permutation
+from .types import Permutation, Swap
 from .util import PermutationCircuit, permutation_circuit
-
 
 logger = logging.getLogger(__name__)
 

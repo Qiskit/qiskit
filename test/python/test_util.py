@@ -13,11 +13,12 @@
 """Tests for qiskit/utils"""
 
 from unittest import mock
+
 import numpy as np
 
-from qiskit.utils.multiprocessing import local_hardware_info
 from qiskit.test import QiskitTestCase
 from qiskit.utils.arithmetic import triu_to_dense
+from qiskit.utils.multiprocessing import local_hardware_info
 
 
 class TestUtil(QiskitTestCase):

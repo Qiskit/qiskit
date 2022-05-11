@@ -12,7 +12,7 @@
 
 """Call instruction that represents calling a schedule as a subroutine."""
 
-from typing import Optional, Union, Dict, Tuple, Set
+from typing import Dict, Optional, Set, Tuple, Union
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
@@ -49,7 +49,7 @@ class Call(instruction.Instruction):
         Raises:
             PulseError: If subroutine is not valid data format.
         """
-        from qiskit.pulse.schedule import ScheduleBlock, Schedule
+        from qiskit.pulse.schedule import Schedule, ScheduleBlock
 
         if not isinstance(subroutine, (ScheduleBlock, Schedule)):
             raise PulseError(f"Subroutine type {subroutine.__class__.__name__} cannot be called.")

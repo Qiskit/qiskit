@@ -13,8 +13,8 @@
 """ Test AerPauliExpectation """
 
 import itertools
-import unittest
 from test.python.opflow import QiskitOpflowTestCase
+import unittest
 
 import numpy as np
 
@@ -27,6 +27,7 @@ from qiskit.opflow import (
     H,
     I,
     ListOp,
+    MatrixOp,
     Minus,
     One,
     PauliExpectation,
@@ -38,7 +39,6 @@ from qiskit.opflow import (
     Y,
     Z,
     Zero,
-    MatrixOp,
 )
 from qiskit.utils import QuantumInstance
 

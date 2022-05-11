@@ -14,16 +14,17 @@
 Tests for the CrosstalkAdaptiveSchedule transpiler pass.
 """
 
-import unittest
 from datetime import datetime
-from qiskit import QuantumRegister, QuantumCircuit
+import unittest
+
+from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.compiler import transpile
+from qiskit.converters import circuit_to_dag
+from qiskit.providers.models import BackendProperties
+from qiskit.providers.models.backendproperties import Gate, Nduv
+from qiskit.test import QiskitTestCase
 from qiskit.transpiler import Layout
 from qiskit.transpiler.passes.optimization import CrosstalkAdaptiveSchedule
-from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
-from qiskit.compiler import transpile
-from qiskit.providers.models import BackendProperties
-from qiskit.providers.models.backendproperties import Nduv, Gate
 from qiskit.utils import optionals
 
 

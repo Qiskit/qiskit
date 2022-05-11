@@ -15,7 +15,8 @@ Fake Washington device (127 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_pulse_backend, fake_backend
+
+from qiskit.test.mock import fake_backend, fake_pulse_backend
 
 
 class FakeWashingtonV2(fake_backend.FakeBackendV2):

@@ -14,7 +14,7 @@
 
 from typing import List, Optional, Union
 
-from qiskit.circuit import Qubit, Clbit, Instruction
+from qiskit.circuit import Clbit, Instruction, Qubit
 from qiskit.circuit.delay import Delay
 from qiskit.dagcircuit import DAGCircuit, DAGNode
 from qiskit.transpiler.basepasses import TransformationPass

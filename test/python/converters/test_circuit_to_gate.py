@@ -12,10 +12,10 @@
 
 """Tests for the converters."""
 
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit import Gate, Qubit
-from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
+from qiskit.test import QiskitTestCase
 
 
 class TestCircuitToGate(QiskitTestCase):

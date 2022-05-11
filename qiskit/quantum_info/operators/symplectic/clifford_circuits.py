@@ -13,10 +13,10 @@
 Circuit simulation for the Clifford class.
 """
 
-from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.delay import Delay
+from qiskit.exceptions import QiskitError
 
 
 def _append_circuit(clifford, circuit, qargs=None):

@@ -14,19 +14,22 @@
 Abstract base class for Quantum Channels.
 """
 
-import copy
 from abc import abstractmethod
-from numbers import Number, Integral
+import copy
+from numbers import Integral, Number
+
 import numpy as np
 
 from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.operators.channel.transformations import (
+    _to_choi,
+    _to_kraus,
+    _to_operator,
+    _transform_rep,
+)
 from qiskit.quantum_info.operators.linear_op import LinearOp
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_matrix
-from qiskit.quantum_info.operators.channel.transformations import _transform_rep
-from qiskit.quantum_info.operators.channel.transformations import _to_choi
-from qiskit.quantum_info.operators.channel.transformations import _to_kraus
-from qiskit.quantum_info.operators.channel.transformations import _to_operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 
 

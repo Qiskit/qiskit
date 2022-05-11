@@ -49,12 +49,13 @@
 __all__ = ["Bloch"]
 
 import os
-import numpy as np
+
 import matplotlib
-import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
+import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D, proj3d
 from mpl_toolkits.mplot3d.art3d import Patch3D
+import numpy as np
 
 from .utils import matplotlib_close_if_inline
 

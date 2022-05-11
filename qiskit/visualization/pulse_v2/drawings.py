@@ -57,13 +57,13 @@ due to lack of the effective unittest.
 """
 from abc import ABC
 from enum import Enum
-from typing import Dict, Any, Optional, Union, List
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
 from qiskit.pulse.channels import Channel
-from qiskit.visualization.pulse_v2 import types
 from qiskit.visualization.exceptions import VisualizationError
+from qiskit.visualization.pulse_v2 import types
 
 
 class ElementaryData(ABC):

@@ -17,13 +17,13 @@ Fake backend abstract class for mock backends.
 import json
 import os
 
+from qiskit.exceptions import QiskitError
 from qiskit.providers.models import BackendProperties, QasmBackendConfiguration
 from qiskit.test.mock.fake_backend import FakeBackend
 from qiskit.test.mock.utils.json_decoder import (
     decode_backend_configuration,
     decode_backend_properties,
 )
-from qiskit.exceptions import QiskitError
 
 
 class FakeQasmBackend(FakeBackend):

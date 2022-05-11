@@ -14,18 +14,19 @@
 """
 
 import logging
+
 import numpy as np
 
 from qiskit.converters import dag_to_circuit
-from qiskit.transpiler.passes.layout.set_layout import SetLayout
-from qiskit.transpiler.passes.layout.full_ancilla_allocation import FullAncillaAllocation
-from qiskit.transpiler.passes.layout.enlarge_with_ancilla import EnlargeWithAncilla
-from qiskit.transpiler.passes.layout.apply_layout import ApplyLayout
-from qiskit.transpiler.passes.routing import SabreSwap
-from qiskit.transpiler.passmanager import PassManager
-from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.layout import Layout
+from qiskit.transpiler.passes.layout.apply_layout import ApplyLayout
+from qiskit.transpiler.passes.layout.enlarge_with_ancilla import EnlargeWithAncilla
+from qiskit.transpiler.passes.layout.full_ancilla_allocation import FullAncillaAllocation
+from qiskit.transpiler.passes.layout.set_layout import SetLayout
+from qiskit.transpiler.passes.routing import SabreSwap
+from qiskit.transpiler.passmanager import PassManager
 
 logger = logging.getLogger(__name__)
 

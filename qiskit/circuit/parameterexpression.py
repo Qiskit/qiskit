@@ -12,10 +12,9 @@
 """
 ParameterExpression Class to enable creating simple expressions of Parameters.
 """
-from typing import Callable, Dict, Set, Union
-
 import numbers
 import operator
+from typing import Callable, Dict, Set, Union
 
 import numpy
 
@@ -440,7 +439,7 @@ class ParameterExpression:
         return f"{self.__class__.__name__}({str(self)})"
 
     def __str__(self):
-        from sympy import sympify, sstr
+        from sympy import sstr, sympify
 
         return sstr(sympify(self._symbol_expr), full_prec=False)
 

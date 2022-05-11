@@ -15,10 +15,9 @@ Special data types.
 """
 
 from enum import Enum
-from typing import NamedTuple, List, Union, NewType, Tuple, Dict
+from typing import Dict, List, NamedTuple, NewType, Tuple, Union
 
 from qiskit import circuit
-
 
 ScheduledGate = NamedTuple(
     "ScheduledGate",

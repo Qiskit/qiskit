@@ -14,14 +14,15 @@
 
 import unittest
 import warnings
-import numpy as np
-from ddt import ddt, data, unpack
 
-from qiskit.test.base import QiskitTestCase
+from ddt import data, ddt, unpack
+import numpy as np
+
 from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import QFT
 from qiskit.quantum_info import Operator
+from qiskit.test.base import QiskitTestCase
 
 
 @ddt

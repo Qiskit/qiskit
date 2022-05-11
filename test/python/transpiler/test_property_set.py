@@ -13,8 +13,9 @@
 """Transpiler PropertySet testing"""
 
 import unittest
-from qiskit.transpiler import PropertySet
+
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler import PropertySet
 
 
 class TestPropertySet(QiskitTestCase):

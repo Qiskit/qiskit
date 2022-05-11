@@ -12,12 +12,11 @@
 
 """Test the expectation factory."""
 
-import unittest
 from test.python.opflow import QiskitOpflowTestCase
+import unittest
 
-from qiskit.opflow import PauliExpectation, AerPauliExpectation, ExpectationFactory, Z, I, X
+from qiskit.opflow import AerPauliExpectation, ExpectationFactory, I, PauliExpectation, X, Z
 from qiskit.utils import has_aer
-
 
 if has_aer():
     from qiskit import Aer

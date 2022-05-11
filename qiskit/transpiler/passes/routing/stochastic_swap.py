@@ -14,16 +14,16 @@
 
 import logging
 from math import inf
+
 import numpy as np
 
+from qiskit._accelerate import stochastic_swap as stochastic_swap_rs
+from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.layout import Layout
-
-from qiskit._accelerate import stochastic_swap as stochastic_swap_rs
 
 logger = logging.getLogger(__name__)
 

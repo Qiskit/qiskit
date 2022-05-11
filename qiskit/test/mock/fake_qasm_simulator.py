@@ -15,6 +15,7 @@ Fake qasm simulator.
 """
 
 from qiskit.providers.models import GateConfig, QasmBackendConfiguration
+
 from .fake_backend import FakeBackend
 
 

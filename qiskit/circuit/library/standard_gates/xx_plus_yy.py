@@ -13,10 +13,11 @@
 """Two-qubit XX+YY gate."""
 
 from typing import Optional
-from qiskit.qasm import pi
+
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.qasm import pi
 
 
 class XXPlusYYGate(Gate):
@@ -134,11 +135,12 @@ class XXPlusYYGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .x import CXGate
-        from .s import SGate, SdgGate
-        from .sx import SXGate, SXdgGate
-        from .rz import RZGate
+
         from .ry import RYGate
+        from .rz import RZGate
+        from .s import SdgGate, SGate
+        from .sx import SXdgGate, SXGate
+        from .x import CXGate
 
         theta = self.params[0]
         beta = self.params[1]

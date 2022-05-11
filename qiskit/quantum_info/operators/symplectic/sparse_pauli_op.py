@@ -18,6 +18,7 @@ from typing import Dict
 
 import numpy as np
 
+from qiskit._accelerate.sparse_pauli_op import unordered_unique  # pylint: disable=import-error
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from qiskit.quantum_info.operators.linear_op import LinearOp
@@ -28,7 +29,6 @@ from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.symplectic.pauli_utils import pauli_basis
 from qiskit.utils.deprecation import deprecate_function
-from qiskit._accelerate.sparse_pauli_op import unordered_unique  # pylint: disable=import-error
 
 
 class SparsePauliOp(LinearOp):

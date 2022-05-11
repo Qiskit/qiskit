@@ -12,11 +12,11 @@
 
 """Test PauliSumOp."""
 
-import unittest
 from itertools import product
 from test.python.opflow import QiskitOpflowTestCase
-from ddt import ddt, data, unpack
+import unittest
 
+from ddt import data, ddt, unpack
 import numpy as np
 from scipy.sparse import csr_matrix
 from sympy import Symbol
@@ -31,13 +31,13 @@ from qiskit.opflow import (
     I,
     One,
     OperatorStateFn,
+    OpflowError,
     PauliSumOp,
     SummedOp,
     X,
     Y,
     Z,
     Zero,
-    OpflowError,
 )
 from qiskit.quantum_info import Pauli, PauliTable, SparsePauliOp
 

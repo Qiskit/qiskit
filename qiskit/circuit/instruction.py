@@ -37,11 +37,12 @@ from typing import List
 
 import numpy
 
-from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
-from qiskit.qobj.qasm_qobj import QasmQobjInstruction
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.parameter import ParameterExpression
+from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.qobj.qasm_qobj import QasmQobjInstruction
+
 from .tools import pi_check
 
 _CUTOFF_PRECISION = 1e-10
@@ -364,7 +365,7 @@ class Instruction:
         if self.definition is None:
             raise CircuitError("inverse() not implemented for %s." % self.name)
 
-        from qiskit.circuit import QuantumCircuit, Gate  # pylint: disable=cyclic-import
+        from qiskit.circuit import Gate, QuantumCircuit  # pylint: disable=cyclic-import
 
         if self.name.endswith("_dg"):
             name = self.name[:-3]

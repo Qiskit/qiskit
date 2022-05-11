@@ -16,7 +16,6 @@ import json
 import os
 from warnings import warn
 
-
 from qiskit import user_config
 
 

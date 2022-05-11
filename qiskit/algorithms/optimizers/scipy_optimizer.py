@@ -12,14 +12,14 @@
 
 """Wrapper class of scipy.optimize.minimize."""
 
-from typing import Any, Callable, Dict, Union, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from scipy.optimize import minimize
 
 from qiskit.utils.validation import validate_min
 
-from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
+from .optimizer import POINT, Optimizer, OptimizerResult, OptimizerSupportLevel
 
 
 class SciPyOptimizer(Optimizer):

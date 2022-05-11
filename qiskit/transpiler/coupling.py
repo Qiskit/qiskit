@@ -25,8 +25,8 @@ import warnings
 import numpy as np
 import retworkx as rx
 
-from qiskit.transpiler.exceptions import CouplingError
 from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.transpiler.exceptions import CouplingError
 
 
 class CouplingMap:

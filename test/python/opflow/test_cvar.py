@@ -12,31 +12,32 @@
 
 """The Conditional Value at Risk (CVaR) measurement."""
 
-import unittest
 from test.python.opflow import QiskitOpflowTestCase
+import unittest
+
+from ddt import data, ddt
 import numpy as np
-from ddt import ddt, data
 
 from qiskit import QuantumCircuit
-from qiskit.utils import algorithm_globals
 from qiskit.opflow import (
-    CVaRMeasurement,
-    StateFn,
-    Z,
-    I,
-    X,
-    Y,
-    Plus,
-    PauliSumOp,
-    PauliExpectation,
-    MatrixExpectation,
-    CVaRExpectation,
-    ListOp,
-    CircuitOp,
     AerPauliExpectation,
+    CircuitOp,
+    CVaRExpectation,
+    CVaRMeasurement,
+    I,
+    ListOp,
+    MatrixExpectation,
     MatrixOp,
     OpflowError,
+    PauliExpectation,
+    PauliSumOp,
+    Plus,
+    StateFn,
+    X,
+    Y,
+    Z,
 )
+from qiskit.utils import algorithm_globals
 
 
 class TestCVaRMeasurement(QiskitOpflowTestCase):

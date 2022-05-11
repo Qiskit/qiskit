@@ -15,10 +15,10 @@ Circuit simulation for the CNOTDihedral class
 
 import numpy as np
 
-from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.delay import Delay
+from qiskit.exceptions import QiskitError
 
 
 def _append_circuit(elem, circuit, qargs=None):

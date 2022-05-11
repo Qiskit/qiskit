@@ -13,10 +13,10 @@
 """The Random Pauli circuit class."""
 
 from typing import Optional
+
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
-
 
 from .two_local import TwoLocal
 

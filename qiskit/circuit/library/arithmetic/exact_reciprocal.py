@@ -12,7 +12,9 @@
 """Exact reciprocal rotation."""
 
 from math import isclose
+
 import numpy as np
+
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.extensions.quantum_initializer import UCRYGate
 

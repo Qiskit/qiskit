@@ -16,13 +16,13 @@
 Fake provider class that provides access to fake backends.
 """
 
-from qiskit.providers.provider import ProviderV1
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
+from qiskit.providers.provider import ProviderV1
 
 from .backends import *
-from .fake_qasm_simulator import FakeQasmSimulator
 from .fake_openpulse_2q import FakeOpenPulse2Q
 from .fake_openpulse_3q import FakeOpenPulse3Q
+from .fake_qasm_simulator import FakeQasmSimulator
 
 
 class FakeProviderFactory:

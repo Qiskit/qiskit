@@ -12,9 +12,9 @@
 
 """Parser Test."""
 
-from qiskit.test import QiskitTestCase
-from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.parser import parse_string_expr
+from qiskit.test import QiskitTestCase
 
 
 class TestInstructionToQobjConverter(QiskitTestCase):

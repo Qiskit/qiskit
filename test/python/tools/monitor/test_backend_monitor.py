@@ -12,19 +12,16 @@
 
 """Tests for the wrapper functionality."""
 
+from io import StringIO
 import sys
 import unittest
-from unittest.mock import patch
-from unittest.mock import MagicMock
-from io import StringIO
+from unittest.mock import MagicMock, patch
 
 import qiskit
 from qiskit import providers
-from qiskit.tools.monitor import backend_overview, backend_monitor
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeProviderFactory
-from qiskit.test.mock import FakeBackend
-from qiskit.test.mock import FakeVigo
+from qiskit.test.mock import FakeBackend, FakeProviderFactory, FakeVigo
+from qiskit.tools.monitor import backend_monitor, backend_overview
 
 
 class TestBackendOverview(QiskitTestCase):

@@ -17,8 +17,8 @@ import unittest
 from qiskit.pulse.channels import (
     AcquireChannel,
     Channel,
-    DriveChannel,
     ControlChannel,
+    DriveChannel,
     MeasureChannel,
     MemorySlot,
     PulseChannel,

@@ -14,7 +14,7 @@
 
 from qiskit import QuantumCircuit, transpile
 from qiskit.test import QiskitTestCase
-from qiskit.visualization.timeline import core, stylesheet, generators, layouts
+from qiskit.visualization.timeline import core, generators, layouts, stylesheet
 
 
 class TestCanvas(QiskitTestCase):

@@ -13,11 +13,13 @@
 """Z and CZ gates."""
 
 from typing import Optional, Union
+
 import numpy
-from qiskit.qasm import pi
+
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.qasm import pi
 
 
 class ZGate(Gate):
@@ -70,6 +72,7 @@ class ZGate(Gate):
     def _define(self):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .u1 import U1Gate
 
         q = QuantumRegister(1, "q")
@@ -156,6 +159,7 @@ class CZGate(ControlledGate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .h import HGate
         from .x import CXGate
 

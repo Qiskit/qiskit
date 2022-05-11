@@ -15,18 +15,18 @@
 This implementation allows both, standard first-order as well as second-order SPSA.
 """
 
-from typing import Iterator, Optional, Union, Callable, Tuple, Dict, List, Any
-import logging
-import warnings
-from time import time
-
 from collections import deque
-import scipy
+import logging
+from time import time
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
+import warnings
+
 import numpy as np
+import scipy
 
 from qiskit.utils import algorithm_globals
 
-from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
+from .optimizer import POINT, Optimizer, OptimizerResult, OptimizerSupportLevel
 
 # number of function evaluations, parameters, loss, stepsize, accepted
 CALLBACK = Callable[[int, np.ndarray, float, float, bool], None]

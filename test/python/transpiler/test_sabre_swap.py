@@ -16,11 +16,11 @@ import unittest
 
 import ddt
 
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import CCXGate, HGate, Measure, SwapGate
-from qiskit.transpiler.passes import SabreSwap
-from qiskit.transpiler import CouplingMap, PassManager
-from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler import CouplingMap, PassManager
+from qiskit.transpiler.passes import SabreSwap
 from qiskit.utils import optionals
 
 

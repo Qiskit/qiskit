@@ -12,11 +12,12 @@
 
 """Hidden Linear Function circuit."""
 
-from typing import Union, List
+from typing import List, Union
 
 import numpy as np
-from qiskit.circuit.quantumcircuit import QuantumCircuit
+
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 
 class HiddenLinearFunction(QuantumCircuit):

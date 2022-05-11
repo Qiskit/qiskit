@@ -12,14 +12,15 @@
 
 """The n-local circuit class."""
 
-from typing import Union, Optional, List, Any, Tuple, Sequence, Set, Callable
 from itertools import combinations
+from typing import Any, Callable, List, Optional, Sequence, Set, Tuple, Union
 import warnings
 
 import numpy
+
+from qiskit.circuit import Instruction, Parameter, ParameterExpression, ParameterVector
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit import Instruction, Parameter, ParameterVector, ParameterExpression
 from qiskit.exceptions import QiskitError
 
 from ..blueprintcircuit import BlueprintCircuit

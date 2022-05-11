@@ -13,11 +13,12 @@
 """Testing naming functionality of transpiled circuits"""
 
 import unittest
+
+from qiskit import BasicAer
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
-from qiskit import BasicAer
-from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler.exceptions import TranspilerError
 
 
 class TestNamingTranspiledCircuits(QiskitTestCase):

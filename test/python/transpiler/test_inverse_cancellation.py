@@ -17,11 +17,11 @@ Testing InverseCancellation
 import numpy as np
 
 from qiskit import QuantumCircuit
+from qiskit.circuit.library import CXGate, HGate, PhaseGate, RXGate, TdgGate, TGate, XGate
+from qiskit.test import QiskitTestCase
+from qiskit.transpiler import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import InverseCancellation
-from qiskit.transpiler import PassManager
-from qiskit.test import QiskitTestCase
-from qiskit.circuit.library import RXGate, HGate, CXGate, PhaseGate, XGate, TGate, TdgGate
 
 
 class TestInverseCancellation(QiskitTestCase):

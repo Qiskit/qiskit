@@ -12,9 +12,9 @@
 
 """Fourier checking circuit."""
 
+import math
 from typing import List
 
-import math
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 

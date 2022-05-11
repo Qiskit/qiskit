@@ -11,14 +11,14 @@
 # that they have been altered from the originals.
 
 """Expand a gate in a circuit using its decomposition rules."""
-import warnings
-from typing import Type, Union, List, Optional
 from fnmatch import fnmatch
+from typing import List, Optional, Type, Union
+import warnings
 
-from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.circuit.gate import Gate
+from qiskit.converters.circuit_to_dag import circuit_to_dag
+from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.utils.deprecation import deprecate_arguments
 
 

@@ -16,9 +16,9 @@ import math
 
 import retworkx as rx
 
-from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.layout import Layout
 
 
 class NoiseAdaptiveLayout(AnalysisPass):

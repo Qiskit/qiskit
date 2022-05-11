@@ -18,6 +18,7 @@ from typing import Optional, Tuple
 import numpy as np
 
 from qiskit.opflow import OperatorBase
+
 from ..algorithm_result import AlgorithmResult
 from ..list_or_dict import ListOrDict
 

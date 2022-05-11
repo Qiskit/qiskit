@@ -14,10 +14,10 @@
 
 import unittest
 
-from qiskit.test.base import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import GraphState
 from qiskit.quantum_info import Clifford
+from qiskit.test.base import QiskitTestCase
 
 
 class TestGraphStateLibrary(QiskitTestCase):

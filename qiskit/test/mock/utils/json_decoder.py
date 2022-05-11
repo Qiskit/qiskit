@@ -14,7 +14,7 @@
 Utils to decode fake backend configurations from json
 """
 
-from typing import Dict, Union, List
+from typing import Dict, List, Union
 
 import dateutil.parser
 

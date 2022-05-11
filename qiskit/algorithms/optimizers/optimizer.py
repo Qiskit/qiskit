@@ -12,12 +12,12 @@
 
 """Optimizer interface"""
 
-from typing import Dict, Any, Union, Callable, Optional, Tuple, List
-
-import warnings
+from abc import ABC, abstractmethod
 from enum import IntEnum
 import logging
-from abc import ABC, abstractmethod
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+import warnings
+
 import numpy as np
 
 from qiskit.algorithms.algorithm_result import AlgorithmResult

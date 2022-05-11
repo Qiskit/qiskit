@@ -17,14 +17,13 @@ from collections import OrderedDict
 import logging
 
 from qiskit.exceptions import QiskitError
-from qiskit.providers.provider import ProviderV1
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
-from qiskit.providers.providerutils import resolve_backend_name, filter_backends
+from qiskit.providers.provider import ProviderV1
+from qiskit.providers.providerutils import filter_backends, resolve_backend_name
 
 from .qasm_simulator import QasmSimulatorPy
 from .statevector_simulator import StatevectorSimulatorPy
 from .unitary_simulator import UnitarySimulatorPy
-
 
 logger = logging.getLogger(__name__)
 

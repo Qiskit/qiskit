@@ -12,15 +12,16 @@
 
 """Tests for PauliTable class."""
 
-import unittest
 from test import combine
+import unittest
+
 from ddt import ddt
 import numpy as np
 from scipy.sparse import csr_matrix
 
 from qiskit import QiskitError
-from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators.symplectic import PauliTable
+from qiskit.test import QiskitTestCase
 
 
 def pauli_mat(label):

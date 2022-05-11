@@ -12,7 +12,7 @@
 
 """Compute the sum of two qubit registers using ripple-carry approach."""
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
+from qiskit.circuit import AncillaRegister, QuantumCircuit, QuantumRegister
 
 from .adder import Adder
 

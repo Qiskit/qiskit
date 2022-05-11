@@ -68,13 +68,13 @@ between quantum or classical bits during a gate operation.
 
 from abc import ABC
 from enum import Enum
-from typing import Optional, Dict, Any, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
 from qiskit import circuit
-from qiskit.visualization.timeline import types
 from qiskit.visualization.exceptions import VisualizationError
+from qiskit.visualization.timeline import types
 
 
 class ElementaryData(ABC):

@@ -16,16 +16,16 @@ from itertools import groupby
 
 import numpy as np
 
-from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.circuit import ParameterExpression
+from qiskit.circuit.gate import Gate
 from qiskit.circuit.library.standard_gates.p import PhaseGate
-from qiskit.circuit.library.standard_gates.u import UGate
 from qiskit.circuit.library.standard_gates.u1 import U1Gate
 from qiskit.circuit.library.standard_gates.u2 import U2Gate
 from qiskit.circuit.library.standard_gates.u3 import U3Gate
-from qiskit.circuit import ParameterExpression
-from qiskit.circuit.gate import Gate
-from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.circuit.library.standard_gates.u import UGate
 from qiskit.quantum_info.synthesis import Quaternion
+from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.exceptions import TranspilerError
 
 _CHOP_THRESHOLD = 1e-15
 

@@ -12,12 +12,13 @@
 
 """Quick program to test the qi tools modules."""
 
-import unittest
 from copy import deepcopy
+import unittest
+
 import numpy as np
 
-from qiskit.quantum_info.operators import Pauli
 from qiskit.quantum_info import pauli_group
+from qiskit.quantum_info.operators import Pauli
 from qiskit.test import QiskitTestCase
 
 

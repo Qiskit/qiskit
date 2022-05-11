@@ -15,15 +15,14 @@
 from tweedledum.ir import Qubit
 from tweedledum.passes import parity_decomp
 
-
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import (
     HGate,
-    SGate,
     SdgGate,
+    SGate,
     SwapGate,
-    TGate,
     TdgGate,
+    TGate,
     XGate,
     YGate,
     ZGate,

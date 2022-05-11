@@ -28,16 +28,15 @@ they need a measurement. This assumption is based on current device properties
 and may need to be revised for future device generations.
 """
 
+from itertools import chain, combinations
 import math
 import operator
-from itertools import chain, combinations
 
-from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit.library.standard_gates import U1Gate, U2Gate, U3Gate, CXGate
 from qiskit.circuit import Measure
 from qiskit.circuit.barrier import Barrier
-from qiskit.dagcircuit import DAGOpNode
+from qiskit.circuit.library.standard_gates import CXGate, U1Gate, U2Gate, U3Gate
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.utils import optionals as _optionals
 
 NUM_PREC = 10

@@ -12,11 +12,13 @@
 
 """Unitary gate."""
 
-from typing import List, Optional, Union, Tuple
+from typing import List, Optional, Tuple, Union
+
 import numpy as np
 
-from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.parameterexpression import ParameterExpression
+
 from .instruction import Instruction
 
 
@@ -67,9 +69,10 @@ class Gate(Instruction):
         Raises:
             CircuitError: If Gate is not unitary
         """
-        from qiskit.quantum_info.operators import Operator  # pylint: disable=cyclic-import
-        from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
         from scipy.linalg import schur
+
+        from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
+        from qiskit.quantum_info.operators import Operator  # pylint: disable=cyclic-import
 
         # Should be diagonalized because it's a unitary.
         decomposition, unitary = schur(Operator(self).data, output="complex")

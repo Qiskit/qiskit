@@ -14,6 +14,7 @@
 
 from typing import Optional
 import warnings
+
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister

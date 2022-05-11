@@ -14,15 +14,15 @@
 
 import retworkx
 
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import Qubit
+from qiskit.compiler.transpiler import transpile
+from qiskit.converters import circuit_to_dag
+from qiskit.test import QiskitTestCase
+from qiskit.test.mock import FakeLima, FakeLimaV2, FakeYorktown, FakeYorktownV2
 from qiskit.transpiler import CouplingMap, Layout, TranspilerError
 from qiskit.transpiler.passes.layout import vf2_utils
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayout, VF2PostLayoutStopReason
-from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeYorktown, FakeLima, FakeLimaV2, FakeYorktownV2
-from qiskit.circuit import Qubit
-from qiskit.compiler.transpiler import transpile
 
 
 class TestVF2PostLayout(QiskitTestCase):

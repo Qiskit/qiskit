@@ -12,9 +12,9 @@
 """
 Look-up table for variable parameters in QuantumCircuit.
 """
-import warnings
+from collections.abc import MappingView, MutableMapping
 import functools
-from collections.abc import MutableMapping, MappingView
+import warnings
 
 from .instruction import Instruction
 

@@ -14,14 +14,16 @@ Readout mitigator class based on the 1-qubit local tensored mitigation method
 """
 
 
-from typing import Optional, List, Tuple, Iterable, Callable, Union, Dict
+from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
+
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from ..distributions.quasi import QuasiDistribution
+
 from ..counts import Counts
+from ..distributions.quasi import QuasiDistribution
 from .base_readout_mitigator import BaseReadoutMitigator
-from .utils import counts_probability_vector, z_diagonal, str2diag
+from .utils import counts_probability_vector, str2diag, z_diagonal
 
 
 class LocalReadoutMitigator(BaseReadoutMitigator):

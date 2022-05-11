@@ -14,9 +14,7 @@
 GHZ state example. It also compares running on experiment and simulator.
 """
 
-from qiskit import QuantumCircuit
-from qiskit import BasicAer, execute
-
+from qiskit import BasicAer, QuantumCircuit, execute
 
 ###############################################################
 # Make a quantum circuit for the GHZ state.

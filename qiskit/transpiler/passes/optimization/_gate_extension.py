@@ -18,10 +18,27 @@ then the gate is trivial.
 If a gate has no `_trivial_if`, then is assumed to be non-trivial.
 If a gate has no `_postconditions`, then is assumed to have unknown post-conditions.
 """
-from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
-from qiskit.circuit.library.standard_gates import CXGate, CCXGate, CYGate, CZGate
-from qiskit.circuit.library.standard_gates import TGate, TdgGate, SGate, SdgGate, RZGate, U1Gate
-from qiskit.circuit.library.standard_gates import SwapGate, CSwapGate, CRZGate, CU1Gate, MCU1Gate
+from qiskit.circuit.library.standard_gates import (
+    CCXGate,
+    CRZGate,
+    CSwapGate,
+    CU1Gate,
+    CXGate,
+    CYGate,
+    CZGate,
+    IGate,
+    MCU1Gate,
+    RZGate,
+    SdgGate,
+    SGate,
+    SwapGate,
+    TdgGate,
+    TGate,
+    U1Gate,
+    XGate,
+    YGate,
+    ZGate,
+)
 from qiskit.utils import optionals as _optionals
 
 if _optionals.HAS_Z3:

@@ -12,14 +12,16 @@
 
 """QDrift Class"""
 
-from typing import Union, Optional, Callable
+from typing import Callable, Optional, Union
+
 import numpy as np
+
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.quantum_info.operators import SparsePauliOp, Pauli
+from qiskit.quantum_info.operators import Pauli, SparsePauliOp
 from qiskit.utils import algorithm_globals
 
-from .product_formula import ProductFormula
 from .lie_trotter import LieTrotter
+from .product_formula import ProductFormula
 
 
 class QDrift(ProductFormula):

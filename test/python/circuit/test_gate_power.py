@@ -14,13 +14,14 @@
 """Test Qiskit's power instruction operation."""
 
 import unittest
-from ddt import ddt, data
+
+from ddt import data, ddt
 from numpy import array, eye
 
-from qiskit.test import QiskitTestCase
-from qiskit.extensions import SGate, UnitaryGate, CXGate
 from qiskit.circuit import Gate, QuantumCircuit
+from qiskit.extensions import CXGate, SGate, UnitaryGate
 from qiskit.quantum_info.operators import Operator
+from qiskit.test import QiskitTestCase
 
 
 @ddt

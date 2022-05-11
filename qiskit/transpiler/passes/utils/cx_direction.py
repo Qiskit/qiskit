@@ -13,6 +13,7 @@
 """Rearrange the direction of the cx nodes to match the directed coupling map."""
 
 import warnings
+
 from qiskit.transpiler.passes.utils.gate_direction import GateDirection
 
 

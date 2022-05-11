@@ -50,12 +50,12 @@ as the data amount scales.
 Note that we don't need to write any parameter management logic for each object,
 and thus this parameter framework gives greater scalability to the pulse module.
 """
-from copy import deepcopy, copy
-from typing import List, Dict, Set, Any, Union
+from copy import copy, deepcopy
+from typing import Any, Dict, List, Set, Union
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
-from qiskit.pulse import instructions, channels
+from qiskit.pulse import channels, instructions
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library import ParametricPulse, Waveform
 from qiskit.pulse.schedule import Schedule, ScheduleBlock

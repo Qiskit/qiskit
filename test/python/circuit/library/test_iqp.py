@@ -13,13 +13,14 @@
 """Test library of IQP circuits."""
 
 import unittest
+
 import numpy as np
 
-from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import IQP
 from qiskit.quantum_info import Operator
+from qiskit.test.base import QiskitTestCase
 
 
 class TestIQPLibrary(QiskitTestCase):

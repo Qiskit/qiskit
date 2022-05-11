@@ -13,7 +13,9 @@
 """Test KAK over optimization"""
 
 import unittest
+
 import numpy as np
+
 from qiskit import QuantumCircuit, QuantumRegister, transpile
 from qiskit.circuit.library import CU1Gate
 from qiskit.test import QiskitTestCase

@@ -12,22 +12,22 @@
 
 """ Test Measurement Error Mitigation """
 
+from test.python.algorithms import QiskitAlgorithmsTestCase
 import unittest
 
-from test.python.algorithms import QiskitAlgorithmsTestCase
-from ddt import ddt, data
+from ddt import data, ddt
 import numpy as np
 import retworkx as rx
+
 from qiskit import QuantumCircuit
-from qiskit.quantum_info import Pauli
-from qiskit.exceptions import QiskitError
-from qiskit.utils import QuantumInstance, algorithm_globals
-from qiskit.algorithms import VQE, QAOA
-from qiskit.opflow import I, X, Z, PauliSumOp
-from qiskit.algorithms.optimizers import SPSA, COBYLA
+from qiskit.algorithms import QAOA, VQE
+from qiskit.algorithms.optimizers import COBYLA, SPSA
 from qiskit.circuit.library import EfficientSU2
+from qiskit.exceptions import QiskitError
+from qiskit.opflow import I, PauliSumOp, X, Z
+from qiskit.quantum_info import Pauli
+from qiskit.utils import QuantumInstance, algorithm_globals, optionals
 from qiskit.utils.mitigation import CompleteMeasFitter, TensoredMeasFitter
-from qiskit.utils import optionals
 
 if optionals.HAS_AER:
     # pylint: disable=import-error,no-name-in-module
@@ -35,10 +35,8 @@ if optionals.HAS_AER:
     from qiskit.providers.aer import noise
 if optionals.HAS_IGNIS:
     # pylint: disable=import-error,no-name-in-module
-    from qiskit.ignis.mitigation.measurement import (
-        CompleteMeasFitter as CompleteMeasFitter_IG,
-        TensoredMeasFitter as TensoredMeasFitter_IG,
-    )
+    from qiskit.ignis.mitigation.measurement import CompleteMeasFitter as CompleteMeasFitter_IG
+    from qiskit.ignis.mitigation.measurement import TensoredMeasFitter as TensoredMeasFitter_IG
 
 
 @ddt

@@ -11,8 +11,8 @@
 # that they have been altered from the originals.
 """Set classical IO latency information to circuit."""
 
-from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.dagcircuit import DAGCircuit
+from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class SetIOLatency(AnalysisPass):

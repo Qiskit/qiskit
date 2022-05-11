@@ -12,8 +12,8 @@
 
 """ Test TaperedPauliSumOp """
 
-import unittest
 from test.python.opflow import QiskitOpflowTestCase
+import unittest
 
 from qiskit.circuit import Parameter
 from qiskit.opflow import PauliSumOp, TaperedPauliSumOp, Z2Symmetries

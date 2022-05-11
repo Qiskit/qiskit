@@ -11,11 +11,10 @@
 # that they have been altered from the originals.
 
 """Durations of instructions, one of transpiler configurations."""
+from typing import Iterable, List, Optional, Set, Tuple, Union
 import warnings
-from typing import Optional, List, Tuple, Union, Iterable, Set
 
-from qiskit.circuit import Barrier, Delay
-from qiskit.circuit import Instruction, Qubit, ParameterExpression
+from qiskit.circuit import Barrier, Delay, Instruction, ParameterExpression, Qubit
 from qiskit.circuit.duration import duration_in_dt
 from qiskit.providers import Backend
 from qiskit.transpiler.exceptions import TranspilerError

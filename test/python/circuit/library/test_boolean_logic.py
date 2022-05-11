@@ -13,13 +13,14 @@
 """Test the boolean logic circuits."""
 
 import unittest
-from ddt import ddt, data, unpack
+
+from ddt import data, ddt, unpack
 import numpy as np
 
-from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import XOR, InnerProduct, AND, OR
+from qiskit.circuit.library import AND, OR, XOR, InnerProduct
 from qiskit.quantum_info import Statevector
+from qiskit.test.base import QiskitTestCase
 
 
 @ddt

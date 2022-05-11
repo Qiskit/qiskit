@@ -14,7 +14,7 @@
 
 import warnings
 
-from qiskit.circuit import Delay, Qubit, Measure
+from qiskit.circuit import Delay, Measure, Qubit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
 

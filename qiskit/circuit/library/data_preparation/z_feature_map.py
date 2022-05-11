@@ -13,6 +13,7 @@
 """Create a new first-order Pauli-Z expansion circuit."""
 
 from typing import Callable, Optional
+
 import numpy as np
 
 from .pauli_feature_map import PauliFeatureMap

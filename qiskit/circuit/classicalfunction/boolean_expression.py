@@ -19,6 +19,7 @@ from tweedledum import BitVec, BoolFunction
 from tweedledum.synthesis import pkrm_synth
 
 from qiskit.circuit import QuantumCircuit
+
 from .classical_element import ClassicalElement
 
 

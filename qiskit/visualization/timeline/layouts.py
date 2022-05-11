@@ -49,9 +49,9 @@ The function signature of the layout is restricted to:
 Arbitrary layout function satisfying the above format can be accepted.
 """
 
+from typing import List, Tuple
 import warnings
 
-from typing import List, Tuple
 import numpy as np
 
 from qiskit import circuit

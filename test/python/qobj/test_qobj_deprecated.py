@@ -14,9 +14,9 @@
 """Qobj tests."""
 
 
-from qiskit import QuantumCircuit, execute, BasicAer
+from qiskit import BasicAer, QuantumCircuit, execute
 from qiskit.compiler import assemble
-from qiskit.qobj import PulseQobjConfig, PulseLibraryItem, QasmQobjConfig
+from qiskit.qobj import PulseLibraryItem, PulseQobjConfig, QasmQobjConfig
 from qiskit.test import QiskitTestCase
 from qiskit.utils import QuantumInstance
 

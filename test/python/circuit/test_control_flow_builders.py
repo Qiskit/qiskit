@@ -26,7 +26,7 @@ from qiskit.circuit import (
     QuantumRegister,
     Qubit,
 )
-from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, WhileLoopOp, BreakLoopOp, ContinueLoopOp
+from qiskit.circuit.controlflow import BreakLoopOp, ContinueLoopOp, ForLoopOp, IfElseOp, WhileLoopOp
 from qiskit.circuit.controlflow.builder import ControlFlowBuilderBlock
 from qiskit.circuit.controlflow.if_else import IfElsePlaceholder
 from qiskit.circuit.exceptions import CircuitError

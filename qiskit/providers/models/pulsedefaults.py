@@ -15,7 +15,7 @@
 import copy
 from typing import Any, Dict, List
 
-from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap, CalibrationPublisher
+from qiskit.pulse.instruction_schedule_map import CalibrationPublisher, InstructionScheduleMap
 from qiskit.pulse.schedule import Schedule
 from qiskit.qobj import PulseLibraryItem, PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter

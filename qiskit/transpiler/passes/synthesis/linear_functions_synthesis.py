@@ -13,11 +13,11 @@
 
 """Synthesize LinearFunctions."""
 
-from qiskit.converters import circuit_to_dag
-from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.circuit.library import Permutation
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.library import Permutation
+from qiskit.converters import circuit_to_dag
+from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.transpiler.basepasses import TransformationPass
 
 
 class LinearFunctionsSynthesis(TransformationPass):

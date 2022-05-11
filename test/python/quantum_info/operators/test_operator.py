@@ -14,20 +14,20 @@
 
 """Tests for Operator matrix linear operator class."""
 
-import unittest
-import logging
 import copy
+import logging
+import unittest
+
 import numpy as np
 from numpy.testing import assert_allclose
 import scipy.linalg as la
 
-from qiskit import QiskitError
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit.library import HGate, CHGate, CXGate, QFT
-from qiskit.test import QiskitTestCase
-from qiskit.transpiler.layout import Layout
+from qiskit import ClassicalRegister, QiskitError, QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import QFT, CHGate, CXGate, HGate
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.test import QiskitTestCase
+from qiskit.transpiler.layout import Layout
 
 logger = logging.getLogger(__name__)
 

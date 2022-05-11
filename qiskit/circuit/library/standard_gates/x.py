@@ -12,19 +12,22 @@
 
 """X, CX, CCX and multi-controlled X gates."""
 
-from typing import Optional, Union
 from math import ceil
+from typing import Optional, Union
+
 import numpy
+
+from qiskit.circuit._utils import _compute_control_matrix, _ctrl_state_to_int
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit._utils import _compute_control_matrix, _ctrl_state_to_int
 from qiskit.qasm import pi
+
 from .h import HGate
-from .t import TGate, TdgGate
+from .sx import SXGate
+from .t import TdgGate, TGate
 from .u1 import U1Gate
 from .u2 import U2Gate
-from .sx import SXGate
 
 
 class XGate(Gate):
@@ -80,6 +83,7 @@ class XGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .u3 import U3Gate
 
         q = QuantumRegister(1, "q")
@@ -193,11 +197,11 @@ class CXGate(ControlledGate):
             Identifier,
             Integer,
             QuantumBlock,
+            QuantumGateCall,
+            QuantumGateDefinition,
             QuantumGateModifier,
             QuantumGateModifierName,
             QuantumGateSignature,
-            QuantumGateDefinition,
-            QuantumGateCall,
         )
 
         control, target = Identifier("c"), Identifier("t")
@@ -516,6 +520,7 @@ class C3SXGate(ControlledGate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .u1 import CU1Gate
 
         angle = numpy.pi / 8
@@ -822,6 +827,7 @@ class C4XGate(ControlledGate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .u1 import CU1Gate
 
         q = QuantumRegister(5, name="q")
@@ -1023,6 +1029,7 @@ class MCXGrayCode(MCXGate):
         """Define the MCX gate using the Gray code."""
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .u1 import MCU1Gate
 
         q = QuantumRegister(self.num_qubits, name="q")

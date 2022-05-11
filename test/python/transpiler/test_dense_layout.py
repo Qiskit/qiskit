@@ -16,14 +16,14 @@ import unittest
 
 import numpy as np
 
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit import Parameter
-from qiskit.circuit.library import CXGate, UGate, ECRGate, RZGate
-from qiskit.transpiler import CouplingMap, Target, InstructionProperties, TranspilerError
-from qiskit.transpiler.passes import DenseLayout
+from qiskit.circuit.library import CXGate, ECRGate, RZGate, UGate
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeTokyo
+from qiskit.transpiler import CouplingMap, InstructionProperties, Target, TranspilerError
+from qiskit.transpiler.passes import DenseLayout
 
 
 class TestDenseLayout(QiskitTestCase):

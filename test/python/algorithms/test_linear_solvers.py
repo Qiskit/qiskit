@@ -12,22 +12,23 @@
 
 """Test the quantum linear system solver algorithm."""
 
-import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from scipy.linalg import expm
-import numpy as np
+import unittest
+
 from ddt import ddt, idata, unpack
-from qiskit import BasicAer, QuantumCircuit
+import numpy as np
+from scipy.linalg import expm
+
+from qiskit import BasicAer, QuantumCircuit, quantum_info
 from qiskit.algorithms.linear_solvers.hhl import HHL
-from qiskit.algorithms.linear_solvers.matrices.tridiagonal_toeplitz import TridiagonalToeplitz
 from qiskit.algorithms.linear_solvers.matrices.numpy_matrix import NumPyMatrix
+from qiskit.algorithms.linear_solvers.matrices.tridiagonal_toeplitz import TridiagonalToeplitz
 from qiskit.algorithms.linear_solvers.observables.absolute_average import AbsoluteAverage
 from qiskit.algorithms.linear_solvers.observables.matrix_functional import MatrixFunctional
 from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
+from qiskit.opflow import I, StateFn, Z
 from qiskit.quantum_info import Operator, partial_trace
-from qiskit.opflow import I, Z, StateFn
 from qiskit.utils import QuantumInstance
-from qiskit import quantum_info
 
 
 @ddt

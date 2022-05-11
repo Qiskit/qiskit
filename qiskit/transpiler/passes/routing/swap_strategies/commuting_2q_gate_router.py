@@ -18,10 +18,9 @@ from typing import Dict, List, Optional, Tuple
 from qiskit.circuit import Gate, QuantumCircuit
 from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
-from qiskit.transpiler import TransformationPass, Layout, TranspilerError
-
-from qiskit.transpiler.passes.routing.swap_strategies.swap_strategy import SwapStrategy
+from qiskit.transpiler import Layout, TransformationPass, TranspilerError
 from qiskit.transpiler.passes.routing.swap_strategies.commuting_2q_block import Commuting2qBlocks
+from qiskit.transpiler.passes.routing.swap_strategies.swap_strategy import SwapStrategy
 
 
 class Commuting2qGateRouter(TransformationPass):

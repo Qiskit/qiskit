@@ -15,18 +15,18 @@ Matrix Operator class.
 """
 
 import copy
-import re
 from numbers import Number
+import re
 
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
-from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate, HGate, SGate, TGate
+from qiskit.circuit.library.standard_gates import HGate, IGate, SGate, TGate, XGate, YGate, ZGate
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.operators.predicates import is_unitary_matrix, matrix_equal
 from qiskit.quantum_info.operators.linear_op import LinearOp
 from qiskit.quantum_info.operators.mixins import generate_apidocs
+from qiskit.quantum_info.operators.predicates import is_unitary_matrix, matrix_equal
 
 
 class Operator(LinearOp):
@@ -529,6 +529,7 @@ class Operator(LinearOp):
     def _append_instruction(self, obj, qargs=None):
         """Update the current Operator by apply an instruction."""
         from qiskit.circuit.barrier import Barrier
+
         from .scalar_op import ScalarOp
 
         mat = self._instruction_to_matrix(obj)

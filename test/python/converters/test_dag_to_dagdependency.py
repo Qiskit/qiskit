@@ -15,10 +15,10 @@ dag circuit to dag dependency."""
 
 import unittest
 
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_dagdependency import dag_to_dagdependency
 from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 
 

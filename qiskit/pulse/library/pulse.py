@@ -14,7 +14,7 @@
 to the device.
 """
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Any, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 

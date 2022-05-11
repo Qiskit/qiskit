@@ -12,27 +12,29 @@
 
 """The module to compute Hessians."""
 
-from typing import Union, List, Tuple, Optional
 import functools
+from typing import List, Optional, Tuple, Union
+
 import numpy as np
 
+from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.circuit.quantumcircuit import _compare_parameters
-from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.utils import optionals as _optionals
-from ..operator_globals import Zero, One
-from ..state_fns.circuit_state_fn import CircuitStateFn
-from ..state_fns.state_fn import StateFn
+
+from ...utils.arithmetic import triu_to_dense
+from ..exceptions import OpflowError
 from ..expectations.pauli_expectation import PauliExpectation
-from ..list_ops.list_op import ListOp
 from ..list_ops.composed_op import ComposedOp
+from ..list_ops.list_op import ListOp
 from ..list_ops.summed_op import SummedOp
 from ..list_ops.tensored_op import TensoredOp
 from ..operator_base import OperatorBase
-from .gradient import Gradient
+from ..operator_globals import One, Zero
+from ..state_fns.circuit_state_fn import CircuitStateFn
+from ..state_fns.state_fn import StateFn
 from .derivative_base import _coeff_derivative
+from .gradient import Gradient
 from .hessian_base import HessianBase
-from ..exceptions import OpflowError
-from ...utils.arithmetic import triu_to_dense
 
 
 class Hessian(HessianBase):

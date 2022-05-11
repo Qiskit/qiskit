@@ -12,11 +12,12 @@
 
 """Class for holding evolution result."""
 
-from typing import Optional, Union, Tuple
+from typing import Optional, Tuple, Union
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.list_or_dict import ListOrDict
-from qiskit.opflow import StateFn, OperatorBase
+from qiskit.opflow import OperatorBase, StateFn
+
 from ..algorithm_result import AlgorithmResult
 
 

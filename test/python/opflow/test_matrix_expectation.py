@@ -12,30 +12,31 @@
 
 " Test MatrixExpectation"
 
-import unittest
-from test.python.opflow import QiskitOpflowTestCase
 import itertools
+from test.python.opflow import QiskitOpflowTestCase
+import unittest
+
 import numpy as np
 
-from qiskit.utils import QuantumInstance
+from qiskit import BasicAer
 from qiskit.opflow import (
+    CX,
+    CircuitSampler,
+    H,
+    I,
+    ListOp,
+    MatrixExpectation,
+    Minus,
+    One,
+    Plus,
+    S,
+    StateFn,
     X,
     Y,
     Z,
-    I,
-    CX,
-    H,
-    S,
-    ListOp,
     Zero,
-    One,
-    Plus,
-    Minus,
-    StateFn,
-    MatrixExpectation,
-    CircuitSampler,
 )
-from qiskit import BasicAer
+from qiskit.utils import QuantumInstance
 
 
 class TestMatrixExpectation(QiskitOpflowTestCase):

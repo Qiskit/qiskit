@@ -18,13 +18,14 @@ import unittest
 
 from PIL import Image
 
-from qiskit.circuit import QuantumRegister, QuantumCircuit, Qubit, Clbit
-from qiskit.tools.visualization import dag_drawer
-from qiskit.exceptions import InvalidFileError
-from qiskit.visualization.exceptions import VisualizationError
+from qiskit.circuit import Clbit, QuantumCircuit, QuantumRegister, Qubit
 from qiskit.converters import circuit_to_dag
+from qiskit.exceptions import InvalidFileError
+from qiskit.tools.visualization import dag_drawer
 from qiskit.utils import optionals as _optionals
-from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
+from qiskit.visualization.exceptions import VisualizationError
+
+from .visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 
 
 class TestDagDrawer(QiskitVisualizationTestCase):

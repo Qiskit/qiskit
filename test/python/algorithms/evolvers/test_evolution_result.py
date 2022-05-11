@@ -10,9 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """Class for testing evolution result."""
+from test.python.algorithms import QiskitAlgorithmsTestCase
 import unittest
 
-from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit.algorithms.evolvers.evolution_result import EvolutionResult
 from qiskit.opflow import Zero
 

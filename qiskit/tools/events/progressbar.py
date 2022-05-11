@@ -45,9 +45,10 @@
 
 """Progress bars module"""
 
-import time
 import datetime
 import sys
+import time
+
 from qiskit.tools.events.pubsub import Subscriber
 
 

@@ -14,24 +14,23 @@
 # pylint: disable=missing-module-docstring
 
 import math
-
 from test import combine
 
-from ddt import ddt, data
+from ddt import data, ddt
 
-from qiskit.circuit import QuantumCircuit, ClassicalRegister, QuantumRegister
+from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.compiler import transpile
 from qiskit.compiler.transpiler import _parse_inst_map
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
+from qiskit.quantum_info import Operator
 from qiskit.test.base import QiskitTestCase
 from qiskit.test.mock.fake_backend_v2 import (
-    FakeBackendV2,
     FakeBackend5QV2,
     FakeBackendSimple,
+    FakeBackendV2,
     FakeBackendV2LegacyQubitProps,
 )
 from qiskit.test.mock.fake_mumbai_v2 import FakeMumbaiFractionalCX
-from qiskit.quantum_info import Operator
 
 
 @ddt

@@ -13,6 +13,7 @@
 """Testing utilities for classicalfunction compiler."""
 
 from inspect import getfullargspec, isfunction
+
 from . import examples
 
 

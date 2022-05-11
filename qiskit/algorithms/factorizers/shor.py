@@ -17,7 +17,7 @@ import fractions
 import logging
 import math
 import sys
-from typing import Optional, Union, List, Tuple
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -30,6 +30,7 @@ from qiskit.utils import summarize_circuits
 from qiskit.utils.arithmetic import is_power
 from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.utils.validation import validate_min
+
 from ..algorithm_result import AlgorithmResult
 from ..exceptions import AlgorithmError
 

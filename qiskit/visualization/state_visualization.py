@@ -17,23 +17,25 @@
 Visualization functions for quantum states.
 """
 
-from typing import Optional, List, Union
-from functools import reduce
 import colorsys
+from functools import reduce
+from typing import List, Optional, Union
+
 import numpy as np
+
 from qiskit import user_config
-from qiskit.quantum_info.states.statevector import Statevector
+from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
-from qiskit.visualization.array import array_to_latex
-from qiskit.utils.deprecation import deprecate_arguments
+from qiskit.quantum_info.states.statevector import Statevector
 from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_arguments
+from qiskit.visualization.array import array_to_latex
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.utils import (
     _bloch_multivector_data,
     _paulivec_data,
     matplotlib_close_if_inline,
 )
-from qiskit.circuit.tools.pi_check import pi_check
 
 
 @deprecate_arguments({"rho": "state"})
@@ -716,8 +718,9 @@ def plot_state_qsphere(
     from matplotlib import gridspec
     from matplotlib import pyplot as plt
     from matplotlib.patches import Circle
-    import seaborn as sns
     from scipy import linalg
+    import seaborn as sns
+
     from qiskit.visualization.bloch import Arrow3D
 
     rho = DensityMatrix(state)
@@ -1063,8 +1066,8 @@ def _shade_colors(color, normals, lightsource=None):
     Shade *color* using normal vectors given by *normals*.
     *color* can also be an array of the same length as *normals*.
     """
-    from matplotlib.colors import Normalize, LightSource
     import matplotlib.colors as mcolors
+    from matplotlib.colors import LightSource, Normalize
 
     if lightsource is None:
         # chosen for backwards-compatibility

@@ -13,8 +13,9 @@
 """
 Visualization function for animation of state transitions by applying gates to single qubit.
 """
+from math import acos, cos, sin, sqrt
 import sys
-from math import sin, cos, acos, sqrt
+
 import numpy as np
 
 from qiskit.exceptions import MissingOptionalLibraryError
@@ -159,9 +160,10 @@ def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
 
     try:
         import matplotlib
-        from matplotlib import pyplot as plt
         from matplotlib import animation
+        from matplotlib import pyplot as plt
         from mpl_toolkits.mplot3d import Axes3D
+
         from qiskit.visualization.bloch import Bloch
         from qiskit.visualization.exceptions import VisualizationError
 

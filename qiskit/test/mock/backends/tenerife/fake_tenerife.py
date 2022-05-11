@@ -14,10 +14,10 @@
 Fake Tenerife device (5 qubit).
 """
 
-import os
 import json
+import os
 
-from qiskit.providers.models import GateConfig, QasmBackendConfiguration, BackendProperties
+from qiskit.providers.models import BackendProperties, GateConfig, QasmBackendConfiguration
 from qiskit.test.mock.fake_backend import FakeBackend
 
 

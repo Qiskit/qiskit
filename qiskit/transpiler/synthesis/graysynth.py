@@ -17,7 +17,9 @@ for optimal synthesis of linear (CNOT-only) reversible circuits.
 """
 
 import copy
+
 import numpy as np
+
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 

@@ -13,13 +13,13 @@
 """Replace each block of consecutive gates by a single Unitary node."""
 
 from qiskit.circuit.classicalregister import ClassicalRegister
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.dagcircuit.dagnode import DAGOpNode
+from qiskit.extensions import UnitaryGate
 from qiskit.quantum_info import Operator
 from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
-from qiskit.extensions import UnitaryGate
-from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.synthesis import unitary_synthesis
 

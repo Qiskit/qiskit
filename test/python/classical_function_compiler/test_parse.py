@@ -13,8 +13,8 @@
 """Tests the classicalfunction parser."""
 from qiskit.circuit.classicalfunction import ClassicalFunctionParseError
 from qiskit.circuit.classicalfunction import classical_function as compile_classical_function
-
 from qiskit.test import QiskitTestCase
+
 from . import bad_examples as examples
 
 

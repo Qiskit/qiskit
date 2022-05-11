@@ -12,8 +12,8 @@
 
 """Obtain and set the options in QISKIT_TESTS, used for running the tests."""
 
-import os
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 

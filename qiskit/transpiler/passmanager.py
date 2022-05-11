@@ -12,15 +12,16 @@
 
 """Manager for a set of Passes and their scheduling during transpilation."""
 
-from typing import Union, List, Callable, Dict, Any
+from typing import Any, Callable, Dict, List, Union
 
 import dill
 
-from qiskit.tools.parallel import parallel_map
 from qiskit.circuit import QuantumCircuit
+from qiskit.tools.parallel import parallel_map
+
 from .basepasses import BasePass
 from .exceptions import TranspilerError
-from .runningpassmanager import RunningPassManager, FlowController
+from .runningpassmanager import FlowController, RunningPassManager
 
 
 class PassManager:

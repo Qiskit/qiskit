@@ -15,16 +15,16 @@
 import unittest
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.library import RealAmplitudes
+from qiskit.circuit.library.generalized_gates import LinearFunction
+from qiskit.quantum_info import Operator
+from qiskit.test import QiskitTestCase
+from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes.optimization import CollectLinearFunctions
 from qiskit.transpiler.passes.synthesis import (
     LinearFunctionsSynthesis,
     LinearFunctionsToPermutations,
 )
-from qiskit.test import QiskitTestCase
-from qiskit.circuit.library.generalized_gates import LinearFunction
-from qiskit.circuit.library import RealAmplitudes
-from qiskit.transpiler import PassManager
-from qiskit.quantum_info import Operator
 
 
 class TestLinearFunctionsPasses(QiskitTestCase):

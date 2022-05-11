@@ -13,7 +13,6 @@
 """Test the Optimize1qGatesSimpleCommutation pass"""
 
 from collections import Counter
-
 import unittest
 
 import ddt
@@ -21,10 +20,10 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag
+from qiskit.test import QiskitTestCase
 from qiskit.transpiler.passes.optimization.optimize_1q_commutation import (
     Optimize1qGatesSimpleCommutation,
 )
-from qiskit.test import QiskitTestCase
 
 
 @ddt.ddt

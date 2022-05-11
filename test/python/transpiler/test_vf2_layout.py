@@ -13,16 +13,17 @@
 """Test the VF2Layout pass"""
 
 import unittest
+
 import numpy
 import retworkx
 
-from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler import CouplingMap, Target, TranspilerError
-from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout, VF2LayoutStopReason
+from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import CXGate, GraphState
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeTenerife, FakeRueschlikon, FakeManhattan, FakeYorktown
-from qiskit.circuit.library import GraphState, CXGate
+from qiskit.test.mock import FakeManhattan, FakeRueschlikon, FakeTenerife, FakeYorktown
+from qiskit.transpiler import CouplingMap, Target, TranspilerError
+from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout, VF2LayoutStopReason
 
 
 class LayoutTestCase(QiskitTestCase):

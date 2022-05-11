@@ -15,11 +15,12 @@
 from typing import List, Optional
 
 import numpy as np
-from qiskit.circuit import Qubit, Gate
+
+from qiskit.circuit import Gate, Qubit
 from qiskit.circuit.delay import Delay
-from qiskit.circuit.library.standard_gates import IGate, UGate, U3Gate
+from qiskit.circuit.library.standard_gates import IGate, U3Gate, UGate
 from qiskit.circuit.reset import Reset
-from qiskit.dagcircuit import DAGCircuit, DAGNode, DAGInNode, DAGOpNode
+from qiskit.dagcircuit import DAGCircuit, DAGInNode, DAGNode, DAGOpNode
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
 from qiskit.transpiler.exceptions import TranspilerError

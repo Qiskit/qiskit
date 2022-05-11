@@ -13,12 +13,14 @@
 """U1 Gate."""
 
 from typing import Optional, Union
+
 import numpy
+
+from qiskit.circuit._utils import _ctrl_state_to_int
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit._utils import _ctrl_state_to_int
 
 
 class U1Gate(Gate):
@@ -83,6 +85,7 @@ class U1Gate(Gate):
     def _define(self):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .u3 import U3Gate  # pylint: disable=cyclic-import
 
         q = QuantumRegister(1, "q")
@@ -195,6 +198,7 @@ class CU1Gate(ControlledGate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .x import CXGate  # pylint: disable=cyclic-import
 
         #      ┌─────────┐

@@ -12,37 +12,37 @@
 
 """ Tests for circuit MPL drawer"""
 
+from contextlib import contextmanager
+import json
+import math
+import os
 import unittest
 
-import json
-import os
-from contextlib import contextmanager
-import math
 import numpy as np
 from numpy import pi
 
-from qiskit.test import QiskitTestCase
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.test.mock import FakeTenerife
-from qiskit.visualization.circuit_visualization import _matplotlib_circuit_drawer
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
+from qiskit.circuit import Clbit, Parameter, Qubit
 from qiskit.circuit.library import (
-    XGate,
-    MCXGate,
-    HGate,
-    RZZGate,
-    SwapGate,
-    DCXGate,
-    ZGate,
-    SGate,
-    U1Gate,
+    IQP,
     CPhaseGate,
+    DCXGate,
+    HGate,
+    MCXGate,
+    MCXVChain,
+    RZZGate,
+    SGate,
+    SwapGate,
+    U1Gate,
+    XGate,
+    ZGate,
 )
-from qiskit.circuit.library import MCXVChain
 from qiskit.extensions import HamiltonianGate
-from qiskit.circuit import Parameter, Qubit, Clbit
-from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
+from qiskit.test import QiskitTestCase
+from qiskit.test.mock import FakeTenerife
 from qiskit.utils import optionals
+from qiskit.visualization.circuit_visualization import _matplotlib_circuit_drawer
 
 if optionals.HAS_MATPLOTLIB:
     from matplotlib.pyplot import close as mpl_close

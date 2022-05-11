@@ -14,12 +14,12 @@
 This module is used internally by ``qiskit.transpiler.classicalfunction.ClassicalFunction``.
 """
 
-import ast
 import _ast
+import ast
 
 from tweedledum.classical import LogicNetwork
 
-from .exceptions import ClassicalFunctionParseError, ClassicalFunctionCompilerTypeError
+from .exceptions import ClassicalFunctionCompilerTypeError, ClassicalFunctionParseError
 
 
 class ClassicalFunctionVisitor(ast.NodeVisitor):

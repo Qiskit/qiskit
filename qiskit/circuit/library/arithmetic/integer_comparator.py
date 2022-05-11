@@ -15,12 +15,14 @@
 
 from typing import List, Optional
 import warnings
+
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
+from qiskit.circuit import AncillaRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
-from ..boolean_logic import OR
+
 from ..blueprintcircuit import BlueprintCircuit
+from ..boolean_logic import OR
 
 
 class IntegerComparator(BlueprintCircuit):

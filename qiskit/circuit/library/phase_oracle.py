@@ -12,7 +12,7 @@
 
 """Phase Oracle object."""
 
-from typing import Union, Callable, Optional
+from typing import Callable, Optional, Union
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
@@ -62,6 +62,7 @@ class PhaseOracle(QuantumCircuit):
 
             def synthesizer(boolean_expression):
                 from tweedledum.synthesis import pkrm_synth
+
                 from qiskit.circuit.classicalfunction.utils import tweedledum2qiskit
 
                 truth_table = boolean_expression._tweedledum_bool_expression.truth_table(

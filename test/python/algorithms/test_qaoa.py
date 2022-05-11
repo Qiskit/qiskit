@@ -12,24 +12,21 @@
 
 """ Test QAOA """
 
-import unittest
-from test.python.algorithms import QiskitAlgorithmsTestCase
-
 from functools import partial
 import math
-import numpy as np
-from scipy.optimize import minimize as scipy_minimize
+from test.python.algorithms import QiskitAlgorithmsTestCase
+import unittest
+
 from ddt import ddt, idata, unpack
+import numpy as np
 import retworkx as rx
-
-from qiskit.algorithms import QAOA
-from qiskit.algorithms.optimizers import COBYLA, NELDER_MEAD
-
-from qiskit.opflow import I, X, Z, PauliSumOp
+from scipy.optimize import minimize as scipy_minimize
 
 from qiskit import BasicAer, QuantumCircuit, QuantumRegister
-
+from qiskit.algorithms import QAOA
+from qiskit.algorithms.optimizers import COBYLA, NELDER_MEAD
 from qiskit.circuit import Parameter
+from qiskit.opflow import I, PauliSumOp, X, Z
 from qiskit.quantum_info import Pauli
 from qiskit.utils import QuantumInstance, algorithm_globals
 

@@ -13,6 +13,7 @@
 """Tests for plot_histogram."""
 
 import unittest
+
 import matplotlib as mpl
 
 from qiskit.test import QiskitTestCase

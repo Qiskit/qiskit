@@ -18,7 +18,6 @@ import pickle
 
 from qiskit.providers import Options
 from qiskit.qobj.utils import MeasLevel
-
 from qiskit.test import QiskitTestCase
 
 

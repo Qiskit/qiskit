@@ -12,18 +12,20 @@
 
 """A module of magic functions"""
 
-import time
 import threading
-from IPython import get_ipython
-from IPython.display import display
-from IPython.core import magic_arguments
-from IPython.core.magic import cell_magic, line_magic, Magics, magics_class, register_line_magic
+import time
 
-from qiskit.utils import optionals as _optionals
+from IPython import get_ipython
+from IPython.core import magic_arguments
+from IPython.core.magic import Magics, cell_magic, line_magic, magics_class, register_line_magic
+from IPython.display import display
+
 import qiskit
 from qiskit.tools.events.progressbar import TextProgressBar
-from .progressbar import HTMLProgressBar
+from qiskit.utils import optionals as _optionals
+
 from .library import circuit_library_widget
+from .progressbar import HTMLProgressBar
 
 
 def _html_checker(job_var, interval, status, header, _interval_set=False):

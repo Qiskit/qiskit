@@ -15,16 +15,16 @@ Utilities for constructing Target object from configuration, properties and
 pulse defaults json files
 """
 
-from qiskit.transpiler.target import Target, InstructionProperties
-from qiskit.providers.backend import QubitProperties
-from qiskit.utils.units import apply_prefix
-from qiskit.circuit.library.standard_gates import IGate, SXGate, XGate, CXGate, RZGate
-from qiskit.circuit.parameter import Parameter
-from qiskit.circuit.gate import Gate
 from qiskit.circuit.delay import Delay
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.library.standard_gates import CXGate, IGate, RZGate, SXGate, XGate
 from qiskit.circuit.measure import Measure
+from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.reset import Reset
+from qiskit.providers.backend import QubitProperties
 from qiskit.providers.models.pulsedefaults import PulseDefaults
+from qiskit.transpiler.target import InstructionProperties, Target
+from qiskit.utils.units import apply_prefix
 
 
 def convert_to_target(conf_dict: dict, props_dict: dict = None, defs_dict: dict = None) -> Target:

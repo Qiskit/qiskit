@@ -13,13 +13,15 @@
 """Test Qiskit's inverse gate operation."""
 
 import unittest
+
 import numpy as np
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
+
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, pulse
 from qiskit.circuit import Clbit
-from qiskit.circuit.library import RXGate, RYGate
-from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.library import RXGate, RYGate
 from qiskit.extensions.simulator import Snapshot
+from qiskit.test import QiskitTestCase
 
 
 class TestCircuitProperties(QiskitTestCase):

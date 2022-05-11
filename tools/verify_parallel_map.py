@@ -19,15 +19,14 @@
 import math
 import os
 
-
 ORIG_ENV_VAR = os.getenv("QISKIT_PARALLEL", None)
 if ORIG_ENV_VAR is not None:
     print("Removing QISKIT_PARALLEL env var to verify defaults")
     del os.environ["QISKIT_PARALLEL"]
 
 
+from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.compiler import transpile
-from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.test.mock import FakeRueschlikon
 
 

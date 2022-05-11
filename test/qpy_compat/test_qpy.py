@@ -19,15 +19,15 @@ import sys
 
 import numpy as np
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit.classicalregister import Clbit
-from qiskit.circuit.quantumregister import Qubit
+from qiskit.circuit.library import QFT, U1Gate, U2Gate, U3Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.circuit.qpy_serialization import dump, load
-from qiskit.opflow import X, Y, Z, I
+from qiskit.circuit.quantumregister import Qubit
+from qiskit.opflow import I, X, Y, Z
 from qiskit.quantum_info.random import random_unitary
-from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT
 
 
 def generate_full_circuit():
@@ -290,7 +290,7 @@ def generate_evolution_gate():
 
 def generate_control_flow_circuits():
     """Test qpy serialization with control flow instructions."""
-    from qiskit.circuit.controlflow import WhileLoopOp, IfElseOp, ForLoopOp
+    from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, WhileLoopOp
 
     # If instruction
     circuits = []

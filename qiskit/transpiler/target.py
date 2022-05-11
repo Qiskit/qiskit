@@ -15,21 +15,20 @@ A target object represents the minimum set of information the transpiler needs
 from a backend
 """
 
-from collections.abc import Mapping
 from collections import defaultdict
+from collections.abc import Mapping
 import io
 import logging
 
 import retworkx as rx
 
+# import QubitProperties here to provide convenience alias for building a
+# full target
+from qiskit.providers.backend import QubitProperties  # pylint: disable=unused-import
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
-
-# import QubitProperties here to provide convenience alias for building a
-# full target
-from qiskit.providers.backend import QubitProperties  # pylint: disable=unused-import
 
 logger = logging.getLogger(__name__)
 

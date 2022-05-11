@@ -12,8 +12,8 @@
 
 """Limited-memory BFGS Bound optimizer."""
 
-import warnings
 from typing import Optional
+import warnings
 
 import numpy as np
 

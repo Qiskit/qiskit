@@ -13,11 +13,12 @@
 """Test the blueprint circuit."""
 
 import unittest
-from ddt import ddt, data
 
-from qiskit.test.base import QiskitTestCase
-from qiskit.circuit import QuantumRegister, Parameter, QuantumCircuit, Gate, Instruction
+from ddt import data, ddt
+
+from qiskit.circuit import Gate, Instruction, Parameter, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import BlueprintCircuit
+from qiskit.test.base import QiskitTestCase
 
 
 class MockBlueprint(BlueprintCircuit):

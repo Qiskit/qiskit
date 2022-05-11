@@ -12,22 +12,23 @@
 
 """The HHL algorithm."""
 
-from typing import Optional, Union, List, Callable, Tuple
+from typing import Callable, List, Optional, Tuple, Union
+
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
+from qiskit.circuit import AncillaRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import PhaseEstimation
-from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
 from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
+from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
 from qiskit.opflow import (
-    Z,
+    CircuitSampler,
+    ExpectationBase,
+    ExpectationFactory,
     I,
+    ListOp,
     StateFn,
     TensoredOp,
-    ExpectationBase,
-    CircuitSampler,
-    ListOp,
-    ExpectationFactory,
+    Z,
 )
 from qiskit.providers import Backend
 from qiskit.quantum_info.operators.base_operator import BaseOperator

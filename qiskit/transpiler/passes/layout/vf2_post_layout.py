@@ -15,14 +15,13 @@ from enum import Enum
 import logging
 import time
 
-from retworkx import PyDiGraph, vf2_mapping, PyGraph
+from retworkx import PyDiGraph, PyGraph, vf2_mapping
 
-from qiskit.transpiler.layout import Layout
+from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.providers.exceptions import BackendPropertyError
+from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passes.layout import vf2_utils
-
 
 logger = logging.getLogger(__name__)
 

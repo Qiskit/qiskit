@@ -79,9 +79,9 @@ overlapped on the canvas. Thus it is convenient to plot a total frame change amo
 than plotting each operand value bound to the instruction.
 """
 from collections import defaultdict
-from typing import Dict, List, Iterator, Tuple
+from typing import Dict, Iterator, List, Tuple
 
-from qiskit import pulse, circuit
+from qiskit import circuit, pulse
 from qiskit.visualization.pulse_v2.types import PhaseFreqTuple, PulseInstruction
 
 

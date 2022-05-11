@@ -12,9 +12,10 @@
 
 """Instantaneous quantum polynomial circuit."""
 
-from typing import Union, List
+from typing import List, Union
 
 import numpy as np
+
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 

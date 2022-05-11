@@ -13,14 +13,16 @@
 """Test the LookaheadSwap pass"""
 
 import unittest
+
 from numpy import pi
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.transpiler.passes import LookaheadSwap
-from qiskit.transpiler import CouplingMap
+
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeMelbourne
+from qiskit.transpiler import CouplingMap
+from qiskit.transpiler.passes import LookaheadSwap
 
 
 class TestLookaheadSwap(QiskitTestCase):

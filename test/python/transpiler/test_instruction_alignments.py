@@ -17,15 +17,15 @@ from qiskit.test import QiskitTestCase
 from qiskit.transpiler import InstructionDurations, PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import (
-    AlignMeasures,
-    InstructionDurationCheck,
-    ConstrainedReschedule,
-    ValidatePulseGates,
-    ALAPScheduleAnalysis,
-    ASAPScheduleAnalysis,
     ALAPSchedule,
+    ALAPScheduleAnalysis,
+    AlignMeasures,
+    ASAPScheduleAnalysis,
+    ConstrainedReschedule,
+    InstructionDurationCheck,
     PadDelay,
     SetIOLatency,
+    ValidatePulseGates,
 )
 
 

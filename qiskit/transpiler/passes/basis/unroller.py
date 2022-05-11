@@ -12,11 +12,11 @@
 
 """Unroll a circuit to a given basis."""
 
-from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.exceptions import QiskitError
-from qiskit.circuit import ControlledGate, ControlFlowOp
+from qiskit.circuit import ControlFlowOp, ControlledGate
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
+from qiskit.exceptions import QiskitError
+from qiskit.transpiler.basepasses import TransformationPass
 
 
 class Unroller(TransformationPass):

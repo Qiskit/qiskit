@@ -439,11 +439,10 @@ how the program is built.
     seconds_to_samples
 """
 import collections
+from contextlib import contextmanager
 import contextvars
 import functools
 import itertools
-import warnings
-from contextlib import contextmanager
 from typing import (
     Any,
     Callable,
@@ -452,29 +451,22 @@ from typing import (
     Iterable,
     List,
     Mapping,
+    NewType,
     Optional,
     Set,
     Tuple,
     TypeVar,
     Union,
-    NewType,
 )
+import warnings
 
 import numpy as np
 
 from qiskit import circuit
 from qiskit.circuit.library import standard_gates as gates
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
-from qiskit.pulse import (
-    channels as chans,
-    configuration,
-    exceptions,
-    instructions,
-    macros,
-    library,
-    transforms,
-    utils,
-)
+from qiskit.pulse import channels as chans
+from qiskit.pulse import configuration, exceptions, instructions, library, macros, transforms, utils
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind

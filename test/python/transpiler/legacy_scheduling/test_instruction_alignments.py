@@ -17,10 +17,10 @@ from qiskit.test import QiskitTestCase
 from qiskit.transpiler import InstructionDurations
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import (
-    AlignMeasures,
-    ValidatePulseGates,
     ALAPSchedule,
+    AlignMeasures,
     TimeUnitConversion,
+    ValidatePulseGates,
 )
 
 

@@ -17,11 +17,10 @@ import time
 
 from retworkx import vf2_mapping
 
-from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passes.layout import vf2_utils
-
 
 logger = logging.getLogger(__name__)
 

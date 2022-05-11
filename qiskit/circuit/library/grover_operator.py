@@ -13,10 +13,13 @@
 """The Grover operator."""
 
 from typing import List, Optional, Union
+
 import numpy
-from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
+
+from qiskit.circuit import AncillaRegister, QuantumCircuit, QuantumRegister
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import Statevector, Operator, DensityMatrix
+from qiskit.quantum_info import DensityMatrix, Operator, Statevector
+
 from .standard_gates import MCXGate
 
 

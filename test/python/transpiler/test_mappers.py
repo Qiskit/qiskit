@@ -68,18 +68,14 @@ For example::
 
 # pylint: disable=attribute-defined-outside-init
 
-import unittest
 import os
 import sys
+import unittest
 
-from qiskit import execute
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicAer
-from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap, SabreSwap
-from qiskit.transpiler.passes import SetLayout
-from qiskit.transpiler import CouplingMap, Layout
-
+from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister, execute
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler import CouplingMap, Layout, PassManager
+from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, SabreSwap, SetLayout, StochasticSwap
 
 
 class CommonUtilitiesMixin:

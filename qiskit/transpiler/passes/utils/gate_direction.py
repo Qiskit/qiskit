@@ -14,13 +14,12 @@
 
 from math import pi
 
-from qiskit.transpiler.layout import Layout
+from qiskit.circuit import QuantumRegister
+from qiskit.circuit.library.standard_gates import CXGate, ECRGate, HGate, RYGate, RZXGate
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-
-from qiskit.circuit import QuantumRegister
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit.library.standard_gates import RYGate, HGate, CXGate, ECRGate, RZXGate
+from qiskit.transpiler.layout import Layout
 
 
 class GateDirection(TransformationPass):

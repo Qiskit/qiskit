@@ -12,25 +12,24 @@
 
 """Tests for swap strategy routers."""
 
-from qiskit.circuit import QuantumCircuit, Qubit, QuantumRegister
-from qiskit.transpiler import PassManager, CouplingMap, Layout, TranspilerError
-
+from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.library.n_local import QAOAAnsatz
 from qiskit.converters import circuit_to_dag
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import Pauli
-from qiskit.transpiler.passes import FullAncillaAllocation
-from qiskit.transpiler.passes import EnlargeWithAncilla
-from qiskit.transpiler.passes import ApplyLayout
-from qiskit.transpiler.passes import SetLayout
-
 from qiskit.test import QiskitTestCase
-
+from qiskit.transpiler import CouplingMap, Layout, PassManager, TranspilerError
+from qiskit.transpiler.passes import (
+    ApplyLayout,
+    EnlargeWithAncilla,
+    FullAncillaAllocation,
+    SetLayout,
+)
 from qiskit.transpiler.passes.routing.swap_strategies import (
-    SwapStrategy,
-    FindCommutingPauliEvolutions,
     Commuting2qGateRouter,
+    FindCommutingPauliEvolutions,
+    SwapStrategy,
 )
 
 

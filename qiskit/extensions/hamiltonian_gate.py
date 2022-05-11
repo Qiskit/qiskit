@@ -15,13 +15,13 @@ Gate described by the time evolution of a Hermitian Hamiltonian operator.
 """
 
 from numbers import Number
+
 import numpy
 
-from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister, ParameterExpression
-from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
-from qiskit.extensions.exceptions import ExtensionError
+from qiskit.circuit import Gate, ParameterExpression, QuantumCircuit, QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.extensions.exceptions import ExtensionError
+from qiskit.quantum_info.operators.predicates import is_hermitian_matrix, matrix_equal
 
 from .unitary import UnitaryGate
 

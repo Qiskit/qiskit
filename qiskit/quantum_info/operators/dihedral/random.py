@@ -15,6 +15,7 @@ Random CNOTDihedral operator functions
 
 import numpy as np
 from numpy.random import default_rng
+
 from .dihedral import CNOTDihedral
 
 

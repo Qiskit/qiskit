@@ -12,11 +12,11 @@
 
 """Tests for Sampler."""
 
-import unittest
 from test import combine
+import unittest
 
-import numpy as np
 from ddt import ddt
+import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter

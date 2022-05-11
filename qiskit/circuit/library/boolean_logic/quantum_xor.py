@@ -16,6 +16,7 @@
 from typing import Optional
 
 import numpy as np
+
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 

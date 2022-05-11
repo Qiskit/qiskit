@@ -12,10 +12,12 @@
 
 """The Lie-Trotter product formula."""
 
-from typing import Callable, Optional, Union, Dict, Any
+from typing import Any, Callable, Dict, Optional, Union
+
 import numpy as np
+
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.quantum_info.operators import SparsePauliOp, Pauli
+from qiskit.quantum_info.operators import Pauli, SparsePauliOp
 
 from .product_formula import ProductFormula
 

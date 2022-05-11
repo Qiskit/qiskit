@@ -16,11 +16,10 @@
 import numpy as np
 import retworkx
 
-from qiskit.transpiler.layout import Layout
+from qiskit._accelerate.dense_layout import best_subset  # pylint: disable=import-error
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
-
-from qiskit._accelerate.dense_layout import best_subset  # pylint: disable=import-error
+from qiskit.transpiler.layout import Layout
 
 
 class DenseLayout(AnalysisPass):

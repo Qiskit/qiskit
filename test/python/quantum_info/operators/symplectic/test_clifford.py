@@ -13,27 +13,27 @@
 # pylint: disable=invalid-name
 """Tests for Clifford class."""
 
-import unittest
 from test import combine
-from ddt import ddt
+import unittest
 
+from ddt import ddt
 import numpy as np
 
-from qiskit.test import QiskitTestCase
-from qiskit.exceptions import QiskitError
-from qiskit.circuit import Gate, QuantumRegister, QuantumCircuit
+from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import (
+    CXGate,
+    CZGate,
+    HGate,
     IGate,
+    SdgGate,
+    SGate,
+    SwapGate,
     XGate,
     YGate,
     ZGate,
-    HGate,
-    SGate,
-    SdgGate,
-    CXGate,
-    CZGate,
-    SwapGate,
 )
+from qiskit.exceptions import QiskitError
+from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.operators import Clifford, Operator
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_circuit
 from qiskit.quantum_info.synthesis.clifford_decompose import (
@@ -41,7 +41,7 @@ from qiskit.quantum_info.synthesis.clifford_decompose import (
     decompose_clifford_bm,
     decompose_clifford_greedy,
 )
-from qiskit.quantum_info import random_clifford
+from qiskit.test import QiskitTestCase
 
 
 class VGate(Gate):

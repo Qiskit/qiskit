@@ -18,11 +18,12 @@ import functools
 import os
 import socket
 import sys
-from typing import Union, Callable, Type, Iterable
+from typing import Callable, Iterable, Type, Union
 import unittest
 from warnings import warn
 
 from qiskit.utils import wrap_method
+
 from .testing_options import get_test_options
 
 HAS_NET_CONNECTION = None

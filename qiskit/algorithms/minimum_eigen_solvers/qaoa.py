@@ -12,18 +12,19 @@
 
 """ The Quantum Approximate Optimization Algorithm. """
 
-from typing import List, Callable, Optional, Union
+from typing import Callable, List, Optional, Union
+
 import numpy as np
 
+from qiskit.algorithms.minimum_eigen_solvers.vqe import MINIMIZER, VQE
 from qiskit.algorithms.optimizers import Optimizer
 from qiskit.circuit import QuantumCircuit
-from qiskit.opflow import OperatorBase, ExpectationBase
+from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
+from qiskit.opflow import ExpectationBase, OperatorBase
 from qiskit.opflow.gradients import GradientBase
 from qiskit.providers import Backend
 from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.utils.validation import validate_min
-from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
-from qiskit.algorithms.minimum_eigen_solvers.vqe import VQE, MINIMIZER
 
 
 class QAOA(VQE):

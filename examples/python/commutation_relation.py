@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 from qiskit import QuantumCircuit
-
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import CommutationAnalysis, CommutativeCancellation
 

@@ -20,6 +20,7 @@ from tweedledum.synthesis import pkrm_synth
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.exceptions import QiskitError
+
 from .classical_element import ClassicalElement
 from .classical_function_visitor import ClassicalFunctionVisitor
 from .utils import tweedledum2qiskit

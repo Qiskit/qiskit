@@ -19,30 +19,30 @@ from warnings import warn
 
 import numpy as np
 
-from qiskit.circuit import ControlledGate, Qubit, Clbit, ClassicalRegister
-from qiskit.circuit import Measure, QuantumCircuit, QuantumRegister
-from qiskit.circuit.library.standard_gates import (
-    SwapGate,
-    RZZGate,
-    U1Gate,
-    PhaseGate,
-    XGate,
-    ZGate,
+from qiskit.circuit import (
+    ClassicalRegister,
+    Clbit,
+    ControlledGate,
+    Measure,
+    QuantumCircuit,
+    QuantumRegister,
+    Qubit,
 )
+from qiskit.circuit.library.standard_gates import PhaseGate, RZZGate, SwapGate, U1Gate, XGate, ZGate
+from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.extensions import Initialize
+from qiskit.utils import optionals as _optionals
 from qiskit.visualization.qcstyle import load_style
 from qiskit.visualization.utils import (
+    get_bit_reg_index,
+    get_bit_register,
+    get_condition_label_val,
     get_gate_ctrl_text,
     get_param_str,
-    get_wire_map,
-    get_bit_register,
-    get_bit_reg_index,
     get_wire_label,
-    get_condition_label_val,
+    get_wire_map,
     matplotlib_close_if_inline,
 )
-from qiskit.circuit.tools.pi_check import pi_check
-from qiskit.utils import optionals as _optionals
 
 # Default gate width and height
 WID = 0.65

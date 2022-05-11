@@ -14,19 +14,20 @@
 
 import unittest
 
-from ddt import ddt, data, unpack
+from ddt import data, ddt, unpack
+
 from qiskit import QuantumCircuit
-from qiskit.pulse import Schedule, Play, Constant, DriveChannel
+from qiskit.pulse import Constant, DriveChannel, Play, Schedule
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.passes import (
-    ASAPScheduleAnalysis,
     ALAPScheduleAnalysis,
+    ASAPScheduleAnalysis,
     PadDelay,
     SetIOLatency,
 )
 from qiskit.transpiler.passmanager import PassManager
-from qiskit.transpiler.exceptions import TranspilerError
 
 
 @ddt

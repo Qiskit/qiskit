@@ -14,12 +14,12 @@
 
 import unittest
 
-from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler import CouplingMap
-from qiskit.transpiler.passes import SabreLayout
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeAlmaden
+from qiskit.transpiler import CouplingMap
+from qiskit.transpiler.passes import SabreLayout
 
 
 class TestSabreLayout(QiskitTestCase):

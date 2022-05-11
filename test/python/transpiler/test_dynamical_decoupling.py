@@ -13,25 +13,24 @@
 """Test dynamical decoupling insertion pass."""
 
 import unittest
+
+from ddt import data, ddt
 import numpy as np
 from numpy import pi
-from ddt import ddt, data
 
-from qiskit.circuit import QuantumCircuit, Delay
-from qiskit.circuit.library import XGate, YGate, RXGate, UGate
+from qiskit.circuit import Delay, QuantumCircuit
+from qiskit.circuit.library import RXGate, UGate, XGate, YGate
+import qiskit.pulse as pulse
 from qiskit.quantum_info import Operator
+from qiskit.test import QiskitTestCase
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.passes import (
-    ASAPScheduleAnalysis,
     ALAPScheduleAnalysis,
+    ASAPScheduleAnalysis,
     PadDynamicalDecoupling,
 )
 from qiskit.transpiler.passmanager import PassManager
-from qiskit.transpiler.exceptions import TranspilerError
-
-import qiskit.pulse as pulse
-
-from qiskit.test import QiskitTestCase
 
 
 @ddt

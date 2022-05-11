@@ -12,8 +12,8 @@
 
 """Check if the gates follow the right direction with respect to the coupling map."""
 
-from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.transpiler.layout import Layout
 
 
 class CheckGateDirection(AnalysisPass):

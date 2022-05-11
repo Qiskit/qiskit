@@ -13,20 +13,14 @@
 """Tests for SparsePauliOp class."""
 
 import itertools as it
-import unittest
 from test import combine
+import unittest
 
-import numpy as np
 from ddt import ddt
+import numpy as np
 
 from qiskit import QiskitError
-from qiskit.quantum_info.operators import (
-    Operator,
-    Pauli,
-    PauliList,
-    PauliTable,
-    SparsePauliOp,
-)
+from qiskit.quantum_info.operators import Operator, Pauli, PauliList, PauliTable, SparsePauliOp
 from qiskit.test import QiskitTestCase
 
 

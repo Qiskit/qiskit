@@ -13,9 +13,9 @@
 """
 Configurations for pulse experiments.
 """
-from typing import Dict, Union, Tuple, Optional
+from typing import Dict, Optional, Tuple, Union
 
-from .channels import PulseChannel, DriveChannel, MeasureChannel
+from .channels import DriveChannel, MeasureChannel, PulseChannel
 from .exceptions import PulseError
 
 

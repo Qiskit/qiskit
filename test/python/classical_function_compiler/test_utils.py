@@ -12,8 +12,9 @@
 """Tests .utils.get_truthtable_from_function function"""
 
 from qiskit.test import QiskitTestCase
-from .utils import get_truthtable_from_function
+
 from .examples import grover_oracle
+from .utils import get_truthtable_from_function
 
 
 class TestGetTruthtableFromFunction(QiskitTestCase):

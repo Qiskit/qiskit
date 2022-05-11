@@ -11,13 +11,13 @@
 # that they have been altered from the originals.
 
 """ Pass for Hoare logic circuit optimization. """
-from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.circuit import QuantumRegister, ControlledGate, Gate
+from qiskit.circuit import ControlledGate, Gate, QuantumRegister
+from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.library.standard_gates import CU1Gate, CZGate, MCU1Gate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.unitary import UnitaryGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.library.standard_gates import CZGate, CU1Gate, MCU1Gate
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.utils import optionals as _optionals
 
 
@@ -317,8 +317,8 @@ class HoareOptimizer(TransformationPass):
         Returns:
             bool: if gate sequence is only executed completely or not at all
         """
-        from z3 import Or, And, Not
         import z3
+        from z3 import And, Not, Or
 
         assert len(sequence) == 2
         ctrlvar1 = self._seperate_ctrl_trgt(sequence[0])[1]

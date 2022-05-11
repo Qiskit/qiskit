@@ -14,8 +14,8 @@
 
 import numpy
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit import Qubit, Clbit, AncillaQubit
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.circuit import AncillaQubit, Clbit, Qubit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
 

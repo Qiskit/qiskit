@@ -13,11 +13,12 @@
 """Test the global rotation circuit."""
 
 import unittest
+
 import numpy as np
 
-from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import GR, GRX, GRY, GRZ, RGate, RZGate
+from qiskit.test.base import QiskitTestCase
 
 
 class TestGlobalRLibrary(QiskitTestCase):

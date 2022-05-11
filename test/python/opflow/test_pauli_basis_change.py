@@ -12,24 +12,15 @@
 
 """ Test Pauli Change of Basis Converter """
 
-import itertools
-import unittest
 from functools import reduce
+import itertools
 from test.python.opflow import QiskitOpflowTestCase
+import unittest
 
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.opflow import (
-    ComposedOp,
-    I,
-    OperatorStateFn,
-    PauliSumOp,
-    SummedOp,
-    X,
-    Y,
-    Z,
-)
+from qiskit.opflow import ComposedOp, I, OperatorStateFn, PauliSumOp, SummedOp, X, Y, Z
 from qiskit.opflow.converters import PauliBasisChange
 from qiskit.quantum_info import Pauli, SparsePauliOp
 

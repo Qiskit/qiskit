@@ -12,9 +12,9 @@
 
 """ OperatorBase Class """
 
-import itertools
 from abc import ABC, abstractmethod
 from copy import deepcopy
+import itertools
 from typing import Dict, List, Optional, Set, Tuple, Union, cast
 
 import numpy as np

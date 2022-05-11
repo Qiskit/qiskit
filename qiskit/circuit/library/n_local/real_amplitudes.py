@@ -12,10 +12,12 @@
 
 """The real-amplitudes 2-local circuit."""
 
-from typing import Union, Optional, List, Tuple, Callable, Any
+from typing import Any, Callable, List, Optional, Tuple, Union
+
 import numpy as np
 
-from qiskit.circuit.library.standard_gates import RYGate, CXGate
+from qiskit.circuit.library.standard_gates import CXGate, RYGate
+
 from .two_local import TwoLocal
 
 

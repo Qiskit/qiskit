@@ -16,6 +16,7 @@ from abc import abstractmethod
 from typing import List, Union
 
 from qiskit.circuit import ParameterExpression, ParameterVector
+
 from ...converters.converter_base import ConverterBase
 from ...operator_base import OperatorBase
 

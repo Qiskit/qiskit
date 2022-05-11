@@ -96,8 +96,8 @@ class CircuitOp(PrimitiveOp):
 
     def tensor(self, other: OperatorBase) -> Union["CircuitOp", TensoredOp]:
         # pylint: disable=cyclic-import
-        from .pauli_op import PauliOp
         from .matrix_op import MatrixOp
+        from .pauli_op import PauliOp
 
         if isinstance(other, (PauliOp, CircuitOp, MatrixOp)):
             other = other.to_circuit_op()
@@ -126,8 +126,8 @@ class CircuitOp(PrimitiveOp):
         # pylint: disable=cyclic-import
         from ..operator_globals import Zero
         from ..state_fns import CircuitStateFn
-        from .pauli_op import PauliOp
         from .matrix_op import MatrixOp
+        from .pauli_op import PauliOp
 
         if other == Zero ^ new_self.num_qubits:
             return CircuitStateFn(new_self.primitive, coeff=new_self.coeff)
@@ -189,10 +189,10 @@ class CircuitOp(PrimitiveOp):
             Union[str, Dict[str, complex], np.ndarray, OperatorBase, Statevector]
         ] = None,
     ) -> Union[OperatorBase, complex]:
-        from ..state_fns import CircuitStateFn
         from ..list_ops import ListOp
-        from .pauli_op import PauliOp
+        from ..state_fns import CircuitStateFn
         from .matrix_op import MatrixOp
+        from .pauli_op import PauliOp
 
         if isinstance(front, ListOp) and front.distributive:
             return front.combo_fn(

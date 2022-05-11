@@ -22,11 +22,11 @@ Multi controlled single-qubit unitary up to diagonal.
 import numpy as np
 
 from qiskit.circuit import Gate
-from qiskit.circuit.quantumcircuit import QuantumRegister, QuantumCircuit
-from qiskit.quantum_info.operators.predicates import is_isometry
-from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
+from qiskit.exceptions import QiskitError
 from qiskit.extensions.quantum_initializer.uc import UCGate
+from qiskit.quantum_info.operators.predicates import is_isometry
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 

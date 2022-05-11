@@ -99,8 +99,8 @@ class HTMLProgressBar(BaseProgressBar):
         self.subscribe("terra.parallel.finish", _finish_progress_bar)
 
     def start(self, iterations):
-        import ipywidgets as widgets
         from IPython.display import display
+        import ipywidgets as widgets
 
         self.touched = True
         self.iter = int(iterations)

@@ -12,7 +12,7 @@
 """A collection of passes to reallocate the timeslots of instructions according to context."""
 
 import abc
-from typing import Callable, Dict, Any, Union
+from typing import Any, Callable, Dict, Union
 
 import numpy as np
 

@@ -26,8 +26,8 @@ Exact and practical pattern matching for quantum circuit optimization.
 import itertools
 
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.transpiler.passes.optimization.template_matching.forward_match import ForwardMatch
 from qiskit.transpiler.passes.optimization.template_matching.backward_match import BackwardMatch
+from qiskit.transpiler.passes.optimization.template_matching.forward_match import ForwardMatch
 
 
 class TemplateMatching:

@@ -12,12 +12,13 @@
 
 """Piecewise polynomial Chebyshev approximation to a given f(x)."""
 from typing import Callable, List, Optional, Union
+
 import numpy as np
 from numpy.polynomial.chebyshev import Chebyshev
 
-from qiskit.circuit import QuantumRegister, AncillaRegister
-from qiskit.circuit.library.blueprintcircuit import BlueprintCircuit
+from qiskit.circuit import AncillaRegister, QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.library.blueprintcircuit import BlueprintCircuit
 
 from .piecewise_polynomial_pauli_rotations import PiecewisePolynomialPauliRotations
 

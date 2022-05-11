@@ -14,16 +14,19 @@
 """The Quantum Phase Estimation Algorithm."""
 
 
-import warnings
 from typing import Optional, Union
+import warnings
+
 import numpy
-from qiskit.circuit import QuantumCircuit
+
 import qiskit
 from qiskit import circuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.providers import Backend
-from qiskit.utils import QuantumInstance
 from qiskit.result import Result
+from qiskit.utils import QuantumInstance
+
 from .phase_estimation_result import PhaseEstimationResult, _sort_phases
 from .phase_estimator import PhaseEstimator
 

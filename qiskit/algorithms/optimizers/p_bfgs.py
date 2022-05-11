@@ -16,15 +16,15 @@ import logging
 import multiprocessing
 import platform
 import sys
+from typing import Callable, List, Optional, Tuple
 import warnings
-from typing import Optional, List, Tuple, Callable
 
 import numpy as np
 
 from qiskit.utils import algorithm_globals
 from qiskit.utils.validation import validate_min
 
-from .optimizer import OptimizerResult, POINT
+from .optimizer import POINT, OptimizerResult
 from .scipy_optimizer import SciPyOptimizer
 
 logger = logging.getLogger(__name__)

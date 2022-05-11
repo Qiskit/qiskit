@@ -16,14 +16,15 @@ A collection of useful quantum information functions for operators.
 
 import logging
 import warnings
+
 import numpy as np
 
-from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from qiskit.circuit.gate import Gate
+from qiskit.exceptions import MissingOptionalLibraryError, QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info.operators.operator import Operator
-from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel import Choi, SuperOp
+from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
+from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from qiskit.quantum_info.states.measures import state_fidelity
 from qiskit.utils import optionals as _optionals

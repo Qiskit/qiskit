@@ -19,8 +19,9 @@ from numpy.random import default_rng
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.random import random_unitary
-from .statevector import Statevector
+
 from .densitymatrix import DensityMatrix
+from .statevector import Statevector
 
 
 def random_statevector(dims, seed=None):

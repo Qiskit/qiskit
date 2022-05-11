@@ -12,9 +12,9 @@
 
 """ Test Entangler Map """
 
+from test.python.algorithms import QiskitAlgorithmsTestCase
 import unittest
 
-from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit.utils import get_entangler_map, validate_entangler_map
 
 

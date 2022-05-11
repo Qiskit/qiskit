@@ -17,34 +17,34 @@ from unittest.mock import patch
 import numpy as np
 
 from qiskit.pulse import (
-    Play,
-    Waveform,
-    ShiftPhase,
-    Instruction,
-    SetFrequency,
     Acquire,
-    Snapshot,
-    Delay,
-    library,
-    Gaussian,
-    Drag,
-    GaussianSquare,
     Constant,
-    functional_pulse,
-    ShiftFrequency,
+    Delay,
+    Drag,
+    Gaussian,
+    GaussianSquare,
+    Instruction,
+    Play,
+    SetFrequency,
     SetPhase,
+    ShiftFrequency,
+    ShiftPhase,
+    Snapshot,
+    Waveform,
+    functional_pulse,
+    library,
 )
 from qiskit.pulse.channels import (
+    AcquireChannel,
+    ControlChannel,
+    DriveChannel,
+    MeasureChannel,
     MemorySlot,
     RegisterSlot,
-    DriveChannel,
-    ControlChannel,
-    AcquireChannel,
     SnapshotChannel,
-    MeasureChannel,
 )
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.schedule import Schedule, _overlaps, _find_insertion_index
+from qiskit.pulse.schedule import Schedule, _find_insertion_index, _overlaps
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 

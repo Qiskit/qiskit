@@ -15,59 +15,57 @@
 
 import inspect
 
+from ddt import data, ddt, unpack
 import numpy as np
-from ddt import ddt, data, unpack
 
 from qiskit import QuantumCircuit, QuantumRegister
-from qiskit.quantum_info import Operator
-from qiskit.test import QiskitTestCase
-from qiskit.circuit import ParameterVector, Gate, ControlledGate
-
-from qiskit.circuit.library import standard_gates
+from qiskit.circuit import ControlledGate, Gate, ParameterVector
 from qiskit.circuit.library import (
-    HGate,
+    CCXGate,
     CHGate,
-    IGate,
-    RGate,
-    RXGate,
+    CPhaseGate,
     CRXGate,
-    RYGate,
     CRYGate,
-    RZGate,
     CRZGate,
-    SGate,
-    SdgGate,
     CSwapGate,
-    TGate,
-    TdgGate,
-    U1Gate,
+    CSXGate,
     CU1Gate,
+    CU3Gate,
+    CUGate,
+    CXGate,
+    CYGate,
+    CZGate,
+    ECRGate,
+    HGate,
+    IGate,
+    PhaseGate,
+    RGate,
+    RVGate,
+    RXGate,
+    RYGate,
+    RYYGate,
+    RZGate,
+    SdgGate,
+    SGate,
+    SXdgGate,
+    SXGate,
+    TdgGate,
+    TGate,
+    U1Gate,
     U2Gate,
     U3Gate,
-    CU3Gate,
-    XGate,
-    CXGate,
-    ECRGate,
-    CCXGate,
-    YGate,
-    CYGate,
-    ZGate,
-    CZGate,
-    RYYGate,
-    PhaseGate,
-    CPhaseGate,
     UGate,
-    CUGate,
-    SXGate,
-    SXdgGate,
-    CSXGate,
-    RVGate,
+    XGate,
     XXMinusYYGate,
+    YGate,
+    ZGate,
+    standard_gates,
 )
-
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
+from qiskit.quantum_info import Operator
+from qiskit.test import QiskitTestCase
 
 from .gate_utils import _get_free_params
 

@@ -17,7 +17,7 @@ Abstract LinearOperator class.
 from abc import ABC
 
 from .base_operator import BaseOperator
-from .mixins import LinearMixin, AdjointMixin, TolerancesMixin
+from .mixins import AdjointMixin, LinearMixin, TolerancesMixin
 
 
 class LinearOp(BaseOperator, AdjointMixin, LinearMixin, TolerancesMixin, ABC):

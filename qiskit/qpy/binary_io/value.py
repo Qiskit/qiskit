@@ -20,8 +20,9 @@ import numpy as np
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
-from qiskit.qpy import common, formats, exceptions
-from qiskit.qpy.common import ValueTypeKey as TypeKey, ENCODE
+from qiskit.qpy import common, exceptions, formats
+from qiskit.qpy.common import ENCODE
+from qiskit.qpy.common import ValueTypeKey as TypeKey
 from qiskit.utils import optionals as _optional
 
 

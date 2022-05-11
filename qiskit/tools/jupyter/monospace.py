@@ -13,8 +13,8 @@
 
 """A Jupyter magic to choose a real monospaced fonts, if available."""
 
+from IPython.core.magic import Magics, line_magic, magics_class
 from IPython.display import HTML, display
-from IPython.core.magic import line_magic, Magics, magics_class
 
 
 @magics_class

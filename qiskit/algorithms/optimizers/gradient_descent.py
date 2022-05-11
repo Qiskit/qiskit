@@ -12,12 +12,12 @@
 
 """A standard gradient descent optimizer."""
 
-from typing import Iterator, Optional, Union, Callable, Dict, Any, List, Tuple
 from functools import partial
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 
-from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
+from .optimizer import POINT, Optimizer, OptimizerResult, OptimizerSupportLevel
 
 CALLBACK = Callable[[int, np.ndarray, float, float], None]
 

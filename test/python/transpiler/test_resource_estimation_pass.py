@@ -14,10 +14,10 @@
 
 import unittest
 
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import ResourceEstimation
-from qiskit.test import QiskitTestCase
 
 
 class TestResourceEstimationPass(QiskitTestCase):

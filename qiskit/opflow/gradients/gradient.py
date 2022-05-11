@@ -12,24 +12,26 @@
 
 """The base interface for Opflow's gradient."""
 
-from typing import Union, List, Optional
 import functools
+from typing import List, Optional, Union
+
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.circuit import ParameterExpression, ParameterVector
+from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.utils import optionals as _optionals
+
+from ..exceptions import OpflowError
 from ..expectations.pauli_expectation import PauliExpectation
-from .gradient_base import GradientBase
-from .derivative_base import _coeff_derivative
 from ..list_ops.composed_op import ComposedOp
 from ..list_ops.list_op import ListOp
 from ..list_ops.summed_op import SummedOp
 from ..list_ops.tensored_op import TensoredOp
 from ..operator_base import OperatorBase
-from ..operator_globals import Zero, One
+from ..operator_globals import One, Zero
 from ..state_fns.circuit_state_fn import CircuitStateFn
-from ..exceptions import OpflowError
+from .derivative_base import _coeff_derivative
+from .gradient_base import GradientBase
 
 
 class Gradient(GradientBase):
@@ -206,7 +208,7 @@ class Gradient(GradientBase):
                 grad_combo_fn = operator.grad_combo_fn
             else:
                 _optionals.HAS_JAX.require_now("automatic differentiation")
-                from jax import jit, grad  # pylint: disable=import-error
+                from jax import grad, jit  # pylint: disable=import-error
 
                 grad_combo_fn = jit(grad(operator.combo_fn, holomorphic=True))
 

@@ -12,16 +12,17 @@
 
 """ Test Providers that support BackendV2 interface """
 
-import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
+import unittest
+
 from qiskit import QuantumCircuit
+from qiskit.algorithms import VQE, AmplificationProblem, Grover, Shor
+from qiskit.algorithms.optimizers import SPSA
+from qiskit.circuit.library import TwoLocal
+from qiskit.opflow import I, X, Z
 from qiskit.test.mock import FakeProvider
 from qiskit.test.mock.fake_backend_v2 import FakeBackendSimple
 from qiskit.utils import QuantumInstance
-from qiskit.algorithms import Shor, VQE, Grover, AmplificationProblem
-from qiskit.opflow import X, Z, I
-from qiskit.algorithms.optimizers import SPSA
-from qiskit.circuit.library import TwoLocal
 
 
 class TestBackendV2(QiskitAlgorithmsTestCase):

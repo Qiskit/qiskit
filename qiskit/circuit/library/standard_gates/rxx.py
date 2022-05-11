@@ -13,9 +13,10 @@
 """Two-qubit XX-rotation gate."""
 
 from typing import Optional
+
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class RXXGate(Gate):
@@ -76,9 +77,10 @@ class RXXGate(Gate):
         """Calculate a subcircuit that implements this unitary."""
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .x import CXGate
+
         from .h import HGate
         from .rz import RZGate
+        from .x import CXGate
 
         #      ┌───┐                   ┌───┐
         # q_0: ┤ H ├──■─────────────■──┤ H ├

@@ -12,8 +12,7 @@
 
 """Example on how to load a file into a QuantumCircuit."""
 
-from qiskit import QuantumCircuit
-from qiskit import execute, BasicAer
+from qiskit import BasicAer, QuantumCircuit, execute
 
 circ = QuantumCircuit.from_qasm_file("examples/qasm/entangled_registers.qasm")
 print(circ)

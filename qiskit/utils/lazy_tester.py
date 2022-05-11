@@ -18,9 +18,10 @@ import functools
 import importlib
 import subprocess
 import typing
-from typing import Union, Iterable, Dict, Optional, Callable, Type
+from typing import Callable, Dict, Iterable, Optional, Type, Union
 
 from qiskit.exceptions import MissingOptionalLibraryError
+
 from .classtools import wrap_method
 
 

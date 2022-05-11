@@ -12,8 +12,8 @@
 
 """ AerPauliExpectation Class """
 
-import logging
 from functools import reduce
+import logging
 from operator import add
 from typing import Union
 

@@ -15,13 +15,14 @@
 Global Mølmer–Sørensen gate.
 """
 
-from typing import Union, List
+from typing import List, Union
 
 import numpy as np
+
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.library.standard_gates import RXXGate
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.library.standard_gates import RXXGate
-from qiskit.circuit.gate import Gate
 
 
 class GMS(QuantumCircuit):

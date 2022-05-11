@@ -12,11 +12,13 @@
 
 """Line search with Gaussian-smoothed samples on a sphere."""
 
-from typing import Dict, Optional, Tuple, List, Callable, Any
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
 import numpy as np
 
 from qiskit.utils import algorithm_globals
-from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
+
+from .optimizer import POINT, Optimizer, OptimizerResult, OptimizerSupportLevel
 
 
 class GSLS(Optimizer):

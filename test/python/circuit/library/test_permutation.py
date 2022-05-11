@@ -13,15 +13,16 @@
 """Test library of permutation logic quantum circuits."""
 
 import unittest
-import numpy as np
-from ddt import ddt, data
 
-from qiskit.test.base import QiskitTestCase
+from ddt import data, ddt
+import numpy as np
+
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import Permutation
 from qiskit.circuit.library.generalized_gates.permutation import _get_ordered_swap
 from qiskit.quantum_info import Operator
+from qiskit.test.base import QiskitTestCase
 
 
 @ddt

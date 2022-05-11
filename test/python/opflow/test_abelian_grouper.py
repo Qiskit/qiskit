@@ -12,14 +12,14 @@
 
 """Test Abelian Grouper"""
 
-import random
-import unittest
 from itertools import combinations, product
+import random
 from test.python.opflow import QiskitOpflowTestCase
+import unittest
 
 from ddt import data, ddt, unpack
 
-from qiskit.opflow import AbelianGrouper, commutator, I, OpflowError, Plus, SummedOp, X, Y, Z, Zero
+from qiskit.opflow import AbelianGrouper, I, OpflowError, Plus, SummedOp, X, Y, Z, Zero, commutator
 
 
 @ddt

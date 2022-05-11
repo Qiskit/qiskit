@@ -13,19 +13,19 @@
 """ Measurement error mitigation """
 
 import copy
-from typing import List, Optional, Tuple, Dict, Callable
+from typing import Callable, Dict, List, Optional, Tuple
 
 from qiskit import compiler
-from qiskit.providers import Backend
-from qiskit.circuit import QuantumCircuit
-from qiskit.qobj import QasmQobj
 from qiskit.assembler.run_config import RunConfig
+from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
+from qiskit.providers import Backend
+from qiskit.qobj import QasmQobj
 from qiskit.utils.mitigation import (
-    complete_meas_cal,
-    tensored_meas_cal,
     CompleteMeasFitter,
     TensoredMeasFitter,
+    complete_meas_cal,
+    tensored_meas_cal,
 )
 
 # pylint: disable=invalid-name
@@ -163,6 +163,8 @@ def build_measurement_error_mitigation_circuits(
         try:
             from qiskit.ignis.mitigation.measurement import (
                 CompleteMeasFitter as CompleteMeasFitter_IG,
+            )
+            from qiskit.ignis.mitigation.measurement import (
                 TensoredMeasFitter as TensoredMeasFitter_IG,
             )
         except ImportError as ex:

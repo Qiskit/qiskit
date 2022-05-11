@@ -13,15 +13,14 @@
 """Convert a circuit in ``U3, CX`` to ``Rx, Ry, Rxx`` without unrolling or simplification."""
 
 import warnings
-from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.exceptions import QiskitError
 
+from qiskit.circuit.library.standard_gates import CXGate, U3Gate
 from qiskit.converters import circuit_to_dag
-from qiskit.circuit.library.standard_gates import U3Gate, CXGate
-
-from qiskit.transpiler.passes import Unroller
-from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
+from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
+from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes import Unroller
 
 
 class MSBasisDecomposer(TransformationPass):

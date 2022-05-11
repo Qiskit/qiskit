@@ -14,10 +14,12 @@ Base class for readout error mitigation.
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional, List, Iterable, Tuple, Union, Callable
+from typing import Callable, Iterable, List, Optional, Tuple, Union
+
 import numpy as np
-from ..distributions.quasi import QuasiDistribution
+
 from ..counts import Counts
+from ..distributions.quasi import QuasiDistribution
 
 
 class BaseReadoutMitigator(ABC):

@@ -12,14 +12,16 @@
 
 """ Minimize using objective function """
 
-from typing import List, Optional, Tuple, Callable
-from enum import Enum
 from abc import abstractmethod
+from enum import Enum
 import logging
+from typing import Callable, List, Optional, Tuple
+
 import numpy as np
 
 from qiskit.utils import optionals as _optionals
-from ..optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
+
+from ..optimizer import POINT, Optimizer, OptimizerResult, OptimizerSupportLevel
 
 logger = logging.getLogger(__name__)
 

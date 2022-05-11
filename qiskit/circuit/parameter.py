@@ -16,6 +16,7 @@ Parameter Class for variable parameters.
 from uuid import uuid4
 
 from qiskit.utils import optionals as _optionals
+
 from .parameterexpression import ParameterExpression
 
 

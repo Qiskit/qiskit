@@ -12,13 +12,14 @@
 
 """The matrix functional of the vector solution to the linear systems."""
 
-from typing import Union, List
+from typing import List, Union
+
 import numpy as np
 from scipy.sparse import diags
 
 from qiskit import QuantumCircuit
+from qiskit.opflow import I, TensoredOp, Z
 from qiskit.quantum_info import Statevector
-from qiskit.opflow import I, Z, TensoredOp
 
 from .linear_system_observable import LinearSystemObservable
 

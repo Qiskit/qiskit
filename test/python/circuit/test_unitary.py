@@ -13,17 +13,18 @@
 """ UnitaryGate tests """
 
 import json
+
 import numpy
 from numpy.testing import assert_allclose
 
 import qiskit
-from qiskit.extensions.unitary import UnitaryGate
-from qiskit.test import QiskitTestCase
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.transpiler import PassManager
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.quantum_info.random import random_unitary
+from qiskit.extensions.unitary import UnitaryGate
 from qiskit.quantum_info.operators import Operator
+from qiskit.quantum_info.random import random_unitary
+from qiskit.test import QiskitTestCase
+from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import CXCancellation
 
 

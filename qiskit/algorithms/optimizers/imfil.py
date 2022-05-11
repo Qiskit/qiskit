@@ -12,10 +12,11 @@
 
 """IMplicit FILtering (IMFIL) optimizer."""
 
-from typing import Any, Dict, Callable, Optional, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from qiskit.utils import optionals as _optionals
-from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
+
+from .optimizer import POINT, Optimizer, OptimizerResult, OptimizerSupportLevel
 
 
 @_optionals.HAS_SKQUANT.require_in_instance

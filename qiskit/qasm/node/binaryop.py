@@ -13,6 +13,7 @@
 """Node for an OPENQASM binary operation expression."""
 
 from qiskit.exceptions import MissingOptionalLibraryError
+
 from .node import Node
 
 

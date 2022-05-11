@@ -15,6 +15,7 @@
 from typing import Optional
 
 from qiskit.circuit.instruction import Instruction
+
 from .builder import InstructionPlaceholder, InstructionResources
 
 

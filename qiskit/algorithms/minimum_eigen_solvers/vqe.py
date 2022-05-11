@@ -15,36 +15,38 @@
 See https://arxiv.org/abs/1304.3061
 """
 
-from typing import Optional, List, Callable, Union, Dict, Tuple
 import logging
-import warnings
 from time import time
+from typing import Callable, Dict, List, Optional, Tuple, Union
+import warnings
+
 import numpy as np
 import scipy
 
-from qiskit.circuit import QuantumCircuit, Parameter
+from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.providers import Backend
 from qiskit.opflow import (
-    OperatorBase,
+    CircuitSampler,
+    CircuitStateFn,
     ExpectationBase,
     ExpectationFactory,
-    StateFn,
-    CircuitStateFn,
     ListOp,
-    CircuitSampler,
+    OperatorBase,
     PauliSumOp,
+    StateFn,
 )
 from qiskit.opflow.gradients import GradientBase
-from qiskit.utils.validation import validate_min
-from qiskit.utils.backend_utils import is_aer_provider
+from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance, algorithm_globals
+from qiskit.utils.backend_utils import is_aer_provider
+from qiskit.utils.validation import validate_min
+
+from ..aux_ops_evaluator import eval_observables
+from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
-from ..optimizers import Optimizer, SLSQP, OptimizerResult
+from ..optimizers import SLSQP, Optimizer, OptimizerResult
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
-from ..exceptions import AlgorithmError
-from ..aux_ops_evaluator import eval_observables
 
 logger = logging.getLogger(__name__)
 

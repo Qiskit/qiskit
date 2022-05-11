@@ -14,8 +14,8 @@
 Abstract BaseOperator class.
 """
 
-import copy
 from abc import ABC
+import copy
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.op_shape import OpShape

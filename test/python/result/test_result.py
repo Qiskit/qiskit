@@ -14,12 +14,10 @@
 
 import numpy as np
 
-from qiskit.result import models
-from qiskit.result import marginal_counts
-from qiskit.result import Result
-from qiskit.qobj import QobjExperimentHeader
-from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
+from qiskit.qobj import QobjExperimentHeader
+from qiskit.result import Result, marginal_counts, models
+from qiskit.test import QiskitTestCase
 
 
 class TestResultOperations(QiskitTestCase):

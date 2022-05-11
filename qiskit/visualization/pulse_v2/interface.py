@@ -21,14 +21,14 @@ The drawer canvas object is internally initialized from the input data and
 the configured canvas is passed to the one of plotter APIs to generate visualization data.
 """
 
-from typing import Union, Optional, Dict, Any, Tuple, List
+from typing import Any, Dict, List, Optional, Tuple, Union
 
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.providers import Backend
-from qiskit.pulse import Waveform, ParametricPulse, Schedule, ScheduleBlock
+from qiskit.pulse import ParametricPulse, Schedule, ScheduleBlock, Waveform
 from qiskit.pulse.channels import Channel
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import core, device_info, stylesheet, types
-from qiskit.exceptions import MissingOptionalLibraryError
 
 
 def draw(

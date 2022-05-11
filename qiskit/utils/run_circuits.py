@@ -12,25 +12,26 @@
 
 """ run circuits functions """
 
-from typing import Optional, Dict, Callable, List, Union, Tuple
-import sys
-import logging
-import time
 import copy
+import logging
 import os
+import sys
+import time
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.providers import Backend, JobStatus, JobError, Job
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.providers import Backend, Job, JobError, JobStatus
 from qiskit.providers.jobstatus import JOB_FINAL_STATES
 from qiskit.result import Result
-from ..exceptions import QiskitError, MissingOptionalLibraryError
+
+from ..exceptions import MissingOptionalLibraryError, QiskitError
 from .backend_utils import (
+    _get_backend_interface_version,
     is_aer_provider,
     is_basicaer_provider,
-    is_simulator_backend,
-    is_local_backend,
     is_ibmq_provider,
-    _get_backend_interface_version,
+    is_local_backend,
+    is_simulator_backend,
 )
 
 MAX_CIRCUITS_PER_JOB = os.environ.get("QISKIT_AQUA_MAX_CIRCUITS_PER_JOB", None)

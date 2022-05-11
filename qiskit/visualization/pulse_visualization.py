@@ -13,16 +13,15 @@
 """
 matplotlib pulse visualization.
 """
+from typing import Callable, Dict, List, Tuple, Union
 import warnings
 
-from typing import Union, Callable, List, Dict, Tuple
-
-from qiskit.pulse import Schedule, Instruction, Waveform
+from qiskit.pulse import Instruction, Schedule, Waveform
 from qiskit.pulse.channels import Channel
 from qiskit.utils import optionals as _optionals
-from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse import matplotlib as _matplotlib
+from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 from qiskit.visualization.utils import matplotlib_close_if_inline
 
 

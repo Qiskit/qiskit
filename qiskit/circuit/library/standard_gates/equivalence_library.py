@@ -13,56 +13,54 @@
 """Standard gates."""
 
 
-from qiskit.qasm import pi
 from qiskit.circuit import EquivalenceLibrary, Parameter, QuantumCircuit, QuantumRegister
-
+from qiskit.qasm import pi
 from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
 
 from . import (
-    HGate,
+    CCXGate,
     CHGate,
-    PhaseGate,
     CPhaseGate,
-    RGate,
-    RCCXGate,
-    RXGate,
     CRXGate,
+    CRYGate,
+    CRZGate,
+    CSwapGate,
+    CSXGate,
+    CU1Gate,
+    CU3Gate,
+    CUGate,
+    CXGate,
+    CYGate,
+    CZGate,
+    DCXGate,
+    ECRGate,
+    HGate,
+    PhaseGate,
+    RCCXGate,
+    RGate,
+    RXGate,
     RXXGate,
     RYGate,
-    CRYGate,
+    RYYGate,
     RZGate,
-    CRZGate,
-    RZZGate,
     RZXGate,
-    SGate,
+    RZZGate,
     SdgGate,
+    SGate,
     SwapGate,
-    CSwapGate,
-    iSwapGate,
-    SXGate,
     SXdgGate,
-    CSXGate,
-    DCXGate,
-    TGate,
+    SXGate,
     TdgGate,
-    UGate,
-    CUGate,
+    TGate,
     U1Gate,
-    CU1Gate,
     U2Gate,
     U3Gate,
-    CU3Gate,
+    UGate,
     XGate,
-    CXGate,
-    CCXGate,
     YGate,
-    CYGate,
-    RYYGate,
-    ECRGate,
     ZGate,
-    CZGate,
+    iSwapGate,
 )
-
 
 _sel = StandardEquivalenceLibrary = EquivalenceLibrary()
 

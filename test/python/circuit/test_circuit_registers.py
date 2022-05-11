@@ -15,14 +15,14 @@
 import numpy as np
 
 from qiskit.circuit import (
-    QuantumRegister,
-    ClassicalRegister,
-    AncillaRegister,
-    QuantumCircuit,
-    Qubit,
-    Clbit,
     AncillaQubit,
+    AncillaRegister,
+    ClassicalRegister,
+    Clbit,
     Gate,
+    QuantumCircuit,
+    QuantumRegister,
+    Qubit,
 )
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase

@@ -12,17 +12,19 @@
 
 """The Quantum Phase Estimation-based Amplitude Estimation algorithm."""
 
-from typing import Optional, Union, List, Tuple, Dict
 from collections import OrderedDict
-import numpy as np
-from scipy.stats import chi2, norm
-from scipy.optimize import bisect
+from typing import Dict, List, Optional, Tuple, Union
 
-from qiskit import QuantumCircuit, ClassicalRegister
+import numpy as np
+from scipy.optimize import bisect
+from scipy.stats import chi2, norm
+
+from qiskit import ClassicalRegister, QuantumCircuit
 from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
+
+from .ae_utils import bisect_max, derivative_log_pdf_a, pdf_a
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
-from .ae_utils import pdf_a, derivative_log_pdf_a, bisect_max
 from .estimation_problem import EstimationProblem
 
 

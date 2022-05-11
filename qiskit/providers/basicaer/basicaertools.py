@@ -14,7 +14,7 @@
 
 """
 
-from string import ascii_uppercase, ascii_lowercase
+from string import ascii_lowercase, ascii_uppercase
 from typing import List, Optional
 
 import numpy as np

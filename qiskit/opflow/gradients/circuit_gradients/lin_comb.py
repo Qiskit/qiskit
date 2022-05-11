@@ -16,27 +16,28 @@ from collections.abc import Iterable
 from copy import deepcopy
 from functools import partial
 from itertools import product
-from typing import List, Optional, Tuple, Union, Callable
+from typing import Callable, List, Optional, Tuple, Union
 
-import scipy
 import numpy as np
+import scipy
 
-from qiskit.circuit import Gate, Instruction
 from qiskit.circuit import (
+    Gate,
+    Instruction,
+    Parameter,
+    ParameterExpression,
+    ParameterVector,
     QuantumCircuit,
     QuantumRegister,
-    ParameterVector,
-    ParameterExpression,
-    Parameter,
 )
-from qiskit.circuit.parametertable import ParameterTable
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.library import SGate, SdgGate, XGate
+from qiskit.circuit.library import SdgGate, SGate, XGate
 from qiskit.circuit.library.standard_gates import (
     CXGate,
     CYGate,
     CZGate,
     IGate,
+    PhaseGate,
     RXGate,
     RXXGate,
     RYGate,
@@ -44,25 +45,26 @@ from qiskit.circuit.library.standard_gates import (
     RZGate,
     RZXGate,
     RZZGate,
-    PhaseGate,
     UGate,
     ZGate,
 )
+from qiskit.circuit.parametertable import ParameterTable
 from qiskit.quantum_info import partial_trace
-from ...operator_base import OperatorBase
-from ...list_ops.list_op import ListOp
+
+from ...converters import PauliBasisChange
+from ...exceptions import OpflowError
 from ...list_ops.composed_op import ComposedOp
+from ...list_ops.list_op import ListOp
 from ...list_ops.summed_op import SummedOp
-from ...operator_globals import Z, I, Y, One, Zero
+from ...operator_base import OperatorBase
+from ...operator_globals import I, One, Y, Z, Zero
 from ...primitive_ops.primitive_op import PrimitiveOp
-from ...state_fns.state_fn import StateFn
 from ...state_fns.circuit_state_fn import CircuitStateFn
 from ...state_fns.dict_state_fn import DictStateFn
-from ...state_fns.vector_state_fn import VectorStateFn
 from ...state_fns.sparse_vector_state_fn import SparseVectorStateFn
-from ...exceptions import OpflowError
+from ...state_fns.state_fn import StateFn
+from ...state_fns.vector_state_fn import VectorStateFn
 from .circuit_gradient import CircuitGradient
-from ...converters import PauliBasisChange
 
 
 class LinComb(CircuitGradient):

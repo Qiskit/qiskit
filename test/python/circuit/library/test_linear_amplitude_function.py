@@ -12,16 +12,17 @@
 
 """Test the linear amplitude function."""
 
-import unittest
-from functools import partial
 from collections import defaultdict
-from ddt import ddt, data, unpack
+from functools import partial
+import unittest
+
+from ddt import data, ddt, unpack
 import numpy as np
 
 from qiskit import BasicAer, execute
-from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import LinearAmplitudeFunction
+from qiskit.test.base import QiskitTestCase
 
 
 @ddt

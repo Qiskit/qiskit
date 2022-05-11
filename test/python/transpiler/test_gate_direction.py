@@ -11,15 +11,14 @@
 # that they have been altered from the originals.
 
 """Test the CX Direction  pass"""
-import unittest
 from math import pi
+import unittest
 
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit.transpiler import TranspilerError
-from qiskit.transpiler import CouplingMap
-from qiskit.transpiler.passes import GateDirection
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler import CouplingMap, TranspilerError
+from qiskit.transpiler.passes import GateDirection
 
 
 class TestGateDirection(QiskitTestCase):

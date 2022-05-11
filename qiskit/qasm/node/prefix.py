@@ -13,6 +13,7 @@
 """Node for an OPENQASM prefix expression."""
 
 from qiskit.exceptions import MissingOptionalLibraryError
+
 from .node import Node
 
 

@@ -16,8 +16,9 @@ Quantum register reference object.
 import itertools
 
 from qiskit.circuit.exceptions import CircuitError
-from .register import Register
+
 from .bit import Bit
+from .register import Register
 
 
 class Qubit(Bit):

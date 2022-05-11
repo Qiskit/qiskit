@@ -13,18 +13,18 @@
 "Circuit operation representing an ``if/else`` statement."
 
 
-from typing import Optional, Tuple, Union, Iterable, Set
 import itertools
+from typing import Iterable, Optional, Set, Tuple, Union
 
 from qiskit.circuit import ClassicalRegister, Clbit, QuantumCircuit
-from qiskit.circuit.instructionset import InstructionSet
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.instructionset import InstructionSet
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.register import Register
-from .builder import ControlFlowBuilderBlock, InstructionPlaceholder, InstructionResources
-from .condition import validate_condition, condition_bits, condition_registers
-from .control_flow import ControlFlowOp
 
+from .builder import ControlFlowBuilderBlock, InstructionPlaceholder, InstructionResources
+from .condition import condition_bits, condition_registers, validate_condition
+from .control_flow import ControlFlowOp
 
 # This is just an indication of what's actually meant to be the public API.
 __all__ = ("IfElseOp",)

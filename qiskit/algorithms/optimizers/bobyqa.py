@@ -12,11 +12,13 @@
 
 """Bound Optimization BY Quadratic Approximation (BOBYQA) optimizer."""
 
-from typing import Any, Dict, Tuple, List, Callable, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
+
 from qiskit.utils import optionals as _optionals
-from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
+
+from .optimizer import POINT, Optimizer, OptimizerResult, OptimizerSupportLevel
 
 
 @_optionals.HAS_SKQUANT.require_in_instance

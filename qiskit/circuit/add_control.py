@@ -12,11 +12,12 @@
 
 """Add control to operation if supported."""
 
-from typing import Union, Optional
+from typing import Optional, Union
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.extensions import UnitaryGate
-from . import ControlledGate, Gate, QuantumRegister, QuantumCircuit
+
+from . import ControlledGate, Gate, QuantumCircuit, QuantumRegister
 
 
 def add_control(

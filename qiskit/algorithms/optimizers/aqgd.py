@@ -13,12 +13,14 @@
 """Analytical Quantum Gradient Descent (AQGD) optimizer."""
 
 import logging
-from typing import Callable, Tuple, List, Dict, Union, Any, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
+
 from qiskit.utils.validation import validate_range_exclusive_max
-from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
+
 from ..exceptions import AlgorithmError
+from .optimizer import POINT, Optimizer, OptimizerResult, OptimizerSupportLevel
 
 logger = logging.getLogger(__name__)
 

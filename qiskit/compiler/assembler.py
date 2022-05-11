@@ -13,22 +13,21 @@
 """Assemble function for converting a list of circuits into a qobj"""
 import copy
 import logging
+from time import time
+from typing import Dict, List, Optional, Union
 import uuid
 import warnings
-from time import time
-from typing import Union, List, Dict, Optional
 
 import numpy as np
 
 from qiskit.assembler import assemble_circuits, assemble_schedules
 from qiskit.assembler.run_config import RunConfig
-from qiskit.circuit import QuantumCircuit, Qubit, Parameter
+from qiskit.circuit import Parameter, QuantumCircuit, Qubit
 from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import Backend
-from qiskit.pulse import LoConfig, Instruction
-from qiskit.pulse import Schedule, ScheduleBlock
+from qiskit.pulse import Instruction, LoConfig, Schedule, ScheduleBlock
 from qiskit.pulse.channels import PulseChannel
-from qiskit.qobj import QobjHeader, Qobj
+from qiskit.qobj import Qobj, QobjHeader
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 
 logger = logging.getLogger(__name__)

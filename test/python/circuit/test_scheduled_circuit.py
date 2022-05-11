@@ -13,15 +13,14 @@
 # pylint: disable=missing-function-docstring
 
 """Test scheduled circuit (quantum circuit with duration)."""
-from ddt import ddt, data
-from qiskit import QuantumCircuit, QiskitError
-from qiskit import transpile, assemble, BasicAer
+from ddt import data, ddt
+
+from qiskit import BasicAer, QiskitError, QuantumCircuit, assemble, transpile
 from qiskit.circuit import Parameter
+from qiskit.test.base import QiskitTestCase
 from qiskit.test.mock.backends import FakeParis
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
-
-from qiskit.test.base import QiskitTestCase
 
 
 @ddt

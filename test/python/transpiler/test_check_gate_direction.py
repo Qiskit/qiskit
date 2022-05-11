@@ -14,11 +14,11 @@
 
 import unittest
 
-from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler.passes import CheckGateDirection
-from qiskit.transpiler import CouplingMap
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler import CouplingMap
+from qiskit.transpiler.passes import CheckGateDirection
 
 
 class TestCheckGateDirection(QiskitTestCase):

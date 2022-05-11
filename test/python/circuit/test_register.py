@@ -16,13 +16,9 @@
 
 from ddt import data, ddt
 
-from qiskit.test import QiskitTestCase
-from qiskit.circuit import bit
-from qiskit.circuit import QuantumRegister
-from qiskit.circuit import AncillaRegister
-from qiskit.circuit import ClassicalRegister
-
+from qiskit.circuit import AncillaRegister, ClassicalRegister, QuantumRegister, bit
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.test import QiskitTestCase
 
 
 @ddt

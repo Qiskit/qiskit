@@ -13,12 +13,12 @@
 """The interface for amplification algorithms and results."""
 
 from abc import ABC, abstractmethod
-from typing import Optional, Any, Union, Dict, List
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
-from .amplification_problem import AmplificationProblem
 from ..algorithm_result import AlgorithmResult
+from .amplification_problem import AmplificationProblem
 
 
 class AmplitudeAmplifier(ABC):

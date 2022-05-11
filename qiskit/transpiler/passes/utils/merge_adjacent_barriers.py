@@ -12,8 +12,8 @@
 
 """Return a circuit with any adjacent barriers merged together."""
 
-from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.barrier import Barrier
+from qiskit.transpiler.basepasses import TransformationPass
 
 
 class MergeAdjacentBarriers(TransformationPass):

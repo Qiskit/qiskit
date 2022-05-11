@@ -16,42 +16,39 @@
 Tests for the default UnitarySynthesis transpiler pass.
 """
 
+from test import combine
 import unittest
 
-from test import combine
-
-from ddt import ddt, data
+from ddt import data, ddt
 
 from qiskit import transpile
-from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeVigo, FakeBackend5QV2, FakeBackendV2, FakeMumbaiFractionalCX
-from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.circuit.library import QuantumVolume
+from qiskit.circuit import Parameter, QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import CXGate, ECRGate, QuantumVolume, UGate
 from qiskit.converters import circuit_to_dag
-from qiskit.transpiler.passes import UnitarySynthesis
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
-from qiskit.transpiler import PassManager, CouplingMap, Target, InstructionProperties
+from qiskit.test import QiskitTestCase
+from qiskit.test.mock import FakeBackend5QV2, FakeBackendV2, FakeMumbaiFractionalCX, FakeVigo
+from qiskit.transpiler import CouplingMap, InstructionProperties, PassManager, Target
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.exceptions import QiskitError
 from qiskit.transpiler.passes import (
+    ApplyLayout,
+    BarrierBeforeFinalMeasurements,
+    CheckMap,
     Collect2qBlocks,
     ConsolidateBlocks,
-    Optimize1qGates,
-    SabreLayout,
     Depth,
+    EnlargeWithAncilla,
     FixedPoint,
     FullAncillaAllocation,
-    EnlargeWithAncilla,
-    ApplyLayout,
-    Unroll3qOrMore,
-    CheckMap,
-    BarrierBeforeFinalMeasurements,
+    Optimize1qGates,
+    SabreLayout,
     SabreSwap,
     TrivialLayout,
+    UnitarySynthesis,
+    Unroll3qOrMore,
 )
-from qiskit.circuit.library import CXGate, ECRGate, UGate
-from qiskit.circuit import Parameter
 
 
 @ddt

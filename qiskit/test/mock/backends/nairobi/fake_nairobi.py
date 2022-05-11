@@ -15,7 +15,8 @@ Fake Nairobi device (7 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_pulse_backend, fake_backend
+
+from qiskit.test.mock import fake_backend, fake_pulse_backend
 
 
 class FakeNairobiV2(fake_backend.FakeBackendV2):

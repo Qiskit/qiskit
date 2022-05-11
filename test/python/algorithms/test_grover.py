@@ -12,17 +12,18 @@
 
 """Test Grover's algorithm."""
 
-import unittest
-from test.python.algorithms import QiskitAlgorithmsTestCase
 import itertools
+from test.python.algorithms import QiskitAlgorithmsTestCase
+import unittest
+
+from ddt import data, ddt
 import numpy as np
-from ddt import ddt, data
 
 from qiskit import BasicAer, QuantumCircuit
-from qiskit.utils import QuantumInstance
-from qiskit.algorithms import Grover, AmplificationProblem
+from qiskit.algorithms import AmplificationProblem, Grover
 from qiskit.circuit.library import GroverOperator, PhaseOracle
 from qiskit.quantum_info import Operator, Statevector
+from qiskit.utils import QuantumInstance
 
 
 @ddt

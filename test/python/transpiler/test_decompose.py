@@ -14,12 +14,12 @@
 
 from numpy import pi
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.transpiler.passes import Decompose
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import CCXGate, HGate, U2Gate
 from qiskit.converters import circuit_to_dag
-from qiskit.circuit.library import HGate, CCXGate, U2Gate
 from qiskit.quantum_info.operators import Operator
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler.passes import Decompose
 
 
 class TestDecompose(QiskitTestCase):

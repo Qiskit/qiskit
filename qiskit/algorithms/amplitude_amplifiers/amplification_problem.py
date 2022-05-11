@@ -12,7 +12,7 @@
 
 """The Amplification problem class."""
 
-from typing import Optional, Callable, Any, Union, List
+from typing import Any, Callable, List, Optional, Union
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import GroverOperator

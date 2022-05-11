@@ -14,12 +14,14 @@ Readout mitigation data handling utils
 """
 
 import logging
-from typing import Optional, List, Tuple, Dict
+from typing import Dict, List, Optional, Tuple
+
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from ..utils import marginal_counts
+
 from ..counts import Counts
+from ..utils import marginal_counts
 
 logger = logging.getLogger(__name__)
 

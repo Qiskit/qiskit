@@ -18,7 +18,6 @@ from typing import Optional, Union, cast
 import numpy as np
 
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.synthesis import LieTrotter, SuzukiTrotter
 from qiskit.opflow.converters.pauli_basis_change import PauliBasisChange
 from qiskit.opflow.evolutions.evolution_base import EvolutionBase
 from qiskit.opflow.evolutions.evolved_op import EvolvedOp
@@ -28,10 +27,11 @@ from qiskit.opflow.list_ops.list_op import ListOp
 from qiskit.opflow.list_ops.summed_op import SummedOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.operator_globals import I, Z
-from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.opflow.primitive_ops.circuit_op import CircuitOp
+from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
+from qiskit.synthesis import LieTrotter, SuzukiTrotter
 
 # TODO uncomment when we implement Abelian grouped evolution.
 # from qiskit.opflow.converters.abelian_grouper import AbelianGrouper

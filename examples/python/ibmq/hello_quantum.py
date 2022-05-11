@@ -13,8 +13,7 @@
 """Example used in the README. In this example a Bell state is made."""
 
 # Import Qiskit
-from qiskit import QuantumCircuit
-from qiskit import execute, IBMQ, BasicAer
+from qiskit import IBMQ, BasicAer, QuantumCircuit, execute
 from qiskit.providers.ibmq import least_busy
 
 # Create a Quantum Circuit

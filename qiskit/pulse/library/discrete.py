@@ -18,11 +18,9 @@ Note the sampling strategy use for all discrete pulses is ``midpoint``.
 """
 from typing import Optional
 
+from . import continuous, samplers
 from ..exceptions import PulseError
 from .waveform import Waveform
-from . import continuous
-from . import samplers
-
 
 _sampled_constant_pulse = samplers.midpoint(continuous.constant)
 

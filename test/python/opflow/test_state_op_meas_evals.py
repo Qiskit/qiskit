@@ -15,15 +15,16 @@
 
 """ Test Operator construction, including OpPrimitives and singletons. """
 
-import unittest
 from test.python.opflow import QiskitOpflowTestCase
-from ddt import ddt, data
+import unittest
+
+from ddt import data, ddt
 import numpy
 
-from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.utils import QuantumInstance
-from qiskit.opflow import StateFn, Zero, One, H, X, I, Z, Plus, Minus, CircuitSampler, ListOp
+from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.opflow import CircuitSampler, H, I, ListOp, Minus, One, Plus, StateFn, X, Z, Zero
 from qiskit.opflow.exceptions import OpflowError
+from qiskit.utils import QuantumInstance
 
 
 @ddt

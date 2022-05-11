@@ -15,6 +15,7 @@
 import copy
 import datetime
 from typing import Any, Iterable, Tuple, Union
+
 import dateutil.parser
 
 from qiskit.providers.exceptions import BackendPropertyError

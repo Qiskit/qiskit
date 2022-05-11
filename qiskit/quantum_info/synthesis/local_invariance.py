@@ -15,6 +15,7 @@
 of two-qubit unitary operators.
 """
 from math import sqrt
+
 import numpy as np
 
 INVARIANT_TOL = 1e-12

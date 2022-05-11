@@ -16,9 +16,10 @@ import copy
 import pprint
 from types import SimpleNamespace
 import warnings
+
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.qobj.pulse_qobj import PulseQobjInstruction, PulseLibraryItem
 from qiskit.qobj.common import QobjDictField, QobjHeader
+from qiskit.qobj.pulse_qobj import PulseLibraryItem, PulseQobjInstruction
 
 
 class QasmQobjInstruction:

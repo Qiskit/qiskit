@@ -18,7 +18,7 @@ import numpy as np
 
 from qiskit.algorithms.optimizers import GradientDescent
 from qiskit.circuit.library import PauliTwoDesign
-from qiskit.opflow import I, Z, StateFn
+from qiskit.opflow import I, StateFn, Z
 from qiskit.test.decorators import slow_test
 
 

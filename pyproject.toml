@@ -21,3 +21,13 @@ before-test = "pip install --only-binary=numpy,scipy numpy scipy"
 [tool.cibuildwheel.linux]
 before-all = "yum install -y wget && {package}/tools/install_rust.sh"
 environment = 'PATH="$PATH:$HOME/.cargo/bin"'
+
+[tool.isort]
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+force_sort_within_sections = true
+line_length = 100
+skip = ["__init__.py"]

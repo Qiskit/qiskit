@@ -14,18 +14,17 @@
 Tests for the Collect2qBlocks transpiler pass.
 """
 
-import unittest
 from math import pi
+import unittest
 
-from ddt import ddt, data, unpack
+from ddt import data, ddt, unpack
 
-from qiskit.circuit import Gate, QuantumCircuit
-from qiskit.circuit import QuantumRegister, ClassicalRegister
+from qiskit.circuit import ClassicalRegister, Gate, QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import CXGate, RXGate, RXXGate, RZGate, U1Gate, U2Gate
 from qiskit.converters import circuit_to_dag
+from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Collect2qBlocks
-from qiskit.test import QiskitTestCase
-from qiskit.circuit.library import CXGate, U1Gate, U2Gate, RXXGate, RXGate, RZGate
 
 
 @ddt

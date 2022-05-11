@@ -11,12 +11,12 @@
 # that they have been altered from the originals.
 
 """Backend Configuration Classes."""
-import re
+from collections import defaultdict
 import copy
 import numbers
+import re
+from typing import Any, Dict, Iterable, List, Tuple, Union
 import warnings
-from typing import Dict, List, Any, Iterable, Tuple, Union
-from collections import defaultdict
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers.exceptions import BackendConfigurationError

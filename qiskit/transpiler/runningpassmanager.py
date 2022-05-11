@@ -13,17 +13,18 @@
 """RunningPassManager class for the transpiler.
 This object holds the state of a pass manager during running-time."""
 
-from functools import partial
 from collections import OrderedDict
+from functools import partial
 import logging
 from time import time
 
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import BasePass
-from .propertyset import PropertySet
-from .fencedobjs import FencedPropertySet, FencedDAGCircuit
+
 from .exceptions import TranspilerError
+from .fencedobjs import FencedDAGCircuit, FencedPropertySet
+from .propertyset import PropertySet
 
 logger = logging.getLogger(__name__)
 

@@ -12,13 +12,13 @@
 
 """Utility functions for working with Results."""
 
-from typing import List, Union, Optional, Dict
 from collections import Counter
 from copy import deepcopy
+from typing import Dict, List, Optional, Union
 
 from qiskit.exceptions import QiskitError
-from qiskit.result.result import Result
 from qiskit.result.postprocess import _bin_to_hex, _hex_to_bin
+from qiskit.result.result import Result
 
 
 def marginal_counts(

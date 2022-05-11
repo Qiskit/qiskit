@@ -14,16 +14,17 @@
 StatePreparation test.
 """
 
-import unittest
 import math
+import unittest
+
+from ddt import data, ddt
 import numpy as np
-from ddt import ddt, data
 
 from qiskit import QuantumCircuit
-from qiskit.quantum_info import Statevector, Operator
-from qiskit.test import QiskitTestCase
-from qiskit.exceptions import QiskitError
 from qiskit.circuit.library import StatePreparation
+from qiskit.exceptions import QiskitError
+from qiskit.quantum_info import Operator, Statevector
+from qiskit.test import QiskitTestCase
 
 
 @ddt

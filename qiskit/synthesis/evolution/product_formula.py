@@ -12,12 +12,14 @@
 
 """A product formula base for decomposing non-commuting operator exponentials."""
 
-from typing import Callable, Optional, Union, Any, Dict
 from functools import partial
+from typing import Any, Callable, Dict, Optional, Union
+
 import numpy as np
+
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.quantum_info import SparsePauliOp, Pauli
+from qiskit.quantum_info import Pauli, SparsePauliOp
 
 from .evolution_synthesis import EvolutionSynthesis
 

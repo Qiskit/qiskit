@@ -12,9 +12,9 @@
 
 """Helper class used to convert a user LO configuration into a list of frequencies."""
 
+from qiskit.exceptions import QiskitError
 from qiskit.pulse.channels import DriveChannel, MeasureChannel
 from qiskit.pulse.configuration import LoConfig
-from qiskit.exceptions import QiskitError
 
 
 class LoConfigConverter:

@@ -12,11 +12,11 @@
 
 """Test of pulse fake backends from qiskit.mock package."""
 import unittest
+
 from qiskit import QuantumCircuit, transpile
+from qiskit.providers.fake_provider import FakeAthens, FakePulseBackend
 from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeAthens
 from qiskit.utils import optionals as _optionals
-from qiskit.providers.fake_provider import FakePulseBackend
 
 
 class FakePulseBackendConfigError(FakePulseBackend):

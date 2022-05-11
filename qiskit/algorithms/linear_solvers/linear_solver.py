@@ -13,15 +13,16 @@
 """An abstract class for linear systems solvers."""
 
 from abc import ABC, abstractmethod
-from typing import Union, Optional, List, Callable
+from typing import Callable, List, Optional, Union
+
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.result import Result
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.result import Result
 
-from .observables.linear_system_observable import LinearSystemObservable
 from ..algorithm_result import AlgorithmResult
+from .observables.linear_system_observable import LinearSystemObservable
 
 
 class LinearSolverResult(AlgorithmResult):

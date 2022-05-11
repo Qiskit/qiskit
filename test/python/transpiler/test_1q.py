@@ -12,6 +12,7 @@
 
 """Tests preset pass managers with 1Q backend"""
 from test import combine
+
 from ddt import ddt
 
 from qiskit import QuantumCircuit

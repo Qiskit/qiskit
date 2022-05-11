@@ -12,11 +12,12 @@
 
 """Evolution problem class."""
 
-from typing import Union, Optional, Dict
+from typing import Dict, Optional, Union
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.opflow import OperatorBase, StateFn
+
 from ..list_or_dict import ListOrDict
 
 

@@ -13,8 +13,9 @@
 """FixedPoint pass testing"""
 
 import unittest
-from qiskit.transpiler.passes import FixedPoint
+
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler.passes import FixedPoint
 
 
 class TestFixedPointPass(QiskitTestCase):

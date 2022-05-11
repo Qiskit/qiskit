@@ -16,8 +16,8 @@ from qiskit.exceptions import MissingOptionalLibraryError
 
 try:
     from pygments.lexer import RegexLexer
-    from pygments.token import Comment, String, Keyword, Name, Number, Text
     from pygments.style import Style
+    from pygments.token import Comment, Keyword, Name, Number, String, Text
 except ImportError as ex:
     raise MissingOptionalLibraryError(
         "pygments>2.4", "qiskit.qasm.pygments", "pip install pygments"

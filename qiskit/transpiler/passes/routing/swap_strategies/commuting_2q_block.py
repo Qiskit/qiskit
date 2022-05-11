@@ -14,9 +14,9 @@
 
 from typing import Iterable
 
-from qiskit.exceptions import QiskitError
 from qiskit.circuit import Gate
 from qiskit.dagcircuit import DAGOpNode
+from qiskit.exceptions import QiskitError
 
 
 class Commuting2qBlocks(Gate):

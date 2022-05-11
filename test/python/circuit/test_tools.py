@@ -11,14 +11,15 @@
 # that they have been altered from the originals.
 
 """A test for circuit tools"""
+from test import combine
 import unittest
 
-from test import combine
 from ddt import ddt
 from numpy import pi
-from qiskit.test import QiskitTestCase
-from qiskit.circuit.tools.pi_check import pi_check
+
 from qiskit.circuit import Parameter
+from qiskit.circuit.tools.pi_check import pi_check
+from qiskit.test import QiskitTestCase
 
 
 @ddt

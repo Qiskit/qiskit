@@ -13,6 +13,7 @@
 """Utils for the Maximum-Likelihood estimation used in ``AmplitudeEstimation``."""
 
 import logging
+
 import numpy as np
 
 logger = logging.getLogger(__name__)

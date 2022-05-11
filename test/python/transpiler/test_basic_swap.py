@@ -13,11 +13,12 @@
 """Test the BasicSwap pass"""
 
 import unittest
-from qiskit.transpiler.passes import BasicSwap
-from qiskit.transpiler import CouplingMap
+
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
-from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler import CouplingMap
+from qiskit.transpiler.passes import BasicSwap
 
 
 class TestBasicSwap(QiskitTestCase):

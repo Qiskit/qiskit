@@ -12,14 +12,13 @@
 
 # pylint: disable=missing-docstring
 
-import os
 import configparser as cp
+import os
+from unittest import mock
 from uuid import uuid4
 
-from unittest import mock
-from qiskit import exceptions
+from qiskit import exceptions, user_config
 from qiskit.test import QiskitTestCase
-from qiskit import user_config
 
 
 class TestUserConfig(QiskitTestCase):

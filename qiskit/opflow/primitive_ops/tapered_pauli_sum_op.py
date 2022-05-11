@@ -12,10 +12,10 @@
 
 """ TaperedPauliSumOp Class and Z2Symmetries"""
 
+from copy import deepcopy
 import itertools
 import logging
-from copy import deepcopy
-from typing import List, Optional, Union, cast, Dict
+from typing import Dict, List, Optional, Union, cast
 
 import numpy as np
 

@@ -12,10 +12,10 @@
 
 """Helper function for converting a circuit to an instruction."""
 
-from qiskit.exceptions import QiskitError
+from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
+from qiskit.exceptions import QiskitError
 
 
 def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None, label=None):

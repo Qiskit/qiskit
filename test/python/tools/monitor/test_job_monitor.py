@@ -14,11 +14,10 @@
 
 import io
 import unittest
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import BasicAer
-from qiskit import execute
-from qiskit.tools.monitor import job_monitor
+
+from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister, execute
 from qiskit.test import QiskitTestCase
+from qiskit.tools.monitor import job_monitor
 
 
 class TestJobMonitor(QiskitTestCase):

@@ -11,14 +11,15 @@
 # that they have been altered from the originals.
 """The Numpy LinearSolver algorithm (classical)."""
 
-from typing import List, Union, Optional, Callable
+from typing import Callable, List, Optional, Union
+
 import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import Operator, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-from .linear_solver import LinearSolverResult, LinearSolver
+from .linear_solver import LinearSolver, LinearSolverResult
 from .observables.linear_system_observable import LinearSystemObservable
 
 

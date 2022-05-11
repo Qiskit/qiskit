@@ -15,6 +15,7 @@
 import numpy as np
 
 from qiskit.quantum_info.operators.channel import SuperOp
+
 from ..test_operator import OperatorTestCase
 
 

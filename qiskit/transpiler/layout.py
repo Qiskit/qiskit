@@ -18,9 +18,9 @@ Virtual (qu)bits are tuples, e.g. `(QuantumRegister(3, 'qr'), 2)` or simply `qr[
 Physical (qu)bits are integers.
 """
 
-from qiskit.circuit.quantumregister import Qubit, QuantumRegister
-from qiskit.transpiler.exceptions import LayoutError
+from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.converters import isinstanceint
+from qiskit.transpiler.exceptions import LayoutError
 
 
 class Layout:

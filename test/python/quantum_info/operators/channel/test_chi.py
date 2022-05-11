@@ -14,12 +14,14 @@
 
 import copy
 import unittest
+
 import numpy as np
 from numpy.testing import assert_allclose
 
 from qiskit import QiskitError
-from qiskit.quantum_info.states import DensityMatrix
 from qiskit.quantum_info.operators.channel import Chi
+from qiskit.quantum_info.states import DensityMatrix
+
 from .channel_test_case import ChannelTestCase
 
 

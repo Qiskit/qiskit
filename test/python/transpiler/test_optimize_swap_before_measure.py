@@ -14,11 +14,11 @@
 
 import unittest
 
-from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
-from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure, DAGFixedPoint
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler import PassManager
+from qiskit.transpiler.passes import DAGFixedPoint, OptimizeSwapBeforeMeasure
 
 
 class TestOptimizeSwapBeforeMeasure(QiskitTestCase):

@@ -18,19 +18,13 @@ import datetime
 
 import numpy as np
 
-from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.library.standard_gates import CXGate, RZGate, RZXGate, SXGate, XGate
 from qiskit.circuit.measure import Measure
+from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.reset import Reset
-from qiskit.circuit.library.standard_gates import (
-    CXGate,
-    RZXGate,
-    XGate,
-    SXGate,
-    RZGate,
-)
 from qiskit.providers.backend import BackendV2, QubitProperties
 from qiskit.providers.options import Options
-from qiskit.transpiler import Target, InstructionProperties
+from qiskit.transpiler import InstructionProperties, Target
 
 
 class FakeMumbaiFractionalCX(BackendV2):

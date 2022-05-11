@@ -37,7 +37,7 @@ import functools
 import itertools
 import multiprocessing as mp
 import sys
-from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Any
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 import numpy as np
 
@@ -48,7 +48,6 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions import Instruction
 from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.utils.multiprocessing import is_main_process
-
 
 Interval = Tuple[int, int]
 """An interval type is a tuple of a start time (inclusive) and an end time (exclusive)."""
@@ -1282,6 +1281,7 @@ class ScheduleBlock:
 
         # 4. instruction check
         import retworkx as rx
+
         from qiskit.pulse.transforms import block_to_dag
 
         return rx.is_isomorphic_node_match(

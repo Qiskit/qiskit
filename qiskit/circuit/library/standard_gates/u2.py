@@ -13,11 +13,13 @@
 """One-pulse single-qubit gate."""
 
 from typing import Optional
+
 import numpy
-from qiskit.qasm import pi
+
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.qasm import pi
 
 
 class U2Gate(Gate):
@@ -69,6 +71,7 @@ class U2Gate(Gate):
     def _define(self):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .u3 import U3Gate
 
         q = QuantumRegister(1, "q")

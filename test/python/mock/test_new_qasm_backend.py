@@ -12,9 +12,10 @@
 
 """Test of qasm fake backends from qiskit.mock package."""
 import unittest
+
 from qiskit import QuantumCircuit, transpile
-from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeBogota
+from qiskit.test import QiskitTestCase
 from qiskit.utils import optionals as _optionals
 
 

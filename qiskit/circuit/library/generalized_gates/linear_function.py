@@ -12,9 +12,11 @@
 
 """Linear Function."""
 
-from typing import Union, List, Optional
+from typing import List, Optional, Union
+
 import numpy as np
-from qiskit.circuit import QuantumCircuit, Gate
+
+from qiskit.circuit import Gate, QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 
 

@@ -12,15 +12,15 @@
 
 """ Test VQE """
 
+from functools import partial
 import logging
-import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from test.python.transpiler._dummy_passes import DummyAP
+import unittest
 
-from functools import partial
+from ddt import data, ddt, unpack
 import numpy as np
 from scipy.optimize import minimize as scipy_minimize
-from ddt import data, ddt, unpack
 
 from qiskit import BasicAer, QuantumCircuit
 from qiskit.algorithms import VQE, AlgorithmError

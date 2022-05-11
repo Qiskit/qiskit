@@ -13,13 +13,14 @@
 """Base circuit scheduling pass."""
 
 from typing import Dict
-from qiskit.transpiler import InstructionDurations
-from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
-from qiskit.dagcircuit import DAGOpNode, DAGCircuit
+
 from qiskit.circuit import Delay, Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode
+from qiskit.transpiler import InstructionDurations
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
 
 
 class BaseSchedulerTransform(TransformationPass):

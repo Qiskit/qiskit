@@ -15,7 +15,7 @@ These are a number of elementary functions that are required for the AQC routine
 
 import numpy as np
 
-from qiskit.circuit.library import RXGate, RZGate, RYGate
+from qiskit.circuit.library import RXGate, RYGate, RZGate
 
 
 def place_unitary(unitary: np.ndarray, n: int, j: int) -> np.ndarray:

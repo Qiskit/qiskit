@@ -12,34 +12,22 @@
 
 """ Test TrotterQRTE. """
 
+from test.python.opflow import QiskitOpflowTestCase
 import unittest
 
-from test.python.opflow import QiskitOpflowTestCase
-from ddt import ddt, data, unpack
+from ddt import data, ddt, unpack
 import numpy as np
 from numpy.testing import assert_raises
 
 from qiskit import BasicAer, QuantumCircuit
 from qiskit.algorithms import EvolutionProblem
-from qiskit.algorithms.evolvers.trotterization import (
-    TrotterQRTE,
-)
-from qiskit.circuit.library import ZGate
-from qiskit.quantum_info import Statevector
-from qiskit.utils import algorithm_globals, QuantumInstance
+from qiskit.algorithms.evolvers.trotterization import TrotterQRTE
 from qiskit.circuit import Parameter
-from qiskit.opflow import (
-    X,
-    Z,
-    Zero,
-    VectorStateFn,
-    StateFn,
-    I,
-    Y,
-    SummedOp,
-    ExpectationFactory,
-)
-from qiskit.synthesis import SuzukiTrotter, QDrift
+from qiskit.circuit.library import ZGate
+from qiskit.opflow import ExpectationFactory, I, StateFn, SummedOp, VectorStateFn, X, Y, Z, Zero
+from qiskit.quantum_info import Statevector
+from qiskit.synthesis import QDrift, SuzukiTrotter
+from qiskit.utils import QuantumInstance, algorithm_globals
 
 
 @ddt

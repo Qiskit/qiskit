@@ -12,20 +12,21 @@
 
 """Tests preset pass manager with faulty backends"""
 
-from ddt import ddt, data
+from ddt import data, ddt
 
-from qiskit import QuantumCircuit, QuantumRegister, BasicAer, execute
-from qiskit.compiler import transpile
-from qiskit.test import QiskitTestCase
-from qiskit.converters import circuit_to_dag
+from qiskit import BasicAer, QuantumCircuit, QuantumRegister, execute
 from qiskit.circuit.library import CXGate
+from qiskit.compiler import transpile
+from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGOpNode
+from qiskit.test import QiskitTestCase
 from qiskit.transpiler import TranspilerError
+
 from ..providers.faulty_backends import (
-    FakeOurenseFaultyQ1,
-    FakeOurenseFaultyCX13,
     FakeOurenseFaultyCX01CX10,
+    FakeOurenseFaultyCX13,
     FakeOurenseFaultyCX13CX31,
+    FakeOurenseFaultyQ1,
 )
 
 

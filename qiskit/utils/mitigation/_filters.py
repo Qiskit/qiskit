@@ -22,8 +22,8 @@ Measurement correction filters.
 
 """
 
-from typing import List
 from copy import deepcopy
+from typing import List
 
 import numpy as np
 
@@ -104,8 +104,8 @@ class MeasurementFilter:
                 of the number of calibrated states.
 
         """
-        from scipy.optimize import minimize
         from scipy import linalg as la
+        from scipy.optimize import minimize
 
         # check forms of raw_data
         if isinstance(raw_data, dict):
@@ -352,8 +352,8 @@ class TensoredFilter:
         Raises:
             QiskitError: if raw_data is not in a one of the defined forms.
         """
-        from scipy.optimize import minimize
         from scipy import linalg as la
+        from scipy.optimize import minimize
 
         all_states = count_keys(self.nqubits)
         num_of_states = 2**self.nqubits

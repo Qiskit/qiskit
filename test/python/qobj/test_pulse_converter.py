@@ -13,39 +13,40 @@
 """Converter Test."""
 
 import hashlib
+
 import numpy as np
 
-from qiskit.pulse import LoConfig, Kernel, Discriminator
+from qiskit.pulse import Discriminator, Kernel, LoConfig
 from qiskit.pulse.channels import (
-    DriveChannel,
-    ControlChannel,
-    MeasureChannel,
     AcquireChannel,
+    ControlChannel,
+    DriveChannel,
+    MeasureChannel,
     MemorySlot,
     RegisterSlot,
 )
 from qiskit.pulse.instructions import (
-    SetPhase,
-    ShiftPhase,
-    SetFrequency,
-    ShiftFrequency,
-    Play,
-    Delay,
     Acquire,
+    Delay,
+    Play,
+    SetFrequency,
+    SetPhase,
+    ShiftFrequency,
+    ShiftPhase,
     Snapshot,
 )
-from qiskit.pulse.library import Waveform, Gaussian, GaussianSquare, Constant, Drag
+from qiskit.pulse.library import Constant, Drag, Gaussian, GaussianSquare, Waveform
 from qiskit.pulse.schedule import Schedule
 from qiskit.qobj import (
-    PulseQobjInstruction,
-    PulseQobjExperimentConfig,
     PulseLibraryItem,
+    PulseQobjExperimentConfig,
+    PulseQobjInstruction,
     QobjMeasurementOption,
 )
 from qiskit.qobj.converters import (
     InstructionToQobjConverter,
-    QobjToInstructionConverter,
     LoConfigConverter,
+    QobjToInstructionConverter,
 )
 from qiskit.test import QiskitTestCase
 

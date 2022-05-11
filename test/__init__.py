@@ -13,6 +13,7 @@
 """With some utils"""
 
 from ddt import data, unpack
+
 from qiskit.test.utils import generate_cases
 
 

@@ -16,11 +16,10 @@
 import unittest
 
 from qiskit import QuantumCircuit, pulse
-from qiskit.compiler import sequence, transpile, schedule
+from qiskit.compiler import schedule, sequence, transpile
 from qiskit.pulse.transforms import pad
-from qiskit.test.mock import FakeParis
-
 from qiskit.test import QiskitTestCase
+from qiskit.test.mock import FakeParis
 
 
 class TestSequence(QiskitTestCase):

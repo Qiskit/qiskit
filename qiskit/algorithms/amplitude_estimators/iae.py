@@ -12,7 +12,8 @@
 
 """The Iterative Quantum Amplitude Estimation Algorithm."""
 
-from typing import Optional, Union, List, Tuple, Dict, cast
+from typing import Dict, List, Optional, Tuple, Union, cast
+
 import numpy as np
 from scipy.stats import beta
 
@@ -20,9 +21,9 @@ from qiskit import ClassicalRegister, QuantumCircuit
 from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
 
+from ..exceptions import AlgorithmError
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .estimation_problem import EstimationProblem
-from ..exceptions import AlgorithmError
 
 
 class IterativeAmplitudeEstimation(AmplitudeEstimator):

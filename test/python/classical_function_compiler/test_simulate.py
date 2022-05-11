@@ -11,10 +11,12 @@
 # that they have been altered from the originals.
 
 """Tests LogicNetwork.simulate method."""
-from ddt import ddt, data
+from ddt import data, ddt
+
 from qiskit.circuit.classicalfunction import classical_function as compile_classical_function
 from qiskit.test import QiskitTestCase
-from .utils import get_truthtable_from_function, example_list
+
+from .utils import example_list, get_truthtable_from_function
 
 
 @ddt

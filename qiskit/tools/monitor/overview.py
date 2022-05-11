@@ -14,7 +14,8 @@
 """
 
 import math
-from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
+
+from qiskit.exceptions import MissingOptionalLibraryError, QiskitError
 
 
 def get_unique_backends():

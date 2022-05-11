@@ -12,8 +12,9 @@
 
 """The Estimation problem class."""
 
+from typing import Callable, List, Optional, Union
 import warnings
-from typing import Optional, List, Callable, Union
+
 import numpy
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister

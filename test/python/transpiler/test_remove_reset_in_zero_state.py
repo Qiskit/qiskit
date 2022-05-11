@@ -14,11 +14,11 @@
 
 import unittest
 
-from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes import RemoveResetInZeroState, DAGFixedPoint
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler import PassManager
+from qiskit.transpiler.passes import DAGFixedPoint, RemoveResetInZeroState
 
 
 class TestRemoveResetInZeroState(QiskitTestCase):

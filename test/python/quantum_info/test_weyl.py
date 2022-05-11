@@ -14,16 +14,17 @@
 """Tests for Weyl coordinate routines."""
 
 import unittest
+
 import numpy as np
 from numpy.testing import assert_allclose
 
-from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.random import random_unitary
-from qiskit.quantum_info.synthesis.weyl import weyl_coordinates
 from qiskit.quantum_info.synthesis.local_invariance import (
-    two_qubit_local_invariants,
     local_equivalence,
+    two_qubit_local_invariants,
 )
+from qiskit.quantum_info.synthesis.weyl import weyl_coordinates
+from qiskit.test import QiskitTestCase
 
 
 class TestWeyl(QiskitTestCase):

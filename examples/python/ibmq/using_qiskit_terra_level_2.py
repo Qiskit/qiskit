@@ -24,17 +24,16 @@ from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.compiler import assemble
 from qiskit.providers.ibmq import least_busy
 from qiskit.tools.monitor import job_monitor
-
-from qiskit.transpiler import PassManager
-from qiskit.transpiler import CouplingMap
-from qiskit.transpiler.passes import Unroller
-from qiskit.transpiler.passes import FullAncillaAllocation
-from qiskit.transpiler.passes import EnlargeWithAncilla
-from qiskit.transpiler.passes import TrivialLayout
-from qiskit.transpiler.passes import Decompose
-from qiskit.transpiler.passes import CXDirection
-from qiskit.transpiler.passes import LookaheadSwap
-
+from qiskit.transpiler import CouplingMap, PassManager
+from qiskit.transpiler.passes import (
+    CXDirection,
+    Decompose,
+    EnlargeWithAncilla,
+    FullAncillaAllocation,
+    LookaheadSwap,
+    TrivialLayout,
+    Unroller,
+)
 
 provider = IBMQ.load_account()
 

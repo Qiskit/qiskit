@@ -12,23 +12,23 @@
 
 """Common visualization utilities."""
 
-import re
 from collections import OrderedDict
+import re
 
 import numpy as np
 
 from qiskit.circuit import (
     BooleanExpression,
+    ClassicalRegister,
     Clbit,
+    ControlFlowOp,
     ControlledGate,
     Delay,
     Gate,
     Instruction,
     Measure,
-    ControlFlowOp,
 )
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.circuit import ClassicalRegister
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info.operators.symplectic import PauliList, SparsePauliOp

@@ -12,11 +12,11 @@
 
 """ Test NumPy Eigen solver """
 
-import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
+import unittest
 
-import numpy as np
 from ddt import data, ddt
+import numpy as np
 
 from qiskit.algorithms import NumPyEigensolver
 from qiskit.opflow import PauliSumOp, X, Y, Z

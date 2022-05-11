@@ -12,13 +12,13 @@
 
 """Module for common pulse programming utilities."""
 import functools
+from typing import Dict, List, Union
 import warnings
-from typing import List, Dict, Union
 
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.pulse.exceptions import UnassignedDurationError, QiskitError
+from qiskit.pulse.exceptions import QiskitError, UnassignedDurationError
 
 
 def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:

@@ -15,27 +15,28 @@
 from collections.abc import Iterable
 from copy import deepcopy
 from functools import partial
-from typing import List, Union, Tuple, Dict
+from typing import Dict, List, Tuple, Union
 
-import scipy
 import numpy as np
+import scipy
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter, ParameterExpression, ParameterVector
-from .circuit_gradient import CircuitGradient
-from ...operator_base import OperatorBase
-from ...state_fns.state_fn import StateFn
-from ...operator_globals import Zero, One
-from ...state_fns.circuit_state_fn import CircuitStateFn
-from ...primitive_ops.circuit_op import CircuitOp
-from ...list_ops.summed_op import SummedOp
-from ...list_ops.list_op import ListOp
-from ...list_ops.composed_op import ComposedOp
-from ...state_fns.dict_state_fn import DictStateFn
-from ...state_fns.vector_state_fn import VectorStateFn
-from ...state_fns.sparse_vector_state_fn import SparseVectorStateFn
+
 from ...exceptions import OpflowError
+from ...list_ops.composed_op import ComposedOp
+from ...list_ops.list_op import ListOp
+from ...list_ops.summed_op import SummedOp
+from ...operator_base import OperatorBase
+from ...operator_globals import One, Zero
+from ...primitive_ops.circuit_op import CircuitOp
+from ...state_fns.circuit_state_fn import CircuitStateFn
+from ...state_fns.dict_state_fn import DictStateFn
+from ...state_fns.sparse_vector_state_fn import SparseVectorStateFn
+from ...state_fns.state_fn import StateFn
+from ...state_fns.vector_state_fn import VectorStateFn
 from ..derivative_base import _coeff_derivative
+from .circuit_gradient import CircuitGradient
 
 
 class ParamShift(CircuitGradient):

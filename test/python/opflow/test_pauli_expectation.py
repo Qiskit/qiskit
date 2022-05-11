@@ -13,8 +13,8 @@
 """ Test PauliExpectation """
 
 import itertools
-import unittest
 from test.python.opflow import QiskitOpflowTestCase
+import unittest
 
 import numpy as np
 
@@ -38,7 +38,6 @@ from qiskit.opflow import (
     Zero,
 )
 from qiskit.utils import QuantumInstance, algorithm_globals
-
 
 # pylint: disable=invalid-name
 

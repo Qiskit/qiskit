@@ -12,7 +12,7 @@
 
 """Tests for core modules of pulse drawer."""
 
-from qiskit import pulse, circuit
+from qiskit import circuit, pulse
 from qiskit.test import QiskitTestCase
 from qiskit.visualization.pulse_v2 import events
 

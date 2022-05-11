@@ -14,21 +14,14 @@
 
 import unittest
 from unittest.mock import patch
+
 import numpy as np
 
 import qiskit
-from qiskit.pulse.library import (
-    Waveform,
-    Constant,
-    Gaussian,
-    GaussianSquare,
-    Drag,
-    gaussian,
-    gaussian_square,
-    drag as pl_drag,
-)
-
-from qiskit.pulse import functional_pulse, PulseError
+from qiskit.pulse import PulseError, functional_pulse
+from qiskit.pulse.library import Constant, Drag, Gaussian, GaussianSquare, Waveform
+from qiskit.pulse.library import drag as pl_drag
+from qiskit.pulse.library import gaussian, gaussian_square
 from qiskit.test import QiskitTestCase
 
 

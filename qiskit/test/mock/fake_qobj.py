@@ -16,13 +16,14 @@ Base Fake Qobj.
 
 from qiskit.qobj import (
     QasmQobj,
+    QasmQobjConfig,
+    QasmQobjExperiment,
+    QasmQobjExperimentConfig,
+    QasmQobjInstruction,
     QobjExperimentHeader,
     QobjHeader,
-    QasmQobjInstruction,
-    QasmQobjExperimentConfig,
-    QasmQobjExperiment,
-    QasmQobjConfig,
 )
+
 from .fake_qasm_simulator import FakeQasmSimulator
 
 

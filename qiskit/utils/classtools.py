@@ -15,8 +15,7 @@
 import functools
 import inspect
 import types
-from typing import Type, Callable
-
+from typing import Callable, Type
 
 # On user-defined classes, `__new__` is magically inferred to be a staticmethod, `__init_subclass__`
 # is magically inferred to be a class method and `__prepare__` must be defined as a classmethod, but

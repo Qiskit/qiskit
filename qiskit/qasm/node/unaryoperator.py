@@ -17,7 +17,6 @@ import operator
 from .node import Node
 from .nodeexception import NodeException
 
-
 VALID_OPERATORS = {
     "+": operator.pos,
     "-": operator.neg,

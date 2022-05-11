@@ -21,12 +21,12 @@
 import abc
 import itertools
 import typing
-from typing import Callable, Collection, Iterable, List, FrozenSet, Tuple, Union
+from typing import Callable, Collection, FrozenSet, Iterable, List, Tuple, Union
 
-from qiskit.circuit.classicalregister import Clbit, ClassicalRegister
+from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
-from qiskit.circuit.quantumregister import Qubit, QuantumRegister
+from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.register import Register
 
 from .condition import condition_registers

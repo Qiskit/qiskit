@@ -16,7 +16,9 @@ DEPRECATED Tools for working with Pauli Operators.
 """
 
 from warnings import warn
+
 import numpy as np
+
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 

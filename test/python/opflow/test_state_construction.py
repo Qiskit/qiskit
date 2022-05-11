@@ -12,32 +12,32 @@
 
 """ Test Operator construction, including OpPrimitives and singletons. """
 
-import unittest
 from test.python.opflow import QiskitOpflowTestCase
+import unittest
+
 import numpy as np
 
-from qiskit import QuantumCircuit, BasicAer, execute
+from qiskit import BasicAer, QuantumCircuit, execute
 from qiskit.circuit import ParameterVector
-from qiskit.quantum_info import Statevector
-
 from qiskit.opflow import (
-    StateFn,
-    Zero,
-    One,
-    Plus,
-    Minus,
-    PrimitiveOp,
-    CircuitOp,
-    SummedOp,
-    H,
-    I,
-    Z,
-    X,
-    Y,
     CX,
+    CircuitOp,
     CircuitStateFn,
     DictToCircuitSum,
+    H,
+    I,
+    Minus,
+    One,
+    Plus,
+    PrimitiveOp,
+    StateFn,
+    SummedOp,
+    X,
+    Y,
+    Z,
+    Zero,
 )
+from qiskit.quantum_info import Statevector
 
 
 class TestStateConstruction(QiskitOpflowTestCase):

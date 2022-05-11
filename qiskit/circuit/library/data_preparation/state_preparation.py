@@ -11,20 +11,20 @@
 # that they have been altered from the originals.
 """Prepare a quantum state from the state where all qubits are 0."""
 
-from typing import Union, Optional
-
 import math
+from typing import Optional, Union
+
 import numpy as np
 
-from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.library.standard_gates.x import CXGate, XGate
 from qiskit.circuit.library.standard_gates.h import HGate
-from qiskit.circuit.library.standard_gates.s import SGate, SdgGate
 from qiskit.circuit.library.standard_gates.ry import RYGate
 from qiskit.circuit.library.standard_gates.rz import RZGate
-from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.library.standard_gates.s import SdgGate, SGate
+from qiskit.circuit.library.standard_gates.x import CXGate, XGate
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Statevector
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero

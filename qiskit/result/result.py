@@ -16,14 +16,14 @@ import copy
 import warnings
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.pulse.schedule import Schedule
 from qiskit.exceptions import QiskitError
+from qiskit.pulse.schedule import Schedule
+from qiskit.qobj import QobjHeader
+from qiskit.qobj.utils import MeasLevel
 from qiskit.quantum_info.states import statevector
-from qiskit.result.models import ExperimentResult
 from qiskit.result import postprocess
 from qiskit.result.counts import Counts
-from qiskit.qobj.utils import MeasLevel
-from qiskit.qobj import QobjHeader
+from qiskit.result.models import ExperimentResult
 
 
 class Result:

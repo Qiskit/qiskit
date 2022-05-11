@@ -12,10 +12,10 @@
 
 # pylint: disable=missing-docstring
 
+from qiskit.test import QiskitTestCase
+from qiskit.test.mock import FakeRueschlikon
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.exceptions import CouplingError
-from qiskit.test.mock import FakeRueschlikon
-from qiskit.test import QiskitTestCase
 
 
 class CouplingTest(QiskitTestCase):

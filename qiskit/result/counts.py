@@ -14,8 +14,8 @@
 
 import re
 
-from qiskit.result import postprocess
 from qiskit import exceptions
+from qiskit.result import postprocess
 
 
 # NOTE: A dict subclass should not overload any dunder methods like __getitem__

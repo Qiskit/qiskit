@@ -17,10 +17,11 @@ found, no ``property_set['layout']`` is set.
 """
 import random
 from time import time
-from constraint import Problem, RecursiveBacktrackingSolver, AllDifferentConstraint
 
-from qiskit.transpiler.layout import Layout
+from constraint import AllDifferentConstraint, Problem, RecursiveBacktrackingSolver
+
 from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.transpiler.layout import Layout
 
 
 class CustomSolver(RecursiveBacktrackingSolver):

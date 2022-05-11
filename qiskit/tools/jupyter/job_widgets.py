@@ -12,8 +12,8 @@
 
 """A module of widgets for job tracking"""
 
+from IPython.display import Javascript, display
 import ipywidgets as widgets
-from IPython.display import display, Javascript
 
 
 def make_clear_button(watcher):

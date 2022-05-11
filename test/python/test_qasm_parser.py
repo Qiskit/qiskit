@@ -14,8 +14,9 @@
 
 import os
 import unittest
-import ply
+
 import ddt
+import ply
 
 from qiskit.qasm import Qasm, QasmError
 from qiskit.qasm.node.node import Node

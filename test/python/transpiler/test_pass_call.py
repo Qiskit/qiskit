@@ -12,12 +12,13 @@
 
 """Test calling passes (passmanager-less)"""
 
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import ZGate
-from qiskit.transpiler.passes import Unroller
-from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
+from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PropertySet
+from qiskit.transpiler.passes import Unroller
+
 from ._dummy_passes import PassD_TP_NR_NP, PassE_AP_NR_NP, PassN_AP_NR_NP
 
 

@@ -12,8 +12,8 @@
 
 """Scheduling utility functions."""
 
-from qiskit.utils.deprecation import deprecate_function
 from qiskit.pulse import macros, utils
+from qiskit.utils.deprecation import deprecate_function
 
 format_meas_map = deprecate_function('"format_meas_map" has been moved to "qiskit.pulse.utils"')(
     utils.format_meas_map

@@ -14,7 +14,7 @@
 
 from functools import reduce
 from numbers import Number
-from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Sequence, Union, cast
+from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence, Set, Union, cast
 
 import numpy as np
 from scipy.sparse import spmatrix
@@ -421,8 +421,8 @@ class ListOp(OperatorBase):
         """
         # pylint: disable=cyclic-import
         from ..state_fns.dict_state_fn import DictStateFn
-        from ..state_fns.vector_state_fn import VectorStateFn
         from ..state_fns.sparse_vector_state_fn import SparseVectorStateFn
+        from ..state_fns.vector_state_fn import VectorStateFn
 
         # The below code only works for distributive ListOps, e.g. ListOp and SummedOp
         if not self.distributive:

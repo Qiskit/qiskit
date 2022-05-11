@@ -13,7 +13,9 @@
 """Identity gate."""
 
 from typing import Optional
+
 import numpy
+
 from qiskit.circuit.gate import Gate
 
 

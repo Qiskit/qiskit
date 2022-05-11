@@ -12,11 +12,11 @@
 
 """ Test NumPy Minimum Eigensolver """
 
-import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
+import unittest
 
+from ddt import data, ddt
 import numpy as np
-from ddt import ddt, data
 
 from qiskit.algorithms import NumPyMinimumEigensolver
 from qiskit.opflow import PauliSumOp, X, Y, Z

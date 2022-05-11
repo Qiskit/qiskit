@@ -19,8 +19,9 @@ import numpy as np
 import retworkx as rx
 
 from qiskit.exceptions import QiskitError
-from qiskit.utils import optionals as _optionals
 from qiskit.providers.exceptions import BackendPropertyError
+from qiskit.utils import optionals as _optionals
+
 from .exceptions import VisualizationError
 from .utils import matplotlib_close_if_inline
 
@@ -599,8 +600,8 @@ def plot_coupling_map(
             qubit_coordinates = [[0, 1], [1, 1], [1, 0], [1, 2], [2, 0], [2, 2], [2, 1], [3, 1]]
             plot_coupling_map(num_qubits, coupling_map, qubit_coordinates)
     """
-    import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
+    import matplotlib.pyplot as plt
 
     input_axes = False
     if ax:
@@ -898,10 +899,10 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
             backend = provider.get_backend('ibmq_vigo')
             plot_error_map(backend)
     """
-    import seaborn as sns
     import matplotlib
-    import matplotlib.pyplot as plt
     from matplotlib import gridspec, ticker
+    import matplotlib.pyplot as plt
+    import seaborn as sns
 
     color_map = sns.cubehelix_palette(reverse=True, as_cmap=True)
 

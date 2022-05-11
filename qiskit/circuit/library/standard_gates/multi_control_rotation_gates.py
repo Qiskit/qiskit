@@ -14,10 +14,11 @@ Multiple-Controlled U3 gate. Not using ancillary qubits.
 """
 
 from math import pi
-from typing import Optional, Union, Tuple, List
+from typing import List, Optional, Tuple, Union
+
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
-from qiskit.circuit.library.standard_gates.x import MCXGate
 from qiskit.circuit.library.standard_gates.u3 import _generate_gray_code
+from qiskit.circuit.library.standard_gates.x import MCXGate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.exceptions import QiskitError
 

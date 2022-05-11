@@ -69,13 +69,14 @@ from copy import deepcopy
 from enum import Enum
 from functools import partial
 from itertools import chain
-from typing import Union, List, Tuple, Iterator, Optional
+from typing import Iterator, List, Optional, Tuple, Union
 
 import numpy as np
+
 from qiskit import pulse
 from qiskit.pulse.transforms import target_qobj_transform
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.pulse_v2 import events, types, drawings, device_info
+from qiskit.visualization.pulse_v2 import device_info, drawings, events, types
 from qiskit.visualization.pulse_v2.stylesheet import QiskitPulseStyle
 
 

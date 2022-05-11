@@ -13,13 +13,14 @@
 """Test the quadratic form."""
 
 import unittest
-from ddt import ddt, data
+
+from ddt import data, ddt
 import numpy as np
 
-from qiskit.test.base import QiskitTestCase
-from qiskit.circuit import QuantumCircuit, ParameterVector
+from qiskit.circuit import ParameterVector, QuantumCircuit
 from qiskit.circuit.library import QuadraticForm
 from qiskit.quantum_info import Statevector
+from qiskit.test.base import QiskitTestCase
 
 
 @ddt

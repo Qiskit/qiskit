@@ -15,9 +15,8 @@
 import os
 import unittest
 
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, qasm
 from qiskit.converters import ast_to_dag, circuit_to_dag
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import qasm
 from qiskit.test import QiskitTestCase
 
 

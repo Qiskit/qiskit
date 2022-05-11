@@ -82,9 +82,9 @@ def complete_meas_cal(
     # Runtime imports to avoid circular imports causeed by QuantumInstance
     # getting initialized by imported utils/__init__ which is imported
     # by qiskit.circuit
-    from qiskit.circuit.quantumregister import QuantumRegister
     from qiskit.circuit.classicalregister import ClassicalRegister
     from qiskit.circuit.exceptions import QiskitError
+    from qiskit.circuit.quantumregister import QuantumRegister
 
     if qubit_list is None and qr is None:
         raise QiskitError("Must give one of a qubit_list or a qr")
@@ -156,10 +156,10 @@ def tensored_meas_cal(
     # Runtime imports to avoid circular imports causeed by QuantumInstance
     # getting initialized by imported utils/__init__ which is imported
     # by qiskit.circuit
-    from qiskit.circuit.quantumregister import QuantumRegister
     from qiskit.circuit.classicalregister import ClassicalRegister
-    from qiskit.circuit.quantumcircuit import QuantumCircuit
     from qiskit.circuit.exceptions import QiskitError
+    from qiskit.circuit.quantumcircuit import QuantumCircuit
+    from qiskit.circuit.quantumregister import QuantumRegister
 
     if mit_pattern is None and qr is None:
         raise QiskitError("Must give one of mit_pattern or qr")

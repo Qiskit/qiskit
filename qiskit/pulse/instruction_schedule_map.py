@@ -26,12 +26,12 @@ An instance of this class is instantiated by Pulse-enabled backends and populate
     inst_map = backend.defaults().instruction_schedule_map
 
 """
-import inspect
-import functools
-import warnings
 from collections import defaultdict
 from enum import IntEnum
-from typing import Callable, Iterable, List, Tuple, Union, Optional, NamedTuple
+import functools
+import inspect
+from typing import Callable, Iterable, List, NamedTuple, Optional, Tuple, Union
+import warnings
 
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameterexpression import ParameterExpression

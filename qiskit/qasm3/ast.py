@@ -15,7 +15,7 @@
 """QASM3 AST Nodes"""
 
 import enum
-from typing import Optional, List, Union
+from typing import List, Optional, Union
 
 
 class ASTNode:

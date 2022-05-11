@@ -15,14 +15,12 @@
 from typing import Tuple
 
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.library.standard_gates import RZXGate, HGate, XGate
-
+from qiskit.circuit.library.standard_gates import HGate, RZXGate, XGate
+from qiskit.converters import circuit_to_dag
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
-
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.converters import circuit_to_dag
 
 
 class EchoRZXWeylDecomposition(TransformationPass):

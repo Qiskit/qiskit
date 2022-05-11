@@ -17,9 +17,10 @@ Special data types.
 """
 
 from enum import Enum
-from typing import NamedTuple, Union, List, Optional, NewType, Dict, Any, Tuple
+from typing import Any, Dict, List, NamedTuple, NewType, Optional, Tuple, Union
 
 import numpy as np
+
 from qiskit import pulse
 
 

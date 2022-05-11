@@ -13,6 +13,7 @@
 """Hamiltonian simulation of matrices given as numpy arrays."""
 
 from typing import Tuple
+
 import numpy as np
 import scipy as sp
 

@@ -14,12 +14,13 @@
 
 import copy
 import unittest
+
 import numpy
 
 from qiskit.circuit import QuantumRegister, Qubit
-from qiskit.transpiler.layout import Layout
-from qiskit.transpiler.exceptions import LayoutError
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler.exceptions import LayoutError
+from qiskit.transpiler.layout import Layout
 
 
 class LayoutTest(QiskitTestCase):

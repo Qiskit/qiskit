@@ -16,6 +16,7 @@ import numpy as np
 
 from qiskit.algorithms.optimizers import L_BFGS_B, Optimizer
 from qiskit.quantum_info import Operator
+
 from .approximate import ApproximateCircuit, ApproximatingObjective
 
 

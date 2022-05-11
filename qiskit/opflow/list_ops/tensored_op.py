@@ -13,7 +13,7 @@
 """ TensoredOp Class """
 
 from functools import partial, reduce
-from typing import List, Union, cast, Dict
+from typing import Dict, List, Union, cast
 
 import numpy as np
 
@@ -107,8 +107,8 @@ class TensoredOp(ListOp):
         """
         circuit_op = self.to_circuit_op()
         # pylint: disable=cyclic-import
-        from ..state_fns.circuit_state_fn import CircuitStateFn
         from ..primitive_ops.primitive_op import PrimitiveOp
+        from ..state_fns.circuit_state_fn import CircuitStateFn
 
         if isinstance(circuit_op, (PrimitiveOp, CircuitStateFn)):
             return circuit_op.to_circuit()

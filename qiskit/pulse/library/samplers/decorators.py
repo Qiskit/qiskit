@@ -127,15 +127,15 @@ still seeing the signature for the continuous pulse function and all of its argu
 """
 
 import functools
-from typing import Callable
-import textwrap
 import pydoc
+import textwrap
+from typing import Callable
 
 import numpy as np
 
+from . import strategies
 from ...exceptions import PulseError
 from ..waveform import Waveform
-from . import strategies
 
 
 def functional_pulse(func: Callable) -> Callable:

@@ -13,7 +13,8 @@
 """Compute the product of two qubit registers using classical multiplication approach."""
 
 from typing import Optional
-from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit
+
+from qiskit.circuit import AncillaRegister, QuantumCircuit, QuantumRegister
 
 from .multiplier import Multiplier
 

@@ -12,9 +12,9 @@
 
 """Collect sequences of uninterrupted gates acting on a number of qubits."""
 
-from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.circuit import Gate
-from qiskit.dagcircuit import DAGOpNode, DAGInNode
+from qiskit.dagcircuit import DAGInNode, DAGOpNode
+from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class CollectMultiQBlocks(AnalysisPass):

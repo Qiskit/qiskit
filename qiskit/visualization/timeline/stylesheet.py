@@ -37,8 +37,8 @@ Because a single stylesheet doesn't generate multiple images with different appe
 only one layout function can be chosen for each stylesheet.
 """
 
+from typing import Any, Dict, Mapping
 import warnings
-from typing import Dict, Any, Mapping
 
 from qiskit.visualization.timeline import generators, layouts
 

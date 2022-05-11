@@ -13,13 +13,12 @@
 """
 Simulator command to perform multiple pauli gates in a single pass
 """
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.gate import Gate
 from qiskit.circuit.library.standard_gates.x import XGate
 from qiskit.circuit.library.standard_gates.y import YGate
 from qiskit.circuit.library.standard_gates.z import ZGate
-
-from qiskit.circuit.gate import Gate
-from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class PauliGate(Gate):

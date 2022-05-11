@@ -11,16 +11,15 @@
 # that they have been altered from the originals.
 
 """Disassemble function for a qobj into a list of circuits and its config"""
-from typing import Any, Dict, List, NewType, Tuple, Union
 import collections
 import math
+from typing import Any, Dict, List, NewType, Tuple, Union
 
 from qiskit import pulse
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
-
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
 

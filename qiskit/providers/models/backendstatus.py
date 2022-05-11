@@ -13,6 +13,7 @@
 """Class for backend status."""
 
 import html
+
 from qiskit.exceptions import QiskitError
 
 

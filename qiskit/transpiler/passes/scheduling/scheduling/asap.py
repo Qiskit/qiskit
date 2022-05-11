@@ -13,7 +13,6 @@
 """ASAP Scheduling."""
 from qiskit.circuit import Measure
 from qiskit.transpiler.exceptions import TranspilerError
-
 from qiskit.transpiler.passes.scheduling.scheduling.base_scheduler import BaseScheduler
 
 

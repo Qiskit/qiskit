@@ -26,14 +26,14 @@ import inspect
 import logging
 import os
 import sys
-import warnings
 import unittest
 from unittest.util import safe_repr
+import warnings
 
 from qiskit.utils import optionals as _optionals
+
 from .decorators import enforce_subclasses_call
 from .utils import Path, setup_test_logging
-
 
 __unittest = True  # Allows shorter stack trace for .assertDictAlmostEqual
 

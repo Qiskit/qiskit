@@ -13,9 +13,9 @@
 
 """Base class for functional Pauli rotations."""
 
+from abc import ABC, abstractmethod
 from typing import Optional
 
-from abc import ABC, abstractmethod
 from ..blueprintcircuit import BlueprintCircuit
 
 

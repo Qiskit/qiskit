@@ -15,9 +15,9 @@
 import os
 import re
 import sys
-from setuptools import setup, find_packages, Extension
-from setuptools_rust import Binding, RustExtension
 
+from setuptools import Extension, find_packages, setup
+from setuptools_rust import Binding, RustExtension
 
 with open("requirements.txt") as f:
     REQUIREMENTS = f.read().splitlines()

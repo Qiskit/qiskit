@@ -14,8 +14,8 @@
 
 import numpy as np
 
-from qiskit import pulse, circuit
-from qiskit.pulse import channels, configuration, instructions, library, exceptions
+from qiskit import circuit, pulse
+from qiskit.pulse import channels, configuration, exceptions, instructions, library
 from qiskit.pulse.transforms import inline_subroutines, target_qobj_transform
 from qiskit.test import QiskitTestCase
 

@@ -12,15 +12,15 @@
 
 """ Algorithm Globals """
 
-from typing import Optional
 import logging
+from typing import Optional
 
 import numpy as np
 
 from qiskit.tools import parallel
-from ..user_config import get_config
-from ..exceptions import QiskitError
 
+from ..exceptions import QiskitError
+from ..user_config import get_config
 
 logger = logging.getLogger(__name__)
 

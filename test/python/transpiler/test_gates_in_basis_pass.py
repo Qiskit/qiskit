@@ -13,15 +13,14 @@
 """Test GatesInBasis pass."""
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import HGate, CXGate, UGate
-from qiskit.circuit.measure import Measure
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary
-from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes import BasisTranslator
-from qiskit.transpiler.passes import GatesInBasis
-from qiskit.transpiler.target import Target
+from qiskit.circuit.library import CXGate, HGate, UGate
+from qiskit.circuit.measure import Measure
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock.fake_backend_v2 import FakeBackend5QV2
+from qiskit.transpiler import PassManager
+from qiskit.transpiler.passes import BasisTranslator, GatesInBasis
+from qiskit.transpiler.target import Target
 
 
 class TestGatesInBasisPass(QiskitTestCase):

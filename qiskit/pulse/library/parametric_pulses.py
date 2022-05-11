@@ -37,15 +37,15 @@ by following the existing pattern:
         new_supported_pulse_name = library.YourPulseWaveformClass
 """
 from abc import abstractmethod
+import math
 from typing import Any, Dict, Optional, Union
 
-import math
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library import continuous
-from qiskit.pulse.library.discrete import gaussian, gaussian_square, drag, constant
+from qiskit.pulse.library.discrete import constant, drag, gaussian, gaussian_square
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
 

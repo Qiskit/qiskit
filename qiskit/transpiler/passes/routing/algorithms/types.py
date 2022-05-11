@@ -26,7 +26,7 @@
 
 """Type definitions used within the permutation package."""
 
-from typing import TypeVar, Dict, Tuple, NamedTuple, Union
+from typing import Dict, NamedTuple, Tuple, TypeVar, Union
 
 from qiskit.circuit import Qubit
 from qiskit.dagcircuit import DAGCircuit

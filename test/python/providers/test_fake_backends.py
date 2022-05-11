@@ -14,18 +14,16 @@
 # pylint: disable=missing-module-docstring
 
 import operator
-
 from test import combine
-from ddt import ddt, data
+
+from ddt import data, ddt
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.compiler import assemble
-from qiskit.compiler import transpile
+from qiskit.compiler import assemble, transpile
 from qiskit.exceptions import QiskitError
 from qiskit.execute_function import execute
 from qiskit.test.base import QiskitTestCase
-from qiskit.test.mock import FakeProviderForBackendV2, FakeProvider
-from qiskit.test.mock import FakeMumbaiV2
+from qiskit.test.mock import FakeMumbaiV2, FakeProvider, FakeProviderForBackendV2
 from qiskit.utils import optionals
 
 FAKE_PROVIDER_FOR_BACKEND_V2 = FakeProviderForBackendV2()

@@ -11,14 +11,15 @@
 # that they have been altered from the originals.
 
 """Test evolver problem class."""
-import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
+import unittest
+
 from ddt import data, ddt, unpack
 from numpy.testing import assert_raises
 
 from qiskit.algorithms.evolvers.evolution_problem import EvolutionProblem
 from qiskit.circuit import Parameter
-from qiskit.opflow import Y, Z, One, X, Zero
+from qiskit.opflow import One, X, Y, Z, Zero
 
 
 @ddt

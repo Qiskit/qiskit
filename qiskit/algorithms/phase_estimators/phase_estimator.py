@@ -12,10 +12,11 @@
 
 """The Phase Estimator interface."""
 
-from typing import Optional
 from abc import ABC, abstractmethod
-from qiskit.circuit import QuantumCircuit
+from typing import Optional
+
 from qiskit.algorithms.algorithm_result import AlgorithmResult
+from qiskit.circuit import QuantumCircuit
 
 
 class PhaseEstimator(ABC):

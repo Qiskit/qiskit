@@ -19,9 +19,9 @@ import copy
 import itertools
 
 from qiskit.circuit import Parameter, ParameterExpression
+from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit.dagdependency import DAGDependency
-from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
 
 
 class SubstitutionConfig:

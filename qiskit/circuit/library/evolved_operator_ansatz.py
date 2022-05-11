@@ -12,11 +12,11 @@
 
 """The evolved operator ansatz."""
 
-from typing import Optional, Union, List
+from typing import List, Optional, Union
 
 import numpy as np
 
-from qiskit.circuit import Parameter, QuantumRegister, QuantumCircuit
+from qiskit.circuit import Parameter, QuantumCircuit, QuantumRegister
 
 from .n_local.n_local import NLocal
 

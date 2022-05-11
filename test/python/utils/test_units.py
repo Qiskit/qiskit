@@ -12,7 +12,7 @@
 
 """Test for unit conversion functions."""
 
-from ddt import ddt, data
+from ddt import data, ddt
 
 from qiskit.test import QiskitTestCase
 from qiskit.utils import apply_prefix, detach_prefix

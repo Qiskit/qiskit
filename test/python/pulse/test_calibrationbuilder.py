@@ -12,25 +12,16 @@
 
 """Test the RZXCalibrationBuilderNoEcho."""
 
-from math import pi, erf, ceil
+from math import ceil, erf, pi
 
 import numpy as np
 
 from qiskit import circuit, schedule
-from qiskit.transpiler import PassManager
+from qiskit.pulse import ControlChannel, Delay, DriveChannel, GaussianSquare, Play, ShiftPhase
 from qiskit.test import QiskitTestCase
-from qiskit.pulse import (
-    Play,
-    Delay,
-    ShiftPhase,
-    ControlChannel,
-    DriveChannel,
-    GaussianSquare,
-)
-from qiskit.transpiler.passes.calibration.builders import (
-    RZXCalibrationBuilderNoEcho,
-)
 from qiskit.test.mock import FakeAthens
+from qiskit.transpiler import PassManager
+from qiskit.transpiler.passes.calibration.builders import RZXCalibrationBuilderNoEcho
 
 
 class TestCalibrationBuilder(QiskitTestCase):

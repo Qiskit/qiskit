@@ -11,11 +11,11 @@
 # that they have been altered from the originals.
 
 """Tests classicalfunction compiler type checker."""
-from qiskit.test import QiskitTestCase
 from qiskit.circuit.classicalfunction import ClassicalFunctionCompilerTypeError
 from qiskit.circuit.classicalfunction import classical_function as compile_classical_function
+from qiskit.test import QiskitTestCase
 
-from . import examples, bad_examples
+from . import bad_examples, examples
 
 
 class TestTypeCheck(QiskitTestCase):

@@ -12,21 +12,20 @@
 
 """Tests for DensityMatrix quantum state class."""
 
-import unittest
 import logging
-from ddt import ddt, data
+import unittest
+
+from ddt import data, ddt
 import numpy as np
 from numpy.testing import assert_allclose
 
-from qiskit.test import QiskitTestCase
-from qiskit import QiskitError
-from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit.library import HGate, QFT
-
-from qiskit.quantum_info.random import random_unitary, random_density_matrix, random_pauli
-from qiskit.quantum_info.states import DensityMatrix, Statevector
+from qiskit import QiskitError, QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import QFT, HGate
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
+from qiskit.quantum_info.random import random_density_matrix, random_pauli, random_unitary
+from qiskit.quantum_info.states import DensityMatrix, Statevector
+from qiskit.test import QiskitTestCase
 
 logger = logging.getLogger(__name__)
 

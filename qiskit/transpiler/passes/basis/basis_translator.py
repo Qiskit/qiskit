@@ -12,11 +12,10 @@
 
 """Translates gates to a target basis using a given equivalence library."""
 
-import time
-import logging
-
-from itertools import zip_longest
 from collections import defaultdict
+from itertools import zip_longest
+import logging
+import time
 
 import retworkx
 
@@ -25,7 +24,6 @@ from qiskit.circuit.equivalence import Key
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-
 
 logger = logging.getLogger(__name__)
 
@@ -253,7 +251,7 @@ class BasisTranslator(TransformationPass):
                 if node.op.params:
                     # Convert target to circ and back to assign_parameters, since
                     # DAGCircuits won't have a ParameterTable.
-                    from qiskit.converters import dag_to_circuit, circuit_to_dag
+                    from qiskit.converters import circuit_to_dag, dag_to_circuit
 
                     target_circuit = dag_to_circuit(target_dag)
 

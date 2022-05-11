@@ -11,12 +11,10 @@
 # that they have been altered from the originals.
 
 """Tests classicalfunction compiler synthesis."""
-from qiskit.test import QiskitTestCase
-
-from qiskit.circuit.classicalfunction import classical_function as compile_classical_function
-
 from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.classicalfunction import classical_function as compile_classical_function
 from qiskit.circuit.library.standard_gates import XGate
+from qiskit.test import QiskitTestCase
 
 from . import examples
 

@@ -16,26 +16,23 @@
 Base class for dummy backends.
 """
 
-import warnings
 import json
 import os
-
 from typing import List
+import warnings
 
-from qiskit import circuit
-from qiskit.providers.models import BackendProperties
-from qiskit.providers import BackendV2, BackendV1
-from qiskit import pulse
+from qiskit import circuit, pulse
 from qiskit.exceptions import QiskitError
+from qiskit.providers import BackendV1, BackendV2, basicaer
+from qiskit.providers.models import BackendProperties
+from qiskit.test.mock.utils.backend_converter import convert_to_target
 from qiskit.test.mock.utils.json_decoder import (
     decode_backend_configuration,
     decode_backend_properties,
     decode_pulse_defaults,
 )
-from qiskit.test.mock.utils.backend_converter import convert_to_target
-from qiskit.utils import optionals as _optionals
-from qiskit.providers import basicaer
 from qiskit.transpiler import Target
+from qiskit.utils import optionals as _optionals
 
 
 class _Credentials:
@@ -269,7 +266,6 @@ class FakeBackendV2(BackendV2):
         """
 
         from qiskit.circuit import Delay
-        from qiskit.providers.exceptions import BackendPropertyError
         from qiskit.providers.aer.noise import NoiseModel
         from qiskit.providers.aer.noise.device.models import (
             _excited_population,
@@ -277,6 +273,7 @@ class FakeBackendV2(BackendV2):
             basic_device_readout_errors,
         )
         from qiskit.providers.aer.noise.passes import RelaxationNoisePass
+        from qiskit.providers.exceptions import BackendPropertyError
 
         if self._props_dict is None:
             self._set_props_dict_from_json()

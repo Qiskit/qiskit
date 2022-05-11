@@ -14,25 +14,32 @@
 A module for drawing circuits in ascii art or some other text representation
 """
 
-from warnings import warn
 from shutil import get_terminal_size
 import sys
+from warnings import warn
 
-from qiskit.circuit import Qubit, Clbit, ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit.circuit import ControlledGate
-from qiskit.circuit import Reset
-from qiskit.circuit import Measure
-from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
+from qiskit.circuit import (
+    ClassicalRegister,
+    Clbit,
+    ControlledGate,
+    Measure,
+    QuantumCircuit,
+    QuantumRegister,
+    Qubit,
+    Reset,
+)
+from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXdgGate, SXGate
 from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.visualization.utils import (
+    get_bit_reg_index,
+    get_bit_register,
+    get_condition_label_val,
     get_gate_ctrl_text,
     get_param_str,
-    get_wire_map,
-    get_bit_register,
-    get_bit_reg_index,
     get_wire_label,
-    get_condition_label_val,
+    get_wire_map,
 )
+
 from .exceptions import VisualizationError
 
 

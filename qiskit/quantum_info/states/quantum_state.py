@@ -14,8 +14,8 @@
 Abstract QuantumState class.
 """
 
-import copy
 from abc import abstractmethod
+import copy
 
 import numpy as np
 

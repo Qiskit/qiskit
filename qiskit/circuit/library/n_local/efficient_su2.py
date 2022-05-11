@@ -12,11 +12,13 @@
 
 """The EfficientSU2 2-local circuit."""
 
-from typing import Union, Optional, List, Tuple, Callable, Any
+from typing import Any, Callable, List, Optional, Tuple, Union
+
 from numpy import pi
 
-from qiskit.circuit import QuantumCircuit, Instruction
-from qiskit.circuit.library.standard_gates import RYGate, RZGate, CXGate
+from qiskit.circuit import Instruction, QuantumCircuit
+from qiskit.circuit.library.standard_gates import CXGate, RYGate, RZGate
+
 from .two_local import TwoLocal
 
 

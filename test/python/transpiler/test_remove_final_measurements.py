@@ -14,11 +14,11 @@
 
 import unittest
 
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit.classicalregister import Clbit
-from qiskit.transpiler.passes import RemoveFinalMeasurements
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler.passes import RemoveFinalMeasurements
 
 
 class TestRemoveFinalMeasurements(QiskitTestCase):

@@ -24,11 +24,9 @@ as a level 1 user.
 import time
 
 # Import the Qiskit modules
-from qiskit import QuantumCircuit
-from qiskit import execute, IBMQ, BasicAer
+from qiskit import IBMQ, BasicAer, QuantumCircuit, execute
 from qiskit.providers.ibmq import least_busy
 from qiskit.tools.monitor import job_monitor
-
 
 provider = IBMQ.load_account()
 

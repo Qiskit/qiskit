@@ -14,25 +14,26 @@
 Decompose a single-qubit unitary via Euler angles.
 """
 
-import math
 import cmath
+import math
+
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.library.standard_gates import (
-    UGate,
     PhaseGate,
-    U3Gate,
-    U2Gate,
-    U1Gate,
+    RGate,
     RXGate,
     RYGate,
     RZGate,
-    RGate,
     SXGate,
+    U1Gate,
+    U2Gate,
+    U3Gate,
+    UGate,
     XGate,
 )
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 

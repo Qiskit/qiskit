@@ -14,11 +14,11 @@
 
 import unittest
 
-from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler.passes import Layout2qDistance
-from qiskit.transpiler import CouplingMap, Layout
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler import CouplingMap, Layout
+from qiskit.transpiler.passes import Layout2qDistance
 
 
 class TestLayoutScoreError(QiskitTestCase):

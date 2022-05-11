@@ -14,7 +14,7 @@
 
 import unittest
 
-from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Barrier
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.converters import circuit_to_dag
@@ -22,8 +22,13 @@ from qiskit.test import QiskitTestCase
 from qiskit.test.mock.backends import FakeLima
 from qiskit.transpiler import CouplingMap, Layout, PassManager
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes import BIPMapping
-from qiskit.transpiler.passes import CheckMap, Collect2qBlocks, ConsolidateBlocks, UnitarySynthesis
+from qiskit.transpiler.passes import (
+    BIPMapping,
+    CheckMap,
+    Collect2qBlocks,
+    ConsolidateBlocks,
+    UnitarySynthesis,
+)
 from qiskit.utils import optionals
 
 

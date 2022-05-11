@@ -24,8 +24,8 @@ from scipy.stats import unitary_group
 import qiskit
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis.xx_decompose.decomposer import (
-    XXDecomposer,
     TwoQubitWeylDecomposition,
+    XXDecomposer,
 )
 
 from .utilities import canonical_matrix

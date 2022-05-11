@@ -19,21 +19,21 @@ import random
 
 import numpy as np
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit.classicalregister import Clbit
-from qiskit.circuit.quantumregister import Qubit
-from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.library import XGate, QFT, QAOAAnsatz, PauliEvolutionGate
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.library import QFT, PauliEvolutionGate, QAOAAnsatz, XGate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
-from qiskit.synthesis import LieTrotter, SuzukiTrotter
+from qiskit.circuit.qpy_serialization import dump, load
+from qiskit.circuit.quantumregister import Qubit
+from qiskit.circuit.random import random_circuit
 from qiskit.extensions import UnitaryGate
 from qiskit.opflow import I, X, Y, Z
-from qiskit.test import QiskitTestCase
-from qiskit.circuit.qpy_serialization import dump, load
 from qiskit.quantum_info.random import random_unitary
+from qiskit.synthesis import LieTrotter, SuzukiTrotter
+from qiskit.test import QiskitTestCase
 
 
 class TestLoadFromQPY(QiskitTestCase):

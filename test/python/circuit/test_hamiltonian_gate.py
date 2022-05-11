@@ -16,15 +16,14 @@
 import numpy as np
 from numpy.testing import assert_allclose
 
-
 import qiskit
-from qiskit.extensions.hamiltonian_gate import HamiltonianGate, UnitaryGate
-from qiskit.extensions.exceptions import ExtensionError
-from qiskit.test import QiskitTestCase
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Parameter
-from qiskit.quantum_info import Operator
 from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.extensions.exceptions import ExtensionError
+from qiskit.extensions.hamiltonian_gate import HamiltonianGate, UnitaryGate
+from qiskit.quantum_info import Operator
+from qiskit.test import QiskitTestCase
 
 
 class TestHamiltonianGate(QiskitTestCase):

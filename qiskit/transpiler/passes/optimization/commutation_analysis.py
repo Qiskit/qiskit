@@ -13,11 +13,13 @@
 """Analysis pass to find commutation relations between DAG nodes."""
 
 from collections import defaultdict
+
 import numpy as np
-from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit.quantum_info.operators import Operator
+
 from qiskit.dagcircuit import DAGOpNode
+from qiskit.quantum_info.operators import Operator
+from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.transpiler.exceptions import TranspilerError
 
 _CUTOFF_PRECISION = 1e-10
 

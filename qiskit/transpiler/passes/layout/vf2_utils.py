@@ -13,8 +13,8 @@
 """This module contains common utils for vf2 layout passes."""
 
 from collections import defaultdict
-import statistics
 import random
+import statistics
 
 from retworkx import PyDiGraph, PyGraph
 

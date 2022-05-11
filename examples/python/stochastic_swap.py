@@ -12,10 +12,10 @@
 
 """Example of using the StochasticSwap pass."""
 
-from qiskit.transpiler.passes import StochasticSwap
-from qiskit.transpiler import CouplingMap
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.transpiler import CouplingMap
+from qiskit.transpiler.passes import StochasticSwap
 
 coupling = CouplingMap([[0, 1], [1, 2], [1, 3]])
 qr = QuantumRegister(4, "q")

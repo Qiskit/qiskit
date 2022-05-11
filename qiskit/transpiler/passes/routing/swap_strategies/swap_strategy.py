@@ -12,8 +12,9 @@
 
 """Defines a swap strategy class."""
 
-from typing import Any, List, Optional, Set, Tuple
 import copy
+from typing import Any, List, Optional, Set, Tuple
+
 import numpy as np
 
 from qiskit.exceptions import QiskitError

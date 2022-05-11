@@ -13,10 +13,11 @@
 """CircuitGradient Class """
 
 from abc import abstractmethod
-from typing import List, Union, Optional, Tuple, Set
+from typing import List, Optional, Set, Tuple, Union
 
-from qiskit import QuantumCircuit, QiskitError, transpile
+from qiskit import QiskitError, QuantumCircuit, transpile
 from qiskit.circuit import ParameterExpression, ParameterVector
+
 from ...converters.converter_base import ConverterBase
 from ...operator_base import OperatorBase
 

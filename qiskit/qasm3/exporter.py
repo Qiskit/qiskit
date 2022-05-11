@@ -16,12 +16,13 @@ import collections
 import io
 import itertools
 import numbers
-from os.path import dirname, join, abspath
+from os.path import abspath, dirname, join
 from typing import Iterable, List, Sequence, Union
 
 from qiskit.circuit import (
     Barrier,
     Clbit,
+    Delay,
     Gate,
     Instruction,
     Measure,
@@ -31,16 +32,15 @@ from qiskit.circuit import (
     QuantumRegister,
     Qubit,
     Reset,
-    Delay,
 )
 from qiskit.circuit.bit import Bit
 from qiskit.circuit.controlflow import (
-    IfElseOp,
-    ForLoopOp,
-    WhileLoopOp,
-    ControlFlowOp,
     BreakLoopOp,
     ContinueLoopOp,
+    ControlFlowOp,
+    ForLoopOp,
+    IfElseOp,
+    WhileLoopOp,
 )
 from qiskit.circuit.library import standard_gates
 from qiskit.circuit.register import Register
@@ -49,7 +49,6 @@ from qiskit.circuit.tools import pi_check
 from . import ast
 from .exceptions import QASM3ExporterError
 from .printer import BasicPrinter
-
 
 # Reserved keywords that gates and variables cannot be named.  It is possible that some of these
 # _could_ be accepted as variable names by OpenQASM 3 parsers, but it's safer for us to just be very

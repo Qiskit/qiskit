@@ -12,11 +12,12 @@
 
 """The absolute value of the average of a linear system of equations solution."""
 
-from typing import Union, List
+from typing import List, Union
+
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.opflow import I, Z, TensoredOp
+from qiskit.opflow import I, TensoredOp, Z
 from qiskit.quantum_info import Statevector
 
 from .linear_system_observable import LinearSystemObservable

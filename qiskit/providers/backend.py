@@ -15,15 +15,14 @@
 """Backend abstract interface for providers."""
 
 
-from abc import ABC
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 import datetime
 import logging
-from typing import List, Union, Iterable, Tuple
+from typing import Iterable, List, Tuple, Union
 
-from qiskit.providers.provider import Provider
-from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.circuit.gate import Instruction
+from qiskit.providers.models.backendstatus import BackendStatus
+from qiskit.providers.provider import Provider
 
 logger = logging.getLogger(__name__)
 

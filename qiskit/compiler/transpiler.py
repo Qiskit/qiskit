@@ -13,21 +13,21 @@
 """Circuit transpile function"""
 import datetime
 import logging
-import warnings
 from time import time
-from typing import List, Union, Dict, Callable, Any, Optional, Tuple, Iterable
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+import warnings
 
 from qiskit import user_config
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import Qubit
-from qiskit.converters import isinstanceint, isinstancelist, dag_to_circuit, circuit_to_dag
+from qiskit.converters import circuit_to_dag, dag_to_circuit, isinstanceint, isinstancelist
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers.backend import Backend
 from qiskit.providers.models import BackendProperties
 from qiskit.providers.models.backendproperties import Gate
-from qiskit.pulse import Schedule, InstructionScheduleMap
+from qiskit.pulse import InstructionScheduleMap, Schedule
 from qiskit.tools.parallel import parallel_map
-from qiskit.transpiler import Layout, CouplingMap, PropertySet
+from qiskit.transpiler import CouplingMap, Layout, PropertySet
 from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations, InstructionDurationsType
@@ -39,8 +39,8 @@ from qiskit.transpiler.preset_passmanagers import (
     level_2_pass_manager,
     level_3_pass_manager,
 )
-from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.target import Target
+from qiskit.transpiler.timing_constraints import TimingConstraints
 
 logger = logging.getLogger(__name__)
 

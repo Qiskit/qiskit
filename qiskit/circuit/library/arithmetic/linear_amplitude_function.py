@@ -12,8 +12,10 @@
 
 """A class implementing a (piecewise-) linear function on qubit amplitudes."""
 
-from typing import Optional, List, Union, Tuple
+from typing import List, Optional, Tuple, Union
+
 import numpy as np
+
 from qiskit.circuit import QuantumCircuit
 
 from .piecewise_linear_pauli_rotations import PiecewiseLinearPauliRotations

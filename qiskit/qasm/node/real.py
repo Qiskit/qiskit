@@ -15,6 +15,7 @@
 import numpy as np
 
 from qiskit.exceptions import MissingOptionalLibraryError
+
 from .node import Node
 
 

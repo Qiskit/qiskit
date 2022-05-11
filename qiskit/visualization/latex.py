@@ -18,21 +18,23 @@ import re
 from warnings import warn
 
 import numpy as np
-from qiskit.circuit import Clbit, Qubit, ClassicalRegister, QuantumRegister, QuantumCircuit
+
+from qiskit.circuit import ClassicalRegister, Clbit, QuantumCircuit, QuantumRegister, Qubit
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.library.standard_gates import SwapGate, XGate, ZGate, RZZGate, U1Gate, PhaseGate
+from qiskit.circuit.library.standard_gates import PhaseGate, RZZGate, SwapGate, U1Gate, XGate, ZGate
 from qiskit.circuit.measure import Measure
-from qiskit.visualization.qcstyle import load_style
 from qiskit.circuit.tools.pi_check import pi_check
+from qiskit.visualization.qcstyle import load_style
+
 from .utils import (
+    generate_latex_label,
+    get_bit_reg_index,
+    get_bit_register,
+    get_condition_label_val,
     get_gate_ctrl_text,
     get_param_str,
-    get_wire_map,
-    get_bit_register,
-    get_bit_reg_index,
     get_wire_label,
-    generate_latex_label,
-    get_condition_label_val,
+    get_wire_map,
 )
 
 

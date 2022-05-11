@@ -27,25 +27,28 @@ data field, which is a 2**n x 2**n complex numpy array representing the
 circuit's unitary matrix.
 """
 import logging
-import uuid
-import time
 from math import log2, sqrt
+import time
+import uuid
 import warnings
 
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.utils.multiprocessing import local_hardware_info
-from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.providers.backend import BackendV1
-from qiskit.providers.options import Options
 from qiskit.providers.basicaer.basicaerjob import BasicAerJob
+from qiskit.providers.models import QasmBackendConfiguration
+from qiskit.providers.options import Options
 from qiskit.result import Result
+from qiskit.utils.multiprocessing import local_hardware_info
+
+from .basicaertools import (
+    SINGLE_QUBIT_GATES,
+    cx_gate_matrix,
+    einsum_matmul_index,
+    single_gate_matrix,
+)
 from .exceptions import BasicAerError
-from .basicaertools import single_gate_matrix
-from .basicaertools import SINGLE_QUBIT_GATES
-from .basicaertools import cx_gate_matrix
-from .basicaertools import einsum_matmul_index
 
 logger = logging.getLogger(__name__)
 

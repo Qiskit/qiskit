@@ -14,11 +14,9 @@
 
 import unittest
 
-from qiskit import BasicAer
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import execute
-from qiskit.result import Result
+from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister, execute
 from qiskit.providers.basicaer import BasicAerError
+from qiskit.result import Result
 from qiskit.test import QiskitTestCase
 
 

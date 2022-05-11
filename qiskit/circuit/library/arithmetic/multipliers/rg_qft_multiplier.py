@@ -13,11 +13,12 @@
 """Compute the product of two qubit registers using QFT."""
 
 from typing import Optional
+
 import numpy as np
 
-from qiskit.circuit import QuantumRegister, QuantumCircuit
-from qiskit.circuit.library.standard_gates import PhaseGate
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.basis_change import QFT
+from qiskit.circuit.library.standard_gates import PhaseGate
 
 from .multiplier import Multiplier
 

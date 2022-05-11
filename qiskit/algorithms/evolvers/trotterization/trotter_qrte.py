@@ -12,25 +12,25 @@
 
 """An algorithm to implement a Trotterization real time-evolution."""
 
-from typing import Union, Optional
+from typing import Optional, Union
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.aux_ops_evaluator import eval_observables
 from qiskit.algorithms.evolvers import EvolutionProblem, EvolutionResult
 from qiskit.algorithms.evolvers.real_evolver import RealEvolver
+from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.opflow import (
-    SummedOp,
-    PauliOp,
     CircuitOp,
-    ExpectationBase,
     CircuitSampler,
+    ExpectationBase,
+    OperatorBase,
+    PauliOp,
     PauliSumOp,
     StateFn,
-    OperatorBase,
+    SummedOp,
 )
-from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.providers import Backend
-from qiskit.synthesis import ProductFormula, LieTrotter
+from qiskit.synthesis import LieTrotter, ProductFormula
 from qiskit.utils import QuantumInstance
 
 

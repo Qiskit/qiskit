@@ -15,15 +15,13 @@
 import os
 import unittest
 
-from qiskit import BasicAer
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.transpiler import PassManager
-from qiskit import execute
+from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister, execute
 from qiskit.circuit.library import U1Gate, U2Gate
-from qiskit.compiler import transpile, assemble
+from qiskit.compiler import assemble, transpile
+from qiskit.qobj import QasmQobj
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeRueschlikon, FakeTenerife
-from qiskit.qobj import QasmQobj
+from qiskit.transpiler import PassManager
 
 
 class TestCompiler(QiskitTestCase):

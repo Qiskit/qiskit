@@ -15,6 +15,7 @@
 """
 
 import numpy as np
+
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.exceptions import QiskitError
 

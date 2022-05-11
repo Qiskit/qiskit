@@ -13,6 +13,7 @@
 """Mock functions for qiskit.IBMQ."""
 
 from unittest.mock import MagicMock
+
 import qiskit
 from qiskit.test import mock as backend_mocks
 

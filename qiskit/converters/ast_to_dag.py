@@ -16,51 +16,34 @@ AST (abstract syntax tree) to DAG (directed acyclic graph) converter.
 Acts as an OpenQASM interpreter.
 """
 from collections import OrderedDict
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.exceptions import QiskitError
 
-from qiskit.circuit import QuantumRegister, ClassicalRegister, Gate, QuantumCircuit
-from qiskit.qasm.node.real import Real
-from qiskit.circuit.measure import Measure
-from qiskit.circuit.reset import Reset
+from qiskit.circuit import ClassicalRegister, Gate, QuantumCircuit, QuantumRegister
 from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.delay import Delay
-from qiskit.circuit.library.standard_gates.x import CCXGate
-from qiskit.circuit.library.standard_gates.swap import CSwapGate
-from qiskit.circuit.library.standard_gates.x import CXGate
-from qiskit.circuit.library.standard_gates.y import CYGate
-from qiskit.circuit.library.standard_gates.z import CZGate
-from qiskit.circuit.library.standard_gates.swap import SwapGate
-from qiskit.circuit.library.standard_gates.h import HGate
+from qiskit.circuit.library.standard_gates.h import CHGate, HGate
 from qiskit.circuit.library.standard_gates.i import IGate
-from qiskit.circuit.library.standard_gates.s import SGate
-from qiskit.circuit.library.standard_gates.s import SdgGate
-from qiskit.circuit.library.standard_gates.sx import SXGate
-from qiskit.circuit.library.standard_gates.sx import SXdgGate
-from qiskit.circuit.library.standard_gates.t import TGate
-from qiskit.circuit.library.standard_gates.t import TdgGate
-from qiskit.circuit.library.standard_gates.p import PhaseGate
-from qiskit.circuit.library.standard_gates.u1 import U1Gate
-from qiskit.circuit.library.standard_gates.u2 import U2Gate
-from qiskit.circuit.library.standard_gates.u3 import U3Gate
-from qiskit.circuit.library.standard_gates.u import UGate
-from qiskit.circuit.library.standard_gates.x import XGate
-from qiskit.circuit.library.standard_gates.y import YGate
-from qiskit.circuit.library.standard_gates.z import ZGate
-from qiskit.circuit.library.standard_gates.rx import RXGate
-from qiskit.circuit.library.standard_gates.ry import RYGate
-from qiskit.circuit.library.standard_gates.rz import RZGate
+from qiskit.circuit.library.standard_gates.p import CPhaseGate, PhaseGate
+from qiskit.circuit.library.standard_gates.rx import CRXGate, RXGate
 from qiskit.circuit.library.standard_gates.rxx import RXXGate
+from qiskit.circuit.library.standard_gates.ry import CRYGate, RYGate
+from qiskit.circuit.library.standard_gates.rz import CRZGate, RZGate
 from qiskit.circuit.library.standard_gates.rzz import RZZGate
-from qiskit.circuit.library.standard_gates.p import CPhaseGate
-from qiskit.circuit.library.standard_gates.u import CUGate
-from qiskit.circuit.library.standard_gates.u1 import CU1Gate
-from qiskit.circuit.library.standard_gates.u3 import CU3Gate
-from qiskit.circuit.library.standard_gates.h import CHGate
-from qiskit.circuit.library.standard_gates.rx import CRXGate
-from qiskit.circuit.library.standard_gates.ry import CRYGate
-from qiskit.circuit.library.standard_gates.rz import CRZGate
-from qiskit.circuit.library.standard_gates.sx import CSXGate
+from qiskit.circuit.library.standard_gates.s import SdgGate, SGate
+from qiskit.circuit.library.standard_gates.swap import CSwapGate, SwapGate
+from qiskit.circuit.library.standard_gates.sx import CSXGate, SXdgGate, SXGate
+from qiskit.circuit.library.standard_gates.t import TdgGate, TGate
+from qiskit.circuit.library.standard_gates.u1 import CU1Gate, U1Gate
+from qiskit.circuit.library.standard_gates.u2 import U2Gate
+from qiskit.circuit.library.standard_gates.u3 import CU3Gate, U3Gate
+from qiskit.circuit.library.standard_gates.u import CUGate, UGate
+from qiskit.circuit.library.standard_gates.x import CCXGate, CXGate, XGate
+from qiskit.circuit.library.standard_gates.y import CYGate, YGate
+from qiskit.circuit.library.standard_gates.z import CZGate, ZGate
+from qiskit.circuit.measure import Measure
+from qiskit.circuit.reset import Reset
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.exceptions import QiskitError
+from qiskit.qasm.node.real import Real
 
 
 def ast_to_dag(ast):

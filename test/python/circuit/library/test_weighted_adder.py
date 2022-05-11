@@ -12,15 +12,16 @@
 
 """Test library of weighted adder circuits."""
 
-import unittest
 from collections import defaultdict
-from ddt import ddt, data
+import unittest
+
+from ddt import data, ddt
 import numpy as np
 
-from qiskit.test.base import QiskitTestCase
 from qiskit import BasicAer, execute
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import WeightedAdder
+from qiskit.test.base import QiskitTestCase
 
 
 @ddt

@@ -12,38 +12,38 @@
 
 """The two-local gate circuit."""
 
-from typing import Union, Optional, List, Callable, Any
+from typing import Any, Callable, List, Optional, Union
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit import Gate, Instruction, Parameter
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 
-from .n_local import NLocal
 from ..standard_gates import (
-    IGate,
-    XGate,
-    YGate,
-    ZGate,
-    RXGate,
-    RYGate,
-    RZGate,
-    HGate,
-    SGate,
-    SdgGate,
-    TGate,
-    TdgGate,
-    RXXGate,
-    RYYGate,
-    RZXGate,
-    RZZGate,
-    SwapGate,
-    CXGate,
-    CYGate,
-    CZGate,
+    CHGate,
     CRXGate,
     CRYGate,
     CRZGate,
-    CHGate,
+    CXGate,
+    CYGate,
+    CZGate,
+    HGate,
+    IGate,
+    RXGate,
+    RXXGate,
+    RYGate,
+    RYYGate,
+    RZGate,
+    RZXGate,
+    RZZGate,
+    SdgGate,
+    SGate,
+    SwapGate,
+    TdgGate,
+    TGate,
+    XGate,
+    YGate,
+    ZGate,
 )
+from .n_local import NLocal
 
 
 class TwoLocal(NLocal):

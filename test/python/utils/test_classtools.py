@@ -23,11 +23,11 @@
 # docstrings.
 # pylint: disable=missing-class-docstring,missing-function-docstring
 
-import unittest
 import sys
+import unittest
 
-from qiskit.utils import wrap_method
 from qiskit.test import QiskitTestCase
+from qiskit.utils import wrap_method
 
 
 def call_first_argument_with(*args, **kwargs):

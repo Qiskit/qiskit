@@ -13,13 +13,14 @@
 """Test library of integer comparison circuits."""
 
 import unittest
-import numpy as np
-from ddt import ddt, data, unpack
 
-from qiskit.test.base import QiskitTestCase
+from ddt import data, ddt, unpack
+import numpy as np
+
 from qiskit import BasicAer, execute
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import IntegerComparator
+from qiskit.test.base import QiskitTestCase
 
 
 @ddt

@@ -13,25 +13,23 @@
 
 """Tests for Statevector quantum state class."""
 
-import unittest
-import logging
 from itertools import permutations
-from ddt import ddt, data
+import logging
+import unittest
+
+from ddt import data, ddt
 import numpy as np
 from numpy.testing import assert_allclose
 
-from qiskit.test import QiskitTestCase
-from qiskit import QiskitError
-from qiskit import QuantumRegister, QuantumCircuit
-from qiskit import transpile
-from qiskit.circuit.library import HGate, QFT
+from qiskit import QiskitError, QuantumCircuit, QuantumRegister, transpile
+from qiskit.circuit.library import QFT, HGate
 from qiskit.providers.basicaer import QasmSimulatorPy
-
-from qiskit.quantum_info.random import random_unitary, random_statevector, random_pauli
-from qiskit.quantum_info.states import Statevector
 from qiskit.quantum_info.operators.operator import Operator
-from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
+from qiskit.quantum_info.random import random_pauli, random_statevector, random_unitary
+from qiskit.quantum_info.states import Statevector
+from qiskit.test import QiskitTestCase
 from qiskit.visualization.state_visualization import numbers_to_latex_terms, state_to_latex
 
 logger = logging.getLogger(__name__)

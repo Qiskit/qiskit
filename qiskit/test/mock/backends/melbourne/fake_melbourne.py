@@ -14,12 +14,12 @@
 Fake Melbourne device (14 qubit).
 """
 
-import os
 import json
+import os
 
-from qiskit.providers.models import GateConfig, QasmBackendConfiguration, BackendProperties
-from qiskit.test.mock.fake_backend import FakeBackend
+from qiskit.providers.models import BackendProperties, GateConfig, QasmBackendConfiguration
 from qiskit.test.mock import fake_backend
+from qiskit.test.mock.fake_backend import FakeBackend
 
 
 class FakeMelbourneV2(fake_backend.FakeBackendV2):

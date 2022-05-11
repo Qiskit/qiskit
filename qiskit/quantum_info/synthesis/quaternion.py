@@ -14,6 +14,7 @@
 A module for using quaternions.
 """
 import math
+
 import numpy as np
 
 

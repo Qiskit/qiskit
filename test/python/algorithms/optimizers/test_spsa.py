@@ -13,13 +13,13 @@
 """Tests for the SPSA optimizer."""
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from ddt import ddt, data
 
+from ddt import data, ddt
 import numpy as np
 
-from qiskit.algorithms.optimizers import SPSA, QNSPSA
+from qiskit.algorithms.optimizers import QNSPSA, SPSA
 from qiskit.circuit.library import PauliTwoDesign
-from qiskit.opflow import I, Z, StateFn
+from qiskit.opflow import I, StateFn, Z
 from qiskit.utils import algorithm_globals
 
 

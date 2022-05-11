@@ -17,7 +17,7 @@ import warnings
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.qpy import formats, common, binary_io
+from qiskit.qpy import binary_io, common, formats
 from qiskit.version import __version__
 
 

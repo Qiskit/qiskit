@@ -14,10 +14,11 @@
 """Replace each sequence of CX and SWAP gates by a single LinearFunction gate."""
 
 from collections import deque
-from qiskit.circuit.library.generalized_gates import LinearFunction
-from qiskit.transpiler.basepasses import TransformationPass
+
 from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.library.generalized_gates import LinearFunction
 from qiskit.dagcircuit import DAGOpNode
+from qiskit.transpiler.basepasses import TransformationPass
 
 
 def collect_linear_blocks(dag):

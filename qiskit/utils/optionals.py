@@ -184,10 +184,8 @@ from :mod:`.utils` directly if required, such as::
 
 import logging as _logging
 
-from .lazy_tester import (
-    LazyImportTester as _LazyImportTester,
-    LazySubprocessTester as _LazySubprocessTester,
-)
+from .lazy_tester import LazyImportTester as _LazyImportTester
+from .lazy_tester import LazySubprocessTester as _LazySubprocessTester
 
 _logger = _logging.getLogger(__name__)
 

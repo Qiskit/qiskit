@@ -14,13 +14,14 @@ Quantum Shannon Decomposition.
 
 Method is described in arXiv:quant-ph/0406176.
 """
-import scipy
 import numpy as np
+import scipy
+
 from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.quantum_info.synthesis import two_qubit_decompose, one_qubit_decompose
 from qiskit.circuit.library.standard_gates import CXGate
+from qiskit.extensions.quantum_initializer.uc_pauli_rot import _EPS, UCPauliRotGate
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
-from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate, _EPS
+from qiskit.quantum_info.synthesis import one_qubit_decompose, two_qubit_decompose
 
 
 def qs_decomposition(mat, opt_a1=True, decomposer_1q=None, decomposer_2q=None):

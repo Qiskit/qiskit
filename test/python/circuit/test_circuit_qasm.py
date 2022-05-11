@@ -15,10 +15,10 @@
 from math import pi
 import re
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.test import QiskitTestCase
-from qiskit.circuit import Parameter, Qubit, Clbit
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.circuit import Clbit, Parameter, Qubit
 from qiskit.qasm.exceptions import QasmError
+from qiskit.test import QiskitTestCase
 
 # Regex pattern to match valid OpenQASM identifiers
 VALID_QASM2_IDENTIFIER = re.compile("[a-z][a-zA-Z_0-9]*")

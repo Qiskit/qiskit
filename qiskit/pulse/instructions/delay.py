@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """An instruction for blocking time on a channel; useful for scheduling alignment."""
-from typing import Optional, Union, Tuple
+from typing import Optional, Tuple, Union
 
 from qiskit.circuit import ParameterExpression
 from qiskit.pulse.channels import Channel

@@ -15,6 +15,7 @@
 from unittest import SkipTest
 
 from qiskit import execute
+
 from ..base import QiskitTestCase
 from ..reference_circuits import ReferenceCircuits
 

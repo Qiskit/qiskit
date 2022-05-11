@@ -16,11 +16,11 @@ from typing import Tuple
 
 import numpy as np
 
-from qiskit.exceptions import QiskitError
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.dagcircuit import DAGCircuit
+from qiskit.exceptions import QiskitError
+from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.transpiler import TransformationPass
-from qiskit.quantum_info import SparsePauliOp, Pauli
 from qiskit.transpiler.passes.routing.swap_strategies.commuting_2q_block import Commuting2qBlocks
 
 

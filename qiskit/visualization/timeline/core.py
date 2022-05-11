@@ -50,10 +50,10 @@ the lookup table of the handler and the drawings by using this data key.
 """
 
 from copy import deepcopy
+from enum import Enum
 from functools import partial
 from itertools import chain
-from typing import Tuple, Iterator, Dict
-from enum import Enum
+from typing import Dict, Iterator, Tuple
 
 import numpy as np
 

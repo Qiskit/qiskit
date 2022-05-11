@@ -13,13 +13,14 @@
 """Test the digonal circuit."""
 
 import unittest
-from ddt import ddt, data
+
+from ddt import data, ddt
 import numpy as np
 
-from qiskit.test.base import QiskitTestCase
 from qiskit.circuit.library import Diagonal
-from qiskit.quantum_info import Statevector, Operator
+from qiskit.quantum_info import Operator, Statevector
 from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.test.base import QiskitTestCase
 
 
 @ddt

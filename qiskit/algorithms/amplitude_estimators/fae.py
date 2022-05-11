@@ -12,13 +12,14 @@
 
 """Faster Amplitude Estimation."""
 
-from typing import Optional, Union, List, Tuple
+from typing import List, Optional, Tuple, Union
+
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, ClassicalRegister
+from qiskit.algorithms.exceptions import AlgorithmError
+from qiskit.circuit import ClassicalRegister, QuantumCircuit
 from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
-from qiskit.algorithms.exceptions import AlgorithmError
 
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .estimation_problem import EstimationProblem

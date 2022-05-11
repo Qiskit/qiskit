@@ -12,12 +12,13 @@
 
 """The Amplitude Estimation interface."""
 
-from abc import abstractmethod, ABC
-from typing import Union, Optional, Dict, Callable, Tuple
+from abc import ABC, abstractmethod
+from typing import Callable, Dict, Optional, Tuple, Union
+
 import numpy as np
 
-from .estimation_problem import EstimationProblem
 from ..algorithm_result import AlgorithmResult
+from .estimation_problem import EstimationProblem
 
 
 class AmplitudeEstimator(ABC):

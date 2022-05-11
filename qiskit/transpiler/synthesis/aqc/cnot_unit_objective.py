@@ -19,7 +19,7 @@ import numpy as np
 from numpy import linalg as la
 
 from .approximate import ApproximatingObjective
-from .elementary_operations import ry_matrix, rz_matrix, place_unitary, place_cnot, rx_matrix
+from .elementary_operations import place_cnot, place_unitary, rx_matrix, ry_matrix, rz_matrix
 
 
 class CNOTUnitObjective(ApproximatingObjective, ABC):

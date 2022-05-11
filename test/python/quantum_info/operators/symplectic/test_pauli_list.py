@@ -12,12 +12,12 @@
 
 """Tests for PauliList class."""
 
-import unittest
-from test import combine
-
 import itertools
-import numpy as np
+from test import combine
+import unittest
+
 from ddt import ddt
+import numpy as np
 from scipy.sparse import csr_matrix
 
 from qiskit import QiskitError

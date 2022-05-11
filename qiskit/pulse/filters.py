@@ -13,7 +13,7 @@
 """A collection of functions that filter instructions in a pulse program."""
 
 import abc
-from typing import Callable, List, Union, Iterable, Optional, Tuple, Any
+from typing import Any, Callable, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 

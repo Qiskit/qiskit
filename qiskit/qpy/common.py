@@ -16,18 +16,20 @@
 Common functions across several serialization and deserialization modules.
 """
 
+from enum import Enum
 import io
 import struct
-from enum import Enum
 
 import numpy as np
 
+from qiskit.circuit import Gate
+from qiskit.circuit import Instruction as CircuitInstruction
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.parametervector import ParameterVectorElement
-from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.circuit import Gate, Instruction as CircuitInstruction, QuantumCircuit
-from qiskit.qpy import formats, exceptions
+from qiskit.qpy import exceptions, formats
 
 QPY_VERSION = 4
 ENCODE = "utf8"

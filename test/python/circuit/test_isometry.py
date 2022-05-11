@@ -14,19 +14,16 @@
 
 import unittest
 
+from ddt import data, ddt
 import numpy as np
-from ddt import ddt, data
 
-from qiskit.quantum_info.random import random_unitary
-from qiskit import BasicAer
-from qiskit import QuantumCircuit
-from qiskit import QuantumRegister
-from qiskit import execute
-from qiskit.test import QiskitTestCase
+from qiskit import BasicAer, QuantumCircuit, QuantumRegister, execute
 from qiskit.compiler import transpile
-from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.quantum_info import Operator
 from qiskit.extensions.quantum_initializer.isometry import Isometry
+from qiskit.quantum_info import Operator
+from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.quantum_info.random import random_unitary
+from qiskit.test import QiskitTestCase
 
 
 @ddt

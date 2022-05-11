@@ -12,25 +12,27 @@
 
 """Test cases for the pulse scheduler passes."""
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, schedule
 from qiskit.circuit import Gate, Parameter
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import (
-    Schedule,
-    DriveChannel,
-    AcquireChannel,
     Acquire,
+    AcquireChannel,
+    DriveChannel,
+    Gaussian,
+    InstructionScheduleMap,
     MeasureChannel,
     MemorySlot,
-    Gaussian,
     Play,
+    Schedule,
+    build,
+    macros,
+    play,
     transforms,
 )
-from qiskit.pulse import build, macros, play, InstructionScheduleMap
-
-from qiskit.test.mock import FakeBackend, FakeOpenPulse2Q, FakeOpenPulse3Q
 from qiskit.test import QiskitTestCase
+from qiskit.test.mock import FakeBackend, FakeOpenPulse2Q, FakeOpenPulse3Q
 
 
 class TestBasicSchedule(QiskitTestCase):
