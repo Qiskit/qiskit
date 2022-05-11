@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from abc import abstractmethod,ABC
+from abc import abstractmethod, ABC
 from dataclasses import dataclass
 from typing import Dict, Any, Union, Callable, Optional, Tuple, List, Iterator
 import numpy as np
@@ -9,9 +9,10 @@ from qiskit.algorithms.algorithm_result import AlgorithmResult
 
 
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
-from .steppable_optimizer import AskObject,TellObject,OptimizerState,SteppableOptimizer
+from .steppable_optimizer import AskObject, TellObject, OptimizerState, SteppableOptimizer
 
 CALLBACK = Callable[[int, np.ndarray, float, float], None]
+
 
 def constant(eta=0.01):
     """Yield a constant."""
@@ -19,36 +20,38 @@ def constant(eta=0.01):
     while True:
         yield eta
 
+
 @dataclass
 class GD_AskObject(AskObject):
     """
     AskObject containing the current point for the gradient to be evaluated, a parameter epsilon in case the
     gradient has to be approximatedand a bool flag telling the prefered way of evaluating the gradient.
     """
-    x_center : POINT
-    epsilon : float
-    approximate_gradient : bool
-    
-    
+
+    x_center: POINT
+    epsilon: float
+    approximate_gradient: bool
+
 
 @dataclass
 class GD_TellObject(TellObject):
-    gradient : POINT
+    gradient: POINT
+
 
 @dataclass
 class GD_OptimizerState(OptimizerState):
-    eta : Union[float, Callable[[], Iterator]] = 0.01
-    stepsize : Optional[float] = None
+    eta: Union[float, Callable[[], Iterator]] = 0.01
+    stepsize: Optional[float] = None
 
 
 class SteppableGD(SteppableOptimizer):
-
-    def __init__(self,
+    def __init__(
+        self,
         learning_rate: Union[float, Callable[[], Iterator]] = 0.01,
         tol: float = 1e-7,
         callback: Optional[CALLBACK] = None,
         perturbation: Optional[float] = None,
-        **kwargs
+        **kwargs,
     ) -> None:
 
         super().__init__(**kwargs)
@@ -56,7 +59,6 @@ class SteppableGD(SteppableOptimizer):
         self.perturbation = perturbation
         self.tol = tol
         self.callback = callback
-
 
     @property
     def settings(self) -> Dict[str, Any]:
@@ -75,22 +77,24 @@ class SteppableGD(SteppableOptimizer):
             "callback": self.callback,
         }
 
-    def ask(self)-> GD_AskObject:
+    def ask(self) -> GD_AskObject:
         """
-        This method is the part of the interface of the optimizer that asks the 
+        This method is the part of the interface of the optimizer that asks the
         user/quantum_circuit how and where the function to optimize needs to be evaluated. It is the
         first method inside of a "step" in the optimization process.
         For gradient descent this method simply returns an AskObject containing the current point for
         the gradient to be evaluated, a parameter epsilon in case the gradient has to be approximated
         and a bool flag telling the prefered way of evaluating the gradient.
         """
-        return GD_AskObject(epsilon = self.perturbation,
-                            x_center = self._state.x,
-                            approximate_gradient = self._state.jac is None
-                            )
-    def tell(self,tell_object:TellObject)->None:
+        return GD_AskObject(
+            epsilon=self.perturbation,
+            x_center=self._state.x,
+            approximate_gradient=self._state.jac is None,
+        )
+
+    def tell(self, tell_object: TellObject) -> None:
         """
-        This method is the part of the interface of the optimizer that tells the 
+        This method is the part of the interface of the optimizer that tells the
         user/quantum_circuit what is the next point that minimizes the function (with respect to last
         step). In this case it is not going to return anything since instead it is just going to update
         state of the optimizer.It is the last method called inside of a "step" in the optimization process.
@@ -100,27 +104,26 @@ class SteppableGD(SteppableOptimizer):
         update = next(self._state.eta) * tell_object.gradient
         self._state.x -= update
         self._state.stepsize = np.linalg.norm(update)
-        
-    def evaluate(self,ask_object:AskObject) -> TellObject:
+
+    def evaluate(self, ask_object: AskObject) -> TellObject:
         """
         This is the default way of evaluating the function given the request by self.ask().
-        For gradient descent we are going to check how to evaluate the gradient, evaluate and 
-        return a TellObject
+        For gradient descent we are going to check how to evaluate the gradient, evaluate and
+        return a TellObject.
         """
         if ask_object.approximate_gradient:
-            gradient = Optimizer.gradient_num_diff(
-                        x_center = ask_object.x_center,
-                        f=self._state.fun,
-                        epsilon=ask_object.epsilon,
-                        max_evals_grouped=1,#Here there was some extra logic I am just neglecting for now.
-                        )
-            self._state.nfun += 1 + len(ask_object.x_center)
+            grad = Optimizer.gradient_num_diff(
+                x_center=ask_object.x_center,
+                f=self._state.fun,
+                epsilon=ask_object.epsilon,
+                max_evals_grouped=1,  # Here there was some extra logic I am just neglecting for now.
+            )
+            self._state.nfev += 1 + len(ask_object.x_center)
         else:
-            gradient = self._state.jac(ask_object.x_center)
+            grad = self._state.jac(ask_object.x_center)
             self._state.njev += 1
 
-        return GD_TellObject(gradient)
-
+        return GD_TellObject(gradient=grad)
 
     def create_result(self) -> OptimizerResult:
         """
@@ -132,8 +135,9 @@ class SteppableGD(SteppableOptimizer):
         result.nfev = self._state.nfev
         return result
 
-
-    def initialize(self,x0:POINT , fun:Callable[[POINT], float], jac:Callable[[POINT], POINT] = None ) -> None:
+    def initialize(
+        self, x0: POINT, fun: Callable[[POINT], float], jac: Callable[[POINT], POINT] = None
+    ) -> None:
         """
         This method will initialize the state of the optimizer so that an optimization can be performed.
         It will always setup the initial point and will restart the counter for function evaluations.
@@ -143,17 +147,13 @@ class SteppableGD(SteppableOptimizer):
             eta = constant(self.learning_rate)
         else:
             eta = self.learning_rate()
-        self._state = GD_OptimizerState(fun = fun,
-                                        jac = jac ,
-                                        x = np.asarray(x0),
-                                        eta = eta)
+        self._state = GD_OptimizerState(fun=fun, jac=jac, x=np.asarray(x0), eta=eta)
 
     def stop_condition(self) -> bool:
         """
-        This is the condition that will be checked after each step to stop the optimization process. 
+        This is the condition that will be checked after each step to stop the optimization process.
         """
         return self._state.stepsize < self.tol if self._state.stepsize else False
-
 
     def get_support_level(self):
         """Get the support level dictionary."""
@@ -162,7 +162,3 @@ class SteppableGD(SteppableOptimizer):
             "bounds": OptimizerSupportLevel.ignored,
             "initial_point": OptimizerSupportLevel.required,
         }
-
-
-
-
