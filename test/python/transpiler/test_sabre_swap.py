@@ -16,6 +16,7 @@ import unittest
 
 import ddt
 
+from qiskit.circuit import ClassicalRegister, QuantumRegister
 from qiskit.circuit.library import CCXGate, HGate, Measure, SwapGate
 from qiskit.transpiler.passes import SabreSwap, TrivialLayout
 from qiskit.transpiler import CouplingMap, PassManager
@@ -243,13 +244,24 @@ class TestSabreSwap(QiskitTestCase):
         gate might not appear in the output.
 
         Regression test of gh-8040."""
-        qc = QuantumCircuit(2, 1)
-        qc.z(0)
-        qc.z(0).c_if(qc.cregs[0], 0)
-        cm = CouplingMap([(0, 1), (1, 0)])
-        expected = PassManager([TrivialLayout(cm)]).run(qc)
-        actual = PassManager([TrivialLayout(cm), SabreSwap(cm)]).run(qc)
-        self.assertEqual(expected, actual)
+        with self.subTest("1 bit in register"):
+            qc = QuantumCircuit(2, 1)
+            qc.z(0)
+            qc.z(0).c_if(qc.cregs[0], 0)
+            cm = CouplingMap([(0, 1), (1, 0)])
+            expected = PassManager([TrivialLayout(cm)]).run(qc)
+            actual = PassManager([TrivialLayout(cm), SabreSwap(cm)]).run(qc)
+            self.assertEqual(expected, actual)
+        with self.subTest("multiple registers"):
+            cregs = [ClassicalRegister(3), ClassicalRegister(4)]
+            qc = QuantumCircuit(QuantumRegister(2, name="q"), *cregs)
+            qc.z(0)
+            qc.z(0).c_if(cregs[0], 0)
+            qc.z(0).c_if(cregs[1], 0)
+            cm = CouplingMap([(0, 1), (1, 0)])
+            expected = PassManager([TrivialLayout(cm)]).run(qc)
+            actual = PassManager([TrivialLayout(cm), SabreSwap(cm)]).run(qc)
+            self.assertEqual(expected, actual)
 
 
 if __name__ == "__main__":
