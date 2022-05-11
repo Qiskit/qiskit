@@ -18,7 +18,8 @@ import numpy as np
 
 from qiskit.opflow import OperatorBase
 from ..eigen_solvers.numpy_eigen_solver import NumPyEigensolver
-from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult, ListOrDict
+from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
+from ..list_or_dict import ListOrDict
 
 logger = logging.getLogger(__name__)
 
