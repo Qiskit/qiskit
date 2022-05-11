@@ -19,7 +19,7 @@ from qiskit.dagcircuit import DAGOpNode
 from qiskit.exceptions import QiskitError
 
 
-class Commuting2qBlocks(Gate):
+class Commuting2qBlock(Gate):
     """A gate made of commuting two-qubit gates.
 
     This gate is intended for use with commuting swap strategies to make it convenient

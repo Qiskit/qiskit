@@ -170,14 +170,14 @@ class RZXCalibrationBuilder(CalibrationBuilder):
 
             if target_area > gaussian_area:
                 width = (target_area - gaussian_area) / abs(amp)
-                duration = math.ceil((width + n_sigmas * sigma) / sample_mult) * sample_mult
+                duration = round((width + n_sigmas * sigma) / sample_mult) * sample_mult
                 return Play(
                     GaussianSquare(amp=sign * amp, width=width, sigma=sigma, duration=duration),
                     channel=instruction.channel,
                 )
             else:
                 amp_scale = sign * target_area / gaussian_area
-                duration = math.ceil(n_sigmas * sigma / sample_mult) * sample_mult
+                duration = round(n_sigmas * sigma / sample_mult) * sample_mult
                 return Play(
                     GaussianSquare(amp=amp * amp_scale, width=0, sigma=sigma, duration=duration),
                     channel=instruction.channel,

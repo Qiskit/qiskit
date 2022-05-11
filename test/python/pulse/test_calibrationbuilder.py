@@ -12,8 +12,9 @@
 
 """Test the RZXCalibrationBuilderNoEcho."""
 
-from math import ceil, erf, pi
+from math import erf, pi
 
+from ddt import data, ddt
 import numpy as np
 
 from qiskit import circuit, schedule
@@ -21,7 +22,10 @@ from qiskit.pulse import ControlChannel, Delay, DriveChannel, GaussianSquare, Pl
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeAthens
 from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes.calibration.builders import RZXCalibrationBuilderNoEcho
+from qiskit.transpiler.passes.calibration.builders import (
+    RZXCalibrationBuilder,
+    RZXCalibrationBuilderNoEcho,
+)
 
 
 class TestCalibrationBuilder(QiskitTestCase):
@@ -31,6 +35,30 @@ class TestCalibrationBuilder(QiskitTestCase):
         super().setUp()
         self.backend = FakeAthens()
         self.inst_map = self.backend.defaults().instruction_schedule_map
+
+
+@ddt
+class TestRZXCalibrationBuilder(TestCalibrationBuilder):
+    """Test RZXCalibrationBuilder."""
+
+    @data(np.pi / 4, np.pi / 2, np.pi)
+    def test_rzx_calibration_builder_duration(self, theta: float):
+        """Test that pulse durations are computed correctly."""
+        width = 512.00000001
+        sigma = 64
+        n_sigmas = 4
+        duration = width + n_sigmas * sigma
+        sample_mult = 16
+        amp = 1.0
+        pulse = GaussianSquare(duration=duration, amp=amp, sigma=sigma, width=width)
+        instruction = Play(pulse, ControlChannel(1))
+        scaled = RZXCalibrationBuilder.rescale_cr_inst(instruction, theta, sample_mult=sample_mult)
+        gaussian_area = abs(amp) * sigma * np.sqrt(2 * np.pi) * erf(n_sigmas)
+        area = gaussian_area + abs(amp) * width
+        target_area = abs(theta) / (np.pi / 2.0) * area
+        width = (target_area - gaussian_area) / abs(amp)
+        expected_duration = round((width + n_sigmas * sigma) / sample_mult) * sample_mult
+        self.assertEqual(scaled.duration, expected_duration)
 
 
 class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
@@ -89,7 +117,7 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
         area = gaussian_area + abs(amp) * width
         target_area = abs(theta) / (np.pi / 2.0) * area
         width = (target_area - gaussian_area) / abs(amp)
-        duration = ceil((width + n_sigmas * sigma) / sample_mult) * sample_mult
+        duration = round((width + n_sigmas * sigma) / sample_mult) * sample_mult
 
         # Check whether the durations of the RZX pulse and
         # the scaled CR pulse from the CX gate match.
