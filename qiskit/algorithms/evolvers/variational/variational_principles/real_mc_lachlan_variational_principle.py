@@ -96,13 +96,8 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
 
             Returns:
                 Calculated evolution gradient, according to the variational principle.
-            Raises:
-                ValueError: If an unsupported gradient method is provided.
             """
-            if self._grad_method != "lin_comb":
-                raise ValueError(
-                    f"Only ``lin_comb`` method supported, provided method {self._grad_method}."
-                )
+
             energy = ~StateFn(hamiltonian) @ StateFn(ansatz)
             energy = PauliExpectation().convert(energy)
 

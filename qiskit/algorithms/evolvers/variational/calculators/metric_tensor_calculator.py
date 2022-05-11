@@ -78,8 +78,8 @@ def eval_metric_result(
         Metric tensor with all parameters bound.
     """
     if circuit_sampler is not None:
-        metric_result = circuit_sampler.convert(metric, params=param_dict).eval()
+        metric_result = circuit_sampler.convert(metric, params=param_dict)
     else:
-        metric_result = metric.assign_parameters(param_dict).eval()
+        metric_result = metric.assign_parameters(param_dict)
 
-    return metric_result
+    return metric_result.eval()

@@ -95,7 +95,12 @@ def eval_grad_result(
     else:
         grad_result = grad_result.assign_parameters(param_dict)
     grad_result = grad_result.eval()
+
     if any(np.abs(np.imag(grad_item)) > imag_part_tol for grad_item in grad_result):
-        raise Warning("The imaginary part of the gradient are non-negligible.")
+        raise Warning(
+            f"The imaginary part of the gradient are non-negligible. The biggest norm of "
+            f"imaginary part is {np.max(np.abs(np.imag(grad_result)))} while the tolerance is"
+            f"{imag_part_tol}."
+        )
 
     return grad_result
