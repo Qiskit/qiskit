@@ -40,7 +40,6 @@ from typing import (
 import numpy as np
 
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.gate import Gate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
 from qiskit.exceptions import MissingOptionalLibraryError, QiskitError
@@ -61,6 +60,9 @@ from .quantumcircuitdata import QuantumCircuitData
 from .quantumregister import AncillaQubit, AncillaRegister, QuantumRegister, Qubit
 from .register import Register
 from .reset import Reset
+
+from qiskit.circuit.gate import Gate  # isort: skip (hack to avoid circular-import)
+
 
 try:
     import pygments
