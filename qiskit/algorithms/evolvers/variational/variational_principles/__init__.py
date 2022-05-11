@@ -10,47 +10,4 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Principles (:mod:`qiskit.algorithms.evolvers.variational.variational_principles`)
-=================================================================================
-
-It  contains a variety of variational variational_principles which can be used to simulate quantum
-time evolution by propagating the parameters of a parameterized quantum circuit.
-
-These variational variational_principles can be divided into two categories:
-`Variational Quantum Imaginary Time Evolution`_
-  Given a Hamiltonian, a time and a variational ansatz, the variational principle describes a
-  variational principle according to the normalized Wick-rotated Schroedinger equation.
-`Variational Quantum Real Time Evolution`_
-  Given a Hamiltonian, a time and a variational ansatz, the variational principle describes a
-  variational principle according to the Schroedinger equation.
-
-.. currentmodule:: qiskit.algorithms.evolvers.variational.variational_principles
-
-Variational Principle Base Classes
-====================
-.. autosummary::
-   :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
-
-    VariationalPrinciple
-    ImaginaryVariationalPrinciple
-    RealVariationalPrinciple
-
-Variational Quantum Imaginary Time Evolution Principles
-================
-.. autosummary::
-   :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
-
-    ImaginaryMcLachlanVariationalPrinciple
-
-Variational Quantum Real Time Evolution Principles
-=================
-.. autosummary::
-   :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
-
-    RealMcLachlanVariationalPrinciple
-    RealTimeDependentVariationalPrinciple
-"""
+"""Variational Principles"""

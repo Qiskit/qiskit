@@ -62,7 +62,7 @@ approach is taken according to a variational principle chosen by a user.
 
     # instantiate the algorithm
     var_qite = VarQITE(
-        var_principle, backend=backend, error_based_ode=False
+        var_principle, backend=backend
     )
 
     # run the algorithm/evolve the state
@@ -70,30 +70,19 @@ approach is taken according to a variational principle chosen by a user.
 
 .. currentmodule:: qiskit.algorithms.evolvers.variational
 
-VarQITE
---------------------
+Variational Principles
+----------------------
 
-Algorithm that performs Variational Quantum Imaginary Time Evolution.
+Variational principles can be used to simulate quantum time evolution by propagating the parameters
+of a parameterized quantum circuit.
 
-.. autosummary::
-   :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
-
-   VarQITE
-
-VarQRTE
---------------------
-
-Algorithm that performs Variational Quantum Real Time Evolution.
-
-.. autosummary::
-   :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
-
-   VarQRTE
-
-VariationalPrinciples
-----------
+They can be divided into two categories:
+`Variational Quantum Imaginary Time Evolution`_
+  Given a Hamiltonian, a time and a variational ansatz, the variational principle describes a
+  variational principle according to the normalized Wick-rotated Schroedinger equation.
+`Variational Quantum Real Time Evolution`_
+  Given a Hamiltonian, a time and a variational ansatz, the variational principle describes a
+  variational principle according to the Schroedinger equation.
 
 .. autosummary::
    :toctree: ../stubs/
