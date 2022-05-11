@@ -76,8 +76,8 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
         if result_ces.eigenvalues is not None and len(result_ces.eigenvalues) > 0:
             self._ret.eigenvalue = result_ces.eigenvalues[0]
             self._ret.eigenstate = result_ces.eigenstates[0]
-            if result_ces.aux_operator_eigenvalues:
-                self._ret.aux_operator_eigenvalues = result_ces.aux_operator_eigenvalues[0]
+            if result_ces.aux_operator_values:
+                self._ret.aux_operator_values = result_ces.aux_operator_values[0]
 
         logger.debug("MinimumEigensolver:\n%s", self._ret)
 

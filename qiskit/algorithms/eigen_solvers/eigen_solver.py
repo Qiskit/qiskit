@@ -17,6 +17,7 @@ from typing import Dict, Optional, List, Union, Tuple, TypeVar
 
 import numpy as np
 from qiskit.opflow import OperatorBase
+from qiskit.utils.deprecation import deprecate_function
 from ..algorithm_result import AlgorithmResult
 
 # Introduced new type to maintain readability.
@@ -71,7 +72,7 @@ class EigensolverResult(AlgorithmResult):
         super().__init__()
         self._eigenvalues = None
         self._eigenstates = None
-        self._aux_operator_eigenvalues = None
+        self._aux_operator_values = None
 
     @property
     def eigenvalues(self) -> Optional[np.ndarray]:
@@ -94,14 +95,40 @@ class EigensolverResult(AlgorithmResult):
         self._eigenstates = value
 
     @property
-    def aux_operator_eigenvalues(self) -> Optional[List[ListOrDict[Tuple[complex, complex]]]]:
+    def aux_operator_values(self) -> Optional[List[ListOrDict[Tuple[complex, complex]]]]:
         """Return aux operator expectation values.
 
         These values are in fact tuples formatted as (mean, standard deviation).
         """
-        return self._aux_operator_eigenvalues
+        return self._aux_operator_values
+
+    @aux_operator_values.setter
+    def aux_operator_values(self, value: List[ListOrDict[Tuple[complex, complex]]]) -> None:
+        """set aux operator values"""
+        self._aux_operator_values = value
+
+    @property
+    @deprecate_function(
+        """
+The EigensolverResult.aux_operator_eigenvalues property is deprecated as of Qiskit Terra 0.21.0
+and will be removed no sooner than 3 months after the release date. You can use
+EigensolverResult.aux_operator_values as a direct replacement instead, which reflects that these
+values are no eigenvalues of the operators but just expectation values.
+    """
+    )
+    def aux_operator_eigenvalues(self) -> Optional[List[ListOrDict[Tuple[complex, complex]]]]:
+        """DEPRECATED. Use the ``aux_operator_values`` property instead."""
+        return self.aux_operator_values
 
     @aux_operator_eigenvalues.setter
+    @deprecate_function(
+        """
+The EigensolverResult.aux_operator_eigenvalues property is deprecated as of Qiskit Terra 0.21.0
+and will be removed no sooner than 3 months after the release date. You can use
+EigensolverResult.aux_operator_values as a direct replacement instead, which reflects that these
+values are no eigenvalues of the operators but just expectation values.
+    """
+    )
     def aux_operator_eigenvalues(self, value: List[ListOrDict[Tuple[complex, complex]]]) -> None:
-        """set aux operator eigen values"""
-        self._aux_operator_eigenvalues = value
+        """DEPRECATED. Use the ``aux_operator_values`` setter instead."""
+        self.aux_operator_values = value

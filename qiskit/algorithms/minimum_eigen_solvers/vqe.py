@@ -591,7 +591,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             aux_values = eval_observables(
                 self.quantum_instance, bound_ansatz, aux_operators, expectation=expectation
             )
-            result.aux_operator_eigenvalues = aux_values
+            result.aux_operator_values = aux_values
 
         return result
 
