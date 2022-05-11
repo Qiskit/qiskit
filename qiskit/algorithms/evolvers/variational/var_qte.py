@@ -29,6 +29,7 @@ from qiskit.opflow import (
     OperatorBase,
     ExpectationBase,
 )
+from qiskit.utils.backend_utils import is_aer_provider
 
 from .solvers.var_qte_linear_solver import (
     VarQTELinearSolver,
@@ -59,7 +60,7 @@ class VarQTE(ABC):
         lse_solver_callable: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
         expectation: Optional[ExpectationBase] = None,
         imag_part_tol: float = 1e-7,
-        allowed_num_instability_error: float = 1e-7,
+        num_instability_tol: float = 1e-7,
         quantum_instance: Optional[QuantumInstance] = None,
     ) -> None:
         r"""
@@ -73,23 +74,38 @@ class VarQTE(ABC):
                 expectation values of ``EvolutionProblem.aux_operators``.
             imag_part_tol: Allowed value of an imaginary part that can be neglected if no
                 imaginary part is expected.
-            allowed_num_instability_error: The amount of negative value that is allowed to be
+            num_instability_tol: The amount of negative value that is allowed to be
                 rounded up to 0 for quantities that are expected to be
                 non-negative.
             quantum_instance: Backend used to evaluate the quantum circuit outputs.
         """
         super().__init__()
-        self._variational_principle = variational_principle
-        if isinstance(quantum_instance, Backend):
+        self.variational_principle = variational_principle
+        self._quantum_instance = None
+        if quantum_instance is not None:
+            self.quantum_instance = quantum_instance
+        self.expectation = expectation
+        self.ode_function_generator = ode_function_generator
+        self.ode_solver_callable = ode_solver_callable
+        self.lse_solver_callable = lse_solver_callable
+        self.imag_part_tol = imag_part_tol
+        self.num_instability_tol = num_instability_tol
+
+    @property
+    def quantum_instance(self) -> Optional[QuantumInstance]:
+        """Returns quantum instance."""
+        return self._quantum_instance
+
+    @quantum_instance.setter
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
+        """Sets quantum_instance"""
+        if not isinstance(quantum_instance, QuantumInstance):
             quantum_instance = QuantumInstance(quantum_instance)
-        self._backend = quantum_instance
-        self._expectation = expectation
-        self._circuit_sampler = CircuitSampler(self._backend) if self._backend else None
-        self._ode_function_generator = ode_function_generator
-        self._ode_solver_callable = ode_solver_callable
-        self._lse_solver_callable = lse_solver_callable
-        self._imag_part_tol = imag_part_tol
-        self._allowed_num_instability_error = allowed_num_instability_error
+
+        self._quantum_instance = quantum_instance
+        self._circuit_sampler = CircuitSampler(
+            quantum_instance, param_qobj=is_aer_provider(quantum_instance.backend)
+        )
 
     def _evolve_helper(
         self,
@@ -128,23 +144,23 @@ class VarQTE(ABC):
         init_state_parameters = list(init_state_param_dict.keys())
         init_state_parameters_values = list(init_state_param_dict.values())
 
-        metric_tensor = self._variational_principle.calc_metric_tensor(
+        metric_tensor = self.variational_principle.calc_metric_tensor(
             initial_state, init_state_parameters
         )
-        evolution_grad = self._variational_principle.calc_evolution_grad(
+        evolution_grad = self.variational_principle.calc_evolution_grad(
             hamiltonian, initial_state, init_state_parameters
         )
 
         linear_solver = VarQTELinearSolver(
             metric_tensor,
             evolution_grad,
-            self._lse_solver_callable,
+            self.lse_solver_callable,
             self._circuit_sampler,
-            self._imag_part_tol,
+            self.imag_part_tol,
         )
 
         # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator
-        self._ode_function_generator._lazy_init(
+        self.ode_function_generator._lazy_init(
             linear_solver,
             error_calculator,
             t_param,
@@ -152,7 +168,7 @@ class VarQTE(ABC):
         )
 
         ode_solver = VarQTEOdeSolver(
-            init_state_parameters_values, self._ode_function_generator, self._ode_solver_callable
+            init_state_parameters_values, self.ode_function_generator, self.ode_solver_callable
         )
         parameter_values = ode_solver.run(time)
         param_dict_from_ode = dict(zip(init_state_parameters, parameter_values))
@@ -210,7 +226,7 @@ class VarQTE(ABC):
 
     def _validate_aux_ops(self, evolution_problem: EvolutionProblem) -> None:
         if evolution_problem.aux_operators is not None and (
-            self._backend is None or self._expectation is None
+            self.quantum_instance is None or self.expectation is None
         ):
             raise ValueError(
                 "aux_operators where provided for evaluations but no ``expectation`` or "

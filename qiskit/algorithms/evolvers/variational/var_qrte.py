@@ -45,7 +45,7 @@ class VarQRTE(RealEvolver, VarQTE):
         lse_solver_callable: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
         expectation: Optional[ExpectationBase] = None,
         imag_part_tol: float = 1e-7,
-        allowed_num_instability_error: float = 1e-7,
+        num_instability_tol: float = 1e-7,
         quantum_instance: Optional[QuantumInstance] = None,
     ) -> None:
         r"""
@@ -59,7 +59,7 @@ class VarQRTE(RealEvolver, VarQTE):
                 expectation values of ``EvolutionProblem.aux_operators``.
             imag_part_tol: Allowed value of an imaginary part that can be neglected if no
                 imaginary part is expected.
-            allowed_num_instability_error: The amount of negative value that is allowed to be
+            num_instability_tol: The amount of negative value that is allowed to be
                 rounded up to 0 for quantities that are expected to be
                 non-negative.
             quantum_instance: Backend used to evaluate the quantum circuit outputs.
@@ -71,7 +71,7 @@ class VarQRTE(RealEvolver, VarQTE):
             lse_solver_callable,
             expectation,
             imag_part_tol,
-            allowed_num_instability_error,
+            num_instability_tol,
             quantum_instance,
         )
 
@@ -110,7 +110,10 @@ class VarQRTE(RealEvolver, VarQTE):
         evaluated_aux_ops = None
         if evolution_problem.aux_operators is not None:
             evaluated_aux_ops = eval_observables(
-                self._backend, evolved_state, evolution_problem.aux_operators, self._expectation
+                self.quantum_instance,
+                evolved_state,
+                evolution_problem.aux_operators,
+                self.expectation,
             )
 
         return EvolutionResult(evolved_state, evaluated_aux_ops)
