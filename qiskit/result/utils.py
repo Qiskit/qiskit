@@ -80,7 +80,7 @@ def marginal_counts(
                     )  # same convention as for the counts
                     bit_strings = [_hex_to_bin(s) for s in experiment_result.data.memory]
                     marginal_bit_strings = [
-                        "".join([s[-idx - 1] for idx in sorted_indices if idx < len(s)])
+                        "".join([s[-idx - 1] for idx in sorted_indices if idx < len(s)]) or "0"
                         for s in bit_strings
                     ]
                     experiment_result.data.memory = [_bin_to_hex(s) for s in marginal_bit_strings]
