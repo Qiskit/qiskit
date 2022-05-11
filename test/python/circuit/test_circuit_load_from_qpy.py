@@ -24,7 +24,13 @@ from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.library import XGate, QFT, QAOAAnsatz, PauliEvolutionGate
+from qiskit.circuit.library import (
+    XGate,
+    QFT,
+    QAOAAnsatz,
+    PauliEvolutionGate,
+    DCXGate,
+)
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
@@ -954,3 +960,34 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circuit = load(qpy_file)[0]
         self.assertEqual(qc.decompose().decompose(), new_circuit.decompose().decompose())
+
+    def test_controlled_gate(self):
+        """Test a custom controlled gate."""
+        qc = QuantumCircuit(3)
+        controlled_gate = DCXGate().control(1)
+        qc.append(controlled_gate, [0, 1, 2])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_nested_controlled_gate(self):
+        """Test a custom controlled gate."""
+        custom_gate = Gate("black_box", 1, [])
+        custom_definition = QuantumCircuit(1)
+        custom_definition.h(0)
+        custom_definition.rz(1.5, 0)
+        custom_definition.sdg(0)
+        custom_gate.definition = custom_definition
+
+        qc = QuantumCircuit(3)
+        qc.append(custom_gate, [0])
+        controlled_gate = custom_gate.control(2)
+        qc.append(controlled_gate, [0, 1, 2])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertEqual(qc.decompose(), new_circ.decompose())
