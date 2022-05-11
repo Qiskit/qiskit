@@ -1,0 +1,55 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""Test marginal_memory() function."""
+
+from qiskit.test import QiskitTestCase
+from qiskit.result import marginal_memory
+
+
+class TestMarginalMemory(QiskitTestCase):
+    """Result operations methods."""
+
+    def test_marginalize_memory(self):
+        """Test that memory marginalizes correctly."""
+        memory = [hex(ii) for ii in range(8)]
+        res = marginal_memory(memory, indices=[0])
+        self.assertEqual(res, [bin(ii % 2)[2:] for ii in range(8)])
+
+    def test_marginalize_memory_int(self):
+        """Test that memory marginalizes correctly int output."""
+        memory = [hex(ii) for ii in range(8)]
+        res = marginal_memory(memory, indices=[0], int_return=True)
+        self.assertEqual(res, [ii % 2 for ii in range(8)])
+
+    def test_marginalize_memory_hex(self):
+        """Test that memory marginalizes correctly hex output."""
+        memory = [hex(ii) for ii in range(8)]
+        res = marginal_memory(memory, indices=[0], hex_return=True)
+        self.assertEqual(res, [hex(ii % 2) for ii in range(8)])
+
+    def test_marginal_counts_result_memory_indices_None(self):
+        """Test that a memory marginalizes correctly with indices=None."""
+        memory = [hex(ii) for ii in range(8)]
+        res = marginal_memory(memory, hex_return=True)
+        self.assertEqual(res, memory)
+
+    def test_marginalize_memory_in_parallel(self):
+        """Test that memory marginalizes correctly multithreaded."""
+        memory = [hex(ii) for ii in range(15)]
+        res = marginal_memory(memory, indices=[0], parallel_threshold=1)
+        self.assertEqual(res, [bin(ii % 2)[2:] for ii in range(15)])
+
+    def test_error_on_multiple_return_types(self):
+        """Test that ValueError raised if multiple return types are requested."""
+        with self.assertRaises(ValueError):
+            marginal_memory([], int_return=True, hex_return=True)
