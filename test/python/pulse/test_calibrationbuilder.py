@@ -122,3 +122,19 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
         # Check whether the durations of the RZX pulse and
         # the scaled CR pulse from the CX gate match.
         self.assertEqual(rzx_qc_duration, duration)
+
+    def test_pulse_amp_typecasted(self):
+        """Test if scaled pulse amplitude is complex type."""
+        fake_play = Play(
+            GaussianSquare(duration=800, amp=0.1, sigma=64, risefall_sigma_ratio=2),
+            ControlChannel(0),
+        )
+        fake_theta = circuit.Parameter("theta")
+        assigned_theta = fake_theta.assign(fake_theta, 0.01)
+
+        scaled = RZXCalibrationBuilderNoEcho.rescale_cr_inst(
+            instruction=fake_play, theta=assigned_theta
+        )
+        scaled_pulse = scaled.pulse
+
+        self.assertIsInstance(scaled_pulse.amp, complex)

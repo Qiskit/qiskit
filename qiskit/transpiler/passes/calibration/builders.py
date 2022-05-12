@@ -153,7 +153,13 @@ class RZXCalibrationBuilder(CalibrationBuilder):
 
         Raises:
             QiskitError: if the pulses are not GaussianSquare.
+            QiskitError: if rotation angle is not assigned.
         """
+        try:
+            theta = float(theta)
+        except TypeError as ex:
+            raise QiskitError("Target rotation angle is not assigned.") from ex
+
         pulse_ = instruction.pulse
         if isinstance(pulse_, GaussianSquare):
             amp = pulse_.amp
@@ -165,8 +171,8 @@ class RZXCalibrationBuilder(CalibrationBuilder):
             gaussian_area = abs(amp) * sigma * np.sqrt(2 * np.pi) * math.erf(n_sigmas)
             area = gaussian_area + abs(amp) * width
 
-            target_area = abs(float(theta)) / (np.pi / 2.0) * area
-            sign = theta / abs(float(theta))
+            target_area = abs(theta) / (np.pi / 2.0) * area
+            sign = np.sign(theta)
 
             if target_area > gaussian_area:
                 width = (target_area - gaussian_area) / abs(amp)
