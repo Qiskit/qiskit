@@ -622,8 +622,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         self.assertEqual(Operator(circ), Operator(ccirc))
 
     def test_intransitive_non_commutative_circuit1(self):
-        """Test simple intransitive non-commutative circuit on 1 qubit
-        """
+        """Test simple intransitive non-commutative circuit on 1 qubit"""
         circ = QuantumCircuit(1)
 
         circ.x(0)
