@@ -73,7 +73,7 @@ class Minimizer(Protocol):
         bounds: list[tuple[float, float]] | None,
     ) -> scipy.optimize.OptimizeResult | OptimizerResult:
         """Minimize the objective function.
-        
+
         This interface is based on `SciPy's optimize module <https://docs.scipy.org/doc
         /scipy/reference/generated/scipy.optimize.minimize.html>`__.
 
