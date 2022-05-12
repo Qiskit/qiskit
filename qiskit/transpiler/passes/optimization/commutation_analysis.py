@@ -71,15 +71,17 @@ class CommutationAnalysis(AnalysisPass):
                     current_comm_set.append([current_gate])
 
                 if current_gate not in current_comm_set[-1]:
-                    prev_gate = current_comm_set[-1][-1]
-                    does_commute = False
+                    does_commute = True
                     try:
-                        does_commute = _commute(current_gate, prev_gate, self.cache)
+                        for prev_gate in current_comm_set[-1]:
+                            if not _commute(current_gate, prev_gate, self.cache):
+                                does_commute = False
+                                break
                     except TranspilerError:
-                        pass
+                        does_commute = False
+
                     if does_commute:
                         current_comm_set[-1].append(current_gate)
-
                     else:
                         current_comm_set.append([current_gate])
 
