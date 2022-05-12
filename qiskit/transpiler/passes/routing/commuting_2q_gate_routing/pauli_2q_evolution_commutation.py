@@ -21,7 +21,9 @@ from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import TransformationPass
 from qiskit.quantum_info import SparsePauliOp, Pauli
-from qiskit.transpiler.passes.routing.swap_strategies.commuting_2q_block import Commuting2qBlocks
+from qiskit.transpiler.passes.routing.commuting_2q_gate_routing.commuting_2q_block import (
+    Commuting2qBlock,
+)
 
 
 class FindCommutingPauliEvolutions(TransformationPass):
@@ -48,9 +50,8 @@ class FindCommutingPauliEvolutions(TransformationPass):
                 if self.summands_commute(node.op.operator):
                     sub_dag = self._decompose_to_2q(dag, node.op)
 
-                    block_op = Commuting2qBlocks(set(sub_dag.op_nodes()))
-                    register = dag.qregs["q"]
-                    wire_order = {qubit: register.index(qubit) for qubit in block_op.qubits}
+                    block_op = Commuting2qBlock(set(sub_dag.op_nodes()))
+                    wire_order = {wire: idx for idx, wire in enumerate(dag.qubits)}
                     dag.replace_block_with_op([node], block_op, wire_order)
 
         return dag
@@ -99,7 +100,7 @@ class FindCommutingPauliEvolutions(TransformationPass):
 
         Returns:
             A tuple representing where the Paulis are. For example, the Pauli "IZIZ" will
-            return (0, 2) since logical qubits 0 and 2 interact.
+            return (0, 2) since virtual qubits 0 and 2 interact.
 
         Raises:
             QiskitError: If the pauli does not exactly have two non-identity terms.
