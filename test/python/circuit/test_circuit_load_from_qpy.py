@@ -973,7 +973,7 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc, new_circuit)
 
     def test_nested_controlled_gate(self):
-        """Test a custom controlled gate."""
+        """Test a custom nested controlled gate."""
         custom_gate = Gate("black_box", 1, [])
         custom_definition = QuantumCircuit(1)
         custom_definition.h(0)
@@ -991,3 +991,14 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
         self.assertEqual(qc.decompose(), new_circ.decompose())
+
+    def test_open_controlled_gate(self):
+        """Test an open control is preserved across serialization."""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1, ctrl_state=0)
+        with io.BytesIO() as fd:
+            dump(qc, fd)
+            fd.seek(0)
+            new_circ = load(fd)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertEqual(qc.data[0][0].ctrl_state, new_circ.data[0][0].ctrl_state)

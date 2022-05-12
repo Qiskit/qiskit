@@ -360,6 +360,9 @@ def generate_controlled_gates():
     nested_qc.append(controlled_gate, [0, 1, 2])
     nested_qc.measure_all()
     circuits.append(nested_qc)
+    qc_open = QuantumCircuit(2)
+    qc_open.cx(0, 1, ctrl_state=0)
+    circuits.append(qc_open)
     return circuits
 
 
