@@ -339,14 +339,14 @@ class SabreSwap(TransformationPass):
         For each existing element add a successor until reaching limit.
         """
         extended_set = []
-        decremeented = []
+        decremented = []
         tmp_front_layer = front_layer
         done = False
         while tmp_front_layer and not done:
             new_tmp_front_layer = []
             for node in tmp_front_layer:
                 for successor in self._successors(node, dag):
-                    decremeented.append(successor)
+                    decremented.append(successor)
                     self.required_predecessors[successor] -= 1
                     if self._is_resolved(successor):
                         new_tmp_front_layer.append(successor)
@@ -356,7 +356,7 @@ class SabreSwap(TransformationPass):
                     done = True
                     break
             tmp_front_layer = new_tmp_front_layer
-        for node in decremeented:
+        for node in decremented:
             self.required_predecessors[node] += 1
         return extended_set
 
