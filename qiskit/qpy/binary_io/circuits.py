@@ -268,6 +268,7 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions, version
             gate = gate_class(*params)
             gate.num_ctrl_qubits = instruction.num_ctrl_qubits
             gate.ctrl_state = instruction.ctrl_state
+        gate.condition = condition_tuple
     else:
         if gate_name in {"Initialize", "UCRXGate", "UCRYGate", "UCRZGate"}:
             gate = gate_class(params)
