@@ -621,6 +621,22 @@ class TestCommutativeCancellation(QiskitTestCase):
         ccirc = passmanager.run(circ)
         self.assertEqual(Operator(circ), Operator(ccirc))
 
+    def test_intransitive_non_commutative_circuit1(self):
+        """Test simple intransitive non-commutative circuit on 1 qubit
+        """
+        circ = QuantumCircuit(1)
+
+        circ.x(0)
+        circ.i(0)
+        circ.h(0)
+        circ.i(0)
+        circ.x(0)
+
+        passmanager = PassManager()
+        passmanager.append(CommutativeCancellation())
+        ccirc = passmanager.run(circ)
+        self.assertEqual(Operator(circ), Operator(ccirc))
+
 
 if __name__ == "__main__":
     unittest.main()
