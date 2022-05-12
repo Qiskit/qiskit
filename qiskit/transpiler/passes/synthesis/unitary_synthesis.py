@@ -302,8 +302,10 @@ class UnitarySynthesis(TransformationPass):
         # Handle approximation degree as a special case for backwards compatibility, it's
         # not part of the plugin interface and only something needed for the default
         # pass.
+        # pylint: disable=attribute-defined-outside-init
         default_method._approximation_degree = self._approximation_degree
         if self.method == "default":
+            # pylint: disable=attribute-defined-outside-init
             plugin_method._approximation_degree = self._approximation_degree
 
         for node in dag.named_nodes(*self._synth_gates):
