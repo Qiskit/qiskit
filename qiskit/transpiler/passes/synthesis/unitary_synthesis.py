@@ -211,7 +211,9 @@ class UnitarySynthesis(TransformationPass):
         self._approximation_degree = approximation_degree
         self._min_qubits = min_qubits
         self.method = method
-        self.plugins = plugin.UnitarySynthesisPluginManager()
+        self.plugins = None
+        if method != "default":
+            self.plugins = plugin.UnitarySynthesisPluginManager()
         self._coupling_map = coupling_map
         self._backend_props = backend_props
         self._pulse_optimize = pulse_optimize
@@ -245,14 +247,16 @@ class UnitarySynthesis(TransformationPass):
                 plugins can be queried with
                 :func:`~qiskit.transpiler.passes.synthesis.plugin.unitary_synthesis_plugin_names`
         """
-        if self.method not in self.plugins.ext_plugins:
+        if self.method != "default" and self.method not in self.plugins.ext_plugins:
             raise TranspilerError("Specified method: %s not found in plugin list" % self.method)
         # Return fast if we have no synth gates (ie user specified an empty
         # list or the synth gates are all in the basis
         if not self._synth_gates:
             return dag
-
-        plugin_method = self.plugins.ext_plugins[self.method].obj
+        if self.plugins:
+            plugin_method = self.plugins.ext_plugins[self.method].obj
+        else:
+            plugin_method = DefaultUnitarySynthesis()
         plugin_kwargs = {"config": self._plugin_config}
         _gate_lengths = _gate_errors = None
         dag_bit_indices = {}
@@ -298,8 +302,10 @@ class UnitarySynthesis(TransformationPass):
         # Handle approximation degree as a special case for backwards compatibility, it's
         # not part of the plugin interface and only something needed for the default
         # pass.
+        # pylint: disable=attribute-defined-outside-init
         default_method._approximation_degree = self._approximation_degree
         if self.method == "default":
+            # pylint: disable=attribute-defined-outside-init
             plugin_method._approximation_degree = self._approximation_degree
 
         for node in dag.named_nodes(*self._synth_gates):
