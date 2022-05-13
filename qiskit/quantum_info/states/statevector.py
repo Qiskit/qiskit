@@ -221,6 +221,9 @@ class Statevector(QuantumState, TolerancesMixin):
     def __iter__(self):
         yield from self._data
 
+    def __len__(self):
+        return len(self._data)
+
     @property
     def data(self):
         """Return data."""

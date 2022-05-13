@@ -1,0 +1,24 @@
+---
+features:
+  - |
+    :func:`~qiskit.quantum_info.states.Statevector.__iter__` and 
+    :func:`~qiskit.quantum_info.states.Statevector.__len__` have been 
+    added to facilitate iteration over and referencing the length of 
+    a state vector, correspondingly.
+fixes:
+  - |
+    :class:`~qiskit.quantum_info.states.Statevector` objects raised an 
+    ``qiskit.exceptions.QiskitError`` upon being iterated over, in 
+    certain circumstances, due to the fact that no explicit iteration 
+    mechanism had been implemented, as it hadn't been within the original 
+    design scope. Instead, Python, as a fallback, relied in an ad-hoc manner on 
+    :func:`~qiskit.quantum_info.states.Statevector.__getitem__` to provide 
+    iteration functionality. If a key, that is being iterated over in such 
+    manner, gets referenced and its value is outside of the range of values, 
+    corresponding to valid ``dim`` dimensionality, then an error of 
+    the aforementioned type occurred. Refer to 
+    `#8039 <https://github.com/Qiskit/qiskit-terra/issues/8039>` for more
+    details.
+    This issue has been addressed by introducing 
+    :func:`~qiskit.quantum_info.states.Statevector.__iter__`, which enables 
+    correct behavior.

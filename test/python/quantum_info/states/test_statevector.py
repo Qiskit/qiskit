@@ -1178,5 +1178,15 @@ class TestStatevector(QiskitTestCase):
             self.assertEqual(empty_vector, [x for x in empty_sv])
             self.assertEqual(dummy_vector, [x for x in sv])
 
+    def test_statevector_len(self):
+        """Test state vector length"""
+        empty_vector = []
+        dummy_vector = [1, 2, 3]
+        empty_sv = Statevector([])
+        sv = Statevector(dummy_vector)
+        self.assertEqual(len(empty_vector), len(empty_sv))
+        self.assertEqual(len(dummy_vector), len(sv))
+
+
 if __name__ == "__main__":
     unittest.main()
