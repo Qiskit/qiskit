@@ -19,7 +19,7 @@ from typing import Callable, Iterable, List, Optional, Tuple, Union
 import numpy as np
 from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.circuit import ParameterExpression, ParameterVector
-from qiskit.providers import BaseBackend, Backend
+from qiskit.providers import Backend
 
 from ..converters.converter_base import ConverterBase
 from ..expectations import ExpectationBase, PauliExpectation
@@ -83,7 +83,7 @@ class DerivativeBase(ConverterBase):
                 List[Tuple[ParameterExpression, ParameterExpression]],
             ]
         ] = None,
-        backend: Optional[Union[BaseBackend, Backend, QuantumInstance]] = None,
+        backend: Optional[Union[Backend, QuantumInstance]] = None,
         expectation: Optional[ExpectationBase] = None,
     ) -> Callable[[Iterable], np.ndarray]:
         """Get a callable function which provides the respective gradient, Hessian or QFI for given
