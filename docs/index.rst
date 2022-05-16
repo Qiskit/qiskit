@@ -21,17 +21,17 @@ around the world by beginners, hobbyists, educators, researchers, and commercial
      <div class="row">
 
 .. customcalloutitem::
-  :description: A quick introduction to quantum computing.
-  :header: What is quantum computing?
-  :button_link:  qc_intro.html
-  :button_text: Get cracking
-
-
-.. customcalloutitem::
   :description: Find out which Qiskit Partners support execution on real quantum services.
   :header: Access to quantum systems
   :button_link:  https://qiskit.org/documentation/partners/
   :button_text: Qiskit Partners
+
+
+.. customcalloutitem::
+  :description: A programming model and execution framework to effectively execute workloads.
+  :header: Qiskit Runtime
+  :button_link:  https://qiskit.org/documentation/partners/qiskit_ibm_runtime/
+  :button_text: Get started
 
 .. raw:: html
 
