@@ -94,8 +94,6 @@ class LookaheadSwap(TransformationPass):
 
         super().__init__()
         self.coupling_map = coupling_map
-        # Include symmetric 2q gates (e.g coupling maps with both [0,1] and [1,0])
-        # as one available swap.
         self.search_depth = search_depth
         self.search_width = search_width
         self.fake_run = fake_run
@@ -184,6 +182,7 @@ def _search_forward_n_swaps(state, gates, depth, width):
         improvement were found.
     """
     if state.swaps is None:
+        # Include symmetric couplings (e.g [0,1] and [1,0]) as one swap.
         state = state._replace(
             swaps={((a, b) if a < b else (b, a)) for a, b in state.coupling_map.get_edges()}
         )
