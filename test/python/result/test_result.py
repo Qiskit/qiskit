@@ -185,7 +185,7 @@ class TestResultOperations(QiskitTestCase):
     def test_marginal_distribution(self):
         """Test that counts are marginalized correctly."""
         raw_counts = {"0x0": 4, "0x1": 7, "0x2": 10, "0x6": 5, "0x9": 11, "0xD": 9, "0xE": 8}
-        data = models.ExperimentResultData(counts=dict(**raw_counts))
+        data = models.ExperimentResultData(counts=raw_counts)
         exp_result_header = QobjExperimentHeader(creg_sizes=[["c0", 4]], memory_slots=4)
         exp_result = models.ExperimentResult(
             shots=54, success=True, data=data, header=exp_result_header
@@ -194,6 +194,17 @@ class TestResultOperations(QiskitTestCase):
         expected_marginal_counts = {"00": 4, "01": 27, "10": 23}
         expected_reverse = {"00": 4, "10": 27, "01": 23}
 
+        self.assertEqual(
+            marginal_distribution(result.get_counts(), [0, 1]), expected_marginal_counts
+        )
+        self.assertEqual(marginal_distribution(result.get_counts(), [1, 0]), expected_reverse)
+        # test with register spacing, bitstrings are in form of "00 00" for register split
+        data = models.ExperimentResultData(counts=raw_counts)
+        exp_result_header = QobjExperimentHeader(creg_sizes=[["c0", 2], ["c1", 2]], memory_slots=4)
+        exp_result = models.ExperimentResult(
+            shots=54, success=True, data=data, header=exp_result_header
+        )
+        result = Result(results=[exp_result], **self.base_result_args)
         self.assertEqual(
             marginal_distribution(result.get_counts(), [0, 1]), expected_marginal_counts
         )
