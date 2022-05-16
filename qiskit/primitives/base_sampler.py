@@ -101,7 +101,7 @@ from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
 
 from .sampler_result import SamplerResult
-from .utils import _finditer
+from .utils import _findname
 
 
 class BaseSampler(ABC):
@@ -126,7 +126,7 @@ class BaseSampler(ABC):
         """
         self._circuits = tuple(circuits)
         self._circuit_ids = (
-            self._circuit_ids if self._circuit_ids else [id(i) for i in self._circuits]
+            self._circuit_ids if self._circuit_ids else [circuit.name for circuit in self._circuits]
         )
         if parameters is None:
             self._parameters = tuple(circ.parameters for circ in self._circuits)
@@ -153,7 +153,7 @@ class BaseSampler(ABC):
                 circuits = [circuits]
             else:
                 circuits = list(circuits)
-            self._circuit_ids = [id(i) for i in circuits]
+            self._circuit_ids = [circuit.name for circuit in circuits]
 
             if parameters is None:
                 original_init_method(self, circuits, *args, **kwargs)
@@ -239,8 +239,10 @@ class BaseSampler(ABC):
         # Allow objects
         try:
             circuit_indices = [
-                next(_finditer(i, self._circuit_ids)) if not isinstance(i, (int, np.integer)) else i
-                for i in circuit_indices
+                next(_findname(circuit, self._circuit_ids))
+                if not isinstance(circuit, (int, np.integer))
+                else circuit
+                for circuit in circuit_indices
             ]
         except StopIteration as err:
             raise QiskitError("The object id does not match.") from err

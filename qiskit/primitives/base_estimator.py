@@ -118,7 +118,7 @@ from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .estimator_result import EstimatorResult
-from .utils import _finditer
+from .utils import _finditer, _findname
 
 
 class BaseEstimator(ABC):
@@ -151,10 +151,12 @@ class BaseEstimator(ABC):
         self._circuits = tuple(circuits)
         self._observables = tuple(observables)
         self._circuit_ids = (
-            self._circuit_ids if self._circuit_ids else [id(i) for i in self._circuits]
+            self._circuit_ids if self._circuit_ids else [circuit.name for circuit in self._circuits]
         )
         self._observable_ids = (
-            self._observable_ids if self._observable_ids else [id(i) for i in self._observables]
+            self._observable_ids
+            if self._observable_ids
+            else [id(observable) for observable in self._observables]
         )
         if parameters is None:
             self._parameters = tuple(circ.parameters for circ in self._circuits)
@@ -192,8 +194,8 @@ class BaseEstimator(ABC):
                 observables = [observables]
             else:
                 observables = list(observables)
-            self._circuit_ids = [id(i) for i in circuits]
-            self._observable_ids = [id(i) for i in observables]
+            self._circuit_ids = [circuit.name for circuit in circuits]
+            self._observable_ids = [id(observable) for observable in observables]
 
             if parameters is None:
                 original_init_method(self, circuits, observables, *args, **kwargs)
@@ -321,14 +323,16 @@ class BaseEstimator(ABC):
         # Allow objects
         try:
             circuit_indices = [
-                next(_finditer(i, self._circuit_ids)) if not isinstance(i, (int, np.integer)) else i
-                for i in circuit_indices
+                next(_findname(circuit, self._circuit_ids))
+                if not isinstance(circuit, (int, np.integer))
+                else circuit
+                for circuit in circuit_indices
             ]
             observable_indices = [
-                next(_finditer(i, self._observable_ids))
-                if not isinstance(i, (int, np.integer))
-                else i
-                for i in observable_indices
+                next(_finditer(observable, self._observable_ids))
+                if not isinstance(observable, (int, np.integer))
+                else observable
+                for observable in observable_indices
             ]
         except StopIteration as err:
             raise QiskitError("The object id does not match.") from err

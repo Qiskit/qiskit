@@ -118,3 +118,8 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
 def _finditer(obj: object, object_ids: list[int]) -> Iterator[int]:
     """Return an iterator yielding the indices matching obj."""
     return map(lambda x: x[0], filter(lambda x: x[1] == id(obj), enumerate(object_ids)))
+
+
+def _findname(circuit: QuantumCircuit, circuit_names: list[int]) -> Iterator[int]:
+    """Return an iterator yielding the indices matching object name."""
+    return map(lambda x: x[0], filter(lambda x: x[1] == circuit.name, enumerate(circuit_names)))

@@ -70,17 +70,6 @@ class TestEstimator(QiskitTestCase):
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1.84209213])
 
-    def test_init_from_statevector(self):
-        """test initialization from statevector"""
-        vector = [1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)]
-        statevector = Statevector(vector)
-        with Estimator([statevector], [self.observable]) as est:
-            self.assertIsInstance(est.circuits[0], QuantumCircuit)
-            np.testing.assert_allclose(est.circuits[0][0][0].params, vector)
-            result = est()
-        self.assertIsInstance(result, EstimatorResult)
-        np.testing.assert_allclose(result.values, [-0.88272215])
-
     def test_init_observable_from_operator(self):
         """test for evaluate without parameters"""
         circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
