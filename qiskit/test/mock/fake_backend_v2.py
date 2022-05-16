@@ -46,7 +46,11 @@ class FakeBackendV2(BackendV2):
             online_date=datetime.datetime.utcnow(),
             backend_version="0.0.1",
         )
-        self._target = Target()
+        self._qubit_properties = [
+            QubitProperties(t1=63.48783e-6, t2=112.23246e-6, frequency=5.17538e9),
+            QubitProperties(t1=73.09352e-6, t2=126.83382e-6, frequency=5.26722e9),
+        ]
+        self._target = Target(qubit_properties=self._qubit_properties)
         self._theta = Parameter("theta")
         self._phi = Parameter("phi")
         self._lam = Parameter("lambda")
@@ -79,10 +83,6 @@ class FakeBackendV2(BackendV2):
         }
         self._target.add_instruction(ECRGate(), ecr_props)
         self.options.set_validator("shots", (1, 4096))
-        self._qubit_properties = {
-            0: QubitProperties(t1=63.48783e-6, t2=112.23246e-6, frequency=5.17538e9),
-            1: QubitProperties(t1=73.09352e-6, t2=126.83382e-6, frequency=5.26722e9),
-        }
 
     @property
     def target(self):
@@ -98,6 +98,10 @@ class FakeBackendV2(BackendV2):
 
     def run(self, run_input, **options):
         raise NotImplementedError
+
+
+class FakeBackendV2LegacyQubitProps(FakeBackendV2):
+    """Fake backend that doesn't use qubit properties via the target."""
 
     def qubit_properties(self, qubit):
         if isinstance(qubit, int):
@@ -116,7 +120,14 @@ class FakeBackend5QV2(BackendV2):
             online_date=datetime.datetime.utcnow(),
             backend_version="0.0.1",
         )
-        self._target = Target()
+        qubit_properties = [
+            QubitProperties(t1=63.48783e-6, t2=112.23246e-6, frequency=5.17538e9),
+            QubitProperties(t1=73.09352e-6, t2=126.83382e-6, frequency=5.26722e9),
+            QubitProperties(t1=73.09352e-6, t2=126.83382e-6, frequency=5.26722e9),
+            QubitProperties(t1=73.09352e-6, t2=126.83382e-6, frequency=5.26722e9),
+            QubitProperties(t1=73.09352e-6, t2=126.83382e-6, frequency=5.26722e9),
+        ]
+        self._target = Target(qubit_properties=qubit_properties)
         self._theta = Parameter("theta")
         self._phi = Parameter("phi")
         self._lam = Parameter("lambda")
@@ -153,13 +164,6 @@ class FakeBackend5QV2(BackendV2):
             ecr_props[(3, 2)] = InstructionProperties(duration=5.52e-9, error=0.0000232115)
         self._target.add_instruction(ECRGate(), ecr_props)
         self.options.set_validator("shots", (1, 4096))
-        self._qubit_properties = {
-            0: QubitProperties(t1=63.48783e-6, t2=112.23246e-6, frequency=5.17538e9),
-            1: QubitProperties(t1=73.09352e-6, t2=126.83382e-6, frequency=5.26722e9),
-            2: QubitProperties(t1=73.09352e-6, t2=126.83382e-6, frequency=5.26722e9),
-            3: QubitProperties(t1=73.09352e-6, t2=126.83382e-6, frequency=5.26722e9),
-            4: QubitProperties(t1=73.09352e-6, t2=126.83382e-6, frequency=5.26722e9),
-        }
 
     @property
     def target(self):
@@ -175,11 +179,6 @@ class FakeBackend5QV2(BackendV2):
 
     def run(self, run_input, **options):
         raise NotImplementedError
-
-    def qubit_properties(self, qubit):
-        if isinstance(qubit, int):
-            return self._qubit_properties[qubit]
-        return [self._qubit_properties[i] for i in qubit]
 
 
 class FakeBackendSimple(BackendV2):

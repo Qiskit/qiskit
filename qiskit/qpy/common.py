@@ -157,7 +157,7 @@ class ProgramTypeKey(bytes, Enum):
             obj (any): Arbitrary object to evaluate.
 
         Returns:
-            ContainerTypeKey: Corresponding key object.
+            ProgramTypeKey: Corresponding key object.
 
         Raises:
             QpyError: if object type is not defined in QPY. Likely not supported.
