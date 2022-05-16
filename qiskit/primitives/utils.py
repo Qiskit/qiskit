@@ -15,6 +15,8 @@ Utility functions for primitives
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 from qiskit.circuit import ParameterExpression, QuantumCircuit
 from qiskit.extensions.quantum_initializer.initializer import Initialize
 from qiskit.opflow import PauliSumOp
@@ -111,3 +113,8 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     # Sort so that classical bits are in numeric order low->high.
     mapping = dict(sorted(mapping.items(), key=lambda item: item[1]))
     return mapping
+
+
+def _finditer(obj: object, object_ids: list[int]) -> Iterator[int]:
+    """Return an iterator yielding the indices matching obj."""
+    return map(lambda x: x[0], filter(lambda x: x[1] == id(obj), enumerate(object_ids)))

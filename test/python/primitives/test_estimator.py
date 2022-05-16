@@ -40,6 +40,7 @@ class TestEstimator(QiskitTestCase):
                 ("XX", 0.18093119978423156),
             ]
         )
+        self.expvals = -1.0284380963435145, -1.284366511861733
 
     def test_estimator(self):
         """test for a simple use case"""
@@ -301,6 +302,26 @@ class TestEstimator(QiskitTestCase):
                 result = estimator([0] * k, [0] * k, params_list_array)
                 self.assertEqual(len(result.metadata), k)
                 np.testing.assert_allclose(result.values, target.values)
+
+    def test_broadcasting(self):
+        """Test broadcasting for Estimator."""
+
+        with Estimator([self.ansatz], [self.observable]) as estimator:
+            result = estimator(parameter_values=[list(range(6)), [0, 1, 1, 2, 3, 5]])
+        self.assertAlmostEqual(result.values[0], self.expvals[0])
+        self.assertAlmostEqual(result.values[1], self.expvals[1])
+
+    def test_passing_objects(self):
+        """Test passsing object for Estimator."""
+
+        with Estimator([self.ansatz], [self.observable]) as estimator:
+            result = estimator(
+                circuit_indices=[self.ansatz, self.ansatz],
+                observable_indices=[self.observable, self.observable],
+                parameter_values=[list(range(6)), [0, 1, 1, 2, 3, 5]],
+            )
+        self.assertAlmostEqual(result.values[0], self.expvals[0])
+        self.assertAlmostEqual(result.values[1], self.expvals[1])
 
 
 if __name__ == "__main__":

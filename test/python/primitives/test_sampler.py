@@ -369,6 +369,23 @@ class TestSampler(QiskitTestCase):
                 for i in range(k):
                     self.assertDictEqual(result.quasi_dists[i], target.quasi_dists[i])
 
+    def test_broadcasting(self):
+        """Test broadcasting for Sampler."""
+
+        params, target = self._generate_params_target([0, 1])
+        with Sampler(circuits=self._pqc) as sampler:
+            result = sampler(parameter_values=params)
+            self._compare_probs(result.quasi_dists, target)
+
+    def test_passing_objects(self):
+        """Test passing objects for Sampler."""
+
+        params, target = self._generate_params_target([0])
+
+        with Sampler(circuits=self._pqc) as sampler:
+            result = sampler(self._pqc, parameter_values=params)
+            self._compare_probs(result.quasi_dists, target)
+
 
 if __name__ == "__main__":
     unittest.main()

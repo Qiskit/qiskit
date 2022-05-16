@@ -16,9 +16,6 @@ Sampler class
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import cast
-
-import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -67,29 +64,14 @@ class Sampler(BaseSampler):
         super().__init__(circuits, parameters)
         self._is_closed = False
 
-    def __call__(
+    def _call(
         self,
-        circuit_indices: Sequence[int] | None = None,
-        parameter_values: Sequence[Sequence[float]] | Sequence[float] | None = None,
+        circuit_indices: Sequence[int],
+        parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> SamplerResult:
         if self._is_closed:
             raise QiskitError("The primitive has been closed.")
-
-        if isinstance(parameter_values, np.ndarray):
-            parameter_values = parameter_values.tolist()
-        if parameter_values and not isinstance(parameter_values[0], (np.ndarray, Sequence)):
-            parameter_values = cast("Sequence[float]", parameter_values)
-            parameter_values = [parameter_values]
-        if circuit_indices is None:
-            circuit_indices = list(range(len(self._circuits)))
-        if parameter_values is None:
-            parameter_values = [[]] * len(circuit_indices)
-        if len(circuit_indices) != len(parameter_values):
-            raise QiskitError(
-                f"The number of circuit indices ({len(circuit_indices)}) does not match "
-                f"the number of parameter value sets ({len(parameter_values)})."
-            )
 
         bound_circuits_qargs = []
         for i, value in zip(circuit_indices, parameter_values):
