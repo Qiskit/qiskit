@@ -240,6 +240,16 @@ class TestResultOperations(QiskitTestCase):
         marginal_memory = marginal_result.results[0].data.memory
         self.assertEqual(marginal_memory, [hex(ii % 2) for ii in range(8)])
 
+    def test_marginal_counts_result_memory_nonzero_indices(self):
+        """Test that a Result object containing memory marginalizes correctly."""
+        result = self.generate_qiskit_result()
+        index = 2
+        marginal_result = marginal_counts(result, indices=[index])
+        marginal_memory = marginal_result.results[0].data.memory
+        mask = 1 << index
+        expected = [hex((ii & mask) >> index) for ii in range(8)]
+        self.assertEqual(marginal_memory, expected)
+
     def test_marginal_counts_result_memory_indices_None(self):
         """Test that a Result object containing memory marginalizes correctly."""
         result = self.generate_qiskit_result()
