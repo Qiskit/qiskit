@@ -132,6 +132,10 @@ class BasePass(metaclass=MetaPass):
 
         if self.property_set["layout"]:
             result_circuit._layout = self.property_set["layout"]
+        if self.property_set["clbit_write_latency"] is not None:
+            result_circuit._clbit_write_latency = self.property_set["clbit_write_latency"]
+        if self.property_set["conditional_latency"] is not None:
+            result_circuit._conditional_latency = self.property_set["conditional_latency"]
 
         return result_circuit
 

@@ -1,3 +1,4 @@
+setuptools-rust
 coverage>=4.4.0
 hypothesis>=4.24.3
 ipython<7.22.0
@@ -6,14 +7,13 @@ ipywidgets>=7.3.0
 jupyter
 matplotlib>=3.3
 pillow>=4.2.1
-black[jupyter]==21.12b0
+black[jupyter]~=22.0
 pydot
 astroid==2.5.6
 pylint==2.8.3
 stestr>=2.0.0
 PyGithub
 wheel
-cython>=0.27.1
 pylatexenc>=1.4
 ddt>=1.2.0,!=1.4.0,!=1.4.3
 seaborn>=0.9.0

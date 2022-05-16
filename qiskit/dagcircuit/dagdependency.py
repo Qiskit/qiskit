@@ -16,6 +16,8 @@
 import math
 import heapq
 from collections import OrderedDict, defaultdict
+import warnings
+
 import numpy as np
 import retworkx as rx
 
@@ -139,6 +141,12 @@ class DAGDependency:
         """Returns a copy of the DAGDependency in networkx format."""
         # For backwards compatibility, return networkx structure from terra 0.12
         # where DAGNodes instances are used as indexes on the networkx graph.
+        warnings.warn(
+            "The to_networkx() method is deprecated and will be removed in a future release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
         try:
             import networkx as nx
         except ImportError as ex:
@@ -612,7 +620,7 @@ def _does_commute(node1, node2):
     qarg1 = [qarg.index(q) for q in node1.qargs]
     qarg2 = [qarg.index(q) for q in node2.qargs]
 
-    dim = 2 ** qbit_num
+    dim = 2**qbit_num
     id_op = np.reshape(np.eye(dim), (2, 2) * qbit_num)
 
     op1 = np.reshape(node1.op.to_matrix(), (2, 2) * len(qarg1))

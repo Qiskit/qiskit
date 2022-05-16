@@ -27,6 +27,10 @@ from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
 
+# import QubitProperties here to provide convenience alias for building a
+# full target
+from qiskit.providers.backend import QubitProperties  # pylint: disable=unused-import
+
 logger = logging.getLogger(__name__)
 
 
@@ -169,6 +173,7 @@ class Target(Mapping):
         "aquire_alignment",
         "_non_global_basis",
         "_non_global_strict_basis",
+        "qubit_properties",
     )
 
     def __init__(
@@ -180,6 +185,7 @@ class Target(Mapping):
         min_length=1,
         pulse_alignment=1,
         aquire_alignment=1,
+        qubit_properties=None,
     ):
         """
         Create a new Target object
@@ -208,6 +214,17 @@ class Target(Mapping):
                 resolution of measure instruction starting time. Measure
                 instruction should start at time which is a multiple of the
                 alignment value.
+            qubit_properties (list): A list of :class:`~.QubitProperties`
+                objects defining the characteristics of each qubit on the
+                target device. If specified the length of this list must match
+                the number of qubits in the target, where the index in the list
+                matches the qubit number the properties are defined for. If some
+                qubits don't have properties available you can set that entry to
+                ``None``
+        Raises:
+            ValueError: If both ``num_qubits`` and ``qubit_properties`` are both
+            defined and the value of ``num_qubits`` differs from the length of
+            ``qubit_properties``.
         """
         self.num_qubits = num_qubits
         # A mapping of gate name -> gate instance
@@ -227,6 +244,16 @@ class Target(Mapping):
         self.aquire_alignment = aquire_alignment
         self._non_global_basis = None
         self._non_global_strict_basis = None
+        if qubit_properties is not None:
+            if not self.num_qubits:
+                self.num_qubits = len(qubit_properties)
+            else:
+                if self.num_qubits != len(qubit_properties):
+                    raise ValueError(
+                        "The value of num_qubits specified does not match the "
+                        "length of the input qubit_properties list"
+                    )
+        self.qubit_properties = qubit_properties
 
     def add_instruction(self, instruction, properties=None, name=None):
         """Add a new instruction to the :class:`~qiskit.transpiler.Target`
@@ -467,7 +494,7 @@ class Target(Mapping):
         return self._gate_name_map[instruction]
 
     def operations_for_qargs(self, qargs):
-        """Get the operation class object for a specified qarg
+        """Get the operation class object for a specified qargs tuple
 
         Args:
             qargs (tuple): A qargs tuple of the qubits to get the gates that apply
@@ -483,6 +510,46 @@ class Target(Mapping):
         if qargs not in self._qarg_gate_map:
             raise KeyError(f"{qargs} not in target.")
         return [self._gate_name_map[x] for x in self._qarg_gate_map[qargs]]
+
+    def operation_names_for_qargs(self, qargs):
+        """Get the operation names for a specified qargs tuple
+
+        Args:
+            qargs (tuple): A qargs tuple of the qubits to get the gates that apply
+                to it. For example, ``(0,)`` will return the set of all
+                instructions that apply to qubit 0.
+        Returns:
+            set: The set of operation names that apply to the specified
+            `qargs``.
+
+        Raises:
+            KeyError: If qargs is not in target
+        """
+        if qargs not in self._qarg_gate_map:
+            raise KeyError(f"{qargs} not in target.")
+        return self._qarg_gate_map[qargs]
+
+    def instruction_supported(self, operation_name, qargs):
+        """Return whether the instruction (operation + qubits) is supported by the target
+
+        Args:
+            operation_name (str): The name of the operation for the instruction
+            qargs (tuple): The tuple of qubit indices for the instruction
+
+        Returns:
+            bool: Returns ``True`` if the instruction is supported and ``False`` if it isn't.
+
+        """
+        # Case a list if passed in by mistake
+        qargs = tuple(qargs)
+        if operation_name in self._gate_map:
+            if qargs in self._gate_map[operation_name]:
+                return True
+            if self._gate_map[operation_name] is None or None in self._gate_map[operation_name]:
+                return self._gate_name_map[operation_name].num_qubits == len(qargs) and all(
+                    x < self.num_qubits for x in qargs
+                )
+        return False
 
     @property
     def operation_names(self):

@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    :class:`~.circuit.Instruction` labels are now type-checked on instruction creation.

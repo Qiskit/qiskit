@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    The measurement shot limit for the BasicAer backend has been removed.

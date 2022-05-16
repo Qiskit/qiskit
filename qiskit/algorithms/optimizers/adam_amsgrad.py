@@ -247,7 +247,7 @@ class ADAM(Optimizer):
             self._t += 1
             self._m = self._beta_1 * self._m + (1 - self._beta_1) * derivative
             self._v = self._beta_2 * self._v + (1 - self._beta_2) * derivative * derivative
-            lr_eff = self._lr * np.sqrt(1 - self._beta_2 ** self._t) / (1 - self._beta_1 ** self._t)
+            lr_eff = self._lr * np.sqrt(1 - self._beta_2**self._t) / (1 - self._beta_1**self._t)
             if not self._amsgrad:
                 params_new = params - lr_eff * self._m.flatten() / (
                     np.sqrt(self._v.flatten()) + self._noise_factor
