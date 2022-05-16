@@ -1175,8 +1175,8 @@ class TestStatevector(QiskitTestCase):
         # iterator is reset upon each exhaustion of the corresponding
         # collection of elements.
         for _ in range(2):
-            self.assertEqual(empty_vector, [x for x in empty_sv])
-            self.assertEqual(dummy_vector, [x for x in sv])
+            self.assertEqual(empty_vector, list(empty_sv))
+            self.assertEqual(dummy_vector, list(sv))
 
     def test_statevector_len(self):
         """Test state vector length"""
