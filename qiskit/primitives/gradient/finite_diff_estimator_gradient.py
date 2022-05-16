@@ -36,8 +36,7 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
         run_options = run_options.copy()
 
         dim = len(parameter_value)
-        ret = []
-        ret.append(parameter_value)
+        ret = [parameter_value]
         for i in range(dim):
             ei = parameter_value.copy()
             ei[i] += self._epsilon
@@ -50,7 +49,6 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
         )
 
         values = results.values
-        ret = []
         grad = np.zeros(dim)
         f_ref = values[0]
         for i, f_i in enumerate(values[1:]):
