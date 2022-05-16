@@ -142,10 +142,10 @@ def marginal_memory(
 
     Args:
         memory: The input memory list, this is a list of hexadecimal strings to be marginalized
-        indices: THe The bit positions of interest to marginalize over. If
+        indices: The bit positions of interest to marginalize over. If
             ``None`` (default), do not marginalize at all.
         int_return: If set to ``True`` the output will be a list of integers.
-            By default the return type is a bit string. This amd ``hex_return``
+            By default the return type is a bit string. This and ``hex_return``
             are mutually exclusive and can not be specified at the same time.
         hex_return: If set to ``True`` the output will be a list of hexadecimal
             strings. By default the return type is a bit string. This and
@@ -178,8 +178,8 @@ def marginal_distribution(
     """Marginalize counts from an experiment over some indices of interest.
 
     Unlike :func:`~.marginal_counts` this function respects the order of
-    the input ``indices``. If the input ``indices`` list is specified, the order
-    the bit indices will be the output order of the bitstrings
+    the input ``indices``. If the input ``indices`` list is specified then the order
+    the bit indices are specified will be the output order of the bitstrings
     in the marginalized output.
 
     Args:
