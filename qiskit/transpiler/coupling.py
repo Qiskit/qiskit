@@ -32,7 +32,8 @@ class CouplingMap:
     Directed graph specifying fixed coupling.
 
     Nodes correspond to physical qubits (integers) and directed edges correspond
-    to permitted CNOT gates
+    to permitted CNOT gates, with source and destination corresponding to control
+    and target qubits, respectively
     """
 
     def __init__(self, couplinglist=None, description=None):

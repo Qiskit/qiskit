@@ -85,12 +85,13 @@ def transpile(
                 circuit may be run on any backend as long as it is compatible.
         basis_gates: List of basis gate names to unroll to
             (e.g: ``['u1', 'u2', 'u3', 'cx']``). If ``None``, do not unroll.
-        coupling_map: Coupling map (perhaps custom) to target in mapping.
+        coupling_map: Directed coupling map (perhaps custom) to target in mapping. If
+            the coupling map is symmetric, both directions need to be specified.
             Multiple formats are supported:
 
             #. ``CouplingMap`` instance
             #. List, must be given as an adjacency matrix, where each entry
-               specifies all two-qubit interactions supported by backend,
+               specifies all directed two-qubit interactions supported by backend,
                e.g: ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
 
         backend_properties: properties returned by a backend, including information on gate
