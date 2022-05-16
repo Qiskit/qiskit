@@ -14,17 +14,17 @@
 
 import unittest
 from numpy import pi
-from qiskit.transpiler.passes.optimization.hoare_opt import HAS_Z3
+from qiskit.utils import optionals
 from qiskit.transpiler.passes import HoareOptimizer
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.library import XGate, RZGate, CSwapGate, SwapGate
-from qiskit.dagcircuit import DAGNode
+from qiskit.dagcircuit import DAGOpNode
 from qiskit.quantum_info import Statevector
 
 
-@unittest.skipUnless(HAS_Z3, "z3-solver needs to be installed to run these tests")
+@unittest.skipUnless(optionals.HAS_Z3, "z3-solver needs to be installed to run these tests")
 class TestHoareOptimizer(QiskitTestCase):
     """Test the HoareOptimizer pass"""
 
@@ -32,11 +32,21 @@ class TestHoareOptimizer(QiskitTestCase):
         """Should remove the phase on a classical state,
         but not on a superposition state.
         """
+
+        #      ┌───┐
+        # q_0: ┤ Z ├──────
+        #      ├───┤┌───┐
+        # q_1:─┤ H ├┤ Z ├─
+        #      └───┘└───┘
         circuit = QuantumCircuit(3)
         circuit.z(0)
         circuit.h(1)
         circuit.z(1)
 
+        # q_0: ───────────
+        #      ┌───┐┌───┐
+        # q_1:─┤ H ├┤ Z ├─
+        #      └───┘└───┘
         expected = QuantumCircuit(3)
         expected.h(1)
         expected.z(1)
@@ -53,6 +63,27 @@ class TestHoareOptimizer(QiskitTestCase):
         """Should remove Fredkin gates because the optimizer
         can deduce the targets are in the same state
         """
+
+        #      ┌───┐┌───┐     ┌───┐     ┌───┐          ┌───┐
+        # q_0: ┤ X ├┤ X ├──■──┤ X ├──■──┤ X ├──■────■──┤ X ├─────────────────────────────────
+        #      └───┘└─┬─┘┌─┴─┐└─┬─┘  │  └─┬─┘┌─┴─┐  │  └─┬─┘
+        # q_1: ───────┼──┤ X ├──■────┼────┼──┤ X ├──┼────■───■──■──■──■─────■─────■──────────
+        #             │  └─┬─┘     ┌─┴─┐  │  └─┬─┘┌─┴─┐  │   │  │  │  │     │     │
+        # q_2: ───────┼────┼───────┤ X ├──■────┼──┤ X ├──■───┼──┼──┼──┼──■──┼──■──┼──■──■──■─
+        #      ┌───┐  │    │       └─┬─┘       │  └─┬─┘      │  │  │  │  │  │  │  │  │  │  │
+        # q_3: ┤ H ├──■────┼─────────┼─────────┼────┼────────┼──┼──X──X──┼──┼──X──┼──┼──X──┼─
+        #      ├───┤       │         │         │    │        │  │  │  │  │  │  │  │  │  │  │
+        # q_4: ┤ H ├───────■─────────┼─────────┼────┼────────┼──┼──┼──X──┼──X──┼──┼──X──┼──X─
+        #      ├───┤                 │         │    │        │  │  │     │  │  │  │  │  │  │
+        # q_5: ┤ H ├─────────────────■─────────┼────┼────────┼──┼──┼─────┼──X──┼──X──┼──X──┼─
+        #      ├───┤                           │    │        │  │  │     │     │  │  │     │
+        # q_6: ┤ H ├───────────────────────────■────■────────┼──┼──┼─────┼─────┼──X──┼─────X─
+        #      └───┘                                         │  │  │     │     │     │
+        # q_7: ──────────────────────────────────────────────X──┼──┼─────X─────┼─────┼───────
+        #                                                    │  │  │     │     │     │
+        # q_8: ──────────────────────────────────────────────X──X──┼─────┼─────X─────┼───────
+        #                                                       │  │     │           │
+        # q_9: ─────────────────────────────────────────────────X──X─────X───────────X───────
         circuit = QuantumCircuit(10)
         # prep
         circuit.x(0)
@@ -82,6 +113,26 @@ class TestHoareOptimizer(QiskitTestCase):
         circuit.cswap(2, 3, 5)
         circuit.cswap(2, 4, 6)
 
+        #      ┌───┐┌───┐     ┌───┐     ┌───┐          ┌───┐
+        # q_0: ┤ X ├┤ X ├──■──┤ X ├──■──┤ X ├──■────■──┤ X ├───────────────
+        #      └───┘└─┬─┘┌─┴─┐└─┬─┘  │  └─┬─┘┌─┴─┐  │  └─┬─┘
+        # q_1: ───────┼──┤ X ├──■────┼────┼──┤ X ├──┼────■───■──■──■───────
+        #             │  └─┬─┘     ┌─┴─┐  │  └─┬─┘┌─┴─┐  │   │  │  │
+        # q_2: ───────┼────┼───────┤ X ├──■────┼──┤ X ├──■───┼──┼──┼──■──■─
+        #      ┌───┐  │    │       └─┬─┘       │  └─┬─┘      │  │  │  │  │
+        # q_3: ┤ H ├──■────┼─────────┼─────────┼────┼────────X──┼──┼──X──┼─
+        #      ├───┤       │         │         │    │        │  │  │  │  │
+        # q_4: ┤ H ├───────■─────────┼─────────┼────┼────────X──X──┼──┼──X─
+        #      ├───┤                 │         │    │           │  │  │  │
+        # q_5: ┤ H ├─────────────────■─────────┼────┼───────────X──X──X──┼─
+        #      ├───┤                           │    │              │     │
+        # q_6: ┤ H ├───────────────────────────■────■──────────────X─────X─
+        #      └───┘
+        # q_7: ────────────────────────────────────────────────────────────
+        #
+        # q_8: ────────────────────────────────────────────────────────────
+        #
+        # q_9: ────────────────────────────────────────────────────────────
         expected = QuantumCircuit(10)
         # prep
         expected.x(0)
@@ -118,6 +169,28 @@ class TestHoareOptimizer(QiskitTestCase):
         because of linear nearest architecture. Only uses
         single-gate optimization techniques.
         """
+
+        #      ┌───┐     ┌───┐                                                       »
+        # q_0: ┤ H ├──■──┤ X ├──■────────────────────────────────────────────────────»
+        #      └───┘┌─┴─┐└─┬─┘┌─┴─┐     ┌───┐                                        »
+        # q_1: ─────┤ X ├──■──┤ X ├──■──┤ X ├──■──────────────────────────────────■──»
+        #           └───┘     └───┘┌─┴─┐└─┬─┘┌─┴─┐     ┌───┐               ┌───┐┌─┴─┐»
+        # q_2: ────────────────────┤ X ├──■──┤ X ├──■──┤ X ├──■─────────■──┤ X ├┤ X ├»
+        #                          └───┘     └───┘┌─┴─┐└─┬─┘┌─┴─┐     ┌─┴─┐└─┬─┘└───┘»
+        # q_3: ───────────────────────────────────┤ X ├──■──┤ X ├──■──┤ X ├──■───────»
+        #                                         └───┘     └───┘┌─┴─┐└───┘          »
+        # q_4: ──────────────────────────────────────────────────┤ X ├───────────────»
+        #                                                        └───┘               »
+        # «               ┌───┐
+        # «q_0: ───────■──┤ X ├
+        # «     ┌───┐┌─┴─┐└─┬─┘
+        # «q_1: ┤ X ├┤ X ├──■──
+        # «     └─┬─┘└───┘
+        # «q_2: ──■────────────
+        # «
+        # «q_3: ───────────────
+        # «
+        # «q_4: ───────────────
         circuit = QuantumCircuit(5)
         circuit.h(0)
         for i in range(0, 3):
@@ -129,6 +202,17 @@ class TestHoareOptimizer(QiskitTestCase):
             circuit.cx(i - 1, i)
             circuit.cx(i, i - 1)
 
+        #      ┌───┐     ┌───┐                                   ┌───┐
+        # q_0: ┤ H ├──■──┤ X ├───────────────────────────────────┤ X ├
+        #      └───┘┌─┴─┐└─┬─┘     ┌───┐                    ┌───┐└─┬─┘
+        # q_1: ─────┤ X ├──■────■──┤ X ├────────────────────┤ X ├──■──
+        #           └───┘     ┌─┴─┐└─┬─┘     ┌───┐     ┌───┐└─┬─┘
+        # q_2: ───────────────┤ X ├──■────■──┤ X ├─────┤ X ├──■───────
+        #                     └───┘     ┌─┴─┐└─┬─┘     └─┬─┘
+        # q_3: ─────────────────────────┤ X ├──■────■────■────────────
+        #                               └───┘     ┌─┴─┐
+        # q_4: ───────────────────────────────────┤ X ├───────────────
+        #                                         └───┘
         expected = QuantumCircuit(5)
         expected.h(0)
         for i in range(0, 3):
@@ -151,6 +235,28 @@ class TestHoareOptimizer(QiskitTestCase):
         because of linear nearest architecture. This time
         using multi-gate optimization techniques.
         """
+
+        #      ┌───┐     ┌───┐                                                       »
+        # q_0: ┤ H ├──■──┤ X ├──■────────────────────────────────────────────────────»
+        #      └───┘┌─┴─┐└─┬─┘┌─┴─┐     ┌───┐                                        »
+        # q_1: ─────┤ X ├──■──┤ X ├──■──┤ X ├──■──────────────────────────────────■──»
+        #           └───┘     └───┘┌─┴─┐└─┬─┘┌─┴─┐     ┌───┐               ┌───┐┌─┴─┐»
+        # q_2: ────────────────────┤ X ├──■──┤ X ├──■──┤ X ├──■─────────■──┤ X ├┤ X ├»
+        #                          └───┘     └───┘┌─┴─┐└─┬─┘┌─┴─┐     ┌─┴─┐└─┬─┘└───┘»
+        # q_3: ───────────────────────────────────┤ X ├──■──┤ X ├──■──┤ X ├──■───────»
+        #                                         └───┘     └───┘┌─┴─┐└───┘          »
+        # q_4: ──────────────────────────────────────────────────┤ X ├───────────────»
+        #                                                        └───┘               »
+        # «               ┌───┐
+        # «q_0: ───────■──┤ X ├
+        # «     ┌───┐┌─┴─┐└─┬─┘
+        # «q_1: ┤ X ├┤ X ├──■──
+        # «     └─┬─┘└───┘
+        # «q_2: ──■────────────
+        # «
+        # «q_3: ───────────────
+        # «
+        # «q_4: ───────────────
         circuit = QuantumCircuit(5)
         circuit.h(0)
         for i in range(0, 3):
@@ -162,6 +268,17 @@ class TestHoareOptimizer(QiskitTestCase):
             circuit.cx(i - 1, i)
             circuit.cx(i, i - 1)
 
+        #      ┌───┐
+        # q_0: ┤ H ├──■─────────────────
+        #      └───┘┌─┴─┐
+        # q_1: ─────┤ X ├──■────────────
+        #           └───┘┌─┴─┐
+        # q_2: ──────────┤ X ├──■───────
+        #                └───┘┌─┴─┐
+        # q_3: ───────────────┤ X ├──■──
+        #                     └───┘┌─┴─┐
+        # q_4: ────────────────────┤ X ├
+        #                          └───┘
         expected = QuantumCircuit(5)
         expected.h(0)
         for i in range(0, 4):
@@ -175,11 +292,39 @@ class TestHoareOptimizer(QiskitTestCase):
 
         self.assertEqual(result, circuit_to_dag(expected))
 
+    def test_successive_identity_removal(self):
+        """Should remove a successive pair of H gates applying
+        on the same qubit.
+        """
+        circuit = QuantumCircuit(1)
+        circuit.h(0)
+        circuit.h(0)
+        circuit.h(0)
+
+        expected = QuantumCircuit(1)
+        expected.h(0)
+
+        stv = Statevector.from_label("0" * circuit.num_qubits)
+        self.assertEqual(stv & circuit, stv & expected)
+
+        pass_ = HoareOptimizer(size=4)
+        result = pass_.run(circuit_to_dag(circuit))
+
+        self.assertEqual(result, circuit_to_dag(expected))
+
     def test_targetsuccessive_identity_removal(self):
         """Should remove pair of controlled target successive
         which are the inverse of each other, if they can be
         identified to be executed as a unit (either both or none).
         """
+
+        #      ┌───┐     ┌───┐┌───┐
+        # q_0: ┤ H ├──■──┤ X ├┤ X ├──■──
+        #      ├───┤  │  └─┬─┘└───┘  │
+        # q_1: ┤ H ├──■────■─────────■──
+        #      ├───┤┌─┴─┐          ┌─┴─┐
+        # q_2: ┤ H ├┤ X ├──────────┤ X ├
+        #      └───┘└───┘          └───┘
         circuit = QuantumCircuit(3)
         circuit.h(0)
         circuit.h(1)
@@ -189,6 +334,13 @@ class TestHoareOptimizer(QiskitTestCase):
         circuit.x(0)
         circuit.ccx(0, 1, 2)
 
+        #      ┌───┐┌───┐┌───┐
+        # q_0: ┤ H ├┤ X ├┤ X ├
+        #      ├───┤└─┬─┘└───┘
+        # q_1: ┤ H ├──■───────
+        #      ├───┤
+        # q_2: ┤ H ├──────────
+        #      └───┘
         expected = QuantumCircuit(3)
         expected.h(0)
         expected.h(1)
@@ -209,6 +361,58 @@ class TestHoareOptimizer(QiskitTestCase):
         with DIFFERENT sets of control qubits.
         In this case CCCX(4,5,6,7) & CCX(5,6,7).
         """
+
+        #      ┌───┐┌───┐                                                            »
+        # q_0: ┤ H ├┤ X ├───────■─────────────────────────────■───────────────────■──»
+        #      ├───┤└─┬─┘       │                             │                   │  »
+        # q_1: ┤ H ├──■─────────■─────────────────────────────■───────────────────■──»
+        #      ├───┤┌───┐       │  ┌───┐                      │                   │  »
+        # q_2: ┤ H ├┤ X ├───────┼──┤ X ├──■──────────────■────┼───────────────────┼──»
+        #      ├───┤└─┬─┘     ┌─┴─┐└─┬─┘  │              │  ┌─┴─┐               ┌─┴─┐»
+        # q_3: ┤ H ├──■────■──┤ X ├──■────■──────────────■──┤ X ├──■─────────■──┤ X ├»
+        #      ├───┤┌───┐  │  └───┘       │  ┌───┐       │  └───┘  │         │  └───┘»
+        # q_4: ┤ H ├┤ X ├──┼──────────────┼──┤ X ├──■────┼─────────┼─────────┼───────»
+        #      ├───┤└─┬─┘┌─┴─┐          ┌─┴─┐└─┬─┘  │  ┌─┴─┐     ┌─┴─┐     ┌─┴─┐     »
+        # q_5: ┤ H ├──■──┤ X ├──────────┤ X ├──■────■──┤ X ├─────┤ X ├──■──┤ X ├─────»
+        #      └───┘     └───┘          └───┘     ┌─┴─┐└───┘     └───┘┌─┴─┐├───┤     »
+        # q_6: ───────────────────────────────────┤ X ├───────────────┤ X ├┤ X ├─────»
+        #                                         └───┘               └───┘└───┘     »
+        # q_7: ──────────────────────────────────────────────────────────────────────»
+        #                                                                            »
+        # «                              ┌───┐┌───┐                                   »
+        # «q_0: ──────────────────────■──┤ X ├┤ X ├──■─────────────────────────────■──»
+        # «                           │  └─┬─┘└─┬─┘  │                             │  »
+        # «q_1: ──────────────────────■────■────■────■─────────────────────────────■──»
+        # «                    ┌───┐  │         │    │  ┌───┐                      │  »
+        # «q_2: ──■─────────■──┤ X ├──┼─────────┼────┼──┤ X ├──■──────────────■────┼──»
+        # «       │         │  └─┬─┘┌─┴─┐       │  ┌─┴─┐└─┬─┘  │              │  ┌─┴─┐»
+        # «q_3: ──■─────────■────■──┤ X ├───────┼──┤ X ├──■────■──────────────■──┤ X ├»
+        # «       │  ┌───┐  │       └───┘       │  └───┘  │    │  ┌───┐       │  └───┘»
+        # «q_4: ──┼──┤ X ├──┼───────────────────┼─────────┼────┼──┤ X ├──■────┼───────»
+        # «     ┌─┴─┐└─┬─┘┌─┴─┐                 │         │  ┌─┴─┐└─┬─┘  │  ┌─┴─┐     »
+        # «q_5: ┤ X ├──■──┤ X ├─────────────────┼─────────┼──┤ X ├──■────■──┤ X ├─────»
+        # «     └───┘     └───┘                 │         │  └───┘  │    │  └───┘     »
+        # «q_6: ────────────────────────────────■─────────■─────────■────■────────────»
+        # «                                                            ┌─┴─┐          »
+        # «q_7: ───────────────────────────────────────────────────────┤ X ├──────────»
+        # «                                                            └───┘          »
+        # «
+        # «q_0: ───────────────
+        # «
+        # «q_1: ───────────────
+        # «          ┌───┐
+        # «q_2: ─────┤ X ├─────
+        # «          └─┬─┘
+        # «q_3: ──■────■───────
+        # «       │  ┌───┐
+        # «q_4: ──┼──┤ X ├─────
+        # «     ┌─┴─┐└─┬─┘
+        # «q_5: ┤ X ├──■────■──
+        # «     └───┘       │
+        # «q_6: ────────────■──
+        # «               ┌─┴─┐
+        # «q_7: ──────────┤ X ├
+        # «               └───┘
         circuit = QuantumCircuit(8)
         circuit.h(0)
         circuit.h(1)
@@ -248,6 +452,57 @@ class TestHoareOptimizer(QiskitTestCase):
             circuit.cx(i * 2 + 1, i * 2)
         circuit.ccx(5, 6, 7)
 
+        #      ┌───┐┌───┐                                                            »
+        # q_0: ┤ H ├┤ X ├───────■─────────────────────────────■───────────────────■──»
+        #      ├───┤└─┬─┘       │                             │                   │  »
+        # q_1: ┤ H ├──■─────────■─────────────────────────────■───────────────────■──»
+        #      ├───┤┌───┐       │  ┌───┐                      │                   │  »
+        # q_2: ┤ H ├┤ X ├───────┼──┤ X ├──■──────────────■────┼───────────────────┼──»
+        #      ├───┤└─┬─┘     ┌─┴─┐└─┬─┘  │              │  ┌─┴─┐               ┌─┴─┐»
+        # q_3: ┤ H ├──■────■──┤ X ├──■────■──────────────■──┤ X ├──■─────────■──┤ X ├»
+        #      ├───┤┌───┐  │  └───┘       │  ┌───┐       │  └───┘  │         │  └───┘»
+        # q_4: ┤ H ├┤ X ├──┼──────────────┼──┤ X ├──■────┼─────────┼─────────┼───────»
+        #      ├───┤└─┬─┘┌─┴─┐          ┌─┴─┐└─┬─┘  │  ┌─┴─┐     ┌─┴─┐     ┌─┴─┐     »
+        # q_5: ┤ H ├──■──┤ X ├──────────┤ X ├──■────■──┤ X ├─────┤ X ├──■──┤ X ├─────»
+        #      └───┘     └───┘          └───┘     ┌─┴─┐└───┘     └───┘┌─┴─┐├───┤     »
+        # q_6: ───────────────────────────────────┤ X ├───────────────┤ X ├┤ X ├─────»
+        #                                         └───┘               └───┘└───┘     »
+        # q_7: ──────────────────────────────────────────────────────────────────────»
+        #                                                                            »
+        # «                              ┌───┐┌───┐                                   »
+        # «q_0: ──────────────────────■──┤ X ├┤ X ├──■────────────────────────■───────»
+        # «                           │  └─┬─┘└─┬─┘  │                        │       »
+        # «q_1: ──────────────────────■────■────■────■────────────────────────■───────»
+        # «                    ┌───┐  │         │    │  ┌───┐                 │       »
+        # «q_2: ──■─────────■──┤ X ├──┼─────────┼────┼──┤ X ├──■─────────■────┼───────»
+        # «       │         │  └─┬─┘┌─┴─┐       │  ┌─┴─┐└─┬─┘  │         │  ┌─┴─┐     »
+        # «q_3: ──■─────────■────■──┤ X ├───────┼──┤ X ├──■────■─────────■──┤ X ├──■──»
+        # «       │  ┌───┐  │       └───┘       │  └───┘  │    │  ┌───┐  │  └───┘  │  »
+        # «q_4: ──┼──┤ X ├──┼───────────────────┼─────────┼────┼──┤ X ├──┼─────────┼──»
+        # «     ┌─┴─┐└─┬─┘┌─┴─┐                 │         │  ┌─┴─┐└─┬─┘┌─┴─┐     ┌─┴─┐»
+        # «q_5: ┤ X ├──■──┤ X ├─────────────────┼─────────┼──┤ X ├──■──┤ X ├─────┤ X ├»
+        # «     └───┘     └───┘                 │         │  └───┘  │  └───┘     └───┘»
+        # «q_6: ────────────────────────────────■─────────■─────────■─────────────────»
+        # «                                                                           »
+        # «q_7: ──────────────────────────────────────────────────────────────────────»
+        # «                                                                           »
+        # «
+        # «q_0: ─────
+        # «
+        # «q_1: ─────
+        # «     ┌───┐
+        # «q_2: ┤ X ├
+        # «     └─┬─┘
+        # «q_3: ──■──
+        # «     ┌───┐
+        # «q_4: ┤ X ├
+        # «     └─┬─┘
+        # «q_5: ──■──
+        # «
+        # «q_6: ─────
+        # «
+        # «q_7: ─────
+        # «
         expected = QuantumCircuit(8)
         expected.h(0)
         expected.h(1)
@@ -294,29 +549,52 @@ class TestHoareOptimizer(QiskitTestCase):
         self.assertEqual(result, circuit_to_dag(expected))
 
     def test_control_removal(self):
-        """Should replace CX by X and CZ by Z."""
+        """Should replace CX by X."""
+
+        #      ┌───┐
+        # q_0: ┤ X ├──■──
+        #      └───┘┌─┴─┐
+        # q_1: ─────┤ X ├
+        #           └───┘
         circuit = QuantumCircuit(2)
         circuit.x(0)
         circuit.cx(0, 1)
 
+        #      ┌───┐
+        # q_0: ┤ X ├
+        #      ├───┤
+        # q_1: ┤ X ├
+        #      └───┘
         expected = QuantumCircuit(2)
         expected.x(0)
         expected.x(1)
 
         stv = Statevector.from_label("0" * circuit.num_qubits)
-        self.assertEqual(stv @ circuit, stv @ expected)
+        self.assertEqual(stv & circuit, stv & expected)
 
         pass_ = HoareOptimizer(size=5)
         result = pass_.run(circuit_to_dag(circuit))
 
         self.assertEqual(result, circuit_to_dag(expected))
 
+        # Should replace CZ by Z
+        #
+        #      ┌───┐   ┌───┐
+        # q_0: ┤ H ├─■─┤ H ├
+        #      ├───┤ │ └───┘
+        # q_1: ┤ X ├─■──────
+        #      └───┘
         circuit = QuantumCircuit(2)
         circuit.h(0)
         circuit.x(1)
         circuit.cz(0, 1)
         circuit.h(0)
 
+        #      ┌───┐┌───┐┌───┐
+        # q_0: ┤ H ├┤ Z ├┤ H ├
+        #      ├───┤└───┘└───┘
+        # q_1: ┤ X ├──────────
+        #      └───┘
         expected = QuantumCircuit(2)
         expected.h(0)
         expected.x(1)
@@ -324,7 +602,7 @@ class TestHoareOptimizer(QiskitTestCase):
         expected.h(0)
 
         stv = Statevector.from_label("0" * circuit.num_qubits)
-        self.assertEqual(stv @ circuit, stv @ expected)
+        self.assertEqual(stv & circuit, stv & expected)
 
         pass_ = HoareOptimizer(size=5)
         result = pass_.run(circuit_to_dag(circuit))
@@ -335,22 +613,28 @@ class TestHoareOptimizer(QiskitTestCase):
         """The is_identity function determines whether a pair of gates
         forms the identity, when ignoring control qubits.
         """
-        seq = [DAGNode(type="op", op=XGate().control()), DAGNode(type="op", op=XGate().control(2))]
+        seq = [DAGOpNode(op=XGate().control()), DAGOpNode(op=XGate().control(2))]
         self.assertTrue(HoareOptimizer()._is_identity(seq))
 
         seq = [
-            DAGNode(type="op", op=RZGate(-pi / 2).control()),
-            DAGNode(type="op", op=RZGate(pi / 2).control(2)),
+            DAGOpNode(op=RZGate(-pi / 2).control()),
+            DAGOpNode(op=RZGate(pi / 2).control(2)),
         ]
         self.assertTrue(HoareOptimizer()._is_identity(seq))
 
-        seq = [DAGNode(type="op", op=CSwapGate()), DAGNode(type="op", op=SwapGate())]
+        seq = [DAGOpNode(op=CSwapGate()), DAGOpNode(op=SwapGate())]
         self.assertTrue(HoareOptimizer()._is_identity(seq))
 
     def test_multiple_pass(self):
         """Verify that multiple pass can be run
         with the same Hoare instance.
         """
+
+        #      ┌───┐┌───┐
+        # q_0:─┤ H ├┤ Z ├─
+        #      ├───┤└───┘
+        # q_1: ┤ Z ├──────
+        #      └───┘
         circuit1 = QuantumCircuit(2)
         circuit1.z(0)
         circuit1.h(1)
@@ -361,6 +645,10 @@ class TestHoareOptimizer(QiskitTestCase):
         circuit2.h(0)
         circuit2.z(0)
 
+        #      ┌───┐┌───┐
+        # q_0:─┤ H ├┤ Z ├─
+        #      └───┘└───┘
+        # q_1: ───────────
         expected = QuantumCircuit(2)
         expected.h(0)
         expected.z(0)

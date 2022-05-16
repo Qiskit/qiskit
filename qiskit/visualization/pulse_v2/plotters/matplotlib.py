@@ -24,6 +24,7 @@ from matplotlib.patches import Rectangle
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import core, drawings, types
 from qiskit.visualization.pulse_v2.plotters.base_plotter import BasePlotter
+from qiskit.visualization.utils import matplotlib_close_if_inline
 
 
 class Mpl2DPlotter(BasePlotter):
@@ -108,7 +109,7 @@ class Mpl2DPlotter(BasePlotter):
                         self.ax.plot(x, y, **data.styles)
                 elif isinstance(data, drawings.TextData):
                     # text object
-                    text = fr"${data.latex}$" if data.latex else data.text
+                    text = rf"${data.latex}$" if data.latex else data.text
                     # replace dynamic text
                     text = text.replace(types.DynamicString.SCALE, f"{chart.scale:.1f}")
                     self.ax.text(x=x[0], y=y[0], s=text, **data.styles)
@@ -195,8 +196,7 @@ class Mpl2DPlotter(BasePlotter):
         Returns:
             Matplotlib figure data.
         """
-        if matplotlib.get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-            plt.close(self.figure)
+        matplotlib_close_if_inline(self.figure)
 
         if self.figure and interactive:
             self.figure.show()

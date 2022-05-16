@@ -13,11 +13,13 @@
 """Rotation around the Y axis."""
 
 import math
+from typing import Optional, Union
 import numpy
 from qiskit.qasm import pi
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 class RYGate(Gate):
@@ -37,14 +39,14 @@ class RYGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        RY(\theta) = exp(-i \th Y) =
+        RY(\theta) = \exp\left(-i \th Y\right) =
             \begin{pmatrix}
                 \cos{\th} & -\sin{\th} \\
                 \sin{\th} & \cos{\th}
             \end{pmatrix}
     """
 
-    def __init__(self, theta, label=None):
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RY gate."""
         super().__init__("ry", 1, [theta], label=label)
 
@@ -64,7 +66,12 @@ class RYGate(Gate):
 
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Return a (multi-)controlled-RY gate.
 
         Args:
@@ -151,7 +158,12 @@ class CRYGate(ControlledGate):
                 \end{pmatrix}
     """
 
-    def __init__(self, theta, label=None, ctrl_state=None):
+    def __init__(
+        self,
+        theta: ParameterValueType,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Create new CRY gate."""
         super().__init__(
             "cry",
@@ -174,6 +186,10 @@ class CRYGate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
 
+        # q_0: ─────────────■───────────────■──
+        #      ┌─────────┐┌─┴─┐┌─────────┐┌─┴─┐
+        # q_1: ┤ Ry(λ/2) ├┤ X ├┤ Ry(λ/2) ├┤ X ├
+        #      └─────────┘└───┘└─────────┘└───┘
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [

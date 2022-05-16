@@ -13,7 +13,10 @@
 Optimized list of Pauli operators
 """
 
+from collections import defaultdict
+
 import numpy as np
+import retworkx as rx
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
@@ -71,7 +74,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         z = np.array([[True, True], [False, False]])
         x = np.array([[False, True], [True, False]])
         phase = np.array([0, 1])
-        pauli_list = PauliList.from_symplectic(z, x)
+        pauli_list = PauliList.from_symplectic(z, x, phase)
         print("4. ", pauli_list)
 
     **Data Access**
@@ -130,10 +133,15 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
     # Representation conversions
     # ---------------------------------------------------------------------
 
+    @property
+    def settings(self):
+        """Return settings."""
+        return {"data": self.to_labels()}
+
     def __array__(self, dtype=None):
         """Convert to numpy array"""
         # pylint: disable=unused-argument
-        shape = (len(self),) + 2 * (2 ** self.num_qubits,)
+        shape = (len(self),) + 2 * (2**self.num_qubits,)
         ret = np.zeros(shape, dtype=complex)
         for i, mat in enumerate(self.matrix_iter()):
             ret[i] = mat
@@ -284,7 +292,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             if len(index) == 1:
                 index = index[0]
             elif len(index) > 2:
-                raise IndexError("Invalid PauliList index {}".format(index))
+                raise IndexError(f"Invalid PauliList index {index}")
 
         # Row-only indexing
         if isinstance(index, (int, np.integer)):
@@ -309,7 +317,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             if len(index) == 1:
                 index = index[0]
             elif len(index) > 2:
-                raise IndexError("Invalid PauliList index {}".format(index))
+                raise IndexError(f"Invalid PauliList index {index}")
 
         # Modify specified rows of the PauliList
         if not isinstance(value, PauliList):
@@ -629,11 +637,6 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         """
         if not isinstance(other, PauliList):
             other = PauliList(other)
-        if len(other) not in [1, len(self)]:
-            raise QiskitError(
-                "Incompatible PauliLists. Other list must "
-                "have either 1 or the same number of Paulis."
-            )
         return PauliList(super().tensor(other))
 
     def expand(self, other):
@@ -720,7 +723,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
                                   (Default: None)
 
         Returns:
-            PauliList: the concatinated list self + other.
+            PauliList: the concatenated list self + other.
         """
         if qargs is None:
             qargs = getattr(other, "qargs", None)
@@ -738,9 +741,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         else:
             # Pad other with identity and then add
             padded = BasePauli(
-                np.zeros((self.size, self.num_qubits), dtype=bool),
-                np.zeros((self.size, self.num_qubits), dtype=bool),
-                np.zeros(self.size, dtype=int),
+                np.zeros((other.size, self.num_qubits), dtype=bool),
+                np.zeros((other.size, self.num_qubits), dtype=bool),
+                np.zeros(other.size, dtype=int),
             )
             padded = padded.compose(other, qargs=qargs, inplace=True)
             base_z = np.vstack([self._z, padded._z])
@@ -864,14 +867,18 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             inds = inds[new_inds]
         return inds
 
-    def evolve(self, other, qargs=None):
+    def evolve(self, other, qargs=None, frame="h"):
         r"""Evolve the Pauli by a Clifford.
 
         This returns the Pauli :math:`P^\prime = C.P.C^\dagger`.
 
+        By choosing the parameter frame='s', this function returns the Schrödinger evolution of the Pauli
+        :math:`P^\prime = C.P.C^\dagger`. This option yields a faster calculation.
+
         Args:
             other (Pauli or Clifford or QuantumCircuit): The Clifford operator to evolve by.
             qargs (list): a list of qubits to apply the Clifford to.
+            frame (string): 'h' for Heisenberg or 's' for Schrödinger framework.
 
         Returns:
             Pauli: the Pauli :math:`C.P.C^\dagger`.
@@ -889,7 +896,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             # Convert to a PauliList
             other = PauliList(other)
 
-        return PauliList(super().evolve(other, qargs=qargs))
+        return PauliList(super().evolve(other, qargs=qargs, frame=frame))
 
     def to_labels(self, array=False):
         r"""Convert a PauliList to a list Pauli string labels.
@@ -982,7 +989,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         # For efficiency we also allow returning a single rank-3
         # array where first index is the Pauli row, and second two
         # indices are the matrix indices
-        dim = 2 ** self.num_qubits
+        dim = 2**self.num_qubits
         ret = np.zeros((self.size, dim, dim), dtype=complex)
         iterator = self.matrix_iter(sparse=sparse)
         for i in range(self.size):
@@ -1008,7 +1015,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             """Label representation iteration and item access."""
 
             def __repr__(self):
-                return "<PauliList_label_iterator at {}>".format(hex(id(self)))
+                return f"<PauliList_label_iterator at {hex(id(self))}>"
 
             def __getitem__(self, key):
                 return self.obj._to_label(self.obj._z[key], self.obj._x[key], self.obj._phase[key])
@@ -1035,7 +1042,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             """Matrix representation iteration and item access."""
 
             def __repr__(self):
-                return "<PauliList_matrix_iterator at {}>".format(hex(id(self)))
+                return f"<PauliList_matrix_iterator at {hex(id(self))}>"
 
             def __getitem__(self, key):
                 return self.obj._to_matrix(
@@ -1062,3 +1069,40 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         """
         base_z, base_x, base_phase = cls._from_array(z, x, phase)
         return cls(BasePauli(base_z, base_x, base_phase))
+
+    def _noncommutation_graph(self):
+        """Create an edge list representing the qubit-wise non-commutation graph.
+
+        An edge (i, j) is present if i and j are not commutable.
+
+        Returns:
+            List[Tuple(int,int)]: A list of pairs of indices of the PauliList that are not commutable.
+        """
+        # convert a Pauli operator into int vector where {I: 0, X: 2, Y: 3, Z: 1}
+        mat1 = np.array(
+            [op.z + 2 * op.x for op in self],
+            dtype=np.int8,
+        )
+        mat2 = mat1[:, None]
+        # mat3[i, j] is True if i and j are qubit-wise commutable
+        mat3 = (((mat1 * mat2) * (mat1 - mat2)) == 0).all(axis=2)
+        # convert into list where tuple elements are qubit-wise non-commuting operators
+        return list(zip(*np.where(np.triu(np.logical_not(mat3), k=1))))
+
+    def group_qubit_wise_commuting(self):
+        """Partition a PauliList into sets of mutually qubit-wise commuting Pauli strings.
+
+        Returns:
+            List[PauliList]: List of PauliLists where each PauliList contains commutable Pauli operators.
+        """
+        nodes = range(self._num_paulis)
+        edges = self._noncommutation_graph()
+        graph = rx.PyGraph()
+        graph.add_nodes_from(nodes)
+        graph.add_edges_from_no_data(edges)
+        # Keys in coloring_dict are nodes, values are colors
+        coloring_dict = rx.graph_greedy_color(graph)
+        groups = defaultdict(list)
+        for idx, color in coloring_dict.items():
+            groups[color].append(idx)
+        return [PauliList([self[i] for i in x]) for x in groups.values()]

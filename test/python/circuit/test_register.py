@@ -41,6 +41,12 @@ class TestRegisterClass(QiskitTestCase):
             _ = reg_type(1, "foo", bits)
 
     @data(QuantumRegister, ClassicalRegister, AncillaRegister)
+    def test_raise_on_init_with_duplicated_bits(self, reg_type):
+        bits = [reg_type.bit_type()] * 2
+        with self.assertRaisesRegex(CircuitError, "bits must not be duplicated"):
+            _ = reg_type(bits=bits)
+
+    @data(QuantumRegister, ClassicalRegister, AncillaRegister)
     def test_init_raise_if_bits_of_incorrect_type(self, reg_type):
         bits = [bit.Bit()]
         with self.assertRaisesRegex(CircuitError, "did not all match register type"):
@@ -50,6 +56,16 @@ class TestRegisterClass(QiskitTestCase):
     def test_init_raise_if_passed_invalid_name(self, reg_type):
         with self.assertRaisesRegex(CircuitError, "invalid OPENQASM register name"):
             _ = reg_type(size=1, name="_q")
+
+    @data(QuantumRegister, ClassicalRegister, AncillaRegister)
+    def test_init_with_zero_size(self, reg_type):
+        register = reg_type(0)
+        self.assertEqual(register.size, 0)
+
+    @data(QuantumRegister, ClassicalRegister, AncillaRegister)
+    def test_init_raise_if_negative_size(self, reg_type):
+        with self.assertRaisesRegex(CircuitError, "Register size must be non-negative"):
+            _ = reg_type(-1)
 
     @data(QuantumRegister, ClassicalRegister, AncillaRegister)
     def test_implicit_bit_construction_from_size(self, reg_type):

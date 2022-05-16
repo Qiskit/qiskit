@@ -124,7 +124,7 @@ class UserConfig:
             if transpile_optimization_level != -1:
                 if transpile_optimization_level < 0 or transpile_optimization_level > 3:
                     raise exceptions.QiskitUserConfigError(
-                        "%s is not a valid optimization level. Must be " "0, 1, 2, or 3."
+                        "%s is not a valid optimization level. Must be 0, 1, 2, or 3."
                     )
                 self.settings["transpile_optimization_level"] = transpile_optimization_level
 
@@ -138,7 +138,7 @@ class UserConfig:
             if num_processes != -1:
                 if num_processes <= 0:
                     raise exceptions.QiskitUserConfigError(
-                        "%s is not a valid number of processes. Must be " "greater than 0"
+                        "%s is not a valid number of processes. Must be greater than 0"
                     )
                 self.settings["num_processes"] = num_processes
 

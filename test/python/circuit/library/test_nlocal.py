@@ -154,15 +154,20 @@ class TestNLocal(QiskitTestCase):
         first_circuit = random_circuit(num_qubits[0], depth, seed=4220)
         # TODO Terra bug: if this is to_gate it fails, since the QC adds an instruction not gate
         nlocal = NLocal(max(num_qubits), entanglement_blocks=first_circuit.to_instruction(), reps=1)
+        nlocal2 = nlocal.copy()
+        _ = nlocal2.data
         reference.append(first_circuit, list(range(num_qubits[0])))
 
         # append the rest
         for num in num_qubits[1:]:
             circuit = random_circuit(num, depth, seed=4220)
-            nlocal.add_layer(NLocal(num, entanglement_blocks=circuit, reps=1))
+            layer = NLocal(num, entanglement_blocks=circuit, reps=1)
+            nlocal.add_layer(layer)
+            nlocal2.add_layer(layer)
             reference.append(circuit, list(range(num)))
 
         self.assertCircuitEqual(nlocal, reference)
+        self.assertCircuitEqual(nlocal2, reference)
 
     @unittest.skip("Feature missing")
     def test_iadd_overload(self):
@@ -418,6 +423,11 @@ class TestNLocal(QiskitTestCase):
 
     def test_initial_state_as_circuit_object(self):
         """Test setting `initial_state` to `QuantumCircuit` object"""
+        #           ┌───┐          ┌───┐
+        # q_0: ──■──┤ X ├───────■──┤ X ├
+        #      ┌─┴─┐├───┤┌───┐┌─┴─┐├───┤
+        # q_1: ┤ X ├┤ H ├┤ X ├┤ X ├┤ X ├
+        #      └───┘└───┘└───┘└───┘└───┘
         ref = QuantumCircuit(2)
         ref.cx(0, 1)
         ref.x(0)
@@ -560,6 +570,13 @@ class TestTwoLocal(QiskitTestCase):
         circuit = QuantumCircuit(3)
         circuit.compose(two, inplace=True)
 
+        #      ┌──────────┐┌──────────┐ ░           ░ ┌──────────┐ ┌──────────┐
+        # q_0: ┤ Ry(θ[0]) ├┤ Rz(θ[3]) ├─░──■──■─────░─┤ Ry(θ[6]) ├─┤ Rz(θ[9]) ├
+        #      ├──────────┤├──────────┤ ░  │  │     ░ ├──────────┤┌┴──────────┤
+        # q_1: ┤ Ry(θ[1]) ├┤ Rz(θ[4]) ├─░──■──┼──■──░─┤ Ry(θ[7]) ├┤ Rz(θ[10]) ├
+        #      ├──────────┤├──────────┤ ░     │  │  ░ ├──────────┤├───────────┤
+        # q_2: ┤ Ry(θ[2]) ├┤ Rz(θ[5]) ├─░─────■──■──░─┤ Ry(θ[8]) ├┤ Rz(θ[11]) ├
+        #      └──────────┘└──────────┘ ░           ░ └──────────┘└───────────┘
         reference = QuantumCircuit(3)
         param_iter = iter(two.ordered_parameters)
         for i in range(3):
@@ -611,6 +628,13 @@ class TestTwoLocal(QiskitTestCase):
         parameters = ParameterVector("theta", num_qubits * (reps + 1))
         param_iter = iter(parameters)
 
+        #      ┌──────────┐          ┌──────────┐                      ┌──────────┐
+        # q_0: ┤ Ry(θ[0]) ├──■────■──┤ Ry(θ[3]) ├──────────────■────■──┤ Ry(θ[6]) ├────────────
+        #      ├──────────┤┌─┴─┐  │  └──────────┘┌──────────┐┌─┴─┐  │  └──────────┘┌──────────┐
+        # q_1: ┤ Ry(θ[1]) ├┤ X ├──┼─────────■────┤ Ry(θ[4]) ├┤ X ├──┼─────────■────┤ Ry(θ[7]) ├
+        #      ├──────────┤└───┘┌─┴─┐     ┌─┴─┐  ├──────────┤└───┘┌─┴─┐     ┌─┴─┐  ├──────────┤
+        # q_2: ┤ Ry(θ[2]) ├─────┤ X ├─────┤ X ├──┤ Ry(θ[5]) ├─────┤ X ├─────┤ X ├──┤ Ry(θ[8]) ├
+        #      └──────────┘     └───┘     └───┘  └──────────┘     └───┘     └───┘  └──────────┘
         expected = QuantumCircuit(3)
         for _ in range(reps):
             for i in range(num_qubits):
@@ -647,6 +671,20 @@ class TestTwoLocal(QiskitTestCase):
         parameters = ParameterVector("theta", 2 * num_qubits * (reps + 1))
         param_iter = iter(parameters)
 
+        #      ┌──────────┐┌──────────┐┌───┐     ┌──────────┐┌──────────┐             »
+        # q_0: ┤ Ry(θ[0]) ├┤ Rz(θ[3]) ├┤ X ├──■──┤ Ry(θ[6]) ├┤ Rz(θ[9]) ├─────────────»
+        #      ├──────────┤├──────────┤└─┬─┘┌─┴─┐└──────────┘├──────────┤┌───────────┐»
+        # q_1: ┤ Ry(θ[1]) ├┤ Rz(θ[4]) ├──┼──┤ X ├─────■──────┤ Ry(θ[7]) ├┤ Rz(θ[10]) ├»
+        #      ├──────────┤├──────────┤  │  └───┘   ┌─┴─┐    ├──────────┤├───────────┤»
+        # q_2: ┤ Ry(θ[2]) ├┤ Rz(θ[5]) ├──■──────────┤ X ├────┤ Ry(θ[8]) ├┤ Rz(θ[11]) ├»
+        #      └──────────┘└──────────┘             └───┘    └──────────┘└───────────┘»
+        # «     ┌───┐     ┌───────────┐┌───────────┐
+        # «q_0: ┤ X ├──■──┤ Ry(θ[12]) ├┤ Rz(θ[15]) ├─────────────
+        # «     └─┬─┘┌─┴─┐└───────────┘├───────────┤┌───────────┐
+        # «q_1: ──┼──┤ X ├──────■──────┤ Ry(θ[13]) ├┤ Rz(θ[16]) ├
+        # «       │  └───┘    ┌─┴─┐    ├───────────┤├───────────┤
+        # «q_2: ──■───────────┤ X ├────┤ Ry(θ[14]) ├┤ Rz(θ[17]) ├
+        # «                   └───┘    └───────────┘└───────────┘
         expected = QuantumCircuit(3)
         for _ in range(reps):
             for i in range(num_qubits):
@@ -693,6 +731,27 @@ class TestTwoLocal(QiskitTestCase):
         parameters = ParameterVector("theta", num_qubits * (reps + 1) + reps * (num_qubits - 1))
         param_iter = iter(parameters)
 
+        #      ┌──────────┐┌────────────┐┌────────────┐ ┌──────────┐               »
+        # q_0: ┤ Rz(θ[0]) ├┤0           ├┤0           ├─┤ Rz(θ[5]) ├───────────────»
+        #      ├──────────┤│  Rxx(θ[3]) ││  Ryy(θ[3]) │┌┴──────────┴┐┌────────────┐»
+        # q_1: ┤ Rz(θ[1]) ├┤1           ├┤1           ├┤0           ├┤0           ├»
+        #      ├──────────┤└────────────┘└────────────┘│  Rxx(θ[4]) ││  Ryy(θ[4]) │»
+        # q_2: ┤ Rz(θ[2]) ├────────────────────────────┤1           ├┤1           ├»
+        #      └──────────┘                            └────────────┘└────────────┘»
+        # «                 ┌────────────┐┌────────────┐┌───────────┐               »
+        # «q_0: ────────────┤0           ├┤0           ├┤ Rz(θ[10]) ├───────────────»
+        # «     ┌──────────┐│  Rxx(θ[8]) ││  Ryy(θ[8]) │├───────────┴┐┌────────────┐»
+        # «q_1: ┤ Rz(θ[6]) ├┤1           ├┤1           ├┤0           ├┤0           ├»
+        # «     ├──────────┤└────────────┘└────────────┘│  Rxx(θ[9]) ││  Ryy(θ[9]) │»
+        # «q_2: ┤ Rz(θ[7]) ├────────────────────────────┤1           ├┤1           ├»
+        # «     └──────────┘                            └────────────┘└────────────┘»
+        # «
+        # «q_0: ─────────────
+        # «     ┌───────────┐
+        # «q_1: ┤ Rz(θ[11]) ├
+        # «     ├───────────┤
+        # «q_2: ┤ Rz(θ[12]) ├
+        # «     └───────────┘
         expected = QuantumCircuit(3)
         for _ in range(reps):
             for i in range(num_qubits):
@@ -722,6 +781,27 @@ class TestTwoLocal(QiskitTestCase):
         parameters = [1] * (num_qubits * (reps + 1) + reps * (1 + num_qubits))
         param_iter = iter(parameters)
 
+        #      ┌───────┐┌─────────┐┌─────────┐        ┌───────┐                   »
+        # q_0: ┤ Rz(1) ├┤0        ├┤0        ├─■──────┤ Rz(1) ├───────────────────»
+        #      ├───────┤│  Rxx(1) ││  Ryy(1) │ │P(1) ┌┴───────┴┐┌─────────┐       »
+        # q_1: ┤ Rz(1) ├┤1        ├┤1        ├─■─────┤0        ├┤0        ├─■─────»
+        #      ├───────┤└─────────┘└─────────┘       │  Rxx(1) ││  Ryy(1) │ │P(1) »
+        # q_2: ┤ Rz(1) ├─────────────────────────────┤1        ├┤1        ├─■─────»
+        #      └───────┘                             └─────────┘└─────────┘       »
+        # «              ┌─────────┐┌─────────┐        ┌───────┐                   »
+        # «q_0: ─────────┤0        ├┤0        ├─■──────┤ Rz(1) ├───────────────────»
+        # «     ┌───────┐│  Rxx(1) ││  Ryy(1) │ │P(1) ┌┴───────┴┐┌─────────┐       »
+        # «q_1: ┤ Rz(1) ├┤1        ├┤1        ├─■─────┤0        ├┤0        ├─■─────»
+        # «     ├───────┤└─────────┘└─────────┘       │  Rxx(1) ││  Ryy(1) │ │P(1) »
+        # «q_2: ┤ Rz(1) ├─────────────────────────────┤1        ├┤1        ├─■─────»
+        # «     └───────┘                             └─────────┘└─────────┘       »
+        # «
+        # «q_0: ─────────
+        # «     ┌───────┐
+        # «q_1: ┤ Rz(1) ├
+        # «     ├───────┤
+        # «q_2: ┤ Rz(1) ├
+        # «     └───────┘
         expected = QuantumCircuit(3)
         for _ in range(reps):
             for i in range(num_qubits):
@@ -749,6 +829,11 @@ class TestTwoLocal(QiskitTestCase):
         two = TwoLocal(2, "ry", "cx", entanglement="circular", reps=1)
         parameters = np.arange(two.num_parameters)
 
+        #      ┌───────┐     ┌───────┐
+        # q_0: ┤ Ry(0) ├──■──┤ Ry(2) ├
+        #      ├───────┤┌─┴─┐├───────┤
+        # q_1: ┤ Ry(1) ├┤ X ├┤ Ry(3) ├
+        #      └───────┘└───┘└───────┘
         ref = QuantumCircuit(2)
         ref.ry(parameters[0], 0)
         ref.ry(parameters[1], 1)

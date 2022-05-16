@@ -15,10 +15,10 @@ Fake Armonk device (5 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_pulse_backend
+from qiskit.test.mock import fake_pulse_backend, fake_backend
 
 
-class FakeArmonk(fake_pulse_backend.FakePulseBackend):
+class FakeArmonkV2(fake_backend.FakeBackendV2):
     """A fake 1 qubit backend.
 
     0
@@ -28,10 +28,10 @@ class FakeArmonk(fake_pulse_backend.FakePulseBackend):
     conf_filename = "conf_armonk.json"
     props_filename = "props_armonk.json"
     defs_filename = "defs_armonk.json"
-    backend_name = "fake_armonk"
+    backend_name = "fake_armonk_v2"
 
 
-class FakeLegacyArmonk(fake_pulse_backend.FakePulseLegacyBackend):
+class FakeArmonk(fake_pulse_backend.FakePulseBackend):
     """A fake 1 qubit backend.
 
     0

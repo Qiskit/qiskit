@@ -15,10 +15,10 @@ Fake Essex device (5 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_qasm_backend
+from qiskit.test.mock import fake_qasm_backend, fake_backend
 
 
-class FakeEssex(fake_qasm_backend.FakeQasmBackend):
+class FakeEssexV2(fake_backend.FakeBackendV2):
     """A fake 5 qubit backend.
 
     0 ↔ 1 ↔ 2
@@ -31,10 +31,10 @@ class FakeEssex(fake_qasm_backend.FakeQasmBackend):
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_essex.json"
     props_filename = "props_essex.json"
-    backend_name = "fake_essex"
+    backend_name = "fake_essex_v2"
 
 
-class FakeLegacyEssex(fake_qasm_backend.FakeQasmLegacyBackend):
+class FakeEssex(fake_qasm_backend.FakeQasmBackend):
     """A fake 5 qubit backend.
 
     0 ↔ 1 ↔ 2

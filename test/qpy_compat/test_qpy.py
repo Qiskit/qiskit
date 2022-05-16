@@ -22,10 +22,10 @@ import numpy as np
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
-from qiskit.circuit.random import random_circuit
 from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.parametervector import ParameterVector
 from qiskit.circuit.qpy_serialization import dump, load
-from qiskit.opflow import X, Y, Z
+from qiskit.opflow import X, Y, Z, I
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT
 
@@ -65,10 +65,19 @@ def generate_unitary_gate_circuit():
 def generate_random_circuits():
     """Generate multiple random circuits."""
     random_circuits = []
-    for i in range(10):
-        random_circuits.append(
-            random_circuit(10, 10, measure=True, conditional=True, reset=True, seed=42 + i)
-        )
+    for i in range(1, 15):
+        qc = QuantumCircuit(i)
+        qc.h(0)
+        if i > 1:
+            for j in range(i - 1):
+                qc.cx(0, j + 1)
+        qc.measure_all()
+        for j in range(i):
+            qc.reset(j)
+        qc.x(0).c_if(qc.cregs[0], i)
+        for j in range(i):
+            qc.measure(j, j)
+        random_circuits.append(qc)
     return random_circuits
 
 
@@ -191,6 +200,146 @@ def generate_qft_circuit():
     return qft_circ
 
 
+def generate_param_phase():
+    """Generate circuits with parameterize global phase."""
+    output_circuits = []
+    # Generate circuit with ParameterExpression global phase
+    theta = Parameter("theta")
+    phi = Parameter("phi")
+    sum_param = theta + phi
+    qc = QuantumCircuit(5, 1, global_phase=sum_param)
+    qc.h(0)
+    for i in range(4):
+        qc.cx(i, i + 1)
+    qc.barrier()
+    qc.rz(sum_param, range(3))
+    qc.rz(phi, 3)
+    qc.rz(theta, 4)
+    qc.barrier()
+    for i in reversed(range(4)):
+        qc.cx(i, i + 1)
+    qc.h(0)
+    qc.measure(0, 0)
+    output_circuits.append(qc)
+    # Generate circuit with Parameter global phase
+    theta = Parameter("theta")
+    bell_qc = QuantumCircuit(2, global_phase=theta)
+    bell_qc.h(0)
+    bell_qc.cx(0, 1)
+    bell_qc.measure_all()
+    output_circuits.append(bell_qc)
+    return output_circuits
+
+
+def generate_single_clbit_condition_teleportation():  # pylint: disable=invalid-name
+    """Generate single clbit condition teleportation circuit."""
+    qr = QuantumRegister(1)
+    cr = ClassicalRegister(2, name="name")
+    teleport_qc = QuantumCircuit(qr, cr, name="Reset Test")
+    teleport_qc.x(0)
+    teleport_qc.measure(0, cr[0])
+    teleport_qc.x(0).c_if(cr[0], 1)
+    teleport_qc.measure(0, cr[1])
+    return teleport_qc
+
+
+def generate_parameter_vector():
+    """Generate tests for parameter vector element ordering."""
+    qc = QuantumCircuit(11)
+    input_params = ParameterVector("x_par", 11)
+    user_params = ParameterVector("θ_par", 11)
+    for i, param in enumerate(user_params):
+        qc.ry(param, i)
+    for i, param in enumerate(input_params):
+        qc.rz(param, i)
+    return qc
+
+
+def generate_parameter_vector_expression():  # pylint: disable=invalid-name
+    """Generate tests for parameter vector element ordering."""
+    qc = QuantumCircuit(7)
+    entanglement = [[i, i + 1] for i in range(7 - 1)]
+    input_params = ParameterVector("x_par", 14)
+    user_params = ParameterVector("\u03B8_par", 1)
+
+    for i in range(qc.num_qubits):
+        qc.ry(user_params[0], qc.qubits[i])
+
+    for source, target in entanglement:
+        qc.cz(qc.qubits[source], qc.qubits[target])
+
+    for i in range(qc.num_qubits):
+        qc.rz(-2 * input_params[2 * i + 1], qc.qubits[i])
+        qc.rx(-2 * input_params[2 * i], qc.qubits[i])
+
+    return qc
+
+
+def generate_evolution_gate():
+    """Generate a circuit with a pauli evolution gate."""
+    # Runtime import since this only exists in terra 0.19.0
+    from qiskit.circuit.library import PauliEvolutionGate
+    from qiskit.synthesis import SuzukiTrotter
+
+    synthesis = SuzukiTrotter()
+    evo = PauliEvolutionGate([(Z ^ I) + (I ^ Z)] * 5, time=2.0, synthesis=synthesis)
+    qc = QuantumCircuit(2)
+    qc.append(evo, range(2))
+    return qc
+
+
+def generate_control_flow_circuits():
+    """Test qpy serialization with control flow instructions."""
+    from qiskit.circuit.controlflow import WhileLoopOp, IfElseOp, ForLoopOp
+
+    # If instruction
+    circuits = []
+    qc = QuantumCircuit(2, 2)
+    qc.h(0)
+    qc.measure(0, 0)
+    true_body = QuantumCircuit(1)
+    true_body.x(0)
+    if_op = IfElseOp((qc.clbits[0], True), true_body=true_body)
+    qc.append(if_op, [1])
+    qc.measure(1, 1)
+    circuits.append(qc)
+    # If else instruction
+    qc = QuantumCircuit(2, 2)
+    qc.h(0)
+    qc.measure(0, 0)
+    false_body = QuantumCircuit(1)
+    false_body.y(0)
+    if_else_op = IfElseOp((qc.clbits[0], True), true_body, false_body)
+    qc.append(if_else_op, [1])
+    qc.measure(1, 1)
+    circuits.append(qc)
+    # While loop
+    qc = QuantumCircuit(2, 1)
+    block = QuantumCircuit(2, 1)
+    block.h(0)
+    block.cx(0, 1)
+    block.measure(0, 0)
+    while_loop = WhileLoopOp((qc.clbits[0], 0), block)
+    qc.append(while_loop, [0, 1], [0])
+    circuits.append(qc)
+    # for loop range
+    qc = QuantumCircuit(2, 1)
+    body = QuantumCircuit(2, 1)
+    body.h(0)
+    body.cx(0, 1)
+    body.measure(0, 0)
+    body.break_loop().c_if(0, True)
+    for_loop_op = ForLoopOp(range(5), None, body=body)
+    qc.append(for_loop_op, [0, 1], [0])
+    circuits.append(qc)
+    # For loop iterator
+    qc = QuantumCircuit(2, 1)
+    for_loop_op = ForLoopOp(iter(range(5)), None, body=body)
+    qc.append(for_loop_op, [0, 1], [0])
+    circuits.append(qc)
+    return circuits
+
+
 def generate_circuits(version_str=None):
     """Generate reference circuits."""
     version_parts = None
@@ -210,6 +359,19 @@ def generate_circuits(version_str=None):
 
     if version_parts >= (0, 18, 1):
         output_circuits["qft_circuit.qpy"] = [generate_qft_circuit()]
+        output_circuits["teleport.qpy"] = [generate_single_clbit_condition_teleportation()]
+
+    if version_parts >= (0, 19, 0):
+        output_circuits["param_phase.qpy"] = generate_param_phase()
+
+    if version_parts >= (0, 19, 1):
+        output_circuits["parameter_vector.qpy"] = [generate_parameter_vector()]
+        output_circuits["pauli_evo.qpy"] = [generate_evolution_gate()]
+        output_circuits["parameter_vector_expression.qpy"] = [
+            generate_parameter_vector_expression()
+        ]
+    if version_parts >= (0, 19, 2):
+        output_circuits["control_flow.qpy"] = generate_control_flow_circuits()
 
     return output_circuits
 
@@ -217,6 +379,15 @@ def generate_circuits(version_str=None):
 def assert_equal(reference, qpy, count, bind=None):
     """Compare two circuits."""
     if bind is not None:
+        reference_parameter_names = [x.name for x in reference.parameters]
+        qpy_parameter_names = [x.name for x in qpy.parameters]
+        if reference_parameter_names != qpy_parameter_names:
+            msg = (
+                f"Circuit {count} parameter mismatch:"
+                f" {reference_parameter_names} != {qpy_parameter_names}"
+            )
+            sys.stderr.write(msg)
+            sys.exit(4)
         reference = reference.bind_parameters(bind)
         qpy = qpy.bind_parameters(bind)
     if reference != qpy:
@@ -227,7 +398,7 @@ def assert_equal(reference, qpy, count, bind=None):
         sys.stderr.write(msg)
         sys.exit(1)
     # Don't compare name on bound circuits
-    if not bind and reference.name != qpy.name:
+    if bind is None and reference.name != qpy.name:
         msg = f"Circuit {count} name mismatch {reference.name} != {qpy.name}"
         sys.stderr.write(msg)
         sys.exit(2)
@@ -247,13 +418,23 @@ def generate_qpy(qpy_files):
 def load_qpy(qpy_files):
     """Load qpy circuits from files and compare to reference circuits."""
     for path, circuits in qpy_files.items():
-        print("Loading qpy file: %s" % path)
+        print(f"Loading qpy file: {path}")
         with open(path, "rb") as fd:
             qpy_circuits = load(fd)
         for i, circuit in enumerate(circuits):
             bind = None
             if path == "parameterized.qpy":
                 bind = [1, 2]
+            elif path == "param_phase.qpy":
+                if i == 0:
+                    bind = [1, 2]
+                else:
+                    bind = [1]
+            elif path == "parameter_vector.qpy":
+                bind = np.linspace(1.0, 2.0, 22)
+            elif path == "parameter_vector_expression.qpy":
+                bind = np.linspace(1.0, 2.0, 15)
+
             assert_equal(circuit, qpy_circuits[i], i, bind=bind)
 
 
@@ -263,9 +444,11 @@ def _main():
     parser.add_argument(
         "--version",
         "-v",
-        help="Optionally specify the version being tested. "
-        "This will enable additional circuit features "
-        "to test generating and loading QPY.",
+        help=(
+            "Optionally specify the version being tested. "
+            "This will enable additional circuit features "
+            "to test generating and loading QPY."
+        ),
     )
     args = parser.parse_args()
     qpy_files = generate_circuits(args.version)

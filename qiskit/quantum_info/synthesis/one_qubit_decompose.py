@@ -17,7 +17,6 @@ Decompose a single-qubit unitary via Euler angles.
 import math
 import cmath
 import numpy as np
-import scipy.linalg as la
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -158,9 +157,9 @@ class OneQubitEulerDecomposer:
 
         # Check input is a 2-qubit unitary
         if unitary.shape != (2, 2):
-            raise QiskitError("OneQubitEulerDecomposer: " "expected 2x2 input matrix")
+            raise QiskitError("OneQubitEulerDecomposer: expected 2x2 input matrix")
         if not is_unitary_matrix(unitary):
-            raise QiskitError("OneQubitEulerDecomposer: " "input matrix is not unitary.")
+            raise QiskitError("OneQubitEulerDecomposer: input matrix is not unitary.")
         return self._decompose(unitary, simplify=simplify, atol=atol)
 
     def _decompose(self, unitary, simplify=True, atol=DEFAULT_ATOL):
@@ -221,6 +220,8 @@ class OneQubitEulerDecomposer:
     @staticmethod
     def _params_zyz(mat):
         """Return the Euler angles and phase for the ZYZ basis."""
+        import scipy.linalg as la
+
         # We rescale the input matrix to be special unitary (det(U) = 1)
         # This ensures that the quaternion representation is real
         coeff = la.det(mat) ** (-0.5)

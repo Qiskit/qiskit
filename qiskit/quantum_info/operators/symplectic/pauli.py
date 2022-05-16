@@ -15,13 +15,14 @@ N-qubit Pauli Operator Class
 # pylint: disable=invalid-name
 # pylint: disable=bad-docstring-quotes  # for deprecate_function decorator
 
-from typing import Dict
 import re
+from typing import Dict
 
 import numpy as np
 
 from qiskit.circuit import Instruction, QuantumCircuit
 from qiskit.circuit.barrier import Barrier
+from qiskit.circuit.delay import Delay
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
 from qiskit.exceptions import QiskitError
@@ -178,8 +179,7 @@ class Pauli(BasePauli):
         elif isinstance(data, tuple):
             if len(data) not in [2, 3]:
                 raise QiskitError(
-                    "Invalid input tuple for Pauli, input tuple must be"
-                    " `(z, x, phase)` or `(z, x)`"
+                    "Invalid input tuple for Pauli, input tuple must be `(z, x, phase)` or `(z, x)`"
                 )
             base_z, base_x, base_phase = self._from_array(*data)
         elif isinstance(data, str):
@@ -202,6 +202,16 @@ class Pauli(BasePauli):
         if base_z.shape[0] != 1:
             raise QiskitError("Input is not a single Pauli")
         super().__init__(base_z, base_x, base_phase)
+
+    @property
+    def name(self):
+        """Unique string identifier for operation type."""
+        return "pauli"
+
+    @property
+    def num_clbits(self):
+        """Number of classical bits."""
+        return 0
 
     def __repr__(self):
         """Display representation."""
@@ -547,14 +557,18 @@ class Pauli(BasePauli):
         """
         return np.logical_not(self.commutes(other, qargs=qargs))
 
-    def evolve(self, other, qargs=None):
+    def evolve(self, other, qargs=None, frame="h"):
         r"""Heisenberg picture evolution of a Pauli by a Clifford.
 
         This returns the Pauli :math:`P^\prime = C^\dagger.P.C`.
 
+        By choosing the parameter frame='s', this function returns the Schrödinger evolution of the Pauli
+        :math:`P^\prime = C.P.C^\dagger`. This option yields a faster calculation.
+
         Args:
             other (Pauli or Clifford or QuantumCircuit): The Clifford operator to evolve by.
             qargs (list): a list of qubits to apply the Clifford to.
+            frame (string): 'h' for Heisenberg or 's' for Schrödinger framework.
 
         Returns:
             Pauli: the Pauli :math:`C^\dagger.P.C`.
@@ -572,7 +586,7 @@ class Pauli(BasePauli):
             # Convert to a Pauli
             other = Pauli(other)
 
-        return Pauli(super().evolve(other, qargs=qargs))
+        return Pauli(super().evolve(other, qargs=qargs, frame=frame))
 
     # ---------------------------------------------------------------------
     # Initialization helper functions
@@ -601,20 +615,12 @@ class Pauli(BasePauli):
         phase = 0 if not coeff else _phase_from_label(coeff)
 
         # Convert to Symplectic representation
-        num_qubits = len(pauli)
-        base_z = np.zeros((1, num_qubits), dtype=bool)
-        base_x = np.zeros((1, num_qubits), dtype=bool)
-        base_phase = np.array([phase], dtype=int)
-        for i, char in enumerate(pauli):
-            if char == "X":
-                base_x[0, num_qubits - 1 - i] = True
-            elif char == "Z":
-                base_z[0, num_qubits - 1 - i] = True
-            elif char == "Y":
-                base_x[0, num_qubits - 1 - i] = True
-                base_z[0, num_qubits - 1 - i] = True
-                base_phase += 1
-        return base_z, base_x, base_phase % 4
+        pauli_bytes = np.frombuffer(pauli.encode("ascii"), dtype=np.uint8)[::-1]
+        ys = pauli_bytes == ord("Y")
+        base_x = np.logical_or(pauli_bytes == ord("X"), ys).reshape(1, -1)
+        base_z = np.logical_or(pauli_bytes == ord("Z"), ys).reshape(1, -1)
+        base_phase = np.array([(phase + np.count_nonzero(ys)) % 4], dtype=int)
+        return base_z, base_x, base_phase
 
     @classmethod
     def _from_scalar_op(cls, op):
@@ -676,7 +682,7 @@ class Pauli(BasePauli):
                 raise QiskitError(
                     f"Cannot apply instruction with classical registers: {dinstr.name}"
                 )
-            if not isinstance(dinstr, Barrier):
+            if not isinstance(dinstr, (Barrier, Delay)):
                 next_instr = BasePauli(*cls._from_circuit(dinstr))
                 if next_instr is not None:
                     qargs = [tup.index for tup in qregs]
@@ -835,7 +841,7 @@ class Pauli(BasePauli):
         if indices is None:
             if len(self.z) != len(z):
                 raise QiskitError(
-                    "During updating whole z, you can not " "change the number of qubits."
+                    "During updating whole z, you can not change the number of qubits."
                 )
             self.z = z
         else:
@@ -872,7 +878,7 @@ class Pauli(BasePauli):
         if indices is None:
             if len(self.x) != len(x):
                 raise QiskitError(
-                    "During updating whole x, you can not change " "the number of qubits."
+                    "During updating whole x, you can not change the number of qubits."
                 )
             self.x = x
         else:
@@ -1024,7 +1030,9 @@ class Pauli(BasePauli):
             Pauli: the random pauli
         """
         # pylint: disable=cyclic-import
-        from qiskit.quantum_info.operators.symplectic.random import random_pauli
+        from qiskit.quantum_info.operators.symplectic.random import (
+            random_pauli,
+        )
 
         return random_pauli(num_qubits, group_phase=False, seed=seed)
 
@@ -1042,7 +1050,7 @@ def _split_pauli_label(label):
     if span[1] != len(label):
         invalid = set(re.sub(r"[IXYZ]+", "", label[span[0] :]))
         raise QiskitError(
-            "Pauli string contains invalid characters " "{} ∉ ['I', 'X', 'Y', 'Z']".format(invalid)
+            f"Pauli string contains invalid characters {invalid} ∉ ['I', 'X', 'Y', 'Z']"
         )
     return pauli, coeff
 
@@ -1053,7 +1061,7 @@ def _phase_from_label(label):
     label = label.replace("+", "", 1).replace("1", "", 1).replace("j", "i", 1)
     phases = {"": 0, "-i": 1, "-": 2, "i": 3}
     if label not in phases:
-        raise QiskitError("Invalid Pauli phase label '{}'".format(label))
+        raise QiskitError(f"Invalid Pauli phase label '{label}'")
     return phases[label]
 
 

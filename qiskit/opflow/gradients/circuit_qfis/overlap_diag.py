@@ -124,7 +124,7 @@ class OverlapDiag(CircuitQFI):
 
             if len(gate.params) != 1:
                 raise TypeError(
-                    "OverlapDiag cannot yet support gates with more than one " "parameter."
+                    "OverlapDiag cannot yet support gates with more than one parameter."
                 )
 
             param_value = gate.params[0]
@@ -141,7 +141,7 @@ class OverlapDiag(CircuitQFI):
             rotated_op = PauliExpectation().convert(op)
             diag.append(rotated_op)
 
-        grad_op = ListOp(diag, combo_fn=lambda x: np.diag(np.real([1 - y ** 2 for y in x])))
+        grad_op = ListOp(diag, combo_fn=lambda x: np.diag(np.real([1 - y**2 for y in x])))
         return grad_op
 
 

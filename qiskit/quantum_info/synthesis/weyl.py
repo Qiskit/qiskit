@@ -15,51 +15,54 @@
 """
 
 import numpy as np
-import scipy.linalg as la
-from qiskit.exceptions import QiskitError
 
-_B = (1.0 / np.sqrt(2)) * np.array(
-    [[1, 1j, 0, 0], [0, 0, 1j, 1], [0, 0, 1j, -1], [1, -1j, 0, 0]], dtype=complex
-)
-_Bd = _B.T.conj()
+# "Magic" basis used for the Weyl decomposition. The basis and its adjoint are stored individually
+# unnormalized, but such that their matrix multiplication is still the identity.  This is because
+# they are only used in unitary transformations (so it's safe to do so), and `sqrt(0.5)` is not
+# exactly representable in floating point.  Doing it this way means that every element of the matrix
+# is stored exactly correctly, and the multiplication is _exactly_ the identity rather than
+# differing by 1ULP.
+_B_nonnormalized = np.array([[1, 1j, 0, 0], [0, 0, 1j, 1], [0, 0, 1j, -1], [1, -1j, 0, 0]])
+_B_nonnormalized_dagger = 0.5 * _B_nonnormalized.conj().T
+
+
+def transform_to_magic_basis(U, reverse=False):
+    """Transform the 4-by-4 matrix ``U`` into the magic basis.
+
+    This method internally uses non-normalized versions of the basis to minimize the floating-point
+    errors that arise during the transformation.
+
+    Args:
+        U (np.ndarray): 4-by-4 matrix to transform.
+        reverse (bool): Whether to do the transformation forwards (``B @ U @ B.conj().T``, the
+        default) or backwards (``B.conj().T @ U @ B``).
+
+    Returns:
+        np.ndarray: The transformed 4-by-4 matrix.
+    """
+    if reverse:
+        return _B_nonnormalized_dagger @ U @ _B_nonnormalized
+    return _B_nonnormalized @ U @ _B_nonnormalized_dagger
 
 
 def weyl_coordinates(U):
-    """Computes the Weyl coordinates for
-    a given two-qubit unitary matrix.
+    """Computes the Weyl coordinates for a given two-qubit unitary matrix.
 
     Args:
-        U (ndarray): Input two-qubit unitary.
+        U (np.ndarray): Input two-qubit unitary.
 
     Returns:
-        ndarray: Array of Weyl coordinates.
-
-    Raises:
-        QiskitError: Computed coordinates not in Weyl chamber.
+        np.ndarray: Array of the 3 Weyl coordinates.
     """
+    import scipy.linalg as la
+
     pi2 = np.pi / 2
     pi4 = np.pi / 4
 
     U = U / la.det(U) ** (0.25)
-    Up = _Bd.dot(U).dot(_B)
-    M2 = Up.T.dot(Up)
-
-    # M2 is a symmetric complex matrix. We need to decompose it as M2 = P D P^T where
-    # P ∈ SO(4), D is diagonal with unit-magnitude elements.
-    # D, P = la.eig(M2)  # this can fail for certain kinds of degeneracy
-    for _ in range(3):  # FIXME: this randomized algorithm is horrendous
-        M2real = np.random.normal() * M2.real + np.random.normal() * M2.imag
-        _, P = la.eigh(M2real)
-        D = P.T.dot(M2).dot(P).diagonal()
-        if np.allclose(P.dot(np.diag(D)).dot(P.T), M2, rtol=1.0e-10, atol=1.0e-10):
-            break
-    else:
-        raise QiskitError(
-            "TwoQubitWeylDecomposition: failed to diagonalize M2. "
-            "Please submit this output to "
-            "https://github.com/Qiskit/qiskit-terra/issues/4159 "
-            "Input %s" % U.tolist()
-        )
+    Up = transform_to_magic_basis(U, reverse=True)
+    # We only need the eigenvalues of `M2 = Up.T @ Up` here, not the full diagonalization.
+    D = la.eigvals(Up.T @ Up)
 
     d = -np.angle(D) / 2
     d[3] = -d[0] - d[1] - d[2]

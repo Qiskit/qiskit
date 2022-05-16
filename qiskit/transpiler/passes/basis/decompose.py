@@ -49,7 +49,7 @@ class Decompose(TransformationPass):
     def gate(self) -> Gate:
         """Returns the gate"""
         warnings.warn(
-            "The gate argument is deprecated as of 0.18.0, and "
+            "The gate argument is deprecated as of qiskit-terra 0.19.0, and "
             "will be removed no earlier than 3 months after that "
             "release date. You should use the gates_to_decompose argument "
             "instead.",
@@ -66,7 +66,7 @@ class Decompose(TransformationPass):
             value (Gate): new value for gate
         """
         warnings.warn(
-            "The gate argument is deprecated as of 0.18.0, and "
+            "The gate argument is deprecated as of qiskit-terra 0.19.0, and "
             "will be removed no earlier than 3 months after that "
             "release date. You should use the gates_to_decompose argument "
             "instead.",
@@ -87,7 +87,7 @@ class Decompose(TransformationPass):
         # Walk through the DAG and expand each non-basis node
         for node in dag.op_nodes():
             if self._should_decompose(node):
-                if not node.op.definition:
+                if node.op.definition is None:
                     continue
                 # TODO: allow choosing among multiple decomposition rules
                 rule = node.op.definition.data

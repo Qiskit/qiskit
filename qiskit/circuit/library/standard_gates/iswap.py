@@ -12,6 +12,7 @@
 
 """iSWAP gate."""
 
+from typing import Optional
 import numpy as np
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -47,8 +48,8 @@ class iSwapGate(Gate):
 
     .. math::
 
-        iSWAP = R_{XX+YY}(-\frac{\pi}{2})
-          = exp(i \frac{\pi}{4} (X{\otimes}X+Y{\otimes}Y)) =
+        iSWAP = R_{XX+YY}\left(-\frac{\pi}{2}\right)
+          = \exp\left(i \frac{\pi}{4} \left(X{\otimes}X+Y{\otimes}Y\right)\right) =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 0 & i & 0 \\
@@ -75,9 +76,9 @@ class iSwapGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self):
+    def __init__(self, label: Optional[str] = None):
         """Create new iSwap gate."""
-        super().__init__("iswap", 2, [])
+        super().__init__("iswap", 2, [], label=label)
 
     def _define(self):
         """

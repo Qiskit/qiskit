@@ -209,7 +209,7 @@ class ControlledGate(Gate):
         if self.base_gate:
             return self.base_gate.params
         else:
-            raise CircuitError("Controlled gate does not define base gate " "for extracting params")
+            raise CircuitError("Controlled gate does not define base gate for extracting params")
 
     @params.setter
     def params(self, parameters):
@@ -224,7 +224,7 @@ class ControlledGate(Gate):
         if self.base_gate:
             self.base_gate.params = parameters
         else:
-            raise CircuitError("Controlled gate does not define base gate " "for extracting params")
+            raise CircuitError("Controlled gate does not define base gate for extracting params")
 
     def __deepcopy__(self, _memo=None):
         cpy = copy.copy(self)
@@ -236,7 +236,7 @@ class ControlledGate(Gate):
     @property
     def _open_ctrl(self) -> bool:
         """Return whether gate has any open controls"""
-        return self.ctrl_state < 2 ** self.num_ctrl_qubits - 1
+        return self.ctrl_state < 2**self.num_ctrl_qubits - 1
 
     def __eq__(self, other) -> bool:
         return (

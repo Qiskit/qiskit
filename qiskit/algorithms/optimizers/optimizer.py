@@ -12,14 +12,92 @@
 
 """Optimizer interface"""
 
-from typing import Dict, Any
+from typing import Dict, Any, Union, Callable, Optional, Tuple, List
 
+import warnings
 from enum import IntEnum
 import logging
 from abc import ABC, abstractmethod
 import numpy as np
 
+from qiskit.algorithms.algorithm_result import AlgorithmResult
+
 logger = logging.getLogger(__name__)
+
+POINT = Union[float, np.ndarray]
+
+
+class OptimizerResult(AlgorithmResult):
+    """The result of an optimization routine."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._x = None  # pylint: disable=invalid-name
+        self._fun = None
+        self._jac = None
+        self._nfev = None
+        self._njev = None
+        self._nit = None
+
+    @property
+    def x(self) -> Optional[POINT]:
+        """The final point of the minimization."""
+        return self._x
+
+    @x.setter
+    def x(self, x: Optional[POINT]) -> None:
+        """Set the final point of the minimization."""
+        self._x = x
+
+    @property
+    def fun(self) -> Optional[float]:
+        """The final value of the minimization."""
+        return self._fun
+
+    @fun.setter
+    def fun(self, fun: Optional[float]) -> None:
+        """Set the final value of the minimization."""
+        self._fun = fun
+
+    @property
+    def jac(self) -> Optional[POINT]:
+        """The final gradient of the minimization."""
+        return self._jac
+
+    @jac.setter
+    def jac(self, jac: Optional[POINT]) -> None:
+        """Set the final gradient of the minimization."""
+        self._jac = jac
+
+    @property
+    def nfev(self) -> Optional[int]:
+        """The total number of function evaluations."""
+        return self._nfev
+
+    @nfev.setter
+    def nfev(self, nfev: Optional[int]) -> None:
+        """Set the total number of function evaluations."""
+        self._nfev = nfev
+
+    @property
+    def njev(self) -> Optional[int]:
+        """The total number of gradient evaluations."""
+        return self._njev
+
+    @njev.setter
+    def njev(self, njev: Optional[int]) -> None:
+        """Set the total number of gradient evaluations."""
+        self._njev = njev
+
+    @property
+    def nit(self) -> Optional[int]:
+        """The total number of iterations."""
+        return self._njev
+
+    @nit.setter
+    def nit(self, nit: Optional[int]) -> None:
+        """Set the total number of iterations."""
+        self._nit = nit
 
 
 class OptimizerSupportLevel(IntEnum):
@@ -166,11 +244,33 @@ class Optimizer(ABC):
         """
         raise NotImplementedError("The settings method is not implemented per default.")
 
-    @abstractmethod
+    # TODO make abstract after the deprecation period
+    # @abstractmethod
+    def minimize(
+        self,
+        fun: Callable[[POINT], float],
+        x0: POINT,
+        jac: Optional[Callable[[POINT], POINT]] = None,
+        bounds: Optional[List[Tuple[float, float]]] = None,
+    ) -> OptimizerResult:
+        """Minimize the scalar function.
+
+        Args:
+            fun: The scalar function to minimize.
+            x0: The initial point for the minimization.
+            jac: The gradient of the scalar function ``fun``.
+            bounds: Bounds for the variables of ``fun``. This argument might be ignored if the
+                optimizer does not support bounds.
+
+        Returns:
+            The result of the optimization, containing e.g. the result as attribute ``x``.
+        """
+        raise NotImplementedError()
+
     def optimize(
         self,
         num_vars,
-        objective_function,
+        objective_function,  # pylint: disable=unused-argument
         gradient_function=None,
         variable_bounds=None,
         initial_point=None,
@@ -198,6 +298,15 @@ class Optimizer(ABC):
         Raises:
             ValueError: invalid input
         """
+        warnings.warn(
+            f"The {self.__class__.__name__}.optimize method is deprecated as of Qiskit Terra "
+            "0.19.0 and will be removed no sooner than 3 months after the release date. "
+            f"Instead, use the {self.__class__.__name__}.minimize method, which mimics the "
+            "signature of scipy.optimize.minimize.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
         if initial_point is not None and len(initial_point) != num_vars:
             raise ValueError("Initial point does not match dimension")
         if variable_bounds is not None and len(variable_bounds) != num_vars:
@@ -229,7 +338,6 @@ class Optimizer(ABC):
                 "WARNING: %s does not support initial point. It will be ignored.",
                 self.__class__.__name__,
             )
-        pass
 
     @property
     def gradient_support_level(self):

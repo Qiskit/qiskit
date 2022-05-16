@@ -20,7 +20,7 @@ from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
-from qiskit.dagcircuit import DAGNode
+from qiskit.dagcircuit import DAGOpNode
 
 logger = logging.getLogger(__name__)
 
@@ -121,8 +121,7 @@ class LookaheadSwap(TransformationPass):
 
             if best_step is None:
                 raise TranspilerError(
-                    "Lookahead failed to find a swap which mapped "
-                    "gates or improved layout score."
+                    "Lookahead failed to find a swap which mapped gates or improved layout score."
                 )
 
             logger.debug(
@@ -142,7 +141,7 @@ class LookaheadSwap(TransformationPass):
             return dag
 
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
-        mapped_dag = dag._copy_circuit_metadata()
+        mapped_dag = dag.copy_empty_like()
 
         for node in mapped_gates:
             mapped_dag.apply_operation_back(op=node.op, qargs=node.qargs, cargs=node.cargs)
@@ -273,7 +272,7 @@ def _map_free_gates(layout, gates, coupling_map):
         # Gates without a partition (barrier, snapshot, save, load, noise) may
         # still have associated qubits. Look for them in the qargs.
         if not gate["partition"]:
-            qubits = [n for n in gate["graph"].nodes() if n.type == "op"][0].qargs
+            qubits = [n for n in gate["graph"].nodes() if isinstance(n, DAGOpNode)][0].qargs
 
             if not qubits:
                 continue
@@ -328,7 +327,7 @@ def _score_step(step):
 
 def _transform_gate_for_layout(gate, layout):
     """Return op implementing a virtual gate on given layout."""
-    mapped_op_node = deepcopy([n for n in gate["graph"].nodes() if n.type == "op"][0])
+    mapped_op_node = deepcopy([n for n in gate["graph"].nodes() if isinstance(n, DAGOpNode)][0])
 
     device_qreg = QuantumRegister(len(layout.get_physical_bits()), "q")
     mapped_qargs = [device_qreg[layout[a]] for a in mapped_op_node.qargs]
@@ -343,4 +342,4 @@ def _swap_ops_from_edge(edge, layout):
     qreg_edge = [device_qreg[i] for i in edge]
 
     # TODO shouldn't be making other nodes not by the DAG!!
-    return [DAGNode(op=SwapGate(), qargs=qreg_edge, cargs=[], type="op")]
+    return [DAGOpNode(op=SwapGate(), qargs=qreg_edge, cargs=[])]

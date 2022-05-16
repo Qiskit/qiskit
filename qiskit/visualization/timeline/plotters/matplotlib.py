@@ -25,6 +25,7 @@ from matplotlib.patches import Rectangle
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.timeline import core, types, drawings
 from qiskit.visualization.timeline.plotters.base_plotter import BasePlotter
+from qiskit.visualization.utils import matplotlib_close_if_inline
 
 
 class MplPlotter(BasePlotter):
@@ -119,7 +120,7 @@ class MplPlotter(BasePlotter):
             elif isinstance(data, drawings.TextData):
                 # text data
                 if data.latex is not None:
-                    s = fr"${data.latex}$"
+                    s = rf"${data.latex}$"
                 else:
                     s = data.text
 
@@ -184,8 +185,7 @@ class MplPlotter(BasePlotter):
         Returns:
             Matplotlib figure data.
         """
-        if matplotlib.get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-            plt.close(self.figure)
+        matplotlib_close_if_inline(self.figure)
 
         if self.figure and interactive:
             self.figure.show()

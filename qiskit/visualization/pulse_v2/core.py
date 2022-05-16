@@ -36,7 +36,7 @@ The `DataCanvas` and `Chart` are not exposed to users as they are implicitly
 initialized in the interface function. It is noteworthy that the data canvas is agnostic
 to plotters. This means once the canvas instance is initialized we can reuse this data
 among multiple plotters. The canvas is initialized with a stylesheet and quantum backend
-information :py:class:~`qiskit.visualization.pulse_v2.device_info.DrawerBackendInfo`.
+information :py:class:`~qiskit.visualization.pulse_v2.device_info.DrawerBackendInfo`.
 Chart instances are automatically generated when pulse program is loaded.
 
     ```python
@@ -115,7 +115,7 @@ class DrawerCanvas:
         self.disable_types = set()
 
         # data scaling
-        self.chan_scales = dict()
+        self.chan_scales = {}
 
         # global time
         self._time_range = (0, 0)
@@ -174,7 +174,7 @@ class DrawerCanvas:
 
             if t0b < t0 and t1b > t1:
                 raise VisualizationError(
-                    "Axis break is greater than time window. " "Nothing will be drawn."
+                    "Axis break is greater than time window. Nothing will be drawn."
                 )
             if t0b < t0 < t1b:
                 if t1b - t0 > self.formatter["axis_break.length"]:
@@ -357,7 +357,7 @@ class DrawerCanvas:
                 t_end = int(np.round(t_end / self.device.dt))
             else:
                 raise VisualizationError(
-                    "Setting time range with SI units requires " "backend `dt` information."
+                    "Setting time range with SI units requires backend `dt` information."
                 )
         self.time_range = (t_start, t_end)
 
@@ -433,8 +433,8 @@ class Chart:
         self.parent = parent
 
         # data stored in this channel
-        self._collections = dict()
-        self._output_dataset = dict()
+        self._collections = {}
+        self._output_dataset = {}
 
         # channel metadata
         self.index = self._cls_index()

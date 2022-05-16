@@ -17,78 +17,12 @@ Fake provider class that provides access to fake backends.
 """
 
 from qiskit.providers.provider import ProviderV1
-from qiskit.providers.baseprovider import BaseProvider
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 
 from .backends import *
 from .fake_qasm_simulator import FakeQasmSimulator
 from .fake_openpulse_2q import FakeOpenPulse2Q
 from .fake_openpulse_3q import FakeOpenPulse3Q
-
-
-class FakeProvider(ProviderV1):
-    """Dummy provider just for testing purposes.
-
-    Only filtering backends by name is implemented.
-    """
-
-    def get_backend(self, name=None, **kwargs):
-        backend = self._backends[0]
-        if name:
-            filtered_backends = [backend for backend in self._backends if backend.name() == name]
-            if not filtered_backends:
-                raise QiskitBackendNotFoundError()
-
-            backend = filtered_backends[0]
-
-        return backend
-
-    def backends(self, name=None, **kwargs):
-        return self._backends
-
-    def __init__(self):
-        self._backends = [
-            FakeAlmaden(),
-            FakeArmonk(),
-            FakeAthens(),
-            FakeBelem(),
-            FakeBoeblingen(),
-            FakeBogota(),
-            FakeBurlington(),
-            FakeCambridge(),
-            FakeCambridgeAlternativeBasis(),
-            FakeCasablanca(),
-            FakeEssex(),
-            FakeGuadalupe(),
-            FakeJohannesburg(),
-            FakeLima(),
-            FakeLondon(),
-            FakeManhattan(),
-            FakeMelbourne(),
-            FakeMontreal(),
-            FakeMumbai(),
-            FakeOpenPulse2Q(),
-            FakeOpenPulse3Q(),
-            FakeOurense(),
-            FakeParis(),
-            FakePoughkeepsie(),
-            FakeQasmSimulator(),
-            FakeQuito(),
-            FakeRochester(),
-            FakeRome(),
-            FakeRueschlikon(),
-            FakeSantiago(),
-            FakeSingapore(),
-            FakeSydney(),
-            FakeTenerife(),
-            FakeTokyo(),
-            FakeToronto(),
-            FakeValencia(),
-            FakeVigo(),
-            FakeYorktown(),
-        ]
-
-        super().__init__()
 
 
 class FakeProviderFactory:
@@ -131,7 +65,75 @@ class FakeProviderFactory:
         return self.fake_provider
 
 
-class FakeLegacyProvider(BaseProvider):
+class FakeProviderForBackendV2(ProviderV1):
+    """Dummy provider just for testing purposes.
+
+    Only filtering backends by name is implemented.
+    This class contains fake V2 backends
+    """
+
+    def get_backend(self, name=None, **kwargs):
+        backend = self._backends[0]
+        if name:
+            filtered_backends = [backend for backend in self._backends if backend.name() == name]
+            if not filtered_backends:
+                raise QiskitBackendNotFoundError()
+
+            backend = filtered_backends[0]
+
+        return backend
+
+    def backends(self, name=None, **kwargs):
+        return self._backends
+
+    def __init__(self):
+        self._backends = [
+            FakeAlmadenV2(),
+            FakeArmonkV2(),
+            FakeAthensV2(),
+            FakeBelemV2(),
+            FakeBoeblingenV2(),
+            FakeBogotaV2(),
+            FakeBrooklynV2(),
+            FakeBurlingtonV2(),
+            FakeCairoV2(),
+            FakeCambridgeV2(),
+            FakeCasablancaV2(),
+            FakeEssexV2(),
+            FakeGuadalupeV2(),
+            FakeHanoiV2(),
+            FakeJakartaV2(),
+            FakeJohannesburgV2(),
+            FakeKolkataV2(),
+            FakeLagosV2(),
+            FakeLimaV2(),
+            FakeLondonV2(),
+            FakeManhattanV2(),
+            FakeManilaV2(),
+            FakeMelbourneV2(),
+            FakeMontrealV2(),
+            FakeMumbaiV2(),
+            FakeNairobiV2(),
+            FakeOurenseV2(),
+            FakeParisV2(),
+            FakePoughkeepsieV2(),
+            FakeQuitoV2(),
+            FakeRochesterV2(),
+            FakeRomeV2(),
+            FakeSantiagoV2(),
+            FakeSingaporeV2(),
+            FakeSydneyV2(),
+            FakeTorontoV2(),
+            FakeValenciaV2(),
+            FakeVigoV2(),
+            FakeWashingtonV2(),
+            FakeYorktownV2(),
+        ]
+
+        super().__init__()
+
+
+class FakeProvider(ProviderV1):
     """Dummy provider just for testing purposes.
 
     Only filtering backends by name is implemented.
@@ -153,40 +155,53 @@ class FakeLegacyProvider(BaseProvider):
 
     def __init__(self):
         self._backends = [
-            FakeLegacyAlmaden(),
-            FakeLegacyArmonk(),
-            FakeLegacyAthens(),
-            FakeLegacyBelem(),
-            FakeLegacyBoeblingen(),
-            FakeLegacyBogota(),
-            FakeLegacyBurlington(),
-            FakeLegacyCambridge(),
-            FakeLegacyCambridgeAlternativeBasis(),
-            FakeLegacyCasablanca(),
-            FakeLegacyEssex(),
-            FakeLegacyJohannesburg(),
-            FakeLegacyLima(),
-            FakeLegacyLondon(),
-            FakeLegacyManhattan(),
-            FakeLegacyMelbourne(),
-            FakeLegacyMontreal(),
-            FakeLegacyMumbai(),
-            FakeLegacyOurense(),
-            FakeLegacyParis(),
-            FakeLegacyPoughkeepsie(),
-            FakeLegacyQuito(),
-            FakeLegacyRochester(),
-            FakeLegacyRome(),
-            FakeLegacyRueschlikon(),
-            FakeLegacySantiago(),
-            FakeLegacySingapore(),
-            FakeLegacySydney(),
-            FakeLegacyTenerife(),
-            FakeLegacyTokyo(),
-            FakeLegacyToronto(),
-            FakeLegacyValencia(),
-            FakeLegacyVigo(),
-            FakeLegacyYorktown(),
+            FakeAlmaden(),
+            FakeArmonk(),
+            FakeAthens(),
+            FakeBelem(),
+            FakeBoeblingen(),
+            FakeBogota(),
+            FakeBrooklyn(),
+            FakeBurlington(),
+            FakeCairo(),
+            FakeCambridge(),
+            FakeCambridgeAlternativeBasis(),
+            FakeCasablanca(),
+            FakeEssex(),
+            FakeGuadalupe(),
+            FakeHanoi(),
+            FakeJakarta(),
+            FakeJohannesburg(),
+            FakeKolkata(),
+            FakeLagos(),
+            FakeLima(),
+            FakeLondon(),
+            FakeManila(),
+            FakeManhattan(),
+            FakeMelbourne(),
+            FakeMontreal(),
+            FakeMumbai(),
+            FakeNairobi(),
+            FakeOpenPulse2Q(),
+            FakeOpenPulse3Q(),
+            FakeOurense(),
+            FakeParis(),
+            FakePoughkeepsie(),
+            FakeQasmSimulator(),
+            FakeQuito(),
+            FakeRochester(),
+            FakeRome(),
+            FakeRueschlikon(),
+            FakeSantiago(),
+            FakeSingapore(),
+            FakeSydney(),
+            FakeTenerife(),
+            FakeTokyo(),
+            FakeToronto(),
+            FakeValencia(),
+            FakeVigo(),
+            FakeWashington(),
+            FakeYorktown(),
         ]
 
         super().__init__()

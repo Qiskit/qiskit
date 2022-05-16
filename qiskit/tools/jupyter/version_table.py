@@ -13,12 +13,11 @@
 
 """A module for monitoring backends."""
 
-import sys
 import time
 from IPython.display import HTML, display
 from IPython.core.magic import line_magic, Magics, magics_class
 import qiskit
-from qiskit.util import local_hardware_info
+from qiskit.utils import local_hardware_info
 
 
 @magics_class
@@ -50,7 +49,9 @@ class VersionTable(Magics):
 
         local_hw_info = local_hardware_info()
         sys_info = [
-            ("Python", sys.version),
+            ("Python version", local_hw_info["python_version"]),
+            ("Python compiler", local_hw_info["python_compiler"]),
+            ("Python build", local_hw_info["python_build"]),
             ("OS", "%s" % local_hw_info["os"]),
             ("CPUs", "%s" % local_hw_info["cpus"]),
             ("Memory (Gb)", "%s" % local_hw_info["memory"]),

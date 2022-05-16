@@ -20,6 +20,27 @@ from qiskit.converters.circuit_to_dag import circuit_to_dag
 class Unroll3qOrMore(TransformationPass):
     """Recursively expands 3q+ gates until the circuit only contains 2q or 1q gates."""
 
+    def __init__(self, target=None, basis_gates=None):
+        """Initialize the Unroll3qOrMore pass
+
+        Args:
+            target (Target): The target object reprsenting the compilation
+                target. If specified any multiqubit instructions in the
+                circuit when the pass is run that are supported by the target
+                device will be left in place. If both this and ``basis_gates``
+                are specified only the target will be checked.
+            basis_gates (list): A list of basis gate names that the target
+                device supports. If specified any gate names in the circuit
+                which are present in this list will not be unrolled. If both
+                this and ``target`` are specified only the target will be used
+                for checking which gates are supported.
+        """
+        super().__init__()
+        self.target = target
+        self.basis_gates = None
+        if basis_gates is not None:
+            self.basis_gates = set(basis_gates)
+
     def run(self, dag):
         """Run the Unroll3qOrMore pass on `dag`.
 
@@ -33,6 +54,15 @@ class Unroll3qOrMore(TransformationPass):
         for node in dag.multi_qubit_ops():
             if dag.has_calibration_for(node):
                 continue
+            if self.target is not None:
+                # Treat target instructions as global since this pass can be run
+                # prior to layout and routing we don't have phsyical qubits from
+                # the circuit yet
+                if node.name in self.target:
+                    continue
+            elif self.basis_gates is not None and node.name in self.basis_gates:
+                continue
+
             # TODO: allow choosing other possible decompositions
             rule = node.op.definition.data
             if not rule:

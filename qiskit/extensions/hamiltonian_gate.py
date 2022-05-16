@@ -16,7 +16,6 @@ Gate described by the time evolution of a Hermitian Hamiltonian operator.
 
 from numbers import Number
 import numpy
-import scipy.linalg
 
 from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister, ParameterExpression
 from qiskit.quantum_info.operators.predicates import matrix_equal
@@ -62,7 +61,7 @@ class HamiltonianGate(Gate):
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
         num_qubits = int(numpy.log2(input_dim))
-        if input_dim != output_dim or 2 ** num_qubits != input_dim:
+        if input_dim != output_dim or 2**num_qubits != input_dim:
             raise ExtensionError("Input matrix is not an N-qubit operator.")
 
         # Store instruction params
@@ -80,6 +79,8 @@ class HamiltonianGate(Gate):
     def __array__(self, dtype=None):
         """Return matrix for the unitary."""
         # pylint: disable=unused-argument
+        import scipy.linalg
+
         try:
             return scipy.linalg.expm(-1j * self.params[0] * float(self.params[1]))
         except TypeError as ex:
@@ -122,9 +123,7 @@ class HamiltonianGate(Gate):
         elif isinstance(parameter, ParameterExpression) and len(parameter.parameters) == 0:
             return float(parameter)
         else:
-            raise CircuitError(
-                "invalid param type {} for gate  " "{}".format(type(parameter), self.name)
-            )
+            raise CircuitError(f"invalid param type {type(parameter)} for gate {self.name}")
 
 
 def hamiltonian(self, operator, time, qubits, label=None):

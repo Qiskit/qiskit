@@ -32,6 +32,7 @@ from qiskit.quantum_info.states import Statevector
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.visualization.state_visualization import numbers_to_latex_terms, state_to_latex
 
 logger = logging.getLogger(__name__)
 
@@ -207,6 +208,22 @@ class TestStatevector(QiskitTestCase):
             vec = self.rand_vec(4)
             self.assertEqual(Statevector(vec), Statevector(vec.tolist()))
 
+    def test_getitem(self):
+        """Test __getitem__ method"""
+        for _ in range(10):
+            vec = self.rand_vec(4)
+            state = Statevector(vec)
+            for i in range(4):
+                self.assertEqual(state[i], vec[i])
+                self.assertEqual(state[format(i, "b")], vec[i])
+
+    def test_getitem_except(self):
+        """Test __getitem__ method raises exceptions."""
+        for i in range(1, 4):
+            state = Statevector(self.rand_vec(2**i))
+            self.assertRaises(QiskitError, state.__getitem__, 2**i)
+            self.assertRaises(QiskitError, state.__getitem__, -1)
+
     def test_copy(self):
         """Test Statevector copy method"""
         for _ in range(5):
@@ -333,6 +350,29 @@ class TestStatevector(QiskitTestCase):
             self.assertEqual(state.dim, 6)
             self.assertEqual(state.dims(), (3, 2))
             assert_allclose(state.data, target)
+
+    def test_inner(self):
+        """Test inner method."""
+        for _ in range(10):
+            vec0 = Statevector(self.rand_vec(4))
+            vec1 = Statevector(self.rand_vec(4))
+            target = np.vdot(vec0.data, vec1.data)
+            result = vec0.inner(vec1)
+            self.assertAlmostEqual(result, target)
+            vec0 = Statevector(self.rand_vec(6), dims=(2, 3))
+            vec1 = Statevector(self.rand_vec(6), dims=(2, 3))
+            target = np.vdot(vec0.data, vec1.data)
+            result = vec0.inner(vec1)
+            self.assertAlmostEqual(result, target)
+
+    def test_inner_except(self):
+        """Test inner method raises exceptions."""
+        vec0 = Statevector(self.rand_vec(4))
+        vec1 = Statevector(self.rand_vec(3))
+        self.assertRaises(QiskitError, vec0.inner, vec1)
+        vec0 = Statevector(self.rand_vec(6), dims=(2, 3))
+        vec1 = Statevector(self.rand_vec(6), dims=(3, 2))
+        self.assertRaises(QiskitError, vec0.inner, vec1)
 
     def test_add(self):
         """Test add method."""
@@ -1003,7 +1043,7 @@ class TestStatevector(QiskitTestCase):
         """Test expectation_value method for Pauli op"""
         seed = 1020
         op = Pauli(pauli)
-        state = random_statevector(2 ** op.num_qubits, seed=seed)
+        state = random_statevector(2**op.num_qubits, seed=seed)
         target = state.expectation_value(op.to_matrix())
         expval = state.expectation_value(op)
         self.assertAlmostEqual(expval, target)
@@ -1013,7 +1053,7 @@ class TestStatevector(QiskitTestCase):
         """Test expectation_value method for Pauli op"""
         seed = 1020
         op = random_pauli(2, seed=seed)
-        state = random_statevector(2 ** 3, seed=seed)
+        state = random_statevector(2**3, seed=seed)
         target = state.expectation_value(op.to_matrix(), qubits)
         expval = state.expectation_value(op, qubits)
         self.assertAlmostEqual(expval, target)
@@ -1039,7 +1079,7 @@ class TestStatevector(QiskitTestCase):
         circ = transpile(state_circ, sim)
         circ.measure(qargs, range(nc))
         result = sim.run(circ, shots=shots, seed_simulator=seed).result()
-        target = np.zeros(2 ** nc, dtype=float)
+        target = np.zeros(2**nc, dtype=float)
         for i, p in result.get_counts(0).int_outcomes().items():
             target[i] = p / shots
         # Compare
@@ -1075,6 +1115,54 @@ class TestStatevector(QiskitTestCase):
         for drawtype in ["repr", "text", "latex", "latex_source", "qsphere", "hinton", "bloch"]:
             with self.subTest(msg=f"draw('{drawtype}')"):
                 sv.draw(drawtype)
+        with self.subTest(msg=" draw('latex', convention='vector')"):
+            sv.draw("latex", convention="vector")
+
+    def test_state_to_latex_for_large_statevector(self):
+        """Test conversion of large dense state vector"""
+        sv = Statevector(np.ones((2**15, 1)))
+        latex_representation = state_to_latex(sv)
+        self.assertEqual(
+            latex_representation,
+            " |000000000000000\\rangle+ |000000000000001\\rangle+ |000000000000010\\rangle+"
+            " |000000000000011\\rangle+ |000000000000100\\rangle+ |000000000000101\\rangle +"
+            " \\ldots + |111111111111011\\rangle+ |111111111111100\\rangle+"
+            " |111111111111101\\rangle+ |111111111111110\\rangle+ |111111111111111\\rangle",
+        )
+
+    def test_state_to_latex_for_large_sparse_statevector(self):
+        """Test conversion of large sparse state vector"""
+        sv = Statevector(np.eye(2**15, 1))
+        latex_representation = state_to_latex(sv)
+        self.assertEqual(latex_representation, " |000000000000000\\rangle")
+
+    def test_number_to_latex_terms(self):
+        """Test conversions of complex numbers to latex terms"""
+
+        cases = [
+            ([1 - 8e-17, 0], ["", None]),
+            ([0, -1], [None, "-"]),
+            ([0, 1], [None, ""]),
+            ([0, 1j], [None, "i"]),
+            ([-1, 1], ["-", "+"]),
+            ([0, 1j], [None, "i"]),
+            ([-1, 1j], ["-", "+i"]),
+            ([1e-16 + 1j], ["i"]),
+            ([-1 + 1e-16 * 1j], ["-"]),
+            ([-1, -1 - 1j], ["-", "+ (-1 - i)"]),
+            ([np.sqrt(2) / 2, np.sqrt(2) / 2], ["\\frac{\\sqrt{2}}{2}", "+\\frac{\\sqrt{2}}{2}"]),
+            ([1 + np.sqrt(2)], ["(1 + \\sqrt{2})"]),
+        ]
+        for numbers, latex_terms in cases:
+            terms = numbers_to_latex_terms(numbers)
+            self.assertListEqual(terms, latex_terms)
+
+    def test_statevector_draw_latex_regression(self):
+        """Test numerical rounding errors are not printed"""
+        sv = Statevector(np.array([1 - 8e-17, 8.32667268e-17j]))
+        latex_string = sv.draw(output="latex_source")
+        self.assertTrue(latex_string.startswith(" |0\\rangle"))
+        self.assertNotIn("|1\\rangle", latex_string)
 
 
 if __name__ == "__main__":

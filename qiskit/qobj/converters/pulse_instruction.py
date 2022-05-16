@@ -220,7 +220,7 @@ class InstructionToQobjConverter:
 
             if instruction.duration != duration:
                 raise QiskitError(
-                    "Acquire instructions beginning at the same time must have " "same duration."
+                    "Acquire instructions beginning at the same time must have same duration."
                 )
 
             if instruction.mem_slot:
@@ -637,7 +637,6 @@ class QobjToInstructionConverter:
         Args:
             pulse (PulseLibraryItem): Pulse to bind
         """
-        # pylint: disable=unused-variable
         pulse = library.Waveform(pulse.samples, pulse.name)
 
         @self.bind_name(pulse.name)

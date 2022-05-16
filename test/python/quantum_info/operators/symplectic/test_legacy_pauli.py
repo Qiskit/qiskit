@@ -386,13 +386,13 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(len(q.z), length)
         self.assertEqual(len(q.x), length)
         self.assertEqual(len(q.to_label()), length)
-        self.assertEqual(len(q.to_matrix()), 2 ** length)
+        self.assertEqual(len(q.to_matrix()), 2**length)
 
     def test_mul(self):
         """Test multiplication."""
         p1 = self.ref_p
         p2 = Pauli.from_label("ZXXI")
-        p3 = p1 * p2
+        p3 = p1.dot(p2)
         self.assertEqual(len(p3), 4)
         self.assertEqual(p3[:].to_label(), "ZYIY")
 

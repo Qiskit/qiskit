@@ -13,10 +13,12 @@
 """Rotation around an axis in x-y plane."""
 
 import math
+from typing import Optional
 import numpy
 from qiskit.qasm import pi
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 class RGate(Gate):
@@ -36,16 +38,18 @@ class RGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        R(\theta, \phi) = e^{-i \th (\cos{\phi} x + \sin{\phi} y)} =
+        R(\theta, \phi) = e^{-i \th \left(\cos{\phi} x + \sin{\phi} y\right)} =
             \begin{pmatrix}
                 \cos{\th} & -i e^{-i \phi} \sin{\th} \\
                 -i e^{i \phi} \sin{\th} & \cos{\th}
             \end{pmatrix}
     """
 
-    def __init__(self, theta, phi):
+    def __init__(
+        self, theta: ParameterValueType, phi: ParameterValueType, label: Optional[str] = None
+    ):
         """Create new r single-qubit gate."""
-        super().__init__("r", 1, [theta, phi])
+        super().__init__("r", 1, [theta, phi], label=label)
 
     def _define(self):
         """

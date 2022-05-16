@@ -285,3 +285,12 @@ class TestDecompose(QiskitTestCase):
         self.assertEqual(dag.op_nodes()[6].name, "mcx")
         self.assertEqual(dag.op_nodes()[7].name, "h")
         self.assertRegex(dag.op_nodes()[8].name, "circuit-")
+
+    def test_decompose_empty_gate(self):
+        """Test a gate where the definition is an empty circuit is decomposed."""
+        empty = QuantumCircuit(1)
+        circuit = QuantumCircuit(1)
+        circuit.append(empty.to_gate(), [0])
+
+        decomposed = circuit.decompose()
+        self.assertEqual(len(decomposed.data), 0)

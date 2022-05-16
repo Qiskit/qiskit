@@ -83,19 +83,19 @@ class Isometry(Instruction):
         m = np.log2(isometry.shape[1])
         if not n.is_integer() or n < 0:
             raise QiskitError(
-                "The number of rows of the isometry is not a non negative" " power of 2."
+                "The number of rows of the isometry is not a non negative power of 2."
             )
         if not m.is_integer() or m < 0:
             raise QiskitError(
-                "The number of columns of the isometry is not a non negative" " power of 2."
+                "The number of columns of the isometry is not a non negative power of 2."
             )
         if m > n:
             raise QiskitError(
-                "The input matrix has more columns than rows and hence " "it can't be an isometry."
+                "The input matrix has more columns than rows and hence it can't be an isometry."
             )
         if not is_isometry(isometry, self._epsilon):
             raise QiskitError(
-                "The input matrix has non orthonormal columns and hence " "it is not an isometry."
+                "The input matrix has non orthonormal columns and hence it is not an isometry."
             )
 
         num_qubits = int(n) + num_ancillas_zero + num_ancillas_dirty
@@ -134,7 +134,7 @@ class Isometry(Instruction):
         # Return the isometry that is left to decompose, where the columns up to index column_index
         # correspond to the firstfew columns of the identity matrix up to diag, and hence we only
         # have to save a list containing them.
-        for column_index in range(2 ** m):
+        for column_index in range(2**m):
             self._decompose_column(circuit, q, diag, remaining_isometry, column_index)
             # extract phase of the state that was sent to the basis state ket(column_index)
             diag.append(remaining_isometry[column_index, 0])
@@ -166,8 +166,8 @@ class Isometry(Instruction):
         n = int(np.log2(self.params[0].shape[0]))
 
         # MCG to set one entry to zero (preparation for disentangling with UCGate):
-        index1 = 2 * _a(k, s + 1) * 2 ** s + _b(k, s + 1)
-        index2 = (2 * _a(k, s + 1) + 1) * 2 ** s + _b(k, s + 1)
+        index1 = 2 * _a(k, s + 1) * 2**s + _b(k, s + 1)
+        index2 = (2 * _a(k, s + 1) + 1) * 2**s + _b(k, s + 1)
         target_label = n - s - 1
         # Check if a MCG is required
         if _k_s(k, s) == 0 and _b(k, s + 1) != 0 and np.abs(v[index2, k_prime]) > self._epsilon:
@@ -224,8 +224,8 @@ class Isometry(Instruction):
         squs = [
             _reverse_qubit_state(
                 [
-                    v[2 * i * 2 ** s + _b(k, s), k_prime],
-                    v[(2 * i + 1) * 2 ** s + _b(k, s), k_prime],
+                    v[2 * i * 2**s + _b(k, s), k_prime],
+                    v[(2 * i + 1) * 2**s + _b(k, s), k_prime],
                 ],
                 _k_s(k, s),
                 self._epsilon,
@@ -298,9 +298,7 @@ class Isometry(Instruction):
         if isinstance(parameter, np.ndarray):
             return parameter
         else:
-            raise CircuitError(
-                "invalid param type {} for gate  " "{}".format(type(parameter), self.name)
-            )
+            raise CircuitError(f"invalid param type {type(parameter)} for gate {self.name}")
 
     def inverse(self):
         """Return the adjoint of the unitary."""
@@ -505,11 +503,11 @@ def _merge_UCGate_and_diag(single_qubit_gates, diag):
 
 
 def _a(k, s):
-    return k // 2 ** s
+    return k // 2**s
 
 
 def _b(k, s):
-    return k - (_a(k, s) * 2 ** s)
+    return k - (_a(k, s) * 2**s)
 
 
 # given a binary representation of k with binary digits [k_{n-1},..,k_1,k_0],
