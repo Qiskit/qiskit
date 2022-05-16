@@ -133,8 +133,8 @@ def marginal_distribution(
     """Marginalize counts from an experiment over some indices of interest.
 
     Unlike :func:`~.marginal_counts` this function respects the order of
-    the input ``indices``. If the input ``indices`` list is specified the order
-    the bit indices are specified will be the output order of the bitstrings
+    the input ``indices``. If the input ``indices`` list is specified, the order
+    the bit indices will be the output order of the bitstrings
     in the marginalized output.
 
     Args:
