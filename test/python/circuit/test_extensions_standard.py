@@ -1480,7 +1480,7 @@ class TestStandardMethods(QiskitTestCase):
                     gate = gate_class(Pauli("XYZ"))
                 else:
                     gate = gate_class(*params[0:free_params])
-            except (CircuitError, QiskitError, AttributeError):
+            except (CircuitError, QiskitError, AttributeError, TypeError):
                 self.log.info("Cannot init gate with params only. Skipping %s", gate_class)
                 continue
             if gate.name in ["U", "CX"]:
@@ -1533,7 +1533,7 @@ class TestStandardMethods(QiskitTestCase):
                     gate = gate_class(Pauli("XYZ"))
                 else:
                     gate = gate_class(*params[0:free_params])
-            except (CircuitError, QiskitError, AttributeError):
+            except (CircuitError, QiskitError, AttributeError, TypeError):
                 self.log.info("Cannot init gate with params only. Skipping %s", gate_class)
                 continue
             if gate.name in ["U", "CX"]:
