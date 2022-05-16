@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    Remove deprecated :class:`operators.Pauli` and :class:`pauli_group`.
+    Remove deprecated methods in :class:`Pauli`
