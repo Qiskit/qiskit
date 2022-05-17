@@ -15,13 +15,24 @@ Fake Manila device (5 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_qasm_backend
+from qiskit.test.mock import fake_pulse_backend, fake_backend
 
 
-class FakeManila(fake_qasm_backend.FakeQasmBackend):
+class FakeManilaV2(fake_backend.FakeBackendV2):
     """A fake 5 qubit backend."""
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_manila.json"
     props_filename = "props_manila.json"
+    defs_filename = "defs_manila.json"
+    backend_name = "fake_manila_v2"
+
+
+class FakeManila(fake_pulse_backend.FakePulseBackend):
+    """A fake 5 qubit backend."""
+
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_manila.json"
+    props_filename = "props_manila.json"
+    defs_filename = "defs_manila.json"
     backend_name = "fake_manila"

@@ -20,8 +20,9 @@ from typing import Dict
 
 import numpy as np
 
-from qiskit.circuit import Instruction, QuantumCircuit, Operation
+from qiskit.circuit import Instruction, QuantumCircuit
 from qiskit.circuit.barrier import Barrier
+from qiskit.circuit.delay import Delay
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
 from qiskit.exceptions import QiskitError
@@ -31,7 +32,7 @@ from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
 from qiskit.utils.deprecation import deprecate_function
 
 
-class Pauli(BasePauli, Operation):
+class Pauli(BasePauli):
     r"""N-qubit Pauli operator.
 
     This class represents an operator :math:`P` from the full :math:`n`-qubit
@@ -556,14 +557,18 @@ class Pauli(BasePauli, Operation):
         """
         return np.logical_not(self.commutes(other, qargs=qargs))
 
-    def evolve(self, other, qargs=None):
+    def evolve(self, other, qargs=None, frame="h"):
         r"""Heisenberg picture evolution of a Pauli by a Clifford.
 
         This returns the Pauli :math:`P^\prime = C^\dagger.P.C`.
 
+        By choosing the parameter frame='s', this function returns the Schrödinger evolution of the Pauli
+        :math:`P^\prime = C.P.C^\dagger`. This option yields a faster calculation.
+
         Args:
             other (Pauli or Clifford or QuantumCircuit): The Clifford operator to evolve by.
             qargs (list): a list of qubits to apply the Clifford to.
+            frame (string): 'h' for Heisenberg or 's' for Schrödinger framework.
 
         Returns:
             Pauli: the Pauli :math:`C^\dagger.P.C`.
@@ -581,7 +586,7 @@ class Pauli(BasePauli, Operation):
             # Convert to a Pauli
             other = Pauli(other)
 
-        return Pauli(super().evolve(other, qargs=qargs))
+        return Pauli(super().evolve(other, qargs=qargs, frame=frame))
 
     # ---------------------------------------------------------------------
     # Initialization helper functions
@@ -677,7 +682,7 @@ class Pauli(BasePauli, Operation):
                 raise QiskitError(
                     f"Cannot apply instruction with classical registers: {dinstr.name}"
                 )
-            if not isinstance(dinstr, Barrier):
+            if not isinstance(dinstr, (Barrier, Delay)):
                 next_instr = BasePauli(*cls._from_circuit(dinstr))
                 if next_instr is not None:
                     qargs = [tup.index for tup in qregs]

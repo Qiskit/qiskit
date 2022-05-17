@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2021.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -47,6 +47,7 @@ Amplitude Amplifiers
    :nosignatures:
 
    AmplificationProblem
+   AmplitudeAmplifier
    Grover
    GroverResult
 
@@ -91,6 +92,23 @@ knowledge to do this in that application domain.
 
    NumPyEigensolver
 
+
+Evolvers
+--------
+
+Algorithms to evolve quantum states in time. Both real and imaginary time evolution is possible
+with algorithms that support them. For machine learning, Quantum Imaginary Time Evolution might be
+used to train Quantum Boltzmann Machine Neural Networks for example.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+    RealEvolver
+    ImaginaryEvolver
+    TrotterQRTE
+    EvolutionResult
+    EvolutionProblem
 
 Factorizers
 -----------
@@ -165,6 +183,7 @@ Algorithms that estimate the phases of eigenstates of a unitary.
    PhaseEstimationResult
    IterativePhaseEstimation
 
+
 Exceptions
 ==========
 
@@ -172,11 +191,25 @@ Exceptions
    :toctree: ../stubs/
 
    AlgorithmError
+
+
+Utility methods
+---------------
+
+Utility methods used by algorithms.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   eval_observables
 """
 
 from .algorithm_result import AlgorithmResult
+from .evolvers import EvolutionResult, EvolutionProblem
+from .evolvers.real_evolver import RealEvolver
+from .evolvers.imaginary_evolver import ImaginaryEvolver
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
-from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem
+from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem, AmplitudeAmplifier
 from .amplitude_estimators import (
     AmplitudeEstimator,
     AmplitudeEstimatorResult,
@@ -210,11 +243,14 @@ from .phase_estimators import (
     IterativePhaseEstimation,
 )
 from .exceptions import AlgorithmError
+from .aux_ops_evaluator import eval_observables
+from .evolvers.trotterization import TrotterQRTE
 
 __all__ = [
     "AlgorithmResult",
     "VariationalAlgorithm",
     "VariationalResult",
+    "AmplitudeAmplifier",
     "AmplificationProblem",
     "Grover",
     "GroverResult",
@@ -230,6 +266,11 @@ __all__ = [
     "MaximumLikelihoodAmplitudeEstimationResult",
     "EstimationProblem",
     "NumPyEigensolver",
+    "RealEvolver",
+    "ImaginaryEvolver",
+    "TrotterQRTE",
+    "EvolutionResult",
+    "EvolutionProblem",
     "LinearSolverResult",
     "Eigensolver",
     "EigensolverResult",
@@ -251,4 +292,5 @@ __all__ = [
     "PhaseEstimationResult",
     "IterativePhaseEstimation",
     "AlgorithmError",
+    "eval_observables",
 ]

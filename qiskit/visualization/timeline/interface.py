@@ -297,7 +297,7 @@ def draw(
             qc.h(0)
             qc.cx(0,1)
 
-            qc = transpile(qc, FakeAlmaden(), scheduling_method='alap')
+            qc = transpile(qc, FakeAlmaden(), scheduling_method='alap', layout_method='trivial')
             draw(qc)
 
         Drawing with the simple stylesheet.
@@ -312,7 +312,7 @@ def draw(
             qc.h(0)
             qc.cx(0,1)
 
-            qc = transpile(qc, FakeAlmaden(), scheduling_method='alap')
+            qc = transpile(qc, FakeAlmaden(), scheduling_method='alap', layout_method='trivial')
             draw(qc, style=IQXSimple())
 
         Drawing with the stylesheet suited for program debugging.
@@ -327,7 +327,7 @@ def draw(
             qc.h(0)
             qc.cx(0,1)
 
-            qc = transpile(qc, FakeAlmaden(), scheduling_method='alap')
+            qc = transpile(qc, FakeAlmaden(), scheduling_method='alap', layout_method='trivial')
             draw(qc, style=IQXDebugging())
 
         You can partially customize a preset stylesheet when call it::

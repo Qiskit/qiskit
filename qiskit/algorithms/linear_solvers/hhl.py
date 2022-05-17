@@ -29,7 +29,7 @@ from qiskit.opflow import (
     ListOp,
     ExpectationFactory,
 )
-from qiskit.providers import Backend, BaseBackend
+from qiskit.providers import Backend
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils import QuantumInstance
 
@@ -100,7 +100,7 @@ class HHL(LinearSolver):
         self,
         epsilon: float = 1e-2,
         expectation: Optional[ExpectationBase] = None,
-        quantum_instance: Optional[Union[Backend, BaseBackend, QuantumInstance]] = None,
+        quantum_instance: Optional[Union[Backend, QuantumInstance]] = None,
     ) -> None:
         r"""
         Args:
@@ -142,9 +142,7 @@ class HHL(LinearSolver):
         return None if self._sampler is None else self._sampler.quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(
-        self, quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]]
-    ) -> None:
+    def quantum_instance(self, quantum_instance: Optional[Union[QuantumInstance, Backend]]) -> None:
         """Set quantum instance.
 
         Args:
@@ -383,7 +381,7 @@ class HHL(LinearSolver):
         # Update the number of qubits required to represent the eigenvalues
         # The +neg_vals is to register negative eigenvalues because
         # e^{-2 \pi i \lambda} = e^{2 \pi i (1 - \lambda)}
-        nl = max(nb + 1, int(np.log2(kappa)) + 1) + neg_vals
+        nl = max(nb + 1, int(np.ceil(np.log2(kappa + 1)))) + neg_vals
 
         # check if the matrix can calculate bounds for the eigenvalues
         if hasattr(matrix_circuit, "eigs_bounds") and matrix_circuit.eigs_bounds() is not None:

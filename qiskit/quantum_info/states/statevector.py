@@ -31,8 +31,11 @@ from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
-# pylint: disable=no-name-in-module
-from .cython.exp_value import expval_pauli_no_x, expval_pauli_with_x
+# pylint: disable=import-error
+from qiskit._accelerate.pauli_expval import (
+    expval_pauli_no_x,
+    expval_pauli_with_x,
+)
 
 
 class Statevector(QuantumState, TolerancesMixin):
@@ -214,6 +217,12 @@ class Statevector(QuantumState, TolerancesMixin):
             return self._data[key]
         else:
             raise QiskitError("Key must be int or a valid binary string.")
+
+    def __iter__(self):
+        yield from self._data
+
+    def __len__(self):
+        return len(self._data)
 
     @property
     def data(self):

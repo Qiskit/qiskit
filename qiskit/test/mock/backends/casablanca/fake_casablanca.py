@@ -15,20 +15,20 @@ Fake Casablanca device (7 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_pulse_backend
+from qiskit.test.mock import fake_pulse_backend, fake_backend
 
 
-class FakeCasablanca(fake_pulse_backend.FakePulseBackend):
+class FakeCasablancaV2(fake_backend.FakeBackendV2):
     """A fake 7 qubit backend."""
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_casablanca.json"
     props_filename = "props_casablanca.json"
     defs_filename = "defs_casablanca.json"
-    backend_name = "fake_casablanca"
+    backend_name = "fake_casablanca_v2"
 
 
-class FakeLegacyCasablanca(fake_pulse_backend.FakePulseLegacyBackend):
+class FakeCasablanca(fake_pulse_backend.FakePulseBackend):
     """A fake 7 qubit backend."""
 
     dirname = os.path.dirname(__file__)

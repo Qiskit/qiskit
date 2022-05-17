@@ -254,6 +254,8 @@ class TestDagWireRemoval(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.dag = DAGCircuit()
+        self.dag.name = "Name"
+        self.dag.metadata = "Metadata"
         qreg = QuantumRegister(3, "qr")
         creg0 = ClassicalRegister(2, "c0")
         creg1 = ClassicalRegister(2, "c1")
@@ -345,6 +347,18 @@ class TestDagWireRemoval(QiskitTestCase):
 
         self.assert_cregs_equal(self.original_cregs)
         self.assert_clbits_equal(self.original_clbits, excluding={self.individual_clbit})
+
+    def test_copy_circuit_metadata(self):
+        """Copy dag circuit metadata with copy_empty_like."""
+        result_dag = self.dag.copy_empty_like()
+        self.assertEqual(self.dag.name, result_dag.name)
+        self.assertEqual(self.dag.metadata, result_dag.metadata)
+        self.assertEqual(self.dag.clbits, result_dag.clbits)
+        self.assertEqual(self.dag.qubits, result_dag.qubits)
+        self.assertEqual(self.dag.cregs, result_dag.cregs)
+        self.assertEqual(self.dag.qregs, result_dag.qregs)
+        self.assertEqual(self.dag.duration, result_dag.duration)
+        self.assertEqual(self.dag.unit, result_dag.unit)
 
     def test_remove_busy_clbit(self):
         """Classical bit removal of busy classical bits raises."""
@@ -1339,8 +1353,10 @@ class TestDagEquivalence(QiskitTestCase):
         from copy import deepcopy
         from collections import OrderedDict
 
-        nx_graph = self.dag1.to_networkx()
-        from_nx_dag = DAGCircuit.from_networkx(nx_graph)
+        with self.assertWarns(DeprecationWarning):
+            nx_graph = self.dag1.to_networkx()
+        with self.assertWarns(DeprecationWarning):
+            from_nx_dag = DAGCircuit.from_networkx(nx_graph)
 
         # to_/from_networkx does not preserve Registers or bit indexing,
         # so remove them from reference DAG.
@@ -1605,6 +1621,7 @@ class TestReplaceBlock(QiskitTestCase):
         expected_dag.apply_operation_back(XGate(), [qr[0]])
 
         self.assertEqual(expected_dag, dag)
+        self.assertEqual(expected_dag.count_ops(), dag.count_ops())
 
 
 class TestDagProperties(QiskitTestCase):
@@ -1845,35 +1862,6 @@ class TestConditional(QiskitTestCase):
                 ]
             ),
         )
-
-
-class TestDAGDeprecations(QiskitTestCase):
-    """Test DAG deprecations"""
-
-    def test_DAGNode_deprecations(self):
-        """Test DAGNode deprecations."""
-        from qiskit.dagcircuit import DAGNode
-
-        qr = QuantumRegister(1, "qr")
-        cr = ClassicalRegister(1, "cr")
-        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
-            op_node = DAGNode(type="op", op=HGate(), qargs=[qr[0]], cargs=[cr[0]])
-        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
-            in_node = DAGNode(type="in", wire=qr[0])
-        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
-            out_node = DAGNode(type="out", wire=cr[0])
-        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
-            _ = op_node.type
-        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
-            _ = op_node.op
-        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
-            _ = op_node.qargs
-        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
-            _ = op_node.cargs
-        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
-            _ = in_node.wire
-        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
-            _ = out_node.wire
 
 
 if __name__ == "__main__":

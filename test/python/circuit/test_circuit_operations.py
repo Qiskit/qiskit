@@ -18,7 +18,8 @@ import numpy as np
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
-from qiskit.circuit import Gate, Instruction, Parameter
+from qiskit.circuit import Gate, Instruction, Parameter, Measure
+from qiskit.circuit.bit import Bit
 from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumcircuit import BitLocations
@@ -31,6 +32,117 @@ from qiskit.quantum_info import Operator
 @ddt
 class TestCircuitOperations(QiskitTestCase):
     """QuantumCircuit Operations tests."""
+
+    @data(0, 1, -1, -2)
+    def test_append_resolves_integers(self, index):
+        """Test that integer arguments to append are correctly resolved."""
+        # We need to assume that appending ``Bit`` instances will always work, so we have something
+        # to test against.
+        qubits = [Qubit(), Qubit()]
+        clbits = [Clbit(), Clbit()]
+        test = QuantumCircuit(qubits, clbits)
+        test.append(Measure(), [index], [index])
+        expected = QuantumCircuit(qubits, clbits)
+        expected.append(Measure(), [qubits[index]], [clbits[index]])
+        self.assertEqual(test, expected)
+
+    @data(np.int32(0), np.int8(-1), np.uint64(1))
+    def test_append_resolves_numpy_integers(self, index):
+        """Test that Numpy's integers can be used to reference qubits and clbits."""
+        qubits = [Qubit(), Qubit()]
+        clbits = [Clbit(), Clbit()]
+        test = QuantumCircuit(qubits, clbits)
+        test.append(Measure(), [index], [index])
+        expected = QuantumCircuit(qubits, clbits)
+        expected.append(Measure(), [qubits[int(index)]], [clbits[int(index)]])
+        self.assertEqual(test, expected)
+
+    @data(
+        slice(0, 2),
+        slice(None, 1),
+        slice(1, None),
+        slice(None, None),
+        slice(0, 2, 2),
+        slice(2, -1, -1),
+        slice(1000, 1003),
+    )
+    def test_append_resolves_slices(self, index):
+        """Test that slices can be used to reference qubits and clbits with the same semantics that
+        they have on lists."""
+        qregs = [QuantumRegister(2), QuantumRegister(1)]
+        cregs = [ClassicalRegister(1), ClassicalRegister(2)]
+        test = QuantumCircuit(*qregs, *cregs)
+        test.append(Measure(), [index], [index])
+        expected = QuantumCircuit(*qregs, *cregs)
+        for qubit, clbit in zip(expected.qubits[index], expected.clbits[index]):
+            expected.append(Measure(), [qubit], [clbit])
+        self.assertEqual(test, expected)
+
+    def test_append_resolves_scalar_numpy_array(self):
+        """Test that size-1 Numpy arrays can be used to index arguments.  These arrays can be passed
+        to ``int``, which means they sometimes might be involved in spurious casts."""
+        test = QuantumCircuit(1, 1)
+        test.append(Measure(), [np.array([0])], [np.array([0])])
+
+        expected = QuantumCircuit(1, 1)
+        expected.measure(0, 0)
+
+        self.assertEqual(test, expected)
+
+    @data([3], [-3], [0, 1, 3])
+    def test_append_rejects_out_of_range_input(self, specifier):
+        """Test that append rejects an integer that's out of range."""
+        test = QuantumCircuit(2, 2)
+        with self.subTest("qubit"), self.assertRaisesRegex(CircuitError, "out of range"):
+            opaque = Instruction("opaque", len(specifier), 1, [])
+            test.append(opaque, specifier, [0])
+        with self.subTest("clbit"), self.assertRaisesRegex(CircuitError, "out of range"):
+            opaque = Instruction("opaque", 1, len(specifier), [])
+            test.append(opaque, [0], specifier)
+
+    def test_append_rejects_bits_not_in_circuit(self):
+        """Test that append rejects bits that are not in the circuit."""
+        test = QuantumCircuit(2, 2)
+        with self.subTest("qubit"), self.assertRaisesRegex(CircuitError, "not in the circuit"):
+            test.append(Measure(), [Qubit()], [test.clbits[0]])
+        with self.subTest("clbit"), self.assertRaisesRegex(CircuitError, "not in the circuit"):
+            test.append(Measure(), [test.qubits[0]], [Clbit()])
+        with self.subTest("qubit list"), self.assertRaisesRegex(CircuitError, "not in the circuit"):
+            test.append(Measure(), [[test.qubits[0], Qubit()]], [test.clbits])
+        with self.subTest("clbit list"), self.assertRaisesRegex(CircuitError, "not in the circuit"):
+            test.append(Measure(), [test.qubits], [[test.clbits[0], Clbit()]])
+
+    def test_append_rejects_bit_of_wrong_type(self):
+        """Test that append rejects bits of the wrong type in an argument list."""
+        qubits = [Qubit(), Qubit()]
+        clbits = [Clbit(), Clbit()]
+        test = QuantumCircuit(qubits, clbits)
+        with self.subTest("c to q"), self.assertRaisesRegex(CircuitError, "Incorrect bit type"):
+            test.append(Measure(), [clbits[0]], [clbits[1]])
+        with self.subTest("q to c"), self.assertRaisesRegex(CircuitError, "Incorrect bit type"):
+            test.append(Measure(), [qubits[0]], [qubits[1]])
+
+        with self.subTest("none to q"), self.assertRaisesRegex(CircuitError, "Incorrect bit type"):
+            test.append(Measure(), [Bit()], [clbits[0]])
+        with self.subTest("none to c"), self.assertRaisesRegex(CircuitError, "Incorrect bit type"):
+            test.append(Measure(), [qubits[0]], [Bit()])
+        with self.subTest("none list"), self.assertRaisesRegex(CircuitError, "Incorrect bit type"):
+            test.append(Measure(), [[qubits[0], Bit()]], [[clbits[0], Bit()]])
+
+    @data(0.0, 1.0, 1.0 + 0.0j, "0")
+    def test_append_rejects_wrong_types(self, specifier):
+        """Test that various bad inputs are rejected, both given loose or in sublists."""
+        test = QuantumCircuit(2, 2)
+        # Use a default Instruction to be sure that there's not overridden broadcasting.
+        opaque = Instruction("opaque", 1, 1, [])
+        with self.subTest("q"), self.assertRaisesRegex(CircuitError, "Invalid bit index"):
+            test.append(opaque, [specifier], [0])
+        with self.subTest("c"), self.assertRaisesRegex(CircuitError, "Invalid bit index"):
+            test.append(opaque, [0], [specifier])
+        with self.subTest("q list"), self.assertRaisesRegex(CircuitError, "Invalid bit index"):
+            test.append(opaque, [[specifier]], [[0]])
+        with self.subTest("c list"), self.assertRaisesRegex(CircuitError, "Invalid bit index"):
+            test.append(opaque, [[0]], [[specifier]])
 
     def test_adding_self(self):
         """Test that qc += qc finishes, which can be prone to infinite while-loops.
