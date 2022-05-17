@@ -43,8 +43,6 @@ from qiskit.circuit.library.standard_gates import (
     RZZGate,
 )
 from qiskit.quantum_info import Pauli, SparsePauliOp
-from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes import Unroller
 
 from ..base_estimator import BaseEstimator
 from ..estimator_result import EstimatorResult
