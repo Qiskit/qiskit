@@ -119,8 +119,10 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
                 for p in param.parameters:
                     gate = cls._gate_gradient(inst)
                     circuit3 = circuit2.copy()
+                    # insert `gate` to i-th position
                     circuit3.append(gate, [qr_superpos[0]] + qregs, [])
                     circuit3.data.insert(i, circuit3.data.pop())
+                    #
                     circuit3.h(qr_superpos)
                     ret[p].append((circuit3, param.gradient(p)))
         return ret
