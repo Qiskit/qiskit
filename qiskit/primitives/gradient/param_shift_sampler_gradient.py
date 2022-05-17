@@ -21,10 +21,9 @@ from typing import Sequence, Type
 
 import numpy as np
 
+from qiskit import transpile
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.result import QuasiDistribution
-from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes import Unroller
 
 from ..base_sampler import BaseSampler
 from ..sampler_result import SamplerResult
@@ -46,7 +45,6 @@ class ParamShiftSamplerGradient:
         self._circuit = circuit
         self._grad = self._preprocessing()
         circuits = [self._circuit]
-        self._param_map = {}
         for param, lst in self._grad.items():
             for arg in lst:
                 circuits.append(arg.circuit)
@@ -60,7 +58,7 @@ class ParamShiftSamplerGradient:
 
     @classmethod
     def _gradient_circuits(cls, circuit: QuantumCircuit):
-        circuit2 = PassManager([Unroller(cls.SUPPORTED_GATES)]).run(circuit)
+        circuit2 = transpile(circuit, basis_gates=cls.SUPPORTED_GATES, optimization_level=0)
         ret = defaultdict(list)
         for inst in circuit2.data:
             if inst[0].is_parameterized():
