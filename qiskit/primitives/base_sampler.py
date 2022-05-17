@@ -193,20 +193,20 @@ class BaseSampler(ABC):
 
     def __call__(
         self,
-        circuit_indices: Sequence[int | QuantumCircuit] | None = None,
+        circuits: Sequence[int | QuantumCircuit] | None = None,
         parameter_values: Sequence[Sequence[float]] | Sequence[float] | None = None,
         **run_options,
     ) -> SamplerResult:
         """Run the sampling of bitstrings.
 
         Args:
-            circuit_indices: Indices of the circuits to evaluate.
+            circuits: Indices of the circuits to evaluate.
             parameter_values: Parameters to be bound to the circuit.
             run_options: Backend runtime options used for circuit execution.
 
         Returns:
             The result of the sampler. The i-th result corresponds to
-            ``self.circuits[circuit_indices[i]]`` evaluated with parameters bound as
+            ``self.circuits[circuits[i]]`` evaluated with parameters bound as
             ``parameter_values[i]``.
 
         Raises:
@@ -218,8 +218,8 @@ class BaseSampler(ABC):
             parameter_values = parameter_values.tolist()
 
         # Allow lift
-        if circuit_indices is not None and not isinstance(circuit_indices, (np.ndarray, Sequence)):
-            circuit_indices = [circuit_indices]
+        if circuits is not None and not isinstance(circuits, (np.ndarray, Sequence)):
+            circuits = [circuits]
         if parameter_values is not None and not isinstance(
             parameter_values[0], (np.ndarray, Sequence)
         ):
@@ -227,35 +227,35 @@ class BaseSampler(ABC):
             parameter_values = [parameter_values]
 
         # Allow broadcasting
-        if circuit_indices is None and len(self._circuits) == 1 and parameter_values is not None:
-            circuit_indices = [0] * len(parameter_values)
+        if circuits is None and len(self._circuits) == 1 and parameter_values is not None:
+            circuits = [0] * len(parameter_values)
 
         # Allow optional
-        if circuit_indices is None:
-            circuit_indices = list(range(len(self._circuits)))
+        if circuits is None:
+            circuits = list(range(len(self._circuits)))
         if parameter_values is None:
-            parameter_values = [[]] * len(circuit_indices)
+            parameter_values = [[]] * len(circuits)
 
         # Allow objects
         try:
-            circuit_indices = [
+            circuits = [
                 next(_findname(circuit, self._circuit_ids))
                 if not isinstance(circuit, (int, np.integer))
                 else circuit
-                for circuit in circuit_indices
+                for circuit in circuits
             ]
         except StopIteration as err:
             raise QiskitError("The object id does not match.") from err
 
         # Validation
-        if len(circuit_indices) != len(parameter_values):
+        if len(circuits) != len(parameter_values):
             raise QiskitError(
-                f"The number of circuit indices ({len(circuit_indices)}) does not match "
+                f"The number of circuit indices ({len(circuits)}) does not match "
                 f"the number of parameter value sets ({len(parameter_values)})."
             )
 
         return self._call(
-            circuit_indices=circuit_indices,
+            circuits=circuits,
             parameter_values=parameter_values,
             **run_options,
         )
@@ -263,7 +263,7 @@ class BaseSampler(ABC):
     @abstractmethod
     def _call(
         self,
-        circuit_indices: Sequence[int],
+        circuits: Sequence[int],
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> SamplerResult:

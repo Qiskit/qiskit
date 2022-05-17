@@ -244,25 +244,25 @@ class BaseEstimator(ABC):
 
     def __call__(
         self,
-        circuit_indices: Sequence[int | QuantumCircuit] | None = None,
-        observable_indices: Sequence[int | SparsePauliOp] | None = None,
+        circuits: Sequence[int | QuantumCircuit] | None = None,
+        observables: Sequence[int | SparsePauliOp] | None = None,
         parameter_values: Sequence[Sequence[float]] | Sequence[float] | None = None,
         **run_options,
     ) -> EstimatorResult:
         """Run the estimation of expectation value(s).
 
-        ``circuit_indices``, ``observable_indices``, and ``parameter_values`` should have the same
+        ``circuits``, ``observables``, and ``parameter_values`` should have the same
         length. The i-th element of the result is the expectation of observable
 
         .. code-block:: python
 
-            obs = self.observables[observable_indices[i]]
+            obs = self.observables[observables[i]]
 
         for the state prepared by
 
         .. code-block:: python
 
-            circ = self.circuits[circuit_indices[i]]
+            circ = self.circuits[circuits[i]]
 
         with bound parameters
 
@@ -271,8 +271,8 @@ class BaseEstimator(ABC):
             values = parameter_values[i].
 
         Args:
-            circuit_indices: the list of circuit indices.
-            observable_indices: the list of observable indices.
+            circuits: the list of circuit indices.
+            observables: the list of observable indices.
             parameter_values: concrete parameters to be bound.
             run_options: runtime options used for circuit execution.
 
@@ -289,12 +289,10 @@ class BaseEstimator(ABC):
             parameter_values = parameter_values.tolist()
 
         # Allow lift
-        if circuit_indices is not None and not isinstance(circuit_indices, (np.ndarray, Sequence)):
-            circuit_indices = [circuit_indices]
-        if observable_indices is not None and not isinstance(
-            observable_indices, (np.ndarray, Sequence)
-        ):
-            observable_indices = [observable_indices]
+        if circuits is not None and not isinstance(circuits, (np.ndarray, Sequence)):
+            circuits = [circuits]
+        if observables is not None and not isinstance(observables, (np.ndarray, Sequence)):
+            observables = [observables]
         if parameter_values is not None and not isinstance(
             parameter_values[0], (np.ndarray, Sequence)
         ):
@@ -303,55 +301,55 @@ class BaseEstimator(ABC):
 
         # Allow broadcasting
         if (
-            circuit_indices is None
+            circuits is None
             and len(self._circuits) == 1
-            and observable_indices is None
+            and observables is None
             and len(self._observables) == 1
             and parameter_values is not None
         ):
-            circuit_indices = [0] * len(parameter_values)
-            observable_indices = [0] * len(parameter_values)
+            circuits = [0] * len(parameter_values)
+            observables = [0] * len(parameter_values)
 
         # Allow optional
-        if circuit_indices is None:
-            circuit_indices = list(range(len(self._circuits)))
-        if observable_indices is None:
-            observable_indices = list(range(len(self._observables)))
+        if circuits is None:
+            circuits = list(range(len(self._circuits)))
+        if observables is None:
+            observables = list(range(len(self._observables)))
         if parameter_values is None:
-            parameter_values = [[]] * len(circuit_indices)
+            parameter_values = [[]] * len(circuits)
 
         # Allow objects
         try:
-            circuit_indices = [
+            circuits = [
                 next(_findname(circuit, self._circuit_ids))
                 if not isinstance(circuit, (int, np.integer))
                 else circuit
-                for circuit in circuit_indices
+                for circuit in circuits
             ]
-            observable_indices = [
+            observables = [
                 next(_finditer(observable, self._observable_ids))
                 if not isinstance(observable, (int, np.integer))
                 else observable
-                for observable in observable_indices
+                for observable in observables
             ]
         except StopIteration as err:
             raise QiskitError("The object id does not match.") from err
 
         # Validation
-        if len(circuit_indices) != len(observable_indices):
+        if len(circuits) != len(observables):
             raise QiskitError(
-                f"The number of circuit indices ({len(circuit_indices)}) does not match "
-                f"the number of observable indices ({len(observable_indices)})."
+                f"The number of circuit indices ({len(circuits)}) does not match "
+                f"the number of observable indices ({len(observables)})."
             )
-        if len(circuit_indices) != len(parameter_values):
+        if len(circuits) != len(parameter_values):
             raise QiskitError(
-                f"The number of circuit indices ({len(circuit_indices)}) does not match "
+                f"The number of circuit indices ({len(circuits)}) does not match "
                 f"the number of parameter value sets ({len(parameter_values)})."
             )
 
         return self._call(
-            circuit_indices=circuit_indices,
-            observable_indices=observable_indices,
+            circuits=circuits,
+            observables=observables,
             parameter_values=parameter_values,
             **run_options,
         )
@@ -359,8 +357,8 @@ class BaseEstimator(ABC):
     @abstractmethod
     def _call(
         self,
-        circuit_indices: Sequence[int],
-        observable_indices: Sequence[int],
+        circuits: Sequence[int],
+        observables: Sequence[int],
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> EstimatorResult:

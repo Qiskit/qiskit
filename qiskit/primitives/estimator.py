@@ -58,8 +58,8 @@ class Estimator(BaseEstimator):
 
     def _call(
         self,
-        circuit_indices: Sequence[int],
-        observable_indices: Sequence[int],
+        circuits: Sequence[int],
+        observables: Sequence[int],
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> EstimatorResult:
@@ -67,7 +67,7 @@ class Estimator(BaseEstimator):
             raise QiskitError("The primitive has been closed.")
 
         bound_circuits = []
-        for i, value in zip(circuit_indices, parameter_values):
+        for i, value in zip(circuits, parameter_values):
             if len(value) != len(self._parameters[i]):
                 raise QiskitError(
                     f"The number of values ({len(value)}) does not match "
@@ -76,7 +76,7 @@ class Estimator(BaseEstimator):
             bound_circuits.append(
                 self._circuits[i].bind_parameters(dict(zip(self._parameters[i], value)))
             )
-        sorted_observables = [self._observables[i] for i in observable_indices]
+        sorted_observables = [self._observables[i] for i in observables]
         expectation_values = []
         for circ, obs in zip(bound_circuits, sorted_observables):
             if circ.num_qubits != obs.num_qubits:

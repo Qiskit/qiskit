@@ -66,7 +66,7 @@ class Sampler(BaseSampler):
 
     def _call(
         self,
-        circuit_indices: Sequence[int],
+        circuits: Sequence[int],
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> SamplerResult:
@@ -74,7 +74,7 @@ class Sampler(BaseSampler):
             raise QiskitError("The primitive has been closed.")
 
         bound_circuits_qargs = []
-        for i, value in zip(circuit_indices, parameter_values):
+        for i, value in zip(circuits, parameter_values):
             if len(value) != len(self._parameters[i]):
                 raise QiskitError(
                     f"The number of values ({len(value)}) does not match "
@@ -91,7 +91,7 @@ class Sampler(BaseSampler):
         ]
         quasis = [QuasiDistribution(dict(enumerate(p))) for p in probabilities]
 
-        return SamplerResult(quasis, [{}] * len(circuit_indices))
+        return SamplerResult(quasis, [{}] * len(circuits))
 
     def close(self):
         self._is_closed = True

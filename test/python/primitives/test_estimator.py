@@ -117,7 +117,7 @@ class TestEstimator(QiskitTestCase):
         circuit.cx(0, 1)
         circuit.cx(1, 2)
         with Estimator(circuit, ["ZZZ", "III"]) as est:
-            result = est(circuit_indices=[0, 0], observable_indices=[0, 1])
+            result = est(circuits=[0, 0], observables=[0, 1])
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [0.0, 1.0])
 
@@ -305,8 +305,8 @@ class TestEstimator(QiskitTestCase):
 
         with Estimator([self.ansatz], [self.observable]) as estimator:
             result = estimator(
-                circuit_indices=[self.ansatz, self.ansatz],
-                observable_indices=[self.observable, self.observable],
+                circuits=[self.ansatz, self.ansatz],
+                observables=[self.observable, self.observable],
                 parameter_values=[list(range(6)), [0, 1, 1, 2, 3, 5]],
             )
         self.assertAlmostEqual(result.values[0], self.expvals[0])
