@@ -10,53 +10,47 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Gradient of expectation values with parameter shift
+Gradient of probabilities with parameter shift
 """
 
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from typing import Sequence, Type
 
 import numpy as np
 
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
-from qiskit.quantum_info import SparsePauliOp
+from qiskit.result import QuasiDistribution
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Unroller
 
-from ..base_estimator import BaseEstimator
-from ..estimator_result import EstimatorResult
-from .base_estimator_gradient import BaseEstimatorGradient
+from ..base_sampler import BaseSampler
+from ..sampler_result import SamplerResult
 
 
 @dataclass
-class SubEstimator:
+class SubSampler:
     coeff: float | ParameterExpression
     circuit: QuantumCircuit
-    observable: SparsePauliOp
     index: int
 
 
-class ParamShiftEstimatorGradient(BaseEstimatorGradient):
+class ParamShiftSamplerGradient:
     """Parameter shift estimator gradient"""
 
     SUPPORTED_GATES = ["x", "y", "z", "h", "rx", "ry", "rz", "p", "u", "cx", "cy", "cz"]
 
-    def __init__(
-        self, estimator: Type[BaseEstimator], circuit: QuantumCircuit, observable: SparsePauliOp
-    ):
+    def __init__(self, sampler: Type[BaseSampler], circuit: QuantumCircuit):
         self._circuit = circuit
-        self._observable = observable
         self._grad = self._preprocessing()
         circuits = [self._circuit]
-        observables = [self._observable]
         self._param_map = {}
         for param, lst in self._grad.items():
             for arg in lst:
                 circuits.append(arg.circuit)
-        super().__init__(estimator(circuits=circuits, observables=observables))
+        self._sampler = sampler(circuits=circuits)
 
     def __enter__(self):
         return self
@@ -89,26 +83,20 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
         for param in self._circuit.parameters:
             lst = []
             for circ, coeff in grad[param]:
-                lst.append(
-                    SubEstimator(
-                        coeff=coeff, circuit=circ, observable=self._observable, index=index
-                    )
-                )
+                lst.append(SubSampler(coeff=coeff, circuit=circ, index=index))
                 index += 1
             ret[param] = lst
         return ret
 
-    def __call__(
-        self, parameter_values: Sequence[Sequence[float]], **run_options
-    ) -> EstimatorResult:
-        return self._estimator([0], [0], parameter_values, **run_options)
+    def __call__(self, parameter_values: Sequence[Sequence[float]], **run_options) -> SamplerResult:
+        return self._sampler([0], parameter_values, **run_options)
 
     def gradient(
         self,
         parameter_value: Sequence[float],
         partial: Sequence[Parameter] | None = None,
         **run_options,
-    ) -> EstimatorResult:
+    ) -> SamplerResult:
         parameters = partial or self._circuit.parameters
 
         param_map = {}
@@ -119,10 +107,10 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
         for param in parameters:
             circ_indices.extend([f.index for f in self._grad[param]])
         size = len(circ_indices)
-        results = self._estimator(circ_indices, [0] * size, [parameter_value] * size, **run_options)
+        results = self._sampler(circ_indices, [parameter_value] * size, **run_options)
 
         param_set = set(parameters)
-        values = np.zeros(len(parameter_value))
+        dists = [Counter() for _ in range(len(parameter_value))]
         metadata = [{} for _ in range(len(parameters))]
         i = 0
         for j, (param, lst) in enumerate(self._grad.items()):
@@ -132,10 +120,13 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
                 coeff = subest.coeff
                 if isinstance(coeff, ParameterExpression):
                     local_map = {param: param_map[param] for param in coeff.parameters}
-                    bound_coeff = coeff.bind(local_map)
+                    bound_coeff = float(coeff.bind(local_map))
                 else:
                     bound_coeff = coeff
-                values[j] += bound_coeff * results.values[i]
+                dists[j].update(
+                    Counter({k: bound_coeff * v for k, v in results.quasi_dists[i].items()})
+                )
                 i += 1
-
-        return EstimatorResult(values=values, metadata=metadata)
+        return SamplerResult(
+            quasi_dists=[QuasiDistribution(dist) for dist in dists], metadata=metadata
+        )
