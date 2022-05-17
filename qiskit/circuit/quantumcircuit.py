@@ -508,20 +508,18 @@ class QuantumCircuit:
             name=self.name,
             global_phase=self.global_phase,
         )
-        num_qubits = self.num_qubits
-        num_clbits = self.num_clbits
-        new_qubits = circ.qubits
-        new_clbits = circ.clbits
+        new_qubit_map = circ.qubits[::-1]
+        new_clbit_map = circ.clbits[::-1]
         for reg in reversed(self.qregs):
-            bits = [new_qubits[num_qubits - self._qubit_indices[q].index - 1] for q in reg]
-            circ.add_register(QuantumRegister(None, reg.name, list(reversed(bits))))
+            bits = [new_qubit_map[self.find_bit(qubit).index] for qubit in reversed(reg)]
+            circ.add_register(QuantumRegister(bits=bits, name=reg.name))
         for reg in reversed(self.cregs):
-            bits = [new_clbits[num_clbits - self._clbit_indices[c].index - 1] for c in reg]
-            circ.add_register(ClassicalRegister(None, reg.name, list(reversed(bits))))
+            bits = [new_clbit_map[self.find_bit(clbit).index] for clbit in reversed(reg)]
+            circ.add_register(ClassicalRegister(bits=bits, name=reg.name))
 
         for inst, qargs, cargs in self.data:
-            new_qargs = [new_qubits[num_qubits - self._qubit_indices[q].index - 1] for q in qargs]
-            new_cargs = [new_clbits[num_clbits - self._clbit_indices[c].index - 1] for c in cargs]
+            new_qargs = [new_qubit_map[self.find_bit(qubit).index] for qubit in qargs]
+            new_cargs = [new_clbit_map[self.find_bit(clbit).index] for clbit in cargs]
             circ._append(inst, new_qargs, new_cargs)
         return circ
 

@@ -1011,13 +1011,13 @@ class TestCircuitOperations(QiskitTestCase):
     def test_reverse_bits_with_overlapped_registers(self):
         """Test reversing order of bits when registers are overlapped."""
         qr1 = QuantumRegister(2, "a")
-        qr2 = QuantumRegister(None, "b", [qr1[0], qr1[1], Qubit()])
+        qr2 = QuantumRegister(bits=[qr1[0], qr1[1], Qubit()], name="b")
         qc = QuantumCircuit(qr1, qr2)
         qc.h(qr1[0])
         qc.cx(qr1[0], qr1[1])
         qc.cx(qr1[1], qr2[2])
 
-        qr2 = QuantumRegister(None, "b", [Qubit(), qr1[0], qr1[1]])
+        qr2 = QuantumRegister(bits=[Qubit(), qr1[0], qr1[1]], name="b")
         expected = QuantumCircuit(qr2, qr1)
         expected.h(qr1[1])
         expected.cx(qr1[1], qr1[0])
@@ -1064,8 +1064,8 @@ class TestCircuitOperations(QiskitTestCase):
     def test_reverse_bits_with_mixed_overlapped_registers(self):
         """Test reversing order of bits with overlapped registers and registerless bits."""
         q = Qubit()
-        qr1 = QuantumRegister(None, "qr1", [q, Qubit()])
-        qr2 = QuantumRegister(None, "qr2", [qr1[1], Qubit()])
+        qr1 = QuantumRegister(bits=[q, Qubit()], name="qr1")
+        qr2 = QuantumRegister(bits=[qr1[1], Qubit()], name="qr2")
         qc = QuantumCircuit(qr1, qr2, [Qubit()])
         qc.h(q)
         qc.cx(qr1[0], qr1[1])
@@ -1073,7 +1073,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc.cx(2, 3)
 
         qr2 = QuantumRegister(2, "qr2")
-        qr1 = QuantumRegister(None, "qr1", [qr2[1], q])
+        qr1 = QuantumRegister(bits=[qr2[1], q], name="qr1")
         expected = QuantumCircuit([Qubit()], qr2, qr1)
         expected.h(qr1[1])
         expected.cx(qr1[1], qr1[0])
