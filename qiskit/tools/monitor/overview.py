@@ -15,6 +15,7 @@
 
 import math
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
+import warnings
 
 
 def get_unique_backends():
@@ -27,6 +28,14 @@ def get_unique_backends():
         QiskitError: No backends available.
         MissingOptionalLibraryError: If qiskit-ibmq-provider is not installed
     """
+    warnings.warn(
+        "The qiskit.IBMQ entrypoint and the qiskit-ibmq-provider package ("
+        "accessible from 'qiskit.providers.ibmq`) are deprecated and will be removed "
+        "in a future release. Instead you should use the qiskit-ibm-provider package "
+        "which is accesible from 'qiskit_ibm_provider'.",
+        DeprecationWarning,
+        stacklevel=3,
+    )
     try:
         from qiskit.providers.ibmq import IBMQ
     except ImportError as ex:
@@ -59,6 +68,15 @@ def backend_monitor(backend):
         QiskitError: Input is not a IBMQ backend.
         MissingOptionalLibraryError: If qiskit-ibmq-provider is not installed
     """
+    warnings.warn(
+
+        "The qiskit.IBMQ entrypoint and the qiskit-ibmq-provider package ("
+        "accessible from 'qiskit.providers.ibmq`) are deprecated and will be removed "
+        "in a future release. Instead you should use the qiskit-ibm-provider package "
+        "which is accesible from 'qiskit_ibm_provider'.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         from qiskit.providers.ibmq import IBMQBackend
     except ImportError as ex:

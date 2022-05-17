@@ -47,48 +47,12 @@ In this case, the output will be:
 {'00': 513, '11': 511}
 ```
 
-A script is available [here](examples/python/ibmq/hello_quantum.py), where we also show how to
-run the same program on a real quantum computer via IBMQ.
-
 ### Executing your code on a real quantum chip
 
 You can also use Qiskit to execute your code on a
 **real quantum chip**.
 In order to do so, you need to configure Qiskit for using the credentials in
 your IBM Q account:
-
-#### Configure your IBMQ credentials
-
-1. Create an _[IBM Q](https://quantum-computing.ibm.com) > Account_ if you haven't already done so.
-
-2. Get an API token from the IBM Q website under _My Account > API Token_.
-
-3. Take your token from step 2, here called `MY_API_TOKEN`, and run:
-
-   ```python
-   >>> from qiskit import IBMQ
-   >>> IBMQ.save_account('MY_API_TOKEN')
-    ```
-
-After calling `IBMQ.save_account()`, your credentials will be stored on disk.
-Once they are stored, at any point in the future you can load and use them
-in your program simply via:
-
-```python
->>> from qiskit import IBMQ
->>> IBMQ.load_account()
-```
-
-Those who do not want to save their credentials to disk should use instead:
-
-```python
->>> from qiskit import IBMQ
->>> IBMQ.enable_account('MY_API_TOKEN')
-```
-
-and the token will only be active for the session. For examples using Terra with real
-devices we have provided a set of examples in **examples/python** and we suggest starting with [using_qiskit_terra_level_0.py](examples/python/using_qiskit_terra_level_0.py) and working up in
-the levels.
 
 ## Contribution Guidelines
 
