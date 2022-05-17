@@ -83,6 +83,11 @@ class AerWrapper:
                 from qiskit.providers import aer
 
                 self.aer = aer.Aer
+                warnings.warn(
+                    "The qiskit.Aer entry point is deprecated instead you should use this directly from the root of the qiskit-aer package.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
             except ImportError:
                 return False
         return True
@@ -93,6 +98,11 @@ class AerWrapper:
                 from qiskit.providers import aer
 
                 self.aer = aer.Aer
+                warnings.warn(
+                    "The qiskit.Aer entry point is deprecated instead you should use this directly from the root of the qiskit-aer package",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
             except ImportError as ex:
                 raise MissingOptionalLibraryError(
                     "qiskit-aer", "Aer provider", "pip install qiskit-aer"
