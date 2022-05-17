@@ -19,6 +19,14 @@ from importlib.abc import MetaPathFinder, Loader
 import importlib
 
 
+def _new_namespace(fullname, old_namespace, new_package):
+    names = fullname.split(".")
+    new_namespace_names = new_package.split(".")
+    old_namespace_names = old_namespace.split(".")
+    fullname = ".".join(new_namespace_names + names[len(old_namespace_names) :])
+    return fullname
+
+
 class QiskitLoader(Loader):
     """Load qiskit element as a namespace package."""
 
@@ -32,27 +40,30 @@ class QiskitLoader(Loader):
 
     def load_module(self, fullname):
         old_name = fullname
-        names = fullname.split(".")
-        new_namespace_names = self.new_package.split(".")
-        old_namespace_names = self.old_namespace.split(".")
-        fullname = ".".join(new_namespace_names + names[len(old_namespace_names) :])
+        fullname = _new_namespace(fullname, self.old_namespace, self.new_package)
         module = importlib.import_module(fullname)
         sys.modules[old_name] = module
         return module
 
 
-class QiskitElementImport(MetaPathFinder):
+class QiskitAerImport(MetaPathFinder):
     """Meta importer to enable unified qiskit namespace."""
 
-    def __init__(self, new_package, old_namespace):
+    def __init__(self):
         super().__init__()
-        self.new_package = new_package
-        self.old_namespace = old_namespace
+        self.old_namespace = "qiskit.providers.aer"
+        self.new_package = "qiskit_aer"
 
     def find_spec(self, fullname, path=None, target=None):
         """Return the ModuleSpec for Qiskit element."""
         if fullname.startswith(self.old_namespace):
-            return importlib.util.spec_from_loader(
-                fullname, QiskitLoader(self.new_package, self.old_namespace), origin="qiskit"
-            )
+            try:
+                importlib.import_module(
+                    _new_namespace(fullname, self.old_namespace, self.new_package)
+                )
+                return importlib.util.spec_from_loader(
+                    fullname, QiskitLoader(self.new_package, self.old_namespace), origin="qiskit"
+                )
+            except Exception:  # pylint: disable=broad-except
+                return None
         return None

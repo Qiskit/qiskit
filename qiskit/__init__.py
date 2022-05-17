@@ -33,8 +33,8 @@ sys.modules["qiskit._accelerate.results"] = qiskit._accelerate.results
 # Extend namespace for backwards compat
 from qiskit import namespace
 
-sys.meta_path.append(namespace.QiskitElementImport("qiskit_aer", "qiskit.providers.aer"))
-
+new_meta_path_finder = namespace.QiskitAerImport()
+sys.meta_path = [new_meta_path_finder] + sys.meta_path
 
 # qiskit errors operator
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
