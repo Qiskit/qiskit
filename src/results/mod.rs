@@ -21,5 +21,10 @@ pub fn results(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(marginalization::marginal_counts))?;
     m.add_wrapped(wrap_pyfunction!(marginalization::marginal_distribution))?;
     m.add_wrapped(wrap_pyfunction!(marginalization::marginal_memory))?;
+    m.add_wrapped(wrap_pyfunction!(marginalization::marginal_measure_level_0))?;
+    m.add_wrapped(wrap_pyfunction!(
+        marginalization::marginal_measure_level_0_avg
+    ))?;
+    m.add_wrapped(wrap_pyfunction!(marginalization::marginal_measure_level_1))?;
     Ok(())
 }

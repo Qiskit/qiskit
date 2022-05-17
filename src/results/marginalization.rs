@@ -13,7 +13,11 @@
 use super::converters::hex_to_bin;
 use crate::getenv_use_multiple_threads;
 use hashbrown::HashMap;
+use ndarray::prelude::*;
 use num_bigint::BigUint;
+use num_complex::Complex64;
+use numpy::IntoPyArray;
+use numpy::{PyReadonlyArray1, PyReadonlyArray2, PyReadonlyArray3};
 use pyo3::prelude::*;
 use rayon::prelude::*;
 
@@ -110,7 +114,11 @@ fn map_memory(
     }
 }
 
-#[pyfunction(return_int = "false", return_hex = "false", parallel_threshold = "1000")]
+#[pyfunction(
+    return_int = "false",
+    return_hex = "false",
+    parallel_threshold = "1000"
+)]
 pub fn marginal_memory(
     py: Python,
     memory: Vec<String>,
@@ -156,4 +164,57 @@ pub fn marginal_memory(
     } else {
         Ok(out_mem.to_object(py))
     }
+}
+
+#[pyfunction]
+pub fn marginal_measure_level_0(
+    py: Python,
+    memory: PyReadonlyArray3<Complex64>,
+    indices: Vec<usize>,
+) -> PyObject {
+    let mem_arr: ArrayView3<Complex64> = memory.as_array();
+    let input_shape = mem_arr.shape();
+    let new_shape = [input_shape[0], indices.len(), input_shape[2]];
+    let out_arr: Array3<Complex64> =
+        Array3::from_shape_fn(new_shape, |(i, j, k)| mem_arr[[i, indices[j], k]]);
+    out_arr.into_pyarray(py).into()
+}
+
+#[pyfunction]
+pub fn marginal_measure_level_0_avg(
+    py: Python,
+    memory: PyReadonlyArray2<Complex64>,
+    indices: Vec<usize>,
+) -> PyObject {
+    let mem_arr: ArrayView2<Complex64> = memory.as_array();
+    let input_shape = mem_arr.shape();
+    let new_shape = [indices.len(), input_shape[1]];
+    let out_arr: Array2<Complex64> =
+        Array2::from_shape_fn(new_shape, |(i, j)| mem_arr[[indices[i], j]]);
+    out_arr.into_pyarray(py).into()
+}
+
+#[pyfunction]
+pub fn marginal_measure_level_1(
+    py: Python,
+    memory: PyReadonlyArray2<Complex64>,
+    indices: Vec<usize>,
+) -> PyObject {
+    let mem_arr: ArrayView2<Complex64> = memory.as_array();
+    let input_shape = mem_arr.shape();
+    let new_shape = [input_shape[0], indices.len()];
+    let out_arr: Array2<Complex64> =
+        Array2::from_shape_fn(new_shape, |(i, j)| mem_arr[[i, indices[j]]]);
+    out_arr.into_pyarray(py).into()
+}
+
+#[pyfunction]
+pub fn marginal_measure_level_1_avg(
+    py: Python,
+    memory: PyReadonlyArray1<Complex64>,
+    indices: Vec<usize>,
+) -> PyResult<PyObject> {
+    let mem_arr: &[Complex64] = memory.as_slice()?;
+    let out_arr: Vec<Complex64> = indices.into_iter().map(|idx| mem_arr[idx]).collect();
+    Ok(out_arr.into_pyarray(py).into())
 }

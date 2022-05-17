@@ -12,6 +12,8 @@
 
 """Test marginal_memory() function."""
 
+import numpy as np
+
 from qiskit.test import QiskitTestCase
 from qiskit.result import marginal_memory
 
@@ -53,3 +55,53 @@ class TestMarginalMemory(QiskitTestCase):
         """Test that ValueError raised if multiple return types are requested."""
         with self.assertRaises(ValueError):
             marginal_memory([], int_return=True, hex_return=True)
+
+    def test_memory_level_0(self):
+        """Test that a single level 0 measurement data is correctly marginalized."""
+        memory = np.asarray(
+            [
+                # qubit 0                    qubit 1                     qubit 2
+                [
+                    [-12974255.0, -28106672.0],
+                    [15848939.0, -53271096.0],
+                    [-18731048.0, -56490604.0],
+                ],  # shot 1
+                [
+                    [-18346508.0, -26587824.0],
+                    [-12065728.0, -44948360.0],
+                    [14035275.0, -65373000.0],
+                ],  # shot 2
+                [
+                    [12802274.0, -20436864.0],
+                    [-15967512.0, -37575556.0],
+                    [15201290.0, -65182832.0],
+                ],  # ...
+                [[-9187660.0, -22197716.0], [-17028016.0, -49578552.0], [13526576.0, -61017756.0]],
+                [[7006214.0, -32555228.0], [16144743.0, -33563124.0], [-23524160.0, -66919196.0]],
+            ],
+            dtype=complex,
+        )
+        result = marginal_memory(memory, [0, 2])
+        expected = np.asarray(
+            [
+                [[-12974255.0, -28106672.0], [-18731048.0, -56490604.0]],  # shot 1
+                [[-18346508.0, -26587824.0], [14035275.0, -65373000.0]],  # shot 2
+                [[12802274.0, -20436864.0], [15201290.0, -65182832.0]],  # ...
+                [[-9187660.0, -22197716.0], [13526576.0, -61017756.0]],
+                [[7006214.0, -32555228.0], [-23524160.0, -66919196.0]],
+            ],
+            dtype=complex,
+        )
+        np.testing.assert_array_equal(result, expected)
+
+    def test_memory_level_0_avg(self):
+        """Test that avg level 0 measurement data is correctly marginalized."""
+        memory = np.asarray(
+            [[-1059254.375, -26266612.0], [-9012669.0, -41877468.0], [6027076.0, -54875060.0]],
+            dtype=complex,
+        )
+        result = marginal_memory(memory, [0, 2], avg_data=True)
+        expected = np.asarray(
+            [[-1059254.375, -26266612.0], [6027076.0, -54875060.0]], dtype=complex
+        )
+        np.testing.assert_array_equal(result, expected)
