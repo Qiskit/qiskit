@@ -115,7 +115,7 @@ class MinimumEigensolverResult(AlgorithmResult):
 The MinimumEigensolverResult.aux_operator_eigenvalues property is pending deprecation as of
 Qiskit Terra 0.21.0. It will be deprecated in the release 0.22.0 and removed no sooner than 3 months
 after that release date. You can use MinimumEigensolverResult.aux_operator_values as a direct
-replacement instead, which reflects that these values are no eigenvalues of the operators but just
+replacement instead, which reflects that these values are not eigenvalues of the operators but just
 expectation values.
     """,
         pending_deprecation=True,
@@ -130,7 +130,7 @@ expectation values.
 The MinimumEigensolverResult.aux_operator_eigenvalues setter is pending deprecation as of
 Qiskit Terra 0.21.0. It will be deprecated in the release 0.22.0 and removed no sooner than 3 months
 after that release date. You can use MinimumEigensolverResult.aux_operator_values as a direct
-replacement instead, which reflects that these values are no eigenvalues of the operators but just
+replacement instead, which reflects that these values are not eigenvalues of the operators but just
 expectation values.
     """,
         pending_deprecation=True,
