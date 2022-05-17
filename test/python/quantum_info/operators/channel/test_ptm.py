@@ -356,6 +356,8 @@ class TestPTM(ChannelTestCase):
         targ = PTM(val * self.ptmI)
         self.assertEqual(chan._multiply(val), targ)
         self.assertEqual(val * chan, targ)
+        targ = PTM(self.ptmI * val)
+        self.assertEqual(chan * val, targ)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
