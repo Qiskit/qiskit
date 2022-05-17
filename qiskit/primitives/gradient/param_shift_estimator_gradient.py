@@ -21,10 +21,9 @@ from typing import Sequence, Type
 
 import numpy as np
 
+from qiskit import transpile
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp
-from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes import Unroller
 
 from ..base_estimator import BaseEstimator
 from ..estimator_result import EstimatorResult
@@ -42,7 +41,7 @@ class SubEstimator:
 class ParamShiftEstimatorGradient(BaseEstimatorGradient):
     """Parameter shift estimator gradient"""
 
-    SUPPORTED_GATES = ["x", "y", "z", "h", "rx", "ry", "rz", "p", "u", "cx", "cy", "cz"]
+    SUPPORTED_GATES = ["x", "y", "z", "h", "rx", "ry", "rz", "p", "cx", "cy", "cz"]
 
     def __init__(
         self, estimator: Type[BaseEstimator], circuit: QuantumCircuit, observable: SparsePauliOp
@@ -52,7 +51,6 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
         self._grad = self._preprocessing()
         circuits = [self._circuit]
         observables = [self._observable]
-        self._param_map = {}
         for param, lst in self._grad.items():
             for arg in lst:
                 circuits.append(arg.circuit)
@@ -66,7 +64,7 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
 
     @classmethod
     def _gradient_circuits(cls, circuit: QuantumCircuit):
-        circuit2 = PassManager([Unroller(cls.SUPPORTED_GATES)]).run(circuit)
+        circuit2 = transpile(circuit, basis_gates=cls.SUPPORTED_GATES, optimization_level=0)
         ret = defaultdict(list)
         for inst in circuit2.data:
             if inst[0].is_parameterized():
