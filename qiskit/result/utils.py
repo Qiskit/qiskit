@@ -131,7 +131,7 @@ def marginal_memory(
     indices: Optional[List[int]] = None,
     int_return: bool = False,
     hex_return: bool = False,
-    parallel_threshold: int = 50,
+    parallel_threshold: int = 1000,
 ) -> Union[List[str], np.ndarray]:
     """Marginalize memory
 
