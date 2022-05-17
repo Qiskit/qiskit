@@ -26,7 +26,7 @@ from qiskit.result.counts import Counts
 from qiskit.result.distributions.probability import ProbDistribution
 from qiskit.result.distributions.quasi import QuasiDistribution
 
-from qiskit.result.postprocess import _bin_to_hex, _hex_to_bin
+from qiskit.result.postprocess import _bin_to_hex
 
 # pylint: disable=import-error, no-name-in-module
 from qiskit._accelerate import results as results_rs
