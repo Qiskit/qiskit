@@ -18,18 +18,14 @@ See https://arxiv.org/abs/1304.3061
 from __future__ import annotations
 
 import logging
-import sys
 from time import time
 from typing import Callable, Dict, List, Optional, Tuple, Union
-
 import warnings
 
 import numpy as np
-import scipy
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.providers import Backend
 from qiskit.opflow import (
     CircuitSampler,
     CircuitStateFn,
@@ -41,6 +37,7 @@ from qiskit.opflow import (
     StateFn,
 )
 from qiskit.opflow.gradients import GradientBase
+from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.utils.backend_utils import is_aer_provider
 from qiskit.utils.validation import validate_min
@@ -48,46 +45,11 @@ from qiskit.utils.validation import validate_min
 from ..aux_ops_evaluator import eval_observables
 from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
-from ..optimizers import SLSQP, Optimizer, OptimizerResult
+from ..optimizers import SLSQP, Minimizer, Optimizer
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 
-if sys.version_info >= (3, 8):
-    # pylint: disable=no-name-in-module, ungrouped-imports
-    from typing import Protocol
-else:
-    from typing_extensions import Protocol
-
 logger = logging.getLogger(__name__)
-
-
-class Minimizer(Protocol):
-    """Callback Protocol for minimizer."""
-
-    # pylint: disable=invalid-name
-    def __call__(
-        self,
-        fun: Callable[[np.ndarray], float],
-        x0: np.ndarray,
-        jac: Callable[[np.ndarray], np.ndarray] | None,
-        bounds: list[tuple[float, float]] | None,
-    ) -> scipy.optimize.OptimizeResult | OptimizerResult:
-        """Minimize the objective function.
-
-        This interface is based on `SciPy's optimize module <https://docs.scipy.org/doc
-        /scipy/reference/generated/scipy.optimize.minimize.html>`__.
-
-        Args:
-            fun: The objective function to minimize (for example the energy in the case of the VQE).
-            x0: The initial point for the optimization.
-            jac: The gradient of the objective function.
-            bounds: Parameters bounds for the optimization. Note that these might not be supported
-                by all optimizers.
-
-        Returns:
-             The minimization result object (either SciPy's or Qiskit's).
-        """
-        ...
 
 
 class VQE(VariationalAlgorithm, MinimumEigensolver):
