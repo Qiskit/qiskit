@@ -18,11 +18,16 @@ fn marginalize<T: std::ops::AddAssign + Copy>(
     indices: Option<Vec<usize>>,
 ) -> HashMap<String, T> {
     let mut out_counts: HashMap<String, T> = HashMap::with_capacity(counts.len());
-    let clbit_size = counts.keys().next().unwrap().replace(&['_', ' '], "").len();
+    let clbit_size = counts
+        .keys()
+        .next()
+        .unwrap()
+        .replace(|c| c == '_' || c == ' ', "")
+        .len();
     let all_indices: Vec<usize> = (0..clbit_size).collect();
     counts
         .iter()
-        .map(|(k, v)| (k.replace(&['_', ' '], ""), *v))
+        .map(|(k, v)| (k.replace(|c| c == '_' || c == ' ', ""), *v))
         .for_each(|(k, v)| match &indices {
             Some(indices) => {
                 if all_indices == *indices {
