@@ -25,6 +25,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.execute_function import execute
 from qiskit.test.base import QiskitTestCase
 from qiskit.test.mock import FakeProviderForBackendV2, FakeProvider
+from qiskit.test.mock import FakeMumbaiV2
 from qiskit.utils import optionals
 
 FAKE_PROVIDER_FOR_BACKEND_V2 = FakeProviderForBackendV2()
@@ -103,6 +104,17 @@ class TestFakeBackends(QiskitTestCase):
         else:
             self.assertTrue(backend.configuration().simulator)
 
+    @data(*FAKE_PROVIDER_FOR_BACKEND_V2.backends())
+    def test_convert_to_target(self, backend):
+        target = backend.target
+        if target.dt is not None:
+            self.assertLess(target.dt, 1e-6)
+
+    @data(*FAKE_PROVIDER_FOR_BACKEND_V2.backends())
+    def test_backend_v2_dtm(self, backend):
+        if backend.dtm:
+            self.assertLess(backend.dtm, 1e-6)
+
     @data(*FAKE_PROVIDER.backends())
     def test_to_dict_configuration(self, backend):
         configuration = backend.configuration()
@@ -140,3 +152,13 @@ class TestFakeBackends(QiskitTestCase):
                 self.assertGreater(i, 1e6)
         else:
             self.skipTest("Backend %s does not have defaults" % backend)
+
+    def test_delay_circuit(self):
+        backend = FakeMumbaiV2()
+        qc = QuantumCircuit(2)
+        qc.delay(502, 0, unit="ns")
+        qc.x(1)
+        qc.delay(250, 1, unit="ns")
+        qc.measure_all()
+        res = transpile(qc, backend)
+        self.assertIn("delay", res.count_ops())

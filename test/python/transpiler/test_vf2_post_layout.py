@@ -16,6 +16,7 @@ import retworkx
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import CouplingMap, Layout, TranspilerError
+from qiskit.transpiler.passes.layout import vf2_utils
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayout, VF2PostLayoutStopReason
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
@@ -252,9 +253,13 @@ class TestVF2PostLayoutScoring(QiskitTestCase):
         im_graph.add_node({"sx": 1})
         backend = FakeYorktownV2()
         vf2_pass = VF2PostLayout(target=backend.target)
-        vf2_pass.avg_error_map = vf2_pass._build_average_error_map()
+        vf2_pass.avg_error_map = vf2_utils.build_average_error_map(
+            vf2_pass.target, vf2_pass.properties, vf2_pass.coupling_map
+        )
         layout = Layout(bit_map)
-        score = vf2_pass._approx_score_layout(layout, bit_map, reverse_bit_map, im_graph)
+        score = vf2_utils.score_layout(
+            vf2_pass.avg_error_map, layout, bit_map, reverse_bit_map, im_graph
+        )
         self.assertAlmostEqual(0.02054, score, places=5)
 
 

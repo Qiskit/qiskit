@@ -218,6 +218,12 @@ class Statevector(QuantumState, TolerancesMixin):
         else:
             raise QiskitError("Key must be int or a valid binary string.")
 
+    def __iter__(self):
+        yield from self._data
+
+    def __len__(self):
+        return len(self._data)
+
     @property
     def data(self):
         """Return data."""

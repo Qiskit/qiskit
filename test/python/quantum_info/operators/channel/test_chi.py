@@ -363,6 +363,8 @@ class TestChi(ChannelTestCase):
         targ = Chi(val * self.chiI)
         self.assertEqual(chan._multiply(val), targ)
         self.assertEqual(val * chan, targ)
+        targ = Chi(self.chiI * val)
+        self.assertEqual(chan * val, targ)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
