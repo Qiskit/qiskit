@@ -1,0 +1,4 @@
+---
+prelude: >
+  Qiskit Terra 0.20.2 is a bugfix release, addressing some minor issues
+  identified since the last patch release.
