@@ -13,6 +13,8 @@
 """Test solver of linear equations."""
 
 import unittest
+from functools import partial
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
@@ -64,7 +66,7 @@ class TestVarQTELinearSolver(QiskitAlgorithmsTestCase):
         metric_tensor = var_principle.calc_metric_tensor(ansatz, parameters)
         evolution_grad = var_principle.calc_evolution_grad(observable, ansatz, parameters)
 
-        linear_solver_callable = np.linalg.lstsq
+        linear_solver_callable = partial(np.linalg.lstsq, rcond=1e-2)
         linear_solver = VarQTELinearSolver(
             metric_tensor,
             evolution_grad,

@@ -25,8 +25,6 @@ from ..calculators.evolution_grad_calculator import (
 )
 
 
-#  TODO this might potentially be exposed to the user to instantiate (only with
-#   lse_solver_callable in the init; now the callable is passed by the user through VarQTE class)
 class VarQTELinearSolver:
     """Class for solving linear equations for Quantum Time Evolution."""
 
@@ -78,9 +76,7 @@ class VarQTELinearSolver:
         metric_tensor_lse_lhs = self._calc_lse_lhs(param_dict, t_param, time_value)
         evolution_grad_lse_rhs = self._calc_lse_rhs(param_dict, t_param, time_value)
 
-        # TODO not all solvers will have rcond param. Keeping for now to keep the same results in
-        #  unit tests.
-        x = self._lse_solver_callable(metric_tensor_lse_lhs, evolution_grad_lse_rhs, rcond=1e-2)[0]
+        x = self._lse_solver_callable(metric_tensor_lse_lhs, evolution_grad_lse_rhs)[0]
 
         return np.real(x), metric_tensor_lse_lhs, evolution_grad_lse_rhs
 

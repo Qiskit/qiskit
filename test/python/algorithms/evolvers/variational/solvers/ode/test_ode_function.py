@@ -13,6 +13,7 @@
 """Test ODE function generator."""
 
 import unittest
+from functools import partial
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
@@ -71,7 +72,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
 
         time = 2
 
-        linear_solver_callable = np.linalg.lstsq
+        linear_solver_callable = partial(np.linalg.lstsq, rcond=1e-2)
         linear_solver = VarQTELinearSolver(
             metric_tensor,
             evolution_grad,
@@ -132,7 +133,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
 
         time = 2
 
-        linear_solver_callable = np.linalg.lstsq
+        linear_solver_callable = partial(np.linalg.lstsq, rcond=1e-2)
         linear_solver = VarQTELinearSolver(
             metric_tensor,
             evolution_grad,
