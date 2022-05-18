@@ -100,7 +100,7 @@ from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
 
 from .sampler_result import SamplerResult
-from .utils import _findname
+from .utils import _finditer
 
 
 class BaseSampler(ABC):
@@ -226,7 +226,7 @@ class BaseSampler(ABC):
         # Allow objects
         try:
             circuits = [
-                next(_findname(circuit, self._circuit_names))
+                next(_finditer(circuit.name, self._circuit_names))
                 if not isinstance(circuit, (int, np.integer))
                 else circuit
                 for circuit in circuits

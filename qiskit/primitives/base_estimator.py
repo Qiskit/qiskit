@@ -117,7 +117,7 @@ from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .estimator_result import EstimatorResult
-from .utils import _finditer, _findname
+from .utils import _finditer
 
 
 class BaseEstimator(ABC):
@@ -305,13 +305,13 @@ class BaseEstimator(ABC):
         # Allow objects
         try:
             circuits = [
-                next(_findname(circuit, self._circuit_names))
+                next(_finditer(circuit.name, self._circuit_names))
                 if not isinstance(circuit, (int, np.integer))
                 else circuit
                 for circuit in circuits
             ]
             observables = [
-                next(_finditer(observable, self._observable_ids))
+                next(_finditer(id(observable), self._observable_ids))
                 if not isinstance(observable, (int, np.integer))
                 else observable
                 for observable in observables

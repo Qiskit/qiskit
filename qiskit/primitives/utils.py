@@ -16,6 +16,7 @@ Utility functions for primitives
 from __future__ import annotations
 
 from collections.abc import Iterator
+from typing import TypeVar
 
 from qiskit.circuit import ParameterExpression, QuantumCircuit
 from qiskit.extensions.quantum_initializer.initializer import Initialize
@@ -115,11 +116,9 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     return mapping
 
 
-def _finditer(obj: object, object_ids: list[int]) -> Iterator[int]:
+T = TypeVar("T")  # pylint: disable=invalid-name
+
+
+def _finditer(obj: T, objects: list[T]) -> Iterator[int]:
     """Return an iterator yielding the indices matching obj."""
-    return map(lambda x: x[0], filter(lambda x: x[1] == id(obj), enumerate(object_ids)))
-
-
-def _findname(circuit: QuantumCircuit, circuit_names: list[int]) -> Iterator[int]:
-    """Return an iterator yielding the indices matching object name."""
-    return map(lambda x: x[0], filter(lambda x: x[1] == circuit.name, enumerate(circuit_names)))
+    return map(lambda x: x[0], filter(lambda x: x[1] == obj, enumerate(objects)))
