@@ -1865,7 +1865,9 @@ class QuantumCircuit:
             cregbundle=cregbundle,
         )
 
-    def size(self, filter_function: Optional[callable] = lambda x: not x[0]._directive) -> int:
+    def size(
+        self, filter_function: Callable[[DataElement], bool] = lambda x: not x[0]._directive
+    ) -> int:
         """Returns total number of instructions in circuit.
 
         Args:
@@ -1878,7 +1880,9 @@ class QuantumCircuit:
         """
         return sum(map(filter_function, self._data))
 
-    def depth(self, filter_function: Optional[callable] = lambda x: not x[0]._directive) -> int:
+    def depth(
+        self, filter_function: Callable[[DataElement], bool] = lambda x: not x[0]._directive
+    ) -> int:
         """Return circuit depth (i.e., length of critical path).
 
         Args:
