@@ -63,10 +63,8 @@ class Result:
         self.success = success
         self.results = results
         self.date = date
-        if status is not None:
-            self.status = status
-        if header is not None:
-            self.header = header
+        self.status = status
+        self.header = header
         self._metadata.update(kwargs)
 
     def __repr__(self):
