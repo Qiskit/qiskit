@@ -108,6 +108,25 @@ ml_tutorials = [
     'index'
 ]
 
+dynamics_tutorials = [
+    "09_pulse_simulator_duffing_model",
+    "10_pulse_simulator_backend_model",
+]
+
+experiments_tutorials = [
+    "1_hamiltonian_and_gate_characterization",
+    "2_relaxation_and_decoherence",
+    "3_measurement_error_mitigation",
+    "4_randomized_benchmarking",
+    "5_quantum_volume",
+    "6_repetition_code",
+    "7_accreditation",
+    "8_tomography",
+    "9_entanglement_verification",
+    "index",
+]
+
+
 redirects = {
     "install": "getting_started.html",
 }
@@ -124,6 +143,11 @@ for tutorial in chemistry_tutorials:
 for tutorial in ml_tutorials:
     redirects["tutorials/machine_learning/%s" % tutorial] = "https://qiskit.org/documentation/machine-learning/tutorials/index.html"
 
+for tutorial in dynamics_tutorials:
+    redirects["tutorials/circuits_advanced/%s" % tutorial] = "https://qiskit.org/documentation/dynamics/tutorials/index.html"
+
+for tutorial in experiments_tutorials:
+    redirects["tutorials/noise/%s" % tutorial] = "https://qiskit.org/documentation/experiments/tutorials/index.html"
 
 nbsphinx_timeout = 300
 nbsphinx_execute = os.getenv('QISKIT_DOCS_BUILD_TUTORIALS', 'never')
