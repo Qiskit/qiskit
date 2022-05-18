@@ -17,7 +17,7 @@ import math
 import heapq
 from collections import OrderedDict, defaultdict
 import warnings
-from functools import cache
+from functools import lru_cache
 
 import numpy as np
 import retworkx as rx
@@ -568,7 +568,7 @@ def merge_no_duplicates(*iterables):
             yield val
 
 
-@cache
+@lru_cache(maxsize=None)
 def _get_identity(n):
     """Cached identity matrix"""
     return np.eye(n)
