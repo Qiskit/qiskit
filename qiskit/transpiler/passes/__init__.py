@@ -46,6 +46,7 @@ Routing
    StochasticSwap
    SabreSwap
    BIPMapping
+   Commuting2qGateRouter
 
 Basis Change
 ============
@@ -138,6 +139,14 @@ Synthesis
    LinearFunctionsSynthesis
    LinearFunctionsToPermutations
 
+Post Layout (Post transpile qubit selection)
+============================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   VF2PostLayout
+
 Additional Passes
 =================
 
@@ -167,6 +176,7 @@ from .layout import NoiseAdaptiveLayout
 from .layout import SabreLayout
 from .layout import CSPLayout
 from .layout import VF2Layout
+from .layout import VF2PostLayout
 from .layout import ApplyLayout
 from .layout import Layout2qDistance
 from .layout import EnlargeWithAncilla
@@ -179,6 +189,7 @@ from .routing import LookaheadSwap
 from .routing import StochasticSwap
 from .routing import SabreSwap
 from .routing import BIPMapping
+from .routing import Commuting2qGateRouter
 
 # basis change
 from .basis import Decompose

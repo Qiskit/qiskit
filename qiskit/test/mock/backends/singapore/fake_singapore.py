@@ -54,22 +54,3 @@ class FakeSingapore(fake_pulse_backend.FakePulseBackend):
     props_filename = "props_singapore.json"
     defs_filename = "defs_singapore.json"
     backend_name = "fake_singapore"
-
-
-class FakeLegacySingapore(fake_pulse_backend.FakePulseLegacyBackend):
-    """A fake Singapore backend.
-
-    00 ↔ 01 ↔ 02 ↔ 03 ↔ 04
-          ↕         ↕
-    05 ↔ 06 ↔ 07 ↔ 08 ↔ 09
-     ↕         ↕         ↕
-    10 ↔ 11 ↔ 12 ↔ 13 ↔ 14
-          ↕         ↕
-    15 ↔ 16 ↔ 17 ↔ 18 ↔ 19
-    """
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_singapore.json"
-    props_filename = "props_singapore.json"
-    defs_filename = "defs_singapore.json"
-    backend_name = "fake_singapore"
