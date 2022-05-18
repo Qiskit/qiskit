@@ -22,6 +22,118 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.36.2
+*************
+
+.. _Release Notes_Terra_0.20.2:
+
+Terra 0.20.2
+============
+
+.. _Release Notes_Terra_0.20.2_Prelude:
+
+Prelude
+-------
+
+.. releasenotes/notes/prepare-0.20.2-0fb90e19e89fe4ac.yaml @ b'f9327925f6d82c2807e7811c4b16eee0f1076c9f'
+
+Qiskit Terra 0.20.2 is a bugfix release, addressing some minor issues identified since the last patch release.
+
+
+.. _Release Notes_Terra_0.20.2_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/fix-fake-backend-v2-dtm-unit-392a8fe3fcc9b793.yaml @ b'f9327925f6d82c2807e7811c4b16eee0f1076c9f'
+
+- Fixed an issue with :class:`~.BackendV2`\ -based fake backend classes from the
+  ``qiskit.providers.fake_provider`` module such as ``FakeMontrealV2``, where the
+  values for the :attr:`~.BackendV2.dtm` and :attr:`~.BackendV2.dt` attributes
+  and the associated attribute :attr:`.Target.dt` would not be properly
+  converted to seconds. This would cause issues when using these fake backends
+  with scheduling.  See `#8018 <https://github.com/Qiskit/qiskit-terra/issues/8018>`__.
+
+.. releasenotes/notes/fix-marginal_counts-zero-memory-0f6710d6923c8ad7.yaml @ b'f9327925f6d82c2807e7811c4b16eee0f1076c9f'
+
+- :func:`.marginal_counts` will now succeed when asked to marginalize memory
+  with an ``indices`` parameter containing non-zero elements.  Previously,
+  shots whose hexadecimal result representation was sufficiently small could
+  raise a ``ValueError``.  See `#8044 <https://github.com/Qiskit/qiskit-terra/issues/8044>`__.
+
+.. releasenotes/notes/fix-qasm3-global-statement-order-ca8bdb35e0fb8dec.yaml @ b'f9327925f6d82c2807e7811c4b16eee0f1076c9f'
+
+- The OpenQASM 3 exporter (:mod:`qiskit.qasm3`) will now output ``input`` or
+  ``output`` declarations before gate declarations.  This is more consistent
+  with the current reference ANTLR grammar from the OpenQASM 3 team.
+  See `#7964 <https://github.com/Qiskit/qiskit-terra/issues/7964>`__.
+
+.. releasenotes/notes/fix-rzx-builder-pulse-amp-ba5c876ddea17c41.yaml @ b'f9327925f6d82c2807e7811c4b16eee0f1076c9f'
+
+- Fixed a bug in the :class:`.RZXCalibrationBuilder` transpiler pass where
+  the scaled cross-resonance pulse amplitude could appear to be parametrized
+  even after assignment. This could cause the pulse visualization tools to
+  use the parametrized format instead of the expected numeric one.
+  See `#8031 <https://github.com/Qiskit/qiskit-terra/pull/8031>`__.
+
+.. releasenotes/notes/fix-transpile-backendv2-durations-dbc85688564cc271.yaml @ b'f9327925f6d82c2807e7811c4b16eee0f1076c9f'
+
+- Fixed an issue with the :func:`~.transpile` function when run with a
+  :class:`~.BackendV2`\ -based backend and setting the ``scheduling_method``
+  keyword argument. Previously, the function would not correctly process
+  the default durations of the instructions supported by the backend which
+  would lead to an error.
+
+.. releasenotes/notes/pulse-round-a014390e414c79c8.yaml @ b'f9327925f6d82c2807e7811c4b16eee0f1076c9f'
+
+- Fixed a bug in the :class:`~.RZXCalibrationBuilder` transpiler pass that was
+  causing pulses to sometimes be constructed with incorrect durations.
+  See `#7994 <https://github.com/Qiskit/qiskit-terra/issues/7994>`__.
+
+.. releasenotes/notes/sabreswap-fix-condition-593f36e855f9064c.yaml @ b'a094757d9c15b0cfd885016d82ec19bc775086cd'
+
+- The :class:`.SabreSwap` transpiler pass, used in :func:`.transpile` when
+  ``routing_method="sabre"`` is set, will no longer sporadically drop
+  classically conditioned gates and their successors from circuits during the
+  routing phase of transpilation.  See
+  `#8040 <https://github.com/Qiskit/qiskit-terra/issues/8040>`__.
+
+.. releasenotes/notes/statevector-enable-iter-4652d7ce87f4d459.yaml @ b'8827c554982d779bc1fa5f01f1f09d91c3854a6f'
+
+- :class:`.Statevector` will now allow direct iteration through its values
+  (such as ``for coefficient in statevector``) and
+  correctly report its length under ``len``.  Previously it would try and
+  and access out-of-bounds data and raise a :class:`.QiskitError`.  See
+  `#8039 <https://github.com/Qiskit/qiskit-terra/issues/8039>`__.
+
+Aer 0.10.4
+==========
+
+No change
+
+.. _Release Notes_Ignis_0.7.1:
+
+Ignis 0.7.1
+===========
+
+.. _Release Notes_Ignis_0.7.1_Prelude:
+
+Prelude
+-------
+
+.. releasenotes/notes/prepare-0.7.1-520c1e0dba0521f7.yaml @ b'3176f61a827c9b00ba006cdaad787fca55acc3a1'
+
+This is a bugfix release that primarily fixes a packaging issue that was
+causing the ``docs/`` directory, which contains the source files used to
+build the qiskit-ignis documentation, to get included in the Python package.
+
+IBM Q Provider 0.19.1
+=====================
+
+No change
+
+
+*************
 Qiskit 0.36.1
 *************
 
