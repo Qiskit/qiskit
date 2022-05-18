@@ -97,7 +97,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         time = 1
 
         evolution_problem = EvolutionProblem(
-            observable, time, ansatz, aux_operators=aux_ops, hamiltonian_value_dict=param_dict
+            observable, time, ansatz, aux_operators=aux_ops, param_value_dict=param_dict
         )
 
         # values from the prototype
@@ -192,7 +192,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         time = 7
 
         evolution_problem = EvolutionProblem(
-            observable, time, ansatz, hamiltonian_value_dict=param_dict
+            observable, time, ansatz, param_value_dict=param_dict
         )
 
         evolution_result = var_qite.evolve(evolution_problem)
@@ -256,7 +256,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         time = 1
 
         evolution_problem = EvolutionProblem(
-            observable, time, ansatz, hamiltonian_value_dict=param_dict
+            observable, time, ansatz, param_value_dict=param_dict
         )
 
         evolution_result = var_qite.evolve(evolution_problem)

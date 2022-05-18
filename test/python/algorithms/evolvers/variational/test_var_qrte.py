@@ -96,7 +96,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         time = 0.1
 
         evolution_problem = EvolutionProblem(
-            observable, time, ansatz, hamiltonian_value_dict=param_dict, aux_operators=aux_ops
+            observable, time, ansatz, param_value_dict=param_dict, aux_operators=aux_ops
         )
 
         thetas_expected_sv = [
@@ -191,7 +191,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         time = 1
 
         evolution_problem = EvolutionProblem(
-            observable, time, ansatz, hamiltonian_value_dict=param_dict
+            observable, time, ansatz, param_value_dict=param_dict
         )
 
         evolution_result = var_qrte.evolve(evolution_problem)

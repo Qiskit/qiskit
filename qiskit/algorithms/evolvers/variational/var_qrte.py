@@ -89,7 +89,7 @@ class VarQRTE(RealEvolver, VarQTE):
         """
         self._validate_aux_ops(evolution_problem)
         init_state_param_dict = self._create_init_state_param_dict(
-            evolution_problem.hamiltonian_value_dict,
+            evolution_problem.param_value_dict,
             list(evolution_problem.initial_state.parameters),
         )
         self.bind_parameters_to_state(

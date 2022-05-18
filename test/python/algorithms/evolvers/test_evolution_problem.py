@@ -62,7 +62,7 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
             initial_state,
             aux_operators,
             t_param=t_parameter,
-            hamiltonian_value_dict=hamiltonian_value_dict,
+            param_value_dict=hamiltonian_value_dict,
         )
 
         expected_hamiltonian = Y + t_parameter * Z
@@ -94,7 +94,7 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
             hamiltonian = param_x * X + param_y * Y
             param_dict = {param_y: 2}
             evolution_problem = EvolutionProblem(
-                hamiltonian, 2, Zero, hamiltonian_value_dict=param_dict
+                hamiltonian, 2, Zero, param_value_dict=param_dict
             )
             with assert_raises(ValueError):
                 evolution_problem.validate_params()
@@ -103,7 +103,7 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
             hamiltonian = param_x * X + param_y * Y
             param_dict = {}
             evolution_problem = EvolutionProblem(
-                hamiltonian, 2, Zero, hamiltonian_value_dict=param_dict
+                hamiltonian, 2, Zero, param_value_dict=param_dict
             )
             with assert_raises(ValueError):
                 evolution_problem.validate_params()
@@ -112,7 +112,7 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
             hamiltonian = param_x * X + param_y * Y
             param_dict = {param_y: 2, param_x: 1, Parameter("z"): 1}
             evolution_problem = EvolutionProblem(
-                hamiltonian, 2, Zero, hamiltonian_value_dict=param_dict
+                hamiltonian, 2, Zero, param_value_dict=param_dict
             )
             with assert_raises(ValueError):
                 evolution_problem.validate_params()

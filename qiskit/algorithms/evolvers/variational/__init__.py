@@ -58,7 +58,7 @@ approach is taken according to a variational principle chosen by a user.
 
     # define evolution problem
     evolution_problem = EvolutionProblem(observable, time, ansatz,
-    hamiltonian_value_dict=param_dict)
+    param_value_dict=param_dict)
 
     # instantiate the algorithm
     var_qite = VarQITE(

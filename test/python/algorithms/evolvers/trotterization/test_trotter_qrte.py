@@ -185,7 +185,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         operator = w_param * (Z ^ Z) / 2.0 + (Z ^ I) + u_param * (I ^ Z) / 3.0
         time = 1
         evolution_problem = EvolutionProblem(
-            operator, time, initial_state, hamiltonian_value_dict=params_dict
+            operator, time, initial_state, param_value_dict=params_dict
         )
         expected_state = VectorStateFn(
             Statevector([-0.9899925 - 0.14112001j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j], dims=(2, 2))
@@ -235,7 +235,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
                 time,
                 initial_state,
                 t_param=t_param,
-                hamiltonian_value_dict=hamiltonian_value_dict,
+                param_value_dict=hamiltonian_value_dict,
             )
             _ = trotter_qrte.evolve(evolution_problem)
 

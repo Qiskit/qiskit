@@ -195,33 +195,33 @@ class VarQTE(ABC):
             initial_state = state.assign_parameters(param_dict)
         return initial_state.eval().primitive.data
 
-    # TODO handle the case where quantum state params are not present in a dictionary; possibly
-    #  rename the dictionary because it not only relates to a Hamiltonian but also to a state
+    @staticmethod
     def _create_init_state_param_dict(
-        self,
-        hamiltonian_value_dict: Dict[Parameter, complex],
+        param_value_dict: Dict[Parameter, complex],
         init_state_parameters: List[Parameter],
     ) -> Dict[Parameter, complex]:
         r"""
-        Looks for parameters present in an initial state (an ansatz) in a ``hamiltonian_value_dict``
+        Looks for parameters present in an initial state (an ansatz) in a ``param_value_dict``
         provided. Based on that, it creates a new dictionary containing only parameters present
-        in an initial state and their respective values. If no ``hamiltonian_value_dict`` is
-        present, values are chosen uniformly at random.
+        in an initial state and their respective values. If no value for an initial state parameter
+        is present, it is chosen uniformly at random.
 
         Args:
-            hamiltonian_value_dict: Dictionary which relates parameter values to the parameters.
+            param_value_dict: Dictionary which relates parameter values to the parameters.
             init_state_parameters: Parameters present in a quantum state.
 
         Returns:
             Dictionary that maps parameters of an initial state to some values.
         """
-        if hamiltonian_value_dict is None:
+        if param_value_dict is None:
             init_state_parameter_values = np.random.random(len(init_state_parameters))
         else:
             init_state_parameter_values = []
             for param in init_state_parameters:
-                if param in hamiltonian_value_dict.keys():
-                    init_state_parameter_values.append(hamiltonian_value_dict[param])
+                if param in param_value_dict.keys():
+                    init_state_parameter_values.append(param_value_dict[param])
+                else:
+                    init_state_parameter_values.append(np.random.random(len(init_state_parameters)))
         init_state_param_dict = dict(zip(init_state_parameters, init_state_parameter_values))
         return init_state_param_dict
 
