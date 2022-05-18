@@ -55,14 +55,6 @@ Classical simulators
 
    tutorials/simulators/*
 
-Quantum system error analysis
-=============================
-
-.. nbgallery::
-   :glob:
-
-   tutorials/noise/*
-
 Algorithms
 ==========
 
