@@ -40,32 +40,32 @@ sys.meta_path = [new_meta_path_finder] + sys.meta_path
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
 # The main qiskit operators
-from qiskit.circuit import ClassicalRegister  # noqa
-from qiskit.circuit import QuantumRegister  # noqa
-from qiskit.circuit import AncillaRegister  # noqa
-from qiskit.circuit import QuantumCircuit  # noqa
+from qiskit.circuit import ClassicalRegister
+from qiskit.circuit import QuantumRegister
+from qiskit.circuit import AncillaRegister
+from qiskit.circuit import QuantumCircuit
 
 # user config
-from qiskit import user_config as _user_config  # noqa
+from qiskit import user_config as _user_config
 
 # The qiskit.extensions.x imports needs to be placed here due to the
 # mechanism for adding gates dynamically.
-import qiskit.extensions  # noqa
-import qiskit.circuit.measure  # noqa
-import qiskit.circuit.reset  # noqa
+import qiskit.extensions
+import qiskit.circuit.measure
+import qiskit.circuit.reset
 
 # Please note these are global instances, not modules.
-from qiskit.providers.basicaer import BasicAer  # noqa
+from qiskit.providers.basicaer import BasicAer
 
 _config = _user_config.get_config()
 
 # Moved to after IBMQ and Aer imports due to import issues
 # with other modules that check for IBMQ (tools)
-from qiskit.execute_function import execute  # noqa
-from qiskit.compiler import transpile, assemble, schedule, sequence  # noqa
+from qiskit.execute_function import execute
+from qiskit.compiler import transpile, assemble, schedule, sequence
 
-from .version import __version__  # noqa
-from .version import QiskitVersion  # noqa
+from .version import __version__
+from .version import QiskitVersion
 
 
 __qiskit_version__ = QiskitVersion()
