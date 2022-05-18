@@ -34,6 +34,9 @@ sys.modules["qiskit._accelerate.results"] = qiskit._accelerate.results
 # Extend namespace for backwards compat
 from qiskit import namespace
 
+# Add hook to redirect imports from qiskit.providers.aer* to qiskit_aer*
+# this is necessary for backwards compatibility for users when qiskit-aer
+# and qiskit-terra shared the qiskit namespace
 new_meta_path_finder = namespace.QiskitElementImport("qiskit.providers.aer", "qiskit_aer")
 sys.meta_path = [new_meta_path_finder] + sys.meta_path
 
@@ -58,6 +61,9 @@ import qiskit.circuit.reset
 # Allow extending this namespace. Please note that currently this line needs
 # to be placed *before* the wrapper imports or any non-import code AND *before*
 # importing the package you want to allow extensions for (in this case `backends`).
+
+# TODO: Remove when we drop support for importing qiskit-aer < 0.11.0 and the
+# qiskit-ibmq-provider package is retired/archived.
 __path__ = pkgutil.extend_path(__path__, __name__)
 
 # Please note these are global instances, not modules.
