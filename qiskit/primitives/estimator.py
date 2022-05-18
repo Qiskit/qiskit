@@ -42,12 +42,12 @@ class Estimator(BaseEstimator):
         parameters: Iterable[Iterable[Parameter]] | None = None,
     ):
         if isinstance(circuits, QuantumCircuit):
-            circuits = [circuits]
-        circuits = [init_circuit(circuit) for circuit in circuits]
+            circuits = (circuits,)
+        circuits = tuple(init_circuit(circuit) for circuit in circuits)
 
         if isinstance(observables, (PauliSumOp, BaseOperator)):
-            observables = [observables]
-        observables = [init_observable(observable) for observable in observables]
+            observables = (observables,)
+        observables = tuple(init_observable(observable) for observable in observables)
 
         super().__init__(
             circuits=circuits,

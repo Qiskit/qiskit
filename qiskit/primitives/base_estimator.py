@@ -105,7 +105,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
-from functools import wraps
 from typing import cast
 
 import numpy as np
@@ -129,8 +128,8 @@ class BaseEstimator(ABC):
 
     def __init__(
         self,
-        circuits: Iterable[QuantumCircuit],
-        observables: Iterable[SparsePauliOp],
+        circuits: tuple[QuantumCircuit] | QuantumCircuit,
+        observables: tuple[SparsePauliOp] | SparsePauliOp,
         parameters: Iterable[Iterable[Parameter]] | None = None,
     ):
         """
@@ -148,16 +147,11 @@ class BaseEstimator(ABC):
         Raises:
             QiskitError: For mismatch of circuits and parameters list.
         """
-        self._circuits = tuple(circuits)
-        self._observables = tuple(observables)
-        self._circuit_ids = (
-            self._circuit_ids if self._circuit_ids else [circuit.name for circuit in self._circuits]
-        )
-        self._observable_ids = (
-            self._observable_ids
-            if self._observable_ids
-            else [id(observable) for observable in self._observables]
-        )
+        self._circuits = circuits
+        self._observables = observables
+        self._circuit_names = self._circuit_names
+        self._observable_ids = self._observable_ids
+
         if parameters is None:
             self._parameters = tuple(circ.parameters for circ in self._circuits)
         else:
@@ -174,35 +168,25 @@ class BaseEstimator(ABC):
                         f"expected {circ.num_parameters}, actual {len(params)}."
                     )
 
-    def __init_subclass__(cls):
-        original_init_method = cls.__init__
+    def __new__(
+        cls,
+        circuits: tuple[QuantumCircuit] | QuantumCircuit,
+        observables: tuple[SparsePauliOp] | SparsePauliOp,
+        parameters: Iterable[Iterable[Parameter]] | None = None,  # pylint: disable=unused-argument
+    ):
 
-        @wraps(cls.__init__)
-        def init_wrapper(
-            self: BaseEstimator,
-            circuits: Iterable[QuantumCircuit],
-            observables: Iterable[SparsePauliOp],
-            *args,
-            parameters: Iterable[Iterable[Parameter]] | None = None,
-            **kwargs,
-        ):
-            if isinstance(circuits, QuantumCircuit):
-                circuits = [circuits]
-            else:
-                circuits = list(circuits)
-            if isinstance(observables, (PauliSumOp, BaseOperator)):
-                observables = [observables]
-            else:
-                observables = list(observables)
-            self._circuit_ids = [circuit.name for circuit in circuits]
-            self._observable_ids = [id(observable) for observable in observables]
-
-            if parameters is None:
-                original_init_method(self, circuits, observables, *args, **kwargs)
-            else:
-                original_init_method(self, circuits, observables, *args, parameters, **kwargs)
-
-        setattr(cls, "__init__", init_wrapper)
+        if isinstance(circuits, QuantumCircuit):
+            circuits = (circuits,)
+        else:
+            circuits = tuple(circuits)
+        if isinstance(observables, (PauliSumOp, BaseOperator)):
+            observables = (observables,)
+        else:
+            observables = tuple(observables)
+        self = super().__new__(cls)
+        self._circuit_names = [circuit.name for circuit in circuits]
+        self._observable_ids = [id(observable) for observable in observables]
+        return self
 
     def __enter__(self):
         return self
@@ -321,7 +305,7 @@ class BaseEstimator(ABC):
         # Allow objects
         try:
             circuits = [
-                next(_findname(circuit, self._circuit_ids))
+                next(_findname(circuit, self._circuit_names))
                 if not isinstance(circuit, (int, np.integer))
                 else circuit
                 for circuit in circuits

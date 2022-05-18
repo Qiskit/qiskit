@@ -91,7 +91,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
-from functools import wraps
 from typing import cast
 
 import numpy as np
@@ -112,7 +111,7 @@ class BaseSampler(ABC):
 
     def __init__(
         self,
-        circuits: Iterable[QuantumCircuit],
+        circuits: tuple[QuantumCircuit] | QuantumCircuit,
         parameters: Iterable[Iterable[Parameter]] | None = None,
     ):
         """
@@ -125,9 +124,7 @@ class BaseSampler(ABC):
             QiskitError: For mismatch of circuits and parameters list.
         """
         self._circuits = tuple(circuits)
-        self._circuit_ids = (
-            self._circuit_ids if self._circuit_ids else [circuit.name for circuit in self._circuits]
-        )
+        self._circuit_names = self._circuit_names
         if parameters is None:
             self._parameters = tuple(circ.parameters for circ in self._circuits)
         else:
@@ -138,29 +135,19 @@ class BaseSampler(ABC):
                     f"and circuits ({len(self._circuits)}"
                 )
 
-    def __init_subclass__(cls):
-        original_init_method = cls.__init__
+    def __new__(
+        cls,
+        circuits: tuple[QuantumCircuit] | QuantumCircuit,
+        parameters: Iterable[Iterable[Parameter]] | None = None,  # pylint: disable=unused-argument
+    ):
 
-        @wraps(cls.__init__)
-        def init_wrapper(
-            self: BaseSampler,
-            circuits: Iterable[QuantumCircuit],
-            *args,
-            parameters: Iterable[Iterable[Parameter]] | None = None,
-            **kwargs,
-        ):
-            if isinstance(circuits, QuantumCircuit):
-                circuits = [circuits]
-            else:
-                circuits = list(circuits)
-            self._circuit_ids = [circuit.name for circuit in circuits]
-
-            if parameters is None:
-                original_init_method(self, circuits, *args, **kwargs)
-            else:
-                original_init_method(self, circuits, *args, parameters, **kwargs)
-
-        setattr(cls, "__init__", init_wrapper)
+        if isinstance(circuits, QuantumCircuit):
+            circuits = (circuits,)
+        else:
+            circuits = tuple(circuits)
+        self = super().__new__(cls)
+        self._circuit_names = [circuit.name for circuit in circuits]
+        return self
 
     def __enter__(self):
         return self
@@ -239,7 +226,7 @@ class BaseSampler(ABC):
         # Allow objects
         try:
             circuits = [
-                next(_findname(circuit, self._circuit_ids))
+                next(_findname(circuit, self._circuit_names))
                 if not isinstance(circuit, (int, np.integer))
                 else circuit
                 for circuit in circuits
