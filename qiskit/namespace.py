@@ -46,13 +46,13 @@ class QiskitLoader(Loader):
         return module
 
 
-class QiskitAerImport(MetaPathFinder):
+class QiskitElementImport(MetaPathFinder):
     """Meta importer to enable unified qiskit namespace."""
 
-    def __init__(self):
+    def __init__(self, old_namespace, new_package):
         super().__init__()
-        self.old_namespace = "qiskit.providers.aer"
-        self.new_package = "qiskit_aer"
+        self.old_namespace = old_namespace
+        self.new_package = new_package
 
     def find_spec(self, fullname, path=None, target=None):
         """Return the ModuleSpec for Qiskit element."""

@@ -34,7 +34,7 @@ sys.modules["qiskit._accelerate.results"] = qiskit._accelerate.results
 # Extend namespace for backwards compat
 from qiskit import namespace
 
-new_meta_path_finder = namespace.QiskitAerImport()
+new_meta_path_finder = namespace.QiskitElementImport("qiskit.providers.aer", "qiskit_aer")
 sys.meta_path = [new_meta_path_finder] + sys.meta_path
 
 # qiskit errors operator
