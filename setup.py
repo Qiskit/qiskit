@@ -33,6 +33,9 @@ with open(README_PATH) as readme_file:
     )
 
 
+csplayout_requirements = [
+    "python-constraint>=1.4",
+]
 visualization_extras = [
     "matplotlib>=3.3",
     "ipywidgets>=7.3.0",
@@ -50,7 +53,7 @@ toqm_requirements = ["qiskit-toqm>=0.0.4"]
 
 setup(
     name="qiskit-terra",
-    version="0.20.0",
+    version="0.21.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -82,10 +85,11 @@ setup(
         "visualization": visualization_extras,
         "bip-mapper": bip_requirements,
         "crosstalk-pass": z3_requirements,
+        "csp-layout-pass": csplayout_requirements,
         "toqm": toqm_requirements,
         # Note: 'all' only includes extras that are stable and work on the majority of Python
         # versions and OSes supported by Terra. You have to ask for anything else explicitly.
-        "all": visualization_extras + z3_requirements,
+        "all": visualization_extras + z3_requirements + csplayout_requirements,
     },
     project_urls={
         "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",

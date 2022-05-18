@@ -27,6 +27,10 @@ from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
 
+# import QubitProperties here to provide convenience alias for building a
+# full target
+from qiskit.providers.backend import QubitProperties  # pylint: disable=unused-import
+
 logger = logging.getLogger(__name__)
 
 
@@ -169,6 +173,7 @@ class Target(Mapping):
         "aquire_alignment",
         "_non_global_basis",
         "_non_global_strict_basis",
+        "qubit_properties",
     )
 
     def __init__(
@@ -180,6 +185,7 @@ class Target(Mapping):
         min_length=1,
         pulse_alignment=1,
         aquire_alignment=1,
+        qubit_properties=None,
     ):
         """
         Create a new Target object
@@ -208,6 +214,17 @@ class Target(Mapping):
                 resolution of measure instruction starting time. Measure
                 instruction should start at time which is a multiple of the
                 alignment value.
+            qubit_properties (list): A list of :class:`~.QubitProperties`
+                objects defining the characteristics of each qubit on the
+                target device. If specified the length of this list must match
+                the number of qubits in the target, where the index in the list
+                matches the qubit number the properties are defined for. If some
+                qubits don't have properties available you can set that entry to
+                ``None``
+        Raises:
+            ValueError: If both ``num_qubits`` and ``qubit_properties`` are both
+            defined and the value of ``num_qubits`` differs from the length of
+            ``qubit_properties``.
         """
         self.num_qubits = num_qubits
         # A mapping of gate name -> gate instance
@@ -227,6 +244,16 @@ class Target(Mapping):
         self.aquire_alignment = aquire_alignment
         self._non_global_basis = None
         self._non_global_strict_basis = None
+        if qubit_properties is not None:
+            if not self.num_qubits:
+                self.num_qubits = len(qubit_properties)
+            else:
+                if self.num_qubits != len(qubit_properties):
+                    raise ValueError(
+                        "The value of num_qubits specified does not match the "
+                        "length of the input qubit_properties list"
+                    )
+        self.qubit_properties = qubit_properties
 
     def add_instruction(self, instruction, properties=None, name=None):
         """Add a new instruction to the :class:`~qiskit.transpiler.Target`
