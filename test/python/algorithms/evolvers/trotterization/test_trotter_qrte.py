@@ -222,7 +222,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
 
     @data((Parameter("t"), {}), (None, {Parameter("x"): 2}), (None, None))
     @unpack
-    def test_trotter_qrte_trotter_errors(self, t_param, hamiltonian_value_dict):
+    def test_trotter_qrte_trotter_errors(self, t_param, param_value_dict):
         """Test TrotterQRTE with raising errors."""
         operator = X * Parameter("t") + Z
         initial_state = Zero
@@ -235,7 +235,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
                 time,
                 initial_state,
                 t_param=t_param,
-                param_value_dict=hamiltonian_value_dict,
+                param_value_dict=param_value_dict,
             )
             _ = trotter_qrte.evolve(evolution_problem)
 
