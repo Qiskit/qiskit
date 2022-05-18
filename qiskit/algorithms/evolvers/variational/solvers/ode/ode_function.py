@@ -13,7 +13,7 @@
 """Class for generating ODE functions based on ODE gradients."""
 from typing import Iterable
 
-from ..ode.abstract_ode_function_generator import (
+from ..ode.abstract_ode_function import (
     AbstractOdeFunctionGenerator,
 )
 

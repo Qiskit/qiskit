@@ -25,10 +25,8 @@ from qiskit.algorithms.aux_ops_evaluator import eval_observables
 from qiskit.algorithms.evolvers import EvolutionProblem, EvolutionResult
 from qiskit.algorithms.evolvers.imaginary_evolver import ImaginaryEvolver
 from qiskit.utils import QuantumInstance
+from .solvers.ode.ode_function_factory import OdeFunctionFactory
 from .var_qte import VarQTE
-from .solvers.ode.abstract_ode_function_generator import (
-    AbstractOdeFunctionGenerator,
-)
 from .variational_principles.imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
@@ -40,7 +38,7 @@ class VarQITE(ImaginaryEvolver, VarQTE):
     def __init__(
         self,
         variational_principle: ImaginaryVariationalPrinciple,
-        ode_function_generator: AbstractOdeFunctionGenerator,
+        ode_function_factory: OdeFunctionFactory,
         ode_solver_callable: OdeSolver = RK45,
         lse_solver_callable: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
         expectation: Optional[ExpectationBase] = None,
@@ -51,7 +49,7 @@ class VarQITE(ImaginaryEvolver, VarQTE):
         r"""
         Args:
             variational_principle: Variational Principle to be used.
-            ode_function_generator: Generates the ODE function.
+            ode_function_factory: Factory for the ODE function.
             ode_solver_callable: ODE solver callable that follows a SciPy ``OdeSolver`` interface.
             lse_solver_callable: Linear system of equations solver that follows a NumPy
                 ``np.linalg.lstsq`` interface.
@@ -65,7 +63,7 @@ class VarQITE(ImaginaryEvolver, VarQTE):
         """
         super().__init__(
             variational_principle,
-            ode_function_generator,
+            ode_function_factory,
             ode_solver_callable,
             lse_solver_callable,
             expectation,

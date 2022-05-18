@@ -30,15 +30,13 @@ from qiskit.opflow import (
     ExpectationBase,
 )
 from qiskit.utils.backend_utils import is_aer_provider
+from .solvers.ode.ode_function_factory import OdeFunctionFactory
 
 from .solvers.var_qte_linear_solver import (
     VarQTELinearSolver,
 )
 from .variational_principles.variational_principle import (
     VariationalPrinciple,
-)
-from .solvers.ode.abstract_ode_function_generator import (
-    AbstractOdeFunctionGenerator,
 )
 from .solvers.ode.var_qte_ode_solver import (
     VarQTEOdeSolver,
@@ -55,7 +53,7 @@ class VarQTE(ABC):
     def __init__(
         self,
         variational_principle: VariationalPrinciple,
-        ode_function_generator: AbstractOdeFunctionGenerator,
+        ode_function_factory: OdeFunctionFactory,
         ode_solver_callable: OdeSolver = RK45,
         lse_solver_callable: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
         expectation: Optional[ExpectationBase] = None,
@@ -66,7 +64,7 @@ class VarQTE(ABC):
         r"""
         Args:
             variational_principle: Variational Principle to be used.
-            ode_function_generator: Generates the ODE function.
+            ode_function_factory: Factory for the ODE function.
             ode_solver_callable: ODE solver callable that follows a SciPy ``OdeSolver`` interface.
             lse_solver_callable: Linear system of equations solver that follows a NumPy
                 ``np.linalg.lstsq`` interface.
@@ -85,7 +83,7 @@ class VarQTE(ABC):
         if quantum_instance is not None:
             self.quantum_instance = quantum_instance
         self.expectation = expectation
-        self.ode_function_generator = ode_function_generator
+        self.ode_function_factory = ode_function_factory
         self.ode_solver_callable = ode_solver_callable
         self.lse_solver_callable = lse_solver_callable
         self.imag_part_tol = imag_part_tol
@@ -160,7 +158,7 @@ class VarQTE(ABC):
         )
 
         # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator
-        self.ode_function_generator._lazy_init(
+        ode_function = self.ode_function_factory.build(
             linear_solver,
             error_calculator,
             t_param,
@@ -168,7 +166,7 @@ class VarQTE(ABC):
         )
 
         ode_solver = VarQTEOdeSolver(
-            init_state_parameters_values, self.ode_function_generator, self.ode_solver_callable
+            init_state_parameters_values, ode_function, self.ode_solver_callable
         )
         parameter_values = ode_solver.run(time)
         param_dict_from_ode = dict(zip(init_state_parameters, parameter_values))

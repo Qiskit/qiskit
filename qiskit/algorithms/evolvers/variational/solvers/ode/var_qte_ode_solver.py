@@ -17,7 +17,7 @@ from typing import List
 
 from scipy.integrate import OdeSolver, solve_ivp, RK45
 
-from .abstract_ode_function_generator import (
+from .abstract_ode_function import (
     AbstractOdeFunctionGenerator,
 )
 

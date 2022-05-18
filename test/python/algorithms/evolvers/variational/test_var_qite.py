@@ -13,17 +13,16 @@
 """Test Variational Quantum Imaginary Time Evolution algorithm."""
 
 import unittest
-
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
-
+from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_factory import (
+    OdeFunctionFactory,
+    OdeFunctionType,
+)
 from qiskit.utils import algorithm_globals, QuantumInstance
 from qiskit import BasicAer
 from qiskit.algorithms import EvolutionProblem
 from qiskit.algorithms.evolvers.variational import VarQITE
-from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_generator import (
-    OdeFunctionGenerator,
-)
 from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
@@ -93,7 +92,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         param_dict = dict(zip(parameters, init_param_values))
 
-        ode_function = OdeFunctionGenerator()
+        ode_function = OdeFunctionFactory(OdeFunctionType.STANDARD_ODE)
 
         time = 1
 
@@ -188,7 +187,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         backend = BasicAer.get_backend("statevector_simulator")
 
-        ode_function = OdeFunctionGenerator()
+        ode_function = OdeFunctionFactory(OdeFunctionType.STANDARD_ODE)
         var_qite = VarQITE(var_principle, ode_function, quantum_instance=backend)
         time = 7
 
@@ -252,7 +251,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         backend = BasicAer.get_backend("statevector_simulator")
 
-        ode_function = OdeFunctionGenerator()
+        ode_function = OdeFunctionFactory(OdeFunctionType.STANDARD_ODE)
         var_qite = VarQITE(var_principle, ode_function, quantum_instance=backend)
         time = 1
 

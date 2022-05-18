@@ -20,7 +20,7 @@ import numpy as np
 from qiskit.algorithms.evolvers.variational.solvers.var_qte_linear_solver import (
     VarQTELinearSolver,
 )
-from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_generator import (
+from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function import (
     OdeFunctionGenerator,
 )
 from qiskit import BasicAer
@@ -79,8 +79,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
             CircuitSampler(backend),
         )
 
-        ode_function_generator = OdeFunctionGenerator()
-        ode_function_generator._lazy_init(
+        ode_function_generator = OdeFunctionGenerator(
             linear_solver, error_calculator=None, t_param=None, param_dict=param_dict
         )
 
@@ -134,14 +133,13 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         time = 2
 
         linear_solver_callable = np.linalg.lstsq
-        ode_function_generator = OdeFunctionGenerator()
         linear_solver = VarQTELinearSolver(
             metric_tensor,
             evolution_grad,
             linear_solver_callable,
             CircuitSampler(backend),
         )
-        ode_function_generator._lazy_init(
+        ode_function_generator = OdeFunctionGenerator(
             linear_solver, error_calculator=None, t_param=t_param, param_dict=param_dict
         )
 
