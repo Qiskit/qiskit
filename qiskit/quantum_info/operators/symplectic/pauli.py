@@ -30,7 +30,6 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli, _count_y
-from qiskit.utils.deprecation import deprecate_arguments
 
 
 class Pauli(BasePauli):
