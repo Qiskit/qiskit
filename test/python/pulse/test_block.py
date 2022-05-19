@@ -745,4 +745,4 @@ class TestParametrizedBlockOperation(BaseTestBlock):
         assigned_block = block.assign_parameters({amp: 0.1}, inplace=True)
 
         assigned_amp = assigned_block.blocks[0].pulse.amp
-        self.assertEqual(assigned_amp, 0.1+0j)
+        self.assertEqual(assigned_amp, 0.1 + 0j)

@@ -26,7 +26,7 @@ from qiskit.pulse.library import (
     gaussian_square,
     drag as pl_drag,
 )
-from qiskit.pulse.library.symbolic_pulses import EnvelopeDescriptor, ConstraintsDescriptor
+from qiskit.pulse.library.symbolic_pulses import LamdifiedExpression
 
 from qiskit.pulse import functional_pulse, PulseError
 from qiskit.test import QiskitTestCase
@@ -321,7 +321,10 @@ class TestParametricPulses(QiskitTestCase):
         drag_expr = drag_instance.envelope
         key = hash(drag_expr)
 
-        descriptor = EnvelopeDescriptor()
+        descriptor = LamdifiedExpression(
+            common_params=["t", "duration", "amp"],
+            attribute="_envelope_expr",
+        )
         descriptor.__set__(drag_instance, drag_expr)
 
         self.assertTrue(callable(descriptor.lambda_funcs[key]))
@@ -330,12 +333,15 @@ class TestParametricPulses(QiskitTestCase):
         """Test speed up of instantiation with lambdify constraints cache."""
         drag_instance = Drag(duration=100, amp=0.1, sigma=40, beta=3)
         drag_constraints = drag_instance.constraints
-        key = hash(tuple(drag_constraints))
+        key = hash(drag_constraints)
 
-        descriptor = ConstraintsDescriptor()
+        descriptor = LamdifiedExpression(
+            common_params=["duration", "amp"],
+            attribute="_consts_expr",
+        )
         descriptor.__set__(drag_instance, drag_constraints)
 
-        self.assertEqual(len(descriptor.lambda_funcs[key]), len(drag_constraints))
+        self.assertTrue(callable(descriptor.lambda_funcs[key]))
 
     def test_deepcopy(self):
         """Test deep copying instance."""
