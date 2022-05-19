@@ -330,7 +330,7 @@ def _transform_gate_for_layout(gate, layout):
     mapped_op_node = deepcopy([n for n in gate["graph"].nodes() if isinstance(n, DAGOpNode)][0])
 
     device_qreg = QuantumRegister(len(layout.get_physical_bits()), "q")
-    mapped_qargs = [device_qreg[layout[a]] for a in mapped_op_node.qargs]
+    mapped_qargs = tuple(device_qreg[layout[a]] for a in mapped_op_node.qargs)
     mapped_op_node.qargs = mapped_qargs
 
     return mapped_op_node
@@ -342,4 +342,4 @@ def _swap_ops_from_edge(edge, layout):
     qreg_edge = [device_qreg[i] for i in edge]
 
     # TODO shouldn't be making other nodes not by the DAG!!
-    return [DAGOpNode(op=SwapGate(), qargs=qreg_edge, cargs=[])]
+    return [DAGOpNode(op=SwapGate(), qargs=qreg_edge, cargs=())]

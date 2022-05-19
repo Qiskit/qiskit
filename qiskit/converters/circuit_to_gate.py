@@ -49,13 +49,13 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
     if circuit.clbits:
         raise QiskitError("Circuit with classical bits cannot be converted to gate.")
 
-    for inst, _, _ in circuit.data:
-        if not isinstance(inst, Gate):
+    for instruction in circuit.data:
+        if not isinstance(instruction.operation, Gate):
             raise QiskitError(
                 (
                     "One or more instructions cannot be converted to"
                     ' a gate. "{}" is not a gate instruction'
-                ).format(inst.name)
+                ).format(instruction.operation.name)
             )
 
     if parameter_map is None:

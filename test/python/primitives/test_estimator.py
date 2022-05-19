@@ -75,7 +75,7 @@ class TestEstimator(QiskitTestCase):
         statevector = Statevector(vector)
         with Estimator([statevector], [self.observable]) as est:
             self.assertIsInstance(est.circuits[0], QuantumCircuit)
-            np.testing.assert_allclose(est.circuits[0][0][0].params, vector)
+            np.testing.assert_allclose(est.circuits[0][0].operation.params, vector)
             result = est()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-0.88272215])

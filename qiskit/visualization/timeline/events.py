@@ -72,23 +72,23 @@ class BitEvents:
         tf = scheduled_circuit.qubit_stop_time(bit)
 
         instructions = []
-        for inst, qargs, cargs in scheduled_circuit.data:
-            associated_bits = qargs + cargs
+        for instruction in scheduled_circuit.data:
+            associated_bits = instruction.qubits + instruction.clbits
             if bit not in associated_bits:
                 continue
 
-            duration = inst.duration
+            duration = instruction.operation.duration
             if duration is None:
                 raise VisualizationError(
                     "Instruction {oper} has no duration. "
                     "You need to transpile the QuantumCircuit with "
-                    "gate durations before drawing.".format(oper=inst)
+                    "gate durations before drawing.".format(oper=instruction.operation)
                 )
 
             instructions.append(
                 types.ScheduledGate(
                     t0=t0,
-                    operand=inst,
+                    operand=instruction.operation,
                     duration=duration,
                     bits=associated_bits,
                     bit_position=associated_bits.index(bit),

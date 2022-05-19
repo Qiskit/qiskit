@@ -370,8 +370,8 @@ class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):
 
         cost_tot = 0
         rule = edge["rule"]
-        for gate, qargs, _ in rule.circuit:
-            key = Key(name=gate.name, num_qubits=len(qargs))
+        for instruction in rule.circuit:
+            key = Key(name=instruction.operation.name, num_qubits=len(instruction.qubits))
             cost_tot += self._opt_cost_map[key]
 
         source = edge["source"]
@@ -427,7 +427,8 @@ def _basis_search(equiv_lib, source_basis, target_basis):
         all_gates_in_lib.add(key)
         for equiv in equiv_lib._get_equivalences(key):
             sources = {
-                Key(name=gate.name, num_qubits=len(qargs)) for gate, qargs, _ in equiv.circuit
+                Key(name=instruction.operation.name, num_qubits=len(instruction.qubits))
+                for instruction in equiv.circuit
             }
             all_gates_in_lib |= sources
             edges = [

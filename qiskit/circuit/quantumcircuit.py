@@ -82,9 +82,6 @@ BitLocations = namedtuple("BitLocations", ("index", "registers"))
 S = TypeVar("S")
 T = TypeVar("T")
 
-# Type of the elements of QuantumCircuit._data.
-DataElement = Tuple[Instruction, List[Qubit], List[Clbit]]
-
 # Types that can be coerced to a valid Qubit specifier in a circuit.
 QubitSpecifier = Union[
     Qubit,
@@ -244,7 +241,7 @@ class QuantumCircuit:
 
         # Data contains a list of instructions and their contexts,
         # in the order they were applied.
-        self._data = []
+        self._data: List[CircuitInstruction] = []
 
         # A stack to hold the instruction sets that are being built up during for-, if- and
         # while-block construction.  These are stored as a stripped down sequence of instructions,
@@ -449,8 +446,8 @@ class QuantumCircuit:
             self.qubits, self.clbits, *self.qregs, *self.cregs, name=self.name + "_reverse"
         )
 
-        for inst, qargs, cargs in reversed(self.data):
-            reverse_circ._append(inst.reverse_ops(), qargs, cargs)
+        for instruction in reversed(self.data):
+            reverse_circ._append(instruction.replace(operation=instruction.operation.reverse_ops()))
 
         reverse_circ.duration = self.duration
         reverse_circ.unit = self.unit
@@ -518,10 +515,10 @@ class QuantumCircuit:
             bits = [new_clbit_map[self.find_bit(clbit).index] for clbit in reversed(reg)]
             circ.add_register(ClassicalRegister(bits=bits, name=reg.name))
 
-        for inst, qargs, cargs in self.data:
-            new_qargs = [new_qubit_map[self.find_bit(qubit).index] for qubit in qargs]
-            new_cargs = [new_clbit_map[self.find_bit(clbit).index] for clbit in cargs]
-            circ._append(inst, new_qargs, new_cargs)
+        for instruction in self.data:
+            qubits = [new_qubit_map[self.find_bit(qubit).index] for qubit in instruction.qubits]
+            clbits = [new_clbit_map[self.find_bit(clbit).index] for clbit in instruction.clbits]
+            circ._append(instruction.replace(qubits=qubits, clbits=clbits))
         return circ
 
     def inverse(self) -> "QuantumCircuit":
@@ -566,8 +563,8 @@ class QuantumCircuit:
             global_phase=-self.global_phase,
         )
 
-        for inst, qargs, cargs in reversed(self._data):
-            inverse_circ._append(inst.inverse(), qargs, cargs)
+        for instruction in reversed(self._data):
+            inverse_circ._append(instruction.replace(operation=instruction.operation.inverse()))
         return inverse_circ
 
     def repeat(self, reps: int) -> "QuantumCircuit":
@@ -714,8 +711,8 @@ class QuantumCircuit:
             if element not in self.cregs:
                 combined_cregs.append(element)
         circuit = QuantumCircuit(*combined_qregs, *combined_cregs)
-        for instruction_context in itertools.chain(self.data, rhs.data):
-            circuit._append(*instruction_context)
+        for instruction in itertools.chain(self.data, rhs.data):
+            circuit._append(instruction)
         circuit.global_phase = self.global_phase + rhs.global_phase
 
         for gate, cals in rhs.calibrations.items():
@@ -769,8 +766,8 @@ class QuantumCircuit:
         data = rhs.data.copy() if rhs is self else rhs.data
 
         # Add new gates
-        for instruction_context in data:
-            self._append(*instruction_context)
+        for instruction in data:
+            self._append(instruction)
         self.global_phase += rhs.global_phase
 
         for gate, cals in rhs.calibrations.items():
@@ -1086,11 +1083,11 @@ class QuantumCircuit:
         return len(self._data)
 
     @typing.overload
-    def __getitem__(self, item: int) -> DataElement:
+    def __getitem__(self, item: int) -> CircuitInstruction:
         ...
 
     @typing.overload
-    def __getitem__(self, item: slice) -> List[DataElement]:
+    def __getitem__(self, item: slice) -> List[CircuitInstruction]:
         ...
 
     def __getitem__(self, item):
@@ -1684,40 +1681,41 @@ class QuantumCircuit:
                 {bit: f"{register_name}[{idx}]" for idx, bit in enumerate(regless_clbits)}
             )
 
-        for instruction, qargs, cargs in self._data:
-            if instruction.name == "measure":
-                qubit = qargs[0]
-                clbit = cargs[0]
+        for instruction in self._data:
+            operation = instruction.operation
+            if operation.name == "measure":
+                qubit = instruction.qubits[0]
+                clbit = instruction.clbits[0]
                 string_temp += "{} {} -> {};\n".format(
-                    instruction.qasm(),
+                    operation.qasm(),
                     bit_labels[qubit],
                     bit_labels[clbit],
                 )
             else:
                 # Check instructions names or label are valid
-                if not VALID_QASM2_IDENTIFIER.fullmatch(instruction.name):
-                    instruction = instruction.copy(name=_qasm_escape_gate_name(instruction.name))
+                if not VALID_QASM2_IDENTIFIER.fullmatch(operation.name):
+                    operation = operation.copy(name=_qasm_escape_gate_name(operation.name))
 
                 # decompose gate using definitions if they are not defined in OpenQASM2
                 if (
-                    instruction.name not in existing_gate_names
-                    and instruction not in existing_composite_circuits
+                    operation.name not in existing_gate_names
+                    and operation not in existing_composite_circuits
                 ):
-                    if instruction.name in [
-                        instruction.name for instruction in existing_composite_circuits
+                    if operation.name in [
+                        operation.name for operation in existing_composite_circuits
                     ]:
-                        # append instruction id to name of instruction copy to make it unique
-                        instruction = instruction.copy(name=f"{instruction.name}_{id(instruction)}")
+                        # append operation id to name of operation copy to make it unique
+                        operation = operation.copy(name=f"{operation.name}_{id(operation)}")
 
-                    existing_composite_circuits.append(instruction)
+                    existing_composite_circuits.append(operation)
                     _add_sub_instruction_to_existing_composite_circuits(
-                        instruction, existing_gate_names, existing_composite_circuits
+                        operation, existing_gate_names, existing_composite_circuits
                     )
 
                 # Insert qasm representation of the original instruction
                 string_temp += "{} {};\n".format(
-                    instruction.qasm(),
-                    ",".join([bit_labels[j] for j in qargs + cargs]),
+                    operation.qasm(),
+                    ",".join([bit_labels[j] for j in instruction.qubits + instruction.clbits]),
                 )
 
         # insert gate definitions
@@ -1898,7 +1896,9 @@ class QuantumCircuit:
             cregbundle=cregbundle,
         )
 
-    def size(self, filter_function: Optional[callable] = lambda x: not x[0]._directive) -> int:
+    def size(
+        self, filter_function: Optional[callable] = lambda x: not x.operation._directive
+    ) -> int:
         """Returns total number of instructions in circuit.
 
         Args:
@@ -1911,7 +1911,9 @@ class QuantumCircuit:
         """
         return sum(map(filter_function, self._data))
 
-    def depth(self, filter_function: Optional[callable] = lambda x: not x[0]._directive) -> int:
+    def depth(
+        self, filter_function: Optional[callable] = lambda x: not x.operation._directive
+    ) -> int:
         """Return circuit depth (i.e., length of critical path).
 
         Args:
@@ -1946,26 +1948,26 @@ class QuantumCircuit:
         # Conditional gates act on all cbits in the register
         # they are conditioned on.
         # The max stack height is the circuit depth.
-        for instr, qargs, cargs in self._data:
+        for instruction in self._data:
             levels = []
             reg_ints = []
-            for ind, reg in enumerate(qargs + cargs):
+            for ind, reg in enumerate(instruction.qubits + instruction.clbits):
                 # Add to the stacks of the qubits and
                 # cbits used in the gate.
                 reg_ints.append(bit_indices[reg])
-                if filter_function((instr, qargs, cargs)):
+                if filter_function(instruction):
                     levels.append(op_stack[reg_ints[ind]] + 1)
                 else:
                     levels.append(op_stack[reg_ints[ind]])
             # Assuming here that there is no conditional
             # snapshots or barriers ever.
-            if instr.condition:
+            if instruction.operation.condition:
                 # Controls operate over all bits of a classical register
                 # or over a single bit
-                if isinstance(instr.condition[0], Clbit):
-                    condition_bits = [instr.condition[0]]
+                if isinstance(instruction.operation.condition[0], Clbit):
+                    condition_bits = [instruction.operation.condition[0]]
                 else:
-                    condition_bits = instr.condition[0]
+                    condition_bits = instruction.operation.condition[0]
                 for cbit in condition_bits:
                     idx = bit_indices[cbit]
                     if idx not in reg_ints:
@@ -2012,8 +2014,8 @@ class QuantumCircuit:
             OrderedDict: a breakdown of how many operations of each kind, sorted by amount.
         """
         count_ops: Dict[Instruction, int] = {}
-        for instr, _, _ in self._data:
-            count_ops[instr.name] = count_ops.get(instr.name, 0) + 1
+        for instruction in self._data:
+            count_ops[instruction.operation.name] = count_ops.get(instruction.operation.name, 0) + 1
         return OrderedDict(sorted(count_ops.items(), key=lambda kv: kv[1], reverse=True))
 
     def num_nonlocal_gates(self) -> int:
@@ -2022,12 +2024,12 @@ class QuantumCircuit:
         Conditional nonlocal gates are also included.
         """
         multi_qubit_gates = 0
-        for instr, _, _ in self._data:
-            if instr.num_qubits > 1 and not instr._directive:
+        for instruction in self._data:
+            if instruction.operation.num_qubits > 1 and not instruction.operation._directive:
                 multi_qubit_gates += 1
         return multi_qubit_gates
 
-    def get_instructions(self, name: str) -> List[DataElement]:
+    def get_instructions(self, name: str) -> List[CircuitInstruction]:
         """Get instructions matching name.
 
         Args:
@@ -2036,7 +2038,7 @@ class QuantumCircuit:
         Returns:
             list(tuple): list of (instruction, qargs, cargs).
         """
-        return [match for match in self._data if match[0].name == name]
+        return [match for match in self._data if match.operation.name == name]
 
     def num_connected_components(self, unitary_only: bool = False) -> int:
         """How many non-entangled subcircuits can the circuit be factored to.
@@ -2058,21 +2060,21 @@ class QuantumCircuit:
 
         # Here we are traversing the gates and looking to see
         # which of the sub_graphs the gate joins together.
-        for instr, qargs, cargs in self._data:
+        for instruction in self._data:
             if unitary_only:
-                args = qargs
+                args = instruction.qubits
                 num_qargs = len(args)
             else:
-                args = qargs + cargs
-                num_qargs = len(args) + (1 if instr.condition else 0)
+                args = instruction.qubits + instruction.clbits
+                num_qargs = len(args) + (1 if instruction.operation.condition else 0)
 
-            if num_qargs >= 2 and not instr._directive:
+            if num_qargs >= 2 and not instruction.operation._directive:
                 graphs_touched = []
                 num_touched = 0
                 # Controls necessarily join all the cbits in the
                 # register that they use.
                 if not unitary_only:
-                    for bit in instr.condition_bits:
+                    for bit in instruction.operation.condition_bits:
                         idx = bit_indices[bit]
                         for k in range(num_sub_graphs):
                             if idx in sub_graphs[k]:
@@ -2145,9 +2147,9 @@ class QuantumCircuit:
         cpy._qubit_indices = self._qubit_indices.copy()
         cpy._clbit_indices = self._clbit_indices.copy()
 
-        instr_instances = {id(instr): instr.copy() for instr, _, __ in self._data}
-
-        instr_copies = {id_: instr.copy() for id_, instr in instr_instances.items()}
+        instr_copies = {
+            id(instruction.operation): instruction.operation.copy() for instruction in self._data
+        }
 
         cpy._parameter_table = ParameterTable(
             {
@@ -2678,14 +2680,14 @@ class QuantumCircuit:
         self, instruction: Instruction, parameter: Parameter, value: ParameterValueType
     ) -> None:
         if instruction._definition:
-            for op, _, _ in instruction._definition:
-                for idx, param in enumerate(op.params):
+            for inner in instruction._definition:
+                for idx, param in enumerate(inner.operation.params):
                     if isinstance(param, ParameterExpression) and parameter in param.parameters:
                         if isinstance(value, ParameterExpression):
-                            op.params[idx] = param.subs({parameter: value})
+                            inner.operation.params[idx] = param.subs({parameter: value})
                         else:
-                            op.params[idx] = param.bind({parameter: value})
-                        self._rebind_definition(op, parameter, value)
+                            inner.operation.params[idx] = param.bind({parameter: value})
+                        self._rebind_definition(inner.operation, parameter, value)
 
     def barrier(self, *qargs: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.Barrier`. If qargs is empty, applies to all qubits in the
@@ -4635,8 +4637,8 @@ class QuantumCircuit:
         """
         if self.duration is None:
             # circuit has only delays, this is kind of scheduled
-            for inst, _, _ in self.data:
-                if not isinstance(inst, Delay):
+            for instruction in self._data:
+                if not isinstance(instruction.operation, Delay):
                     raise CircuitError(
                         "qubit_start_time undefined. Circuit must be scheduled first."
                     )
@@ -4646,12 +4648,12 @@ class QuantumCircuit:
 
         starts = {q: 0 for q in qubits}
         dones = {q: False for q in qubits}
-        for inst, qargs, _ in self.data:
+        for instruction in self._data:
             for q in qubits:
-                if q in qargs:
-                    if isinstance(inst, Delay):
+                if q in instruction.qubits:
+                    if isinstance(instruction.operation, Delay):
                         if not dones[q]:
-                            starts[q] += inst.duration
+                            starts[q] += instruction.operation.duration
                     else:
                         dones[q] = True
             if len(qubits) == len([done for done in dones.values() if done]):  # all done
@@ -4677,8 +4679,8 @@ class QuantumCircuit:
         """
         if self.duration is None:
             # circuit has only delays, this is kind of scheduled
-            for inst, _, _ in self.data:
-                if not isinstance(inst, Delay):
+            for instruction in self._data:
+                if not isinstance(instruction.operation, Delay):
                     raise CircuitError(
                         "qubit_stop_time undefined. Circuit must be scheduled first."
                     )
@@ -4688,12 +4690,12 @@ class QuantumCircuit:
 
         stops = {q: self.duration for q in qubits}
         dones = {q: False for q in qubits}
-        for inst, qargs, _ in reversed(self.data):
+        for instruction in reversed(self._data):
             for q in qubits:
-                if q in qargs:
-                    if isinstance(inst, Delay):
+                if q in instruction.qubits:
+                    if isinstance(instruction.operation, Delay):
                         if not dones[q]:
-                            stops[q] -= inst.duration
+                            stops[q] -= instruction.operation.duration
                     else:
                         dones[q] = True
             if len(qubits) == len([done for done in dones.values() if done]):  # all done
@@ -4738,19 +4740,18 @@ def _add_sub_instruction_to_existing_composite_circuits(
     """Recursively add undefined sub-instructions in the definition of the given
     instruction to existing_composite_circuit list.
     """
-    for sub_instruction, _, _ in instruction.definition:
+    for sub_instruction in instruction.definition:
+        sub_operation = sub_instruction.operation
         # Check instructions names are valid
-        if not VALID_QASM2_IDENTIFIER.fullmatch(sub_instruction.name):
-            sub_instruction = sub_instruction.copy(
-                name=_qasm_escape_gate_name(sub_instruction.name)
-            )
+        if not VALID_QASM2_IDENTIFIER.fullmatch(sub_operation.name):
+            sub_operation = sub_operation.copy(name=_qasm_escape_gate_name(sub_operation.name))
         if (
-            sub_instruction.name not in existing_gate_names
-            and sub_instruction not in existing_composite_circuits
+            sub_operation.name not in existing_gate_names
+            and sub_operation not in existing_composite_circuits
         ):
-            existing_composite_circuits.insert(0, sub_instruction)
+            existing_composite_circuits.insert(0, sub_operation)
             _add_sub_instruction_to_existing_composite_circuits(
-                sub_instruction, existing_gate_names, existing_composite_circuits
+                sub_operation, existing_gate_names, existing_composite_circuits
             )
 
 
@@ -4780,16 +4781,16 @@ def _get_composite_circuit_qasm_from_instruction(instruction: Instruction) -> st
     definition_bit_labels = {
         bit: idx for bits in (definition.qubits, definition.clbits) for idx, bit in enumerate(bits)
     }
-    for sub_instruction, qargs, _ in definition:
-        if not VALID_QASM2_IDENTIFIER.fullmatch(sub_instruction.name):
-            sub_instruction = sub_instruction.copy(
-                name=_qasm_escape_gate_name(sub_instruction.name)
-            )
+    for sub_instruction in definition:
+        sub_operation = sub_instruction.operation
+        if not VALID_QASM2_IDENTIFIER.fullmatch(sub_operation.name):
+            sub_operation = sub_operation.copy(name=_qasm_escape_gate_name(sub_operation.name))
 
         gate_qargs = ",".join(
-            ["q%i" % index for index in [definition_bit_labels[qubit] for qubit in qargs]]
+            "q%i" % index
+            for index in [definition_bit_labels[qubit] for qubit in sub_instruction.qubits]
         )
-        composite_circuit_gates += f"{sub_instruction.qasm()} {gate_qargs}; "
+        composite_circuit_gates += f"{sub_operation.qasm()} {gate_qargs}; "
 
     if composite_circuit_gates:
         composite_circuit_gates = composite_circuit_gates.rstrip(" ")

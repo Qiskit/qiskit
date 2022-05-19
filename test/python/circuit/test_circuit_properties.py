@@ -652,7 +652,7 @@ class TestCircuitProperties(QiskitTestCase):
         circ.rz(0.1, 1)
         circ.cz(1, 3)
         circ.measure(1, 0)
-        self.assertEqual(circ.depth(lambda x: x[0].num_qubits == 2), 2)
+        self.assertEqual(circ.depth(lambda x: x.operation.num_qubits == 2), 2)
 
     def test_circuit_depth_multiqubit_or_conditional(self):
         """Test finding depth of multi-qubit or conditional gates."""
@@ -678,7 +678,8 @@ class TestCircuitProperties(QiskitTestCase):
         circ.measure(1, 0)
         circ.x(0).c_if(0, 1)
         self.assertEqual(
-            circ.depth(lambda x: x[0].num_qubits >= 2 or x[0].condition is not None), 4
+            circ.depth(lambda x: x.operation.num_qubits >= 2 or x.operation.condition is not None),
+            4,
         )
 
     def test_circuit_depth_first_qubit(self):
@@ -704,7 +705,7 @@ class TestCircuitProperties(QiskitTestCase):
         circ.rz(0.1, 1)
         circ.cz(1, 3)
         circ.measure(1, 0)
-        self.assertEqual(circ.depth(lambda x: circ.qubits[0] in x[1]), 3)
+        self.assertEqual(circ.depth(lambda x: circ.qubits[0] in x.qubits), 3)
 
     def test_circuit_size_empty(self):
         """Circuit.size should return 0 for an empty circuit."""
@@ -737,7 +738,7 @@ class TestCircuitProperties(QiskitTestCase):
         qc.cx(q[0], q[1])
         qc.rz(0.1, q[1])
         qc.rzz(0.1, q[1], q[2])
-        self.assertEqual(qc.size(lambda x: x[0].num_qubits == 2), 2)
+        self.assertEqual(qc.size(lambda x: x.operation.num_qubits == 2), 2)
 
     def test_circuit_size_ignores_barriers_snapshots(self):
         """Circuit.size should not count barriers or snapshots."""

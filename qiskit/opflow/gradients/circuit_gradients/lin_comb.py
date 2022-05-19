@@ -612,14 +612,14 @@ class LinComb(CircuitGradient):
             out._data[gate_idx:] = replacement
             # reset parameter table
             table = ParameterTable()
-            for op, _, _ in out._data:
-                for idx, param_expression in enumerate(op.params):
+            for instruction in out._data:
+                for idx, param_expression in enumerate(instruction.operation.params):
                     if isinstance(param_expression, ParameterExpression):
                         for param in param_expression.parameters:
                             if param not in table.keys():
-                                table[param] = [(op, idx)]
+                                table[param] = [(instruction.operation, idx)]
                             else:
-                                table[param].append((op, idx))
+                                table[param].append((instruction.operation, idx))
 
             out._parameter_table = table
 
