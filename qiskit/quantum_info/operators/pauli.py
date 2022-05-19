@@ -10,5 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=unused-import
+
+
+"""
+DEPRECATED Tools for working with Pauli Operators.
+"""
 
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
