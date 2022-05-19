@@ -98,6 +98,7 @@ import numpy as np
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
+from qiskit.utils.deprecation import deprecate_arguments
 
 from .sampler_result import SamplerResult
 from .utils import _finditer
@@ -178,6 +179,7 @@ class BaseSampler(ABC):
         """
         return self._parameters
 
+    @deprecate_arguments({"circuit_indices": "circuits"})
     def __call__(
         self,
         circuits: Sequence[int | QuantumCircuit] | None = None,
@@ -232,7 +234,10 @@ class BaseSampler(ABC):
                 for circuit in circuits
             ]
         except StopIteration as err:
-            raise QiskitError("The object id does not match.") from err
+            raise QiskitError(
+                "The circuits passed when calling sampler is not one of the circuits used to "
+                "initialize the session."
+            ) from err
 
         # Validation
         if len(circuits) != len(parameter_values):

@@ -303,14 +303,35 @@ class TestEstimator(QiskitTestCase):
     def test_passing_objects(self):
         """Test passsing object for Estimator."""
 
-        with Estimator([self.ansatz], [self.observable]) as estimator:
-            result = estimator(
-                circuits=[self.ansatz, self.ansatz],
-                observables=[self.observable, self.observable],
-                parameter_values=[list(range(6)), [0, 1, 1, 2, 3, 5]],
-            )
-        self.assertAlmostEqual(result.values[0], self.expvals[0])
-        self.assertAlmostEqual(result.values[1], self.expvals[1])
+        with self.subTest("Valid test"):
+            with Estimator([self.ansatz], [self.observable]) as estimator:
+                result = estimator(
+                    circuits=[self.ansatz, self.ansatz],
+                    observables=[self.observable, self.observable],
+                    parameter_values=[list(range(6)), [0, 1, 1, 2, 3, 5]],
+                )
+            self.assertAlmostEqual(result.values[0], self.expvals[0])
+            self.assertAlmostEqual(result.values[1], self.expvals[1])
+
+        with self.subTest("Invalid circuit test"):
+            circuit = QuantumCircuit(2)
+            with Estimator([self.ansatz], [self.observable]) as estimator:
+                with self.assertRaises(QiskitError):
+                    result = estimator(
+                        circuits=[self.ansatz, circuit],
+                        observables=[self.observable, self.observable],
+                        parameter_values=[list(range(6)), [0, 1, 1, 2, 3, 5]],
+                    )
+
+        with self.subTest("Invalid observable test"):
+            observable = SparsePauliOp(["ZX"])
+            with Estimator([self.ansatz], [self.observable]) as estimator:
+                with self.assertRaises(QiskitError):
+                    result = estimator(
+                        circuits=[self.ansatz, self.ansatz],
+                        observables=[observable, self.observable],
+                        parameter_values=[list(range(6)), [0, 1, 1, 2, 3, 5]],
+                    )
 
 
 if __name__ == "__main__":

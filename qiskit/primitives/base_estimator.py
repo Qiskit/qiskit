@@ -115,6 +115,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.utils.deprecation import deprecate_arguments
 
 from .estimator_result import EstimatorResult
 from .utils import _finditer
@@ -226,6 +227,7 @@ class BaseEstimator(ABC):
         """
         return self._parameters
 
+    @deprecate_arguments({"circuit_indices": "circuits", "observable_indices": "observables"})
     def __call__(
         self,
         circuits: Sequence[int | QuantumCircuit] | None = None,
@@ -272,7 +274,7 @@ class BaseEstimator(ABC):
         if isinstance(parameter_values, np.ndarray):
             parameter_values = parameter_values.tolist()
 
-        # Allow lift
+        # Allow lift T to [T].
         if circuits is not None and not isinstance(circuits, (np.ndarray, Sequence)):
             circuits = [circuits]
         if observables is not None and not isinstance(observables, (np.ndarray, Sequence)):
@@ -310,6 +312,12 @@ class BaseEstimator(ABC):
                 else circuit
                 for circuit in circuits
             ]
+        except StopIteration as err:
+            raise QiskitError(
+                "The circuits passed when calling estimator is not one of the circuits used to "
+                "initialize the session."
+            ) from err
+        try:
             observables = [
                 next(_finditer(id(observable), self._observable_ids))
                 if not isinstance(observable, (int, np.integer))
@@ -317,7 +325,10 @@ class BaseEstimator(ABC):
                 for observable in observables
             ]
         except StopIteration as err:
-            raise QiskitError("The object id does not match.") from err
+            raise QiskitError(
+                "The observables passed when calling estimator is not one of the circuits used to "
+                "initialize the session."
+            ) from err
 
         # Validation
         if len(circuits) != len(observables):

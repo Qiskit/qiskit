@@ -12,11 +12,11 @@
 
 """Tests for Sampler."""
 
-import unittest
 from test import combine
+import unittest
 
-import numpy as np
 from ddt import ddt
+import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
@@ -382,9 +382,16 @@ class TestSampler(QiskitTestCase):
 
         params, target = self._generate_params_target([0])
 
-        with Sampler(circuits=self._pqc) as sampler:
-            result = sampler(circuits=self._pqc, parameter_values=params)
-            self._compare_probs(result.quasi_dists, target)
+        with self.subTest("Valid test"):
+            with Sampler(circuits=self._pqc) as sampler:
+                result = sampler(circuits=self._pqc, parameter_values=params)
+                self._compare_probs(result.quasi_dists, target)
+
+        with self.subTest("Invalid circuit test"):
+            circuit = QuantumCircuit(2)
+            with Sampler(circuits=self._pqc) as sampler:
+                with self.assertRaises(QiskitError):
+                    result = sampler(circuits=circuit, parameter_values=params)
 
 
 if __name__ == "__main__":
