@@ -474,6 +474,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
                             for the label from the full Pauli group.
         """
         num_qubits = z.size
+        phase = int(phase)
         coeff_labels = {0: "", 1: "-i", 2: "-", 3: "i"}
         label = ""
         for i in range(num_qubits):
