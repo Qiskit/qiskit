@@ -383,7 +383,7 @@ class TestSampler(QiskitTestCase):
         params, target = self._generate_params_target([0])
 
         with Sampler(circuits=self._pqc) as sampler:
-            result = sampler(self._pqc, parameter_values=params)
+            result = sampler(circuits=self._pqc, parameter_values=params)
             self._compare_probs(result.quasi_dists, target)
 
 

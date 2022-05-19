@@ -237,7 +237,7 @@ class BaseSampler(ABC):
         # Validation
         if len(circuits) != len(parameter_values):
             raise QiskitError(
-                f"The number of circuit indices ({len(circuits)}) does not match "
+                f"The number of circuits ({len(circuits)}) does not match "
                 f"the number of parameter value sets ({len(parameter_values)})."
             )
 

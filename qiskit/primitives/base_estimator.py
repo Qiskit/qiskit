@@ -322,12 +322,12 @@ class BaseEstimator(ABC):
         # Validation
         if len(circuits) != len(observables):
             raise QiskitError(
-                f"The number of circuit indices ({len(circuits)}) does not match "
-                f"the number of observable indices ({len(observables)})."
+                f"The number of circuits ({len(circuits)}) does not match "
+                f"the number of observables ({len(observables)})."
             )
         if len(circuits) != len(parameter_values):
             raise QiskitError(
-                f"The number of circuit indices ({len(circuits)}) does not match "
+                f"The number of circuits ({len(circuits)}) does not match "
                 f"the number of parameter value sets ({len(parameter_values)})."
             )
 
