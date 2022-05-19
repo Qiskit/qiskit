@@ -18,11 +18,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from .base_result import BaseResult
+
 from qiskit.result import QuasiDistribution
 
 
 @dataclass(frozen=True)
-class SamplerResult:
+class SamplerResult(BaseResult):
     """Result of Sampler.
 
     .. code-block:: python

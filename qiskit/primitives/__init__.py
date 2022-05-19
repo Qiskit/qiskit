@@ -46,11 +46,13 @@ Results
 .. autosummary::
    :toctree: ../stubs/
 
+   BaseResult
    EstimatorResult
    SamplerResult
 """
 
 from .base_estimator import BaseEstimator
+from .base_result import BaseResult
 from .base_sampler import BaseSampler
 from .estimator import Estimator
 from .estimator_result import EstimatorResult

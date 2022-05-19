@@ -18,12 +18,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from .base_result import BaseResult
+
 if TYPE_CHECKING:
     import numpy as np
 
 
 @dataclass(frozen=True)
-class EstimatorResult:
+class EstimatorResult(BaseResult):
     """Result of Estimator.
 
     .. code-block:: python
