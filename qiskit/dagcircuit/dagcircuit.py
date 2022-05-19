@@ -36,6 +36,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.dagcircuit.dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_function
 
 
 class DAGCircuit:
@@ -94,6 +95,9 @@ class DAGCircuit:
         self.unit = "dt"
 
     @_optionals.HAS_NETWORKX.require_in_call
+    @deprecate_function(
+        "The to_networkx() method is deprecated and will be removed in a future release."
+    )
     def to_networkx(self):
         """Returns a copy of the DAGCircuit in networkx format."""
         import networkx as nx
@@ -108,6 +112,9 @@ class DAGCircuit:
 
     @classmethod
     @_optionals.HAS_NETWORKX.require_in_call
+    @deprecate_function(
+        "The from_networkx() method is deprecated and will be removed in a future release."
+    )
     def from_networkx(cls, graph):
         """Take a networkx MultiDigraph and create a new DAGCircuit.
 
@@ -410,8 +417,7 @@ class DAGCircuit:
 
         Args:
             name (string): used for error reporting
-            condition (tuple or None): a condition tuple (ClassicalRegister, int)
-              or (Clbit, bool) or (list[Clbit], int)
+            condition (tuple or None): a condition tuple (ClassicalRegister, int) or (Clbit, bool)
 
         Raises:
             DAGCircuitError: if conditioning on an invalid register
@@ -419,7 +425,7 @@ class DAGCircuit:
         if (
             condition is not None
             and condition[0] not in self.clbits
-            and any(clbit not in self.clbits for clbit in condition[0])
+            and condition[0].name not in self.cregs
         ):
             raise DAGCircuitError("invalid creg in condition for %s" % name)
 
@@ -444,8 +450,7 @@ class DAGCircuit:
         """Return a list of bits in the given condition.
 
         Args:
-            cond (tuple or None): optional condition (ClassicalRegister, int)
-              or (Clbit, bool) or (list[Clbit], int)
+            cond (tuple or None): optional condition (ClassicalRegister, int) or (Clbit, bool)
 
         Returns:
             list[Clbit]: list of classical bits
@@ -461,9 +466,6 @@ class DAGCircuit:
         elif isinstance(cond[0], Clbit):
             # Returns a singleton list of the conditional cbit.
             return [cond[0]]
-        elif all(isinstance(cbit, Clbit) for cbit in cond[0]):
-            # Returns the list of cbits as is.
-            return cond[0]
         else:
             raise CircuitError("Condition must be used with ClassicalRegister or Clbit.")
 
@@ -496,8 +498,28 @@ class DAGCircuit:
         self._increment_op(op)
         return node_index
 
+    @deprecate_function(
+        """The DAGCircuit._copy_circuit_metadata method is deprecated as of 0.20.0. It will be removed
+        no earlier than 3 months after the release date. You should use the DAGCircuit.copy_empty_like
+        method instead, which acts identically.
+        """
+    )
     def _copy_circuit_metadata(self):
-        """Return a copy of source_dag with metadata but empty."""
+        """DEPRECATED"""
+        return self.copy_empty_like()
+
+    def copy_empty_like(self):
+        """Return a copy of self with the same structure but empty.
+
+        That structure includes:
+            * name and other metadata
+            * global phase
+            * duration
+            * all the qubits and clbits, including the registers.
+
+        Returns:
+            DAGCircuit: An empty copy of self.
+        """
         target_dag = DAGCircuit()
         target_dag.name = self.name
         target_dag._global_phase = self._global_phase
@@ -656,7 +678,7 @@ class DAGCircuit:
 
         Args:
             wire_map (dict): a map from source wires to destination wires
-            condition (tuple or None): (ClassicalRegister,int) or (Clbit,bool) or (list[Clbit],int)
+            condition (tuple or None): (ClassicalRegister,int)
             target_cregs (list[ClassicalRegister]): List of all cregs in the
               target circuit onto which the condition might possibly be mapped.
         Returns:
@@ -681,28 +703,41 @@ class DAGCircuit:
             cond_val = condition[1]
             new_cond_val = 0
             new_creg = None
-            bits_in_condcreg = []
-            for bit in cond_creg:
-                if bit not in wire_map:
-                    raise DAGCircuitError(
-                        "Did not find creg containing mapped clbit in conditional."
-                    )
-                bits_in_condcreg.append(bit)
+            bits_in_condcreg = [bit for bit in wire_map if bit in cond_creg]
             for bit in bits_in_condcreg:
                 if is_reg:
-                    if new_creg is None:
-                        new_creg = []
-                    new_creg.append(wire_map[bit])
+                    try:
+                        candidate_creg = next(
+                            creg for creg in target_cregs if wire_map[bit] in creg
+                        )
+                    except StopIteration as ex:
+                        raise DAGCircuitError(
+                            "Did not find creg containing mapped clbit in conditional."
+                        ) from ex
                 else:
-                    new_creg = wire_map[bit]
-            new_cond_val = cond_val
-            for creg in target_cregs:
-                if set(creg) == set(new_creg):
-                    new_cond_val = 0
-                    for (i, bit) in enumerate(creg):
-                        new_cond_val |= ((cond_val >> new_creg.index(bit)) & 1) << i
-                    new_creg = creg
-                    break
+                    # If cond is on a single Clbit then the candidate_creg is
+                    # the target Clbit to which 'bit' is mapped to.
+                    candidate_creg = wire_map[bit]
+                if new_creg is None:
+                    new_creg = candidate_creg
+                elif new_creg != candidate_creg:
+                    # Raise if wire_map maps condition creg on to more than one
+                    # creg in target DAG.
+                    raise DAGCircuitError(
+                        "wire_map maps conditional register onto more than one creg."
+                    )
+
+                if not is_reg:
+                    # If the cond is on a single Clbit then the new_cond_val is the
+                    # same as the cond_val since the new_creg is also a single Clbit.
+                    new_cond_val = cond_val
+                elif 2 ** (cond_creg[:].index(bit)) & cond_val:
+                    # If the conditional values of the Clbit 'bit' is 1 then the new_cond_val
+                    # is updated such that the conditional value of the Clbit to which 'bit'
+                    # is mapped to in new_creg is 1.
+                    new_cond_val += 2 ** (new_creg[:].index(wire_map[bit]))
+            if new_creg is None:
+                raise DAGCircuitError("Condition registers not found in wire_map.")
             new_condition = (new_creg, new_cond_val)
         return new_condition
 
@@ -1542,7 +1577,7 @@ class DAGCircuit:
                 return
 
             # Construct a shallow copy of self
-            new_layer = self._copy_circuit_metadata()
+            new_layer = self.copy_empty_like()
 
             for node in op_nodes:
                 # this creates new DAGOpNodes in the new_layer
@@ -1562,7 +1597,7 @@ class DAGCircuit:
         same structure as in layers().
         """
         for next_node in self.topological_op_nodes():
-            new_layer = self._copy_circuit_metadata()
+            new_layer = self.copy_empty_like()
 
             # Save the support of the operation we add to the layer
             support_list = []

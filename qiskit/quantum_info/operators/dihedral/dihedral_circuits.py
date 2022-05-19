@@ -17,6 +17,8 @@ import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.barrier import Barrier
+from qiskit.circuit.delay import Delay
 
 
 def _append_circuit(elem, circuit, qargs=None):
@@ -34,6 +36,9 @@ def _append_circuit(elem, circuit, qargs=None):
 
     if qargs is None:
         qargs = list(range(elem.num_qubits))
+
+    if isinstance(circuit, (Barrier, Delay)):
+        return elem
 
     if isinstance(circuit, QuantumCircuit):
         gate = circuit.to_instruction()
@@ -81,6 +86,8 @@ def _append_circuit(elem, circuit, qargs=None):
     }
 
     for instr, qregs, _ in gate.definition:
+        if isinstance(instr, (Barrier, Delay)):
+            continue
         # Get the integer position of the flat register
         new_qubits = [qargs[bit_indices[tup]] for tup in qregs]
 

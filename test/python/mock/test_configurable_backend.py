@@ -12,7 +12,7 @@
 
 """Test of configurable backend generation."""
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock.utils import ConfigurableFakeBackend
+from qiskit.test.mock.utils.configurable_backend import ConfigurableFakeBackend
 
 
 class TestConfigurableFakeBackend(QiskitTestCase):

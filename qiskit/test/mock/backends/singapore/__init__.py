@@ -12,5 +12,5 @@
 
 """Mock singapore backend"""
 
+from .fake_singapore import FakeSingaporeV2
 from .fake_singapore import FakeSingapore
-from .fake_singapore import FakeLegacySingapore

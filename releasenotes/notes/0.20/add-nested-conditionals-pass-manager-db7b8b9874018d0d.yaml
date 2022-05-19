@@ -1,0 +1,33 @@
+
+features:
+  - |
+    :class:`~.FlowController` classes (such as :class:`~.ConditionalController`)
+    can now be nested inside a :class:`~.PassManager` instance when using the
+    :meth:`.PassManager.append` method. This enables the use of nested logic to
+    control the execution of passes in the :class:`~.PassManager`. For example::
+
+        from qiskit.transpiler import ConditionalController, PassManager
+        from qiskit.transpiler.passes import (
+          BasisTranslator, GatesInBasis, Optimize1qGatesDecomposition, FixedPoint, Depth
+        )
+        from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+
+        pm = PassManager()
+
+        def opt_control(property_set):
+            return not property_set["depth_fixed_point"]
+
+        def unroll_condition(property_set):
+            return not property_set["all_gates_in_basis"]
+
+        depth_check = [Depth(), FixedPoint("depth")]
+        opt = [Optimize1qGatesDecomposition(['rx', 'ry', 'rz', 'rxx'])]
+        unroll = [BasisTranslator(sel, ['rx', 'ry', 'rz', 'rxx'])]
+        unroll_check = [GatesInBasis(['rx', 'ry', 'rz', 'rxx'])]
+        flow_unroll = [ConditionalController(unroll, condition=unroll_condition)]
+
+        pm.append(depth_check + opt + unroll_check + flow_unroll, do_while=opt_control)
+
+    The ``pm`` :class:`~.PassManager` object will only execute the
+    :class:`.BasisTranslator` pass (in the ``unroll`` step) in each loop
+    iteration if the ``unroll_condition`` is met.

@@ -527,6 +527,8 @@ class TestInstructions(QiskitTestCase):
             case(ClassicalRegister(2), r"Register .* is not present in this circuit\.")
         with self.subTest("index out of range"):
             case(2, r"Classical bit index .* is out-of-range\.")
+        with self.subTest("list of bits"):
+            case(list(creg), r"Unknown classical resource specifier: .*")
         with self.subTest("tuple of bits"):
             case(tuple(creg), r"Unknown classical resource specifier: .*")
         with self.subTest("float"):
@@ -556,23 +558,6 @@ class TestInstructions(QiskitTestCase):
             instructions.add(instruction, [Qubit()], [])
             with self.assertRaisesRegex(CircuitError, r"Cannot pass an index as a condition .*"):
                 instructions.c_if(0, 0)
-        with self.subTest("condition value True/False"):
-            instruction = HGate()
-            instructions = InstructionSet()
-            instructions.add(instruction, [Qubit()], [])
-            with self.assertRaisesRegex(
-                CircuitError, r"condition value should be 0/1 or True/False"
-            ):
-                instructions.c_if(Clbit(), 2)
-            with self.subTest("less than 2 ^ number of bits"):
-                instruction = HGate()
-                instructions = InstructionSet()
-                instructions.add(instruction, [Qubit()], [])
-                register = ClassicalRegister(2)
-                with self.assertRaisesRegex(
-                    CircuitError, r"condition value should be less than 2 \^ number of bits"
-                ):
-                    instructions.c_if(register, 10)
 
     def test_instructionset_c_if_deprecated_resolution(self):
         r"""Test that the deprecated path of passing an iterable of :obj:`.ClassicalRegister`\ s to
@@ -706,6 +691,19 @@ class TestInstructions(QiskitTestCase):
             dummy_requester.assert_called_once_with(register)
             for instruction in instruction_list:
                 self.assertIs(instruction.condition[0], sentinel_register)
+
+    def test_label_type_enforcement(self):
+        """Test instruction label type enforcement."""
+        with self.subTest("accepts string labels"):
+            instruction = Instruction("h", 1, 0, [], label="label")
+            self.assertEqual(instruction.label, "label")
+        with self.subTest("raises when a non-string label is provided to constructor"):
+            with self.assertRaisesRegex(TypeError, r"label expects a string or None"):
+                Instruction("h", 1, 0, [], label=0)
+        with self.subTest("raises when a non-string label is provided to setter"):
+            with self.assertRaisesRegex(TypeError, r"label expects a string or None"):
+                instruction = HGate()
+                instruction.label = 0
 
 
 if __name__ == "__main__":

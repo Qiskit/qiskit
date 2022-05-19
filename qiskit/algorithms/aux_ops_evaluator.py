@@ -16,7 +16,6 @@ from typing import Tuple, Union, List
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.minimum_eigen_solvers.minimum_eigen_solver import ListOrDict
 from qiskit.opflow import (
     CircuitSampler,
     ListOp,
@@ -24,13 +23,15 @@ from qiskit.opflow import (
     OperatorBase,
     ExpectationBase,
 )
-from qiskit.providers import BaseBackend, Backend
+from qiskit.providers import Backend
 from qiskit.quantum_info import Statevector
 from qiskit.utils import QuantumInstance
 
+from .list_or_dict import ListOrDict
+
 
 def eval_observables(
-    quantum_instance: Union[QuantumInstance, BaseBackend, Backend],
+    quantum_instance: Union[QuantumInstance, Backend],
     quantum_state: Union[
         Statevector,
         QuantumCircuit,
@@ -122,8 +123,10 @@ def _prepare_list_op(
     if isinstance(observables, dict):
         observables = list(observables.values())
 
-    state = StateFn(quantum_state)
-    return ListOp([StateFn(obs, is_measurement=True).compose(state) for obs in observables])
+    if not isinstance(quantum_state, StateFn):
+        quantum_state = StateFn(quantum_state)
+
+    return ListOp([StateFn(obs, is_measurement=True).compose(quantum_state) for obs in observables])
 
 
 def _prepare_result(
@@ -158,7 +161,7 @@ def _compute_std_devs(
     observables_expect_sampled: OperatorBase,
     observables: ListOrDict[OperatorBase],
     expectation: ExpectationBase,
-    quantum_instance: Union[QuantumInstance, BaseBackend, Backend],
+    quantum_instance: Union[QuantumInstance, Backend],
 ) -> List[complex]:
     """
     Calculates a list of standard deviations from expectation values of observables provided.

@@ -21,6 +21,7 @@ import sys
 import tempfile
 
 from qiskit.dagcircuit.dagnode import DAGOpNode, DAGInNode, DAGOutNode
+from qiskit.circuit import Qubit
 from qiskit.utils import optionals as _optionals
 from qiskit.exceptions import InvalidFileError
 from .exceptions import VisualizationError
@@ -173,7 +174,9 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
         edge_attr_func = None
 
     else:
-        bit_labels = {
+        qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
+        clbit_indices = {bit: index for index, bit in enumerate(dag.clbits)}
+        register_bit_labels = {
             bit: f"{reg.name}[{idx}]"
             for reg in list(dag.qregs.values()) + list(dag.cregs.values())
             for (idx, bit) in enumerate(reg)
@@ -192,12 +195,20 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                     n["style"] = "filled"
                     n["fillcolor"] = "lightblue"
                 if isinstance(node, DAGInNode):
-                    n["label"] = bit_labels[node.wire]
+                    if isinstance(node.wire, Qubit):
+                        label = register_bit_labels.get(node.wire, f"q_{qubit_indices[node.wire]}")
+                    else:
+                        label = register_bit_labels.get(node.wire, f"c_{clbit_indices[node.wire]}")
+                    n["label"] = label
                     n["color"] = "black"
                     n["style"] = "filled"
                     n["fillcolor"] = "green"
                 if isinstance(node, DAGOutNode):
-                    n["label"] = bit_labels[node.wire]
+                    if isinstance(node.wire, Qubit):
+                        label = register_bit_labels.get(node.wire, f"q[{qubit_indices[node.wire]}]")
+                    else:
+                        label = register_bit_labels.get(node.wire, f"c[{clbit_indices[node.wire]}]")
+                    n["label"] = label
                     n["color"] = "black"
                     n["style"] = "filled"
                     n["fillcolor"] = "red"
@@ -207,7 +218,11 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
 
         def edge_attr_func(edge):
             e = {}
-            e["label"] = bit_labels[edge]
+            if isinstance(edge, Qubit):
+                label = register_bit_labels.get(edge, f"q_{qubit_indices[edge]}")
+            else:
+                label = register_bit_labels.get(edge, f"c_{clbit_indices[edge]}")
+            e["label"] = label
             return e
 
     dot_str = dag._multi_graph.to_dot(node_attr_func, edge_attr_func, graph_attrs)
