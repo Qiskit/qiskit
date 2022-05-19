@@ -174,4 +174,27 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 for current_node in run[1:]:
                     dag.remove_op_node(current_node)
 
+        # Runs for parameters gate
+        runs = dag.collect_1q_runs_with_params()
+        for run in runs:
+            gate = run[0]
+            new_ops = []
+            for ngate in run[1:]:
+                if gate.op.name in {'rz', 'ry', 'rx'} and gate.op.name == ngate.op.name:
+                    # merge parameters
+                    gate.op.params[0] = gate.op.params[0] + ngate.op.params[0]
+                else:
+                    new_ops.append(gate.op)
+                    gate = ngate
+            new_ops.append(gate.op)
+
+            idx = 0
+            for o in new_ops:
+                dag.substitute_node(run[idx], o)
+                idx += 1
+
+            # Delete the other nodes in the run
+            for current_node in run[idx:]:
+                dag.remove_op_node(current_node)
+
         return dag
