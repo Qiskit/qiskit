@@ -19,6 +19,8 @@ from typing import Dict
 
 import numpy as np
 
+from qiskit.utils.deprecation import deprecate_arguments
+
 from qiskit.circuit import Instruction, QuantumCircuit
 from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.delay import Delay
@@ -149,6 +151,7 @@ class Pauli(BasePauli):
 
     _VALID_LABEL_PATTERN = re.compile(r"^[+-]?1?[ij]?[IXYZ]+$")
 
+    @deprecate_arguments({"label": "data"})
     def __init__(self, data=None):
         """Initialize the Pauli.
 
