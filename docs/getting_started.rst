@@ -614,7 +614,7 @@ Tier 3 platforms are currently:
  * Linux i686 (distributions compatible with the
    `manylinux 2014 <https://www.python.org/dev/peps/pep-0599/>`__ packaging
    specification) for Python >= 3.10
- * Windows 32bit for Python >= 3.10
+ * Windows 32 bit for Python >= 3.10
  * macOS arm64 (10.15 or newer)
 
 Ready to get going?...
