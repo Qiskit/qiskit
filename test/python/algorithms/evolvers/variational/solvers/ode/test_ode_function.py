@@ -85,7 +85,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         )
 
         qte_ode_function = ode_function_generator.var_qte_ode_function(time, param_dict.values())
-        # TODO check if values correct
+
         expected_qte_ode_function = [
             0.442145,
             -0.022081,
@@ -146,7 +146,6 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
 
         qte_ode_function = ode_function_generator.var_qte_ode_function(time, param_dict.values())
 
-        # TODO verify if values correct
         expected_qte_ode_function = [
             0.442145,
             -0.022081,

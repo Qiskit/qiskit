@@ -93,27 +93,21 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
         with self.subTest(msg="Parameter missing in dict."):
             hamiltonian = param_x * X + param_y * Y
             param_dict = {param_y: 2}
-            evolution_problem = EvolutionProblem(
-                hamiltonian, 2, Zero, param_value_dict=param_dict
-            )
+            evolution_problem = EvolutionProblem(hamiltonian, 2, Zero, param_value_dict=param_dict)
             with assert_raises(ValueError):
                 evolution_problem.validate_params()
 
         with self.subTest(msg="Empty dict."):
             hamiltonian = param_x * X + param_y * Y
             param_dict = {}
-            evolution_problem = EvolutionProblem(
-                hamiltonian, 2, Zero, param_value_dict=param_dict
-            )
+            evolution_problem = EvolutionProblem(hamiltonian, 2, Zero, param_value_dict=param_dict)
             with assert_raises(ValueError):
                 evolution_problem.validate_params()
 
         with self.subTest(msg="Extra parameter in dict."):
             hamiltonian = param_x * X + param_y * Y
             param_dict = {param_y: 2, param_x: 1, Parameter("z"): 1}
-            evolution_problem = EvolutionProblem(
-                hamiltonian, 2, Zero, param_value_dict=param_dict
-            )
+            evolution_problem = EvolutionProblem(hamiltonian, 2, Zero, param_value_dict=param_dict)
             with assert_raises(ValueError):
                 evolution_problem.validate_params()
 

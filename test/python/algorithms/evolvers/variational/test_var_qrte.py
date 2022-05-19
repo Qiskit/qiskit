@@ -190,9 +190,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         var_qrte = VarQRTE(var_principle, ode_function, quantum_instance=backend)
         time = 1
 
-        evolution_problem = EvolutionProblem(
-            observable, time, ansatz, param_value_dict=param_dict
-        )
+        evolution_problem = EvolutionProblem(observable, time, ansatz, param_value_dict=param_dict)
 
         evolution_result = var_qrte.evolve(evolution_problem)
 

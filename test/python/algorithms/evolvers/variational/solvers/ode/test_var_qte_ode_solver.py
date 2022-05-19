@@ -45,7 +45,6 @@ from qiskit.opflow import (
 class TestVarQTEOdeSolver(QiskitAlgorithmsTestCase):
     """Test solver of ODEs."""
 
-    # TODO runs slowly
     def test_run_no_backend(self):
         """Test ODE solver with no backend."""
         observable = SummedOp(
@@ -107,7 +106,6 @@ class TestVarQTEOdeSolver(QiskitAlgorithmsTestCase):
             9.604292449638343e-17,
         ]
 
-        # TODO check if values correct
         np.testing.assert_array_almost_equal(result, expected_result, decimal=4)
 
 

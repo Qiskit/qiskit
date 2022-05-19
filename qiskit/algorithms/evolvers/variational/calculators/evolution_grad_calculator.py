@@ -84,7 +84,7 @@ def eval_grad_result(
     Raises:
         Warning: if an unexpected non-negligible imaginary part of the gradient is detected.
     """
-    # TODO would be nicer to somehow get rid of this if statement
+
     if isinstance(grad, OperatorBase):
         grad_result = grad
     else:
