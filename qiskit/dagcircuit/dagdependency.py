@@ -632,10 +632,10 @@ def _does_commute(node1, node2):
     qarg2 = [qarg.index(q) for q in node2.qargs]
 
     dim = 2**qbit_num
-    id_op = np.reshape(_get_identity(dim), (2, 2)*qbit_num)
+    id_op = np.reshape(_get_identity(dim), (2, 2) * qbit_num)
 
-    op1 = np.reshape(node1.op.to_matrix(), (2, 2)*len(qarg1))
-    op2 = np.reshape(node2.op.to_matrix(), (2, 2)*len(qarg2))
+    op1 = np.reshape(node1.op.to_matrix(), (2, 2) * len(qarg1))
+    op2 = np.reshape(node2.op.to_matrix(), (2, 2) * len(qarg2))
 
     op = Operator._einsum_matmul(id_op, op1, qarg1)
     op12 = Operator._einsum_matmul(op, op2, qarg2, right_mul=False)
