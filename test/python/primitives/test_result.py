@@ -13,9 +13,10 @@
 from dataclasses import dataclass
 from typing import Any, Collection
 
-from pytest import mark, raises
+from ddt import data, ddt, unpack
 
 from qiskit.primitives import BaseResult
+from qiskit.test import QiskitTestCase
 
 
 ################################################################################
@@ -30,32 +31,25 @@ class Result(BaseResult):
 ################################################################################
 ## TESTS
 ################################################################################
-class TestBaseResult:
+@ddt
+class TestBaseResult(QiskitTestCase):
     """Tests BaseResult."""
 
-    @mark.parametrize(
-        "foo, bar",
-        cases := [([1], []), ([], [1]), ([1, 2], []), ([1], [1, 2])],
-        ids=[f"{len(foo)}-{len(bar)}" for foo, bar in cases],
-    )
+    @data(([1], []), ([], [1]), ([1, 2], []), ([1], [1, 2]))
+    @unpack
     def test_post_init(self, foo, bar):
-        with raises(ValueError):
-            assert Result(foo, bar)
+        """Tests post init({foo}, {bar})."""
+        self.assertRaises(ValueError, Result, *(foo, bar))
 
-    @mark.parametrize(
-        "num_experiments",
-        cases := [0, 1, 2, 3],
-        ids=[f"{num_experiments}" for num_experiments in cases],
-    )
+    @data(0, 1, 2, 3)
     def test_num_experiments(self, num_experiments):
+        """Tests {num_experiments} num_experiments."""
         result = Result([0] * num_experiments, [1] * num_experiments)
-        assert result.num_experiments == num_experiments
+        self.assertEqual(num_experiments, result.num_experiments)
 
-    @mark.parametrize(
-        "foo, bar",
-        cases := [([], []), ([0], [0]), ([0], [1])],
-        ids=["empty", "equal", "distinct"],
-    )
+    @data(([], []), ([0], [0]), ([0], [1]))
+    @unpack
     def test_field_values(self, foo, bar):
+        """Tests field values ({foo}, {bar})."""
         result = Result(foo, bar)
-        assert result._field_values == [foo, bar]
+        self.assertEqual(result._field_values, [foo, bar])

@@ -14,7 +14,7 @@ Primitive result abstract class
 """
 
 from abc import ABC
-from dataclasses import asdict
+from dataclasses import fields
 from typing import Sized
 
 
@@ -28,7 +28,7 @@ class BaseResult(ABC):
         """Verify that all fields are consistent with the number of experiments represented."""
         for val in self._field_values:  # type: Sized
             if len(val) != self.num_experiments:
-                raise ValueError("Inconsistent number of experiments accross data fields.")
+                raise ValueError("Inconsistent number of experiments across data fields.")
 
     @property
     def num_experiments(self) -> int:
@@ -39,5 +39,4 @@ class BaseResult(ABC):
     @property
     def _field_values(self) -> list:
         """Returns list of field values in any inheriting dataclass."""
-        dict_values = asdict(self).values()
-        return list(dict_values)
+        return [getattr(self, field.name) for field in fields(self)]
