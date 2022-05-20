@@ -91,109 +91,6 @@ _ipz = np.array([[1j, 0], [0, -1j]], dtype=complex)
 _id = np.array([[1, 0], [0, 1]], dtype=complex)
 
 
-class TwoQubitDecomposeUpToDiagonal:
-
-    def __init__(self):
-        self.sx = np.array([[0, 1], [1, 0]])
-        self.sy = np.array([[0, -1j], [1j, 0]])
-        self.sz = np.array([[1, 0], [0, -1]])
-        self._cx01 = np.array([[1, 0, 0, 0],
-                               [0, 0, 0, 1],
-                               [0, 0, 1, 0],
-                               [0, 1, 0, 0]])
-        self._cx10 = np.array([[1, 0, 0, 0],
-                               [0, 1, 0, 0],
-                               [0, 0, 0, 1],
-                               [0, 0, 1, 0]])
-        self._kak = TwoQubitWeylDecomposition
-
-    def _rx(theta):
-        return scipy.linalg.expm(-1j * theta * self.sx / 2)
-
-    def _ry(theta):
-        return scipy.linalg.expm(-1j * theta * self.sy / 2)
-
-    def _rz(theta):
-        return scipy.linalg.expm(-1j * theta * self.sz / 2)
-
-    def _u4_to_su4(self, u4):
-        phase_factor = np.conj(scipy.linalg.det(u4)**(-1 / u4.shape[0]))
-        su4 = u4 / phase_factor
-        assert(cmath.isclose(scipy.linalg.det(su4), 1))
-        return su4, cmath.phase(phase_factor)
-
-    def _gamma(self, mat):
-        """
-        proposition II.1: this invariant characterizes when two operators in U(4),
-        say u, v, are equivalent up to single qubit gates:
-
-           u ≡ v -> Det(γ(u)) = Det(±(γ(v)))
-        """
-        sumat, _ = self._u4_to_su4(mat)
-        sysy = np.kron(self.sy, self.sy)
-        return sumat @ sysy @ sumat.T @ sysy
-
-    def _cx0_test(self, mat):
-        # proposition III.1: zero cx sufficient
-        gamma = self._gamma(mat)
-        evals = np.linalg.eigvals(gamma)
-        return np.all(np.isclose(evals, np.ones(4)))
-
-    def _cx1_test(self, mat):
-        # proposition III.2: one cx sufficient
-        gamma = self._gamma(mat)
-        evals = np.linalg.eigvals(gamma)
-        uvals, ucnts = np.unique(np.round(evals, 10), return_counts=True)
-        return (len(uvals) == 2 and
-                all(ucnts == 2) and
-                all((np.isclose(x, 1j)) or np.isclose(x, -1j) for x in uvals))
-    
-    def _cx2_test(self, mat):
-        # proposition III.3: two cx sufficient
-        gamma = self._gamma(mat)
-        return np.isclose(np.trace(gamma).imag, 0)
-
-    def _real_trace_transform(self, mat):
-        """From UniversalQCompiler. This may be from Proposition 6 in
-        V. V. Shende, I. L. Markov, and S. S. Bullock, ``Minimal
-        Universal Two-qubit Controlled-NOT-based Circuits,''
-        """
-        a = (mat[0, 3] * mat[3, 0] -
-             mat[0, 2] * mat[3, 1] -
-             mat[0, 1] * mat[3, 2] +
-             mat[0, 0] * mat[3, 3])
-        b  = (-mat[1, 3] * mat[2, 0] +
-              mat[1, 2] * mat[2, 1] +
-              mat[1, 1] * mat[2, 2] -
-              mat[1, 0] * mat[2, 3])
-        aAbs = abs(a)
-        bAbs = abs(b)
-        alpha = cmath.phase(a)
-        beta = cmath.phase(b)
-        delta = cmath.phase(np.linalg.det(mat))
-        dba = delta - beta - alpha
-        theta = -alpha - math.atan2(-bAbs * math.sin(dba),
-                                    aAbs - bAbs * math.cos(dba))
-        phi = -delta - theta
-        return np.diag((cmath.exp(1j * theta/2),
-                        cmath.exp(1j * phi/2),
-                        cmath.exp(1j * phi/2),
-                        cmath.exp(1j * theta/2)))
-
-    def __call__(self, mat):
-        """do the decomposition"""
-        su4, phase = self._u4_to_su4(mat)
-        real_map = self._real_trace_transform(su4)
-        try:
-            assert(self._cx2_test(real_map @ su4))
-        except AssertionError as aerr:
-            breakpoint()
-            pass
-        circ = two_qubit_cnot_decompose(real_map @ su4)
-        circ.global_phase += phase
-        return real_map.conj(), circ
-
-
 class TwoQubitWeylDecomposition:
     """Decompose two-qubit unitary U = (K1l⊗K1r).Exp(i a xx + i b yy + i c zz).(K2l⊗K2r) , where U ∈
     U(4), (K1l|K1r|K2l|K2r) ∈ SU(2), and we stay in the "Weyl Chamber" 𝜋/4 ≥ a ≥ b ≥ |c|
@@ -1505,6 +1402,97 @@ class TwoQubitBasisDecomposer:
             4,
         ]
         return np.argmax([trace_to_fid(traces[i]) * self.basis_fidelity**i for i in range(4)])
+
+
+
+class TwoQubitDecomposeUpToDiagonal:
+    """
+    Class to decompose two qubit unitaries into the product of a diagonal gate
+    and another unitary gate which can be represented by two CX gates instead of the
+    usual three. This can be used when neighboring gates commute with the diagonal to
+    potentially reduce overall CX count.
+    """
+
+    def __init__(self):
+        self.sy = np.array([[0, -1j], [1j, 0]])
+        self.sz = np.array([[1, 0], [0, -1]])
+        self.sysy = np.kron(self.sy, self.sy)
+
+    def _u4_to_su4(self, u4):
+        phase_factor = np.conj(scipy.linalg.det(u4) ** (-1 / u4.shape[0]))
+        su4 = u4 / phase_factor
+        assert cmath.isclose(scipy.linalg.det(su4), 1)
+        return su4, cmath.phase(phase_factor)
+
+    def _gamma(self, mat):
+        """
+        proposition II.1: this invariant characterizes when two operators in U(4),
+        say u, v, are equivalent up to single qubit gates:
+
+           u ≡ v -> Det(γ(u)) = Det(±(γ(v)))
+        """
+        sumat, _ = self._u4_to_su4(mat)
+        sysy = self.sysy
+        return sumat @ sysy @ sumat.T @ sysy
+
+    def _cx0_test(self, mat):
+        # proposition III.1: zero cx sufficient
+        gamma = self._gamma(mat)
+        evals = np.linalg.eigvals(gamma)
+        return np.all(np.isclose(evals, np.ones(4)))
+
+    def _cx1_test(self, mat):
+        # proposition III.2: one cx sufficient
+        gamma = self._gamma(mat)
+        evals = np.linalg.eigvals(gamma)
+        uvals, ucnts = np.unique(np.round(evals, 10), return_counts=True)
+        return (
+            len(uvals) == 2
+            and all(ucnts == 2)
+            and all((np.isclose(x, 1j)) or np.isclose(x, -1j) for x in uvals)
+        )
+
+    def _cx2_test(self, mat):
+        # proposition III.3: two cx sufficient
+        gamma = self._gamma(mat)
+        return np.isclose(np.trace(gamma).imag, 0)
+
+    def _real_trace_transform(self, mat):
+        """
+        Determine diagonal gate such that
+
+        U3 = D U2
+
+        Where U3 is a general two-qubit gate which takes 3 cnots, D is a
+        diagonal gate, and U2 is a gate which takes 2 cnots.
+        """
+        a1 = (
+            -mat[1, 3] * mat[2, 0]
+            + mat[1, 2] * mat[2, 1]
+            + mat[1, 1] * mat[2, 2]
+            - mat[1, 0] * mat[2, 3]
+        )
+        a2 = (
+            mat[0, 3] * mat[3, 0]
+            - mat[0, 2] * mat[3, 1]
+            - mat[0, 1] * mat[3, 2]
+            + mat[0, 0] * mat[3, 3]
+        )
+        theta = 0  # arbitrary
+        phi = 0  # arbitrary
+        psi = np.arctan2(a1.imag + a2.imag, a1.real - a2.real) - phi
+        diag = np.diag(np.exp(-1j * np.array([theta, phi, psi, -(theta + phi + psi)])))
+        return diag
+
+    def __call__(self, mat):
+        """do the decomposition"""
+        su4, phase = self._u4_to_su4(mat)
+        real_map = self._real_trace_transform(su4)
+        if not self._cx2_test(real_map @ su4):
+            warnings.warn("Unitary decomposition up to diagonal may use an " "additionl CX gate.")
+        circ = two_qubit_cnot_decompose(real_map @ su4)
+        circ.global_phase += phase
+        return real_map.conj(), circ
 
 
 # This weird duplicated lazy structure is for backwards compatibility; Qiskit has historically
