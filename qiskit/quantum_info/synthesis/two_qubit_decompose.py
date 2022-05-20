@@ -1404,7 +1404,6 @@ class TwoQubitBasisDecomposer:
         return np.argmax([trace_to_fid(traces[i]) * self.basis_fidelity**i for i in range(4)])
 
 
-
 class TwoQubitDecomposeUpToDiagonal:
     """
     Class to decompose two qubit unitaries into the product of a diagonal gate

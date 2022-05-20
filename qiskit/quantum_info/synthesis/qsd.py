@@ -77,13 +77,15 @@ def qs_decomposition(
     elif dim == 4:
         if decomposer_2q is None:
             if opt_a2:
-                # pylint: disable=cyclic-import                    
+                # pylint: disable=cyclic-import
                 from qiskit.extensions.unitary import UnitaryGate
+
                 def decomp_2q(mat):
-                    UnitaryGate(mat)
+                    ugate = UnitaryGate(mat)
                     qc = QuantumCircuit(2, name="qsd2q")
                     qc.append(ugate, [0, 1])
                     return qc
+
                 decomposer_2q = decomp_2q
             else:
                 decomposer_2q = two_qubit_decompose.TwoQubitBasisDecomposer(CXGate())
@@ -215,7 +217,8 @@ def _get_ucry_cz(nqubits, angles):
 def _apply_a2(circ):
     from qiskit import transpile
     from qiskit.quantum_info import Operator
-    #from qiskit.extensions.unitary import UnitaryGate
+
+    # from qiskit.extensions.unitary import UnitaryGate
     import qiskit.extensions.unitary
 
     decomposer = two_qubit_decompose.TwoQubitDecomposeUpToDiagonal()

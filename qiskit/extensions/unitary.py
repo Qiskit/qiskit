@@ -137,7 +137,8 @@ class UnitaryGate(Gate):
         else:
             # pylint: disable=cyclic-import
             from qiskit.quantum_info.synthesis.qsd import qs_decomposition
-            self.definition = qsd.qs_decomposition(self.to_matrix())
+
+            self.definition = qs_decomposition(self.to_matrix())
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return controlled version of gate
