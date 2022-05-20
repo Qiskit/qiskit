@@ -173,7 +173,9 @@ class BaseEstimator(ABC):
         cls,
         circuits: tuple[QuantumCircuit] | QuantumCircuit,
         observables: tuple[SparsePauliOp] | SparsePauliOp,
+        *args,  # pylint: disable=unused-argument
         parameters: Iterable[Iterable[Parameter]] | None = None,  # pylint: disable=unused-argument
+        **kwargs,  # pylint: disable=unused-argument
     ):
 
         if isinstance(circuits, QuantumCircuit):
