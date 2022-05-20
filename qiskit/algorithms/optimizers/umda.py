@@ -12,12 +12,11 @@
 
 """Univariate Marginal Distribution Algorithm (Estimation-of-Distribution-Algorithm)."""
 
-
+from typing import Callable, List, Optional, Tuple
 import pandas as pd
 import numpy as np
 from scipy.stats import norm
 from .optimizer import OptimizerResult, POINT
-from typing import Callable, List, Optional, Tuple
 
 from .scipy_optimizer import SciPyOptimizer
 
@@ -115,8 +114,8 @@ class UMDA(SciPyOptimizer):
     def _check_generation(self, objective_function):
         """Check the cost of each individual in the cost function implemented by the user.
         """
-        self.generation['cost'] = self.generation.apply(lambda row: objective_function(row[self.variables].to_list()),
-                                                        axis=1)
+        self.generation['cost'] = self.generation.apply(lambda row: objective_function(
+            row[self.variables].to_list()), axis=1)
 
     # update the probability vector
     def _update_vector(self):
