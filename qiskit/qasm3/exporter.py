@@ -31,6 +31,7 @@ from qiskit.circuit import (
     QuantumRegister,
     Qubit,
     Reset,
+    Delay,
 )
 from qiskit.circuit.bit import Bit
 from qiskit.circuit.controlflow import (
@@ -290,7 +291,7 @@ _Scope = collections.namedtuple("_Scope", ("circuit", "bit_map", "symbol_map"))
 class QASM3Builder:
     """QASM3 builder constructs an AST from a QuantumCircuit."""
 
-    builtins = (Barrier, Measure, Reset, BreakLoopOp, ContinueLoopOp)
+    builtins = (Barrier, Measure, Reset, Delay, BreakLoopOp, ContinueLoopOp)
     gate_parameter_prefix = "_gate_p"
     gate_qubit_prefix = "_gate_q"
 
@@ -531,9 +532,9 @@ class QASM3Builder:
         return [
             statement
             for source in (
-                definitions,
                 inputs,
                 outputs,
+                definitions,
                 variables,
                 bit_declarations,
                 quantum_declarations,
@@ -796,6 +797,8 @@ class QASM3Builder:
             elif isinstance(instruction[0], Reset):
                 for operand in instruction[1]:
                     ret.append(ast.QuantumReset(self.build_single_bit_reference(operand)))
+            elif isinstance(instruction[0], Delay):
+                ret.append(self.build_delay(*instruction))
             elif isinstance(instruction[0], ForLoopOp):
                 ret.append(self.build_for_loop(*instruction))
             elif isinstance(instruction[0], WhileLoopOp):
@@ -870,6 +873,30 @@ class QASM3Builder:
         body_ast = self.build_program_block(loop_circuit)
         self.pop_scope()
         return ast.ForLoopStatement(indexset_ast, loop_parameter_ast, body_ast)
+
+    def build_delay(
+        self, instruction: Delay, qubits: Iterable[Qubit], clbits: Iterable[Clbit]
+    ) -> ast.QuantumDelay:
+        """Build a built-in delay statement."""
+        clbits = tuple(clbits)
+        if clbits:
+            raise QASM3ExporterError(
+                f"Found a delay instruction acting on classical bits: {instruction} on {clbits}"
+            )
+        if instruction.unit == "ps":
+            duration = ast.DurationLiteral(1000 * instruction.duration, ast.DurationUnit.NANOSECOND)
+        else:
+            unit_map = {
+                "ns": ast.DurationUnit.NANOSECOND,
+                "us": ast.DurationUnit.MICROSECOND,
+                "ms": ast.DurationUnit.MILLISECOND,
+                "s": ast.DurationUnit.SECOND,
+                "dt": ast.DurationUnit.SAMPLE,
+            }
+            duration = ast.DurationLiteral(instruction.duration, unit_map[instruction.unit])
+        return ast.QuantumDelay(
+            duration, [self.build_single_bit_reference(qubit) for qubit in qubits]
+        )
 
     def build_integer(self, value) -> ast.Integer:
         """Build an integer literal, raising a :obj:`.QASM3ExporterError` if the input is not

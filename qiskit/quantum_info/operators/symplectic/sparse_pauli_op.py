@@ -99,9 +99,10 @@ class SparsePauliOp(LinearOp):
             self._coeffs = coeffs
         else:
             # move the phase of `pauli_list` to `self._coeffs`
-            phase = pauli_list.phase
-            self._coeffs = np.asarray((-1j) ** phase * coeffs, dtype=complex)
-            pauli_list._phase = np.mod(pauli_list._phase - phase, 4)
+            phase = pauli_list._phase
+            count_y = pauli_list._count_y()
+            self._coeffs = np.asarray((-1j) ** (phase - count_y) * coeffs, dtype=complex)
+            pauli_list._phase = np.mod(count_y, 4)
             self._pauli_list = pauli_list
 
         if self._coeffs.shape != (self._pauli_list.size,):
@@ -245,7 +246,7 @@ class SparsePauliOp(LinearOp):
         # Hence we need to multiply coeffs by -1 for rows with an
         # odd number of Y terms.
         ret = self.copy()
-        minus = (-1) ** np.mod(np.sum(ret.paulis.x & ret.paulis.z, axis=1), 2)
+        minus = (-1) ** ret.paulis._count_y()
         ret._coeffs *= minus
         return ret
 
@@ -287,7 +288,7 @@ class SparsePauliOp(LinearOp):
         else:
             q = np.logical_and(z1[:, np.newaxis], x2).reshape((-1, num_qubits))
         # `np.mod` will be applied to `phase` in `SparsePauliOp.__init__`
-        phase = phase + 2 * np.sum(q, axis=1)
+        phase = phase + 2 * q.sum(axis=1, dtype=np.uint8)
 
         x3 = np.logical_xor(x1[:, np.newaxis], x2).reshape((-1, num_qubits))
         z3 = np.logical_xor(z1[:, np.newaxis], z2).reshape((-1, num_qubits))
