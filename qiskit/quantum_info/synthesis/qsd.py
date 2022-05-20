@@ -185,7 +185,7 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, _depth=0):
 
 def _get_ucry_cz(nqubits, angles):
     """
-    Get uniformally controlled Ry gate in in CZ-Ry as in UCPauliRotGate.
+    Get uniformly controlled Ry gate in in CZ-Ry as in UCPauliRotGate.
     """
     nangles = len(angles)
     qc = QuantumCircuit(nqubits)
