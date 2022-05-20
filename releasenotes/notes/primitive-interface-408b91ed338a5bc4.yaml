@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    The primitives interface has been extended to accept objects in addition to integers
+    as arguments to the `__call__` method.
+deprecations:
+  - |
+    The arguments' names in :meth:`~qiskit.primitives.Estimator.__call__` and
+    :meth:`~qiskit.primitives.Sampler.__call__` are renamed from `circuit_indices`
+    and `observable_indices` to `circuits` and `observables`.
