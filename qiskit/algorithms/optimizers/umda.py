@@ -16,6 +16,8 @@
 import pandas as pd
 import numpy as np
 from scipy.stats import norm
+from .optimizer import OptimizerResult, POINT
+from typing import Callable, List, Optional, Tuple
 
 from .scipy_optimizer import SciPyOptimizer
 
@@ -48,19 +50,19 @@ class UMDA(SciPyOptimizer):
         Args:
             maxiter: Maximum number of function evaluations.
             size_gen: Population size of each generation.
-            n_variables: Number of variables to be optimized. For example in QAOA the number of variables is 2p, where p
-            is the number of layers of the circuit.
+            n_variables: Number of variables to be optimized. For example in QAOA the number of variables
+            is 2p, where p is the number of layers of the circuit.
             alpha: Percentage [0, 1] of the population to be selected as elite selection.
             disp: Set to True to print convergence messages.
         """
 
         self.disp = disp
-        self.SIZE_GEN = size_gen
-        self.MAX_ITER = maxiter
+        self.size_gen = size_gen
+        self.max_iter = maxiter
         self.alpha = alpha
         self.n_variables = n_variables
-        self.vector = self.initialization()
-        self.dead_iter = self.SIZE_GEN/5
+        self.vector = self._initialization()
+        self.dead_iter = self.size_gen / 5
 
         self.variables = list(self.vector.columns)
 
@@ -70,12 +72,12 @@ class UMDA(SciPyOptimizer):
         # initialization of generation
         mus = self.vector[self.variables].loc['mu'].to_list()
         stds = self.vector[self.variables].loc['std'].to_list()
-        self.generation = pd.DataFrame(np.random.normal(mus, stds, [self.SIZE_GEN, len(self.variables)]),
+        self.generation = pd.DataFrame(np.random.normal(mus, stds, [self.size_gen, len(self.variables)]),
                                        columns=self.variables, dtype='float_')
 
         super().__init__(method="UMDA")
 
-    def initialization(self):
+    def _initialization(self):
         vector = pd.DataFrame(columns=list(range(0, self.n_variables)))
         vector['data'] = ['mu', 'std', 'min', 'max']
         vector = vector.set_index('data')
@@ -87,17 +89,15 @@ class UMDA(SciPyOptimizer):
 
         return vector
 
-    def set_max_evals_grouped(self, max_evals_grouped):
-        pass
-
     # build a generation of size SIZE_GEN from prob vector
-    def new_generation(self):
-        """Build a new generation sampled from the vector of probabilities. Updates the generation pandas dataframe
+    def _new_generation(self):
+        """Build a new generation sampled from the vector of probabilities.
+        Updates the generation pandas dataframe
         """
 
         mus = self.vector[self.variables].loc['mu'].to_list()
         stds = self.vector[self.variables].loc['std'].to_list()
-        gen = pd.DataFrame(np.random.normal(mus, stds, [self.SIZE_GEN, len(self.variables)]),
+        gen = pd.DataFrame(np.random.normal(mus, stds, [self.size_gen, len(self.variables)]),
                            columns=self.variables, dtype='float_')
 
         self.generation = self.generation.nsmallest(int(self.elite_factor*len(self.generation)), 'cost')
@@ -105,21 +105,21 @@ class UMDA(SciPyOptimizer):
         self.generation = pd.concat([self.generation, gen]).reset_index(drop=True)
 
     # truncate the generation at alpha percent
-    def truncation(self):
+    def _truncation(self):
         """Selection of the best individuals of the actual generation.
         Updates the generation by selecting the best individuals.
         """
         self.generation = self.generation.nsmallest(self.truncation_length, 'cost')
 
     # check each individual of the generation
-    def check_generation(self, objective_function):
+    def _check_generation(self, objective_function):
         """Check the cost of each individual in the cost function implemented by the user.
         """
         self.generation['cost'] = self.generation.apply(lambda row: objective_function(row[self.variables].to_list()),
                                                         axis=1)
 
     # update the probability vector
-    def update_vector(self):
+    def _update_vector(self):
         """From the best individuals update the vector of normal distributions in order to the next
         generation can sample from it. Update the vector of normal distributions
         """
@@ -129,13 +129,22 @@ class UMDA(SciPyOptimizer):
             if self.vector.at['std', var] < self.std_bound:
                 self.vector.at['std', var] = self.std_bound
 
-    def minimize(self, fun, x0, jac, bounds):
+    def minimize(
+        self,
+        fun: Callable[[POINT], float],
+        x0: POINT,
+        jac: Optional[Callable[[POINT], POINT]] = None,
+        bounds: Optional[List[Tuple[float, float]]] = None,
+    ) -> OptimizerResult:
+
         self.history = []
         not_better = 0
-        for i in range(self.MAX_ITER):
-            self.check_generation(fun)
-            self.truncation()
-            self.update_vector()
+        result = OptimizerResult()
+
+        for _ in range(self.max_iter):
+            self._check_generation(fun)
+            self._truncation()
+            self._update_vector()
 
             best_mae_local = self.generation['cost'].min()
 
@@ -151,25 +160,24 @@ class UMDA(SciPyOptimizer):
             else:
                 not_better += 1
                 if not_better == self.dead_iter:
-                    return EdaResult(self.best_ind_global.reset_index(drop=True).loc[0].to_list()[:-1],
-                                     self.best_mae_global,
-                                     len(self.history),
-                                     self.disp)
+                    result.x = self.best_ind_global.reset_index(drop=True).loc[0].to_list()[:-1]
+                    result.fun = self.best_mae_global
+                    result.nfev = len(self.history)
 
-            self.new_generation()
+                    if self.disp:
+                        print('\tNFVALS = ' + str(result.nfev) + ' F = ' + str(result.fun))
+                        print('\tX = ' + str(result.x))
 
-        return EdaResult(self.best_ind_global.reset_index(drop=True).loc[0].to_list()[:-1],
-                         self.best_mae_global,
-                         len(self.history),
-                         self.disp)
+                    return result
 
+            self._new_generation()
 
-class EdaResult:
-    def __init__(self, optimal_point, optimal_value, cost_function_evals, disp):
-        self.x = optimal_point
-        self.fun = optimal_value
-        self.nfev = cost_function_evals
+        result.x = self.best_ind_global.reset_index(drop=True).loc[0].to_list()[:-1]
+        result.fun = self.best_mae_global
+        result.nfev = len(self.history)
 
-        if disp:
-            print('\tNFVALS = ' + str(cost_function_evals) + ' F = ' + str(optimal_value))
-            print('\tX = ' + str(optimal_point))
+        if self.disp:
+            print('\tNFVALS = ' + str(result.nfev) + ' F = ' + str(result.fun))
+            print('\tX = ' + str(result.x))
+
+        return result
