@@ -299,9 +299,10 @@ class TestCSPLayout(QiskitTestCase):
         pass_ = CSPLayout(CouplingMap([(0, 1), (1, 2)]), seed=self.seed)
         pass_.run(dag)
         layout = pass_.property_set["layout"]
-        
+
         self.assertIsNone(layout)
         self.assertEqual(pass_.property_set["CSPLayout_stop_reason"], "nonexistent solution")
+
 
 if __name__ == "__main__":
     unittest.main()
