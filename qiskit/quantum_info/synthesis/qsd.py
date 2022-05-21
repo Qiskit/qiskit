@@ -41,11 +41,17 @@ def qs_decomposition(
 
         \frac{9}{16} 4^n - frac{3}{2} 2^n
 
-    If opt_a1=True, the CX count is further reduced by,
+    If opt_a1 = True, the CX count is further reduced by,
 
     .. math::
 
-        \frac{1}{3} 4^{n - 2} - 1
+        \frac{1}{3} 4^{n - 2} - 1.
+
+    If opt_a2 = True, the CX count is reduced by,
+
+    .. math::
+
+        4^{n-2} - 1.
 
     This decomposition is described in arXiv:quant-ph/0406176.
 
@@ -77,8 +83,7 @@ def qs_decomposition(
     elif dim == 4:
         if decomposer_2q is None:
             if opt_a2:
-                # pylint: disable=cyclic-import
-                from qiskit.extensions.unitary import UnitaryGate
+                from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
 
                 def decomp_2q(mat):
                     ugate = UnitaryGate(mat)

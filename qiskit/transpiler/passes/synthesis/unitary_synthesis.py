@@ -25,7 +25,6 @@ from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.quantum_info.synthesis import one_qubit_decompose
 from qiskit.quantum_info.synthesis.xx_decompose import XXDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitBasisDecomposer
-from qiskit.quantum_info.synthesis.qsd import qs_decomposition
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.library.standard_gates import (
     iSwapGate,
@@ -539,6 +538,10 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                 preferred_direction,
             )
         else:
+            from qiskit.quantum_info.synthesis.qsd import (
+                qs_decomposition,
+            )  # pylint: disable=cyclic-import
+
             synth_dag = circuit_to_dag(qs_decomposition(unitary))
 
         return synth_dag, wires
