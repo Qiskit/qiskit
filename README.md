@@ -61,13 +61,13 @@ your IBM Q account:
 
 1. Create an _[IBM Q](https://quantum-computing.ibm.com) > Account_ if you haven't already done so.
 
-2. Get an API token from the IBM Q website under _My Account > API Token_ and the URL for the account.
+2. Get an API token from the IBM Q website under _My Account > API Token_.
 
-3. Take your token and url from step 2, here called `MY_API_TOKEN`, `MY_URL`, and run:
+3. Take your token from step 2, here called `MY_API_TOKEN`, and run:
 
    ```python
    >>> from qiskit import IBMQ
-   >>> IBMQ.save_account('MY_API_TOKEN', 'MY_URL')
+   >>> IBMQ.save_account('MY_API_TOKEN')
     ```
 
 After calling `IBMQ.save_account()`, your credentials will be stored on disk.
