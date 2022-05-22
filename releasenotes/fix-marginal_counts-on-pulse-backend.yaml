@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    The function qiskit.result.marginal_counts(), when passed a Result from a
+    pulse backend, would fail, b/c: such a result contains an array of
+    ExperimentResult objects, each of which have an QobjExperimentHeader, and those
+    ExperimentHeaders lack "creg_sizes" instance-variables.  If the Result came
+    from an simulator backend (e.g. Aer), that instance-variable would be there.
+    We fix marginal_counts() so that it skips logic that needs creg_sizes if the
+    field is not present, or non-None.
