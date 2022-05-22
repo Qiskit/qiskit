@@ -692,3 +692,19 @@ class TestResultOperationsFailed(QiskitTestCase):
         self.assertEqual(
             'Result for experiment "99" could not be found.', context.exception.message
         )
+
+
+# This class tests all the same things as TestResultOperations, but removes the "creg_sizes"
+# instance-variable on experiment headers, so that we can check that when results are returned
+# from pulse backends, they are properly handled (since those results don't have creg_sizes
+# fields).
+
+
+class TestResultOperationsNoCreg(TestResultOperations):
+    """Result operations methods, but without creg_sizes."""
+
+    def generate_qiskit_result(self):
+        """Generate Result (without creg_sizes for testing"""
+        rv = super().generate_qiskit_result()
+        del rv.results[0].header.creg_sizes
+        return rv

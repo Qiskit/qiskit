@@ -66,8 +66,12 @@ def marginal_counts(
 
             if indices is not None:
                 experiment_result.header.memory_slots = len(indices)
-                csize = experiment_result.header.creg_sizes
-                experiment_result.header.creg_sizes = _adjust_creg_sizes(csize, indices)
+                if (
+                    hasattr(experiment_result.header, "creg_sizes")
+                    and experiment_result.header.creg_sizes is not None
+                ):
+                    csize = experiment_result.header.creg_sizes
+                    experiment_result.header.creg_sizes = _adjust_creg_sizes(csize, indices)
 
             if getattr(experiment_result.data, "memory", None) is not None and indices is not None:
                 if marginalize_memory is False:
