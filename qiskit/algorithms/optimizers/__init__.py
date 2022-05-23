@@ -128,6 +128,7 @@ from .slsqp import SLSQP
 from .snobfit import SNOBFIT
 from .spsa import SPSA
 from .tnc import TNC
+from .cmaes import SteppableCMAES
 
 __all__ = [
     "Optimizer",

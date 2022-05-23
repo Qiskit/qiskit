@@ -38,7 +38,6 @@ class SteppableOptimizer(Optimizer):
         self._state = None
         self.maxiter = maxiter
 
-    
     def ask(self) -> AskObject:
         """
         Abstract method ask. This method is the part of the interface of the optimizer that asks the
@@ -47,8 +46,7 @@ class SteppableOptimizer(Optimizer):
         """
         raise NotImplementedError
 
-    
-    def tell(self, ask_object: AskObject , tell_object: TellObject) -> None:
+    def tell(self, ask_object: AskObject, tell_object: TellObject) -> None:
         """
         Abstract method tell. This method is the part of the interface of the optimizer that tells the
         user/quantum_circuit what is the next point that minimizes the function (with respect to last
@@ -71,7 +69,7 @@ class SteppableOptimizer(Optimizer):
         """
         ask_object = self.ask()
         tell_object = self.evaluate(ask_object=ask_object)
-        self.tell(ask_object =ask_object ,tell_object=tell_object)
+        self.tell(ask_object=ask_object, tell_object=tell_object)
 
     def minimize(
         self,
