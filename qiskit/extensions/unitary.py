@@ -135,9 +135,9 @@ class UnitaryGate(Gate):
         elif self.num_qubits == 2:
             self.definition = two_qubit_cnot_decompose(self.to_matrix())
         else:
-            from qiskit.quantum_info.synthesis.qsd import (
+            from qiskit.quantum_info.synthesis.qsd import (  # pylint: disable=cyclic-import
                 qs_decomposition,
-            )  # pylint: disable=cyclic-import
+            )
 
             self.definition = qs_decomposition(self.to_matrix())
 

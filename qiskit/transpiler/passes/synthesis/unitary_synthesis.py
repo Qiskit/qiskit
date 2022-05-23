@@ -538,9 +538,9 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                 preferred_direction,
             )
         else:
-            from qiskit.quantum_info.synthesis.qsd import (
+            from qiskit.quantum_info.synthesis.qsd import (  # pylint: disable=cyclic-import
                 qs_decomposition,
-            )  # pylint: disable=cyclic-import
+            )
 
             synth_dag = circuit_to_dag(qs_decomposition(unitary))
 
