@@ -43,12 +43,12 @@ class CMAES_OptimizerState(OptimizerState):
     # x will be treated as the mean
     p_sigma: POINT = None
     p_c: POINT = None
-    C: np.ndarray = None # pylint: disable=invalid-name
+    C: np.ndarray = None  # pylint: disable=invalid-name
     B: np.ndarray = None
-    D: POINT  = None  # Will store the sqrt of the diagonal elements
+    D: POINT = None  # Will store the sqrt of the diagonal elements
     generation: int = 0
     sigma: float = 0.5
-    best_x: Optional[Tuple[POINT,float]] = None
+    best_x: Optional[Tuple[POINT, float]] = None
 
     def __post_init__(self):
         if self.C is None:
@@ -57,6 +57,7 @@ class CMAES_OptimizerState(OptimizerState):
             self.D = np.ones((self.x.size))
             self.p_sigma = np.zeros(self.x.size)
             self.p_c = np.zeros(self.x.size)
+
     def __str__(self):
         return f"(Generation:{self.generation} ; sigma:{self.sigma:.4E} ; objective:{self.fun(self.x):.4E} ; nfev:{self.nfev} ; best_case: {self.best_x[0]:.4E})"
 
@@ -105,9 +106,9 @@ class SteppableCMAES(SteppableOptimizer):
         sorting_indexes = np.argsort(tell_object.cloud_evaluated)
         # print(tell_object.cloud_evaluated)
         # print(sorting_indexes)
-        sorted_x = ask_object.cloud[sorting_indexes][:self.mu]
-        self._state.best_x = (tell_object.cloud_evaluated[sorting_indexes[0]],sorted_x[0])
-        sorted_z = ask_object.variation_cloud[sorting_indexes][:self.mu]
+        sorted_x = ask_object.cloud[sorting_indexes][: self.mu]
+        self._state.best_x = (tell_object.cloud_evaluated[sorting_indexes[0]], sorted_x[0])
+        sorted_z = ask_object.variation_cloud[sorting_indexes][: self.mu]
 
         self._state.x = np.dot(sorted_x.T, self.weights)
         mean_z = np.dot(sorted_z.T, self.weights)
@@ -131,7 +132,7 @@ class SteppableCMAES(SteppableOptimizer):
                 np.einsum("i,j->ij", self._state.p_c, self._state.p_c)
                 + (1 - hsig) * self.cc * (2 - self.cc) * self._state.C
             )
-            + self.cmu * np.einsum("ij,j,kj->ik", bdz, self.weights,bdz )#Need to check indexes
+            + self.cmu * np.einsum("ij,j,kj->ik", bdz, self.weights, bdz)  # Need to check indexes
         )
 
         self._state.sigma *= np.exp(
@@ -141,11 +142,10 @@ class SteppableCMAES(SteppableOptimizer):
         if (
             True
         ):  # Here the paper only diagonalizes the matrix every certain amount of iterations. We prefer to be as precise as possible even if we need to sacrifice efficiency in the optimizer.
-            self._state.C = (self._state.C + self._state.C.T) / 2 # We guarantee symmetry
+            self._state.C = (self._state.C + self._state.C.T) / 2  # We guarantee symmetry
             self._state.D, self._state.B = np.linalg.eig(self._state.C)
             self._state.D = np.real(np.sqrt(self._state.D))
             self._state.B = np.real(self._state.B)
-
 
     def evaluate(self, ask_object: AskObject) -> TellObject:
         cloud_eval = [self._state.fun(x) for x in ask_object.cloud]
@@ -163,7 +163,11 @@ class SteppableCMAES(SteppableOptimizer):
         return result
 
     def initialize(
-        self, x0: POINT, fun: Callable[[POINT], float], jac: Callable[[POINT], POINT] = None, tol:float = 1e-3
+        self,
+        x0: POINT,
+        fun: Callable[[POINT], float],
+        jac: Callable[[POINT], POINT] = None,
+        tol: float = 1e-3,
     ) -> None:
         """
         This method will initialize the state of the optimizer so that an optimization can be performed.
@@ -176,7 +180,7 @@ class SteppableCMAES(SteppableOptimizer):
         self.N = self._state.x.size
         self.lmbda = 4 + int(3 * np.log(self.N))
         self.mu = int(self.lmbda / 2)
-        self.weights = np.log((self.lmbda + 1) / 2) - np.log(np.arange(1, self.mu+1))
+        self.weights = np.log((self.lmbda + 1) / 2) - np.log(np.arange(1, self.mu + 1))
 
         self.weights = self.weights / self.weights.sum()
         self.mueff = 1.0 / (self.weights**2).sum()

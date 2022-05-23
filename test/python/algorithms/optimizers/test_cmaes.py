@@ -32,16 +32,16 @@ class TestCMAES(QiskitAlgorithmsTestCase):
     def test_cmaes(self):
         def objective(x):
             return (np.linalg.norm(x) - 1) ** 2
+
         N = 150
-        initial_point = np.random.normal(0,1,size=(N,))
+        initial_point = np.random.normal(0, 1, size=(N,))
 
         optimizer = SteppableCMAES(maxiter=1000)
         optimizer.initialize(x0=initial_point, fun=objective)
 
-
         # result = optimizer.minimize(fun=objective, x0=initial_point)
 
-        for _ in range (optimizer.maxiter):
+        for _ in range(optimizer.maxiter):
             optimizer.step()
             print(optimizer._state)
             if optimizer.stop_condition():
