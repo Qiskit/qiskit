@@ -9,20 +9,30 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """
 Variational Quantum Time Evolutions (:mod:`qiskit.algorithms.evolvers.variational`)
 ===================================================================================
 
 Algorithms for performing Variational Quantum Time Evolution of quantum states and their
-gradients, which can be tailored to near-term devices. VarQTE base class exposes an interface,
-compliant with the Quantum Time Evolution Framework in Qiskit Terra, that is implemented by
-VarQRTE and VarQITE classes for real and imaginary time evolution respectively. The variational
-approach is taken according to a variational principle chosen by a user.
+gradients, which can be tailored to near-term devices.
+:class:`~qiskit.algorithms.evolvers.variational.VarQTE` base class exposes an interface, compliant
+with the Quantum Time Evolution Framework in Qiskit Terra, that is implemented by
+:class:`~qiskit.algorithms.VarQRTE` and :class:`~qiskit.algorithms.VarQITE` classes for real and
+imaginary time evolution respectively. The variational approach is taken  according to a
+variational principle chosen by a user.
 
 **Examples**
 
 .. code-block::
+
+    from qiskit import BasicAer
+    from qiskit.circuit.library import EfficientSU2
+    from qiskit.opflow import SummedOp, I, Z, Y, X
+    from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_variational_principle import (
+    ImaginaryMcLachlanVariationalPrinciple,
+    )
+    from qiskit.algorithms import EvolutionProblem
+    from qiskit.algorithms import VarQITE
 
     # define a Hamiltonian
     observable = SummedOp(
@@ -39,7 +49,7 @@ approach is taken according to a variational principle chosen by a user.
     # define a parametrized initial state to be evolved
     d = 1
     ansatz = EfficientSU2(observable.num_qubits, reps=d)
-    parameters = ansatz.ordered_parameters
+    parameters = ansatz.parameters
 
     # define values of initial parameters
     init_param_values = np.zeros(len(ansatz.ordered_parameters))
@@ -51,7 +61,7 @@ approach is taken according to a variational principle chosen by a user.
     var_principle = ImaginaryMcLachlanVariationalPrinciple()
 
     # optionally define a backend
-    backend = Aer.get_backend("statevector_simulator")
+    backend = BasicAer.get_backend("statevector_simulator")
 
     # define evolution time
     time = 1

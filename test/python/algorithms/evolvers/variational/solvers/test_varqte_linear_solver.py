@@ -56,7 +56,7 @@ class TestVarQTELinearSolver(QiskitAlgorithmsTestCase):
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
         parameters = ansatz.ordered_parameters
-        init_param_values = np.zeros(len(ansatz.ordered_parameters))
+        init_param_values = np.zeros(len(parameters))
         for i in range(ansatz.num_qubits):
             init_param_values[-(ansatz.num_qubits + i + 1)] = np.pi / 2
 
@@ -67,19 +67,15 @@ class TestVarQTELinearSolver(QiskitAlgorithmsTestCase):
         metric_tensor = var_principle.calc_metric_tensor(ansatz, parameters)
         evolution_grad = var_principle.calc_evolution_grad(observable, ansatz, parameters)
 
-        linear_solver_callable = partial(np.linalg.lstsq, rcond=1e-2)
+        linear_solver = partial(np.linalg.lstsq, rcond=1e-2)
         linear_solver = VarQTELinearSolver(
             metric_tensor,
             evolution_grad,
-            linear_solver_callable,
+            linear_solver,
             circuit_sampler,
         )
 
         nat_grad_res, metric_res, grad_res = linear_solver.solve_sle(param_dict)
-
-        print(nat_grad_res)
-        print(metric_res)
-        print(grad_res)
 
         expected_nat_grad_res = [
             3.43500000e-01,

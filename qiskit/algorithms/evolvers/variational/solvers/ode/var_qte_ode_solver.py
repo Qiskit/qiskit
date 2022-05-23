@@ -18,7 +18,7 @@ from typing import List
 from scipy.integrate import OdeSolver, solve_ivp, RK45
 
 from .abstract_ode_function import (
-    AbstractOdeFunctionGenerator,
+    AbstractOdeFunction,
 )
 
 
@@ -28,20 +28,20 @@ class VarQTEOdeSolver:
     def __init__(
         self,
         init_params: List[complex],
-        ode_function_generator: AbstractOdeFunctionGenerator,
-        ode_solver_callable: OdeSolver = RK45,
+        ode_function: AbstractOdeFunction,
+        ode_solver: OdeSolver = RK45,
     ) -> None:
         """
         Initialize ODE Solver.
 
         Args:
             init_params: Set of initial parameters for time 0.
-            ode_function_generator: Generates the ODE function.
-            ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
+            ode_function: Generates the ODE function.
+            ode_solver: ODE solver callable that follows a SciPy OdeSolver interface.
         """
         self._init_params = init_params
-        self._ode_function = ode_function_generator.var_qte_ode_function
-        self._ode_solver_callable = ode_solver_callable
+        self._ode_function = ode_function.var_qte_ode_function
+        self._ode_solver = ode_solver
 
     def run(self, evolution_time: float) -> List[complex]:
         """
@@ -57,7 +57,7 @@ class VarQTEOdeSolver:
             self._ode_function,
             (0, evolution_time),
             self._init_params,
-            method=self._ode_solver_callable,
+            method=self._ode_solver,
             t_eval=[evolution_time],
         )
         final_params_vals = list(itertools.chain(*sol.y))

@@ -18,7 +18,7 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.opflow import Y, OperatorBase, ListOp, StateFn
 from ..calculators import (
-    metric_tensor_calculator,
+    qfi_calculator,
     evolution_grad_calculator,
 )
 from .real_variational_principle import (
@@ -50,7 +50,7 @@ class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
         Returns:
             Transformed metric tensor.
         """
-        raw_metric_tensor_imag = metric_tensor_calculator.calculate(
+        raw_metric_tensor_imag = qfi_calculator.calculate(
             ansatz, parameters, self._qfi_method, basis=-Y
         )
 

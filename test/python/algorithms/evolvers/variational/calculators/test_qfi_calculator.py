@@ -22,7 +22,7 @@ from test.python.algorithms.evolvers.variational.calculators.expected_results.te
 )
 from ddt import unpack, data, ddt
 import numpy as np
-from qiskit.algorithms.evolvers.variational.calculators.metric_tensor_calculator import (
+from qiskit.algorithms.evolvers.variational.calculators.qfi_calculator import (
     calculate,
 )
 from qiskit.circuit.library import EfficientSU2
@@ -49,13 +49,11 @@ class TestMetricTensorCalculator(QiskitAlgorithmsTestCase):
         d = 2
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
-        # Define a set of initial parameters
-        parameters = ansatz.ordered_parameters
-        metric_tensor = calculate(ansatz, parameters)
+        metric_tensor = calculate(ansatz, ansatz.ordered_parameters)
 
         values_dict = [
-            {param: np.pi / 4 for param in parameters},
-            {param: np.pi / 2 for param in parameters},
+            {param: np.pi / 4 for param in ansatz.ordered_parameters},
+            {param: np.pi / 2 for param in ansatz.ordered_parameters},
         ]
 
         for i, value_dict in enumerate(values_dict):
@@ -78,13 +76,11 @@ class TestMetricTensorCalculator(QiskitAlgorithmsTestCase):
         d = 2
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
-        # Define a set of initial parameters
-        parameters = ansatz.ordered_parameters
-        metric_tensor = calculate(ansatz, parameters, basis=-Y)
+        metric_tensor = calculate(ansatz, ansatz.ordered_parameters, basis=-Y)
 
         values_dict = [
-            {param: np.pi / 4 for param in parameters},
-            {param: np.pi / 2 for param in parameters},
+            {param: np.pi / 4 for param in ansatz.ordered_parameters},
+            {param: np.pi / 2 for param in ansatz.ordered_parameters},
         ]
 
         for i, value_dict in enumerate(values_dict):
@@ -106,9 +102,8 @@ class TestMetricTensorCalculator(QiskitAlgorithmsTestCase):
         d = 1
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
-        parameters = ansatz.ordered_parameters
         with self.assertRaises(ValueError):
-            _ = calculate(ansatz, parameters, qfi_method, basis, phase_fix)
+            _ = calculate(ansatz, ansatz.ordered_parameters, qfi_method, basis, phase_fix)
 
 
 if __name__ == "__main__":

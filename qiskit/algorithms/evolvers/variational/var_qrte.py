@@ -39,8 +39,8 @@ class VarQRTE(RealEvolver, VarQTE):
         self,
         variational_principle: RealVariationalPrinciple,
         ode_function_factory: OdeFunctionFactory,
-        ode_solver_callable: OdeSolver = RK45,
-        lse_solver_callable: Callable[[np.ndarray, np.ndarray], np.ndarray] = partial(
+        ode_solver: OdeSolver = RK45,
+        lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] = partial(
             np.linalg.lstsq, rcond=1e-2
         ),
         expectation: Optional[ExpectationBase] = None,
@@ -52,8 +52,8 @@ class VarQRTE(RealEvolver, VarQTE):
         Args:
             variational_principle: Variational Principle to be used.
             ode_function_factory: Factory for the ODE function.
-            ode_solver_callable: ODE solver callable that follows a SciPy ``OdeSolver`` interface.
-            lse_solver_callable: Linear system of equations solver that follows a NumPy
+            ode_solver: ODE solver callable that follows a SciPy ``OdeSolver`` interface.
+            lse_solver: Linear system of equations solver that follows a NumPy
                 ``np.linalg.lstsq`` interface.
             expectation: An instance of ``ExpectationBase`` which defines a method for calculating
                 expectation values of ``EvolutionProblem.aux_operators``.
@@ -62,13 +62,15 @@ class VarQRTE(RealEvolver, VarQTE):
             num_instability_tol: The amount of negative value that is allowed to be
                 rounded up to 0 for quantities that are expected to be
                 non-negative.
-            quantum_instance: Backend used to evaluate the quantum circuit outputs.
+            quantum_instance: Backend used to evaluate the quantum circuit outputs. If ``None``
+                provided, everything will be evaluated based on matrix multiplication (which is
+                slow).
         """
         super().__init__(
             variational_principle,
             ode_function_factory,
-            ode_solver_callable,
-            lse_solver_callable,
+            ode_solver,
+            lse_solver,
             expectation,
             imag_part_tol,
             num_instability_tol,
@@ -80,7 +82,9 @@ class VarQRTE(RealEvolver, VarQTE):
         Apply Variational Quantum Real Time Evolution (VarQRTE) w.r.t. the given operator.
 
         Args:
-            evolution_problem: Instance defining evolution problem.
+            evolution_problem: Instance defining an evolution problem. If no initial parameter
+                values are provided in ``param_value_dict``, they are initialized uniformly at
+                random.
 
         Returns:
             Result of the evolution which includes a quantum circuit with bound parameters as an
@@ -98,7 +102,7 @@ class VarQRTE(RealEvolver, VarQTE):
 
         error_calculator = None  # TODO will be supported in another PR
 
-        evolved_state = super()._evolve_helper(
+        evolved_state = super()._evolve(
             init_state_param_dict,
             evolution_problem.hamiltonian,
             evolution_problem.time,

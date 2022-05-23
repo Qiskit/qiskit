@@ -46,17 +46,22 @@ from .solvers.ode.var_qte_ode_solver import (
 
 class VarQTE(ABC):
     """Variational Quantum Time Evolution.
-       https://doi.org/10.22331/q-2019-10-07-191
+
     Algorithms that use variational variational_principles to compute a time evolution for a given
     Hermitian operator (Hamiltonian) and a quantum state.
+
+    References:
+
+        [1] Benjamin, Simon C. et al. (2019).
+        Theory of variational quantum simulation. `<https://doi.org/10.22331/q-2019-10-07-191>`_
     """
 
     def __init__(
         self,
         variational_principle: VariationalPrinciple,
         ode_function_factory: OdeFunctionFactory,
-        ode_solver_callable: OdeSolver = RK45,
-        lse_solver_callable: Callable[[np.ndarray, np.ndarray], np.ndarray] = partial(
+        ode_solver: OdeSolver = RK45,
+        lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] = partial(
             np.linalg.lstsq, rcond=1e-2
         ),
         expectation: Optional[ExpectationBase] = None,
@@ -68,8 +73,8 @@ class VarQTE(ABC):
         Args:
             variational_principle: Variational Principle to be used.
             ode_function_factory: Factory for the ODE function.
-            ode_solver_callable: ODE solver callable that follows a SciPy ``OdeSolver`` interface.
-            lse_solver_callable: Linear system of equations solver that follows a NumPy
+            ode_solver: ODE solver callable that follows a SciPy ``OdeSolver`` interface.
+            lse_solver: Linear system of equations solver that follows a NumPy
                 ``np.linalg.lstsq`` interface.
             expectation: An instance of ``ExpectationBase`` which defines a method for calculating
                 expectation values of ``EvolutionProblem.aux_operators``.
@@ -78,7 +83,9 @@ class VarQTE(ABC):
             num_instability_tol: The amount of negative value that is allowed to be
                 rounded up to 0 for quantities that are expected to be
                 non-negative.
-            quantum_instance: Backend used to evaluate the quantum circuit outputs.
+            quantum_instance: Backend used to evaluate the quantum circuit outputs. If ``None``
+                provided, everything will be evaluated based on matrix multiplication (which is
+                slow).
         """
         super().__init__()
         self.variational_principle = variational_principle
@@ -87,8 +94,8 @@ class VarQTE(ABC):
             self.quantum_instance = quantum_instance
         self.expectation = expectation
         self.ode_function_factory = ode_function_factory
-        self.ode_solver_callable = ode_solver_callable
-        self.lse_solver_callable = lse_solver_callable
+        self.ode_solver = ode_solver
+        self.lse_solver = lse_solver
         self.imag_part_tol = imag_part_tol
         self.num_instability_tol = num_instability_tol
 
@@ -108,7 +115,7 @@ class VarQTE(ABC):
             quantum_instance, param_qobj=is_aer_provider(quantum_instance.backend)
         )
 
-    def _evolve_helper(
+    def _evolve(
         self,
         init_state_param_dict: Dict[Parameter, complex],
         hamiltonian: OperatorBase,
@@ -122,11 +129,10 @@ class VarQTE(ABC):
 
         Args:
             init_state_param_dict: Parameter dictionary with initial values for a given
-                parametrized state/ansatz.
+                parametrized state/ansatz. If no initial parameter values are provided, they are
+                initialized uniformly at random.
             hamiltonian:
-                Operator used for Variational Quantum Imaginary Time Evolution (VarQTE)
-                The coefficient of the operator (``operator.coeff``) determines the evolution
-                time.
+                Operator used for Variational Quantum Imaginary Time Evolution (VarQTE).
                 The operator may be given either as a composed op consisting of a Hermitian
                 observable and a ``CircuitStateFn`` or a ``ListOp`` of a ``CircuitStateFn`` with a
                 ``ComboFn``.
@@ -155,7 +161,7 @@ class VarQTE(ABC):
         linear_solver = VarQTELinearSolver(
             metric_tensor,
             evolution_grad,
-            self.lse_solver_callable,
+            self.lse_solver,
             self._circuit_sampler,
             self.imag_part_tol,
         )
@@ -168,9 +174,7 @@ class VarQTE(ABC):
             init_state_param_dict,
         )
 
-        ode_solver = VarQTEOdeSolver(
-            init_state_parameters_values, ode_function, self.ode_solver_callable
-        )
+        ode_solver = VarQTEOdeSolver(init_state_parameters_values, ode_function, self.ode_solver)
         parameter_values = ode_solver.run(time)
         param_dict_from_ode = dict(zip(init_state_parameters, parameter_values))
 

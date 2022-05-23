@@ -14,11 +14,11 @@
 from typing import Iterable
 
 from ..ode.abstract_ode_function import (
-    AbstractOdeFunctionGenerator,
+    AbstractOdeFunction,
 )
 
 
-class OdeFunctionGenerator(AbstractOdeFunctionGenerator):
+class OdeFunction(AbstractOdeFunction):
     """Class for generating ODE functions based on ODE gradients."""
 
     def var_qte_ode_function(self, time: float, parameters_values: Iterable) -> Iterable:

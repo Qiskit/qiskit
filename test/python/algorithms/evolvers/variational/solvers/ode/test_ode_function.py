@@ -22,7 +22,7 @@ from qiskit.algorithms.evolvers.variational.solvers.var_qte_linear_solver import
     VarQTELinearSolver,
 )
 from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function import (
-    OdeFunctionGenerator,
+    OdeFunction,
 )
 from qiskit import BasicAer
 from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_variational_principle import (
@@ -72,15 +72,15 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
 
         time = 2
 
-        linear_solver_callable = partial(np.linalg.lstsq, rcond=1e-2)
+        linear_solver = partial(np.linalg.lstsq, rcond=1e-2)
         linear_solver = VarQTELinearSolver(
             metric_tensor,
             evolution_grad,
-            linear_solver_callable,
+            linear_solver,
             CircuitSampler(backend),
         )
 
-        ode_function_generator = OdeFunctionGenerator(
+        ode_function_generator = OdeFunction(
             linear_solver, error_calculator=None, t_param=None, param_dict=param_dict
         )
 
@@ -133,14 +133,14 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
 
         time = 2
 
-        linear_solver_callable = partial(np.linalg.lstsq, rcond=1e-2)
+        linear_solver = partial(np.linalg.lstsq, rcond=1e-2)
         linear_solver = VarQTELinearSolver(
             metric_tensor,
             evolution_grad,
-            linear_solver_callable,
+            linear_solver,
             CircuitSampler(backend),
         )
-        ode_function_generator = OdeFunctionGenerator(
+        ode_function_generator = OdeFunction(
             linear_solver, error_calculator=None, t_param=t_param, param_dict=param_dict
         )
 

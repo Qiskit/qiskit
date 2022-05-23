@@ -44,13 +44,12 @@ class TestEvolutionGradCalculator(QiskitAlgorithmsTestCase):
         d = 2
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
-        # Define a set of initial parameters
         grad_method = "lin_comb"
-        evolution_grad = calculate(observable, ansatz, ansatz.parameters, grad_method)
+        evolution_grad = calculate(observable, ansatz, ansatz.ordered_parameters, grad_method)
 
         values_dict = [
-            {param: np.pi / 4 for param in parameters},
-            {param: np.pi / 2 for param in parameters},
+            {param: np.pi / 4 for param in ansatz.ordered_parameters},
+            {param: np.pi / 2 for param in ansatz.ordered_parameters},
         ]
 
         correct_values = [
@@ -174,13 +173,14 @@ class TestEvolutionGradCalculator(QiskitAlgorithmsTestCase):
         d = 2
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
-        # Define a set of initial parameters
         grad_method = "lin_comb"
-        evolution_grad = calculate(observable, ansatz, ansatz.parameters, grad_method, basis)
+        evolution_grad = calculate(
+            observable, ansatz, ansatz.ordered_parameters, grad_method, basis
+        )
 
         values_dict = [
-            {param: np.pi / 4 for param in parameters},
-            {param: np.pi / 2 for param in parameters},
+            {param: np.pi / 4 for param in ansatz.ordered_parameters},
+            {param: np.pi / 2 for param in ansatz.ordered_parameters},
         ]
 
         for i, value_dict in enumerate(values_dict):
@@ -204,7 +204,7 @@ class TestEvolutionGradCalculator(QiskitAlgorithmsTestCase):
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
         with self.assertRaises(ValueError):
-            _ = calculate(observable, ansatz, ansatz.parameters, grad_method, basis)
+            _ = calculate(observable, ansatz, ansatz.ordered_parameters, grad_method, basis)
 
 
 if __name__ == "__main__":

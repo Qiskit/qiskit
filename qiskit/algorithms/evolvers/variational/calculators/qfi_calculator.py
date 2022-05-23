@@ -28,20 +28,20 @@ def calculate(
     phase_fix: bool = True,
 ) -> ListOp:
     """
-    Calculates a parametrized metric tensor object.
+    Calculates a parametrized QFI object.
 
     Args:
         ansatz: Quantum state to be evolved in the form of a parametrized quantum circuit.
         parameters: Parameters with respect to which gradients of an ansatz should be computed.
         qfi_method: The method used to compute the QFI. Can be either
             ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'``.
-        basis: Basis with respect to which metric tensor is calculated. In case of a default Z
-            basis a real part of a metric tensor is returned. In case of a Y basis,
-            an imaginary part of a metric tensor is returned.
+        basis: Basis with respect to which QFI is calculated. In case of a default Z
+            basis a real part of a QFI is returned. In case of a Y basis,
+            an imaginary part of a QFI is returned.
         phase_fix: Flag that indicates whether a phase fix should be applied.
 
     Returns:
-        Parametrized metric tensor as a ListOp.
+        Parametrized QFI as a ListOp.
     Raises:
         ValueError: If unsupported values for ``basis`` or ``phase_fix`` are provided for a given
             QFI method.

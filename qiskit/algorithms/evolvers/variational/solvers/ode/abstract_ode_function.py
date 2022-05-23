@@ -20,7 +20,7 @@ from ..var_qte_linear_solver import (
 )
 
 
-class AbstractOdeFunctionGenerator(ABC):
+class AbstractOdeFunction(ABC):
     """Abstract class for generating ODE functions."""
 
     def __init__(

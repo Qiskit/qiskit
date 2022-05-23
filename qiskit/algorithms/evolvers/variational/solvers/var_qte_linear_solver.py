@@ -17,7 +17,7 @@ from typing import Union, List, Dict, Optional, Callable
 import numpy as np
 from qiskit.circuit import Parameter
 from qiskit.opflow import CircuitSampler, OperatorBase
-from ..calculators.metric_tensor_calculator import (
+from ..calculators.qfi_calculator import (
     eval_metric_result,
 )
 from ..calculators.evolution_grad_calculator import (
@@ -32,7 +32,7 @@ class VarQTELinearSolver:
         self,
         metric_tensor: OperatorBase,
         evolution_grad: OperatorBase,
-        lse_solver_callable: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
+        lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
         circuit_sampler: Optional[CircuitSampler] = None,
         imag_part_tol: float = 1e-7,
     ) -> None:
@@ -40,7 +40,7 @@ class VarQTELinearSolver:
         Args:
             metric_tensor: A parametrized operator that represents the left-hand side of an ODE.
             evolution_grad: A parametrized operator that represents the right-hand side of an ODE.
-            lse_solver_callable: Linear system of equations solver that follows a NumPy
+            lse_solver: Linear system of equations solver that follows a NumPy
                 ``np.linalg.lstsq`` interface.
             circuit_sampler: Samples circuits using an underlying backend.
             imag_part_tol: Allowed value of an imaginary part that can be neglected if no
@@ -49,7 +49,7 @@ class VarQTELinearSolver:
 
         self._metric_tensor = metric_tensor
         self._evolution_grad = evolution_grad
-        self._lse_solver_callable = lse_solver_callable
+        self._lse_solver = lse_solver
         self._circuit_sampler = circuit_sampler
         self._imag_part_tol = imag_part_tol
 
@@ -76,7 +76,7 @@ class VarQTELinearSolver:
         metric_tensor_lse_lhs = self._calc_lse_lhs(param_dict, t_param, time_value)
         evolution_grad_lse_rhs = self._calc_lse_rhs(param_dict, t_param, time_value)
 
-        x = self._lse_solver_callable(metric_tensor_lse_lhs, evolution_grad_lse_rhs)[0]
+        x = self._lse_solver(metric_tensor_lse_lhs, evolution_grad_lse_rhs)[0]
 
         return np.real(x), metric_tensor_lse_lhs, evolution_grad_lse_rhs
 

@@ -84,7 +84,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
         parameters = ansatz.ordered_parameters
-        init_param_values = np.zeros(len(ansatz.ordered_parameters))
+        init_param_values = np.zeros(len(parameters))
         for i in range(len(ansatz.ordered_parameters)):
             init_param_values[i] = np.pi / 2
         init_param_values[0] = 1
@@ -177,7 +177,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
         parameters = ansatz.ordered_parameters
-        init_param_values = np.zeros(len(ansatz.ordered_parameters))
+        init_param_values = np.zeros(len(parameters))
         for i in range(len(ansatz.ordered_parameters)):
             init_param_values[i] = np.pi / 2
         init_param_values[0] = 1
@@ -213,7 +213,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             state_fidelity(
                 Statevector(evolved_state),
                 Statevector(
-                    ansatz.assign_parameters(dict(zip(ansatz.parameters, thetas_expected)))
+                    ansatz.assign_parameters(dict(zip(ansatz.ordered_parameters, thetas_expected)))
                 ),
             )
         )
@@ -239,7 +239,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
         parameters = ansatz.ordered_parameters
-        init_param_values = np.zeros(len(ansatz.ordered_parameters))
+        init_param_values = np.zeros(len(parameters))
         for i in range(len(ansatz.ordered_parameters)):
             init_param_values[i] = np.pi / 4
 
@@ -279,7 +279,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             state_fidelity(
                 Statevector(evolved_state),
                 Statevector(
-                    ansatz.assign_parameters(dict(zip(ansatz.parameters, thetas_expected)))
+                    ansatz.assign_parameters(dict(zip(ansatz.ordered_parameters, thetas_expected)))
                 ),
             )
         )

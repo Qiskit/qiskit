@@ -16,8 +16,8 @@ from abc import ABC
 from enum import Enum
 from typing import Dict
 from qiskit.circuit import Parameter
-from .abstract_ode_function import AbstractOdeFunctionGenerator
-from .ode_function import OdeFunctionGenerator
+from .abstract_ode_function import AbstractOdeFunction
+from .ode_function import OdeFunction
 from ..var_qte_linear_solver import (
     VarQTELinearSolver,
 )
@@ -43,7 +43,7 @@ class OdeFunctionFactory(ABC):
         error_calculator,  # TODO will be supported in another PR
         t_param: Parameter,
         param_dict: Dict[Parameter, complex],
-    ) -> AbstractOdeFunctionGenerator:
+    ) -> AbstractOdeFunction:
         """
         Lazily initializes important fields once the evolution data is provided by the user.
 
@@ -59,7 +59,7 @@ class OdeFunctionFactory(ABC):
 
         """
         if self._ode_type == OdeFunctionType.STANDARD_ODE:
-            return OdeFunctionGenerator(varqte_linear_solver, error_calculator, t_param, param_dict)
+            return OdeFunction(varqte_linear_solver, error_calculator, t_param, param_dict)
         raise ValueError(
             f"Unsupported ODE function provided: {self._ode_type}. Only {[tp.value for tp in OdeFunctionType]} are supported."
         )
