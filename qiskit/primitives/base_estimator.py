@@ -304,6 +304,12 @@ class BaseEstimator(ABC):
         if observables is None:
             observables = list(range(len(self._observables)))
         if parameter_values is None:
+            for i in circuits:
+                if len(self._circuits[i].parameters) != 0:
+                    raise QiskitError(
+                        f"The {i}-th circuit ({len(circuits)}) is parameterised,"
+                        "but parameter values are not given."
+                    )
             parameter_values = [[]] * len(circuits)
 
         # Allow objects
@@ -343,6 +349,16 @@ class BaseEstimator(ABC):
                 f"The number of circuits ({len(circuits)}) does not match "
                 f"the number of parameter value sets ({len(parameter_values)})."
             )
+
+        for circ_i, obs_i in zip(circuits, observables):
+            circuit_num_qubits = self.circuits[circ_i].num_qubits
+            observable_num_qubits = self.observables[obs_i].num_qubits
+            if circuit_num_qubits != observable_num_qubits:
+                raise QiskitError(
+                    f"The number of qubits of the {circ_i}-th circuit ({circuit_num_qubits}) does "
+                    f"not match the number of qubits of the {obs_i}-th observable "
+                    f"({observable_num_qubits})."
+                )
 
         return self._call(
             circuits=circuits,
