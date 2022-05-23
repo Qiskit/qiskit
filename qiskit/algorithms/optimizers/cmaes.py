@@ -43,12 +43,12 @@ class CMAES_OptimizerState(OptimizerState):
     # x will be treated as the mean
     p_sigma: POINT = None
     p_c: POINT = None
-    C: np.ndarray = None  # pylint: disable=invalid-name
+    C: np.ndarray = None # pylint: disable=invalid-name
     B: np.ndarray = None
-    D: POINT = None  # Will store the sqrt of the diagonal elements
+    D: POINT  = None  # Will store the sqrt of the diagonal elements
     generation: int = 0
-    mean: float = None
     sigma: float = 0.5
+    best_x: Optional[Tuple[POINT,float]] = None
 
     def __post_init__(self):
         if self.C is None:
@@ -57,11 +57,14 @@ class CMAES_OptimizerState(OptimizerState):
             self.D = np.ones((self.x.size))
             self.p_sigma = np.zeros(self.x.size)
             self.p_c = np.zeros(self.x.size)
+    def __str__(self):
+        return f"(Generation:{self.generation} ; sigma:{self.sigma:.4E} ; objective:{self.fun(self.x):.4E} ; nfev:{self.nfev} ; best_case: {self.best_x[0]:.4E})"
 
 
 class SteppableCMAES(SteppableOptimizer):
     def __init__(
         self,
+        tol: float = 1e-3,
         **kwargs,
     ) -> None:
 
@@ -71,6 +74,7 @@ class SteppableCMAES(SteppableOptimizer):
         self.weights = None
         self.mu = None
         self.mueff = None
+        self.tol = tol
 
     # @property
     # def settings(self) -> Dict[str, Any]:
@@ -93,7 +97,7 @@ class SteppableCMAES(SteppableOptimizer):
         """ """
         z = np.random.normal(0, 1, size=(self.lmbda, self.N))
         y = np.einsum("ij,j,kj->ki", self._state.B, self._state.D, z)  # ij or ji???
-        x = self._state.x + y
+        x = self._state.x + self._state.sigma * y
         return CMAES_AskObject(cloud=x, variation_cloud=z)
 
     def tell(self, ask_object: AskObject, tell_object: TellObject) -> None:
@@ -102,6 +106,7 @@ class SteppableCMAES(SteppableOptimizer):
         # print(tell_object.cloud_evaluated)
         # print(sorting_indexes)
         sorted_x = ask_object.cloud[sorting_indexes][:self.mu]
+        self._state.best_x = (tell_object.cloud_evaluated[sorting_indexes[0]],sorted_x[0])
         sorted_z = ask_object.variation_cloud[sorting_indexes][:self.mu]
 
         self._state.x = np.dot(sorted_x.T, self.weights)
@@ -136,10 +141,11 @@ class SteppableCMAES(SteppableOptimizer):
         if (
             True
         ):  # Here the paper only diagonalizes the matrix every certain amount of iterations. We prefer to be as precise as possible even if we need to sacrifice efficiency in the optimizer.
-            self._state.C = (self._state.C + self._state.C.T) / 2
+            self._state.C = (self._state.C + self._state.C.T) / 2 # We guarantee symmetry
             self._state.D, self._state.B = np.linalg.eig(self._state.C)
-            self._state.D = np.sqrt(self._state.D)
+            self._state.D = np.real(np.sqrt(self._state.D))
             self._state.B = np.real(self._state.B)
+
 
     def evaluate(self, ask_object: AskObject) -> TellObject:
         cloud_eval = [self._state.fun(x) for x in ask_object.cloud]
@@ -151,13 +157,13 @@ class SteppableCMAES(SteppableOptimizer):
         Creates a result of the optimization process using the values from self.state.
         """
         result = OptimizerResult()
-        result.x = self._state.x
-        result.fun = self._state.fun(self._state.x)
+        result.x = self._state.best_x[1]
+        result.fun = self._state.best_x[0]
         result.nfev = self._state.nfev
         return result
 
     def initialize(
-        self, x0: POINT, fun: Callable[[POINT], float], jac: Callable[[POINT], POINT] = None
+        self, x0: POINT, fun: Callable[[POINT], float], jac: Callable[[POINT], POINT] = None, tol:float = 1e-3
     ) -> None:
         """
         This method will initialize the state of the optimizer so that an optimization can be performed.
@@ -182,11 +188,13 @@ class SteppableCMAES(SteppableOptimizer):
         self.damps = 1 + 2 * max(0, np.sqrt((self.mueff - 1) / (self.N + 1)) - 1) + self.cs
         self.chiN = self.N**0.5 * (1 - 1 / (4 * self.N) + 1 / (21 * self.N**2))
 
+        self.tol = tol
+
     def stop_condition(self) -> bool:
         """
         This is the condition that will be checked after each step to stop the optimization process.
         """
-        return False
+        return self._state.best_x[0] < self.tol
 
     def get_support_level(self):
         """Get the support level dictionary."""
