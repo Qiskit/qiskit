@@ -75,7 +75,7 @@ def marginal_counts(
 
             if indices is not None:
                 experiment_result.header.memory_slots = len(indices)
-                csize = getattr(experiment_result.header, "creg_sizes")
+                csize = getattr(experiment_result.header, "creg_sizes", None)
                 if csize is not None:
                     experiment_result.header.creg_sizes = _adjust_creg_sizes(csize, indices)
 
