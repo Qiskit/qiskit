@@ -63,7 +63,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StructuredPa
     initial_layout = pass_manager_config.initial_layout
     layout_method = pass_manager_config.layout_method or "trivial"
     routing_method = pass_manager_config.routing_method or "stochastic"
-    translation_method = pass_manager_config.translation_method or "basis_translator"
+    translation_method = pass_manager_config.translation_method or "translator"
     scheduling_method = pass_manager_config.scheduling_method
     instruction_durations = pass_manager_config.instruction_durations
     seed_transpiler = pass_manager_config.seed_transpiler

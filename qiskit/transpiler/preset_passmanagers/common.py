@@ -75,9 +75,9 @@ def generate_unroll_3q(
         UnitarySynthesis(
             basis_gates,
             approximation_degree=approximation_degree,
-            plugin_config=unitary_synthesis_plugin_config,
             method=unitary_synthesis_method,
             min_qubits=3,
+            plugin_config=unitary_synthesis_plugin_config,
             target=target,
         )
     )
@@ -114,13 +114,11 @@ def _trivial_not_perfect(property_set):
 
 
 def _run_post_layout_condition(property_set):
-    # Optimization level 1 tries trivial first so embed check that we're not
-    # using a perfect trivial layout.
     if _trivial_not_perfect(property_set):
         vf2_stop_reason = property_set["VF2Layout_stop_reason"]
-        if vf2_stop_reason is not None and vf2_stop_reason == VF2LayoutStopReason.SOLUTION_FOUND:
-            return False
-    return True
+        if vf2_stop_reason is None or vf2_stop_reason != VF2LayoutStopReason.SOLUTION_FOUND:
+            return True
+    return False
 
 
 def _apply_post_layout_condition(property_set):
@@ -169,7 +167,7 @@ def generate_routing_passmanager(
 
     routing.append([BarrierBeforeFinalMeasurements(), routing_pass], condition=_swap_condition)
 
-    if vf2_call_limit is not None:
+    if (target is not None or backend_properties is not None) and vf2_call_limit is not None:
         routing.append(
             VF2PostLayout(
                 target,

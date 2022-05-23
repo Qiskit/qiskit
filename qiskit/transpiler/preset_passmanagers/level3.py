@@ -197,11 +197,14 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         layout.append(_choose_layout_0, condition=_choose_layout_condition)
         layout.append(_choose_layout_1, condition=_vf2_match_not_found)
         layout += common.generate_embed_passmanager(coupling_map)
+        vf2_call_limit = None
+        if pass_manager_config.layout_method is None:
+            vf2_call_limit = int(3e7)  # Set call limit to ~60 sec with retworkx 0.10.2
         routing = common.generate_routing_passmanager(
             routing_pass,
             target,
             coupling_map=coupling_map,
-            vf2_call_limit=int(3e7),  # Set call limit to ~60 sec with retworkx 0.10.2
+            vf2_call_limit=vf2_call_limit,
             backend_properties=backend_properties,
             seed_transpiler=seed_transpiler,
         )
@@ -221,7 +224,9 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     optimization = PassManager()
     unroll = [pass_ for x in translation.passes() for pass_ in x["passes"]]
     optimization.append(_depth_check + _size_check)
-    if coupling_map and not coupling_map.is_symmetric:
+    if (coupling_map and not coupling_map.is_symmetric) or (
+        target is not None and target.get_non_global_operation_names(strict_direction=True)
+    ):
         pre_optimization = common.generate_pre_op_passmanager(target, coupling_map, True)
         _direction = [
             pass_
