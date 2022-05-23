@@ -611,7 +611,7 @@ class SparsePauliOp(LinearOp):
         return SparsePauliOp(paulis, coeffs, copy=False)
 
     @staticmethod
-    def from_sparse_list(obj, num_qubits):
+    def from_sparse_list(obj, num_qubits, do_checks=True):
         """Construct from a list of local Pauli strings and coefficients.
 
         Each list element is a 3-tuple of a local Pauli string, indices where to apply it,
@@ -636,6 +636,7 @@ class SparsePauliOp(LinearOp):
         Args:
             obj (Iterable[Tuple[str, List[int], complex]]): The list 3-tuples specifying the Paulis.
             num_qubits (int): The number of qubits of the operator.
+            do_checks (bool): The flag of checking if it is already assigned (not I).
 
         Returns:
             SparsePauliOp: The SparsePauliOp representation of the Pauli terms.
@@ -643,6 +644,7 @@ class SparsePauliOp(LinearOp):
         Raises:
             QiskitError: If the list of Paulis is empty.
             QiskitError: If the number of qubits is incompatible with the indices of the Pauli terms.
+            QiskitError: If the designated qubit is already assigned.
         """
         obj = list(obj)  # To convert zip or other iterable
 
@@ -660,6 +662,10 @@ class SparsePauliOp(LinearOp):
                 if index >= num_qubits:
                     raise QiskitError(
                         f"The number of qubits ({num_qubits}) is smaller than a required index {index}."
+                    )
+                if do_checks is True and label[~index] in ("X", "Y", "Z"):
+                    raise QiskitError(
+                        f"The qubit (index: {num_qubits}) is already assigned {label}."
                     )
                 label[~index] = pauli
 
