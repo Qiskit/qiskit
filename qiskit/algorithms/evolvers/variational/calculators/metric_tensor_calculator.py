@@ -48,7 +48,7 @@ def calculate(
     """
     operator = CircuitStateFn(ansatz)
 
-    if qfi_method == "lin_comb_full":
+    if qfi_method == "lin_comb_full" or isinstance(qfi_method, LinCombFull):
         return LinCombFull(aux_meas_op=basis, phase_fix=phase_fix).convert(operator, parameters)
     elif basis != Z or phase_fix is False:
         raise ValueError(

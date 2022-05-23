@@ -15,7 +15,7 @@ Variational Quantum Time Evolutions (:mod:`qiskit.algorithms.evolvers.variationa
 ===================================================================================
 
 Algorithms for performing Variational Quantum Time Evolution of quantum states and their
-gradients which might be suitable for NISQ devices. VarQTE base class exposes an interface,
+gradients, which can be tailored to near-term devices. VarQTE base class exposes an interface,
 compliant with the Quantum Time Evolution Framework in Qiskit Terra, that is implemented by
 VarQRTE and VarQITE classes for real and imaginary time evolution respectively. The variational
 approach is taken according to a variational principle chosen by a user.

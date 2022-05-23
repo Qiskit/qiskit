@@ -134,7 +134,7 @@ class VarQTE(ABC):
             time: Total time of evolution.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
             initial_state: Quantum state to be evolved.
-            error_calculator: Calculator of errors for error-based ODE functions.
+            error_calculator: Not yet supported. Calculator of errors for error-based ODE functions.
 
 
         Returns:

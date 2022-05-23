@@ -49,7 +49,7 @@ def calculate(
         ValueError: If unsupported value for ``basis`` is provided for a given gradient method.
     """
     operator = StateFn(observable, is_measurement=True) @ StateFn(ansatz)
-    if grad_method == "lin_comb":
+    if grad_method == "lin_comb" or isinstance(grad_method, LinComb):
         return LinComb(aux_meas_op=basis).convert(operator, parameters)
     elif basis != Z:
         raise ValueError(

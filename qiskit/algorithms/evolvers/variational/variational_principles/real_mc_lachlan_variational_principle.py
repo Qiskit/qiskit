@@ -98,7 +98,7 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
                 Calculated evolution gradient, according to the variational principle.
             """
 
-            energy = ~StateFn(hamiltonian) @ StateFn(ansatz)
+            energy = StateFn(hamiltonian, is_measurement=True) @ StateFn(ansatz)
             energy = PauliExpectation().convert(energy)
 
             if circuit_sampler is not None:

@@ -28,7 +28,6 @@ from qiskit.opflow import SummedOp, X, Y, I, Z
 class TestEvolutionGradCalculator(QiskitAlgorithmsTestCase):
     """Test evolution gradient calculator."""
 
-    # checked, correct
     def test_calculate(self):
         """Test calculating evolution gradient."""
         observable = SummedOp(
@@ -46,9 +45,8 @@ class TestEvolutionGradCalculator(QiskitAlgorithmsTestCase):
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
         # Define a set of initial parameters
-        parameters = ansatz.ordered_parameters
         grad_method = "lin_comb"
-        evolution_grad = calculate(observable, ansatz, parameters, grad_method)
+        evolution_grad = calculate(observable, ansatz, ansatz.parameters, grad_method)
 
         values_dict = [
             {param: np.pi / 4 for param in parameters},
@@ -177,9 +175,8 @@ class TestEvolutionGradCalculator(QiskitAlgorithmsTestCase):
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
         # Define a set of initial parameters
-        parameters = ansatz.ordered_parameters
         grad_method = "lin_comb"
-        evolution_grad = calculate(observable, ansatz, parameters, grad_method, basis)
+        evolution_grad = calculate(observable, ansatz, ansatz.parameters, grad_method, basis)
 
         values_dict = [
             {param: np.pi / 4 for param in parameters},
@@ -206,9 +203,8 @@ class TestEvolutionGradCalculator(QiskitAlgorithmsTestCase):
         d = 1
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
-        parameters = ansatz.ordered_parameters
         with self.assertRaises(ValueError):
-            _ = calculate(observable, ansatz, parameters, grad_method, basis)
+            _ = calculate(observable, ansatz, ansatz.parameters, grad_method, basis)
 
 
 if __name__ == "__main__":
