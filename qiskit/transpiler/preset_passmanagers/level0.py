@@ -119,6 +119,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StructuredPa
             routing_pass,
             target,
             coupling_map=coupling_map,
+            seed_transpiler=seed_transpiler,
         )
     else:
         layout = None

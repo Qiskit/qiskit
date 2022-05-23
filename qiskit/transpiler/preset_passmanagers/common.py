@@ -217,7 +217,7 @@ def generate_pre_op_passmanager(target=None, coupling_map=None, remove_reset_in_
 def generate_translation_passmanager(
     target,
     basis_gates=None,
-    method="basis_translator",
+    method="translator",
     approximation_degree=None,
     coupling_map=None,
     backend_props=None,
@@ -253,7 +253,7 @@ def generate_translation_passmanager(
     """
     if method == "unroller":
         unroll = [Unroller(basis_gates)]
-    elif method == "basis_translator":
+    elif method == "translator":
         unroll = [
             # Use unitary synthesis for basis aware decomposition of
             # UnitaryGates before custom unrolling

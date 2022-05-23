@@ -74,7 +74,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     initial_layout = pass_manager_config.initial_layout
     layout_method = pass_manager_config.layout_method or "dense"
     routing_method = pass_manager_config.routing_method or "stochastic"
-    translation_method = pass_manager_config.translation_method or "basis_translator"
+    translation_method = pass_manager_config.translation_method or "translator"
     scheduling_method = pass_manager_config.scheduling_method
     instruction_durations = pass_manager_config.instruction_durations
     seed_transpiler = pass_manager_config.seed_transpiler
@@ -189,6 +189,8 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             target,
             coupling_map,
             vf2_call_limit=int(5e4),  # Set call limit to ~100ms with retworkx 0.10.2
+            backend_properties=backend_properties,
+            seed_transpiler=seed_transpiler,
         )
     else:
         layout = None

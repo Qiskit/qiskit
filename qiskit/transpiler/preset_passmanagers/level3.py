@@ -202,6 +202,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             target,
             coupling_map=coupling_map,
             vf2_call_limit=int(3e7),  # Set call limit to ~60 sec with retworkx 0.10.2
+            backend_properties=backend_properties,
+            seed_transpiler=seed_transpiler,
         )
     else:
         layout = None
@@ -223,7 +225,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pre_optimization = common.generate_pre_op_passmanager(target, coupling_map, True)
         _direction = [
             pass_
-            for x in common.generate_pre_op_passmanager(target, coupling_map)
+            for x in common.generate_pre_op_passmanager(target, coupling_map).passes()
             for pass_ in x["passes"]
         ]
         # For transpiling to a target we need to run GateDirection in the
