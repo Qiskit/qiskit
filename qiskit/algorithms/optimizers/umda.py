@@ -15,20 +15,13 @@
 from typing import Callable, List, Optional, Tuple
 import numpy as np
 from scipy.stats import norm
-from .optimizer import OptimizerResult, POINT
 from qiskit.utils import algorithm_globals
 
+from .optimizer import OptimizerResult, POINT
 from .scipy_optimizer import SciPyOptimizer
 
 
 class UMDA(SciPyOptimizer):
-    """Continuous univariate marginal Estimation of Distribution algorithm.
-    New individuals are sampled from a vector of univariate normal distributions.
-
-    Implementations were obtained from EDAspy. For further detail, please refer to
-    https://github.com/VicentePerezSoloviev/EDAspy
-    """
-
     """Continuous Univariate Marginal Distribution Algorithm (UMDA).
 
         UMDA [1] is a specific type of Estimation of Distribution Algorithm (EDA) where new individuals
@@ -40,27 +33,28 @@ class UMDA(SciPyOptimizer):
             This code and analysis where obtained from EDAspy Python package [2].
 
         EDAs are stochastic search algorithms and belongs to the family of the evolutionary algorithms.
-        The main difference is that EDAs have a probabilitic model which is updated in each iteration from
-        the best individuals of previous generations (elite selection). Depending on the complexity
+        The main difference is that EDAs have a probabilitic model which is updated in each iteration
+        from the best individuals of previous generations (elite selection). Depending on the complexity
         of the probabilistic model, EDAs can be classified in a different way. In this case, UMDA is a
         univariate EDA as the embedded probabilistic model is univariate.
 
-        UMDA has been compared to some of the already implemented algorithms in Qiskit library to optimize
-        the parameters of a Variational algorithm such as QAOA or VQE and competitive results have been
-        obtained [1]. UMDA seems to provide very good solutions for those circuits in which the number of layers
-        is not big.
+        UMDA has been compared to some of the already implemented algorithms in Qiskit library to
+        optimize the parameters of a Variational algorithm such as QAOA or VQE and competitive results
+        have been obtained [1]. UMDA seems to provide very good solutions for those circuits in which
+        the number of layers is not big.
 
-        The optimization process can be personalized depending on the paremeters chosen in the initialization.
-        The main parameter is the population size. As bigger it is, the performance will be better. However,
-        this increases the complexity of the algorithm and the runtime will be much heavier. In the work [1]
-        different experiments have been performed where population size has been set to 20 - 30.
+        The optimization process can be personalized depending on the paremeters chosen in the
+        initialization. The main parameter is the population size. As bigger it is, the performance
+        will be better. However, this increases the complexity of the algorithm and the runtime will
+        be much heavier. In the work [1] different experiments have been performed where population
+        size has been set to 20 - 30.
 
         .. note::
 
-            The UMDA implementation has more parameter but these have been set in the initialization for
-            better understanding of the user. For example, ``\alpha`` parameter has been set to 0.5 and is
-            the percentage of the population which is selected in each iteration to update the probabilistic
-            model.
+            The UMDA implementation has more parameter but these have been set in the initialization
+            for better understanding of the user. For example, ``\alpha`` parameter has been set to 0.5
+            and is the percentage of the population which is selected in each iteration to update the
+            probabilistic model.
 
 
         Example:
@@ -107,21 +101,24 @@ class UMDA(SciPyOptimizer):
 
                 opt = UMDA(maxiter=100, size_gen=20, n_variables=p*2, disp=True)
 
+                backend = Aer.get_backend('statevector_simulator')
                 vqe = QAOA(opt,
-                           quantum_instance=QuantumInstance(backend=Aer.get_backend('statevector_simulator')),
+                           quantum_instance=QuantumInstance(backend=backend),
                            reps=p)
 
                 result = vqe.compute_minimum_eigenvalue(operator=qubit_op)
 
-            If it is desired to modify the percentage of individuals considered to update the probabilistic model,
-            then this code can be used. Here for example we set the 60% instead of the 50% predefined.
+            If it is desired to modify the percentage of individuals considered to update the
+            probabilistic model, then this code can be used. Here for example we set the 60% instead
+            of the 50% predefined.
 
             .. code-block:: python
 
-                opt = UMDA(maxiter=100, size_gen=20, n_variables=p*2, alpha=0.6, disp=True)
+                opt = UMDA(maxiter=100, size_gen=20, n_variables=p*2, alpha = 0.6, disp=True)
 
+                backend = Aer.get_backend('statevector_simulator')
                 vqe = QAOA(opt,
-                           quantum_instance=QuantumInstance(backend=Aer.get_backend('statevector_simulator')),
+                           quantum_instance=QuantumInstance(backend=backend),
                            reps=p)
 
                 result = vqe.compute_minimum_eigenvalue(operator=qubit_op)
@@ -129,12 +126,12 @@ class UMDA(SciPyOptimizer):
 
         References:
 
-            [1]: Vicente P. Soloviev, Pedro Larrañaga and Concha Bielza (2022, July). Quantum Parametric Circuit
-            Optimization with Estimation of Distribution Algorithms. In 2022 The Genetic and Evolutionary Computation
-            Conference (GECCO). DOI: https://doi.org/10.1145/3520304.3533963
+            [1]: Vicente P. Soloviev, Pedro Larrañaga and Concha Bielza (2022, July). Quantum Parametric
+            Circuit Optimization with Estimation of Distribution Algorithms. In 2022 The Genetic and
+            Evolutionary Computation Conference (GECCO). DOI: https://doi.org/10.1145/3520304.3533963
 
-            [2]: Vicente P. Soloviev. Python package EDAspy. https://github.com/VicentePerezSoloviev/EDAspy .
-
+            [2]: Vicente P. Soloviev. Python package EDAspy.
+            https://github.com/VicentePerezSoloviev/EDAspy.
         """
 
     best_mae_global = 9999999
