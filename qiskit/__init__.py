@@ -17,7 +17,19 @@
 import pkgutil
 import sys
 import warnings
-import os
+
+import qiskit._accelerate
+
+# Globally define compiled modules. The normal import mechanism will not
+# find compiled submodules in _accelerate because it relies on file paths
+# manually define them on import so people can directly import
+# qiskit._accelerate.* submodules and not have to rely on attribute access
+sys.modules["qiskit._accelerate.stochastic_swap"] = qiskit._accelerate.stochastic_swap
+sys.modules["qiskit._accelerate.pauli_expval"] = qiskit._accelerate.pauli_expval
+sys.modules["qiskit._accelerate.dense_layout"] = qiskit._accelerate.dense_layout
+sys.modules["qiskit._accelerate.sparse_pauli_op"] = qiskit._accelerate.sparse_pauli_op
+sys.modules["qiskit._accelerate.results"] = qiskit._accelerate.results
+
 
 # qiskit errors operator
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
@@ -57,14 +69,6 @@ from .version import QiskitVersion  # noqa
 
 
 __qiskit_version__ = QiskitVersion()
-
-
-if sys.version_info < (3, 7):
-    warnings.warn(
-        "Using Qiskit with Python 3.6 is deprecated as of qiskit-terra 0.17.0. "
-        "Support for running Qiskit with Python 3.6 will be removed in qiskit-terra 0.20.0.",
-        DeprecationWarning,
-    )
 
 
 class AerWrapper:
@@ -127,3 +131,20 @@ class IBMQWrapper:
 
 Aer = AerWrapper()
 IBMQ = IBMQWrapper()
+
+__all__ = [
+    "Aer",
+    "AncillaRegister",
+    "BasicAer",
+    "ClassicalRegister",
+    "IBMQ",
+    "MissingOptionalLibraryError",
+    "QiskitError",
+    "QuantumCircuit",
+    "QuantumRegister",
+    "assemble",
+    "execute",
+    "schedule",
+    "sequence",
+    "transpile",
+]

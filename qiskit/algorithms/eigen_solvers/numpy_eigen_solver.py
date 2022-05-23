@@ -21,7 +21,8 @@ from scipy import sparse as scisparse
 from qiskit.opflow import I, ListOp, OperatorBase, StateFn
 from qiskit.utils.validation import validate_min
 from ..exceptions import AlgorithmError
-from .eigen_solver import Eigensolver, EigensolverResult, ListOrDict
+from .eigen_solver import Eigensolver, EigensolverResult
+from ..list_or_dict import ListOrDict
 
 logger = logging.getLogger(__name__)
 
@@ -104,8 +105,8 @@ class NumPyEigensolver(Eigensolver):
 
     def _check_set_k(self, operator: OperatorBase) -> None:
         if operator is not None:
-            if self._in_k > 2 ** operator.num_qubits:
-                self._k = 2 ** operator.num_qubits
+            if self._in_k > 2**operator.num_qubits:
+                self._k = 2**operator.num_qubits
                 logger.debug(
                     "WARNING: Asked for %s eigenvalues but max possible is %s.", self._in_k, self._k
                 )
@@ -123,7 +124,7 @@ class NumPyEigensolver(Eigensolver):
             for i, idx in enumerate(indices):
                 eigvec[idx, i] = 1.0
         else:
-            if self._k >= 2 ** operator.num_qubits - 1:
+            if self._k >= 2**operator.num_qubits - 1:
                 logger.debug("SciPy doesn't support to get all eigenvalues, using NumPy instead.")
                 if operator.is_hermitian():
                     eigval, eigvec = np.linalg.eigh(operator.to_matrix())
@@ -165,12 +166,14 @@ class NumPyEigensolver(Eigensolver):
     @staticmethod
     def _eval_aux_operators(
         aux_operators: ListOrDict[OperatorBase], wavefn, threshold: float = 1e-12
-    ) -> ListOrDict[Tuple[float, int]]:
+    ) -> ListOrDict[Tuple[complex, complex]]:
+
+        values: ListOrDict[Tuple[complex, complex]]
 
         # As a list, aux_operators can contain None operators for which None values are returned.
         # As a dict, the None operators in aux_operators have been dropped in compute_eigenvalues.
         if isinstance(aux_operators, list):
-            values = [None] * len(aux_operators)  # type: ListOrDict[Tuple[float, int]]
+            values = [None] * len(aux_operators)
             key_op_iterator = enumerate(aux_operators)
         else:
             values = {}
@@ -188,8 +191,10 @@ class NumPyEigensolver(Eigensolver):
                     value = mat.dot(wavefn).dot(np.conj(wavefn))
                 else:
                     value = StateFn(operator, is_measurement=True).eval(wavefn)
-                value = value.real if abs(value.real) > threshold else 0.0
-            values[key] = (value, 0)
+                value = value if np.abs(value) > threshold else 0.0
+            # The value get's wrapped into a tuple: (mean, standard deviation).
+            # Since this is an exact computation, the standard deviation is known to be zero.
+            values[key] = (value, 0.0)
         return values
 
     def compute_eigenvalues(
@@ -217,7 +222,7 @@ class NumPyEigensolver(Eigensolver):
         k_orig = self._k
         if self._filter_criterion:
             # need to consider all elements if a filter is set
-            self._k = 2 ** operator.num_qubits
+            self._k = 2**operator.num_qubits
 
         self._ret = EigensolverResult()
         self._solve(operator)

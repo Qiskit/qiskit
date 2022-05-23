@@ -160,6 +160,16 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         if validate and not self._is_valid():
             raise QiskitError("Invalid CNOTDihedral element.")
 
+    @property
+    def name(self):
+        """Unique string identifier for operation type."""
+        return "cnotdihedral"
+
+    @property
+    def num_clbits(self):
+        """Number of classical bits."""
+        return 0
+
     def _z2matmul(self, left, right):
         """Compute product of two n x n z2 matrices."""
         prod = np.mod(np.dot(left, right), 2)

@@ -25,7 +25,7 @@ from qiskit.opflow import (
     PauliSumOp,
     StateFn,
 )
-from qiskit.providers import BaseBackend
+from qiskit.providers import Backend
 from .phase_estimation import PhaseEstimation
 from .hamiltonian_phase_estimation_result import HamiltonianPhaseEstimationResult
 from .phase_estimation_scale import PhaseEstimationScale
@@ -88,7 +88,7 @@ class HamiltonianPhaseEstimation:
     def __init__(
         self,
         num_evaluation_qubits: int,
-        quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None,
+        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
     ) -> None:
         """
         Args:
@@ -125,7 +125,6 @@ class HamiltonianPhaseEstimation:
         # It does not break any others that we tested.
         return unitary_circuit.decompose().decompose()
 
-    # pylint: disable=arguments-differ
     def estimate(
         self,
         hamiltonian: OperatorBase,

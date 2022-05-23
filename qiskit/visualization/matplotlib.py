@@ -19,16 +19,8 @@ from warnings import warn
 
 import numpy as np
 
-
-try:
-    from pylatexenc.latex2text import LatexNodes2Text
-
-    HAS_PYLATEX = True
-except ImportError:
-    HAS_PYLATEX = False
-
-from qiskit.circuit import ControlledGate, Clbit
-from qiskit.circuit import Measure
+from qiskit.circuit import ControlledGate, Qubit, Clbit, ClassicalRegister
+from qiskit.circuit import Measure, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import (
     SwapGate,
     RZZGate,
@@ -42,11 +34,15 @@ from qiskit.visualization.qcstyle import load_style
 from qiskit.visualization.utils import (
     get_gate_ctrl_text,
     get_param_str,
-    get_bit_label,
+    get_wire_map,
+    get_bit_register,
+    get_bit_reg_index,
+    get_wire_label,
+    get_condition_label_val,
     matplotlib_close_if_inline,
 )
 from qiskit.circuit.tools.pi_check import pi_check
-from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.utils import optionals as _optionals
 
 # Default gate width and height
 WID = 0.65
@@ -59,6 +55,8 @@ PORDER_GRAY = 3
 PORDER_TEXT = 6
 
 
+@_optionals.HAS_MATPLOTLIB.require_in_instance
+@_optionals.HAS_PYLATEX.require_in_instance
 class MatplotlibDrawer:
     """Matplotlib drawer class called from circuit_drawer"""
 
@@ -82,42 +80,82 @@ class MatplotlibDrawer:
         qregs=None,
         cregs=None,
         calibrations=None,
+        with_layout=False,
+        circuit=None,
     ):
-
-        if not HAS_MATPLOTLIB:
-            raise MissingOptionalLibraryError(
-                libname="Matplotlib",
-                name="MatplotlibDrawer",
-                pip_install="pip install matplotlib",
-            )
         from matplotlib import patches
-
-        self._patches_mod = patches
         from matplotlib import pyplot as plt
 
+        self._patches_mod = patches
         self._plt_mod = plt
-        if not HAS_PYLATEX:
-            raise MissingOptionalLibraryError(
-                libname="pylatexenc",
-                name="MatplotlibDrawer",
-                pip_install="pip install pylatexenc",
+
+        if qregs is not None:
+            warn(
+                "The 'qregs' kwarg to the MatplotlibDrawer class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                DeprecationWarning,
+                2,
             )
+        if cregs is not None:
+            warn(
+                "The 'cregs' kwarg to the MatplotlibDrawer class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                DeprecationWarning,
+                2,
+            )
+        if global_phase is not None:
+            warn(
+                "The 'global_phase' kwarg to the MatplotlibDrawer class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                DeprecationWarning,
+                2,
+            )
+        if layout is not None:
+            warn(
+                "The 'layout' kwarg to the MatplotlibDrawer class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                DeprecationWarning,
+                2,
+            )
+        if calibrations is not None:
+            warn(
+                "The 'calibrations' kwarg to the MatplotlibDrawer class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                DeprecationWarning,
+                2,
+            )
+        # This check should be removed when the 5 deprecations above are removed
+        if circuit is None:
+            warn(
+                "The 'circuit' kwarg to the MaptlotlibDrawer class must be a valid "
+                "QuantumCircuit and not None. A new circuit is being created using "
+                "the qubits and clbits for rendering the drawing.",
+                DeprecationWarning,
+                2,
+            )
+            circ = QuantumCircuit(qubits, clbits)
+            for reg in qregs:
+                bits = [qubits[circ._qubit_indices[q].index] for q in reg]
+                circ.add_register(QuantumRegister(None, reg.name, list(bits)))
+            for reg in cregs:
+                bits = [clbits[circ._clbit_indices[q].index] for q in reg]
+                circ.add_register(ClassicalRegister(None, reg.name, list(bits)))
+            self._circuit = circ
+        else:
+            self._circuit = circuit
+        self._qubits = qubits
+        self._clbits = clbits
+        self._qubits_dict = {}
+        self._clbits_dict = {}
+        self._q_anchors = {}
+        self._c_anchors = {}
+        self._wire_map = {}
 
-        # First load register and index info for the cregs and qregs,
-        # then add any bits which don't have registers associated with them.
-        self._bit_locations = {
-            bit: {"register": register, "index": index}
-            for register in cregs + qregs
-            for index, bit in enumerate(register)
-        }
-        for index, bit in list(enumerate(qubits)) + list(enumerate(clbits)):
-            if bit not in self._bit_locations:
-                self._bit_locations[bit] = {"register": None, "index": index}
-
-        self._qubit = qubits
-        self._clbit = clbits
-        self._qubit_dict = {}
-        self._clbit_dict = {}
         self._nodes = nodes
         self._scale = 1.0 if scale is None else scale
 
@@ -129,7 +167,11 @@ class MatplotlibDrawer:
 
         self._reverse_bits = reverse_bits
         self._plot_barriers = plot_barriers
-        self._layout = layout
+        if with_layout:
+            self._layout = self._circuit._layout
+        else:
+            self._layout = None
+
         self._fold = fold
         if self._fold < 2:
             self._fold = -1
@@ -149,8 +191,8 @@ class MatplotlibDrawer:
 
         self._initial_state = initial_state
         self._cregbundle = cregbundle
-        self._global_phase = global_phase
-        self._calibrations = calibrations
+        self._global_phase = self._circuit.global_phase
+        self._calibrations = self._circuit.calibrations
 
         self._fs = self._style["fs"]
         self._sfs = self._style["sfs"]
@@ -164,8 +206,6 @@ class MatplotlibDrawer:
         # and colors 'fc', 'ec', 'lc', 'sc', 'gt', and 'tc'
         self._data = {}
         self._layer_widths = []
-        self._q_anchors = {}
-        self._c_anchors = {}
 
         # _char_list for finding text_width of names, labels, and params
         self._char_list = {
@@ -270,14 +310,14 @@ class MatplotlibDrawer:
         ``visualization.circuit_drawer`` and from ``QuantumCircuit.draw`` through circuit_drawer.
         """
         # All information for the drawing is first loaded into self._data for the gates and into
-        # self._qubit_dict and self._clbit_dict for the qubits, clbits, and wires,
+        # self._qubits_dict and self._clbits_dict for the qubits, clbits, and wires,
         # followed by the coordinates for each gate.
 
         # get layer widths
         self._get_layer_widths()
 
         # load the _qubit_dict and _clbit_dict with register info
-        n_lines = self._get_bit_labels()
+        n_lines = self._set_bit_reg_info()
 
         # load the coordinates for each gate and compute number of folds
         max_anc = self._get_coords(n_lines)
@@ -443,129 +483,121 @@ class MatplotlibDrawer:
 
             self._layer_widths.append(int(widest_box) + 1)
 
-    def _get_bit_labels(self):
-        """Get all the info for drawing reg names and numbers"""
-        longest_bit_label_width = 0
+    def _set_bit_reg_info(self):
+        """Get all the info for drawing bit/reg names and numbers"""
+
+        self._wire_map = get_wire_map(self._circuit, self._qubits + self._clbits, self._cregbundle)
+        longest_wire_label_width = 0
         n_lines = 0
         initial_qbit = " |0>" if self._initial_state else ""
         initial_cbit = " 0" if self._initial_state else ""
 
-        def _fix_double_script(bit_label):
-            words = bit_label.split(" ")
-            words = [word.replace("_", r"\_") if word.count("_") > 1 else word for word in words]
-            words = [
-                word.replace("^", r"\^{\ }") if word.count("^") > 1 else word for word in words
-            ]
-            bit_label = " ".join(words).replace(" ", "\\;")
-            return bit_label
+        idx = 0
+        pos = y_off = -len(self._qubits) + 1
+        for ii, wire in enumerate(self._wire_map):
+            # if it's a creg, register is the key and just load the index
+            if isinstance(wire, ClassicalRegister):
+                register = wire
+                index = self._wire_map[wire]
 
-        # quantum register
-        for ii, reg in enumerate(self._qubit):
-            register = self._bit_locations[reg]["register"]
-            index = self._bit_locations[reg]["index"]
-            qubit_label = get_bit_label("mpl", register, index, qubit=True, layout=self._layout)
-            qubit_label = "$" + _fix_double_script(qubit_label) + "$" + initial_qbit
+            # otherwise, get the register from find_bit and use bit_index if
+            # it's a bit, or the index of the bit in the register if it's a reg
+            else:
+                register, bit_index, reg_index = get_bit_reg_index(
+                    self._circuit, wire, self._reverse_bits
+                )
+                index = bit_index if register is None else reg_index
 
-            text_width = self._get_text_width(qubit_label, self._fs) * 1.15
-            if text_width > longest_bit_label_width:
-                longest_bit_label_width = text_width
-            pos = -ii
-            self._qubit_dict[ii] = {
-                "y": pos,
-                "bit_label": qubit_label,
-                "index": index,
-                "register": register,
-            }
-            n_lines += 1
+            wire_label = get_wire_label(
+                "mpl", register, index, layout=self._layout, cregbundle=self._cregbundle
+            )
+            initial_bit = initial_qbit if isinstance(wire, Qubit) else initial_cbit
 
-        # classical register
-        if self._clbit:
-            prev_creg = None
-            idx = 0
-            pos = y_off = -len(self._qubit) + 1
-            for ii, reg in enumerate(self._clbit):
-                register = self._bit_locations[reg]["register"]
-                index = self._bit_locations[reg]["index"]
-                if register is None or not self._cregbundle or prev_creg != register:
+            # for cregs with cregbundle on, don't use math formatting, which means
+            # no italics
+            if isinstance(wire, Qubit) or register is None or not self._cregbundle:
+                wire_label = "$" + wire_label + "$"
+            wire_label += initial_bit
+
+            reg_size = (
+                0 if register is None or isinstance(wire, ClassicalRegister) else register.size
+            )
+            reg_remove_under = 0 if reg_size < 2 else 1
+            text_width = (
+                self._get_text_width(wire_label, self._fs, reg_remove_under=reg_remove_under) * 1.15
+            )
+            if text_width > longest_wire_label_width:
+                longest_wire_label_width = text_width
+
+            if isinstance(wire, Qubit):
+                pos = -ii
+                self._qubits_dict[ii] = {
+                    "y": pos,
+                    "wire_label": wire_label,
+                    "index": bit_index,
+                    "register": register,
+                }
+                n_lines += 1
+            else:
+                if (
+                    not self._cregbundle
+                    or register is None
+                    or (self._cregbundle and isinstance(wire, ClassicalRegister))
+                ):
                     n_lines += 1
                     idx += 1
 
-                prev_creg = register
-                clbit_label = get_bit_label(
-                    "mpl", register, index, qubit=False, cregbundle=self._cregbundle
-                )
-                clbit_label = _fix_double_script(clbit_label)
-                if register is None or not self._cregbundle:
-                    clbit_label = "$" + clbit_label + "$"
-                clbit_label += initial_cbit
-
-                text_width = self._get_text_width(clbit_label, self._fs) * 1.15
-                if text_width > longest_bit_label_width:
-                    longest_bit_label_width = text_width
                 pos = y_off - idx
-                self._clbit_dict[ii] = {
+                self._clbits_dict[ii] = {
                     "y": pos,
-                    "bit_label": clbit_label,
-                    "index": index,
+                    "wire_label": wire_label,
+                    "index": bit_index,
                     "register": register,
                 }
-        self._x_offset = -1.2 + longest_bit_label_width
+
+        self._x_offset = -1.2 + longest_wire_label_width
         return n_lines
 
     def _get_coords(self, n_lines):
         """Load all the coordinate info needed to place the gates on the drawing"""
 
         # create the anchor arrays
-        for key, qubit in self._qubit_dict.items():
-            self._q_anchors[key] = Anchor(reg_num=n_lines, yind=qubit["y"], fold=self._fold)
-        for key, clbit in self._clbit_dict.items():
-            self._c_anchors[key] = Anchor(reg_num=n_lines, yind=clbit["y"], fold=self._fold)
+        for key, qubit in self._qubits_dict.items():
+            self._q_anchors[key] = Anchor(num_wires=n_lines, y_index=qubit["y"], fold=self._fold)
+        for key, clbit in self._clbits_dict.items():
+            self._c_anchors[key] = Anchor(num_wires=n_lines, y_index=clbit["y"], fold=self._fold)
 
         # get all the necessary coordinates for placing gates on the wires
-        prev_anc = -1
+        prev_x_index = -1
         for i, layer in enumerate(self._nodes):
             layer_width = self._layer_widths[i]
-            this_anc = prev_anc + 1
+            anc_x_index = prev_x_index + 1
             for node in layer:
                 # get qubit index
                 q_indxs = []
                 for qarg in node.qargs:
-                    for index, reg in self._qubit_dict.items():
-                        if (
-                            reg["register"] == self._bit_locations[qarg]["register"]
-                            and reg["index"] == self._bit_locations[qarg]["index"]
-                        ):
-                            q_indxs.append(index)
-                            break
+                    q_indxs.append(self._wire_map[qarg])
 
-                # get clbit index
                 c_indxs = []
                 for carg in node.cargs:
-                    for index, reg in self._clbit_dict.items():
-                        if (
-                            reg["register"] == self._bit_locations[carg]["register"]
-                            and reg["index"] == self._bit_locations[carg]["index"]
-                        ):
-                            c_indxs.append(index)
-                            break
-
-                # only add the gate to the anchors if it is going to be plotted.
-                if self._plot_barriers or not node.op._directive:
-                    for ii in q_indxs:
-                        self._q_anchors[ii].set_index(this_anc, layer_width)
+                    register = get_bit_register(self._circuit, carg)
+                    if register is not None and self._cregbundle:
+                        c_indxs.append(self._wire_map[register])
+                    else:
+                        c_indxs.append(self._wire_map[carg])
 
                 # qubit coordinate
                 self._data[node]["q_xy"] = [
-                    self._q_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset)
+                    self._q_anchors[ii].plot_coord(anc_x_index, layer_width, self._x_offset)
                     for ii in q_indxs
                 ]
                 # clbit coordinate
                 self._data[node]["c_xy"] = [
-                    self._c_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset)
+                    self._c_anchors[ii].plot_coord(anc_x_index, layer_width, self._x_offset)
                     for ii in c_indxs
                 ]
                 # update index based on the value from plotting
-                this_anc = self._q_anchors[q_indxs[0]].gate_anchor
+                anc_x_index = self._q_anchors[q_indxs[0]].get_x_index()
                 self._data[node]["c_indxs"] = c_indxs
 
             # adjust the column if there have been barriers encountered, but not plotted
@@ -573,13 +605,14 @@ class MatplotlibDrawer:
             if not self._plot_barriers:
                 # only adjust if everything in the layer wasn't plotted
                 barrier_offset = -1 if all(nd.op._directive for nd in layer) else 0
-            prev_anc = this_anc + layer_width + barrier_offset - 1
+            prev_x_index = anc_x_index + layer_width + barrier_offset - 1
 
-        anchors = [self._q_anchors[ii].get_index() for ii in self._qubit_dict]
-        return max(anchors) if anchors else 0
+        return prev_x_index + 1
 
-    def _get_text_width(self, text, fontsize, param=False):
+    def _get_text_width(self, text, fontsize, param=False, reg_remove_under=None):
         """Compute the width of a string in the default font"""
+        from pylatexenc.latex2text import LatexNodes2Text
+
         if not text:
             return 0.0
 
@@ -595,6 +628,11 @@ class MatplotlibDrawer:
         # If there are subscripts or superscripts in mathtext string
         # we need to account for that spacing by manually removing
         # from text string for text length
+
+        # if it's a register and there's a subscript at the end,
+        # remove 1 underscore, otherwise don't remove any
+        if reg_remove_under is not None:
+            num_underscores = reg_remove_under
         if num_underscores:
             text = text.replace("_", "", num_underscores)
         if num_carets:
@@ -621,8 +659,8 @@ class MatplotlibDrawer:
 
         for fold_num in range(num_folds + 1):
             # quantum registers
-            for qubit in self._qubit_dict.values():
-                qubit_label = qubit["bit_label"]
+            for qubit in self._qubits_dict.values():
+                qubit_label = qubit["wire_label"]
                 y = qubit["y"] - fold_num * (n_lines + 1)
                 self._ax.text(
                     self._x_offset - 0.2,
@@ -640,12 +678,16 @@ class MatplotlibDrawer:
 
             # classical registers
             this_clbit_dict = {}
-            for clbit in self._clbit_dict.values():
-                clbit_label = clbit["bit_label"]
+            for clbit in self._clbits_dict.values():
+                clbit_label = clbit["wire_label"]
                 clbit_reg = clbit["register"]
                 y = clbit["y"] - fold_num * (n_lines + 1)
                 if y not in this_clbit_dict.keys():
-                    this_clbit_dict[y] = {"val": 1, "bit_label": clbit_label, "register": clbit_reg}
+                    this_clbit_dict[y] = {
+                        "val": 1,
+                        "wire_label": clbit_label,
+                        "register": clbit_reg,
+                    }
                 else:
                     this_clbit_dict[y]["val"] += 1
 
@@ -661,7 +703,7 @@ class MatplotlibDrawer:
                     self._ax.text(
                         self._x_offset + 0.1,
                         y + 0.1,
-                        str(this_clbit["val"]),
+                        str(this_clbit["register"].size),
                         ha="left",
                         va="bottom",
                         fontsize=0.8 * self._fs,
@@ -672,7 +714,7 @@ class MatplotlibDrawer:
                 self._ax.text(
                     self._x_offset - 0.2,
                     y,
-                    this_clbit["bit_label"],
+                    this_clbit["wire_label"],
                     ha="right",
                     va="center",
                     fontsize=1.25 * self._fs,
@@ -737,10 +779,10 @@ class MatplotlibDrawer:
 
     def _draw_ops(self, verbose=False):
         """Draw the gates in the circuit"""
-        prev_anc = -1
+        prev_x_index = -1
         for i, layer in enumerate(self._nodes):
             layer_width = self._layer_widths[i]
-            this_anc = prev_anc + 1
+            anc_x_index = prev_x_index + 1
 
             # draw the gates in this layer
             for node in layer:
@@ -753,9 +795,13 @@ class MatplotlibDrawer:
                 # add conditional
                 if op.condition:
                     cond_xy = [
-                        self._c_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset)
-                        for ii in self._clbit_dict
+                        self._c_anchors[ii].plot_coord(anc_x_index, layer_width, self._x_offset)
+                        for ii in self._clbits_dict
                     ]
+                    if self._clbits_dict:
+                        anc_x_index = max(
+                            anc_x_index, next(iter(self._c_anchors.items()))[1].get_x_index()
+                        )
                     self._condition(node, cond_xy)
 
                 # draw measure
@@ -785,7 +831,7 @@ class MatplotlibDrawer:
                 # only adjust if everything in the layer wasn't plotted
                 barrier_offset = -1 if all(nd.op._directive for nd in layer) else 0
 
-            prev_anc = this_anc + layer_width + barrier_offset - 1
+            prev_x_index = anc_x_index + layer_width + barrier_offset - 1
 
     def _get_colors(self, node):
         """Get all the colors needed for drawing the circuit"""
@@ -807,7 +853,7 @@ class MatplotlibDrawer:
                 gt = color[1]
         # Treat special case of classical gates in iqx style by making all
         # controlled gates of x, dcx, and swap the classical gate color
-        elif self._style["name"] == "iqx" and base_name in ["x", "dcx", "swap"]:
+        elif self._style["name"] in ["iqx", "iqx-dark"] and base_name in ["x", "dcx", "swap"]:
             color = self._style["dispcol"][base_name]
             if isinstance(color, str):
                 fc = color
@@ -836,59 +882,57 @@ class MatplotlibDrawer:
 
     def _condition(self, node, cond_xy):
         """Add a conditional to a gate"""
-        cond_is_bit = bool(isinstance(node.op.condition[0], Clbit))
-        mask = 0
-        qubit_b = min(self._data[node]["q_xy"], key=lambda xy: xy[1])
-        if cond_is_bit:
-            for index, cbit in enumerate(self._clbit):
-                if cbit == node.op.condition[0]:
-                    mask = 1 << index
-                    break
+        label, val_bits = get_condition_label_val(
+            node.op.condition, self._circuit, self._cregbundle, self._reverse_bits
+        )
+        cond_bit_reg = node.op.condition[0]
+        cond_bit_val = int(node.op.condition[1])
+
+        first_clbit = len(self._qubits)
+        cond_pos = []
+
+        # In the first case, multiple bits are indicated on the drawing. In all
+        # other cases, only one bit is shown.
+        if not self._cregbundle and isinstance(cond_bit_reg, ClassicalRegister):
+            for idx in range(cond_bit_reg.size):
+                rev_idx = cond_bit_reg.size - idx - 1 if self._reverse_bits else idx
+                cond_pos.append(cond_xy[self._wire_map[cond_bit_reg[rev_idx]] - first_clbit])
+
+        # If it's a register bit and cregbundle, need to use the register to find the location
+        elif self._cregbundle and isinstance(cond_bit_reg, Clbit):
+            register = get_bit_register(self._circuit, cond_bit_reg)
+            if register is not None:
+                cond_pos.append(cond_xy[self._wire_map[register] - first_clbit])
+            else:
+                cond_pos.append(cond_xy[self._wire_map[cond_bit_reg] - first_clbit])
         else:
-            for index, cbit in enumerate(self._clbit):
-                if self._bit_locations[cbit]["register"] == node.op.condition[0]:
-                    mask |= 1 << index
-        val = node.op.condition[1]
+            cond_pos.append(cond_xy[self._wire_map[cond_bit_reg] - first_clbit])
 
-        # cbit list to consider
-        fmt_c = f"{{:0{len(cond_xy)}b}}"
-        cmask = list(fmt_c.format(mask))[::-1]
-
-        # value
-        fmt_v = f"{{:0{cmask.count('1')}b}}"
-        vlist = list(fmt_v.format(val))
-        if not self._reverse_bits:
-            vlist = vlist[::-1]
-
-        # plot conditionals
-        v_ind = 0
         xy_plot = []
-        for xy, m in zip(cond_xy, cmask):
-            if m == "1":
-                if xy not in xy_plot:
-                    if vlist[v_ind] == "1" or self._cregbundle:
-                        fc = self._style["lc"]
-                    else:
-                        fc = self._style["bg"]
-                    box = self._patches_mod.Circle(
-                        xy=xy,
-                        radius=WID * 0.15,
-                        fc=fc,
-                        ec=self._style["lc"],
-                        linewidth=self._lwidth15,
-                        zorder=PORDER_GATE,
-                    )
-                    self._ax.add_patch(box)
-                    xy_plot.append(xy)
-                v_ind += 1
+        for idx, xy in enumerate(cond_pos):
+            if val_bits[idx] == "1" or (
+                isinstance(cond_bit_reg, ClassicalRegister)
+                and cond_bit_val != 0
+                and self._cregbundle
+            ):
+                fc = self._style["lc"]
+            else:
+                fc = self._style["bg"]
+            box = self._patches_mod.Circle(
+                xy=xy,
+                radius=WID * 0.15,
+                fc=fc,
+                ec=self._style["lc"],
+                linewidth=self._lwidth15,
+                zorder=PORDER_GATE,
+            )
+            self._ax.add_patch(box)
+            xy_plot.append(xy)
+        qubit_b = min(self._data[node]["q_xy"], key=lambda xy: xy[1])
         clbit_b = min(xy_plot, key=lambda xy: xy[1])
+
+        # display the label at the bottom of the lowest conditional and draw the double line
         xpos, ypos = clbit_b
-        if cond_is_bit and self._cregbundle:
-            cond_reg = self._bit_locations[node.op.condition[0]]["register"]
-            ctrl_bit = self._bit_locations[node.op.condition[0]]["index"]
-            label = "%s_%s=%s" % (cond_reg.name, ctrl_bit, hex(val))
-        else:
-            label = hex(val)
         if isinstance(node.op, Measure):
             xpos += 0.3
         self._ax.text(
@@ -908,7 +952,7 @@ class MatplotlibDrawer:
         """Draw the measure symbol and the line to the clbit"""
         qx, qy = self._data[node]["q_xy"][0]
         cx, cy = self._data[node]["c_xy"][0]
-        cid = self._clbit_dict[self._data[node]["c_indxs"][0]]["index"]
+        register, _, reg_index = get_bit_reg_index(self._circuit, node.cargs[0], self._reverse_bits)
 
         # draw gate box
         self._gate(node)
@@ -951,11 +995,11 @@ class MatplotlibDrawer:
         )
         self._ax.add_artist(arrowhead)
         # target
-        if self._cregbundle:
+        if self._cregbundle and register is not None:
             self._ax.text(
                 cx + 0.25,
                 cy + 0.1,
-                str(cid),
+                str(reg_index),
                 ha="left",
                 va="bottom",
                 fontsize=0.8 * self._fs,
@@ -1170,7 +1214,7 @@ class MatplotlibDrawer:
         """Determine which qubits are controls and whether they are open or closed"""
         # place the control label at the top or bottom of controls
         if text:
-            qlist = [self._bit_locations[qubit]["index"] for qubit in qargs]
+            qlist = [self._circuit.find_bit(qubit).index for qubit in qargs]
             ctbits = qlist[:num_ctrl_qubits]
             qubits = qlist[num_ctrl_qubits:]
             max_ctbit = max(ctbits)
@@ -1386,71 +1430,29 @@ class MatplotlibDrawer:
 class Anchor:
     """Locate the anchors for the gates"""
 
-    def __init__(self, reg_num, yind, fold):
-        self._yind = yind
+    def __init__(self, num_wires, y_index, fold):
+        self._num_wires = num_wires
         self._fold = fold
-        self._reg_num = reg_num
-        self._gate_placed = []
-        self.nxt_anchor_idx = 0
-        self.gate_anchor = 0
+        self._y_index = y_index
+        self._x_index = 0
 
-    def plot_coord(self, index, gate_width, x_offset):
-        """Set the coord positions for an index"""
-        h_pos = index % self._fold + 1
+    def plot_coord(self, x_index, gate_width, x_offset):
+        """Get the coord positions for an index"""
+        h_pos = x_index % self._fold + 1
         # check folding
         if self._fold > 0:
             if h_pos + (gate_width - 1) > self._fold:
-                index += self._fold - (h_pos - 1)
-            x_pos = index % self._fold + 0.5 * gate_width + 0.04
-            y_pos = self._yind - (index // self._fold) * (self._reg_num + 1)
+                x_index += self._fold - (h_pos - 1)
+            x_pos = x_index % self._fold + 0.5 * gate_width + 0.04
+            y_pos = self._y_index - (x_index // self._fold) * (self._num_wires + 1)
         else:
-            x_pos = index + 0.5 * gate_width + 0.04
-            y_pos = self._yind
+            x_pos = x_index + 0.5 * gate_width + 0.04
+            y_pos = self._y_index
 
         # could have been updated, so need to store
-        self.gate_anchor = index
+        self._x_index = x_index
         return x_pos + x_offset, y_pos
 
-    def set_index(self, index, layer_width):
-        """Set the index for a gate"""
-        if self._fold < 2:
-            _index = index
-        else:
-            h_pos = index % self._fold + 1
-            if h_pos + (layer_width - 1) > self._fold:
-                _index = index + self._fold - (h_pos - 1) + 1
-            else:
-                _index = index
-        for ii in range(layer_width):
-            idx = _index + ii
-            if idx not in self._gate_placed:
-                self._gate_placed.append(idx)
-                self.nxt_anchor_idx = idx + 1
-
-    def get_index(self):
-        """Getter for the index"""
-        if self._gate_placed:
-            return self._gate_placed[-1] + 1
-        return 0
-
-
-class HasMatplotlibWrapper:
-    """Wrapper to lazily import matplotlib."""
-
-    has_matplotlib = False
-
-    # pylint: disable=unused-import
-    def __bool__(self):
-        if not self.has_matplotlib:
-            try:
-                from matplotlib import get_backend
-                from matplotlib import patches
-                from matplotlib import pyplot as plt
-
-                self.has_matplotlib = True
-            except ImportError:
-                self.has_matplotlib = False
-        return self.has_matplotlib
-
-
-HAS_MATPLOTLIB = HasMatplotlibWrapper()
+    def get_x_index(self):
+        """Getter for the x index"""
+        return self._x_index

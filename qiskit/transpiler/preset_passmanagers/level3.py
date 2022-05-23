@@ -22,9 +22,8 @@ from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passmanager import StructuredPassManager
 
-from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import SetLayout
-from qiskit.transpiler.passes import CSPLayout
+from qiskit.transpiler.passes import VF2Layout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
@@ -35,6 +34,7 @@ from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler.passes import SabreSwap
 from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
+from qiskit.transpiler.passes import Size
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CommutativeCancellation
@@ -43,9 +43,9 @@ from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
-from qiskit.transpiler.passes import Layout2qDistance
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.preset_passmanagers import common
+from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 
 from qiskit.transpiler import TranspilerError
 
@@ -81,9 +81,9 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     inst_map = pass_manager_config.inst_map
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
-    layout_method = pass_manager_config.layout_method or "dense"
-    routing_method = pass_manager_config.routing_method or "stochastic"
-    translation_method = pass_manager_config.translation_method or "basis_translator"
+    layout_method = pass_manager_config.layout_method or "sabre"
+    routing_method = pass_manager_config.routing_method or "sabre"
+    translation_method = pass_manager_config.translation_method or "translator"
     scheduling_method = pass_manager_config.scheduling_method
     instruction_durations = pass_manager_config.instruction_durations
     seed_transpiler = pass_manager_config.seed_transpiler
@@ -91,6 +91,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     approximation_degree = pass_manager_config.approximation_degree
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
+    unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
+    target = pass_manager_config.target
 
     # Layout on good qubits if calibration info available, otherwise on dense links
     _given_layout = SetLayout(initial_layout)
@@ -99,55 +101,41 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         # layout hasn't been set yet
         return not property_set["layout"]
 
-    def _csp_not_found_match(property_set):
-        # If a layout hasn't been set by the time we run csp we need to run layout
+    def _vf2_match_not_found(property_set):
+        # If a layout hasn't been set by the time we run vf2 layout we need to
+        # run layout
         if property_set["layout"] is None:
             return True
-        # if CSP layout stopped for any reason other than solution found we need
-        # to run layout since CSP didn't converge.
+        # if VF2 layout stopped for any reason other than solution found we need
+        # to run layout since VF2 didn't converge.
         if (
-            property_set["CSPLayout_stop_reason"] is not None
-            and property_set["CSPLayout_stop_reason"] != "solution found"
+            property_set["VF2Layout_stop_reason"] is not None
+            and property_set["VF2Layout_stop_reason"] is not VF2LayoutStopReason.SOLUTION_FOUND
         ):
             return True
         return False
 
-    # 2a. If layout method is not set, first try a trivial layout
+    # 2a. If layout method is not set, first try VF2Layout
     _choose_layout_0 = (
         []
         if pass_manager_config.layout_method
-        else [
-            TrivialLayout(coupling_map),
-            Layout2qDistance(coupling_map, property_name="trivial_layout_score"),
-        ]
+        else VF2Layout(
+            coupling_map,
+            seed=seed_transpiler,
+            call_limit=int(3e7),  # Set call limit to ~60 sec with retworkx 0.10.2
+            properties=backend_properties,
+            target=target,
+        )
     )
-    # 2b. If trivial layout wasn't perfect (ie no swaps are needed) then try
-    # using CSP layout to find a perfect layout
-    _choose_layout_1 = (
-        []
-        if pass_manager_config.layout_method
-        else CSPLayout(coupling_map, call_limit=10000, time_limit=60, seed=seed_transpiler)
-    )
-
-    def _trivial_not_perfect(property_set):
-        # Verify that a trivial layout  is perfect. If trivial_layout_score > 0
-        # the layout is not perfect. The layout property set is unconditionally
-        # set by trivial layout so we clear that before running CSP
-        if property_set["trivial_layout_score"] is not None:
-            if property_set["trivial_layout_score"] != 0:
-                property_set["layout"]._wrapped = None
-                return True
-        return False
-
-    # 2c. if CSP didn't converge on a solution use layout_method (dense).
+    # 2b. if VF2 didn't converge on a solution use layout_method (dense).
     if layout_method == "trivial":
-        _choose_layout_2 = TrivialLayout(coupling_map)
+        _choose_layout_1 = TrivialLayout(coupling_map)
     elif layout_method == "dense":
-        _choose_layout_2 = DenseLayout(coupling_map, backend_properties)
+        _choose_layout_1 = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
-        _choose_layout_2 = NoiseAdaptiveLayout(backend_properties)
+        _choose_layout_1 = NoiseAdaptiveLayout(backend_properties)
     elif layout_method == "sabre":
-        _choose_layout_2 = SabreLayout(coupling_map, max_iterations=4, seed=seed_transpiler)
+        _choose_layout_1 = SabreLayout(coupling_map, max_iterations=4, seed=seed_transpiler)
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
 
@@ -171,68 +159,86 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     # 8. Optimize iteratively until no more change in depth. Removes useless gates
     # after reset and before measure, commutes gates and optimizes contiguous blocks.
     _depth_check = [Depth(), FixedPoint("depth")]
+    _size_check = [Size(), FixedPoint("size")]
 
     def _opt_control(property_set):
-        return not property_set["depth_fixed_point"]
+        return (not property_set["depth_fixed_point"]) or (not property_set["size_fixed_point"])
 
     _opt = [
         Collect2qBlocks(),
-        ConsolidateBlocks(basis_gates=basis_gates),
+        ConsolidateBlocks(basis_gates=basis_gates, target=target),
         UnitarySynthesis(
             basis_gates,
             approximation_degree=approximation_degree,
             coupling_map=coupling_map,
             backend_props=backend_properties,
             method=unitary_synthesis_method,
+            plugin_config=unitary_synthesis_plugin_config,
+            target=target,
         ),
         Optimize1qGatesDecomposition(basis_gates),
         CommutativeCancellation(),
     ]
 
     # Build pass manager
-    init = PassManager(
-        [
-            UnitarySynthesis(
-                basis_gates,
-                approximation_degree=approximation_degree,
-                coupling_map=coupling_map,
-                backend_props=backend_properties,
-                method=unitary_synthesis_method,
-                min_qubits=3,
-            ),
-            Unroll3qOrMore(),
-            RemoveResetInZeroState(),
-            OptimizeSwapBeforeMeasure(),
-            RemoveDiagonalGatesBeforeMeasure(),
-        ]
+    init = common.generate_unroll_3q(
+        target,
+        basis_gates,
+        approximation_degree,
+        unitary_synthesis_method,
+        unitary_synthesis_plugin_config,
     )
+    init.append(RemoveResetInZeroState())
+    init.append(OptimizeSwapBeforeMeasure())
+    init.append(RemoveDiagonalGatesBeforeMeasure())
     if coupling_map or initial_layout:
         layout = PassManager()
         layout.append(_given_layout)
         layout.append(_choose_layout_0, condition=_choose_layout_condition)
-        layout.append(_choose_layout_1, condition=_trivial_not_perfect)
-        layout.append(_choose_layout_2, condition=_csp_not_found_match)
+        layout.append(_choose_layout_1, condition=_vf2_match_not_found)
         layout += common.generate_embed_passmanager(coupling_map)
         routing = common.generate_routing_passmanager(
             routing_pass,
-            coupling_map,
-            basis_gates,
-            approximation_degree,
-            backend_properties,
-            unitary_synthesis_method,
+            target,
+            coupling_map=coupling_map,
+            vf2_call_limit=int(3e7),  # Set call limit to ~60 sec with retworkx 0.10.2
         )
     else:
         layout = None
         routing = None
     translation = common.generate_translation_passmanager(
-        basis_gates, translation_method, approximation_degree, coupling_map, backend_properties
+        target,
+        basis_gates,
+        translation_method,
+        approximation_degree,
+        coupling_map,
+        backend_properties,
+        unitary_synthesis_method,
+        unitary_synthesis_plugin_config,
     )
-    if coupling_map and not coupling_map.is_symmetric:
-        pre_optimization = common.generate_pre_op_passmanager(coupling_map, True)
-    else:
-        pre_optimization = common.generate_pre_op_passmanager(remove_reset_in_zero=True)
     optimization = PassManager()
     unroll = [pass_ for x in translation.passes() for pass_ in x["passes"]]
+    optimization.append(_depth_check + _size_check)
+    if coupling_map and not coupling_map.is_symmetric:
+        pre_optimization = common.generate_pre_op_passmanager(target, coupling_map, True)
+        _direction = [
+            pass_
+            for x in common.generate_pre_op_passmanager(target, coupling_map)
+            for pass_ in x["passes"]
+        ]
+        # For transpiling to a target we need to run GateDirection in the
+        # optimization loop to correct for incorrect directions that might be
+        # inserted by UnitarySynthesis which is direction aware but only via
+        # the coupling map which with a target doesn't give a full picture
+        if target is not None:
+            optimization.append(
+                _opt + unroll + _depth_check + _size_check + _direction, do_while=_opt_control
+            )
+        else:
+            optimization.append(_opt + unroll + _depth_check + _size_check, do_while=_opt_control)
+    else:
+        pre_optimization = common.generate_pre_op_passmanager(remove_reset_in_zero=True)
+        optimization.append(_opt + unroll + _depth_check + _size_check, do_while=_opt_control)
     opt_loop = _depth_check + _opt + unroll
     optimization.append(opt_loop, do_while=_opt_control)
     sched = common.generate_scheduling(

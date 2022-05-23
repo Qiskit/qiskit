@@ -17,23 +17,11 @@ from enum import Enum
 from abc import abstractmethod
 import logging
 import numpy as np
-from qiskit.exceptions import MissingOptionalLibraryError
+
+from qiskit.utils import optionals as _optionals
 from ..optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
 logger = logging.getLogger(__name__)
-
-try:
-    import nlopt
-
-    logger.info(
-        "NLopt version: %s.%s.%s",
-        nlopt.version_major(),
-        nlopt.version_minor(),
-        nlopt.version_bugfix(),
-    )
-    _HAS_NLOPT = True
-except ImportError:
-    _HAS_NLOPT = False
 
 
 class NLoptOptimizerType(Enum):
@@ -46,10 +34,13 @@ class NLoptOptimizerType(Enum):
     GN_ISRES = 5
 
 
+@_optionals.HAS_NLOPT.require_in_instance
 class NLoptOptimizer(Optimizer):
     """
     NLopt global optimizer base class
     """
+
+    # pylint: disable=import-error
 
     _OPTIONS = ["max_evals"]
 
@@ -61,14 +52,7 @@ class NLoptOptimizer(Optimizer):
         Raises:
             MissingOptionalLibraryError: NLopt library not installed.
         """
-        if not _HAS_NLOPT:
-            raise MissingOptionalLibraryError(
-                libname="nlopt",
-                name="NLoptOptimizer",
-                msg="See https://qiskit.org/documentation/apidoc/"
-                "qiskit.algorithms.optimizers.nlopts.html"
-                " for installation information",
-            )
+        import nlopt
 
         super().__init__()
         for k, v in list(locals().items()):
@@ -123,6 +107,8 @@ class NLoptOptimizer(Optimizer):
         jac: Optional[Callable[[POINT], POINT]] = None,
         bounds: Optional[List[Tuple[float, float]]] = None,
     ) -> OptimizerResult:
+        import nlopt
+
         x0 = np.asarray(x0)
 
         if bounds is None:

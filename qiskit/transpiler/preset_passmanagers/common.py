@@ -29,17 +29,60 @@ from qiskit.transpiler.passes import GateDirection
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.passes import CheckGateDirection
 from qiskit.transpiler.passes import TimeUnitConversion
-from qiskit.transpiler.passes import ALAPSchedule
-from qiskit.transpiler.passes import ASAPSchedule
+from qiskit.transpiler.passes import ALAPScheduleAnalysis
+from qiskit.transpiler.passes import ASAPScheduleAnalysis
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import ValidatePulseGates
-from qiskit.transpiler.passes import AlignMeasures
+from qiskit.transpiler.passes import PadDelay
+from qiskit.transpiler.passes import InstructionDurationCheck
+from qiskit.transpiler.passes import ConstrainedReschedule
 from qiskit.transpiler.passes import PulseGates
 from qiskit.transpiler.passes import ContainsInstruction
+from qiskit.transpiler.passes import VF2PostLayout
+from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
+from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
 from qiskit.transpiler.exceptions import TranspilerError
+
+
+def generate_unroll_3q(
+    target,
+    basis_gates=None,
+    approximation_degree=None,
+    unitary_synthesis_method="default",
+    unitary_synthesis_plugin_config=None,
+):
+    """Generate an unroll >3q :class:`~qiskit.transpiler.PassManager`
+
+    Args:
+        target (Target): the :class:`~.Target` object representing the backend
+        basis_gates (list): A list of str gate names that represent the basis
+            gates on the backend target
+        approximation_degree (float): The heuristic approximation degree to
+            use. Can be between 0 and 1.
+        unitary_synthesis_method (str): The unitary synthesis method to use
+        unitary_synthesis_plugin_config (dict): The optional dictionary plugin
+            configuration, this is plugin specific refer to the specified plugin's
+            documenation for how to use.
+
+    Returns:
+        PassManager: The unroll 3q or more pass manager
+    """
+    unroll_3q = PassManager()
+    unroll_3q.append(
+        UnitarySynthesis(
+            basis_gates,
+            approximation_degree=approximation_degree,
+            plugin_config=unitary_synthesis_plugin_config,
+            method=unitary_synthesis_method,
+            min_qubits=3,
+            target=target,
+        )
+    )
+    unroll_3q.append(Unroll3qOrMore(target=target, basis_gates=basis_gates))
+    return unroll_3q
 
 
 def generate_embed_passmanager(coupling_map):
@@ -58,60 +101,99 @@ def generate_embed_passmanager(coupling_map):
     return PassManager([FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()])
 
 
+def _trivial_not_perfect(property_set):
+    # Verify that a trivial layout is perfect. If trivial_layout_score > 0
+    # the layout is not perfect. The layout is unconditionally set by trivial
+    # layout so we need to clear it before contuing.
+    if (
+        property_set["trivial_layout_score"] is not None
+        and property_set["trivial_layout_score"] != 0
+    ):
+        return True
+    return False
+
+
+def _run_post_layout_condition(property_set):
+    # Optimization level 1 tries trivial first so embed check that we're not
+    # using a perfect trivial layout.
+    if _trivial_not_perfect(property_set):
+        vf2_stop_reason = property_set["VF2Layout_stop_reason"]
+        if vf2_stop_reason is not None and vf2_stop_reason == VF2LayoutStopReason.SOLUTION_FOUND:
+            return False
+    return True
+
+
+def _apply_post_layout_condition(property_set):
+    # if VF2 Post layout found a solution we need to re-apply the better
+    # layout. Otherwise we can skip apply layout.
+    if (
+        property_set["VF2PostLayout_stop_reason"] is not None
+        and property_set["VF2PostLayout_stop_reason"] is VF2PostLayoutStopReason.SOLUTION_FOUND
+    ):
+        return True
+    return False
+
+
 def generate_routing_passmanager(
     routing_pass,
-    coupling_map,
-    basis_gates,
-    approximation_degree,
-    backend_properties,
-    unitary_synthesis_method="default",
+    target,
+    coupling_map=None,
+    vf2_call_limit=None,
+    backend_properties=None,
+    seed_transpiler=None,
 ):
     """Generate a routing :class:`~qiskit.transpiler.PassManager`
 
     Args:
         routing_pass (TransformationPass): The pass which will perform the
             routing
+        target (Target): the :class:`~.Target` object representing the backend
         coupling_map (CouplingMap): The coupling map of the backend to route
             for
-        basis_gates (list): A list of str gate names that represent the basis
-            gates on the backend target
-        approximation_degree (float): The heuristic approximation degree to
-            use. Can be between 0 and 1.
+        vf2_call_limit (int): The internal call limit for the vf2 post layout
+            pass. If this is ``None`` the vf2 post layout will not be run.
         backend_properties (BackendProperties): Properties of a backend to
             synthesize for (e.g. gate fidelities).
-        unitary_synthesis_method (str): The unitary synthesis method to use
+        seed_transpiler (int): Sets random seed for the stochastic parts of
+            the transpiler.
+
 
     Returns:
         PassManager: The routing pass manager
     """
     routing = PassManager()
-    routing.append(
-        UnitarySynthesis(
-            basis_gates,
-            approximation_degree=approximation_degree,
-            coupling_map=coupling_map,
-            backend_props=backend_properties,
-            method=unitary_synthesis_method,
-            min_qubits=3,
-        )
-    )
-    routing.append(Unroll3qOrMore())
     routing.append(CheckMap(coupling_map))
 
     def _swap_condition(property_set):
         return not property_set["is_swap_mapped"]
 
     routing.append([BarrierBeforeFinalMeasurements(), routing_pass], condition=_swap_condition)
+
+    if vf2_call_limit is not None:
+        routing.append(
+            VF2PostLayout(
+                target,
+                coupling_map,
+                backend_properties,
+                seed_transpiler,
+                call_limit=vf2_call_limit,
+                strict_direction=False,
+            ),
+            condition=_run_post_layout_condition,
+        )
+        routing.append(ApplyLayout(), condition=_apply_post_layout_condition)
+
     return routing
 
 
-def generate_pre_op_passmanager(coupling_map=None, remove_reset_in_zero=False):
+def generate_pre_op_passmanager(target=None, coupling_map=None, remove_reset_in_zero=False):
     """Generate a pre-optimization loop :class:`~qiskit.transpiler.PassManager`
 
     This pass manager will check to ensure that directionality from the coupling
     map is respected
 
     Args:
+        target (Target): the :class:`~.Target` object representing the backend
         coupling_map (CouplingMap): The coupling map to use
         remove_reset_in_zero (bool): If ``True`` include the remove reset in
             zero pass in the generated PassManager
@@ -121,28 +203,31 @@ def generate_pre_op_passmanager(coupling_map=None, remove_reset_in_zero=False):
     """
     pre_opt = PassManager()
     if coupling_map:
-        pre_opt.append(CheckGateDirection(coupling_map))
+        pre_opt.append(CheckGateDirection(coupling_map, target=target))
 
         def _direction_condition(property_set):
             return not property_set["is_direction_mapped"]
 
-        pre_opt.append([GateDirection(coupling_map)], condition=_direction_condition)
+        pre_opt.append([GateDirection(coupling_map, target=target)], condition=_direction_condition)
     if remove_reset_in_zero:
         pre_opt.append(RemoveResetInZeroState())
     return pre_opt
 
 
 def generate_translation_passmanager(
-    basis_gates,
+    target,
+    basis_gates=None,
     method="basis_translator",
     approximation_degree=None,
     coupling_map=None,
     backend_props=None,
     unitary_synthesis_method="default",
+    unitary_synthesis_plugin_config=None,
 ):
     """Generate a basis translation :class:`~qiskit.transpiler.PassManager`
 
     Args:
+        target (Target): the :class:`~.Target` object representing the backend
         basis_gates (list): A list of str gate names that represent the basis
             gates on the backend target
         method (str): The basis translation method to use
@@ -153,6 +238,9 @@ def generate_translation_passmanager(
             directionality of the coupling_map will be taken into
             account if pulse_optimize is True/None and natural_direction
             is True/None.
+        unitary_synthesis_plugin_config (dict): The optional dictionary plugin
+            configuration, this is plugin specific refer to the specified plugin's
+            documenation for how to use.
         backend_props (BackendProperties): Properties of a backend to
             synthesize for (e.g. gate fidelities).
         unitary_synthesis_method (str): The unitary synthesis method to use
@@ -174,10 +262,12 @@ def generate_translation_passmanager(
                 approximation_degree=approximation_degree,
                 coupling_map=coupling_map,
                 backend_props=backend_props,
+                plugin_config=unitary_synthesis_plugin_config,
                 method=unitary_synthesis_method,
+                target=target,
             ),
             UnrollCustomDefinitions(sel, basis_gates),
-            BasisTranslator(sel, basis_gates),
+            BasisTranslator(sel, basis_gates, target),
         ]
     elif method == "synthesis":
         unroll = [
@@ -188,18 +278,22 @@ def generate_translation_passmanager(
                 approximation_degree=approximation_degree,
                 coupling_map=coupling_map,
                 backend_props=backend_props,
+                plugin_config=unitary_synthesis_plugin_config,
                 method=unitary_synthesis_method,
                 min_qubits=3,
+                target=target,
             ),
-            Unroll3qOrMore(),
+            Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
-            ConsolidateBlocks(basis_gates=basis_gates),
+            ConsolidateBlocks(basis_gates=basis_gates, target=target),
             UnitarySynthesis(
-                basis_gates,
+                basis_gates=basis_gates,
                 approximation_degree=approximation_degree,
                 coupling_map=coupling_map,
                 backend_props=backend_props,
+                plugin_config=unitary_synthesis_plugin_config,
                 method=unitary_synthesis_method,
+                target=target,
             ),
         ]
     else:
@@ -224,42 +318,61 @@ def generate_scheduling(instruction_durations, scheduling_method, timing_constra
     Raises:
         TranspilerError: If the ``scheduling_method`` kwarg is not a valid value
     """
-    _time_unit_setup = [ContainsInstruction("delay")]
-    _time_unit_conversion = [TimeUnitConversion(instruction_durations)]
-
-    def _contains_delay(property_set):
-        return property_set["contains_delay"]
-
     scheduling = PassManager()
-    _scheduling = []
     if inst_map and inst_map.has_custom_gate():
         scheduling.append(PulseGates(inst_map=inst_map))
     if scheduling_method:
-        _scheduling += _time_unit_conversion
-        if scheduling_method in {"alap", "as_late_as_possible"}:
-            _scheduling += [ALAPSchedule(instruction_durations)]
-        elif scheduling_method in {"asap", "as_soon_as_possible"}:
-            _scheduling += [ASAPSchedule(instruction_durations)]
-        else:
-            raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
-        scheduling.append(_scheduling)
-    if instruction_durations:
-        scheduling.append(_time_unit_setup)
-        scheduling.append(_time_unit_conversion, condition=_contains_delay)
+        # Do scheduling after unit conversion.
+        scheduler = {
+            "alap": ALAPScheduleAnalysis,
+            "as_late_as_possible": ALAPScheduleAnalysis,
+            "asap": ASAPScheduleAnalysis,
+            "as_soon_as_possible": ASAPScheduleAnalysis,
+        }
+        scheduling.append(TimeUnitConversion(instruction_durations))
+        try:
+            scheduling.append(scheduler[scheduling_method](instruction_durations))
+        except KeyError as ex:
+            raise TranspilerError("Invalid scheduling method %s." % scheduling_method) from ex
+    elif instruction_durations:
+        # No scheduling. But do unit conversion for delays.
+        def _contains_delay(property_set):
+            return property_set["contains_delay"]
 
-    # Call measure alignment. Should come after scheduling.
+        scheduling.append(ContainsInstruction("delay"))
+        scheduling.append(TimeUnitConversion(instruction_durations), condition=_contains_delay)
     if (
         timing_constraints.granularity != 1
         or timing_constraints.min_length != 1
         or timing_constraints.acquire_alignment != 1
+        or timing_constraints.pulse_alignment != 1
     ):
-        _alignments = [
-            ValidatePulseGates(
-                granularity=timing_constraints.granularity, min_length=timing_constraints.min_length
+        # Run alignment analysis regardless of scheduling.
+
+        def _require_alignment(property_set):
+            return property_set["reschedule_required"]
+
+        scheduling.append(
+            InstructionDurationCheck(
+                acquire_alignment=timing_constraints.acquire_alignment,
+                pulse_alignment=timing_constraints.pulse_alignment,
+            )
+        )
+        scheduling.append(
+            ConstrainedReschedule(
+                acquire_alignment=timing_constraints.acquire_alignment,
+                pulse_alignment=timing_constraints.pulse_alignment,
             ),
-            AlignMeasures(alignment=timing_constraints.acquire_alignment),
-        ]
-    else:
-        _alignments = []
-    scheduling.append(_alignments)
+            condition=_require_alignment,
+        )
+        scheduling.append(
+            ValidatePulseGates(
+                granularity=timing_constraints.granularity,
+                min_length=timing_constraints.min_length,
+            )
+        )
+    if scheduling_method:
+        # Call padding pass if circuit is scheduled
+        scheduling.append(PadDelay())
+
     return scheduling

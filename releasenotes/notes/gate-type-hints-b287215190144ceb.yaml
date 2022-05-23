@@ -1,5 +1,0 @@
----
-upgrade:
-  - |
-    Type hints are now included for all standard gates, and the gate methods in
-    :obj:`.QuantumCircuit`.

@@ -71,6 +71,8 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StructuredPa
     approximation_degree = pass_manager_config.approximation_degree
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
+    unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
+    target = pass_manager_config.target
 
     # Choose an initial layout if not set by user (default: trivial layout)
     _given_layout = SetLayout(initial_layout)
@@ -81,7 +83,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StructuredPa
     if layout_method == "trivial":
         _choose_layout = TrivialLayout(coupling_map)
     elif layout_method == "dense":
-        _choose_layout = DenseLayout(coupling_map, backend_properties)
+        _choose_layout = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
         _choose_layout = NoiseAdaptiveLayout(backend_properties)
     elif layout_method == "sabre":
@@ -115,27 +117,40 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StructuredPa
         layout += common.generate_embed_passmanager(coupling_map)
         routing = common.generate_routing_passmanager(
             routing_pass,
-            coupling_map,
-            basis_gates,
-            approximation_degree,
-            backend_properties,
-            unitary_synthesis_method,
+            target,
+            coupling_map=coupling_map,
         )
     else:
         layout = None
         routing = None
     translation = common.generate_translation_passmanager(
-        basis_gates, translation_method, approximation_degree
+        target,
+        basis_gates,
+        translation_method,
+        approximation_degree,
+        coupling_map,
+        backend_properties,
+        unitary_synthesis_method,
+        unitary_synthesis_plugin_config,
     )
     if coupling_map and not coupling_map.is_symmetric:
-        pre_opt = common.generate_pre_op_passmanager(coupling_map)
+        pre_opt = common.generate_pre_op_passmanager(target, coupling_map)
         pre_opt += translation
     else:
         pre_opt = None
     sched = common.generate_scheduling(
         instruction_durations, scheduling_method, timing_constraints, inst_map
     )
+    unroll_3q = common.generate_unroll_3q(
+        target,
+        basis_gates,
+        approximation_degree,
+        unitary_synthesis_method,
+        unitary_synthesis_plugin_config,
+    )
+
     return StructuredPassManager(
+        init=unroll_3q,
         layout=layout,
         routing=routing,
         translation=translation,

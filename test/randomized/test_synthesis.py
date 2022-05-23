@@ -31,7 +31,7 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (
 class TestSynthesis(CheckDecompositions):
     """Test synthesis"""
 
-    seed = strategies.integers(min_value=0, max_value=2 ** 32 - 1)
+    seed = strategies.integers(min_value=0, max_value=2**32 - 1)
     rotation = strategies.floats(min_value=-np.pi * 10, max_value=np.pi * 10)
 
     @given(seed)

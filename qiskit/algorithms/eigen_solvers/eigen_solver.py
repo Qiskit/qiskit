@@ -13,15 +13,13 @@
 """The Eigensolver interface"""
 
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, List, Union, TypeVar
+from typing import Optional, List, Tuple
 
 import numpy as np
+
 from qiskit.opflow import OperatorBase
 from ..algorithm_result import AlgorithmResult
-
-# Introduced new type to maintain readability.
-_T = TypeVar("_T")  # Pylint does not allow single character class names.
-ListOrDict = Union[List[Optional[_T]], Dict[str, _T]]
+from ..list_or_dict import ListOrDict
 
 
 class Eigensolver(ABC):
@@ -94,11 +92,14 @@ class EigensolverResult(AlgorithmResult):
         self._eigenstates = value
 
     @property
-    def aux_operator_eigenvalues(self) -> Optional[List[ListOrDict[complex]]]:
-        """return aux operator eigen values"""
+    def aux_operator_eigenvalues(self) -> Optional[List[ListOrDict[Tuple[complex, complex]]]]:
+        """Return aux operator expectation values.
+
+        These values are in fact tuples formatted as (mean, standard deviation).
+        """
         return self._aux_operator_eigenvalues
 
     @aux_operator_eigenvalues.setter
-    def aux_operator_eigenvalues(self, value: List[ListOrDict[complex]]) -> None:
+    def aux_operator_eigenvalues(self, value: List[ListOrDict[Tuple[complex, complex]]]) -> None:
         """set aux operator eigen values"""
         self._aux_operator_eigenvalues = value

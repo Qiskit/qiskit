@@ -22,7 +22,6 @@ from qiskit.circuit import Instruction as CircuitInst
 from qiskit.circuit.library.standard_gates import RZXGate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.providers import basebackend
 from qiskit.pulse import (
     Play,
     Delay,
@@ -74,8 +73,9 @@ class CalibrationBuilder(TransformationPass):
         Returns:
             A DAG with calibrations added to it.
         """
+        qubit_map = {qubit: i for i, qubit in enumerate(dag.qubits)}
         for node in dag.gate_nodes():
-            qubits = list(dag.qubits.index(q) for q in node.qargs)
+            qubits = [qubit_map[q] for q in node.qargs]
 
             if self.supported(node.op, qubits) and not dag.has_calibration_for(node):
                 # calibration can be provided and no user-defined calibration is already provided
@@ -102,26 +102,29 @@ class RZXCalibrationBuilder(CalibrationBuilder):
     angle. Additional details can be found in https://arxiv.org/abs/2012.11660.
     """
 
-    def __init__(self, backend: basebackend):
+    def __init__(
+        self,
+        instruction_schedule_map: InstructionScheduleMap = None,
+        qubit_channel_mapping: List[List[str]] = None,
+    ):
         """
         Initializes a RZXGate calibration builder.
 
         Args:
-            backend: Backend for which to construct the gates.
+            instruction_schedule_map: The :obj:`InstructionScheduleMap` object representing the
+                default pulse calibrations for the target backend
+            qubit_channel_mapping: The list mapping qubit indices to the list of
+                channel names that apply on that qubit.
 
         Raises:
             QiskitError: if open pulse is not supported by the backend.
         """
         super().__init__()
-        if not backend.configuration().open_pulse:
-            raise QiskitError(
-                "Calibrations can only be added to Pulse-enabled backends, "
-                "but {} is not enabled with Pulse.".format(backend.name())
-            )
+        if instruction_schedule_map is None or qubit_channel_mapping is None:
+            raise QiskitError("Calibrations can only be added to Pulse-enabled backends")
 
-        self._inst_map = backend.defaults().instruction_schedule_map
-        self._config = backend.configuration()
-        self._channel_map = backend.configuration().qubit_channel_mapping
+        self._inst_map = instruction_schedule_map
+        self._channel_map = qubit_channel_mapping
 
     def supported(self, node_op: CircuitInst, qubits: List) -> bool:
         """Determine if a given node supports the calibration.
@@ -150,7 +153,13 @@ class RZXCalibrationBuilder(CalibrationBuilder):
 
         Raises:
             QiskitError: if the pulses are not GaussianSquare.
+            QiskitError: if rotation angle is not assigned.
         """
+        try:
+            theta = float(theta)
+        except TypeError as ex:
+            raise QiskitError("Target rotation angle is not assigned.") from ex
+
         pulse_ = instruction.pulse
         if isinstance(pulse_, GaussianSquare):
             amp = pulse_.amp
@@ -163,18 +172,18 @@ class RZXCalibrationBuilder(CalibrationBuilder):
             area = gaussian_area + abs(amp) * width
 
             target_area = abs(theta) / (np.pi / 2.0) * area
-            sign = theta / abs(theta)
+            sign = np.sign(theta)
 
             if target_area > gaussian_area:
                 width = (target_area - gaussian_area) / abs(amp)
-                duration = math.ceil((width + n_sigmas * sigma) / sample_mult) * sample_mult
+                duration = round((width + n_sigmas * sigma) / sample_mult) * sample_mult
                 return Play(
                     GaussianSquare(amp=sign * amp, width=width, sigma=sigma, duration=duration),
                     channel=instruction.channel,
                 )
             else:
                 amp_scale = sign * target_area / gaussian_area
-                duration = math.ceil(n_sigmas * sigma / sample_mult) * sample_mult
+                duration = round(n_sigmas * sigma / sample_mult) * sample_mult
                 return Play(
                     GaussianSquare(amp=amp * amp_scale, width=0, sigma=sigma, duration=duration),
                     channel=instruction.channel,

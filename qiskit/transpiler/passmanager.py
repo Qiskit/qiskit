@@ -16,7 +16,6 @@ from typing import Union, List, Callable, Dict, Any
 
 import dill
 
-from qiskit.visualization import pass_manager_drawer
 from qiskit.tools.parallel import parallel_map
 from qiskit.circuit import QuantumCircuit
 from .basepasses import BasePass
@@ -167,8 +166,13 @@ class PassManager:
         if isinstance(passes, BasePass):
             passes = [passes]
         for pass_ in passes:
-            if not isinstance(pass_, BasePass):
-                raise TranspilerError("%s is not a pass instance" % pass_.__class__)
+            if isinstance(pass_, FlowController):
+                # Normalize passes in nested FlowController
+                PassManager._normalize_passes(pass_.passes)
+            elif not isinstance(pass_, BasePass):
+                raise TranspilerError(
+                    "%s is not a BasePass or FlowController instance " % pass_.__class__
+                )
         return passes
 
     def run(
@@ -212,12 +216,13 @@ class PassManager:
         Returns:
             The transformed circuit(s).
         """
+        if not self._pass_sets and output_name is None and callback is None:
+            return circuits
         if isinstance(circuits, QuantumCircuit):
             return self._run_single_circuit(circuits, output_name, callback)
-        elif len(circuits) == 1:
+        if len(circuits) == 1:
             return self._run_single_circuit(circuits[0], output_name, callback)
-        else:
-            return self._run_several_circuits(circuits, output_name, callback)
+        return self._run_several_circuits(circuits, output_name, callback)
 
     def _create_running_passmanager(self) -> RunningPassManager:
         running_passmanager = RunningPassManager(self.max_iteration)
@@ -295,6 +300,8 @@ class PassManager:
         Raises:
             ImportError: when nxpd or pydot not installed.
         """
+        from qiskit.visualization import pass_manager_drawer
+
         return pass_manager_drawer(self, filename=filename, style=style, raw=raw)
 
     def passes(self) -> List[Dict[str, BasePass]]:

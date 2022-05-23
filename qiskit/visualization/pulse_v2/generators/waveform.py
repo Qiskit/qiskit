@@ -186,7 +186,7 @@ def gen_ibmq_latex_waveform_name(
                 angle_val = match_dict["angle"]
                 frac = Fraction(int(int(angle_val) / 2), 180)
                 if frac.numerator == 1:
-                    angle = fr"\pi/{frac.denominator:d}"
+                    angle = rf"\pi/{frac.denominator:d}"
                 else:
                     angle = r"{num:d}/{denom:d} \pi".format(
                         num=frac.numerator, denom=frac.denominator
@@ -200,12 +200,12 @@ def gen_ibmq_latex_waveform_name(
                 else:
                     frac = Fraction(int(angle_val), 180)
                     if frac.numerator == 1:
-                        angle = fr"\pi/{frac.denominator:d}"
+                        angle = rf"\pi/{frac.denominator:d}"
                     else:
                         angle = r"{num:d}/{denom:d} \pi".format(
                             num=frac.numerator, denom=frac.denominator
                         )
-            latex_name = fr"{op_name}({sign}{angle})"
+            latex_name = rf"{op_name}({sign}{angle})"
         else:
             latex_name = None
 
@@ -544,7 +544,7 @@ def _parse_waveform(
     """
     inst = data.inst
 
-    meta = dict()
+    meta = {}
     if isinstance(inst, instructions.Play):
         # pulse
         operand = inst.pulse
