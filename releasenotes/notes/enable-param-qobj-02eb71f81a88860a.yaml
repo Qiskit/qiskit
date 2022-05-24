@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Previously, any value passed to the parameter `param_qobj` of the constructor of
+    :class:`~.CircuitSampler` was ignored due to a bug in Qiskit Aer:
+    https://github.com/Qiskit/qiskit-aer/issues/1249. Now this parameter is enabled back and can be
+    used to parameterized Qobj.
