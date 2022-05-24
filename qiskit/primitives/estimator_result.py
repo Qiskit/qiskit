@@ -32,13 +32,16 @@ class EstimatorResult:
 
     where the i-th elements of ``result`` correspond to the circuit and observable given by
     ``circuit_indices[i]``, ``observable_indices[i]``, and the parameter values bounds by ``params[i]``.
-    For example, ``results.values[i]`` gives the expectation value, and ``result.metadata[i]``
-    is a metadata dictionary for this circuit and parameters.
+    For example, ``results.expvals[i]`` gives the expectation value, ``results.variances[i]``
+    the variance, and ``result.metadata[i]`` is a metadata dictionary for this circuit and
+    parameters.
 
     Args:
-        values (np.ndarray): The array of the expectation values.
-        metadata (list[dict]): List of the metadata.
+        expvals (tuple[float, ...]): Tuple of expectation values.
+        variances (tuple[float, ...]): Tuple of variances associated to each expectation value.
+        metadata (tuple[dict, ...]): Tuple of metadata.
     """
 
-    values: "np.ndarray[Any, np.dtype[np.float64]]"
-    metadata: list[dict[str, Any]]
+    expvals: tuple[float, ...]
+    variances: tuple[float, ...]
+    metadata: tuple[dict[str, Any], ...]
