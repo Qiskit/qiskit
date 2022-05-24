@@ -17,9 +17,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
+from warnings import warn
 
-if TYPE_CHECKING:
-    import numpy as np
+from numpy import array
 
 
 @dataclass(frozen=True)
@@ -45,3 +45,12 @@ class EstimatorResult:
     expvals: tuple[float, ...]
     variances: tuple[float, ...]
     metadata: tuple[dict[str, Any], ...]
+
+    @property
+    def values(self) -> None:
+        warn(
+            "``EstimatorResult.values`` will be deprecated,"
+            "use ``EstimatorResult.expvals`` instead.",
+            DeprecationWarning,
+        )
+        return array(self.expvals)
