@@ -248,6 +248,13 @@ class BaseSampler(ABC):
                 f"the number of parameter value sets ({len(parameter_values)})."
             )
 
+        for i, value in zip(circuits, parameter_values):
+            if len(value) != len(self._parameters[i]):
+                raise QiskitError(
+                    f"The number of values ({len(value)}) does not match "
+                    f"the number of parameters ({len(self._parameters[i])}) for the {i}-th circuit."
+                )
+
         return self._call(
             circuits=circuits,
             parameter_values=parameter_values,
