@@ -76,7 +76,8 @@ class TestUMDA(QiskitAlgorithmsTestCase):
             assert umda.evaluations[i] >= umda.evaluations[i - 1]
 
     def test_update_vector(self):
-        """Test if the vector of statistics is being updated correctly during runtime given the generation."""
+        """Test if the vector of statistics is being updated correctly during runtime
+        given the generation."""
         umda = UMDA(maxiter=100, size_gen=20, n_variables=4)
 
         generation = np.array([[1, 1, 1, 1],

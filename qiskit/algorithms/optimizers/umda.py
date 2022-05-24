@@ -33,7 +33,7 @@ class UMDA(SciPyOptimizer):
             This code and analysis where obtained from EDAspy Python package [2].
 
         EDAs are stochastic search algorithms and belongs to the family of the evolutionary algorithms.
-        The main difference is that EDAs have a probabilitic model which is updated in each iteration
+        The main difference is that EDAs have a probabilistic model which is updated in each iteration
         from the best individuals of previous generations (elite selection). Depending on the complexity
         of the probabilistic model, EDAs can be classified in a different way. In this case, UMDA is a
         univariate EDA as the embedded probabilistic model is univariate.
@@ -151,7 +151,7 @@ class UMDA(SciPyOptimizer):
                  alpha: float = 0.5,
                  disp: bool = False
                  ) -> None:
-        """
+        r"""
         Args:
             maxiter: Maximum number of function evaluations.
             size_gen: Population size of each generation.
