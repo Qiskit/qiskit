@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 from warnings import warn
 
-from numpy import array
+from numpy import array, ndarray
 
 
 @dataclass(frozen=True)
@@ -47,7 +47,7 @@ class EstimatorResult:
     metadata: tuple[dict[str, Any], ...]
 
     @property
-    def values(self) -> None:
+    def values(self) -> ndarray:
         warn(
             "``EstimatorResult.values`` will be deprecated,"
             "use ``EstimatorResult.expvals`` instead.",
