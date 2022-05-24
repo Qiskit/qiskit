@@ -21,11 +21,18 @@ from typing import Sized
 class BaseResult(ABC):
     """Primitive result abstract base class.
 
-    Base class for Primitive results meant to provide common functionality to all inheriting result dataclasses.
+    Base class for Primitive results meant to provide common functionality to all inheriting
+    result dataclasses.
     """
 
     def __post_init__(self) -> None:
-        """Verify that all fields in any inheriting result dataclass are consistent, after instantiation, with the number of experiments being represented."""
+        """
+        Verify that all fields in any inheriting result dataclass are consistent, after
+        instantiation, with the number of experiments being represented.
+
+        This magic method is especific of `dataclasses.dataclass`, therefore all inheriting
+        classes must have this decorator.
+        """
         for val in self._field_values:  # type: Sized
             if len(val) != self.num_experiments:
                 raise ValueError("Inconsistent number of experiments across data fields.")
