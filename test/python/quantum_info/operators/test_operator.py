@@ -635,6 +635,7 @@ class TestOperator(OperatorTestCase):
         op = Operator(mat)
         self.assertEqual(op._multiply(val), Operator(val * mat))
         self.assertEqual(val * op, Operator(val * mat))
+        self.assertEqual(op * val, Operator(mat * val))
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""

@@ -647,6 +647,8 @@ class TestSuperOp(ChannelTestCase):
         targ = SuperOp(val * self.sopI)
         self.assertEqual(chan._multiply(val), targ)
         self.assertEqual(val * chan, targ)
+        targ = SuperOp(self.sopI * val)
+        self.assertEqual(chan * val, targ)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""

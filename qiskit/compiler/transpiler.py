@@ -95,12 +95,14 @@ def transpile(
             the custom gate definition to the circuit. This enables one to flexibly
             override the low-level instruction implementation. This feature is available
             iff the backend supports the pulse gate experiment.
-        coupling_map: Coupling map (perhaps custom) to target in mapping.
+        coupling_map: Directed coupling map (perhaps custom) to target in mapping. If
+            the coupling map is symmetric, both directions need to be specified.
+
             Multiple formats are supported:
 
             #. ``CouplingMap`` instance
             #. List, must be given as an adjacency matrix, where each entry
-               specifies all two-qubit interactions supported by backend,
+               specifies all directed two-qubit interactions supported by backend,
                e.g: ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
 
         backend_properties: properties returned by a backend, including information on gate
@@ -921,11 +923,15 @@ def _parse_instruction_durations(backend, inst_durations, dt, circuits):
     take precedence over backend durations, but be superceded by ``inst_duration``s.
     """
     if not inst_durations:
-        backend_durations = InstructionDurations()
-        try:
-            backend_durations = InstructionDurations.from_backend(backend)
-        except AttributeError:
-            pass
+        backend_version = getattr(backend, "version", 0)
+        if backend_version <= 1:
+            backend_durations = InstructionDurations()
+            try:
+                backend_durations = InstructionDurations.from_backend(backend)
+            except AttributeError:
+                pass
+        else:
+            backend_durations = backend.instruction_durations
 
     durations = []
     for circ in circuits:
