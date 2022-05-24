@@ -185,7 +185,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         layout.append(_improve_layout, condition=_vf2_match_not_found)
         layout += common.generate_embed_passmanager(coupling_map)
         vf2_call_limit = None
-        if pass_manager_config.layout_method is None:
+        if pass_manager_config.layout_method is None and pass_manager_config.initial_layout is None:
             vf2_call_limit = int(5e4)  # Set call limit to ~100ms with retworkx 0.10.2
         routing = common.generate_routing_passmanager(
             routing_pass,
@@ -194,6 +194,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             vf2_call_limit=vf2_call_limit,
             backend_properties=backend_properties,
             seed_transpiler=seed_transpiler,
+            check_trivial=True,
         )
     else:
         layout = None

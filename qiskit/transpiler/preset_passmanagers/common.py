@@ -22,6 +22,7 @@ from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import UnrollCustomDefinitions
 from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import Collect2qBlocks
+from qiskit.transpiler.passes import Collect1qRuns
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import CheckMap
@@ -113,14 +114,6 @@ def _trivial_not_perfect(property_set):
     return False
 
 
-def _run_post_layout_condition(property_set):
-    if _trivial_not_perfect(property_set):
-        vf2_stop_reason = property_set["VF2Layout_stop_reason"]
-        if vf2_stop_reason is None or vf2_stop_reason != VF2LayoutStopReason.SOLUTION_FOUND:
-            return True
-    return False
-
-
 def _apply_post_layout_condition(property_set):
     # if VF2 Post layout found a solution we need to re-apply the better
     # layout. Otherwise we can skip apply layout.
@@ -139,6 +132,7 @@ def generate_routing_passmanager(
     vf2_call_limit=None,
     backend_properties=None,
     seed_transpiler=None,
+    check_trivial=False,
 ):
     """Generate a routing :class:`~qiskit.transpiler.PassManager`
 
@@ -154,11 +148,25 @@ def generate_routing_passmanager(
             synthesize for (e.g. gate fidelities).
         seed_transpiler (int): Sets random seed for the stochastic parts of
             the transpiler.
-
-
+        check_trivial (bool): If set to true this will condition running the
+            :class:`~.VF2PostLayout` pass after routing on whether a trivial
+            layout was tried and was found to not be perfect. This is only
+            needed if the constructed pass manager runs :class:`~.TrivialLayout`
+            as a first layout attempt and uses it if it's a perfect layout
+            (as is the case with preset pass manager level 1).
     Returns:
         PassManager: The routing pass manager
     """
+
+    def _run_post_layout_condition(property_set):
+        # If we check trivial layout and the found trivial layout was not perfect also
+        # ensure VF2 initial layout was not used before running vf2 post layout
+        if not check_trivial or _trivial_not_perfect(property_set):
+            vf2_stop_reason = property_set["VF2Layout_stop_reason"]
+            if vf2_stop_reason is None or vf2_stop_reason != VF2LayoutStopReason.SOLUTION_FOUND:
+                return True
+        return False
+
     routing = PassManager()
     routing.append(CheckMap(coupling_map))
 
@@ -283,6 +291,7 @@ def generate_translation_passmanager(
             ),
             Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
+            Collect1qRuns(),
             ConsolidateBlocks(basis_gates=basis_gates, target=target),
             UnitarySynthesis(
                 basis_gates=basis_gates,
