@@ -16,7 +16,7 @@ from typing import Optional, Union, List, Tuple
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, ClassicalRegister
-from qiskit.providers import BaseBackend, Backend
+from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
 from qiskit.algorithms.exceptions import AlgorithmError
 
@@ -45,12 +45,13 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
     """
 
-    def __init__(self,
-                 delta: float,
-                 maxiter: int,
-                 rescale: bool = True,
-                 quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None
-                 ) -> None:
+    def __init__(
+        self,
+        delta: float,
+        maxiter: int,
+        rescale: bool = True,
+        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
+    ) -> None:
         r"""
         Args:
             delta: The probability that the true value is outside of the final confidence interval.
@@ -82,20 +83,19 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(self, quantum_instance: Union[QuantumInstance,
-                                                       BaseBackend, Backend]) -> None:
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
         """Set quantum instance.
 
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
         """
-        if isinstance(quantum_instance, (BaseBackend, Backend)):
+        if isinstance(quantum_instance, Backend):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
 
     def _cos_estimate(self, estimation_problem, k, shots):
         if self._quantum_instance is None:
-            raise AlgorithmError('Quantum instance must be set.')
+            raise AlgorithmError("Quantum instance must be set.")
 
         if self._quantum_instance.is_statevector:
             circuit = self.construct_circuit(estimation_problem, k, measurement=False)
@@ -106,7 +106,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
             for i, amplitude in enumerate(statevector):
                 # get bitstring of objective qubits
                 full_state = bin(i)[2:].zfill(circuit.num_qubits)[::-1]
-                state = ''.join([full_state[i] for i in estimation_problem.objective_qubits])
+                state = "".join([full_state[i] for i in estimation_problem.objective_qubits])
 
                 # check if it is a good state
                 if estimation_problem.is_good_state(state[::-1]):
@@ -134,9 +134,9 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         confint = [np.maximum(-1, cos - width), np.minimum(1, cos + width)]
         return confint
 
-    def construct_circuit(self, estimation_problem: EstimationProblem, k: int,
-                          measurement: bool = False
-                          ) -> Union[QuantumCircuit, Tuple[QuantumCircuit, List[int]]]:
+    def construct_circuit(
+        self, estimation_problem: EstimationProblem, k: int, measurement: bool = False
+    ) -> Union[QuantumCircuit, Tuple[QuantumCircuit, List[int]]]:
         r"""Construct the circuit :math:`Q^k X |0\rangle>`.
 
         The A operator is the unitary specifying the QAE problem and Q the associated Grover
@@ -151,9 +151,11 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         Returns:
             The circuit :math:`Q^k X |0\rangle`.
         """
-        num_qubits = max(estimation_problem.state_preparation.num_qubits,
-                         estimation_problem.grover_operator.num_qubits)
-        circuit = QuantumCircuit(num_qubits, name='circuit')
+        num_qubits = max(
+            estimation_problem.state_preparation.num_qubits,
+            estimation_problem.grover_operator.num_qubits,
+        )
+        circuit = QuantumCircuit(num_qubits, name="circuit")
 
         # add classical register if needed
         if measurement:
@@ -176,7 +178,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
         return circuit
 
-    def estimate(self, estimation_problem: EstimationProblem) -> 'FasterAmplitudeEstimationResult':
+    def estimate(self, estimation_problem: EstimationProblem) -> "FasterAmplitudeEstimationResult":
         self._num_oracle_calls = 0
         user_defined_shots = self.quantum_instance._run_config.shots
 
@@ -208,23 +210,25 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
                 num_steps += 1
                 if first_stage:
                     num_first_stage_steps += 1
-                    c = cos_estimate(2**(j - 1), self._shots[0])
+                    c = cos_estimate(2 ** (j - 1), self._shots[0])
                     chernoff_ci = self._chernoff(c, self._shots[0])
                     theta_ci = [np.arccos(x) / (2 ** (j + 1) + 2) for x in chernoff_ci[::-1]]
 
                     if 2 ** (j + 1) * theta_ci[1] >= 3 * np.pi / 8 and j < self._maxiter:
                         j_0 = j
-                        v = 2 ** j * np.sum(theta_ci)
+                        v = 2**j * np.sum(theta_ci)
                         first_stage = False
                 else:
-                    cos = cos_estimate(2**(j - 1), self._shots[1])
+                    cos = cos_estimate(2 ** (j - 1), self._shots[1])
                     cos_2 = cos_estimate(2 ** (j - 1) + 2 ** (j_0 - 1), self._shots[1])
                     sin = (cos * np.cos(v) - cos_2) / np.sin(v)
                     rho = np.arctan2(sin, cos)
                     n = int(((2 ** (j + 1) + 2) * theta_ci[1] - rho + np.pi / 3) / (2 * np.pi))
 
-                    theta_ci = [(2 * np.pi * n + rho + sign * np.pi / 3) / (2 ** (j + 1) + 2)
-                                for sign in [-1, 1]]
+                    theta_ci = [
+                        (2 * np.pi * n + rho + sign * np.pi / 3) / (2 ** (j + 1) + 2)
+                        for sign in [-1, 1]
+                    ]
                 theta_cis.append(theta_ci)
 
         theta = np.mean(theta_ci)
@@ -244,8 +248,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         result.estimation = value
         result.estimation_processed = problem.post_processing(value)
         result.confidence_interval = value_ci
-        result.confidence_interval_processed = tuple(problem.post_processing(x)
-                                                     for x in value_ci)
+        result.confidence_interval_processed = tuple(problem.post_processing(x) for x in value_ci)
         result.theta_intervals = theta_cis
 
         # reset shots to what the user had defined

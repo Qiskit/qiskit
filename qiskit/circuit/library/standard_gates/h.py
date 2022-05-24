@@ -12,6 +12,7 @@
 
 """Hadamard gate."""
 
+from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
@@ -47,9 +48,9 @@ class HGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label: Optional[str] = None):
         """Create new H gate."""
-        super().__init__('h', 1, [], label=label)
+        super().__init__("h", 1, [], label=label)
 
     def _define(self):
         """
@@ -58,17 +59,21 @@ class HGate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u2 import U2Gate
-        q = QuantumRegister(1, 'q')
+
+        q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (U2Gate(0, pi), [q[0]], [])
-        ]
+        rules = [(U2Gate(0, pi), [q[0]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[int, str]] = None,
+    ):
         """Return a (multi-)controlled-H gate.
 
         One control qubit returns a CH gate.
@@ -86,8 +91,7 @@ class HGate(Gate):
             gate = CHGate(label=label, ctrl_state=ctrl_state)
             gate.base_gate.label = self.label
             return gate
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
-                               ctrl_state=ctrl_state)
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
     def inverse(self):
         r"""Return inverted H gate (itself)."""
@@ -95,8 +99,7 @@ class HGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a Numpy.array for the H gate."""
-        return numpy.array([[1, 1],
-                            [1, -1]], dtype=dtype) / numpy.sqrt(2)
+        return numpy.array([[1, 1], [1, -1]], dtype=dtype) / numpy.sqrt(2)
 
 
 class CHGate(ControlledGate):
@@ -106,6 +109,8 @@ class CHGate(ControlledGate):
     in the :math:`|1\rangle` state.
 
     **Circuit symbol:**
+
+    .. parsed-literal::
 
         q_0: ──■──
              ┌─┴─┐
@@ -152,21 +157,20 @@ class CHGate(ControlledGate):
     """
     # Define class constants. This saves future allocation time.
     _sqrt2o2 = 1 / numpy.sqrt(2)
-    _matrix1 = numpy.array([[1, 0, 0, 0],
-                            [0, _sqrt2o2, 0, _sqrt2o2],
-                            [0, 0, 1, 0],
-                            [0, _sqrt2o2, 0, -_sqrt2o2]],
-                           dtype=complex)
-    _matrix0 = numpy.array([[_sqrt2o2, 0, _sqrt2o2, 0],
-                            [0, 1, 0, 0],
-                            [_sqrt2o2, 0, -_sqrt2o2, 0],
-                            [0, 0, 0, 1]],
-                           dtype=complex)
+    _matrix1 = numpy.array(
+        [[1, 0, 0, 0], [0, _sqrt2o2, 0, _sqrt2o2], [0, 0, 1, 0], [0, _sqrt2o2, 0, -_sqrt2o2]],
+        dtype=complex,
+    )
+    _matrix0 = numpy.array(
+        [[_sqrt2o2, 0, _sqrt2o2, 0], [0, 1, 0, 0], [_sqrt2o2, 0, -_sqrt2o2, 0], [0, 0, 0, 1]],
+        dtype=complex,
+    )
 
-    def __init__(self, label=None, ctrl_state=None):
+    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[int, str]] = None):
         """Create new CH gate."""
-        super().__init__('ch', 2, [], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state, base_gate=HGate())
+        super().__init__(
+            "ch", 2, [], num_ctrl_qubits=1, label=label, ctrl_state=ctrl_state, base_gate=HGate()
+        )
 
     def _define(self):
         """
@@ -183,7 +187,8 @@ class CHGate(ControlledGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate  # pylint: disable=cyclic-import
-        q = QuantumRegister(2, 'q')
+
+        q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (SGate(), [q[1]], []),
@@ -192,7 +197,7 @@ class CHGate(ControlledGate):
             (CXGate(), [q[0], q[1]], []),
             (TdgGate(), [q[1]], []),
             (HGate(), [q[1]], []),
-            (SdgGate(), [q[1]], [])
+            (SdgGate(), [q[1]], []),
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)

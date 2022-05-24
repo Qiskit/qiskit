@@ -1,0 +1,16 @@
+---
+features:
+  - |
+    The ``__eq__`` method (ie what is called when the ``==`` operator is used)
+    for the :class:`~qiskit.circuit.ParameterExpression` now allows for the
+    comparison with a numeric value. Previously, it was only possible
+    to compare two instances of
+    :class:`~qiskit.circuit.ParameterExpression` with ``==``. For example::
+
+        from qiskit.circuit import Parameter
+  
+        x = Parameter("x")
+        y = x + 2
+        y = y.assign(x, -1)
+
+        assert y == 1

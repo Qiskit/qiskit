@@ -1,0 +1,42 @@
+---
+features:
+  - | 
+    There is a builder interface for the new control-flow operations on
+    :obj:`.QuantumCircuit`, such as the new :obj:`.ForLoopOp`, :obj:`.IfElseOp`,
+    and :obj:`.WhileLoopOp`.  The interface uses the same circuit methods,
+    *i.e.* :meth:`.QuantumCircuit.for_loop`, :meth:`.QuantumCircuit.if_test` and
+    :meth:`.QuantumCircuit.while_loop`, which are overloaded so that if the
+    ``body`` parameter is not given, they return a context manager.  Entering
+    one of these context managers pushes a scope into the circuit, and captures
+    all gate calls (and other scopes) and the resources these use, and builds up
+    the relevant operation at the end.  For example, you can now do::
+
+        qc = QuantumCircuit(2, 2)
+        with qc.for_loop(range(5)) as i:
+            qc.rx(i * math.pi / 4, 0)
+
+    This will produce a :obj:`.ForLoopOp` on ``qc``, which knows that qubit 0 is
+    the only resource used within the loop body.  These context managers can be
+    nested, and will correctly determine their widths.  You can use
+    :meth:`.QuantumCircuit.break_loop` and :meth:`.QuantumCircuit.continue_loop`
+    within a context, and it will expand to be the correct width for its
+    containing loop, even if it is nested in further
+    :meth:`.QuantumCircuit.if_test` blocks.
+
+    The :meth:`~.QuantumCircuit.if_test` context manager provides a chained
+    manager which, if desired, can be used to create an ``else`` block, such as
+    by::
+
+        qreg = QuantumRegister(2)
+        creg = ClassicalRegister(2)
+        qc = QuantumCircuit(qreg, creg)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure(0, 0)
+        with qc.if_test((creg, 0)) as else_:
+            qc.x(1)
+        with else_:
+            qc.z(1)
+
+    The manager will ensure that the ``if`` and ``else`` bodies are defined over
+    the same set of resources.

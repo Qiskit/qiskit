@@ -15,15 +15,29 @@ Fake Ourense device (5 qubit).
 """
 
 import os
-from qiskit.test.mock.fake_qasm_backend import FakeQasmBackend
+from qiskit.test.mock import fake_qasm_backend, fake_backend
 
 
-class FakeOurense(FakeQasmBackend):
+class FakeOurenseV2(fake_backend.FakeBackendV2):
     """A fake 5 qubit backend.
 
-     0 ↔ 1 ↔ 3 ↔ 4
-         ↕
-         2
+    0 ↔ 1 ↔ 3 ↔ 4
+        ↕
+        2
+    """
+
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_ourense.json"
+    props_filename = "props_ourense.json"
+    backend_name = "fake_ourense_v2"
+
+
+class FakeOurense(fake_qasm_backend.FakeQasmBackend):
+    """A fake 5 qubit backend.
+
+    0 ↔ 1 ↔ 3 ↔ 4
+        ↕
+        2
     """
 
     dirname = os.path.dirname(__file__)

@@ -13,8 +13,20 @@
 """Remove diagonal gates (including diagonal 2Q gates) before a measurement."""
 
 from qiskit.circuit import Measure
-from qiskit.circuit.library.standard_gates import RZGate, ZGate, TGate, SGate, TdgGate, SdgGate, \
-    U1Gate, CZGate, CRZGate, CU1Gate, RZZGate
+from qiskit.circuit.library.standard_gates import (
+    RZGate,
+    ZGate,
+    TGate,
+    SGate,
+    TdgGate,
+    SdgGate,
+    U1Gate,
+    CZGate,
+    CRZGate,
+    CU1Gate,
+    RZZGate,
+)
+from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.basepasses import TransformationPass
 
 
@@ -41,12 +53,12 @@ class RemoveDiagonalGatesBeforeMeasure(TransformationPass):
         for measure in dag.op_nodes(Measure):
             predecessor = next(dag.quantum_predecessors(measure))
 
-            if predecessor.type == 'op' and isinstance(predecessor.op, diagonal_1q_gates):
+            if isinstance(predecessor, DAGOpNode) and isinstance(predecessor.op, diagonal_1q_gates):
                 nodes_to_remove.add(predecessor)
 
-            if predecessor.type == 'op' and isinstance(predecessor.op, diagonal_2q_gates):
+            if isinstance(predecessor, DAGOpNode) and isinstance(predecessor.op, diagonal_2q_gates):
                 successors = dag.quantum_successors(predecessor)
-                if all([s.type == 'op' and isinstance(s.op, Measure) for s in successors]):
+                if all(isinstance(s, DAGOpNode) and isinstance(s.op, Measure) for s in successors):
                     nodes_to_remove.add(predecessor)
 
         for node_to_remove in nodes_to_remove:

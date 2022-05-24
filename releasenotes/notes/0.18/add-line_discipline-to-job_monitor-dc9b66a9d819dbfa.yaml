@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    A new kwarg, ``line_discipline``, has been added to the :func:`~qiskit.tools.job_monitor`
+    function. This kwarg enables changing the carriage return characters used in the
+    ``job_monitor`` output. The ``line_discipline`` kwarg defaults to ``'\r'``, which is what was
+    in use before.

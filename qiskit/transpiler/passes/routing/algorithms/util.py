@@ -34,13 +34,15 @@ from qiskit.circuit.library.standard_gates import SwapGate
 
 from .types import Swap, PermutationCircuit
 
-_K = TypeVar('_K')
-_V = TypeVar('_V')
+_K = TypeVar("_K")
+_V = TypeVar("_V")
 
 
-def swap_permutation(swaps: Iterable[Iterable[Swap[_K]]],
-                     mapping: MutableMapping[_K, _V],
-                     allow_missing_keys: bool = False) -> None:
+def swap_permutation(
+    swaps: Iterable[Iterable[Swap[_K]]],
+    mapping: MutableMapping[_K, _V],
+    allow_missing_keys: bool = False,
+) -> None:
     """Given a circuit of swaps, apply them to the permutation (in-place).
 
     Args:
@@ -81,10 +83,7 @@ def permutation_circuit(swaps: Iterable[List[Swap[_V]]]) -> PermutationCircuit:
 
     # Set of unique nodes used in the swaps.
     nodes = {
-        swap_node
-        for swap_step in swap_list
-        for swap_nodes in swap_step
-        for swap_node in swap_nodes
+        swap_node for swap_step in swap_list for swap_nodes in swap_step for swap_node in swap_nodes
     }
 
     node_qargs = {node: QuantumRegister(1) for node in nodes}

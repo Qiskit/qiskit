@@ -1,0 +1,15 @@
+---
+fixes:
+  - |
+    Fixed an issue where the :func:`~qiskit.execute_function.execute` function
+    would raise :class:`~qiskit.exceptions.QiskitError` exception when a
+    :class:`~qiskit.circuit.ParameterVector` object was passed in for the
+    ``parameter_bind`` kwarg. parameter. For example, it is now possible to
+    call something like::
+
+      execute(circuit, backend, parameter_binds=[{pv1: [...], pv2: [...]}])
+
+    where ``pv1`` and ``pv2`` are :class:`~qiskit.circuit.ParameterVector`
+    objects.
+    Fixed `#5467 <https://github.com/Qiskit/qiskit-terra/issues/5467>`__
+

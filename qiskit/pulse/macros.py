@@ -19,12 +19,14 @@ from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import Schedule
 
 
-def measure(qubits: List[int],
-            backend=None,
-            inst_map: Optional[InstructionScheduleMap] = None,
-            meas_map: Optional[Union[List[List[int]], Dict[int, List[int]]]] = None,
-            qubit_mem_slots: Optional[Dict[int, int]] = None,
-            measure_name: str = 'measure') -> Schedule:
+def measure(
+    qubits: List[int],
+    backend=None,
+    inst_map: Optional[InstructionScheduleMap] = None,
+    meas_map: Optional[Union[List[List[int]], Dict[int, List[int]]]] = None,
+    qubit_mem_slots: Optional[Dict[int, int]] = None,
+    measure_name: str = "measure",
+) -> Schedule:
     """Return a schedule which measures the requested qubits according to the given
     instruction mapping and measure map, or by using the defaults provided by the backend.
 
@@ -49,13 +51,14 @@ def measure(qubits: List[int],
     Raises:
         PulseError: If both ``inst_map`` or ``meas_map``, and ``backend`` is None.
     """
-    schedule = Schedule(name="Default measurement schedule for qubits {}".format(qubits))
+    schedule = Schedule(name=f"Default measurement schedule for qubits {qubits}")
     try:
         inst_map = inst_map or backend.defaults().instruction_schedule_map
         meas_map = meas_map or backend.configuration().meas_map
-    except AttributeError:
+    except AttributeError as ex:
         raise exceptions.PulseError(
-            'inst_map or meas_map, and backend cannot be None simultaneously')
+            "inst_map or meas_map, and backend cannot be None simultaneously"
+        ) from ex
     if isinstance(meas_map, list):
         meas_map = utils.format_meas_map(meas_map)
 
@@ -67,25 +70,24 @@ def measure(qubits: List[int],
             unused_mem_slots = set(measure_group_qubits) - set(qubit_mem_slots.values())
         try:
             default_sched = inst_map.get(measure_name, measure_group_qubits)
-        except exceptions.PulseError:
+        except exceptions.PulseError as ex:
             raise exceptions.PulseError(
                 "We could not find a default measurement schedule called '{}'. "
                 "Please provide another name using the 'measure_name' keyword "
                 "argument. For assistance, the instructions which are defined are: "
-                "{}".format(measure_name, inst_map.instructions))
+                "{}".format(measure_name, inst_map.instructions)
+            ) from ex
         for time, inst in default_sched.instructions:
+            if inst.channel.index not in qubits:
+                continue
             if qubit_mem_slots and isinstance(inst, instructions.Acquire):
                 if inst.channel.index in qubit_mem_slots:
                     mem_slot = channels.MemorySlot(qubit_mem_slots[inst.channel.index])
                 else:
                     mem_slot = channels.MemorySlot(unused_mem_slots.pop())
-                schedule = schedule.insert(time, instructions.Acquire(
-                    inst.duration, inst.channel, mem_slot=mem_slot))
-            elif qubit_mem_slots is None and isinstance(inst, instructions.Acquire):
-                schedule = schedule.insert(time, inst)
+                inst = instructions.Acquire(inst.duration, inst.channel, mem_slot=mem_slot)
             # Measurement pulses should only be added if its qubit was measured by the user
-            elif inst.channels[0].index in qubits:
-                schedule = schedule.insert(time, inst)
+            schedule = schedule.insert(time, inst)
 
     return schedule
 
@@ -101,5 +103,4 @@ def measure_all(backend) -> Schedule:
     Returns:
         A schedule corresponding to the inputs provided.
     """
-    return measure(qubits=list(range(backend.configuration().n_qubits)),
-                   backend=backend)
+    return measure(qubits=list(range(backend.configuration().n_qubits)), backend=backend)

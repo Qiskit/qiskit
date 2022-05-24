@@ -21,20 +21,26 @@ from qiskit.test import QiskitTestCase
 
 
 class TestCountOpsPass(QiskitTestCase):
-    """ Tests for CountOps analysis methods. """
+    """Tests for CountOps analysis methods."""
 
     def test_empty_dag(self):
-        """ Empty DAG has empty counts."""
+        """Empty DAG has empty counts."""
         circuit = QuantumCircuit()
         dag = circuit_to_dag(circuit)
 
         pass_ = CountOps()
         _ = pass_.run(dag)
 
-        self.assertDictEqual(pass_.property_set['count_ops'], {})
+        self.assertDictEqual(pass_.property_set["count_ops"], {})
 
     def test_just_qubits(self):
-        """ A dag with 8 operations (6 CXs and 2 Hs)"""
+        """A dag with 8 operations (6 CXs and 2 Hs)"""
+
+        #       ┌───┐                    ┌───┐┌───┐
+        # q0_0: ┤ H ├──■────■────■────■──┤ X ├┤ X ├
+        #       ├───┤┌─┴─┐┌─┴─┐┌─┴─┐┌─┴─┐└─┬─┘└─┬─┘
+        # q0_1: ┤ H ├┤ X ├┤ X ├┤ X ├┤ X ├──■────■──
+        #       └───┘└───┘└───┘└───┘└───┘
         qr = QuantumRegister(2)
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
@@ -50,8 +56,8 @@ class TestCountOpsPass(QiskitTestCase):
         pass_ = CountOps()
         _ = pass_.run(dag)
 
-        self.assertDictEqual(pass_.property_set['count_ops'], {'cx': 6, 'h': 2})
+        self.assertDictEqual(pass_.property_set["count_ops"], {"cx": 6, "h": 2})
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -13,15 +13,11 @@
 """Nelder-Mead optimizer."""
 
 from typing import Optional
-import logging
 
-from scipy.optimize import minimize
-from .optimizer import Optimizer, OptimizerSupportLevel
-
-logger = logging.getLogger(__name__)
+from .scipy_optimizer import SciPyOptimizer
 
 
-class NELDER_MEAD(Optimizer):  # pylint: disable=invalid-name
+class NELDER_MEAD(SciPyOptimizer):  # pylint: disable=invalid-name
     """
     Nelder-Mead optimizer.
 
@@ -42,16 +38,20 @@ class NELDER_MEAD(Optimizer):  # pylint: disable=invalid-name
     See https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
     """
 
-    _OPTIONS = ['maxiter', 'maxfev', 'disp', 'xatol', 'adaptive']
+    _OPTIONS = ["maxiter", "maxfev", "disp", "xatol", "adaptive"]
 
     # pylint: disable=unused-argument
-    def __init__(self,
-                 maxiter: Optional[int] = None,
-                 maxfev: int = 1000,
-                 disp: bool = False,
-                 xatol: float = 0.0001,
-                 tol: Optional[float] = None,
-                 adaptive: bool = False) -> None:
+    def __init__(
+        self,
+        maxiter: Optional[int] = None,
+        maxfev: int = 1000,
+        disp: bool = False,
+        xatol: float = 0.0001,
+        tol: Optional[float] = None,
+        adaptive: bool = False,
+        options: Optional[dict] = None,
+        **kwargs,
+    ) -> None:
         """
         Args:
             maxiter: Maximum allowed number of iterations. If both maxiter and maxfev are set,
@@ -62,26 +62,12 @@ class NELDER_MEAD(Optimizer):  # pylint: disable=invalid-name
             xatol: Absolute error in xopt between iterations that is acceptable for convergence.
             tol: Tolerance for termination.
             adaptive: Adapt algorithm parameters to dimensionality of problem.
+            options: A dictionary of solver options.
+            kwargs: additional kwargs for scipy.optimize.minimize.
         """
-        super().__init__()
+        if options is None:
+            options = {}
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
-                self._options[k] = v
-        self._tol = tol
-
-    def get_support_level(self):
-        """ Return support level dictionary """
-        return {
-            'gradient': OptimizerSupportLevel.ignored,
-            'bounds': OptimizerSupportLevel.ignored,
-            'initial_point': OptimizerSupportLevel.required
-        }
-
-    def optimize(self, num_vars, objective_function, gradient_function=None,
-                 variable_bounds=None, initial_point=None):
-        super().optimize(num_vars, objective_function, gradient_function,
-                         variable_bounds, initial_point)
-
-        res = minimize(objective_function, initial_point, tol=self._tol,
-                       method="Nelder-Mead", options=self._options)
-        return res.x, res.fun, res.nfev
+                options[k] = v
+        super().__init__(method="Nelder-Mead", options=options, tol=tol, **kwargs)

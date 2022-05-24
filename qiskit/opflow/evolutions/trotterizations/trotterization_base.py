@@ -12,19 +12,16 @@
 
 """ Trotterization Algorithm Base """
 
-import logging
 from abc import abstractmethod
 
-from ...operator_base import OperatorBase
-from ..evolution_base import EvolutionBase
+from qiskit.opflow.evolutions.evolution_base import EvolutionBase
+from qiskit.opflow.operator_base import OperatorBase
 
 # TODO centralize handling of commuting groups
 
-logger = logging.getLogger(__name__)
-
 
 class TrotterizationBase(EvolutionBase):
-    """ A base for Trotterization methods, algorithms for approximating exponentiations of
+    """A base for Trotterization methods, algorithms for approximating exponentiations of
     operator sums by compositions of exponentiations.
     """
 
@@ -34,14 +31,14 @@ class TrotterizationBase(EvolutionBase):
 
     @property
     def reps(self) -> int:
-        """ The number of repetitions to use in the Trotterization, improving the approximation
+        """The number of repetitions to use in the Trotterization, improving the approximation
         accuracy.
         """
         return self._reps
 
     @reps.setter
     def reps(self, reps: int) -> None:
-        r""" Set the number of repetitions to use in the Trotterization. """
+        r"""Set the number of repetitions to use in the Trotterization."""
         self._reps = reps
 
     @abstractmethod

@@ -1,0 +1,10 @@
+---
+upgrade:
+  - |
+    The dictionary previously held on :class:`~qiskit.dagcircuit.DAGCircuit`
+    edges has been removed. Instead, edges now hold the
+    :class:`~qiskit.circuit.Bit` instance which had previously been included in
+    the dictionary as its ``'wire'`` field. Note that the NetworkX graph
+    returned by :meth:`~qiskit.dagcircuit.DAGCircuit.to_networkx` will still
+    have a dictionary for its edge attributes, but the ``'name'`` field will no
+    longer be populated.

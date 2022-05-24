@@ -1,0 +1,28 @@
+---
+upgrade:
+  - |
+    The :func:`~.marginal_counts` function when called with a :class:`~.Result`
+    object input, will now marginalize the ``memory`` field of experiment data
+    if it's set in the input :class:`~.Result`. Previously, the ``memory`` field
+    in the the input was not marginalized. This change was made because the previous
+    behavior would result in the ``counts`` field not matching the ``memory``
+    field after :func:`~.marginal_counts` was called. If the previous behavior
+    is desired it can be restored by setting ``marginalize_memory=None`` as
+    an argument to :func:`~.marginal_counts` which will not marginalize the
+    ``memory`` field.
+features:
+  - |
+    The :func:`~.marginal_counts` function now supports marginalizing the
+    ``memory`` field of an input :class:`~.Result` object. For example, if
+    the input ``result``  argument is a qiskit :class:`~.Result` object
+    obtained from a 4-qubit measurement we can marginalize onto the first qubit
+    with::
+
+        print(result.results[0].data.memory)
+        marginal_result = marginal_counts(result, [0])
+        print(marginal_result.results[0].data.memory)
+    
+    The output is::
+    
+        ['0x0', '0x1', '0x2', '0x3', '0x4', '0x5', '0x6', '0x7']
+        ['0x0', '0x1', '0x0', '0x1', '0x0', '0x1', '0x0', '0x1']

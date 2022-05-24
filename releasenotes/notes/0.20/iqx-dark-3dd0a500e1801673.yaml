@@ -1,0 +1,20 @@
+---
+features:
+  - |
+    Added a new value for the ``style`` keyword argument on the circuit drawer
+    function :func:`~.circuit_drawer` and :meth:`.QuantumCircuit.draw` method,
+    ``iqx_dark``. When ``style`` is set to ``iqx_dark`` with the ``mpl`` drawer
+    backend, the output visualization will use a color scheme similar to the
+    the dark mode color scheme used by the IBM Quantum composer. For example:
+
+    .. jupyter-execute::
+
+        from qiskit.circuit import QuantumCircuit
+        from matplotlib.pyplot import show
+
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.p(0.2, 1)
+
+        circuit.draw("mpl", style="iqx-dark")

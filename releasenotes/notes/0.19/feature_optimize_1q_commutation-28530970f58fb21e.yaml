@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Added a transpiler pass :obj:`.Optimize1qGatesSimpleCommutation`, which optimizes
+    a circuit according to a strategy of commuting single-qubit gates around to
+    discover resynthesis opportunities.

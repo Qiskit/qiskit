@@ -15,15 +15,29 @@ Fake Vigo device (5 qubit).
 """
 
 import os
-from qiskit.test.mock.fake_qasm_backend import FakeQasmBackend
+from qiskit.test.mock import fake_qasm_backend, fake_backend
 
 
-class FakeVigo(FakeQasmBackend):
+class FakeVigoV2(fake_backend.FakeBackendV2):
     """A fake 5 qubit backend.
 
-     0 ↔ 1 ↔ 3 ↔ 4
-         ↕
-         2
+    0 ↔ 1 ↔ 3 ↔ 4
+        ↕
+        2
+    """
+
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_vigo.json"
+    props_filename = "props_vigo.json"
+    backend_name = "fake_vigo_v2"
+
+
+class FakeVigo(fake_qasm_backend.FakeQasmBackend):
+    """A fake 5 qubit backend.
+
+    0 ↔ 1 ↔ 3 ↔ 4
+        ↕
+        2
     """
 
     dirname = os.path.dirname(__file__)

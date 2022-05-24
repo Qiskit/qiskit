@@ -18,12 +18,14 @@ from .pauli_two_design import PauliTwoDesign
 from .real_amplitudes import RealAmplitudes
 from .efficient_su2 import EfficientSU2
 from .excitation_preserving import ExcitationPreserving
+from .qaoa_ansatz import QAOAAnsatz
 
 __all__ = [
-    'NLocal',
-    'TwoLocal',
-    'RealAmplitudes',
-    'PauliTwoDesign',
-    'EfficientSU2',
-    'ExcitationPreserving'
+    "NLocal",
+    "TwoLocal",
+    "RealAmplitudes",
+    "PauliTwoDesign",
+    "EfficientSU2",
+    "ExcitationPreserving",
+    "QAOAAnsatz",
 ]

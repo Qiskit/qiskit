@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Fixed an issue where, if the
+    :meth:`qiskit.circuit.Instruction.to_instruction` method was used on a subcircuit which
+    contained classical registers and that
+    :class:`~qiskit.circuit.Instruction` object was then added to a
+    :class:`~qiskit.circuit.QuantumCircuit` object, then the output from the
+    :func:`qiskit.visualization.circuit_drawer` function and the
+    :meth:`qiskit.circuit.QuantumCircuit.draw` method would in some instances
+    display the subcircuit to the left of a measure when it should have been
+    displayed to the right.
+    Fixed `#5947 <https://github.com/Qiskit/qiskit-terra/issues/5947>`__

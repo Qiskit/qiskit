@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """A collection of backend information formatted to generate drawing data.
 
 This instance will be provided to generator functions. The module provides an abstract
@@ -41,17 +39,20 @@ from collections import defaultdict
 from typing import Dict, List, Union, Optional
 
 from qiskit import pulse
-from qiskit.providers import BaseBackend, BackendConfigurationError
+from qiskit.providers import BackendConfigurationError
+from qiskit.providers.backend import Backend
 
 
 class DrawerBackendInfo(ABC):
     """Backend information to be used for the drawing data generation."""
 
-    def __init__(self,
-                 name: Optional[str] = None,
-                 dt: Optional[float] = None,
-                 channel_frequency_map: Optional[Dict[pulse.channels.Channel, float]] = None,
-                 qubit_channel_map: Optional[Dict[int, List[pulse.channels.Channel]]] = None):
+    def __init__(
+        self,
+        name: Optional[str] = None,
+        dt: Optional[float] = None,
+        channel_frequency_map: Optional[Dict[pulse.channels.Channel, float]] = None,
+        qubit_channel_map: Optional[Dict[int, List[pulse.channels.Channel]]] = None,
+    ):
         """Create new backend information.
 
         Args:
@@ -60,14 +61,14 @@ class DrawerBackendInfo(ABC):
             channel_frequency_map: Mapping of channel and associated frequency.
             qubit_channel_map: Mapping of qubit and associated channels.
         """
-        self.backend_name = name or 'no-backend'
+        self.backend_name = name or "no-backend"
         self._dt = dt
-        self._chan_freq_map = channel_frequency_map or dict()
-        self._qubit_channel_map = qubit_channel_map or dict()
+        self._chan_freq_map = channel_frequency_map or {}
+        self._qubit_channel_map = qubit_channel_map or {}
 
     @classmethod
     @abstractmethod
-    def create_from_backend(cls, backend: BaseBackend):
+    def create_from_backend(cls, backend: Backend):
         """Initialize a class with backend information provided by provider.
 
         Args:
@@ -96,7 +97,7 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
     """Drawing information of backend that conforms to OpenPulse specification."""
 
     @classmethod
-    def create_from_backend(cls, backend: BaseBackend):
+    def create_from_backend(cls, backend: Backend):
         """Initialize a class with backend information provided by provider.
 
         Args:
@@ -115,14 +116,16 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
         dt = configuration.dt
 
         # load frequencies
-        chan_freqs = dict()
+        chan_freqs = {}
 
-        chan_freqs.update({pulse.DriveChannel(qind): freq
-                           for qind, freq in enumerate(defaults.qubit_freq_est)})
-        chan_freqs.update({pulse.MeasureChannel(qind): freq
-                           for qind, freq in enumerate(defaults.meas_freq_est)})
+        chan_freqs.update(
+            {pulse.DriveChannel(qind): freq for qind, freq in enumerate(defaults.qubit_freq_est)}
+        )
+        chan_freqs.update(
+            {pulse.MeasureChannel(qind): freq for qind, freq in enumerate(defaults.meas_freq_est)}
+        )
         for qind, u_lo_mappers in enumerate(configuration.u_channel_lo):
-            temp_val = .0 + .0j
+            temp_val = 0.0 + 0.0j
             for u_lo_mapper in u_lo_mappers:
                 temp_val += defaults.qubit_freq_est[u_lo_mapper.q] * u_lo_mapper.scale
             chan_freqs[pulse.ControlChannel(qind)] = temp_val.real
@@ -138,7 +141,6 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
                 except BackendConfigurationError:
                     pass
 
-        return OpenPulseBackendInfo(name=name,
-                                    dt=dt,
-                                    channel_frequency_map=chan_freqs,
-                                    qubit_channel_map=qubit_channel_map)
+        return OpenPulseBackendInfo(
+            name=name, dt=dt, channel_frequency_map=chan_freqs, qubit_channel_map=qubit_channel_map
+        )
