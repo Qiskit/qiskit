@@ -663,7 +663,7 @@ class SparsePauliOp(LinearOp):
                     raise QiskitError(
                         f"The number of qubits ({num_qubits}) is smaller than a required index {index}."
                     )
-                if do_checks is True and label[~index] in ("X", "Y", "Z"):
+                if do_checks and label[~index] in ("X", "Y", "Z"):
                     raise QiskitError(
                         f"The qubit (index: {num_qubits}) is already assigned {label}."
                     )
