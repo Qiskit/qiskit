@@ -32,17 +32,17 @@ class EstimatorResult:
 
     where the i-th elements of ``result`` correspond to the circuit and observable given by
     ``circuit_indices[i]``, ``observable_indices[i]``, and the parameter values bounds by
-    ``params[i]``. For example, ``results.expvals[i]`` gives the expectation value,
+    ``params[i]``. For example, ``results.expectation_values[i]`` gives the expectation value,
     ``results.variances[i]`` the variance, and ``result.metadata[i]`` is a metadata dictionary for
     this circuit and parameters.
 
     Args:
-        expvals (tuple[float, ...]): Tuple of expectation values.
+        expectation_values (tuple[float, ...]): Tuple of expectation values.
         variances (tuple[float, ...]): Tuple of variances associated to each expectation value.
         metadata (tuple[dict, ...]): Tuple of metadata.
     """
 
-    expvals: tuple[float, ...]
+    expectation_values: tuple[float, ...]
     variances: tuple[float, ...]
     metadata: tuple[dict[str, Any], ...]
 
@@ -51,8 +51,8 @@ class EstimatorResult:
         warn(
             "The EstimatorResult.values field is deprecated as of 0.21.0, and will be"
             "removed no earlier than 3 months after that release date. You should use the"
-            "EstimatorResult.expvals field instead.",
+            "EstimatorResult.expectation_values field instead.",
             DeprecationWarning,
             stacklevel=2,
         )
-        return array(self.expvals)
+        return array(self.expectation_values)
