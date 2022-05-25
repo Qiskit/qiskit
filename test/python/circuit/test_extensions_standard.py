@@ -1408,10 +1408,10 @@ class TestStandard2Q(QiskitTestCase):
         y = np.array(YGate())
         xx = np.kron(x, x)
         yy = np.kron(y, y)
-        rz1 = np.kron(np.array(RZGate(beta)), np.eye(2))
+        rz0 = np.kron(np.eye(2), np.array(RZGate(beta)))
         np.testing.assert_allclose(
             np.array(gate),
-            rz1.T.conj() @ expm(0.25j * theta * (xx + yy)) @ rz1,
+            rz0.T.conj() @ expm(-0.25j * theta * (xx + yy)) @ rz0,
             atol=1e-7,
         )
 

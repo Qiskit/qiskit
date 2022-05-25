@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    :class:`.Statevector` will now allow direct iteration through its values
+    (such as ``for coefficient in statevector``) and
+    correctly report its length under ``len``.  Previously it would try and
+    and access out-of-bounds data and raise a :class:`.QiskitError`.  See
+    `#8039 <https://github.com/Qiskit/qiskit-terra/issues/8039>`__.
