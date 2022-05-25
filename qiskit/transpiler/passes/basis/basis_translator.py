@@ -25,7 +25,6 @@ from qiskit.circuit import Gate, ParameterVector, QuantumRegister, ControlFlowOp
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.circuit.equivalence import Key
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -128,7 +127,13 @@ class BasisTranslator(TransformationPass):
             basic_instrs = ["barrier", "snapshot"]
             target_basis = self._target.keys() - set(self._non_global_operations)
             qargs_local_source_basis = defaultdict(set)
-            source_basis = set(self._update_basis_target(qargs_local_source_basis, qarg_indices, dag))
+            source_basis = set()
+            self._update_basis_target(
+                dag,
+                qarg_indices,
+                source_basis=source_basis,
+                qargs_local_source_basis=qargs_local_source_basis,
+            )
 
         target_basis = set(target_basis).union(basic_instrs)
 
@@ -209,7 +214,7 @@ class BasisTranslator(TransformationPass):
         def apply_translation(dag):
             dag_updated = False
             for node in dag.op_nodes():
-                node_qargs = tuple([qarg_indices[bit] for bit in node.qargs])
+                node_qargs = tuple(qarg_indices[bit] for bit in node.qargs)
                 qubit_set = frozenset(node_qargs)
                 if node.name in target_basis:
                     if isinstance(node.op, ControlFlowOp):
@@ -234,9 +239,9 @@ class BasisTranslator(TransformationPass):
                     continue
 
                 if qubit_set in extra_instr_map:
-                    self.replace_node(dag, node, extra_instr_map[qubit_set])
+                    self._replace_node(dag, node, extra_instr_map[qubit_set])
                 elif (node.op.name, node.op.num_qubits) in instr_map:
-                    self.replace_node(dag, node, instr_map)
+                    self._replace_node(dag, node, instr_map)
                 else:
                     raise TranspilerError(f"BasisTranslator did not map {node.name}.")
                 dag_updated = True
@@ -251,7 +256,7 @@ class BasisTranslator(TransformationPass):
 
         return dag
 
-    def replace_node(self, dag, node, instr_map):
+    def _replace_node(self, dag, node, instr_map):
         target_params, target_dag = instr_map[node.op.name, node.op.num_qubits]
         if len(node.op.params) != len(target_params):
             raise TranspilerError(
@@ -305,14 +310,16 @@ class BasisTranslator(TransformationPass):
     @_find_basis.register
     def _(self, circ: QuantumCircuit):
         for instr_context in circ.data:
-            instr, qargs, cargs = instr_context
+            instr, _, _ = instr_context
             if not circ.has_calibration_for(instr_context):
                 yield (instr.name, instr.num_qubits)
             if isinstance(instr, ControlFlowOp):
                 for block in instr.blocks:
                     yield from self._find_basis(block)
 
-    def _update_basis_target(self, dag, qarg_indices, source_basis=set(), qargs_local_source_basis=set()):
+    def _update_basis_target(
+        self, dag, qarg_indices, source_basis=None, qargs_local_source_basis=None
+    ):
         for node in dag.op_nodes():
             qargs = tuple(qarg_indices[bit] for bit in node.qargs)
             if dag.has_calibration_for(node):
@@ -336,9 +343,11 @@ class BasisTranslator(TransformationPass):
             if isinstance(node.op, ControlFlowOp):
                 for block in node.op.blocks:
                     block_dag = circuit_to_dag(block)
-                    source_basis, qarg_local_source_basis = self._update_basis_target(
-                        block_dag, qarg_indices, source_basis=source_basis,
-                        qargs_local_source_basis=qargs_local_source_basis
+                    source_basis, qargs_local_source_basis = self._update_basis_target(
+                        block_dag,
+                        qarg_indices,
+                        source_basis=source_basis,
+                        qargs_local_source_basis=qargs_local_source_basis,
                     )
             return source_basis, qargs_local_source_basis
 
@@ -533,8 +542,7 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
             source_basis but not affected by basis_transforms will be included
             as a key mapping to itself.
     """
-    example_gates = dict()
-    _get_example_gates(example_gates, source_dag)
+    example_gates = _get_example_gates(source_dag, defaultdict(set))
     mapped_instrs = {}
 
     for gate_name, gate_num_qubits in source_basis:
@@ -600,10 +608,11 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
     return mapped_instrs
 
 
-def _get_example_gates(example_gates, source_dag):
+def _get_example_gates(source_dag, example_gates=None):
     for node in source_dag.op_nodes():
         example_gates[(node.op.name, node.op.num_qubits)] = node.op
         if isinstance(node.op, ControlFlowOp):
             for block in node.op.blocks:
                 block_dag = circuit_to_dag(block)
-                _get_example_gates(example_gates, block_dag)
+                return {**example_gates, **_get_example_gates(block_dag, example_gates)}
+    return example_gates

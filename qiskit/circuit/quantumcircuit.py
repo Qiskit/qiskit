@@ -344,7 +344,7 @@ class QuantumCircuit:
         """Return True if the circuit has a calibration defined for the instruction context. In this
         case, the operation does not need to be translated to the device basis.
         """
-        instr, qargs, cargs = instr_context
+        instr, qargs, _ = instr_context
         if not self.calibrations or instr.name not in self.calibrations:
             return False
         qubits = tuple(self.qubits.index(qubit) for qubit in qargs)
