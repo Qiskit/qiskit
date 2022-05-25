@@ -21,12 +21,11 @@ CALLBACK = Callable[[int, np.ndarray, float, float], None]
 class CMAES_AskObject(AskObject):
     """
     Args:
-        cloud: List of randomly sampled points close to CMAES_OptmizerState.x .
-        variation_cloud: Sampling from a multivariate normal distribution used to create CMAES_AskObject.cloud.
+        x_fun: List of randomly sampled points close to CMAES_OptmizerState.x .
+        x_fun_translation: Sampling from a multivariate normal distribution used to create CMAES_AskObject.cloud.
     """
 
-    cloud: List[POINT] # Change to x and put in base class
-    variation_cloud: List[POINT] # Change the name
+    x_fun_translation: Union[POINT, List[POINT]]
 
 
 @dataclass
@@ -35,8 +34,6 @@ class CMAES_TellObject(TellObject):
     Args:
         cloud_evaluated: List of the value of the function evaluated at each point of the sample.
     """
-
-    cloud_evaluated: List[POINT]
 
 
 @dataclass
@@ -48,36 +45,18 @@ class CMAES_OptimizerState(OptimizerState):
         C:
         B:
         D:
-        generation:
+        nit:
         sigma:
         best_x:
     """
 
     # x will be treated as the mean
-    p_sigma: POINT = None
-    p_c: POINT = None
-    C: np.ndarray = None  # pylint: disable=invalid-name
-    B: np.ndarray = None
-    D: POINT = None  # Will store the sqrt of the diagonal elements
-    generation: int = 0
-    sigma: float = 0.5
-    best_x: Optional[Tuple[POINT, float]] = None
-
-    def __post_init__(self):
-        if self.C is None:
-            self.C = np.eye(self.x.size)
-            self.B = np.eye(self.x.size)
-            self.D = np.ones((self.x.size))
-            self.p_sigma = np.zeros(self.x.size)
-            self.p_c = np.zeros(self.x.size)
-
-    def __str__(self):
-        # print(self.generation,self.fun,self.x,self.nfev,self.best_x)
-        funeval = self.fun(self.x)
-        funeval = funeval if funeval is not None else 0
-        bestx = self.best_x[0] if self.best_x is not None else 0
-        return f"(Generation:{self.generation} ; sigma:{self.sigma:.4E} ; objective:{funeval:.4E} ; nfev:{self.nfev} ; best_case: {bestx:.4E})"
-
+    p_sigma: POINT
+    p_c: POINT
+    C: np.ndarray  # pylint: disable=invalid-name
+    B: np.ndarray
+    D: POINT  # Will store the sqrt of the diagonal elements
+    sigma: float
 
 class SteppableCMAES(SteppableOptimizer):
     def __init__(
@@ -93,6 +72,12 @@ class SteppableCMAES(SteppableOptimizer):
         self.mu = None
         self.mueff = None
         self.tol = tol
+        self.cc = None
+        self.cs = None
+        self.c1 = None
+        self.cmu = None
+        self.damps = None
+        self.chiN = None
 
     # @property
     # def settings(self) -> Dict[str, Any]:
@@ -116,16 +101,13 @@ class SteppableCMAES(SteppableOptimizer):
         z = np.random.normal(0, 1, size=(self.lmbda, self.N))
         y = np.einsum("ij,j,kj->ki", self._state.B, self._state.D, z)  # ij or ji???
         x = self._state.x + self._state.sigma * y
-        return CMAES_AskObject(cloud=x, variation_cloud=z)
+        return CMAES_AskObject(x_fun=x, x_jac=None, x_fun_translation=z)
 
     def tell(self, ask_object: AskObject, tell_object: TellObject) -> None:
-        self._state.generation += 1
-        sorting_indexes = np.argsort(tell_object.cloud_evaluated)
-        # print(tell_object.cloud_evaluated)
-        # print(sorting_indexes)
-        sorted_x = ask_object.cloud[sorting_indexes][: self.mu]
-        self._state.best_x = (tell_object.cloud_evaluated[sorting_indexes[0]], sorted_x[0])
-        sorted_z = ask_object.variation_cloud[sorting_indexes][: self.mu]
+        self._state.nit += 1
+        sorting_indexes = np.argsort(tell_object.eval_fun)
+        sorted_x = ask_object.x_fun[sorting_indexes][: self.mu]
+        sorted_z = ask_object.x_fun_translation[sorting_indexes][: self.mu]
 
         self._state.x = np.dot(sorted_x.T, self.weights)
         mean_z = np.dot(sorted_z.T, self.weights)
@@ -137,7 +119,7 @@ class SteppableCMAES(SteppableOptimizer):
             self._state.B, mean_z
         )  # Check algebra
         hsig = np.linalg.norm(self._state.p_sigma)
-        hsig /= np.sqrt(1 - (1 - self.cs) ** (2 * self._state.generation / self.lmbda))
+        hsig /= np.sqrt(1 - (1 - self.cs) ** (2 * self._state.nit / self.lmbda))
         hsig = hsig < 1.4 + 2 / (self.N + 1) * self.chiN
         self._state.p_c *= 1 - self.cc
         self._state.p_c += hsig * np.sqrt(self.cc * (2 - self.cc) * self.mueff) * mean_z
@@ -164,18 +146,21 @@ class SteppableCMAES(SteppableOptimizer):
             self._state.D = np.real(np.sqrt(self._state.D))
             self._state.B = np.real(self._state.B)
 
-    def evaluate(self, ask_object: AskObject) -> TellObject:
-        cloud_eval = [self._state.fun(x) for x in ask_object.cloud]
-        self._state.nfev += len(ask_object.cloud)
-        return CMAES_TellObject(cloud_evaluated=cloud_eval)
+    def evaluate(self, ask_object: AskObject) -> CMAES_TellObject:
+        eval_fun = [self._state.fun(x) for x in ask_object.x_fun]
+        self._state.nfev += len(ask_object.x_fun)
+        return CMAES_TellObject(eval_fun=eval_fun, eval_jac=None)
+
+    def user_evaluate(self, eval_fun: List[float]) -> CMAES_TellObject:
+        return CMAES_TellObject(eval_fun=eval_fun, eval_jac=None)
 
     def create_result(self) -> OptimizerResult:
         """
         Creates a result of the optimization process using the values from self.state.
         """
         result = OptimizerResult()
-        result.x = self._state.best_x[1]
-        result.fun = self._state.best_x[0]
+        result.x = self._state.x
+        result.fun = self._state.fun(self._state.x)
         result.nfev = self._state.nfev
         return result
 
@@ -185,6 +170,7 @@ class SteppableCMAES(SteppableOptimizer):
         fun: Callable[[POINT], float],
         jac: Callable[[POINT], POINT] = None,
         tol: float = 1e-3,
+        population:Optional[int] = None
     ) -> None:
         """
         This method will initialize the state of the optimizer so that an optimization can be performed.
@@ -192,15 +178,28 @@ class SteppableCMAES(SteppableOptimizer):
         This method is left blank because every optimizer has a different kind of state.
         """
         # initialize state
-        self._state = CMAES_OptimizerState(x=x0, fun=fun, generation=0)
+        self._state = CMAES_OptimizerState(
+            x=x0,
+            fun=fun,
+            jac=jac,
+            nfev=0,
+            njev=None,
+            nit=0,
+            C=np.eye(x0.size),
+            B=np.eye(x0.size),
+            D=np.ones((x0.size)),
+            p_sigma=np.zeros(x0.size),
+            p_c=np.zeros(x0.size),
+            sigma=0.5,
+        )
+
         # Initialize static variables
         self.N = self._state.x.size
-        self.lmbda = 4 + int(3 * np.log(self.N))
+        self.lmbda = 4 + int(3 * np.log(self.N)) if population is None else population
         self.mu = int(self.lmbda / 2)
         self.weights = np.log((self.lmbda + 1) / 2) - np.log(np.arange(1, self.mu + 1))
 
         self.weights = self.weights / self.weights.sum()
-        print(self.weights)
         self.mueff = 1.0 / (self.weights**2).sum()
 
         self.cc = (4 + self.mueff / self.N) / (self.N + 4 + 2 * self.mueff / self.N)
@@ -216,7 +215,7 @@ class SteppableCMAES(SteppableOptimizer):
         """
         This is the condition that will be checked after each step to stop the optimization process.
         """
-        return self._state.best_x[0] < self.tol
+        return self._state.fun(self._state.x) < self.tol #Here it could be interesing to thake the nth best point to avoid converging out of luck
 
     def get_support_level(self):
         """Get the support level dictionary."""

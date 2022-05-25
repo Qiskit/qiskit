@@ -11,8 +11,6 @@ from qiskit.algorithms.algorithm_result import AlgorithmResult
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 from .steppable_optimizer import AskObject, TellObject, OptimizerState, SteppableOptimizer
 
-CALLBACK = Callable[[int, np.ndarray, float, float], None]
-
 
 def constant(eta=0.01):
     """Yield a constant."""
@@ -50,7 +48,6 @@ class SteppableGD(SteppableOptimizer):
         self,
         learning_rate: Union[float, Callable[[], Iterator]] = 0.01,
         tol: float = 1e-7,
-        callback: Optional[CALLBACK] = None,
         perturbation: Optional[float] = None,
         **kwargs,
     ) -> None:

@@ -3,18 +3,25 @@ from dataclasses import dataclass, field
 from typing import Dict, Any, Union, Callable, Optional, Tuple, List
 
 from .optimizer import Optimizer, POINT, OptimizerResult
+import numpy as np
+
+CALLBACK = Callable[[int, np.ndarray, float, float], None]
 
 
 @dataclass
 class AskObject(ABC):
     """Base class for return type of method SteppableOptimizer.ask()"""
-    # add jacobian X
-    # add x
+
+    x_fun: Union[POINT, List[POINT]]
+    x_jac: Union[POINT, List[POINT]]
 
 
 @dataclass
 class TellObject(ABC):
     """Base class for argument type of method SteppableOptimizer.tell()"""
+
+    eval_fun: Union[float, List[float]]
+    eval_jac: Union[POINT, List[POINT]]
 
 
 @dataclass
@@ -26,11 +33,11 @@ class OptimizerState:
     """
 
     x: POINT  # pylint: disable=invalid-name
-    fun: Callable[[POINT], float]  # Make optional
-    jac: Callable[[POINT], POINT] = None
-    nfev: int = 0
-    njev: int = 0
-    nit: int = 0
+    fun: Optional[Callable[[POINT], float]]  # Make optional
+    jac: Optional[Callable[[POINT], POINT]]
+    nfev: Optional[int]
+    njev: Optional[int]
+    nit: Optional[int]
 
 
 class SteppableOptimizer(Optimizer):
@@ -93,14 +100,20 @@ class SteppableOptimizer(Optimizer):
 
     """
 
-    def __init__(self, maxiter: int = 100):
+    def __init__(
+        self,
+        callback: Optional[CALLBACK] = None,
+        maxiter: int = None,
+
+    ):
         """
         Args:
             maxiter: Number of steps in the optimization process before ending the loop.
         """
         super().__init__()
         self._state = None
-        self.maxiter = maxiter # Remove maxiter
+        self.callback = callback
+        self.maxiter = maxiter  # Remove maxiter
 
     def ask(self) -> AskObject:
         """
@@ -135,6 +148,15 @@ class SteppableOptimizer(Optimizer):
         """
         raise NotImplementedError
 
+    def user_evaluate(
+        self, *args, **kwargs
+    ) -> TellObject:  # Maybe this function should be abstract. For some optimizers (The return type with a custom tell object the function needs to be overwriten)
+        """
+        Constructs TellObject.
+        Used when the user manually evaluates the function.
+        """
+        return TellObject(*args, **kwargs)
+
     def step(self) -> None:
         """
         Performs one step in the optimization process.
@@ -143,6 +165,8 @@ class SteppableOptimizer(Optimizer):
         ask_object = self.ask()
         tell_object = self.evaluate(ask_object=ask_object)
         self.tell(ask_object=ask_object, tell_object=tell_object)
+        if self.callback is not None:
+            self.callback(state=self._state)
 
     def minimize(
         self,
