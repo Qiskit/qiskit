@@ -83,7 +83,7 @@ setup(
         "visualization": visualization_extras,
         "bip-mapper": bip_requirements,
         "crosstalk-pass": z3_requirements,
-        "csp-layout-pass": csplayout_requirements,
+        "csp-layout-pass": csp_requirements,
         # Note: 'all' does not include 'bip-mapper' because cplex is too fiddly and too little
         # supported on various Python versions and OSes compared to Terra.  You have to ask for it
         # explicitly.
