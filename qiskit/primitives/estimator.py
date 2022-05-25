@@ -109,7 +109,7 @@ class Estimator(BaseEstimator):
                 )
             expectation_values.append(Statevector(circ).expectation_value(obs))
 
-        expectation_values = np.real_if_close(expectation_values)
+        expectation_values = np.real_if_close(expectation_values).tolist()
         variances = [0.0] * len(expectation_values)
         metadata = [{}] * len(expectation_values)
         return EstimatorResult(tuple(expectation_values), tuple(variances), tuple(metadata))
