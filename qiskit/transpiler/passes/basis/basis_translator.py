@@ -121,19 +121,12 @@ class BasisTranslator(TransformationPass):
         if self._target is None:
             basic_instrs = ["measure", "reset", "barrier", "snapshot", "delay"]
             target_basis = set(self._target_basis)
-            source_basis = set(_find_basis(dag))
+            source_basis = set(_extract_basis(dag))
             qargs_local_source_basis = {}
         else:
             basic_instrs = ["barrier", "snapshot"]
             target_basis = self._target.keys() - set(self._non_global_operations)
-            qargs_local_source_basis = defaultdict(set)
-            source_basis = set()
-            self._update_basis_target(
-                dag,
-                qarg_indices,
-                source_basis=source_basis,
-                qargs_local_source_basis=qargs_local_source_basis,
-            )
+            source_basis, qargs_local_source_basis = self._extract_basis_target(dag, qarg_indices)
 
         target_basis = set(target_basis).union(basic_instrs)
 
@@ -238,6 +231,7 @@ class BasisTranslator(TransformationPass):
                 if dag.has_calibration_for(node):
                     continue
 
+                qc = dag_to_circuit(dag)
                 if qubit_set in extra_instr_map:
                     self._replace_node(dag, node, extra_instr_map[qubit_set])
                 elif (node.op.name, node.op.num_qubits) in instr_map:
@@ -294,9 +288,13 @@ class BasisTranslator(TransformationPass):
         else:
             dag.substitute_node_with_dag(node, bound_target_dag)
 
-    def _update_basis_target(
+    def _extract_basis_target(
         self, dag, qarg_indices, source_basis=None, qargs_local_source_basis=None
     ):
+        if source_basis is None:
+            source_basis = set()
+        if qargs_local_source_basis is None:
+            qargs_local_source_basis = defaultdict(set)
         for node in dag.op_nodes():
             qargs = tuple(qarg_indices[bit] for bit in node.qargs)
             if dag.has_calibration_for(node):
@@ -320,33 +318,33 @@ class BasisTranslator(TransformationPass):
             if isinstance(node.op, ControlFlowOp):
                 for block in node.op.blocks:
                     block_dag = circuit_to_dag(block)
-                    source_basis, qargs_local_source_basis = self._update_basis_target(
+                    source_basis, qargs_local_source_basis = self._extract_basis_target(
                         block_dag,
                         qarg_indices,
                         source_basis=source_basis,
                         qargs_local_source_basis=qargs_local_source_basis,
                     )
-            return source_basis, qargs_local_source_basis
+        return source_basis, qargs_local_source_basis
 
 
 # this could be singledispatchmethod and included in above class if minimum
 # python version=3.8.
 @singledispatch
-def _find_basis(self, circuit):
+def _extract_basis(self, circuit):
     pass
 
 
-@_find_basis.register
+@_extract_basis.register
 def _(dag: DAGCircuit):
     for node in dag.op_nodes():
         if not dag.has_calibration_for(node):
             yield (node.name, node.op.num_qubits)
         if isinstance(node.op, ControlFlowOp):
             for block in node.op.blocks:
-                yield from _find_basis(block)
+                yield from _extract_basis(block)
 
 
-@_find_basis.register
+@_extract_basis.register
 def _(circ: QuantumCircuit):
     for instr_context in circ.data:
         instr, _, _ = instr_context
@@ -354,7 +352,7 @@ def _(circ: QuantumCircuit):
             yield (instr.name, instr.num_qubits)
         if isinstance(instr, ControlFlowOp):
             for block in instr.blocks:
-                yield from _find_basis(block)
+                yield from _extract_basis(block)
 
 
 class StopIfBasisRewritable(Exception):
