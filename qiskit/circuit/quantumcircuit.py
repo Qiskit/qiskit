@@ -340,6 +340,23 @@ class QuantumCircuit:
         """
         self._calibrations = defaultdict(dict, calibrations)
 
+    def has_calibration_for(self, instr_context: Tuple):
+        """Return True if the circuit has a calibration defined for the instruction context. In this
+        case, the operation does not need to be translated to the device basis.
+        """
+        instr, qargs, cargs = instr_context
+        if not self.calibrations or instr.name not in self.calibrations:
+            return False
+        qubits = tuple(self.qubits.index(qubit) for qubit in qargs)
+        params = []
+        for p in instr.params:
+            if isinstance(p, ParameterExpression) and not p.parameters:
+                params.append(float(p))
+            else:
+                params.append(p)
+        params = tuple(params)
+        return (qubits, params) in self.calibrations[instr.name]
+
     @property
     def metadata(self) -> dict:
         """The user provided metadata associated with the circuit
@@ -2560,10 +2577,6 @@ class QuantumCircuit:
                 assignee = instr.params[param_index]
                 # Normal ParameterExpression.
                 if isinstance(assignee, ParameterExpression):
-                    if isinstance(value, QuantumCircuit):
-                        if parameter in value.parameters:
-                            value.assign_parameters(parameter, value)
-                        continue
                     new_param = assignee.assign(parameter, value)
                     # if fully bound, validate
                     if len(new_param.parameters) == 0:
