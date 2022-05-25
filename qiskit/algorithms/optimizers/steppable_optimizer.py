@@ -8,6 +8,8 @@ from .optimizer import Optimizer, POINT, OptimizerResult
 @dataclass
 class AskObject(ABC):
     """Base class for return type of method SteppableOptimizer.ask()"""
+    # add jacobian X
+    # add x
 
 
 @dataclass
@@ -18,12 +20,13 @@ class TellObject(ABC):
 @dataclass
 class OptimizerState:
     """
-    Base class representing the state of the optmiizer. On top of that it
-    will also store the function and the jacobians to be evaluated.
+    Base class representing the state of the optmiizer.
+    Any variable that changes during the optimization process and is needed for the next step
+    of optimization should be stored in this dataclass.
     """
 
     x: POINT  # pylint: disable=invalid-name
-    fun: Callable[[POINT], float]
+    fun: Callable[[POINT], float]  # Make optional
     jac: Callable[[POINT], POINT] = None
     nfev: int = 0
     njev: int = 0
@@ -31,41 +34,111 @@ class OptimizerState:
 
 
 class SteppableOptimizer(Optimizer):
-    """Base class for a steppable optimizer."""
+    """
+    Base class for a steppable optimizer.
+
+    This family of optimizers will be using the ask and tell interface.
+    When using this interface the user has to call the function ask() in order to get information about how to evaluate the fucntion
+    (we are asking the optimizer about how to do the evaluation). This information will be mostly about at what point should we evaluate
+    the function next, but depending on the optimizer it can also be about whether we should evaluate the function itself or its gradient.
+
+    Once the function has been evaluated, the user calls the method tell() to tell the optimizer what has been the result of the function evaluation.
+    The optimizer then updates its state accordingly and the user can decide whether to stop the optimization process or to repeat a step.
+
+    This interface is more customizable, and allows the user to have full control over the evaluation of the function.
+
+    For example:
+    .. code-block::python
+
+        def objective(x):
+            if random.choice([True, False]):
+                return None
+            else:
+                return (np.linalg.norm(x) - 1) ** 2
+
+        def grad(x):
+            if random.choice([True, False]):
+                return None
+            else:
+                return 2 * (np.linalg.norm(x) - 1) * x / np.linalg.norm(x)
+
+
+        initial_point = np.random.normal(0, 1, size=(100,))
+
+        optimizer = SteppableGradientDescent(maxiter=20)
+        optimizer.initialize(x0=initial_point, fun=objective, jac=grad)
+
+        for _ in range(20):
+            ask_object = optimizer.ask()
+            evaluated_gradient = None
+
+            while evaluated_gradient is None:
+                evaluated_gradient = grad(ask_object.x_center)
+                optimizer._state.njev += 1
+
+            tell_object = GD_TellObject(gradient=evaluated_gradient)
+            optimizer.tell(ask_object=ask_object, tell_object=tell_object)
+
+        result = optimizer.create_result()
+
+    In this case the evaluation of the function has a chance of failing. The user, with specific knowledge about his function can catch this errors and handle before
+    passing the result to the optimizer.
+
+    In case the user isn't dealing with complicated function and is more familiar with step by step optimization algorithms, a method step() has been created that
+    acts as a wrapper for ask() and tell().
+    In the same spirit the method minimize() will optimize the function and return the result without the user having to worry about the optimization process.
+
+    To see other libraries that use this interface one can visit: https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/009_ask_and_tell.html
+
+
+    """
 
     def __init__(self, maxiter: int = 100):
+        """
+        Args:
+            maxiter: Number of steps in the optimization process before ending the loop.
+        """
         super().__init__()
         self._state = None
-        self.maxiter = maxiter
+        self.maxiter = maxiter # Remove maxiter
 
     def ask(self) -> AskObject:
         """
-        Abstract method ask. This method is the part of the interface of the optimizer that asks the
-        user/quantum_circuit how and where the function to optimize needs to be evaluated. It is the
-        first method inside of a "step" in the optimization process.
+        Returns the information on how to evaluate the objective function.
+        Canonical optimization workflow using ask() and tell() can be seen in SteppableOptimizer.step().
+        Returns:
+            AskOjbect: Since the way to evaluate the function can vary much with different optimization algorithms, the object will be
+        a custom dataclass for each optimizer.
         """
         raise NotImplementedError
 
     def tell(self, ask_object: AskObject, tell_object: TellObject) -> None:
         """
-        Abstract method tell. This method is the part of the interface of the optimizer that tells the
-        user/quantum_circuit what is the next point that minimizes the function (with respect to last
-        step). In this case it is not going to return anything since instead it is just going to update
-        state of the optimizer.It is the last method called inside of a "step" in the optimization process.
+        Updates the optimization state once the objective function has been evaluated.
+        Canonical optimization workflow using ask() and tell() can be seen in SteppableOptimizer.step().
+        Args:
+            ask_object: Contains the information on how the evaluation was done.
+            tell_object: Contains all relevant information about the evaluation of the objective function.
         """
         raise NotImplementedError
 
     @abstractmethod
     def evaluate(self, ask_object: AskObject) -> TellObject:
         """
-        This is the default way of evaluating the function given the request by self.ask()
+        Evaluates the function according to the instructions contained in ask_object.
+        If the user decides to use step() instead of ask() and tell() this function will contain the logic on how to evaluate
+        the function.
+        Args:
+            ask_object: Contains the information on how to do the evaluation.
+        Return:
+            tell_object: Contains all relevant information about the evaluation of the objective function.
         """
         raise NotImplementedError
 
     def step(self) -> None:
         """
-        This mehtod composes ask, evaluate, and tell to make a step in the optimization process.
-        This method uses the default logic from evaluate.
+        Performs one step in the optimization process.
+        This mehtod composes ask(), evaluate(), and tell() to make a step in the optimization process.
         """
         ask_object = self.ask()
         tell_object = self.evaluate(ask_object=ask_object)
@@ -79,6 +152,11 @@ class SteppableOptimizer(Optimizer):
         bounds: Optional[List[Tuple[float, float]]] = None,
         **kwargs,
     ) -> OptimizerResult:
+        """
+        For well behaved functions the user can call this method to minimize a function. If the user wants more control
+        on how to evaluate the function a custom loop can be created using ask() and tell() and evaluating the function
+        manually.
+        """
         self.initialize(x0=x0, fun=fun, jac=jac)
         for _ in range(self.maxiter):
             self.step()
@@ -90,22 +168,22 @@ class SteppableOptimizer(Optimizer):
     @abstractmethod
     def create_result(self) -> OptimizerResult:
         """
-        Creates a result of the optimization process using the values from self.state.
+        Returns the result of the optimization.
+        All the information needed to create the result should be stored in the optimizer state.
         """
         raise NotImplementedError
 
     @abstractmethod
     def initialize(self, *args, **kwargs) -> None:
         """
-        This method will initialize the state of the optimizer so that an optimization can be performed.
-        It will always setup the initial point and will restart the counter for function evaluations.
-        This method is left blank because every optimizer has a different kind of state.
+        This method sets (or restarts) the optimization state and the parameters to perform a new optimization.
+        Needs to be called before starting the optimization loop and also will need
         """
         raise NotImplementedError
 
     @abstractmethod
     def stop_condition(self) -> bool:
         """
-        This is the condition that will be checked after each step to stop the optimization process.
+        Condition that indicates the optimization process should come to an end.
         """
         raise NotImplementedError

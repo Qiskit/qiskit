@@ -20,25 +20,38 @@ CALLBACK = Callable[[int, np.ndarray, float, float], None]
 @dataclass
 class CMAES_AskObject(AskObject):
     """
-    AskObject containing the current point for the gradient to be evaluated, a parameter epsilon in case the
-    gradient has to be approximatedand a bool flag telling the prefered way of evaluating the gradient.
+    Args:
+        cloud: List of randomly sampled points close to CMAES_OptmizerState.x .
+        variation_cloud: Sampling from a multivariate normal distribution used to create CMAES_AskObject.cloud.
     """
 
-    # Is the user going to do the sampling?
-    # mean : POINT
-    # C : np.ndarray #Covariance
-    # Are we going to to the sampling for the user?
-    cloud: List[POINT]
-    variation_cloud: List[POINT]
+    cloud: List[POINT] # Change to x and put in base class
+    variation_cloud: List[POINT] # Change the name
 
 
 @dataclass
 class CMAES_TellObject(TellObject):
+    """
+    Args:
+        cloud_evaluated: List of the value of the function evaluated at each point of the sample.
+    """
+
     cloud_evaluated: List[POINT]
 
 
 @dataclass
 class CMAES_OptimizerState(OptimizerState):
+    """
+    Args:
+        p_sigma: Used to store
+        p_c:
+        C:
+        B:
+        D:
+        generation:
+        sigma:
+        best_x:
+    """
 
     # x will be treated as the mean
     p_sigma: POINT = None
@@ -59,7 +72,11 @@ class CMAES_OptimizerState(OptimizerState):
             self.p_c = np.zeros(self.x.size)
 
     def __str__(self):
-        return f"(Generation:{self.generation} ; sigma:{self.sigma:.4E} ; objective:{self.fun(self.x):.4E} ; nfev:{self.nfev} ; best_case: {self.best_x[0]:.4E})"
+        # print(self.generation,self.fun,self.x,self.nfev,self.best_x)
+        funeval = self.fun(self.x)
+        funeval = funeval if funeval is not None else 0
+        bestx = self.best_x[0] if self.best_x is not None else 0
+        return f"(Generation:{self.generation} ; sigma:{self.sigma:.4E} ; objective:{funeval:.4E} ; nfev:{self.nfev} ; best_case: {bestx:.4E})"
 
 
 class SteppableCMAES(SteppableOptimizer):
@@ -183,6 +200,7 @@ class SteppableCMAES(SteppableOptimizer):
         self.weights = np.log((self.lmbda + 1) / 2) - np.log(np.arange(1, self.mu + 1))
 
         self.weights = self.weights / self.weights.sum()
+        print(self.weights)
         self.mueff = 1.0 / (self.weights**2).sum()
 
         self.cc = (4 + self.mueff / self.N) / (self.N + 4 + 2 * self.mueff / self.N)
