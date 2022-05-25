@@ -32,8 +32,8 @@ class EstimatorResult:
 
     where the i-th elements of ``result`` correspond to the circuit and observable given by
     ``circuit_indices[i]``, ``observable_indices[i]``, and the parameter values bounds by
-    ``params[i]``. For example, ``results.expvals[i]`` gives the expectation value, 
-    ``results.variances[i]`` the variance, and ``result.metadata[i]`` is a metadata dictionary for 
+    ``params[i]``. For example, ``results.expvals[i]`` gives the expectation value,
+    ``results.variances[i]`` the variance, and ``result.metadata[i]`` is a metadata dictionary for
     this circuit and parameters.
 
     Args:
@@ -53,4 +53,4 @@ class EstimatorResult:
             "use ``EstimatorResult.expvals`` instead.",
             DeprecationWarning,
         )
-        return array(self.expval
+        return array(self.expvals)
