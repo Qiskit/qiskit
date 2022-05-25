@@ -163,7 +163,7 @@ class UMDA(SciPyOptimizer):
         self.alpha = alpha
         self.n_variables = n_variables
         self.vector = self._initialization()
-        self.dead_iter = self.size_gen / 5
+        self.dead_iter = self.max_iter / 5
 
         self.best_mae_global = 999999999999
         self.truncation_length = int(size_gen * alpha)
