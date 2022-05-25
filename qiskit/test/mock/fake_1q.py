@@ -16,7 +16,7 @@ Fake 1Q device (1 qubit).
 import datetime
 
 from qiskit.providers.models.backendproperties import BackendProperties, Gate, Nduv
-from qiskit.test.mock.fake_backend import FakeBackend
+from qiskit.providers.fake_provider import FakeBackend
 
 
 class Fake1Q(FakeBackend):

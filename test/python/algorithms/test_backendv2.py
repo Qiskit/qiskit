@@ -16,7 +16,7 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import QuantumCircuit
 from qiskit.providers.fake_provider import FakeProvider
-from qiskit.test.mock.fake_backend_v2 import FakeBackendSimple
+from qiskit.providers.fake_provider import FakeBackendSimple
 from qiskit.utils import QuantumInstance
 from qiskit.algorithms import Shor, VQE, Grover, AmplificationProblem
 from qiskit.opflow import X, Z, I
