@@ -19,7 +19,6 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.operator import Operator
-from qiskit.quantum_info.operators.pauli import Pauli
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.synthesis.cnotdihedral_decompose import decompose_cnotdihedral
 from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
@@ -139,13 +138,6 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         elif isinstance(data, (QuantumCircuit, Instruction)):
             self._num_qubits = data.num_qubits
             elem = self._from_circuit(data)
-            self.poly = elem.poly
-            self.linear = elem.linear
-            self.shift = elem.shift
-
-        elif isinstance(data, Pauli):
-            self._num_qubits = data.num_qubits
-            elem = self._from_circuit(data.to_instruction())
             self.poly = elem.poly
             self.linear = elem.linear
             self.shift = elem.shift
