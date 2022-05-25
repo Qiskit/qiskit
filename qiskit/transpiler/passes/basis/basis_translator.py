@@ -17,7 +17,7 @@ import logging
 
 from itertools import zip_longest
 from collections import defaultdict
-from functools import singledispatchmethod
+from functools import singledispatch
 
 import retworkx
 
@@ -121,7 +121,7 @@ class BasisTranslator(TransformationPass):
         if self._target is None:
             basic_instrs = ["measure", "reset", "barrier", "snapshot", "delay"]
             target_basis = set(self._target_basis)
-            source_basis = set(self._find_basis(dag))
+            source_basis = set(_find_basis(dag))
             qargs_local_source_basis = {}
         else:
             basic_instrs = ["barrier", "snapshot"]
@@ -294,29 +294,6 @@ class BasisTranslator(TransformationPass):
         else:
             dag.substitute_node_with_dag(node, bound_target_dag)
 
-    @singledispatchmethod
-    def _find_basis(self, circuit):
-        pass
-
-    @_find_basis.register
-    def _(self, dag: DAGCircuit):
-        for node in dag.op_nodes():
-            if not dag.has_calibration_for(node):
-                yield (node.name, node.op.num_qubits)
-            if isinstance(node.op, ControlFlowOp):
-                for block in node.op.blocks:
-                    yield from self._find_basis(block)
-
-    @_find_basis.register
-    def _(self, circ: QuantumCircuit):
-        for instr_context in circ.data:
-            instr, _, _ = instr_context
-            if not circ.has_calibration_for(instr_context):
-                yield (instr.name, instr.num_qubits)
-            if isinstance(instr, ControlFlowOp):
-                for block in instr.blocks:
-                    yield from self._find_basis(block)
-
     def _update_basis_target(
         self, dag, qarg_indices, source_basis=None, qargs_local_source_basis=None
     ):
@@ -351,7 +328,32 @@ class BasisTranslator(TransformationPass):
                     )
             return source_basis, qargs_local_source_basis
 
+# this could be singledispatchmethod and included in above class if minimum
+# python version=3.8.
+@singledispatch
+def _find_basis(self, circuit):
+    pass
 
+@_find_basis.register
+def _(dag: DAGCircuit):
+    for node in dag.op_nodes():
+        if not dag.has_calibration_for(node):
+            yield (node.name, node.op.num_qubits)
+        if isinstance(node.op, ControlFlowOp):
+            for block in node.op.blocks:
+                yield from _find_basis(block)
+
+@_find_basis.register
+def _(circ: QuantumCircuit):
+    for instr_context in circ.data:
+        instr, _, _ = instr_context
+        if not circ.has_calibration_for(instr_context):
+            yield (instr.name, instr.num_qubits)
+        if isinstance(instr, ControlFlowOp):
+            for block in instr.blocks:
+                yield from _find_basis(block)
+
+        
 class StopIfBasisRewritable(Exception):
     """Custom exception that signals `retworkx.dijkstra_search` to stop."""
 
