@@ -187,7 +187,7 @@ Step 5 : Simulate the Experiment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Qiskit Aer is a high performance simulator framework for quantum circuits. It
-provides `several backends <apidoc/providers/aer/aer_backends.html>`__
+provides `several backends <apidoc/aer_provider.html>`__
 to achieve different simulation goals.
 
 If you have issues installing Aer, you can alternatively use the Basic Aer
