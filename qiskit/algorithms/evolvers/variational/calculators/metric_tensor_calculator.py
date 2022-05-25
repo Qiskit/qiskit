@@ -28,7 +28,7 @@ def calculate(
     phase_fix: bool = True,
 ) -> ListOp:
     """
-    Calculates a parametrized QFI object.
+    Calculates a parametrized metric tensor object.
 
     Args:
         ansatz: Quantum state to be evolved in the form of a parametrized quantum circuit.
@@ -41,7 +41,7 @@ def calculate(
         phase_fix: Flag that indicates whether a phase fix should be applied.
 
     Returns:
-        Parametrized QFI as a ListOp.
+        Parametrized metric tensor as a ListOp.
     Raises:
         ValueError: If unsupported values for ``basis`` or ``phase_fix`` are provided for a given
             QFI method.
