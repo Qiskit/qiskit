@@ -136,8 +136,8 @@ class BaseSampler(ABC):
             self._parameters = tuple(ParameterView(par) for par in parameters)
             if len(self._parameters) != len(self._circuits):
                 raise QiskitError(
-                    f"Different number of parameters ({len(self._parameters)} "
-                    f"and circuits ({len(self._circuits)}"
+                    f"Different number of parameters ({len(self._parameters)}) "
+                    f"and circuits ({len(self._circuits)})"
                 )
 
     def __new__(

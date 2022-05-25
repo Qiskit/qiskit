@@ -160,8 +160,8 @@ class BaseEstimator(ABC):
             self._parameters = tuple(ParameterView(par) for par in parameters)
             if len(self._parameters) != len(self._circuits):
                 raise QiskitError(
-                    f"Different number of parameters ({len(self._parameters)} and "
-                    f"circuits ({len(self._circuits)}"
+                    f"Different number of parameters ({len(self._parameters)}) and "
+                    f"circuits ({len(self._circuits)})"
                 )
             for i, (circ, params) in enumerate(zip(self._circuits, self._parameters)):
                 if circ.num_parameters != len(params):
