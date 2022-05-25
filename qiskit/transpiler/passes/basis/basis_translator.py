@@ -208,7 +208,7 @@ class BasisTranslator(TransformationPass):
 
         def apply_translation(dag):
             for node in dag.op_nodes():
-                node_qargs = tuple(qarg_indices[bit] for bit in node.qargs)
+                node_qargs = tuple([qarg_indices[bit] for bit in node.qargs])
                 qubit_set = frozenset(node_qargs)
                 if node.name in target_basis:
                     if isinstance(node.op, ControlFlowOp):
