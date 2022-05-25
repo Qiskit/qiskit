@@ -15,7 +15,7 @@ Fake Lagos device (7 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_pulse_backend, fake_backend
+from qiskit.providers.fake_provider import fake_pulse_backend, fake_backend
 
 
 class FakeLagosV2(fake_backend.FakeBackendV2):

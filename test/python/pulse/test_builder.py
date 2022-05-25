@@ -21,7 +21,7 @@ from qiskit.pulse import builder, exceptions, macros
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.transforms import target_qobj_transform
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q
+from qiskit.providers.fake_provider import FakeOpenPulse2Q
 from qiskit.test.mock.utils.configurable_backend import (
     ConfigurableFakeBackend as ConfigurableBackend,
 )

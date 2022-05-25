@@ -15,7 +15,7 @@ Fake Ourense device (5 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_qasm_backend, fake_backend
+from qiskit.providers.fake_provider import fake_qasm_backend, fake_backend
 
 
 class FakeOurenseV2(fake_backend.FakeBackendV2):

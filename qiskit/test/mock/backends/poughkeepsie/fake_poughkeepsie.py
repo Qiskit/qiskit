@@ -18,8 +18,8 @@ import os
 import json
 
 from qiskit.providers.models import GateConfig, QasmBackendConfiguration, BackendProperties
-from qiskit.test.mock.fake_backend import FakeBackend
-from qiskit.test.mock import fake_backend
+from qiskit.providers.fake_provider.fake_backend import FakeBackend
+from qiskit.providers.fake_provider import fake_backend
 
 
 class FakePoughkeepsieV2(fake_backend.FakeBackendV2):

@@ -22,9 +22,9 @@ import qiskit
 from qiskit import providers
 from qiskit.tools.monitor import backend_overview, backend_monitor
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeProviderFactory
-from qiskit.test.mock import FakeBackend
-from qiskit.test.mock import FakeVigo
+from qiskit.providers.fake_provider import FakeProviderFactory
+from qiskit.providers.fake_provider import FakeBackend
+from qiskit.providers.fake_provider import FakeVigo
 
 
 class TestBackendOverview(QiskitTestCase):

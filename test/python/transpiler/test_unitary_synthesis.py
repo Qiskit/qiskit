@@ -24,7 +24,7 @@ from ddt import ddt, data
 
 from qiskit import transpile
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeVigo, FakeBackend5QV2, FakeBackendV2, FakeMumbaiFractionalCX
+from qiskit.providers.fake_provider import FakeVigo, FakeBackend5QV2, FakeBackendV2, FakeMumbaiFractionalCX
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import QuantumVolume
 from qiskit.converters import circuit_to_dag
