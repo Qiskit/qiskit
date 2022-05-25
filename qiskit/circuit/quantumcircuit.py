@@ -915,12 +915,8 @@ class QuantumCircuit:
             mapped_instrs += dest.data
             dest.data.clear()
             dest._parameter_table.clear()
-            for instr in mapped_instrs:
-                dest._append(instr)
-        else:
-            # just append new instrs and parameters
-            for inst in mapped_instrs:
-                dest._append(inst)
+        for instr in mapped_instrs:
+            dest._append(instr)
 
         for gate, cals in other.calibrations.items():
             dest._calibrations[gate].update(cals)
