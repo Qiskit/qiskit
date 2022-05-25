@@ -335,6 +335,17 @@ class BaseEstimator(ABC):
                     f"({observable_num_qubits})."
                 )
 
+        if max(circuits) >= len(self.circuits):
+            raise QiskitError(
+                f"The number of circuits is {len(self.circuits)}, "
+                f"but the index {max(circuits)} is given."
+            )
+        if max(observables) >= len(self.observables):
+            raise QiskitError(
+                f"The number of circuits is {len(self.observables)}, "
+                f"but the index {max(observables)} is given."
+            )
+
         return self._call(
             circuits=circuits,
             observables=observables,

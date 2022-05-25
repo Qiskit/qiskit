@@ -250,6 +250,12 @@ class BaseSampler(ABC):
                     f"the number of parameters ({len(self._parameters[i])}) for the {i}-th circuit."
                 )
 
+        if max(circuits) >= len(self.circuits):
+            raise QiskitError(
+                f"The number of circuits is {len(self.circuits)}, "
+                f"but the index {max(circuits)} is given."
+            )
+
         return self._call(
             circuits=circuits,
             parameter_values=parameter_values,
