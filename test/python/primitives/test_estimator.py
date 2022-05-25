@@ -325,6 +325,18 @@ class TestEstimator(QiskitTestCase):
                         parameter_values=[list(range(6)), [0, 1, 1, 2, 3, 5]],
                     )
 
+    def test_deprecated_arguments(self):
+        """test for deprecated arguments"""
+        with Estimator([self.ansatz], [self.observable]) as est:
+            with self.assertWarns(DeprecationWarning):
+                result = est(
+                    circuit_indices=[0],
+                    observable_indices=[0],
+                    parameter_values=[[0, 1, 1, 2, 3, 5]],
+                )
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [-1.284366511861733])
+
 
 if __name__ == "__main__":
     unittest.main()

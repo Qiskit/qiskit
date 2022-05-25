@@ -385,6 +385,18 @@ class TestSampler(QiskitTestCase):
                 with self.assertRaises(QiskitError):
                     result = sampler(circuits=[circuit], parameter_values=params)
 
+    @combine(indices=[[0], [1], [0, 1]])
+    def test_deprecated_circuit_indices(self, indices):
+        """Test for deprecated arguments"""
+        circuits, target = self._generate_circuits_target(indices)
+        with Sampler(circuits=circuits) as sampler:
+            with self.assertWarns(DeprecationWarning):
+                result = sampler(
+                    circuit_indices=list(range(len(indices))),
+                    parameter_values=[[] for _ in indices],
+                )
+            self._compare_probs(result.quasi_dists, target)
+
 
 if __name__ == "__main__":
     unittest.main()
