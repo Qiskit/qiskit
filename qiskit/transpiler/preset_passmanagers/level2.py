@@ -162,8 +162,16 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         CommutativeCancellation(basis_gates=basis_gates),
     ]
 
+    unroll_3q = None
     # Build pass manager
     if coupling_map or initial_layout:
+        unroll_3q = common.generate_unroll_3q(
+            target,
+            basis_gates,
+            approximation_degree,
+            unitary_synthesis_method,
+            unitary_synthesis_plugin_config,
+        )
         layout = PassManager()
         layout.append(_given_layout)
         layout.append(_choose_layout_0, condition=_choose_layout_condition)
@@ -207,14 +215,6 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     sched = common.generate_scheduling(
         instruction_durations, scheduling_method, timing_constraints, inst_map
     )
-    unroll_3q = common.generate_unroll_3q(
-        target,
-        basis_gates,
-        approximation_degree,
-        unitary_synthesis_method,
-        unitary_synthesis_plugin_config,
-    )
-
     return StructuredPassManager(
         init=unroll_3q,
         layout=layout,

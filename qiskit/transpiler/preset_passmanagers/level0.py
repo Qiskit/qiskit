@@ -109,8 +109,16 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StructuredPa
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 
+    unroll_3q = None
     # Build pass manager
     if coupling_map or initial_layout:
+        unroll_3q = common.generate_unroll_3q(
+            target,
+            basis_gates,
+            approximation_degree,
+            unitary_synthesis_method,
+            unitary_synthesis_plugin_config,
+        )
         layout = PassManager()
         layout.append(_given_layout)
         layout.append(_choose_layout, condition=_choose_layout_condition)
@@ -143,13 +151,6 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StructuredPa
         pre_opt = None
     sched = common.generate_scheduling(
         instruction_durations, scheduling_method, timing_constraints, inst_map
-    )
-    unroll_3q = common.generate_unroll_3q(
-        target,
-        basis_gates,
-        approximation_degree,
-        unitary_synthesis_method,
-        unitary_synthesis_plugin_config,
     )
 
     return StructuredPassManager(
