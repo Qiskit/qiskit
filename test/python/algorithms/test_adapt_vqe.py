@@ -1,4 +1,6 @@
 """ Test of the AdaptVQE minimum eigensolver """
+import sys
+sys.path.append("/Users/freyashah/qiskit-terra/test")
 import unittest
 from qiskit.opflow.gradients.gradient import Gradient
 from test.python.algorithms import QiskitAlgorithmsTestCase
@@ -51,26 +53,26 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
             ),
             PauliSumOp(
                 SparsePauliOp(
-                    ["IYIX", "ZYIX", "IYZX", "ZYZX", "IXIY", "ZXIY", "IXZY", "ZXZY"],
+                    ['ZXZY', 'IXIY', 'IYIX', 'ZYZX', 'IYZX', 'ZYIX', 'ZXIY', 'IXZY'],
                     coeffs=[
-                        -0.125 + 0.0j,
-                        -0.125 + 0.0j,
-                        0.125 + 0.0j,
-                        0.125 + 0.0j,
-                        0.125 + 0.0j,
-                        0.125 + 0.0j,
-                        -0.125 + 0.0j,
-                        -0.125 + 0.0j,
-                    ],
+                        -0.125 + 0.j,
+                        0.125 + 0.j,
+                        -0.125 + 0.j,
+                        0.125 + 0.j,
+                        0.125 + 0.j,
+                        -0.125 + 0.j,
+                        0.125 + 0.j,
+                        -0.125 + 0.j
+                    ]
                 ),
-                coeff=1.0,
+                coeff=1.0
             ),
         ]
         ansatz = EvolvedOperatorAnsatz(excitation_pool)
         calc = AdaptVQE(
             ansatz=ansatz,
             excitation_pool=excitation_pool,
-            gradient=Gradient(grad_method="fin_diff"),
+            adapt_gradient=Gradient(grad_method="param_shift"),
             quantum_instance=BasicAer.get_backend("statevector_simulator"),
         )
         res = calc.compute_minimum_eigensolver(operator=self.h2_op)

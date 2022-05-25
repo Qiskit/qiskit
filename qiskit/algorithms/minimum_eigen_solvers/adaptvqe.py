@@ -25,7 +25,7 @@ from qiskit.algorithms import VQE
 from qiskit.algorithms.list_or_dict import ListOrDict
 from qiskit.algorithms.minimum_eigen_solvers.vqe import VQEResult
 from qiskit.circuit import QuantumCircuit
-from qiskit.opflow import OperatorBase, PauliSumOp, ExpectationBase, CircuitSampler
+from qiskit.opflow import OperatorBase, PauliSumOp, ExpectationBase, CircuitSampler,StateFn
 from qiskit.opflow.gradients import GradientBase, Gradient
 from qiskit.algorithms.minimum_eigen_solvers import MinimumEigensolver
 from qiskit.circuit.library import EvolvedOperatorAnsatz, RealAmplitudes, PauliEvolutionGate
@@ -36,7 +36,8 @@ from qiskit.utils.validation import validate_min
 from qiskit.algorithms.optimizers import Optimizer
 from qiskit.utils import QuantumInstance
 from qiskit.providers import Backend
-from ..aux_ops_evaluator import eval_observables
+from qiskit.algorithms.aux_ops_evaluator import eval_observables
+#from ..aux_ops_evaluator import eval_observables
 from enum import Enum
 
 # from .minimum_eigensolver_factories import MinimumEigensolverFactory
@@ -60,7 +61,7 @@ class AdaptVQE(VQE):
         ansatz: Optional[QuantumCircuit] = None,
         threshold: float = 1e-5,
         max_iterations: Optional[int] = None,
-        gradient: Optional[GradientBase] = None,
+        adapt_gradient: Optional[GradientBase] = None,
         # optimizer: Optional[Optimizer] = None,
         initial_point: Optional[np.ndarray] = None,
         # expectation: Optional[ExpectationBase] = None,
@@ -87,7 +88,7 @@ class AdaptVQE(VQE):
             ansatz=None,
             # optimizer=optimizer,
             initial_point=initial_point,
-            gradient=gradient,
+            #gradient=gradient,
             # expectation=expectation,
             # include_custom=include_custom,
             # max_evals_grouped=max_evals_grouped,
@@ -95,11 +96,11 @@ class AdaptVQE(VQE):
             # quantum_instance=quantum_instance,
             **kwargs,
         )
-        if gradient is None:
-            gradient = Gradient(grad_method="param_shift")
+        if adapt_gradient is None:
+            adapt_gradient = Gradient(grad_method="param_shift")
         self._threshold = threshold
         self._max_iterations = max_iterations
-        self._gradient = gradient
+        self._adapt_gradient = adapt_gradient
         self._excitation_pool = excitation_pool
         self._tmp_ansatz = ansatz
         self._excitation_list: List[OperatorBase] = []
@@ -130,11 +131,21 @@ class AdaptVQE(VQE):
             param_sets = list(self.ansatz.parameters)
             # zip will only iterate the length of the shorter list
             theta1 = dict(zip(self.ansatz.parameters, theta))
-            op, expectation = self.construct_expectation(theta1, operator, return_expectation=True)
+            #gradient1 = self._gradient.gradient_wrapper(
+                #~StateFn(operator) @ StateFn(self.ansatz),
+                #bind_params=list(self.ansatz.parameters),
+                #backend=self._quantum_instance)
+            op,expectation = self.construct_expectation(theta1, operator, return_expectation=True)
             # compute gradient
-            state_grad = self.gradient.convert(operator=op, params=param_sets)
+            #print(op)
+            state_grad = self._adapt_gradient.convert(operator=op, params=param_sets)
             # Assign the parameters and evaluate the gradient
             value_dict = {param_sets[-1]: 0.0}
+            #for value in enumerate(value_dict):
+                #result = gradient1(value)
+            #print(result[-1])
+            #res.append((np.abs(result[-1]), exc))
+            print(state_grad)
             state_grad_result = sampler.convert(state_grad, params=value_dict).eval()
             logger.info("Gradient computed : %s", str(state_grad_result))
             res.append((np.abs(state_grad_result[-1]), exc))
