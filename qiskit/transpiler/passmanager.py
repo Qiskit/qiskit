@@ -321,12 +321,22 @@ class PassManager:
         return ret
 
 
-class StructuredPassManager(PassManager):
-    """A full Pass manager pipeline for a backend
+class StagedPassManager(PassManager):
+    """A Pass manager pipeline built up of individual stages
 
-    Instances of StructuredPassManager define a full compilation pipeline from a abstract virtual
-    circuit to one that is optimized and capable of running on the specified backend. It is
-    built using predefined stages:
+    This class enables building a compilation pipeline out of fixed stages.
+    Each ``StagedPassManager`` defines a list of stages which are executed in
+    a fixed order, and each stage is defined as a standalone :class:`~.PassManager`
+    instance. There are also ``pre_`` and ``post_`` stages for each defined stage.
+    This enables easily composing and replacing different stages and also adding
+    hook points to enable programmtic modifications to a pipeline. When using a staged
+    pass manager you are not able to modify the individual passes and are only able
+    to modify stages. If you do an inline modification to a defined stage be sure to
+    run the :meth:`~.StagedPassManager.update_passmanager` method.
+
+    By default instances of StagedPassManager define a typical full compilation
+    pipeline from an abstract virtual circuit to one that is optimized and
+    capable of running on the specified backend. The default pre-defined stages are:
 
     1. Init - any initial passes that are run before we start embedding the circuit to the backend
     2. Layout - This stage runs layout and maps the virtual qubits in the
@@ -336,162 +346,128 @@ class StructuredPassManager(PassManager):
         backend's compuling map.
     4. Translation - Perform the basis gate translation, in other words translate the gates
         in the circuit to the target backend's basis set
-    5. Pre-Optimization - Any passes to run before the main optimization loop
-    6. Optimization - The main optimization loop, this will typically run in a loop trying to optimize
-        the circuit until a condtion (such as fixed depth) is reached.
-    7. Post-Optimization - Any passes to run after the main optimization loop
+    6. Optimization - The main optimization loop, this will typically run in a loop trying to
+        optimize the circuit until a condtion (such as fixed depth) is reached.
     8. Scheduling - Any hardware aware scheduling passes
 
     These stages will be executed in order and any stage set to ``None`` will be skipped. If
     a :class:`~qiskit.transpiler.PassManager` input is being used for more than 1 stage here
-    (for example in the case of a Pass that covers both Layout and Routing) you will want to set
-    that to the earliest stage in sequence that it covers.
+    (for example in the case of a :class:`~.Pass` that covers both Layout and Routing) you will want
+    to set that to the earliest stage in sequence that it covers.
     """
 
-    phases = [
-        "init",
-        "layout",
-        "routing",
-        "translation",
-        "pre_optimization",
-        "optimization",
-        "post_optimization",
-        "scheduling",
-    ]
-
-    def __init__(
-        self,
-        init=None,
-        layout=None,
-        routing=None,
-        translation=None,
-        pre_optimization=None,
-        optimization=None,
-        post_optimization=None,
-        scheduling=None,
-    ):
-        """Initialize a new StructuredPassManager object
+    def __init__(self, phases=None, **kwargs):
+        """Initialize a new StagedPassManager object
 
         Args:
-            init (PassManager): A passmanager to run for the initial stage of the
-                compilation.
-            layout (PassManager): A passmanager to run for the layout stage of the
-                compilation.
-            routing (PassManager): A pass manager to run for the routing stage
-                of the compilation
-            translation (PassManager): A pass manager to run for the translation
-                stage of the compilation
-            pre_opt (PassManager): A pass manager to run before the optimization
-                loop
-            optimization (PassManager): A pass manager to run for the
-                optimization loop stage
-            post_opt (PassManager): A pass manager to run after the optimization
-                loop
-            scheduling (PassManager): A pass manager to run any scheduling passes
+            phases (List[str]): An optional list of phases to use for this
+                instance. If this is not specified the default stages list
+                ``['init', 'layout', 'routing', 'translation', 'optimization', 'scheduling']`` is
+                used
+            kwargs: The initial :class:`~.PassManager` values for any phases
+                defined in ``phases``. If a argument is not defined the
+                phases will default to ``None`` indicating an empty/undefined
+                phase.
+
+        Raises:
+            AttributeError: If a stage in the input keyword arguments is not defined.
         """
+        if phases is None:
+            self.phases = [
+                "init",
+                "layout",
+                "routing",
+                "translation",
+                "optimization",
+                "scheduling",
+            ]
+        else:
+            self.phases = phases
         super().__init__()
-        self._init = init
-        self._layout = layout
-        self._routing = routing
-        self._translation = translation
-        self._pre_optimization = pre_optimization
-        self._optimization = optimization
-        self._post_optimization = post_optimization
-        self._scheduling = scheduling
-        self._update_passmanager()
+        for phase in self.phases:
+            pre_phase = "pre_" + phase
+            post_phase = "post_" + phase
+            setattr(self, pre_phase, None)
+            setattr(self, phase, None)
+            setattr(self, post_phase, None)
 
-    def _update_passmanager(self):
+        for phase, pm in kwargs.items():
+            if (
+                phase not in self.phases
+                and (phase.startswith("pre_") and phase[4:] not in self.phases)
+                and (phase.startswith("post_") and phase[5:] not in self.phases)
+            ):
+                raise AttributeError(f"{phase} is not a valid stage.")
+            setattr(self, phase, pm)
+        self.update_passmanager()
+
+    def update_passmanager(self):
+        """Update the internal state from the defined stages
+
+        This method will update the ``StagedPassManager`` instance based on the current
+        state of the defined stages. This happens automatically when ever an object is
+        initialized or a stage is replaced with a new :class:`~.PassManager`.
+        However, if you do an inplace modification of a defined stage you will
+        need to run this method to have that changed reflected here. For example::
+
+            from qiskit.transpiler import PassManager, StagedPassManager
+            from qiskit.transpiler.passes import Depth
+
+            staged_pm = StagedPassManager(stages=['single_stage'], single_stage=PassManager())
+            staged_pm.single_stage.append(Depth())
+            staged_pm.update_passmanager()
+
+
+        without the ``update_passmananger()`` call ``staged_pm`` will not know to run
+        :class:`~.Depth`.
+        """
         self._pass_sets = []
-        if self._init:
-            self._pass_sets.extend(self._init._pass_sets)
-        if self._layout:
-            self._pass_sets.extend(self._layout._pass_sets)
-        if self._routing:
-            self._pass_sets.extend(self._routing._pass_sets)
-        if self._translation:
-            self._pass_sets.extend(self._translation._pass_sets)
-        if self._pre_optimization:
-            self._pass_sets.extend(self._pre_optimization._pass_sets)
-        if self._optimization:
-            self._pass_sets.extend(self._optimization._pass_sets)
-        if self._post_optimization:
-            self._pass_sets.extend(self._post_optimization._pass_sets)
-        if self._scheduling:
-            self._pass_sets.extend(self._scheduling._pass_sets)
+        for phase in self.phases:
+            # Add pre-phase PM
+            pre_phase_pm = getattr(self, "pre_" + phase, None)
+            if pre_phase_pm is not None:
+                self._pass_sets.extend(pre_phase_pm._pass_sets)
+            # Add phase PM
+            phase_pm = getattr(self, phase, None)
+            if phase_pm is not None:
+                self._pass_sets.extend(phase_pm._pass_sets)
+            # Add post-phase PM
+            post_phase_pm = getattr(self, "post_" + phase, None)
+            if post_phase_pm is not None:
+                self._pass_sets.extend(post_phase_pm._pass_sets)
 
-    @property
-    def init(self):
-        """Get the :class:`~qiskit.transpiler.PassManager` for the init stage."""
-        return self._init
+    def __setattr__(self, attr, value):
+        super().__setattr__(attr, value)
+        if (
+            attr in self.phases
+            or (attr.startswith("pre_") and attr[4:] not in self.phases)
+            or (attr.startswith("post_") and attr[5:] not in self.phases)
+        ):
+            self.update_passmanager()
 
-    @init.setter
-    def init(self, value):
-        """Set the :class:`~qiskit.transpiler.PassManager` for the init stage."""
-        self._init = value
-        self._update_passmanager()
+    def append(
+        self,
+        passes: Union[BasePass, List[BasePass]],
+        max_iteration: int = None,
+        **flow_controller_conditions: Any,
+    ) -> None:
+        raise NotImplementedError
 
-    @property
-    def layout(self):
-        """Get the :class:`~qiskit.transpiler.PassManager` for the layout stage."""
-        return self._layout
+    def replace(
+        self,
+        index: int,
+        passes: Union[BasePass, List[BasePass]],
+        max_iteration: int = None,
+        **flow_controller_conditions: Any,
+    ) -> None:
+        raise NotImplementedError
 
-    @layout.setter
-    def layout(self, value):
-        """Set the :class:`~qiskit.transpiler.PassManager` for the layout stage."""
-        self._layout = value
-        self._update_passmanager()
+    # Raise NotImplemntedError on individual pass manipulation
+    def remove(self, index: int) -> None:
+        raise NotImplementedError
 
-    @property
-    def routing(self):
-        """Get the :class:`~qiskit.transpiler.PassManager` for the routing stage."""
-        return self._routing
+    def __setitem__(self, index, item):
+        raise NotImplementedError
 
-    @routing.setter
-    def routing(self, value):
-        """Set the :class:`~qiskit.transpiler.PassManager` for the routing stage."""
-        self._routing = value
-        self._update_passmanager()
-
-    @property
-    def pre_optimization(self):
-        """Get the :class:`~qiskit.transpiler.PassManager` for the pre_optimization stage."""
-        return self._pre_optimization
-
-    @pre_optimization.setter
-    def pre_optimization(self, value):
-        """Set the :class:`~qiskit.transpiler.PassManager` for the pre_optimization stage."""
-        self._pre_optimization = value
-        self._update_passmanager()
-
-    @property
-    def optimization(self):
-        """Get the :class:`~qiskit.transpiler.PassManager` for the optimization stage."""
-        return self._optimization
-
-    @optimization.setter
-    def optimization(self, value):
-        """Set the :class:`~qiskit.transpiler.PassManager` for the optimization stage."""
-        self._optimization = value
-        self._update_passmanager()
-
-    @property
-    def post_optimization(self):
-        """Get the :class:`~qiskit.transpiler.PassManager` for the post_optimization stage."""
-        return self._post_optimization
-
-    @post_optimization.setter
-    def post_optimization(self, value):
-        """Set the :class:`~qiskit.transpiler.PassManager` for the post_optimization stage."""
-        self._post_optimization = value
-        self._update_passmanager()
-
-    @property
-    def scheduling(self):
-        """Get the :class:`~qiskit.transpiler.PassManager` for the scheduling stage."""
-        return self._post_optimization
-
-    @scheduling.setter
-    def scheduling(self, value):
-        """Set the :class:`~qiskit.transpiler.PassManager` for the scheduling stage."""
-        self._post_optimization = value
-        self._update_passmanager()
+    def __add__(self, other):
+        raise NotImplementedError

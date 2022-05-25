@@ -18,7 +18,7 @@ Level 1 pass manager: light optimization by simple adjacent gate collapsing.
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
-from qiskit.transpiler.passmanager import StructuredPassManager
+from qiskit.transpiler.passmanager import StagedPassManager
 
 from qiskit.transpiler.passes import CXCancellation
 from qiskit.transpiler.passes import SetLayout
@@ -232,7 +232,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         instruction_durations, scheduling_method, timing_constraints, inst_map
     )
 
-    return StructuredPassManager(
+    return StagedPassManager(
         init=unroll_3q,
         layout=layout,
         routing=routing,

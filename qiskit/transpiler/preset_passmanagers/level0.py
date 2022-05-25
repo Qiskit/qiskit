@@ -18,7 +18,7 @@ Level 0 pass manager: no explicit optimization other than mapping to backend.
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
-from qiskit.transpiler.passmanager import StructuredPassManager
+from qiskit.transpiler.passmanager import StagedPassManager
 
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import TrivialLayout
@@ -34,7 +34,7 @@ from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler import TranspilerError
 
 
-def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StructuredPassManager:
+def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassManager:
     """Level 0 pass manager: no explicit optimization other than mapping to backend.
 
     This pass manager applies the user-given initial layout. If none is given, a trivial
@@ -153,7 +153,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StructuredPa
         instruction_durations, scheduling_method, timing_constraints, inst_map
     )
 
-    return StructuredPassManager(
+    return StagedPassManager(
         init=unroll_3q,
         layout=layout,
         routing=routing,

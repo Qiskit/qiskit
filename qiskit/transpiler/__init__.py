@@ -612,7 +612,7 @@ Pass Manager Construction
 .. autosummary::
    :toctree: ../stubs/
 
-   StructuredPassManager
+   StagedPassManager
    PassManager
    PassManagerConfig
    PropertySet
@@ -668,7 +668,7 @@ Exceptions
 from .runningpassmanager import FlowController, ConditionalController, DoWhileController
 from .passmanager import PassManager
 from .passmanager_config import PassManagerConfig
-from .passmanager import StructuredPassManager
+from .passmanager import StagedPassManager
 from .propertyset import PropertySet
 from .exceptions import TranspilerError, TranspilerAccessError
 from .fencedobjs import FencedDAGCircuit, FencedPropertySet
