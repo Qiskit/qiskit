@@ -49,7 +49,9 @@ def calculate(
     operator = CircuitStateFn(ansatz)
 
     if qfi_method == "lin_comb_full" or isinstance(qfi_method, LinCombFull):
-        return LinCombFull(aux_meas_op=basis, phase_fix=phase_fix).convert(operator, parameters)
+        return 0.25 * LinCombFull(aux_meas_op=basis, phase_fix=phase_fix).convert(
+            operator, parameters
+        )
     elif basis != Z or phase_fix is False:
         raise ValueError(
             f"Basis which is not Z or phase fix which is False are only supported for "
@@ -57,7 +59,7 @@ def calculate(
             f"phase fix set to {phase_fix}."
         )
 
-    return QFI(qfi_method).convert(operator, parameters)
+    return 0.25 * QFI(qfi_method).convert(operator, parameters)
 
 
 def eval_metric_result(

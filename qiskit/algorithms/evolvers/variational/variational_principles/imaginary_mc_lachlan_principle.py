@@ -18,7 +18,7 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.opflow import StateFn, OperatorBase, ListOp
 from ..calculators import (
-    qfi_calculator,
+    metric_tensor_calculator,
     evolution_grad_calculator,
 )
 from .imaginary_variational_principle import (
@@ -50,9 +50,11 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
         Returns:
             Transformed metric tensor.
         """
-        metric_tensor_real = qfi_calculator.calculate(ansatz, parameters, self._qfi_method)
+        metric_tensor_real = metric_tensor_calculator.calculate(
+            ansatz, parameters, self._qfi_method
+        )
 
-        return metric_tensor_real * 0.25
+        return metric_tensor_real
 
     def calc_evolution_grad(
         self,

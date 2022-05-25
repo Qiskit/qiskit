@@ -28,7 +28,7 @@ from qiskit.opflow import (
 )
 from ..calculators import (
     evolution_grad_calculator,
-    qfi_calculator,
+    metric_tensor_calculator,
 )
 from .real_variational_principle import (
     RealVariationalPrinciple,
@@ -59,9 +59,11 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
         Returns:
             Transformed metric tensor.
         """
-        raw_metric_tensor_real = qfi_calculator.calculate(ansatz, parameters, self._qfi_method)
+        raw_metric_tensor_real = metric_tensor_calculator.calculate(
+            ansatz, parameters, self._qfi_method
+        )
 
-        return raw_metric_tensor_real * 0.25  # QFI/4
+        return raw_metric_tensor_real
 
     def calc_evolution_grad(
         self,

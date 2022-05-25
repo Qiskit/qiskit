@@ -22,7 +22,7 @@ from test.python.algorithms.evolvers.variational.calculators.expected_results.te
 )
 from ddt import unpack, data, ddt
 import numpy as np
-from qiskit.algorithms.evolvers.variational.calculators.qfi_calculator import (
+from qiskit.algorithms.evolvers.variational.calculators.metric_tensor_calculator import (
     calculate,
 )
 from qiskit.circuit.library import EfficientSU2
