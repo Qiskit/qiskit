@@ -49,8 +49,10 @@ class EstimatorResult:
     @property
     def values(self) -> ndarray:
         warn(
-            "``EstimatorResult.values`` will be deprecated,"
-            "use ``EstimatorResult.expvals`` instead.",
+            "The EstimatorResult.values field is deprecated as of 0.21.0, and will be"
+            "removed no earlier than 3 months after that release date. You should use the"
+            "EstimatorResult.expvals field instead.",
             DeprecationWarning,
+            stacklevel=2,
         )
         return array(self.expvals)
