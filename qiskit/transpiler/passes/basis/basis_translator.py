@@ -233,47 +233,10 @@ class BasisTranslator(TransformationPass):
                 if dag.has_calibration_for(node):
                     continue
 
-                def replace_node(node, instr_map):
-                    target_params, target_dag = instr_map[node.op.name, node.op.num_qubits]
-                    if len(node.op.params) != len(target_params):
-                        raise TranspilerError(
-                            "Translation num_params not equal to op num_params."
-                            "Op: {} {} Translation: {}\n{}".format(
-                                node.op.params, node.op.name, target_params, target_dag
-                            )
-                        )
-
-                    if node.op.params:
-                        # Convert target to circ and back to assign_parameters, since
-                        # DAGCircuits won't have a ParameterTable.
-                        target_circuit = dag_to_circuit(target_dag)
-
-                        target_circuit.assign_parameters(
-                            dict(zip_longest(target_params, node.op.params)), inplace=True
-                        )
-
-                        bound_target_dag = circuit_to_dag(target_circuit)
-                    else:
-                        bound_target_dag = target_dag
-
-                    if len(bound_target_dag.op_nodes()) == 1 and len(
-                        bound_target_dag.op_nodes()[0].qargs
-                    ) == len(node.qargs):
-                        dag_op = bound_target_dag.op_nodes()[0].op
-                        # dag_op may be the same instance as other ops in the dag,
-                        # so if there is a condition, need to copy
-                        if node.op.condition:
-                            dag_op = dag_op.copy()
-                        dag.substitute_node(node, dag_op, inplace=True)
-
-                        if bound_target_dag.global_phase:
-                            dag.global_phase += bound_target_dag.global_phase
-                    else:
-                        dag.substitute_node_with_dag(node, bound_target_dag)
                 if qubit_set in extra_instr_map:
-                    replace_node(node, extra_instr_map[qubit_set])
+                    self.replace_node(dag, node, extra_instr_map[qubit_set])
                 elif (node.op.name, node.op.num_qubits) in instr_map:
-                    replace_node(node, instr_map)
+                    self.replace_node(dag, node, instr_map)
                 else:
                     raise TranspilerError(f"BasisTranslator did not map {node.name}.")
                 dag_updated = True
@@ -287,6 +250,44 @@ class BasisTranslator(TransformationPass):
         )
 
         return dag
+
+    def replace_node(self, dag, node, instr_map):
+        target_params, target_dag = instr_map[node.op.name, node.op.num_qubits]
+        if len(node.op.params) != len(target_params):
+            raise TranspilerError(
+                "Translation num_params not equal to op num_params."
+                "Op: {} {} Translation: {}\n{}".format(
+                    node.op.params, node.op.name, target_params, target_dag
+                )
+            )
+
+        if node.op.params:
+            # Convert target to circ and back to assign_parameters, since
+            # DAGCircuits won't have a ParameterTable.
+            target_circuit = dag_to_circuit(target_dag)
+
+            target_circuit.assign_parameters(
+                dict(zip_longest(target_params, node.op.params)), inplace=True
+            )
+
+            bound_target_dag = circuit_to_dag(target_circuit)
+        else:
+            bound_target_dag = target_dag
+
+        if len(bound_target_dag.op_nodes()) == 1 and len(
+            bound_target_dag.op_nodes()[0].qargs
+        ) == len(node.qargs):
+            dag_op = bound_target_dag.op_nodes()[0].op
+            # dag_op may be the same instance as other ops in the dag,
+            # so if there is a condition, need to copy
+            if node.op.condition:
+                dag_op = dag_op.copy()
+            dag.substitute_node(node, dag_op, inplace=True)
+
+            if bound_target_dag.global_phase:
+                dag.global_phase += bound_target_dag.global_phase
+        else:
+            dag.substitute_node_with_dag(node, bound_target_dag)
 
     @singledispatchmethod
     def _find_basis(self, circuit):
