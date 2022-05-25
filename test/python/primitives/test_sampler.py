@@ -84,7 +84,7 @@ class TestSampler(QiskitTestCase):
         """test for sampler"""
         circuits, target = self._generate_circuits_target(indices)
         with Sampler(circuits=circuits) as sampler:
-            result = sampler(parameter_values=[[] for _ in indices])
+            result = sampler(list(range(len(indices))), parameter_values=[[] for _ in indices])
             self._compare_probs(result.quasi_dists, target)
 
     @combine(indices=[[0], [1], [0, 1]])
@@ -101,7 +101,7 @@ class TestSampler(QiskitTestCase):
         circs = [self._pqc, self._pqc]
         params, target = self._generate_params_target(indices)
         with Sampler(circuits=circs) as sampler:
-            result = sampler(parameter_values=params)
+            result = sampler(indices, parameter_values=params)
             self._compare_probs(result.quasi_dists, target)
 
     def test_sampler_example(self):
@@ -369,14 +369,6 @@ class TestSampler(QiskitTestCase):
                 for i in range(k):
                     self.assertDictEqual(result.quasi_dists[i], target.quasi_dists[i])
 
-    def test_broadcasting(self):
-        """Test broadcasting for Sampler."""
-
-        params, target = self._generate_params_target([0, 1])
-        with Sampler(circuits=self._pqc) as sampler:
-            result = sampler(parameter_values=params)
-            self._compare_probs(result.quasi_dists, target)
-
     def test_passing_objects(self):
         """Test passing objects for Sampler."""
 
@@ -384,14 +376,14 @@ class TestSampler(QiskitTestCase):
 
         with self.subTest("Valid test"):
             with Sampler(circuits=self._pqc) as sampler:
-                result = sampler(circuits=self._pqc, parameter_values=params)
+                result = sampler(circuits=[self._pqc], parameter_values=params)
                 self._compare_probs(result.quasi_dists, target)
 
         with self.subTest("Invalid circuit test"):
             circuit = QuantumCircuit(2)
             with Sampler(circuits=self._pqc) as sampler:
                 with self.assertRaises(QiskitError):
-                    result = sampler(circuits=circuit, parameter_values=params)
+                    result = sampler(circuits=[circuit], parameter_values=params)
 
 
 if __name__ == "__main__":

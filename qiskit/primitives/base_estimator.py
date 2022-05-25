@@ -105,7 +105,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
-from typing import cast
 
 import numpy as np
 
@@ -232,9 +231,9 @@ class BaseEstimator(ABC):
     @deprecate_arguments({"circuit_indices": "circuits", "observable_indices": "observables"})
     def __call__(
         self,
-        circuits: Sequence[int | QuantumCircuit] | None = None,
-        observables: Sequence[int | SparsePauliOp] | None = None,
-        parameter_values: Sequence[Sequence[float]] | Sequence[float] | None = None,
+        circuits: Sequence[int | QuantumCircuit],
+        observables: Sequence[int | SparsePauliOp],
+        parameter_values: Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> EstimatorResult:
         """Run the estimation of expectation value(s).
@@ -276,33 +275,7 @@ class BaseEstimator(ABC):
         if isinstance(parameter_values, np.ndarray):
             parameter_values = parameter_values.tolist()
 
-        # Allow lift T to [T].
-        if circuits is not None and not isinstance(circuits, (np.ndarray, Sequence)):
-            circuits = [circuits]
-        if observables is not None and not isinstance(observables, (np.ndarray, Sequence)):
-            observables = [observables]
-        if parameter_values is not None and not isinstance(
-            parameter_values[0], (np.ndarray, Sequence)
-        ):
-            parameter_values = cast("Sequence[float]", parameter_values)
-            parameter_values = [parameter_values]
-
-        # Allow broadcasting
-        if (
-            circuits is None
-            and len(self._circuits) == 1
-            and observables is None
-            and len(self._observables) == 1
-            and parameter_values is not None
-        ):
-            circuits = [0] * len(parameter_values)
-            observables = [0] * len(parameter_values)
-
         # Allow optional
-        if circuits is None:
-            circuits = list(range(len(self._circuits)))
-        if observables is None:
-            observables = list(range(len(self._observables)))
         if parameter_values is None:
             for i in circuits:
                 if len(self._circuits[i].parameters) != 0:
