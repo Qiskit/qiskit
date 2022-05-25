@@ -207,6 +207,7 @@ class BasisTranslator(TransformationPass):
         replace_start_time = time.time()
 
         def apply_translation(dag):
+            dag_updated = False
             for node in dag.op_nodes():
                 node_qargs = tuple(qarg_indices[bit] for bit in node.qargs)
                 qubit_set = frozenset(node_qargs)
@@ -215,8 +216,11 @@ class BasisTranslator(TransformationPass):
                         flow_blocks = []
                         for block in node.op.blocks:
                             dag_block = circuit_to_dag(block)
-                            flow_dag_block = apply_translation(dag_block)
-                            flow_circ_block = dag_to_circuit(flow_dag_block)
+                            dag_updated = apply_translation(dag_block)
+                            if dag_updated:
+                                flow_circ_block = dag_to_circuit(dag_block)
+                            else:
+                                flow_circ_block = block
                             flow_blocks.append(flow_circ_block)
                         node.op = node.op.replace_blocks(flow_blocks)
                     continue
@@ -266,16 +270,16 @@ class BasisTranslator(TransformationPass):
                             dag.global_phase += bound_target_dag.global_phase
                     else:
                         dag.substitute_node_with_dag(node, bound_target_dag)
-
                 if qubit_set in extra_instr_map:
                     replace_node(node, extra_instr_map[qubit_set])
                 elif (node.op.name, node.op.num_qubits) in instr_map:
                     replace_node(node, instr_map)
                 else:
                     raise TranspilerError(f"BasisTranslator did not map {node.name}.")
-            return dag
+                dag_updated = True
+            return dag_updated
 
-        dag = apply_translation(dag)
+        apply_translation(dag)
         replace_end_time = time.time()
         logger.info(
             "Basis translation instructions replaced in %.3fs.",
