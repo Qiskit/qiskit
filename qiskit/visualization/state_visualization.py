@@ -33,6 +33,8 @@ from qiskit.visualization.utils import (
     _paulivec_data,
     matplotlib_close_if_inline,
 )
+from qiskit.circuit.library import HGate
+from qiskit.quantum_info import Operator
 from qiskit.circuit.tools.pi_check import pi_check
 
 
@@ -1095,7 +1097,7 @@ def _shade_colors(color, normals, lightsource=None):
 
 
 def state_to_latex(
-    state: Union[Statevector, DensityMatrix], dims: bool = None, convention: str = "ket", **args
+    state: Union[Statevector, DensityMatrix], dims: bool = None, convention: str = "ket",ket_basis='comp', **args
 ) -> str:
     """Return a Latex representation of a state. Wrapper function
     for `qiskit.visualization.array_to_latex` for convention 'vector'.
@@ -1130,7 +1132,7 @@ def state_to_latex(
     # this means the operator shape should hve no input dimensions and all output dimensions equal to 2
     is_qubit_statevector = len(operator_shape.dims_r()) == 0 and set(operator_shape.dims_l()) == {2}
     if convention == "ket" and is_qubit_statevector:
-        latex_str = _state_to_latex_ket(state._data)
+        latex_str = _state_to_latex_ket(state._data,ket_basis=ket_basis)
     else:
         latex_str = array_to_latex(state._data, source=True, **args)
     return prefix + latex_str + suffix
@@ -1224,7 +1226,7 @@ def numbers_to_latex_terms(numbers: List[complex]) -> List[str]:
     return terms
 
 
-def _state_to_latex_ket(data: List[complex], max_size: int = 12) -> str:
+def _state_to_latex_ket(data: List[complex], max_size: int = 12, ket_basis:str = 'comp') -> str:
     """Convert state vector to latex representation
 
     Args:
@@ -1235,11 +1237,26 @@ def _state_to_latex_ket(data: List[complex], max_size: int = 12) -> str:
     Returns:
         String with LaTeX representation of the state vector
     """
+
+    
     num = int(np.log2(len(data)))
 
     def ket_name(i):
         return bin(i)[2:].zfill(num)
 
+    def convert_to_basis(ket,ket_basis):
+        if ket_basis == 'hadamard':
+            return ket.replace('0', '+').replace('1', '-')
+        elif ket_basis == 'comp':
+            return ket
+    def apply_basis_gate(data,ket_basis):
+        if ket_basis == 'hadamard':
+            # apply to H gate to data
+            return Operator(HGate()) @ data
+        elif ket_basis == 'comp':
+            return data
+
+    # data = apply_basis_gate(data,ket_basis)
     data = _round_if_close(data)
     nonzero_indices = np.where(data != 0)[0].tolist()
     if len(nonzero_indices) > max_size:
@@ -1257,7 +1274,7 @@ def _state_to_latex_ket(data: List[complex], max_size: int = 12) -> str:
             latex_str += r" + \ldots "
         else:
             term = latex_terms[idx]
-            ket = ket_name(ket_idx)
+            ket = convert_to_basis(ket_name(ket_idx),ket_basis)
             latex_str += f"{term} |{ket}\\rangle"
     return latex_str
 
