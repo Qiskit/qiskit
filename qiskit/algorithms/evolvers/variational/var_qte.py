@@ -180,25 +180,6 @@ class VarQTE(ABC):
 
         return initial_state.assign_parameters(param_dict_from_ode)
 
-    def bind_parameters_to_state(
-        self,
-        state: Union[QuantumCircuit, StateFn],
-        param_dict: Dict[Parameter, complex],
-    ) -> None:
-        r"""
-        Bind parameters in a given quantum state to values provided. Uses a ``CircuitSampler`` if
-        available.
-
-        Args:
-            state: Parametrized quantum state to be bound.
-            param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
-        """
-        if self._circuit_sampler:
-            initial_state = self._circuit_sampler.convert(state, param_dict)
-        else:
-            initial_state = state.assign_parameters(param_dict)
-        return initial_state.eval().primitive.data
-
     @staticmethod
     def _create_init_state_param_dict(
         param_value_dict: Dict[Parameter, complex],

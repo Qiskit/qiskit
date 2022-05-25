@@ -97,9 +97,6 @@ class VarQITE(ImaginaryEvolver, VarQTE):
             evolution_problem.param_value_dict,
             list(evolution_problem.initial_state.parameters),
         )
-        self.bind_parameters_to_state(
-            StateFn(evolution_problem.initial_state), init_state_param_dict
-        )
 
         error_calculator = None  # TODO will be supported in another PR
 
