@@ -12,10 +12,10 @@
 
 """Variational Quantum Real Time Evolution algorithm."""
 from functools import partial
-from typing import Optional, Callable
+from typing import Optional, Callable, Union
 
 import numpy as np
-from scipy.integrate import OdeSolver, RK45
+from scipy.integrate import OdeSolver
 
 from qiskit.algorithms.aux_ops_evaluator import eval_observables
 from qiskit.algorithms.evolvers import EvolutionProblem, EvolutionResult
@@ -39,7 +39,7 @@ class VarQRTE(RealEvolver, VarQTE):
         self,
         variational_principle: RealVariationalPrinciple,
         ode_function_factory: OdeFunctionFactory,
-        ode_solver: OdeSolver = RK45,
+        ode_solver: Union[OdeSolver, str] = "RK45",
         lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] = partial(
             np.linalg.lstsq, rcond=1e-2
         ),
@@ -52,7 +52,8 @@ class VarQRTE(RealEvolver, VarQTE):
         Args:
             variational_principle: Variational Principle to be used.
             ode_function_factory: Factory for the ODE function.
-            ode_solver: ODE solver callable that follows a SciPy ``OdeSolver`` interface.
+            ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
+                string indicating a valid method offered by SciPy.
             lse_solver: Linear system of equations solver that follows a NumPy
                 ``np.linalg.lstsq`` interface.
             expectation: An instance of ``ExpectationBase`` which defines a method for calculating

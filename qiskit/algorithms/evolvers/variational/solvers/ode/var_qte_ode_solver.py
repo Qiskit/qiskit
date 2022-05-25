@@ -13,9 +13,9 @@
 """Class for solving ODEs for Quantum Time Evolution."""
 
 import itertools
-from typing import List
+from typing import List, Union
 
-from scipy.integrate import OdeSolver, solve_ivp, RK45
+from scipy.integrate import OdeSolver, solve_ivp
 
 from .abstract_ode_function import (
     AbstractOdeFunction,
@@ -29,7 +29,7 @@ class VarQTEOdeSolver:
         self,
         init_params: List[complex],
         ode_function: AbstractOdeFunction,
-        ode_solver: OdeSolver = RK45,
+        ode_solver: Union[OdeSolver, str] = "RK45",
     ) -> None:
         """
         Initialize ODE Solver.
@@ -37,7 +37,8 @@ class VarQTEOdeSolver:
         Args:
             init_params: Set of initial parameters for time 0.
             ode_function: Generates the ODE function.
-            ode_solver: ODE solver callable that follows a SciPy OdeSolver interface.
+            ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
+                string indicating a valid method offered by SciPy.
         """
         self._init_params = init_params
         self._ode_function = ode_function.var_qte_ode_function

@@ -17,7 +17,7 @@ from functools import partial
 from typing import Optional, Union, Dict, List, Callable
 
 import numpy as np
-from scipy.integrate import RK45, OdeSolver
+from scipy.integrate import OdeSolver
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms import EvolutionProblem
@@ -60,7 +60,7 @@ class VarQTE(ABC):
         self,
         variational_principle: VariationalPrinciple,
         ode_function_factory: OdeFunctionFactory,
-        ode_solver: OdeSolver = RK45,
+        ode_solver: Union[OdeSolver, str] = "RK45",
         lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] = partial(
             np.linalg.lstsq, rcond=1e-2
         ),
@@ -73,7 +73,8 @@ class VarQTE(ABC):
         Args:
             variational_principle: Variational Principle to be used.
             ode_function_factory: Factory for the ODE function.
-            ode_solver: ODE solver callable that follows a SciPy ``OdeSolver`` interface.
+            ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
+                string indicating a valid method offered by SciPy.
             lse_solver: Linear system of equations solver that follows a NumPy
                 ``np.linalg.lstsq`` interface.
             expectation: An instance of ``ExpectationBase`` which defines a method for calculating
@@ -182,31 +183,56 @@ class VarQTE(ABC):
 
     @staticmethod
     def _create_init_state_param_dict(
-        param_value_dict: Dict[Parameter, complex],
+        param_values: Union[Dict[Parameter, complex], List[complex], np.ndarray],
         init_state_parameters: List[Parameter],
     ) -> Dict[Parameter, complex]:
         r"""
-        Looks for parameters present in an initial state (an ansatz) in a ``param_value_dict``
-        provided. Based on that, it creates a new dictionary containing only parameters present
-        in an initial state and their respective values. If no value for an initial state parameter
-        is present, it is chosen uniformly at random.
+        If ``param_values`` is a dictionary, it looks for parameters present in an initial state
+        (an ansatz) in a ``param_values``. Based on that, it creates a new dictionary containing
+        only parameters present in an initial state and their respective values.
+        If ``param_values`` is a list of values, it creates a new dictionary containing
+        parameters present in an initial state and their respective values.
+        If no ``param_values`` is provided, parameter values are chosen uniformly at random.
 
         Args:
-            param_value_dict: Dictionary which relates parameter values to the parameters.
+            param_values: Dictionary which relates parameter values to the parameters or a list of
+                values.
             init_state_parameters: Parameters present in a quantum state.
 
         Returns:
             Dictionary that maps parameters of an initial state to some values.
+        Raises:
+            ValueError: If the dictionary with parameter values provided does not include all
+                parameters present in the initial state or if the list of values provided is not the
+                same length as the list of parameters.
+            TypeError: If an unsupported type of ``param_values`` provided.
         """
-        if param_value_dict is None:
+        if param_values is None:
             init_state_parameter_values = np.random.random(len(init_state_parameters))
-        else:
+        elif isinstance(param_values, dict):
             init_state_parameter_values = []
             for param in init_state_parameters:
-                if param in param_value_dict.keys():
-                    init_state_parameter_values.append(param_value_dict[param])
+                if param in param_values.keys():
+                    init_state_parameter_values.append(param_values[param])
                 else:
-                    init_state_parameter_values.append(np.random.random(len(init_state_parameters)))
+                    raise ValueError(
+                        f"The dictionary with parameter values provided does not "
+                        f"include all parameters present in the initial state."
+                        f"Parameters present in the state: {init_state_parameters}, "
+                        f"parameters in the dictionary: "
+                        f"{list(param_values.keys())}."
+                    )
+        elif isinstance(param_values, list) or isinstance(param_values, np.ndarray):
+            if len(init_state_parameters) != len(param_values):
+                raise ValueError(
+                    f"Initial state has {len(init_state_parameters)} parameters and the"
+                    f" list of values has {len(param_values)} elements. They should be"
+                    f"equal in length."
+                )
+            init_state_parameter_values = param_values
+        else:
+            raise TypeError(f"Unsupported type of param_values provided: {type(param_values)}.")
+
         init_state_param_dict = dict(zip(init_state_parameters, init_state_parameter_values))
         return init_state_param_dict
 
