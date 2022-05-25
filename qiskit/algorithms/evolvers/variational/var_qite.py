@@ -18,11 +18,8 @@ import numpy as np
 from scipy.integrate import OdeSolver
 
 from qiskit.opflow import (
-    StateFn,
     ExpectationBase,
 )
-from qiskit.algorithms.aux_ops_evaluator import eval_observables
-from qiskit.algorithms.evolvers import EvolutionProblem, EvolutionResult
 from qiskit.algorithms.evolvers.imaginary_evolver import ImaginaryEvolver
 from qiskit.utils import QuantumInstance
 from .solvers.ode.ode_function_factory import OdeFunctionFactory
@@ -32,7 +29,7 @@ from .variational_principles.imaginary_variational_principle import (
 )
 
 
-class VarQITE(ImaginaryEvolver, VarQTE):
+class VarQITE(VarQTE, ImaginaryEvolver):
     """Variational Quantum Imaginary Time Evolution algorithm."""
 
     def __init__(
@@ -76,47 +73,3 @@ class VarQITE(ImaginaryEvolver, VarQTE):
             num_instability_tol,
             quantum_instance,
         )
-
-    def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
-        """
-        Apply Variational Quantum Imaginary Time Evolution (VarQITE) w.r.t. the given
-        operator.
-
-        Args:
-            evolution_problem: Instance defining an evolution problem. If no initial parameter
-                values are provided in ``param_value_dict``, they are initialized uniformly at
-                random.
-
-        Returns:
-            Result of the evolution which includes a quantum circuit with bound parameters as an
-            evolved state and, if provided, observables evaluated on the evolved state using
-            a ``quantum_instance`` and ``expectation`` provided.
-        """
-        self._validate_aux_ops(evolution_problem)
-
-        init_state_param_dict = self._create_init_state_param_dict(
-            evolution_problem.param_value_dict,
-            list(evolution_problem.initial_state.parameters),
-        )
-
-        error_calculator = None  # TODO will be supported in another PR
-
-        evolved_state = super()._evolve(
-            init_state_param_dict,
-            evolution_problem.hamiltonian,
-            evolution_problem.time,
-            evolution_problem.t_param,
-            evolution_problem.initial_state,
-            error_calculator,
-        )
-
-        evaluated_aux_ops = None
-        if evolution_problem.aux_operators is not None:
-            evaluated_aux_ops = eval_observables(
-                self.quantum_instance,
-                evolved_state,
-                evolution_problem.aux_operators,
-                self.expectation,
-            )
-
-        return EvolutionResult(evolved_state, evaluated_aux_ops)

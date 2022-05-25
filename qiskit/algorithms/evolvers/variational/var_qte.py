@@ -20,12 +20,11 @@ import numpy as np
 from scipy.integrate import OdeSolver
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms import EvolutionProblem
+from qiskit.algorithms import EvolutionProblem, EvolutionResult, eval_observables
 from qiskit.circuit import Parameter
 from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
 from qiskit.opflow import (
-    StateFn,
     CircuitSampler,
     OperatorBase,
     ExpectationBase,
@@ -115,6 +114,50 @@ class VarQTE(ABC):
         self._circuit_sampler = CircuitSampler(
             quantum_instance, param_qobj=is_aer_provider(quantum_instance.backend)
         )
+
+    def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
+        """
+        Apply Variational Quantum Imaginary Time Evolution (VarQITE) w.r.t. the given
+        operator.
+
+        Args:
+            evolution_problem: Instance defining an evolution problem. If no initial parameter
+                values are provided in ``param_value_dict``, they are initialized uniformly at
+                random.
+
+        Returns:
+            Result of the evolution which includes a quantum circuit with bound parameters as an
+            evolved state and, if provided, observables evaluated on the evolved state using
+            a ``quantum_instance`` and ``expectation`` provided.
+        """
+        self._validate_aux_ops(evolution_problem)
+
+        init_state_param_dict = self._create_init_state_param_dict(
+            evolution_problem.param_value_dict,
+            list(evolution_problem.initial_state.parameters),
+        )
+
+        error_calculator = None  # TODO will be supported in another PR
+
+        evolved_state = self._evolve(
+            init_state_param_dict,
+            evolution_problem.hamiltonian,
+            evolution_problem.time,
+            evolution_problem.t_param,
+            evolution_problem.initial_state,
+            error_calculator,
+        )
+
+        evaluated_aux_ops = None
+        if evolution_problem.aux_operators is not None:
+            evaluated_aux_ops = eval_observables(
+                self.quantum_instance,
+                evolved_state,
+                evolution_problem.aux_operators,
+                self.expectation,
+            )
+
+        return EvolutionResult(evolved_state, evaluated_aux_ops)
 
     def _evolve(
         self,
