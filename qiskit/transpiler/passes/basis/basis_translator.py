@@ -328,11 +328,13 @@ class BasisTranslator(TransformationPass):
                     )
             return source_basis, qargs_local_source_basis
 
+
 # this could be singledispatchmethod and included in above class if minimum
 # python version=3.8.
 @singledispatch
 def _find_basis(self, circuit):
     pass
+
 
 @_find_basis.register
 def _(dag: DAGCircuit):
@@ -342,6 +344,7 @@ def _(dag: DAGCircuit):
         if isinstance(node.op, ControlFlowOp):
             for block in node.op.blocks:
                 yield from _find_basis(block)
+
 
 @_find_basis.register
 def _(circ: QuantumCircuit):
@@ -353,7 +356,7 @@ def _(circ: QuantumCircuit):
             for block in instr.blocks:
                 yield from _find_basis(block)
 
-        
+
 class StopIfBasisRewritable(Exception):
     """Custom exception that signals `retworkx.dijkstra_search` to stop."""
 
