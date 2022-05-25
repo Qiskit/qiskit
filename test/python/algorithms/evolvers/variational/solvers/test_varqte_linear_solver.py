@@ -23,8 +23,8 @@ from ddt import ddt, data
 import numpy as np
 
 from qiskit import BasicAer
-from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_variational_principle import (
-    ImaginaryMcLachlanVariationalPrinciple,
+from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_principle import (
+    ImaginaryMcLachlanPrinciple,
 )
 from qiskit.algorithms.evolvers.variational.solvers.var_qte_linear_solver import (
     VarQTELinearSolver,
@@ -62,7 +62,7 @@ class TestVarQTELinearSolver(QiskitAlgorithmsTestCase):
 
         param_dict = dict(zip(parameters, init_param_values))
 
-        var_principle = ImaginaryMcLachlanVariationalPrinciple()
+        var_principle = ImaginaryMcLachlanPrinciple()
 
         metric_tensor = var_principle.calc_metric_tensor(ansatz, parameters)
         evolution_grad = var_principle.calc_evolution_grad(observable, ansatz, parameters)

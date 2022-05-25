@@ -10,23 +10,23 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test real McLachlan's variational principle."""
+"""Test real time dependent variational principle."""
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from test.python.algorithms.evolvers.variational.variational_principles.expected_results.test_imaginary_mc_lachlan_variational_principle_expected2 import (
-    expected_bound_metric_tensor_2,
+from test.python.algorithms.evolvers.variational.variational_principles.expected_results.test_imaginary_mc_lachlan_variational_principle_expected3 import (
+    expected_bound_metric_tensor_3,
 )
 import numpy as np
-from qiskit.algorithms.evolvers.variational.variational_principles.real_mc_lachlan_variational_principle import (
-    RealMcLachlanVariationalPrinciple,
+from qiskit.algorithms.evolvers.variational.variational_principles.real_time_dependent_principle import (
+    RealTimeDependentPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import SummedOp, X, Y, I, Z
 
 
-class TestRealMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
-    """Test real McLachlan's variational principle."""
+class TestRealTimeDependentPrinciple(QiskitAlgorithmsTestCase):
+    """Test real time dependent variational principle."""
 
     def test_calc_calc_metric_tensor(self):
         """Test calculating a metric tensor."""
@@ -47,18 +47,17 @@ class TestRealMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
         # Define a set of initial parameters
         parameters = ansatz.ordered_parameters
         param_dict = {param: np.pi / 4 for param in parameters}
-        var_principle = RealMcLachlanVariationalPrinciple()
+        var_principle = RealTimeDependentPrinciple()
 
         metric_tensor = var_principle.calc_metric_tensor(ansatz, parameters)
 
         bound_metric_tensor = metric_tensor.bind_parameters(param_dict)
 
         np.testing.assert_almost_equal(
-            bound_metric_tensor.eval(), expected_bound_metric_tensor_2, decimal=5
+            bound_metric_tensor.eval(), expected_bound_metric_tensor_3, decimal=5
         )
 
-    # TODO deal with the callable
-    def test_calc_evolution_grad(self):
+    def test_calc_calc_evolution_grad(self):
         """Test calculating evolution gradient."""
         observable = SummedOp(
             [
@@ -77,27 +76,25 @@ class TestRealMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
         # Define a set of initial parameters
         parameters = ansatz.ordered_parameters
         param_dict = {param: np.pi / 4 for param in parameters}
-        var_principle = RealMcLachlanVariationalPrinciple()
+        var_principle = RealTimeDependentPrinciple()
 
         evolution_grad = var_principle.calc_evolution_grad(observable, ansatz, parameters)
-        sampler = None
-        evolution_grad = evolution_grad(param_dict, sampler)
 
         bound_raw_evolution_grad = evolution_grad.bind_parameters(param_dict)
 
         expected_bound_evolution_grad = [
-            (0.04514911474522546 - 4e-18j),
-            (-0.0963123928027075 + 1.5e-18j),
-            (-0.1365347823673539 + 7e-18j),
-            (-0.004969316401057883 + 4.9999999999999996e-18j),
-            (0.003843833929692342 + 4.999999999999998e-19j),
-            (-0.07036988622493834 + 7e-18j),
-            (-0.16560609099860682 + 3.5e-18j),
-            (-0.16674183768051887 - 1e-18j),
-            (0.03843296670360974 + 6e-18j),
-            (-0.08891074158680243 + 6e-18j),
-            (-0.06425681697616654 - 7e-18j),
-            (0.03172376682078948 + 7e-18j),
+            (-0.19308934095957098 + 1.4e-17j),
+            (-0.007027674650099142 + 0j),
+            (-0.03192524520091862 + 0j),
+            (0.06810314606309673 + 1e-18j),
+            (-0.07590371669521798 + 7e-18j),
+            (-0.11891968269385343 - 1.5e-18j),
+            (0.0012030273438232639 + 0j),
+            (0.049885258804562266 - 1.8500000000000002e-17j),
+            (0.20178860797540302 + 5e-19j),
+            (0.0052269232310933195 - 1e-18j),
+            (-0.022892905637005266 + 3e-18j),
+            (0.022892905637005294 - 3.5e-18j),
         ]
 
         np.testing.assert_almost_equal(

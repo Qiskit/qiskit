@@ -35,7 +35,7 @@ from .real_variational_principle import (
 )
 
 
-class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
+class RealMcLachlanPrinciple(RealVariationalPrinciple):
     """Class for an Imaginary McLachlan's Variational Principle. It aims to minimize the distance
     between both sides of the Schrödinger equation with a quantum state given as a parametrized
     trial state. The principle leads to a system of linear equations handled by the

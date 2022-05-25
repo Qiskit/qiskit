@@ -29,7 +29,7 @@ variational principle chosen by a user.
     from qiskit.circuit.library import EfficientSU2
     from qiskit.opflow import SummedOp, I, Z, Y, X
     from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_variational_principle import (
-    ImaginaryMcLachlanVariationalPrinciple,
+    ImaginaryMcLachlanPrinciple,
     )
     from qiskit.algorithms import EvolutionProblem
     from qiskit.algorithms import VarQITE
@@ -58,7 +58,7 @@ variational principle chosen by a user.
     param_dict = dict(zip(parameters, init_param_values))
 
     # define a variational principle
-    var_principle = ImaginaryMcLachlanVariationalPrinciple()
+    var_principle = ImaginaryMcLachlanPrinciple()
 
     # optionally define a backend
     backend = BasicAer.get_backend("statevector_simulator")
@@ -98,26 +98,26 @@ They can be divided into two categories:
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
-    RealMcLachlanVariationalPrinciple
-    RealTimeDependentVariationalPrinciple
-    ImaginaryMcLachlanVariationalPrinciple
+    RealMcLachlanPrinciple
+    RealTimeDependentPrinciple
+    ImaginaryMcLachlanPrinciple
 """
-from .variational_principles.imaginary_mc_lachlan_variational_principle import (
-    ImaginaryMcLachlanVariationalPrinciple,
+from .variational_principles.imaginary_mc_lachlan_principle import (
+    ImaginaryMcLachlanPrinciple,
 )
-from .variational_principles.real_mc_lachlan_variational_principle import (
-    RealMcLachlanVariationalPrinciple,
+from .variational_principles.real_mc_lachlan_principle import (
+    RealMcLachlanPrinciple,
 )
 from ..variational.var_qrte import VarQRTE
 from .var_qite import VarQITE
-from .variational_principles.real_time_dependent_variational_principle import (
-    RealTimeDependentVariationalPrinciple,
+from .variational_principles.real_time_dependent_principle import (
+    RealTimeDependentPrinciple,
 )
 
 __all__ = [
     "VarQITE",
     "VarQRTE",
-    "RealMcLachlanVariationalPrinciple",
-    "RealTimeDependentVariationalPrinciple",
-    "ImaginaryMcLachlanVariationalPrinciple",
+    "RealMcLachlanPrinciple",
+    "RealTimeDependentPrinciple",
+    "ImaginaryMcLachlanPrinciple",
 ]

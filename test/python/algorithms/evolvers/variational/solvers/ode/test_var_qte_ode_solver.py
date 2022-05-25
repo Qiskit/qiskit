@@ -28,8 +28,8 @@ from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function import (
     OdeFunction,
 )
 from qiskit import BasicAer
-from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_variational_principle import (
-    ImaginaryMcLachlanVariationalPrinciple,
+from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_principle import (
+    ImaginaryMcLachlanPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import (
@@ -72,7 +72,7 @@ class TestVarQTEOdeSolver(QiskitAlgorithmsTestCase):
 
         backend = BasicAer.get_backend("statevector_simulator")
 
-        var_principle = ImaginaryMcLachlanVariationalPrinciple()
+        var_principle = ImaginaryMcLachlanPrinciple()
 
         time = 1
 

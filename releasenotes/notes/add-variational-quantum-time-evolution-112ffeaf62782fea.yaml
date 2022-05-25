@@ -6,9 +6,9 @@ features:
     imaginary (:class:`qiskit.algorithms.VarQITE`.) quantum time evolution according to a
     variational principle passed. Each algorithm accepts a variational principle and the following
     are provided:
-    :class:`qiskit.algorithms.evolvers.variational.variational_principles.ImaginaryMcLachlanVariationalPrinciple`,
-    :class:`qiskit.algorithms.evolvers.variational.variational_principles.RealMcLachlanVariationalPrinciple`,
-    :class:`qiskit.algorithms.evolvers.variational.variational_principles.RealTimeDependentVariationalPrinciple`.
+    :class:`qiskit.algorithms.evolvers.variational.variational_principles.ImaginaryMcLachlanPrinciple`,
+    :class:`qiskit.algorithms.evolvers.variational.variational_principles.RealMcLachlanPrinciple`,
+    :class:`qiskit.algorithms.evolvers.variational.variational_principles.RealTimeDependentPrinciple`.
     Both algorithms require solving ODE equations and linear equations which is handled by classes
     implemented in `qiskit.algorithms.evolvers.variational.solvers` module.
 
@@ -20,7 +20,7 @@ features:
         from qiskit.circuit.library import EfficientSU2
         from qiskit.opflow import SummedOp, I, Z, Y, X
         from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_variational_principle import (
-        ImaginaryMcLachlanVariationalPrinciple,
+        ImaginaryMcLachlanPrinciple,
         )
         from qiskit.algorithms import EvolutionProblem
         from qiskit.algorithms import VarQITE

@@ -19,14 +19,14 @@ from test.python.algorithms.evolvers.variational.variational_principles.expected
 )
 import numpy as np
 
-from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_variational_principle import (
-    ImaginaryMcLachlanVariationalPrinciple,
+from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_principle import (
+    ImaginaryMcLachlanPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import SummedOp, X, Y, I, Z
 
 
-class TestImaginaryMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
+class TestImaginaryMcLachlanPrinciple(QiskitAlgorithmsTestCase):
     """Test imaginary McLachlan's variational principle."""
 
     def test_calc_calc_metric_tensor(self):
@@ -48,7 +48,7 @@ class TestImaginaryMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
         # Define a set of initial parameters
         parameters = ansatz.ordered_parameters
         param_dict = {param: np.pi / 4 for param in parameters}
-        var_principle = ImaginaryMcLachlanVariationalPrinciple()
+        var_principle = ImaginaryMcLachlanPrinciple()
 
         metric_tensor = var_principle.calc_metric_tensor(ansatz, parameters)
 
@@ -75,7 +75,7 @@ class TestImaginaryMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
         # Define a set of initial parameters
         parameters = ansatz.ordered_parameters
         param_dict = {param: np.pi / 4 for param in parameters}
-        var_principle = ImaginaryMcLachlanVariationalPrinciple()
+        var_principle = ImaginaryMcLachlanPrinciple()
 
         evolution_grad = var_principle.calc_evolution_grad(observable, ansatz, parameters)
 

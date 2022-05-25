@@ -23,8 +23,8 @@ from qiskit.utils import algorithm_globals, QuantumInstance
 from qiskit import BasicAer
 from qiskit.algorithms import EvolutionProblem
 from qiskit.algorithms.evolvers.variational import VarQITE
-from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_variational_principle import (
-    ImaginaryMcLachlanVariationalPrinciple,
+from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_principle import (
+    ImaginaryMcLachlanPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import (
@@ -88,7 +88,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         for i in range(len(ansatz.ordered_parameters)):
             init_param_values[i] = np.pi / 2
         init_param_values[0] = 1
-        var_principle = ImaginaryMcLachlanVariationalPrinciple()
+        var_principle = ImaginaryMcLachlanPrinciple()
 
         param_dict = dict(zip(parameters, init_param_values))
 
@@ -181,7 +181,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         for i in range(len(ansatz.ordered_parameters)):
             init_param_values[i] = np.pi / 2
         init_param_values[0] = 1
-        var_principle = ImaginaryMcLachlanVariationalPrinciple()
+        var_principle = ImaginaryMcLachlanPrinciple()
 
         param_dict = dict(zip(parameters, init_param_values))
 
@@ -243,7 +243,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         for i in range(len(ansatz.ordered_parameters)):
             init_param_values[i] = np.pi / 4
 
-        var_principle = ImaginaryMcLachlanVariationalPrinciple()
+        var_principle = ImaginaryMcLachlanPrinciple()
 
         param_dict = dict(zip(parameters, init_param_values))
 

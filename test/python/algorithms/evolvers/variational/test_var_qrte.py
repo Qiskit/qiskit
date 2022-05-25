@@ -23,8 +23,8 @@ from qiskit.utils import algorithm_globals, QuantumInstance
 from qiskit.quantum_info import state_fidelity, Statevector
 from qiskit.algorithms import EvolutionProblem
 from qiskit.algorithms.evolvers.variational import VarQRTE
-from qiskit.algorithms.evolvers.variational.variational_principles.real_mc_lachlan_variational_principle import (
-    RealMcLachlanVariationalPrinciple,
+from qiskit.algorithms.evolvers.variational.variational_principles.real_mc_lachlan_principle import (
+    RealMcLachlanPrinciple,
 )
 from qiskit import BasicAer
 from qiskit.circuit.library import EfficientSU2
@@ -88,7 +88,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         for i in range(len(ansatz.ordered_parameters)):
             init_param_values[i] = np.pi / 2
         init_param_values[0] = 1
-        var_principle = RealMcLachlanVariationalPrinciple()
+        var_principle = RealMcLachlanPrinciple()
 
         param_dict = dict(zip(parameters, init_param_values))
 
@@ -180,7 +180,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         for i in range(len(ansatz.ordered_parameters)):
             init_param_values[i] = np.pi / 4
 
-        var_principle = RealMcLachlanVariationalPrinciple()
+        var_principle = RealMcLachlanPrinciple()
 
         param_dict = dict(zip(parameters, init_param_values))
 

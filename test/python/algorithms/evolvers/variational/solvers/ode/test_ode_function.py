@@ -25,8 +25,8 @@ from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function import (
     OdeFunction,
 )
 from qiskit import BasicAer
-from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_variational_principle import (
-    ImaginaryMcLachlanVariationalPrinciple,
+from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_principle import (
+    ImaginaryMcLachlanPrinciple,
 )
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import EfficientSU2
@@ -65,7 +65,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         backend = BasicAer.get_backend("statevector_simulator")
 
-        var_principle = ImaginaryMcLachlanVariationalPrinciple()
+        var_principle = ImaginaryMcLachlanPrinciple()
 
         metric_tensor = var_principle.calc_metric_tensor(ansatz, parameters)
         evolution_grad = var_principle.calc_evolution_grad(observable, ansatz, parameters)
@@ -126,7 +126,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         backend = BasicAer.get_backend("statevector_simulator")
 
-        var_principle = ImaginaryMcLachlanVariationalPrinciple()
+        var_principle = ImaginaryMcLachlanPrinciple()
 
         metric_tensor = var_principle.calc_metric_tensor(ansatz, parameters)
         evolution_grad = var_principle.calc_evolution_grad(observable, ansatz, parameters)

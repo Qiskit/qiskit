@@ -26,7 +26,7 @@ from .imaginary_variational_principle import (
 )
 
 
-class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
+class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
     """Class for an Imaginary McLachlan's Variational Principle. It aims to minimize the distance
     between both sides of the Wick-rotated Schrödinger equation with a quantum state given as a
     parametrized trial state. The principle leads to a system of linear equations handled by the
