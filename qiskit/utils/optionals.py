@@ -142,6 +142,10 @@ External Python Libraries
       - `Z3 <https://github.com/Z3Prover/z3>`__ is a theorem prover, used in the
         :class:`.CrosstalkAdaptiveSchedule` and :class:`.HoareOptimizer` transpiler passes.
 
+    * - .. py:data:: HAS_CONSTRAINT
+      - `python-constraint <https://github.com/python-constraint/python-constraint>__ is a 
+        constraint satisfaction problem solver, used in the :class:`~.CSPLayout` transpiler pass.
+
 
 External Command-Line Tools
 ---------------------------
