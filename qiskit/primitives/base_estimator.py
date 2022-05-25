@@ -105,15 +105,14 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
+from copy import copy
 
 import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
-from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info.operators import SparsePauliOp
-from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_arguments
 
 from .estimator_result import EstimatorResult
@@ -128,8 +127,8 @@ class BaseEstimator(ABC):
 
     def __init__(
         self,
-        circuits: tuple[QuantumCircuit] | QuantumCircuit,
-        observables: tuple[SparsePauliOp] | SparsePauliOp,
+        circuits: Iterable[QuantumCircuit] | QuantumCircuit,
+        observables: Iterable[SparsePauliOp] | SparsePauliOp,
         parameters: Iterable[Iterable[Parameter]] | None = None,
     ):
         """
@@ -170,24 +169,24 @@ class BaseEstimator(ABC):
 
     def __new__(
         cls,
-        circuits: tuple[QuantumCircuit] | QuantumCircuit,
-        observables: tuple[SparsePauliOp] | SparsePauliOp,
+        circuits: Iterable[QuantumCircuit] | QuantumCircuit,
+        observables: Iterable[SparsePauliOp] | SparsePauliOp,
         *args,  # pylint: disable=unused-argument
         parameters: Iterable[Iterable[Parameter]] | None = None,  # pylint: disable=unused-argument
         **kwargs,  # pylint: disable=unused-argument
     ):
 
-        if isinstance(circuits, QuantumCircuit):
-            circuits = (circuits,)
-        else:
-            circuits = tuple(circuits)
-        if isinstance(observables, (PauliSumOp, BaseOperator)):
-            observables = (observables,)
-        else:
-            observables = tuple(observables)
         self = super().__new__(cls)
-        self._circuit_names = [circuit.name for circuit in circuits]
-        self._observable_ids = [id(observable) for observable in observables]
+        if isinstance(circuits, Iterable):
+            circuits = copy(circuits)
+            self._circuit_names = [circuit.name for circuit in circuits]
+        else:
+            self._circuit_names = [circuits.name]
+        if isinstance(observables, Iterable):
+            observables = copy(observables)
+            self._observable_ids = [id(observable) for observable in observables]
+        else:
+            self._observable_ids = [id(observables)]
         return self
 
     def __enter__(self):

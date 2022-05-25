@@ -91,6 +91,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
+from copy import copy
 
 import numpy as np
 
@@ -111,7 +112,7 @@ class BaseSampler(ABC):
 
     def __init__(
         self,
-        circuits: tuple[QuantumCircuit] | QuantumCircuit,
+        circuits: Iterable[QuantumCircuit] | QuantumCircuit,
         parameters: Iterable[Iterable[Parameter]] | None = None,
     ):
         """
@@ -137,18 +138,18 @@ class BaseSampler(ABC):
 
     def __new__(
         cls,
-        circuits: tuple[QuantumCircuit] | QuantumCircuit,
+        circuits: Iterable[QuantumCircuit] | QuantumCircuit,
         *args,  # pylint: disable=unused-argument
         parameters: Iterable[Iterable[Parameter]] | None = None,  # pylint: disable=unused-argument
         **kwargs,  # pylint: disable=unused-argument
     ):
 
-        if isinstance(circuits, QuantumCircuit):
-            circuits = (circuits,)
-        else:
-            circuits = tuple(circuits)
         self = super().__new__(cls)
-        self._circuit_names = [circuit.name for circuit in circuits]
+        if isinstance(circuits, Iterable):
+            circuits = copy(circuits)
+            self._circuit_names = [circuit.name for circuit in circuits]
+        else:
+            self._circuit_names = [circuits.name]
         return self
 
     def __enter__(self):
