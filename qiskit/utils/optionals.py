@@ -143,7 +143,7 @@ External Python Libraries
         :class:`.CrosstalkAdaptiveSchedule` and :class:`.HoareOptimizer` transpiler passes.
 
     * - .. py:data:: HAS_CONSTRAINT
-      - `python-constraint <https://github.com/python-constraint/python-constraint>__ is a 
+      - `python-constraint <https://github.com/python-constraint/python-constraint>__ is a
         constraint satisfaction problem solver, used in the :class:`~.CSPLayout` transpiler pass.
 
 

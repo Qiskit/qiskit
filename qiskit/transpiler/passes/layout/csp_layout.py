@@ -16,12 +16,13 @@ satisfy the circuit, i.e. no further swap is needed. If no solution is
 found, no ``property_set['layout']`` is set.
 """
 import random
-from time import time
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.utils import optionals as _optionals
 
+
+@_optionals.HAS_CONSTRAINT.require_in_instance
 class CSPLayout(AnalysisPass):
     """If possible, chooses a Layout as a CSP, using backtracking."""
 
@@ -62,7 +63,7 @@ class CSPLayout(AnalysisPass):
         qubits = dag.qubits
         cxs = set()
 
-        from constraint import Problem, AllDifferentConstraint
+        from constraint import Problem, AllDifferentConstraint, RecursiveBacktrackingSolver
         from qiskit.transpiler.passes.layout._csp_custom_solver import CustomSolver
 
         for gate in dag.two_qubit_ops():
