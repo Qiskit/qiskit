@@ -198,7 +198,7 @@ class InstructionSet:
             instruction.operation.c_if(classical, val)
         return self
 
-    # Legacy support for properties.  Added in Terra 0.20 to support the internal switch in
+    # Legacy support for properties.  Added in Terra 0.21 to support the internal switch in
     # `QuantumCircuit.data` from the 3-tuple to `CircuitInstruction`.
 
     @property
