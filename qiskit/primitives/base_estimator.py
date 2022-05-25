@@ -280,7 +280,7 @@ class BaseEstimator(ABC):
             for i in circuits:
                 if len(self._circuits[i].parameters) != 0:
                     raise QiskitError(
-                        f"The {i}-th circuit ({len(circuits)}) is parameterised,"
+                        f"The {i}-th circuit is parameterised,"
                         "but parameter values are not given."
                     )
             parameter_values = [[]] * len(circuits)
