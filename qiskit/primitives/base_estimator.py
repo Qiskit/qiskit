@@ -148,6 +148,9 @@ class BaseEstimator(ABC):
         """
         self._circuits = circuits
         self._observables = observables
+
+        # To guarantee that they exist as instance variable.
+        # With only dynamic set, the python will not know if the attribute exists or not.
         self._circuit_names = self._circuit_names
         self._observable_ids = self._observable_ids
 

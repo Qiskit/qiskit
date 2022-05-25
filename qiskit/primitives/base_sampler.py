@@ -125,7 +125,11 @@ class BaseSampler(ABC):
             QiskitError: For mismatch of circuits and parameters list.
         """
         self._circuits = tuple(circuits)
+
+        # To guarantee that they exist as instance variable.
+        # With only dynamic set, the python will not know if the attribute exists or not.
         self._circuit_names = self._circuit_names
+
         if parameters is None:
             self._parameters = tuple(circ.parameters for circ in self._circuits)
         else:
