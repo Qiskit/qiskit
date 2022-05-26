@@ -12,8 +12,6 @@
 
 """Scheduler Test."""
 
-import unittest
-
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import InstructionScheduleMap, Schedule
@@ -85,7 +83,3 @@ class TestCircuitScheduler(QiskitTestCase):
 
         self.assertEqual(circuit_one_schedule.name, "circ")
         self.assertEqual(circuit_two_schedule.name, "circ2")
-
-
-if __name__ == "__main__":
-    unittest.main(verbosity=2)
