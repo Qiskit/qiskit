@@ -56,4 +56,4 @@ class BaseResult(ABC):
     @property
     def _field_values(self) -> Tuple[Any, ...]:
         """Tuple of field values in any inheriting result dataclass."""
-        return tuple(getattr(self, field.name) for field in fields(self))
+        return tuple(getattr(self, name) for name in self._field_names)
