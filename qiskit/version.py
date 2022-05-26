@@ -96,7 +96,6 @@ class QiskitVersion(Mapping):
             "qiskit-aer": None,
             "qiskit-ignis": None,
             "qiskit-ibmq-provider": None,
-            "qiskit-aqua": None,
             "qiskit": None,
         }
         self._loaded = False
@@ -122,14 +121,6 @@ class QiskitVersion(Mapping):
             self._version_dict["qiskit-ibmq-provider"] = ibmq.__version__
         except Exception:
             self._version_dict["qiskit-ibmq-provider"] = None
-        # TODO: Remove aqua after deprecation is complete and it is removed from
-        # the metapackage
-        try:
-            from qiskit import aqua
-
-            self._version_dict["qiskit-aqua"] = aqua.__version__
-        except Exception:
-            self._version_dict["qiskit-aqua"] = None
         try:
             import qiskit_nature
 
