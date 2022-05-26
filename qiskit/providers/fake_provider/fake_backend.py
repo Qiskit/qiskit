@@ -27,12 +27,12 @@ from qiskit.providers.models import BackendProperties
 from qiskit.providers import BackendV2, BackendV1
 from qiskit import pulse
 from qiskit.exceptions import QiskitError
-from qiskit.test.mock.utils.json_decoder import (
+from qiskit.providers.fake_provider.utils.json_decoder import (
     decode_backend_configuration,
     decode_backend_properties,
     decode_pulse_defaults,
 )
-from qiskit.test.mock.utils.backend_converter import convert_to_target
+from qiskit.providers.fake_provider.utils.backend_converter import convert_to_target
 from qiskit.utils import optionals as _optionals
 from qiskit.providers import basicaer
 from qiskit.transpiler import Target
