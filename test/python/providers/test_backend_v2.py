@@ -29,8 +29,8 @@ from qiskit.providers.fake_provider import (
     FakeBackend5QV2,
     FakeBackendSimple,
     FakeBackendV2LegacyQubitProps,
+    FakeMumbaiFractionalCX
 )
-from qiskit.providers.fake_provider import FakeMumbaiFractionalCX
 from qiskit.quantum_info import Operator
 
 

@@ -14,9 +14,8 @@
 import unittest
 from qiskit import QuantumCircuit, transpile
 from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeAthens
+from qiskit.providers.fake_provider import FakePulseBackend, FakeAthens
 from qiskit.utils import optionals as _optionals
-from qiskit.providers.fake_provider import FakePulseBackend
 
 
 class FakePulseBackendConfigError(FakePulseBackend):
