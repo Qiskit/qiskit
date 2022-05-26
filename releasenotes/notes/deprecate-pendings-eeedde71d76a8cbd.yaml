@@ -2,7 +2,7 @@
 deprecations:
   - |
     The ``qiskit.circuit.qpy_serialization`` module has been deprecated and
-    will be removed in a future release. It has been replaced by the by the
+    will be removed in a future release. It has been replaced by the
     :mod:`qiskit.qpy` module. This was done as ``qpy`` is no longer isolated to
     just serializing :class:`~.QuantumCircuit` objects. You can just update
     imports from ``qiskit.circuit.qpy_serialization`` to :mod:`qiskit.qpy` and
