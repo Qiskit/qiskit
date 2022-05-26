@@ -124,6 +124,8 @@ class BaseSampler(ABC):
         Raises:
             QiskitError: For mismatch of circuits and parameters list.
         """
+        if isinstance(circuits, QuantumCircuit):
+            circuits = (circuits,)
         self._circuits = tuple(circuits)
 
         # To guarantee that they exist as instance variable.

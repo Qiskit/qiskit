@@ -146,8 +146,13 @@ class BaseEstimator(ABC):
         Raises:
             QiskitError: For mismatch of circuits and parameters list.
         """
-        self._circuits = circuits
-        self._observables = observables
+        if isinstance(circuits, QuantumCircuit):
+            circuits = (circuits,)
+        self._circuits = tuple(circuits)
+
+        if isinstance(observables, SparsePauliOp):
+            observables = (observables,)
+        self._observables = tuple(observables)
 
         # To guarantee that they exist as instance variable.
         # With only dynamic set, the python will not know if the attribute exists or not.
