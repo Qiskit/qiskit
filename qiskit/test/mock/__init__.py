@@ -20,17 +20,17 @@ testing local timeouts, arbitrary responses or behavior, etc.
 The mock devices are mainly for testing the compiler.
 """
 
-from .fake_provider import FakeProviderForBackendV2, FakeProvider
-from .fake_provider import FakeProviderFactory
-from .fake_backend import FakeBackend
-from .fake_backend_v2 import FakeBackendV2, FakeBackend5QV2
-from .fake_mumbai_v2 import FakeMumbaiFractionalCX
-from .fake_job import FakeJob
-from .fake_qobj import FakeQobj
+from qiskit.providers.fake_provider.fake_provider import FakeProviderForBackendV2, FakeProvider
+from qiskit.providers.fake_provider.fake_provider import FakeProviderFactory
+from qiskit.providers.fake_provider.fake_backend import FakeBackend
+from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendV2, FakeBackend5QV2
+from qiskit.providers.fake_provider.fake_mumbai_v2 import FakeMumbaiFractionalCX
+from qiskit.providers.fake_provider.fake_job import FakeJob
+from qiskit.providers.fake_provider.fake_qobj import FakeQobj
 
-from .backends import *
+from qiskit.providers.fake_provider.backends import *
 
-from .fake_qasm_simulator import FakeQasmSimulator
-from .fake_openpulse_2q import FakeOpenPulse2Q
-from .fake_openpulse_3q import FakeOpenPulse3Q
-from .fake_1q import Fake1Q
+from qiskit.providers.fake_provider.fake_qasm_simulator import FakeQasmSimulator
+from qiskit.providers.fake_provider.fake_openpulse_2q import FakeOpenPulse2Q
+from qiskit.providers.fake_provider.fake_openpulse_3q import FakeOpenPulse3Q
+from qiskit.providers.fake_provider.fake_1q import Fake1Q
