@@ -1118,6 +1118,39 @@ class TestStatevector(QiskitTestCase):
         with self.subTest(msg=" draw('latex', convention='vector')"):
             sv.draw("latex", convention="vector")
 
+    @data(
+        {
+            "sv_data": [1, 0],
+            "comp": " |0\\rangle",
+            "hadamard": "\\frac{\\sqrt{2}}{2} |+\\rangle+\\frac{\\sqrt{2}}{2} |-\\rangle",
+        },
+        {
+            "sv_data": [0, 1],
+            "comp": " |1\\rangle",
+            "hadamard": "\\frac{\\sqrt{2}}{2} |+\\rangle- \\frac{\\sqrt{2}}{2} |-\\rangle",
+        },
+        {
+            "sv_data": [1 / np.sqrt(2), 1 / np.sqrt(2)],
+            "comp": "\\frac{\\sqrt{2}}{2} |0\\rangle+\\frac{\\sqrt{2}}{2} |1\\rangle",
+            "hadamard": " |+\\rangle",
+        },
+        {
+            "sv_data": [1 / np.sqrt(2), -1 / np.sqrt(2)],
+            "comp": "\\frac{\\sqrt{2}}{2} |0\\rangle- \\frac{\\sqrt{2}}{2} |1\\rangle",
+            "hadamard": " |-\\rangle",
+        },
+        {
+            "sv_data": [1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)],
+            "comp": "\\frac{\\sqrt{2}}{2} |00\\rangle+\\frac{\\sqrt{2}}{2} |11\\rangle",
+            "hadamard": "\\frac{\\sqrt{2}}{2} |++\\rangle + \ldots  + \ldots +\\frac{\\sqrt{2}}{2} |--\\rangle",
+        },
+    )
+    def test_state_to_latex_for_multiple_basis(self, sv_test_case):
+        """Test conversion of a single and simple multi-qubit states"""
+        sv = Statevector(np.array(sv_test_case["sv_data"]))
+        for ket_basis in ["comp", "hadamard"]:
+            self.assertEqual(state_to_latex(sv, ket_basis=ket_basis), sv_test_case[ket_basis])
+
     def test_state_to_latex_for_large_statevector(self):
         """Test conversion of large dense state vector for computational basis"""
         sv = Statevector(np.ones((2**15, 1)))
@@ -1132,8 +1165,7 @@ class TestStatevector(QiskitTestCase):
 
         """Test conversion of large dense state vector for hadamard basis"""
         sv = Statevector(np.ones((2**15, 1)))
-        latex_representation = state_to_latex(sv,ket_basis='hadamard')
-        print(latex_representation)
+        latex_representation = state_to_latex(sv, ket_basis="hadamard")
         self.assertEqual(
             latex_representation,
             " |000000000000000\\rangle+ |000000000000001\\rangle+ |000000000000010\\rangle+"
