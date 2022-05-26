@@ -331,6 +331,7 @@ class BasisTranslator(TransformationPass):
 def _extract_basis(circuit):
     return circuit
 
+
 @_extract_basis.register
 def _(dag: DAGCircuit):
     for node in dag.op_nodes():
