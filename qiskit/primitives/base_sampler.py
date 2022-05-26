@@ -130,7 +130,7 @@ class BaseSampler(ABC):
 
         # To guarantee that they exist as instance variable.
         # With only dynamic set, the python will not know if the attribute exists or not.
-        self._circuit_names = self._circuit_names
+        self._circuit_ids = self._circuit_ids
 
         if parameters is None:
             self._parameters = tuple(circ.parameters for circ in self._circuits)
@@ -153,9 +153,9 @@ class BaseSampler(ABC):
         self = super().__new__(cls)
         if isinstance(circuits, Iterable):
             circuits = copy(circuits)
-            self._circuit_names = [circuit.name for circuit in circuits]
+            self._circuit_ids = [id(circuit) for circuit in circuits]
         else:
-            self._circuit_names = [circuits.name]
+            self._circuit_ids = [id(circuits)]
         return self
 
     def __enter__(self):
@@ -227,7 +227,7 @@ class BaseSampler(ABC):
         # Allow objects
         try:
             circuits = [
-                next(_finditer(circuit.name, self._circuit_names))
+                next(_finditer(id(circuit), self._circuit_ids))
                 if not isinstance(circuit, (int, np.integer))
                 else circuit
                 for circuit in circuits
