@@ -331,8 +331,7 @@ class StagedPassManager(PassManager):
     This enables easily composing and replacing different stages and also adding
     hook points to enable programmtic modifications to a pipeline. When using a staged
     pass manager you are not able to modify the individual passes and are only able
-    to modify stages. If you do an inline modification to a defined stage be sure to
-    run the :meth:`~.StagedPassManager.update_passmanager` method.
+    to modify stages.
 
     By default instances of StagedPassManager define a typical full compilation
     pipeline from an abstract virtual circuit to one that is optimized and
@@ -390,37 +389,17 @@ class StagedPassManager(PassManager):
             setattr(self, pre_phase, None)
             setattr(self, phase, None)
             setattr(self, post_phase, None)
-
         for phase, pm in kwargs.items():
             if (
                 phase not in self.phases
-                and (phase.startswith("pre_") and phase[4:] not in self.phases)
-                and (phase.startswith("post_") and phase[5:] not in self.phases)
+                and not (phase.startswith("pre_") and phase[4:] in self.phases)
+                and not (phase.startswith("post_") and phase[5:] in self.phases)
             ):
                 raise AttributeError(f"{phase} is not a valid stage.")
             setattr(self, phase, pm)
-        self.update_passmanager()
+        self._update_passmanager()
 
-    def update_passmanager(self):
-        """Update the internal state from the defined stages
-
-        This method will update the ``StagedPassManager`` instance based on the current
-        state of the defined stages. This happens automatically when ever an object is
-        initialized or a stage is replaced with a new :class:`~.PassManager`.
-        However, if you do an inplace modification of a defined stage you will
-        need to run this method to have that changed reflected here. For example::
-
-            from qiskit.transpiler import PassManager, StagedPassManager
-            from qiskit.transpiler.passes import Depth
-
-            staged_pm = StagedPassManager(stages=['single_stage'], single_stage=PassManager())
-            staged_pm.single_stage.append(Depth())
-            staged_pm.update_passmanager()
-
-
-        without the ``update_passmananger()`` call ``staged_pm`` will not know to run
-        :class:`~.Depth`.
-        """
+    def _update_passmanager(self):
         self._pass_sets = []
         for phase in self.phases:
             # Add pre-phase PM
@@ -443,7 +422,7 @@ class StagedPassManager(PassManager):
             or (attr.startswith("pre_") and attr[4:] not in self.phases)
             or (attr.startswith("post_") and attr[5:] not in self.phases)
         ):
-            self.update_passmanager()
+            self._update_passmanager()
 
     def append(
         self,
@@ -466,8 +445,33 @@ class StagedPassManager(PassManager):
     def remove(self, index: int) -> None:
         raise NotImplementedError
 
+    def __getitem(self, index):
+        self._update_passmanager()
+        return super().__getitem__(index)
+
+    def __len__(self):
+        self._update_passmanager()
+        return super().__len__()
+
     def __setitem__(self, index, item):
         raise NotImplementedError
 
     def __add__(self, other):
         raise NotImplementedError
+
+    def _create_running_passmanager(self) -> RunningPassManager:
+        self._update_passmanager()
+        return super()._create_running_passmanager()
+
+    def passes(self) -> List[Dict[str, BasePass]]:
+        self._update_passmanager()
+        return super().passes()
+
+    def run(
+        self,
+        circuits: Union[QuantumCircuit, List[QuantumCircuit]],
+        output_name: str = None,
+        callback: Callable = None,
+    ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
+        self._update_passmanager()
+        return super().run(circuits, output_name, callback)
