@@ -849,7 +849,7 @@ class QuantumCircuit:
                 clbits = list(range(other.num_clbits))
 
             if front:
-                dest.data.insert(0, (other, qubits, clbits))
+                dest.data.insert(0, CircuitInstruction(other, qubits, clbits))
             else:
                 dest.append(other, qargs=qubits, cargs=clbits)
 

@@ -95,7 +95,7 @@ def raise_if_parameter_table_invalid(circuit):  # pylint: disable=invalid-name
                 parameters = param.parameters
 
                 for parameter in parameters:
-                    if (instr, param_index) not in table[parameter]:
+                    if (instruction.operation, param_index) not in table[parameter]:
                         raise CircuitError(
                             "Found parameterized instruction not "
                             "present in table. Instruction: {} "

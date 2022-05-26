@@ -134,16 +134,19 @@ class QuantumCircuitData(MutableSequence):
         return self._circuit._data[i]
 
     def __setitem__(self, key, value):
-        if not isinstance(value, CircuitInstruction):
+        # For now (Terra 0.21), the `QuantumCircuit.data` setter is meant to perform validation, so
+        # we do the same qubit checks that `QuantumCircuit.append` would do.
+        if isinstance(value, CircuitInstruction):
+            operation, qargs, cargs = value.operation, value.qubits, value.clbits
+        else:
             # Handle the legacy 3-tuple format.
             operation, qargs, cargs = value
-            value = self._resolve_legacy_value(operation, qargs, cargs)
+        value = self._resolve_legacy_value(operation, qargs, cargs)
         self._circuit._data[key] = value
         self._circuit._update_parameter_table(value)
 
     def _resolve_legacy_value(self, operation, qargs, cargs) -> CircuitInstruction:
         """Resolve the old-style 3-tuple into the new :class:`CircuitInstruction` type."""
-
         if not isinstance(operation, Instruction) and hasattr(operation, "to_instruction"):
             operation = operation.to_instruction()
         if not isinstance(operation, Instruction):

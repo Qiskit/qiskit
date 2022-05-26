@@ -524,14 +524,16 @@ class Instruction:
 
         if instruction.definition is None:
             # pylint: disable=cyclic-import
-            from qiskit import QuantumCircuit
+            from qiskit.circuit import QuantumCircuit, CircuitInstruction
 
             qc = QuantumCircuit()
             if qargs:
                 qc.add_register(qargs)
             if cargs:
                 qc.add_register(cargs)
-            qc.data = [(self, qargs[:], cargs[:])] * n
+            circuit_instruction = CircuitInstruction(self, qargs, cargs)
+            for _ in [None] * n:
+                qc._append(circuit_instruction)
         instruction.definition = qc
         return instruction
 

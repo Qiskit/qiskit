@@ -17,7 +17,7 @@
 import numpy as np
 from qiskit.circuit import Delay
 from qiskit.circuit import Parameter, ParameterVector
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, CircuitInstruction
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test.base import QiskitTestCase
 
@@ -60,9 +60,9 @@ class TestDelayClass(QiskitTestCase):
         qc.delay(100, 0)
         qc.delay(200, [0])
         qc.delay(300, qc.qubits[0])
-        self.assertEqual(qc.data[1], (Delay(duration=100), qc.qubits, []))
-        self.assertEqual(qc.data[2], (Delay(duration=200), qc.qubits, []))
-        self.assertEqual(qc.data[3], (Delay(duration=300), qc.qubits, []))
+        self.assertEqual(qc.data[1], CircuitInstruction(Delay(duration=100), qc.qubits, []))
+        self.assertEqual(qc.data[2], CircuitInstruction(Delay(duration=200), qc.qubits, []))
+        self.assertEqual(qc.data[3], CircuitInstruction(Delay(duration=300), qc.qubits, []))
 
     def test_add_delay_on_multiple_qubits_to_circuit(self):
         qc = QuantumCircuit(3)
