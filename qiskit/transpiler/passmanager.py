@@ -338,17 +338,17 @@ class StagedPassManager(PassManager):
     pipeline from an abstract virtual circuit to one that is optimized and
     capable of running on the specified backend. The default pre-defined stages are:
 
-    1. Init - any initial passes that are run before we start embedding the circuit to the backend
-    2. Layout - This stage runs layout and maps the virtual qubits in the
-        circuit to the physical qubits on a backend
-    3. Routing - This stage runs after a layout has been run and will insert any
-        necessary gates to move the qubit states around until it can be run on
-        backend's compuling map.
-    4. Translation - Perform the basis gate translation, in other words translate the gates
-        in the circuit to the target backend's basis set
-    6. Optimization - The main optimization loop, this will typically run in a loop trying to
-        optimize the circuit until a condtion (such as fixed depth) is reached.
-    8. Scheduling - Any hardware aware scheduling passes
+    #. ``init`` - any initial passes that are run before we start embedding the circuit to the backend
+    #. ``layout`` - This stage runs layout and maps the virtual qubits in the
+       circuit to the physical qubits on a backend
+    #. ``routing`` - This stage runs after a layout has been run and will insert any
+       necessary gates to move the qubit states around until it can be run on
+       backend's compuling map.
+    #. ``translation`` - Perform the basis gate translation, in other words translate the gates
+       in the circuit to the target backend's basis set
+    #. ``optimization`` - The main optimization loop, this will typically run in a loop trying to
+       optimize the circuit until a condtion (such as fixed depth) is reached.
+    #. ``scheduling`` - Any hardware aware scheduling passes
 
     These stages will be executed in order and any stage set to ``None`` will be skipped. If
     a :class:`~qiskit.transpiler.PassManager` input is being used for more than 1 stage here
