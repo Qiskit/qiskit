@@ -47,9 +47,23 @@ class TestBaseResult(QiskitTestCase):
         result = Result([0] * num_experiments, [1] * num_experiments)
         self.assertEqual(num_experiments, result.num_experiments)
 
+    @data(0, 1, 2, 3)
+    def test_experiments(self, num_experiments):
+        """Test experiments."""
+        foo = [i for i in range(num_experiments)]
+        bar = [i + 1 for i in range(num_experiments)]
+        experiments = Result(foo, bar).experiments
+        self.assertIsInstance(experiments, tuple)
+        for i, exp in enumerate(experiments):
+            self.assertEqual(exp, (i, i + 1))
+
+    def test_field_names(self):
+        result = Result([], [])
+        self.assertEqual(result._field_names, ("foo", "bar"))
+
     @data(([], []), ([0], [0]), ([0], [1]))
     @unpack
     def test_field_values(self, foo, bar):
         """Tests field values ({foo}, {bar})."""
         result = Result(foo, bar)
-        self.assertEqual(result._field_values, [foo, bar])
+        self.assertEqual(result._field_values, (foo, bar))

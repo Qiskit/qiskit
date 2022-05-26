@@ -15,7 +15,7 @@ Primitive result abstract base class
 
 from abc import ABC
 from dataclasses import fields
-from typing import Sized
+from typing import Any, Sized, Tuple
 
 
 class BaseResult(ABC):
@@ -40,10 +40,20 @@ class BaseResult(ABC):
     @property
     def num_experiments(self) -> int:
         """Number of experiments in any inheriting result dataclass."""
-        field_value: Sized = self._field_values.pop()
+        field_value: Sized = self._field_values[0]
         return len(field_value)
 
     @property
-    def _field_values(self) -> list:
-        """List of field values in any inheriting dataclass."""
-        return [getattr(self, field.name) for field in fields(self)]
+    def experiments(self) -> Tuple[Tuple[Any, ...], ...]:
+        """Experiment data tuples from any inheriting result dataclass."""
+        return tuple(zip(*self._field_values))
+
+    @property
+    def _field_names(self) -> Tuple[str, ...]:
+        """Tuple of field names in any inheriting result dataclass."""
+        return tuple(field.name for field in fields(self))
+
+    @property
+    def _field_values(self) -> Tuple[Any, ...]:
+        """Tuple of field values in any inheriting result dataclass."""
+        return tuple(getattr(self, field.name) for field in fields(self))
