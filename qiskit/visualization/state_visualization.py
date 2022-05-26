@@ -1112,6 +1112,7 @@ def state_to_latex(
         dims (bool): Whether to display the state's `dims`
         convention (str): Either 'vector' or 'ket'. For 'ket' plot the state in the ket-notation.
                 Otherwise plot as a vector
+        ket_basis (str): Measurement basis for the latex representation [Default:'comp']
         **args: Arguments to be passed directly to `array_to_latex` for convention 'ket'
 
     Returns:
@@ -1236,6 +1237,7 @@ def _state_to_latex_ket(data: List[complex], max_size: int = 12, ket_basis: str 
         data: State vector
         max_size: Maximum number of non-zero terms in the expression. If the number of
                  non-zero terms is larger than the max_size, then the representation is truncated.
+        ket_basis: Measurement basis for the latex representation [Default:'comp']
 
     Returns:
         String with LaTeX representation of the state vector
