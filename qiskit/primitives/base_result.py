@@ -33,15 +33,15 @@ class BaseResult(ABC):
         This magic method is especific of `dataclasses.dataclass`, therefore all inheriting
         classes must have this decorator.
         """
-        for val in self._field_values:  # type: Sized
-            if len(val) != self.num_experiments:
+        for value in self._field_values:  # type: Sized
+            if len(value) != self.num_experiments:
                 raise ValueError("Inconsistent number of experiments across data fields.")
 
     @property
     def num_experiments(self) -> int:
         """Number of experiments in any inheriting result dataclass."""
-        field_value: Sized = self._field_values[0]
-        return len(field_value)
+        value: Sized = self._field_values[0]
+        return len(value)
 
     @property
     def experiments(self) -> Tuple[Tuple[Any, ...], ...]:
