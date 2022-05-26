@@ -230,8 +230,6 @@ class BasisTranslator(TransformationPass):
 
                 if dag.has_calibration_for(node):
                     continue
-
-                qc = dag_to_circuit(dag)
                 if qubit_set in extra_instr_map:
                     self._replace_node(dag, node, extra_instr_map[qubit_set])
                 elif (node.op.name, node.op.num_qubits) in instr_map:
@@ -327,12 +325,11 @@ class BasisTranslator(TransformationPass):
         return source_basis, qargs_local_source_basis
 
 
-# this could be singledispatchmethod and included in above class if minimum
-# python version=3.8.
+# this could be singledispatchmethod and included in above class when minimum
+# supported python version=3.8.
 @singledispatch
-def _extract_basis(self, circuit):
-    pass
-
+def _extract_basis(circuit):
+    return circuit
 
 @_extract_basis.register
 def _(dag: DAGCircuit):
