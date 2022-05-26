@@ -1,4 +1,4 @@
-""" Implementation of icans
+"""VQE optimization with dynamic shot scheduling – ICANS optimizer.
 """
 from typing import Optional, Callable, Union
 from copy import deepcopy
@@ -12,8 +12,57 @@ from qiskit.providers import Backend
 
 ##----icans
 class ICANS(VQE):
-    """ Init is the same as standard VQE
-    New parameters will appear at compute_minimum_eigenvalue function
+    """
+    The ICANS algorithm (individual coupled adaptive number of shots) [1], adaptively selects the number of shots in each iteration to reach the target accuracy with minimal number of quantum computational resources, both for a given iteration and for a given partial derivative in a stochastic gradient descent.
+    As an optimization method, it is appropriately suited to noisy situations, when the cost of each shot is expensive.
+    ICANS is implemented as a subclass of VQE.
+    VQE [2] is a quantum algorithm that uses a variational technique to find the minimum eigenvalue of the Hamiltonian of a given system.
+    According to [1], ICANS may perform comparably or better than other state-of-the-art optimizers, and especially well in the presence of realistic hardware noise.
+    There are two variations, ICANS1 and ICANS2. The first is the more aggressive version, in relation to the learning rate, while ICANS2 is more cautious and limits the learning rate so that the expected gain is always guaranteed to be positive.
+
+    Example
+    This example runs ICANS with some specified parameters and limit_learning_rate = True
+
+    import numpy as np
+
+    from qiskit.algorithms.mininum_eigen_solvers.vqe_icans import ICANS
+    from qiskit.circuit.library import EfficientSU2
+    from qiskit import Aer, transpile, assemble
+    backend = Aer.get_backend("qasm_simulator")
+
+    hamilt0 = PauliSumOp.from_list(
+        [
+            ("XXI", 1),
+            ("XIX", 1),
+            ("IXX", 1),
+            ("YYI", 1),
+            ("YIY", 1),
+            ("IYY", 1),
+            ("ZZI", 1),
+            ("ZIZ", 1),
+            ("IZZ", 1),
+            ("IIZ", 3),
+            ("IZI", 3),
+            ("ZII", 3),
+        ]
+    )
+
+    #Parameters Icans
+    max_iterations = 10
+    min_shots = 100
+    alpha = 0.05
+
+    icans1 = ICANS(ansatz, quantum_instance=backend, min_shots = min_shots, alpha = alpha, max_iterations= max_iterations,  limit_learning_rate = True)
+
+    result_Icans = icans1.compute_minimum_eigenvalue(operator = hamilt0)
+    print(result_Icans)
+
+
+
+    References
+    [1]: Jonas M. Kübler, Andrew Arrasmith, Lukasz Cincio, Patrick J. Coles (2019). An Adaptive Optimizer for Measurement-Frugal Variational Algorithms. Online at https://arxiv.org/abs/1909.09083
+    [2] Alberto Peruzzo, Et al. (2013). A variational eigenvalue solver on a quantum processor. Online at https://arxiv.org/abs/1304.3061
+​ 
     """
     def __init__(
         self,
