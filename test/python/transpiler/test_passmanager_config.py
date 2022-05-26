@@ -15,8 +15,7 @@
 from qiskit import QuantumRegister
 from qiskit.providers.backend import Backend
 from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeMelbourne
-from qiskit.test.mock.backends.almaden.fake_almaden import FakeAlmaden
+from qiskit.providers.fake_provider import FakeMelbourne, FakeAlmaden
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 
