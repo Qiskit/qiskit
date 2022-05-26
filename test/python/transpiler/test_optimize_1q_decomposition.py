@@ -542,6 +542,39 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         msg = f"expected:\n{expected}\nresult:\n{result}"
         self.assertEqual(expected, result, msg=msg)
 
+    def test_merge_rz(self):
+        """Test that a two RZ gate with parameters are merged together."""
+        phi = Parameter('$\\phi$')
+        qc = QuantumCircuit(1)
+        qc.rz(phi, 0)
+        qc.rz(phi, 0)
+        basis = ['sx', 'rz', 'cx']
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(qc)
+        expected = QuantumCircuit(1)
+        expected.rz(2*phi, 0)
+        msg = f"expected:\n{expected}\nresult:\n{result}"
+        self.assertEqual(expected, result, msg=msg)
+
+    def test_merge_rz_ry(self):
+        """Test that a two RZ gate with parameters are merged together."""
+        phi = Parameter('$\\phi$')
+        qc = QuantumCircuit(1)
+        qc.rz(phi, 0)
+        qc.rz(phi, 0)
+        qc.ry(phi, 0)
+        qc.ry(phi, 0)
+        basis = ['sx', 'rz', 'cx']
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(qc)
+        expected = QuantumCircuit(1)
+        expected.rz(2*phi, 0)
+        expected.ry(2 * phi, 0)
+        msg = f"expected:\n{expected}\nresult:\n{result}"
+        self.assertEqual(expected, result, msg=msg)
+
 
 if __name__ == "__main__":
     unittest.main()
