@@ -26,7 +26,7 @@ features:
     determined). This makes it possible to see how scheduled instructions
     (gates) look in the circuit level.
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit import QuantumCircuit, transpile
         from qiskit.test.mock.backends import FakeAthens
@@ -56,7 +56,7 @@ features:
     The :func:`~qiskit.compiler.schedule` has been updated so that it can
     schedule circuits with delays. Now there are two paths to schedule a
     circuit with delay:
-    
+
     .. code-block:: python
 
         qc = QuantumCircuit(1, 1)
