@@ -29,7 +29,7 @@ class TestStagedPassManager(QiskitTestCase):
     def test_default_stages(self):
         spm = StagedPassManager()
         self.assertEqual(
-            spm.phases, ["init", "layout", "routing", "translation", "optimization", "scheduling"]
+            spm.stages, ["init", "layout", "routing", "translation", "optimization", "scheduling"]
         )
         spm = StagedPassManager(
             init=PassManager([Optimize1qGates()]),
@@ -42,7 +42,7 @@ class TestStagedPassManager(QiskitTestCase):
         )
 
     def test_inplace_edit(self):
-        spm = StagedPassManager(phases=["single_stage"])
+        spm = StagedPassManager(stages=["single_stage"])
         spm.single_stage = PassManager([Optimize1qGates(), Depth()])
         self.assertEqual(
             [x.__class__.__name__ for passes in spm.passes() for x in passes["passes"]],
@@ -57,10 +57,10 @@ class TestStagedPassManager(QiskitTestCase):
 
     def test_invalid_stage(self):
         with self.assertRaises(AttributeError):
-            StagedPassManager(phases=["init"], translation=PassManager())
+            StagedPassManager(stages=["init"], translation=PassManager())
 
     def test_pre_phase_is_valid_stage(self):
-        spm = StagedPassManager(phases=["init"], pre_init=PassManager([Depth()]))
+        spm = StagedPassManager(stages=["init"], pre_init=PassManager([Depth()]))
         self.assertEqual(
             [x.__class__.__name__ for passes in spm.passes() for x in passes["passes"]],
             ["Depth"],

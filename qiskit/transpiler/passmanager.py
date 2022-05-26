@@ -355,24 +355,24 @@ class StagedPassManager(PassManager):
     to set that to the earliest stage in sequence that it covers.
     """
 
-    def __init__(self, phases=None, **kwargs):
+    def __init__(self, stages=None, **kwargs):
         """Initialize a new StagedPassManager object
 
         Args:
-            phases (List[str]): An optional list of phases to use for this
+            stages (List[str]): An optional list of stages to use for this
                 instance. If this is not specified the default stages list
                 ``['init', 'layout', 'routing', 'translation', 'optimization', 'scheduling']`` is
                 used
-            kwargs: The initial :class:`~.PassManager` values for any phases
-                defined in ``phases``. If a argument is not defined the
-                phases will default to ``None`` indicating an empty/undefined
-                phase.
+            kwargs: The initial :class:`~.PassManager` values for any stages
+                defined in ``stages``. If a argument is not defined the
+                stages will default to ``None`` indicating an empty/undefined
+                stage.
 
         Raises:
             AttributeError: If a stage in the input keyword arguments is not defined.
         """
-        if phases is None:
-            self.phases = [
+        if stages is None:
+            self.stages = [
                 "init",
                 "layout",
                 "routing",
@@ -381,46 +381,46 @@ class StagedPassManager(PassManager):
                 "scheduling",
             ]
         else:
-            self.phases = phases
+            self.stages = stages
         super().__init__()
-        for phase in self.phases:
-            pre_phase = "pre_" + phase
-            post_phase = "post_" + phase
-            setattr(self, pre_phase, None)
-            setattr(self, phase, None)
-            setattr(self, post_phase, None)
-        for phase, pm in kwargs.items():
+        for stage in self.stages:
+            pre_stage = "pre_" + stage
+            post_stage = "post_" + stage
+            setattr(self, pre_stage, None)
+            setattr(self, stage, None)
+            setattr(self, post_stage, None)
+        for stage, pm in kwargs.items():
             if (
-                phase not in self.phases
-                and not (phase.startswith("pre_") and phase[4:] in self.phases)
-                and not (phase.startswith("post_") and phase[5:] in self.phases)
+                stage not in self.stages
+                and not (stage.startswith("pre_") and stage[4:] in self.stages)
+                and not (stage.startswith("post_") and stage[5:] in self.stages)
             ):
-                raise AttributeError(f"{phase} is not a valid stage.")
-            setattr(self, phase, pm)
+                raise AttributeError(f"{stage} is not a valid stage.")
+            setattr(self, stage, pm)
         self._update_passmanager()
 
     def _update_passmanager(self):
         self._pass_sets = []
-        for phase in self.phases:
-            # Add pre-phase PM
-            pre_phase_pm = getattr(self, "pre_" + phase, None)
-            if pre_phase_pm is not None:
-                self._pass_sets.extend(pre_phase_pm._pass_sets)
-            # Add phase PM
-            phase_pm = getattr(self, phase, None)
-            if phase_pm is not None:
-                self._pass_sets.extend(phase_pm._pass_sets)
-            # Add post-phase PM
-            post_phase_pm = getattr(self, "post_" + phase, None)
-            if post_phase_pm is not None:
-                self._pass_sets.extend(post_phase_pm._pass_sets)
+        for stage in self.stages:
+            # Add pre-stage PM
+            pre_stage_pm = getattr(self, "pre_" + stage, None)
+            if pre_stage_pm is not None:
+                self._pass_sets.extend(pre_stage_pm._pass_sets)
+            # Add stage PM
+            stage_pm = getattr(self, stage, None)
+            if stage_pm is not None:
+                self._pass_sets.extend(stage_pm._pass_sets)
+            # Add post-stage PM
+            post_stage_pm = getattr(self, "post_" + stage, None)
+            if post_stage_pm is not None:
+                self._pass_sets.extend(post_stage_pm._pass_sets)
 
     def __setattr__(self, attr, value):
         super().__setattr__(attr, value)
         if (
-            attr in self.phases
-            or (attr.startswith("pre_") and attr[4:] not in self.phases)
-            or (attr.startswith("post_") and attr[5:] not in self.phases)
+            attr in self.stages
+            or (attr.startswith("pre_") and attr[4:] not in self.stages)
+            or (attr.startswith("post_") and attr[5:] not in self.stages)
         ):
             self._update_passmanager()
 
