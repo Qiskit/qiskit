@@ -10,17 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test the passmanager logic"""
+# pylint: disable=missing-function-docstring,missing-class-docstring
 
-import copy
+"""Test the staged passmanager logic"""
 
-import numpy as np
-
-from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit.library import U2Gate
-from qiskit.converters import circuit_to_dag
-from qiskit.transpiler import PassManager, PropertySet, StagedPassManager
-from qiskit.transpiler.passes import CommutativeCancellation
+from qiskit.transpiler import PassManager, StagedPassManager
 from qiskit.transpiler.passes import Optimize1qGates, Unroller, Depth
 from qiskit.test import QiskitTestCase
 
@@ -71,4 +65,4 @@ class TestStagedPassManager(QiskitTestCase):
         with self.assertRaises(NotImplementedError):
             spm.append(Depth())
         with self.assertRaises(NotImplementedError):
-            spm + PassManager()
+            spm += PassManager()
