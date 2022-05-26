@@ -20,23 +20,23 @@ testing local timeouts, arbitrary responses or behavior, etc.
 The mock devices are mainly for testing the compiler.
 """
 
-from qiskit.test.mock.fake_provider import (
+from qiskit.providers.fake_provider.fake_provider import (
     FakeProviderForBackendV2,
     FakeProvider,
 )
-from qiskit.test.mock.fake_provider import FakeProviderFactory
-from qiskit.test.mock.fake_backend import FakeBackend
-from qiskit.test.mock.fake_pulse_backend import FakePulseBackend
-from qiskit.test.mock.fake_qasm_backend import FakeQasmBackend
-from qiskit.test.mock.utils.configurable_backend import ConfigurableFakeBackend
-from qiskit.test.mock.fake_backend_v2 import FakeBackendV2, FakeBackend5QV2, FakeBackendSimple, FakeBackendV2LegacyQubitProps
-from qiskit.test.mock.fake_mumbai_v2 import FakeMumbaiFractionalCX
-from qiskit.test.mock.fake_job import FakeJob
-from qiskit.test.mock.fake_qobj import FakeQobj
+from qiskit.providers.fake_provider.fake_provider import FakeProviderFactory
+from qiskit.providers.fake_provider.fake_backend import FakeBackend
+from qiskit.providers.fake_provider.fake_pulse_backend import FakePulseBackend
+from qiskit.providers.fake_provider.fake_qasm_backend import FakeQasmBackend
+from qiskit.providers.fake_provider.utils.configurable_backend import ConfigurableFakeBackend
+from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendV2, FakeBackend5QV2, FakeBackendSimple, FakeBackendV2LegacyQubitProps
+from qiskit.providers.fake_provider.fake_mumbai_v2 import FakeMumbaiFractionalCX
+from qiskit.providers.fake_provider.fake_job import FakeJob
+from qiskit.providers.fake_provider.fake_qobj import FakeQobj
 
-from qiskit.test.mock.backends import *
+from qiskit.providers.fake_provider.backends import *
 
-from qiskit.test.mock.fake_qasm_simulator import FakeQasmSimulator
-from qiskit.test.mock.fake_openpulse_2q import FakeOpenPulse2Q
-from qiskit.test.mock.fake_openpulse_3q import FakeOpenPulse3Q
-from qiskit.test.mock.fake_1q import Fake1Q
+from qiskit.providers.fake_provider.fake_qasm_simulator import FakeQasmSimulator
+from qiskit.providers.fake_provider.fake_openpulse_2q import FakeOpenPulse2Q
+from qiskit.providers.fake_provider.fake_openpulse_3q import FakeOpenPulse3Q
+from qiskit.providers.fake_provider.fake_1q import Fake1Q
