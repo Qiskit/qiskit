@@ -133,6 +133,16 @@ class TestSampler(QiskitTestCase):
                 self.assertTupleEqual(keys, tuple(range(4)))
                 np.testing.assert_allclose(values, [0.5, 0, 0, 0.5])
 
+        with Sampler([bell]) as sampler:
+            result = sampler([bell, bell, bell])
+            self.assertIsInstance(result, SamplerResult)
+            self.assertEqual(len(result.quasi_dists), 3)
+            self.assertEqual(len(result.metadata), 3)
+            for dist in result.quasi_dists:
+                keys, values = zip(*sorted(dist.items()))
+                self.assertTupleEqual(keys, tuple(range(4)))
+                np.testing.assert_allclose(values, [0.5, 0, 0, 0.5])
+
         # parametrized circuit
         pqc = RealAmplitudes(num_qubits=2, reps=2)
         pqc.measure_all()

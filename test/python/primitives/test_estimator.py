@@ -172,6 +172,12 @@ class TestEstimator(QiskitTestCase):
             )
             self.assertEqual(len(result.metadata), 3)
 
+            # It is possible to pass objects.
+            # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]
+            result = est([psi2], [op2], [theta2])
+            np.testing.assert_allclose(result.values, [0.17849238433885167])
+            self.assertEqual(len(result.metadata), 1)
+
     def test_1qubit(self):
         """Test for 1-qubit cases"""
         qc = QuantumCircuit(1)

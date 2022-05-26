@@ -64,6 +64,12 @@ Here is an example of how sampler is used.
         result = sampler([0, 1, 2], [[]]*3)
         print([q.binary_probabilities() for q in result.quasi_dists])
 
+    # executes three Bell circuits with objects.
+    # Objects can be passed instead of indices.
+    with Sampler([bell]) as sampler:
+        result = sampler([bell, bell, bell])
+        print([q.binary_probabilities() for q in result.quasi_dists])
+
     # parameterized circuit
     pqc = RealAmplitudes(num_qubits=2, reps=2)
     pqc.measure_all()
@@ -214,16 +220,6 @@ class BaseSampler(ABC):
         if isinstance(parameter_values, np.ndarray):
             parameter_values = parameter_values.tolist()
 
-        # Allow optional
-        if parameter_values is None:
-            for i in circuits:
-                if len(self._circuits[i].parameters) != 0:
-                    raise QiskitError(
-                        f"The {i}-th circuit ({len(circuits)}) is parameterised,"
-                        "but parameter values are not given."
-                    )
-            parameter_values = [[]] * len(circuits)
-
         # Allow objects
         try:
             circuits = [
@@ -237,6 +233,16 @@ class BaseSampler(ABC):
                 "The circuits passed when calling sampler is not one of the circuits used to "
                 "initialize the session."
             ) from err
+
+        # Allow optional
+        if parameter_values is None:
+            for i in circuits:
+                if len(self._circuits[i].parameters) != 0:
+                    raise QiskitError(
+                        f"The {i}-th circuit ({len(circuits)}) is parameterised,"
+                        "but parameter values are not given."
+                    )
+            parameter_values = [[]] * len(circuits)
 
         # Validation
         if len(circuits) != len(parameter_values):
