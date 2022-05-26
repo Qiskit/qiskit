@@ -18,7 +18,8 @@ class ICANS(VQE):
     ICANS is implemented as a subclass of VQE.
     VQE [2] is a quantum algorithm that uses a variational technique to find the minimum eigenvalue of the Hamiltonian of a given system.
     According to [1], ICANS may perform comparably or better than other state-of-the-art optimizers, and especially well in the presence of realistic hardware noise.
-    There are two variations, ICANS1 and ICANS2. The first is the more aggressive version, in relation to the learning rate, while ICANS2 is more cautious and limits the learning rate so that the expected gain is always guaranteed to be positive.
+    There are two variations, ICANS1 and ICANS2. The first is the more aggressive version, in relation to the learning rate, while ICANS2 is more cautious and limits the learning rate 
+    so that the expected gain is always guaranteed to be positive.
 
     Example
     This example runs ICANS with some specified parameters and limit_learning_rate = True
@@ -62,7 +63,7 @@ class ICANS(VQE):
     References
     [1]: Jonas M. Kübler, Andrew Arrasmith, Lukasz Cincio, Patrick J. Coles (2019). An Adaptive Optimizer for Measurement-Frugal Variational Algorithms. Online at https://arxiv.org/abs/1909.09083
     [2] Alberto Peruzzo, Et al. (2013). A variational eigenvalue solver on a quantum processor. Online at https://arxiv.org/abs/1304.3061
-​ 
+
     """
     def __init__(
         self,
