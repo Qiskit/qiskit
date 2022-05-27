@@ -189,6 +189,8 @@ class TestSparsePauliOpConversions(QiskitTestCase):
             _ = SparsePauliOp.from_sparse_list([("ZZ", [0, 0], 1)], 2)
         with self.assertRaises(QiskitError):
             _ = SparsePauliOp.from_sparse_list([("ZI", [0, 0], 1)], 2)
+        with self.assertRaises(QiskitError):
+            _ = SparsePauliOp.from_sparse_list([("IZ", [0, 0], 1)], 2)
 
     def test_from_zip(self):
         """Test from_list method for zipped input."""

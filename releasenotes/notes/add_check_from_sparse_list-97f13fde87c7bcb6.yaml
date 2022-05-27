@@ -1,6 +1,6 @@
 ---
 upgrade:
   - |
-    Added a check process and a flag which is used to check if the qubit designated from input Pauli list is already assigned (not I)
+    Added a check process and a flag which is used to check if the qubit designated from input Pauli list is already assigned
     to :func:`from_sparse_list` in the :class:`SparsePauliOp`. The flag is used if check is to be run. The default value is True.
     See `#7916 <https://github.com/Qiskit/qiskit-terra/issues/7916>`__.
