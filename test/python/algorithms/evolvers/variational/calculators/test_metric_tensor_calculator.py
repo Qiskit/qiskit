@@ -20,6 +20,12 @@ from test.python.algorithms.evolvers.variational.calculators.expected_results.te
 from test.python.algorithms.evolvers.variational.calculators.expected_results.test_metric_calculator_expected2 import (
     correct_values_2,
 )
+from test.python.algorithms.evolvers.variational.calculators.expected_results.test_metric_calculator_expected3 import (
+    correct_values_3,
+)
+from test.python.algorithms.evolvers.variational.calculators.expected_results.test_metric_calculator_expected4 import (
+    correct_values_4,
+)
 from ddt import unpack, data, ddt
 import numpy as np
 from qiskit.algorithms.evolvers.variational.calculators.metric_tensor_calculator import (
@@ -27,12 +33,6 @@ from qiskit.algorithms.evolvers.variational.calculators.metric_tensor_calculator
 )
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import SummedOp, X, Y, I, Z
-from test.python.algorithms.evolvers.variational.calculators.expected_results.test_metric_calculator_expected3 import (
-    correct_values_3,
-)
-from test.python.algorithms.evolvers.variational.calculators.expected_results.test_metric_calculator_expected4 import (
-    correct_values_4,
-)
 
 
 @ddt
@@ -92,7 +92,7 @@ class TestMetricTensorCalculator(QiskitAlgorithmsTestCase):
         (5 * Z, -Y, correct_values_4),
     )
     @unpack
-    def test_calculate_imaginary(self, observable, basis, expected_result):
+    def test_calculate(self, observable, basis, expected_result):
         """Test calculating the imaginary part of a metric tensor."""
         d = 2
         ansatz = EfficientSU2(observable.num_qubits, reps=d)

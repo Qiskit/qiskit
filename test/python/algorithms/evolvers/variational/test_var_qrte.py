@@ -14,9 +14,9 @@
 
 import unittest
 
-from ddt import data, ddt
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
+from ddt import data, ddt
 import numpy as np
 from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_factory import (
     OdeFunctionFactory,
