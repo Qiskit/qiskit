@@ -83,9 +83,9 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         d = 1
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
-        parameters = ansatz.ordered_parameters
+        parameters = list(ansatz.parameters)
         init_param_values = np.zeros(len(parameters))
-        for i in range(len(ansatz.ordered_parameters)):
+        for i in range(len(parameters)):
             init_param_values[i] = np.pi / 2
         init_param_values[0] = 1
         var_principle = RealMcLachlanPrinciple()
@@ -175,9 +175,9 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         d = 2
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
-        parameters = ansatz.ordered_parameters
+        parameters = list(ansatz.parameters)
         init_param_values = np.zeros(len(parameters))
-        for i in range(len(ansatz.ordered_parameters)):
+        for i in range(len(parameters)):
             init_param_values[i] = np.pi / 4
 
         var_principle = RealMcLachlanPrinciple()
@@ -215,7 +215,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
             state_fidelity(
                 Statevector(evolved_state),
                 Statevector(
-                    ansatz.assign_parameters(dict(zip(ansatz.ordered_parameters, thetas_expected)))
+                    ansatz.assign_parameters(dict(zip(list(ansatz.parameters), thetas_expected)))
                 ),
             )
         )

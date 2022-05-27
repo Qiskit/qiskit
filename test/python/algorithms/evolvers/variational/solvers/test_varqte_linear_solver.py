@@ -55,7 +55,7 @@ class TestVarQTELinearSolver(QiskitAlgorithmsTestCase):
         d = 2
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
-        parameters = ansatz.ordered_parameters
+        parameters = list(ansatz.parameters)
         init_param_values = np.zeros(len(parameters))
         for i in range(ansatz.num_qubits):
             init_param_values[-(ansatz.num_qubits + i + 1)] = np.pi / 2

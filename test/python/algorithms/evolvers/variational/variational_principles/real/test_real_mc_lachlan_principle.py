@@ -45,7 +45,7 @@ class TestRealMcLachlanPrinciple(QiskitAlgorithmsTestCase):
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
         # Define a set of initial parameters
-        parameters = ansatz.ordered_parameters
+        parameters = list(ansatz.parameters)
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = RealMcLachlanPrinciple()
 
@@ -75,7 +75,7 @@ class TestRealMcLachlanPrinciple(QiskitAlgorithmsTestCase):
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
         # Define a set of initial parameters
-        parameters = ansatz.ordered_parameters
+        parameters = list(ansatz.parameters)
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = RealMcLachlanPrinciple()
 

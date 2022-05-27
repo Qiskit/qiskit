@@ -48,12 +48,12 @@ class TestMetricTensorCalculator(QiskitAlgorithmsTestCase):
 
         d = 2
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
-
-        metric_tensor = calculate(ansatz, ansatz.ordered_parameters)
+        parameters = list(ansatz.parameters)
+        metric_tensor = calculate(ansatz, parameters)
 
         values_dict = [
-            {param: np.pi / 4 for param in ansatz.ordered_parameters},
-            {param: np.pi / 2 for param in ansatz.ordered_parameters},
+            {param: np.pi / 4 for param in parameters},
+            {param: np.pi / 2 for param in parameters},
         ]
 
         for i, value_dict in enumerate(values_dict):
@@ -75,12 +75,12 @@ class TestMetricTensorCalculator(QiskitAlgorithmsTestCase):
 
         d = 2
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
-
-        metric_tensor = calculate(ansatz, ansatz.ordered_parameters, basis=-Y)
+        parameters = list(ansatz.parameters)
+        metric_tensor = calculate(ansatz, parameters, basis=-Y)
 
         values_dict = [
-            {param: np.pi / 4 for param in ansatz.ordered_parameters},
-            {param: np.pi / 2 for param in ansatz.ordered_parameters},
+            {param: np.pi / 4 for param in parameters},
+            {param: np.pi / 2 for param in parameters},
         ]
 
         for i, value_dict in enumerate(values_dict):
@@ -103,7 +103,7 @@ class TestMetricTensorCalculator(QiskitAlgorithmsTestCase):
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
         with self.assertRaises(ValueError):
-            _ = calculate(ansatz, ansatz.ordered_parameters, qfi_method, basis, phase_fix)
+            _ = calculate(ansatz, list(ansatz.parameters), qfi_method, basis, phase_fix)
 
 
 if __name__ == "__main__":
