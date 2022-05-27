@@ -30,7 +30,47 @@ from .variational_principles.imaginary_variational_principle import (
 
 
 class VarQITE(VarQTE, ImaginaryEvolver):
-    """Variational Quantum Imaginary Time Evolution algorithm."""
+    """Variational Quantum Imaginary Time Evolution algorithm.
+
+    .. code-block::python
+
+        from qiskit import BasicAer
+        from qiskit.circuit.library import EfficientSU2
+        from qiskit.opflow import SummedOp, I, Z, Y, X
+        from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_principle import (
+        ImaginaryMcLachlanPrinciple,
+        )
+        from qiskit.algorithms import EvolutionProblem
+        from qiskit.algorithms import VarQITE
+
+        observable = SummedOp(
+            [
+                0.2252 * (I ^ I),
+                0.5716 * (Z ^ Z),
+                0.3435 * (I ^ Z),
+                -0.4347 * (Z ^ I),
+                0.091 * (Y ^ Y),
+                0.091 * (X ^ X),
+            ]
+        ).reduce()
+
+        d = 1
+        ansatz = EfficientSU2(observable.num_qubits, reps=d)
+        parameters = ansatz.parameters
+        init_param_values = np.zeros(len(ansatz.ordered_parameters))
+        for i in range(len(ansatz.parameters)):
+            init_param_values[i] = np.pi / 2
+        param_dict = dict(zip(parameters, init_param_values))
+        var_principle = ImaginaryMcLachlanPrinciple()
+        backend = BasicAer.get_backend("statevector_simulator")
+        time = 1
+        evolution_problem = EvolutionProblem(observable, time, ansatz,
+        param_value_dict=param_dict)
+        var_qite = VarQITE(
+            var_principle, backend=backend
+        )
+        evolution_result = var_qite.evolve(evolution_problem)
+    """
 
     def __init__(
         self,

@@ -19,7 +19,7 @@ features:
         from qiskit import BasicAer
         from qiskit.circuit.library import EfficientSU2
         from qiskit.opflow import SummedOp, I, Z, Y, X
-        from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_variational_principle import (
+        from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_principle import (
         ImaginaryMcLachlanPrinciple,
         )
         from qiskit.algorithms import EvolutionProblem
@@ -39,11 +39,11 @@ features:
         d = 1
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
         parameters = ansatz.parameters
-        init_param_values = np.zeros(len(ansatz.ordered_parameters))
+        init_param_values = np.zeros(len(ansatz.parameters))
         for i in range(len(ansatz.ordered_parameters)):
-            init_param_values[i] = np.pi . 2
+            init_param_values[i] = np.pi / 2
         param_dict = dict(zip(parameters, init_param_values))
-        var_principle = ImaginaryMcLachlanVariationalPrinciple()
+        var_principle = ImaginaryMcLachlanPrinciple()
         backend = BasicAer.get_backend("statevector_simulator")
         time = 1
         evolution_problem = EvolutionProblem(observable, time, ansatz,

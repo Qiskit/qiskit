@@ -30,7 +30,47 @@ from .variational_principles.real_variational_principle import (
 
 
 class VarQRTE(VarQTE, RealEvolver):
-    """Variational Quantum Real Time Evolution algorithm."""
+    """Variational Quantum Real Time Evolution algorithm.
+
+    .. code-block::python
+
+        from qiskit import BasicAer
+        from qiskit.circuit.library import EfficientSU2
+        from qiskit.opflow import SummedOp, I, Z, Y, X
+        from qiskit.algorithms.evolvers.variational.variational_principles.real_mc_lachlan_principle import (
+        RealMcLachlanPrinciple,
+        )
+        from qiskit.algorithms import EvolutionProblem
+        from qiskit.algorithms import VarQRTE
+
+        observable = SummedOp(
+            [
+                0.2252 * (I ^ I),
+                0.5716 * (Z ^ Z),
+                0.3435 * (I ^ Z),
+                -0.4347 * (Z ^ I),
+                0.091 * (Y ^ Y),
+                0.091 * (X ^ X),
+            ]
+        ).reduce()
+
+        d = 1
+        ansatz = EfficientSU2(observable.num_qubits, reps=d)
+        parameters = ansatz.parameters
+        init_param_values = np.zeros(len(ansatz.ordered_parameters))
+        for i in range(len(ansatz.parameters)):
+            init_param_values[i] = np.pi / 2
+        param_dict = dict(zip(parameters, init_param_values))
+        var_principle = RealMcLachlanPrinciple()
+        backend = BasicAer.get_backend("statevector_simulator")
+        time = 1
+        evolution_problem = EvolutionProblem(observable, time, ansatz,
+        param_value_dict=param_dict)
+        var_qite = VarQRTE(
+            var_principle, backend=backend
+        )
+        evolution_result = var_qite.evolve(evolution_problem)
+    """
 
     def __init__(
         self,
