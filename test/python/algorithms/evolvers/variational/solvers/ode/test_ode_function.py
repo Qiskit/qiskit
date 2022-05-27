@@ -54,7 +54,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
                 0.091 * (Y ^ Y),
                 0.091 * (X ^ X),
             ]
-        ).reduce()
+        )
 
         d = 2
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
@@ -115,7 +115,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
                 0.091 * (Y ^ Y),
                 0.091 * (X ^ X),
             ]
-        ).reduce()
+        )
 
         d = 2
         ansatz = EfficientSU2(observable.num_qubits, reps=d)

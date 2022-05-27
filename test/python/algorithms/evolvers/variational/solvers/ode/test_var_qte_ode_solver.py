@@ -56,7 +56,7 @@ class TestVarQTEOdeSolver(QiskitAlgorithmsTestCase):
                 0.091 * (Y ^ Y),
                 0.091 * (X ^ X),
             ]
-        ).reduce()
+        )
 
         d = 1
         ansatz = EfficientSU2(observable.num_qubits, reps=d)

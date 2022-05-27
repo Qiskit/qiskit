@@ -28,9 +28,8 @@ from qiskit.opflow import SummedOp, X, Y, I, Z
 class TestEvolutionGradCalculator(QiskitAlgorithmsTestCase):
     """Test evolution gradient calculator."""
 
-    def test_calculate(self):
-        """Test calculating evolution gradient."""
-        observable = SummedOp(
+    @data(
+        SummedOp(
             [
                 0.2252 * (I ^ I),
                 0.5716 * (Z ^ Z),
@@ -39,8 +38,16 @@ class TestEvolutionGradCalculator(QiskitAlgorithmsTestCase):
                 0.091 * (Y ^ Y),
                 0.091 * (X ^ X),
             ]
-        ).reduce()
-
+        ),
+        0.2252 * (I ^ I)
+        + 0.5716 * (Z ^ Z)
+        + 0.3435 * (I ^ Z)
+        + -0.4347 * (Z ^ I)
+        + 0.091 * (Y ^ Y)
+        + 0.091 * (X ^ X),
+    )
+    def test_calculate(self, observable):
+        """Test calculating evolution gradient."""
         d = 2
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
@@ -122,6 +129,16 @@ class TestEvolutionGradCalculator(QiskitAlgorithmsTestCase):
                     (0.43469999999999953 - 1.1e-17j),
                 ],
             ],
+            SummedOp(
+                [
+                    0.2252 * (I ^ I),
+                    0.5716 * (Z ^ Z),
+                    0.3435 * (I ^ Z),
+                    -0.4347 * (Z ^ I),
+                    0.091 * (Y ^ Y),
+                    0.091 * (X ^ X),
+                ]
+            ),
         ),
         (
             Z - 1j * Y,
@@ -155,21 +172,17 @@ class TestEvolutionGradCalculator(QiskitAlgorithmsTestCase):
                     (-2.9e-17 + 0.4346999999999995j),
                 ],
             ],
+            0.2252 * (I ^ I)
+            + 0.5716 * (Z ^ Z)
+            + 0.3435 * (I ^ Z)
+            + -0.4347 * (Z ^ I)
+            + 0.091 * (Y ^ Y)
+            + 0.091 * (X ^ X),
         ),
     )
     @unpack  # TODO verify if values correct
-    def test_calculate_bases(self, basis, correct_values):
+    def test_calculate_bases(self, basis, correct_values, observable):
         """Test calculating evolution gradient with non-default bases."""
-        observable = SummedOp(
-            [
-                0.2252 * (I ^ I),
-                0.5716 * (Z ^ Z),
-                0.3435 * (I ^ Z),
-                -0.4347 * (Z ^ I),
-                0.091 * (Y ^ Y),
-                0.091 * (X ^ X),
-            ]
-        ).reduce()
 
         d = 2
         ansatz = EfficientSU2(observable.num_qubits, reps=d)

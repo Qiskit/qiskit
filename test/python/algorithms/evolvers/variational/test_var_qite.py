@@ -13,6 +13,9 @@
 """Test Variational Quantum Imaginary Time Evolution algorithm."""
 
 import unittest
+
+from ddt import data, ddt
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_factory import (
@@ -38,6 +41,7 @@ from qiskit.opflow import (
 from qiskit.quantum_info import state_fidelity, Statevector
 
 
+@ddt
 class TestVarQITE(QiskitAlgorithmsTestCase):
     """Test Variational Quantum Imaginary Time Evolution algorithm."""
 
@@ -78,7 +82,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
                 0.091 * (Y ^ Y),
                 0.091 * (X ^ X),
             ]
-        ).reduce()
+        )
         aux_ops = [X ^ X, Y ^ Z]
         d = 1
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
@@ -171,7 +175,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
                 0.091 * (Y ^ Y),
                 0.091 * (X ^ X),
             ]
-        ).reduce()
+        )
 
         d = 1
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
@@ -222,9 +226,8 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         for i, parameter_value in enumerate(parameter_values):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=2)
 
-    def test_run_d_2(self):
-        """Test VarQITE for d = 2 and t = 1."""
-        observable = SummedOp(
+    @data(
+        SummedOp(
             [
                 0.2252 * (I ^ I),
                 0.5716 * (Z ^ Z),
@@ -233,8 +236,16 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
                 0.091 * (Y ^ Y),
                 0.091 * (X ^ X),
             ]
-        ).reduce()
-
+        ),
+        0.2252 * (I ^ I)
+        + 0.5716 * (Z ^ Z)
+        + 0.3435 * (I ^ Z)
+        + -0.4347 * (Z ^ I)
+        + 0.091 * (Y ^ Y)
+        + 0.091 * (X ^ X),
+    )
+    def test_run_d_2(self, observable):
+        """Test VarQITE for d = 2 and t = 1."""
         d = 2
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 

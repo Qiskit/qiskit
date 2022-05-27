@@ -13,6 +13,9 @@
 """Test Variational Quantum Real Time Evolution algorithm."""
 
 import unittest
+
+from ddt import data, ddt
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_factory import (
@@ -38,6 +41,7 @@ from qiskit.opflow import (
 )
 
 
+@ddt
 class TestVarQRTE(QiskitAlgorithmsTestCase):
     """Test Variational Quantum Real Time Evolution algorithm."""
 
@@ -78,7 +82,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
                 0.091 * (Y ^ Y),
                 0.091 * (X ^ X),
             ]
-        ).reduce()
+        )
         aux_ops = [X ^ X, Y ^ Z]
         d = 1
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
@@ -159,9 +163,8 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
                     )
                 np.testing.assert_array_almost_equal(aux_ops, expected_aux_ops)
 
-    def test_run_d_2(self):
-        """Test VarQRTE for d = 2 and t = 1."""
-        observable = SummedOp(
+    @data(
+        SummedOp(
             [
                 0.2252 * (I ^ I),
                 0.5716 * (Z ^ Z),
@@ -170,8 +173,16 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
                 0.091 * (Y ^ Y),
                 0.091 * (X ^ X),
             ]
-        ).reduce()
-
+        ),
+        0.2252 * (I ^ I)
+        + 0.5716 * (Z ^ Z)
+        + 0.3435 * (I ^ Z)
+        + -0.4347 * (Z ^ I)
+        + 0.091 * (Y ^ Y)
+        + 0.091 * (X ^ X),
+    )
+    def test_run_d_2(self, observable):
+        """Test VarQRTE for d = 2 and t = 1."""
         d = 2
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 

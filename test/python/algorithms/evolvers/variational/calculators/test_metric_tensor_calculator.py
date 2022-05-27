@@ -27,56 +27,77 @@ from qiskit.algorithms.evolvers.variational.calculators.metric_tensor_calculator
 )
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import SummedOp, X, Y, I, Z
+from test.python.algorithms.evolvers.variational.calculators.expected_results.test_metric_calculator_expected3 import (
+    correct_values_3,
+)
+from test.python.algorithms.evolvers.variational.calculators.expected_results.test_metric_calculator_expected4 import (
+    correct_values_4,
+)
 
 
 @ddt
 class TestMetricTensorCalculator(QiskitAlgorithmsTestCase):
     """Test metric tensor calculator."""
 
-    def test_calculate_real(self):
-        """Test calculating the real part of a metric tensor."""
-        observable = SummedOp(
-            [
-                0.2252 * (I ^ I),
-                0.5716 * (Z ^ Z),
-                0.3435 * (I ^ Z),
-                -0.4347 * (Z ^ I),
-                0.091 * (Y ^ Y),
-                0.091 * (X ^ X),
-            ]
-        ).reduce()
-
-        d = 2
-        ansatz = EfficientSU2(observable.num_qubits, reps=d)
-        parameters = list(ansatz.parameters)
-        metric_tensor = calculate(ansatz, parameters)
-
-        values_dict = [
-            {param: np.pi / 4 for param in parameters},
-            {param: np.pi / 2 for param in parameters},
-        ]
-
-        for i, value_dict in enumerate(values_dict):
-            result = metric_tensor.assign_parameters(value_dict).eval()
-            np.testing.assert_array_almost_equal(result, correct_values_1[i])
-
-    def test_calculate_imaginary(self):
+    @data(
+        (
+            SummedOp(
+                [
+                    0.2252 * (I ^ I),
+                    0.5716 * (Z ^ Z),
+                    0.3435 * (I ^ Z),
+                    -0.4347 * (Z ^ I),
+                    0.091 * (Y ^ Y),
+                    0.091 * (X ^ X),
+                ]
+            ),
+            -Y,
+            correct_values_2,
+        ),
+        (
+            0.2252 * (I ^ I)
+            + 0.5716 * (Z ^ Z)
+            + 0.3435 * (I ^ Z)
+            + -0.4347 * (Z ^ I)
+            + 0.091 * (Y ^ Y)
+            + 0.091 * (X ^ X),
+            -Y,
+            correct_values_2,
+        ),
+        (
+            SummedOp(
+                [
+                    0.2252 * (I ^ I),
+                    0.5716 * (Z ^ Z),
+                    0.3435 * (I ^ Z),
+                    -0.4347 * (Z ^ I),
+                    0.091 * (Y ^ Y),
+                    0.091 * (X ^ X),
+                ]
+            ),
+            Z,
+            correct_values_1,
+        ),
+        (
+            0.2252 * (I ^ I)
+            + 0.5716 * (Z ^ Z)
+            + 0.3435 * (I ^ Z)
+            + -0.4347 * (Z ^ I)
+            + 0.091 * (Y ^ Y)
+            + 0.091 * (X ^ X),
+            Z,
+            correct_values_1,
+        ),
+        (X, -Y, correct_values_3),
+        (5 * Z, -Y, correct_values_4),
+    )
+    @unpack
+    def test_calculate_imaginary(self, observable, basis, expected_result):
         """Test calculating the imaginary part of a metric tensor."""
-        observable = SummedOp(
-            [
-                0.2252 * (I ^ I),
-                0.5716 * (Z ^ Z),
-                0.3435 * (I ^ Z),
-                -0.4347 * (Z ^ I),
-                0.091 * (Y ^ Y),
-                0.091 * (X ^ X),
-            ]
-        ).reduce()
-
         d = 2
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
         parameters = list(ansatz.parameters)
-        metric_tensor = calculate(ansatz, parameters, basis=-Y)
+        metric_tensor = calculate(ansatz, parameters, basis=basis)
 
         values_dict = [
             {param: np.pi / 4 for param in parameters},
@@ -85,7 +106,7 @@ class TestMetricTensorCalculator(QiskitAlgorithmsTestCase):
 
         for i, value_dict in enumerate(values_dict):
             result = metric_tensor.assign_parameters(value_dict).eval()
-            np.testing.assert_array_almost_equal(result, correct_values_2[i])
+            np.testing.assert_array_almost_equal(result, expected_result[i])
 
     @data(
         ("param_shift", Z, True),
