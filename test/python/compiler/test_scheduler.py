@@ -75,11 +75,18 @@ class TestCircuitScheduler(QiskitTestCase):
     def test_schedules_multiple_circuits(self):
         """Test scheduling of multiple circuits."""
         circuits = [self.circ, self.circ2]
-        circuit_schedules = schedule(circuits, self.backend)
+        circuit_schedules = schedule(circuits, self.backend, method="asap")
         self.assertEqual(len(circuit_schedules), len(circuits))
 
         circuit_one_schedule = circuit_schedules[0]
         circuit_two_schedule = circuit_schedules[1]
 
-        self.assertEqual(circuit_one_schedule.name, "circ")
-        self.assertEqual(circuit_two_schedule.name, "circ2")
+        self.assertEqual(
+            circuit_one_schedule,
+            schedule(self.circ, self.backend, method="asap"),
+        )
+
+        self.assertEqual(
+            circuit_two_schedule,
+            schedule(self.circ2, self.backend, method="asap"),
+        )
