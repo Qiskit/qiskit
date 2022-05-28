@@ -603,7 +603,7 @@ class BackendV2(Backend, ABC):
     def run(self, run_input, **options):
         """Run on the backend.
 
-        This method that will return a :class:`~qiskit.providers.Job` object
+        This method returns a :class:`~qiskit.providers.Job` object
         that run circuits. Depending on the backend this may be either an async
         or sync call. It is the discretion of the provider to decide whether
         running should  block until the execution is finished or not. The Job
