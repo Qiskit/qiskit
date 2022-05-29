@@ -69,6 +69,7 @@ class Result:
         if header is not None:
             self.header = header
         self._metadata.update(kwargs)
+        self.get_counts_type = None
 
     def __repr__(self):
         out = (
@@ -300,7 +301,7 @@ class Result:
                 raise QiskitError(f'No counts for experiment "{repr(key)}"')
 
         # Return first item of dict_list if size is 1
-        if len(dict_list) == 1:
+        if experiment is not None or self.get_counts_type != list and len(dict_list) == 1:
             return dict_list[0]
         else:
             return dict_list

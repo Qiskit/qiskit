@@ -493,6 +493,7 @@ class QuantumInstance:
             build_measurement_error_mitigation_circuits,
         )
 
+        circuits_type = type(circuits)
         if had_transpiled:
             # Convert to a list or make a copy.
             # The measurement mitigation logic expects a list and
@@ -720,6 +721,7 @@ class QuantumInstance:
         if self._circuit_summary:
             self._circuit_summary = False
 
+        result.get_counts_type = circuits_type
         return result
 
     def set_config(self, **kwargs):
