@@ -49,7 +49,7 @@ class Finishing_criterion(Enum):
     finishing_criterion = ""
 
 
-class AdaptVQE(VQE):
+class AdaptVQE():
     """A ground state calculation employing the AdaptVQE algorithm.
 
     The performance of AdaptVQE can significantly depend on the choice of gradient method, QFI
@@ -58,19 +58,15 @@ class AdaptVQE(VQE):
 
     def __init__(
         self,
+        solver: VQE ,
         ansatz: Optional[QuantumCircuit] = None,
         threshold: float = 1e-5,
         max_iterations: Optional[int] = None,
         adapt_gradient: Optional[GradientBase] = None,
-        # optimizer: Optional[Optimizer] = None,
         initial_point: Optional[np.ndarray] = None,
-        # expectation: Optional[ExpectationBase] = None,
-        # include_custom: bool = False,
-        # max_evals_grouped: int = 1,
-        # callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
-        # quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
+        expectation: Optional[ExpectationBase] = None,
+        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
         excitation_pool: List[Union[OperatorBase, QuantumCircuit]] = None,
-        **kwargs,
     ) -> None:
         """
         Args:
@@ -84,25 +80,18 @@ class AdaptVQE(VQE):
             excitation_pool: An entire list of excitations.
         """
         validate_min("threshold", threshold, 1e-15)
-        super().__init__(
-            ansatz=None,
-            # optimizer=optimizer,
-            initial_point=initial_point,
-            #gradient=gradient,
-            # expectation=expectation,
-            # include_custom=include_custom,
-            # max_evals_grouped=max_evals_grouped,
-            # callback=callback,
-            # quantum_instance=quantum_instance,
-            **kwargs,
-        )
+
         if adapt_gradient is None:
             adapt_gradient = Gradient(grad_method="param_shift")
         self._threshold = threshold
+        self.solver = solver
         self._max_iterations = max_iterations
         self._adapt_gradient = adapt_gradient
         self._excitation_pool = excitation_pool
         self._tmp_ansatz = ansatz
+        self.expectation = expectation
+        self.quantum_instance = quantum_instance
+        self.initial_point = initial_point
         self._excitation_list: List[OperatorBase] = []
 
     def _compute_gradients(
@@ -135,7 +124,7 @@ class AdaptVQE(VQE):
                 #~StateFn(operator) @ StateFn(self.ansatz),
                 #bind_params=list(self.ansatz.parameters),
                 #backend=self._quantum_instance)
-            op,expectation = self.construct_expectation(theta1, operator, return_expectation=True)
+            op,expectation = self.solver.construct_expectation(theta1, operator, return_expectation=True)
             # compute gradient
             #print(op)
             state_grad = self._adapt_gradient.convert(operator=op, params=param_sets)
@@ -259,7 +248,7 @@ class AdaptVQE(VQE):
             self._tmp_ansatz.operators = self._excitation_list
             self.ansatz = self._tmp_ansatz
             self.initial_point = theta
-            raw_vqe_result = self.compute_minimum_eigenvalue(operator)
+            raw_vqe_result = self.solver.compute_minimum_eigenvalue(operator)
             theta = raw_vqe_result.optimal_point.tolist()
         else:
             # reached maximum number of iterations
