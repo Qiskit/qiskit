@@ -47,6 +47,10 @@ External Python Libraries
 .. list-table::
     :widths: 25 75
 
+    * - .. py:data:: HAS_CONSTRAINT
+      - `python-constraint <https://github.com/python-constraint/python-constraint>__ is a
+        constraint satisfaction problem solver, used in the :class:`~.CSPLayout` transpiler pass.
+
     * - .. py:data:: HAS_CPLEX
       - The `IBM CPLEX Optimizer <https://www.ibm.com/analytics/cplex-optimizer>`__ is a
         high-performance mathematical programming solver for linear, mixed-integer and quadratic
@@ -142,7 +146,6 @@ External Python Libraries
       - `Z3 <https://github.com/Z3Prover/z3>`__ is a theorem prover, used in the
         :class:`.CrosstalkAdaptiveSchedule` and :class:`.HoareOptimizer` transpiler passes.
 
-
 External Command-Line Tools
 ---------------------------
 
@@ -205,6 +208,12 @@ HAS_IGNIS = _LazyImportTester(
     "qiskit.ignis",
     name="Qiskit Ignis",
     install="pip install qiskit-ignis",
+)
+
+HAS_CONSTRAINT = _LazyImportTester(
+    "constraint",
+    name="python-constraint",
+    install="pip install python-constraint",
 )
 
 HAS_CPLEX = _LazyImportTester(
