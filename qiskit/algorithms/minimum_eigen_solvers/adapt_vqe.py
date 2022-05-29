@@ -281,7 +281,7 @@ class AdaptVQE():
         return result
 
 
-class AdaptVQEResult(VQEResult):
+class AdaptVQEResult():
     """AdaptVQE Result."""
 
     def __init__(self) -> None:
