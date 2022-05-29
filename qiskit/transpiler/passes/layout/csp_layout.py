@@ -103,12 +103,12 @@ class CSPLayout(AnalysisPass):
         qubits = dag.qubits
         needed_connections = set()
 
-        for gate in dag.two_qubit_ops():
-            needed_connections.add((qubits.index(gate.qargs[0]), qubits.index(gate.qargs[1])))
-
-        for gate in dag.multi_qubit_ops():
-            for (q_0, q_1) in itertools.combinations(gate.qargs, 2):
-                needed_connections.add((qubits.index(q_0), qubits.index(q_1)))
+        for gate in dag.op_nodes(include_directives=False):
+            if len(gate.qargs) == 2:
+                needed_connections.add((qubits.index(gate.qargs[0]), qubits.index(gate.qargs[1])))
+            elif len(gate.qargs) > 2:
+                for (q_0, q_1) in itertools.combinations(gate.qargs, 2):
+                    needed_connections.add((qubits.index(q_0), qubits.index(q_1)))
 
         edges = set(self.coupling_map.get_edges())
 
