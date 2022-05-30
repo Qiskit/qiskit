@@ -138,7 +138,7 @@ class UMDA(Optimizer):
         self.__size_gen = size_gen
         self.__max_iter = maxiter
         assert 0 < alpha < 1, (
-            "Alpha represents a percentage and should be greater than 0 but lower than 1"
+            "Alpha represents a percentage and should be greater than 0 but lower " "than 1"
         )
         self.__alpha = alpha
         self.__n_variables = n_variables
