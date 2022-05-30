@@ -201,12 +201,6 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         var_qrte = VarQRTE(var_principle, ode_function, quantum_instance=backend)
         time = 1
 
-        evolution_problem = EvolutionProblem(observable, time, ansatz, param_value_dict=param_dict)
-
-        evolution_result = var_qrte.evolve(evolution_problem)
-
-        evolved_state = evolution_result.evolved_state
-
         thetas_expected = [
             0.348407744196573,
             0.919404626262464,
@@ -221,6 +215,20 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
             0.699606368428206,
             0.610788576398685,
         ]
+
+        with self.subTest("Parameters values dictionary test."):
+            self._test_helper(ansatz, param_dict, observable, thetas_expected, time, var_qrte)
+        with self.subTest("Parameters values array test."):
+            self._test_helper(
+                ansatz, init_param_values, observable, thetas_expected, time, var_qrte
+            )
+
+    def _test_helper(self, ansatz, init_param_values, observable, thetas_expected, time, var_qrte):
+        evolution_problem = EvolutionProblem(
+            observable, time, ansatz, param_value_dict=init_param_values
+        )
+        evolution_result = var_qrte.evolve(evolution_problem)
+        evolved_state = evolution_result.evolved_state
         # TODO remove print before merging
         print(
             state_fidelity(
@@ -231,7 +239,6 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
             )
         )
         parameter_values = evolved_state.data[0][0].params
-
         for i, parameter_value in enumerate(parameter_values):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=4)
 

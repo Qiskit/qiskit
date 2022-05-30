@@ -194,13 +194,6 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         ode_function = OdeFunctionFactory(OdeFunctionType.STANDARD_ODE)
         var_qite = VarQITE(var_principle, ode_function, quantum_instance=backend)
         time = 7
-
-        evolution_problem = EvolutionProblem(observable, time, ansatz, param_value_dict=param_dict)
-
-        evolution_result = var_qite.evolve(evolution_problem)
-
-        evolved_state = evolution_result.evolved_state
-
         # values from the prototype
         thetas_expected = [
             0.828917365718767,
@@ -212,19 +205,8 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             2.04214275514208,
             2.04009918594422,
         ]
-        # TODO remove print before merging
-        print(
-            state_fidelity(
-                Statevector(evolved_state),
-                Statevector(
-                    ansatz.assign_parameters(dict(zip(list(ansatz.parameters), thetas_expected)))
-                ),
-            )
-        )
-        parameter_values = evolved_state.data[0][0].params
 
-        for i, parameter_value in enumerate(parameter_values):
-            np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=2)
+        self._test_helper(ansatz, observable, param_dict, thetas_expected, time, var_qite, 2)
 
     @data(
         SummedOp(
@@ -264,12 +246,6 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         var_qite = VarQITE(var_principle, ode_function, quantum_instance=backend)
         time = 1
 
-        evolution_problem = EvolutionProblem(observable, time, ansatz, param_value_dict=param_dict)
-
-        evolution_result = var_qite.evolve(evolution_problem)
-
-        evolved_state = evolution_result.evolved_state
-
         # values from the prototype
         thetas_expected = [
             1.29495364023786,
@@ -285,6 +261,21 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             0.839305697704923,
             0.663689581255428,
         ]
+
+        with self.subTest("Parameters values dictionary test."):
+            self._test_helper(ansatz, observable, param_dict, thetas_expected, time, var_qite, 4)
+
+        with self.subTest("Parameters values array test."):
+            self._test_helper(
+                ansatz, observable, init_param_values, thetas_expected, time, var_qite, 4
+            )
+
+    def _test_helper(
+        self, ansatz, observable, param_dict, thetas_expected, time, var_qite, decimal
+    ):
+        evolution_problem = EvolutionProblem(observable, time, ansatz, param_value_dict=param_dict)
+        evolution_result = var_qite.evolve(evolution_problem)
+        evolved_state = evolution_result.evolved_state
         # TODO remove print before merging
         print(
             state_fidelity(
@@ -295,9 +286,10 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             )
         )
         parameter_values = evolved_state.data[0][0].params
-
         for i, parameter_value in enumerate(parameter_values):
-            np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=4)
+            np.testing.assert_almost_equal(
+                float(parameter_value), thetas_expected[i], decimal=decimal
+            )
 
 
 if __name__ == "__main__":
