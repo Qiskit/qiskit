@@ -93,6 +93,17 @@ knowledge to do this in that application domain.
    NumPyEigensolver
 
 
+Variational
+-----------
+
+Classes used bu variational quantum time evolution algorithms.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   variational
+
+
 Evolvers
 --------
 
@@ -251,8 +262,10 @@ from .aux_ops_evaluator import eval_observables
 from .evolvers.trotterization import TrotterQRTE
 from .evolvers.variational.var_qte import VarQTE
 from .evolvers.variational import VarQITE, VarQRTE
+from .evolvers import variational
 
 __all__ = [
+    "variational",
     "AlgorithmResult",
     "VariationalAlgorithm",
     "VariationalResult",
