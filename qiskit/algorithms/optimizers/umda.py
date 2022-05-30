@@ -134,15 +134,10 @@ class UMDA(SciPyOptimizer):
         https://github.com/VicentePerezSoloviev/EDAspy.
     """
 
-    best_mae_global = 9999999
-    best_ind_global = 9999999
-    history = []
-    evaluations = 0
+    ELITE_FACTOR = 0.4
+    STD_BOUND = 0.3
 
-    elite_factor = 0.4
-    std_bound = 0.3
-
-    setting = "---"
+    # setting = "---"
 
     def __init__(
         self, maxiter: int, size_gen: int, n_variables: int, alpha: float = 0.5, disp: bool = False
@@ -157,26 +152,30 @@ class UMDA(SciPyOptimizer):
             disp: Set to True to print convergence messages.
         """
 
-        self.disp = disp
-        self.size_gen = size_gen
-        self.max_iter = maxiter
-        self.alpha = alpha
-        self.n_variables = n_variables
-        self.vector = self._initialization()
-        self.dead_iter = self.max_iter / 5
+        self.__disp = disp
+        self.__size_gen = size_gen
+        self.__max_iter = maxiter
+        self.__alpha = alpha
+        self.__n_variables = n_variables
+        self.__vector = self._initialization()
+        self.__dead_iter = self.__max_iter / 5
 
-        self.best_mae_global = 999999999999
-        self.truncation_length = int(size_gen * alpha)
+        self.__best_mae_global = 999999999999
+        self.__truncation_length = int(size_gen * alpha)
 
         # initialization of generation
-        self.generation = algorithm_globals.random.normal(
-            self.vector[0, :], self.vector[1, :], [self.size_gen, self.n_variables]
+        self.__generation = algorithm_globals.random.normal(
+            self.__vector[0, :], self.__vector[1, :], [self.__size_gen, self.__n_variables]
         )
 
         super().__init__(method="UMDA")
 
+        self.__best_ind_global = 9999999
+        self.__history = []
+        self.__evaluations = np.array(0)
+
     def _initialization(self):
-        vector = np.zeros((4, self.n_variables))
+        vector = np.zeros((4, self.__n_variables))
 
         vector[0, :] = np.pi  # mu
         vector[1, :] = 0.5  # std
@@ -192,25 +191,25 @@ class UMDA(SciPyOptimizer):
         """
 
         gen = algorithm_globals.random.normal(
-            self.vector[0, :], self.vector[1, :], [self.size_gen, self.n_variables]
+            self.__vector[0, :], self.__vector[1, :], [self.__size_gen, self.__n_variables]
         )
 
-        self.generation = self.generation[: int(self.elite_factor * len(self.generation))]
-        self.generation = np.vstack((self.generation, gen))
+        self.__generation = self.__generation[: int(self.ELITE_FACTOR * len(self.__generation))]
+        self.__generation = np.vstack((self.__generation, gen))
 
     # truncate the generation at alpha percent
     def _truncation(self):
         """Selection of the best individuals of the actual generation.
         Updates the generation by selecting the best individuals.
         """
-        best_indices = self.evaluations.argsort()[: self.truncation_length]
-        self.generation = self.generation[best_indices, :]
-        self.evaluations = np.take(self.evaluations, best_indices)
+        best_indices = self.__evaluations.argsort()[: self.__truncation_length]
+        self.__generation = self.__generation[best_indices, :]
+        self.__evaluations = np.take(self.__evaluations, best_indices)
 
     # check each individual of the generation
     def _check_generation(self, objective_function):
         """Check the cost of each individual in the cost function implemented by the user."""
-        self.evaluations = np.apply_along_axis(objective_function, 1, self.generation)
+        self.__evaluations = np.apply_along_axis(objective_function, 1, self.__generation)
 
     # update the probability vector
     def _update_vector(self):
@@ -218,10 +217,10 @@ class UMDA(SciPyOptimizer):
         generation can sample from it. Update the vector of normal distributions
         """
 
-        for i in range(self.n_variables):
-            self.vector[0, i], self.vector[1, i] = norm.fit(self.generation[:, i])
-            if self.vector[1, i] < self.std_bound:
-                self.vector[1, i] = self.std_bound
+        for i in range(self.__n_variables):
+            self.__vector[0, i], self.__vector[1, i] = norm.fit(self.__generation[:, i])
+            if self.__vector[1, i] < self.STD_BOUND:
+                self.__vector[1, i] = self.STD_BOUND
 
     def minimize(
         self,
@@ -231,40 +230,112 @@ class UMDA(SciPyOptimizer):
         bounds: Optional[List[Tuple[float, float]]] = None,
     ) -> OptimizerResult:
 
-        self.history = []
+        self.__history = []
         not_better = 0
         result = OptimizerResult()
 
-        for _ in range(self.max_iter):
+        for _ in range(self.__max_iter):
             self._check_generation(fun)
             self._truncation()
             self._update_vector()
 
-            best_mae_local = min(self.evaluations)
+            best_mae_local = min(self.__evaluations)
 
-            self.history.append(best_mae_local)
-            best_ind_local = np.where(self.evaluations == best_mae_local)[0][0]
-            best_ind_local = self.generation[best_ind_local]
+            self.__history.append(best_mae_local)
+            best_ind_local = np.where(self.__evaluations == best_mae_local)[0][0]
+            best_ind_local = self.__generation[best_ind_local]
 
             # update the best values ever
-            if best_mae_local < self.best_mae_global:
-                self.best_mae_global = best_mae_local
-                self.best_ind_global = best_ind_local
+            if best_mae_local < self.__best_mae_global:
+                self.__best_mae_global = best_mae_local
+                self.__best_ind_global = best_ind_local
                 not_better = 0
 
             else:
                 not_better += 1
-                if not_better == self.dead_iter:
+                if not_better == self.__dead_iter:
                     break
 
             self._new_generation()
 
-        result.x = self.best_ind_global
-        result.fun = self.best_mae_global
-        result.nfev = len(self.history) * self.size_gen
+        result.x = self.__best_ind_global
+        result.fun = self.__best_mae_global
+        result.nfev = len(self.__history) * self.__size_gen
 
-        if self.disp:
+        if self.__disp:
             print("\tNFVALS = " + str(result.nfev) + " F = " + str(result.fun))
             print("\tX = " + str(result.x))
 
         return result
+
+    @property
+    def disp(self):
+        return self.__disp
+
+    @disp.setter
+    def disp(self, value: bool):
+        self.__disp = value
+
+    @property
+    def size_gen(self):
+        return self.__size_gen
+
+    @size_gen.setter
+    def size_gen(self, value: int):
+        self.__size_gen = value
+
+    @property
+    def max_iter(self):
+        return self.__max_iter
+
+    @max_iter.setter
+    def max_iter(self, value: int):
+        self.__max_iter = value
+
+    @property
+    def alpha(self):
+        return self.__alpha
+
+    @alpha.setter
+    def alpha(self, value: int):
+        self.__alpha = value
+
+    @property
+    def n_variables(self):
+        return self.__n_variables
+
+    @n_variables.setter
+    def n_variables(self, value: int):
+        self.__n_variables = value
+
+    @property
+    def dead_iter(self):
+        return self.__dead_iter
+
+    @dead_iter.setter
+    def dead_iter(self, value: int):
+        self.__dead_iter = value
+
+    @property
+    def best_mae_global(self):
+        return self.__best_mae_global
+
+    @best_mae_global.setter
+    def best_mae_global(self, value: int):
+        self.__best_mae_global = value
+
+    @property
+    def best_ind_global(self):
+        return self.__best_ind_global
+
+    @property
+    def generation(self):
+        return self.__generation
+
+    @generation.setter
+    def generation(self, value: np.array):
+        self.__generation = value
+
+    @property
+    def history(self):
+        return self.__history
