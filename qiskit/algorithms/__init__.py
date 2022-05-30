@@ -107,11 +107,11 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
     RealEvolver
     ImaginaryEvolver
     TrotterQRTE
-    VarQTE
     VarQITE
     VarQRTE
     EvolutionResult
     EvolutionProblem
+
 
 Factorizers
 -----------

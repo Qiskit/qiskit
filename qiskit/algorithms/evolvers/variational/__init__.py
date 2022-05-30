@@ -101,6 +101,17 @@ They can be divided into two categories:
     RealMcLachlanPrinciple
     RealTimeDependentPrinciple
     ImaginaryMcLachlanPrinciple
+
+
+Solvers
+-------
+
+Solvers used by variational quantum time evolution algorithms.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   solvers
 """
 from .variational_principles.imaginary_mc_lachlan_principle import (
     ImaginaryMcLachlanPrinciple,
@@ -120,4 +131,5 @@ __all__ = [
     "RealMcLachlanPrinciple",
     "RealTimeDependentPrinciple",
     "ImaginaryMcLachlanPrinciple",
+    "solvers",
 ]

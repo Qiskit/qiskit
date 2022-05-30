@@ -17,19 +17,27 @@ This package contains the necessary classes to solve systems of equations arisin
 Variational Quantum Time Evolution. They include ordinary differential equations (ODE) which
 describe ansatz parameter propagation and systems of linear equations.
 
+
 Systems of Linear Equations Solver
-====================
+----------------------------------
+
 .. autosummary::
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
     VarQTELinearSolver
 
+
 ODE Solver
-================
+----------
 .. autosummary::
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
     VarQTEOdeSolver
 """
+
+from qiskit.algorithms.evolvers.variational.solvers.ode.var_qte_ode_solver import VarQTEOdeSolver
+from qiskit.algorithms.evolvers.variational.solvers.var_qte_linear_solver import VarQTELinearSolver
+
+__all__ = ["VarQTELinearSolver", "VarQTEOdeSolver"]
