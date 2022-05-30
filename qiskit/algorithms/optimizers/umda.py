@@ -129,7 +129,7 @@ class UMDA(Optimizer):
             maxiter: Maximum number of function evaluations.
             size_gen: Population size of each generation.
             n_variables: Number of variables to be optimized. For example in QAOA the number of variables
-            is 2p, where p is the number of layers of the circuit.
+                is 2p, where p is the number of layers of the circuit.
             alpha: Percentage [0, 1] of the population to be selected as elite selection.
             disp: Set to True to print convergence messages.
         """
@@ -137,6 +137,8 @@ class UMDA(Optimizer):
         self.__disp = disp
         self.__size_gen = size_gen
         self.__max_iter = maxiter
+        assert 0 < alpha < 1, "Alpha represents a percentage and should be greater than 0 but lower " \
+                              "than 1"
         self.__alpha = alpha
         self.__n_variables = n_variables
         self.__vector = self._initialization()
@@ -161,8 +163,6 @@ class UMDA(Optimizer):
 
         vector[0, :] = np.pi  # mu
         vector[1, :] = 0.5  # std
-        vector[2, :] = 0  # min
-        vector[3, :] = np.pi * 2  # max
 
         return vector
 
@@ -212,8 +212,7 @@ class UMDA(Optimizer):
         bounds: Optional[List[Tuple[float, float]]] = None,
     ) -> OptimizerResult:
 
-        self.__history = []
-        not_better = 0
+        not_better_count = 0
         result = OptimizerResult()
 
         for _ in range(self.__max_iter):
@@ -231,11 +230,11 @@ class UMDA(Optimizer):
             if best_mae_local < self.__best_cost_global:
                 self.__best_cost_global = best_mae_local
                 self.__best_ind_global = best_ind_local
-                not_better = 0
+                not_better_count = 0
 
             else:
-                not_better += 1
-                if not_better == self.__dead_iter:
+                not_better_count += 1
+                if not_better_count == self.__dead_iter:
                     break
 
             self._new_generation()
