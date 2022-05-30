@@ -13,13 +13,11 @@
 """Tests for the UMDA optimizer."""
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from ddt import ddt
 
 import numpy as np
 from qiskit.algorithms.optimizers.umda import UMDA
 
 
-@ddt
 class TestUMDA(QiskitAlgorithmsTestCase):
     """Tests for the UMDA optimizer."""
 
@@ -36,6 +34,7 @@ class TestUMDA(QiskitAlgorithmsTestCase):
         assert umda.generation.shape == (siz + umda.size_gen, umda.n_variables)
 
     def test_get_set(self):
+        """Test if getters and setters work as expected"""
         umda = UMDA(maxiter=1, size_gen=20, n_variables=10)
         umda.disp = True
         umda.size_gen = 30
@@ -50,6 +49,7 @@ class TestUMDA(QiskitAlgorithmsTestCase):
         assert umda.max_iter == 100
 
     def test_settings(self):
+        """Test if the settings display works well"""
         umda = UMDA(maxiter=1, size_gen=20, n_variables=10)
         umda.disp = True
         umda.size_gen = 30
@@ -57,7 +57,7 @@ class TestUMDA(QiskitAlgorithmsTestCase):
         umda.dead_iter = 10
         umda.max_iter = 100
 
-        set = {
+        set_ = {
             "max_iter": 100,
             "alpha": 0.6,
             "dead_iter": 10,
@@ -67,4 +67,4 @@ class TestUMDA(QiskitAlgorithmsTestCase):
             "best_ind_global": umda.best_ind_global,
         }
 
-        assert umda.settings == set
+        assert umda.settings == set_
