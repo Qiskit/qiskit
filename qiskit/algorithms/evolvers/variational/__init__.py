@@ -15,11 +15,10 @@ Variational Quantum Time Evolutions (:mod:`qiskit.algorithms.evolvers.variationa
 
 Algorithms for performing Variational Quantum Time Evolution of quantum states and their
 gradients, which can be tailored to near-term devices.
-:class:`~qiskit.algorithms.evolvers.variational.VarQTE` base class exposes an interface, compliant
-with the Quantum Time Evolution Framework in Qiskit Terra, that is implemented by
-:class:`~qiskit.algorithms.VarQRTE` and :class:`~qiskit.algorithms.VarQITE` classes for real and
-imaginary time evolution respectively. The variational approach is taken  according to a
-variational principle chosen by a user.
+:class:`~qiskit.algorithms.VarQTE` base class exposes an interface, compliant with the Quantum Time
+Evolution Framework in Qiskit Terra, that is implemented by :class:`~qiskit.algorithms.VarQRTE` and
+:class:`~qiskit.algorithms.VarQITE` classes for real and imaginary time evolution respectively. The
+variational approach is taken  according to a variational principle chosen by a user.
 
 **Examples**
 
@@ -87,12 +86,14 @@ Variational principles can be used to simulate quantum time evolution by propaga
 of a parameterized quantum circuit.
 
 They can be divided into two categories:
-`Variational Quantum Imaginary Time Evolution`_
-  Given a Hamiltonian, a time and a variational ansatz, the variational principle describes a
-  variational principle according to the normalized Wick-rotated Schroedinger equation.
-`Variational Quantum Real Time Evolution`_
-  Given a Hamiltonian, a time and a variational ansatz, the variational principle describes a
-  variational principle according to the Schroedinger equation.
+
+    1) Variational Quantum Imaginary Time Evolution
+        Given a Hamiltonian, a time and a variational ansatz, the variational principle describes a
+        variational principle according to the normalized Wick-rotated Schroedinger equation.
+
+    2) Variational Quantum Real Time Evolution
+        Given a Hamiltonian, a time and a variational ansatz, the variational principle describes a
+        variational principle according to the Schroedinger equation.
 
 .. autosummary::
    :toctree: ../stubs/

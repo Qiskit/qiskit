@@ -93,10 +93,10 @@ knowledge to do this in that application domain.
    NumPyEigensolver
 
 
-Variational
------------
+Variational Quantum Time Evolution
+----------------------------------
 
-Classes used bu variational quantum time evolution algorithms.
+Classes used by variational quantum time evolution algorithms - VarQITE and VarQRTE.
 
 .. autosummary::
    :toctree: ../stubs/
