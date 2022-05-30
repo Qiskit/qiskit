@@ -30,7 +30,7 @@ class TestUMDA(QiskitAlgorithmsTestCase):
         def objective_function(array):
             return sum(array)
 
-        umda.minimize(objective_function, np.array([np.pi]*10))
+        umda.minimize(objective_function, np.array([np.pi] * 10))
 
         siz = int(umda.ELITE_FACTOR * int(umda.size_gen * umda.alpha))
         assert umda.generation.shape == (siz + umda.size_gen, umda.n_variables)
@@ -64,7 +64,7 @@ class TestUMDA(QiskitAlgorithmsTestCase):
             "size_gen": 30,
             "n_variables": 10,
             "best_cost_global": umda.best_cost_global,
-            "best_ind_global": umda.best_ind_global
+            "best_ind_global": umda.best_ind_global,
         }
 
         assert umda.settings == set

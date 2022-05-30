@@ -137,8 +137,9 @@ class UMDA(Optimizer):
         self.__disp = disp
         self.__size_gen = size_gen
         self.__max_iter = maxiter
-        assert 0 < alpha < 1, "Alpha represents a percentage and should be greater than 0 but lower " \
-                              "than 1"
+        assert 0 < alpha < 1, (
+            "Alpha represents a percentage and should be greater than 0 but lower than 1"
+        )
         self.__alpha = alpha
         self.__n_variables = n_variables
         self.__vector = self._initialization()
@@ -383,7 +384,7 @@ class UMDA(Optimizer):
             "size_gen": self.size_gen,
             "n_variables": self.n_variables,
             "best_cost_global": self.best_cost_global,
-            "best_ind_global": self.best_ind_global
+            "best_ind_global": self.best_ind_global,
         }
 
     def get_support_level(self):
