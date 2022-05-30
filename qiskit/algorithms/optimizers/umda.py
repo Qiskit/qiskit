@@ -59,43 +59,25 @@ class UMDA(Optimizer):
 
     Example:
 
-        This short example runs UMDA for a toy example of the MAX-CUT problem.
+        This short example runs UMDA to optimize the parameters of a variational algorithm. Here we
+        will use the same operator as used in the algorithms introduction, which was originally
+        computed by Qiskit Nature for an H2 molecule. The minimum energy of the H2 Hamiltonian can
+        be found quite easily so we are able to set maxiters to a small value.
 
         .. code-block:: python
 
-            import numpy as np
-            import networkx as nx
-            from qiskit_optimization.applications import Maxcut, Tsp
+            from qiskit.opflow import X, Z, I
+            from qiskit import Aer
+            from qiskit.algorithms.optimizers import UMDA
+            from qiskit.algorithms import QAOA
+            from qiskit.utils import QuantumInstance
 
-            # Generating a graph of 4 nodes
 
-            n = 4  # Number of nodes in graph
-            G = nx.Graph()
-            G.add_nodes_from(np.arange(0, n, 1))
-            elist = [(0, 1, 1.0), (0, 2, 1.0), (0, 3, 1.0), (1, 2, 1.0), (2, 3, 1.0)]
-            # tuple is (i,j,weight) where (i,j) is the edge
-            G.add_weighted_edges_from(elist)
-
-            # Computing the weight matrix from the random graph
-            w = np.zeros([n, n])
-            for i in range(n):
-                for j in range(n):
-                    temp = G.get_edge_data(i, j, default=0)
-                    if temp != 0:
-                        w[i, j] = temp["weight"]
-            print(w)
-
-            max_cut = Maxcut(w)
-            qp = max_cut.to_quadratic_program()
-            print(qp.export_as_lp_string())
-            qubitOp, offset = qp.to_ising()
-
-            # Run the algorithm
-
-            algorithm_globals.random_seed = 123
-            seed = 10598
-            backend = Aer.get_backend("aer_simulator_statevector")
-            quantum_instance = QuantumInstance(backend, seed_simulator=seed, seed_transpiler=seed)
+            H2_op = (-1.052373245772859 * I ^ I) + \
+            (0.39793742484318045 * I ^ Z) + \
+            (-0.39793742484318045 * Z ^ I) + \
+            (-0.01128010425623538 * Z ^ Z) + \
+            (0.18093119978423156 * X ^ X)
 
             p = 2  # Toy example: 2 layers with 2 parameters in each layer: 4 variables
 
@@ -106,7 +88,7 @@ class UMDA(Optimizer):
                        quantum_instance=QuantumInstance(backend=backend),
                        reps=p)
 
-            result = vqe.compute_minimum_eigenvalue(operator=qubit_op)
+            result = vqe.compute_minimum_eigenvalue(operator=H2_op)
 
         If it is desired to modify the percentage of individuals considered to update the
         probabilistic model, then this code can be used. Here for example we set the 60% instead
