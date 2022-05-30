@@ -119,13 +119,15 @@ from .variational_principles.imaginary_mc_lachlan_principle import (
 from .variational_principles.real_mc_lachlan_principle import (
     RealMcLachlanPrinciple,
 )
-from ..variational.var_qrte import VarQRTE
+from .var_qrte import VarQRTE
 from .var_qite import VarQITE
+from ... import VarQTE
 from .variational_principles.real_time_dependent_principle import (
     RealTimeDependentPrinciple,
 )
 
 __all__ = [
+    "VarQTE",
     "VarQITE",
     "VarQRTE",
     "RealMcLachlanPrinciple",
