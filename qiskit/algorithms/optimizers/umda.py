@@ -12,16 +12,16 @@
 
 """Univariate Marginal Distribution Algorithm (Estimation-of-Distribution-Algorithm)."""
 
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple, Dict, Any
 import numpy as np
 from scipy.stats import norm
 from qiskit.utils import algorithm_globals
 
 from .optimizer import OptimizerResult, POINT
-from .scipy_optimizer import SciPyOptimizer
+from .scipy_optimizer import Optimizer, OptimizerSupportLevel
 
 
-class UMDA(SciPyOptimizer):
+class UMDA(Optimizer):
     """Continuous Univariate Marginal Distribution Algorithm (UMDA).
 
     UMDA [1] is a specific type of Estimation of Distribution Algorithm (EDA) where new individuals
@@ -160,7 +160,7 @@ class UMDA(SciPyOptimizer):
         self.__vector = self._initialization()
         self.__dead_iter = int(self.__max_iter / 5)
 
-        self.__best_mae_global = 999999999999
+        self.__best_cost_global = 999999999999
         self.__truncation_length = int(size_gen * alpha)
 
         # initialization of generation
@@ -168,7 +168,7 @@ class UMDA(SciPyOptimizer):
             self.__vector[0, :], self.__vector[1, :], [self.__size_gen, self.__n_variables]
         )
 
-        super().__init__(method="UMDA")
+        super().__init__()
 
         self.__best_ind_global = 9999999
         self.__history = []
@@ -246,8 +246,8 @@ class UMDA(SciPyOptimizer):
             best_ind_local = self.__generation[best_ind_local]
 
             # update the best values ever
-            if best_mae_local < self.__best_mae_global:
-                self.__best_mae_global = best_mae_local
+            if best_mae_local < self.__best_cost_global:
+                self.__best_cost_global = best_mae_local
                 self.__best_ind_global = best_ind_local
                 not_better = 0
 
@@ -259,7 +259,7 @@ class UMDA(SciPyOptimizer):
             self._new_generation()
 
         result.x = self.__best_ind_global
-        result.fun = self.__best_mae_global
+        result.fun = self.__best_cost_global
         result.nfev = len(self.__history) * self.__size_gen
 
         if self.__disp:
@@ -363,9 +363,9 @@ class UMDA(SciPyOptimizer):
         self.__dead_iter = value
 
     @property
-    def best_mae_global(self) -> float:
+    def best_cost_global(self) -> float:
         """Returns the best individual cost found until the moment"""
-        return self.__best_mae_global
+        return self.__best_cost_global
 
     @property
     def best_ind_global(self):
@@ -392,3 +392,23 @@ class UMDA(SciPyOptimizer):
     def history(self) -> list:
         """Returns the best cost found in each iteration during runtime"""
         return self.__history
+
+    @property
+    def settings(self) -> Dict[str, Any]:
+        return {
+            "max_iter": self.max_iter,
+            "alpha": self.alpha,
+            "dead_iter": self.dead_iter,
+            "size_gen": self.size_gen,
+            "n_variables": self.n_variables,
+            "best_cost_global": self.best_cost_global,
+            "best_ind_global": self.best_ind_global
+        }
+
+    def get_support_level(self):
+        """Get the support level dictionary."""
+        return {
+            "gradient": OptimizerSupportLevel.ignored,
+            "bounds": OptimizerSupportLevel.ignored,
+            "initial_point": OptimizerSupportLevel.required,
+        }
