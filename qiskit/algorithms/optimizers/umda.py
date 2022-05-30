@@ -158,7 +158,7 @@ class UMDA(SciPyOptimizer):
         self.__alpha = alpha
         self.__n_variables = n_variables
         self.__vector = self._initialization()
-        self.__dead_iter = self.__max_iter / 5
+        self.__dead_iter = int(self.__max_iter / 5)
 
         self.__best_mae_global = 999999999999
         self.__truncation_length = int(size_gen * alpha)
@@ -269,73 +269,126 @@ class UMDA(SciPyOptimizer):
         return result
 
     @property
-    def disp(self):
+    def disp(self) -> bool:
+        """Returns True if user desires to display final result, and False otherwise"""
         return self.__disp
 
     @disp.setter
     def disp(self, value: bool):
+        """
+        Sets the value of the display variable.
+
+        Args:
+            value: Set to True to print convergence messages.
+        """
         self.__disp = value
 
     @property
-    def size_gen(self):
+    def size_gen(self) -> int:
+        """Returns the size of the generations (number of individuals per generation)"""
         return self.__size_gen
 
     @size_gen.setter
     def size_gen(self, value: int):
+        """
+        Sets the size of the generations of the algorithm.
+
+        Args:
+            value: Size of the generations (number of individuals per generation).
+        """
         self.__size_gen = value
 
     @property
-    def max_iter(self):
+    def max_iter(self) -> int:
+        """Returns the maximum number of iterations"""
         return self.__max_iter
 
     @max_iter.setter
     def max_iter(self, value: int):
+        """
+        Sets the maximum number of iterations of the algorithm.
+
+        Args:
+            value: Maximum number of iterations of the algorithm.
+        """
         self.__max_iter = value
 
     @property
-    def alpha(self):
+    def alpha(self) -> float:
+        """Returns the alpha parameter value (percentage of population selected to update
+        probabilistic model)"""
         return self.__alpha
 
     @alpha.setter
-    def alpha(self, value: int):
+    def alpha(self, value: float):
+        """
+        Sets the alpha parameter (percentage of individuals selected to update the probabilistic
+        model)
+
+        Args:
+            value: Percentage [0,1] of generation selected to update the probabilistic model.
+        """
         self.__alpha = value
 
     @property
-    def n_variables(self):
+    def n_variables(self) -> int:
+        """Returns the number of variables desired to be optimized"""
         return self.__n_variables
 
     @n_variables.setter
     def n_variables(self, value: int):
+        """
+        Sets the number of variables to be optimized by the UMDA.
+
+        Args:
+            value: Number of variables to be optimized.
+        """
         self.__n_variables = value
 
     @property
-    def dead_iter(self):
+    def dead_iter(self) -> int:
+        """Returns the stopping criteria: the number of iterations with no improvement, after
+        which the algorithm converges"""
         return self.__dead_iter
 
     @dead_iter.setter
     def dead_iter(self, value: int):
+        """
+        Sets the stopping criteria: the number of iterations with no improvement after which the
+        algorithm converges and stops.
+
+        Args:
+            value: Number of iterations with no improvement after which the algorithm converges.
+        """
         self.__dead_iter = value
 
     @property
-    def best_mae_global(self):
+    def best_mae_global(self) -> float:
+        """Returns the best individual cost found until the moment"""
         return self.__best_mae_global
-
-    @best_mae_global.setter
-    def best_mae_global(self, value: int):
-        self.__best_mae_global = value
 
     @property
     def best_ind_global(self):
+        """Returns the best individual instance found until the moment"""
         return self.__best_ind_global
 
     @property
     def generation(self):
+        """Returns the actual generation of solutions"""
         return self.__generation
 
     @generation.setter
     def generation(self, value: np.array):
+        """
+        Sets the generation to be evaluated. The user may want to initialize the algorithm from a
+        specific set of solutions.
+
+        Args:
+            value: set of solutions to be set as generation.
+        """
         self.__generation = value
 
     @property
-    def history(self):
+    def history(self) -> list:
+        """Returns the best cost found in each iteration during runtime"""
         return self.__history
