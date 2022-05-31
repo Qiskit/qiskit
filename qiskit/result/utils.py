@@ -68,9 +68,7 @@ def marginal_counts(
         for i, experiment_result in enumerate(result.results):
             counts = result.get_counts(i)
             new_counts = _marginalize(counts, indices)
-            new_counts_hex = {}
-            for k, v in new_counts.items():
-                new_counts_hex[_bin_to_hex(k)] = v
+            new_counts_hex = {_bin_to_hex(k): v for k, v in new_counts.items()}
             experiment_result.data.counts = new_counts_hex
 
             if indices is not None:
@@ -189,14 +187,7 @@ def _marginalize(counts, indices=None):
 
     # Sort the indices to keep in descending order
     # Since bitstrings have qubit-0 as least significant bit
-    indices = sorted(indices, reverse=True)
-
-    # Build the return list
-    new_counts = Counter()
-    for key, val in counts.items():
-        new_key = "".join([_remove_space_underscore(key)[-idx - 1] for idx in indices])
-        new_counts[new_key] += val
-    return dict(new_counts)
+    return results_rs.marginal_counts(counts, sorted(indices))
 
 
 def _format_marginal(counts, marg_counts, indices):
