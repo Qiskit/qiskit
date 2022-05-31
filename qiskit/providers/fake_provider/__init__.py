@@ -26,8 +26,8 @@ from .fake_qobj import FakeQobj
 
 # Base classes for fake backends
 from .fake_backend import FakeBackend
-from .fake_pulse_backend import FakePulseBackend
 from .fake_qasm_backend import FakeQasmBackend
+from .fake_pulse_backend import FakePulseBackend
 
 # Fake providers
 from .fake_provider import FakeProviderFactory, FakeProviderForBackendV2, FakeProvider

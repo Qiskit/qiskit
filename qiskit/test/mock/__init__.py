@@ -26,8 +26,8 @@ from qiskit.providers.fake_provider.fake_qobj import FakeQobj
 
 # Base classes for fake backends
 from qiskit.providers.fake_provider.fake_backend import FakeBackend
-from qiskit.providers.fake_provider.fake_pulse_backend import FakePulseBackend
 from qiskit.providers.fake_provider.fake_qasm_backend import FakeQasmBackend
+from qiskit.providers.fake_provider.fake_pulse_backend import FakePulseBackend
 
 # Fake providers
 from qiskit.providers.fake_provider.fake_provider import (
