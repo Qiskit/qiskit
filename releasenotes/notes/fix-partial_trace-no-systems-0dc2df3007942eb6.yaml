@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    If :func:`.quantum_info.partial_trace` is asked to trace out *no* subsystems,
+    it will now correctly return the
+    :class:`.DensityMatrix` of the input state with all dimensions remaining
+    rather than throwing an error.
