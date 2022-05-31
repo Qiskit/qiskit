@@ -1487,9 +1487,10 @@ class TwoQubitDecomposeUpToDiagonal:
         """do the decomposition"""
         su4, phase = self._u4_to_su4(mat)
         real_map = self._real_trace_transform(su4)
-        if not self._cx2_test(real_map @ su4):
-            warnings.warn("Unitary decomposition up to diagonal may use an " "additionl CX gate.")
-        circ = two_qubit_cnot_decompose(real_map @ su4)
+        mapped_su4 = real_map @ su4
+        if not self._cx2_test(mapped_su4):
+            warnings.warn("Unitary decomposition up to diagonal may use an additionl CX gate.")
+        circ = two_qubit_cnot_decompose(mapped_su4)
         circ.global_phase += phase
         return real_map.conj(), circ
 
