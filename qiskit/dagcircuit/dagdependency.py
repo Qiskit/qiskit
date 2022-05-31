@@ -642,5 +642,5 @@ def _does_commute(node1, node2):
     op21 = Operator._einsum_matmul(op, op2, qarg2, shift=qbit_num, right_mul=True)
 
     maybe_zero = np.abs(op12 - op21)
-    maybe_zero[np.abs(maybe_zero) < 1e-7] = 0
+    maybe_zero[maybe_zero < 1e-7] = 0
     return not maybe_zero.any()
