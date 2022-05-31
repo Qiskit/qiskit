@@ -36,7 +36,7 @@ from qiskit.providers.fake_provider import (
     FakeOpenPulse2Q,
     FakeOpenPulse3Q,
     FakeYorktown,
-    FakeAlmaden
+    FakeAlmaden,
 )
 
 

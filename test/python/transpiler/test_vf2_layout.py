@@ -25,7 +25,7 @@ from qiskit.providers.fake_provider import (
     FakeTenerife,
     FakeRueschlikon,
     FakeManhattan,
-    FakeYorktown
+    FakeYorktown,
 )
 from qiskit.circuit.library import GraphState, CXGate
 

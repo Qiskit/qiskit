@@ -30,11 +30,7 @@ from .fake_pulse_backend import FakePulseBackend
 from .fake_qasm_backend import FakeQasmBackend
 
 # Fake providers
-from .fake_provider import (
-    FakeProviderFactory,
-    FakeProviderForBackendV2,
-    FakeProvider
-)
+from .fake_provider import FakeProviderFactory, FakeProviderForBackendV2, FakeProvider
 
 # Standard fake backends with IBM Quantum systems snapshots
 from .backends import *

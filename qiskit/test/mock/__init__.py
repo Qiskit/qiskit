@@ -33,7 +33,7 @@ from qiskit.providers.fake_provider.fake_qasm_backend import FakeQasmBackend
 from qiskit.providers.fake_provider.fake_provider import (
     FakeProviderFactory,
     FakeProviderForBackendV2,
-    FakeProvider
+    FakeProvider,
 )
 
 # Standard fake backends with IBM Quantum systems snapshots

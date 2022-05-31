@@ -29,7 +29,7 @@ from qiskit.providers.fake_provider.fake_backend_v2 import (
     FakeBackendV2,
     FakeBackend5QV2,
     FakeBackendSimple,
-    FakeBackendV2LegacyQubitProps
+    FakeBackendV2LegacyQubitProps,
 )
 from qiskit.quantum_info import Operator
 
