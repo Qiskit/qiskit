@@ -66,12 +66,12 @@ def eval_grad_result(
     imag_part_tol: float = 1e-7,
 ) -> OperatorBase:
     """
-    Binds a parametrized evolution grad object to parameters values provided. Uses circuit
+    Binds a parametrized evolution gradient object to parameters values provided. Uses circuit
     samplers if available.
 
     Args:
         grad: Either an evolution gradient as an ``OperatorBase`` to be evaluated or a callable that
-            constructs an OperatorBase from a dictionary of parameters and evaluates it and
+            constructs an ``OperatorBase`` from a dictionary of parameters and evaluates it and
             potentially a ``CircuitSampler``.
         param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
         circuit_sampler: Samples circuits using an underlying backend.

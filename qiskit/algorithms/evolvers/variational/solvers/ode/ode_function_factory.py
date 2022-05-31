@@ -45,7 +45,7 @@ class OdeFunctionFactory(ABC):
         param_dict: Dict[Parameter, complex],
     ) -> AbstractOdeFunction:
         """
-        Lazily initializes important fields once the evolution data is provided by the user.
+        Initializes an ODE function specified in the class.
 
         Args:
             varqte_linear_solver: Solver of LSE for the VarQTE algorithm.

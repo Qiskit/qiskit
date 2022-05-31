@@ -41,7 +41,7 @@ def calculate(
         phase_fix: Flag that indicates whether a phase fix should be applied.
 
     Returns:
-        Parametrized metric tensor as a ListOp.
+        Parametrized metric tensor as a ``ListOp``.
     Raises:
         ValueError: If unsupported values for ``basis`` or ``phase_fix`` are provided for a given
             QFI method.

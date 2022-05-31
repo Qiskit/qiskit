@@ -66,8 +66,8 @@ class VarQTELinearSolver:
         Args:
             param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
-            time_value: Time value that will be bound to t_param. It is required if ``t_param`` is
-                not ``None``.
+            time_value: Time value that will be bound to ``t_param``. It is required if ``t_param``
+            is not ``None``.
 
         Returns:
             Solution to the LSE, A from Ax=b, b from Ax=b.
