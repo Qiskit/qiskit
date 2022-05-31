@@ -26,5 +26,6 @@ pub fn results(_py: Python, m: &PyModule) -> PyResult<()> {
         marginalization::marginal_measure_level_0_avg
     ))?;
     m.add_wrapped(wrap_pyfunction!(marginalization::marginal_measure_level_1))?;
+    m.add_wrapped(wrap_pyfunction!(marginalization::marginal_measure_level_1_avg))?;
     Ok(())
 }

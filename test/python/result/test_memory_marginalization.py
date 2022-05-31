@@ -105,3 +105,17 @@ class TestMarginalMemory(QiskitTestCase):
             [[-1059254.375, -26266612.0], [6027076.0, -54875060.0]], dtype=complex
         )
         np.testing.assert_array_equal(result, expected)
+
+    def test_memory_level_1(self):
+        """Test that a memory level 1 single data is correctly marginalized."""
+        memory = np.array([[1.0j, 1.0, 0.5 + 0.5j], [0.5 + 0.5j, 1.0, 1.0j]], dtype=complex)
+        result = marginal_memory(memory, [0, 2])
+        expected = np.array([[1.0j, 0.5 + 0.5j], [0.5 + 0.5j, 1.0j]], dtype=complex)
+        np.testing.assert_array_equal(result, expected)
+
+    def test_memory_level_1_avg(self):
+        """Test that avg memory level 1 data is correctly marginalized."""
+        memory = np.array([1.0j, 1.0, 0.5 + 0.5j], dtype=complex)
+        result = marginal_memory(memory, [0, 1])
+        expected = np.array([1.0j, 1.0], dtype=complex)
+        np.testing.assert_array_equal(result, expected)
