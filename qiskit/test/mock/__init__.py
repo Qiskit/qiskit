@@ -20,19 +20,31 @@ testing local timeouts, arbitrary responses or behavior, etc.
 The mock devices are mainly for testing the compiler.
 """
 
-from qiskit.providers.fake_provider.fake_provider import FakeProviderForBackendV2, FakeProvider
-from qiskit.providers.fake_provider.fake_provider import FakeProviderFactory
-from qiskit.providers.fake_provider.fake_backend import FakeBackend
-from qiskit.providers.fake_provider.fake_pulse_backend import FakePulseBackend
-from qiskit.providers.fake_provider.fake_qasm_backend import FakeQasmBackend
-from qiskit.providers.fake_provider.utils.configurable_backend import ConfigurableFakeBackend
-from qiskit.providers.fake_provider.fake_mumbai_v2 import FakeMumbaiFractionalCX
+# Fake job and qobj classes
 from qiskit.providers.fake_provider.fake_job import FakeJob
 from qiskit.providers.fake_provider.fake_qobj import FakeQobj
 
+# Base classes for fake backends
+from qiskit.providers.fake_provider.fake_backend import FakeBackend
+from qiskit.providers.fake_provider.fake_pulse_backend import FakePulseBackend
+from qiskit.providers.fake_provider.fake_qasm_backend import FakeQasmBackend
+
+# Fake providers
+from qiskit.providers.fake_provider.fake_provider import (
+    FakeProviderFactory,
+    FakeProviderForBackendV2,
+    FakeProvider
+)
+
+# Standard fake backends with IBM Quantum systems snapshots
 from qiskit.providers.fake_provider.backends import *
 
+# Special fake backends for special testing perpurposes
 from qiskit.providers.fake_provider.fake_qasm_simulator import FakeQasmSimulator
 from qiskit.providers.fake_provider.fake_openpulse_2q import FakeOpenPulse2Q
 from qiskit.providers.fake_provider.fake_openpulse_3q import FakeOpenPulse3Q
 from qiskit.providers.fake_provider.fake_1q import Fake1Q
+from qiskit.providers.fake_provider.fake_mumbai_v2 import FakeMumbaiFractionalCX
+
+# Configurable fake backend
+from qiskit.providers.fake_provider.utils.configurable_backend import ConfigurableFakeBackend

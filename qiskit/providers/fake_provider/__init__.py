@@ -20,19 +20,31 @@ testing local timeouts, arbitrary responses or behavior, etc.
 The mock devices are mainly for testing the compiler.
 """
 
-from .fake_provider import FakeProviderForBackendV2, FakeProvider
-from .fake_provider import FakeProviderFactory
-from .fake_backend import FakeBackend
-from .fake_pulse_backend import FakePulseBackend
-from .fake_qasm_backend import FakeQasmBackend
-from .utils.configurable_backend import ConfigurableFakeBackend
-from .fake_mumbai_v2 import FakeMumbaiFractionalCX
+# Fake job and qobj classes
 from .fake_job import FakeJob
 from .fake_qobj import FakeQobj
 
+# Base classes for fake backends
+from .fake_backend import FakeBackend
+from .fake_pulse_backend import FakePulseBackend
+from .fake_qasm_backend import FakeQasmBackend
+
+# Fake providers
+from .fake_provider import (
+    FakeProviderFactory,
+    FakeProviderForBackendV2,
+    FakeProvider
+)
+
+# Standard fake backends with IBM Quantum systems snapshots
 from .backends import *
 
+# Special fake backends for special testing perpurposes
 from .fake_qasm_simulator import FakeQasmSimulator
 from .fake_openpulse_2q import FakeOpenPulse2Q
 from .fake_openpulse_3q import FakeOpenPulse3Q
 from .fake_1q import Fake1Q
+from .fake_mumbai_v2 import FakeMumbaiFractionalCX
+
+# Configurable fake backend
+from .utils.configurable_backend import ConfigurableFakeBackend
