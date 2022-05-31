@@ -1,7 +1,7 @@
 ---
 fixes:
   - |
-    The method :meth:`qiskit.result.marginal_counts`, when passed a :class"`.Result` from a
+    The method :meth:`qiskit.result.marginal_counts`, when passed a :class:`.Result` from a
     pulse backend, would fail, because it contains an array of
     ExperimentResult objects, each of which have an QobjExperimentHeader, and those
     ExperimentHeaders lack "creg_sizes" instance-variables.  If the Result came
