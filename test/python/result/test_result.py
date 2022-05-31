@@ -732,7 +732,6 @@ class TestResultOperationsFailed(QiskitTestCase):
             'Result for experiment "99" could not be found.', context.exception.message
         )
 
-
     def test_marginal_counts_no_cregs(self):
         """Test that marginal_counts without cregs See qiskit-terra/6430."""
         raw_counts_1 = {"0x0": 4, "0x1": 7, "0x2": 10, "0x6": 5, "0x9": 11, "0xD": 9, "0x12": 8}
@@ -744,4 +743,4 @@ class TestResultOperationsFailed(QiskitTestCase):
 
         result = Result(results=[exp_result_1], **self.base_result_args)
 
-        marginal_counts_result = marginal_counts(result, indices=[0])
+        _ = marginal_counts(result, indices=[0])
