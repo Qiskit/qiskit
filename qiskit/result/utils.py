@@ -134,7 +134,7 @@ def marginal_memory(
     avg_data: bool = False,
     parallel_threshold: int = 1000,
 ) -> Union[List[str], np.ndarray]:
-    """Marginalize memory
+    """Marginalize shot memory
 
     This function is multithreaded and will launch a thread pool with threads equal to the number
     of CPUs by default. You can tune the number of threads with the ``RAYON_NUM_THREADS``
@@ -149,17 +149,18 @@ def marginal_memory(
             ``None`` (default), do not marginalize at all.
         int_return: If set to ``True`` the output will be a list of integers.
             By default the return type is a bit string. This and ``hex_return``
-            are mutually exclusive and can not be specified at the same time.
+            are mutually exclusive and can not be specified at the same time. This option only has an
+            effect with memory level 2.
         hex_return: If set to ``True`` the output will be a list of hexadecimal
             strings. By default the return type is a bit string. This and
             ``int_return`` are mutually exclusive and can not be specified
-            at the same time.
+            at the same time. This option only has an effect with memory level 2.
         avg_data: If a 2 dimensional numpy array is passed in for ``memory`` this can be set to
             ``True`` to indicate it's a avg level 0 data instead of level 1
             single data.
         parallel_threshold: The number of elements in ``memory`` to start running in multiple
             threads. If ``len(memory)`` is >= this value this function will run in multiple
-            threads. By default this is set to 50.
+            threads. By default this is set to 1000.
 
     Returns:
         marginal_memory: The list of marginalized memory
