@@ -17,6 +17,7 @@ from qiskit.providers.backend import Backend
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeMelbourne
 from qiskit.test.mock.backends.almaden.fake_almaden import FakeAlmaden
+from qiskit.test.mock.backends import FakeArmonk
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 
@@ -68,3 +69,114 @@ class TestPassManagerConfig(QiskitTestCase):
         """Test from_backend() with an invalid user option."""
         with self.assertRaises(TypeError):
             PassManagerConfig.from_backend(FakeMelbourne(), invalid_option=None)
+
+    def test_str(self):
+        """Test string output."""
+        pm_config = PassManagerConfig.from_backend(FakeArmonk())
+        # For testing remove instruction schedule map it's str output is non-deterministic
+        # based on hash seed
+        pm_config.inst_map = None
+        str_out = str(pm_config)
+        expected = """Pass Manager Config:
+	initial_layout: None
+	basis_gates: ['id', 'rz', 'sx', 'x']
+	inst_map: None
+	coupling_map: 
+	layout_method: None
+	routing_method: None
+	translation_method: None
+	scheduling_method: None
+	instruction_durations: id(0,): 7.111111111111111e-08 s
+	rz(0,): 0.0 s
+	sx(0,): 7.111111111111111e-08 s
+	x(0,): 7.111111111111111e-08 s
+	measure(0,): 4.977777777777777e-06 s
+	
+	backend_properties: {'backend_name': 'ibmq_armonk',
+	 'backend_version': '2.4.3',
+	 'gates': [{'gate': 'id',
+	            'name': 'id0',
+	            'parameters': [{'date': datetime.datetime(2021, 3, 15, 0, 38, 15, tzinfo=tzoffset(None, -14400)),
+	                            'name': 'gate_error',
+	                            'unit': '',
+	                            'value': 0.00019769550670970334},
+	                           {'date': datetime.datetime(2021, 3, 15, 0, 40, 24, tzinfo=tzoffset(None, -14400)),
+	                            'name': 'gate_length',
+	                            'unit': 'ns',
+	                            'value': 71.11111111111111}],
+	            'qubits': [0]},
+	           {'gate': 'rz',
+	            'name': 'rz0',
+	            'parameters': [{'date': datetime.datetime(2021, 3, 15, 0, 40, 24, tzinfo=tzoffset(None, -14400)),
+	                            'name': 'gate_error',
+	                            'unit': '',
+	                            'value': 0},
+	                           {'date': datetime.datetime(2021, 3, 15, 0, 40, 24, tzinfo=tzoffset(None, -14400)),
+	                            'name': 'gate_length',
+	                            'unit': 'ns',
+	                            'value': 0}],
+	            'qubits': [0]},
+	           {'gate': 'sx',
+	            'name': 'sx0',
+	            'parameters': [{'date': datetime.datetime(2021, 3, 15, 0, 38, 15, tzinfo=tzoffset(None, -14400)),
+	                            'name': 'gate_error',
+	                            'unit': '',
+	                            'value': 0.00019769550670970334},
+	                           {'date': datetime.datetime(2021, 3, 15, 0, 40, 24, tzinfo=tzoffset(None, -14400)),
+	                            'name': 'gate_length',
+	                            'unit': 'ns',
+	                            'value': 71.11111111111111}],
+	            'qubits': [0]},
+	           {'gate': 'x',
+	            'name': 'x0',
+	            'parameters': [{'date': datetime.datetime(2021, 3, 15, 0, 38, 15, tzinfo=tzoffset(None, -14400)),
+	                            'name': 'gate_error',
+	                            'unit': '',
+	                            'value': 0.00019769550670970334},
+	                           {'date': datetime.datetime(2021, 3, 15, 0, 40, 24, tzinfo=tzoffset(None, -14400)),
+	                            'name': 'gate_length',
+	                            'unit': 'ns',
+	                            'value': 71.11111111111111}],
+	            'qubits': [0]}],
+	 'general': [],
+	 'last_update_date': datetime.datetime(2021, 3, 15, 0, 40, 24, tzinfo=tzoffset(None, -14400)),
+	 'qubits': [[{'date': datetime.datetime(2021, 3, 15, 0, 36, 17, tzinfo=tzoffset(None, -14400)),
+	              'name': 'T1',
+	              'unit': 'us',
+	              'value': 182.6611165336624},
+	             {'date': datetime.datetime(2021, 3, 14, 0, 33, 45, tzinfo=tzoffset(None, -18000)),
+	              'name': 'T2',
+	              'unit': 'us',
+	              'value': 237.8589220110257},
+	             {'date': datetime.datetime(2021, 3, 15, 0, 40, 24, tzinfo=tzoffset(None, -14400)),
+	              'name': 'frequency',
+	              'unit': 'GHz',
+	              'value': 4.971852852405576},
+	             {'date': datetime.datetime(2021, 3, 15, 0, 40, 24, tzinfo=tzoffset(None, -14400)),
+	              'name': 'anharmonicity',
+	              'unit': 'GHz',
+	              'value': -0.34719293148282626},
+	             {'date': datetime.datetime(2021, 3, 15, 0, 35, 20, tzinfo=tzoffset(None, -14400)),
+	              'name': 'readout_error',
+	              'unit': '',
+	              'value': 0.02400000000000002},
+	             {'date': datetime.datetime(2021, 3, 15, 0, 35, 20, tzinfo=tzoffset(None, -14400)),
+	              'name': 'prob_meas0_prep1',
+	              'unit': '',
+	              'value': 0.0234},
+	             {'date': datetime.datetime(2021, 3, 15, 0, 35, 20, tzinfo=tzoffset(None, -14400)),
+	              'name': 'prob_meas1_prep0',
+	              'unit': '',
+	              'value': 0.024599999999999955},
+	             {'date': datetime.datetime(2021, 3, 15, 0, 35, 20, tzinfo=tzoffset(None, -14400)),
+	              'name': 'readout_length',
+	              'unit': 'ns',
+	              'value': 4977.777777777777}]]}
+	approximation_degree: None
+	seed_transpiler: None
+	timing_constraints: None
+	unitary_synthesis_method: default
+	unitary_synthesis_plugin_config: None
+	target: None
+"""
+        self.assertEqual(str_out, expected)
