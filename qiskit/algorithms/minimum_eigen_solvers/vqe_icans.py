@@ -114,10 +114,10 @@ class ICANS(VQE):
     ) -> None:
         super().__init__(
             ansatz=ansatz,
-            optimizer=None,  # iCANS is the optimizer
+            optimizer=None,
             initial_point=initial_point,
-            gradient=None,  # not supported right now
-            expectation=PauliExpectation(),  # must be Pauli expectation to adjust the shots per term
+            gradient=None,
+            expectation=PauliExpectation(),
             callback=callback,
             quantum_instance=quantum_instance,
         )
@@ -128,6 +128,8 @@ class ICANS(VQE):
         self.mu = mu
         self.b = b
         self.limit_learning_rate = limit_learning_rate
+        self.hist_shots = []
+        self.hist_results = []
 
     def single_shots(
         self, expectation: OperatorBase, values: np.ndarray, num_shots: int
@@ -138,7 +140,6 @@ class ICANS(VQE):
 
         # evaluate the circuits
         param_dict = dict(zip(self.ansatz.parameters, values))
-
         sampled = self._circuit_sampler.convert(expectation, params=param_dict)
 
         if not isinstance(sampled, SummedOp):
@@ -171,6 +172,8 @@ class ICANS(VQE):
             lst_param = 2 * np.pi * np.random.rand(n_param)
         else:
             lst_param = self.initial_point
+        if self.lipschitz is None:
+            self.lipschitz = np.sum(np.abs(operator.coeffs))
 
         if self.lipschitz is None:
             lipschitz = np.sum(np.abs(operator.coeffs))
@@ -195,7 +198,7 @@ class ICANS(VQE):
 
             # Calculation of gradients
             for param in range(n_param):
-                parameters_plus = copy.deepcopy(lst_param)
+                parameters_plus = deepcopy(lst_param)
                 parameters_plus[param] += epsilon
 
                 results_plus = self.single_shots(expectation, parameters_plus, shots[param])
