@@ -23,7 +23,6 @@ The mock devices are mainly for testing the compiler.
 from qiskit.providers.fake_provider.fake_provider import FakeProviderForBackendV2, FakeProvider
 from qiskit.providers.fake_provider.fake_provider import FakeProviderFactory
 from qiskit.providers.fake_provider.fake_backend import FakeBackend
-from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendV2, FakeBackend5QV2
 from qiskit.providers.fake_provider.fake_mumbai_v2 import FakeMumbaiFractionalCX
 from qiskit.providers.fake_provider.fake_job import FakeJob
 from qiskit.providers.fake_provider.fake_qobj import FakeQobj

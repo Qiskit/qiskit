@@ -29,7 +29,6 @@ from .fake_backend import FakeBackend
 from .fake_pulse_backend import FakePulseBackend
 from .fake_qasm_backend import FakeQasmBackend
 from .utils.configurable_backend import ConfigurableFakeBackend
-from .fake_backend_v2 import FakeBackendV2, FakeBackend5QV2, FakeBackendSimple, FakeBackendV2LegacyQubitProps
 from .fake_mumbai_v2 import FakeMumbaiFractionalCX
 from .fake_job import FakeJob
 from .fake_qobj import FakeQobj
