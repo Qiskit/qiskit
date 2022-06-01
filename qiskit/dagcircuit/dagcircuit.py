@@ -1660,6 +1660,21 @@ class DAGCircuit:
 
         return rx.collect_runs(self._multi_graph, filter_fn)
 
+    def collect_1q_runs_with_params(self):
+        """Return a set of non-conditional runs of 1q "op" nodes with parameters."""
+
+        def filter_fn(node):
+            return (
+                isinstance(node, DAGOpNode)
+                and len(node.qargs) == 1
+                and len(node.cargs) == 0
+                and node.op.condition is None
+                and isinstance(node.op, Gate)
+                and hasattr(node.op, "__array__")
+            )
+
+        return rx.collect_runs(self._multi_graph, filter_fn)
+
     def collect_2q_runs(self):
         """Return a set of non-conditional runs of 2q "op" nodes."""
 

@@ -542,6 +542,117 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         msg = f"expected:\n{expected}\nresult:\n{result}"
         self.assertEqual(expected, result, msg=msg)
 
+    def test_merge_rz(self):
+        """Test that a two RZ gate with parameters are merged together."""
+        phi = Parameter('$\\phi$')
+        qc = QuantumCircuit(1)
+        qc.rz(phi, 0)
+        qc.rz(phi, 0)
+        basis = ['sx', 'rz', 'cx']
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(qc)
+        expected = QuantumCircuit(1)
+        expected.rz(2*phi, 0)
+        msg = f"expected:\n{expected}\nresult:\n{result}"
+        self.assertEqual(expected, result, msg=msg)
+
+    def test_merge_rz_ry(self):
+        """Test that a two RZ and RY gate with parameters are merged together."""
+        phi = Parameter('$\\phi$')
+        qc = QuantumCircuit(1)
+        qc.rz(phi, 0)
+        qc.rz(phi, 0)
+        qc.ry(phi, 0)
+        qc.ry(phi, 0)
+        basis = ['sx', 'rz', 'cx']
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(qc)
+        expected = QuantumCircuit(1)
+        expected.rz(2*phi, 0)
+        expected.ry(2*phi, 0)
+        msg = f"expected:\n{expected}\nresult:\n{result}"
+        self.assertEqual(expected, result, msg=msg)
+
+    def test_merge_rz_num(self):
+        """Test that a two RZ gate with parameters are merged together."""
+        phi = Parameter('$\\phi$')
+        qc = QuantumCircuit(1)
+        qc.rz(phi, 0)
+        qc.rz(0.1, 0)
+        qc.rz(phi, 0)
+        qc.rz(0.2, 0)
+        basis = ['sx', 'rz', 'cx']
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(qc)
+        expected = QuantumCircuit(1)
+        expected.rz(2*phi+0.3, 0)
+        msg = f"expected:\n{expected}\nresult:\n{result}"
+        self.assertEqual(expected, result, msg=msg)
+
+    def test_merge_rz_ry_num(self):
+        """Test that a two RZ gate with parameters are merged together."""
+        phi = Parameter('$\\phi$')
+        qc = QuantumCircuit(1)
+        qc.rz(phi, 0)
+        qc.rz(0.1, 0)
+        qc.rz(phi, 0)
+        qc.rz(0.2, 0)
+        qc.ry(phi, 0)
+        qc.ry(0.1, 0)
+        qc.ry(phi, 0)
+        qc.ry(0.2, 0)
+        basis = ['ry', 'rz', 'cx']
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(qc)
+        expected = QuantumCircuit(1)
+        expected.rz(2*phi+0.3, 0)
+        expected.ry(2*phi+0.3, 0)
+        msg = f"expected:\n{expected}\nresult:\n{result}"
+        self.assertEqual(expected, result, msg=msg)
+
+    def test_parameter_notcommute(self):
+        """Test that a parameters merge code doesn't work proper for not commute rotation."""
+        theta = Parameter('theta')
+        phi = Parameter('$\\phi$')
+        qc = QuantumCircuit(1)
+        qc.rx(theta, 0)
+        qc.ry(np.pi / 2, 0)
+        qc.rx(phi, 0)
+        basis = ['sx', 'rz', 'cx']
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(qc)
+        expected = QuantumCircuit(1, global_phase=7*np.pi / 4)
+        expected.rx(theta, 0)
+        expected.rz(-np.pi / 2, 0)
+        expected.sx(0)
+        expected.rz(np.pi / 2, 0)
+        expected.rx(phi, 0)
+        msg = f"expected:\n{expected}\nresult:\n{result}"
+        self.assertEqual(expected, result, msg=msg)
+
+    def test_parameter_commute(self):
+        """Test that a parameters merge code doesn't work proper for not commute rotation."""
+        theta = Parameter('theta')
+        phi = Parameter('$\\phi$')
+        qc = QuantumCircuit(1)
+        qc.rz(theta, 0)
+        qc.ry(np.pi / 2, 0)
+        qc.rz(phi, 0)
+        basis = ['sx', 'rz', 'cx']
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(qc)
+        expected = QuantumCircuit(1, global_phase=7*np.pi / 4)
+        expected.rz(theta-np.pi / 2, 0)
+        expected.sx(0)
+        expected.rz(phi+np.pi / 2, 0)
+        msg = f"expected:\n{expected}\nresult:\n{result}"
+        self.assertEqual(expected, result, msg=msg)
 
 if __name__ == "__main__":
     unittest.main()
