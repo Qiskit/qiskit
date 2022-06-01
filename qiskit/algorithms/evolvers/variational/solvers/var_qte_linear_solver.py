@@ -53,7 +53,7 @@ class VarQTELinearSolver:
         self._circuit_sampler = circuit_sampler
         self._imag_part_tol = imag_part_tol
 
-    def solve_sle(
+    def solve_lse(
         self,
         param_dict: Dict[Parameter, complex],
         t_param: Optional[Parameter] = None,

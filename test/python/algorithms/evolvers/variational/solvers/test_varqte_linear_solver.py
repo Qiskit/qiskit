@@ -38,7 +38,7 @@ class TestVarQTELinearSolver(QiskitAlgorithmsTestCase):
     """Test solver of linear equations."""
 
     @data(CircuitSampler(BasicAer.get_backend("statevector_simulator")), None)
-    def test_solve_sle_no_backend(self, circuit_sampler):
+    def test_solve_lse_no_backend(self, circuit_sampler):
         """Test SLE solver."""
 
         observable = SummedOp(
@@ -75,7 +75,7 @@ class TestVarQTELinearSolver(QiskitAlgorithmsTestCase):
             circuit_sampler,
         )
 
-        nat_grad_res, metric_res, grad_res = linear_solver.solve_sle(param_dict)
+        nat_grad_res, metric_res, grad_res = linear_solver.solve_lse(param_dict)
 
         expected_nat_grad_res = [
             3.43500000e-01,
