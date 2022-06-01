@@ -166,6 +166,8 @@ Additional Passes
    FixedPoint
    ContainsInstruction
    GatesInBasis
+   FindCommutingPauliEvolutions
+   Commuting2qGateGrouper
 """
 
 # layout selection (placement)
@@ -270,3 +272,5 @@ from .utils import Error
 from .utils import RemoveBarriers
 from .utils import ContainsInstruction
 from .utils import GatesInBasis
+from .routing import FindCommutingPauliEvolutions
+from .routing import Commuting2qGateGrouper

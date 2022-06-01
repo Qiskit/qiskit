@@ -27,18 +27,18 @@ from qiskit.transpiler.passes.routing.commuting_2q_gate_routing.commuting_2q_blo
 
 
 class FindCommutingPauliEvolutions(TransformationPass):
-    """Finds :class:`.PauliEvolutionGate`s where the operators, that are evolved, all commute."""
+    r"""Finds :class:`.PauliEvolutionGate`\ s where the operators, that are evolved, all commute."""
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
-        """Check for :class:`.PauliEvolutionGate`s where the summands all commute.
+        r"""Check for :class:`.PauliEvolutionGate`\ s where the summands all commute.
 
         Args:
             The DAG circuit in which to look for the commuting evolutions.
 
         Returns:
-            The dag in which :class:`.PauliEvolutionGate`s made of commuting two-qubit Paulis
+            The dag in which :class:`.PauliEvolutionGate`\ s made of commuting two-qubit Paulis
             have been replaced with :class:`.Commuting2qBlocks`` gate instructions. These gates
-            contain nodes of two-qubit :class:`.PauliEvolutionGate`s.
+            contain nodes of two-qubit :class:`.PauliEvolutionGate`\ s.
         """
 
         for node in dag.op_nodes():
