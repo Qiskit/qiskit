@@ -14,81 +14,54 @@ Look-up table for variable parameters in QuantumCircuit.
 """
 import functools
 import warnings
-from collections.abc import MappingView, MutableMapping, Set
-from typing import MutableSequence
+from collections.abc import MappingView, MutableMapping, MutableSet
 
 
-class ParameterReferences(MutableSequence, Set):
-    """An (insertion) ordered set of instruction parameter slot references.
+class ParameterReferences(MutableSet):
+    """A set of instruction parameter slot references.
     Items are expected in the form ``(instruction, param_index)``. Membership
     testing is overriden such that items that are otherwise value-wise equal
     are still considered distinct if their ``instruction``\\ s are referentially
     distinct.
-
-    Items are ordered by insertion, and may be read or deleted by sequence index.
-    However, update by index and insert by index are not supported, since
-    these actions inherently violate insertion order.
     """
 
     def _instance_key(self, ref):
         return (id(ref[0]), ref[1])
 
-    def __init__(self, *refs) -> None:
-        self._data = []
-        self._instance_ids = set()
+    def __init__(self, refs):
+        self._instance_ids = {}
 
         for ref in refs:
             if not isinstance(ref, tuple) or len(ref) != 2:
                 raise ValueError("refs must be in form (instruction, param_index)")
             k = self._instance_key(ref)
-            if k not in self._instance_ids:
-                self._data.append(ref)
-                self._instance_ids.add(k)
-
-    @classmethod
-    def from_iterable(cls, iterable):
-        """Create a new instance from an iterable of ``(instruction, param_index)``
-        tuples."""
-        return cls(*iterable)
-
-    def __getitem__(self, index):
-        return self._data[index]
-
-    def __setitem__(self, index, ref):
-        raise NotImplementedError("Position is dictated by insertion order.")
-
-    def __delitem__(self, index):
-        ref = self._data[index]
-        del self._data[index]
-        self._instance_ids.discard(self._instance_key(ref))
+            self._instance_ids[k] = ref[0]
 
     def __len__(self):
-        return len(self._data)
+        return len(self._instance_ids)
 
     def __iter__(self):
-        return iter(self._data)
+        for (_, idx), instruction in self._instance_ids.items():
+            yield (instruction, idx)
 
     def __contains__(self, x) -> bool:
         return self._instance_key(x) in self._instance_ids
 
     def __repr__(self) -> str:
-        return repr(self._data)
+        return f"ParameterReferences({repr(list(iter(self)))})"
 
-    def insert(self, index, value) -> None:
-        raise NotImplementedError("Position is dictated by insertion order.")
-
-    def append(self, value):
+    def add(self, value):
         """Adds a reference to the listing if it's not already present."""
         k = self._instance_key(value)
-        if k in self._instance_ids:
-            return
+        self._instance_ids[k] = value[0]
 
-        self._data.append(value)
-        self._instance_ids.add(k)
+    def discard(self, value):
+        k = self._instance_key(value)
+        self._instance_ids.pop(k, None)
 
     def copy(self):
         """Create a shallow copy."""
-        return ParameterReferences.from_iterable(self._data)
+        return ParameterReferences(iter(self))
 
 
 class ParameterTable(MutableMapping):
@@ -97,7 +70,7 @@ class ParameterTable(MutableMapping):
 
     Keys are parameters. Values are of type :class:`~ParameterReferences`,
     which overrides membership testing to be referential for instructions,
-    and is both set-like and sequence-like. Elements of :class:`~ParameterReferences`
+    and is set-like. Elements of :class:`~ParameterReferences`
     are tuples of ``(instruction, param_index)``.
     """
 
@@ -140,10 +113,10 @@ class ParameterTable(MutableMapping):
             parameter (Parameter): the parameter
             refs (Union[ParameterReferences, Iterable[(Instruction, int)]]): the parameter slots.
                 If this is an iterable, a new :class:`~ParameterReferences` is created from its
-                contents in iteration order and stored in the table.
+                contents.
         """
         if not isinstance(refs, ParameterReferences):
-            refs = ParameterReferences.from_iterable(refs)
+            refs = ParameterReferences(refs)
 
         self._table[parameter] = refs
         self._keys.add(parameter)

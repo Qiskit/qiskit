@@ -25,6 +25,7 @@ from ddt import data, ddt
 
 import qiskit
 import qiskit.circuit.library as circlib
+from qiskit.circuit.library.standard_gates.rz import RZGate
 from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Gate, Instruction, Parameter, ParameterExpression, ParameterVector
 from qiskit.circuit.parametertable import ParameterReferences, ParameterTable, ParameterView
@@ -144,7 +145,7 @@ class TestParameters(QiskitTestCase):
         vparams = qc._parameter_table
         self.assertEqual(len(vparams), 1)
         self.assertIs(theta, next(iter(vparams)))
-        self.assertEqual(rxg, vparams[theta][0][0])
+        self.assertEqual(rxg, next(iter(vparams[theta]))[0])
 
     def test_get_parameters_by_index(self):
         """Test getting parameters by index"""
@@ -466,7 +467,6 @@ class TestParameters(QiskitTestCase):
 
     def test_gate_multiplicity_binding(self):
         """Test binding when circuit contains multiple references to same gate"""
-        from qiskit.circuit.library.standard_gates.rz import RZGate
 
         qc = QuantumCircuit(1)
         theta = Parameter("theta")
@@ -1578,8 +1578,6 @@ class TestParameterExpressions(QiskitTestCase):
         """Bind a parameter which was included via a broadcast instruction."""
         # ref: https://github.com/Qiskit/qiskit-terra/issues/3008
 
-        from qiskit.circuit.library.standard_gates.rz import RZGate
-
         theta = Parameter("θ")
         n = 5
 
@@ -1788,7 +1786,6 @@ class TestParameterReferences(QiskitTestCase):
 
     def test_equal_inst_diff_instance(self):
         """Different value equal instructions are treated as distinct."""
-        from qiskit.circuit.library.standard_gates.rz import RZGate
 
         theta = Parameter("theta")
         gate1 = RZGate(theta)
@@ -1797,88 +1794,45 @@ class TestParameterReferences(QiskitTestCase):
         self.assertIsNot(gate1, gate2)
         self.assertEqual(gate1, gate2)
 
-        refs = ParameterReferences((gate1, 0), (gate2, 0))
+        refs = ParameterReferences(((gate1, 0), (gate2, 0)))
 
         # test __contains__
         self.assertIn((gate1, 0), refs)
         self.assertIn((gate2, 0), refs)
 
-        self.assertIs(refs[0][0], gate1)
-        self.assertIs(refs[1][0], gate2)
-        self.assertEqual(refs[0][1], 0)
-        self.assertEqual(refs[1][1], 0)
+        gate_ids = {id(gate1), id(gate2)}
+        self.assertTrue(all(id(gate) in gate_ids for gate, _ in refs))
+        self.assertTrue(all(idx == 0 for _, idx in refs))
 
     def test_equal_inst_same_instance(self):
         """Referentially equal instructions are treated as same."""
-        from qiskit.circuit.library.standard_gates.rz import RZGate
 
         theta = Parameter("theta")
         gate = RZGate(theta)
 
-        refs = ParameterReferences((gate, 0), (gate, 0))
+        refs = ParameterReferences(((gate, 0), (gate, 0)))
 
         self.assertIn((gate, 0), refs)
         self.assertEqual(len(refs), 1)
-        self.assertIs(refs[0][0], gate)
-        self.assertEqual(refs[0][1], 0)
-
-    def test_delete_ref(self):
-        """Reference deletion preserves insertion order."""
-        from qiskit.circuit.library.standard_gates.rz import RZGate
-
-        theta = Parameter("theta")
-        gate = RZGate(theta)
-        refs = ParameterReferences.from_iterable((gate, i) for i in range(3))
-        deleted_val = refs[1]
-        expected = [refs[0], refs[2]]
-        del refs[1]
-        self.assertNotIn(deleted_val, refs)
-        self.assertEqual(list(refs), expected)
-
-    def test_set_ref_disallowed(self):
-        """Index-based setting of reference is disallowed."""
-        from qiskit.circuit.library.standard_gates.rz import RZGate
-
-        theta = Parameter("theta")
-        gate = RZGate(theta)
-        refs = ParameterReferences.from_iterable((gate, i) for i in range(3))
-
-        with self.assertRaisesRegex(
-            NotImplementedError, "Position is dictated by insertion order."
-        ):
-            refs[1] = (gate, 0)
-
-    def test_insert_ref_disallowed(self):
-        """Index-based insertion of reference is disallowed."""
-        from qiskit.circuit.library.standard_gates.rz import RZGate
-
-        theta = Parameter("theta")
-        gate = RZGate(theta)
-        refs = ParameterReferences()
-
-        with self.assertRaisesRegex(
-            NotImplementedError, "Position is dictated by insertion order."
-        ):
-            refs.insert(0, (gate, 0))
+        self.assertIs(next(iter(refs))[0], gate)
+        self.assertEqual(next(iter(refs))[1], 0)
 
     def test_extend_refs(self):
-        """Extending references handles duplicates and respects order."""
-        from qiskit.circuit.library.standard_gates.rz import RZGate
+        """Extending references handles duplicates."""
 
         theta = Parameter("theta")
         ref0 = (RZGate(theta), 0)
         ref1 = (RZGate(theta), 0)
         ref2 = (RZGate(theta), 0)
 
-        refs = ParameterReferences(ref0)
+        refs = ParameterReferences((ref0,))
 
-        refs.extend((ref0, ref1, ref2, ref1, ref0))
+        refs |= ParameterReferences((ref0, ref1, ref2, ref1, ref0))
 
         self.assertEqual(list(refs), [ref0, ref1, ref2])
 
     def test_copy_param_refs(self):
         """Copy of parameter references is a shallow copy."""
-        from qiskit.circuit.library.standard_gates.rz import RZGate
 
         theta = Parameter("theta")
         ref0 = (RZGate(theta), 0)
@@ -1886,15 +1840,15 @@ class TestParameterReferences(QiskitTestCase):
         ref2 = (RZGate(theta), 0)
         ref3 = (RZGate(theta), 0)
 
-        refs = ParameterReferences(ref0, ref1)
+        refs = ParameterReferences((ref0, ref1))
         refs_copy = refs.copy()
-        refs.append(ref2)
+        refs.add(ref2)
 
         # check copy not modified
         self.assertNotIn(ref2, refs_copy)
         self.assertEqual(list(refs_copy), [ref0, ref1])
 
-        refs_copy.append(ref3)
+        refs_copy.add(ref3)
 
         # check original not modified
         self.assertNotIn(ref3, refs)
@@ -1906,7 +1860,6 @@ class TestParameterTable(QiskitTestCase):
 
     def test_init_param_table(self):
         """Parameter table init from mapping."""
-        from qiskit.circuit.library.standard_gates.rz import RZGate
 
         p1 = Parameter("theta")
         p2 = Parameter("theta")
@@ -1915,7 +1868,7 @@ class TestParameterTable(QiskitTestCase):
         ref1 = (RZGate(p1), 0)
         ref2 = (RZGate(p2), 0)
 
-        mapping = {p1: ParameterReferences(ref0, ref1), p2: ParameterReferences(ref2)}
+        mapping = {p1: ParameterReferences((ref0, ref1)), p2: ParameterReferences((ref2,))}
 
         table = ParameterTable(mapping)
 
@@ -1927,7 +1880,6 @@ class TestParameterTable(QiskitTestCase):
 
     def test_set_references(self):
         """References replacement by parameter key."""
-        from qiskit.circuit.library.standard_gates.rz import RZGate
 
         p1 = Parameter("theta")
 
@@ -1935,15 +1887,14 @@ class TestParameterTable(QiskitTestCase):
         ref1 = (RZGate(p1), 0)
 
         table = ParameterTable()
-        table[p1] = ParameterReferences(ref0, ref1)
+        table[p1] = ParameterReferences((ref0, ref1))
         self.assertEqual(list(table[p1]), [ref0, ref1])
 
-        table[p1] = ParameterReferences(ref1)
+        table[p1] = ParameterReferences((ref1,))
         self.assertEqual(list(table[p1]), [ref1])
 
     def test_set_references_from_iterable(self):
         """Parameter table init from iterable."""
-        from qiskit.circuit.library.standard_gates.rz import RZGate
 
         p1 = Parameter("theta")
 
@@ -1953,7 +1904,7 @@ class TestParameterTable(QiskitTestCase):
 
         table = ParameterTable(
             {
-                p1: ParameterReferences(ref0, ref1),
+                p1: ParameterReferences((ref0, ref1)),
             }
         )
 

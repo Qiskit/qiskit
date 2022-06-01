@@ -1271,12 +1271,12 @@ class QuantumCircuit:
 
             for parameter in atomic_parameters:
                 if parameter in self._parameter_table:
-                    self._parameter_table[parameter].append((instruction, param_index))
+                    self._parameter_table[parameter].add((instruction, param_index))
                 else:
                     if parameter.name in self._parameter_table.get_names():
                         raise CircuitError(f"Name conflict on adding parameter: {parameter.name}")
                     self._parameter_table[parameter] = ParameterReferences(
-                        (instruction, param_index)
+                        ((instruction, param_index),)
                     )
 
                     # clear cache if new parameter is added
@@ -2092,7 +2092,7 @@ class QuantumCircuit:
 
         cpy._parameter_table = ParameterTable(
             {
-                param: ParameterReferences.from_iterable(
+                param: ParameterReferences(
                     (instr_copies[id(instr)], param_index)
                     for instr, param_index in self._parameter_table[param]
                 )
@@ -2572,7 +2572,7 @@ class QuantumCircuit:
                 entry = self._parameter_table.pop(parameter)
                 for new_parameter in value.parameters:
                     if new_parameter in self._parameter_table:
-                        self._parameter_table[new_parameter].extend(entry)
+                        self._parameter_table[new_parameter] |= entry
                     else:
                         self._parameter_table[new_parameter] = entry
             else:
@@ -4126,7 +4126,7 @@ class QuantumCircuit:
                 atomic_parameters.update(parameter.parameters)
         for atomic_parameter in atomic_parameters:
             entries = self._parameter_table[atomic_parameter]
-            new_entries = ParameterReferences.from_iterable(
+            new_entries = ParameterReferences(
                 (entry_instruction, entry_index)
                 for entry_instruction, entry_index in entries
                 if entry_instruction is not instruction
