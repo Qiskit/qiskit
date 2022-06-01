@@ -744,3 +744,5 @@ class TestResultOperationsFailed(QiskitTestCase):
         result = Result(results=[exp_result_1], **self.base_result_args)
 
         _ = marginal_counts(result, indices=[0])
+        marginal_counts_result = marginal_counts(result, indices=[0])
+        self.assertEqual(marginal_counts_result.get_counts(), {"0": 27, "1": 27})
