@@ -27,7 +27,7 @@ from qiskit.providers.models import (
 )
 from qiskit.providers.models.backendproperties import Nduv, Gate
 from qiskit.qobj import PulseQobjInstruction
-from qiskit.providers.fake_provider import FakeBackend
+from ..fake_backend import FakeBackend
 
 
 class ConfigurableFakeBackend(FakeBackend):
