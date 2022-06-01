@@ -203,7 +203,7 @@ class BaseSampler(ABC):
         """Run the sampling of bitstrings.
 
         Args:
-            circuits: Indices of the circuits to evaluate.
+            circuits: the list of circuit indices or circuit objects.
             parameter_values: Parameters to be bound to the circuit.
             run_options: Backend runtime options used for circuit execution.
 

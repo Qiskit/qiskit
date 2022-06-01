@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    The primitives interface has been extended to accept objects in addition to integers
+    The primitives interface has been extended to accept objects in addition to indices
     as arguments to the `__call__` method.
 deprecations:
   - |

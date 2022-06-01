@@ -101,7 +101,7 @@ Here is an example of how estimator is used.
         result5 = e([0, 1, 0], [0, 1, 2], [theta1, theta2, theta3])
         print(result5)
 
-        # It is possible to pass objects.
+        # Objects can be passed instead of indices.
         # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]
         result6 = e([psi2], [H2], [theta2])
         print(result6)
@@ -270,8 +270,8 @@ class BaseEstimator(ABC):
             values = parameter_values[i].
 
         Args:
-            circuits: the list of circuit indices.
-            observables: the list of observable indices.
+            circuits: the list of circuit indices or circuit objects.
+            observables: the list of observable indices or observable objects.
             parameter_values: concrete parameters to be bound.
             run_options: runtime options used for circuit execution.
 
@@ -309,7 +309,7 @@ class BaseEstimator(ABC):
             ]
         except StopIteration as err:
             raise QiskitError(
-                "The observables passed when calling estimator is not one of the circuits used to "
+                "The observables passed when calling estimator is not one of the observables used to "
                 "initialize the session."
             ) from err
 
