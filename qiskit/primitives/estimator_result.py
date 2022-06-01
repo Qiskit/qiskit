@@ -16,10 +16,9 @@ Estimator result class
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-if TYPE_CHECKING:
-    import numpy as np
+import numpy as np
 
 
 @dataclass(frozen=True)
@@ -40,5 +39,5 @@ class EstimatorResult:
         metadata (list[dict]): List of the metadata.
     """
 
-    values: "np.ndarray[Any, np.dtype[np.float64]]"
+    values: np.ndarray[Any, np.dtype[np.float64]]
     metadata: list[dict[str, Any]]
