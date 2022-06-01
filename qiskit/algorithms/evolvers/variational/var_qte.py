@@ -265,7 +265,7 @@ class VarQTE(ABC):
                         f"parameters in the dictionary: "
                         f"{list(param_values.keys())}."
                     )
-        elif isinstance(param_values, list) or isinstance(param_values, np.ndarray):
+        elif isinstance(param_values, (list, np.ndarray)):
             if len(init_state_parameters) != len(param_values):
                 raise ValueError(
                     f"Initial state has {len(init_state_parameters)} parameters and the"

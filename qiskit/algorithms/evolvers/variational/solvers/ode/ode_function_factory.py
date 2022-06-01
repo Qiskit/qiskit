@@ -14,7 +14,7 @@
 
 from abc import ABC
 from enum import Enum
-from typing import Dict
+from typing import Dict, Any
 from qiskit.circuit import Parameter
 from .abstract_ode_function import AbstractOdeFunction
 from .ode_function import OdeFunction
@@ -40,7 +40,7 @@ class OdeFunctionFactory(ABC):
     def build(
         self,
         varqte_linear_solver: VarQTELinearSolver,
-        error_calculator,  # TODO will be supported in another PR
+        error_calculator: Any,  # TODO will be supported in another PR
         t_param: Parameter,
         param_dict: Dict[Parameter, complex],
     ) -> AbstractOdeFunction:

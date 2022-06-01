@@ -13,13 +13,13 @@
 
 import unittest
 
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from numpy.testing import assert_raises
 from ddt import data, ddt
 import numpy as np
 
 from qiskit.algorithms.evolvers.variational.var_qte import VarQTE
 from qiskit.circuit import Parameter
-from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
 @ddt
