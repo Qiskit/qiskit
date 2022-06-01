@@ -612,6 +612,7 @@ Pass Manager Construction
 .. autosummary::
    :toctree: ../stubs/
 
+   generate_preset_pass_manager
    PassManager
    PassManagerConfig
    PropertySet
@@ -677,3 +678,4 @@ from .instruction_durations import InstructionDurations
 from .target import Target
 from .target import InstructionProperties
 from .target import QubitProperties
+from .preset_passmanagers import generate_preset_pass_manager

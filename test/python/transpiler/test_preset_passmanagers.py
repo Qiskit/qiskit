@@ -22,7 +22,7 @@ import numpy as np
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit import Qubit
 from qiskit.compiler import transpile, assemble
-from qiskit.transpiler import CouplingMap, Layout
+from qiskit.transpiler import CouplingMap, Layout, PassManager
 from qiskit.circuit.library import U2Gate, U3Gate
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import (
@@ -36,6 +36,7 @@ from qiskit.test.mock import (
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import GraphState
 from qiskit.quantum_info import random_unitary
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 
 
 def emptycircuit():
@@ -940,3 +941,15 @@ class TestOptimizationOnSize(QiskitTestCase):
 
         self.assertLess(circ.size(), qc.size())
         self.assertLessEqual(circ.depth(), qc.depth())
+
+
+@ddt
+class TestGeenratePresetPassManagers(QiskitTestCase):
+    """Test generate_preset_pass_manager function."""
+
+    @data(0, 1, 2, 3)
+    def test_with_backend(self, optimization_level):
+        """Test a passmanager is constructed when only a backend and optimization level."""
+        target = FakeTokyo()
+        pm = generate_preset_pass_manager(optimization_level, target)
+        self.assertIsInstance(pm, PassManager)
