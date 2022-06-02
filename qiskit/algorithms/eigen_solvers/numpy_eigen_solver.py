@@ -133,11 +133,11 @@ class NumPyEigensolver(Eigensolver):
             else:
                 if operator.is_hermitian():
                     eigval, eigvec = scisparse.linalg.eigsh(
-                        operator.to_spmatrix(), k=self._k, which="SA"
+                        sp_mat, k=self._k, which="SA"
                     )
                 else:
                     eigval, eigvec = scisparse.linalg.eigs(
-                        operator.to_spmatrix(), k=self._k, which="SR"
+                        sp_mat, k=self._k, which="SR"
                     )
             indices = np.argsort(eigval)[: self._k]
             eigval = eigval[indices]
