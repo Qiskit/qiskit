@@ -2,7 +2,7 @@
 features:
   - |
     The primitives interface has been extended to accept objects in addition to indices
-    as arguments to the `__call__` method.
+    as arguments to the `__call__` method and `parameter_values` can be optional.
 deprecations:
   - |
     The arguments' names in :meth:`~qiskit.primitives.Estimator.__call__` and
