@@ -82,7 +82,10 @@ def generate_preset_pass_manager(
             are specified in addition to ``backend`` they will take precedence
             over the value contained in the backend.
         target (Target): The :class:`~.Target` representing a backend compilation
-            target
+            target. The following attributes will be inferred from this
+            argument if they are not set: ``coupling_map``, ``basis_gates``,
+            ``instruction_durations``, ``inst_map``, ``timing_constraints``
+            and ``backend_properties``.
         basis_gates (list): List of basis gate names to unroll to
             (e.g: ``['u1', 'u2', 'u3', 'cx']``).
         inst_map (InstructionScheduleMap): Mapping object that maps gate to schedules.
@@ -97,26 +100,26 @@ def generate_preset_pass_manager(
         timing_constraints (TimingConstraints): Hardware time alignment restrictions.
         initial_layout (Layout): Initial position of virtual qubits on
             physical qubits.
-        layout_method (str): the :class:`~.Pass` to use for choosing initial qubit
+        layout_method (str): The :class:`~.Pass` to use for choosing initial qubit
             placement. Valid choices are ``'trivial'``, ``'dense'``, ``'noise_adaptive'``,
             and, ``'sabre'`` repsenting :class:`~.TrivialLayout`, :class:`~DenseLayout`,
             :class:`~.NoiseAdaptiveLayout`, :class:`~.SabreLayout` respectively.
-        routing_method (str): the pass to use for routing qubits on the
+        routing_method (str): The pass to use for routing qubits on the
             architecture. Valid choices are ``'basic'``, ``'lookahead'``, ``'stochastic'``,
             ``'sabre'``, and ``'none'`` representing :class:`~.BasicSwap`,
             :class:`~.LookaheadSwap`, :class:`~.StochasticSwap`, :class:`~.SabreSwap`, and
             erroring if routing is required respectively.
-        translation_method (str): the method to use for translating gates to
-            basis_gates. Valid choices ``'unroller'``, ``'translator'``, ``'synthesis'``
+        translation_method (str): The method to use for translating gates to
+            basis gates. Valid choices ``'unroller'``, ``'translator'``, ``'synthesis'``
             representing :class:`~.Unroller`, :class:`~.BasisTranslator`, and
             :class:`~.UnitarySynthesis` respectively.
-        scheduling_method (str): the pass to use for scheduling instructions. Valid choices
-            are ``'alap'`` and ``'asap``.
+        scheduling_method (str): The pass to use for scheduling instructions. Valid choices
+            are ``'alap'`` and ``'asap'``.
         backend_properties (BackendProperties): Properties returned by a
             backend, including information on gate errors, readout errors,
             qubit coherence times, etc.
-        approximation_degree (float): heuristic dial used for circuit approximation
-            (1.0=no approximation, 0.0=maximal approximation)
+        approximation_degree (float): Heuristic dial used for circuit approximation
+            (1.0=no approximation, 0.0=maximal approximation).
         seed_transpiler (int): Sets random seed for the stochastic parts of
             the transpiler.
         unitary_synthesis_method (str): The name of the unitary synthesis
