@@ -45,7 +45,7 @@ parameters:
     type: string
     default: "3.10"
 
-  # These two versions of Python can be chosen somewhat arbitrarily, but we get
+  # These versions of Python can be chosen somewhat arbitrarily, but we get
   # slightly better coverage per PR if they're neither the maximum nor minimum
   # supported versions.
 
