@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test of qasm fake backends from qiskit.mock package."""
+"""Test of qasm fake backends from qiskit.providers.fake_provider package."""
 import unittest
 from qiskit import QuantumCircuit, transpile
 from qiskit.test import QiskitTestCase
