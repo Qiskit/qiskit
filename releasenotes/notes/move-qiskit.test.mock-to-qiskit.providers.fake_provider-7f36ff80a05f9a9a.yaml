@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    The ``qiskit.test.mock`` modules is now deprecated. The fake backend and
+    fake provider classes which were previously available in ``qiskit.test.mock``
+    are now accessible in module ``qiskit.providers.fake_provider``.
