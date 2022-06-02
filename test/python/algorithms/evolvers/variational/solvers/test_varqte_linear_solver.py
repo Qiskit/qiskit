@@ -30,15 +30,15 @@ from qiskit.algorithms.evolvers.variational.solvers.var_qte_linear_solver import
     VarQTELinearSolver,
 )
 from qiskit.circuit.library import EfficientSU2
-from qiskit.opflow import SummedOp, X, Y, I, Z, CircuitSampler
+from qiskit.opflow import SummedOp, X, Y, I, Z
 
 
 @ddt
 class TestVarQTELinearSolver(QiskitAlgorithmsTestCase):
     """Test solver of linear equations."""
 
-    @data(CircuitSampler(BasicAer.get_backend("statevector_simulator")), None)
-    def test_solve_lse_no_backend(self, circuit_sampler):
+    @data(BasicAer.get_backend("statevector_simulator"), None)
+    def test_solve_lse(self, backend):
         """Test SLE solver."""
 
         observable = SummedOp(
@@ -64,15 +64,17 @@ class TestVarQTELinearSolver(QiskitAlgorithmsTestCase):
 
         var_principle = ImaginaryMcLachlanPrinciple()
 
-        metric_tensor = var_principle.calc_metric_tensor(ansatz, parameters)
+        metric_tensor = var_principle.create_qfi()
         evolution_grad = var_principle.calc_evolution_grad(observable, ansatz, parameters)
 
         linear_solver = partial(np.linalg.lstsq, rcond=1e-2)
         linear_solver = VarQTELinearSolver(
+            ansatz,
             metric_tensor,
+            parameters,
             evolution_grad,
-            linear_solver,
-            circuit_sampler,
+            lse_solver=linear_solver,
+            quantum_instance=backend,
         )
 
         nat_grad_res, metric_res, grad_res = linear_solver.solve_lse(param_dict)

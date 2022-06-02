@@ -21,8 +21,8 @@ from qiskit.opflow import (
     CircuitQFI,
     CircuitGradient,
     StateFn,
-    ListOp,
     OperatorBase,
+    QFI,
 )
 
 
@@ -47,21 +47,15 @@ class VariationalPrinciple(ABC):
         self._grad_method = grad_method
 
     @abstractmethod
-    def calc_metric_tensor(
+    def create_qfi(
         self,
-        ansatz: QuantumCircuit,
-        parameters: List[Parameter],
-    ) -> ListOp:
+    ) -> QFI:
         """
-        Calculates a metric tensor according to the rules of this variational principle.
-
-        Args:
-            ansatz: Quantum state in the form of a parametrized quantum circuit to be used for
-                calculating a metric tensor.
-            parameters: Parameters with respect to which gradients should be computed.
+        Created a QFI instance according to the rules of this variational principle. It will be used
+        to calculate a metric tensor required in the ODE.
 
         Returns:
-            Transformed metric tensor.
+            QFI instance.
         """
         pass
 

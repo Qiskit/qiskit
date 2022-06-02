@@ -23,12 +23,11 @@ from qiskit.opflow import (
     I,
     PauliExpectation,
     CircuitSampler,
-    ListOp,
     OperatorBase,
+    QFI,
 )
 from ..calculators import (
     evolution_grad_calculator,
-    metric_tensor_calculator,
 )
 from .real_variational_principle import (
     RealVariationalPrinciple,
@@ -43,27 +42,17 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
     means that we consider real time dynamics.
     """
 
-    def calc_metric_tensor(
+    def create_qfi(
         self,
-        ansatz: QuantumCircuit,
-        parameters: List[Parameter],
-    ) -> ListOp:
+    ) -> QFI:
         """
-        Calculates a metric tensor according to the rules of this variational principle.
-
-        Args:
-            ansatz: Quantum state in the form of a parametrized quantum circuit to be used for
-                calculating a metric tensor.
-            parameters: Parameters with respect to which gradients should be computed.
+        Creates a QFI instance according to the rules of this variational principle. It is used
+        to calculate a metric tensor required in the ODE.
 
         Returns:
-            Transformed metric tensor.
+            QFI instance.
         """
-        raw_metric_tensor_real = metric_tensor_calculator.calculate(
-            ansatz, parameters, self._qfi_method
-        )
-
-        return raw_metric_tensor_real
+        return QFI(self._qfi_method)
 
     def calc_evolution_grad(
         self,

@@ -113,6 +113,8 @@ class DerivativeBase(ConverterBase):
             expectation = PauliExpectation()
         grad = expectation.convert(grad)
 
+        sampler = CircuitSampler(backend=backend) if backend else None
+
         def gradient_fn(p_values):
             p_values_dict = dict(zip(bind_params, p_values))
             if not backend:
@@ -120,8 +122,10 @@ class DerivativeBase(ConverterBase):
                 return np.real(converter.eval())
             else:
                 p_values_dict = {k: [v] for k, v in p_values_dict.items()}
-                converter = CircuitSampler(backend=backend).convert(grad, p_values_dict)
+                converter = sampler.convert(grad, p_values_dict)
                 return np.real(converter.eval()[0])
+
+        return gradient_fn
 
         return gradient_fn
 

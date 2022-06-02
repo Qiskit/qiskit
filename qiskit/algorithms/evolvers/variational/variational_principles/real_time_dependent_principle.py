@@ -16,9 +16,9 @@ from typing import Union, List
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
-from qiskit.opflow import Y, OperatorBase, ListOp, StateFn
+from qiskit.opflow import Y, OperatorBase, StateFn, QFI
+from qiskit.opflow.gradients.circuit_qfis import LinCombFull
 from ..calculators import (
-    metric_tensor_calculator,
     evolution_grad_calculator,
 )
 from .real_variational_principle import (
@@ -34,27 +34,21 @@ class RealTimeDependentPrinciple(RealVariationalPrinciple):
     means that we consider real time dynamics.
     """
 
-    def calc_metric_tensor(
+    def create_qfi(
         self,
-        ansatz: QuantumCircuit,
-        parameters: List[Parameter],
-    ) -> ListOp:
+    ) -> QFI:
         """
-        Calculates a metric tensor according to the rules of this variational principle.
-
-        Args:
-            ansatz: Quantum state in the form of a parametrized quantum circuit to be used for
-                calculating a metric tensor.
-            parameters: Parameters with respect to which gradients should be computed.
+        Creates a QFI instance according to the rules of this variational principle. It is used
+        to calculate a metric tensor required in the ODE.
 
         Returns:
-            Transformed metric tensor.
+            QFI instance.
         """
-        raw_metric_tensor_imag = metric_tensor_calculator.calculate(
-            ansatz, parameters, self._qfi_method, basis=-Y
-        )
+        qfi_method = self._qfi_method
+        if self._qfi_method == "lin_comb_full" or isinstance(self._qfi_method, LinCombFull):
+            qfi_method = LinCombFull(aux_meas_op=-Y)
 
-        return raw_metric_tensor_imag
+        return QFI(qfi_method)
 
     def calc_evolution_grad(
         self,

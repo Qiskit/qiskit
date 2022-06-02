@@ -14,7 +14,6 @@
 
 import unittest
 
-
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import data, ddt
 import numpy as np
@@ -117,20 +116,20 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         ]
 
         thetas_expected_qasm = [
-            0.92928079575943,
-            1.70504715213865,
-            2.6955702603652,
-            2.70730190763444,
-            2.29297852544896,
-            1.51004167136585,
-            2.200898726865,
-            1.97021569662524,
+            0.957096614550468,
+            1.69014096747659,
+            2.70370264377531,
+            2.70245225440524,
+            2.24238464248809,
+            1.49500800853256,
+            2.14510672793141,
+            1.93208900354681,
         ]
 
         expected_aux_ops_evaluated_sv = [(-0.204155479846185, 0.0), (0.25191789852257596, 0.0)]
         expected_aux_ops_evaluated_qasm = [
-            (0.011999999999999927, 0.015810249839898167),
-            (0.32800000000000024, 0.014936666294725873),
+            (0.0135, 0.01581),
+            (0.3245, 0.014956),
         ]
 
         for backend_name in self.backends_names:
@@ -150,7 +149,6 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
                 aux_ops = evolution_result.aux_ops_evaluated
 
                 parameter_values = evolved_state.data[0][0].params
-
                 if backend_name == "qi_qasm":
                     thetas_expected = thetas_expected_qasm
                     expected_aux_ops = expected_aux_ops_evaluated_qasm

@@ -22,7 +22,7 @@ from qiskit.algorithms.evolvers.variational.variational_principles.real_mc_lachl
     RealMcLachlanPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
-from qiskit.opflow import SummedOp, X, Y, I, Z
+from qiskit.opflow import SummedOp, X, Y, I, Z, CircuitStateFn
 
 
 class TestRealMcLachlanPrinciple(QiskitAlgorithmsTestCase):
@@ -49,12 +49,14 @@ class TestRealMcLachlanPrinciple(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = RealMcLachlanPrinciple()
 
-        metric_tensor = var_principle.calc_metric_tensor(ansatz, parameters)
+        metric_tensor = var_principle.create_qfi()
 
-        bound_metric_tensor = metric_tensor.bind_parameters(param_dict)
+        bound_metric_tensor = 0.25 * metric_tensor.gradient_wrapper(
+            CircuitStateFn(ansatz), parameters, parameters
+        )(param_dict.values())
 
         np.testing.assert_almost_equal(
-            bound_metric_tensor.eval(), expected_bound_metric_tensor_2, decimal=5
+            bound_metric_tensor, expected_bound_metric_tensor_2, decimal=5
         )
 
     # TODO deal with the callable

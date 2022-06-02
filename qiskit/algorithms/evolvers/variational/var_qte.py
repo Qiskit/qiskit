@@ -14,7 +14,7 @@
 
 from abc import ABC
 from functools import partial
-from typing import Optional, Union, Dict, List, Callable
+from typing import Optional, Union, Dict, List, Callable, Any
 
 import numpy as np
 from scipy.integrate import OdeSolver
@@ -31,7 +31,6 @@ from qiskit.opflow import (
 )
 from qiskit.utils.backend_utils import is_aer_provider
 from .solvers.ode.ode_function_factory import OdeFunctionFactory
-
 from .solvers.var_qte_linear_solver import (
     VarQTELinearSolver,
 )
@@ -166,7 +165,7 @@ class VarQTE(ABC):
         time: float,
         t_param: Parameter,
         initial_state: Optional[Union[OperatorBase, QuantumCircuit]] = None,
-        error_calculator=None,
+        error_calculator: Any = None,
     ) -> OperatorBase:
         r"""
         Helper method for performing time evolution. Works both for imaginary and real case.
@@ -195,18 +194,20 @@ class VarQTE(ABC):
         init_state_parameters = list(init_state_param_dict.keys())
         init_state_parameters_values = list(init_state_param_dict.values())
 
-        metric_tensor = self.variational_principle.calc_metric_tensor(
-            initial_state, init_state_parameters
-        )
         evolution_grad = self.variational_principle.calc_evolution_grad(
             hamiltonian, initial_state, init_state_parameters
         )
 
+        qfi = self.variational_principle.create_qfi()
+
         linear_solver = VarQTELinearSolver(
-            metric_tensor,
+            initial_state,
+            qfi,
+            init_state_parameters,
             evolution_grad,
+            t_param,
             self.lse_solver,
-            self._circuit_sampler,
+            self._quantum_instance,
             self.imag_part_tol,
         )
 

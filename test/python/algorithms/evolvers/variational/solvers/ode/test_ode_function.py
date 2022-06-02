@@ -14,7 +14,6 @@
 
 import unittest
 from functools import partial
-
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
@@ -36,7 +35,6 @@ from qiskit.opflow import (
     Y,
     I,
     Z,
-    CircuitSampler,
 )
 
 
@@ -67,17 +65,19 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
 
         var_principle = ImaginaryMcLachlanPrinciple()
 
-        metric_tensor = var_principle.calc_metric_tensor(ansatz, parameters)
+        metric_tensor = var_principle.create_qfi()
         evolution_grad = var_principle.calc_evolution_grad(observable, ansatz, parameters)
 
         time = 2
 
         linear_solver = partial(np.linalg.lstsq, rcond=1e-2)
         linear_solver = VarQTELinearSolver(
+            ansatz,
             metric_tensor,
+            parameters,
             evolution_grad,
-            linear_solver,
-            CircuitSampler(backend),
+            lse_solver=linear_solver,
+            quantum_instance=backend,
         )
 
         ode_function_generator = OdeFunction(
@@ -128,17 +128,19 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
 
         var_principle = ImaginaryMcLachlanPrinciple()
 
-        metric_tensor = var_principle.calc_metric_tensor(ansatz, parameters)
+        metric_tensor = var_principle.create_qfi()
         evolution_grad = var_principle.calc_evolution_grad(observable, ansatz, parameters)
 
         time = 2
 
         linear_solver = partial(np.linalg.lstsq, rcond=1e-2)
         linear_solver = VarQTELinearSolver(
+            ansatz,
             metric_tensor,
+            parameters,
             evolution_grad,
-            linear_solver,
-            CircuitSampler(backend),
+            lse_solver=linear_solver,
+            quantum_instance=backend,
         )
         ode_function_generator = OdeFunction(
             linear_solver, error_calculator=None, t_param=t_param, param_dict=param_dict

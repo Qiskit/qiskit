@@ -16,9 +16,8 @@ from typing import Union, List
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
-from qiskit.opflow import StateFn, OperatorBase, ListOp
+from qiskit.opflow import StateFn, OperatorBase, QFI
 from ..calculators import (
-    metric_tensor_calculator,
     evolution_grad_calculator,
 )
 from .imaginary_variational_principle import (
@@ -34,27 +33,18 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
     variant means that we consider imaginary time dynamics.
     """
 
-    def calc_metric_tensor(
+    def create_qfi(
         self,
-        ansatz: Union[StateFn, QuantumCircuit],
-        parameters: List[Parameter],
-    ) -> ListOp:
+    ) -> QFI:
         """
-        Calculates a metric tensor according to the rules of this variational principle.
-
-        Args:
-            ansatz: Quantum state in the form of a parametrized quantum circuit to be used for
-                calculating a metric tensor.
-            parameters: Parameters with respect to which gradients should be computed.
+        Creates a QFI instance according to the rules of this variational principle. It is used
+        to calculate a metric tensor required in the ODE.
 
         Returns:
-            Transformed metric tensor.
+            QFI instance.
         """
-        metric_tensor_real = metric_tensor_calculator.calculate(
-            ansatz, parameters, self._qfi_method
-        )
 
-        return metric_tensor_real
+        return QFI(self._qfi_method)
 
     def calc_evolution_grad(
         self,

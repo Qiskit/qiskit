@@ -22,7 +22,7 @@ from qiskit.algorithms.evolvers.variational.variational_principles.real_time_dep
     RealTimeDependentPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
-from qiskit.opflow import SummedOp, X, Y, I, Z
+from qiskit.opflow import SummedOp, X, Y, I, Z, CircuitStateFn
 
 
 class TestRealTimeDependentPrinciple(QiskitAlgorithmsTestCase):
@@ -49,12 +49,14 @@ class TestRealTimeDependentPrinciple(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = RealTimeDependentPrinciple()
 
-        metric_tensor = var_principle.calc_metric_tensor(ansatz, parameters)
+        metric_tensor = var_principle.create_qfi()
 
-        bound_metric_tensor = metric_tensor.bind_parameters(param_dict)
+        bound_metric_tensor = 0.25 * metric_tensor.gradient_wrapper(
+            CircuitStateFn(ansatz), parameters, parameters
+        )(param_dict.values())
 
         np.testing.assert_almost_equal(
-            bound_metric_tensor.eval(), expected_bound_metric_tensor_3, decimal=5
+            bound_metric_tensor, expected_bound_metric_tensor_3, decimal=5
         )
 
     def test_calc_calc_evolution_grad(self):

@@ -23,7 +23,7 @@ from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_
     ImaginaryMcLachlanPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
-from qiskit.opflow import SummedOp, X, Y, I, Z
+from qiskit.opflow import SummedOp, X, Y, I, Z, CircuitStateFn
 
 
 class TestImaginaryMcLachlanPrinciple(QiskitAlgorithmsTestCase):
@@ -50,11 +50,13 @@ class TestImaginaryMcLachlanPrinciple(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = ImaginaryMcLachlanPrinciple()
 
-        metric_tensor = var_principle.calc_metric_tensor(ansatz, parameters)
+        metric_tensor = var_principle.create_qfi()
 
-        bound_metric_tensor = metric_tensor.bind_parameters(param_dict)
+        bound_metric_tensor = 0.25 * metric_tensor.gradient_wrapper(
+            CircuitStateFn(ansatz), parameters, parameters
+        )(param_dict.values())
 
-        np.testing.assert_almost_equal(bound_metric_tensor.eval(), expected_bound_metric_tensor_1)
+        np.testing.assert_almost_equal(bound_metric_tensor, expected_bound_metric_tensor_1)
 
     def test_calc_calc_evolution_grad(self):
         """Test calculating evolution gradient."""
