@@ -18,5 +18,6 @@ class MockModuleDeprecationTest(QiskitTestCase):
     """Test for deprecation of qiskit.test.mock module."""
 
     def test_deprecated_mock_module(self):
+        """Test that the mock module is deprecated."""
         with self.assertWarns(DeprecationWarning):
-            import qiskit.test.mock
+            import qiskit.test.mock # pylint: disable=unused-import
