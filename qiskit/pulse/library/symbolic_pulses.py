@@ -126,7 +126,14 @@ class LamdifiedExpression:
             if _optional.HAS_SYMENGINE:
                 # Symengine lambdify requires array-like
                 value = [value]
-            self.lambda_funcs[key] = sym.lambdify(params, value)
+
+            try:
+                func = sym.lambdify(params, value)
+            except RuntimeError:
+                # If symengine and complex valued function
+                func = sym.lambdify(params, value, real=False)
+
+            self.lambda_funcs[key] = func
 
 
 class SymbolicPulse(Pulse):
@@ -258,8 +265,7 @@ class SymbolicPulse(Pulse):
     """
 
     # Lambdify caches keyed on sympy expressions. Returns the corresponding callable.
-    _callable_envelope_i = LamdifiedExpression("_envelope_inphase_expr")
-    _callable_envelope_q = LamdifiedExpression("_envelope_quadphase_expr")
+    _callable_envelope = LamdifiedExpression("_envelope_expr")
     _callable_consts = LamdifiedExpression("_consts_expr")
 
     def __init__(
@@ -299,12 +305,7 @@ class SymbolicPulse(Pulse):
         self._pulse_type = pulse_type
         self._param_names = tuple(parameters.keys())
         self._param_vals = tuple(parameters.values())
-
-        # Symengine doesn't support lamdify of complex expression.
-        # Thus, envelope function for I and Q quadrature are separately defined.
-        # This is kind of natural from viewpoint of microarchitecture level implementation.
-        self._envelope_inphase_expr = None
-        self._envelope_quadphase_expr = None
+        self._envelope_expr = None
         self._consts_expr = None
 
     def __getattr__(self, item):
@@ -324,7 +325,7 @@ class SymbolicPulse(Pulse):
         return self._pulse_type
 
     @property
-    def envelope_inphase(self) -> sym.Expr:
+    def envelope(self) -> sym.Expr:
         """Return envelope function of the pulse.
 
         See :ref:`symbolic_pulse_envelope` for details.
@@ -333,29 +334,12 @@ class SymbolicPulse(Pulse):
         Note that the expression should contain symbol ``t`` that represents a
         sampling time, along with parameters defined in :meth:`.parameters`.
         """
-        return self._envelope_inphase_expr
+        return self._envelope_expr
 
-    @envelope_inphase.setter
-    def envelope_inphase(self, new_expr: sym.Expr):
+    @envelope.setter
+    def envelope(self, new_expr: sym.Expr):
         """Add new envelope function to the pulse."""
-        self._envelope_inphase_expr = new_expr
-
-    @property
-    def envelope_quadphase(self) -> sym.Expr:
-        """Return envelope function of the pulse.
-
-        See :ref:`symbolic_pulse_envelope` for details.
-
-        A pulse instance without this value cannot generate waveform samples.
-        Note that the expression should contain symbol ``t`` that represents a
-        sampling time, along with parameters defined in :meth:`.parameters`.
-        """
-        return self._envelope_quadphase_expr
-
-    @envelope_quadphase.setter
-    def envelope_quadphase(self, new_expr: sym.Expr):
-        """Add new envelope function to the pulse."""
-        self._envelope_quadphase_expr = new_expr
+        self._envelope_expr = new_expr
 
     @property
     def constraints(self) -> sym.Expr:
@@ -395,44 +379,19 @@ class SymbolicPulse(Pulse):
         times = np.arange(0, self.duration) + 1 / 2
         params = self.parameters
 
-        def _get_args(expr):
-            func_args = []
-            for name in sorted(map(lambda s: s.name, expr.free_symbols)):
-                if name == "t":
-                    value = times
-                else:
-                    value = params[name]
-                func_args.append(value)
-            return func_args
+        func = self._callable_envelope
+        if _optional.HAS_SYMENGINE:
+            func = np.vectorize(func)
 
-        # In-phase component
-        if self._envelope_inphase_expr is not None:
-            ifunc = self._callable_envelope_i
-            if _optional.HAS_SYMENGINE:
-                ifunc = np.vectorize(ifunc)
-            isamples = ifunc(*_get_args(self._envelope_inphase_expr))
-        else:
-            isamples = None
+        func_args = []
+        for name in sorted(map(lambda s: s.name, self._envelope_expr.free_symbols)):
+            if name == "t":
+                value = times
+            else:
+                value = params[name]
+            func_args.append(value)
 
-        # Quadrature-phase component
-        if self._envelope_quadphase_expr is not None:
-            qfunc = self._callable_envelope_q
-            if _optional.HAS_SYMENGINE:
-                qfunc = np.vectorize(qfunc)
-            qsamples = qfunc(*_get_args(self._envelope_quadphase_expr))
-        else:
-            qsamples = None
-
-        if isamples is None and qsamples is None:
-            raise PulseError(
-                "Both in-phase and quadrature-phase envelope are not defined."
-            )
-        if isamples is None:
-            isamples = np.zeros(times.size, dtype=float)
-        if qsamples is None:
-            qsamples = np.zeros(times.size, dtype=float)
-
-        return Waveform(samples=self.amp * (isamples + 1j * qsamples), name=self.name)
+        return Waveform(samples=self.amp * func(*func_args), name=self.name)
 
     def validate_parameters(self) -> None:
         """Validate parameters.
@@ -555,7 +514,7 @@ class Gaussian(SymbolicPulse):
         t, duration, sigma = sym.symbols("t, duration, sigma", real=True)
         center = duration / 2
 
-        self.envelope_inphase = _lifted_gaussian(t, center, duration + 1, sigma)
+        self.envelope = _lifted_gaussian(t, center, duration + 1, sigma)
         self.constraints = sigma > 0
         self.validate_parameters()
 
@@ -661,7 +620,7 @@ class GaussianSquare(SymbolicPulse):
         gaussian_ledge = _lifted_gaussian(t, sq_t0, -1, sigma)
         gaussian_redge = _lifted_gaussian(t, sq_t1, duration + 1, sigma)
 
-        self.envelope_inphase = sym.Piecewise(
+        self.envelope = sym.Piecewise(
             (gaussian_ledge, t <= sq_t0), (gaussian_redge, t >= sq_t1), (1, True)
         )
         self.constraints = sym.And(sigma > 0, width >= 0, duration >= width)
@@ -751,8 +710,7 @@ class Drag(SymbolicPulse):
         gauss = _lifted_gaussian(t, center, duration + 1, sigma)
         deriv = -(t - center) / (sigma**2) * gauss
 
-        self.envelope_inphase = gauss
-        self.envelope_quadphase = beta * deriv
+        self.envelope = gauss + sym.I * beta * deriv
 
         # In IBM quantum backend, im(beta) == 0 is explicitly checked.
         # In Qiskit, we impose real number constraints on all parameters except for 'amp'.
@@ -807,5 +765,5 @@ class Constant(SymbolicPulse):
         # ParametricPulse.get_waveform().
         #
         # See: https://github.com/sympy/sympy/issues/5642
-        self.envelope_inphase = sym.Piecewise((1, sym.And(t >= 0, t <= duration)), (0, True))
+        self.envelope = sym.Piecewise((1, sym.And(t >= 0, t <= duration)), (0, True))
         self.validate_parameters()
