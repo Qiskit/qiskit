@@ -103,6 +103,8 @@ Here is an example of how estimator is used.
 
         # Objects can be passed instead of indices.
         # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]
+        # Note that passing objects has an overhead
+        # since the corresponding indices need to be searched.
         result6 = e([psi2], [H2], [theta2])
         print(result6)
 """
@@ -334,13 +336,6 @@ class BaseEstimator(ABC):
                 f"The number of circuits ({len(circuits)}) does not match "
                 f"the number of parameter value sets ({len(parameter_values)})."
             )
-
-        for i, value in zip(circuits, parameter_values):
-            if len(value) != len(self._parameters[i]):
-                raise QiskitError(
-                    f"The number of values ({len(value)}) does not match "
-                    f"the number of parameters ({len(self._parameters[i])}) for the {i}-th circuit."
-                )
 
         for i, value in zip(circuits, parameter_values):
             if len(value) != len(self._parameters[i]):

@@ -66,6 +66,8 @@ Here is an example of how sampler is used.
 
     # executes three Bell circuits with objects.
     # Objects can be passed instead of indices.
+    # Note that passing objects has an overhead
+    # since the corresponding indices need to be searched.
     with Sampler([bell]) as sampler:
         result = sampler([bell, bell, bell])
         print([q.binary_probabilities() for q in result.quasi_dists])
