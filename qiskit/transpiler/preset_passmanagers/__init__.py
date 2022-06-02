@@ -28,6 +28,7 @@ Preset Passmanagers (:mod:`qiskit.transpiler.preset_passmanagers`)
 """
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
+from qiskit.transpiler.target import target_to_backend_properties
 
 from .level0 import level_0_pass_manager
 from .level1 import level_1_pass_manager
@@ -137,6 +138,21 @@ def generate_preset_pass_manager(
     Raises:
         ValueError: if an invalid value for ``optimization_level`` is passed in.
     """
+    if target is not None:
+        if coupling_map is None:
+            coupling_map = target.build_coupling_map()
+        if basis_gates is None:
+            basis_gates = target.operation_names
+        if instruction_durations is None:
+            instruction_durations = target.durations()
+        if inst_map is None:
+            inst_map = target.instruction_schedule_map()
+        if dt is None:
+            dt = target.dt
+        if timing_constraints is None:
+            timing_constraints = target.timing_constraints()
+        if backend_properties is None:
+            backend_properties = target_to_backend_properties(target)
 
     if backend is not None:
         pm_config = PassManagerConfig.from_backend(
