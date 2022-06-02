@@ -20,6 +20,16 @@ testing local timeouts, arbitrary responses or behavior, etc.
 The mock devices are mainly for testing the compiler.
 """
 
+import warnings
+
+warnings.warn(
+    "The module `qiskit.test.mock` is deprecated since "
+    "Qiskit Terra 0.21.0, and will be removed 3 months or more later. "
+    "Instead, you should use `qiskit.providers.fake_provider`.",
+    category=DeprecationWarning,
+    stacklevel=2,
+)
+
 # Fake job and qobj classes
 from qiskit.providers.fake_provider.fake_job import FakeJob
 from qiskit.providers.fake_provider.fake_qobj import FakeQobj
