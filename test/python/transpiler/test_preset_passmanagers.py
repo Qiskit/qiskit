@@ -32,6 +32,7 @@ from qiskit.test.mock import (
     FakeRueschlikon,
     FakeTokyo,
     FakePoughkeepsie,
+    FakeLagosV2,
 )
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import GraphState
@@ -953,3 +954,30 @@ class TestGeenratePresetPassManagers(QiskitTestCase):
         target = FakeTokyo()
         pm = generate_preset_pass_manager(optimization_level, target)
         self.assertIsInstance(pm, PassManager)
+
+    @data(0, 1, 2, 3)
+    def test_with_no_backend(self, optimization_level):
+        """Test a passmanager is constructed with no backend and optimization level."""
+        target = FakeLagosV2()
+        pm = generate_preset_pass_manager(
+            optimization_level,
+            coupling_map=target.coupling_map,
+            basis_gates=target.operation_names,
+            inst_map=target.instruction_schedule_map,
+            instruction_durations=target.instruction_durations,
+            timing_constraints=target.target.timing_constraints(),
+            target=target.target,
+        )
+        self.assertIsInstance(pm, PassManager)
+
+    @data(0, 1, 2, 3)
+    def test_with_no_backend_only_target(self, optimization_level):
+        """Test a passmanager is constructed with a manual target and optimization level."""
+        target = FakeLagosV2()
+        pm = generate_preset_pass_manager(optimization_level, target=target.target)
+        self.assertIsInstance(pm, PassManager)
+
+    def test_invalid_optimization_level(self):
+        """Assert we fail with an invalid optimization_level."""
+        with self.assertRaises(ValueError):
+            generate_preset_pass_manager(42)

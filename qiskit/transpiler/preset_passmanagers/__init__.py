@@ -147,8 +147,6 @@ def generate_preset_pass_manager(
             instruction_durations = target.durations()
         if inst_map is None:
             inst_map = target.instruction_schedule_map()
-        if dt is None:
-            dt = target.dt
         if timing_constraints is None:
             timing_constraints = target.timing_constraints()
         if backend_properties is None:
