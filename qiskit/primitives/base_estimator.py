@@ -342,6 +342,13 @@ class BaseEstimator(ABC):
                     f"the number of parameters ({len(self._parameters[i])}) for the {i}-th circuit."
                 )
 
+        for i, value in zip(circuits, parameter_values):
+            if len(value) != len(self._parameters[i]):
+                raise QiskitError(
+                    f"The number of values ({len(value)}) does not match "
+                    f"the number of parameters ({len(self._parameters[i])}) for the {i}-th circuit."
+                )
+
         for circ_i, obs_i in zip(circuits, observables):
             circuit_num_qubits = self.circuits[circ_i].num_qubits
             observable_num_qubits = self.observables[obs_i].num_qubits
