@@ -1449,9 +1449,21 @@ class TestTranspile(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         result = transpile(qc, target=target, optimization_level=opt_level)
         expected = QuantumCircuit(qubit_reg, clbit_reg)
-        expected.u(np.pi / 2, 0, np.pi, qubit_reg[0])
-        expected.cx(qubit_reg[0], qubit_reg[1])
-        expected.measure(qubit_reg, clbit_reg)
+        # The Unitary synthesis optimization pass results for optimization level 3
+        # results in a different output than the other optimization levels
+        if opt_level == 3:
+            expected.u(np.pi / 2, -2.573974639041118, -np.pi, qubit_reg[0])
+            expected.u(2.856600312467528, -np.pi / 2, -np.pi / 2, qubit_reg[1])
+            expected.cx(qubit_reg[0], qubit_reg[1])
+            expected.u(
+                3.0323422787222316e-16, 0.7742010131357828, -1.3418190276844602, qubit_reg[0]
+            )
+            expected.u(2.8566003124675303, -np.pi / 2, -np.pi / 2, qubit_reg[1])
+            expected.measure(qubit_reg, clbit_reg)
+        else:
+            expected.u(np.pi / 2, 0, np.pi, qubit_reg[0])
+            expected.cx(qubit_reg[0], qubit_reg[1])
+            expected.measure(qubit_reg, clbit_reg)
         self.assertEqual(result, expected)
 
 
