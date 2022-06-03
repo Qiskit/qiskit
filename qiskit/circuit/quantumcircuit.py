@@ -2132,10 +2132,10 @@ class QuantumCircuit:
         That structure includes:
             * name, callibrations and other metadata
             * global phase
-            * all the qubits and clbits, including the registers.
+            * all the qubits and clbits, including the registers
 
         Args:
-            name (str): name to be given to the copied circuit. If None, then the name stays the same
+            name (str): name for the copied circuit. If None, then the name stays the same.
 
         Returns:
             QuantumCircuit: An empty copy of self.
