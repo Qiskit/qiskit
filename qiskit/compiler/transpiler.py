@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 """Circuit transpile function"""
-import datetime
 import logging
 import warnings
 from time import time
@@ -40,7 +39,7 @@ from qiskit.transpiler.preset_passmanagers import (
     level_3_pass_manager,
 )
 from qiskit.transpiler.timing_constraints import TimingConstraints
-from qiskit.transpiler.target import Target
+from qiskit.transpiler.target import Target, target_to_backend_properties
 
 logger = logging.getLogger(__name__)
 
@@ -95,12 +94,14 @@ def transpile(
             the custom gate definition to the circuit. This enables one to flexibly
             override the low-level instruction implementation. This feature is available
             iff the backend supports the pulse gate experiment.
-        coupling_map: Coupling map (perhaps custom) to target in mapping.
+        coupling_map: Directed coupling map (perhaps custom) to target in mapping. If
+            the coupling map is symmetric, both directions need to be specified.
+
             Multiple formats are supported:
 
             #. ``CouplingMap`` instance
             #. List, must be given as an adjacency matrix, where each entry
-               specifies all two-qubit interactions supported by backend,
+               specifies all directed two-qubit interactions supported by backend,
                e.g: ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
 
         backend_properties: properties returned by a backend, including information on gate
@@ -513,7 +514,7 @@ def _parse_transpile_args(
         if timing_constraints is None:
             timing_constraints = target.timing_constraints()
         if backend_properties is None:
-            backend_properties = _target_to_backend_properties(target)
+            backend_properties = target_to_backend_properties(target)
 
     basis_gates = _parse_basis_gates(basis_gates, backend, circuits)
     inst_map = _parse_inst_map(inst_map, backend, num_circuits)
@@ -715,86 +716,6 @@ def _parse_coupling_map(coupling_map, backend, num_circuits):
     return coupling_map
 
 
-def _target_to_backend_properties(target: Target):
-    properties_dict = {
-        "backend_name": "",
-        "backend_version": "",
-        "last_update_date": None,
-        "general": [],
-    }
-    gates = []
-    qubits = []
-    for gate, qargs_list in target.items():
-        if gate != "measure":
-            for qargs, props in qargs_list.items():
-                property_list = []
-                if props is not None:
-                    if props.duration is not None:
-                        property_list.append(
-                            {
-                                "date": datetime.datetime.utcnow(),
-                                "name": "gate_length",
-                                "unit": "s",
-                                "value": props.duration,
-                            }
-                        )
-                    if props.error is not None:
-                        property_list.append(
-                            {
-                                "date": datetime.datetime.utcnow(),
-                                "name": "gate_error",
-                                "unit": "",
-                                "value": props.error,
-                            }
-                        )
-                if property_list:
-                    gates.append(
-                        {
-                            "gate": gate,
-                            "qubits": list(qargs),
-                            "parameters": property_list,
-                            "name": gate + "_".join([str(x) for x in qargs]),
-                        }
-                    )
-        else:
-            qubit_props = {x: None for x in range(target.num_qubits)}
-            for qargs, props in qargs_list.items():
-                if qargs is None:
-                    continue
-                qubit = qargs[0]
-                props_list = []
-                if props.error is not None:
-                    props_list.append(
-                        {
-                            "date": datetime.datetime.utcnow(),
-                            "name": "readout_error",
-                            "unit": "",
-                            "value": props.error,
-                        }
-                    )
-                if props.duration is not None:
-                    props_list.append(
-                        {
-                            "date": datetime.datetime.utcnow(),
-                            "name": "readout_length",
-                            "unit": "s",
-                            "value": props.duration,
-                        }
-                    )
-                if not props_list:
-                    qubit_props = {}
-                    break
-                qubit_props[qubit] = props_list
-            if qubit_props and all(x is not None for x in qubit_props.values()):
-                qubits = [qubit_props[i] for i in range(target.num_qubits)]
-    if gates or qubits:
-        properties_dict["gates"] = gates
-        properties_dict["qubits"] = qubits
-        return BackendProperties.from_dict(properties_dict)
-    else:
-        return None
-
-
 def _parse_backend_properties(backend_properties, backend, num_circuits):
     # try getting backend_properties from user, else backend
     if backend_properties is None:
@@ -830,7 +751,7 @@ def _parse_backend_properties(backend_properties, backend, num_circuits):
 
                     backend_properties.gates = gates
         else:
-            backend_properties = _target_to_backend_properties(backend.target)
+            backend_properties = target_to_backend_properties(backend.target)
     if not isinstance(backend_properties, list):
         backend_properties = [backend_properties] * num_circuits
     return backend_properties
@@ -921,11 +842,15 @@ def _parse_instruction_durations(backend, inst_durations, dt, circuits):
     take precedence over backend durations, but be superceded by ``inst_duration``s.
     """
     if not inst_durations:
-        backend_durations = InstructionDurations()
-        try:
-            backend_durations = InstructionDurations.from_backend(backend)
-        except AttributeError:
-            pass
+        backend_version = getattr(backend, "version", 0)
+        if backend_version <= 1:
+            backend_durations = InstructionDurations()
+            try:
+                backend_durations = InstructionDurations.from_backend(backend)
+            except AttributeError:
+                pass
+        else:
+            backend_durations = backend.instruction_durations
 
     durations = []
     for circ in circuits:
