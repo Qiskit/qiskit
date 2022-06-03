@@ -543,7 +543,7 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
             source_basis but not affected by basis_transforms will be included
             as a key mapping to itself.
     """
-    example_gates = _get_example_gates(source_dag, defaultdict(set))
+    example_gates = _get_example_gates(source_dag)
     mapped_instrs = {}
 
     for gate_name, gate_num_qubits in source_basis:
@@ -609,11 +609,14 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
     return mapped_instrs
 
 
-def _get_example_gates(source_dag, example_gates=None):
-    for node in source_dag.op_nodes():
-        example_gates[(node.op.name, node.op.num_qubits)] = node.op
-        if isinstance(node.op, ControlFlowOp):
-            for block in node.op.blocks:
-                block_dag = circuit_to_dag(block)
-                return {**example_gates, **_get_example_gates(block_dag, example_gates)}
-    return example_gates
+def _get_example_gates(source_dag):
+    def recurse(dag, example_gates=None):
+        example_gates = example_gates or {}
+        for node in dag.op_nodes():
+            example_gates[(node.op.name, node.op.num_qubits)] = node.op
+            if isinstance(node.op, ControlFlowOp):
+                for block in node.op.blocks:
+                    example_gates = recurse(circuit_to_dag(block), example_gates)
+        return example_gates
+
+    return recurse(source_dag)
