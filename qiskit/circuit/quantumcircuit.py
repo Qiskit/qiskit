@@ -2138,6 +2138,47 @@ class QuantumCircuit:
             cpy.name = name
         return cpy
 
+    def copy_empty_like(self, name: Optional[str] = None) -> "QuantumCircuit":
+        """Return a copy of self with the same structure but empty.
+
+        That structure includes:
+            * name, callibrations and other metadata
+            * global phase
+            * all the qubits and clbits, including the registers.
+
+        Args:
+          name (str): name to be given to the copied circuit. If None, then the name stays the same
+
+        Returns:
+            QuantumCircuit: An empty copy of self.
+        """
+        cpy = QuantumCircuit(
+            self.qregs.copy(),
+            self.cregs.copy(),
+            name=self.name,
+            global_phase=self.global_phase,
+        )
+        cpy._qubits = self._qubits.copy()
+        cpy._ancillas = self._ancillas.copy()
+        cpy._clbits = self._clbits.copy()
+        cpy._qubit_indices = self._qubit_indices.copy()
+        cpy._clbit_indices = self._clbit_indices.copy()
+
+        cpy._parameter_table = ParameterTable()
+        cpy._data = []
+
+        cpy._calibrations = copy.deepcopy(self._calibrations)
+        cpy._metadata = copy.deepcopy(self._metadata)
+
+        if name:
+            cpy.name = name
+        return cpy
+
+    def clear(self) -> None:
+        """Clear all instructions in self"""
+        self._data.clear()
+        self._parameter_table.clear()
+
     def _create_creg(self, length: int, name: str) -> ClassicalRegister:
         """Creates a creg, checking if ClassicalRegister with same name exists"""
         if name in [creg.name for creg in self.cregs]:
