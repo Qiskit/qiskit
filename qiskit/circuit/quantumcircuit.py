@@ -2135,7 +2135,7 @@ class QuantumCircuit:
             * all the qubits and clbits, including the registers.
 
         Args:
-          name (str): name to be given to the copied circuit. If None, then the name stays the same
+            name (str): name to be given to the copied circuit. If None, then the name stays the same
 
         Returns:
             QuantumCircuit: An empty copy of self.
@@ -2145,19 +2145,9 @@ class QuantumCircuit:
             self.cregs.copy(),
             name=self.name,
             global_phase=self.global_phase,
+            metadata=copy.deepcopy(self._metadata)
         )
-        cpy._qubits = self._qubits.copy()
-        cpy._ancillas = self._ancillas.copy()
-        cpy._clbits = self._clbits.copy()
-        cpy._qubit_indices = self._qubit_indices.copy()
-        cpy._clbit_indices = self._clbit_indices.copy()
-
-        cpy._parameter_table = ParameterTable()
-        cpy._data = []
-
         cpy._calibrations = copy.deepcopy(self._calibrations)
-        cpy._metadata = copy.deepcopy(self._metadata)
-
         if name:
             cpy.name = name
         return cpy
