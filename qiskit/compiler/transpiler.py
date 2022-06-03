@@ -49,8 +49,8 @@ from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.target import Target, target_to_backend_properties
 
 if sys.version_info >= (3, 8):
-    from multiprocessing.shared_memory import SharedMemory
-    from multiprocessing.managers import SharedMemoryManager
+    from multiprocessing.shared_memory import SharedMemory  # pylint: disable=no-name-in-module
+    from multiprocessing.managers import SharedMemoryManager  # pylint: disable=no-name-in-module
 else:
     from shared_memory import SharedMemory, SharedMemoryManager
 
