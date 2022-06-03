@@ -13,7 +13,6 @@
 # pylint: disable=import-error,invalid-sequence-index
 
 """Circuit transpile function"""
-import datetime
 import io
 from itertools import cycle
 import logging
@@ -47,7 +46,7 @@ from qiskit.transpiler.preset_passmanagers import (
     level_3_pass_manager,
 )
 from qiskit.transpiler.timing_constraints import TimingConstraints
-from qiskit.transpiler.target import Target
+from qiskit.transpiler.target import Target, target_to_backend_properties
 
 if sys.version_info >= (3, 8):
     from multiprocessing.shared_memory import SharedMemory
@@ -602,7 +601,7 @@ def _parse_transpile_args(
         if timing_constraints is None:
             timing_constraints = target.timing_constraints()
         if backend_properties is None:
-            backend_properties = _target_to_backend_properties(target)
+            backend_properties = target_to_backend_properties(target)
 
     basis_gates = _parse_basis_gates(basis_gates, backend)
     initial_layout = _parse_initial_layout(initial_layout, circuits)
@@ -773,86 +772,6 @@ def _parse_coupling_map(coupling_map, backend):
     return coupling_map
 
 
-def _target_to_backend_properties(target: Target):
-    properties_dict = {
-        "backend_name": "",
-        "backend_version": "",
-        "last_update_date": None,
-        "general": [],
-    }
-    gates = []
-    qubits = []
-    for gate, qargs_list in target.items():
-        if gate != "measure":
-            for qargs, props in qargs_list.items():
-                property_list = []
-                if props is not None:
-                    if props.duration is not None:
-                        property_list.append(
-                            {
-                                "date": datetime.datetime.utcnow(),
-                                "name": "gate_length",
-                                "unit": "s",
-                                "value": props.duration,
-                            }
-                        )
-                    if props.error is not None:
-                        property_list.append(
-                            {
-                                "date": datetime.datetime.utcnow(),
-                                "name": "gate_error",
-                                "unit": "",
-                                "value": props.error,
-                            }
-                        )
-                if property_list:
-                    gates.append(
-                        {
-                            "gate": gate,
-                            "qubits": list(qargs),
-                            "parameters": property_list,
-                            "name": gate + "_".join([str(x) for x in qargs]),
-                        }
-                    )
-        else:
-            qubit_props = {x: None for x in range(target.num_qubits)}
-            for qargs, props in qargs_list.items():
-                if qargs is None:
-                    continue
-                qubit = qargs[0]
-                props_list = []
-                if props.error is not None:
-                    props_list.append(
-                        {
-                            "date": datetime.datetime.utcnow(),
-                            "name": "readout_error",
-                            "unit": "",
-                            "value": props.error,
-                        }
-                    )
-                if props.duration is not None:
-                    props_list.append(
-                        {
-                            "date": datetime.datetime.utcnow(),
-                            "name": "readout_length",
-                            "unit": "s",
-                            "value": props.duration,
-                        }
-                    )
-                if not props_list:
-                    qubit_props = {}
-                    break
-                qubit_props[qubit] = props_list
-            if qubit_props and all(x is not None for x in qubit_props.values()):
-                qubits = [qubit_props[i] for i in range(target.num_qubits)]
-    if gates or qubits:
-        properties_dict["gates"] = gates
-        properties_dict["qubits"] = qubits
-        return BackendProperties.from_dict(properties_dict)
-    else:
-        return None
-
-
 def _parse_backend_properties(backend_properties, backend):
     # try getting backend_properties from user, else backend
     if backend_properties is None:
@@ -888,7 +807,7 @@ def _parse_backend_properties(backend_properties, backend):
 
                     backend_properties.gates = gates
         else:
-            backend_properties = _target_to_backend_properties(backend.target)
+            backend_properties = target_to_backend_properties(backend.target)
     return backend_properties
 
 
