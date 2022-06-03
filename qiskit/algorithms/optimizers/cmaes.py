@@ -1,39 +1,21 @@
 from dataclasses import dataclass
-from abc import abstractmethod, ABC
-from dataclasses import dataclass, field
-from typing import Dict, Any, Union, Callable, Optional, Tuple, List, Iterator
+from dataclasses import dataclass
+from typing import Union, Callable, Optional, List
 import numpy as np
-from numpy.lib.function_base import gradient
-
-from qiskit.algorithms.algorithm_result import AlgorithmResult
-
-
-from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
+from .optimizer import OptimizerSupportLevel, OptimizerResult, POINT
 from .steppable_optimizer import AskObject, TellObject, OptimizerState, SteppableOptimizer
 
 CALLBACK = Callable[[int, np.ndarray, float, float], None]
-
-# random.multivariate_normal(mean, cov, size=None, check_valid='warn', tol=1e-8)
-# numpy.cov(m, y=None, rowvar=True, bias=False, ddof=None, fweights=None, aweights=None, *, dtype=None)
-
 
 @dataclass
 class CMAES_AskObject(AskObject):
     """
     Args:
-        x_fun: List of randomly sampled points close to CMAES_OptmizerState.x .
         x_fun_translation: Sampling from a multivariate normal distribution used to create CMAES_AskObject.cloud.
     """
-
     x_fun_translation: Union[POINT, List[POINT]]
 
 
-@dataclass
-class CMAES_TellObject(TellObject):
-    """
-    Args:
-        cloud_evaluated: List of the value of the function evaluated at each point of the sample.
-    """
 
 
 @dataclass
@@ -59,6 +41,9 @@ class CMAES_OptimizerState(OptimizerState):
     sigma: float
 
 class SteppableCMAES(SteppableOptimizer):
+    """
+    Covariance Matrix Adaptation Evolution Strategy minimization routine.
+    """
     def __init__(
         self,
         tol: float = 1e-3,
@@ -78,23 +63,6 @@ class SteppableCMAES(SteppableOptimizer):
         self.cmu = None
         self.damps = None
         self.chiN = None
-
-    # @property
-    # def settings(self) -> Dict[str, Any]:
-    #     # if learning rate or perturbation are custom iterators expand them
-    #     if callable(self.learning_rate):
-    #         iterator = self.learning_rate()
-    #         learning_rate = np.array([next(iterator) for _ in range(self.maxiter)])
-    #     else:
-    #         learning_rate = self.learning_rate
-
-    #     return {
-    #         "maxiter": self.maxiter,
-    #         "tol": self.tol,
-    #         "learning_rate": learning_rate,
-    #         "perturbation": self.perturbation,
-    #         "callback": self.callback,
-    #     }
 
     def ask(self) -> CMAES_AskObject:
         """ """
@@ -146,13 +114,13 @@ class SteppableCMAES(SteppableOptimizer):
             self._state.D = np.real(np.sqrt(self._state.D))
             self._state.B = np.real(self._state.B)
 
-    def evaluate(self, ask_object: AskObject) -> CMAES_TellObject:
+    def evaluate(self, ask_object: AskObject) -> TellObject:
         eval_fun = [self._state.fun(x) for x in ask_object.x_fun]
         self._state.nfev += len(ask_object.x_fun)
-        return CMAES_TellObject(eval_fun=eval_fun, eval_jac=None)
+        return TellObject(eval_fun=eval_fun, eval_jac=None)
 
-    def user_evaluate(self, eval_fun: List[float]) -> CMAES_TellObject:
-        return CMAES_TellObject(eval_fun=eval_fun, eval_jac=None)
+    def user_evaluate(self, eval_fun: List[float]) -> TellObject:
+        return TellObject(eval_fun=eval_fun, eval_jac=None)
 
     def create_result(self) -> OptimizerResult:
         """
@@ -162,6 +130,7 @@ class SteppableCMAES(SteppableOptimizer):
         result.x = self._state.x
         result.fun = self._state.fun(self._state.x)
         result.nfev = self._state.nfev
+        result.nit =self._state.nit
         return result
 
     def initialize(
@@ -215,7 +184,7 @@ class SteppableCMAES(SteppableOptimizer):
         """
         This is the condition that will be checked after each step to stop the optimization process.
         """
-        return self._state.fun(self._state.x) < self.tol #Here it could be interesing to thake the nth best point to avoid converging out of luck
+        return self._state.fun(self._state.x) < self.tol
 
     def get_support_level(self):
         """Get the support level dictionary."""
