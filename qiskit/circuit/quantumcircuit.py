@@ -2144,7 +2144,7 @@ class QuantumCircuit:
             self.qregs.copy(),
             self.cregs.copy(),
             name=self.name,
-            global_phase=self.global_phase,
+            global_phase=copy.deepcopy(self.global_phase),
             metadata=copy.deepcopy(self._metadata)
         )
         cpy._calibrations = copy.deepcopy(self._calibrations)
