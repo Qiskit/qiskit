@@ -25,7 +25,9 @@ from qiskit.opflow import (
     CircuitSampler,
     OperatorBase,
     QFI,
+    Gradient,
 )
+from qiskit.opflow.gradients.circuit_gradients import LinComb
 from ..calculators import (
     evolution_grad_calculator,
 )
@@ -54,58 +56,34 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
         """
         return QFI(self._qfi_method)
 
-    def calc_evolution_grad(
+    def calc_evolution_grad(  # TODO returns CircuitGradient
         self,
-        hamiltonian: OperatorBase,
-        ansatz: Union[StateFn, QuantumCircuit],
-        parameters: List[Parameter],
-    ) -> Callable:
+    ) -> Gradient:
         """
         Calculates an evolution gradient according to the rules of this variational principle.
-
-        Args:
-            hamiltonian: Hamiltonian for which an evolution gradient should be calculated.
-            ansatz: Quantum state in the form of a parametrized quantum circuit to be used for
-                calculating an evolution gradient.
-            parameters: Parameters with respect to which gradients should be computed.
 
         Returns:
             Transformed evolution gradient.
         """
 
-        def raw_evolution_grad_imag(
-            param_dict: Dict[Parameter, complex],
-            circuit_sampler: Optional[CircuitSampler] = None,
-        ) -> OperatorBase:
-            """
-            Args:
-                param_dict: Dictionary which relates parameter values to the parameters in the
-                    ansatz.
-                circuit_sampler: Samples circuits using an underlying backend.
+        if self._grad_method == "lin_comb":
+            self._grad_method = LinComb(aux_meas_op=-Y)
 
-            Returns:
-                Calculated evolution gradient, according to the variational principle.
-            """
+        evolution_grad = Gradient(self._grad_method)  # *0.5
 
-            energy = StateFn(hamiltonian, is_measurement=True) @ StateFn(ansatz)
-            energy = PauliExpectation().convert(energy)
+        return evolution_grad
 
-            if circuit_sampler is not None:
-                energy = circuit_sampler.convert(energy, param_dict).eval()
-            else:
-                energy = energy.assign_parameters(param_dict).eval()
+    def modify_hamiltonian(self, hamiltonian, ansatz, circuit_sampler, param_dict):
+        energy = StateFn(hamiltonian, is_measurement=True) @ StateFn(ansatz)
+        energy = PauliExpectation().convert(energy)
 
-            energy_term = I ^ hamiltonian.num_qubits
-            energy_term *= -1
-            energy_term *= energy
-            hamiltonian_ = SummedOp([hamiltonian, energy_term]).reduce()
-            basis_operator = -Y
-            grad = (
-                evolution_grad_calculator.calculate(
-                    hamiltonian_, ansatz, parameters, self._grad_method, basis=basis_operator
-                )
-                * 0.5
-            )  # Im(...)
-            return grad
+        if circuit_sampler is not None:
+            energy = circuit_sampler.convert(energy, param_dict).eval()
+        else:
+            energy = energy.assign_parameters(param_dict).eval()
 
-        return raw_evolution_grad_imag
+        energy_term = I ^ hamiltonian.num_qubits
+        energy_term *= -1
+        energy_term *= energy
+        hamiltonian_ = SummedOp([hamiltonian, energy_term]).reduce()
+        return hamiltonian_

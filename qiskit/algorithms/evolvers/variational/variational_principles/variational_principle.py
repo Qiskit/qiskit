@@ -23,6 +23,7 @@ from qiskit.opflow import (
     StateFn,
     OperatorBase,
     QFI,
+    Gradient,
 )
 
 
@@ -62,20 +63,15 @@ class VariationalPrinciple(ABC):
     @abstractmethod
     def calc_evolution_grad(
         self,
-        hamiltonian: OperatorBase,
-        ansatz: Union[StateFn, QuantumCircuit],
-        parameters: List[Parameter],
-    ) -> Union[OperatorBase, Callable]:
+    ) -> Gradient:
         """
         Calculates an evolution gradient according to the rules of this variational principle.
-
-        Args:
-            hamiltonian: Hamiltonian for which an evolution gradient should be calculated.
-            ansatz: Quantum state in the form of a parametrized quantum circuit to be used for
-                calculating an evolution gradient.
-            parameters: Parameters with respect to which gradients should be computed.
 
         Returns:
             Transformed evolution gradient.
         """
+        pass
+
+    @abstractmethod
+    def modify_hamiltonian(self, hamiltonian, ansatz, circuit_sampler, param_dict):
         pass

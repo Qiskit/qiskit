@@ -18,7 +18,15 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
-from qiskit.opflow import CircuitSampler, OperatorBase, QFI, CircuitStateFn, StateFn
+from qiskit.opflow import (
+    CircuitSampler,
+    OperatorBase,
+    QFI,
+    CircuitStateFn,
+    StateFn,
+    CircuitGradient,
+    Gradient,
+)
 from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
 from qiskit.utils.backend_utils import is_aer_provider
@@ -32,10 +40,12 @@ class VarQTELinearSolver:
 
     def __init__(
         self,
+        hamiltonian,
         ansatz: Union[StateFn, QuantumCircuit],
         qfi: QFI,
         gradient_params: List[Parameter],
-        evolution_grad: OperatorBase,
+        evolution_grad: Gradient,
+        gradient_operator: OperatorBase,
         t_param=None,
         lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
         quantum_instance: Optional[QuantumInstance] = None,
@@ -57,14 +67,21 @@ class VarQTELinearSolver:
             imag_part_tol: Allowed value of an imaginary part that can be neglected if no
                 imaginary part is expected.
         """
+        self._hamiltonian = hamiltonian
         self._ansatz = ansatz
         self._qfi = qfi
         self._gradient_params = gradient_params
         bind_params = gradient_params + [t_param] if t_param else gradient_params
+        print(bind_params)
+        print(gradient_params)
         self._qfi_gradient_callable = qfi.gradient_wrapper(
             CircuitStateFn(ansatz), bind_params, gradient_params, quantum_instance
         )
-        self._evolution_grad = evolution_grad
+        self._gradient_operator = gradient_operator
+        print(gradient_operator)
+        self._evolution_grad_callable = evolution_grad.gradient_wrapper(
+            gradient_operator, bind_params, gradient_params, quantum_instance
+        )
         self._time_param = t_param
         self._lse_solver = lse_solver
         self._quantum_instance = None
@@ -108,32 +125,40 @@ class VarQTELinearSolver:
         Returns:
             Solution to the LSE, A from Ax=b, b from Ax=b.
         """
+        param_values = list(param_dict.values())
+        if self._time_param is not None:
+            param_values.append(time_value)
+        print("Param vals")
+        print(param_values)
+        metric_tensor_lse_lhs = 0.25 * self._qfi_gradient_callable(param_values)
 
-        metric_tensor_lse_lhs = 0.25 * self._qfi_gradient_callable(list(param_dict.values()))
-        evolution_grad_lse_rhs = self._calc_lse_rhs(param_dict, t_param, time_value)
+        evolution_grad_lse_rhs = 0.5 * self._evolution_grad_callable(param_values)
+
+        print(metric_tensor_lse_lhs)
+        print(evolution_grad_lse_rhs)
 
         x = self._lse_solver(metric_tensor_lse_lhs, evolution_grad_lse_rhs)[0]
 
         return np.real(x), metric_tensor_lse_lhs, evolution_grad_lse_rhs
 
-    def _calc_lse_rhs(
-        self,
-        param_dict: Dict[Parameter, complex],
-        t_param: Optional[Parameter] = None,
-        time_value: Optional[float] = None,
-    ) -> OperatorBase:
-
-        grad = self._evolution_grad
-
-        if t_param is not None:
-            time_dict = {t_param: time_value}
-            grad = self._evolution_grad.bind_parameters(time_dict)
-
-        evolution_grad_lse_rhs = eval_grad_result(
-            grad,
-            param_dict,
-            self._circuit_sampler,
-            self._imag_part_tol,
-        )
-
-        return evolution_grad_lse_rhs
+    # def _calc_lse_rhs(
+    #     self,
+    #     param_dict: Dict[Parameter, complex],
+    #     t_param: Optional[Parameter] = None,
+    #     time_value: Optional[float] = None,
+    # ) -> OperatorBase:
+    #
+    #     grad = self._evolution_grad_callable
+    #
+    #     if t_param is not None:
+    #         time_dict = {t_param: time_value}
+    #         grad = self._evolution_grad_callable.bind_parameters(time_dict)
+    #
+    #     evolution_grad_lse_rhs = eval_grad_result(
+    #         grad,
+    #         param_dict,
+    #         self._circuit_sampler,
+    #         self._imag_part_tol,
+    #     )
+    #
+    #     return evolution_grad_lse_rhs

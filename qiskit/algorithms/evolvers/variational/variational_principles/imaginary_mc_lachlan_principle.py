@@ -16,7 +16,8 @@ from typing import Union, List
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
-from qiskit.opflow import StateFn, OperatorBase, QFI
+from qiskit.opflow import StateFn, OperatorBase, QFI, Gradient
+from qiskit.opflow.gradients.circuit_gradients import LinComb
 from ..calculators import (
     evolution_grad_calculator,
 )
@@ -48,24 +49,18 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
 
     def calc_evolution_grad(
         self,
-        hamiltonian: OperatorBase,
-        ansatz: Union[StateFn, QuantumCircuit],
-        parameters: List[Parameter],
-    ) -> OperatorBase:
+    ) -> Gradient:
         """
         Calculates an evolution gradient according to the rules of this variational principle.
-
-        Args:
-            hamiltonian: Hamiltonian for which an evolution gradient should be calculated.
-            ansatz: Quantum state in the form of a parametrized quantum circuit to be used for
-                calculating an evolution gradient.
-            parameters: Parameters with respect to which gradients should be computed.
 
         Returns:
             Transformed evolution gradient.
         """
-        evolution_grad_real = evolution_grad_calculator.calculate(
-            hamiltonian, ansatz, parameters, self._grad_method
-        )
+        if self._grad_method == "lin_comb":
+            self._grad_method = LinComb()
+        evolution_grad_real = Gradient(self._grad_method)  # *-0.5
 
-        return (-1) * evolution_grad_real * 0.5
+        return evolution_grad_real
+
+    def modify_hamiltonian(self, hamiltonian, ansatz, circuit_sampler, param_dict):
+        return (-1) * (StateFn(hamiltonian, is_measurement=True) @ StateFn(ansatz))

@@ -194,17 +194,18 @@ class VarQTE(ABC):
         init_state_parameters = list(init_state_param_dict.keys())
         init_state_parameters_values = list(init_state_param_dict.values())
 
-        evolution_grad = self.variational_principle.calc_evolution_grad(
-            hamiltonian, initial_state, init_state_parameters
-        )
-
         qfi = self.variational_principle.create_qfi()
+        evolution_grad = self.variational_principle.calc_evolution_grad()
+        gradient_operator = self.variational_principle.modify_hamiltonian(
+            hamiltonian, initial_state, CircuitSampler(self.quantum_instance), init_state_param_dict
+        )
 
         linear_solver = VarQTELinearSolver(
             initial_state,
             qfi,
             init_state_parameters,
             evolution_grad,
+            gradient_operator,
             t_param,
             self.lse_solver,
             self._quantum_instance,
