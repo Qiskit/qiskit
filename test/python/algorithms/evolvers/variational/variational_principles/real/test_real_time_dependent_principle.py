@@ -49,7 +49,7 @@ class TestRealTimeDependentPrinciple(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = RealTimeDependentPrinciple()
 
-        metric_tensor = var_principle.create_qfi()
+        metric_tensor = var_principle.qfi
 
         bound_metric_tensor = 0.25 * metric_tensor.gradient_wrapper(
             CircuitStateFn(ansatz), parameters, parameters

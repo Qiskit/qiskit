@@ -44,20 +44,8 @@ class VariationalPrinciple(ABC):
                 ``CircuitQFI``.
         """
         self._qfi_method = qfi_method
+        self.qfi = QFI(qfi_method)
         self._grad_method = grad_method
-
-    @abstractmethod
-    def create_qfi(
-        self,
-    ) -> QFI:
-        """
-        Created a QFI instance according to the rules of this variational principle. It will be used
-        to calculate a metric tensor required in the ODE.
-
-        Returns:
-            QFI instance.
-        """
-        pass
 
     @abstractmethod
     def calc_evolution_grad(

@@ -198,7 +198,7 @@ class VarQTE(ABC):
             hamiltonian, initial_state, init_state_parameters
         )
 
-        qfi = self.variational_principle.create_qfi()
+        qfi = self.variational_principle.qfi
 
         linear_solver = VarQTELinearSolver(
             initial_state,

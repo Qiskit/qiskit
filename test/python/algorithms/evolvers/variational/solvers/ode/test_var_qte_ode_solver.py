@@ -74,7 +74,7 @@ class TestVarQTEOdeSolver(QiskitAlgorithmsTestCase):
 
         time = 1
 
-        metric_tensor = var_principle.create_qfi()
+        metric_tensor = var_principle.qfi
         evolution_grad = var_principle.calc_evolution_grad(observable, ansatz, parameters)
 
         linear_solver = partial(np.linalg.lstsq, rcond=1e-2)

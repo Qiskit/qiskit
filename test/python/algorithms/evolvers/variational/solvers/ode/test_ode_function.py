@@ -65,7 +65,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
 
         var_principle = ImaginaryMcLachlanPrinciple()
 
-        metric_tensor = var_principle.create_qfi()
+        metric_tensor = var_principle.qfi
         evolution_grad = var_principle.calc_evolution_grad(observable, ansatz, parameters)
 
         time = 2
@@ -128,7 +128,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
 
         var_principle = ImaginaryMcLachlanPrinciple()
 
-        metric_tensor = var_principle.create_qfi()
+        metric_tensor = var_principle.qfi
         evolution_grad = var_principle.calc_evolution_grad(observable, ansatz, parameters)
 
         time = 2

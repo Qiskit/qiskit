@@ -24,7 +24,6 @@ from qiskit.opflow import (
     PauliExpectation,
     CircuitSampler,
     OperatorBase,
-    QFI,
 )
 from ..calculators import (
     evolution_grad_calculator,
@@ -41,18 +40,6 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
     `~qiskit.algorithms.evolvers.variational.solvers.VarQTELinearSolver` class. The real variant
     means that we consider real time dynamics.
     """
-
-    def create_qfi(
-        self,
-    ) -> QFI:
-        """
-        Creates a QFI instance according to the rules of this variational principle. It is used
-        to calculate a metric tensor required in the ODE.
-
-        Returns:
-            QFI instance.
-        """
-        return QFI(self._qfi_method)
 
     def calc_evolution_grad(
         self,

@@ -19,7 +19,6 @@ import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.opflow import CircuitSampler, OperatorBase, QFI, CircuitStateFn, StateFn
-from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
 from qiskit.utils.backend_utils import is_aer_provider
 from ..calculators.evolution_grad_calculator import (
@@ -36,7 +35,7 @@ class VarQTELinearSolver:
         qfi: QFI,
         gradient_params: List[Parameter],
         evolution_grad: OperatorBase,
-        t_param=None,
+        t_param: Optional[Parameter] = None,
         lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
         quantum_instance: Optional[QuantumInstance] = None,
         imag_part_tol: float = 1e-7,
@@ -58,7 +57,6 @@ class VarQTELinearSolver:
                 imaginary part is expected.
         """
         self._ansatz = ansatz
-        self._qfi = qfi
         self._gradient_params = gradient_params
         bind_params = gradient_params + [t_param] if t_param else gradient_params
         self._qfi_gradient_callable = qfi.gradient_wrapper(
@@ -67,27 +65,15 @@ class VarQTELinearSolver:
         self._evolution_grad = evolution_grad
         self._time_param = t_param
         self._lse_solver = lse_solver
-        self._quantum_instance = None
+        if quantum_instance and not isinstance(quantum_instance, QuantumInstance):
+            quantum_instance = QuantumInstance(quantum_instance)
+        self.quantum_instance = quantum_instance
         self._circuit_sampler = None
         if quantum_instance is not None:
-            self.quantum_instance = quantum_instance
+            self._circuit_sampler = CircuitSampler(
+                quantum_instance, param_qobj=is_aer_provider(quantum_instance.backend)
+            )
         self._imag_part_tol = imag_part_tol
-
-    @property
-    def quantum_instance(self) -> Optional[QuantumInstance]:
-        """Returns quantum instance."""
-        return self._quantum_instance
-
-    @quantum_instance.setter
-    def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
-        """Sets quantum_instance"""
-        if not isinstance(quantum_instance, QuantumInstance):
-            quantum_instance = QuantumInstance(quantum_instance)
-
-        self._quantum_instance = quantum_instance
-        self._circuit_sampler = CircuitSampler(
-            quantum_instance, param_qobj=is_aer_provider(quantum_instance.backend)
-        )
 
     def solve_lse(
         self,

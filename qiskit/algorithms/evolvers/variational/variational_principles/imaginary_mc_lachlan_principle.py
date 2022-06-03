@@ -16,7 +16,7 @@ from typing import Union, List
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
-from qiskit.opflow import StateFn, OperatorBase, QFI
+from qiskit.opflow import StateFn, OperatorBase
 from ..calculators import (
     evolution_grad_calculator,
 )
@@ -32,19 +32,6 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
     `~qiskit.algorithms.evolvers.variational.solvers.VarQTELinearSolver` class. The imaginary
     variant means that we consider imaginary time dynamics.
     """
-
-    def create_qfi(
-        self,
-    ) -> QFI:
-        """
-        Creates a QFI instance according to the rules of this variational principle. It is used
-        to calculate a metric tensor required in the ODE.
-
-        Returns:
-            QFI instance.
-        """
-
-        return QFI(self._qfi_method)
 
     def calc_evolution_grad(
         self,
