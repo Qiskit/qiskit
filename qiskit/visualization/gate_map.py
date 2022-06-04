@@ -653,7 +653,9 @@ def plot_coupling_map(
         ax.axis("off")
 
     # set coloring
-    qubit_color, line_color = _set_default_coloring(qubit_color, line_color, num_qubits, coupling_map)
+    qubit_color, line_color = _set_default_coloring(
+        qubit_color, line_color, num_qubits, coupling_map
+    )
 
     # Add lines for couplings
     if num_qubits != 1:
@@ -748,12 +750,14 @@ def plot_coupling_map(
         return fig
     return None
 
+
 def _set_default_coloring(qubit_color, line_color, num_qubits, coupling_map):
     if qubit_color is None:
         qubit_color = ["#648fff"] * num_qubits
     if line_color is None:
         line_color = ["#648fff"] * len(coupling_map) if coupling_map else []
     return qubit_color, line_color
+
 
 def _color_faulty_backend(
     backend, qubit_color, line_color, faulty_color="#f24b4b", disabled_color="#b59696"
