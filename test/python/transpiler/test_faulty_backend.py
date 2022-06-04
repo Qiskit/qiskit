@@ -255,6 +255,7 @@ class TestFaultyCX13(TestFaultyBackendCase):
     @data(0, 1, 2)  # TODO: add 3 once https://github.com/Qiskit/qiskit-terra/issues/6406 is fixed
     def test_layout_level(self, level):
         """Test level {level} with a faulty CX(Q1, Q3) with a working initial layout"""
+
         #       ┌───┐     ┌───┐                               ░ ┌─┐
         # qr_0: ┤ H ├──■──┤ X ├───────────────────────────────░─┤M├────────────
         #       ├───┤┌─┴─┐└─┬─┘     ┌───┐     ┌───┐           ░ └╥┘┌─┐
