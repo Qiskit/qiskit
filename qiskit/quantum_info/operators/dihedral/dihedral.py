@@ -13,7 +13,6 @@
 """
 CNOTDihedral operator class.
 """
-# pylint: disable = abstract-method
 import itertools
 import numpy as np
 
@@ -160,6 +159,16 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         # Validate the CNOTDihedral element
         if validate and not self._is_valid():
             raise QiskitError("Invalid CNOTDihedral element.")
+
+    @property
+    def name(self):
+        """Unique string identifier for operation type."""
+        return "cnotdihedral"
+
+    @property
+    def num_clbits(self):
+        """Number of classical bits."""
+        return 0
 
     def _z2matmul(self, left, right):
         """Compute product of two n x n z2 matrices."""

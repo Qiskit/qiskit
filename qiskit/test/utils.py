@@ -44,7 +44,7 @@ def setup_test_logging(logger, log_level, filename):
         filename (str): name of the output file.
     """
     # Set up formatter.
-    log_fmt = "{}.%(funcName)s:%(levelname)s:%(asctime)s:" " %(message)s".format(logger.name)
+    log_fmt = f"{logger.name}.%(funcName)s:%(levelname)s:%(asctime)s: %(message)s"
     formatter = logging.Formatter(log_fmt)
 
     # Set up the file handler.

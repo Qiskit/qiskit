@@ -17,23 +17,11 @@ from enum import Enum
 from abc import abstractmethod
 import logging
 import numpy as np
-from qiskit.exceptions import MissingOptionalLibraryError
-from ..optimizer import Optimizer, OptimizerSupportLevel
+
+from qiskit.utils import optionals as _optionals
+from ..optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
 logger = logging.getLogger(__name__)
-
-try:
-    import nlopt
-
-    logger.info(
-        "NLopt version: %s.%s.%s",
-        nlopt.version_major(),
-        nlopt.version_minor(),
-        nlopt.version_bugfix(),
-    )
-    _HAS_NLOPT = True
-except ImportError:
-    _HAS_NLOPT = False
 
 
 class NLoptOptimizerType(Enum):
@@ -46,10 +34,13 @@ class NLoptOptimizerType(Enum):
     GN_ISRES = 5
 
 
+@_optionals.HAS_NLOPT.require_in_instance
 class NLoptOptimizer(Optimizer):
     """
     NLopt global optimizer base class
     """
+
+    # pylint: disable=import-error
 
     _OPTIONS = ["max_evals"]
 
@@ -61,14 +52,7 @@ class NLoptOptimizer(Optimizer):
         Raises:
             MissingOptionalLibraryError: NLopt library not installed.
         """
-        if not _HAS_NLOPT:
-            raise MissingOptionalLibraryError(
-                libname="nlopt",
-                name="NLoptOptimizer",
-                msg="See https://qiskit.org/documentation/apidoc/"
-                "qiskit.algorithms.optimizers.nlopts.html"
-                " for installation information",
-            )
+        import nlopt
 
         super().__init__()
         for k, v in list(locals().items()):
@@ -96,6 +80,10 @@ class NLoptOptimizer(Optimizer):
             "initial_point": OptimizerSupportLevel.required,
         }
 
+    @property
+    def settings(self):
+        return {"max_evals": self._options.get("max_evals", 1000)}
+
     def optimize(
         self,
         num_vars,
@@ -107,44 +95,30 @@ class NLoptOptimizer(Optimizer):
         super().optimize(
             num_vars, objective_function, gradient_function, variable_bounds, initial_point
         )
-        if variable_bounds is None:
-            variable_bounds = [(None, None)] * num_vars
-        return self._minimize(
-            self._optimizer_names[self.get_nlopt_optimizer()],
-            objective_function,
-            variable_bounds,
-            initial_point,
-            **self._options,
+        result = self.minimize(
+            objective_function, initial_point, gradient_function, variable_bounds
         )
+        return result.x, result.fun, result.nfev
 
-    def _minimize(
+    def minimize(
         self,
-        name: str,
-        objective_function: Callable,
-        variable_bounds: Optional[List[Tuple[float, float]]],
-        initial_point: Optional[np.ndarray] = None,
-        max_evals: int = 1000,
-    ) -> Tuple[float, float, int]:
-        """Minimize using objective function
+        fun: Callable[[POINT], float],
+        x0: POINT,
+        jac: Optional[Callable[[POINT], POINT]] = None,
+        bounds: Optional[List[Tuple[float, float]]] = None,
+    ) -> OptimizerResult:
+        import nlopt
 
-        Args:
-            name: NLopt optimizer name
-            objective_function: handle to a function that
-                                            computes the objective function.
-            variable_bounds: list of variable
-                                bounds, given as pairs (lower, upper). None means
-                                unbounded.
-            initial_point: initial point.
-            max_evals: Maximum evaluations
+        x0 = np.asarray(x0)
 
-        Returns:
-            tuple(float, float, int): Solution at minimum found,
-                    value at minimum found, num evaluations performed
-        """
+        if bounds is None:
+            bounds = [(None, None)] * x0.size
+
         threshold = 3 * np.pi
-        low = [(l if l is not None else -threshold) for (l, u) in variable_bounds]
-        high = [(u if u is not None else threshold) for (l, u) in variable_bounds]
+        low = [(l if l is not None else -threshold) for (l, u) in bounds]
+        high = [(u if u is not None else threshold) for (l, u) in bounds]
 
+        name = self._optimizer_names[self.get_nlopt_optimizer()]
         opt = nlopt.opt(name, len(low))
         logger.debug(opt.get_algorithm_name())
 
@@ -156,13 +130,19 @@ class NLoptOptimizer(Optimizer):
         def wrap_objfunc_global(x, _grad):
             nonlocal eval_count
             eval_count += 1
-            return objective_function(x)
+            return fun(x)
 
         opt.set_min_objective(wrap_objfunc_global)
-        opt.set_maxeval(max_evals)
+        opt.set_maxeval(self._options.get("max_evals", 1000))
 
-        xopt = opt.optimize(initial_point)
+        xopt = opt.optimize(x0)
         minf = opt.last_optimum_value()
 
         logger.debug("Global minimize found %s eval count %s", minf, eval_count)
-        return xopt, minf, eval_count
+
+        result = OptimizerResult()
+        result.x = xopt
+        result.fun = minf
+        result.nfev = eval_count
+
+        return result

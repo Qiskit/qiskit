@@ -139,7 +139,7 @@ class OverlapBlockDiag(CircuitQFI):
                 gate = circuit._parameter_table[param][0][0]
                 if len(gate.params) > 1:
                     raise OpflowError(
-                        "OverlapDiag cannot yet support gates with more than one " "parameter."
+                        "OverlapDiag cannot yet support gates with more than one parameter."
                     )
 
                 param_value = gate.params[0]

@@ -112,7 +112,7 @@ class MCGupDiag(Gate):
         threshold = float("inf")
         if self.num_controls < threshold:
             # Implement the MCG as a UCGate (up to diagonal)
-            gate_list = [np.eye(2, 2) for i in range(2 ** self.num_controls)]
+            gate_list = [np.eye(2, 2) for i in range(2**self.num_controls)]
             gate_list[-1] = self.params[0]
             ucg = UCGate(gate_list, up_to_diagonal=True)
             circuit.append(ucg, [q_target] + q_controls)
@@ -135,6 +135,4 @@ class MCGupDiag(Gate):
         if isinstance(parameter, np.ndarray):
             return parameter
         else:
-            raise CircuitError(
-                "invalid param type {0} in gate " "{1}".format(type(parameter), self.name)
-            )
+            raise CircuitError(f"invalid param type {type(parameter)} in gate {self.name}")

@@ -45,7 +45,7 @@ def raise_if_dagdependency_invalid(dag):
     # Every node should be of type op.
     for node in dag.get_nodes():
         if node.type != "op":
-            raise DAGDependencyError("Found node of unexpected type: {}".format(node.type))
+            raise DAGDependencyError(f"Found node of unexpected type: {node.type}")
 
 
 class TestDagRegisters(QiskitTestCase):
@@ -244,6 +244,18 @@ class TestDagProperties(QiskitTestCase):
     """Test the DAG properties."""
 
     def setUp(self):
+        #       ┌───┐                ┌───┐
+        # q0_0: ┤ H ├────────────────┤ X ├──────────
+        #       └───┘                └─┬─┘     ┌───┐
+        # q0_1: ───────────────────────┼───────┤ H ├
+        #                 ┌───┐        │  ┌───┐└─┬─┘
+        # q0_2: ──■───────┤ H ├────────┼──┤ T ├──■──
+        #       ┌─┴─┐┌────┴───┴─────┐  │  └───┘
+        # q0_3: ┤ X ├┤ U(0,0.1,0.2) ├──┼────────────
+        #       └───┘└──────────────┘  │
+        # q1_0: ───────────────────────■────────────
+        #                              │
+        # q1_1: ───────────────────────■────────────
         super().setUp()
         qr1 = QuantumRegister(4)
         qr2 = QuantumRegister(2)

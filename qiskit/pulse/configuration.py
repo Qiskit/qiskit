@@ -38,7 +38,7 @@ class Kernel:
         return "{}({}{})".format(
             self.__class__.__name__,
             "'" + self.name + "', " or "",
-            ", ".join("{}={}".format(str(k), str(v)) for k, v in self.params.items()),
+            ", ".join(f"{str(k)}={str(v)}" for k, v in self.params.items()),
         )
 
 
@@ -61,7 +61,7 @@ class Discriminator:
         return "{}({}{})".format(
             self.__class__.__name__,
             "'" + self.name + "', " or "",
-            ", ".join("{}={}".format(str(k), str(v)) for k, v in self.params.items()),
+            ", ".join(f"{str(k)}={str(v)}" for k, v in self.params.items()),
         )
 
 
@@ -96,7 +96,7 @@ class LoRange:
         return self._ub
 
     def __repr__(self):
-        return "%s(%f, %f)" % (self.__class__.__name__, self._lb, self._ub)
+        return f"{self.__class__.__name__}({self._lb:f}, {self._ub:f})"
 
     def __eq__(self, other):
         """Two LO ranges are the same if they are of the same type, and
@@ -181,7 +181,7 @@ class LoConfig:
         if channel in lo_ranges:
             lo_range = lo_ranges[channel]
             if not lo_range.includes(freq):
-                raise PulseError("Specified LO freq %f is out of range %s" % (freq, lo_range))
+                raise PulseError(f"Specified LO freq {freq:f} is out of range {lo_range}")
 
     def channel_lo(self, channel: Union[DriveChannel, MeasureChannel]) -> float:
         """Return channel lo.

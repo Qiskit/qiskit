@@ -28,9 +28,9 @@ from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
 def assemble_schedules(
     schedules: List[
         Union[
-            "schedule.ScheduleBlock",
-            "schedule.ScheduleComponent",
-            Tuple[int, "schedule.ScheduleComponent"],
+            schedule.ScheduleBlock,
+            schedule.ScheduleComponent,
+            Tuple[int, schedule.ScheduleComponent],
         ]
     ],
     qobj_id: int,
@@ -68,7 +68,7 @@ def assemble_schedules(
 
 
 def _assemble_experiments(
-    schedules: List[Union["schedule.ScheduleComponent", Tuple[int, "schedule.ScheduleComponent"]]],
+    schedules: List[Union[schedule.ScheduleComponent, Tuple[int, schedule.ScheduleComponent]]],
     lo_converter: converters.LoConfigConverter,
     run_config: RunConfig,
 ) -> Tuple[List[qobj.PulseQobjExperiment], Dict[str, Any]]:
@@ -90,10 +90,9 @@ def _assemble_experiments(
 
     if len(schedules) > 1 and len(freq_configs) not in [0, 1, len(schedules)]:
         raise QiskitError(
-            "Invalid frequency setting is specified. If the frequency is specified, "
-            "it should be configured the same for all schedules, configured for each "
-            "schedule, or a list of frequencies should be provided for a single "
-            "frequency sweep schedule."
+            "Invalid 'schedule_los' setting specified. If specified, it should be "
+            "either have a single entry to apply the same LOs for each schedule or "
+            "have length equal to the number of schedules."
         )
 
     instruction_converter = getattr(
@@ -151,7 +150,7 @@ def _assemble_experiments(
             qobj.PulseLibraryItem(name=name, samples=samples)
             for name, samples in user_pulselib.items()
         ],
-        "memory_slots": max([exp.header.memory_slots for exp in experiments]),
+        "memory_slots": max(exp.header.memory_slots for exp in experiments),
     }
 
     return experiments, experiment_config
@@ -313,11 +312,11 @@ def _assemble_config(
     if isinstance(meas_level, qobj_utils.MeasLevel):
         qobj_config["meas_level"] = meas_level.value
 
-    # convert lo frequencies to Hz
+    # convert LO frequencies to GHz
     qobj_config["qubit_lo_freq"] = [freq / 1e9 for freq in qobj_config["qubit_lo_freq"]]
     qobj_config["meas_lo_freq"] = [freq / 1e9 for freq in qobj_config["meas_lo_freq"]]
 
-    # frequency sweep config
+    # override defaults if single entry for ``schedule_los``
     schedule_los = qobj_config.pop("schedule_los", [])
     if len(schedule_los) == 1:
         lo_dict = schedule_los[0]

@@ -32,6 +32,16 @@ class TestPauliTwoDesign(QiskitTestCase):
         params = circuit.ordered_parameters
 
         # expected circuit for the random seed 12
+        #
+        #      ┌─────────┐┌──────────┐   ┌──────────┐
+        # q_0: ┤ Ry(π/4) ├┤ Ry(θ[0]) ├─■─┤ Rx(θ[4]) ├────────────
+        #      ├─────────┤├──────────┤ │ └──────────┘┌──────────┐
+        # q_1: ┤ Ry(π/4) ├┤ Rx(θ[1]) ├─■──────■──────┤ Rx(θ[5]) ├
+        #      ├─────────┤├──────────┤        │      ├──────────┤
+        # q_2: ┤ Ry(π/4) ├┤ Rz(θ[2]) ├─■──────■──────┤ Rx(θ[6]) ├
+        #      ├─────────┤├──────────┤ │ ┌──────────┐└──────────┘
+        # q_3: ┤ Ry(π/4) ├┤ Rz(θ[3]) ├─■─┤ Rx(θ[7]) ├────────────
+        #      └─────────┘└──────────┘   └──────────┘
         expected = QuantumCircuit(qr)
 
         # initial RYs
@@ -54,18 +64,19 @@ class TestPauliTwoDesign(QiskitTestCase):
         expected.rx(params[6], 2)
         expected.rx(params[7], 3)
 
-        self.assertEqual(circuit, expected)
+        self.assertEqual(circuit.decompose(), expected)
 
     def test_resize(self):
         """Test resizing the Random Pauli circuit preserves the gates."""
         circuit = PauliTwoDesign(1)
-        top_gates = [op.name for op, _, _ in circuit.data]
+        top_gates = [op.name for op, _, _ in circuit.decompose().data]
 
         circuit.num_qubits = 3
+        decomposed = circuit.decompose()
         with self.subTest("assert existing gates remain"):
             new_top_gates = []
-            for op, qargs, _ in circuit:
-                if qargs == [circuit.qubits[0]]:  # if top qubit
+            for op, qargs, _ in decomposed:
+                if qargs == [decomposed.qubits[0]]:  # if top qubit
                     new_top_gates.append(op.name)
 
             self.assertEqual(top_gates, new_top_gates)

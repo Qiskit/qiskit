@@ -65,7 +65,7 @@ class QiskitAlgorithmGlobals:
         if num_processes is None:
             num_processes = QiskitAlgorithmGlobals.CPU_COUNT
         elif num_processes < 1:
-            raise QiskitError("Invalid Number of Processes {}.".format(num_processes))
+            raise QiskitError(f"Invalid Number of Processes {num_processes}.")
         elif num_processes > QiskitAlgorithmGlobals.CPU_COUNT:
             raise QiskitError(
                 "Number of Processes {} cannot be greater than cpu count {}.".format(
@@ -79,7 +79,7 @@ class QiskitAlgorithmGlobals:
             parallel.CPU_COUNT = self.num_processes
         except Exception as ex:  # pylint: disable=broad-except
             logger.warning(
-                "Failed to set qiskit.tools.parallel.CPU_COUNT " "to value: '%s': Error: '%s'",
+                "Failed to set qiskit.tools.parallel.CPU_COUNT to value: '%s': Error: '%s'",
                 self.num_processes,
                 str(ex),
             )
@@ -103,4 +103,4 @@ class QiskitAlgorithmGlobals:
 
 
 # Global instance to be used as the entry point for globals.
-algorithm_globals = QiskitAlgorithmGlobals()  # pylint: disable=invalid-name
+algorithm_globals = QiskitAlgorithmGlobals()

@@ -12,10 +12,8 @@
 
 """Unitary gate."""
 
-from warnings import warn
 from typing import List, Optional, Union, Tuple
 import numpy as np
-from scipy.linalg import schur
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
@@ -36,9 +34,8 @@ class Gate(Instruction):
             params: A list of parameters.
             label: An optional label for the gate.
         """
-        self._label = label
         self.definition = None
-        super().__init__(name, num_qubits, 0, params)
+        super().__init__(name, num_qubits, 0, params, label=label)
 
     # Set higher priority than Numpy array and matrix classes
     __array_priority__ = 20
@@ -56,7 +53,7 @@ class Gate(Instruction):
         if hasattr(self, "__array__"):
             # pylint: disable=no-member
             return self.__array__(dtype=complex)
-        raise CircuitError("to_matrix not defined for this {}".format(type(self)))
+        raise CircuitError(f"to_matrix not defined for this {type(self)}")
 
     def power(self, exponent: float):
         """Creates a unitary gate as `gate^exponent`.
@@ -72,11 +69,12 @@ class Gate(Instruction):
         """
         from qiskit.quantum_info.operators import Operator  # pylint: disable=cyclic-import
         from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
+        from scipy.linalg import schur
 
         # Should be diagonalized because it's a unitary.
         decomposition, unitary = schur(Operator(self).data, output="complex")
         # Raise the diagonal entries to the specified power
-        decomposition_power = list()
+        decomposition_power = []
 
         decomposition_diagonal = decomposition.diagonal()
         # assert off-diagonal are 0
@@ -87,43 +85,14 @@ class Gate(Instruction):
             decomposition_power.append(pow(element, exponent))
         # Then reconstruct the resulting gate.
         unitary_power = unitary @ np.diag(decomposition_power) @ unitary.conj().T
-        return UnitaryGate(unitary_power, label="%s^%s" % (self.name, exponent))
+        return UnitaryGate(unitary_power, label=f"{self.name}^{exponent}")
 
     def _return_repeat(self, exponent: float) -> "Gate":
-        return Gate(
-            name="%s*%s" % (self.name, exponent), num_qubits=self.num_qubits, params=self.params
-        )
-
-    def assemble(self) -> "Instruction":
-        """Assemble a QasmQobjInstruction"""
-        instruction = super().assemble()
-        if self.label:
-            instruction.label = self.label
-        return instruction
-
-    @property
-    def label(self) -> str:
-        """Return gate label"""
-        return self._label
-
-    @label.setter
-    def label(self, name: str):
-        """Set gate label to name
-
-        Args:
-            name (str or None): label to assign unitary
-
-        Raises:
-            TypeError: name is not string or None.
-        """
-        if isinstance(name, (str, type(None))):
-            self._label = name
-        else:
-            raise TypeError("label expects a string or None")
+        return Gate(name=f"{self.name}*{exponent}", num_qubits=self.num_qubits, params=self.params)
 
     def control(
         self,
-        num_ctrl_qubits: Optional[int] = 1,
+        num_ctrl_qubits: int = 1,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[int, str]] = None,
     ):
@@ -178,7 +147,7 @@ class Gate(Instruction):
                 yield [arg0, qarg1[0]], []
         else:
             raise CircuitError(
-                "Not sure how to combine these two-qubit arguments:\n %s\n %s" % (qarg0, qarg1)
+                f"Not sure how to combine these two-qubit arguments:\n {qarg0}\n {qarg1}"
             )
 
     @staticmethod
@@ -250,24 +219,12 @@ class Gate(Instruction):
             if len(parameter.parameters) > 0:
                 return parameter  # expression has free parameters, we cannot validate it
             if not parameter.is_real():
-                msg = "Bound parameter expression is complex in gate {}".format(self.name)
+                msg = f"Bound parameter expression is complex in gate {self.name}"
                 raise CircuitError(msg)
             return parameter  # per default assume parameters must be real when bound
         if isinstance(parameter, (int, float)):
             return parameter
         elif isinstance(parameter, (np.integer, np.floating)):
             return parameter.item()
-        elif isinstance(parameter, np.ndarray):
-            warn(
-                "Gate param type %s is being deprecated as of 0.16.0, and will be removed "
-                "no earlier than 3 months after that release date. "
-                "Considering creating your own Gate subclass with the method validate_parameter "
-                " to allow this param type." % type(parameter),
-                DeprecationWarning,
-                3,
-            )
-            return parameter
         else:
-            raise CircuitError(
-                "Invalid param type {0} for gate {1}.".format(type(parameter), self.name)
-            )
+            raise CircuitError(f"Invalid param type {type(parameter)} for gate {self.name}.")

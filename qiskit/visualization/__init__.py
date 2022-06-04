@@ -40,6 +40,7 @@ Device Visualizations
    plot_gate_map
    plot_error_map
    plot_circuit_layout
+   plot_coupling_map
 
 Circuit Visualizations
 ======================
@@ -113,6 +114,7 @@ Exceptions
 
 import os
 import sys
+import warnings
 
 from qiskit.visualization.counts_visualization import plot_histogram
 from qiskit.visualization.state_visualization import (
@@ -129,11 +131,31 @@ from qiskit.visualization.array import array_to_latex
 from .circuit_visualization import circuit_drawer
 from .dag_visualization import dag_drawer
 from .exceptions import VisualizationError
-from .gate_map import plot_gate_map, plot_circuit_layout, plot_error_map
-from .matplotlib import HAS_MATPLOTLIB
+from .gate_map import plot_gate_map, plot_circuit_layout, plot_error_map, plot_coupling_map
 from .pass_manager_visualization import pass_manager_drawer
 from .pulse.interpolation import step_wise, linear, cubic_spline
 from .pulse.qcstyle import PulseStyle, SchedStyle
 from .pulse_visualization import pulse_drawer
 from .pulse_v2 import draw as pulse_drawer_v2
 from .timeline import draw as timeline_drawer
+
+_DEPRECATED_NAMES = {
+    "HAS_MATPLOTLIB",
+    "HAS_PYLATEX",
+    "HAS_PIL",
+    "HAS_PDFTOCAIRO",
+}
+
+
+def __getattr__(name):
+    if name in _DEPRECATED_NAMES:
+        from qiskit.utils import optionals
+
+        warnings.warn(
+            f"Accessing '{name}' from '{__name__}' is deprecated since Qiskit Terra 0.21 "
+            "and will be removed in a future release. Use 'qiskit.utils.optionals' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return getattr(optionals, name)
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

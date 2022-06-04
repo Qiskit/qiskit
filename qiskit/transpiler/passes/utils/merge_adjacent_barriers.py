@@ -38,6 +38,17 @@ class MergeAdjacentBarriers(TransformationPass):
         circuit.barrier(qr[0])
         circuit.barrier(qr)
 
+    i.e,
+
+    .. parsed-literal::
+              ░  ░             ░  ░
+        q_0: ─░──░─      q_0: ─░──░─
+              ░  ░             ░  ░
+        q_1: ─░──░─  =>  q_1: ────░─
+              ░  ░                ░
+        q_2: ────░─      q_2: ────░─
+                 ░
+
     after one iteration of the pass. These two barriers were not merged by the
     first pass as they are not adjacent in the initial circuit.
 
@@ -58,7 +69,7 @@ class MergeAdjacentBarriers(TransformationPass):
             return dag
 
         # add the merged barriers to a new DAG
-        new_dag = dag._copy_circuit_metadata()
+        new_dag = dag.copy_empty_like()
 
         # go over current nodes, and add them to the new dag
         for node in dag.topological_op_nodes():
@@ -76,8 +87,8 @@ class MergeAdjacentBarriers(TransformationPass):
     def _collect_potential_merges(dag, barriers):
         """Return the potential merges.
 
-        Returns a dict of DAGNode : Barrier objects, where the barrier needs to be
-        inserted where the corresponding DAGNode appears in the main DAG.
+        Returns a dict of DAGOpNode: Barrier objects, where the barrier needs to be
+        inserted where the corresponding DAGOpNode appears in the main DAG.
         """
         # if only got 1 or 0 barriers then can't merge
         if len(barriers) < 2:

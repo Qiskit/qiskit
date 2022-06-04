@@ -15,11 +15,11 @@
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 
 
-def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None):
-    """Build an ``Instruction`` object from a ``QuantumCircuit``.
+def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None, label=None):
+    """Build an :class:`~.circuit.Instruction` object from a :class:`.QuantumCircuit`.
 
     The instruction is anonymous (not tied to a named quantum register),
     and so can be inserted into another circuit. The instruction will
@@ -33,6 +33,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
            instruction.
         equivalence_library (EquivalenceLibrary): Optional equivalence library
            where the converted instruction will be registered.
+        label (str): Optional instruction label.
 
     Raises:
         QiskitError: if parameter_map is not compatible with circuit
@@ -47,7 +48,6 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
 
             from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.converters import circuit_to_instruction
-            %matplotlib inline
 
             q = QuantumRegister(3, 'q')
             c = ClassicalRegister(3, 'c')
@@ -76,9 +76,10 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
 
     instruction = Instruction(
         name=circuit.name,
-        num_qubits=sum([qreg.size for qreg in circuit.qregs]),
-        num_clbits=sum([creg.size for creg in circuit.cregs]),
+        num_qubits=circuit.num_qubits,
+        num_clbits=circuit.num_clbits,
         params=[*parameter_dict.values()],
+        label=label,
     )
     instruction.condition = None
 
@@ -111,7 +112,9 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
         condition = rule[0].condition
         if condition:
             reg, val = condition
-            if reg.size == c.size:
+            if isinstance(reg, Clbit):
+                rule[0].condition = (clbit_map[reg], val)
+            elif reg.size == c.size:
                 rule[0].condition = (c, val)
             else:
                 raise QiskitError(

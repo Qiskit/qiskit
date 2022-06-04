@@ -16,14 +16,30 @@ import unittest
 from inspect import signature
 import warnings
 
+import numpy as np
+from scipy.linalg import expm
+from ddt import data, ddt, unpack
+
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, execute
 from qiskit.qasm import pi
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Gate, ControlledGate
-from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate
+from qiskit.circuit.library import (
+    U1Gate,
+    U2Gate,
+    U3Gate,
+    CU1Gate,
+    CU3Gate,
+    XXMinusYYGate,
+    XXPlusYYGate,
+    RZGate,
+    XGate,
+    YGate,
+)
 from qiskit import BasicAer
+from qiskit.quantum_info import Pauli
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 
 
@@ -119,6 +135,20 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(CircuitError, qc.ch, (self.qr, 3), self.qr[0])
         self.assertRaises(CircuitError, qc.ch, self.cr, self.qr)
         self.assertRaises(CircuitError, qc.ch, "a", self.qr[1])
+
+    def test_cif_reg(self):
+        self.circuit.h(self.qr[0]).c_if(self.cr, 7)
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, "h")
+        self.assertEqual(qargs, [self.qr[0]])
+        self.assertEqual(op.condition, (self.cr, 7))
+
+    def test_cif_single_bit(self):
+        self.circuit.h(self.qr[0]).c_if(self.cr[0], True)
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, "h")
+        self.assertEqual(qargs, [self.qr[0]])
+        self.assertEqual(op.condition, (self.cr[0], True))
 
     def test_crz(self):
         self.circuit.crz(1, self.qr[0], self.qr[1])
@@ -963,6 +993,7 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(instruction_set.instructions[2].params, [])
 
 
+@ddt
 class TestStandard2Q(QiskitTestCase):
     """Standard Extension Test. Gates with two Qubits"""
 
@@ -1310,6 +1341,80 @@ class TestStandard2Q(QiskitTestCase):
         self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
         self.assertEqual(instruction_set.instructions[2].params, [])
 
+    @unpack
+    @data(
+        (0, 0, np.eye(4)),
+        (
+            np.pi / 2,
+            np.pi / 2,
+            np.array(
+                [
+                    [np.sqrt(2) / 2, 0, 0, -np.sqrt(2) / 2],
+                    [0, 1, 0, 0],
+                    [0, 0, 1, 0],
+                    [np.sqrt(2) / 2, 0, 0, np.sqrt(2) / 2],
+                ]
+            ),
+        ),
+        (
+            np.pi,
+            np.pi / 2,
+            np.array([[0, 0, 0, -1], [0, 1, 0, 0], [0, 0, 1, 0], [1, 0, 0, 0]]),
+        ),
+        (
+            2 * np.pi,
+            np.pi / 2,
+            np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]]),
+        ),
+        (
+            np.pi / 2,
+            np.pi,
+            np.array(
+                [
+                    [np.sqrt(2) / 2, 0, 0, 1j * np.sqrt(2) / 2],
+                    [0, 1, 0, 0],
+                    [0, 0, 1, 0],
+                    [1j * np.sqrt(2) / 2, 0, 0, np.sqrt(2) / 2],
+                ]
+            ),
+        ),
+        (4 * np.pi, 0, np.eye(4)),
+    )
+    def test_xx_minus_yy_matrix(self, theta: float, beta: float, expected: np.ndarray):
+        """Test XX-YY matrix."""
+        gate = XXMinusYYGate(theta, beta)
+        np.testing.assert_allclose(np.array(gate), expected, atol=1e-7)
+
+    def test_xx_minus_yy_exponential_formula(self):
+        """Test XX-YY exponential formula."""
+        theta, beta = np.random.uniform(-10, 10, size=2)
+        gate = XXMinusYYGate(theta, beta)
+        x = np.array(XGate())
+        y = np.array(YGate())
+        xx = np.kron(x, x)
+        yy = np.kron(y, y)
+        rz1 = np.kron(np.array(RZGate(beta)), np.eye(2))
+        np.testing.assert_allclose(
+            np.array(gate),
+            rz1 @ expm(-0.25j * theta * (xx - yy)) @ rz1.T.conj(),
+            atol=1e-7,
+        )
+
+    def test_xx_plus_yy_exponential_formula(self):
+        """Test XX+YY exponential formula."""
+        theta, beta = np.random.uniform(-10, 10, size=2)
+        gate = XXPlusYYGate(theta, beta)
+        x = np.array(XGate())
+        y = np.array(YGate())
+        xx = np.kron(x, x)
+        yy = np.kron(y, y)
+        rz0 = np.kron(np.eye(2), np.array(RZGate(beta)))
+        np.testing.assert_allclose(
+            np.array(gate),
+            rz0.T.conj() @ expm(-0.25j * theta * (xx + yy)) @ rz0,
+            atol=1e-7,
+        )
+
 
 class TestStandard3Q(QiskitTestCase):
     """Standard Extension Test. Gates with three Qubits"""
@@ -1352,6 +1457,7 @@ class TestStandardMethods(QiskitTestCase):
 
     def test_to_matrix(self):
         """test gates implementing to_matrix generate matrix which matches definition."""
+        from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
         from qiskit.circuit.library.generalized_gates.pauli import PauliGate
         from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
 
@@ -1363,16 +1469,18 @@ class TestStandardMethods(QiskitTestCase):
                 # gate_class is abstract
                 continue
             sig = signature(gate_class)
-            free_params = len(set(sig.parameters) - {"label"})
+            free_params = len(set(sig.parameters) - {"label", "ctrl_state"})
             try:
                 if gate_class == PauliGate:
                     # special case due to PauliGate using string parameters
                     gate = gate_class("IXYZ")
                 elif gate_class == BooleanExpression:
                     gate = gate_class("x")
+                elif gate_class == PauliEvolutionGate:
+                    gate = gate_class(Pauli("XYZ"))
                 else:
                     gate = gate_class(*params[0:free_params])
-            except (CircuitError, QiskitError, AttributeError):
+            except (CircuitError, QiskitError, AttributeError, TypeError):
                 self.log.info("Cannot init gate with params only. Skipping %s", gate_class)
                 continue
             if gate.name in ["U", "CX"]:
@@ -1396,8 +1504,9 @@ class TestStandardMethods(QiskitTestCase):
         """test gates implementing to_matrix generate matrix which matches
         definition using Operator."""
         from qiskit.quantum_info import Operator
-        from qiskit.circuit.library.standard_gates.ms import MSGate
+        from qiskit.circuit.library.generalized_gates.gms import MSGate
         from qiskit.circuit.library.generalized_gates.pauli import PauliGate
+        from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
         from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
 
         params = [0.1 * i for i in range(1, 11)]
@@ -1413,16 +1522,18 @@ class TestStandardMethods(QiskitTestCase):
                 # n_qubits argument is no longer supported.
                 free_params = 2
             else:
-                free_params = len(set(sig.parameters) - {"label"})
+                free_params = len(set(sig.parameters) - {"label", "ctrl_state"})
             try:
                 if gate_class == PauliGate:
                     # special case due to PauliGate using string parameters
                     gate = gate_class("IXYZ")
                 elif gate_class == BooleanExpression:
                     gate = gate_class("x")
+                elif gate_class == PauliEvolutionGate:
+                    gate = gate_class(Pauli("XYZ"))
                 else:
                     gate = gate_class(*params[0:free_params])
-            except (CircuitError, QiskitError, AttributeError):
+            except (CircuitError, QiskitError, AttributeError, TypeError):
                 self.log.info("Cannot init gate with params only. Skipping %s", gate_class)
                 continue
             if gate.name in ["U", "CX"]:

@@ -37,4 +37,4 @@ class ResultError(QiskitError):
         self.code = error["code"]
 
     def __str__(self):
-        return "{}: {}".format(self.code, self.message)
+        return f"{self.code}: {self.message}"

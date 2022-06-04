@@ -148,6 +148,18 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertEqual(qubits[1], qr2[1])
         self.assertEqual(qubits[2], qr1[0])
 
+    def test_circuit_without_classical_register(self):
+        """Test QuantumCircuit constructor."""
+        qc = QuantumCircuit(2, 0)
+        self.assertEqual(qc.cregs, [])
+
+    def test_circuit_without_quantum_register(self):
+        """Test QuantumCircuit constructor."""
+        qc = QuantumCircuit(0, 3)
+        self.assertEqual(qc.qregs, [])
+        self.assertEqual(len(qc.cregs), 1)
+        self.assertEqual(qc.cregs[0].size, 3)
+
     def test_clbits(self):
         """Test clbits() method."""
         qr1 = QuantumRegister(1, "q1")
@@ -475,7 +487,7 @@ class TestCircuitRegisters(QiskitTestCase):
         See https://github.com/Qiskit/qiskit-terra/issues/2508"""
         qr = QuantumRegister(4)
         circ = QuantumCircuit(qr)
-        circ.unitary(np.eye(2 ** 4), [qr[0], qr[1], qr[2], qr[3]])
+        circ.unitary(np.eye(2**4), [qr[0], qr[1], qr[2], qr[3]])
 
         self.assertEqual(len(circ.data), 1)
         (gate, qargs, _) = circ.data[0]
@@ -491,7 +503,7 @@ class TestCircuitRegisters(QiskitTestCase):
         qr4 = QuantumRegister(4)
 
         circ = QuantumCircuit(qr1, qr2, qr3, qr4)
-        circ.unitary(np.eye(2 ** 4), [qr1, qr2, qr3, qr4])
+        circ.unitary(np.eye(2**4), [qr1, qr2, qr3, qr4])
 
         self.assertEqual(len(circ.data), 4)
         for (gate, qargs, _) in circ.data:

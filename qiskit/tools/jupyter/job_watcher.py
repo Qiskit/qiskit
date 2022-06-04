@@ -15,28 +15,20 @@
 
 from IPython.core.magic import line_magic, Magics, magics_class
 from qiskit.tools.events.pubsub import Subscriber
+from qiskit.utils import optionals as _optionals
 
-try:
-    from qiskit.providers.ibmq.job.exceptions import IBMQJobApiError
-
-    HAS_IBMQ = True
-except ImportError:
-    HAS_IBMQ = False
 from .job_widgets import build_job_viewer, make_clear_button, make_labels, create_job_widget
 from .watcher_monitor import _job_monitor
 
 
+@_optionals.HAS_IBMQ.require_in_instance
 class JobWatcher(Subscriber):
     """An IBM Q job watcher."""
 
+    # pylint: disable=import-error
+
     def __init__(self):
         super().__init__()
-        if not HAS_IBMQ:
-            raise ImportError(
-                "qiskit-ibmq-provider is required to use the "
-                "job watcher. To install it run 'pip install "
-                "qiskit-ibmq-provider'"
-            )
         self.jobs = []
         self._init_subscriber()
         self.job_viewer = None
@@ -80,11 +72,11 @@ class JobWatcher(Subscriber):
             job_wid = self.jobs[ind]
             # update status
             if update_info[1] == "DONE":
-                stat = "<font style='color:#34BC6E'>{}</font>".format(update_info[1])
+                stat = f"<font style='color:#34BC6E'>{update_info[1]}</font>"
             elif update_info[1] == "ERROR":
-                stat = "<font style='color:#DC267F'>{}</font>".format(update_info[1])
+                stat = f"<font style='color:#DC267F'>{update_info[1]}</font>"
             elif update_info[1] == "CANCELLED":
-                stat = "<font style='color:#FFB000'>{}</font>".format(update_info[1])
+                stat = f"<font style='color:#FFB000'>{update_info[1]}</font>"
             else:
                 stat = update_info[1]
             job_wid.children[3].value = stat
@@ -106,6 +98,10 @@ class JobWatcher(Subscriber):
         Raises:
             Exception: Job id not found.
         """
+        from qiskit.providers.ibmq.job.exceptions import (  # pylint: disable=no-name-in-module
+            IBMQJobApiError,
+        )
+
         do_pop = False
         ind = None
         for idx, job in enumerate(self.jobs):
@@ -168,6 +164,6 @@ class JobWatcherMagic(Magics):
         _JOB_WATCHER.stop_viewer()
 
 
-if HAS_IBMQ:
+if _optionals.HAS_IBMQ:
     # The Jupyter job watcher instance
     _JOB_WATCHER = JobWatcher()

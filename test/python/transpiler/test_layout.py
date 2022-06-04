@@ -78,6 +78,13 @@ class LayoutTest(QiskitTestCase):
         self.assertEqual(layout[self.qr[0]], 0)
         self.assertEqual(layout[0], self.qr[0])
 
+    def test_layout_del(self):
+        """Deleter"""
+        layout = Layout()
+        layout[self.qr[0]] = 0
+        del layout[self.qr[0]]
+        self.assertTrue(self.qr[0] not in layout)
+
     def test_layout_avoid_dangling_physical(self):
         """No dangling pointers for physical qubits."""
         layout = Layout({self.qr[0]: 0})

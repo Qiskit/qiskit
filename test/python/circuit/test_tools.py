@@ -42,8 +42,8 @@ class TestPiCheck(QiskitTestCase):
             (-pi / 35, "-π/35"),
             (3 * pi / 35, "0.26928"),
             (-3 * pi / 35, "-0.26928"),
-            (pi ** 2, "π**2"),
-            (-(pi ** 2), "-π**2"),
+            (pi**2, "π**2"),
+            (-(pi**2), "-π**2"),
             (1e9, "1e+09"),
             (-1e9, "-1e+09"),
             (1e-9, "1e-09"),
@@ -80,9 +80,17 @@ class TestPiCheck(QiskitTestCase):
         x = Parameter("x")
         y = Parameter("y")
         z = Parameter("z")
-        pcase = (pi ** 3 * x + 3 / (4 * pi) * y - 13 * pi / 2 * z, "π**3*x + 3/4π*y - 13π/2*z")
+        pcase = (pi**3 * x + 3 / (4 * pi) * y - 13 * pi / 2 * z, "π**3*x + 3/4π*y - 13π/2*z")
         input_number = pcase[0]
         expected_string = pcase[1]
+        result = pi_check(input_number)
+        self.assertEqual(result, expected_string)
+
+    def test_params_str(self):
+        """Test pi/2 displays properly in ParameterExpression - #6758"""
+        x = Parameter("x")
+        input_number = x + pi / 2
+        expected_string = "x + π/2"
         result = pi_check(input_number)
         self.assertEqual(result, expected_string)
 

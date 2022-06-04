@@ -47,16 +47,11 @@
 
 import time
 
-try:
-    import ipywidgets as widgets
-except ImportError as ex:
-    raise ImportError(
-        "These functions  need ipywidgets. " 'Run "pip install ipywidgets" before.'
-    ) from ex
-from IPython.display import display
 from qiskit.tools.events.progressbar import BaseProgressBar
+from qiskit.utils import optionals as _optionals
 
 
+@_optionals.HAS_IPYWIDGETS.require_in_instance
 class HTMLProgressBar(BaseProgressBar):
     """
     A simple HTML progress bar for using in IPython notebooks.
@@ -104,6 +99,9 @@ class HTMLProgressBar(BaseProgressBar):
         self.subscribe("terra.parallel.finish", _finish_progress_bar)
 
     def start(self, iterations):
+        import ipywidgets as widgets
+        from IPython.display import display
+
         self.touched = True
         self.iter = int(iterations)
         self.t_start = time.time()

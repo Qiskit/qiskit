@@ -23,6 +23,7 @@ from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.synthesis.clifford_decompose import decompose_clifford
 from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
+from qiskit.quantum_info.operators.symplectic.base_pauli import _count_y
 from .stabilizer_table import StabilizerTable
 from .clifford_circuits import _append_circuit
 
@@ -131,14 +132,29 @@ class Clifford(BaseOperator, AdjointMixin):
             # Validate table is a symplectic matrix
             if validate and not Clifford._is_symplectic(self._table.array):
                 raise QiskitError(
-                    "Invalid Clifford. Input StabilizerTable is not a valid" " symplectic matrix."
+                    "Invalid Clifford. Input StabilizerTable is not a valid symplectic matrix."
                 )
 
         # Initialize BaseOperator
         super().__init__(num_qubits=self._table.num_qubits)
 
+    @property
+    def name(self):
+        """Unique string identifier for operation type."""
+        return "clifford"
+
+    @property
+    def num_qubits(self):
+        """Number of qubits."""
+        return self._table.num_qubits
+
+    @property
+    def num_clbits(self):
+        """Number of classical bits."""
+        return 0
+
     def __repr__(self):
-        return "Clifford({})".format(repr(self.table))
+        return f"Clifford({repr(self.table)})"
 
     def __str__(self):
         return "Clifford: Stabilizer = {}, Destabilizer = {}".format(
@@ -502,7 +518,7 @@ class Clifford(BaseOperator, AdjointMixin):
             ret.table.phase ^= clifford.dot(ret).table.phase
         if method in ["C", "T"]:
             # Apply conjugate
-            ret.table.phase ^= np.mod(np.sum(ret.table.X & ret.table.Z, axis=1), 2).astype(bool)
+            ret.table.phase ^= np.mod(_count_y(ret.table.X, ret.table.Z), 2).astype(bool)
         return ret
 
     def _pad_with_identity(self, clifford, qargs):

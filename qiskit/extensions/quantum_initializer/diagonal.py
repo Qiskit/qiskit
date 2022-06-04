@@ -53,9 +53,9 @@ class DiagonalGate(Gate):
                 complex(z)
             except TypeError as ex:
                 raise QiskitError(
-                    "Not all of the diagonal entries can be converted to " "complex numbers."
+                    "Not all of the diagonal entries can be converted to complex numbers."
                 ) from ex
-            if not np.abs(z) - 1 < _EPS:
+            if not np.abs(np.abs(z) - 1) < _EPS:
                 raise QiskitError("A diagonal entry has not absolute value one.")
         # Create new gate.
         super().__init__("diagonal", int(num_action_qubits), diag)
@@ -141,7 +141,7 @@ def diagonal(self, diag, qubit):
     # Check if q has type "list"
     if not isinstance(qubit, list):
         raise QiskitError(
-            "The qubits must be provided as a list " "(also if there is only one qubit)."
+            "The qubits must be provided as a list (also if there is only one qubit)."
         )
     # Check if diag has type "list"
     if not isinstance(diag, list):
@@ -149,7 +149,7 @@ def diagonal(self, diag, qubit):
     num_action_qubits = math.log2(len(diag))
     if not len(qubit) == num_action_qubits:
         raise QiskitError(
-            "The number of diagonal entries does not correspond to" " the number of qubits."
+            "The number of diagonal entries does not correspond to the number of qubits."
         )
     return self.append(DiagonalGate(diag), qubit)
 

@@ -11,12 +11,14 @@
 # that they have been altered from the originals.
 
 """Assemble function for converting a list of circuits into a qobj."""
+import copy
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple
 
 from qiskit.assembler.run_config import RunConfig
 from qiskit.assembler.assemble_schedules import _assemble_instructions as _assemble_schedule
 from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.classicalregister import Clbit
 from qiskit.exceptions import QiskitError
 from qiskit.qobj import (
     QasmQobj,
@@ -55,7 +57,7 @@ def _assemble_circuit(
     """
     if circuit.unit != "dt":
         raise QiskitError(
-            "Unable to assemble circuit with unit '{}', which must be 'dt'.".format(circuit.unit)
+            f"Unable to assemble circuit with unit '{circuit.unit}', which must be 'dt'."
         )
 
     # header data
@@ -136,10 +138,16 @@ def _assemble_circuit(
             ctrl_reg, ctrl_val = instruction._condition
             mask = 0
             val = 0
-            for clbit in clbit_labels:
-                if clbit[0] == ctrl_reg.name:
-                    mask |= 1 << clbit_labels.index(clbit)
-                    val |= ((ctrl_val >> clbit[1]) & 1) << clbit_labels.index(clbit)
+            if isinstance(ctrl_reg, Clbit):
+                mask = 1 << clbit_indices[ctrl_reg]
+                val = (ctrl_val & 1) << clbit_indices[ctrl_reg]
+            else:
+                for clbit in clbit_indices:
+                    if clbit in ctrl_reg:
+                        mask |= 1 << clbit_indices[clbit]
+                        val |= ((ctrl_val >> list(ctrl_reg).index(clbit)) & 1) << clbit_indices[
+                            clbit
+                        ]
 
             conditional_reg_idx = memory_slots + max_conditional_idx
             conversion_bfunc = QasmQobjInstruction(
@@ -253,6 +261,43 @@ def _extract_common_calibrations(
     return experiments, QasmExperimentCalibrations(gates=common_calibrations)
 
 
+def _configure_experiment_los(
+    experiments: List[QasmQobjExperiment],
+    lo_converter: converters.LoConfigConverter,
+    run_config: RunConfig,
+):
+    # get per experiment los
+    freq_configs = [lo_converter(lo_dict) for lo_dict in getattr(run_config, "schedule_los", [])]
+
+    if len(experiments) > 1 and len(freq_configs) not in [0, 1, len(experiments)]:
+        raise QiskitError(
+            "Invalid 'schedule_los' setting specified. If specified, it should be "
+            "either have a single entry to apply the same LOs for each experiment or "
+            "have length equal to the number of experiments."
+        )
+
+    if len(freq_configs) > 1:
+        if len(experiments) > 1:
+            for idx, expt in enumerate(experiments):
+                freq_config = freq_configs[idx]
+                expt.config.qubit_lo_freq = freq_config.qubit_lo_freq
+                expt.config.meas_lo_freq = freq_config.meas_lo_freq
+        elif len(experiments) == 1:
+            expt = experiments[0]
+            experiments = []
+            for freq_config in freq_configs:
+                expt_config = copy.deepcopy(expt.config)
+                expt_config.qubit_lo_freq = freq_config.qubit_lo_freq
+                expt_config.meas_lo_freq = freq_config.meas_lo_freq
+                experiments.append(
+                    QasmQobjExperiment(
+                        header=expt.header, instructions=expt.instructions, config=expt_config
+                    )
+                )
+
+    return experiments
+
+
 def assemble_circuits(
     circuits: List[QuantumCircuit], run_config: RunConfig, qobj_id: int, qobj_header: QobjHeader
 ) -> QasmQobj:
@@ -267,9 +312,54 @@ def assemble_circuits(
     Returns:
         The qobj to be run on the backends
     """
+    # assemble the circuit experiments
+    experiments_and_pulse_libs = parallel_map(_assemble_circuit, circuits, [run_config])
+    experiments = []
+    pulse_library = {}
+    for exp, lib in experiments_and_pulse_libs:
+        experiments.append(exp)
+        if lib:
+            pulse_library.update(lib)
+
+    # extract common calibrations
+    experiments, calibrations = _extract_common_calibrations(experiments)
+
+    # configure LO freqs per circuit
+    lo_converter = converters.LoConfigConverter(QasmQobjExperimentConfig, **run_config.to_dict())
+    experiments = _configure_experiment_los(experiments, lo_converter, run_config)
+
     qobj_config = QasmQobjConfig()
     if run_config:
-        qobj_config = QasmQobjConfig(**run_config.to_dict())
+        qobj_config_dict = run_config.to_dict()
+
+        # remove LO ranges, not needed in qobj
+        qobj_config_dict.pop("qubit_lo_range", None)
+        qobj_config_dict.pop("meas_lo_range", None)
+
+        # convert LO frequencies to GHz, if they exist
+        if "qubit_lo_freq" in qobj_config_dict:
+            qobj_config_dict["qubit_lo_freq"] = [
+                freq / 1e9 for freq in qobj_config_dict["qubit_lo_freq"]
+            ]
+        if "meas_lo_freq" in qobj_config_dict:
+            qobj_config_dict["meas_lo_freq"] = [
+                freq / 1e9 for freq in qobj_config_dict["meas_lo_freq"]
+            ]
+
+        # override default los if single ``schedule_los`` entry set
+        schedule_los = qobj_config_dict.pop("schedule_los", [])
+        if len(schedule_los) == 1:
+            lo_dict = schedule_los[0]
+            q_los = lo_converter.get_qubit_los(lo_dict)
+            # Hz -> GHz
+            if q_los:
+                qobj_config_dict["qubit_lo_freq"] = [freq / 1e9 for freq in q_los]
+            m_los = lo_converter.get_meas_los(lo_dict)
+            if m_los:
+                qobj_config_dict["meas_lo_freq"] = [freq / 1e9 for freq in m_los]
+
+        qobj_config = QasmQobjConfig(**qobj_config_dict)
+
     qubit_sizes = []
     memory_slot_sizes = []
     for circ in circuits:
@@ -284,18 +374,11 @@ def assemble_circuits(
     qobj_config.memory_slots = max(memory_slot_sizes)
     qobj_config.n_qubits = max(qubit_sizes)
 
-    experiments_and_pulse_libs = parallel_map(_assemble_circuit, circuits, [run_config])
-    experiments = []
-    pulse_library = {}
-    for exp, lib in experiments_and_pulse_libs:
-        experiments.append(exp)
-        if lib:
-            pulse_library.update(lib)
     if pulse_library:
         qobj_config.pulse_library = [
             PulseLibraryItem(name=name, samples=samples) for name, samples in pulse_library.items()
         ]
-    experiments, calibrations = _extract_common_calibrations(experiments)
+
     if calibrations and calibrations.gates:
         qobj_config.calibrations = calibrations
 

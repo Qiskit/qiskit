@@ -21,11 +21,10 @@ Executing Experiments (:mod:`qiskit.execute_function`)
 """
 import logging
 from time import time
-from qiskit.compiler import transpile, assemble, schedule
-from qiskit.providers import BaseBackend
+import warnings
+from qiskit.compiler import transpile, schedule
 from qiskit.providers.backend import Backend
-from qiskit.qobj.utils import MeasLevel, MeasReturnType
-from qiskit.pulse import Schedule
+from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.exceptions import QiskitError
 
 logger = logging.getLogger(__name__)
@@ -49,11 +48,13 @@ def execute(
     qobj_id=None,
     qobj_header=None,
     shots=None,  # common run options
-    memory=False,
+    memory=None,
     max_credits=None,
     seed_simulator=None,
     default_qubit_los=None,
     default_meas_los=None,  # schedule run options
+    qubit_lo_range=None,
+    meas_lo_range=None,
     schedule_los=None,
     meas_level=None,
     meas_return=None,
@@ -78,7 +79,7 @@ def execute(
         experiments (QuantumCircuit or list[QuantumCircuit] or Schedule or list[Schedule]):
             Circuit(s) or pulse schedule(s) to execute
 
-        backend (BaseBackend or Backend):
+        backend (Backend):
             Backend to execute circuits on.
             Transpiler options are automatically grabbed from
             backend.configuration() and backend.properties().
@@ -152,11 +153,15 @@ def execute(
             arg is present, auto-selection of pass manager based on the transpile options
             will be turned off and this pass manager will be used directly.
 
-        qobj_id (str): String identifier to annotate the Qobj
+        qobj_id (str): DEPRECATED: String identifier to annotate the Qobj.  This has no effect
+            and the :attr:`~.QuantumCircuit.name` attribute of the input circuit(s) should be used
+            instead.
 
-        qobj_header (QobjHeader or dict): User input that will be inserted in Qobj header,
-            and will also be copied to the corresponding :class:`qiskit.result.Result`
-            header. Headers do not affect the run.
+        qobj_header (QobjHeader or dict): DEPRECATED: User input that will be inserted in Qobj
+            header, and will also be copied to the corresponding :class:`qiskit.result.Result`
+            header. Headers do not affect the run. Headers do not affect the run. This kwarg
+            has no effect anymore and the :attr:`~.QuantumCircuit.metadata` attribute of the
+            input circuit(s) should be used instead.
 
         shots (int): Number of repetitions of each circuit, for sampling. Default: 1024
 
@@ -164,19 +169,39 @@ def execute(
             (provided the backend supports it). For OpenPulse jobs, only
             measurement level 2 supports this option. Default: False
 
-        max_credits (int): Maximum credits to spend on job. Default: 10
+        max_credits (int): DEPRECATED This parameter is deprecated as of
+        Qiskit Terra 0.20.0, and will be removed in a future release. This parameter has
+        no effect on modern IBM Quantum systems, and no alternative is necessary.
 
         seed_simulator (int): Random seed to control sampling, for when backend is a simulator
 
-        default_qubit_los (list): List of default qubit LO frequencies in Hz
+        default_qubit_los (Optional[List[float]]): List of job level qubit drive LO frequencies
+            in Hz. Overridden by ``schedule_los`` if specified. Must have length ``n_qubits``.
 
-        default_meas_los (list): List of default meas LO frequencies in Hz
+        default_meas_los (Optional[List[float]]): List of job level measurement LO frequencies in
+            Hz. Overridden by ``schedule_los`` if specified. Must have length ``n_qubits``.
 
-        schedule_los (None or list or dict or LoConfig): Experiment LO
-            configurations, if specified the list is in the format::
+        qubit_lo_range (Optional[List[List[float]]]): List of job level drive LO ranges each of form
+            ``[range_min, range_max]`` in Hz. Used to validate ``qubit_lo_freq``. Must have length
+            ``n_qubits``.
 
-                list[Union[Dict[PulseChannel, float], LoConfig]] or
-                     Union[Dict[PulseChannel, float], LoConfig]
+        meas_lo_range (Optional[List[List[float]]]): List of job level measurement LO ranges each of
+            form ``[range_min, range_max]`` in Hz. Used to validate ``meas_lo_freq``. Must have
+            length ``n_qubits``.
+
+        schedule_los (list):
+            Experiment level (ie circuit or schedule) LO frequency configurations for qubit drive
+            and measurement channels. These values override the job level values from
+            ``default_qubit_los`` and ``default_meas_los``. Frequencies are in Hz. Settable for qasm
+            and pulse jobs.
+
+            If a single LO config or dict is used, the values are set at job level. If a list is
+            used, the list must be the size of the number of experiments in the job, except in the
+            case of a single experiment. In this case, a frequency sweep will be assumed and one
+            experiment will be created for every list entry.
+
+            Not every channel is required to be specified. If not specified, the backend default
+            value will be used.
 
         meas_level (int or MeasLevel): Set the appropriate level of the
             measurement output for pulse experiments.
@@ -231,7 +256,7 @@ def execute(
             Qobj config, and passed to backend.run()
 
     Returns:
-        BaseJob: returns job instance derived from BaseJob
+        Job: returns job instance derived from Job
 
     Raises:
         QiskitError: if the execution cannot be interpreted as either circuits or schedules
@@ -252,8 +277,8 @@ def execute(
 
             job = execute(qc, backend, shots=4321)
     """
-    if isinstance(experiments, Schedule) or (
-        isinstance(experiments, list) and isinstance(experiments[0], Schedule)
+    if isinstance(experiments, (Schedule, ScheduleBlock)) or (
+        isinstance(experiments, list) and isinstance(experiments[0], (Schedule, ScheduleBlock))
     ):
         # do not transpile a schedule circuit
         if schedule_circuit:
@@ -290,56 +315,39 @@ def execute(
             meas_map=meas_map,
             method=scheduling_method,
         )
-
-    if isinstance(backend, BaseBackend):
-        # assembling the circuits into a qobj to be run on the backend
-        if shots is None:
-            shots = 1024
-        if max_credits is None:
-            max_credits = 10
-        if meas_level is None:
-            meas_level = MeasLevel.CLASSIFIED
-        if meas_return is None:
-            meas_return = MeasReturnType.AVERAGE
-        if memory_slot_size is None:
-            memory_slot_size = 100
-
-        qobj = assemble(
-            experiments,
-            qobj_id=qobj_id,
-            qobj_header=qobj_header,
-            shots=shots,
-            memory=memory,
-            max_credits=max_credits,
-            seed_simulator=seed_simulator,
-            default_qubit_los=default_qubit_los,
-            default_meas_los=default_meas_los,
-            schedule_los=schedule_los,
-            meas_level=meas_level,
-            meas_return=meas_return,
-            memory_slots=memory_slots,
-            memory_slot_size=memory_slot_size,
-            rep_time=rep_time,
-            rep_delay=rep_delay,
-            parameter_binds=parameter_binds,
-            backend=backend,
-            init_qubits=init_qubits,
-            **run_config,
+    if max_credits is not None:
+        warnings.warn(
+            "The `max_credits` parameter is deprecated as of Qiskit Terra 0.20.0, "
+            "and will be removed in a future release. This parameter has no effect on "
+            "modern IBM Quantum systems, and no alternative is necessary.",
+            DeprecationWarning,
+            stacklevel=2,
         )
 
-        # executing the circuits on the backend and returning the job
-        start_time = time()
-        job = backend.run(qobj, **run_config)
-        end_time = time()
-        _log_submission_time(start_time, end_time)
-    elif isinstance(backend, Backend):
+    if qobj_id is not None:
+        warnings.warn(
+            "The qobj_id argument is deprecated as of the Qiskit Terra 0.21.0, "
+            "and will be remvoed in a future release. This argument has no effect and "
+            "is not used by any backends."
+        )
+
+    if qobj_header is not None:
+        warnings.warn(
+            "The qobj_header argument is deprecated as of the Qiskit Terra 0.21.0, "
+            "and will be remvoed in a future release. This argument has no effect and "
+            "is not used by any backends."
+        )
+
+    if isinstance(backend, Backend):
         start_time = time()
         run_kwargs = {
             "shots": shots,
             "memory": memory,
             "seed_simulator": seed_simulator,
-            "default_qubit_los": default_qubit_los,
-            "default_meas_los": default_meas_los,
+            "qubit_lo_freq": default_qubit_los,
+            "meas_lo_freq": default_meas_los,
+            "qubit_lo_range": qubit_lo_range,
+            "meas_lo_range": meas_lo_range,
             "schedule_los": schedule_los,
             "meas_level": meas_level,
             "meas_return": meas_return,
@@ -353,24 +361,16 @@ def execute(
             if not hasattr(backend.options, key):
                 if run_kwargs[key] is not None:
                     logger.info(
-                        "%s backend doesn't support option %s so not "
-                        "passing that kwarg to run()",
+                        "%s backend doesn't support option %s so not passing that kwarg to run()",
                         backend.name,
                         key,
                     )
                 del run_kwargs[key]
-            elif key == "shots" and run_kwargs[key] is None:
-                run_kwargs[key] = 1024
-            elif key == "max_credits" and run_kwargs[key] is None:
-                run_kwargs[key] = 10
-            elif key == "meas_level" and run_kwargs[key] is None:
-                run_kwargs[key] = MeasLevel.CLASSIFIED
-            elif key == "meas_return" and run_kwargs[key] is None:
-                run_kwargs[key] = MeasReturnType.AVERAGE
-            elif key == "memory_slot_size" and run_kwargs[key] is None:
-                run_kwargs[key] = 100
+            elif run_kwargs[key] is None:
+                del run_kwargs[key]
 
-        run_kwargs["parameter_binds"] = parameter_binds
+        if parameter_binds:
+            run_kwargs["parameter_binds"] = parameter_binds
         run_kwargs.update(run_config)
         job = backend.run(experiments, **run_kwargs)
         end_time = time()

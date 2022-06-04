@@ -84,17 +84,17 @@ def create_job_widget(watcher, job, backend, status="", queue_pos=None, msg=""):
     """
     job_id = job.job_id()
 
-    id_label = widgets.HTML(value="{}".format(job_id), layout=widgets.Layout(width="190px"))
-    backend_label = widgets.HTML(value="{}".format(backend), layout=widgets.Layout(width="145px"))
-    status_label = widgets.HTML(value="{}".format(status), layout=widgets.Layout(width="95px"))
+    id_label = widgets.HTML(value=f"{job_id}", layout=widgets.Layout(width="190px"))
+    backend_label = widgets.HTML(value=f"{backend}", layout=widgets.Layout(width="145px"))
+    status_label = widgets.HTML(value=f"{status}", layout=widgets.Layout(width="95px"))
     if queue_pos is None:
         queue_pos = "-"
     else:
         queue_pos = str(queue_pos)
-    queue_label = widgets.HTML(value="{}".format(queue_pos), layout=widgets.Layout(width="70px"))
+    queue_label = widgets.HTML(value=f"{queue_pos}", layout=widgets.Layout(width="70px"))
 
     msg_label = widgets.HTML(
-        value="<p style=white-space:nowrap;>{}</p>".format(msg),
+        value=f"<p style=white-space:nowrap;>{msg}</p>",
         layout=widgets.Layout(overflow_x="scroll"),
     )
 
@@ -140,16 +140,19 @@ def build_job_viewer():
     acc._dom_classes = ["job_widget"]
     display(
         Javascript(
-            """$('div.job_widget')
-        .detach()
-        .appendTo($('#header'))
-        .css({
-            'z-index': 999,
-             'position': 'fixed',
-            'box-shadow': '5px 5px 5px -3px black',
-            'opacity': 0.95,
-            'float': 'left,'
-        })
+            """
+        const isLab = window['Jupyter'] === undefined;
+        const notebook = document.querySelector( isLab ? 'div.jp-Notebook' : '#site');
+        const jobWidget = document.querySelector('div.job_widget');
+        notebook.prepend(jobWidget);
+        jobWidget.style.zIndex = '999';
+        jobWidget.style.position = isLab ? 'sticky' : 'fixed';
+        jobWidget.style.boxShadow = '5px 5px 5px -3px black';
+        jobWidget.style.opacity = '0.95';
+        if (isLab) {
+            jobWidget.style.top = '0';
+            jobWidget.style.left = '0';
+        }
         """
         )
     )

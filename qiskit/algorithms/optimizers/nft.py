@@ -164,4 +164,6 @@ def nakanishi_fujii_todo(
             if niter >= maxiter:
                 break
 
-    return OptimizeResult(fun=fun(np.copy(x0)), x=x0, nit=niter, nfev=funcalls, success=(niter > 1))
+    return OptimizeResult(
+        fun=fun(np.copy(x0), *args), x=x0, nit=niter, nfev=funcalls, success=(niter > 1)
+    )

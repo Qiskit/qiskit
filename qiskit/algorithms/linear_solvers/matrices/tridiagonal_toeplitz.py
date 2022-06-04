@@ -197,18 +197,42 @@ class TridiagonalToeplitz(LinearSystemMatrix):
         matrix = diags(
             [self.off_diag, self.main_diag, self.off_diag],
             [-1, 0, 1],
-            shape=(2 ** self.num_state_qubits, 2 ** self.num_state_qubits),
+            shape=(2**self.num_state_qubits, 2**self.num_state_qubits),
         ).toarray()
         return matrix
 
     def eigs_bounds(self) -> Tuple[float, float]:
-        """Return lower and upper bounds on the eigenvalues of the matrix."""
-        n_b = 2 ** self.num_state_qubits
-        # Calculate the eigenvalues according to the formula for Toeplitz matrices
-        eig_1 = np.abs(self.main_diag - 2 * self.off_diag * np.cos(n_b * np.pi / (n_b + 1)))
-        eig_2 = np.abs(self.main_diag - 2 * self.off_diag * np.cos(np.pi / (n_b + 1)))
-        lambda_min = min(eig_1, eig_2)
-        lambda_max = max(eig_1, eig_2)
+        """Return lower and upper bounds on the absolute eigenvalues of the matrix."""
+        n_b = 2**self.num_state_qubits
+
+        # Calculate minimum and maximum of absolute value of eigenvalues
+        # according to the formula for Toeplitz 3-diagonal matrices
+
+        # For maximum it's enough to check border points of segment [1, n_b]
+        candidate_eig_ids = [1, n_b]
+
+        # Trying to add candidates near the minimum value of absolute eigenvalues
+        # function abs(main_diag - 2 * off_diag * cos(i * pi / (nb + 1))
+        if abs(self.main_diag) < 2 * abs(self.off_diag):
+            optimal_index = int(np.arccos(self.main_diag / 2 / self.off_diag) / np.pi * (n_b + 1))
+
+            def add_candidate_index_if_valid(index_to_add: int) -> None:
+                if 1 <= index_to_add <= n_b:
+                    candidate_eig_ids.append(index_to_add)
+
+            add_candidate_index_if_valid(optimal_index - 1)
+            add_candidate_index_if_valid(optimal_index)
+            add_candidate_index_if_valid(optimal_index + 1)
+
+        candidate_abs_eigs = np.abs(
+            [
+                self.main_diag - 2 * self.off_diag * np.cos(eig_id * np.pi / (n_b + 1))
+                for eig_id in candidate_eig_ids
+            ]
+        )
+
+        lambda_min = np.min(candidate_abs_eigs)
+        lambda_max = np.max(candidate_abs_eigs)
         return lambda_min, lambda_max
 
     def condition_bounds(self) -> Tuple[float, float]:
@@ -218,6 +242,7 @@ class TridiagonalToeplitz(LinearSystemMatrix):
         return kappa, kappa
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """Check if the current configuration is valid."""
         valid = True
 
         if self.trotter_steps < 1:
@@ -244,15 +269,11 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             self.add_register(qr_ancilla)
 
     def _build(self) -> None:
-        """Build the circuit"""
-        # do not build the circuit if _data is already populated
-        if self._data is not None:
+        """If not already built, build the circuit."""
+        if self._is_built:
             return
 
-        self._data = []
-
-        # check whether the configuration is valid
-        self._check_configuration()
+        super()._build()
 
         self.compose(self.power(1), inplace=True)
 
@@ -362,7 +383,7 @@ class TridiagonalToeplitz(LinearSystemMatrix):
                 if len(q_controls) > 1:
                     ugate = UGate(-2 * theta, 3 * np.pi / 2, np.pi / 2)
                     qc_control.append(
-                        MCMTVChain(ugate, len(q_controls), 1),
+                        MCMTVChain(ugate, len(q_controls), 1).to_gate(),
                         q_controls[:] + [qr[i]] + qr_ancilla[: len(q_controls) - 1],
                     )
                 else:
@@ -415,7 +436,8 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             qr = qr_state[1:]
             # A1 commutes, so one application with evolution_time*2^{j} to the last qubit is enough
             qc.append(
-                self._main_diag_circ(self.evolution_time * power).control(), [q_control] + qr[:]
+                self._main_diag_circ(self.evolution_time * power).control().to_gate(),
+                [q_control] + qr[:],
             )
 
             # Update trotter steps to compensate the error
@@ -432,16 +454,16 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             for _ in range(0, trotter_steps_new):
                 if qr_ancilla:
                     qc.append(
-                        self._off_diag_circ(
-                            self.evolution_time * power / trotter_steps_new
-                        ).control(),
+                        self._off_diag_circ(self.evolution_time * power / trotter_steps_new)
+                        .control()
+                        .to_gate(),
                         [q_control] + qr[:] + qr_ancilla[:],
                     )
                 else:
                     qc.append(
-                        self._off_diag_circ(
-                            self.evolution_time * power / trotter_steps_new
-                        ).control(),
+                        self._off_diag_circ(self.evolution_time * power / trotter_steps_new)
+                        .control()
+                        .to_gate(),
                         [q_control] + qr[:],
                     )
             # exp(-iA2t/2m)

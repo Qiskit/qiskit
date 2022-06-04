@@ -40,6 +40,13 @@ class TestSkipQobjValidation(QiskitAlgorithmsTestCase):
         super().setUp()
         self.random_seed = 10598
 
+        #       ┌───┐      ░ ┌─┐ ░
+        # q0_0: ┤ H ├──■───░─┤M├─░────
+        #       └───┘┌─┴─┐ ░ └╥┘ ░ ┌─┐
+        # q0_1: ─────┤ X ├─░──╫──░─┤M├
+        #            └───┘ ░  ║  ░ └╥┘
+        # c0: 2/══════════════╩═════╩═
+        #                     0     1
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr)
@@ -101,7 +108,7 @@ class TestSkipQobjValidation(QiskitAlgorithmsTestCase):
 
             self.backend = Aer.get_backend("qasm_simulator")
         except ImportError as ex:
-            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
+            self.skipTest(f"Aer doesn't appear to be installed. Error: '{str(ex)}'")
             return
 
         probs_given0 = [0.9, 0.1]

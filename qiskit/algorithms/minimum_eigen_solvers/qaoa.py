@@ -20,11 +20,10 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.opflow import OperatorBase, ExpectationBase
 from qiskit.opflow.gradients import GradientBase
 from qiskit.providers import Backend
-from qiskit.providers import BaseBackend
 from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.utils.validation import validate_min
 from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
-from qiskit.algorithms.minimum_eigen_solvers.vqe import VQE
+from qiskit.algorithms.minimum_eigen_solvers.vqe import VQE, MINIMIZER
 
 
 class QAOA(VQE):
@@ -55,7 +54,7 @@ class QAOA(VQE):
 
     def __init__(
         self,
-        optimizer: Optimizer = None,
+        optimizer: Optional[Union[Optimizer, MINIMIZER]] = None,
         reps: int = 1,
         initial_state: Optional[QuantumCircuit] = None,
         mixer: Union[QuantumCircuit, OperatorBase] = None,
@@ -65,11 +64,12 @@ class QAOA(VQE):
         include_custom: bool = False,
         max_evals_grouped: int = 1,
         callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
-        quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
     ) -> None:
         """
         Args:
-            optimizer: A classical optimizer.
+            optimizer: A classical optimizer, see also :class:`~qiskit.algorithms.VQE` for
+                more details on the possible types.
             reps: the integer parameter :math:`p` as specified in https://arxiv.org/abs/1411.4028,
                 Has a minimum valid value of 1.
             initial_state: An optional initial state to prepend the QAOA circuit with
@@ -112,6 +112,7 @@ class QAOA(VQE):
         self._reps = reps
         self._mixer = mixer
         self._initial_state = initial_state
+        self._cost_operator = None
 
         super().__init__(
             ansatz=None,
@@ -125,14 +126,13 @@ class QAOA(VQE):
             quantum_instance=quantum_instance,
         )
 
-    def _check_operator(self, operator: OperatorBase) -> OperatorBase:
+    def _check_operator_ansatz(self, operator: OperatorBase) -> OperatorBase:
         # Recreates a circuit based on operator parameter.
-        if operator.num_qubits != self.ansatz.num_qubits:
+        if operator != self._cost_operator:
+            self._cost_operator = operator
             self.ansatz = QAOAAnsatz(
                 operator, self._reps, initial_state=self._initial_state, mixer_operator=self._mixer
-            )
-        operator = super()._check_operator(operator)
-        return operator
+            ).decompose()  # TODO remove decompose once #6674 is fixed
 
     @property
     def initial_state(self) -> Optional[QuantumCircuit]:

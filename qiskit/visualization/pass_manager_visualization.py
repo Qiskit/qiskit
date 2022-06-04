@@ -18,13 +18,7 @@ import os
 import inspect
 import tempfile
 
-try:
-    from PIL import Image
-
-    HAS_PIL = True
-except ImportError:
-    HAS_PIL = False
-
+from qiskit.utils import optionals as _optionals
 from qiskit.visualization import utils
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.transpiler.basepasses import AnalysisPass, TransformationPass
@@ -32,6 +26,8 @@ from qiskit.transpiler.basepasses import AnalysisPass, TransformationPass
 DEFAULT_STYLE = {AnalysisPass: "red", TransformationPass: "blue"}
 
 
+@_optionals.HAS_GRAPHVIZ.require_in_call
+@_optionals.HAS_PYDOT.require_in_call
 def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     """
     Draws the pass manager.
@@ -53,7 +49,7 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
         PIL.Image or None: an in-memory representation of the pass manager. Or None if
         no image was generated or PIL is not installed.
     Raises:
-        ImportError: when nxpd or pydot not installed.
+        MissingOptionalLibraryError: when nxpd or pydot not installed.
         VisualizationError: If raw=True and filename=None.
 
     Example:
@@ -77,39 +73,7 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
 
             pass_manager_drawer(pm, "passmanager.jpg")
     """
-
-    try:
-        import subprocess
-
-        _PROC = subprocess.Popen(  # pylint: disable=invalid-name
-            ["dot", "-V"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        _PROC.communicate()
-        if _PROC.returncode != 0:
-            has_graphviz = False
-        else:
-            has_graphviz = True
-    except Exception:  # pylint: disable=broad-except
-        # this is raised when the dot command cannot be found, which means GraphViz
-        # isn't installed
-        has_graphviz = False
-
-    HAS_GRAPHVIZ = has_graphviz  # pylint: disable=invalid-name
-
-    try:
-        import pydot
-
-        if not HAS_GRAPHVIZ:
-            raise ImportError
-    except ImportError as ex:
-        raise ImportError(
-            "pass_manager_drawer requires pydot and graphviz. "
-            "Run 'pip install pydot'. "
-            "Graphviz can be installed using 'brew install graphviz' on Mac"
-            " or by downloading it from the website."
-        ) from ex
+    import pydot
 
     passes = pass_manager.passes()
 
@@ -129,7 +93,7 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     for index, controller_group in enumerate(passes):
 
         # label is the name of the flow controller parameter
-        label = "[%s] %s" % (index, ", ".join(controller_group["flow_controllers"]))
+        label = "[{}] {}".format(index, ", ".join(controller_group["flow_controllers"]))
 
         # create the subgraph for this controller
         subgraph = pydot.Cluster(
@@ -194,12 +158,16 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
         else:
             raise VisualizationError("if format=raw, then a filename is required.")
 
-    if not HAS_PIL and filename:
+    if not _optionals.HAS_PIL and filename:
         # pylint says this isn't a method - it is
         graph.write_png(filename)  # pylint: disable=no-member
         return None
 
+    _optionals.HAS_PIL.require_now("pass manager drawer")
+
     with tempfile.TemporaryDirectory() as tmpdirname:
+        from PIL import Image
+
         tmppath = os.path.join(tmpdirname, "pass_manager.png")
 
         # pylint says this isn't a method - it is

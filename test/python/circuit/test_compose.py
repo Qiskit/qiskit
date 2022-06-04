@@ -18,7 +18,15 @@ import unittest
 
 from qiskit import transpile
 from qiskit.pulse import Schedule
-from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Parameter
+from qiskit.circuit import (
+    QuantumRegister,
+    ClassicalRegister,
+    Clbit,
+    QuantumCircuit,
+    Parameter,
+    Gate,
+    Instruction,
+)
 from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate
 from qiskit.test import QiskitTestCase
 
@@ -552,6 +560,96 @@ class TestCircuitCompose(QiskitTestCase):
         with self.subTest("compose with other circuit in-place"):
             qc_a.compose(qc_b, inplace=True)
             self.assertEqual(qc_a.parameters, {a, b})
+
+    def test_wrapped_compose(self):
+        """Test wrapping the circuit upon composition works."""
+        qc_a = QuantumCircuit(1)
+        qc_a.x(0)
+
+        qc_b = QuantumCircuit(1, name="B")
+        qc_b.h(0)
+
+        qc_a.compose(qc_b, wrap=True, inplace=True)
+
+        self.assertDictEqual(qc_a.count_ops(), {"B": 1, "x": 1})
+        self.assertDictEqual(qc_a.decompose().count_ops(), {"h": 1, "u3": 1})
+
+    def test_wrapping_unitary_circuit(self):
+        """Test a unitary circuit will be wrapped as Gate, else as Instruction."""
+        qc_init = QuantumCircuit(1)
+        qc_init.x(0)
+
+        qc_unitary = QuantumCircuit(1, name="a")
+        qc_unitary.ry(0.23, 0)
+
+        qc_nonunitary = QuantumCircuit(1)
+        qc_nonunitary.reset(0)
+
+        with self.subTest("wrapping a unitary circuit"):
+            qc = qc_init.compose(qc_unitary, wrap=True)
+            self.assertIsInstance(qc.data[1][0], Gate)
+
+        with self.subTest("wrapping a non-unitary circuit"):
+            qc = qc_init.compose(qc_nonunitary, wrap=True)
+            self.assertIsInstance(qc.data[1][0], Instruction)
+
+    def test_single_bit_condition(self):
+        """Test that compose can correctly handle circuits that contain conditions on single
+        bits.  This is a regression test of the bug that broke qiskit-experiments in gh-7653."""
+        base = QuantumCircuit(1, 1)
+        base.x(0).c_if(0, True)
+        test = QuantumCircuit(1, 1).compose(base)
+        self.assertIsNot(base.clbits[0], test.clbits[0])
+        self.assertEqual(base, test)
+        self.assertIs(test.data[0][0].condition[0], test.clbits[0])
+
+    def test_condition_mapping_ifelseop(self):
+        """Test that the condition in an `IfElseOp` is correctly mapped to a new set of bits and
+        registers."""
+        base_loose = Clbit()
+        base_creg = ClassicalRegister(2)
+        base_qreg = QuantumRegister(1)
+        base = QuantumCircuit(base_qreg, [base_loose], base_creg)
+        with base.if_test((base_loose, True)):
+            base.x(0)
+        with base.if_test((base_creg, 3)):
+            base.x(0)
+
+        test_loose = Clbit()
+        test_creg = ClassicalRegister(2)
+        test_qreg = QuantumRegister(1)
+        test = QuantumCircuit(test_qreg, [test_loose], test_creg).compose(base)
+
+        bit_instruction, *_ = test.data[0]
+        reg_instruction, *_ = test.data[1]
+        self.assertIs(bit_instruction.condition[0], test_loose)
+        self.assertEqual(bit_instruction.condition, (test_loose, True))
+        self.assertIs(reg_instruction.condition[0], test_creg)
+        self.assertEqual(reg_instruction.condition, (test_creg, 3))
+
+    def test_condition_mapping_whileloopop(self):
+        """Test that the condition in a `WhileLoopOp` is correctly mapped to a new set of bits and
+        registers."""
+        base_loose = Clbit()
+        base_creg = ClassicalRegister(2)
+        base_qreg = QuantumRegister(1)
+        base = QuantumCircuit(base_qreg, [base_loose], base_creg)
+        with base.while_loop((base_loose, True)):
+            base.x(0)
+        with base.while_loop((base_creg, 3)):
+            base.x(0)
+
+        test_loose = Clbit()
+        test_creg = ClassicalRegister(2)
+        test_qreg = QuantumRegister(1)
+        test = QuantumCircuit(test_qreg, [test_loose], test_creg).compose(base)
+
+        bit_instruction, *_ = test.data[0]
+        reg_instruction, *_ = test.data[1]
+        self.assertIs(bit_instruction.condition[0], test_loose)
+        self.assertEqual(bit_instruction.condition, (test_loose, True))
+        self.assertIs(reg_instruction.condition[0], test_creg)
+        self.assertEqual(reg_instruction.condition, (test_creg, 3))
 
 
 if __name__ == "__main__":

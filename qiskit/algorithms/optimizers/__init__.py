@@ -34,6 +34,7 @@ Optimizer Base Class
    :toctree: ../stubs/
    :nosignatures:
 
+   OptimizerResult
    OptimizerSupportLevel
    Optimizer
 
@@ -50,13 +51,16 @@ Local Optimizers
    COBYLA
    L_BFGS_B
    GSLS
+   GradientDescent
    NELDER_MEAD
    NFT
    P_BFGS
    POWELL
    SLSQP
    SPSA
+   QNSPSA
    TNC
+   SciPyOptimizer
 
 Qiskit also provides the following optimizers, which are built-out using the optimizers from
 the `scikit-quant` package. The `scikit-quant` package is not installed by default but must be
@@ -79,9 +83,10 @@ The global optimizers here all use NLopt for their core function and can only be
 used if their dependent NLopt package is manually installed. See the following
 section for installation instructions.
 
-.. toctree::
+.. autosummary::
+    :toctree: ../stubs/
 
-   qiskit.algorithms.optimizers.nlopts
+    nlopts
 
 The global optimizers are as follows:
 
@@ -103,6 +108,7 @@ from .bobyqa import BOBYQA
 from .cg import CG
 from .cobyla import COBYLA
 from .gsls import GSLS
+from .gradient_descent import GradientDescent
 from .imfil import IMFIL
 from .l_bfgs_b import L_BFGS_B
 from .nelder_mead import NELDER_MEAD
@@ -112,9 +118,10 @@ from .nlopts.direct_l import DIRECT_L
 from .nlopts.direct_l_rand import DIRECT_L_RAND
 from .nlopts.esch import ESCH
 from .nlopts.isres import ISRES
-from .optimizer import Optimizer, OptimizerSupportLevel
+from .optimizer import Optimizer, OptimizerResult, OptimizerSupportLevel
 from .p_bfgs import P_BFGS
 from .powell import POWELL
+from .qnspsa import QNSPSA
 from .scipy_optimizer import SciPyOptimizer
 from .slsqp import SLSQP
 from .snobfit import SNOBFIT
@@ -129,6 +136,7 @@ __all__ = [
     "CG",
     "COBYLA",
     "GSLS",
+    "GradientDescent",
     "L_BFGS_B",
     "NELDER_MEAD",
     "NFT",
@@ -137,6 +145,7 @@ __all__ = [
     "SciPyOptimizer",
     "SLSQP",
     "SPSA",
+    "QNSPSA",
     "TNC",
     "CRS",
     "DIRECT_L",

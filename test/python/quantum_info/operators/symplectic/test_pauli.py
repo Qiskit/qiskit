@@ -21,6 +21,7 @@ from functools import lru_cache
 import numpy as np
 from ddt import ddt, data, unpack
 
+from qiskit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.library import (
     IGate,
@@ -68,6 +69,12 @@ class TestPauliConversions(QiskitTestCase):
         """Test round trip label conversion"""
         pauli = Pauli(label)
         self.assertEqual(Pauli(str(pauli)), pauli)
+
+    @data("S", "XX-")
+    def test_invalid_labels(self, label):
+        """Test raise if invalid labels are supplied"""
+        with self.assertRaises(QiskitError):
+            Pauli(label)
 
     @data(*pauli_group_labels(1), *pauli_group_labels(2))
     def test_to_operator(self, label):
@@ -144,7 +151,7 @@ class TestPauliProperties(QiskitTestCase):
         target = _phase_from_label(coeff)
         self.assertEqual(pauli.phase, target)
 
-    @data(*[(p, q) for p in ["I", "X", "Y", "Z"] for q in range(4)])
+    @data(*((p, q) for p in ["I", "X", "Y", "Z"] for q in range(4)))
     @unpack
     def test_phase_setter(self, pauli, phase):
         """Test phase setter"""
@@ -167,10 +174,10 @@ class TestPauliProperties(QiskitTestCase):
         self.assertEqual(pauli, Pauli("ZZ"))
 
     @data(
-        *[
+        *(
             ("IXYZ", i)
             for i in [0, 1, 2, 3, slice(None, None, None), slice(None, 2, None), [0, 3], [2, 1, 3]]
-        ]
+        )
     )
     @unpack
     def test_getitem(self, label, qubits):
@@ -179,7 +186,7 @@ class TestPauliProperties(QiskitTestCase):
         value = str(pauli[qubits])
         val_array = np.array(list(reversed(label)))[qubits]
         target = "".join(reversed(val_array.tolist()))
-        self.assertEqual(value, target, msg="indices = {}".format(qubits))
+        self.assertEqual(value, target, msg=f"indices = {qubits}")
 
     @data(
         (0, "iY", "iIIY"),
@@ -251,6 +258,8 @@ class TestPauli(QiskitTestCase):
         op2 = operator_from_label(label2)
         target = op1.dot(op2)
         self.assertEqual(value, target)
+        target = op1 @ op2
+        self.assertEqual(value, target)
 
     @data(*pauli_group_labels(1))
     def test_dot_qargs(self, label2):
@@ -319,12 +328,15 @@ class TestPauli(QiskitTestCase):
         """Test power method."""
         iden = Pauli("II")
         op = Pauli(label)
-        self.assertTrue(op ** 2, iden)
+        self.assertTrue(op**2, iden)
 
     @data(1, 1.0, -1, -1.0, 1j, -1j)
     def test_multiply(self, val):
         """Test multiply method."""
         op = val * Pauli(([True, True], [False, False], 0))
+        phase = (-1j) ** op.phase
+        self.assertEqual(phase, val)
+        op = Pauli(([True, True], [False, False], 0)) * val
         phase = (-1j) ** op.phase
         self.assertEqual(phase, val)
 
@@ -369,8 +381,13 @@ class TestPauli(QiskitTestCase):
         op = Operator(gate)
         pauli = Pauli(label)
         value = Operator(pauli.evolve(gate))
+        value_h = Operator(pauli.evolve(gate, frame="h"))
+        value_s = Operator(pauli.evolve(gate, frame="s"))
+        value_inv = Operator(pauli.evolve(gate.inverse()))
         target = op.adjoint().dot(pauli).dot(op)
         self.assertEqual(value, target)
+        self.assertEqual(value, value_h)
+        self.assertEqual(value_inv, value_s)
 
     @data(*it.product((CXGate(), CYGate(), CZGate(), SwapGate()), pauli_group_labels(2, False)))
     @unpack
@@ -379,8 +396,13 @@ class TestPauli(QiskitTestCase):
         op = Operator(gate)
         pauli = Pauli(label)
         value = Operator(pauli.evolve(gate))
+        value_h = Operator(pauli.evolve(gate, frame="h"))
+        value_s = Operator(pauli.evolve(gate, frame="s"))
+        value_inv = Operator(pauli.evolve(gate.inverse()))
         target = op.adjoint().dot(pauli).dot(op)
         self.assertEqual(value, target)
+        self.assertEqual(value, value_h)
+        self.assertEqual(value_inv, value_s)
 
     def test_evolve_clifford_qargs(self):
         """Test evolve method for random Clifford"""
@@ -389,7 +411,27 @@ class TestPauli(QiskitTestCase):
         pauli = random_pauli(5, seed=10)
         qargs = [3, 0, 1]
         value = Operator(pauli.evolve(cliff, qargs=qargs))
+        value_h = Operator(pauli.evolve(cliff, qargs=qargs, frame="h"))
+        value_s = Operator(pauli.evolve(cliff, qargs=qargs, frame="s"))
+        value_inv = Operator(pauli.evolve(cliff.adjoint(), qargs=qargs))
         target = Operator(pauli).compose(op.adjoint(), qargs=qargs).dot(op, qargs=qargs)
+        self.assertEqual(value, target)
+        self.assertEqual(value, value_h)
+        self.assertEqual(value_inv, value_s)
+
+    def test_barrier_delay_sim(self):
+        """Test barrier and delay instructions can be simulated"""
+        target_circ = QuantumCircuit(2)
+        target_circ.x(0)
+        target_circ.y(1)
+        target = Pauli(target_circ)
+
+        circ = QuantumCircuit(2)
+        circ.x(0)
+        circ.delay(100, 0)
+        circ.barrier([0, 1])
+        circ.y(1)
+        value = Pauli(circ)
         self.assertEqual(value, target)
 
 

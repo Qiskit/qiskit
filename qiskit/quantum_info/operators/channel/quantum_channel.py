@@ -48,7 +48,7 @@ class QuantumChannel(LinearOp):
         super().__init__(num_qubits=num_qubits, op_shape=op_shape)
 
     def __repr__(self):
-        prefix = "{}(".format(self._channel_rep)
+        prefix = f"{self._channel_rep}("
         pad = len(prefix) * " "
         return "{}{},\n{}input_dims={}, output_dims={})".format(
             prefix,
@@ -73,6 +73,15 @@ class QuantumChannel(LinearOp):
     def _channel_rep(self):
         """Return channel representation string"""
         return type(self).__name__
+
+    @property
+    def settings(self):
+        """Return settings."""
+        return {
+            "data": self.data,
+            "input_dims": self.input_dims(),
+            "output_dims": self.output_dims(),
+        }
 
     # ---------------------------------------------------------------------
     # LinearOp methods
@@ -227,7 +236,7 @@ class QuantumChannel(LinearOp):
 
         # Check if input is an N-qubit CPTP channel.
         num_qubits = int(np.log2(self._input_dim))
-        if self._input_dim != self._output_dim or 2 ** num_qubits != self._input_dim:
+        if self._input_dim != self._output_dim or 2**num_qubits != self._input_dim:
             raise QiskitError(
                 "Cannot convert QuantumChannel to Instruction: channel is not an N-qubit channel."
             )

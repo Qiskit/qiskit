@@ -36,7 +36,7 @@ def pauli_mat(label):
         elif i == "Z":
             mat = np.kron(mat, np.array([[1, 0], [0, -1]], dtype=complex))
         else:
-            raise QiskitError("Invalid Pauli string {}".format(i))
+            raise QiskitError(f"Invalid Pauli string {i}")
     return mat
 
 
@@ -1055,19 +1055,19 @@ class TestPauliTableMethods(QiskitTestCase):
             target0 = PauliTable.from_labels([j * "I", j * "X"])
             target1 = PauliTable.from_labels([j * "X", j * "I"])
 
-            with self.subTest(msg="single row from str ({})".format(j)):
+            with self.subTest(msg=f"single row from str ({j})"):
                 value0 = pauli.insert(0, j * "I")
                 self.assertEqual(value0, target0)
                 value1 = pauli.insert(1, j * "I")
                 self.assertEqual(value1, target1)
 
-            with self.subTest(msg="single row from PauliTable ({})".format(j)):
+            with self.subTest(msg=f"single row from PauliTable ({j})"):
                 value0 = pauli.insert(0, PauliTable(j * "I"))
                 self.assertEqual(value0, target0)
                 value1 = pauli.insert(1, PauliTable(j * "I"))
                 self.assertEqual(value1, target1)
 
-            with self.subTest(msg="single row from array ({})".format(j)):
+            with self.subTest(msg=f"single row from array ({j})"):
                 value0 = pauli.insert(0, PauliTable(j * "I").array)
                 self.assertEqual(value0, target0)
                 value1 = pauli.insert(1, PauliTable(j * "I").array)
@@ -1080,13 +1080,13 @@ class TestPauliTableMethods(QiskitTestCase):
             target0 = insert + pauli
             target1 = pauli + insert
 
-            with self.subTest(msg="multiple-rows from PauliTable ({})".format(j)):
+            with self.subTest(msg=f"multiple-rows from PauliTable ({j})"):
                 value0 = pauli.insert(0, insert)
                 self.assertEqual(value0, target0)
                 value1 = pauli.insert(1, insert)
                 self.assertEqual(value1, target1)
 
-            with self.subTest(msg="multiple-rows from array ({})".format(j)):
+            with self.subTest(msg=f"multiple-rows from array ({j})"):
                 value0 = pauli.insert(0, insert.array)
                 self.assertEqual(value0, target0)
                 value1 = pauli.insert(1, insert.array)

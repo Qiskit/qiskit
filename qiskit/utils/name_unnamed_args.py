@@ -49,8 +49,8 @@ def name_args(mapping, skip=0):
             for arg, replacement in zip(args[skip:], mapping):
                 default_name = replacement[0]
                 if len(replacement) == 1:  # just renaming, no special cases
-                    if default_name in kwargs.keys():
-                        raise ValueError("Name collapse on {}".format(default_name))
+                    if default_name in kwargs:
+                        raise ValueError(f"Name collapse on {default_name}")
                     kwargs[default_name] = arg
                 else:
                     # check if we find a special name
@@ -62,8 +62,8 @@ def name_args(mapping, skip=0):
                     if name is None:
                         name = default_name
 
-                    if name in kwargs.keys():
-                        raise ValueError("Name collapse on {}".format(default_name))
+                    if name in kwargs:
+                        raise ValueError(f"Name collapse on {default_name}")
                     kwargs[name] = arg
 
             return func(*args[:skip], **kwargs)

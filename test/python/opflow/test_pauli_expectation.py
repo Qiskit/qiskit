@@ -97,7 +97,7 @@ class TestPauliExpectation(QiskitOpflowTestCase):
         sampled_zero = self.sampler.convert(zero_mean)
         np.testing.assert_array_almost_equal(sampled_zero.eval(), [0, 0, 1, 1], decimal=1)
 
-        sum_zero = (Plus + Minus) * (0.5 ** 0.5)
+        sum_zero = (Plus + Minus) * (0.5**0.5)
         sum_zero_mean = converted_meas @ sum_zero
         np.testing.assert_array_almost_equal(sum_zero_mean.eval(), [0, 0, 1, 1], decimal=1)
         sampled_zero_mean = self.sampler.convert(sum_zero_mean)
@@ -238,7 +238,7 @@ class TestPauliExpectation(QiskitOpflowTestCase):
         plus_mean = converted_meas @ Plus
         sampled_plus = self.sampler.convert(plus_mean)
         np.testing.assert_array_almost_equal(
-            sampled_plus.eval(), [1, 0.5 ** 0.5, (1 + 0.5 ** 0.5), 1], decimal=1
+            sampled_plus.eval(), [1, 0.5**0.5, (1 + 0.5**0.5), 1], decimal=1
         )
 
     def test_pauli_expectation_non_hermite_op(self):
@@ -253,6 +253,18 @@ class TestPauliExpectation(QiskitOpflowTestCase):
         self.assertIsInstance(observable, ListOp)
         self.assertIsInstance(observable[0][0][0].primitive, PauliSumOp)
         self.assertIsInstance(observable[0][1][0].primitive, PauliSumOp)
+
+    def test_expectation_with_coeff(self):
+        """Test PauliExpectation with coefficients."""
+        with self.subTest("integer coefficients"):
+            exp = 3 * ~StateFn(X) @ (2 * Minus)
+            target = self.sampler.convert(self.expect.convert(exp)).eval()
+            self.assertEqual(target, -12)
+
+        with self.subTest("complex coefficients"):
+            exp = 3j * ~StateFn(X) @ (2j * Minus)
+            target = self.sampler.convert(self.expect.convert(exp)).eval()
+            self.assertEqual(target, -12j)
 
 
 if __name__ == "__main__":

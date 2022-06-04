@@ -57,7 +57,7 @@ logger = logging.getLogger(__name__)
 class UnitarySimulatorPy(BackendV1):
     """Python implementation of a unitary simulator."""
 
-    MAX_QUBITS_MEMORY = int(log2(sqrt(local_hardware_info()["memory"] * (1024 ** 3) / 16)))
+    MAX_QUBITS_MEMORY = int(log2(sqrt(local_hardware_info()["memory"] * (1024**3) / 16)))
 
     DEFAULT_CONFIGURATION = {
         "backend_name": "unitary_simulator",
@@ -69,7 +69,7 @@ class UnitarySimulatorPy(BackendV1):
         "conditional": False,
         "open_pulse": False,
         "memory": False,
-        "max_shots": 65536,
+        "max_shots": 0,
         "coupling_map": None,
         "description": "A python simulator for unitary matrix corresponding to a circuit",
         "basis_gates": ["u1", "u2", "u3", "rz", "sx", "x", "cx", "id", "unitary"],
@@ -147,11 +147,10 @@ class UnitarySimulatorPy(BackendV1):
             return
         # Check unitary is correct length for number of qubits
         shape = np.shape(self._initial_unitary)
-        required_shape = (2 ** self._number_of_qubits, 2 ** self._number_of_qubits)
+        required_shape = (2**self._number_of_qubits, 2**self._number_of_qubits)
         if shape != required_shape:
             raise BasicAerError(
-                "initial unitary is incorrect shape: "
-                + "{} != 2 ** {}".format(shape, required_shape)
+                f"initial unitary is incorrect shape: {shape} != 2 ** {required_shape}"
             )
 
     def _set_options(self, qobj_config=None, backend_options=None):
@@ -192,7 +191,7 @@ class UnitarySimulatorPy(BackendV1):
         self._validate_initial_unitary()
         if self._initial_unitary is None:
             # Set to identity matrix
-            self._unitary = np.eye(2 ** self._number_of_qubits, dtype=complex)
+            self._unitary = np.eye(2**self._number_of_qubits, dtype=complex)
         else:
             self._unitary = self._initial_unitary.copy()
         # Reshape to rank-N tensor
@@ -200,7 +199,7 @@ class UnitarySimulatorPy(BackendV1):
 
     def _get_unitary(self):
         """Return the current unitary"""
-        unitary = np.reshape(self._unitary, 2 * [2 ** self._number_of_qubits])
+        unitary = np.reshape(self._unitary, 2 * [2**self._number_of_qubits])
         if self._global_phase:
             unitary *= np.exp(1j * float(self._global_phase))
         unitary[abs(unitary) < self._chop_threshold] = 0.0
@@ -375,9 +374,8 @@ class UnitarySimulatorPy(BackendV1):
         max_qubits = self.configuration().n_qubits
         if n_qubits > max_qubits:
             raise BasicAerError(
-                "Number of qubits {} ".format(n_qubits)
-                + "is greater than maximum ({}) ".format(max_qubits)
-                + 'for "{}".'.format(self.name())
+                f"Number of qubits {n_qubits} is greater than maximum ({max_qubits}) "
+                f'for "{self.name()}".'
             )
         if hasattr(qobj.config, "shots") and qobj.config.shots != 1:
             logger.info('"%s" only supports 1 shot. Setting shots=1.', self.name())
@@ -386,7 +384,7 @@ class UnitarySimulatorPy(BackendV1):
             name = experiment.header.name
             if getattr(experiment.config, "shots", 1) != 1:
                 logger.info(
-                    '"%s" only supports 1 shot. ' 'Setting shots=1 for circuit "%s".',
+                    '"%s" only supports 1 shot. Setting shots=1 for circuit "%s".',
                     self.name(),
                     name,
                 )

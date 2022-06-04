@@ -17,7 +17,6 @@
 from collections.abc import Mapping
 import os
 import subprocess
-import pkg_resources
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -33,20 +32,17 @@ def _minimal_ext_cmd(cmd):
     env["LANGUAGE"] = "C"
     env["LANG"] = "C"
     env["LC_ALL"] = "C"
-    proc = subprocess.Popen(
+    with subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=env,
         cwd=os.path.join(os.path.dirname(ROOT_DIR)),
-    )
-    stdout, stderr = proc.communicate()
-    if proc.returncode > 0:
-        raise OSError(
-            "Command {} exited with code {}: {}".format(
-                cmd, proc.returncode, stderr.strip().decode("ascii")
-            )
-        )
+    ) as proc:
+        stdout, stderr = proc.communicate()
+        if proc.returncode > 0:
+            error_message = stderr.strip().decode("ascii")
+            raise OSError(f"Command {cmd} exited with code {proc.returncode}: {error_message}")
     return stdout
 
 
@@ -100,12 +96,13 @@ class QiskitVersion(Mapping):
             "qiskit-aer": None,
             "qiskit-ignis": None,
             "qiskit-ibmq-provider": None,
-            "qiskit-aqua": None,
             "qiskit": None,
         }
         self._loaded = False
 
     def _load_versions(self):
+        import pkg_resources
+
         try:
             from qiskit.providers import aer
 
@@ -124,14 +121,6 @@ class QiskitVersion(Mapping):
             self._version_dict["qiskit-ibmq-provider"] = ibmq.__version__
         except Exception:
             self._version_dict["qiskit-ibmq-provider"] = None
-        # TODO: Remove aqua after deprecation is complete and it is removed from
-        # the metapackage
-        try:
-            from qiskit import aqua
-
-            self._version_dict["qiskit-aqua"] = aqua.__version__
-        except Exception:
-            self._version_dict["qiskit-aqua"] = None
         try:
             import qiskit_nature
 

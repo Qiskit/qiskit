@@ -102,9 +102,9 @@ class ElementaryData(ABC):
         self.xvals = np.array(xvals, dtype=object)
         self.yvals = np.array(yvals, dtype=object)
         self.channels = channels or []
-        self.meta = meta or dict()
+        self.meta = meta or {}
         self.ignore_scaling = ignore_scaling
-        self.styles = styles or dict()
+        self.styles = styles or {}
 
     @property
     def data_key(self):
@@ -114,7 +114,7 @@ class ElementaryData(ABC):
         )
 
     def __repr__(self):
-        return "{}(type={}, key={})".format(self.__class__.__name__, self.data_type, self.data_key)
+        return f"{self.__class__.__name__}(type={self.data_type}, key={self.data_key})"
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.data_key == other.data_key

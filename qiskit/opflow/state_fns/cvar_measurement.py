@@ -13,7 +13,7 @@
 """CVaRMeasurement class."""
 
 
-from typing import Callable, Optional, Tuple, Union, cast
+from typing import Callable, Optional, Tuple, Union, cast, Dict
 
 import numpy as np
 
@@ -21,7 +21,7 @@ from qiskit.circuit import ParameterExpression
 from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.list_ops import ListOp, SummedOp, TensoredOp
 from qiskit.opflow.operator_base import OperatorBase
-from qiskit.opflow.primitive_ops import PauliOp
+from qiskit.opflow.primitive_ops import PauliOp, PauliSumOp
 from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
 from qiskit.opflow.state_fns.dict_state_fn import DictStateFn
 from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
@@ -42,7 +42,7 @@ class CVaRMeasurement(OperatorStateFn):
     # TODO allow normalization somehow?
     def __init__(
         self,
-        primitive: Union[OperatorBase] = None,
+        primitive: OperatorBase = None,
         alpha: float = 1.0,
         coeff: Union[complex, ParameterExpression] = 1.0,
     ) -> None:
@@ -91,6 +91,11 @@ class CVaRMeasurement(OperatorStateFn):
         """
         return self._alpha
 
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {"primitive": self._primitive, "coeff": self._coeff, "alpha": self._alpha}
+
     def add(self, other: OperatorBase) -> SummedOp:
         return SummedOp([self, other])
 
@@ -138,7 +143,7 @@ class CVaRMeasurement(OperatorStateFn):
         raise NotImplementedError
 
     def __str__(self) -> str:
-        return "CVaRMeasurement({}) * {}".format(str(self.primitive), self.coeff)
+        return f"CVaRMeasurement({str(self.primitive)}) * {self.coeff}"
 
     def eval(
         self, front: Union[str, dict, np.ndarray, OperatorBase, Statevector] = None
@@ -193,7 +198,7 @@ class CVaRMeasurement(OperatorStateFn):
                 is computed as H_j^2 + 1/α*(sum_i<j p_i*(H_i^2 - H_j^2))
         """
         energies, probabilities = self.get_outcome_energies_probabilities(front)
-        sq_energies = [energy ** 2 for energy in energies]
+        sq_energies = [energy**2 for energy in energies]
         return self.compute_cvar(sq_energies, probabilities) - self.eval(front) ** 2
 
     def get_outcome_energies_probabilities(
@@ -355,24 +360,22 @@ def _check_is_diagonal(operator: OperatorBase) -> bool:
     """
     if isinstance(operator, PauliOp):
         # every X component must be False
-        if not np.any(operator.primitive.x):
+        return not np.any(operator.primitive.x)
+
+    # For sums (PauliSumOp and SummedOp), we cover the case of sums of diagonal paulis, but don't
+    # raise since there might be summand canceling the non-diagonal parts. That case is checked
+    # in the inefficient matrix check at the bottom.
+    if isinstance(operator, PauliSumOp):
+        if not np.any(operator.primitive.paulis.x):
             return True
-        return False
 
-    if isinstance(operator, SummedOp):
-        # cover the case of sums of diagonal paulis, but don't raise since there might be summands
-        # canceling the non-diagonal parts
-
-        # ignoring mypy since we know that all operators are PauliOps
+    elif isinstance(operator, SummedOp):
         if all(isinstance(op, PauliOp) and not np.any(op.primitive.x) for op in operator.oplist):
             return True
 
-    if isinstance(operator, ListOp):
+    elif isinstance(operator, ListOp):
         return all(operator.traverse(_check_is_diagonal))
 
     # cannot efficiently check if a operator is diagonal, converting to matrix
     matrix = operator.to_matrix()
-
-    if np.all(matrix == np.diag(np.diagonal(matrix))):
-        return True
-    return False
+    return np.all(matrix == np.diag(np.diagonal(matrix)))

@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 class StatevectorSimulatorPy(QasmSimulatorPy):
     """Python statevector simulator."""
 
-    MAX_QUBITS_MEMORY = int(log2(local_hardware_info()["memory"] * (1024 ** 3) / 16))
+    MAX_QUBITS_MEMORY = int(log2(local_hardware_info()["memory"] * (1024**3) / 16))
 
     DEFAULT_CONFIGURATION = {
         "backend_name": "statevector_simulator",
@@ -48,7 +48,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         "conditional": True,
         "open_pulse": False,
         "memory": True,
-        "max_shots": 65536,
+        "max_shots": 0,
         "coupling_map": None,
         "description": "A Python statevector simulator for qobj files",
         "basis_gates": ["u1", "u2", "u3", "rz", "sx", "x", "cx", "id", "unitary"],
@@ -104,9 +104,8 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         max_qubits = self.configuration().n_qubits
         if num_qubits > max_qubits:
             raise BasicAerError(
-                "Number of qubits {} ".format(num_qubits)
-                + "is greater than maximum ({}) ".format(max_qubits)
-                + 'for "{}".'.format(self.name())
+                f"Number of qubits {num_qubits} is greater than maximum ({max_qubits}) "
+                f'for "{self.name()}".'
             )
         if qobj.config.shots != 1:
             logger.info('"%s" only supports 1 shot. Setting shots=1.', self.name())
@@ -115,7 +114,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
             name = experiment.header.name
             if getattr(experiment.config, "shots", 1) != 1:
                 logger.info(
-                    '"%s" only supports 1 shot. ' 'Setting shots=1 for circuit "%s".',
+                    '"%s" only supports 1 shot. Setting shots=1 for circuit "%s".',
                     self.name(),
                     name,
                 )

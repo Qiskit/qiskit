@@ -12,9 +12,11 @@
 
 """Two-pulse single-qubit gate."""
 
+from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
 
 
@@ -43,22 +45,28 @@ class U3Gate(Gate):
 
         U3(\theta, \phi, \lambda) =
             \begin{pmatrix}
-                \cos(\th)          & -e^{i\lambda}\sin(\th) \\
-                e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)}\cos(\th)
+                \cos\left(\th\right)          & -e^{i\lambda}\sin\left(\th\right) \\
+                e^{i\phi}\sin\left(\th\right) & e^{i(\phi+\lambda)}\cos\left(\th\right)
             \end{pmatrix}
 
     **Examples:**
 
     .. math::
 
-        U3(\theta, -\frac{\pi}{2}, \frac{\pi}{2}) = RX(\theta)
+        U3\left(\theta, -\frac{\pi}{2}, \frac{\pi}{2}\right) = RX(\theta)
 
     .. math::
 
         U3(\theta, 0, 0) = RY(\theta)
     """
 
-    def __init__(self, theta, phi, lam, label=None):
+    def __init__(
+        self,
+        theta: ParameterValueType,
+        phi: ParameterValueType,
+        lam: ParameterValueType,
+        label: Optional[str] = None,
+    ):
         """Create new U3 gate."""
         super().__init__("u3", 1, [theta, phi, lam], label=label)
 
@@ -69,7 +77,12 @@ class U3Gate(Gate):
         """
         return U3Gate(-self.params[0], -self.params[2], -self.params[1])
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Return a (multi-)controlled-U3 gate.
 
         Args:
@@ -169,7 +182,14 @@ class CU3Gate(ControlledGate):
                 \end{pmatrix}
     """
 
-    def __init__(self, theta, phi, lam, label=None, ctrl_state=None):
+    def __init__(
+        self,
+        theta: ParameterValueType,
+        phi: ParameterValueType,
+        lam: ParameterValueType,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Create new CU3 gate."""
         super().__init__(
             "cu3",
@@ -197,6 +217,11 @@ class CU3Gate(ControlledGate):
         from .u1 import U1Gate
         from .x import CXGate  # pylint: disable=cyclic-import
 
+        #      ┌───────────────┐
+        # q_0: ┤ U1(λ/2 + φ/2) ├──■─────────────────────────────■─────────────────
+        #      ├───────────────┤┌─┴─┐┌───────────────────────┐┌─┴─┐┌─────────────┐
+        # q_1: ┤ U1(λ/2 - φ/2) ├┤ X ├┤ U3(-0/2,0,-λ/2 - φ/2) ├┤ X ├┤ U3(0/2,φ,0) ├
+        #      └───────────────┘└───┘└───────────────────────┘└───┘└─────────────┘
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
@@ -255,7 +280,7 @@ def _generate_gray_code(num_bits):
         raise ValueError("Cannot generate the gray code for less than 1 bit.")
     result = [0]
     for i in range(num_bits):
-        result += [x + 2 ** i for x in reversed(result)]
+        result += [x + 2**i for x in reversed(result)]
     return [format(x, "0%sb" % num_bits) for x in result]
 
 

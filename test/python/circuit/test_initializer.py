@@ -17,6 +17,7 @@ Initialize test.
 import math
 import unittest
 import numpy as np
+from ddt import ddt, data
 
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
@@ -26,8 +27,10 @@ from qiskit import execute, assemble, BasicAer
 from qiskit.quantum_info import state_fidelity, Statevector, Operator
 from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase
+from qiskit.extensions.quantum_initializer import Initialize
 
 
+@ddt
 class TestInitialize(QiskitTestCase):
     """Qiskit Initialize tests."""
 
@@ -46,7 +49,7 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity,
             self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity),
+            f"Initializer has low fidelity {fidelity:.2g}.",
         )
 
     def test_deterministic_state(self):
@@ -62,7 +65,7 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity,
             self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity),
+            f"Initializer has low fidelity {fidelity:.2g}.",
         )
 
     def test_statevector(self):
@@ -87,7 +90,7 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity,
             self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity),
+            f"Initializer has low fidelity {fidelity:.2g}.",
         )
 
     def test_ghz_state(self):
@@ -103,7 +106,7 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity,
             self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity),
+            f"Initializer has low fidelity {fidelity:.2g}.",
         )
 
     def test_initialize_register(self):
@@ -120,7 +123,7 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity,
             self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity),
+            f"Initializer has low fidelity {fidelity:.2g}.",
         )
 
     def test_initialize_one_by_one(self):
@@ -143,7 +146,7 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity,
             self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity),
+            f"Initializer has low fidelity {fidelity:.2g}.",
         )
 
     def test_single_qubit(self):
@@ -159,7 +162,7 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity,
             self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity),
+            f"Initializer has low fidelity {fidelity:.2g}.",
         )
 
     def test_random_3qubit(self):
@@ -184,7 +187,7 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity,
             self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity),
+            f"Initializer has low fidelity {fidelity:.2g}.",
         )
 
     def test_random_4qubit(self):
@@ -217,7 +220,7 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity,
             self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity),
+            f"Initializer has low fidelity {fidelity:.2g}.",
         )
 
     def test_malformed_amplitudes(self):
@@ -305,7 +308,7 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity,
             self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity),
+            f"Initializer has low fidelity {fidelity:.2g}.",
         )
 
     def test_combiner(self):
@@ -327,7 +330,7 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity,
             self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity),
+            f"Initializer has low fidelity {fidelity:.2g}.",
         )
 
     def test_equivalence(self):
@@ -416,7 +419,7 @@ class TestInitialize(QiskitTestCase):
         for n_qubits in [1, 2, 4]:
             for irep in range(repeats):
                 with self.subTest(i=f"{n_qubits}_{irep}"):
-                    dim = 2 ** n_qubits
+                    dim = 2**n_qubits
                     qr = QuantumRegister(n_qubits)
                     initializer = QuantumCircuit(qr)
                     target = random_statevector(dim)
@@ -434,7 +437,7 @@ class TestInitialize(QiskitTestCase):
             Statevector([1j / np.sqrt(2), 1j / np.sqrt(2)]),
         ]
         n_qubits = 1
-        dim = 2 ** n_qubits
+        dim = 2**n_qubits
         qr = QuantumRegister(n_qubits)
         for target in target_list:
             with self.subTest(i=target):
@@ -443,8 +446,31 @@ class TestInitialize(QiskitTestCase):
                 # need to get rid of the resets in order to use the Operator class
                 disentangler = Operator(initializer.data[0][0].definition.data[1][0])
                 zero = Statevector.from_int(0, dim)
-                actual = zero @ disentangler
+                actual = zero & disentangler
                 self.assertEqual(target, actual)
+
+    @data(2, "11", [1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)])
+    def test_decompose_contains_stateprep(self, state):
+        """Test initialize decomposes to a StatePreparation and reset"""
+        qc = QuantumCircuit(2)
+        qc.initialize(state)
+        decom_circ = qc.decompose()
+
+        self.assertEqual(decom_circ.data[0][0].name, "reset")
+        self.assertEqual(decom_circ.data[1][0].name, "reset")
+        self.assertEqual(decom_circ.data[2][0].name, "state_preparation")
+
+    def test_mutating_params(self):
+        """Test mutating Initialize params correctly updates StatePreparation params"""
+        init = Initialize("11")
+        init.params = "00"
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr)
+        qc.append(init, qr)
+        decom_circ = qc.decompose()
+
+        self.assertEqual(decom_circ.data[2][0].name, "state_preparation")
+        self.assertEqual(decom_circ.data[2][0].params, ["0", "0"])
 
 
 class TestInstructionParam(QiskitTestCase):

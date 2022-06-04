@@ -157,7 +157,7 @@ class ExperimentResult:
         self._metadata.update(kwargs)
 
     def __repr__(self):
-        out = "ExperimentResult(shots=%s, success=%s, meas_level=%s, data=%s" % (
+        out = "ExperimentResult(shots={}, success={}, meas_level={}, data={}".format(
             self.shots,
             self.success,
             self.meas_level,
@@ -176,7 +176,7 @@ class ExperimentResult:
                 value_str = "'%s'" % self._metadata[key]
             else:
                 value_str = repr(self._metadata[key])
-            out += ", %s=%s" % (key, value_str)
+            out += f", {key}={value_str}"
         out += ")"
         return out
 

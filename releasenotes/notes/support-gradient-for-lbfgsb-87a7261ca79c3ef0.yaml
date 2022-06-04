@@ -1,8 +1,0 @@
----
-fixes:
-  - |
-    Ensure the :class:`~qiskit.algorithms.optimizers.L_BFGS_B` and 
-    :class:`~qiskit.algorithms.optimizers.P_BFGS` optimizers, which expect the gradients
-    as a list of floats, are compatible with the the Gradient Framework, which might return a numpy array.
-    This fixes the usage of the L_BFGS_B optimizer in the :class:`~qiskit.algorithms.VQE` if gradients
-    are used.

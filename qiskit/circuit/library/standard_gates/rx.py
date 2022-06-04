@@ -13,11 +13,14 @@
 """Rotation around the X axis."""
 
 import math
+from typing import Optional, Union
 import numpy
+
 from qiskit.qasm import pi
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 class RXGate(Gate):
@@ -37,14 +40,14 @@ class RXGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        RX(\theta) = exp(-i \th X) =
+        RX(\theta) = \exp\left(-i \th X\right) =
             \begin{pmatrix}
                 \cos{\th}   & -i\sin{\th} \\
                 -i\sin{\th} & \cos{\th}
             \end{pmatrix}
     """
 
-    def __init__(self, theta, label=None):
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RX gate."""
         super().__init__("rx", 1, [theta], label=label)
 
@@ -64,7 +67,12 @@ class RXGate(Gate):
 
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Return a (multi-)controlled-RX gate.
 
         Args:
@@ -114,7 +122,7 @@ class CRXGate(ControlledGate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        CRX(\lambda)\ q_0, q_1 =
+        CRX(\theta)\ q_0, q_1 =
             I \otimes |0\rangle\langle 0| + RX(\theta) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
@@ -151,7 +159,12 @@ class CRXGate(ControlledGate):
                 \end{pmatrix}
     """
 
-    def __init__(self, theta, label=None, ctrl_state=None):
+    def __init__(
+        self,
+        theta: ParameterValueType,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Create new CRX gate."""
         super().__init__(
             "crx",
@@ -179,6 +192,10 @@ class CRXGate(ControlledGate):
         from .u3 import U3Gate
         from .x import CXGate
 
+        # q_0: ─────────────■───────────────────■────────────────────
+        #      ┌─────────┐┌─┴─┐┌─────────────┐┌─┴─┐┌────────────────┐
+        # q_1: ┤ U1(π/2) ├┤ X ├┤ U3(0/2,0,0) ├┤ X ├┤ U3(0/2,-π/2,0) ├
+        #      └─────────┘└───┘└─────────────┘└───┘└────────────────┘
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [

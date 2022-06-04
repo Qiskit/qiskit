@@ -13,6 +13,7 @@
 
 """Test the BasisTranslator pass"""
 
+import os
 
 from numpy import pi
 
@@ -20,13 +21,24 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import transpile
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Gate, Parameter, EquivalenceLibrary
-from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate
+from qiskit.circuit.library import (
+    U1Gate,
+    U2Gate,
+    U3Gate,
+    CU1Gate,
+    CU3Gate,
+    UGate,
+    RZGate,
+    XGate,
+    SXGate,
+    CXGate,
+)
 from qiskit.converters import circuit_to_dag, dag_to_circuit, circuit_to_instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Operator
+from qiskit.transpiler.target import Target, InstructionProperties
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.basis import BasisTranslator, UnrollCustomDefinitions
-from qiskit.test.mock import FakeAthens
 
 
 from qiskit.circuit.library.standard_gates.equivalence_library import (
@@ -410,6 +422,19 @@ class TestUnrollerCompatability(QiskitTestCase):
 
     def test_unroll_1q_chain_conditional(self):
         """Test unroll chain of 1-qubit gates interrupted by conditional."""
+
+        #     ┌───┐┌─────┐┌───┐┌───┐┌─────────┐┌─────────┐┌─────────┐┌─┐ ┌───┐  ┌───┐ »
+        # qr: ┤ H ├┤ Tdg ├┤ Z ├┤ T ├┤ Ry(0.5) ├┤ Rz(0.3) ├┤ Rx(0.1) ├┤M├─┤ X ├──┤ Y ├─»
+        #     └───┘└─────┘└───┘└───┘└─────────┘└─────────┘└─────────┘└╥┘ └─╥─┘  └─╥─┘ »
+        #                                                             ║ ┌──╨──┐┌──╨──┐»
+        # cr: 1/══════════════════════════════════════════════════════╩═╡ 0x1 ╞╡ 0x1 ╞»
+        #                                                             0 └─────┘└─────┘»
+        # «       ┌───┐
+        # «  qr: ─┤ Z ├─
+        # «       └─╥─┘
+        # «      ┌──╨──┐
+        # «cr: 1/╡ 0x1 ╞
+        # «      └─────┘
         qr = QuantumRegister(1, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
@@ -432,6 +457,19 @@ class TestUnrollerCompatability(QiskitTestCase):
         unrolled_dag = pass_.run(dag)
 
         # Pick up -1 * 0.3 / 2 global phase for one RZ -> U1.
+        #
+        # global phase: 6.1332
+        #     ┌─────────┐┌──────────┐┌───────┐┌─────────┐┌─────────────┐┌─────────┐»
+        # qr: ┤ U2(0,π) ├┤ U1(-π/4) ├┤ U1(π) ├┤ U1(π/4) ├┤ U3(0.5,0,0) ├┤ U1(0.3) ├»
+        #     └─────────┘└──────────┘└───────┘└─────────┘└─────────────┘└─────────┘»
+        # cr: 1/═══════════════════════════════════════════════════════════════════»
+        #                                                                          »
+        # «      ┌──────────────────┐┌─┐┌───────────┐┌───────────────┐┌───────┐
+        # «  qr: ┤ U3(0.1,-π/2,π/2) ├┤M├┤ U3(π,0,π) ├┤ U3(π,π/2,π/2) ├┤ U1(π) ├
+        # «      └──────────────────┘└╥┘└─────╥─────┘└───────╥───────┘└───╥───┘
+        # «                           ║    ┌──╨──┐        ┌──╨──┐      ┌──╨──┐
+        # «cr: 1/═════════════════════╩════╡ 0x1 ╞════════╡ 0x1 ╞══════╡ 0x1 ╞═
+        # «                           0    └─────┘        └─────┘      └─────┘
         ref_circuit = QuantumCircuit(qr, cr, global_phase=-0.3 / 2)
         ref_circuit.append(U2Gate(0, pi), [qr[0]])
         ref_circuit.append(U1Gate(-pi / 4), [qr[0]])
@@ -765,6 +803,11 @@ class TestBasisExamples(QiskitTestCase):
         in_dag = circuit_to_dag(bell)
         out_dag = BasisTranslator(std_eqlib, ["ecr", "u"]).run(in_dag)
 
+        #         ┌────────────┐  ┌─────────────┐┌──────────┐┌──────┐
+        # q_0: ───┤ U(π/2,0,π) ├──┤ U(0,0,-π/2) ├┤ U(π,0,0) ├┤0     ├
+        #      ┌──┴────────────┴─┐└─────────────┘└──────────┘│  Ecr │
+        # q_1: ┤ U(π/2,-π/2,π/2) ├───────────────────────────┤1     ├
+        #      └─────────────────┘                           └──────┘
         qr = QuantumRegister(2, "q")
         expected = QuantumCircuit(2)
         expected.u(pi / 2, 0, pi, qr[0])
@@ -772,6 +815,51 @@ class TestBasisExamples(QiskitTestCase):
         expected.u(pi, 0, 0, qr[0])
         expected.u(pi / 2, -pi / 2, pi / 2, qr[1])
         expected.ecr(0, 1)
+        expected_dag = circuit_to_dag(expected)
+
+        self.assertEqual(out_dag, expected_dag)
+
+    def test_cx_bell_to_cp(self):
+        """Verify we can translate a CX bell to CP,U."""
+        bell = QuantumCircuit(2)
+        bell.h(0)
+        bell.cx(0, 1)
+
+        in_dag = circuit_to_dag(bell)
+        out_dag = BasisTranslator(std_eqlib, ["cp", "u"]).run(in_dag)
+
+        self.assertTrue(set(out_dag.count_ops()).issubset(["cp", "u"]))
+        self.assertEqual(Operator(bell), Operator(dag_to_circuit(out_dag)))
+
+        qr = QuantumRegister(2, "q")
+        expected = QuantumCircuit(qr)
+        expected.u(pi / 2, 0, pi, 0)
+        expected.u(pi / 2, 0, pi, 1)
+        expected.cp(pi, 0, 1)
+        expected.u(pi / 2, 0, pi, 1)
+        expected_dag = circuit_to_dag(expected)
+
+        self.assertEqual(out_dag, expected_dag)
+
+    def test_cx_bell_to_crz(self):
+        """Verify we can translate a CX bell to CRZ,U."""
+        bell = QuantumCircuit(2)
+        bell.h(0)
+        bell.cx(0, 1)
+
+        in_dag = circuit_to_dag(bell)
+        out_dag = BasisTranslator(std_eqlib, ["crz", "u"]).run(in_dag)
+
+        self.assertTrue(set(out_dag.count_ops()).issubset(["crz", "u"]))
+        self.assertEqual(Operator(bell), Operator(dag_to_circuit(out_dag)))
+
+        qr = QuantumRegister(2, "q")
+        expected = QuantumCircuit(qr)
+        expected.u(pi / 2, 0, pi, 0)
+        expected.u(0, 0, pi / 2, 0)
+        expected.u(pi / 2, 0, pi, 1)
+        expected.crz(pi, 0, 1)
+        expected.u(pi / 2, 0, pi, 1)
         expected_dag = circuit_to_dag(expected)
 
         self.assertEqual(out_dag, expected_dag)
@@ -799,6 +887,14 @@ class TestBasisExamples(QiskitTestCase):
 
     def test_condition_set_substitute_node(self):
         """Verify condition is set in BasisTranslator on substitute_node"""
+
+        #      ┌───┐         ┌───┐
+        # q_0: ┤ H ├──■──────┤ H ├─
+        #      └───┘┌─┴─┐┌─┐ └─╥─┘
+        # q_1: ─────┤ X ├┤M├───╫───
+        #           └───┘└╥┘┌──╨──┐
+        # c: 2/═══════════╩═╡ 0x1 ╞
+        #                 1 └─────┘
         qr = QuantumRegister(2, "q")
         cr = ClassicalRegister(2, "c")
         circ = QuantumCircuit(qr, cr)
@@ -809,6 +905,14 @@ class TestBasisExamples(QiskitTestCase):
         circ_transpiled = transpile(
             circ, optimization_level=3, basis_gates=["cx", "id", "u1", "u2", "u3"]
         )
+
+        #      ┌─────────┐        ┌─────────┐
+        # q_0: ┤ U2(0,π) ├──■─────┤ U2(0,π) ├
+        #      └─────────┘┌─┴─┐┌─┐└────╥────┘
+        # q_1: ───────────┤ X ├┤M├─────╫─────
+        #                 └───┘└╥┘  ┌──╨──┐
+        # c: 2/═════════════════╩═══╡ 0x1 ╞══
+        #                       1   └─────┘
         qr = QuantumRegister(2, "q")
         cr = ClassicalRegister(2, "c")
         expected = QuantumCircuit(qr, cr)
@@ -816,42 +920,91 @@ class TestBasisExamples(QiskitTestCase):
         expected.cx(0, 1)
         expected.measure(1, 1)
         expected.u2(0, pi, 0).c_if(cr, 1)
+
         self.assertEqual(circ_transpiled, expected)
 
     def test_skip_target_basis_equivalences_1(self):
         """Test that BasisTranslator skips gates in the target_basis - #6085"""
-
-        qstr = 'OPENQASM 2.0; \
-        include "qelib1.inc"; \
-        qreg q[5]; \
-        cu1(4.1564508) q[2],q[3]; \
-        ccx q[0],q[1],q[4]; \
-        rzz(0.48622471) q[0],q[2]; \
-        ccx q[3],q[4],q[1]; \
-        ch q[2],q[0]; \
-        y q[3]; \
-        cu3(2.5787688,1.3265772,3.1398664) q[1],q[4]; \
-        id q[0]; \
-        y q[1]; \
-        t q[2]; \
-        t q[3]; \
-        tdg q[4]; \
-        cz q[0],q[1]; \
-        ccx q[2],q[4],q[3]; \
-        rx(5.976651) q[1]; \
-        u3(4.8520889,3.6025647,5.7475542) q[2]; \
-        cswap q[0],q[3],q[4]; \
-        rz(2.1885681) q[2]; \
-        cu3(2.7675189,4.5725211,2.9940136) q[0],q[3]; \
-        cx q[1],q[4];'
         circ = QuantumCircuit()
-        circ = circ.from_qasm_str(qstr)
-
+        qasm_file = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "qasm",
+            "TestBasisTranslator_skip_target.qasm",
+        )
+        circ = circ.from_qasm_file(qasm_file)
         circ_transpiled = transpile(
             circ,
-            backend=FakeAthens(),
             basis_gates=["id", "rz", "sx", "x", "cx"],
-            routing_method="sabre",
             seed_transpiler=42,
         )
         self.assertEqual(circ_transpiled.count_ops(), {"cx": 91, "rz": 66, "sx": 22})
+
+
+class TestBasisTranslatorWithTarget(QiskitTestCase):
+    """Test the basis translator when running with a Target."""
+
+    def setUp(self):
+        super().setUp()
+        self.target = Target()
+
+        # U gate in qubit 0.
+        self.theta = Parameter("theta")
+        self.phi = Parameter("phi")
+        self.lam = Parameter("lambda")
+        u_props = {
+            (0,): InstructionProperties(duration=5.23e-8, error=0.00038115),
+        }
+        self.target.add_instruction(UGate(self.theta, self.phi, self.lam), u_props)
+
+        # Rz gate in qubit 1.
+        rz_props = {
+            (1,): InstructionProperties(duration=0.0, error=0),
+        }
+        self.target.add_instruction(RZGate(self.phi), rz_props)
+
+        # X gate in qubit 1.
+        x_props = {
+            (1,): InstructionProperties(
+                duration=3.5555555555555554e-08, error=0.00020056469709026198
+            ),
+        }
+        self.target.add_instruction(XGate(), x_props)
+
+        # SX gate in qubit 1.
+        sx_props = {
+            (1,): InstructionProperties(
+                duration=3.5555555555555554e-08, error=0.00020056469709026198
+            ),
+        }
+        self.target.add_instruction(SXGate(), sx_props)
+
+        cx_props = {
+            (0, 1): InstructionProperties(duration=5.23e-7, error=0.00098115),
+            (1, 0): InstructionProperties(duration=4.52e-7, error=0.00132115),
+        }
+        self.target.add_instruction(CXGate(), cx_props)
+
+    def test_2q_with_non_global_1q(self):
+        """Test translation works with a 2q gate on an non-global 1q basis."""
+        qc = QuantumCircuit(2)
+        qc.cz(0, 1)
+
+        bt_pass = BasisTranslator(std_eqlib, target_basis=None, target=self.target)
+        output = bt_pass(qc)
+        # We need a second run of BasisTranslator to correct gates outside of
+        # the target basis. This is a known isssue, see:
+        #  https://qiskit.org/documentation/release_notes.html#release-notes-0-19-0-known-issues
+        output = bt_pass(output)
+        expected = QuantumCircuit(2)
+        expected.rz(pi, 1)
+        expected.sx(1)
+        expected.rz(3 * pi / 2, 1)
+        expected.sx(1)
+        expected.rz(3 * pi, 1)
+        expected.cx(0, 1)
+        expected.rz(pi, 1)
+        expected.sx(1)
+        expected.rz(3 * pi / 2, 1)
+        expected.sx(1)
+        expected.rz(3 * pi, 1)
+        self.assertEqual(output, expected)

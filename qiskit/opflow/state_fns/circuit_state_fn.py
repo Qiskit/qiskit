@@ -49,6 +49,7 @@ class CircuitStateFn(StateFn):
         primitive: Union[QuantumCircuit, Instruction] = None,
         coeff: Union[complex, ParameterExpression] = 1.0,
         is_measurement: bool = False,
+        from_operator: bool = False,
     ) -> None:
         """
         Args:
@@ -56,6 +57,7 @@ class CircuitStateFn(StateFn):
                 defines the behavior of the underlying function.
             coeff: A coefficient multiplying the state function.
             is_measurement: Whether the StateFn is a measurement operator.
+            from_operator: if True the StateFn is derived from OperatorStateFn. (Default: False)
 
         Raises:
             TypeError: Unsupported primitive, or primitive has ClassicalRegisters.
@@ -75,6 +77,8 @@ class CircuitStateFn(StateFn):
             raise TypeError("CircuitOp does not support QuantumCircuits with ClassicalRegisters.")
 
         super().__init__(primitive, coeff=coeff, is_measurement=is_measurement)
+
+        self.from_operator = from_operator
 
     @staticmethod
     def from_dict(density_dict: dict) -> "CircuitStateFn":
@@ -125,6 +129,13 @@ class CircuitStateFn(StateFn):
         return {"QuantumCircuit"}
 
     @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        data = super().settings
+        data["from_operator"] = self.from_operator
+        return data
+
+    @property
     def num_qubits(self) -> int:
         return self.primitive.num_qubits
 
@@ -163,6 +174,7 @@ class CircuitStateFn(StateFn):
                 "Composition with a Statefunctions in the first operand is not defined."
             )
         new_self, other = self._expand_shorter_operator_and_permute(other, permutation)
+        new_self.from_operator = self.from_operator
 
         if front:
             return other.compose(new_self)
@@ -178,14 +190,15 @@ class CircuitStateFn(StateFn):
                 composed_op_circs.primitive,
                 is_measurement=self.is_measurement,
                 coeff=self.coeff * other.coeff,
+                from_operator=self.from_operator,
             )
 
         if isinstance(other, CircuitStateFn) and self.is_measurement:
             # pylint: disable=cyclic-import
             from ..operator_globals import Zero
 
-            return self.compose(CircuitOp(other.primitive, other.coeff)).compose(
-                Zero ^ self.num_qubits
+            return self.compose(CircuitOp(other.primitive)).compose(
+                (Zero ^ self.num_qubits) * other.coeff
             )
 
         return ComposedOp([new_self, other])

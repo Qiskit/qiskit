@@ -19,12 +19,14 @@ from typing import Union, Callable, List, Dict, Tuple
 
 from qiskit.pulse import Schedule, Instruction, Waveform
 from qiskit.pulse.channels import Channel
+from qiskit.utils import optionals as _optionals
 from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse import matplotlib as _matplotlib
-from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
+from qiskit.visualization.utils import matplotlib_close_if_inline
 
 
+@_optionals.HAS_MATPLOTLIB.require_in_call
 def pulse_drawer(
     data: Union[Waveform, Union[Schedule, Instruction]],
     dt: int = 1,
@@ -34,7 +36,7 @@ def pulse_drawer(
     scale: float = None,
     channel_scales: Dict[Channel, float] = None,
     plot_all: bool = False,
-    plot_range: Tuple[Union[int, float], Union[int, float]] = None,
+    plot_range: Tuple[float, float] = None,
     interactive: bool = False,
     table: bool = False,
     label: bool = False,
@@ -140,7 +142,7 @@ def pulse_drawer(
 
     Raises:
         VisualizationError: when invalid data is given
-        ImportError: when matplotlib is not installed
+        MissingOptionalLibraryError: when matplotlib is not installed
     """
     warnings.warn(
         "This legacy pulse drawer is deprecated and will be removed no earlier than "
@@ -151,11 +153,6 @@ def pulse_drawer(
         "and cleaner visualization.",
         DeprecationWarning,
     )
-
-    if not HAS_MATPLOTLIB:
-        raise ImportError("Must have Matplotlib installed.")
-    from matplotlib import get_backend
-    from matplotlib import pyplot as plt
 
     if isinstance(data, Waveform):
         drawer = _matplotlib.WaveformDrawer(style=style)
@@ -183,8 +180,7 @@ def pulse_drawer(
     if filename:
         image.savefig(filename, dpi=drawer.style.dpi, bbox_inches="tight")
 
-    if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-        plt.close(image)
+    matplotlib_close_if_inline(image)
     if image and interactive:
         image.show()
     return image

@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=too-many-return-statements,unpacking-non-sequence
+# pylint: disable=too-many-return-statements
 
 
 """
@@ -18,7 +18,6 @@ Transformations between QuantumChannel representations.
 """
 
 import numpy as np
-import scipy.linalg as la
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
@@ -43,7 +42,7 @@ def _transform_rep(input_rep, output_rep, data, input_dim, output_dim):
         return _to_ptm(input_rep, data, input_dim, output_dim)
     if output_rep == "Stinespring":
         return _to_stinespring(input_rep, data, input_dim, output_dim)
-    raise QiskitError("Invalid QuantumChannel {}".format(output_rep))
+    raise QiskitError(f"Invalid QuantumChannel {output_rep}")
 
 
 def _to_choi(rep, data, input_dim, output_dim):
@@ -63,7 +62,7 @@ def _to_choi(rep, data, input_dim, output_dim):
         return _superop_to_choi(data, input_dim, output_dim)
     if rep == "Stinespring":
         return _stinespring_to_choi(data, input_dim, output_dim)
-    raise QiskitError("Invalid QuantumChannel {}".format(rep))
+    raise QiskitError(f"Invalid QuantumChannel {rep}")
 
 
 def _to_superop(rep, data, input_dim, output_dim):
@@ -83,7 +82,7 @@ def _to_superop(rep, data, input_dim, output_dim):
         return _ptm_to_superop(data, input_dim)
     if rep == "Stinespring":
         return _stinespring_to_superop(data, input_dim, output_dim)
-    raise QiskitError("Invalid QuantumChannel {}".format(rep))
+    raise QiskitError(f"Invalid QuantumChannel {rep}")
 
 
 def _to_kraus(rep, data, input_dim, output_dim):
@@ -173,7 +172,7 @@ def _from_operator(rep, data, input_dim, output_dim):
         _check_nqubit_dim(input_dim, output_dim)
         data = _from_operator("SuperOp", data, input_dim, output_dim)
         return _superop_to_ptm(data, input_dim)
-    raise QiskitError("Invalid QuantumChannel {}".format(rep))
+    raise QiskitError(f"Invalid QuantumChannel {rep}")
 
 
 def _kraus_to_operator(data):
@@ -219,6 +218,8 @@ def _kraus_to_choi(data):
 
 def _choi_to_kraus(data, input_dim, output_dim, atol=ATOL_DEFAULT):
     """Transform Choi representation to Kraus representation."""
+    from scipy import linalg as la
+
     # Check if hermitian matrix
     if is_hermitian_matrix(data, atol=atol):
         # Get eigen-decomposition of Choi-matrix
@@ -422,7 +423,7 @@ def _transform_to_pauli(data, num_qubits):
             ),
             (4 * dim * dim, 4 * dim * dim),
         )
-    return np.dot(np.dot(cob, data), cob.conj().T) / 2 ** num_qubits
+    return np.dot(np.dot(cob, data), cob.conj().T) / 2**num_qubits
 
 
 def _transform_from_pauli(data, num_qubits):
@@ -443,7 +444,7 @@ def _transform_from_pauli(data, num_qubits):
             ),
             (4 * dim * dim, 4 * dim * dim),
         )
-    return np.dot(np.dot(cob, data), cob.conj().T) / 2 ** num_qubits
+    return np.dot(np.dot(cob, data), cob.conj().T) / 2**num_qubits
 
 
 def _reshuffle(mat, shape):
@@ -458,9 +459,8 @@ def _check_nqubit_dim(input_dim, output_dim):
     """Return true if dims correspond to an n-qubit channel."""
     if input_dim != output_dim:
         raise QiskitError(
-            "Not an n-qubit channel: input_dim"
-            + " ({}) != output_dim ({})".format(input_dim, output_dim)
+            f"Not an n-qubit channel: input_dim ({input_dim}) != output_dim ({output_dim})"
         )
     num_qubits = int(np.log2(input_dim))
-    if 2 ** num_qubits != input_dim:
+    if 2**num_qubits != input_dim:
         raise QiskitError("Not an n-qubit channel: input_dim != 2 ** n")

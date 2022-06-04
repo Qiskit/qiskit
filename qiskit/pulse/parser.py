@@ -95,7 +95,7 @@ class PulseExpression(ast.NodeTransformer):
         """
         return sorted(self._params.copy())
 
-    def __call__(self, *args, **kwargs) -> Union[float, complex, ast.Expression]:
+    def __call__(self, *args, **kwargs) -> Union[complex, ast.Expression]:
         """Evaluate the expression with the given values of the expression's parameters.
 
         Args:
@@ -141,7 +141,7 @@ class PulseExpression(ast.NodeTransformer):
         return expr.body.n
 
     @staticmethod
-    def _match_ops(opr: ast.AST, opr_dict: Dict, *args) -> Union[float, complex]:
+    def _match_ops(opr: ast.AST, opr_dict: Dict, *args) -> complex:
         """Helper method to apply operators.
 
         Args:
@@ -210,10 +210,10 @@ class PulseExpression(ast.NodeTransformer):
         Raises:
             PulseError: When parameter value is not a number.
         """
-        if node.id in self._math_ops.keys():
+        if node.id in self._math_ops:
             val = ast.Constant(n=self._math_ops[node.id])
             return ast.copy_location(val, node)
-        elif node.id in self._locals_dict.keys():
+        elif node.id in self._locals_dict:
             _val = self._locals_dict[node.id]
             if not isinstance(_val, ParameterExpression):
                 # check value type

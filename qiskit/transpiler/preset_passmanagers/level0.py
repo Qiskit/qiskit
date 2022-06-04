@@ -16,6 +16,7 @@ Level 0 pass manager: no explicit optimization other than mapping to backend.
 """
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
+from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
 
 from qiskit.transpiler.passes import Unroller
@@ -39,12 +40,19 @@ from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckGateDirection
 from qiskit.transpiler.passes import Collect2qBlocks
+from qiskit.transpiler.passes import Collect1qRuns
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import TimeUnitConversion
-from qiskit.transpiler.passes import ALAPSchedule
-from qiskit.transpiler.passes import ASAPSchedule
+from qiskit.transpiler.passes import ALAPScheduleAnalysis
+from qiskit.transpiler.passes import ASAPScheduleAnalysis
+from qiskit.transpiler.passes import ConstrainedReschedule
+from qiskit.transpiler.passes import InstructionDurationCheck
+from qiskit.transpiler.passes import ValidatePulseGates
+from qiskit.transpiler.passes import PulseGates
+from qiskit.transpiler.passes import PadDelay
 from qiskit.transpiler.passes import Error
+from qiskit.transpiler.passes import ContainsInstruction
 
 from qiskit.transpiler import TranspilerError
 
@@ -73,6 +81,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         TranspilerError: if the passmanager config is invalid.
     """
     basis_gates = pass_manager_config.basis_gates
+    inst_map = pass_manager_config.inst_map
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
     layout_method = pass_manager_config.layout_method or "trivial"
@@ -83,8 +92,26 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
     approximation_degree = pass_manager_config.approximation_degree
+    timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
+    unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
+    unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
+    target = pass_manager_config.target
 
-    # 1. Choose an initial layout if not set by user (default: trivial layout)
+    # 1. Decompose so only 1-qubit and 2-qubit gates remain
+    _unroll3q = [
+        # Use unitary synthesis for basis aware decomposition of UnitaryGates
+        UnitarySynthesis(
+            basis_gates,
+            approximation_degree=approximation_degree,
+            method=unitary_synthesis_method,
+            min_qubits=3,
+            plugin_config=unitary_synthesis_plugin_config,
+            target=target,
+        ),
+        Unroll3qOrMore(target=target, basis_gates=basis_gates),
+    ]
+
+    # 2. Choose an initial layout if not set by user (default: trivial layout)
     _given_layout = SetLayout(initial_layout)
 
     def _choose_layout_condition(property_set):
@@ -93,7 +120,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if layout_method == "trivial":
         _choose_layout = TrivialLayout(coupling_map)
     elif layout_method == "dense":
-        _choose_layout = DenseLayout(coupling_map, backend_properties)
+        _choose_layout = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
         _choose_layout = NoiseAdaptiveLayout(backend_properties)
     elif layout_method == "sabre":
@@ -101,11 +128,8 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
 
-    # 2. Extend dag/layout with ancillas using the full coupling map
+    # 3. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
-
-    # 3. Decompose so only 1-qubit and 2-qubit gates remain
-    _unroll3q = Unroll3qOrMore()
 
     # 4. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
@@ -125,8 +149,10 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     elif routing_method == "none":
         _swap += [
             Error(
-                msg="No routing method selected, but circuit is not routed to device. "
-                "CheckMap Error: {check_map_msg}",
+                msg=(
+                    "No routing method selected, but circuit is not routed to device. "
+                    "CheckMap Error: {check_map_msg}"
+                ),
                 action="raise",
             )
         ]
@@ -139,49 +165,130 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     elif translation_method == "translator":
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 
-        _unroll = [UnrollCustomDefinitions(sel, basis_gates), BasisTranslator(sel, basis_gates)]
+        _unroll = [
+            UnitarySynthesis(
+                basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_properties,
+                method=unitary_synthesis_method,
+                plugin_config=unitary_synthesis_plugin_config,
+                target=target,
+            ),
+            UnrollCustomDefinitions(sel, basis_gates),
+            BasisTranslator(sel, basis_gates, target),
+        ]
     elif translation_method == "synthesis":
         _unroll = [
-            Unroll3qOrMore(),
+            UnitarySynthesis(
+                basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_properties,
+                method=unitary_synthesis_method,
+                min_qubits=3,
+                plugin_config=unitary_synthesis_plugin_config,
+                target=target,
+            ),
+            Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
-            ConsolidateBlocks(basis_gates=basis_gates),
-            UnitarySynthesis(basis_gates, approximation_degree=approximation_degree),
+            Collect1qRuns(),
+            ConsolidateBlocks(basis_gates=basis_gates, target=target),
+            UnitarySynthesis(
+                basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_properties,
+                method=unitary_synthesis_method,
+                plugin_config=unitary_synthesis_plugin_config,
+                target=target,
+            ),
         ]
     else:
         raise TranspilerError("Invalid translation method %s." % translation_method)
 
     # 6. Fix any bad CX directions
-    _direction_check = [CheckGateDirection(coupling_map)]
+    _direction_check = [CheckGateDirection(coupling_map, target)]
 
     def _direction_condition(property_set):
         return not property_set["is_direction_mapped"]
 
-    _direction = [GateDirection(coupling_map)]
-
-    # 7. Unify all durations (either SI, or convert to dt if known)
-    # Schedule the circuit only when scheduling_method is supplied
-    _scheduling = [TimeUnitConversion(instruction_durations)]
-    if scheduling_method:
-        if scheduling_method in {"alap", "as_late_as_possible"}:
-            _scheduling += [ALAPSchedule(instruction_durations)]
-        elif scheduling_method in {"asap", "as_soon_as_possible"}:
-            _scheduling += [ASAPSchedule(instruction_durations)]
-        else:
-            raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
+    _direction = [GateDirection(coupling_map, target)]
 
     # Build pass manager
     pm0 = PassManager()
     if coupling_map or initial_layout:
         pm0.append(_given_layout)
+        pm0.append(_unroll3q)
         pm0.append(_choose_layout, condition=_choose_layout_condition)
         pm0.append(_embed)
-        pm0.append(_unroll3q)
         pm0.append(_swap_check)
         pm0.append(_swap, condition=_swap_condition)
     pm0.append(_unroll)
-    if coupling_map and not coupling_map.is_symmetric:
+    if (coupling_map and not coupling_map.is_symmetric) or (
+        target is not None and target.get_non_global_operation_names(strict_direction=True)
+    ):
         pm0.append(_direction_check)
         pm0.append(_direction, condition=_direction_condition)
         pm0.append(_unroll)
-    pm0.append(_scheduling)
+    if inst_map and inst_map.has_custom_gate():
+        pm0.append(PulseGates(inst_map=inst_map))
+
+    # 7. Unify all durations (either SI, or convert to dt if known)
+    # Schedule the circuit only when scheduling_method is supplied
+    # Apply alignment analysis regardless of scheduling for delay validation.
+    if scheduling_method:
+        # Do scheduling after unit conversion.
+        scheduler = {
+            "alap": ALAPScheduleAnalysis,
+            "as_late_as_possible": ALAPScheduleAnalysis,
+            "asap": ASAPScheduleAnalysis,
+            "as_soon_as_possible": ASAPScheduleAnalysis,
+        }
+        pm0.append(TimeUnitConversion(instruction_durations))
+        try:
+            pm0.append(scheduler[scheduling_method](instruction_durations))
+        except KeyError as ex:
+            raise TranspilerError("Invalid scheduling method %s." % scheduling_method) from ex
+    elif instruction_durations:
+        # No scheduling. But do unit conversion for delays.
+        def _contains_delay(property_set):
+            return property_set["contains_delay"]
+
+        pm0.append(ContainsInstruction("delay"))
+        pm0.append(TimeUnitConversion(instruction_durations), condition=_contains_delay)
+    if (
+        timing_constraints.granularity != 1
+        or timing_constraints.min_length != 1
+        or timing_constraints.acquire_alignment != 1
+        or timing_constraints.pulse_alignment != 1
+    ):
+        # Run alignment analysis regardless of scheduling.
+
+        def _require_alignment(property_set):
+            return property_set["reschedule_required"]
+
+        pm0.append(
+            InstructionDurationCheck(
+                acquire_alignment=timing_constraints.acquire_alignment,
+                pulse_alignment=timing_constraints.pulse_alignment,
+            )
+        )
+        pm0.append(
+            ConstrainedReschedule(
+                acquire_alignment=timing_constraints.acquire_alignment,
+                pulse_alignment=timing_constraints.pulse_alignment,
+            ),
+            condition=_require_alignment,
+        )
+        pm0.append(
+            ValidatePulseGates(
+                granularity=timing_constraints.granularity,
+                min_length=timing_constraints.min_length,
+            )
+        )
+    if scheduling_method:
+        # Call padding pass if circuit is scheduled
+        pm0.append(PadDelay())
+
     return pm0

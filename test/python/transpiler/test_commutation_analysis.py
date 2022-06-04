@@ -40,7 +40,7 @@ class TestCommutationAnalysis(QiskitTestCase):
                 continue
             result_to_compare[qbit] = []
             for commutation_set in sets:
-                result_to_compare[qbit].append(sorted([node._node_id for node in commutation_set]))
+                result_to_compare[qbit].append(sorted(node._node_id for node in commutation_set))
 
         for qbit, sets in expected.items():
             for commutation_set in sets:
@@ -259,6 +259,18 @@ class TestCommutationAnalysis(QiskitTestCase):
 
     def test_all_commute_circuit(self):
         """Test circuit with that all commute"""
+
+        #            ┌───┐
+        # qr_0: ──■──┤ Z ├──■────────────
+        #       ┌─┴─┐├───┤┌─┴─┐┌───┐
+        # qr_1: ┤ X ├┤ X ├┤ X ├┤ X ├─────
+        #       └───┘└─┬─┘└───┘└─┬─┘
+        # qr_2: ───────■────■────■────■──
+        #       ┌───┐     ┌─┴─┐┌───┐┌─┴─┐
+        # qr_3: ┤ X ├─────┤ X ├┤ X ├┤ X ├
+        #       └─┬─┘┌───┐└───┘└─┬─┘└───┘
+        # qr_4: ──■──┤ Z ├───────■───────
+        #            └───┘
         qr = QuantumRegister(5, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])

@@ -32,8 +32,8 @@ from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_ma
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 
-# pylint: disable=no-name-in-module
-from .cython.exp_value import density_expval_pauli_no_x, density_expval_pauli_with_x
+# pylint: disable=import-error
+from qiskit._accelerate.pauli_expval import density_expval_pauli_no_x, density_expval_pauli_with_x
 
 
 class DensityMatrix(QuantumState, TolerancesMixin):
@@ -124,6 +124,11 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             pad,
             self._op_shape.dims_l(),
         )
+
+    @property
+    def settings(self):
+        """Return settings."""
+        return {"data": self.data, "dims": self._op_shape.dims_l()}
 
     def draw(self, output=None, **drawer_args):
         """Return a visualization of the Statevector.
@@ -376,7 +381,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             return pauli_phase * density_expval_pauli_no_x(data, self.num_qubits, z_mask)
 
         x_max = qubits[pauli.x][-1]
-        y_phase = (-1j) ** np.sum(pauli.x & pauli.z)
+        y_phase = (-1j) ** pauli._count_y()
         return pauli_phase * density_expval_pauli_with_x(
             data, self.num_qubits, z_mask, x_mask, y_phase, x_max
         )
@@ -396,10 +401,8 @@ class DensityMatrix(QuantumState, TolerancesMixin):
 
         if isinstance(oper, SparsePauliOp):
             return sum(
-                [
-                    coeff * self._expectation_value_pauli(Pauli((z, x)), qargs)
-                    for z, x, coeff in zip(oper.table.Z, oper.table.X, oper.coeffs)
-                ]
+                coeff * self._expectation_value_pauli(Pauli((z, x)), qargs)
+                for z, x, coeff in zip(oper.paulis.z, oper.paulis.x, oper.coeffs)
             )
 
         if not isinstance(oper, Operator):
@@ -589,7 +592,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             instruction = instruction.to_instruction()
         # Initialize an the statevector in the all |0> state
         num_qubits = instruction.num_qubits
-        init = np.zeros((2 ** num_qubits, 2 ** num_qubits), dtype=complex)
+        init = np.zeros((2**num_qubits, 2**num_qubits), dtype=complex)
         init[0, 0] = 1
         vec = DensityMatrix(init, dims=num_qubits * (2,))
         vec._append_instruction(instruction)
@@ -718,7 +721,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         # circuit decomposition definition if it exists, otherwise we
         # cannot compose this gate and raise an error.
         if other.definition is None:
-            raise QiskitError("Cannot apply Instruction: {}".format(other.name))
+            raise QiskitError(f"Cannot apply Instruction: {other.name}")
         if not isinstance(other.definition, QuantumCircuit):
             raise QiskitError(
                 "{} instruction definition is {}; expected QuantumCircuit".format(
@@ -729,7 +732,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         for instr, qregs, cregs in other.definition:
             if cregs:
                 raise QiskitError(
-                    "Cannot apply instruction with classical registers: {}".format(instr.name)
+                    f"Cannot apply instruction with classical registers: {instr.name}"
                 )
             # Get the integer position of the flat register
             if qargs is None:

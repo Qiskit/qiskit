@@ -130,7 +130,7 @@ class VectorStateFn(StateFn):
         return DictStateFn(new_dict, coeff=self.coeff, is_measurement=self.is_measurement)
 
     def _expand_dim(self, num_qubits: int) -> "VectorStateFn":
-        primitive = np.zeros(2 ** num_qubits, dtype=complex)
+        primitive = np.zeros(2**num_qubits, dtype=complex)
         return VectorStateFn(
             self.primitive.tensor(primitive), coeff=self.coeff, is_measurement=self.is_measurement
         )
@@ -210,10 +210,8 @@ class VectorStateFn(StateFn):
         if isinstance(front, DictStateFn):
             return np.round(
                 sum(
-                    [
-                        v * self.primitive.data[int(b, 2)] * front.coeff
-                        for (b, v) in front.primitive.items()
-                    ]
+                    v * self.primitive.data[int(b, 2)] * front.coeff
+                    for (b, v) in front.primitive.items()
                 )
                 * self.coeff,
                 decimals=EVAL_SIG_DIGITS,

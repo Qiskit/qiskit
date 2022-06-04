@@ -20,16 +20,72 @@ import os
 import sys
 import tempfile
 
+from qiskit.dagcircuit.dagnode import DAGOpNode, DAGInNode, DAGOutNode
+from qiskit.circuit import Qubit
+from qiskit.utils import optionals as _optionals
+from qiskit.exceptions import InvalidFileError
 from .exceptions import VisualizationError
 
-try:
-    from PIL import Image
+FILENAME_EXTENSIONS = {
+    "bmp",
+    "canon",
+    "cgimage",
+    "cmap",
+    "cmapx",
+    "cmapx_np",
+    "dot",
+    "dot_json",
+    "eps",
+    "exr",
+    "fig",
+    "gd",
+    "gd2",
+    "gif",
+    "gv",
+    "icns",
+    "ico",
+    "imap",
+    "imap_np",
+    "ismap",
+    "jp2",
+    "jpe",
+    "jpeg",
+    "jpg",
+    "json",
+    "json0",
+    "mp",
+    "pct",
+    "pdf",
+    "pic",
+    "pict",
+    "plain",
+    "plain-ext",
+    "png",
+    "pov",
+    "ps",
+    "ps2",
+    "psd",
+    "sgi",
+    "svg",
+    "svgz",
+    "tga",
+    "tif",
+    "tiff",
+    "tk",
+    "vdx",
+    "vml",
+    "vmlz",
+    "vrml",
+    "wbmp",
+    "webp",
+    "xdot",
+    "xdot1.2",
+    "xdot1.4",
+    "xdot_json",
+}
 
-    HAS_PIL = True
-except ImportError:
-    HAS_PIL = False
 
-
+@_optionals.HAS_PYDOT.require_in_call
 def dag_drawer(dag, scale=0.7, filename=None, style="color"):
     """Plot the directed acyclic graph (dag) to represent operation dependencies
     in a quantum circuit.
@@ -56,7 +112,8 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
 
     Raises:
         VisualizationError: when style is not recognized.
-        ImportError: when pydot or pillow are not installed.
+        MissingOptionalLibraryError: when pydot or pillow are not installed.
+        InvalidFileError: when filename provided is not valid
 
     Example:
         .. jupyter-execute::
@@ -78,10 +135,8 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
             dag = circuit_to_dag(circ)
             dag_drawer(dag)
     """
-    try:
-        import pydot
-    except ImportError as ex:
-        raise ImportError("dag_drawer requires pydot. " "Run 'pip install pydot'.") from ex
+    import pydot
+
     # NOTE: use type str checking to avoid potential cyclical import
     # the two tradeoffs ere that it will not handle subclasses and it is
     # slower (which doesn't matter for a visualization function)
@@ -119,8 +174,10 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
         edge_attr_func = None
 
     else:
-        bit_labels = {
-            bit: "%s[%s]" % (reg.name, idx)
+        qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
+        clbit_indices = {bit: index for index, bit in enumerate(dag.clbits)}
+        register_bit_labels = {
+            bit: f"{reg.name}[{idx}]"
             for reg in list(dag.qregs.values()) + list(dag.cregs.values())
             for (idx, bit) in enumerate(reg)
         }
@@ -132,18 +189,26 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                 return {}
             if style == "color":
                 n = {}
-                if node.type == "op":
+                if isinstance(node, DAGOpNode):
                     n["label"] = node.name
                     n["color"] = "blue"
                     n["style"] = "filled"
                     n["fillcolor"] = "lightblue"
-                if node.type == "in":
-                    n["label"] = bit_labels[node.wire]
+                if isinstance(node, DAGInNode):
+                    if isinstance(node.wire, Qubit):
+                        label = register_bit_labels.get(node.wire, f"q_{qubit_indices[node.wire]}")
+                    else:
+                        label = register_bit_labels.get(node.wire, f"c_{clbit_indices[node.wire]}")
+                    n["label"] = label
                     n["color"] = "black"
                     n["style"] = "filled"
                     n["fillcolor"] = "green"
-                if node.type == "out":
-                    n["label"] = bit_labels[node.wire]
+                if isinstance(node, DAGOutNode):
+                    if isinstance(node.wire, Qubit):
+                        label = register_bit_labels.get(node.wire, f"q[{qubit_indices[node.wire]}]")
+                    else:
+                        label = register_bit_labels.get(node.wire, f"c[{clbit_indices[node.wire]}]")
+                    n["label"] = label
                     n["color"] = "black"
                     n["style"] = "filled"
                     n["fillcolor"] = "red"
@@ -153,22 +218,29 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
 
         def edge_attr_func(edge):
             e = {}
-            e["label"] = bit_labels[edge]
+            if isinstance(edge, Qubit):
+                label = register_bit_labels.get(edge, f"q_{qubit_indices[edge]}")
+            else:
+                label = register_bit_labels.get(edge, f"c_{clbit_indices[edge]}")
+            e["label"] = label
             return e
 
     dot_str = dag._multi_graph.to_dot(node_attr_func, edge_attr_func, graph_attrs)
     dot = pydot.graph_from_dot_data(dot_str)[0]
 
     if filename:
+        if "." not in filename:
+            raise InvalidFileError("Parameter 'filename' must be in format 'name.extension'")
         extension = filename.split(".")[-1]
+        if extension not in FILENAME_EXTENSIONS:
+            raise InvalidFileError(
+                "Filename extension must be one of: " + " ".join(FILENAME_EXTENSIONS)
+            )
         dot.write(filename, format=extension)
         return None
     elif ("ipykernel" in sys.modules) and ("spyder" not in sys.modules):
-        if not HAS_PIL:
-            raise ImportError(
-                "dag_drawer requires pillow for drawing in jupyter directly. "
-                "Run 'pip install pillow'."
-            )
+        _optionals.HAS_PIL.require_now("dag_drawer")
+        from PIL import Image
 
         with tempfile.TemporaryDirectory() as tmpdirname:
             tmp_path = os.path.join(tmpdirname, "dag.png")
@@ -178,11 +250,9 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
             os.remove(tmp_path)
             return image
     else:
-        if not HAS_PIL:
-            raise ImportError(
-                "dag_drawer requires pillow for drawing to a window directly. "
-                "Run 'pip install pillow'."
-            )
+        _optionals.HAS_PIL.require_now("dag_drawer")
+        from PIL import Image
+
         with tempfile.TemporaryDirectory() as tmpdirname:
             tmp_path = os.path.join(tmpdirname, "dag.png")
             dot.write_png(tmp_path)

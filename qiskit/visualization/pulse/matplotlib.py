@@ -19,7 +19,7 @@ from typing import Dict, List, Tuple, Callable, Union, Any
 
 import numpy as np
 
-from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
+from qiskit.utils import optionals as _optionals
 from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 from qiskit.visualization.pulse.interpolation import step_wise
 from qiskit.pulse.channels import (
@@ -82,7 +82,7 @@ class EventsOutputChannels:
             pulse = instruction.pulse
         else:
             pulse = instruction
-        if start_time in self.pulses.keys():
+        if start_time in self.pulses:
             self.pulses[start_time].append(pulse)
         else:
             self.pulses[start_time] = [pulse]
@@ -286,6 +286,7 @@ class WaveformDrawer:
         """
         self.style = style or PulseStyle()
 
+    @_optionals.HAS_MATPLOTLIB.require_in_call("waveform drawer")
     def draw(
         self,
         pulse: Waveform,
@@ -307,19 +308,12 @@ class WaveformDrawer:
             matplotlib.figure.Figure: A matplotlib figure object of the pulse envelope.
 
         Raises:
-            ImportError: If matplotlib is not installed
+            MissingOptionalLibraryError: If matplotlib is not installed
         """
-        # If these self.style.dpi or self.style.figsize are None, they will
-        # revert back to their default rcParam keys.
-        if not HAS_MATPLOTLIB:
-            raise ImportError(
-                "Matplotlib needs to be installed to use "
-                "WaveformDrawer. It can be installed with "
-                "'pip install matplotlib'"
-            )
-
         from matplotlib import pyplot as plt
 
+        # If these self.style.dpi or self.style.figsize are None, they will
+        # revert back to their default rcParam keys.
         figure = plt.figure(dpi=self.style.dpi, figsize=self.style.figsize)
 
         interp_method = interp_method or step_wise
@@ -375,6 +369,7 @@ class WaveformDrawer:
         return figure
 
 
+@_optionals.HAS_MATPLOTLIB.require_in_instance
 class ScheduleDrawer:
     """A class to create figure for schedule and channel."""
 
@@ -384,20 +379,12 @@ class ScheduleDrawer:
         Args:
             style: Style sheet for pulse schedule visualization.
         Raises:
-            ImportError: If matplotlib is not installed
+            MissingOptionalLibraryError: If matplotlib is not installed
         """
-        if not HAS_MATPLOTLIB:
-            raise ImportError(
-                "Matplotlib needs to be installed to use "
-                "ScheduleDrawer. It can be installed with "
-                "'pip install matplotlib'"
-            )
-
         from matplotlib import pyplot as plt
-
-        self.plt_mod = plt
         from matplotlib import gridspec
 
+        self.plt_mod = plt
         self.gridspec_mod = gridspec
         self.style = style or SchedStyle()
 
@@ -875,7 +862,7 @@ class ScheduleDrawer:
         schedule: ScheduleComponent,
         dt: float,
         interp_method: Callable,
-        plot_range: Tuple[Union[int, float], Union[int, float]],
+        plot_range: Tuple[float, float],
         scale: float = None,
         channel_scales: Dict[Channel, float] = None,
         plot_all: bool = True,

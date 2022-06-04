@@ -153,7 +153,7 @@ class TextProgressBar(BaseProgressBar):
         self.iter = int(iterations)
         self.t_start = time.time()
         pbar = "-" * 50
-        self.output_handler.write("\r|%s| %s%s%s [%s]" % (pbar, 0, "/", self.iter, ""))
+        self.output_handler.write("\r|{}| {}{}{} [{}]".format(pbar, 0, "/", self.iter, ""))
 
     def update(self, n):
         # Don't update if we are not initialized or
@@ -163,7 +163,7 @@ class TextProgressBar(BaseProgressBar):
         filled_length = int(round(50 * n / self.iter))
         pbar = "█" * filled_length + "-" * (50 - filled_length)
         time_left = self.time_remaining_est(n)
-        self.output_handler.write("\r|%s| %s%s%s [%s]" % (pbar, n, "/", self.iter, time_left))
+        self.output_handler.write("\r|{}| {}{}{} [{}]".format(pbar, n, "/", self.iter, time_left))
         if n == self.iter:
             self.output_handler.write("\n")
         self.output_handler.flush()
