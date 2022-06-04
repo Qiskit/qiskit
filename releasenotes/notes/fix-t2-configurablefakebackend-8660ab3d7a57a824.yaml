@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed T2 in ConfigurableFakeBackend by setting it with the
+    correct input value
+
