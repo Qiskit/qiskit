@@ -371,7 +371,7 @@ def _trim(image):
     return image
 
 
-def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wires=True):
+def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wires=True, wire_order=None):
     """
     Given a circuit, return a tuple (qubits, clbits, nodes) where
     qubits and clbits are the quantum and classical registers
@@ -414,6 +414,16 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wi
     if reverse_bits:
         qubits.reverse()
         clbits.reverse()
+    elif wire_order is not None:
+        new_qubits = []
+        new_clbits = []
+        for (idx, bit) in enumerate(wire_order):
+            if idx < len(qubits):
+                new_qubits.append(qubits[bit])
+            else:
+                new_clbits.append(clbits[bit-len(qubits)])
+        qubits = new_qubits
+        clbits = new_clbits
 
     # Optionally remove all idle wires and instructions that are on them and
     # on them only.

@@ -1731,6 +1731,7 @@ class QuantumCircuit:
         ax: Optional[typing.Any] = None,
         initial_state: bool = False,
         cregbundle: bool = True,
+        wire_order: list = None,
     ):
         """Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
@@ -1812,6 +1813,9 @@ class QuantumCircuit:
                 Default is False.
             cregbundle (bool): optional. If set True, bundle classical registers.
                 Default is True.
+            wire_order (list): optional. A list of integers used to reorder the display
+                of the bits. The list must be the have an entry for every bit with the
+                bits in the range 0 to (num_qubits + num_clbits).
 
         Returns:
             :class:`TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
@@ -1863,6 +1867,7 @@ class QuantumCircuit:
             ax=ax,
             initial_state=initial_state,
             cregbundle=cregbundle,
+            wire_order=wire_order,
         )
 
     def size(self, filter_function: Optional[callable] = lambda x: not x[0]._directive) -> int:
