@@ -407,6 +407,10 @@ class CouplingMap:
             string += "]"
         return string
 
+    def __len__(self):
+        """Return the amount of edges in the coupling graph."""
+        return len(self.get_edges())
+
     def draw(self):
         """Draws the coupling map.
 
