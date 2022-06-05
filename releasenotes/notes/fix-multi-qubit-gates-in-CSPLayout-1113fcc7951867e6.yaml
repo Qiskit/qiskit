@@ -1,9 +1,11 @@
 ---
 fixes:
   - |
-    Added support for multi-qubit-gates to CSPLayout. CSPLayout now
+    Added support for multi-qubit-gates to 
+    :class:`~qiskit.transpiler.passes.layout.CSPLayout`. 
+    :class:`~qiskit.transpiler.passes.layout.CSPLayout` now
     assumes for every 3+-qubit-gate we need a full connection between
-    all involved qubits. CSPLayout will no longer erroneously create
+    all involved qubits. The class will no longer erroneously create
     a layout for circuits with multi-qubit-gates if there is no
     suitable fully connected subgraph. Refer to 
     `#7155 <https://github.com/Qiskit/qiskit-terra/issues/7155>` for
