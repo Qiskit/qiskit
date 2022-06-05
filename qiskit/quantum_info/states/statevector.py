@@ -24,6 +24,7 @@ import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
+from qiskit.numba.fast_alternatives import abs2
 from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.quantum_info.operators.mixins.tolerances import TolerancesMixin
 from qiskit.quantum_info.operators.operator import Operator
@@ -249,7 +250,7 @@ class Statevector(QuantumState, TolerancesMixin):
 
     def trace(self):
         """Return the trace of the quantum state as a density matrix."""
-        return np.sum(np.abs(self.data) ** 2)
+        return np.sum(abs2(self.data))
 
     def purity(self):
         """Return the purity of the quantum state."""
@@ -561,7 +562,7 @@ class Statevector(QuantumState, TolerancesMixin):
                 print('Swapped probs: {}'.format(probs_swapped))
         """
         probs = self._subsystem_probabilities(
-            np.abs(self.data) ** 2, self._op_shape.dims_l(), qargs=qargs
+            abs2(self.data), self._op_shape.dims_l(), qargs=qargs
         )
         if decimals is not None:
             probs = probs.round(decimals=decimals)

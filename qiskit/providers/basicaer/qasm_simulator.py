@@ -44,6 +44,7 @@ from qiskit.result import Result
 from qiskit.providers.backend import BackendV1
 from qiskit.providers.options import Options
 from qiskit.providers.basicaer.basicaerjob import BasicAerJob
+from qiskit.numba.fast_alternatives import abs2
 from .exceptions import BasicAerError
 from .basicaertools import single_gate_matrix
 from .basicaertools import SINGLE_QUBIT_GATES
@@ -173,7 +174,7 @@ class QasmSimulatorPy(BackendV1):
         # Axis for numpy.sum to compute probabilities
         axis = list(range(self._number_of_qubits))
         axis.remove(self._number_of_qubits - 1 - qubit)
-        probabilities = np.sum(np.abs(self._statevector) ** 2, axis=tuple(axis))
+        probabilities = np.sum(abs2(self._statevector), axis=tuple(axis))
         # Compute einsum index string for 1-qubit matrix multiplication
         random_number = self._local_random.rand()
         if random_number < probabilities[0]:
@@ -205,7 +206,7 @@ class QasmSimulatorPy(BackendV1):
             # with respect to position from end of the list
             axis.remove(self._number_of_qubits - 1 - qubit)
         probabilities = np.reshape(
-            np.sum(np.abs(self._statevector) ** 2, axis=tuple(axis)), 2**num_measured
+            np.sum(abs2(self._statevector), axis=tuple(axis)), 2**num_measured
         )
         # Generate samples on measured qubits as ints with qubit
         # position in the bit-string for each int given by the qubit
