@@ -523,7 +523,9 @@ def plot_gate_map(
         )
 
     # set default coloring if not set before
-    qubit_color, line_color = _set_default_coloring(qubit_color, line_color, num_qubits, coupling_map)
+    qubit_color, line_color = _set_default_coloring(
+        qubit_color, line_color, num_qubits, coupling_map
+    )
 
     # disable qubits or gates?
     backend_version = getattr(backend, "version", 0)
