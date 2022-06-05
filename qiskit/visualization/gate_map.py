@@ -522,12 +522,13 @@ def plot_gate_map(
             f"does not match the device number of qubits: {num_qubits}"
         )
 
-    cmap = backend.configuration().coupling_map
-    n_qubits = backend.configuration().n_qubits
     # set default coloring if not set before
-    qubit_color, line_color = _set_default_coloring(qubit_color, line_color, n_qubits, cmap)
+    qubit_color, line_color = _set_default_coloring(qubit_color, line_color, num_qubits, coupling_map)
+
     # disable qubits or gates?
-    _color_faulty_backend(backend, qubit_color, line_color)
+    backend_version = getattr(backend, "version", 0)
+    if backend_version <= 1:
+        _color_faulty_backend(backend, qubit_color, line_color)
 
     return plot_coupling_map(
         num_qubits,
