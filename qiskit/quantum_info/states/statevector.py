@@ -561,9 +561,7 @@ class Statevector(QuantumState, TolerancesMixin):
                 probs_swapped = psi.probabilities([1, 0])
                 print('Swapped probs: {}'.format(probs_swapped))
         """
-        probs = self._subsystem_probabilities(
-            abs2(self.data), self._op_shape.dims_l(), qargs=qargs
-        )
+        probs = self._subsystem_probabilities(abs2(self.data), self._op_shape.dims_l(), qargs=qargs)
         if decimals is not None:
             probs = probs.round(decimals=decimals)
         return probs

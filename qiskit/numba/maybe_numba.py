@@ -2,12 +2,15 @@ def _noop_jit(f, *args, **kwargs):
     """A a decorator that does nothing"""
     return f
 
+
 def _have_numba():
     try:
         import numba
+
         return True
     except ImportError:
         return False
+
 
 # True if importing numba succeeded
 HAVE_NUMBA = _have_numba()
