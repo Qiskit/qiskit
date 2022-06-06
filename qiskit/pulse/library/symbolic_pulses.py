@@ -130,12 +130,14 @@ class LamdifiedExpression:
 
             if _optional.HAS_SYMENGINE:
                 # Symengine lambdify requires array-like
-                value = [value]
-            try:
+                try:
+                    lamb = sym.lambdify(params, [value])
+                except RuntimeError:
+                    # When sym.I is used in the expression, i.e. complex envelope.
+                    lamb = sym.lambdify(params, [value], real=False)
+                func = np.vectorize(lamb)
+            else:
                 func = sym.lambdify(params, value)
-            except RuntimeError:
-                # If symengine and complex valued function
-                func = sym.lambdify(params, value, real=False)
 
             self.lambda_funcs[key] = func
 
@@ -374,10 +376,6 @@ class SymbolicPulse(Pulse):
         times = np.arange(0, self.duration) + 1 / 2
         params = self.parameters
 
-        func = self._envelope_lambdify
-        if _optional.HAS_SYMENGINE:
-            func = np.vectorize(func)
-
         func_args = []
         for name in sorted(map(lambda s: s.name, self.envelope.free_symbols)):
             if name == "t":
@@ -386,7 +384,7 @@ class SymbolicPulse(Pulse):
                 value = params[name]
             func_args.append(value)
 
-        return Waveform(samples=self.amp * func(*func_args), name=self.name)
+        return Waveform(samples=self.amp * self._envelope_lambdify(*func_args), name=self.name)
 
     def validate_parameters(self) -> None:
         """Validate parameters.
