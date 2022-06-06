@@ -16,7 +16,7 @@ Provide two implementations of some functions, a fast one in numba, and a fallba
 
 import numpy
 
-from .maybe_numba import HAVE_NUMBA, vectorize
+from .maybe_numba import HAVE_NUMBA, vectorize, njit
 
 if HAVE_NUMBA:
 
