@@ -31,6 +31,7 @@ def _have_numba():
 
 # True if importing numba succeeded
 HAVE_NUMBA = _have_numba()
+# HAVE_NUMBA = False
 
 if HAVE_NUMBA:
     from numba import vectorize, jit, njit, int64

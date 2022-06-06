@@ -15,7 +15,6 @@ Quantum information measures, metrics, and related functions for states.
 
 import numpy as np
 from qiskit.exceptions import QiskitError
-from qiskit.numba.fast_alternatives import abs2
 from qiskit.quantum_info.states.statevector import Statevector
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from qiskit.quantum_info.states.utils import (
@@ -61,7 +60,7 @@ def state_fidelity(state1, state2, validate=True):
     if isinstance(state1, Statevector):
         if isinstance(state2, Statevector):
             # Fidelity of two Statevectors
-            fid = abs2(arr2.conj().dot(arr1))
+            fid = np.abs(arr2.conj().dot(arr1)) ** 2
         else:
             # Fidelity of Statevector(1) and DensityMatrix(2)
             fid = arr1.conj().dot(arr2).dot(arr1)

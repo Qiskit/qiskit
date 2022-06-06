@@ -22,9 +22,8 @@ if HAVE_NUMBA:
 
     @vectorize
     def abs2(z):
-        return z * numpy.conj(z)
+        return (z * numpy.conj(z)).real
 
-    #   return z.real * z.real + z.imag * z.imag # No differene here.
 else:
 
     def abs2(z):
