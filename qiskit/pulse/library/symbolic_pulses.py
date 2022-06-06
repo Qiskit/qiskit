@@ -295,8 +295,8 @@ class SymbolicPulse(Pulse):
         parameters: Optional[Dict[str, Union[ParameterExpression, complex]]] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
-        envelope: Optional["Expr"] = None,
-        constraints: Optional["Expr"] = None,
+        envelope: Optional[sym.Expr] = None,
+        constraints: Optional[sym.Expr] = None,
     ):
         """Create a parametric pulse and validate the input parameters.
 
