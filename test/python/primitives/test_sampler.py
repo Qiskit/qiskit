@@ -12,11 +12,11 @@
 
 """Tests for Sampler."""
 
-from test import combine
 import unittest
+from test import combine
 
-from ddt import ddt
 import numpy as np
+from ddt import ddt
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
@@ -405,6 +405,13 @@ class TestSampler(QiskitTestCase):
                     circuit_indices=list(range(len(indices))),
                     parameter_values=[[] for _ in indices],
                 )
+            self._compare_probs(result.quasi_dists, target)
+
+    def test_with_shots_option(self):
+        """test with shots option."""
+        params, target = self._generate_params_target([1])
+        with Sampler(circuits=self._pqc) as sampler:
+            result = sampler(circuits=[0], parameter_values=params, shots=1024, seed_primitive=15)
             self._compare_probs(result.quasi_dists, target)
 
 

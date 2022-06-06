@@ -343,6 +343,15 @@ class TestEstimator(QiskitTestCase):
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.284366511861733])
 
+    def test_with_shots_option(self):
+        """test with shots option."""
+        with Estimator([self.ansatz], [self.observable]) as est:
+            result = est(
+                [0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=1024, seed_primitive=15
+            )
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [-1.307397243478641])
+
 
 if __name__ == "__main__":
     unittest.main()
