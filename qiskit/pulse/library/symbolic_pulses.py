@@ -19,7 +19,7 @@ parameter constraints.
 """
 
 import functools
-from typing import Any, Dict, List, Optional, Union, Callable, TYPE_CHECKING
+from typing import Any, Dict, Optional, Union, Callable
 
 import numpy as np
 
@@ -27,21 +27,20 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
+from qiskit.utils import optionals as _optional
 
-if TYPE_CHECKING:
-    # Note that the symbolic pulse module doesn't employ symengine due to some missing features.
-    # In addition, there are several syntactic difference in boolean expression.
-    # Thanks to Lambdify at subclass instantiation, the performance regression is not significant.
-    # However, this will still create significant latency for the first sympy import.
-    from sympy import Expr, Symbol
+if _optional.HAS_SYMENGINE:
+    import symengine as sym
+else:
+    import sympy as sym
 
 
 def _lifted_gaussian(
-    t: "Symbol",
-    center: Union["Symbol", "Expr", complex],
-    t_zero: Union["Symbol", "Expr", complex],
-    sigma: Union["Symbol", "Expr", complex],
-) -> "Expr":
+    t: sym.Symbol,
+    center: Union[sym.Symbol, sym.Expr, complex],
+    t_zero: Union[sym.Symbol, sym.Expr, complex],
+    sigma: Union[sym.Symbol, sym.Expr, complex],
+) -> sym.Expr:
     r"""Helper function that returns a lifted Gaussian symbolic equation.
 
     For :math:`\sigma=` ``sigma`` the symbolic equation will be
@@ -70,8 +69,6 @@ def _lifted_gaussian(
     Returns:
         Symbolic equation.
     """
-    import sympy as sym
-
     gauss = sym.exp(-(((t - center) / sigma) ** 2) / 2)
     offset = sym.exp(-(((t_zero - center) / sigma) ** 2) / 2)
 
@@ -101,16 +98,13 @@ class LamdifiedExpression:
     For the next time it will just return the cached callbacks for speed up.
     """
 
-    def __init__(self, common_params: List[str], attribute: str):
+    def __init__(self, attribute: str):
         """Create new descriptor.
 
         Args:
-            common_params: Parameters that the expression always takes regardless
-                of pulse instances.
             attribute: Name of attribute of :class:`.SymbolicPulse` that returns
                 the target expression to evaluate.
         """
-        self.common_params = common_params
         self.attribute = attribute
         self.lambda_funcs = dict()
 
@@ -129,16 +123,25 @@ class LamdifiedExpression:
     def __set__(self, instance, value):
         key = hash(value)
         if key not in self.lambda_funcs:
-            import sympy as sym
 
             if value.free_symbols != set(instance._param_names):
                 raise PulseError(
                     "Symbolic pulse parameter and expression's free symbols don't match. "
                     "Cannot generate samples for this symbolic pulse."
                 )
+            params = sorted(value.free_symbols, key=lambda s: s.name)
 
-            params = [sym.Symbol(p) for p in self.common_params + instance._param_names]
-            self.lambda_funcs[key] = sym.lambdify(params, value)
+            if _optional.HAS_SYMENGINE:
+                # Symengine lambdify requires array-like
+                value = [value]
+
+            try:
+                func = sym.lambdify(params, value)
+            except RuntimeError:
+                # If symengine and complex valued function
+                func = sym.lambdify(params, value, real=False)
+
+            self.lambda_funcs[key] = func
 
 
 class SymbolicPulse(Pulse):
@@ -264,14 +267,8 @@ class SymbolicPulse(Pulse):
     """
 
     # Lambdify caches keyed on sympy expressions. Returns the corresponding callable.
-    _callable_envelope = LamdifiedExpression(
-        common_params=["t", "duration", "amp"],
-        attribute="envelope_expr",
-    )
-    _callable_consts = LamdifiedExpression(
-        common_params=["duration", "amp"],
-        attribute="consts_expr",
-    )
+    _callable_envelope = LamdifiedExpression("envelope_expr")
+    _callable_consts = LamdifiedExpression("consts_expr")
 
     def __init__(
         self,
@@ -315,8 +312,8 @@ class SymbolicPulse(Pulse):
         self._param_names = tuple(parameters.keys())
         self._param_vals = tuple(parameters.values())
 
-        self.envelope_expr = envelope_expr
-        self.consts_expr = consts_expr
+        self.envelope_expr = None
+        self.consts_expr = None
 
     def __getattr__(self, item):
         # For backward compatibility. ParametricPulse implements these property methods.
@@ -359,10 +356,21 @@ class SymbolicPulse(Pulse):
             raise PulseError("Pulse envelope expression is not assigned.")
 
         times = np.arange(0, self.duration) + 1 / 2
-        args = (times, self.duration, self.amp, *self._param_vals)
-        waveform = self._callable_envelope(*args)
+        params = self.parameters
 
-        return Waveform(samples=waveform, name=self.name)
+        func = self._callable_envelope
+        if _optional.HAS_SYMENGINE:
+            func = np.vectorize(func)
+
+        func_args = []
+        for name in sorted(map(lambda s: s.name, self._envelope_expr.free_symbols)):
+            if name == "t":
+                value = times
+            else:
+                value = params[name]
+            func_args.append(value)
+
+        return Waveform(samples=self.amp * func(*func_args), name=self.name)
 
     def validate_parameters(self) -> None:
         """Validate parameters.
@@ -373,13 +381,23 @@ class SymbolicPulse(Pulse):
         if self.is_parameterized():
             return
 
-        args = (self.duration, self.amp, *self._param_vals)
-        if self._consts_expr is not None and not bool(self._callable_consts(*args)):
-            param_repr = ", ".join(f"{p}={v}" for p, v in self.parameters.items())
-            const_repr = str(self._consts_expr)
+        if any(p.imag != 0 for p in self._param_vals):
             raise PulseError(
-                f"Assigned parameters {param_repr} violate following constraint: {const_repr}."
+                f"Pulse parameters must be real numbers except for 'amp'."
             )
+
+        if self._consts_expr is not None:
+            func_args = []
+            params = self.parameters
+            for name in sorted(map(lambda s: s.name, self._consts_expr.free_symbols)):
+                func_args.append(params[name])
+
+            if not bool(self._callable_consts(*func_args)):
+                param_repr = ", ".join(f"{p}={v}" for p, v in self.parameters.items())
+                const_repr = str(self._consts_expr)
+                raise PulseError(
+                    f"Assigned parameters {param_repr} violate following constraint: {const_repr}."
+                )
 
         if self.limit_amplitude and _validate_amplitude_limit(self):
             # Check max amplitude limit by generating waveform.
@@ -401,8 +419,9 @@ class SymbolicPulse(Pulse):
         return params
 
     def __eq__(self, other: "SymbolicPulse") -> bool:
+
         # Not aware of expressions.
-        if not isinstance(other, SymbolicPulse):
+        if type(self) is not type(other):
             return False
         if self.parameters != other.parameters:
             return False
@@ -454,8 +473,6 @@ class Gaussian(SymbolicPulse):
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
 
         """
-        import sympy as sym
-
         parameters = {
             "duration": duration,
             "amp": amp,
@@ -470,10 +487,10 @@ class Gaussian(SymbolicPulse):
         )
 
         # Add definitions
-        t, duration, amp, sigma = sym.symbols("t, duration, amp, sigma")
+        t, duration, sigma = sym.symbols("t, duration, sigma", real=True)
         center = duration / 2
 
-        self.envelope = amp * _lifted_gaussian(t, center, duration + 1, sigma)
+        self.envelope = _lifted_gaussian(t, center, duration + 1, sigma)
         self.constraints = sigma > 0
         self.validate_parameters()
 
@@ -542,8 +559,6 @@ class GaussianSquare(SymbolicPulse):
         Raises:
             PulseError: When width and risefall_sigma_ratio are both empty or both non-empty.
         """
-        import sympy as sym
-
         # Convert risefall_sigma_ratio into width which is defined in OpenPulse spec
         if width is None and risefall_sigma_ratio is None:
             raise PulseError(
@@ -572,7 +587,7 @@ class GaussianSquare(SymbolicPulse):
         )
 
         # Add definitions
-        t, duration, amp, sigma, width = sym.symbols("t, duration, amp, sigma, width")
+        t, duration, sigma, width = sym.symbols("t, duration, sigma, width", real=True)
         center = duration / 2
 
         sq_t0 = center - width / 2
@@ -581,7 +596,7 @@ class GaussianSquare(SymbolicPulse):
         gaussian_ledge = _lifted_gaussian(t, sq_t0, -1, sigma)
         gaussian_redge = _lifted_gaussian(t, sq_t1, duration + 1, sigma)
 
-        self.envelope = amp * sym.Piecewise(
+        self.envelope = sym.Piecewise(
             (gaussian_ledge, t <= sq_t0), (gaussian_redge, t >= sq_t1), (1, True)
         )
         self.constraints = sym.And(sigma > 0, width >= 0, duration >= width)
@@ -651,8 +666,6 @@ class Drag(SymbolicPulse):
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
         """
-        import sympy as sym
-
         parameters = {
             "duration": duration,
             "amp": amp,
@@ -668,14 +681,17 @@ class Drag(SymbolicPulse):
         )
 
         # Add definitions
-        t, duration, amp, sigma, beta = sym.symbols("t, duration, amp, sigma, beta")
+        t, duration, sigma, beta = sym.symbols("t, duration, sigma, beta", real=True)
         center = duration / 2
 
-        gauss = amp * _lifted_gaussian(t, center, duration + 1, sigma)
+        gauss = _lifted_gaussian(t, center, duration + 1, sigma)
         deriv = -(t - center) / (sigma**2) * gauss
 
-        self.envelope = gauss + 1j * beta * deriv
-        self.constraints = sym.And(sigma > 0, sym.Eq(sym.im(beta), 0))
+        self.envelope = gauss + sym.I * beta * deriv
+
+        # In IBM quantum backend, im(beta) == 0 is explicitly checked.
+        # In Qiskit, we impose real number constraints on all parameters except for 'amp'.
+        self.constraints = sigma > 0
         self.validate_parameters()
 
 
@@ -704,8 +720,6 @@ class Constant(SymbolicPulse):
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
         """
-        import sympy as sym
-
         parameters = {
             "duration": duration,
             "amp": amp,
@@ -719,7 +733,7 @@ class Constant(SymbolicPulse):
         )
 
         # Add definitions
-        t, duration, amp = sym.symbols("t, duration, amp")
+        t, duration = sym.symbols("t, duration", real=True)
 
         # Note this is implemented using Piecewise instead of just returning amp
         # directly because otherwise the expression has no t dependence and sympy's
@@ -728,5 +742,5 @@ class Constant(SymbolicPulse):
         # ParametricPulse.get_waveform().
         #
         # See: https://github.com/sympy/sympy/issues/5642
-        self.envelope = amp * sym.Piecewise((1, (t >= 0) & (t <= duration)), (0, True))
+        self.envelope = sym.Piecewise((1, sym.And(t >= 0, t <= duration)), (0, True))
         self.validate_parameters()
