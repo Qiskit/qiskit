@@ -14,7 +14,8 @@
 
 """Symbolic waveform module.
 
-These are pulses which are described by symbolic equations for envelope and parameter constraints.
+These are pulses which are described by symbolic equations for their envelopes and for their
+parameter constraints.
 """
 
 import functools
@@ -115,10 +116,12 @@ class LamdifiedExpression:
 
     def __get__(self, instance, owner) -> Callable:
         expr = getattr(instance, self.attribute, None)
+        if expr is None:
+            raise PulseError(
+                f"'{self.attribute}' of '{instance.pulse_type}' is not assigned."
+            )
         key = hash(expr)
         if key not in self.lambda_funcs:
-            if expr is None:
-                raise PulseError(f"'{self.attribute}' of '{instance.pulse_type}' is not assigned.")
             self.__set__(instance, expr)
 
         return self.lambda_funcs[key]
@@ -127,6 +130,12 @@ class LamdifiedExpression:
         key = hash(value)
         if key not in self.lambda_funcs:
             import sympy as sym
+
+            if value.free_symbols != set(instance._param_names):
+                raise PulseError(
+                    "Symbolic pulse parameter and expression's free symbols don't match. "
+                    "Cannot generate samples for this symbolic pulse."
+                )
 
             params = [sym.Symbol(p) for p in self.common_params + instance._param_names]
             self.lambda_funcs[key] = sym.lambdify(params, value)
@@ -155,7 +164,7 @@ class SymbolicPulse(Pulse):
     sampling the pulse envelope at every 0.5 dt (middle sampling strategy) when
     :meth:`SymbolicPulse.get_waveform` method is called.
     The ``amp`` is a complex-valued coefficient that scales the symbolic pulse envelope.
-    This indicates conventionally the Qiskit Pulse conforms to the IQ format rather
+    This indicates that by convention the Qiskit Pulse conforms to the IQ format rather
     than the phasor representation. When a real value is assigned to the ``amp``,
     it is internally typecasted to the complex. The real and imaginary part may be
     directly supplied to two quadratures of the IQ mixer in the control electronics.
@@ -174,9 +183,9 @@ class SymbolicPulse(Pulse):
     function of parameters to be validated and must return a boolean value
     being ``True`` when parameters are valid.
     If there are multiple conditions to be evaluated, these conditions can be
-    concatenated with logical expressions such as ``sym.And`` and ``sym.Or``.
+    concatenated with logical expressions such as ``And`` and ``Or`` in SymPy or Symengine.
     The symbolic pulse instance can be played only when the constraint function returns ``True``.
-    The constraint is evaluated when a :meth:`SymbolicPulse.validate_parameters` is called.
+    The constraint is evaluated when :meth:`SymbolicPulse.validate_parameters` is called.
     Note that the maximum pulse amplitude limit is separately evaluated when
     the :attr:`.limit_amplitude` is set.
     Since this is evaluated with actual waveform samples by calling :meth:`.get_waveform`,
@@ -184,7 +193,7 @@ class SymbolicPulse(Pulse):
 
     .. rubric:: Examples
 
-    This is how user can instantiate symbolic pulse instance.
+    This is how a user can instantiate a symbolic pulse instance.
     In this example, we instantiate a custom `Sawtooth` envelope.
 
     .. jupyter-execute::
@@ -245,29 +254,23 @@ class SymbolicPulse(Pulse):
     and then one can instantiate the class with certain parameters to run on a backend.
     This pulse instance can be saved in the QPY binary, which can be loaded afterwards
     even within the environment not having original class definition loaded.
-    This mechanism allows us to easily share a pulse program including custom pulse instructions
-    with collaborators or to directly submit the program to the quantum computer backend
-    in the parametric form (i.e. not sample data). This greatly reduces amount of data transferred.
-    The waveform sample data to be loaded in the control electronics
-    will be reconstructed with parameters and deserialized expression objects by the backend.
+    This mechanism also allows us to easily share a pulse program including
+    custom pulse instructions with collaborators.
 
     .. note::
 
         Currently QPY serialization of :class:`SymbolicPulse` is not available.
         This feature will be implemented shortly.
-        Note that data transmission in the parametric form requires your quantum computer backend
-        to support QPY framework with :class:`SymbolicPulse` available. Otherwise, the pulse data
-        might be converted into :class:`Waveform`.
     """
 
     # Lambdify caches keyed on sympy expressions. Returns the corresponding callable.
     _callable_envelope = LamdifiedExpression(
         common_params=["t", "duration", "amp"],
-        attribute="_envelope_expr",
+        attribute="envelope_expr",
     )
     _callable_consts = LamdifiedExpression(
         common_params=["duration", "amp"],
-        attribute="_consts_expr",
+        attribute="consts_expr",
     )
 
     def __init__(
@@ -276,6 +279,8 @@ class SymbolicPulse(Pulse):
         parameters: Dict[str, Union[ParameterExpression, complex]],
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
+        envelope_expr: Optional["Expr"] = None,
+        consts_expr: Optional["Expr"] = None,
     ):
         """Create a parametric pulse and validate the input parameters.
 
@@ -285,6 +290,8 @@ class SymbolicPulse(Pulse):
             name: Display name for this particular pulse envelope.
             limit_amplitude: If ``True``, then limit the absolute value of the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+            envelope_expr: Pulse envelope expression.
+            consts_expr: Pulse parameter constraint expression.
 
         Raises:
             PulseError: When not all parameters are listed in the attribute :attr:`PARAM_DEF`.
@@ -305,10 +312,11 @@ class SymbolicPulse(Pulse):
         self.amp = amp
 
         self._pulse_type = pulse_type
-        self._param_names = list(parameters.keys())
-        self._param_vals = list(parameters.values())
-        self._envelope_expr = None
-        self._consts_expr = None
+        self._param_names = tuple(parameters.keys())
+        self._param_vals = tuple(parameters.values())
+
+        self.envelope_expr = envelope_expr
+        self.consts_expr = consts_expr
 
     def __getattr__(self, item):
         # For backward compatibility. ParametricPulse implements these property methods.
@@ -326,38 +334,6 @@ class SymbolicPulse(Pulse):
         """Return display name of the pulse shape."""
         return self._pulse_type
 
-    @property
-    def envelope(self) -> "Expr":
-        """Return envelope function of the pulse.
-
-        See :ref:`symbolic_pulse_envelope` for details.
-
-        A pulse instance without this value cannot generate waveform samples.
-        Note that the expression should contain symbol ``t`` that represents a
-        sampling time, along with parameters defined in :meth:`.parameters`.
-        """
-        return self._envelope_expr
-
-    @envelope.setter
-    def envelope(self, new_expr: "Expr"):
-        """Add new envelope function to the pulse."""
-        self._envelope_expr = new_expr
-
-    @property
-    def constraints(self) -> "Expr":
-        """Returns pulse parameter constrains.
-
-        See :ref:`symbolic_pulse_constraints` for details.
-
-        A pulse instance without this value doesn't validate assigned parameters.
-        """
-        return self._consts_expr
-
-    @constraints.setter
-    def constraints(self, new_constraints: "Expr"):
-        """Add new parameter constraints to the pulse."""
-        self._consts_expr = new_constraints
-
     def get_waveform(self) -> Waveform:
         r"""Return a Waveform with samples filled according to the formula that the pulse
         represents and the parameter values it contains.
@@ -373,10 +349,14 @@ class SymbolicPulse(Pulse):
             A waveform representation of this pulse.
 
         Raises:
-            PulseError: When parameters are not bound.
+            PulseError: When parameters are not assigned.
+            PulseError: When expression for pulse envelope is not assigned.
         """
         if self.is_parameterized():
             raise PulseError("Unassigned parameter exists. All parameters must be assigned.")
+
+        if self.envelope_expr is None:
+            raise PulseError("Pulse envelope expression is not assigned.")
 
         times = np.arange(0, self.duration) + 1 / 2
         args = (times, self.duration, self.amp, *self._param_vals)
@@ -423,9 +403,6 @@ class SymbolicPulse(Pulse):
     def __eq__(self, other: "SymbolicPulse") -> bool:
         # Not aware of expressions.
         if not isinstance(other, SymbolicPulse):
-            return False
-        if self._pulse_type != other._pulse_type:
-            # Use pulse type equality rather than class.
             return False
         if self.parameters != other.parameters:
             return False
@@ -620,8 +597,9 @@ class Drag(SymbolicPulse):
     """The Derivative Removal by Adiabatic Gate (DRAG) pulse is a standard Gaussian pulse
     with an additional Gaussian derivative component and lifting applied.
 
-    It is designed to reduce the frequency spectrum of a standard Gaussian pulse near
-    the :math:`|1\\rangle\\leftrightarrow|2\\rangle` transition,
+    It can be calibrated either to reduce the phase error due to virtual population of the
+    :math:`|2\\rangle` state during the pulse or to reduce the frequency spectrum of a
+    standard Gaussian pulse near the :math:`|1\\rangle\\leftrightarrow|2\\rangle` transition,
     reducing the chance of leakage to the :math:`|2\\rangle` state.
 
     .. math::
