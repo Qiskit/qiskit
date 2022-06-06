@@ -320,13 +320,14 @@ class SymbolicPulse(Pulse):
             name=name,
             limit_amplitude=limit_amplitude,
         )
-        if parameters is None:
-            parameters = {}
         if not isinstance(amp, ParameterExpression):
             amp = complex(amp)
         self.amp = amp
 
         self._pulse_type = pulse_type
+
+        if parameters is None:
+            parameters = {}
         self._param_names = tuple(parameters.keys())
         self._param_vals = tuple(parameters.values())
 
@@ -335,9 +336,11 @@ class SymbolicPulse(Pulse):
 
     def __getattr__(self, item):
         # Get pulse parameters with attribute-like access.
-        if item not in self._param_names:
+        param_names = object.__getattribute__(self, "_param_names")
+        param_vals = object.__getattribute__(self, "_param_vals")
+        if item not in param_names:
             raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{item}'")
-        return self._param_vals[self._param_names.index(item)]
+        return param_vals[param_names.index(item)]
 
     @property
     def pulse_type(self) -> str:

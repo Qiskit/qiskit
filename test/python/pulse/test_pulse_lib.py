@@ -324,7 +324,9 @@ class TestParametricPulses(QiskitTestCase):
         """Test speed up of instantiation with lambdify constraints cache."""
         drag_instance1 = Drag(duration=100, amp=0.1, sigma=40, beta=3)
         drag_instance2 = Drag(duration=100, amp=0.1, sigma=40, beta=3)
-        self.assertTrue(drag_instance1._constraints_lambdify is drag_instance2._constraints_lambdify)
+        self.assertTrue(
+            drag_instance1._constraints_lambdify is drag_instance2._constraints_lambdify
+        )
 
     def test_deepcopy(self):
         """Test deep copying instance."""
