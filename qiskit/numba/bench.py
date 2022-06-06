@@ -16,8 +16,6 @@ Benchmark abs2 implementation in numba, vs. numpy implementation.
 
 import timeit
 import numpy as np
-from qiskit.numba.fast_alternatives import abs2
-
 
 def vector_setup(n):
     setup_code = f"""
@@ -42,7 +40,7 @@ def timeit_avg(stmnt, setup=None, number=1000):
     return result / number
 
 
-def time_nelem(stmnt, n_elem, ntrials, setup_func):
+def time_n_elem(stmnt, n_elem, ntrials, setup_func):
     setup_code = setup_func(n_elem)
     result = timeit_avg(stmnt, setup=setup_code, number=ntrials)
     return result
@@ -51,26 +49,12 @@ def time_nelem(stmnt, n_elem, ntrials, setup_func):
 def run_trials(stmnt, setup_func):
     times = []
     for (n_elem, ntrials) in trial_pairs:
-        time_nelem(stmnt, n_elem, 1, setup_func)  # for jit compilation
-        result = time_nelem(stmnt, n_elem, ntrials, setup_func)
+        time_n_elem(stmnt, n_elem, 1, setup_func)  # for jit compilation
+        result = time_n_elem(stmnt, n_elem, ntrials, setup_func)
         times.append(result)
-        print(f"{stmnt}, nelem = {n_elem}, t = {result}")
+        print(f"{stmnt}, n_elem = {n_elem}, t = {result}")
     return times
 
-
-print("\nMatrix")
-
-trial_pairs = [(10, 10**3), (100, 10**3), (1000, 10**2), (10**4, 10**2)]
-stmnt = "abs2(m)"
-abs2_times = run_trials(stmnt, matrix_setup)
-
-trial_pairs = [(10, 10**3), (100, 10**3), (1000, 10**2), (10**4, 10**1)]
-stmnt = "abs(m) ** 2"
-abs_sq_times = run_trials(stmnt, matrix_setup)
-
-t_ratios = [t2 / t1 for (t1, t2) in zip(abs2_times, abs_sq_times)]
-for (n_elem, ratio) in zip([p[0] for p in trial_pairs], t_ratios):
-    print(f"nelem = 10**{int(np.log10(n_elem))}, t_ratio = {ratio}")
 
 print("\nVector")
 
@@ -94,8 +78,25 @@ trial_pairs = [
     (10**6, 10**3),
 ]
 stmnt = "abs(a) ** 2"
+
 abs_sq_times = run_trials(stmnt, vector_setup)
 
-t_ratios = [t2 / t1 for (t1, t2) in zip(abs2_times, abs_sq_times)]
-for (n_elem, ratio) in zip([p[0] for p in trial_pairs], t_ratios):
-    print(f"nelem = 10**{int(np.log10(n_elem))}, t_ratio = {ratio}")
+def print_ratios(times_new, times_old, trial_pairs):
+    t_ratios = [t2 / t1 for (t1, t2) in zip(times_new, times_old)]
+    for (n_elem, ratio) in zip([p[0] for p in trial_pairs], t_ratios):
+        print(f"n_elem = 10**{int(np.log10(n_elem))}, t_ratio = {ratio}")
+
+print_ratios(abs2_times, abs_sq_times, trial_pairs)
+
+
+print("\nMatrix")
+
+trial_pairs = [(10, 10**3), (100, 10**3), (1000, 10**2), (10**4, 10**2)]
+stmnt = "abs2(m)"
+abs2_times = run_trials(stmnt, matrix_setup)
+
+trial_pairs = [(10, 10**3), (100, 10**3), (1000, 10**2), (10**4, 10**1)]
+stmnt = "abs(m) ** 2"
+abs_sq_times = run_trials(stmnt, matrix_setup)
+
+print_ratios(abs2_times, abs_sq_times, trial_pairs)
