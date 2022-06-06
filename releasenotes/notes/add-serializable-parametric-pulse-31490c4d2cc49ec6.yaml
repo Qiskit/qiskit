@@ -4,14 +4,10 @@ features:
     New pulse base class :class:`~SymbolicPulse` has been added. This is a
     replacement of the conventional :class:`~ParametricPulse` which will be deprecated.
     In new base class, pulse envelope and parameter validation functions are
-    represented by sympy symbolic expression objects, which are lambidfied immediately when
-    the first instance of symbolic pulse subclass is created.
+    represented by symbolic expression objects, which are lambidfied immediately when
+    corresponding methods are called for the first time.
     The new class provides a self-contained and portable pulse data since these symbolic equations
-    can be easily serialized through sympy.
-
-    To define new subclass of :class:`~SymbolicPulse`, one must override two class methods
-    :meth:`~SymbolicPulse._define_envelope` and :meth:`~SymbolicPulse._define_constraints`
-    which return symbolic expression for envelope and parameter constraints, respectively.
+    can be easily serialized through symbolic computation libraries.
 upgrade:
   - |
     Importing pulse class from ``qiskit.pulse.library.*`` now import :class:`~SymbolicPulse`

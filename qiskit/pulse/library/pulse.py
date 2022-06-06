@@ -23,6 +23,11 @@ class Pulse(ABC):
     """The abstract superclass for pulses. Pulses are complex-valued waveform envelopes. The
     modulation phase and frequency are specified separately from ``Pulse``s.
     """
+    __slots__ = (
+        "duration",
+        "name",
+        "_limit_amplitude"
+    )
 
     limit_amplitude = True
 
