@@ -15,7 +15,6 @@
 """Utility functions for working with Results."""
 
 from typing import List, Union, Optional, Dict
-from collections import Counter
 from copy import deepcopy
 
 from qiskit.exceptions import QiskitError
