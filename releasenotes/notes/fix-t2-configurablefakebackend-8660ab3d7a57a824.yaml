@@ -1,6 +1,5 @@
 ---
 fixes:
   - |
-    Fixed T2 in ConfigurableFakeBackend by setting it with the
-    correct input value
-
+    Fixed the ``t2`` attribute of ``qiskit.providers.fake_provider.ConfigurableFakeBackend``,
+    which was previously incorrectly set based on the provided ``t1``.
