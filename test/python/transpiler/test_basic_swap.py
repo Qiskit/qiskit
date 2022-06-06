@@ -16,7 +16,7 @@ import unittest
 from qiskit.transpiler.passes import BasicSwap
 from qiskit.transpiler import CouplingMap
 from qiskit.converters import circuit_to_dag
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.test import QiskitTestCase
 
 
@@ -334,6 +334,98 @@ class TestBasicSwap(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
+    def test_controlflow_if_else(self):
+        """test swap with if else controlflow construct"""
+        from qiskit.converters import dag_to_circuit
+
+        num_qubits = 5
+        qreg = QuantumRegister(num_qubits, "q")
+        creg = ClassicalRegister(num_qubits)
+        coupling = CouplingMap([(i, i+1) for i in range(num_qubits - 1)])
+
+        qc = QuantumCircuit(qreg, creg)
+        qc.h(0)
+        qc.cx(0, 2)
+        qc.measure(0, 0)
+
+        true_body = QuantumCircuit(qreg, creg)
+        true_body.cx(0, 2)
+        false_body = QuantumCircuit(qreg, creg)
+        false_body.cx(0, 4)
+        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg)
+        qc.x(0)
+        # there seems to be a difference when using the context manager to
+        # create if_else op; the QuantumCircuit blocks have empty "qregs" but
+        # qubits property looks correct
+        # with qc.if_test((creg[0], 0)) as else_:
+        #     qc.cx(0, 2)
+        # with else_:
+        #     qc.cx(0, 4)
+        dag = circuit_to_dag(qc)
+        cdag = BasicSwap(coupling).run(dag)
+        cqc = dag_to_circuit(cdag)
+        
+        expected = QuantumCircuit(qreg, creg)
+        expected.h(0)
+        expected.swap(0, 1)
+        expected.swap(1, 2)
+        expected.cx(2, 3)
+        expected.measure(2, 0)
+        true_body = QuantumCircuit(qreg, creg)
+        true_body.swap(0, 1)
+        true_body.cx(1, 2)
+        false_body = QuantumCircuit(qreg, creg)
+        false_body.swap(0, 1)
+        false_body.swap(1, 2)
+        false_body.swap(2, 3)
+        false_body.cx(3, 4)
+        expected.if_else((creg[0], 0), true_body, false_body, qreg, creg)
+        expected.x(1)
+        expected_dag = circuit_to_dag(expected)
+        breakpoint()
+        self.assertEqual(cqc, expected)
+
+    def test_controlflow_if_else2(self):
+        """test swap with if else controlflow construct"""
+        from qiskit.converters import dag_to_circuit
+
+        num_qubits = 5
+        qreg = QuantumRegister(num_qubits, "q")
+        creg = ClassicalRegister(num_qubits)
+        coupling = CouplingMap([(i, i+1) for i in range(num_qubits - 1)])
+
+        qc = QuantumCircuit(qreg, creg)
+        qc.cx(0, 2)
+        qc.measure(0, 0)
+
+        true_body = QuantumCircuit(qreg, creg)
+        true_body.h(0)
+        false_body = QuantumCircuit(qreg, creg)
+        false_body.x(1)
+        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg)
+        print(qc)
+        dag = circuit_to_dag(qc)
+        cdag = BasicSwap(coupling).run(dag)
+
+    def test_controlflow_if_else3(self):
+        """test swap with if else controlflow construct"""
+        from qiskit.converters import dag_to_circuit
+
+        num_qubits = 5
+        qreg = QuantumRegister(num_qubits, "q")
+        creg = ClassicalRegister(num_qubits)
+        coupling = CouplingMap([(i, i+1) for i in range(num_qubits - 1)])
+
+        qc = QuantumCircuit(qreg, creg)
+        qc.cx(0, 3)
+        qc.x(1)
+        qc.h(2)
+        qc.y(3)
+        dag = circuit_to_dag(qc)
+        cdag = BasicSwap(coupling).run(dag)
+        cqc = dag_to_circuit(cdag)
+        breakpoint()
+        
 
 if __name__ == "__main__":
     unittest.main()
