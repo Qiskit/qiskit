@@ -1446,25 +1446,23 @@ class TestTranspile(QiskitTestCase):
         qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
-        qc.measure(qubit_reg, clbit_reg)
+        if opt_level != 3:
+            qc.measure(qubit_reg, clbit_reg)
         result = transpile(qc, target=target, optimization_level=opt_level)
-        expected = QuantumCircuit(qubit_reg, clbit_reg)
         # The Unitary synthesis optimization pass results for optimization level 3
         # results in a different output than the other optimization levels
+        # and can differ based on fp precision. To avoid relying on a hard match
+        # do a unitary equiv
+
         if opt_level == 3:
-            expected.u(np.pi / 2, -2.573974639041118, -np.pi, qubit_reg[0])
-            expected.u(2.856600312467528, -np.pi / 2, -np.pi / 2, qubit_reg[1])
-            expected.cx(qubit_reg[0], qubit_reg[1])
-            expected.u(
-                3.0323422787222316e-16, 0.7742010131357828, -1.3418190276844602, qubit_reg[0]
-            )
-            expected.u(2.8566003124675303, -np.pi / 2, -np.pi / 2, qubit_reg[1])
-            expected.measure(qubit_reg, clbit_reg)
+            result_op = Operator.from_circuit(result)
+            self.assertTrue(result_op.equiv(qc))
         else:
+            expected = QuantumCircuit(qubit_reg, clbit_reg)
             expected.u(np.pi / 2, 0, np.pi, qubit_reg[0])
             expected.cx(qubit_reg[0], qubit_reg[1])
             expected.measure(qubit_reg, clbit_reg)
-        self.assertEqual(result, expected)
+            self.assertEqual(result, expected)
 
 
 class StreamHandlerRaiseException(StreamHandler):
