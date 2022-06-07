@@ -595,6 +595,15 @@ class Target(Mapping):
             bool: Returns ``True`` if the instruction is supported and ``False`` if it isn't.
 
         """
+
+        def check_obj_params(parameters, obj):
+            for index, param in enumerate(parameters):
+                if isinstance(param, Parameter) and not isinstance(obj.params[index], Parameter):
+                    return False
+                if param != obj.params[index] and not isinstance(obj.params[index], Parameter):
+                    return False
+            return True
+
         # Case a list if passed in by mistake
         if qargs is not None:
             qargs = tuple(qargs)
@@ -604,14 +613,8 @@ class Target(Mapping):
                     if parameters is not None:
                         if len(parameters) != len(obj.params):
                             continue
-                        for index, param in enumerate(parameters):
-                            if isinstance(param, Parameter) and not isinstance(
-                                obj.params[index], Parameter
-                            ):
-                                continue
-                            if param != obj.params[index]:
-                                continue
-
+                        if not check_obj_params(parameters, obj):
+                            continue
                     if qargs is None:
                         return True
                     if qargs in self._gate_map[op_name]:
