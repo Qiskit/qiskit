@@ -611,6 +611,7 @@ class Target(Mapping):
                                 continue
                             if param != obj.params[index]:
                                 continue
+
                     if qargs is None:
                         return True
                     if qargs in self._gate_map[op_name]:
@@ -626,11 +627,14 @@ class Target(Mapping):
                 if len(parameters) != len(obj.params):
                     return False
                 for index, param in enumerate(parameters):
+                    matching_param = False
                     if isinstance(obj.params[index], Parameter):
-                        return True
+                        matching_param = True
                     elif param == obj.params[index]:
-                        return True
-                return False
+                        matching_param = True
+                    if not matching_param:
+                        return False
+                return True
             if qargs is None:
                 return True
             if qargs in self._gate_map[operation_name]:

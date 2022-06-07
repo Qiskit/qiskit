@@ -989,6 +989,15 @@ Instructions:
             self.ideal_sim_target.instruction_supported("rx", parameters=[Parameter("angle")])
         )
 
+    def test_instruction_supported_multiple_parameters(self):
+        target = Target(1)
+        target.add_instruction(
+            UGate(self.theta, self.phi, self.lam),
+            {(0,): InstructionProperties(duration=270.22e-9, error=0.00713)},
+        )
+        self.assertFalse(target.instruction_supported("u", parameters=[math.pi]))
+        self.assertTrue(target.instruction_supported("u", parameters=[math.pi, math.pi, math.pi]))
+
     def test_instruction_supported_arg_len_mismatch(self):
         self.assertFalse(
             self.ideal_sim_target.instruction_supported(operation_class=UGate, parameters=[math.pi])
