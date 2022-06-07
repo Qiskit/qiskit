@@ -119,9 +119,10 @@ class SteppableOptimizer(Optimizer):
         """
         Returns the information on how to evaluate the objective function.
         Canonical optimization workflow using ask() and tell() can be seen in SteppableOptimizer.step().
+
         Returns:
-            AskOjbect: Since the way to evaluate the function can vary much with different optimization algorithms, the object will be
-        a custom dataclass for each optimizer.
+            Since the way to evaluate the function can vary much with different 
+            optimization algorithms, the object will be a custom dataclass for each optimizer.
         """
         raise NotImplementedError
 
