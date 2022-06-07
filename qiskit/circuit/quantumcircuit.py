@@ -1763,7 +1763,7 @@ class QuantumCircuit:
 
         **text**: ASCII art TextDrawing that can be printed in the console.
 
-        **matplotlib**: images with color rendered purely in Python.
+        **mpl**: images with color rendered purely in Python using matplotlib.
 
         **latex**: high-quality images compiled via latex.
 
