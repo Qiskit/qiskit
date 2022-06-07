@@ -35,6 +35,7 @@ deprecated_names = {
     "_read_instruction",
     "_write_parameter_expression",
     "_write_parameter_expression",
+    "_read_parameter_expression_v3",
 }
 
 
