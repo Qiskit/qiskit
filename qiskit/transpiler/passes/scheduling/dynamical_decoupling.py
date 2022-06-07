@@ -117,8 +117,7 @@ class DynamicalDecoupling(TransformationPass):
             "The DynamicalDecoupling class has been supersceded by the "
             "DynamicalDecouplingPadding class which performs the same function but "
             "requires scheduling and alignment analysis passes to run prior to it. "
-            "This class will be deprecated in a future release and subsequently "
-            "removed after that.",
+            "This class is deprecated and will be removed in a future release"
             DeprecationWarning,
         )
         super().__init__()

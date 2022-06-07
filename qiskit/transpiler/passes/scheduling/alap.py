@@ -39,8 +39,7 @@ class ALAPSchedule(BaseSchedulerTransform):
         warnings.warn(
             "The ALAPSchedule class has been supersceded by the ALAPScheduleAnalysis class "
             "which performs the as analysis pass that requires a padding pass to later modify "
-            "the circuit. This class will be deprecated in a future release and subsequently "
-            "removed after that.",
+            "the circuit. This class is deprecated and will be removed in a future release"
             DeprecationWarning,
         )
 
