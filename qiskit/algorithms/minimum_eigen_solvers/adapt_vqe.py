@@ -24,6 +24,7 @@ from qiskit import QiskitError
 from qiskit.algorithms import VQE
 from qiskit.algorithms.list_or_dict import ListOrDict
 from qiskit.algorithms.minimum_eigen_solvers.vqe import VQEResult
+from qiskit.algorithms import VariationalAlgorithm, VariationalResult
 from qiskit.circuit import QuantumCircuit
 from qiskit.opflow import OperatorBase, PauliSumOp, ExpectationBase, CircuitSampler,StateFn
 from qiskit.opflow.gradients import GradientBase, Gradient
@@ -49,7 +50,7 @@ class Finishing_criterion(Enum):
     finishing_criterion = ""
 
 
-class AdaptVQE():
+class AdaptVQE(VariationalAlgorithm):
     """A ground state calculation employing the AdaptVQE algorithm.
 
     The performance of AdaptVQE can significantly depend on the choice of gradient method, QFI
@@ -63,7 +64,7 @@ class AdaptVQE():
         threshold: float = 1e-5,
         max_iterations: Optional[int] = None,
         adapt_gradient: Optional[GradientBase] = None,
-        initial_point: Optional[np.ndarray] = None,
+        #initial_point: Optional[np.ndarray] = None,
         expectation: Optional[ExpectationBase] = None,
         quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
         excitation_pool: List[Union[OperatorBase, QuantumCircuit]] = None,
@@ -91,7 +92,7 @@ class AdaptVQE():
         self._tmp_ansatz = ansatz
         self.expectation = expectation
         self.quantum_instance = quantum_instance
-        self.initial_point = initial_point
+        #self._initial_point = initial_point
         self._excitation_list: List[OperatorBase] = []
 
     def _compute_gradients(
@@ -120,21 +121,21 @@ class AdaptVQE():
             param_sets = list(self.ansatz.parameters)
             # zip will only iterate the length of the shorter list
             theta1 = dict(zip(self.ansatz.parameters, theta))
-            #gradient1 = self._gradient.gradient_wrapper(
-                #~StateFn(operator) @ StateFn(self.ansatz),
-                #bind_params=list(self.ansatz.parameters),
-                #backend=self._quantum_instance)
+            """gradient1 = self._adapt_gradient.gradient_wrapper(
+                ~StateFn(operator) @ StateFn(self.ansatz),
+                bind_params=list(self.ansatz.parameters),
+                backend=self.quantum_instance)"""
             op,expectation = self.solver.construct_expectation(theta1, operator, return_expectation=True)
             # compute gradient
             #print(op)
             state_grad = self._adapt_gradient.convert(operator=op, params=param_sets)
             # Assign the parameters and evaluate the gradient
             value_dict = {param_sets[-1]: 0.0}
-            #for value in enumerate(value_dict):
-                #result = gradient1(value)
-            #print(result[-1])
-            #res.append((np.abs(result[-1]), exc))
-            print(state_grad)
+            """for value in enumerate(value_dict):
+                result = gradient1(value)
+            print(result[-1])
+            res.append((np.abs(result[-1]), exc))"""
+            #print(state_grad)
             state_grad_result = sampler.convert(state_grad, params=value_dict).eval()
             logger.info("Gradient computed : %s", str(state_grad_result))
             res.append((np.abs(state_grad_result[-1]), exc))
@@ -281,7 +282,7 @@ class AdaptVQE():
         return result
 
 
-class AdaptVQEResult():
+class AdaptVQEResult(VariationalResult):
     """AdaptVQE Result."""
 
     def __init__(self) -> None:

@@ -75,7 +75,7 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
             ansatz= ansatz1,
             excitation_pool=excitation_pool,
             adapt_gradient= grad,
-            quantum_instance=BasicAer.get_backend("statevector_simulator"),
+            quantum_instance=BasicAer.get_backend("statevector_simulator")
         )
         res = calc.compute_minimum_eigensolver(operator=self.h2_op)
 
