@@ -64,7 +64,7 @@ class AdaptVQE(VariationalAlgorithm):
         threshold: float = 1e-5,
         max_iterations: Optional[int] = None,
         adapt_gradient: Optional[GradientBase] = None,
-        #initial_point: Optional[np.ndarray] = None,
+        initial_point: Optional[np.ndarray] = None,
         expectation: Optional[ExpectationBase] = None,
         quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
         excitation_pool: List[Union[OperatorBase, QuantumCircuit]] = None,
@@ -82,7 +82,7 @@ class AdaptVQE(VariationalAlgorithm):
         """
         validate_min("threshold", threshold, 1e-15)
         super().__init__(
-            self.initial_point : initial_point
+            self.initial_point : initial_point,
         )
 
         if adapt_gradient is None:
