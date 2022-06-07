@@ -44,7 +44,8 @@ class SteppableOptimizer(Optimizer):
     """
     Base class for a steppable optimizer.
 
-    This family of optimizers will be using the ask and tell interface.
+    This family of optimizers will be using the 
+    `ask and tell interface <https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/009_ask_and_tell.html>`_.
     When using this interface the user has to call the function ask() in order to get information about how to evaluate the fucntion
     (we are asking the optimizer about how to do the evaluation). This information will be mostly about at what point should we evaluate
     the function next, but depending on the optimizer it can also be about whether we should evaluate the function itself or its gradient.
