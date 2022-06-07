@@ -935,7 +935,7 @@ Instructions:
         self.assertFalse(self.ideal_sim_target.instruction_supported("cx", (0, 1, 2)))
 
     def test_instruction_supported_parameters(self):
-        mumbai = FakeMumbaiV2()
+        mumbai = FakeMumbaiFractionalCX()
         self.assertTrue(
             mumbai.target.instruction_supported(
                 qargs=(0, 1), operation_class=RZXGate, parameters=[math.pi / 4]
