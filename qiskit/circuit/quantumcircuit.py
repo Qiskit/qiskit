@@ -1492,6 +1492,7 @@ class QuantumCircuit:
         gates_to_decompose: Optional[
             Union[Type[Gate], Sequence[Type[Gate]], Sequence[str], str]
         ] = None,
+        reps: int = 1,
     ) -> "QuantumCircuit":
         """Call a decomposition pass on this circuit,
         to decompose one level (shallow decompose).
