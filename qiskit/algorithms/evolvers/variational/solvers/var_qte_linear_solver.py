@@ -40,7 +40,7 @@ class VarQTELinearSolver:
         qfi: QFI,
         gradient_params: List[Parameter],
         evolution_grad: Gradient,
-        gradient_operator: OperatorBase,
+        modified_hamiltonian_callable: OperatorBase,
         t_param=None,
         lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
         quantum_instance: Optional[QuantumInstance] = None,
@@ -65,17 +65,15 @@ class VarQTELinearSolver:
         self._ansatz = ansatz
         self._qfi = qfi
         self._gradient_params = gradient_params
-        bind_params = gradient_params + [t_param] if t_param else gradient_params
+        self._bind_params = gradient_params + [t_param] if t_param else gradient_params
         # print(bind_params)
         # print(gradient_params)
         self._qfi_gradient_callable = qfi.gradient_wrapper(
-            CircuitStateFn(ansatz), bind_params, gradient_params, quantum_instance
+            CircuitStateFn(ansatz), self._bind_params, gradient_params, quantum_instance
         )
-        self._gradient_operator = gradient_operator
         # print(gradient_operator)
-        self._evolution_grad_callable = evolution_grad.gradient_wrapper(
-            gradient_operator, bind_params, gradient_params, quantum_instance
-        )
+        self._evolution_grad = evolution_grad
+        self._modified_hamiltonian_callable = modified_hamiltonian_callable
         self._time_param = t_param
         self._lse_solver = lse_solver
         self._quantum_instance = None
@@ -126,8 +124,13 @@ class VarQTELinearSolver:
         # print("Param vals")
         # print(param_values)
         metric_tensor_lse_lhs = 0.25 * self._qfi_gradient_callable(param_values)
-
-        evolution_grad_lse_rhs = 0.5 * self._evolution_grad_callable(param_values)
+        modified_hamiltonian = self._modified_hamiltonian_callable(param_dict)
+        #print(modified_hamiltonian)
+        grad_callable = self._evolution_grad.gradient_wrapper(
+            modified_hamiltonian, self._bind_params, self._gradient_params, self._quantum_instance
+        )
+        #print("Grad call")
+        evolution_grad_lse_rhs = 0.5 * grad_callable(param_values)
 
         # print(metric_tensor_lse_lhs)
         # print(evolution_grad_lse_rhs)
@@ -143,6 +146,7 @@ class VarQTELinearSolver:
             # print(type(bound_evolution_grad_lse_rhs[0]))
             evolution_grad_lse_rhs = bound_evolution_grad_lse_rhs
 
+        #print(-evolution_grad_lse_rhs)
         x = self._lse_solver(metric_tensor_lse_lhs, evolution_grad_lse_rhs)[0]
 
         return np.real(x), metric_tensor_lse_lhs, evolution_grad_lse_rhs

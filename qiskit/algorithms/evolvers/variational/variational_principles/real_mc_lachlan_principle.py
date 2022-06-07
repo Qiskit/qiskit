@@ -58,7 +58,8 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
         """
 
         if self._grad_method == "lin_comb":
-            self._grad_method = LinComb(aux_meas_op=-Y)
+            basis = -Y
+            self._grad_method = LinComb(aux_meas_op=basis)
 
         evolution_grad = Gradient(self._grad_method)  # *0.5
 
@@ -77,4 +78,7 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
         energy_term *= -1
         energy_term *= energy
         hamiltonian_ = SummedOp([hamiltonian, energy_term]).reduce()
-        return StateFn(hamiltonian_, is_measurement=True) @ StateFn(ansatz)
+        #print(hamiltonian_)
+        operator = StateFn(hamiltonian_, is_measurement=True) @ StateFn(ansatz)
+        #print(operator)
+        return (-1)*operator
