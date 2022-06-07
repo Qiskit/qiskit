@@ -73,6 +73,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
             BasicAer.get_backend("statevector_simulator"),
             seed_simulator=self.seed,
             seed_transpiler=self.seed,
+            optimization_level=3,
         )
 
     @idata(

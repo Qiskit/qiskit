@@ -230,6 +230,7 @@ from .minimum_eigen_solvers import (
     VQE,
     VQEResult,
     QAOA,
+    ICANS,
     NumPyMinimumEigensolver,
     MinimumEigensolver,
     MinimumEigensolverResult,
