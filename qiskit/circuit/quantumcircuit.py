@@ -1500,7 +1500,8 @@ class QuantumCircuit:
         Args:
             gates_to_decompose (str or list(str)): optional subset of gates to decompose.
                 Defaults to all gates in circuit.
-            reps (int): optional number of times to repeat decomposed circuit
+            reps (int): Optional number of times the circuit should be decomposed.
+                For instance, ``reps=2`` equals calling ``circuit.decompose().decompose()``.
 
         Returns:
             QuantumCircuit: a circuit one level decomposed
