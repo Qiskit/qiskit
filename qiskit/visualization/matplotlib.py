@@ -502,9 +502,7 @@ class MatplotlibDrawer:
             # otherwise, get the register from find_bit and use bit_index if
             # it's a bit, or the index of the bit in the register if it's a reg
             else:
-                register, bit_index, reg_index = get_bit_reg_index(
-                    self._circuit, wire
-                )
+                register, bit_index, reg_index = get_bit_reg_index(self._circuit, wire)
                 index = bit_index if register is None else reg_index
 
             wire_label = get_wire_label(

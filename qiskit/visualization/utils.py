@@ -363,7 +363,9 @@ def _trim(image):
     return image
 
 
-def _get_layered_instructions(circuit, reverse_bits=None, justify=None, idle_wires=True, wire_order=None):
+def _get_layered_instructions(
+    circuit, reverse_bits=False, justify=None, idle_wires=True, wire_order=None
+):
     """
     Given a circuit, return a tuple (qubits, clbits, nodes) where
     qubits and clbits are the quantum and classical registers
@@ -409,7 +411,7 @@ def _get_layered_instructions(circuit, reverse_bits=None, justify=None, idle_wir
             if bit < len(qubits):
                 new_qubits.append(qubits[bit])
             else:
-                new_clbits.append(clbits[bit-len(qubits)])
+                new_clbits.append(clbits[bit - len(qubits)])
         qubits = new_qubits
         clbits = new_clbits
 
@@ -464,7 +466,6 @@ def _get_gate_span(qubits, node):
     if node.cargs or node.op.condition:
         return qubits[min_index : len(qubits)]
 
-    print(node.op, min_index, max_index, len(qubits))
     return qubits[min_index : max_index + 1]
 
 
@@ -475,7 +476,6 @@ def _any_crossover(qubits, node, nodes):
     for check_node in nodes:
         if check_node != node:
             all_indices += _get_gate_span(qubits, check_node)
-    print(all_indices)
     return any(i in gate_span for i in all_indices)
 
 

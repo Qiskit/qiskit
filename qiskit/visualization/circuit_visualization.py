@@ -29,6 +29,7 @@ import logging
 import os
 import subprocess
 import tempfile
+from warnings import warn
 
 from qiskit import user_config
 from qiskit.utils import optionals as _optionals
@@ -189,6 +190,13 @@ def circuit_drawer(
     if output is None:
         output = default_output
 
+    if cregbundle and (reverse_bits or wire_order is not None):
+        cregbundle = False
+        warn(
+            "Cregbundle set to False since either reverse_bits or wire_order has been set.",
+            RuntimeWarning,
+            2,
+        )
     if output == "text":
         return _text_circuit_drawer(
             circuit,
@@ -317,7 +325,11 @@ def _text_circuit_drawer(
         VisualizationError: When the filename extenstion is not .txt.
     """
     qubits, clbits, nodes = utils._get_layered_instructions(
-        circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires, wire_order=wire_order,
+        circuit,
+        reverse_bits=reverse_bits,
+        justify=justify,
+        idle_wires=idle_wires,
+        wire_order=wire_order,
     )
     text_drawing = _text.TextDrawing(
         qubits,
@@ -512,7 +524,11 @@ def _generate_latex_source(
         str: Latex string appropriate for writing to file.
     """
     qubits, clbits, nodes = utils._get_layered_instructions(
-        circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires, wire_order=wire_order,
+        circuit,
+        reverse_bits=reverse_bits,
+        justify=justify,
+        idle_wires=idle_wires,
+        wire_order=wire_order,
     )
     qcimg = _latex.QCircuitImage(
         qubits,
@@ -598,7 +614,11 @@ def _matplotlib_circuit_drawer(
     """
 
     qubits, clbits, nodes = utils._get_layered_instructions(
-        circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires, wire_order=wire_order,
+        circuit,
+        reverse_bits=reverse_bits,
+        justify=justify,
+        idle_wires=idle_wires,
+        wire_order=wire_order,
     )
     if fold is None:
         fold = 25
