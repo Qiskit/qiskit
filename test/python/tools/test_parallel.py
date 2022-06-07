@@ -13,7 +13,8 @@
 """Tests for qiskit/tools/parallel"""
 import os
 import time
-import unittest
+
+from unittest.mock import patch
 
 from qiskit.tools.parallel import get_platform_parallel_default, parallel_map
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -43,31 +44,27 @@ class TestGetPlatformParallelDefault(QiskitTestCase):
 
     def test_windows_parallel_default(self):
         """Verifies the parallel default for Windows."""
-        with unittest.mock.patch("sys") as sys_mock:
-            sys_mock.platform = "win32"
+        with patch("sys.platform", "win32"):
             parallel_default = get_platform_parallel_default()
             self.assertEqual(parallel_default, False)
 
     def test_mac_os_supported_version_parallel_default(self):
         """Verifies the parallel default for macOS."""
-        with unittest.mock.patch("sys") as sys_mock:
-            sys_mock.platform = "darwin"
-            sys_mock.version_info = (10, 11, 0, "final", 0)
-            parallel_default = get_platform_parallel_default()
-            self.assertEqual(parallel_default, True)
+        with patch("sys.platform", "darwin"):
+            with patch("sys.version_info", (10, 11, 0, "final", 0)):
+                parallel_default = get_platform_parallel_default()
+                self.assertEqual(parallel_default, True)
 
     def test_mac_os_unsupported_version_parallel_default(self):
         """Verifies the parallel default for macOS."""
-        with unittest.mock.patch("sys") as sys_mock:
-            sys_mock.platform = "darwin"
-            sys_mock.version_info = (3, 8, 0, "final", 0)
-            parallel_default = get_platform_parallel_default()
-            self.assertEqual(parallel_default, False)
+        with patch("sys.platform", "darwin"):
+            with patch("sys.version_info", (3, 8, 0, "final", 0)):
+                parallel_default = get_platform_parallel_default()
+                self.assertEqual(parallel_default, False)
 
     def test_other_os_parallel_default(self):
         """Verifies the parallel default for Linux and other OSes."""
-        with unittest.mock.patch("sys") as sys_mock:
-            sys_mock.platform = "linux"
+        with patch("sys.platform", "linux"):
             parallel_default = get_platform_parallel_default()
             self.assertEqual(parallel_default, True)
 
