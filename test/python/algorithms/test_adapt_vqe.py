@@ -1,5 +1,6 @@
 """ Test of the AdaptVQE minimum eigensolver """
 import sys
+from qiskit.algorithms.minimum_eigen_solvers.vqe import VQE
 sys.path.append("/Users/freyashah/qiskit-terra/test")
 import unittest
 from qiskit.opflow.gradients.gradient import Gradient
@@ -11,8 +12,7 @@ from qiskit.quantum_info import SparsePauliOp
 from qiskit.opflow import PauliSumOp
 from qiskit.utils import algorithm_globals, has_aer
 from qiskit import BasicAer
-
-from qiskit.algorithms.minimum_eigen_solvers.adaptvqe import AdaptVQE
+from qiskit.algorithms.minimum_eigen_solvers.adapt_vqe import AdaptVQE
 
 
 class TestAdaptVQE(QiskitAlgorithmsTestCase):

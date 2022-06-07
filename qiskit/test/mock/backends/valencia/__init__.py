@@ -14,4 +14,3 @@
 
 from .fake_valencia import FakeValenciaV2
 from .fake_valencia import FakeValencia
-from .fake_valencia import FakeLegacyValencia

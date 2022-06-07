@@ -33,6 +33,7 @@ from qiskit.circuit.library import (
     CU1Gate,
     CU3Gate,
     XXMinusYYGate,
+    XXPlusYYGate,
     RZGate,
     XGate,
     YGate,
@@ -1387,8 +1388,6 @@ class TestStandard2Q(QiskitTestCase):
     def test_xx_minus_yy_exponential_formula(self):
         """Test XX-YY exponential formula."""
         theta, beta = np.random.uniform(-10, 10, size=2)
-        theta = np.pi / 2
-        beta = 0.0
         gate = XXMinusYYGate(theta, beta)
         x = np.array(XGate())
         y = np.array(YGate())
@@ -1398,6 +1397,21 @@ class TestStandard2Q(QiskitTestCase):
         np.testing.assert_allclose(
             np.array(gate),
             rz1 @ expm(-0.25j * theta * (xx - yy)) @ rz1.T.conj(),
+            atol=1e-7,
+        )
+
+    def test_xx_plus_yy_exponential_formula(self):
+        """Test XX+YY exponential formula."""
+        theta, beta = np.random.uniform(-10, 10, size=2)
+        gate = XXPlusYYGate(theta, beta)
+        x = np.array(XGate())
+        y = np.array(YGate())
+        xx = np.kron(x, x)
+        yy = np.kron(y, y)
+        rz0 = np.kron(np.eye(2), np.array(RZGate(beta)))
+        np.testing.assert_allclose(
+            np.array(gate),
+            rz0.T.conj() @ expm(-0.25j * theta * (xx + yy)) @ rz0,
             atol=1e-7,
         )
 
@@ -1455,7 +1469,7 @@ class TestStandardMethods(QiskitTestCase):
                 # gate_class is abstract
                 continue
             sig = signature(gate_class)
-            free_params = len(set(sig.parameters) - {"label"})
+            free_params = len(set(sig.parameters) - {"label", "ctrl_state"})
             try:
                 if gate_class == PauliGate:
                     # special case due to PauliGate using string parameters
@@ -1466,7 +1480,7 @@ class TestStandardMethods(QiskitTestCase):
                     gate = gate_class(Pauli("XYZ"))
                 else:
                     gate = gate_class(*params[0:free_params])
-            except (CircuitError, QiskitError, AttributeError):
+            except (CircuitError, QiskitError, AttributeError, TypeError):
                 self.log.info("Cannot init gate with params only. Skipping %s", gate_class)
                 continue
             if gate.name in ["U", "CX"]:
@@ -1508,7 +1522,7 @@ class TestStandardMethods(QiskitTestCase):
                 # n_qubits argument is no longer supported.
                 free_params = 2
             else:
-                free_params = len(set(sig.parameters) - {"label"})
+                free_params = len(set(sig.parameters) - {"label", "ctrl_state"})
             try:
                 if gate_class == PauliGate:
                     # special case due to PauliGate using string parameters
@@ -1519,7 +1533,7 @@ class TestStandardMethods(QiskitTestCase):
                     gate = gate_class(Pauli("XYZ"))
                 else:
                     gate = gate_class(*params[0:free_params])
-            except (CircuitError, QiskitError, AttributeError):
+            except (CircuitError, QiskitError, AttributeError, TypeError):
                 self.log.info("Cannot init gate with params only. Skipping %s", gate_class)
                 continue
             if gate.name in ["U", "CX"]:
