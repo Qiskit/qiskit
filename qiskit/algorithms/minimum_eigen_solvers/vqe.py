@@ -17,7 +17,6 @@ See https://arxiv.org/abs/1304.3061
 
 from typing import Optional, List, Callable, Union, Dict, Tuple
 import logging
-import warnings
 from time import time
 import numpy as np
 import scipy
