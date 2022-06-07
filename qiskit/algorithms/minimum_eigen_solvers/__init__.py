@@ -13,6 +13,7 @@
 """ Minimum Eigen Solvers Package """
 
 from .vqe import VQE, VQEResult
+from .vqe_icans import ICANS
 from .qaoa import QAOA
 from .numpy_minimum_eigen_solver import NumPyMinimumEigensolver
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
@@ -20,6 +21,7 @@ from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 __all__ = [
     "VQE",
     "VQEResult",
+    "ICANS",
     "QAOA",
     "NumPyMinimumEigensolver",
     "MinimumEigensolver",
