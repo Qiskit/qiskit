@@ -156,7 +156,7 @@ class CSwapGate(ControlledGate):
             q_1: ─X─
                   │
             q_2: ─■─
-            
+
         .. math::
 
             CSWAP\ q_2, q_1, q_0 =
