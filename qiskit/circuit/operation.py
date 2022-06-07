@@ -76,9 +76,3 @@ class Operation(ABC):
     def condition(self):
         """Condition for when the instruction has a conditional if."""
         raise NotImplementedError
-
-    @property
-    @abstractmethod
-    def definition(self):
-        """Definition of the operation in terms of more basic gates."""
-        raise NotImplementedError

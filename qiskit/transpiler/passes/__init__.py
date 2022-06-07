@@ -138,6 +138,7 @@ Synthesis
    UnitarySynthesis
    LinearFunctionsSynthesis
    LinearFunctionsToPermutations
+   HighLevelSynthesis
 
 Post Layout (Post transpile qubit selection)
 ============================================
@@ -234,6 +235,7 @@ from .synthesis import UnitarySynthesis
 from .synthesis import unitary_synthesis_plugin_names
 from .synthesis import LinearFunctionsSynthesis
 from .synthesis import LinearFunctionsToPermutations
+from .synthesis import HighLevelSynthesis
 
 # calibration
 from .calibration import PulseGates

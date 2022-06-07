@@ -141,9 +141,6 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
                     "Invalid Clifford. Input StabilizerTable is not a valid symplectic matrix."
                 )
 
-        # When required, we will compute the QuantumCircuit for this Clifford.
-        self._definition = None
-
         # Initialize BaseOperator
         super().__init__(num_qubits=self._table.num_qubits)
 
@@ -569,14 +566,6 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]
         flat_cargs = [carg for sublist in cargs for carg in sublist]
         yield flat_qargs, flat_cargs
-
-    @property
-    def definition(self):
-        """Computes and returns the circuit for this Clifford."""
-        if self._definition is None:
-            self._definition = self.to_circuit()
-
-        return self._definition
 
 
 # Update docstrings for API docs

@@ -18,7 +18,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, Gate
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.dagcircuit import DAGOpNode
-from qiskit.transpiler.passes import Unroll3qOrMore
+from qiskit.transpiler.passes import HighLevelSynthesis
 from qiskit.transpiler.passes.optimization.optimize_cliffords import OptimizeCliffords
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators import Clifford
@@ -190,7 +190,7 @@ class TestCliffordPasses(QiskitTestCase):
 
         # However, test that running an unrolling pass on the DAG replaces Clifford
         # by gates.
-        dag1 = Unroll3qOrMore().run(dag0)
+        dag1 = HighLevelSynthesis().run(dag0)
         dag1_cliffords = [
             node
             for node in dag1.topological_nodes()
@@ -219,7 +219,7 @@ class TestCliffordPasses(QiskitTestCase):
             # The third circuit contains the decompositions of Cliffods.
             qc3 = QuantumCircuit(5)
             for cliff in cliffs:
-                qc3.append(cliff.definition, [4, 0, 2])
+                qc3.append(cliff.to_circuit(), [4, 0, 2])
             self.assertNotIn("clifford", qc3.count_ops())
 
             # Check that qc1, qc2 and qc3 and their decompositions are all equivalent.

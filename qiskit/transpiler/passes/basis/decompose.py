@@ -20,6 +20,7 @@ from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.circuit.gate import Gate
 from qiskit.utils.deprecation import deprecate_arguments
+from qiskit.transpiler.passes.synthesis import HighLevelSynthesis
 
 
 class Decompose(TransformationPass):
@@ -84,6 +85,9 @@ class Decompose(TransformationPass):
         Returns:
             output dag where ``gate`` was expanded.
         """
+        # We start by decomposing high-level objects (such as Cliffords)
+        dag = HighLevelSynthesis().run(dag)
+
         # Walk through the DAG and expand each non-basis node
         for node in dag.op_nodes():
             if self._should_decompose(node):
