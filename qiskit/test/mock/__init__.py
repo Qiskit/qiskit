@@ -46,6 +46,7 @@ from qiskit.providers.fake_provider.fake_qasm_simulator import FakeQasmSimulator
 from qiskit.providers.fake_provider.fake_openpulse_2q import FakeOpenPulse2Q
 from qiskit.providers.fake_provider.fake_openpulse_3q import FakeOpenPulse3Q
 from qiskit.providers.fake_provider.fake_1q import Fake1Q
+from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendV2, FakeBackend5QV2
 from qiskit.providers.fake_provider.fake_mumbai_v2 import FakeMumbaiFractionalCX
 
 # Configurable fake backend
