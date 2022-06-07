@@ -94,7 +94,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     def decompose(self, gates_to_decompose=None, reps=1):
         if not self._is_built:
             self._build()
-        return super().decompose(gates_to_decompose,reps)
+        return super().decompose(gates_to_decompose, reps)
 
     def draw(self, *args, **kwargs):
         if not self._is_built:
