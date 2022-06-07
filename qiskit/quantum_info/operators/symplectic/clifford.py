@@ -547,26 +547,6 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
         return padded
 
-    def broadcast_arguments(self, qargs, cargs):
-        """
-        Broadcasting of the arguments.
-        This code is currently copied from Instruction.
-        This will be cleaned up when broadcasting is moved
-        to a separate model.
-
-        Args:
-            qargs (List): List of quantum bit arguments.
-            cargs (List): List of classical bit arguments.
-
-        Yields:
-            Tuple(List, List): A tuple with single arguments.
-        """
-
-        #  [[q[0], q[1]], [c[0], c[1]]] -> [q[0], c[0]], [q[1], c[1]]
-        flat_qargs = [qarg for sublist in qargs for qarg in sublist]
-        flat_cargs = [carg for sublist in cargs for carg in sublist]
-        yield flat_qargs, flat_cargs
-
 
 # Update docstrings for API docs
 generate_apidocs(Clifford)

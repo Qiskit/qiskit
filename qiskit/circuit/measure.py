@@ -17,7 +17,6 @@ Quantum measurement in the computational basis.
 import warnings
 
 from qiskit.circuit.instruction import Instruction
-from qiskit.circuit.exceptions import CircuitError
 
 
 class Measure(Instruction):
@@ -26,19 +25,6 @@ class Measure(Instruction):
     def __init__(self):
         """Create new measurement instruction."""
         super().__init__("measure", 1, 1, [])
-
-    def broadcast_arguments(self, qargs, cargs):
-        qarg = qargs[0]
-        carg = cargs[0]
-
-        if len(carg) == len(qarg):
-            for qarg, carg in zip(qarg, carg):
-                yield [qarg], [carg]
-        elif len(qarg) == 1 and carg:
-            for each_carg in carg:
-                yield qarg, [each_carg]
-        else:
-            raise CircuitError("register size error")
 
 
 def measure(circuit, qubit, clbit):

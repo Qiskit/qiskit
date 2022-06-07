@@ -17,6 +17,7 @@ from collections.abc import MutableSequence
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.broadcast import broadcast_arguments
 
 
 class QuantumCircuitData(MutableSequence):
@@ -40,7 +41,7 @@ class QuantumCircuitData(MutableSequence):
         expanded_qargs = [self._circuit.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self._circuit.cbit_argument_conversion(carg) for carg in cargs or []]
 
-        broadcast_args = list(instruction.broadcast_arguments(expanded_qargs, expanded_cargs))
+        broadcast_args = list(broadcast_arguments(instruction, expanded_qargs, expanded_cargs))
 
         if len(broadcast_args) > 1:
             raise CircuitError(

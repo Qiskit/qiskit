@@ -53,6 +53,7 @@ from .parametertable import ParameterTable, ParameterView
 from .parametervector import ParameterVector, ParameterVectorElement
 from .instructionset import InstructionSet
 from .operation import Operation
+from .broadcast import broadcast_arguments
 from .register import Register
 from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData
@@ -1226,7 +1227,7 @@ class QuantumCircuit:
             appender = self._append
             requester = self._resolve_classical_resource
         instructions = InstructionSet(resource_requester=requester)
-        for qarg, carg in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
+        for qarg, carg in broadcast_arguments(instruction, expanded_qargs, expanded_cargs):
             self._check_dups(qarg)
             instructions.add(appender(instruction, qarg, carg), qarg, carg)
         return instructions

@@ -459,32 +459,6 @@ class Instruction(Operation):
 
         return self._qasmif(name_param)
 
-    def broadcast_arguments(self, qargs, cargs):
-        """
-        Validation of the arguments.
-
-        Args:
-            qargs (List): List of quantum bit arguments.
-            cargs (List): List of classical bit arguments.
-
-        Yields:
-            Tuple(List, List): A tuple with single arguments.
-
-        Raises:
-            CircuitError: If the input is not valid. For example, the number of
-                arguments does not match the gate expectation.
-        """
-        if len(qargs) != self.num_qubits:
-            raise CircuitError(
-                f"The amount of qubit arguments {len(qargs)} does not match"
-                f" the instruction expectation ({self.num_qubits})."
-            )
-
-        #  [[q[0], q[1]], [c[0], c[1]]] -> [q[0], c[0]], [q[1], c[1]]
-        flat_qargs = [qarg for sublist in qargs for qarg in sublist]
-        flat_cargs = [carg for sublist in cargs for carg in sublist]
-        yield flat_qargs, flat_cargs
-
     def _return_repeat(self, exponent):
         return Instruction(
             name=f"{self.name}*{exponent}",

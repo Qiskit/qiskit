@@ -60,19 +60,16 @@ class Operation(ABC):
         """Number of classical bits."""
         raise NotImplementedError
 
-    @abstractmethod
-    def broadcast_arguments(self, qargs, cargs):
-        """Expanding (broadcasting) arguments."""
-        raise NotImplementedError
-
     @property
     @abstractmethod
     def _directive(self):
-        """Class attribute to treat like barrier for transpiler, unroller, drawer."""
+        """Class attribute to treat like barrier for transpiler, unroller, drawer.
+        This is temporary, please do not use."""
         raise NotImplementedError
 
     @property
     @abstractmethod
     def condition(self):
-        """Condition for when the instruction has a conditional if."""
+        """Condition for when the instruction has a conditional if.
+        This is temporary, please do not use."""
         raise NotImplementedError

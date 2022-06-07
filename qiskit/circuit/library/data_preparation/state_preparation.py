@@ -213,17 +213,6 @@ class StatePreparation(Gate):
 
         return StatePreparation(self._params_arg, inverse=not self._inverse, label=label)
 
-    def broadcast_arguments(self, qargs, cargs):
-        flat_qargs = [qarg for sublist in qargs for qarg in sublist]
-
-        if self.num_qubits != len(flat_qargs):
-            raise QiskitError(
-                "StatePreparation parameter vector has %d elements, therefore expects %s "
-                "qubits. However, %s were provided."
-                % (2**self.num_qubits, self.num_qubits, len(flat_qargs))
-            )
-        yield flat_qargs, []
-
     def validate_parameter(self, parameter):
         """StatePreparation instruction parameter can be str, int, float, and complex."""
 
