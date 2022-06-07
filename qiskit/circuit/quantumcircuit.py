@@ -1511,11 +1511,12 @@ class QuantumCircuit:
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
 
-        for _ in range(reps):
-            pass_ = Decompose(gates_to_decompose=gates_to_decompose)
-            decomposed_dag = pass_.run(circuit_to_dag(self))
-            self = dag_to_circuit(decomposed_dag)
-        return self
+        pass_ = Decompose(gates_to_decompose=gates_to_decompose)
+        decomposed_dag = pass_.run(circuit_to_dag(self))
+        for _ in range(reps - 1):
+            decomposed_dag = pass_.run(decomposed_dag)
+        
+        return dag_to_circuit(decomposed_dag)
 
     def _check_compatible_regs(self, rhs: "QuantumCircuit") -> None:
         """Raise exception if the circuits are defined on incompatible registers"""
