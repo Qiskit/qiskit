@@ -277,7 +277,7 @@ class SymbolicPulse(Pulse):
     """
 
     __slots__ = (
-        "amp",
+        "_amp",
         "_pulse_type",
         "_param_names",
         "_param_vals",
@@ -293,7 +293,6 @@ class SymbolicPulse(Pulse):
         self,
         pulse_type: str,
         duration: Union[ParameterExpression, int],
-        amp: Optional[Union[ParameterExpression, complex]] = 1.0 + 0j,
         parameters: Optional[Dict[str, Union[ParameterExpression, complex]]] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
@@ -305,8 +304,6 @@ class SymbolicPulse(Pulse):
         Args:
             pulse_type: Display name of this pulse shape.
             duration: Duration of pulse.
-            amp: Scale factor of the pulse envelope, which is represented by a complex value
-                including a phase information.
             parameters: Dictionary of pulse parameters that defines the pulse envelope.
             name: Display name for this particular pulse envelope.
             limit_amplitude: If ``True``, then limit the absolute value of the amplitude of the
@@ -322,10 +319,16 @@ class SymbolicPulse(Pulse):
             name=name,
             limit_amplitude=limit_amplitude,
         )
-        if not isinstance(amp, ParameterExpression):
-            amp = complex(amp)
-        self.amp = amp
-
+        if "amp" not in parameters:
+            # See https://github.com/symengine/symengine.py/issues/406 for details
+            raise PulseError(
+                "SymbolicPulse assumes the function form 'amp' * F(t, 'duration', 'parameters'). "
+                "You must provide 'amp' in the the 'parameters' dictionary. "
+                "Because of the limitation in the symbolic computation library, "
+                "only this parameter can take a complex value for now. "
+                "This limitation might be removed in future."
+            )
+        self._amp = parameters.pop("amp")
         self._pulse_type = pulse_type
 
         if parameters is None:
@@ -340,6 +343,8 @@ class SymbolicPulse(Pulse):
         # Get pulse parameters with attribute-like access.
         param_names = object.__getattribute__(self, "_param_names")
         param_vals = object.__getattribute__(self, "_param_vals")
+        if item == "amp":
+            return object.__getattribute__(self, "_amp")
         if item not in param_names:
             raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{item}'")
         return param_vals[param_names.index(item)]
@@ -384,7 +389,7 @@ class SymbolicPulse(Pulse):
                 value = params[name]
             func_args.append(value)
 
-        return Waveform(samples=self.amp * self._envelope_lambdify(*func_args), name=self.name)
+        return Waveform(samples=self._amp * self._envelope_lambdify(*func_args), name=self.name)
 
     def validate_parameters(self) -> None:
         """Validate parameters.
@@ -411,7 +416,7 @@ class SymbolicPulse(Pulse):
                     f"Assigned parameters {param_repr} violate following constraint: {const_repr}."
                 )
 
-        if self.limit_amplitude and (np.abs(self.amp) > 1.0 or _validate_amplitude_limit(self)):
+        if self.limit_amplitude and (np.abs(self._amp) > 1.0 or _validate_amplitude_limit(self)):
             # Check max amplitude limit by generating waveform.
             # We can avoid calling _validate_amplitude_limit when |amp| > 1.0
             # which obviously violates the amplitude constraint by definition.
@@ -423,12 +428,12 @@ class SymbolicPulse(Pulse):
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
-        args = (self.duration, self.amp, *self._param_vals)
+        args = (self.duration, self._amp, *self._param_vals)
         return any(isinstance(val, ParameterExpression) for val in args)
 
     @property
     def parameters(self) -> Dict[str, Any]:
-        params = {"duration": self.duration, "amp": self.amp}
+        params = {"duration": self.duration, "amp": self._amp}
         params.update(dict(zip(self._param_names, self._param_vals)))
         return params
 
@@ -443,7 +448,7 @@ class SymbolicPulse(Pulse):
 
     def __hash__(self) -> int:
         return hash(
-            (self._pulse_type, self.duration, self.amp, *self._param_names, *self._param_vals)
+            (self._pulse_type, self.duration, self._amp, *self._param_names, *self._param_vals)
         )
 
     def __repr__(self) -> str:
@@ -487,7 +492,7 @@ class Gaussian(SymbolicPulse):
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
 
         """
-        parameters = {"sigma": sigma}
+        parameters = {"amp": amp if isinstance(amp, complex) else complex(amp), "sigma": sigma}
 
         # Prepare symbolic expressions
         _t, _duration, _sigma = sym.symbols("t, duration, sigma", real=True)
@@ -499,7 +504,6 @@ class Gaussian(SymbolicPulse):
         super().__init__(
             pulse_type=self.__class__.__name__,
             duration=duration,
-            amp=amp,
             parameters=parameters,
             name=name,
             limit_amplitude=limit_amplitude,
@@ -586,7 +590,11 @@ class GaussianSquare(SymbolicPulse):
         if width is None and risefall_sigma_ratio is not None:
             width = duration - 2.0 * risefall_sigma_ratio * sigma
 
-        parameters = {"sigma": sigma, "width": width}
+        parameters = {
+            "amp": amp if isinstance(amp, complex) else complex(amp),
+            "sigma": sigma,
+            "width": width,
+        }
 
         # Prepare symbolic expressions
         _t, _duration, _sigma, _width = sym.symbols("t, duration, sigma, width", real=True)
@@ -606,7 +614,6 @@ class GaussianSquare(SymbolicPulse):
         super().__init__(
             pulse_type=self.__class__.__name__,
             duration=duration,
-            amp=amp,
             parameters=parameters,
             name=name,
             limit_amplitude=limit_amplitude,
@@ -679,7 +686,11 @@ class Drag(SymbolicPulse):
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
         """
-        parameters = {"sigma": sigma, "beta": beta}
+        parameters = {
+            "amp": amp if isinstance(amp, complex) else complex(amp),
+            "sigma": sigma,
+            "beta": beta,
+        }
 
         # Prepare symbolic expressions
         _t, _duration, _sigma, _beta = sym.symbols("t, duration, sigma, beta", real=True)
@@ -697,7 +708,6 @@ class Drag(SymbolicPulse):
         super().__init__(
             pulse_type=self.__class__.__name__,
             duration=duration,
-            amp=amp,
             parameters=parameters,
             name=name,
             limit_amplitude=limit_amplitude,
@@ -732,6 +742,8 @@ class Constant(SymbolicPulse):
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
         """
+        parameters = {"amp": amp if isinstance(amp, complex) else complex(amp)}
+
         # Prepare symbolic expressions
         _t, _duration = sym.symbols("t, duration", real=True)
 
@@ -747,7 +759,7 @@ class Constant(SymbolicPulse):
         super().__init__(
             pulse_type=self.__class__.__name__,
             duration=duration,
-            amp=amp,
+            parameters=parameters,
             name=name,
             limit_amplitude=limit_amplitude,
             envelope=envelope_expr,
