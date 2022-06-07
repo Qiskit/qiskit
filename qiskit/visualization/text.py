@@ -668,7 +668,6 @@ class TextDrawing:
         self.qubits = qubits
         self.clbits = clbits
         self.nodes = nodes
-        self.reverse_bits = reverse_bits
         if with_layout:
             self.layout = self._circuit._layout
         else:
@@ -838,9 +837,7 @@ class TextDrawing:
                 register = wire
                 index = self._wire_map[wire]
             else:
-                register, bit_index, reg_index = get_bit_reg_index(
-                    self._circuit, wire, self.reverse_bits
-                )
+                register, bit_index, reg_index = get_bit_reg_index(self._circuit, wire)
                 index = bit_index if register is None else reg_index
 
             wire_label = get_wire_label(
@@ -1076,9 +1073,7 @@ class TextDrawing:
         if isinstance(op, Measure):
             gate = MeasureFrom()
             layer.set_qubit(node.qargs[0], gate)
-            register, _, reg_index = get_bit_reg_index(
-                self._circuit, node.cargs[0], self.reverse_bits
-            )
+            register, _, reg_index = get_bit_reg_index(self._circuit, node.cargs[0])
             if self.cregbundle and register is not None:
                 layer.set_clbit(
                     node.cargs[0],
@@ -1191,9 +1186,7 @@ class TextDrawing:
         layers = [InputWire.fillup_layer(wire_names)]
 
         for node_layer in self.nodes:
-            layer = Layer(
-                self.qubits, self.clbits, self.reverse_bits, self.cregbundle, self._circuit
-            )
+            layer = Layer(self.qubits, self.clbits, self.cregbundle, self._circuit)
 
             for node in node_layer:
                 layer, current_connections, connection_label = self._node_to_gate(node, layer)
@@ -1208,7 +1201,7 @@ class TextDrawing:
 class Layer:
     """A layer is the "column" of the circuit."""
 
-    def __init__(self, qubits, clbits, reverse_bits=False, cregbundle=False, circuit=None):
+    def __init__(self, qubits, clbits, cregbundle=False, circuit=None):
         self.qubits = qubits
         self.clbits_raw = clbits  # list of clbits ignoring cregbundle change below
         self._circuit = circuit
@@ -1230,7 +1223,6 @@ class Layer:
         self.qubit_layer = [None] * len(qubits)
         self.connections = []
         self.clbit_layer = [None] * len(clbits)
-        self.reverse_bits = reverse_bits
         self.cregbundle = cregbundle
 
     @property
@@ -1397,9 +1389,7 @@ class Layer:
             condition (list[Union(Clbit, ClassicalRegister), int]): The condition
             top_connect (char): The char to connect the box on the top.
         """
-        label, val_bits = get_condition_label_val(
-            condition, self._circuit, self.cregbundle, self.reverse_bits
-        )
+        label, val_bits = get_condition_label_val(condition, self._circuit, self.cregbundle)
         if isinstance(condition[0], ClassicalRegister):
             cond_reg = condition[0]
         else:

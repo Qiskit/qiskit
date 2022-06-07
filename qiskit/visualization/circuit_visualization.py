@@ -190,6 +190,19 @@ def circuit_drawer(
     if output is None:
         output = default_output
 
+    if wire_order is not None and len(wire_order) != circuit.num_qubits + circuit.num_clbits:
+        raise VisualizationError(
+            "The wire_order list must be the same "
+            "length as the sum of the number of qubits and clbits in the circuit."
+        )
+    elif wire_order is not None and set(wire_order) != set(
+        range(circuit.num_qubits + circuit.num_clbits)
+    ):
+        raise VisualizationError(
+            "There must be one and only one entry in the "
+            "wire_order list for the index of each qubit and each clbit in the circuit."
+        )
+
     if cregbundle and (reverse_bits or wire_order is not None):
         cregbundle = False
         warn(
