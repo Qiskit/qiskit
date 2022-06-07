@@ -1513,8 +1513,7 @@ class QuantumCircuit:
         for _ in range(reps):
             pass_ = Decompose(gates_to_decompose=gates_to_decompose)
             decomposed_dag = pass_.run(circuit_to_dag(self))
-            cir = dag_to_circuit(decomposed_dag)
-            self = cir
+            self = dag_to_circuit(decomposed_dag)
         return self
 
     def _check_compatible_regs(self, rhs: "QuantumCircuit") -> None:
