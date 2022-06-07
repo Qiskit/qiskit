@@ -24,6 +24,7 @@ from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.synthesis.clifford_decompose import decompose_clifford
 from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
 from qiskit.circuit.operation import Operation
+from qiskit.quantum_info.operators.symplectic.base_pauli import _count_y
 from .stabilizer_table import StabilizerTable
 from .clifford_circuits import _append_circuit
 
@@ -102,7 +103,8 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
     """
 
-    # Fields that are currently required to add an object as an Operation.
+    # Fields that are temporarily required to add an object as an Operation.
+    # These will soon be removed, please do not use.
     condition = None
     _directive = False
 
@@ -525,7 +527,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
             ret.table.phase ^= clifford.dot(ret).table.phase
         if method in ["C", "T"]:
             # Apply conjugate
-            ret.table.phase ^= np.mod(np.sum(ret.table.X & ret.table.Z, axis=1), 2).astype(bool)
+            ret.table.phase ^= np.mod(_count_y(ret.table.X, ret.table.Z), 2).astype(bool)
         return ret
 
     def _pad_with_identity(self, clifford, qargs):
