@@ -10,7 +10,14 @@ CALLBACK = Callable[[int, np.ndarray, float, float], None]
 
 @dataclass
 class AskObject(ABC):
-    """Base class for return type of method SteppableOptimizer.ask()"""
+    """
+    Base class for return type of method :meth:`~qiskit.algorithms.optimizers.SteppableOptimizer.ask`.
+    Args:
+        x_fun: Point or list of points where the function needs to be evaluated to compute the
+            next state of the optimizer.
+        x_jac: Point or list of points where the gradient/jacobian needs to be evaluated to compute the
+            next state of the optimizer.
+    """
 
     x_fun: Union[POINT, List[POINT]]
     x_jac: Union[POINT, List[POINT]]
@@ -18,7 +25,14 @@ class AskObject(ABC):
 
 @dataclass
 class TellObject(ABC):
-    """Base class for argument type of method SteppableOptimizer.tell()"""
+    """
+    Base class for argument type of method SteppableOptimizer.tell().
+    Args:
+        eval_fun: Image of the function at
+            :attr:`~qiskit.algorithms.optimizers.SteppableOptimizer.Ask_Object.x_fun`.
+        eval_jac: Image of the gradient-jacobian at
+            :attr:`~qiskit.algorithms.optimizers.SteppableOptimizer.Ask_Object.x_fun`.
+    """
 
     eval_fun: Union[float, List[float]]
     eval_jac: Union[POINT, List[POINT]]
@@ -121,7 +135,7 @@ class SteppableOptimizer(Optimizer):
         Canonical optimization workflow using ask() and tell() can be seen in SteppableOptimizer.step().
 
         Returns:
-            Since the way to evaluate the function can vary much with different 
+            Since the way to evaluate the function can vary much with different
             optimization algorithms, the object will be a custom dataclass for each optimizer.
         """
         raise NotImplementedError

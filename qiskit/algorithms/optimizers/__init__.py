@@ -120,6 +120,7 @@ from .nlopts.direct_l_rand import DIRECT_L_RAND
 from .nlopts.esch import ESCH
 from .nlopts.isres import ISRES
 from .optimizer import Optimizer, OptimizerResult, OptimizerSupportLevel
+from .steppable_optimizer import SteppableOptimizer
 from .p_bfgs import P_BFGS
 from .powell import POWELL
 from .qnspsa import QNSPSA
@@ -128,10 +129,11 @@ from .slsqp import SLSQP
 from .snobfit import SNOBFIT
 from .spsa import SPSA
 from .tnc import TNC
-from .cmaes import SteppableCMAES
+from .cmaes import CMAES
 
 __all__ = [
     "Optimizer",
+    "SteppableOptimizer"
     "OptimizerSupportLevel",
     "ADAM",
     "AQGD",
