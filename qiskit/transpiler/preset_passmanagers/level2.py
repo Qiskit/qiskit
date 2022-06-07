@@ -122,7 +122,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             plugin_config=unitary_synthesis_plugin_config,
             target=target,
         ),
-        Unroll3qOrMore(),
+        Unroll3qOrMore(target=target, basis_gates=basis_gates),
     ]
 
     # 2. Search for a perfect layout, or choose a dense layout, if no layout given
@@ -154,7 +154,6 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             coupling_map,
             seed=seed_transpiler,
             call_limit=int(5e6),  # Set call limit to ~10 sec with retworkx 0.10.2
-            time_limit=10.0,
             properties=backend_properties,
             target=target,
         )
@@ -238,7 +237,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 min_qubits=3,
                 target=target,
             ),
-            Unroll3qOrMore(),
+            Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates, target=target),
             UnitarySynthesis(
@@ -294,9 +293,18 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             and pass_manager_config.layout_method is None
         ):
 
-            def _post_layout_condition(property_set):
-                # if VF2 layout stopped for any reason other than solution found we need
-                # to run layout since VF2 didn't converge.
+            def _run_post_layout_condition(property_set):
+                vf2_stop_reason = property_set["VF2Layout_stop_reason"]
+                if (
+                    vf2_stop_reason is not None
+                    and vf2_stop_reason == VF2LayoutStopReason.SOLUTION_FOUND
+                ):
+                    return False
+                return True
+
+            def _apply_post_layout_condition(property_set):
+                # if VF2 Post layout found a solution we need to re-apply the better
+                # layout. Otherwise we can skip apply layout.
                 if (
                     property_set["VF2PostLayout_stop_reason"] is not None
                     and property_set["VF2PostLayout_stop_reason"]
@@ -312,11 +320,11 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                     backend_properties,
                     seed_transpiler,
                     call_limit=int(5e6),  # Set call limit to ~10 sec with retworkx 0.10.2
-                    time_limit=10.0,
                     strict_direction=False,
-                )
+                ),
+                condition=_run_post_layout_condition,
             )
-            pm2.append(ApplyLayout(), condition=_post_layout_condition)
+            pm2.append(ApplyLayout(), condition=_apply_post_layout_condition)
 
     pm2.append(_unroll)
     if (coupling_map and not coupling_map.is_symmetric) or (

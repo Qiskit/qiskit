@@ -419,6 +419,9 @@ class TestKraus(ChannelTestCase):
         self.assertEqual(rho & chan, targ)
         chan = val * chan1
         self.assertEqual(rho & chan, targ)
+        targ = (rho & chan1) * val
+        chan = chan1 * val
+        self.assertEqual(rho & chan, targ)
 
         # Double Kraus set
         chan2 = Kraus((kraus1, kraus2))

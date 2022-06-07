@@ -152,6 +152,9 @@ class TestScalarOpLinearMethods(ScalarOpTestCase):
         val = coeff2 * ScalarOp(dims, coeff=coeff1)
         target = coeff1 * coeff2
         self.assertScalarOp(val, dims, target)
+        val = ScalarOp(dims, coeff=coeff1) * coeff2
+        target = coeff2 * coeff1
+        self.assertScalarOp(val, dims, target)
 
     @combine(coeff1=[0, 1, -3.1, 1 + 3j], coeff2=[-1, -5.1 - 2j])
     def test_add(self, coeff1, coeff2):
