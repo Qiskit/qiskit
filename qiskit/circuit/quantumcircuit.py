@@ -475,37 +475,51 @@ class QuantumCircuit:
             .. parsed-literal::
 
                      ┌───┐
-                q_0: ┤ H ├─────■──────
-                     └───┘┌────┴─────┐
-                q_1: ─────┤ RX(1.57) ├
-                          └──────────┘
+                a_0: ┤ H ├──■─────────────────
+                     └───┘┌─┴─┐
+                a_1: ─────┤ X ├──■────────────
+                          └───┘┌─┴─┐
+                a_2: ──────────┤ X ├──■───────
+                               └───┘┌─┴─┐
+                b_0: ───────────────┤ X ├──■──
+                                    └───┘┌─┴─┐
+                b_1: ────────────────────┤ X ├
+                                         └───┘
 
             output:
 
             .. parsed-literal::
 
-                          ┌──────────┐
-                q_0: ─────┤ RX(1.57) ├
-                     ┌───┐└────┬─────┘
-                q_1: ┤ H ├─────■──────
+                                         ┌───┐
+                b_0: ────────────────────┤ X ├
+                                    ┌───┐└─┬─┘
+                b_1: ───────────────┤ X ├──■──
+                               ┌───┐└─┬─┘
+                a_0: ──────────┤ X ├──■───────
+                          ┌───┐└─┬─┘
+                a_1: ─────┤ X ├──■────────────
+                     ┌───┐└─┬─┘
+                a_2: ┤ H ├──■─────────────────
                      └───┘
         """
         circ = QuantumCircuit(
-            *reversed(self.qregs),
-            *reversed(self.cregs),
+            list(reversed(self.qubits)),
+            list(reversed(self.clbits)),
             name=self.name,
             global_phase=self.global_phase,
         )
-        num_qubits = self.num_qubits
-        num_clbits = self.num_clbits
-        old_qubits = self.qubits
-        old_clbits = self.clbits
-        new_qubits = circ.qubits
-        new_clbits = circ.clbits
+        new_qubit_map = circ.qubits[::-1]
+        new_clbit_map = circ.clbits[::-1]
+        for reg in reversed(self.qregs):
+            bits = [new_qubit_map[self.find_bit(qubit).index] for qubit in reversed(reg)]
+            circ.add_register(QuantumRegister(bits=bits, name=reg.name))
+        for reg in reversed(self.cregs):
+            bits = [new_clbit_map[self.find_bit(clbit).index] for clbit in reversed(reg)]
+            circ.add_register(ClassicalRegister(bits=bits, name=reg.name))
 
         for inst, qargs, cargs in self.data:
-            new_qargs = [new_qubits[num_qubits - old_qubits.index(q) - 1] for q in qargs]
-            new_cargs = [new_clbits[num_clbits - old_clbits.index(c) - 1] for c in cargs]
+            new_qargs = [new_qubit_map[self.find_bit(qubit).index] for qubit in qargs]
+            new_cargs = [new_clbit_map[self.find_bit(clbit).index] for clbit in cargs]
             circ._append(inst, new_qargs, new_cargs)
         return circ
 
@@ -1722,7 +1736,7 @@ class QuantumCircuit:
 
         **text**: ASCII art TextDrawing that can be printed in the console.
 
-        **matplotlib**: images with color rendered purely in Python.
+        **mpl**: images with color rendered purely in Python using matplotlib.
 
         **latex**: high-quality images compiled via latex.
 
@@ -3187,30 +3201,6 @@ class QuantumCircuit:
         from .library.standard_gates.rzz import RZZGate
 
         return self.append(RZZGate(theta), [qubit1, qubit2], [])
-
-    def xy(
-        self,
-        theta: ParameterValueType,
-        qubit1: QubitSpecifier,
-        qubit2: QubitSpecifier,
-        beta: Optional[ParameterValueType] = 0,
-    ) -> InstructionSet:
-        """Apply :class:`~qiskit.circuit.library.XYGate`.
-
-        For the full matrix form of this gate, see the underlying gate documentation.
-
-        Args:
-            theta: The rotation angle of the gate.
-            beta: The phase angle of the gate.
-            qubit1: The qubit(s) to apply the gate to.
-            qubit2: The qubit(s) to apply the gate to.
-
-        Returns:
-            A handle to the instructions created.
-        """
-        from .library.standard_gates.xy import XYGate
-
-        return self.append(XYGate(theta, beta), [qubit1, qubit2], [])
 
     def ecr(self, qubit1: QubitSpecifier, qubit2: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.ECRGate`.

@@ -12,11 +12,9 @@
 
 """Base circuit scheduling pass."""
 
-import warnings
-
 from typing import Dict
 from qiskit.transpiler import InstructionDurations
-from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
 from qiskit.dagcircuit import DAGOpNode, DAGCircuit
 from qiskit.circuit import Delay, Gate
@@ -24,8 +22,17 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.transpiler.exceptions import TranspilerError
 
 
-class BaseScheduler(AnalysisPass):
+class BaseSchedulerTransform(TransformationPass):
     """Base scheduler pass.
+
+    .. warning::
+
+        This base class is not part of the public interface for this module
+        it should not be used to develop new scheduling passes as the passes
+        which are using this are pending a future deprecation and subsequent
+        removal. If you are developing new scheduling passes look at the
+        ``BaseScheduler`` class instead which is used in the new scheduling
+        pass workflow.
 
     Policy of topological node ordering in scheduling
 
@@ -241,15 +248,6 @@ class BaseScheduler(AnalysisPass):
         # Ensure op node durations are attached and in consistent unit
         self.requires.append(TimeUnitConversion(durations))
 
-        # Initialize timeslot
-        if "node_start_time" in self.property_set:
-            warnings.warn(
-                "This circuit has been already scheduled. "
-                "The output of previous scheduling pass will be overridden.",
-                UserWarning,
-            )
-        self.property_set["node_start_time"] = dict()
-
     @staticmethod
     def _get_node_duration(
         node: DAGOpNode,
@@ -263,9 +261,6 @@ class BaseScheduler(AnalysisPass):
             # If node has calibration, this value should be the highest priority
             cal_key = tuple(indices), tuple(float(p) for p in node.op.params)
             duration = dag.calibrations[node.op.name][cal_key].duration
-
-            # Note that node duration is updated (but this is analysis pass)
-            node.op.duration = duration
         else:
             duration = node.op.duration
 

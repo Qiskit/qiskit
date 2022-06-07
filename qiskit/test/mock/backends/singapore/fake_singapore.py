@@ -15,10 +15,10 @@ Fake Singapore device (20 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_pulse_backend
+from qiskit.test.mock import fake_pulse_backend, fake_backend
 
 
-class FakeSingapore(fake_pulse_backend.FakePulseBackend):
+class FakeSingaporeV2(fake_backend.FakeBackendV2):
     """A fake Singapore backend.
 
     00 ↔ 01 ↔ 02 ↔ 03 ↔ 04
@@ -34,10 +34,10 @@ class FakeSingapore(fake_pulse_backend.FakePulseBackend):
     conf_filename = "conf_singapore.json"
     props_filename = "props_singapore.json"
     defs_filename = "defs_singapore.json"
-    backend_name = "fake_singapore"
+    backend_name = "fake_singapore_v2"
 
 
-class FakeLegacySingapore(fake_pulse_backend.FakePulseLegacyBackend):
+class FakeSingapore(fake_pulse_backend.FakePulseBackend):
     """A fake Singapore backend.
 
     00 ↔ 01 ↔ 02 ↔ 03 ↔ 04
