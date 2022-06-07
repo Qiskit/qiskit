@@ -37,4 +37,3 @@ class HighLevelSynthesis(TransformationPass):
             dag.substitute_node_with_dag(node, decomposition)
 
         return dag
-
