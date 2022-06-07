@@ -1,6 +1,7 @@
 setuptools-rust
 coverage>=4.4.0
 hypothesis>=4.24.3
+python-constraint>=1.4
 ipython<7.22.0
 ipykernel<5.5.2
 ipywidgets>=7.3.0
