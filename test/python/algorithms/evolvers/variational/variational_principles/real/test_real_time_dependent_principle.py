@@ -80,9 +80,12 @@ class TestRealTimeDependentPrinciple(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = RealTimeDependentPrinciple()
 
-        evolution_grad = var_principle.calc_evolution_grad(observable, ansatz, parameters)
+        evolution_grad = var_principle.calc_evolution_grad()
+        hamiltonian = var_principle.modify_hamiltonian(observable, ansatz, None, param_dict)
 
-        bound_raw_evolution_grad = evolution_grad.bind_parameters(param_dict)
+        bound_evolution_grad = 0.5 * evolution_grad.gradient_wrapper(
+            hamiltonian, parameters, parameters
+        )(param_dict.values())
 
         expected_bound_evolution_grad = [
             (-0.19308934095957098 + 1.4e-17j),
@@ -100,7 +103,7 @@ class TestRealTimeDependentPrinciple(QiskitAlgorithmsTestCase):
         ]
 
         np.testing.assert_almost_equal(
-            bound_raw_evolution_grad.eval(), expected_bound_evolution_grad, decimal=5
+            bound_evolution_grad, expected_bound_evolution_grad, decimal=5
         )
 
 

@@ -65,6 +65,7 @@ class TestVarQTELinearSolver(QiskitAlgorithmsTestCase):
         var_principle = ImaginaryMcLachlanPrinciple()
 
         metric_tensor = var_principle.create_qfi()
+
         evolution_grad = var_principle.calc_evolution_grad()
         gradient_operator = var_principle.modify_hamiltonian(
             observable, ansatz, CircuitSampler(backend) if backend else None, param_dict
@@ -77,6 +78,7 @@ class TestVarQTELinearSolver(QiskitAlgorithmsTestCase):
             parameters,
             evolution_grad,
             gradient_operator,
+            t_param=None,
             lse_solver=linear_solver,
             quantum_instance=backend,
         )

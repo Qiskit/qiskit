@@ -24,15 +24,11 @@ from qiskit.opflow import (
     QFI,
     CircuitStateFn,
     StateFn,
-    CircuitGradient,
     Gradient,
 )
 from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
 from qiskit.utils.backend_utils import is_aer_provider
-from ..calculators.evolution_grad_calculator import (
-    eval_grad_result,
-)
 
 
 class VarQTELinearSolver:
@@ -40,7 +36,6 @@ class VarQTELinearSolver:
 
     def __init__(
         self,
-        hamiltonian,
         ansatz: Union[StateFn, QuantumCircuit],
         qfi: QFI,
         gradient_params: List[Parameter],
@@ -67,18 +62,17 @@ class VarQTELinearSolver:
             imag_part_tol: Allowed value of an imaginary part that can be neglected if no
                 imaginary part is expected.
         """
-        self._hamiltonian = hamiltonian
         self._ansatz = ansatz
         self._qfi = qfi
         self._gradient_params = gradient_params
         bind_params = gradient_params + [t_param] if t_param else gradient_params
-        print(bind_params)
-        print(gradient_params)
+        # print(bind_params)
+        # print(gradient_params)
         self._qfi_gradient_callable = qfi.gradient_wrapper(
             CircuitStateFn(ansatz), bind_params, gradient_params, quantum_instance
         )
         self._gradient_operator = gradient_operator
-        print(gradient_operator)
+        # print(gradient_operator)
         self._evolution_grad_callable = evolution_grad.gradient_wrapper(
             gradient_operator, bind_params, gradient_params, quantum_instance
         )
@@ -128,14 +122,26 @@ class VarQTELinearSolver:
         param_values = list(param_dict.values())
         if self._time_param is not None:
             param_values.append(time_value)
-        print("Param vals")
-        print(param_values)
+            t_dict = {t_param: time_value}
+        # print("Param vals")
+        # print(param_values)
         metric_tensor_lse_lhs = 0.25 * self._qfi_gradient_callable(param_values)
 
         evolution_grad_lse_rhs = 0.5 * self._evolution_grad_callable(param_values)
 
-        print(metric_tensor_lse_lhs)
-        print(evolution_grad_lse_rhs)
+        # print(metric_tensor_lse_lhs)
+        # print(evolution_grad_lse_rhs)
+        # print(type(evolution_grad_lse_rhs))
+
+        if self._time_param is not None:
+            bound_evolution_grad_lse_rhs = np.zeros(len(evolution_grad_lse_rhs), dtype=complex)
+            for i, param_expr in enumerate(evolution_grad_lse_rhs):
+                bound_evolution_grad_lse_rhs[i] = param_expr.assign(
+                    self._time_param, time_value
+                ).__complex__()
+            # print(bound_evolution_grad_lse_rhs)
+            # print(type(bound_evolution_grad_lse_rhs[0]))
+            evolution_grad_lse_rhs = bound_evolution_grad_lse_rhs
 
         x = self._lse_solver(metric_tensor_lse_lhs, evolution_grad_lse_rhs)[0]
 

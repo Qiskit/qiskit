@@ -12,15 +12,8 @@
 
 """Class for an Imaginary McLachlan's Variational Principle."""
 
-from typing import Union, List
-
-from qiskit import QuantumCircuit
-from qiskit.circuit import Parameter
-from qiskit.opflow import StateFn, OperatorBase, QFI, Gradient
+from qiskit.opflow import StateFn, QFI, Gradient
 from qiskit.opflow.gradients.circuit_gradients import LinComb
-from ..calculators import (
-    evolution_grad_calculator,
-)
 from .imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )

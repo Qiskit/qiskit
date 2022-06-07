@@ -12,25 +12,16 @@
 
 """Class for a Real McLachlan's Variational Principle."""
 
-from typing import Union, Dict, List, Callable, Optional
-
-from qiskit import QuantumCircuit
-from qiskit.circuit import Parameter
 from qiskit.opflow import (
     StateFn,
     SummedOp,
     Y,
     I,
     PauliExpectation,
-    CircuitSampler,
-    OperatorBase,
     QFI,
     Gradient,
 )
 from qiskit.opflow.gradients.circuit_gradients import LinComb
-from ..calculators import (
-    evolution_grad_calculator,
-)
 from .real_variational_principle import (
     RealVariationalPrinciple,
 )
@@ -56,7 +47,7 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
         """
         return QFI(self._qfi_method)
 
-    def calc_evolution_grad(  # TODO returns CircuitGradient
+    def calc_evolution_grad(
         self,
     ) -> Gradient:
         """
@@ -86,4 +77,4 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
         energy_term *= -1
         energy_term *= energy
         hamiltonian_ = SummedOp([hamiltonian, energy_term]).reduce()
-        return hamiltonian_
+        return StateFn(hamiltonian_, is_measurement=True) @ StateFn(ansatz)

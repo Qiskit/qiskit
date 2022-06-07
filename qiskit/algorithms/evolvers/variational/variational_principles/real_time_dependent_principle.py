@@ -12,16 +12,9 @@
 
 """Class for a Real Time Dependent Variational Principle."""
 
-from typing import Union, List
-
-from qiskit import QuantumCircuit
-from qiskit.circuit import Parameter
-from qiskit.opflow import Y, OperatorBase, StateFn, QFI, Gradient
+from qiskit.opflow import Y, StateFn, QFI, Gradient
 from qiskit.opflow.gradients.circuit_gradients import LinComb
 from qiskit.opflow.gradients.circuit_qfis import LinCombFull
-from ..calculators import (
-    evolution_grad_calculator,
-)
 from .real_variational_principle import (
     RealVariationalPrinciple,
 )

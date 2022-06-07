@@ -140,10 +140,10 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
                     operator=observable,
                     backend=backend,
                 )
-                var_qite = VarQRTE(
+                var_qrte = VarQRTE(
                     var_principle, ode_function, quantum_instance=backend, expectation=expectation
                 )
-                evolution_result = var_qite.evolve(evolution_problem)
+                evolution_result = var_qrte.evolve(evolution_problem)
 
                 evolved_state = evolution_result.evolved_state
                 aux_ops = evolution_result.aux_ops_evaluated
@@ -156,7 +156,8 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
                 else:
                     thetas_expected = thetas_expected_sv
                     expected_aux_ops = expected_aux_ops_evaluated_sv
-
+                print(repr(parameter_values))
+                print(aux_ops)
                 for i, parameter_value in enumerate(parameter_values):
                     np.testing.assert_almost_equal(
                         float(parameter_value), thetas_expected[i], decimal=3

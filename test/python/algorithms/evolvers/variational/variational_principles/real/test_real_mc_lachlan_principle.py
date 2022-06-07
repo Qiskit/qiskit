@@ -59,7 +59,6 @@ class TestRealMcLachlanPrinciple(QiskitAlgorithmsTestCase):
             bound_metric_tensor, expected_bound_metric_tensor_2, decimal=5
         )
 
-    # TODO deal with the callable
     def test_calc_evolution_grad(self):
         """Test calculating evolution gradient."""
         observable = SummedOp(
@@ -81,11 +80,12 @@ class TestRealMcLachlanPrinciple(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = RealMcLachlanPrinciple()
 
-        evolution_grad = var_principle.calc_evolution_grad(observable, ansatz, parameters)
-        sampler = None
-        evolution_grad = evolution_grad(param_dict, sampler)
+        evolution_grad = var_principle.calc_evolution_grad()
+        hamiltonian = var_principle.modify_hamiltonian(observable, ansatz, None, param_dict)
 
-        bound_raw_evolution_grad = evolution_grad.bind_parameters(param_dict)
+        bound_evolution_grad = 0.5 * evolution_grad.gradient_wrapper(
+            hamiltonian, parameters, parameters
+        )(param_dict.values())
 
         expected_bound_evolution_grad = [
             (0.04514911474522546 - 4e-18j),
@@ -101,9 +101,10 @@ class TestRealMcLachlanPrinciple(QiskitAlgorithmsTestCase):
             (-0.06425681697616654 - 7e-18j),
             (0.03172376682078948 + 7e-18j),
         ]
+        print(bound_evolution_grad)
 
         np.testing.assert_almost_equal(
-            bound_raw_evolution_grad.eval(), expected_bound_evolution_grad, decimal=5
+            bound_evolution_grad, expected_bound_evolution_grad, decimal=5
         )
 
 

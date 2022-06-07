@@ -29,7 +29,7 @@ from qiskit.opflow import SummedOp, X, Y, I, Z, CircuitStateFn
 class TestImaginaryMcLachlanPrinciple(QiskitAlgorithmsTestCase):
     """Test imaginary McLachlan's variational principle."""
 
-    def test_calc_calc_metric_tensor(self):
+    def test_calc_metric_tensor(self):
         """Test calculating a metric tensor."""
         observable = SummedOp(
             [
@@ -79,9 +79,12 @@ class TestImaginaryMcLachlanPrinciple(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = ImaginaryMcLachlanPrinciple()
 
-        evolution_grad = var_principle.calc_evolution_grad(observable, ansatz, parameters)
+        evolution_grad = var_principle.calc_evolution_grad()
+        hamiltonian = var_principle.modify_hamiltonian(observable, ansatz, None, param_dict)
 
-        bound_raw_evolution_grad = evolution_grad.bind_parameters(param_dict)
+        bound_evolution_grad = 0.5 * evolution_grad.gradient_wrapper(
+            hamiltonian, parameters, parameters
+        )(param_dict.values())
 
         expected_bound_evolution_grad = [
             (0.19308934095957098 - 1.4e-17j),
@@ -98,9 +101,7 @@ class TestImaginaryMcLachlanPrinciple(QiskitAlgorithmsTestCase):
             (-0.022892905637005294 + 3.5e-18j),
         ]
 
-        np.testing.assert_almost_equal(
-            bound_raw_evolution_grad.eval(), expected_bound_evolution_grad
-        )
+        np.testing.assert_almost_equal(bound_evolution_grad, expected_bound_evolution_grad)
 
 
 if __name__ == "__main__":
