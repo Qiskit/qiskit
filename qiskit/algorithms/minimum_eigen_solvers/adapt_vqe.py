@@ -82,7 +82,7 @@ class AdaptVQE(VariationalAlgorithm):
         """
         validate_min("threshold", threshold, 1e-15)
         super().__init__(
-            self.initial_point : initial_point,
+            initial_point = initial_point
         )
 
         if adapt_gradient is None:
@@ -95,7 +95,6 @@ class AdaptVQE(VariationalAlgorithm):
         self._tmp_ansatz = ansatz
         self.expectation = expectation
         self.quantum_instance = quantum_instance
-        #self._initial_point = initial_point
         self._excitation_list: List[OperatorBase] = []
 
     def _compute_gradients(
