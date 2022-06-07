@@ -96,7 +96,8 @@ Supplementary Information
 
    .. jupyter-execute::
 
-      from qiskit.compiler import transpile
+      from qiskit import transpile
+
       qc_basis = transpile(qc, backend)
       qc_basis.draw(output='mpl')
 
