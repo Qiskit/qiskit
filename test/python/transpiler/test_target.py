@@ -997,6 +997,14 @@ Instructions:
         )
         self.assertFalse(target.instruction_supported("u", parameters=[math.pi]))
         self.assertTrue(target.instruction_supported("u", parameters=[math.pi, math.pi, math.pi]))
+        self.assertTrue(
+            target.instruction_supported(
+                operation_class=UGate, parameters=[math.pi, math.pi, math.pi]
+            )
+        )
+        self.assertFalse(
+            target.instruction_supported(operation_class=UGate, parameters=[Parameter("x")])
+        )
 
     def test_instruction_supported_arg_len_mismatch(self):
         self.assertFalse(
