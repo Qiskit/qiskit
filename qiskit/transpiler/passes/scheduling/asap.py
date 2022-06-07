@@ -39,7 +39,7 @@ class ASAPSchedule(BaseSchedulerTransform):
         warnings.warn(
             "The ASAPSchedule class has been supersceded by the ASAPScheduleAnalysis class "
             "which performs the as analysis pass that requires a padding pass to later modify "
-            "the circuit. This class is deprecated and will be removed in a future release"
+            "the circuit. This class is deprecated and will be removed in a future release",
             DeprecationWarning,
         )
 
