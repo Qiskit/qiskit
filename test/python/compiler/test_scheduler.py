@@ -74,7 +74,7 @@ class TestCircuitScheduler(QiskitTestCase):
 
     def test_schedules_multiple_circuits(self):
         """Test scheduling of multiple circuits."""
-        self.enableParallelProcessing()
+        self.enable_parallel_processing()
 
         circuits = [self.circ, self.circ2]
         circuit_schedules = schedule(circuits, self.backend, method="asap")

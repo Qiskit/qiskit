@@ -145,7 +145,7 @@ class BaseQiskitTestCase(BaseTestCase):
             msg = self._formatMessage(msg, error_msg)
             raise self.failureException(msg)
 
-    def enableParallelProcessing(self):
+    def enable_parallel_processing(self):
         """
         Enables parallel processing, for the duration of a test, on platforms
         that support it. This is done by temporarily overriding the value of
