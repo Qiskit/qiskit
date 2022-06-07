@@ -81,6 +81,9 @@ class AdaptVQE(VariationalAlgorithm):
             excitation_pool: An entire list of excitations.
         """
         validate_min("threshold", threshold, 1e-15)
+        super().__init__(
+            self.initial_point : initial_point
+        )
 
         if adapt_gradient is None:
             adapt_gradient = Gradient(grad_method="param_shift")
