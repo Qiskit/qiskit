@@ -1801,7 +1801,7 @@ class TestParameterReferences(QiskitTestCase):
         self.assertIn((gate2, 0), refs)
 
         gate_ids = {id(gate1), id(gate2)}
-        self.assertTrue(all(id(gate) in gate_ids for gate, _ in refs))
+        self.assertEqual(gate_ids, {id(gate) for gate, _ in refs})
         self.assertTrue(all(idx == 0 for _, idx in refs))
 
     def test_pickle_unpickle(self):
@@ -1846,10 +1846,9 @@ class TestParameterReferences(QiskitTestCase):
         ref2 = (RZGate(theta), 0)
 
         refs = ParameterReferences((ref0,))
-
         refs |= ParameterReferences((ref0, ref1, ref2, ref1, ref0))
 
-        self.assertEqual(list(refs), [ref0, ref1, ref2])
+        self.assertEqual(refs, ParameterReferences((ref0, ref1, ref2)))
 
     def test_copy_param_refs(self):
         """Copy of parameter references is a shallow copy."""
@@ -1862,17 +1861,20 @@ class TestParameterReferences(QiskitTestCase):
 
         refs = ParameterReferences((ref0, ref1))
         refs_copy = refs.copy()
+
+        # Check same gate instances in copy
+        gate_ids = {id(ref0[0]), id(ref1[0])}
+        self.assertEqual({id(gate) for gate, _ in refs_copy}, gate_ids)
+
+        # add new ref to original and check copy not modified
         refs.add(ref2)
-
-        # check copy not modified
         self.assertNotIn(ref2, refs_copy)
-        self.assertEqual(list(refs_copy), [ref0, ref1])
+        self.assertEqual(refs_copy, ParameterReferences((ref0, ref1)))
 
+        # add new ref to copy and check original not modified
         refs_copy.add(ref3)
-
-        # check original not modified
         self.assertNotIn(ref3, refs)
-        self.assertEqual(list(refs), [ref0, ref1, ref2])
+        self.assertEqual(refs, ParameterReferences((ref0, ref1, ref2)))
 
 
 class TestParameterTable(QiskitTestCase):
@@ -1895,8 +1897,8 @@ class TestParameterTable(QiskitTestCase):
         # make sure editing mapping doesn't change `table`
         del mapping[p1]
 
-        self.assertEqual(list(table[p1]), [ref0, ref1])
-        self.assertEqual(list(table[p2]), [ref2])
+        self.assertEqual(table[p1], ParameterReferences((ref0, ref1)))
+        self.assertEqual(table[p2], ParameterReferences((ref2,)))
 
     def test_set_references(self):
         """References replacement by parameter key."""
@@ -1908,10 +1910,10 @@ class TestParameterTable(QiskitTestCase):
 
         table = ParameterTable()
         table[p1] = ParameterReferences((ref0, ref1))
-        self.assertEqual(list(table[p1]), [ref0, ref1])
+        self.assertEqual(table[p1], ParameterReferences((ref0, ref1)))
 
         table[p1] = ParameterReferences((ref1,))
-        self.assertEqual(list(table[p1]), [ref1])
+        self.assertEqual(table[p1], ParameterReferences((ref1,)))
 
     def test_set_references_from_iterable(self):
         """Parameter table init from iterable."""
@@ -1922,14 +1924,10 @@ class TestParameterTable(QiskitTestCase):
         ref1 = (RZGate(p1), 0)
         ref2 = (RZGate(p1), 0)
 
-        table = ParameterTable(
-            {
-                p1: ParameterReferences((ref0, ref1)),
-            }
-        )
-
+        table = ParameterTable({p1: ParameterReferences((ref0, ref1))})
         table[p1] = (ref2, ref1, ref0)
-        self.assertEqual(list(table[p1]), [ref2, ref1, ref0])
+
+        self.assertEqual(table[p1], ParameterReferences((ref2, ref1, ref0)))
 
 
 class TestParameterView(QiskitTestCase):

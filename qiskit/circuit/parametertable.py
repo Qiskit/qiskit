@@ -57,7 +57,7 @@ class ParameterReferences(MutableSet):
         return self._instance_key(x) in self._instance_ids
 
     def __repr__(self) -> str:
-        return f"ParameterReferences({repr(list(iter(self)))})"
+        return f"ParameterReferences({repr(list(self))})"
 
     def add(self, value):
         """Adds a reference to the listing if it's not already present."""
@@ -70,7 +70,7 @@ class ParameterReferences(MutableSet):
 
     def copy(self):
         """Create a shallow copy."""
-        return ParameterReferences(iter(self))
+        return ParameterReferences(self)
 
 
 class ParameterTable(MutableMapping):
@@ -89,7 +89,7 @@ class ParameterTable(MutableMapping):
         """Create a new instance, initialized with ``mapping`` if provided.
 
         Args:
-            mapping (Mapping[Parameter, ReferenceListing]):
+            mapping (Mapping[Parameter, ParameterReferences]):
                 Mapping of parameter to the set of parameter slots that reference
                 it.
 
