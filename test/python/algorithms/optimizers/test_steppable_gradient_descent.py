@@ -14,8 +14,7 @@
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import random
 import numpy as np
-from qiskit.algorithms.optimizers.steppable_gradient_descent import GD_TellObject
-from qiskit.algorithms.optimizers import SteppableGD as GradientDescent
+from qiskit.algorithms.optimizers import GradientDescent
 
 # from qiskit.circuit.library import PauliTwoDesign
 # from qiskit.opflow import I, Z, StateFn

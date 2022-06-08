@@ -19,8 +19,8 @@ class AskObject(ABC):
             next state of the optimizer.
     """
 
-    x_fun: Union[POINT, List[POINT]]
-    x_jac: Union[POINT, List[POINT]]
+    x_fun: Union[POINT, List[POINT],None] = None
+    x_jac: Union[POINT, List[POINT],None] = None
 
 
 @dataclass
@@ -34,8 +34,8 @@ class TellObject(ABC):
             :attr:`~qiskit.algorithms.optimizers.SteppableOptimizer.Ask_Object.x_fun`.
     """
 
-    eval_fun: Union[float, List[float]]
-    eval_jac: Union[POINT, List[POINT]]
+    eval_fun: Union[float, List[float],None] = None
+    eval_jac: Union[POINT, List[POINT],None] = None
 
 
 @dataclass
@@ -58,7 +58,7 @@ class SteppableOptimizer(Optimizer):
     """
     Base class for a steppable optimizer.
 
-    This family of optimizers will be using the 
+    This family of optimizers will be using the
     `ask and tell interface <https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/009_ask_and_tell.html>`_.
     When using this interface the user has to call the function ask() in order to get information about how to evaluate the fucntion
     (we are asking the optimizer about how to do the evaluation). This information will be mostly about at what point should we evaluate
@@ -120,10 +120,8 @@ class SteppableOptimizer(Optimizer):
 
     def __init__(
         self,
-        maxiter: int = None,
+        maxiter: int = 1000,
         callback: Optional[CALLBACK] = None,
-        
-
     ):
         """
         Args:
@@ -131,18 +129,18 @@ class SteppableOptimizer(Optimizer):
             callback: Function to be called after each iteration.
         """
         super().__init__()
-        self._state : OptimizerState = None
+        self._state: OptimizerState = None
         self.callback = callback
         self.maxiter = maxiter  # Remove maxiter
 
     def ask(self) -> AskObject:
         """Ask the optimizer for a set of points to evaluate.
-        
-        This method asks the optimizer which are the next points to evaluate. 
-        These points can, e.g., correspond to function values and/or its derivative. 
+
+        This method asks the optimizer which are the next points to evaluate.
+        These points can, e.g., correspond to function values and/or its derivative.
         It may also correspond to variables that let the user infer which points to evaluate.
         It is the first method inside of a "step" in the optimization process.
-        
+
         Returns:
             Since the way to evaluate the function can vary much with different
             optimization algorithms, the object will be a custom dataclass for each optimizer.
@@ -191,11 +189,12 @@ class SteppableOptimizer(Optimizer):
         self.tell(ask_object=ask_object, tell_object=tell_object)
         if self.callback is not None:
             self.callback(state=self._state)
+
     @abstractmethod
     def initialize(
         self,
-        x0: POINT,
         fun: Callable[[POINT], float],
+        x0: POINT,
         jac: Optional[Callable[[POINT], POINT]] = None,
         bounds: Optional[List[Tuple[float, float]]] = None,
     ) -> None:
@@ -213,8 +212,8 @@ class SteppableOptimizer(Optimizer):
 
     def minimize(
         self,
-        x0: POINT,
         fun: Callable[[POINT], float],
+        x0: POINT,
         jac: Optional[Callable[[POINT], POINT]] = None,
         bounds: Optional[List[Tuple[float, float]]] = None,
     ) -> OptimizerResult:
@@ -229,7 +228,7 @@ class SteppableOptimizer(Optimizer):
             bounds: Bounds of the search space.
             **kwargs: Additional arguments for the minimization algorithm.
         """
-        self.initialize(x0=x0, fun=fun, jac=jac,bounds=bounds)
+        self.initialize(x0=x0, fun=fun, jac=jac, bounds=bounds)
         while self.continue_condition():
             self.step()
         return self.create_result()
@@ -244,8 +243,6 @@ class SteppableOptimizer(Optimizer):
         """
         raise NotImplementedError
 
-
-    @abstractmethod
     def continue_condition(self) -> bool:
         """
         Condition that indicates the optimization process should come to an end.

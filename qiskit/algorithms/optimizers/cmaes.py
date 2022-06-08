@@ -6,15 +6,15 @@ from .steppable_optimizer import AskObject, TellObject, OptimizerState, Steppabl
 
 CALLBACK = Callable[[int, np.ndarray, float, float], None]
 
+
 @dataclass
 class CMAES_AskObject(AskObject):
     """
     Args:
         x_fun_translation: Sampling from a multivariate normal distribution used to create CMAES_AskObject.cloud.
     """
+
     x_fun_translation: Union[POINT, List[POINT]]
-
-
 
 
 @dataclass
@@ -39,10 +39,12 @@ class CMAES_OptimizerState(OptimizerState):
     D: POINT  # Will store the sqrt of the diagonal elements
     sigma: float
 
+
 class CMAES(SteppableOptimizer):
     """
     Covariance Matrix Adaptation Evolution Strategy minimization routine.
     """
+
     def __init__(
         self,
         tol: float = 1e-3,
@@ -129,7 +131,7 @@ class CMAES(SteppableOptimizer):
         result.x = self._state.x
         result.fun = self._state.fun(self._state.x)
         result.nfev = self._state.nfev
-        result.nit =self._state.nit
+        result.nit = self._state.nit
         return result
 
     def initialize(
@@ -138,7 +140,7 @@ class CMAES(SteppableOptimizer):
         fun: Callable[[POINT], float],
         jac: Callable[[POINT], POINT] = None,
         tol: float = 1e-3,
-        population_size:Optional[int] = None
+        population_size: Optional[int] = None,
     ) -> None:
         """
         This method will initialize the state of the optimizer so that an optimization can be performed.
