@@ -302,8 +302,7 @@ class SymbolicPulse(Pulse):
     __slots__ = (
         "_amp",
         "_pulse_type",
-        "_param_names",
-        "_param_vals",
+        "_params",
         "envelope",
         "constraints",
     )
@@ -356,21 +355,20 @@ class SymbolicPulse(Pulse):
             )
         self._amp = parameters.pop("amp")
         self._pulse_type = pulse_type
-        self._param_names = tuple(parameters.keys())
-        self._param_vals = tuple(parameters.values())
+        self._params = parameters
 
         self.envelope = envelope
         self.constraints = constraints
 
     def __getattr__(self, item):
         # Get pulse parameters with attribute-like access.
-        param_names = object.__getattribute__(self, "_param_names")
-        param_vals = object.__getattribute__(self, "_param_vals")
         if item == "amp":
             return object.__getattribute__(self, "_amp")
-        if item not in param_names:
+
+        params = object.__getattribute__(self, "_params")
+        if item not in params:
             raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{item}'")
-        return param_vals[param_names.index(item)]
+        return params[item]
 
     @property
     def pulse_type(self) -> str:
@@ -402,13 +400,11 @@ class SymbolicPulse(Pulse):
             raise PulseError("Pulse envelope expression is not assigned.")
 
         times = np.arange(0, self.duration) + 1 / 2
-        params = self.parameters
-
         func_args = [times]
         for name in sorted(map(lambda s: s.name, self.envelope.free_symbols)):
             if name == "t":
                 continue
-            func_args.append(params[name])
+            func_args.append(self.parameters[name])
 
         return Waveform(samples=self._amp * self._envelope_lambdify(*func_args), name=self.name)
 
@@ -421,14 +417,13 @@ class SymbolicPulse(Pulse):
         if self.is_parameterized():
             return
 
-        if any(p.imag != 0 for p in self._param_vals):
+        if any(p.imag != 0 for p in self._params.values()):
             raise PulseError("Pulse parameters must be real numbers except for 'amp'.")
 
         if self.constraints is not None:
             func_args = []
-            params = self.parameters
             for name in sorted(map(lambda s: s.name, self.constraints.free_symbols)):
-                func_args.append(params[name])
+                func_args.append(self.parameters[name])
 
             if not bool(self._constraints_lambdify(*func_args)):
                 param_repr = ", ".join(f"{p}={v}" for p, v in self.parameters.items())
@@ -449,18 +444,17 @@ class SymbolicPulse(Pulse):
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
-        args = (self.duration, self._amp, *self._param_vals)
-        return any(isinstance(val, ParameterExpression) for val in args)
+        return any(isinstance(val, ParameterExpression) for val in self.parameters.values())
 
     @property
     def parameters(self) -> Dict[str, Any]:
         params = {"duration": self.duration, "amp": self._amp}
-        params.update(dict(zip(self._param_names, self._param_vals)))
+        params.update(self._params)
         return params
 
     def __eq__(self, other: "SymbolicPulse") -> bool:
 
-        if self.envelope != other.envelope:
+        if self.envelope != getattr(other, "envelope", None):
             return False
 
         if self.parameters != other.parameters:
@@ -469,9 +463,7 @@ class SymbolicPulse(Pulse):
         return True
 
     def __hash__(self) -> int:
-        return hash(
-            (self._pulse_type, self.duration, self._amp, *self._param_names, *self._param_vals)
-        )
+        return hash((self._pulse_type, self.duration, self._amp, *tuple(self._params.items())))
 
     def __repr__(self) -> str:
         param_repr = ", ".join(f"{p}={v}" for p, v in self.parameters.items())

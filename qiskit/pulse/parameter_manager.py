@@ -223,23 +223,20 @@ class ParameterSetter(NodeVisitor):
     def visit_SymbolicPulse(self, node: SymbolicPulse):
         """Assign parameters to ``SymbolicPulse`` object."""
         if node.is_parameterized():
-            new_values = []
             # Assign duration
             if isinstance(node.duration, ParameterExpression):
                 node.duration = self._assign_parameter_expression(node.duration)
-            if isinstance(node.amp, ParameterExpression):
-                assigned_amp = self._assign_parameter_expression(node.amp)
+            if isinstance(node._amp, ParameterExpression):
+                assigned_amp = self._assign_parameter_expression(node._amp)
                 if not isinstance(assigned_amp, ParameterExpression):
                     # Amplitude is complex value
                     assigned_amp = complex(assigned_amp)
-                node.amp = assigned_amp
+                node._amp = assigned_amp
             # Assign other parameters
-            for op_value in node._param_vals:
-                if isinstance(op_value, ParameterExpression):
-                    new_values.append(self._assign_parameter_expression(op_value))
-                else:
-                    new_values.append(op_value)
-            node._param_vals = new_values
+            for name in node._params:
+                pval = node._params[name]
+                if isinstance(pval, ParameterExpression):
+                    node._params[name] = self._assign_parameter_expression(pval)
             node.validate_parameters()
 
         return node
