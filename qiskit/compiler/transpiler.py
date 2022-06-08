@@ -327,7 +327,7 @@ def transpile(
                     pickle.dump(shared_args, buf)
                     data = buf.getvalue()
                 smb = smm.SharedMemory(size=len(data))
-                smb.buf[:len(data)] = data[:]
+                smb.buf[: len(data)] = data[:]
                 # Transpile circuits in parallel
                 circuits = parallel.parallel_map(
                     _transpile_circuit,
