@@ -28,8 +28,8 @@ from qiskit.test import QiskitTestCase
 class Result(BaseResult):
     """Dummy result dataclass implementing BaseResult."""
 
-    field_A: Collection[Any]
-    field_B: Collection[Any]
+    field_1: Collection[Any]
+    field_2: Collection[Any]
 
 
 ################################################################################
@@ -41,9 +41,9 @@ class TestBaseResult(QiskitTestCase):
 
     @data(([1], []), ([], [1]), ([1, 2], []), ([1], [1, 2]))
     @unpack
-    def test_post_init(self, field_A, field_B):
-        """Tests post init({field_A}, {field_B})."""
-        self.assertRaises(ValueError, Result, *(field_A, field_B))
+    def test_post_init(self, field_1, field_2):
+        """Tests post init({field_1}, {field_2})."""
+        self.assertRaises(ValueError, Result, *(field_1, field_2))
 
     @data(0, 1, 2, 3)
     def test_num_experiments(self, num_experiments):
@@ -54,21 +54,21 @@ class TestBaseResult(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_experiments(self, num_experiments):
         """Test experiments."""
-        field_A = list(range(num_experiments))
-        field_B = [i + 1 for i in range(num_experiments)]
-        experiments = Result(field_A, field_B).experiments
+        field_1 = list(range(num_experiments))
+        field_2 = [i + 1 for i in range(num_experiments)]
+        experiments = Result(field_1, field_2).experiments
         self.assertIsInstance(experiments, tuple)
         for i, exp in enumerate(experiments):
             self.assertEqual(exp, (i, i + 1))
 
     def test_field_names(self):
-        """Tests field names ("field_A", "field_B")."""
+        """Tests field names ("field_1", "field_2")."""
         result = Result([], [])
-        self.assertEqual(result._field_names, ("field_A", "field_B"))
+        self.assertEqual(result._field_names, ("field_1", "field_2"))
 
     @data(([], []), ([0], [0]), ([0], [1]))
     @unpack
-    def test_field_values(self, field_A, field_B):
-        """Tests field values ({field_A}, {field_B})."""
-        result = Result(field_A, field_B)
-        self.assertEqual(result._field_values, (field_A, field_B))
+    def test_field_values(self, field_1, field_2):
+        """Tests field values ({field_1}, {field_2})."""
+        result = Result(field_1, field_2)
+        self.assertEqual(result._field_values, (field_1, field_2))
