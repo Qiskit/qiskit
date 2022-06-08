@@ -45,7 +45,10 @@ logger = logging.getLogger(__name__)
 
 
 class Finishing_criterion(Enum):
-    finishing_criterion = ""
+    converged = "Threshold converged"
+    cyclicity = "Aborted due to cyclicity"
+    maximum = "Maximum number of iterations reached"
+    unknown = "The algorithm finished due to unforeseen reason"
 
 
 class AdaptVQE(VariationalAlgorithm):
@@ -146,6 +149,7 @@ class AdaptVQE(VariationalAlgorithm):
             res.append((np.abs(result[-1]), exc))"""
             #print(state_grad)
             state_grad_result = sampler.convert(state_grad, params=value_dict).eval()
+            print(state_grad_result[-1])
             logger.info("Gradient computed : %s", str(state_grad_result))
             res.append((np.abs(state_grad_result[-1]), exc))
         return res, expectation
@@ -255,12 +259,12 @@ class AdaptVQE(VariationalAlgorithm):
                     "Adaptive VQE terminated successfully with a final maximum gradient: %s",
                     str(np.abs(max_grad[0])),
                 )
-                Finishing_criterion.finishing_criterion = "Threshold converged"
+                finishing_criterion= Finishing_criterion.converged
                 break
             # check indices of picked gradients for cycles
             if self._check_cyclicity(prev_op_indices):
                 logger.info("Final maximum gradient: %s", str(np.abs(max_grad[0])))
-                Finishing_criterion.finishing_criterion = "Aborted due to cyclicity"
+                finishing_criterion= Finishing_criterion.cyclicity
                 break
             # add new excitation to self._ansatz
             self._excitation_list.append(max_grad[1])
@@ -274,18 +278,19 @@ class AdaptVQE(VariationalAlgorithm):
             theta = raw_vqe_result.optimal_point.tolist()
         else:
             # reached maximum number of iterations
-            Finishing_criterion.finishing_criterion = "Maximum number of iterations reached"
+            finishing_criterion= Finishing_criterion.maximum
             logger.info("Maximum number of iterations reached. Finishing.")
             logger.info("Final maximum gradient: %s", str(np.abs(max_grad[0])))
 
-        if Finishing_criterion.finishing_criterion == False:
+        if finishing_criterion==False:
+            finishing_criterion= Finishing_criterion.unknown
             raise QiskitError("The algorithm finished due to an unforeseen reason!")
 
         result = AdaptVQEResult()
         result.combine(raw_vqe_result)
         result.num_iterations = iteration
         result.final_max_gradient = max_grad[0]
-        result.finishing_criterion = Finishing_criterion.finishing_criterion
+        result.finishing_criterion = finishing_criterion
 
         # once finished evaluate auxiliary operators if any
         if aux_operators is not None:
@@ -311,6 +316,7 @@ class AdaptVQEResult(VariationalResult):
         self._num_iterations: int = 0
         self._final_max_gradient: float = 0.0
         self._finishing_criterion: str = ""
+        self.computed_energies: np.ndarray = []
 
     @property
     def num_iterations(self) -> int:
@@ -341,3 +347,13 @@ class AdaptVQEResult(VariationalResult):
     def finishing_criterion(self, value: str) -> None:
         """Sets finishing criterion"""
         self._finishing_criterion = value
+    
+    @property
+    def computed_energies(self) -> Optional[np.ndarray]:
+        """Returns computed electronic part of ground state energy"""
+        return self._computed_energies
+
+    @computed_energies.setter
+    def computed_energies(self, value: np.ndarray) -> None:
+        """Sets computed electronic part of ground state energy"""
+        self._computed_energies = value
