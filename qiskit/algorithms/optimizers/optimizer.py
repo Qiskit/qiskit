@@ -92,7 +92,7 @@ class OptimizerResult(AlgorithmResult):
     @property
     def nit(self) -> Optional[int]:
         """The total number of iterations."""
-        return self._njev
+        return self._nit
 
     @nit.setter
     def nit(self, nit: Optional[int]) -> None:
