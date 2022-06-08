@@ -85,8 +85,7 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
 
         expected = -1.85727503
 
-        self.assertAlmostEqual(res.electronic_energies[0], expected, places=6)
-
-
+        self.assertAlmostEqual(res.eigenvalue, expected, places=6)
+        
 if __name__ == "__main__":
     unittest.main()

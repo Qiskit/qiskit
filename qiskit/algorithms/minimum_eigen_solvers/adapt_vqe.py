@@ -149,7 +149,6 @@ class AdaptVQE(VariationalAlgorithm):
             res.append((np.abs(result[-1]), exc))"""
             #print(state_grad)
             state_grad_result = sampler.convert(state_grad, params=value_dict).eval()
-            print(state_grad_result[-1])
             logger.info("Gradient computed : %s", str(state_grad_result))
             res.append((np.abs(state_grad_result[-1]), exc))
         return res, expectation
@@ -304,11 +303,11 @@ class AdaptVQE(VariationalAlgorithm):
             aux_values = None
         raw_vqe_result.aux_operator_eigenvalues = aux_values
 
-        logger.info("The final energy is: %s", str(result.computed_energies[0]))
+        logger.info("The final energy is: %s", str(result.eigenvalue))
         return result
 
 
-class AdaptVQEResult(VariationalResult):
+class AdaptVQEResult(VQEResult):
     """AdaptVQE Result."""
 
     def __init__(self) -> None:
@@ -316,7 +315,6 @@ class AdaptVQEResult(VariationalResult):
         self._num_iterations: int = 0
         self._final_max_gradient: float = 0.0
         self._finishing_criterion: str = ""
-        self.computed_energies: np.ndarray = []
 
     @property
     def num_iterations(self) -> int:
@@ -347,13 +345,3 @@ class AdaptVQEResult(VariationalResult):
     def finishing_criterion(self, value: str) -> None:
         """Sets finishing criterion"""
         self._finishing_criterion = value
-    
-    @property
-    def computed_energies(self) -> Optional[np.ndarray]:
-        """Returns computed electronic part of ground state energy"""
-        return self._computed_energies
-
-    @computed_energies.setter
-    def computed_energies(self, value: np.ndarray) -> None:
-        """Sets computed electronic part of ground state energy"""
-        self._computed_energies = value
