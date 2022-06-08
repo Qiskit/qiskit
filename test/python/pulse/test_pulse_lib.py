@@ -172,6 +172,8 @@ class TestParametricPulses(QiskitTestCase):
         wf = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
         samples = wf.get_waveform().samples
         self.assertTrue(max(np.abs(samples)) <= 1)
+        with self.assertRaises(PulseError):
+            wf = Drag(duration=duration, sigma=sigma, amp=1.2, beta=beta)
         beta = sigma**2
         with self.assertRaises(PulseError):
             wf = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta)
@@ -319,15 +321,13 @@ class TestParametricPulses(QiskitTestCase):
         """Test speed up of instantiation with lambdify envelope cache."""
         drag_instance1 = Drag(duration=100, amp=0.1, sigma=40, beta=3)
         drag_instance2 = Drag(duration=100, amp=0.1, sigma=40, beta=3)
-        self.assertTrue(drag_instance1._envelope_lambdify is drag_instance2._envelope_lambdify)
+        self.assertTrue(drag_instance1._envelope_lam is drag_instance2._envelope_lam)
 
     def test_constraints_cache(self):
         """Test speed up of instantiation with lambdify constraints cache."""
         drag_instance1 = Drag(duration=100, amp=0.1, sigma=40, beta=3)
         drag_instance2 = Drag(duration=100, amp=0.1, sigma=40, beta=3)
-        self.assertTrue(
-            drag_instance1._constraints_lambdify is drag_instance2._constraints_lambdify
-        )
+        self.assertTrue(drag_instance1._constraints_lam is drag_instance2._constraints_lam)
 
     def test_deepcopy(self):
         """Test deep copying instance."""

@@ -19,7 +19,7 @@ parameter constraints.
 """
 
 import functools
-from typing import Any, Dict, Optional, Union, Callable
+from typing import Any, Dict, List, Optional, Union, Callable
 
 import numpy as np
 
@@ -88,6 +88,29 @@ def _validate_amplitude_limit(symbolic_pulse: "SymbolicPulse") -> bool:
         Return True if any sample point exceeds 1.0 in absolute value.
     """
     return np.any(np.abs(symbolic_pulse.get_waveform().samples) > 1.0)
+
+
+def _get_expression_args(
+    expr: sym.Expr,
+    params: Dict[str, float],
+    exclude: Optional[List[str]] = None,
+) -> List[float]:
+    """A helper function to get argument to evaluate expression.
+
+    Args:
+        expr: Symbolic expression to evaluate.
+        params: Dictionary of parameter, which is a superset of expression arguments.
+        exclude: Parameter to exclude from arguments.
+
+    Returns:
+        Arguments passed to the lambdified expression.
+    """
+    args = []
+    for symbol in sorted(expr.free_symbols, key=lambda s: s.name):
+        if exclude and symbol.name in exclude:
+            continue
+        args.append(params[symbol.name])
+    return args
 
 
 class LambdifiedExpression:
@@ -305,11 +328,13 @@ class SymbolicPulse(Pulse):
         "_params",
         "envelope",
         "constraints",
+        "eval_conditions",
     )
 
     # Lambdify caches keyed on sympy expressions. Returns the corresponding callable.
-    _envelope_lambdify = LambdifiedExpression("envelope")
-    _constraints_lambdify = LambdifiedExpression("constraints")
+    _envelope_lam = LambdifiedExpression("envelope")
+    _constraints_lam = LambdifiedExpression("constraints")
+    _eval_conditions_lam = LambdifiedExpression("eval_conditions")
 
     def __init__(
         self,
@@ -320,6 +345,7 @@ class SymbolicPulse(Pulse):
         limit_amplitude: Optional[bool] = None,
         envelope: Optional[sym.Expr] = None,
         constraints: Optional[sym.Expr] = None,
+        eval_conditions: Optional[sym.Expr] = None,
     ):
         """Create a parametric pulse.
 
@@ -332,6 +358,9 @@ class SymbolicPulse(Pulse):
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
             envelope: Pulse envelope expression.
             constraints: Pulse parameter constraint expression.
+            eval_conditions: Extra conditions to evaluate full waveform to check the
+                amplitude limit. This can be provided if ``envelope`` function is not
+                normalized to 1.0.
 
         Raises:
             PulseError: When not all parameters are listed in the attribute :attr:`PARAM_DEF`.
@@ -359,6 +388,7 @@ class SymbolicPulse(Pulse):
 
         self.envelope = envelope
         self.constraints = constraints
+        self.eval_conditions = eval_conditions
 
     def __getattr__(self, item):
         # Get pulse parameters with attribute-like access.
@@ -400,13 +430,9 @@ class SymbolicPulse(Pulse):
             raise PulseError("Pulse envelope expression is not assigned.")
 
         times = np.arange(0, self.duration) + 1 / 2
-        func_args = [times]
-        for name in sorted(map(lambda s: s.name, self.envelope.free_symbols)):
-            if name == "t":
-                continue
-            func_args.append(self.parameters[name])
+        fargs = [times, *_get_expression_args(self.envelope, self.parameters, exclude=["t"])]
 
-        return Waveform(samples=self._amp * self._envelope_lambdify(*func_args), name=self.name)
+        return Waveform(samples=self._amp * self._envelope_lam(*fargs), name=self.name)
 
     def validate_parameters(self) -> None:
         """Validate parameters.
@@ -421,26 +447,38 @@ class SymbolicPulse(Pulse):
             raise PulseError("Pulse parameters must be real numbers except for 'amp'.")
 
         if self.constraints is not None:
-            func_args = []
-            for name in sorted(map(lambda s: s.name, self.constraints.free_symbols)):
-                func_args.append(self.parameters[name])
-
-            if not bool(self._constraints_lambdify(*func_args)):
+            fargs = _get_expression_args(self.constraints, self.parameters)
+            if not bool(self._constraints_lam(*fargs)):
                 param_repr = ", ".join(f"{p}={v}" for p, v in self.parameters.items())
                 const_repr = str(self.constraints)
                 raise PulseError(
                     f"Assigned parameters {param_repr} violate following constraint: {const_repr}."
                 )
 
-        if self.limit_amplitude and (np.abs(self._amp) > 1.0 or _validate_amplitude_limit(self)):
-            # Check max amplitude limit by generating waveform.
-            # We can avoid calling _validate_amplitude_limit when |amp| > 1.0
-            # which obviously violates the amplitude constraint by definition.
-            param_repr = ", ".join(f"{p}={v}" for p, v in self.parameters.items())
-            raise PulseError(
-                f"Maximum pulse amplitude norm exceeds 1.0 with assigned parameters {param_repr}."
-                "This can be overruled by setting Pulse.limit_amplitude."
-            )
+        if self.limit_amplitude:
+            violate_amp_limit = False
+
+            if np.abs(self._amp) > 1.0:
+                # Strong condition. |amp| > 1.0 must exceed AWG dynamic range.
+                violate_amp_limit = True
+            elif self.eval_conditions is not None:
+                # Check actual waveform.
+                # For example, if .envelope function is not normalized,
+                # |amp| < 1.0 can result in the maximum amplitude > 1.0, depending on the
+                # selection of other parameters.
+                fargs = _get_expression_args(self.eval_conditions, self.parameters)
+                if bool(self._eval_conditions_lam(*fargs)) and _validate_amplitude_limit(self):
+                    violate_amp_limit = True
+
+            if violate_amp_limit:
+                # Check max amplitude limit by generating waveform.
+                # We can avoid calling _validate_amplitude_limit when |amp| > 1.0
+                # which obviously violates the amplitude constraint by definition.
+                param_repr = ", ".join(f"{p}={v}" for p, v in self.parameters.items())
+                raise PulseError(
+                    f"Maximum pulse amplitude norm exceeds 1.0 with assigned parameters {param_repr}."
+                    "This can be overruled by setting Pulse.limit_amplitude."
+                )
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
@@ -721,6 +759,7 @@ class Drag(SymbolicPulse):
         # In IBM quantum backend, im(beta) == 0 is explicitly checked.
         # In Qiskit, we impose real number constraints on all parameters except for 'amp'.
         consts_expr = _sigma > 0
+        eval_conditions_expr = sym.Abs(_beta) > _sigma
 
         super().__init__(
             pulse_type=self.__class__.__name__,
@@ -730,6 +769,7 @@ class Drag(SymbolicPulse):
             limit_amplitude=limit_amplitude,
             envelope=envelope_expr,
             constraints=consts_expr,
+            eval_conditions=eval_conditions_expr,
         )
         self.validate_parameters()
 
