@@ -320,21 +320,17 @@ def transpile(
         and os.getenv("QISKIT_IN_PARALLEL", "FALSE") == "FALSE"
         and parallel.PARALLEL_DEFAULT
     ):
-        try:
-            os.environ["QISKIT_IN_PARALLEL"] = "TRUE"
-            with SharedMemoryManager() as smm:
-                with io.BytesIO() as buf:
-                    pickle.dump(shared_args, buf)
-                    data = buf.getvalue()
-                smb = smm.SharedMemory(size=len(data))
-                smb.buf[: len(data)] = data[:]
-                # Transpile circuits in parallel
-                circuits = parallel.parallel_map(
-                    _transpile_circuit,
-                    list(zip(circuits, cycle([smb.name]), unique_transpile_args)),
-                )
-        finally:
-            os.environ["QISKIT_IN_PARALLEL"] = "FALSE"
+        with SharedMemoryManager() as smm:
+            with io.BytesIO() as buf:
+                pickle.dump(shared_args, buf)
+                data = buf.getvalue()
+            smb = smm.SharedMemory(size=len(data))
+            smb.buf[: len(data)] = data[:]
+            # Transpile circuits in parallel
+            circuits = parallel.parallel_map(
+                _transpile_circuit,
+                list(zip(circuits, cycle([smb.name]), unique_transpile_args)),
+            )
     else:
         output_circuits = []
         for circuit, unique_args in zip(circuits, unique_transpile_args):
