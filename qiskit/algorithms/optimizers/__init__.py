@@ -109,7 +109,6 @@ from .cg import CG
 from .cobyla import COBYLA
 from .gsls import GSLS
 from .gradient_descent import GradientDescent
-from .steppable_gradient_descent import SteppableGD
 from .imfil import IMFIL
 from .l_bfgs_b import L_BFGS_B
 from .nelder_mead import NELDER_MEAD
@@ -129,7 +128,6 @@ from .slsqp import SLSQP
 from .snobfit import SNOBFIT
 from .spsa import SPSA
 from .tnc import TNC
-from .cmaes import CMAES
 
 __all__ = [
     "Optimizer",

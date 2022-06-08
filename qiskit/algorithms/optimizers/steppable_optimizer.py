@@ -71,6 +71,9 @@ class SteppableOptimizer(Optimizer):
 
     For example:
     .. code-block::python
+        import random
+        import numpy as np
+        from qiskit.algorithms.optimizers import SteppableGradientDescent
 
         def objective(x):
             if random.choice([True, False]):
@@ -117,24 +120,29 @@ class SteppableOptimizer(Optimizer):
 
     def __init__(
         self,
-        callback: Optional[CALLBACK] = None,
         maxiter: int = None,
+        callback: Optional[CALLBACK] = None,
+        
 
     ):
         """
         Args:
             maxiter: Number of steps in the optimization process before ending the loop.
+            callback: Function to be called after each iteration.
         """
         super().__init__()
-        self._state = None
+        self._state : OptimizerState = None
         self.callback = callback
         self.maxiter = maxiter  # Remove maxiter
 
     def ask(self) -> AskObject:
-        """
-        Returns the information on how to evaluate the objective function.
-        Canonical optimization workflow using ask() and tell() can be seen in SteppableOptimizer.step().
-
+        """Ask the optimizer for a set of points to evaluate.
+        
+        This method asks the optimizer which are the next points to evaluate. 
+        These points can, e.g., correspond to function values and/or its derivative. 
+        It may also correspond to variables that let the user infer which points to evaluate.
+        It is the first method inside of a "step" in the optimization process.
+        
         Returns:
             Since the way to evaluate the function can vary much with different
             optimization algorithms, the object will be a custom dataclass for each optimizer.
@@ -160,7 +168,7 @@ class SteppableOptimizer(Optimizer):
         Args:
             ask_object: Contains the information on how to do the evaluation.
         Return:
-            tell_object: Contains all relevant information about the evaluation of the objective function.
+            Contains all relevant information about the evaluation of the objective function.
         """
         raise NotImplementedError
 
@@ -176,33 +184,54 @@ class SteppableOptimizer(Optimizer):
     def step(self) -> None:
         """
         Performs one step in the optimization process.
-        This mehtod composes ask(), evaluate(), and tell() to make a step in the optimization process.
+        This method composes ask(), evaluate(), and tell() to make a step in the optimization process.
         """
         ask_object = self.ask()
         tell_object = self.evaluate(ask_object=ask_object)
         self.tell(ask_object=ask_object, tell_object=tell_object)
         if self.callback is not None:
             self.callback(state=self._state)
+    @abstractmethod
+    def initialize(
+        self,
+        x0: POINT,
+        fun: Callable[[POINT], float],
+        jac: Optional[Callable[[POINT], POINT]] = None,
+        bounds: Optional[List[Tuple[float, float]]] = None,
+    ) -> None:
+        """
+        This method sets (or restarts) the optimization state and the parameters to perform a new optimization.
+        Needs to be called before starting the optimization loop and also will need.
+        Args:
+            fun: Function to minimize.
+            x0: Initial point.
+            jac: Function to compute the gradient.
+            bounds: Bounds of the search space.
+            **kwargs: Additional arguments for the minimization algorithm.
+        """
+        raise NotImplementedError
 
     def minimize(
         self,
-        fun: Callable[[POINT], float],
         x0: POINT,
+        fun: Callable[[POINT], float],
         jac: Optional[Callable[[POINT], POINT]] = None,
         bounds: Optional[List[Tuple[float, float]]] = None,
-        **kwargs,
     ) -> OptimizerResult:
         """
         For well behaved functions the user can call this method to minimize a function. If the user wants more control
         on how to evaluate the function a custom loop can be created using ask() and tell() and evaluating the function
         manually.
+        Args:
+            fun: Function to minimize.
+            x0: Initial point.
+            jac: Function to compute the gradient.
+            bounds: Bounds of the search space.
+            **kwargs: Additional arguments for the minimization algorithm.
         """
-        self.initialize(x0=x0, fun=fun, jac=jac)
-        for _ in range(self.maxiter):
+        self.initialize(x0=x0, fun=fun, jac=jac,bounds=bounds)
+        while self.continue_condition():
             self.step()
-            if self.stop_condition():
-                break
-
         return self.create_result()
 
     @abstractmethod
@@ -210,20 +239,17 @@ class SteppableOptimizer(Optimizer):
         """
         Returns the result of the optimization.
         All the information needed to create the result should be stored in the optimizer state.
+        Returns:
+            The result of the optimization process.
         """
         raise NotImplementedError
 
-    @abstractmethod
-    def initialize(self, *args, **kwargs) -> None:
-        """
-        This method sets (or restarts) the optimization state and the parameters to perform a new optimization.
-        Needs to be called before starting the optimization loop and also will need
-        """
-        raise NotImplementedError
 
     @abstractmethod
-    def stop_condition(self) -> bool:
+    def continue_condition(self) -> bool:
         """
         Condition that indicates the optimization process should come to an end.
+        Returns:
+            True if the optimization process should continue, False otherwise.
         """
-        raise NotImplementedError
+        return self._state.nit < self.maxiter
