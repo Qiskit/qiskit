@@ -127,8 +127,6 @@ class DerivativeBase(ConverterBase):
 
         return gradient_fn
 
-        return gradient_fn
-
     @staticmethod
     def parameter_expression_grad(
         param_expr: ParameterExpression, param: ParameterExpression

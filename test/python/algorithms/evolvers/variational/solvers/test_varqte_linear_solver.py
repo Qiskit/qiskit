@@ -30,7 +30,7 @@ from qiskit.algorithms.evolvers.variational.solvers.var_qte_linear_solver import
     VarQTELinearSolver,
 )
 from qiskit.circuit.library import EfficientSU2
-from qiskit.opflow import SummedOp, X, Y, I, Z, CircuitSampler
+from qiskit.opflow import SummedOp, X, Y, I, Z
 
 
 @ddt
@@ -63,24 +63,16 @@ class TestVarQTELinearSolver(QiskitAlgorithmsTestCase):
         param_dict = dict(zip(parameters, init_param_values))
 
         var_principle = ImaginaryMcLachlanPrinciple()
-
-        metric_tensor = var_principle.create_qfi()
-
-        evolution_grad = var_principle.calc_evolution_grad()
-        gradient_operator = var_principle.modify_hamiltonian(
-            observable, ansatz, CircuitSampler(backend) if backend else None, param_dict
-        )
-
+        t_param = None
         linear_solver = partial(np.linalg.lstsq, rcond=1e-2)
         linear_solver = VarQTELinearSolver(
+            var_principle,
+            observable,
             ansatz,
-            metric_tensor,
             parameters,
-            evolution_grad,
-            gradient_operator,
-            t_param=None,
-            lse_solver=linear_solver,
-            quantum_instance=backend,
+            t_param,
+            linear_solver,
+            backend,
         )
 
         nat_grad_res, metric_res, grad_res = linear_solver.solve_lse(param_dict)

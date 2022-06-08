@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 """The Variational Quantum Time Evolution Interface"""
-import functools
 from abc import ABC
 from functools import partial
 from typing import Optional, Union, Dict, List, Callable, Any
@@ -194,17 +193,11 @@ class VarQTE(ABC):
         init_state_parameters = list(init_state_param_dict.keys())
         init_state_parameters_values = list(init_state_param_dict.values())
 
-        qfi = self.variational_principle.create_qfi()
-        evolution_grad = self.variational_principle.calc_evolution_grad()
-        modified_hamiltonian_callable = functools.partial(self.variational_principle.modify_hamiltonian,
-            hamiltonian, initial_state, CircuitSampler(self.quantum_instance))
-
         linear_solver = VarQTELinearSolver(
+            self.variational_principle,
+            hamiltonian,
             initial_state,
-            qfi,
             init_state_parameters,
-            evolution_grad,
-            modified_hamiltonian_callable,
             t_param,
             self.lse_solver,
             self._quantum_instance,

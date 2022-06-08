@@ -105,14 +105,14 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         # values from the prototype
         thetas_expected_sv = [
-            0.905901128153194,
-            2.00336012271211,
-            2.69398302961789,
-            2.74463415808318,
-            2.33136908953802,
-            1.7469421463254,
-            2.10770301585949,
-            1.92775891861825,
+            1.08784596007622,
+            1.7356903166934,
+            2.81361244193709,
+            2.67623775443742,
+            2.01957567991695,
+            1.54596235673807,
+            1.8823927630625,
+            2.04272368387118,
         ]
 
         thetas_expected_qasm = [
@@ -126,8 +126,8 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             1.9474305740338,
         ]
 
-        expected_aux_ops_evaluated_sv = [(-0.204155479846185, 0.0), (0.25191789852257596, 0.0)]
-        expected_aux_ops_evaluated_qasm = [[-0.162, 0.015603], [0.2545, 0.015291]]
+        expected_aux_ops_evaluated_sv = [(-0.172693, 0.0), (0.253488, 0.0)]
+        expected_aux_ops_evaluated_qasm = [(-0.162, 0.015603), (0.2545, 0.015291)]
 
         for backend_name in self.backends_names:
             with self.subTest(msg=f"Test {backend_name} backend."):

@@ -14,9 +14,9 @@
 
 import unittest
 from functools import partial
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
-
 from qiskit.algorithms.evolvers.variational.solvers.var_qte_linear_solver import (
     VarQTELinearSolver,
 )
@@ -35,7 +35,6 @@ from qiskit.opflow import (
     Y,
     I,
     Z,
-    CircuitSampler,
 )
 
 
@@ -66,21 +65,27 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
 
         var_principle = ImaginaryMcLachlanPrinciple()
 
-        metric_tensor = var_principle.create_qfi()
-        evolution_grad = var_principle.calc_evolution_grad()
-        gradient_operator = var_principle.modify_hamiltonian(
-            observable, ansatz, CircuitSampler(backend) if backend else None, param_dict
-        )
+        # metric_tensor = var_principle.calc_qfi(ansatz, parameters, parameters, backend, param_dict.values())
+        # evolution_grad = var_principle.calc_evolution_grad(observable,
+        # ansatz,
+        # CircuitSampler(backend),
+        # param_dict,
+        # parameters,
+        # parameters,
+        # backend,
+        # param_dict.values())
+
+        t_param = None
 
         linear_solver = partial(np.linalg.lstsq, rcond=1e-2)
         linear_solver = VarQTELinearSolver(
+            var_principle,
+            observable,
             ansatz,
-            metric_tensor,
             parameters,
-            evolution_grad,
-            gradient_operator,
-            lse_solver=linear_solver,
-            quantum_instance=backend,
+            t_param,
+            linear_solver,
+            backend,
         )
 
         time = 2
@@ -132,25 +137,17 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
 
         var_principle = ImaginaryMcLachlanPrinciple()
 
-        metric_tensor = var_principle.create_qfi()
-
         time = 2
-
-        evolution_grad = var_principle.calc_evolution_grad()
-        gradient_operator = var_principle.modify_hamiltonian(
-            observable, ansatz, CircuitSampler(backend) if backend else None, param_dict
-        )
 
         linear_solver = partial(np.linalg.lstsq, rcond=1e-2)
         linear_solver = VarQTELinearSolver(
+            var_principle,
+            observable,
             ansatz,
-            metric_tensor,
             parameters,
-            evolution_grad,
-            gradient_operator,
-            t_param=t_param,
-            lse_solver=linear_solver,
-            quantum_instance=backend,
+            t_param,
+            linear_solver,
+            backend,
         )
         ode_function_generator = OdeFunction(
             linear_solver, error_calculator=None, t_param=t_param, param_dict=param_dict

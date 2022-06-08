@@ -37,7 +37,6 @@ class OdeFunction(AbstractOdeFunction):
 
         ode_grad_res, _, _ = self._varqte_linear_solver.solve_lse(
             current_param_dict,
-            self._t_param,
             time,
         )
 

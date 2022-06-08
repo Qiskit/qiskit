@@ -37,7 +37,6 @@ from qiskit.opflow import (
     Y,
     I,
     Z,
-    CircuitSampler,
 )
 
 
@@ -75,23 +74,19 @@ class TestVarQTEOdeSolver(QiskitAlgorithmsTestCase):
 
         time = 1
 
-        metric_tensor = var_principle.create_qfi()
-        evolution_grad = var_principle.calc_evolution_grad()
-        gradient_operator = var_principle.modify_hamiltonian(
-            observable, ansatz, CircuitSampler(backend) if backend else None, param_dict
-        )
+        t_param = None
 
         linear_solver = partial(np.linalg.lstsq, rcond=1e-2)
         linear_solver = VarQTELinearSolver(
+            var_principle,
+            observable,
             ansatz,
-            metric_tensor,
             parameters,
-            evolution_grad,
-            gradient_operator,
-            lse_solver=linear_solver,
-            quantum_instance=backend,
+            t_param,
+            linear_solver,
+            backend,
         )
-        ode_function_generator = OdeFunction(linear_solver, None, None, param_dict)
+        ode_function_generator = OdeFunction(linear_solver, None, t_param, param_dict)
 
         var_qte_ode_solver = VarQTEOdeSolver(
             list(param_dict.values()),

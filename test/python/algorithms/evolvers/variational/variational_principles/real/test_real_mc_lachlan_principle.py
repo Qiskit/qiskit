@@ -22,7 +22,7 @@ from qiskit.algorithms.evolvers.variational.variational_principles.real_mc_lachl
     RealMcLachlanPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
-from qiskit.opflow import SummedOp, X, Y, I, Z, CircuitStateFn
+from qiskit.opflow import SummedOp, X, Y, I, Z
 
 
 class TestRealMcLachlanPrinciple(QiskitAlgorithmsTestCase):
@@ -49,11 +49,13 @@ class TestRealMcLachlanPrinciple(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = RealMcLachlanPrinciple()
 
-        metric_tensor = var_principle.create_qfi()
-
-        bound_metric_tensor = 0.25 * metric_tensor.gradient_wrapper(
-            CircuitStateFn(ansatz), parameters, parameters
-        )(param_dict.values())
+        bound_metric_tensor = var_principle.calc_metric_tensor(
+            ansatz,
+            parameters,
+            parameters,
+            None,
+            param_dict.values(),
+        )
 
         np.testing.assert_almost_equal(
             bound_metric_tensor, expected_bound_metric_tensor_2, decimal=5
@@ -80,28 +82,31 @@ class TestRealMcLachlanPrinciple(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = RealMcLachlanPrinciple()
 
-        evolution_grad = var_principle.calc_evolution_grad()
-        hamiltonian = var_principle.modify_hamiltonian(observable, ansatz, None, param_dict)
-
-        bound_evolution_grad = 0.5 * evolution_grad.gradient_wrapper(
-            hamiltonian, parameters, parameters
-        )(param_dict.values())
+        bound_evolution_grad = var_principle.calc_evolution_grad(
+            observable,
+            ansatz,
+            None,
+            param_dict,
+            parameters,
+            parameters,
+            None,
+            param_dict.values(),
+        )
 
         expected_bound_evolution_grad = [
-            (0.04514911474522546 - 4e-18j),
-            (-0.0963123928027075 + 1.5e-18j),
-            (-0.1365347823673539 + 7e-18j),
-            (-0.004969316401057883 + 4.9999999999999996e-18j),
-            (0.003843833929692342 + 4.999999999999998e-19j),
-            (-0.07036988622493834 + 7e-18j),
-            (-0.16560609099860682 + 3.5e-18j),
-            (-0.16674183768051887 - 1e-18j),
-            (0.03843296670360974 + 6e-18j),
-            (-0.08891074158680243 + 6e-18j),
-            (-0.06425681697616654 - 7e-18j),
-            (0.03172376682078948 + 7e-18j),
+            (-0.04514911474522546 + 4e-18j),
+            (0.0963123928027075 - 1.5e-18j),
+            (0.1365347823673539 - 7e-18j),
+            (0.004969316401057883 - 4.9999999999999996e-18j),
+            (-0.003843833929692342 - 4.999999999999998e-19j),
+            (0.07036988622493834 - 7e-18j),
+            (0.16560609099860682 - 3.5e-18j),
+            (0.16674183768051887 + 1e-18j),
+            (-0.03843296670360974 - 6e-18j),
+            (0.08891074158680243 - 6e-18j),
+            (0.06425681697616654 + 7e-18j),
+            (-0.03172376682078948 - 7e-18j),
         ]
-        print(bound_evolution_grad)
 
         np.testing.assert_almost_equal(
             bound_evolution_grad, expected_bound_evolution_grad, decimal=5

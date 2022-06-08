@@ -11,8 +11,9 @@
 # that they have been altered from the originals.
 
 """Class for a Real Time Dependent Variational Principle."""
+from typing import Union
 
-from qiskit.opflow import Y, StateFn, QFI, Gradient
+from qiskit.opflow import Y, StateFn, CircuitQFI
 from qiskit.opflow.gradients.circuit_gradients import LinComb
 from qiskit.opflow.gradients.circuit_qfis import LinCombFull
 from .real_variational_principle import (
@@ -28,36 +29,18 @@ class RealTimeDependentPrinciple(RealVariationalPrinciple):
     means that we consider real time dynamics.
     """
 
-    def create_qfi(
-        self,
-    ) -> QFI:
+    def __init__(self, qfi_method: Union[str, CircuitQFI] = "lin_comb_full") -> None:
         """
-        Creates a QFI instance according to the rules of this variational principle. It is used
-        to calculate a metric tensor required in the ODE.
-
-        Returns:
-            QFI instance.
+        Args:
+            qfi_method: The method used to compute the QFI. Can be either
+                ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'`` or
+                ``CircuitQFI``.
         """
-        qfi_method = self._qfi_method
-        if self._qfi_method == "lin_comb_full" or isinstance(self._qfi_method, LinCombFull):
+        if qfi_method == "lin_comb_full" or isinstance(qfi_method, LinCombFull):
             qfi_method = LinCombFull(aux_meas_op=-Y)
+        self._grad_method = LinComb()
 
-        return QFI(qfi_method)
-
-    def calc_evolution_grad(
-        self,
-    ) -> Gradient:
-        """
-        Calculates an evolution gradient according to the rules of this variational principle.
-
-        Returns:
-            Transformed evolution gradient.
-        """
-        if self._grad_method == "lin_comb":
-            self._grad_method = LinComb()
-        evolution_grad_real = Gradient(self._grad_method)  # *0.5
-
-        return evolution_grad_real
+        super().__init__(qfi_method)
 
     def modify_hamiltonian(self, hamiltonian, ansatz, circuit_sampler, param_dict):
         return StateFn(hamiltonian, is_measurement=True) @ StateFn(ansatz)

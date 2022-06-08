@@ -17,14 +17,13 @@ from typing import Union, List, Dict, Optional, Callable
 import numpy as np
 
 from qiskit import QuantumCircuit
+from qiskit.algorithms.evolvers.variational.variational_principles.variational_principle import (
+    VariationalPrinciple,
+)
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
     CircuitSampler,
-    OperatorBase,
-    QFI,
-    CircuitStateFn,
     StateFn,
-    Gradient,
 )
 from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
@@ -36,11 +35,10 @@ class VarQTELinearSolver:
 
     def __init__(
         self,
+        var_principle: VariationalPrinciple,
+        hamiltonian,
         ansatz: Union[StateFn, QuantumCircuit],
-        qfi: QFI,
         gradient_params: List[Parameter],
-        evolution_grad: Gradient,
-        modified_hamiltonian_callable: OperatorBase,
         t_param=None,
         lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
         quantum_instance: Optional[QuantumInstance] = None,
@@ -49,10 +47,7 @@ class VarQTELinearSolver:
         """
         Args:
             ansatz: Quantum state in the form of a parametrized quantum circuit.
-            qfi: A Quantum Fisher Information instance used to calculate a metric tensor for the
-                left-hand side of an ODE.
             gradient_params: List of parameters with respect to which gradients should be computed.
-            evolution_grad: A parametrized operator that represents the right-hand side of an ODE.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
             lse_solver: Linear system of equations solver that follows a NumPy
                 ``np.linalg.lstsq`` interface.
@@ -62,18 +57,11 @@ class VarQTELinearSolver:
             imag_part_tol: Allowed value of an imaginary part that can be neglected if no
                 imaginary part is expected.
         """
+        self._var_principle = var_principle
+        self._hamiltonian = hamiltonian
         self._ansatz = ansatz
-        self._qfi = qfi
         self._gradient_params = gradient_params
         self._bind_params = gradient_params + [t_param] if t_param else gradient_params
-        # print(bind_params)
-        # print(gradient_params)
-        self._qfi_gradient_callable = qfi.gradient_wrapper(
-            CircuitStateFn(ansatz), self._bind_params, gradient_params, quantum_instance
-        )
-        # print(gradient_operator)
-        self._evolution_grad = evolution_grad
-        self._modified_hamiltonian_callable = modified_hamiltonian_callable
         self._time_param = t_param
         self._lse_solver = lse_solver
         self._quantum_instance = None
@@ -101,7 +89,6 @@ class VarQTELinearSolver:
     def solve_lse(
         self,
         param_dict: Dict[Parameter, complex],
-        t_param: Optional[Parameter] = None,
         time_value: Optional[float] = None,
     ) -> (Union[List, np.ndarray], Union[List, np.ndarray], np.ndarray):
         """
@@ -120,55 +107,37 @@ class VarQTELinearSolver:
         param_values = list(param_dict.values())
         if self._time_param is not None:
             param_values.append(time_value)
-            t_dict = {t_param: time_value}
-        # print("Param vals")
-        # print(param_values)
-        metric_tensor_lse_lhs = 0.25 * self._qfi_gradient_callable(param_values)
-        modified_hamiltonian = self._modified_hamiltonian_callable(param_dict)
-        #print(modified_hamiltonian)
-        grad_callable = self._evolution_grad.gradient_wrapper(
-            modified_hamiltonian, self._bind_params, self._gradient_params, self._quantum_instance
-        )
-        #print("Grad call")
-        evolution_grad_lse_rhs = 0.5 * grad_callable(param_values)
 
-        # print(metric_tensor_lse_lhs)
-        # print(evolution_grad_lse_rhs)
-        # print(type(evolution_grad_lse_rhs))
+        metric_tensor_lse_lhs = self._var_principle.calc_metric_tensor(
+            self._ansatz,
+            self._bind_params,
+            self._gradient_params,
+            self._quantum_instance,
+            param_values,
+        )
+        evolution_grad_lse_rhs = self._var_principle.calc_evolution_grad(
+            self._hamiltonian,
+            self._ansatz,
+            self._circuit_sampler,
+            param_dict,
+            self._bind_params,
+            self._gradient_params,
+            self._quantum_instance,
+            param_values,
+        )
 
         if self._time_param is not None:
-            bound_evolution_grad_lse_rhs = np.zeros(len(evolution_grad_lse_rhs), dtype=complex)
-            for i, param_expr in enumerate(evolution_grad_lse_rhs):
-                bound_evolution_grad_lse_rhs[i] = param_expr.assign(
-                    self._time_param, time_value
-                ).__complex__()
-            # print(bound_evolution_grad_lse_rhs)
-            # print(type(bound_evolution_grad_lse_rhs[0]))
-            evolution_grad_lse_rhs = bound_evolution_grad_lse_rhs
+            evolution_grad_lse_rhs = self._post_bind_t_param(evolution_grad_lse_rhs, time_value)
 
-        #print(-evolution_grad_lse_rhs)
         x = self._lse_solver(metric_tensor_lse_lhs, evolution_grad_lse_rhs)[0]
 
         return np.real(x), metric_tensor_lse_lhs, evolution_grad_lse_rhs
 
-    # def _calc_lse_rhs(
-    #     self,
-    #     param_dict: Dict[Parameter, complex],
-    #     t_param: Optional[Parameter] = None,
-    #     time_value: Optional[float] = None,
-    # ) -> OperatorBase:
-    #
-    #     grad = self._evolution_grad_callable
-    #
-    #     if t_param is not None:
-    #         time_dict = {t_param: time_value}
-    #         grad = self._evolution_grad_callable.bind_parameters(time_dict)
-    #
-    #     evolution_grad_lse_rhs = eval_grad_result(
-    #         grad,
-    #         param_dict,
-    #         self._circuit_sampler,
-    #         self._imag_part_tol,
-    #     )
-    #
-    #     return evolution_grad_lse_rhs
+    def _post_bind_t_param(self, evolution_grad_lse_rhs, time_value):
+        bound_evolution_grad_lse_rhs = np.zeros(len(evolution_grad_lse_rhs), dtype=complex)
+        for i, param_expr in enumerate(evolution_grad_lse_rhs):
+            bound_evolution_grad_lse_rhs[i] = param_expr.assign(
+                self._time_param, time_value
+            ).__complex__()
+        evolution_grad_lse_rhs = bound_evolution_grad_lse_rhs
+        return evolution_grad_lse_rhs

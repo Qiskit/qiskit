@@ -13,18 +13,18 @@
 """Class for a Variational Principle."""
 
 from abc import ABC, abstractmethod
-from typing import Union, List, Callable
+from typing import Union
 
-from qiskit import QuantumCircuit
-from qiskit.circuit import Parameter
+import numpy as np
+
 from qiskit.opflow import (
     CircuitQFI,
     CircuitGradient,
-    StateFn,
-    OperatorBase,
     QFI,
     Gradient,
+    CircuitStateFn,
 )
+from qiskit.opflow.gradients.circuit_gradients import LinComb
 
 
 class VariationalPrinciple(ABC):
@@ -45,12 +45,16 @@ class VariationalPrinciple(ABC):
                 ``CircuitQFI``.
         """
         self._qfi_method = qfi_method
+        self.qfi = QFI(qfi_method)
         self._grad_method = grad_method
+        if self._grad_method == "lin_comb":
+            self._grad_method = LinComb()
+        self._evolution_gradient = Gradient(self._grad_method)
+        self._qfi_gradient_callable = None
 
-    @abstractmethod
-    def create_qfi(
-        self,
-    ) -> QFI:
+    def calc_metric_tensor(
+        self, ansatz, bind_params, gradient_params, quantum_instance, param_values
+    ) -> np.ndarray:
         """
         Created a QFI instance according to the rules of this variational principle. It will be used
         to calculate a metric tensor required in the ODE.
@@ -58,19 +62,43 @@ class VariationalPrinciple(ABC):
         Returns:
             QFI instance.
         """
-        pass
+        if self._qfi_gradient_callable is None:
+            self._qfi_gradient_callable = self.qfi.gradient_wrapper(
+                CircuitStateFn(ansatz), bind_params, gradient_params, quantum_instance
+            )
+        metric_tensor_lse_lhs = 0.25 * self._qfi_gradient_callable(param_values)
 
-    @abstractmethod
+        return metric_tensor_lse_lhs
+
     def calc_evolution_grad(
         self,
-    ) -> Gradient:
+        hamiltonian,
+        ansatz,
+        circuit_sampler,
+        param_dict,
+        bind_params,
+        gradient_params,
+        quantum_instance,
+        param_values,
+    ) -> np.ndarray:
         """
         Calculates an evolution gradient according to the rules of this variational principle.
 
         Returns:
             Transformed evolution gradient.
         """
-        pass
+        # TODO calculate and sample energy separately
+        modified_hamiltonian = self.modify_hamiltonian(
+            hamiltonian, ansatz, circuit_sampler, param_dict
+        )
+        # TODO calculate energy separately, cache Hamiltonian only grad_callable and apply energy
+        #  post factum
+        grad_callable = self._evolution_gradient.gradient_wrapper(
+            modified_hamiltonian, bind_params, gradient_params, quantum_instance
+        )
+        evolution_grad_lse_rhs = 0.5 * grad_callable(param_values)
+
+        return evolution_grad_lse_rhs
 
     @abstractmethod
     def modify_hamiltonian(self, hamiltonian, ansatz, circuit_sampler, param_dict):

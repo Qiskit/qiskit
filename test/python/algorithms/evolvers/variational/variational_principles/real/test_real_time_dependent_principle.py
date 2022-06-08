@@ -22,7 +22,7 @@ from qiskit.algorithms.evolvers.variational.variational_principles.real_time_dep
     RealTimeDependentPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
-from qiskit.opflow import SummedOp, X, Y, I, Z, CircuitStateFn
+from qiskit.opflow import SummedOp, X, Y, I, Z
 
 
 class TestRealTimeDependentPrinciple(QiskitAlgorithmsTestCase):
@@ -49,11 +49,13 @@ class TestRealTimeDependentPrinciple(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = RealTimeDependentPrinciple()
 
-        metric_tensor = var_principle.create_qfi()
-
-        bound_metric_tensor = 0.25 * metric_tensor.gradient_wrapper(
-            CircuitStateFn(ansatz), parameters, parameters
-        )(param_dict.values())
+        bound_metric_tensor = var_principle.calc_metric_tensor(
+            ansatz,
+            parameters,
+            parameters,
+            None,
+            param_dict.values(),
+        )
 
         np.testing.assert_almost_equal(
             bound_metric_tensor, expected_bound_metric_tensor_3, decimal=5
@@ -80,12 +82,16 @@ class TestRealTimeDependentPrinciple(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = RealTimeDependentPrinciple()
 
-        evolution_grad = var_principle.calc_evolution_grad()
-        hamiltonian = var_principle.modify_hamiltonian(observable, ansatz, None, param_dict)
-
-        bound_evolution_grad = 0.5 * evolution_grad.gradient_wrapper(
-            hamiltonian, parameters, parameters
-        )(param_dict.values())
+        bound_evolution_grad = var_principle.calc_evolution_grad(
+            observable,
+            ansatz,
+            None,
+            param_dict,
+            parameters,
+            parameters,
+            None,
+            param_dict.values(),
+        )
 
         expected_bound_evolution_grad = [
             (-0.19308934095957098 + 1.4e-17j),

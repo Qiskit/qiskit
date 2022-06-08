@@ -36,8 +36,7 @@ class RealVariationalPrinciple(VariationalPrinciple, ABC):
             qfi_method: The method used to compute the QFI. Can be either ``'lin_comb_full'`` or
                 ``'overlap_block_diag'`` or ``'overlap_diag'`` or ``CircuitQFI``.
         """
-        grad_method = "lin_comb"  # we only know how to do this with lin_comb for a real case
         super().__init__(
             qfi_method,
-            grad_method,
+            self._grad_method,
         )

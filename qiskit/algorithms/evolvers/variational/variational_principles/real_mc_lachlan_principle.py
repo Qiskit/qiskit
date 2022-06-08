@@ -11,6 +11,9 @@
 # that they have been altered from the originals.
 
 """Class for a Real McLachlan's Variational Principle."""
+from typing import Union
+
+import numpy as np
 
 from qiskit.opflow import (
     StateFn,
@@ -18,8 +21,7 @@ from qiskit.opflow import (
     Y,
     I,
     PauliExpectation,
-    QFI,
-    Gradient,
+    CircuitQFI,
 )
 from qiskit.opflow.gradients.circuit_gradients import LinComb
 from .real_variational_principle import (
@@ -35,21 +37,31 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
     means that we consider real time dynamics.
     """
 
-    def create_qfi(
+    def __init__(
         self,
-    ) -> QFI:
+        qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
+    ) -> None:
         """
-        Creates a QFI instance according to the rules of this variational principle. It is used
-        to calculate a metric tensor required in the ODE.
+        Args:
+            qfi_method: The method used to compute the QFI. Can be either
+                ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'`` or
+                ``CircuitQFI``.
+        """
+        self._grad_method = LinComb(aux_meas_op=-Y)
 
-        Returns:
-            QFI instance.
-        """
-        return QFI(self._qfi_method)
+        super().__init__(qfi_method)
 
     def calc_evolution_grad(
         self,
-    ) -> Gradient:
+        hamiltonian,
+        ansatz,
+        circuit_sampler,
+        param_dict,
+        bind_params,
+        gradient_params,
+        quantum_instance,
+        param_values,
+    ) -> np.ndarray:
         """
         Calculates an evolution gradient according to the rules of this variational principle.
 
@@ -57,13 +69,17 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
             Transformed evolution gradient.
         """
 
-        if self._grad_method == "lin_comb":
-            basis = -Y
-            self._grad_method = LinComb(aux_meas_op=basis)
-
-        evolution_grad = Gradient(self._grad_method)  # *0.5
-
-        return evolution_grad
+        # TODO quick fix for a bug that will be addressed in another PR
+        return (-1) * super().calc_evolution_grad(
+            hamiltonian,
+            ansatz,
+            circuit_sampler,
+            param_dict,
+            bind_params,
+            gradient_params,
+            quantum_instance,
+            param_values,
+        )
 
     def modify_hamiltonian(self, hamiltonian, ansatz, circuit_sampler, param_dict):
         energy = StateFn(hamiltonian, is_measurement=True) @ StateFn(ansatz)
@@ -78,7 +94,5 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
         energy_term *= -1
         energy_term *= energy
         hamiltonian_ = SummedOp([hamiltonian, energy_term]).reduce()
-        #print(hamiltonian_)
         operator = StateFn(hamiltonian_, is_measurement=True) @ StateFn(ansatz)
-        #print(operator)
-        return (-1)*operator
+        return operator

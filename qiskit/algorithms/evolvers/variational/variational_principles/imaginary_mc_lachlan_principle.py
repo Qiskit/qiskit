@@ -12,8 +12,7 @@
 
 """Class for an Imaginary McLachlan's Variational Principle."""
 
-from qiskit.opflow import StateFn, QFI, Gradient
-from qiskit.opflow.gradients.circuit_gradients import LinComb
+from qiskit.opflow import StateFn
 from .imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
@@ -26,34 +25,6 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
     `~qiskit.algorithms.evolvers.variational.solvers.VarQTELinearSolver` class. The imaginary
     variant means that we consider imaginary time dynamics.
     """
-
-    def create_qfi(
-        self,
-    ) -> QFI:
-        """
-        Creates a QFI instance according to the rules of this variational principle. It is used
-        to calculate a metric tensor required in the ODE.
-
-        Returns:
-            QFI instance.
-        """
-
-        return QFI(self._qfi_method)
-
-    def calc_evolution_grad(
-        self,
-    ) -> Gradient:
-        """
-        Calculates an evolution gradient according to the rules of this variational principle.
-
-        Returns:
-            Transformed evolution gradient.
-        """
-        if self._grad_method == "lin_comb":
-            self._grad_method = LinComb()
-        evolution_grad_real = Gradient(self._grad_method)  # *-0.5
-
-        return evolution_grad_real
 
     def modify_hamiltonian(self, hamiltonian, ansatz, circuit_sampler, param_dict):
         return (-1) * (StateFn(hamiltonian, is_measurement=True) @ StateFn(ansatz))
