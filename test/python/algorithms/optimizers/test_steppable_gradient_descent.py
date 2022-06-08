@@ -15,6 +15,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 import random
 import numpy as np
 from qiskit.algorithms.optimizers import GradientDescent
+from qiskit.algorithms.optimizers.steppable_optimizer import TellObject
 
 # from qiskit.circuit.library import PauliTwoDesign
 # from qiskit.opflow import I, Z, StateFn
@@ -51,7 +52,7 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
 
         initial_point = np.array([1, 0.5, -2])
 
-        optimizer = GradientDescent(maxiter=20, learning_rate=learning_rate)
+        optimizer = GradientDescent(maxiter=200, learning_rate=learning_rate,perturbation = 0.01)
 
         result = optimizer.minimize(fun=objective, x0=initial_point, jac=grad)
 
@@ -91,10 +92,10 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
             evaluated_gradient = None
 
             while evaluated_gradient is None:
-                evaluated_gradient = grad(ask_object.x_center)
+                evaluated_gradient = grad(ask_object.x_jac)
                 optimizer._state.njev += 1
 
-            tell_object = GD_TellObject(gradient=evaluated_gradient)
+            tell_object = TellObject(eval_jac=evaluated_gradient)
             optimizer.tell(ask_object=ask_object, tell_object=tell_object)
 
         result = optimizer.create_result()
