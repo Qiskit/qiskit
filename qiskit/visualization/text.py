@@ -1407,19 +1407,23 @@ class Layer:
                 self.set_clbit(condition[0][0], BoxOnClWire(label=label, top_connect=top_connect))
         else:
             clbits = []
+
             if isinstance(condition[0], Clbit):
                 for i, bit in enumerate(self.clbits):
                     if bit == condition[0]:
                         clbits.append(self.clbits[i])
             else:
+                cond_bits = []
                 for i, bit in enumerate(self.clbits):
                     if isinstance(bit, ClassicalRegister):
                         reg = bit
                     else:
-                        reg = get_bit_register(self._circuit, bit)
+                        reg, _, reg_index = get_bit_reg_index(self._circuit, bit)
                     if reg == cond_reg:
+                        cond_bits.append(reg_index)
                         clbits.append(self.clbits[i])
-            self.set_cond_bullets(label, val_bits, clbits)
+            val_bits_sorted = [bit for _, bit in sorted(zip(cond_bits, val_bits))]
+            self.set_cond_bullets(label, val_bits_sorted, clbits)
 
     def set_cond_bullets(self, label, val_bits, clbits):
         """Sets bullets for classical conditioning when cregbundle=False.
