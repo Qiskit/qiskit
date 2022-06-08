@@ -16,52 +16,13 @@ satisfy the circuit, i.e. no further swap is needed. If no solution is
 found, no ``property_set['layout']`` is set.
 """
 import random
-from time import time
-from constraint import Problem, RecursiveBacktrackingSolver, AllDifferentConstraint
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.utils import optionals as _optionals
 
 
-class CustomSolver(RecursiveBacktrackingSolver):
-    """A wrap to RecursiveBacktrackingSolver to support ``call_limit``"""
-
-    def __init__(self, call_limit=None, time_limit=None):
-        self.call_limit = call_limit
-        self.time_limit = time_limit
-        self.call_current = None
-        self.time_start = None
-        self.time_current = None
-        super().__init__()
-
-    def limit_reached(self):
-        """Checks if a limit is reached."""
-        if self.call_current is not None:
-            self.call_current += 1
-            if self.call_current > self.call_limit:
-                return True
-        if self.time_start is not None:
-            self.time_current = time() - self.time_start
-            if self.time_current > self.time_limit:
-                return True
-        return False
-
-    def getSolution(self, domains, constraints, vconstraints):
-        """Wrap RecursiveBacktrackingSolver.getSolution to add the limits."""
-        if self.call_limit is not None:
-            self.call_current = 0
-        if self.time_limit is not None:
-            self.time_start = time()
-        return super().getSolution(domains, constraints, vconstraints)
-
-    def recursiveBacktracking(self, solutions, domains, vconstraints, assignments, single):
-        """Like ``constraint.RecursiveBacktrackingSolver.recursiveBacktracking`` but
-        limited in the amount of calls by ``self.call_limit``"""
-        if self.limit_reached():
-            return None
-        return super().recursiveBacktracking(solutions, domains, vconstraints, assignments, single)
-
-
+@_optionals.HAS_CONSTRAINT.require_in_instance
 class CSPLayout(AnalysisPass):
     """If possible, chooses a Layout as a CSP, using backtracking."""
 
@@ -101,6 +62,9 @@ class CSPLayout(AnalysisPass):
         """run the layout method"""
         qubits = dag.qubits
         cxs = set()
+
+        from constraint import Problem, AllDifferentConstraint, RecursiveBacktrackingSolver
+        from qiskit.transpiler.passes.layout._csp_custom_solver import CustomSolver
 
         for gate in dag.two_qubit_ops():
             cxs.add((qubits.index(gate.qargs[0]), qubits.index(gate.qargs[1])))
