@@ -26,6 +26,7 @@ from qiskit.test import QiskitTestCase
 ################################################################################
 @dataclass
 class Result(BaseResult):
+    """Dummy result dataclass implementing BaseResult."""
     field_A: Collection[Any]
     field_B: Collection[Any]
 
@@ -52,7 +53,7 @@ class TestBaseResult(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_experiments(self, num_experiments):
         """Test experiments."""
-        field_A = [i for i in range(num_experiments)]
+        field_A = list(range(num_experiments))
         field_B = [i + 1 for i in range(num_experiments)]
         experiments = Result(field_A, field_B).experiments
         self.assertIsInstance(experiments, tuple)
@@ -60,6 +61,7 @@ class TestBaseResult(QiskitTestCase):
             self.assertEqual(exp, (i, i + 1))
 
     def test_field_names(self):
+        """Tests field names ("field_A", "field_B")."""
         result = Result([], [])
         self.assertEqual(result._field_names, ("field_A", "field_B"))
 
