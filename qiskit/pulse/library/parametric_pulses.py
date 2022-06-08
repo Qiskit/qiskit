@@ -82,7 +82,8 @@ class ParametricPulse(Pulse):
     @abstractmethod
     def validate_parameters(self) -> None:
         """
-        Validate parameters.
+        Validate parameters. This is an internal check for subclasses and should
+        not be interpreted or used as part of the user-facing API.
 
         Raises:
             PulseError: If the parameters passed are not valid.
