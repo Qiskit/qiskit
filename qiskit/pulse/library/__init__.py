@@ -17,7 +17,7 @@ Pulse Library (:mod:`qiskit.pulse.library`)
 
 This library provides Pulse users with convenient methods to build Pulse waveforms.
 
-A pulse programmer can choose from one of :ref:`pulse_models` such as
+A pulse programmer can choose from one of several :ref:`pulse_models` such as
 :class:`~Waveform` and :class:`~SymbolicPulse` to create a pulse program.
 The :class:`~Waveform` model directly stores the waveform data points in each class instance.
 This model provides the most flexibility to express arbitrary waveforms and allows

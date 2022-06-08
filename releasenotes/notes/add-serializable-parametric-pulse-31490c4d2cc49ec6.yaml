@@ -8,6 +8,7 @@ features:
     corresponding methods are called for the first time.
     The new class provides a self-contained and portable pulse data since these symbolic equations
     can be easily serialized through symbolic computation libraries.
+    QPY serialization support of these pulses is planned.
 upgrade:
   - |
     Importing pulse class from ``qiskit.pulse.library.*`` now import :class:`~SymbolicPulse`

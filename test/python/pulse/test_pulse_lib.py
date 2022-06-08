@@ -16,6 +16,7 @@ import unittest
 from unittest.mock import patch
 import numpy as np
 
+from qiskit.circuit import Parameter
 from qiskit.pulse.library import (
     Waveform,
     Constant,
@@ -341,6 +342,19 @@ class TestParametricPulses(QiskitTestCase):
         copied_wf = drag_copied.get_waveform()
 
         np.testing.assert_almost_equal(orig_wf.samples, copied_wf.samples)
+
+    def test_fully_parametrized_pulse(self):
+        """Test instantiating a pulse with parameters."""
+        amp = Parameter("amp")
+        duration = Parameter("duration")
+        sigma = Parameter("sigma")
+        beta = Parameter("beta")
+
+        # doesn't raise an error
+        drag = Drag(duration=duration, amp=amp, sigma=sigma, beta=beta)
+
+        with self.assertRaises(PulseError):
+            drag.get_waveform()
 
 
 class TestFunctionalPulse(QiskitTestCase):
