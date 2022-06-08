@@ -11,9 +11,11 @@
 # that they have been altered from the originals.
 
 """Class for a Real Time Dependent Variational Principle."""
-from typing import Union
+from typing import Union, Dict
 
-from qiskit.opflow import Y, StateFn, CircuitQFI
+from qiskit import QuantumCircuit
+from qiskit.circuit import Parameter
+from qiskit.opflow import Y, StateFn, CircuitQFI, OperatorBase, CircuitSampler
 from qiskit.opflow.gradients.circuit_gradients import LinComb
 from qiskit.opflow.gradients.circuit_qfis import LinCombFull
 from .real_variational_principle import (
@@ -42,5 +44,26 @@ class RealTimeDependentPrinciple(RealVariationalPrinciple):
 
         super().__init__(qfi_method)
 
-    def modify_hamiltonian(self, hamiltonian, ansatz, circuit_sampler, param_dict):
+    def modify_hamiltonian(
+        self,
+        hamiltonian: OperatorBase,
+        ansatz: Union[StateFn, QuantumCircuit],
+        circuit_sampler: CircuitSampler,
+        param_dict: Dict[Parameter, complex],
+    ) -> OperatorBase:
+        """
+        Modifies a Hamiltonian according to the rules of this variational principle.
+        Args:
+            hamiltonian:
+                Operator used for Variational Quantum Time Evolution.
+                The operator may be given either as a composed op consisting of a Hermitian
+                observable and a ``CircuitStateFn`` or a ``ListOp`` of a ``CircuitStateFn`` with a
+                ``ComboFn``.
+                The latter case enables the evaluation of a Quantum Natural Gradient.
+            ansatz: Quantum state in the form of a parametrized quantum circuit.
+            circuit_sampler: A circuit sampler.
+            param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
+        Returns:
+            An modified Hamiltonian composed with an ansatz.
+        """
         return StateFn(hamiltonian, is_measurement=True) @ StateFn(ansatz)

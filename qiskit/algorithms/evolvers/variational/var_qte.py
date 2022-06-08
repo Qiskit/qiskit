@@ -162,7 +162,7 @@ class VarQTE(ABC):
         init_state_param_dict: Dict[Parameter, complex],
         hamiltonian: OperatorBase,
         time: float,
-        t_param: Parameter,
+        t_param: Optional[Parameter] = None,
         initial_state: Optional[Union[OperatorBase, QuantumCircuit]] = None,
         error_calculator: Any = None,
     ) -> OperatorBase:
@@ -206,10 +206,7 @@ class VarQTE(ABC):
 
         # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator
         ode_function = self.ode_function_factory.build(
-            linear_solver,
-            error_calculator,
-            t_param,
-            init_state_param_dict,
+            linear_solver, error_calculator, init_state_param_dict, t_param
         )
 
         ode_solver = VarQTEOdeSolver(init_state_parameters_values, ode_function, self.ode_solver)

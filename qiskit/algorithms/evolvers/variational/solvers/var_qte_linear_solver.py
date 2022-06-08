@@ -24,6 +24,7 @@ from qiskit.circuit import Parameter
 from qiskit.opflow import (
     CircuitSampler,
     StateFn,
+    OperatorBase,
 )
 from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
@@ -36,16 +37,23 @@ class VarQTELinearSolver:
     def __init__(
         self,
         var_principle: VariationalPrinciple,
-        hamiltonian,
+        hamiltonian: OperatorBase,
         ansatz: Union[StateFn, QuantumCircuit],
         gradient_params: List[Parameter],
-        t_param=None,
+        t_param: Optional[Parameter] = None,
         lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
         quantum_instance: Optional[QuantumInstance] = None,
         imag_part_tol: float = 1e-7,
     ) -> None:
         """
         Args:
+            var_principle: Variational Principle to be used.
+            hamiltonian:
+                Operator used for Variational Quantum Time Evolution.
+                The operator may be given either as a composed op consisting of a Hermitian
+                observable and a ``CircuitStateFn`` or a ``ListOp`` of a ``CircuitStateFn`` with a
+                ``ComboFn``.
+                The latter case enables the evaluation of a Quantum Natural Gradient.
             ansatz: Quantum state in the form of a parametrized quantum circuit.
             gradient_params: List of parameters with respect to which gradients should be computed.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
@@ -97,7 +105,6 @@ class VarQTELinearSolver:
 
         Args:
             param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
-            t_param: Time parameter in case of a time-dependent Hamiltonian.
             time_value: Time value that will be bound to ``t_param``. It is required if ``t_param``
                 is not ``None``.
 
@@ -112,8 +119,8 @@ class VarQTELinearSolver:
             self._ansatz,
             self._bind_params,
             self._gradient_params,
-            self._quantum_instance,
             param_values,
+            self._quantum_instance,
         )
         evolution_grad_lse_rhs = self._var_principle.calc_evolution_grad(
             self._hamiltonian,
@@ -122,8 +129,8 @@ class VarQTELinearSolver:
             param_dict,
             self._bind_params,
             self._gradient_params,
-            self._quantum_instance,
             param_values,
+            self._quantum_instance,
         )
 
         if self._time_param is not None:
@@ -133,7 +140,13 @@ class VarQTELinearSolver:
 
         return np.real(x), metric_tensor_lse_lhs, evolution_grad_lse_rhs
 
-    def _post_bind_t_param(self, evolution_grad_lse_rhs, time_value):
+    def _post_bind_t_param(
+        self, evolution_grad_lse_rhs: np.ndarray, time_value: float
+    ) -> np.ndarray:
+        """
+        In case of a time-dependent Hamiltonian, binds a time parameter in an evolution gradient
+        (if they contain a time parameter) with a current time value.
+        """
         bound_evolution_grad_lse_rhs = np.zeros(len(evolution_grad_lse_rhs), dtype=complex)
         for i, param_expr in enumerate(evolution_grad_lse_rhs):
             bound_evolution_grad_lse_rhs[i] = param_expr.assign(

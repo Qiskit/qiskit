@@ -13,7 +13,7 @@
 """Abstract class for generating ODE functions."""
 
 from abc import ABC, abstractmethod
-from typing import Iterable, Dict
+from typing import Iterable, Dict, Optional
 from qiskit.circuit import Parameter
 from ..var_qte_linear_solver import (
     VarQTELinearSolver,
@@ -27,8 +27,8 @@ class AbstractOdeFunction(ABC):
         self,
         varqte_linear_solver: VarQTELinearSolver,
         error_calculator,
-        t_param: Parameter,
         param_dict: Dict[Parameter, complex],
+        t_param: Optional[Parameter] = None,
     ) -> None:
 
         self._varqte_linear_solver = varqte_linear_solver

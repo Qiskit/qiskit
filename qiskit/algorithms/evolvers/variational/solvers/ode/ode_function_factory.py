@@ -14,7 +14,7 @@
 
 from abc import ABC
 from enum import Enum
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from qiskit.circuit import Parameter
 from .abstract_ode_function import AbstractOdeFunction
 from .ode_function import OdeFunction
@@ -40,9 +40,9 @@ class OdeFunctionFactory(ABC):
     def build(
         self,
         varqte_linear_solver: VarQTELinearSolver,
-        error_calculator: Any,  # TODO will be supported in another PR
-        t_param: Parameter,
+        error_calculator: Any,
         param_dict: Dict[Parameter, complex],
+        t_param: Optional[Parameter] = None,
     ) -> AbstractOdeFunction:
         """
         Initializes an ODE function specified in the class.
@@ -50,8 +50,8 @@ class OdeFunctionFactory(ABC):
         Args:
             varqte_linear_solver: Solver of LSE for the VarQTE algorithm.
             error_calculator: Calculator of errors for error-based ODE functions.
-            t_param: Time parameter in case of a time-dependent Hamiltonian.
             param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
+            t_param: Time parameter in case of a time-dependent Hamiltonian.
         Returns:
             An ODE function.
         Raises:
@@ -59,7 +59,7 @@ class OdeFunctionFactory(ABC):
 
         """
         if self._ode_type == OdeFunctionType.STANDARD_ODE:
-            return OdeFunction(varqte_linear_solver, error_calculator, t_param, param_dict)
+            return OdeFunction(varqte_linear_solver, error_calculator, param_dict, t_param)
         raise ValueError(
             f"Unsupported ODE function provided: {self._ode_type}. Only {[tp.value for tp in OdeFunctionType]} are supported."
         )

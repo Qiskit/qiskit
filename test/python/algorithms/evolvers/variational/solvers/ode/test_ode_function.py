@@ -65,16 +65,6 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
 
         var_principle = ImaginaryMcLachlanPrinciple()
 
-        # metric_tensor = var_principle.calc_qfi(ansatz, parameters, parameters, backend, param_dict.values())
-        # evolution_grad = var_principle.calc_evolution_grad(observable,
-        # ansatz,
-        # CircuitSampler(backend),
-        # param_dict,
-        # parameters,
-        # parameters,
-        # backend,
-        # param_dict.values())
-
         t_param = None
 
         linear_solver = partial(np.linalg.lstsq, rcond=1e-2)

@@ -13,18 +13,24 @@
 """Class for a Variational Principle."""
 
 from abc import ABC, abstractmethod
-from typing import Union
+from typing import Union, List, Optional, Dict
 
 import numpy as np
 
+from qiskit import QuantumCircuit
+from qiskit.circuit import Parameter
 from qiskit.opflow import (
     CircuitQFI,
     CircuitGradient,
     QFI,
     Gradient,
     CircuitStateFn,
+    CircuitSampler,
+    OperatorBase,
+    StateFn,
 )
 from qiskit.opflow.gradients.circuit_gradients import LinComb
+from qiskit.utils import QuantumInstance
 
 
 class VariationalPrinciple(ABC):
@@ -53,14 +59,25 @@ class VariationalPrinciple(ABC):
         self._qfi_gradient_callable = None
 
     def calc_metric_tensor(
-        self, ansatz, bind_params, gradient_params, quantum_instance, param_values
+        self,
+        ansatz: Union[StateFn, QuantumCircuit],
+        bind_params: List[Parameter],
+        gradient_params: List[Parameter],
+        param_values: List[complex],
+        quantum_instance: Optional[QuantumInstance] = None,
     ) -> np.ndarray:
         """
-        Created a QFI instance according to the rules of this variational principle. It will be used
-        to calculate a metric tensor required in the ODE.
-
+        Calculates a metric tensor according to the rules of this variational principle.
+        Args:
+            ansatz: Quantum state in the form of a parametrized quantum circuit.
+            bind_params: List of parameters that are supposed to be bound.
+            gradient_params: List of parameters with respect to which gradients should be computed.
+            param_values: Values of parameters to be bound.
+            quantum_instance: Backend used to evaluate the quantum circuit outputs. If ``None``
+                provided, everything will be evaluated based on matrix multiplication (which is
+                slow).
         Returns:
-            QFI instance.
+            Metric tensor.
         """
         if self._qfi_gradient_callable is None:
             self._qfi_gradient_callable = self.qfi.gradient_wrapper(
@@ -72,20 +89,35 @@ class VariationalPrinciple(ABC):
 
     def calc_evolution_grad(
         self,
-        hamiltonian,
-        ansatz,
-        circuit_sampler,
-        param_dict,
-        bind_params,
-        gradient_params,
-        quantum_instance,
-        param_values,
+        hamiltonian: OperatorBase,
+        ansatz: Union[StateFn, QuantumCircuit],
+        circuit_sampler: CircuitSampler,
+        param_dict: Dict[Parameter, complex],
+        bind_params: List[Parameter],
+        gradient_params: List[Parameter],
+        param_values: List[complex],
+        quantum_instance: Optional[QuantumInstance] = None,
     ) -> np.ndarray:
         """
         Calculates an evolution gradient according to the rules of this variational principle.
-
+        Args:
+            hamiltonian:
+                Operator used for Variational Quantum Time Evolution.
+                The operator may be given either as a composed op consisting of a Hermitian
+                observable and a ``CircuitStateFn`` or a ``ListOp`` of a ``CircuitStateFn`` with a
+                ``ComboFn``.
+                The latter case enables the evaluation of a Quantum Natural Gradient.
+            ansatz: Quantum state in the form of a parametrized quantum circuit.
+            circuit_sampler: A circuit sampler.
+            param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
+            bind_params: List of parameters that are supposed to be bound.
+            gradient_params: List of parameters with respect to which gradients should be computed.
+            param_values: Values of parameters to be bound.
+            quantum_instance: Backend used to evaluate the quantum circuit outputs. If ``None``
+                provided, everything will be evaluated based on matrix multiplication (which is
+                slow).
         Returns:
-            Transformed evolution gradient.
+            An evolution gradient.
         """
         # TODO calculate and sample energy separately
         modified_hamiltonian = self.modify_hamiltonian(
@@ -101,5 +133,26 @@ class VariationalPrinciple(ABC):
         return evolution_grad_lse_rhs
 
     @abstractmethod
-    def modify_hamiltonian(self, hamiltonian, ansatz, circuit_sampler, param_dict):
+    def modify_hamiltonian(
+        self,
+        hamiltonian: OperatorBase,
+        ansatz: Union[StateFn, QuantumCircuit],
+        circuit_sampler: CircuitSampler,
+        param_dict: Dict[Parameter, complex],
+    ) -> OperatorBase:
+        """
+        Modifies a Hamiltonian according to the rules of this variational principle.
+        Args:
+            hamiltonian:
+                Operator used for Variational Quantum Time Evolution.
+                The operator may be given either as a composed op consisting of a Hermitian
+                observable and a ``CircuitStateFn`` or a ``ListOp`` of a ``CircuitStateFn`` with a
+                ``ComboFn``.
+                The latter case enables the evaluation of a Quantum Natural Gradient.
+            ansatz: Quantum state in the form of a parametrized quantum circuit.
+            circuit_sampler: A circuit sampler.
+            param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
+        Returns:
+            An modified Hamiltonian composed with an ansatz.
+        """
         pass

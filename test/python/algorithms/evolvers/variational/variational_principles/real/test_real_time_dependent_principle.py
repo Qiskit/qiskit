@@ -50,11 +50,7 @@ class TestRealTimeDependentPrinciple(QiskitAlgorithmsTestCase):
         var_principle = RealTimeDependentPrinciple()
 
         bound_metric_tensor = var_principle.calc_metric_tensor(
-            ansatz,
-            parameters,
-            parameters,
-            None,
-            param_dict.values(),
+            ansatz, parameters, parameters, param_dict.values(), None
         )
 
         np.testing.assert_almost_equal(
@@ -83,14 +79,7 @@ class TestRealTimeDependentPrinciple(QiskitAlgorithmsTestCase):
         var_principle = RealTimeDependentPrinciple()
 
         bound_evolution_grad = var_principle.calc_evolution_grad(
-            observable,
-            ansatz,
-            None,
-            param_dict,
-            parameters,
-            parameters,
-            None,
-            param_dict.values(),
+            observable, ansatz, None, param_dict, parameters, parameters, param_dict.values(), None
         )
 
         expected_bound_evolution_grad = [
