@@ -32,6 +32,9 @@ class BaseResult(ABC):
 
         This magic method is especific of `dataclasses.dataclass`, therefore all inheriting
         classes must have this decorator.
+
+        Raises:
+            ValueError: Inconsistent number of experiments across data fields.
         """
         for value in self._field_values:  # type: Sized
             if len(value) != self.num_experiments:
