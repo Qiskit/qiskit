@@ -28,14 +28,12 @@ from qiskit.algorithms import VariationalAlgorithm, VariationalResult
 from qiskit.circuit import QuantumCircuit
 from qiskit.opflow import OperatorBase, PauliSumOp, ExpectationBase, CircuitSampler,StateFn
 from qiskit.opflow.gradients import GradientBase, Gradient
-from qiskit.algorithms.minimum_eigen_solvers import MinimumEigensolver
-from qiskit.circuit.library import EvolvedOperatorAnsatz, RealAmplitudes, PauliEvolutionGate
-from qiskit.circuit.library import NLocal
+from qiskit.circuit.library import EvolvedOperatorAnsatz
 from qiskit.utils.validation import validate_min
 
 
 from qiskit.algorithms.optimizers import Optimizer
-from qiskit.utils import QuantumInstance
+from qiskit.utils import QuantumInstance, quantum_instance
 from qiskit.providers import Backend
 from qiskit.algorithms.aux_ops_evaluator import eval_observables
 #from ..aux_ops_evaluator import eval_observables
@@ -81,14 +79,12 @@ class AdaptVQE(VariationalAlgorithm):
             excitation_pool: An entire list of excitations.
         """
         validate_min("threshold", threshold, 1e-15)
-        super().__init__(
-            initial_point = initial_point
-        )
-
+        
         if adapt_gradient is None:
             adapt_gradient = Gradient(grad_method="param_shift")
         self._threshold = threshold
         self.solver = solver
+        self.initial_point = initial_point
         self._max_iterations = max_iterations
         self._adapt_gradient = adapt_gradient
         self._excitation_pool = excitation_pool
@@ -96,6 +92,17 @@ class AdaptVQE(VariationalAlgorithm):
         self.expectation = expectation
         self.quantum_instance = quantum_instance
         self._excitation_list: List[OperatorBase] = []
+
+         
+    @property
+    def initial_point(self) -> Optional[np.ndarray]:
+        """Returns initial point."""
+        return self.solver.initial_point
+
+    @initial_point.setter
+    def initial_point(self, initial_point: Optional[np.ndarray]) -> None:
+        """Sets initial point."""
+        self.solver.initial_point = initial_point
 
     def _compute_gradients(
         self,
@@ -119,13 +126,13 @@ class AdaptVQE(VariationalAlgorithm):
             # add next excitation to ansatz
             self._tmp_ansatz.operators = self._excitation_list + [exc]
             # the ansatz needs to be decomposed for the gradient to work
-            self.ansatz = self._tmp_ansatz.decompose()
-            param_sets = list(self.ansatz.parameters)
+            self.solver.ansatz = self._tmp_ansatz.decompose()
+            param_sets = list(self.solver.ansatz.parameters)
             # zip will only iterate the length of the shorter list
-            theta1 = dict(zip(self.ansatz.parameters, theta))
+            theta1 = dict(zip(self.solver.ansatz.parameters, theta))
             """gradient1 = self._adapt_gradient.gradient_wrapper(
-                ~StateFn(operator) @ StateFn(self.ansatz),
-                bind_params=list(self.ansatz.parameters),
+                ~StateFn(operator) @ StateFn(self.solver.ansatz),
+                bind_params=list(self.solver.ansatz.parameters),
                 backend=self.quantum_instance)"""
             op,expectation = self.solver.construct_expectation(theta1, operator, return_expectation=True)
             # compute gradient
@@ -154,9 +161,20 @@ class AdaptVQE(VariationalAlgorithm):
             Whether repeating sequences of indices have been detected.
         """
         cycle_regex = re.compile(r"(\b.+ .+\b)( \b\1\b)+")
+        # reg-ex explanation:
+        # 1. (\b.+ .+\b) will match at least two numbers and try to match as many as possible. The
+        #    word boundaries in the beginning and end ensure that now numbers are split into digits.
+        # 2. the match of this part is placed into capture group 1
+        # 3. ( \b\1\b)+ will match a space followed by the contents of capture group 1 (again
+        #    delimited by word boundaries to avoid separation into digits).
+        # -> this results in any sequence of at least two numbers being detected
         match = cycle_regex.search(" ".join(map(str, indices)))
         logger.debug("Cycle detected: %s", match)
         logger.info("Alternating sequence found. Finishing.")
+        # Additionally we also need to check whether the last two numbers are identical, because the
+        # reg-ex above will only find cycles of at least two consecutive numbers.
+        # It is sufficient to assert that the last two numbers are different due to the iterative
+        # nature of the algorithm.
         return match is not None or (len(indices) > 1 and indices[-2] == indices[-1])
 
     @staticmethod
@@ -249,8 +267,9 @@ class AdaptVQE(VariationalAlgorithm):
             theta.append(0.0)
             # run VQE on current Ansatz
             self._tmp_ansatz.operators = self._excitation_list
-            self.ansatz = self._tmp_ansatz
+            self.solver.ansatz = self._tmp_ansatz
             self.initial_point = theta
+            #self.solver.quantum_instance = self.quantum_instance
             raw_vqe_result = self.solver.compute_minimum_eigenvalue(operator)
             theta = raw_vqe_result.optimal_point.tolist()
         else:
@@ -270,7 +289,7 @@ class AdaptVQE(VariationalAlgorithm):
 
         # once finished evaluate auxiliary operators if any
         if aux_operators is not None:
-            bound_ansatz = self.ansatz.bind_parameters(result.optimal_point)
+            bound_ansatz = self.solver.ansatz.bind_parameters(result.optimal_point)
 
             aux_values = eval_observables(
                 self.quantum_instance, bound_ansatz, aux_operators, expectation=expectation

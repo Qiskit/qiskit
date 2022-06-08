@@ -7,6 +7,7 @@ from qiskit.opflow.gradients.gradient import Gradient
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import EvolvedOperatorAnsatz
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.opflow import PauliSumOp
@@ -68,12 +69,17 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
                 coeff=1.0
             ),
         ]
-        ansatz = EvolvedOperatorAnsatz(excitation_pool)
+        initial_state = QuantumCircuit(QuantumRegister(4))
+        initial_state.x(0)
+        initial_state.x(1)
+        ansatz = EvolvedOperatorAnsatz(excitation_pool, initial_state=initial_state)
+        quantum_instance=BasicAer.get_backend("statevector_simulator")
         calc = AdaptVQE(
+            solver=VQE(quantum_instance=quantum_instance),
             ansatz=ansatz,
             excitation_pool=excitation_pool,
             adapt_gradient=Gradient(grad_method="param_shift"),
-            quantum_instance=BasicAer.get_backend("statevector_simulator"),
+            quantum_instance=quantum_instance,
         )
         res = calc.compute_minimum_eigensolver(operator=self.h2_op)
 
