@@ -37,6 +37,15 @@ class ParameterReferences(MutableSet):
             k = self._instance_key(ref)
             self._instance_ids[k] = ref[0]
 
+    def __getstate__(self):
+        # Leave behind the reference IDs (keys of _instance_ids) since they'll
+        # be incorrect after unpickling on the other side.
+        return list(self)
+
+    def __setstate__(self, refs):
+        # Recompute reference IDs for the newly unpickled instructions.
+        self._instance_ids = {self._instance_key(ref): ref[0] for ref in refs}
+
     def __len__(self):
         return len(self._instance_ids)
 

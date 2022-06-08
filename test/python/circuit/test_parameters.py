@@ -1804,6 +1804,26 @@ class TestParameterReferences(QiskitTestCase):
         self.assertTrue(all(id(gate) in gate_ids for gate, _ in refs))
         self.assertTrue(all(idx == 0 for _, idx in refs))
 
+    def test_pickle_unpickle(self):
+        """Membership testing after pickle/unpickle."""
+
+        theta = Parameter("theta")
+        gate1 = RZGate(theta)
+        gate2 = RZGate(theta)
+
+        self.assertIsNot(gate1, gate2)
+        self.assertEqual(gate1, gate2)
+
+        refs = ParameterReferences(((gate1, 0), (gate2, 0)))
+
+        to_pickle = (gate1, refs)
+        pickled = pickle.dumps(to_pickle)
+        (gate1_new, refs_new) = pickle.loads(pickled)
+
+        self.assertEqual(len(refs_new), len(refs))
+        self.assertNotIn((gate1, 0), refs_new)
+        self.assertIn((gate1_new, 0), refs_new)
+
     def test_equal_inst_same_instance(self):
         """Referentially equal instructions are treated as same."""
 
