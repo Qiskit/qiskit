@@ -90,7 +90,7 @@ def _validate_amplitude_limit(symbolic_pulse: "SymbolicPulse") -> bool:
     return np.any(np.abs(symbolic_pulse.get_waveform().samples) > 1.0)
 
 
-class LamdifiedExpression:
+class LambdifiedExpression:
     """Descriptor to lambdify symbolic expression with cache.
 
     When new symbolic expression is set for the first time,
@@ -308,8 +308,8 @@ class SymbolicPulse(Pulse):
     )
 
     # Lambdify caches keyed on sympy expressions. Returns the corresponding callable.
-    _envelope_lambdify = LamdifiedExpression("envelope")
-    _constraints_lambdify = LamdifiedExpression("constraints")
+    _envelope_lambdify = LambdifiedExpression("envelope")
+    _constraints_lambdify = LambdifiedExpression("constraints")
 
     def __init__(
         self,
