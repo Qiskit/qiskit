@@ -27,6 +27,7 @@ from qiskit.test import QiskitTestCase
 @dataclass
 class Result(BaseResult):
     """Dummy result dataclass implementing BaseResult."""
+
     field_A: Collection[Any]
     field_B: Collection[Any]
 
