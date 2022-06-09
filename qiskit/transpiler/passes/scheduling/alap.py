@@ -11,19 +11,38 @@
 # that they have been altered from the originals.
 
 """ALAP Scheduling."""
+
+import warnings
+
 from qiskit.circuit import Delay, Qubit, Measure
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
 
-from .base_scheduler import BaseScheduler
+from .base_scheduler import BaseSchedulerTransform
 
 
-class ALAPSchedule(BaseScheduler):
+class ALAPSchedule(BaseSchedulerTransform):
     """ALAP Scheduling pass, which schedules the **stop** time of instructions as late as possible.
 
-    See :class:`~qiskit.transpiler.passes.scheduling.base_scheduler.BaseScheduler` for the
+    See :class:`~qiskit.transpiler.passes.scheduling.base_scheduler.BaseSchedulerTransform` for the
     detailed behavior of the control flow operation, i.e. ``c_if``.
+
+    .. note::
+
+        This base class has been superseded by :class:`~.ALAPScheduleAnalysis` and
+        the new scheduling workflow. It will be deprecated and subsequently
+        removed in a future release.
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        warnings.warn(
+            "The ALAPSchedule class has been supersceded by the ALAPScheduleAnalysis class "
+            "which performs the as analysis pass that requires a padding pass to later modify "
+            "the circuit. This class will be deprecated in a future release and subsequently "
+            "removed after that.",
+            PendingDeprecationWarning,
+        )
 
     def run(self, dag):
         """Run the ALAPSchedule pass on `dag`.
