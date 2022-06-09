@@ -23,6 +23,7 @@ from qiskit.qobj import (
     QasmQobjExperiment,
     QasmQobjConfig,
 )
+
 from .fake_qasm_simulator import FakeQasmSimulator
 
 

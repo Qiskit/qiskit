@@ -16,6 +16,7 @@ Fake 1Q device (1 qubit).
 import datetime
 
 from qiskit.providers.models.backendproperties import BackendProperties, Gate, Nduv
+
 from .fake_backend import FakeBackend
 
 

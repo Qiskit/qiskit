@@ -22,6 +22,7 @@ from qiskit.providers.models import (
     UchannelLO,
 )
 from qiskit.qobj import PulseQobjInstruction
+
 from .fake_backend import FakeBackend
 
 

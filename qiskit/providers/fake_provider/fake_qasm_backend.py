@@ -19,6 +19,7 @@ import os
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers.models import BackendProperties, QasmBackendConfiguration
+
 from .utils.json_decoder import (
     decode_backend_configuration,
     decode_backend_properties,
