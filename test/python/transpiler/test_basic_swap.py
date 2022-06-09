@@ -18,6 +18,8 @@ from qiskit.transpiler import CouplingMap
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.test import QiskitTestCase
+from qiskit.utils import optionals
+from qiskit.quantum_info.analysis.distance import hellinger_distance
 
 
 class TestBasicSwap(QiskitTestCase):
@@ -334,8 +336,278 @@ class TestBasicSwap(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
-    def test_controlflow_if_else(self):
+    def test_controlflow_pre_if_else_route(self):
         """test swap with if else controlflow construct"""
+        from qiskit.converters import dag_to_circuit
+        from qiskit import Aer
+
+        num_qubits = 5
+        qreg = QuantumRegister(num_qubits, "q")
+        creg = ClassicalRegister(num_qubits)
+        coupling = CouplingMap([(i, i+1) for i in range(num_qubits - 1)])        
+        qc = QuantumCircuit(qreg, creg)
+        qc.h(0)
+        qc.cx(0, 2)
+        qc.measure(2, 2)
+        true_body = QuantumCircuit(qreg, creg)
+        true_body.x(3)
+        false_body = QuantumCircuit(qreg, creg)
+        false_body.x(4)
+        qc.if_else((creg[2], 0), true_body, false_body, qreg, creg)
+        qc.measure(qreg, creg)
+
+        dag = circuit_to_dag(qc)
+        cdag = BasicSwap(coupling).run(dag)
+        cqc = dag_to_circuit(cdag)
+        
+        sim = Aer.get_backend("aer_simulator")
+        in_results = sim.run(qc, shots=4096).result().get_counts()
+        out_results = sim.run(cqc, shots=4096).result().get_counts()
+        print(in_results)
+        print(out_results)
+        self.assertEqual(set(in_results), set(out_results))
+
+    def test_controlflow_pre_if_else_route_post_x(self):
+        """test swap with if else controlflow construct"""
+        from qiskit.converters import dag_to_circuit
+        from qiskit import Aer
+
+        num_qubits = 5
+        qreg = QuantumRegister(num_qubits, "q")
+        creg = ClassicalRegister(num_qubits)
+        coupling = CouplingMap([(i, i+1) for i in range(num_qubits - 1)])        
+        qc = QuantumCircuit(qreg, creg)
+        qc.h(0)
+        qc.cx(0, 2)
+        qc.measure(2, 2)
+        true_body = QuantumCircuit(qreg, creg)
+        true_body.x(3)
+        false_body = QuantumCircuit(qreg, creg)
+        false_body.x(4)
+        qc.if_else((creg[2], 0), true_body, false_body, qreg, creg)
+        qc.x(0)
+        qc.measure(qreg, creg)
+
+        dag = circuit_to_dag(qc)
+        cdag = BasicSwap(coupling).run(dag)
+        cqc = dag_to_circuit(cdag)
+        
+        sim = Aer.get_backend("aer_simulator")
+        in_results = sim.run(qc, shots=4096).result().get_counts()
+        out_results = sim.run(cqc, shots=4096).result().get_counts()
+        print(qc)
+        print(cqc)
+        print(in_results)
+        print(out_results)
+        self.assertEqual(set(in_results), set(out_results))
+        
+    def test_controlflow_post_if_else_route(self):
+        """test swap with if else controlflow construct"""
+        from qiskit.converters import dag_to_circuit
+        from qiskit import Aer
+
+        num_qubits = 5
+        qreg = QuantumRegister(num_qubits, "q")
+        creg = ClassicalRegister(num_qubits)
+        coupling = CouplingMap([(i, i+1) for i in range(num_qubits - 1)])        
+        qc = QuantumCircuit(qreg, creg)
+        qc.h(0)
+        qc.measure(0, 0)
+        true_body = QuantumCircuit(qreg, creg)
+        true_body.x(3)
+        false_body = QuantumCircuit(qreg, creg)
+        false_body.x(4)
+        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg)
+        qc.cx(0, 2)
+        qc.measure(qreg, creg)
+
+        dag = circuit_to_dag(qc)
+        cdag = BasicSwap(coupling).run(dag)
+        cqc = dag_to_circuit(cdag)
+
+        sim = Aer.get_backend("aer_simulator")
+        in_results = sim.run(qc, shots=4096).result().get_counts()
+        out_results = sim.run(cqc, shots=4096).result().get_counts()
+        print(qc)
+        print(cqc)
+        print(in_results)
+        print(out_results)
+        self.assertEqual(set(in_results), set(out_results))
+
+    def test_controlflow_intra_if_else_route(self):
+        """test swap with if else controlflow construct"""
+        from qiskit.converters import dag_to_circuit
+        from qiskit import Aer
+
+        num_qubits = 5
+        qreg = QuantumRegister(num_qubits, "q")
+        creg = ClassicalRegister(num_qubits)
+        coupling = CouplingMap([(i, i+1) for i in range(num_qubits - 1)])        
+        qc = QuantumCircuit(qreg, creg)
+        qc.h(0)
+        qc.x(1)
+        qc.measure(0, 0)
+        true_body = QuantumCircuit(qreg, creg)
+        true_body.cx(0, 2)
+        false_body = QuantumCircuit(qreg, creg)
+        false_body.cx(0, 4)
+        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg)
+        qc.measure(qreg, creg)
+
+        dag = circuit_to_dag(qc)
+        cdag = BasicSwap(coupling).run(dag)
+        cqc = dag_to_circuit(cdag)
+
+        sim = Aer.get_backend("aer_simulator")
+        in_results = sim.run(qc, shots=4096, seed_simulator=10).result().get_counts()
+        out_results = sim.run(cqc, shots=4096, seed_simulator=11).result().get_counts()
+        print(qc)
+        print(cqc)
+        print(qc.data[3][0].blocks[0])
+        print(cqc.data[3][0].blocks[0])
+        print(qc.data[3][0].blocks[1])
+        print(cqc.data[3][0].blocks[1])
+        print(in_results)
+        print(out_results)
+        distance = hellinger_distance(in_results, out_results)
+        print(f'hellinger distance = {distance}')
+        self.assertLess(hellinger_distance(in_results, out_results), 0.01)
+        self.assertEqual(set(in_results), set(out_results))
+
+    def test_controlflow_intra_if_else_route2(self):
+        """test what circuit paths should look like without actually using controlflow op"""
+        from qiskit.converters import dag_to_circuit
+        from qiskit import Aer
+        from qiskit.transpiler.passes.routing import LayoutTransformation
+
+        num_qubits = 5
+        qreg = QuantumRegister(num_qubits, "q")
+        creg = ClassicalRegister(num_qubits)
+        coupling = CouplingMap([(i, i+1) for i in range(num_qubits - 1)])        
+        qcpre = QuantumCircuit(qreg, creg)
+        qcintra0 = QuantumCircuit(qreg, creg)
+        qcintra1 = QuantumCircuit(qreg, creg)
+        meas = QuantumCircuit(qreg, creg)
+        meas.measure(qreg, creg)
+    
+        qcpre.h(0)
+        qcpre.x(1)
+        #qcpre.measure(0, 0)
+        qcintra0.cx(0, 2)
+        qcintra1.cx(0, 4)
+
+        qc0 = qcpre.compose(qcintra0)
+        qc1 = qcpre.compose(qcintra1)
+
+        #qc0.measure_all(add_bits=False)
+        
+        dag0 = circuit_to_dag(qc0)
+        bswap0 = BasicSwap(coupling)
+        cdag0 = bswap0.run(dag0)
+        cqc0 = dag_to_circuit(cdag0)
+        # cqc0.swap(2, 3)
+        # cqc0.swap(3, 4)
+        qc0.measure_all(add_bits=False)
+        # cqc0.measure_all(add_bits=False)
+
+        qc1.measure_all(add_bits=False)
+        dag1 = circuit_to_dag(qc1)
+        bswap1 = BasicSwap(coupling)
+        cdag1 = bswap1.run(dag1)
+        cqc1 = dag_to_circuit(cdag1)
+
+        # now use measurements from bswap1 to apply to cqc0
+        order = bswap1.property_set["final_layout"].reorder_bits(cqc1.qubits)
+        cqc0.barrier()
+        #cqc0.compose(meas, qubits=[0, 3, 1, 2, 4], inplace=True)
+        new_list = list(iter(order))
+        cqc0.compose(meas, qubits=new_list, inplace=True)
+
+        expected0 = qcpre.copy()
+        expected0.swap(1, 2)
+        expected0.cx(2, 3)
+        swap_circ = QuantumCircuit(qreg)
+        swap_circ.swap(2, 3)
+        #expected0.swap(2, 3)
+        layout = bswap1.property_set["final_layout"]
+        order = layout.reorder_bits(expected0.qubits)
+        
+        expected0b = expected0.compose(swap_circ, qubits=order)
+        expected0b.barrier()
+        expected0b.measure(qreg, creg)
+        expected0_dag = circuit_to_dag(expected0b)
+        #expected0_dag.compose(circuit_to_dag(meas), qubits=order)
+        #expected0b = dag_to_circuit(expected0_dag)
+        
+        sim = Aer.get_backend("aer_simulator")
+        in_results0 = sim.run(qc0, shots=4096).result().get_counts()
+        in_results1 = sim.run(qc1, shots=4096).result().get_counts()        
+        out_results0 = sim.run(cqc0, shots=4096).result().get_counts()
+        out_results1 = sim.run(cqc1, shots=4096).result().get_counts()
+        expected0_results = sim.run(expected0b, shots=4096).result().get_counts()
+        print('qc0')
+        print(qc0)
+        print(in_results0)
+        print('cqc0')
+        print(cqc0)
+        print(out_results0)
+        print('qc1')
+        print(qc1)
+        print(in_results1)        
+        print('cqc1')
+        print(cqc1)
+        print(out_results1)
+        print('expected0')
+        print(expected0b)
+        print(expected0_results)
+        xform = LayoutTransformation(coupling, bswap0.property_set["final_layout"],
+                                     bswap1.property_set["final_layout"])
+        cdag02 = xform.run(cdag0)
+        ccirc02 = dag_to_circuit(cdag02)
+        ccirc02.barrier()
+        ccirc02.compose(meas, qubits=order, inplace=True)
+        ccirc02_results = sim.run(ccirc02, shots=4096).result().get_counts()        
+        print(ccirc02)
+        print(ccirc02_results)
+        breakpoint()
+        self.assertEqual(set(in_results), set(out_results))
+        
+        
+    def test_controlflow_if_else2(self):
+        """test swap with if else controlflow construct"""
+        from qiskit.converters import dag_to_circuit
+
+        num_qubits = 5
+        qreg = QuantumRegister(num_qubits, "q")
+        creg = ClassicalRegister(num_qubits)
+        coupling = CouplingMap([(i, i+1) for i in range(num_qubits - 1)])
+
+        qc = QuantumCircuit(qreg, creg)
+        qc.cx(0, 2)
+        qc.measure(2, 0)
+        
+        true_body = QuantumCircuit(qreg, creg)
+        true_body.h(0)
+        false_body = QuantumCircuit(qreg, creg)
+        false_body.x(1)
+        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg)
+        qc.measure(qreg, creg)
+        
+        print(qc)
+        dag = circuit_to_dag(qc)
+        cdag = BasicSwap(coupling).run(dag)
+        cqc = dag_to_circuit(cdag)
+        from qiskit import Aer
+
+        sim = Aer.get_backend("aer_simulator")
+        in_results = sim.run(qc, shots=4096).result().get_counts()
+        out_results = sim.run(cqc, shots=4096).result().get_counts()
+        print(in_results)
+        print(out_results)
+        self.assertEqual(set(in_results), set(out_results))
+
+    def test_controlflow_if_else(self):
+        """test swap with if-else controlflow construct"""
         from qiskit.converters import dag_to_circuit
 
         num_qubits = 5
@@ -353,7 +625,8 @@ class TestBasicSwap(QiskitTestCase):
         false_body = QuantumCircuit(qreg, creg)
         false_body.cx(0, 4)
         qc.if_else((creg[0], 0), true_body, false_body, qreg, creg)
-        qc.x(0)
+        qc.cx(1, 2)
+        qc.measure_all()
         # there seems to be a difference when using the context manager to
         # create if_else op; the QuantumCircuit blocks have empty "qregs" but
         # qubits property looks correct
@@ -368,63 +641,34 @@ class TestBasicSwap(QiskitTestCase):
         expected = QuantumCircuit(qreg, creg)
         expected.h(0)
         expected.swap(0, 1)
-        expected.swap(1, 2)
-        expected.cx(2, 3)
-        expected.measure(2, 0)
+        expected.cx(1, 2)
+        expected.measure(1, 0)
         true_body = QuantumCircuit(qreg, creg)
-        true_body.swap(0, 1)
         true_body.cx(1, 2)
         false_body = QuantumCircuit(qreg, creg)
-        false_body.swap(0, 1)
         false_body.swap(1, 2)
         false_body.swap(2, 3)
         false_body.cx(3, 4)
+        false_body.swap(2, 3)
+        false_body.swap(1, 2)
         expected.if_else((creg[0], 0), true_body, false_body, qreg, creg)
-        expected.x(1)
+        expected.swap(0, 1)
+        expected.cx(1, 2)
         expected_dag = circuit_to_dag(expected)
+        #self.assertEqual(cqc, expected)
+        #breakpoint()
+        if not optionals.HAS_AER:
+            return
+
+        from qiskit import Aer
+
+        sim = Aer.get_backend("aer_simulator")
+        in_results = sim.run(qc, shots=4096).result().get_counts()
+        out_results = sim.run(cqc, shots=4096).result().get_counts()
         breakpoint()
-        self.assertEqual(cqc, expected)
+        self.assertEqual(set(in_results), set(out_results))
+        
 
-    def test_controlflow_if_else2(self):
-        """test swap with if else controlflow construct"""
-        from qiskit.converters import dag_to_circuit
-
-        num_qubits = 5
-        qreg = QuantumRegister(num_qubits, "q")
-        creg = ClassicalRegister(num_qubits)
-        coupling = CouplingMap([(i, i+1) for i in range(num_qubits - 1)])
-
-        qc = QuantumCircuit(qreg, creg)
-        qc.cx(0, 2)
-        qc.measure(0, 0)
-
-        true_body = QuantumCircuit(qreg, creg)
-        true_body.h(0)
-        false_body = QuantumCircuit(qreg, creg)
-        false_body.x(1)
-        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg)
-        print(qc)
-        dag = circuit_to_dag(qc)
-        cdag = BasicSwap(coupling).run(dag)
-
-    def test_controlflow_if_else3(self):
-        """test swap with if else controlflow construct"""
-        from qiskit.converters import dag_to_circuit
-
-        num_qubits = 5
-        qreg = QuantumRegister(num_qubits, "q")
-        creg = ClassicalRegister(num_qubits)
-        coupling = CouplingMap([(i, i+1) for i in range(num_qubits - 1)])
-
-        qc = QuantumCircuit(qreg, creg)
-        qc.cx(0, 3)
-        qc.x(1)
-        qc.h(2)
-        qc.y(3)
-        dag = circuit_to_dag(qc)
-        cdag = BasicSwap(coupling).run(dag)
-        cqc = dag_to_circuit(cdag)
-        breakpoint()
         
 
 if __name__ == "__main__":
