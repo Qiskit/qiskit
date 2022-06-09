@@ -9,7 +9,7 @@ deprecations:
   - |
     The :meth:`.SPSA.optimize` method is deprecated in
     favor of :meth:`.SPSA.minimize`, which can be used
-    as direct replacement. Note that the `minimize` method returns a complete result
+    as direct replacement. Note that this method returns a complete result
     object with more information than before available.
 fixes:
   - |

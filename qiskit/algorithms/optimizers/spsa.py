@@ -647,12 +647,10 @@ class SPSA(Optimizer):
         }
 
     @deprecate_function(
-        """
-The SPSA.optimize method is deprecated as of Qiskit Terra 0.21.0 and will be removed no
-sooner than 3 months after the release date. Instead, use SPSA.minimize as a replacement,
-which supports the same arguments but follows the interface of scipy.optimize and returns a
-complete result object containing additional information.
-"""
+        "The SPSA.optimize method is deprecated as of Qiskit Terra 0.21.0 and will be removed no "
+        "sooner than 3 months after the release date. Instead, use SPSA.minimize as a replacement, "
+        "which supports the same arguments but follows the interface of scipy.optimize and returns "
+        "a complete result object containing additional information."
     )
     def optimize(
         self,
