@@ -9,7 +9,7 @@ from qiskit.algorithms.algorithm_result import AlgorithmResult
 
 
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
-from .steppable_optimizer import AskObject, TellObject, OptimizerState, SteppableOptimizer,CALLBACK
+from .steppable_optimizer import AskObject, TellObject, OptimizerState, SteppableOptimizer, CALLBACK
 
 
 def constant(eta=0.01):
@@ -37,7 +37,7 @@ class GradientDescent(SteppableOptimizer):
         **kwargs,
     ) -> None:
 
-        super().__init__(maxiter=maxiter,callback=callback)
+        super().__init__(maxiter=maxiter, callback=callback)
         self._state: GD_OptimizerState = None
         self.learning_rate = learning_rate
         self.perturbation = perturbation
@@ -154,7 +154,7 @@ class GradientDescent(SteppableOptimizer):
         Returns:
             True if the optimization process should continue, False otherwise.
         """
-       
+
         cont_condition = self._state.stepsize > self.tol
         cont_condition &= super().continue_condition()
         return cont_condition
