@@ -198,7 +198,7 @@ class ICANS(VQE):
 
             # Calculation of gradients
             for param in range(n_param):
-                parameters_plus = deepcopy(lst_param)
+                parameters_plus = copy.deepcopy(lst_param)
                 parameters_plus[param] += epsilon
 
                 results_plus = self.single_shots(expectation, parameters_plus, shots[param])
