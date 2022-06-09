@@ -19,6 +19,7 @@ from numpy.random import default_rng
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator, Stinespring
+from qiskit.utils import algorithm_globals
 
 # pylint: disable=unused-import
 from .dihedral.random import random_cnotdihedral
@@ -30,7 +31,7 @@ from .symplectic.random import (
     random_stabilizer_table,
 )
 
-DEFAULT_RNG = default_rng()
+DEFAULT_RNG = algorithm_globals.random
 
 
 def random_unitary(dims, seed=None):
