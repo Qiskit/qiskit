@@ -76,7 +76,7 @@ def _lifted_gaussian(
 
 
 @functools.lru_cache(maxsize=None)
-def _validate_amplitude_limit(symbolic_pulse: "SymbolicPulse") -> bool:
+def _is_amplitude_valid(symbolic_pulse: "SymbolicPulse") -> bool:
     """A helper function to validate maximum amplitude limit.
 
     Result is cached for better performance.
@@ -87,27 +87,27 @@ def _validate_amplitude_limit(symbolic_pulse: "SymbolicPulse") -> bool:
     Returns:
         Return True if any sample point exceeds 1.0 in absolute value.
     """
-    return np.any(np.abs(symbolic_pulse.get_waveform().samples) > 1.0)
+    return np.all(np.abs(symbolic_pulse.get_waveform().samples) < 1.0)
 
 
-def _get_expression_args(
-    expr: sym.Expr,
-    params: Dict[str, float],
-    exclude: Optional[List[str]] = None,
-) -> List[float]:
+def _get_expression_args(expr: sym.Expr, params: Dict[str, float]) -> List[float]:
     """A helper function to get argument to evaluate expression.
 
     Args:
         expr: Symbolic expression to evaluate.
         params: Dictionary of parameter, which is a superset of expression arguments.
-        exclude: Parameter to exclude from arguments.
 
     Returns:
         Arguments passed to the lambdified expression.
     """
     args = []
     for symbol in sorted(expr.free_symbols, key=lambda s: s.name):
-        if exclude and symbol.name in exclude:
+        if symbol.name == "t":
+            # 't' is a special parameter to represent time vector.
+            # This should be place at first to broadcast other parameters
+            # in symengine lambdify function.
+            times = np.arange(0, params["duration"]) + 1 / 2
+            args.insert(0, times)
             continue
         args.append(params[symbol.name])
     return args
@@ -153,34 +153,31 @@ class LambdifiedExpression:
                 params.append(p)
 
             if _optional.HAS_SYMENGINE:
-                # Symengine lambdify requires array-like
                 try:
-                    # First, try to lambdify the expression as a real-valued function.
-                    # Currently, complex_double version of comparison operators and Piecewise
-                    # are not supported by symengine, i.e. real=False doesn't work.
-                    # The available values in this function are restricted to real subspace.
-                    # This is why we need to exclude 'amp' from the expression.
-                    # See https://github.com/symengine/symengine.py/issues/406 for details.
-                    lamb = sym.lambdify(params, [value])
-                except RuntimeError:
-                    # When sym.I is explicitly used in the expression, i.e. complex envelope.
-                    # Here the expression cannot be piecewise since it's not supported.
                     lamb = sym.lambdify(params, [value], real=False)
 
-                def _wrapped_lamb(*args):
-                    if isinstance(args[0], np.ndarray):
-                        # When the args[0] is a vector ("t"), tile other arguments args[1:]
-                        # to prevent evaluation from looping over each element in t.
-                        t = args[0]
-                        args = np.hstack(
-                            (
-                                t.reshape(t.size, 1),
-                                np.tile(args[1:], t.size).reshape(t.size, len(args) - 1),
+                    def _wrapped_lamb(*args):
+                        if isinstance(args[0], np.ndarray):
+                            # When the args[0] is a vector ("t"), tile other arguments args[1:]
+                            # to prevent evaluation from looping over each element in t.
+                            t = args[0]
+                            args = np.hstack(
+                                (
+                                    t.reshape(t.size, 1),
+                                    np.tile(args[1:], t.size).reshape(t.size, len(args) - 1),
+                                )
                             )
-                        )
-                    return lamb(args)
+                        return lamb(args)
 
-                func = _wrapped_lamb
+                    func = _wrapped_lamb
+                except RuntimeError:
+                    # Currently symengine doesn't support complex_double version for
+                    # several functions such as comparison operator and piecewise.
+                    # If expression contains these function, it fall back to sympy lambdify.
+                    # See https://github.com/symengine/symengine.py/issues/406 for details.
+                    import sympy
+
+                    func = sympy.lambdify(params, value)
             else:
                 func = sym.lambdify(params, value)
 
@@ -205,21 +202,12 @@ class SymbolicPulse(Pulse):
 
     .. math::
 
-        F(t, \Theta) = {\rm amp} \times F'(t, {\rm duration}, \overline{\rm params})
+        F(t, \Theta) = \times F(t, {\rm duration}, \overline{\rm params})
 
     where :math:`\Theta` is the set of full pulse parameters in the :attr:`SymbolicPulse.parameters`
-    dictionary which must include the :math:`\rm amp` and :math:`\rm duration`.
-    The :math:`\rm amp` is a complex value representing a scale factor and phase applied to
-    the envelope function :math:`F'` which is defined with :attr:`SymbolicPulse.envelope`.
-    This indicates that by convention the Qiskit Pulse conforms to the IQ format rather
-    than the phasor representation. When a real value is assigned to the amplitude,
-    it is internally typecasted to the complex. The real and imaginary part may be
-    directly supplied to two quadratures of the IQ mixer in the control electronics.
-    Note that the :math:`F'` is a normalized envelope of the waveform, and this function
-    takes parameters which are all real values. A programmer must provide this envelope
-    as a symbolic expression. The parameter `amp` must be excluded from the expression,
-    because this is separately applied to the envelope when the :meth:`get_waveform` is called.
-
+    dictionary which must include the :math:`\rm duration`.
+    Note that the :math:`F` is an envelope of the waveform, and a programmer must provide this
+    as a symbolic expression. :math:`\overline{\rm params}` are arbitrary complex values.
     The time :math:`t` and :math:`\rm duration` are in units of dt, i.e. sample time resolution,
     and this function is sampled with a discrete time vector in :math:`[0, {\rm duration}]`
     sampling the pulse envelope at every 0.5 dt (middle sampling strategy) when
@@ -242,10 +230,25 @@ class SymbolicPulse(Pulse):
     concatenated with logical expressions such as ``And`` and ``Or`` in SymPy or Symengine.
     The symbolic pulse instance can be played only when the constraint function returns ``True``.
     The constraint is evaluated when :meth:`SymbolicPulse.validate_parameters` is called.
-    Note that the maximum pulse amplitude limit is separately evaluated when
-    the :attr:`.limit_amplitude` is set.
-    Since this is evaluated with actual waveform samples by calling :meth:`.get_waveform`,
-    it is not necessary to define any explicit constraint for the amplitude limitation.
+
+
+    .. _symbolic_pulse_eval_condition:
+
+    .. rubric:: Maximum amplitude validation
+
+    When you play a pulse in a quantum backend, you might face the restriction on the power
+    that your waveform generator can handle. Usually, the pulse amplitude is normalized
+    by this maximum power, namely :math:`\max |F| \leq 1`. This condition is
+    evaluated along with above constraints when you set ``limit_amplitude = True`` in the constructor.
+    To evaluate maximum amplitude of the waveform, we need to call :meth:`get_waveform`.
+    Hoever, this introduces a significant overhead in the validation, and this cannot be ignored
+    when you repeatedly instantiate pulse instances.
+    :attr:`SymbolicPulse.eval_conditions` provides a condition to run this waveform validation,
+    and the waveform is not generated as long as this condition returns ``False``,
+    so that `healthy` symbolic pulses are created very quick.
+    This expression is provided through the constructor. If this is not provided,
+    waveform is generated everytime when the :meth:`validate_parameters` is called.
+
 
     .. rubric:: Examples
 
@@ -271,8 +274,8 @@ class SymbolicPulse(Pulse):
 
         import sympy
 
-        t, freq = sympy.symbols("t, freq")
-        envelope = 2 * (freq * t - sympy.floor(1 / 2 + freq * t))
+        t, amp, freq = sympy.symbols("t, amp, freq")
+        envelope = 2 * amp * (freq * t - sympy.floor(1 / 2 + freq * t))
         my_pulse.envelope = envelope
 
         my_pulse.draw()
@@ -292,13 +295,13 @@ class SymbolicPulse(Pulse):
                 name=name,
             )
 
-            t, freq = sympy.symbols("t, freq")
-            instance.envelope = 2 * (freq * t - sympy.floor(1 / 2 + freq * t))
+            t, amp, freq = sympy.symbols("t, amp, freq")
+            instance.envelope = 2 * amp * (freq * t - sympy.floor(1 / 2 + freq * t))
 
             return instance
 
     You can also provide a :class:`Parameter` object in the ``parameters`` dictionary,
-    or define ``duration`` and ``amp`` with parameters when you instantiate
+    or define ``duration`` with a :class:`Parameter` object when you instantiate
     the symbolic pulse instance.
     A waveform cannot be generated until you assign all unbounded parameters.
     Note that parameters will be assigned through the schedule playing the pulse.
@@ -323,7 +326,6 @@ class SymbolicPulse(Pulse):
     """
 
     __slots__ = (
-        "_amp",
         "_pulse_type",
         "_params",
         "envelope",
@@ -358,9 +360,11 @@ class SymbolicPulse(Pulse):
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
             envelope: Pulse envelope expression.
             constraints: Pulse parameter constraint expression.
-            eval_conditions: Extra conditions to evaluate full waveform to check the
-                amplitude limit. This can be provided if ``envelope`` function is not
-                normalized to 1.0.
+            eval_conditions: Extra conditions to evaluate a full waveform to check the
+                amplitude limit. If this condition is met, then the validation routine
+                will investigate the full waveform and raise an error when the amplitude norm
+                of any data point exceeds 1.0. If not provided, the validation always
+                creates a full waveform.
 
         Raises:
             PulseError: When not all parameters are listed in the attribute :attr:`PARAM_DEF`.
@@ -373,16 +377,6 @@ class SymbolicPulse(Pulse):
         if parameters is None:
             parameters = {}
 
-        if "amp" not in parameters:
-            # See https://github.com/symengine/symengine.py/issues/406 for details.
-            raise PulseError(
-                "SymbolicPulse assumes the function form 'amp' * F(t, 'duration', 'parameters'). "
-                "You must provide 'amp' in the the 'parameters' dictionary. "
-                "Because of the limitation in the symbolic computation library, "
-                "only this parameter can take a complex value for now. "
-                "This limitation might be removed in future."
-            )
-        self._amp = parameters.pop("amp")
         self._pulse_type = pulse_type
         self._params = parameters
 
@@ -392,9 +386,6 @@ class SymbolicPulse(Pulse):
 
     def __getattr__(self, item):
         # Get pulse parameters with attribute-like access.
-        if item == "amp":
-            return object.__getattribute__(self, "_amp")
-
         params = object.__getattribute__(self, "_params")
         if item not in params:
             raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{item}'")
@@ -429,10 +420,8 @@ class SymbolicPulse(Pulse):
         if self.envelope is None:
             raise PulseError("Pulse envelope expression is not assigned.")
 
-        times = np.arange(0, self.duration) + 1 / 2
-        fargs = [times, *_get_expression_args(self.envelope, self.parameters, exclude=["t"])]
-
-        return Waveform(samples=self._amp * self._envelope_lam(*fargs), name=self.name)
+        fargs = _get_expression_args(self.envelope, self.parameters)
+        return Waveform(samples=self._envelope_lam(*fargs), name=self.name)
 
     def validate_parameters(self) -> None:
         """Validate parameters.
@@ -442,9 +431,6 @@ class SymbolicPulse(Pulse):
         """
         if self.is_parameterized():
             return
-
-        if any(p.imag != 0 for p in self._params.values()):
-            raise PulseError("Pulse parameters must be real numbers except for 'amp'.")
 
         if self.constraints is not None:
             fargs = _get_expression_args(self.constraints, self.parameters)
@@ -456,29 +442,22 @@ class SymbolicPulse(Pulse):
                 )
 
         if self.limit_amplitude:
-            violate_amp_limit = False
-
-            if np.abs(self._amp) > 1.0:
-                # Strong condition. |amp| > 1.0 must exceed AWG dynamic range.
-                violate_amp_limit = True
-            elif self.eval_conditions is not None:
-                # Check actual waveform.
-                # For example, if .envelope function is not normalized,
-                # |amp| < 1.0 can result in the maximum amplitude > 1.0, depending on the
-                # selection of other parameters.
+            if self.eval_conditions is not None:
                 fargs = _get_expression_args(self.eval_conditions, self.parameters)
-                if bool(self._eval_conditions_lam(*fargs)) and _validate_amplitude_limit(self):
-                    violate_amp_limit = True
+                check_full_waveform = bool(self._eval_conditions_lam(*fargs))
+            else:
+                check_full_waveform = True
 
-            if violate_amp_limit:
-                # Check max amplitude limit by generating waveform.
-                # We can avoid calling _validate_amplitude_limit when |amp| > 1.0
-                # which obviously violates the amplitude constraint by definition.
-                param_repr = ", ".join(f"{p}={v}" for p, v in self.parameters.items())
-                raise PulseError(
-                    f"Maximum pulse amplitude norm exceeds 1.0 with assigned parameters {param_repr}."
-                    "This can be overruled by setting Pulse.limit_amplitude."
-                )
+            if check_full_waveform:
+                # Check full waveform only when the condition is satisified or
+                # evaluation condition is not provided.
+                # This operation is slower due to overhead of 'get_waveform'.
+                if not _is_amplitude_valid(self):
+                    param_repr = ", ".join(f"{p}={v}" for p, v in self.parameters.items())
+                    raise PulseError(
+                        f"Maximum pulse amplitude norm exceeds 1.0 with parameters {param_repr}."
+                        "This can be overruled by setting Pulse.limit_amplitude."
+                    )
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
@@ -486,13 +465,16 @@ class SymbolicPulse(Pulse):
 
     @property
     def parameters(self) -> Dict[str, Any]:
-        params = {"duration": self.duration, "amp": self._amp}
+        params = {"duration": self.duration}
         params.update(self._params)
         return params
 
     def __eq__(self, other: "SymbolicPulse") -> bool:
 
-        if self.envelope != getattr(other, "envelope", None):
+        if not isinstance(other, SymbolicPulse):
+            return NotImplemented
+
+        if self.envelope != other.envelope:
             return False
 
         if self.parameters != other.parameters:
@@ -501,7 +483,7 @@ class SymbolicPulse(Pulse):
         return True
 
     def __hash__(self) -> int:
-        return hash((self._pulse_type, self.duration, self._amp, *tuple(self._params.items())))
+        return hash((self._pulse_type, self.duration, *tuple(self._params.items())))
 
     def __repr__(self) -> str:
         param_repr = ", ".join(f"{p}={v}" for p, v in self.parameters.items())
@@ -550,11 +532,12 @@ class Gaussian(SymbolicPulse):
         }
 
         # Prepare symbolic expressions
-        _t, _duration, _sigma = sym.symbols("t, duration, sigma", real=True)
+        _t, _duration, _amp, _sigma = sym.symbols("t, duration, amp, sigma")
         _center = _duration / 2
 
-        envelope_expr = _lifted_gaussian(_t, _center, _duration + 1, _sigma)
+        envelope_expr = _amp * _lifted_gaussian(_t, _center, _duration + 1, _sigma)
         consts_expr = _sigma > 0
+        eval_conditions_expr = sym.Abs(_amp) > 1.0
 
         super().__init__(
             pulse_type=self.__class__.__name__,
@@ -564,6 +547,7 @@ class Gaussian(SymbolicPulse):
             limit_amplitude=limit_amplitude,
             envelope=envelope_expr,
             constraints=consts_expr,
+            eval_conditions=eval_conditions_expr,
         )
         self.validate_parameters()
 
@@ -652,7 +636,7 @@ class GaussianSquare(SymbolicPulse):
         }
 
         # Prepare symbolic expressions
-        _t, _duration, _sigma, _width = sym.symbols("t, duration, sigma, width", real=True)
+        _t, _duration, _amp, _sigma, _width = sym.symbols("t, duration, amp, sigma, width")
         _center = _duration / 2
 
         _sq_t0 = _center - _width / 2
@@ -661,10 +645,11 @@ class GaussianSquare(SymbolicPulse):
         _gaussian_ledge = _lifted_gaussian(_t, _sq_t0, -1, _sigma)
         _gaussian_redge = _lifted_gaussian(_t, _sq_t1, _duration + 1, _sigma)
 
-        envelope_expr = sym.Piecewise(
+        envelope_expr = _amp * sym.Piecewise(
             (_gaussian_ledge, _t <= _sq_t0), (_gaussian_redge, _t >= _sq_t1), (1, True)
         )
         consts_expr = sym.And(_sigma > 0, _width >= 0, _duration >= _width)
+        eval_conditions_expr = sym.Abs(_amp) > 1.0
 
         super().__init__(
             pulse_type=self.__class__.__name__,
@@ -674,6 +659,7 @@ class GaussianSquare(SymbolicPulse):
             limit_amplitude=limit_amplitude,
             envelope=envelope_expr,
             constraints=consts_expr,
+            eval_conditions=eval_conditions_expr,
         )
         self.validate_parameters()
 
@@ -748,18 +734,16 @@ class Drag(SymbolicPulse):
         }
 
         # Prepare symbolic expressions
-        _t, _duration, _sigma, _beta = sym.symbols("t, duration, sigma, beta", real=True)
+        _t, _duration, _amp, _sigma, _beta = sym.symbols("t, duration, amp, sigma, beta")
         _center = _duration / 2
 
         _gauss = _lifted_gaussian(_t, _center, _duration + 1, _sigma)
         _deriv = -(_t - _center) / (_sigma**2) * _gauss
 
-        envelope_expr = _gauss + sym.I * _beta * _deriv
+        envelope_expr = _amp * (_gauss + sym.I * _beta * _deriv)
 
-        # In IBM quantum backend, im(beta) == 0 is explicitly checked.
-        # In Qiskit, we impose real number constraints on all parameters except for 'amp'.
         consts_expr = _sigma > 0
-        eval_conditions_expr = sym.Abs(_beta) > _sigma
+        eval_conditions_expr = sym.Or(sym.Abs(_amp) > 1.0, sym.Abs(_beta) > _sigma)
 
         super().__init__(
             pulse_type=self.__class__.__name__,
@@ -802,7 +786,7 @@ class Constant(SymbolicPulse):
         parameters = {"amp": amp if isinstance(amp, ParameterExpression) else complex(amp)}
 
         # Prepare symbolic expressions
-        _t, _duration = sym.symbols("t, duration", real=True)
+        _t, _amp, _duration = sym.symbols("t, amp, duration")
 
         # Note this is implemented using Piecewise instead of just returning amp
         # directly because otherwise the expression has no t dependence and sympy's
@@ -811,7 +795,8 @@ class Constant(SymbolicPulse):
         # ParametricPulse.get_waveform().
         #
         # See: https://github.com/sympy/sympy/issues/5642
-        envelope_expr = sym.Piecewise((1, sym.And(_t >= 0, _t <= _duration)), (0, True))
+        envelope_expr = _amp * sym.Piecewise((1, sym.And(_t >= 0, _t <= _duration)), (0, True))
+        eval_conditions_expr = sym.Abs(_amp) > 1.0
 
         super().__init__(
             pulse_type=self.__class__.__name__,
@@ -820,5 +805,6 @@ class Constant(SymbolicPulse):
             name=name,
             limit_amplitude=limit_amplitude,
             envelope=envelope_expr,
+            eval_conditions=eval_conditions_expr,
         )
         self.validate_parameters()

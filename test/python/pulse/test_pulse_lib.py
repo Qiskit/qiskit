@@ -18,6 +18,7 @@ import numpy as np
 
 from qiskit.circuit import Parameter
 from qiskit.pulse.library import (
+    SymbolicPulse,
     Waveform,
     Constant,
     Gaussian,
@@ -30,6 +31,12 @@ from qiskit.pulse.library import (
 
 from qiskit.pulse import functional_pulse, PulseError
 from qiskit.test import QiskitTestCase
+from qiskit.utils import optionals as _optional
+
+if _optional.HAS_SYMENGINE:
+    import symengine as sym
+else:
+    import sympy as sym
 
 
 class TestWaveform(QiskitTestCase):
@@ -255,8 +262,6 @@ class TestParametricPulses(QiskitTestCase):
             Constant(duration=150, amp=0.9 + 0.8j)
         with self.assertRaises(PulseError):
             Drag(duration=25, amp=0.2 + 0.3j, sigma=-7.8, beta=4)
-        with self.assertRaises(PulseError):
-            Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4j)
 
     def test_hash_generation(self):
         """Test if pulse generate unique hash."""
@@ -355,6 +360,22 @@ class TestParametricPulses(QiskitTestCase):
 
         with self.assertRaises(PulseError):
             drag.get_waveform()
+
+    # pylint: disable=invalid-name
+    def test_custom_pulse(self):
+        """Test defining a custom pulse which is not in the form of amp * F(t)."""
+        t, t1, t2, amp1, amp2 = sym.symbols("t, t1, t2, amp1, amp2")
+        envelope = sym.Piecewise((amp1, sym.And(t > t1, t < t2)), (amp2, sym.true))
+
+        custom_pulse = SymbolicPulse(
+            pulse_type="Custom",
+            duration=100,
+            parameters={"t1": 30, "t2": 80, "amp1": 0.1j, "amp2": -0.1},
+            envelope=envelope,
+        )
+        waveform = custom_pulse.get_waveform()
+        reference = np.concatenate([-0.1 * np.ones(30), 0.1j * np.ones(50), -0.1 * np.ones(20)])
+        np.testing.assert_array_almost_equal(waveform.samples, reference)
 
 
 class TestFunctionalPulse(QiskitTestCase):

@@ -226,17 +226,17 @@ class ParameterSetter(NodeVisitor):
             # Assign duration
             if isinstance(node.duration, ParameterExpression):
                 node.duration = self._assign_parameter_expression(node.duration)
-            if isinstance(node._amp, ParameterExpression):
-                assigned_amp = self._assign_parameter_expression(node._amp)
-                if not isinstance(assigned_amp, ParameterExpression):
-                    # Amplitude is complex value
-                    assigned_amp = complex(assigned_amp)
-                node._amp = assigned_amp
             # Assign other parameters
             for name in node._params:
                 pval = node._params[name]
                 if isinstance(pval, ParameterExpression):
-                    node._params[name] = self._assign_parameter_expression(pval)
+                    new_val = self._assign_parameter_expression(pval)
+                    if name == "amp" and not isinstance(new_val, ParameterExpression):
+                        # This is due to an odd behavior of IBM Quantum backends.
+                        # When the amplitude is given as a float, then job execution is
+                        # terminated with an error.
+                        new_val = complex(new_val)
+                    node._params[name] = new_val
             node.validate_parameters()
 
         return node
