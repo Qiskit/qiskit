@@ -12,12 +12,15 @@
 
 """Tests for BaseResult."""
 
+from __future__ import annotations
+
+from collections.abc import Collection
 from dataclasses import dataclass
-from typing import Any, Collection
+from typing import Any
 
 from ddt import data, ddt, unpack
 
-from qiskit.primitives import BaseResult
+from qiskit.primitives.base_result import BaseResult
 from qiskit.test import QiskitTestCase
 
 
