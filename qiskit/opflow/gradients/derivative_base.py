@@ -105,7 +105,7 @@ class DerivativeBase(ConverterBase):
         """
         from ..converters import CircuitSampler
 
-        if not grad_params:
+        if grad_params is None:
             grad_params = bind_params
 
         grad = self.convert(operator, grad_params)
@@ -113,7 +113,7 @@ class DerivativeBase(ConverterBase):
             expectation = PauliExpectation()
         grad = expectation.convert(grad)
 
-        sampler = CircuitSampler(backend=backend) if backend else None
+        sampler = CircuitSampler(backend=backend) if backend is not None else None
 
         def gradient_fn(p_values):
             p_values_dict = dict(zip(bind_params, p_values))

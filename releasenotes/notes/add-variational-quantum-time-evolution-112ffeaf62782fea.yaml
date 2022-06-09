@@ -20,7 +20,7 @@ features:
         from qiskit.circuit.library import EfficientSU2
         from qiskit.opflow import SummedOp, I, Z, Y, X
         from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_principle import (
-        ImaginaryMcLachlanPrinciple,
+            ImaginaryMcLachlanPrinciple,
         )
         from qiskit.algorithms import EvolutionProblem
         from qiskit.algorithms import VarQITE
@@ -46,10 +46,6 @@ features:
         var_principle = ImaginaryMcLachlanPrinciple()
         backend = BasicAer.get_backend("statevector_simulator")
         time = 1
-        evolution_problem = EvolutionProblem(observable, time, ansatz,
-        param_value_dict=param_dict)
-        var_qite = VarQITE(
-            var_principle, backend=backend
-        )
+        evolution_problem = EvolutionProblem(observable, time, ansatz, param_value_dict=param_dict)
+        var_qite = VarQITE(var_principle, backend=backend)
         evolution_result = var_qite.evolve(evolution_problem)
-
