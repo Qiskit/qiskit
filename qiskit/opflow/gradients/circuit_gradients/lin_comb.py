@@ -30,7 +30,7 @@ from qiskit.circuit import (
     ParameterExpression,
     Parameter,
 )
-from qiskit.circuit.parametertable import ParameterTable
+from qiskit.circuit.parametertable import ParameterReferences, ParameterTable
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.library import SGate, SdgGate, XGate
 from qiskit.circuit.library.standard_gates import (
@@ -617,9 +617,9 @@ class LinComb(CircuitGradient):
                     if isinstance(param_expression, ParameterExpression):
                         for param in param_expression.parameters:
                             if param not in table.keys():
-                                table[param] = [(instruction.operation, idx)]
+                                table[param] = ParameterReferences(((instruction.operation, idx),))
                             else:
-                                table[param].append((instruction.operation, idx))
+                                table[param].add((instruction.operation, idx))
 
             out._parameter_table = table
 
