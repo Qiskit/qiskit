@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds :py:meth:`clear` and :py:meth:`copy_empty_like` functionality to QuantumCircuit.
+    * Clear functionality to erase all instructions from a QuantumCircuit. We clear both the data and the parameter table.
+    * Copy empty functionality to get a cleared copy of a QuantumCircuit. This is logically equivalent to `qc.copy().clear()` however, it is done avoiding a deepcopy of the original QuantumCircuit, and therefore it is more efficient. This functionality is already implemented for DAGCircuit, and retains all relevant circuit properties other than the instructions and associated parameters (e.g. registers, bits, name, metadata). Contrary to the implementation in DAGCircuit, this method allows for an optional parameter to update the name of the copied circuit, mimicking `qc.copy(name)`.
