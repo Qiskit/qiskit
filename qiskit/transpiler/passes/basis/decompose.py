@@ -30,7 +30,7 @@ class Decompose(TransformationPass):
         self,
         gate: Optional[Type[Gate]] = None,
         gates_to_decompose: Optional[Union[Type[Gate], List[Type[Gate]], List[str], str]] = None,
-        reps : int = 1
+        reps : int = 1,
     ) -> None:
         """Decompose initializer.
 
