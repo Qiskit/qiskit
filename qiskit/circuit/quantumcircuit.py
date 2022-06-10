@@ -2116,7 +2116,7 @@ class QuantumCircuit:
         """Return a copy of self with the same structure but empty.
 
         That structure includes:
-            * name, callibrations and other metadata
+            * name, calibrations and other metadata
             * global phase
             * all the qubits and clbits, including the registers
 
