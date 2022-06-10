@@ -131,7 +131,8 @@ from .tnc import TNC
 
 __all__ = [
     "Optimizer",
-    "SteppableOptimizer" "OptimizerSupportLevel",
+    "SteppableOptimizer",
+    "OptimizerSupportLevel",
     "ADAM",
     "AQGD",
     "CG",
