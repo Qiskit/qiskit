@@ -9,7 +9,7 @@ from qiskit.algorithms.algorithm_result import AlgorithmResult
 
 
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
-from .steppable_optimizer import AskObject, TellObject, OptimizerState, SteppableOptimizer
+from .steppable_optimizer import AskObject, TellObject, OptimizerState, SteppableOptimizer,CALLBACK
 
 
 def constant(eta=0.01):
@@ -25,34 +25,29 @@ class GD_AskObject(AskObject):
     AskObject containing the current point for the gradient to be evaluated, a parameter epsilon in case the
     gradient has to be approximatedand a bool flag telling the prefered way of evaluating the gradient.
     """
-
-    x_center: POINT
     epsilon: float
-    approximate_gradient: bool
-
-
-@dataclass
-class GD_TellObject(TellObject):
-    gradient: POINT
 
 
 @dataclass
 class GD_OptimizerState(OptimizerState):
 
-    eta: Union[float, Callable[[], Iterator]] = 0.01
-    stepsize: Optional[float] = None
+    eta: Union[float, Callable[[], Iterator]]
+    stepsize: float
 
 
 class GradientDescent(SteppableOptimizer):
     def __init__(
         self,
+        maxiter: int = 1000,
+        callback: Optional[CALLBACK] = None,
         learning_rate: Union[float, Callable[[], Iterator]] = 0.01,
         tol: float = 1e-7,
         perturbation: Optional[float] = None,
         **kwargs,
     ) -> None:
 
-        super().__init__(**kwargs)
+        super().__init__(maxiter=maxiter,callback=callback)
+
         self.learning_rate = learning_rate
         self.perturbation = perturbation
         self.tol = tol
@@ -85,8 +80,7 @@ class GradientDescent(SteppableOptimizer):
         """
         return GD_AskObject(
             epsilon=self.perturbation,
-            x_center=self._state.x,
-            approximate_gradient=self._state.jac is None,
+            x_jac=self._state.x,
         )
 
     def tell(self, ask_object: AskObject, tell_object: TellObject) -> None:
@@ -108,7 +102,7 @@ class GradientDescent(SteppableOptimizer):
         For gradient descent we are going to check how to evaluate the gradient, evaluate and
         return a TellObject.
         """
-        if ask_object.approximate_gradient:
+        if self._state.jac is None:
             grad = Optimizer.gradient_num_diff(
                 x_center=ask_object.x_center,
                 f=self._state.fun,
@@ -117,7 +111,7 @@ class GradientDescent(SteppableOptimizer):
             )
             self._state.nfev += 1 + len(ask_object.x_center)
         else:
-            grad = self._state.jac(ask_object.x_center)
+            grad = self._state.jac(ask_object.x_jac)
             self._state.njev += 1
 
         return GD_TellObject(gradient=grad)
@@ -135,8 +129,8 @@ class GradientDescent(SteppableOptimizer):
 
     def initialize(
         self,
-        x0: POINT,
         fun: Callable[[POINT], float],
+        x0: POINT,
         jac: Optional[Callable[[POINT], POINT]] = None,
         bounds: Optional[List[Tuple[float, float]]] = None,
     ) -> None:
@@ -149,7 +143,17 @@ class GradientDescent(SteppableOptimizer):
             eta = constant(self.learning_rate)
         else:
             eta = self.learning_rate()
-        self._state = GD_OptimizerState(fun=fun, jac=jac, x=np.asarray(x0), eta=eta)
+
+        self._state = GD_OptimizerState(
+            fun=fun,
+            jac=jac,
+            x=np.asarray(x0),
+            nit=0,
+            nfev=0,
+            njev=0,
+            eta=eta,
+            stepsize=np.inf,
+        )
 
     def continue_condition(self) -> bool:
         """
