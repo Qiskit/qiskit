@@ -139,7 +139,6 @@ __all__ = [
     "COBYLA",
     "GSLS",
     "GradientDescent",
-    "SteppableGD",
     "L_BFGS_B",
     "NELDER_MEAD",
     "NFT",

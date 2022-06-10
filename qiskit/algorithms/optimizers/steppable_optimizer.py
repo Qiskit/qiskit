@@ -1,9 +1,22 @@
-from abc import abstractmethod, ABC
-from dataclasses import dataclass, field
-from typing import Dict, Any, Union, Callable, Optional, Tuple, List
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2022.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
-from .optimizer import Optimizer, POINT, OptimizerResult
+"""SteppableOptimizer interface"""
+
+from abc import abstractmethod, ABC
+from dataclasses import dataclass
+from typing import Union, Callable, Optional, Tuple, List
 import numpy as np
+from .optimizer import Optimizer, POINT, OptimizerResult
 
 CALLBACK = Callable[[int, np.ndarray, float, float], None]
 
@@ -19,8 +32,8 @@ class AskObject(ABC):
             next state of the optimizer.
     """
 
-    x_fun: Union[POINT, List[POINT], None] = None
-    x_jac: Union[POINT, List[POINT], None] = None
+    x_fun: Optional[Union[POINT, List[POINT]]] = None
+    x_jac: Optional[Union[POINT, List[POINT]]] = None
 
 
 @dataclass
@@ -31,7 +44,7 @@ class TellObject(ABC):
         eval_fun: Image of the function at
             :attr:`~qiskit.algorithms.optimizers.SteppableOptimizer.Ask_Object.x_fun`.
         eval_jac: Image of the gradient-jacobian at
-            :attr:`~qiskit.algorithms.optimizers.SteppableOptimizer.Ask_Object.x_fun`.
+            :attr:`~qiskit.algorithms.optimizers.SteppableOptimizer.Ask_Object.x_jac`.
     """
 
     eval_fun: Union[float, List[float], None] = None
@@ -47,7 +60,7 @@ class OptimizerState:
     """
 
     x: POINT  # pylint: disable=invalid-name
-    fun: Optional[Callable[[POINT], float]]  # Make optional
+    fun: Optional[Callable[[POINT], float]]
     jac: Optional[Callable[[POINT], POINT]]
     nfev: Optional[int]
     njev: Optional[int]
@@ -59,21 +72,26 @@ class SteppableOptimizer(Optimizer):
     Base class for a steppable optimizer.
 
     This family of optimizers will be using the
-    `ask and tell interface <https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/009_ask_and_tell.html>`_.
-    When using this interface the user has to call the function ask() in order to get information about how to evaluate the fucntion
-    (we are asking the optimizer about how to do the evaluation). This information will be mostly about at what point should we evaluate
-    the function next, but depending on the optimizer it can also be about whether we should evaluate the function itself or its gradient.
+    `ask and tell interface
+    <https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/009_ask_and_tell.html>`_.
+    When using this interface the user has to call the function ask() in order to get information about
+    how to evaluate the fucntion (we are asking the optimizer about how to do the evaluation).
+    This information will be mostly about at what point should we evaluate the function next, but
+    depending on the optimizer it can also be about whether we should evaluate the function itself or
+    its gradient.
 
-    Once the function has been evaluated, the user calls the method tell() to tell the optimizer what has been the result of the function evaluation.
-    The optimizer then updates its state accordingly and the user can decide whether to stop the optimization process or to repeat a step.
+    Once the function has been evaluated, the user calls the method tell() to tell the optimizer what
+    has been the result of the function evaluation. The optimizer then updates its state accordingly and
+    the user can decide whether to stop the optimization process or to repeat a step.
 
-    This interface is more customizable, and allows the user to have full control over the evaluation of the function.
+    This interface is more customizable, and allows the user to have full control over the evaluation
+    of the function.
 
     For example:
     .. code-block::python
         import random
         import numpy as np
-        from qiskit.algorithms.optimizers import SteppableGradientDescent
+        from qiskit.algorithms.optimizers import GradientDescent
 
         def objective(x):
             if random.choice([True, False]):
@@ -90,7 +108,7 @@ class SteppableOptimizer(Optimizer):
 
         initial_point = np.random.normal(0, 1, size=(100,))
 
-        optimizer = SteppableGradientDescent(maxiter=20)
+        optimizer = GradientDescent(maxiter=20)
         optimizer.initialize(x0=initial_point, fun=objective, jac=grad)
 
         for _ in range(20):
@@ -101,19 +119,23 @@ class SteppableOptimizer(Optimizer):
                 evaluated_gradient = grad(ask_object.x_center)
                 optimizer._state.njev += 1
 
-            tell_object = GD_TellObject(gradient=evaluated_gradient)
+            tell_object = TellObject(gradient=evaluated_gradient)
             optimizer.tell(ask_object=ask_object, tell_object=tell_object)
 
         result = optimizer.create_result()
 
-    In this case the evaluation of the function has a chance of failing. The user, with specific knowledge about his function can catch this errors and handle before
-    passing the result to the optimizer.
+    In this case the evaluation of the function has a chance of failing. The user, with specific
+    knowledge about his function can catch this errors and handle before passing the result to the
+    optimizer.
 
-    In case the user isn't dealing with complicated function and is more familiar with step by step optimization algorithms, a method step() has been created that
-    acts as a wrapper for ask() and tell().
-    In the same spirit the method minimize() will optimize the function and return the result without the user having to worry about the optimization process.
+    In case the user isn't dealing with complicated function and is more familiar with step by step
+     optimization algorithms, a method step() has been created that acts as a wrapper for ask()
+     and tell().
+    In the same spirit the method minimize() will optimize the function and return the result without
+    the user having to worry about the optimization process.
 
-    To see other libraries that use this interface one can visit: https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/009_ask_and_tell.html
+    To see other libraries that use this interface one can visit:
+    https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/009_ask_and_tell.html
 
 
     """
@@ -150,10 +172,13 @@ class SteppableOptimizer(Optimizer):
     def tell(self, ask_object: AskObject, tell_object: TellObject) -> None:
         """
         Updates the optimization state once the objective function has been evaluated.
-        Canonical optimization workflow using ask() and tell() can be seen in SteppableOptimizer.step().
+        Canonical optimization workflow using :method:`~.SteppableOptimizer.ask`
+        and :method:`~.SteppableOptimizer.tell` can be seen in
+        :method:`~.SteppableOptimizer.step`.
         Args:
             ask_object: Contains the information on how the evaluation was done.
-            tell_object: Contains all relevant information about the evaluation of the objective function.
+            tell_object: Contains all relevant information about the evaluation of the objective
+            function.
         """
         raise NotImplementedError
 
@@ -161,7 +186,8 @@ class SteppableOptimizer(Optimizer):
     def evaluate(self, ask_object: AskObject) -> TellObject:
         """
         Evaluates the function according to the instructions contained in ask_object.
-        If the user decides to use step() instead of ask() and tell() this function will contain the logic on how to evaluate
+        If the user decides to use step() instead of ask() and tell() this function will contain
+        the logic on how to evaluate
         the function.
         Args:
             ask_object: Contains the information on how to do the evaluation.
@@ -169,15 +195,6 @@ class SteppableOptimizer(Optimizer):
             Contains all relevant information about the evaluation of the objective function.
         """
         raise NotImplementedError
-
-    def user_evaluate(
-        self, *args, **kwargs
-    ) -> TellObject:  # Maybe this function should be abstract. For some optimizers (The return type with a custom tell object the function needs to be overwriten)
-        """
-        Constructs TellObject.
-        Used when the user manually evaluates the function.
-        """
-        return TellObject(*args, **kwargs)
 
     def step(self) -> None:
         """
@@ -190,6 +207,7 @@ class SteppableOptimizer(Optimizer):
         if self.callback is not None:
             self.callback(state=self._state)
 
+    # pylint: disable=invalid-name
     @abstractmethod
     def initialize(
         self,
@@ -199,14 +217,14 @@ class SteppableOptimizer(Optimizer):
         bounds: Optional[List[Tuple[float, float]]] = None,
     ) -> None:
         """
-        This method sets (or restarts) the optimization state and the parameters to perform a new optimization.
+        This method sets (or restarts) the optimization state and the parameters to perform a
+        new optimization.
         Needs to be called before starting the optimization loop and also will need.
         Args:
             fun: Function to minimize.
             x0: Initial point.
             jac: Function to compute the gradient.
             bounds: Bounds of the search space.
-            **kwargs: Additional arguments for the minimization algorithm.
         """
         raise NotImplementedError
 
@@ -218,15 +236,17 @@ class SteppableOptimizer(Optimizer):
         bounds: Optional[List[Tuple[float, float]]] = None,
     ) -> OptimizerResult:
         """
-        For well behaved functions the user can call this method to minimize a function. If the user wants more control
-        on how to evaluate the function a custom loop can be created using ask() and tell() and evaluating the function
-        manually.
+        For well behaved functions the user can call this method to minimize a function. If the user
+        wants more control on how to evaluate the function a custom loop can be created using
+        :meth:`~.SteppableOptimizer.ask` and :meth:`~.SteppableOptimizer.tell` and evaluating
+        the function manually.
         Args:
             fun: Function to minimize.
             x0: Initial point.
             jac: Function to compute the gradient.
             bounds: Bounds of the search space.
-            **kwargs: Additional arguments for the minimization algorithm.
+        Returns:
+            OptimizerResult object containing the result of the optimization.
         """
         self.initialize(x0=x0, fun=fun, jac=jac, bounds=bounds)
         while self.continue_condition():

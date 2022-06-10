@@ -13,9 +13,9 @@
 """Tests for the Gradient Descent optimizer."""
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
-
-import numpy as np
 import random
+import numpy as np
+
 
 from qiskit.algorithms.optimizers import GradientDescent
 from qiskit.algorithms.optimizers.steppable_optimizer import TellObject
@@ -88,6 +88,9 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
     #     self.assertIsInstance(history[0][3], float)  # norm of the gradient
 
     def test_random_failure(self):
+        """
+        Tests the optimization routine for a gradient that randomly fails on evaluation."""
+
         def learning_rate():
             power = 0.6
             constant_coeff = 0.1
@@ -110,8 +113,8 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
                 return 2 * (np.linalg.norm(x) - 1) * x / np.linalg.norm(x)
 
         tol = 1e-4
-        N = 100
-        initial_point = np.random.normal(0, 1, size=(N,))
+        dimension = 100
+        initial_point = np.random.normal(0, 1, size=(dimension,))
 
         optimizer = GradientDescent(maxiter=20, learning_rate=learning_rate)
         optimizer.initialize(x0=initial_point, fun=objective, jac=grad)
@@ -128,7 +131,6 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
             optimizer.tell(ask_object=ask_object, tell_object=tell_object)
 
         result = optimizer.create_result()
-        print(result.njev, result.nfev)
         self.assertLess(result.fun, tol)
 
     def test_iterator_learning_rate(self):
