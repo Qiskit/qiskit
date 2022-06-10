@@ -2147,7 +2147,10 @@ class QuantumCircuit:
         return cpy
 
     def clear(self) -> None:
-        """Clear all instructions in self"""
+        """Clear all instructions in self.
+        
+        Clearing the circuits will keep the metadata and calibrations.
+        """
         self._data.clear()
         self._parameter_table.clear()
 
