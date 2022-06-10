@@ -36,13 +36,7 @@ class TestCMAES(QiskitAlgorithmsTestCase):
         optimizer = SteppableCMAES(maxiter=1000)
         optimizer.initialize(x0=initial_point, fun=objective, tol=tol)
 
-        # result = optimizer.minimize(fun=objective, x0=initial_point)
-
-        for _ in range(optimizer.maxiter):
-            optimizer.step()
-            # print(optimizer._state)
-            if optimizer.stop_condition():
-                break
+        result = optimizer.minimize(fun=objective, x0=initial_point)
 
         result = optimizer.create_result()
         self.assertLess(result.fun, tol)
@@ -59,28 +53,26 @@ class TestCMAES(QiskitAlgorithmsTestCase):
             else:
                 return objective(x)
 
-        N = 100
-        tol = 1e-4
+        N = 5
+        tol = 1e-3
         initial_point = np.random.normal(0, 1, size=(N,))
 
-        optimizer = SteppableCMAES(maxiter=1000)
+        optimizer = SteppableCMAES(maxiter=40)
         optimizer.initialize(x0=initial_point, fun=objective, tol=tol)
 
         for _ in range(optimizer.maxiter):
             ask_object = optimizer.ask()
-            cloud_eval = []
-            for x in ask_object.cloud:
-                feval = None
-                while not feval:
-                    feval = objective_fail(x)
+            eval_fun = []
+            for x in ask_object.x_fun:
+                feval_try = None
+                while not feval_try:
+                    feval_try = objective_fail(x)
                     optimizer._state.nfev += 1
-                cloud_eval.append(feval)
-            tell_object = CMAES_TellObject(cloud_evaluated=cloud_eval)
+                eval_fun.append(feval_try)
+            tell_object = optimizer.user_evaluate(eval_fun=eval_fun)
             optimizer.tell(ask_object=ask_object, tell_object=tell_object)
-
 
             if optimizer.stop_condition():
                 break
-        print(optimizer._state)
         result = optimizer.create_result()
         self.assertLess(result.fun, tol)
