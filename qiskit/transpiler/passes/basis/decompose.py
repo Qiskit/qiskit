@@ -85,7 +85,6 @@ class Decompose(TransformationPass):
         Returns:
             output dag where ``gate`` was expanded.
         """
-        from qiskit.transpiler.passes import RemoveResetInZeroState
         # Walk through the DAG and expand each non-basis node
         for _ in range(reps):
             gates = []
@@ -105,7 +104,7 @@ class Decompose(TransformationPass):
                     gates.append(node.op.name)
             self.gates_to_decompose = gates
 
-        return RemoveResetInZeroState.run(self=_, dag=dag)
+        return dag
 
     def _should_decompose(self, node) -> bool:
         """Call a decomposition pass on this circuit,
