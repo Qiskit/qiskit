@@ -19,7 +19,6 @@ from qiskit.algorithms import ICANS
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import X, I, Z
 from qiskit.providers.basicaer import QasmSimulatorPy
-from qiskit.providers.aer import QasmSimulator
 
 
 class TestICANS(QiskitAlgorithmsTestCase):
@@ -27,7 +26,7 @@ class TestICANS(QiskitAlgorithmsTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = QasmSimulator()
+        self.backend = QasmSimulatorPy()
 
     def test_simple_run(self):
         """Test a simple iCANS run."""
