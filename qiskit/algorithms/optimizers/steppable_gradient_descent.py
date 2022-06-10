@@ -40,6 +40,7 @@ class GD_TellObject(TellObject):
 
 @dataclass
 class GD_OptimizerState(OptimizerState):
+
     eta: Union[float, Callable[[], Iterator]] = 0.01
     stepsize: Optional[float] = None
 
@@ -92,7 +93,7 @@ class SteppableGD(SteppableOptimizer):
             approximate_gradient=self._state.jac is None,
         )
 
-    def tell(self, tell_object: TellObject) -> None:
+    def tell(self, ask_object: AskObject, tell_object: TellObject) -> None:
         """
         This method is the part of the interface of the optimizer that tells the
         user/quantum_circuit what is the next point that minimizes the function (with respect to last
@@ -162,3 +163,17 @@ class SteppableGD(SteppableOptimizer):
             "bounds": OptimizerSupportLevel.ignored,
             "initial_point": OptimizerSupportLevel.required,
         }
+
+    def optimize(
+        self,
+        num_vars,
+        objective_function,
+        gradient_function=None,
+        variable_bounds=None,
+        initial_point=None,
+    ):
+        super().optimize(
+            num_vars, objective_function, gradient_function, variable_bounds, initial_point
+        )
+        result = self.minimize(objective_function, initial_point, gradient_function)
+        return result.x, result.fun, result.nfev
