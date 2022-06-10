@@ -75,7 +75,7 @@ class Decompose(TransformationPass):
         )
         self.gates_to_decompose = value
 
-    def run(self, dag: DAGCircuit, reps: int = 1) -> DAGCircuit:
+    def run(self, dag: DAGCircuit = None, reps: int = 1) -> DAGCircuit:
         """Run the Decompose pass on `dag`.
 
         Args:
@@ -86,6 +86,7 @@ class Decompose(TransformationPass):
             output dag where ``gate`` was expanded.
         """
         # Walk through the DAG and expand each non-basis node
+        global node
         for _ in range(reps):
             gates = []
             for node in dag.op_nodes():
