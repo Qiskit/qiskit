@@ -98,10 +98,12 @@ class Decompose(TransformationPass):
                         if node.op.definition.global_phase:
                             dag.global_phase += node.op.definition.global_phase
                         dag.substitute_node(node, rule[0][0], inplace=True)
+                        gates.append(node.op.name)
                     else:
                         decomposition = circuit_to_dag(node.op.definition)
                         dag.substitute_node_with_dag(node, decomposition)
-                    gates.append(node.op.name)
+                        for node in dag.op_nodes():
+                            gates.append(node.name)
             self.gates_to_decompose = gates
 
         return dag
@@ -112,7 +114,7 @@ class Decompose(TransformationPass):
         if self.gates_to_decompose is None:  # check if no gates given
             return True
 
-        if node.op.name == 'state_preparation':  # not sure about other gate also cant pass
+        if node.op.name == "state_preparation":  # not sure about other gate also cant pass
             return True
 
         has_label = False
