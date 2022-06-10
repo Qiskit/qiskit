@@ -57,23 +57,38 @@ from qiskit.utils.multiprocessing import local_hardware_info
 from qiskit.tools.events.pubsub import Publisher
 from qiskit import user_config
 
+
+def get_platform_parallel_default():
+    """
+    Returns the default parallelism flag value for the current platform.
+
+    Returns:
+        parallel_default: The default parallelism flag value for the
+        current platform.
+
+    """
+    # Default False on Windows
+    if sys.platform == "win32":
+        parallel_default = False
+    # On macOS default false on Python >=3.8
+    elif sys.platform == "darwin":
+        if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
+            parallel_default = False
+        else:
+            parallel_default = True
+    # On linux (and other OSes) default to True
+    else:
+        parallel_default = True
+
+    return parallel_default
+
+
 CONFIG = user_config.get_config()
 
 if os.getenv("QISKIT_PARALLEL", None) is not None:
     PARALLEL_DEFAULT = os.getenv("QISKIT_PARALLEL", None).lower() == "true"
 else:
-    # Default False on Windows
-    if sys.platform == "win32":
-        PARALLEL_DEFAULT = False
-    # On macOS default false on Python >=3.8
-    elif sys.platform == "darwin":
-        if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
-            PARALLEL_DEFAULT = False
-        else:
-            PARALLEL_DEFAULT = True
-    # On linux (and other OSes) default to True
-    else:
-        PARALLEL_DEFAULT = True
+    PARALLEL_DEFAULT = get_platform_parallel_default()
 
 # Set parallel flag
 if os.getenv("QISKIT_IN_PARALLEL") is None:
