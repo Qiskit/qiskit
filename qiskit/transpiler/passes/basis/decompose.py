@@ -111,7 +111,7 @@ class Decompose(TransformationPass):
         to decompose one level (shallow decompose)."""
         if self.gates_to_decompose is None:  # check if no gates given
             return True
-        
+
         if node.op.name == 'state_preparation':  # not sure about other gate also cant pass
             return True
 
