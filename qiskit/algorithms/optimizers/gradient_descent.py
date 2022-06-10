@@ -20,15 +20,6 @@ def constant(eta=0.01):
 
 
 @dataclass
-class GD_AskObject(AskObject):
-    """
-    AskObject containing the current point for the gradient to be evaluated, a parameter epsilon in case the
-    gradient has to be approximatedand a bool flag telling the prefered way of evaluating the gradient.
-    """
-    epsilon: float
-
-
-@dataclass
 class GD_OptimizerState(OptimizerState):
 
     eta: Union[float, Callable[[], Iterator]]
@@ -47,7 +38,7 @@ class GradientDescent(SteppableOptimizer):
     ) -> None:
 
         super().__init__(maxiter=maxiter,callback=callback)
-
+        self._state: GD_OptimizerState = None
         self.learning_rate = learning_rate
         self.perturbation = perturbation
         self.tol = tol
@@ -69,7 +60,7 @@ class GradientDescent(SteppableOptimizer):
             "callback": self.callback,
         }
 
-    def ask(self) -> GD_AskObject:
+    def ask(self) -> AskObject:
         """
         This method is the part of the interface of the optimizer that asks the
         user/quantum_circuit how and where the function to optimize needs to be evaluated. It is the
@@ -78,8 +69,7 @@ class GradientDescent(SteppableOptimizer):
         the gradient to be evaluated, a parameter epsilon in case the gradient has to be approximated
         and a bool flag telling the prefered way of evaluating the gradient.
         """
-        return GD_AskObject(
-            epsilon=self.perturbation,
+        return AskObject(
             x_jac=self._state.x,
         )
 
@@ -92,9 +82,10 @@ class GradientDescent(SteppableOptimizer):
         For gradient descent this method updates self._state.x by an ammount proportional to the learning rate
         and the gradient at that point.
         """
-        update = next(self._state.eta) * tell_object.gradient
-        self._state.x -= update
+        update = tell_object.eval_jac
+        self._state.x -= next(self._state.eta) * update
         self._state.stepsize = np.linalg.norm(update)
+        self._state.nit += 1
 
     def evaluate(self, ask_object: AskObject) -> TellObject:
         """
@@ -104,17 +95,17 @@ class GradientDescent(SteppableOptimizer):
         """
         if self._state.jac is None:
             grad = Optimizer.gradient_num_diff(
-                x_center=ask_object.x_center,
+                x_center=ask_object.x_fun,
                 f=self._state.fun,
-                epsilon=ask_object.epsilon,
+                epsilon=self.perturbation,
                 max_evals_grouped=1,  # Here there was some extra logic I am just neglecting for now.
             )
-            self._state.nfev += 1 + len(ask_object.x_center)
+            self._state.nfev += 1 + len(ask_object.x_jac)
         else:
             grad = self._state.jac(ask_object.x_jac)
             self._state.njev += 1
 
-        return GD_TellObject(gradient=grad)
+        return TellObject(eval_jac=grad)
 
     def create_result(self) -> OptimizerResult:
         """
@@ -163,6 +154,7 @@ class GradientDescent(SteppableOptimizer):
         Returns:
             True if the optimization process should continue, False otherwise.
         """
+       
         cont_condition = self._state.stepsize > self.tol
         cont_condition &= super().continue_condition()
         return cont_condition

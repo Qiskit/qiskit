@@ -15,8 +15,10 @@
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 import numpy as np
+import random
 
 from qiskit.algorithms.optimizers import GradientDescent
+from qiskit.algorithms.optimizers.steppable_optimizer import TellObject
 from qiskit.circuit.library import PauliTwoDesign
 from qiskit.opflow import I, Z, StateFn
 from qiskit.test.decorators import slow_test
@@ -59,31 +61,75 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
 
         optimizer = GradientDescent(maxiter=100, learning_rate=0.1, perturbation=0.1)
 
-        result = optimizer.optimize(circuit.num_parameters, objective, initial_point=initial_point)
+        result = optimizer.minimize(circuit.num_parameters, objective, initial_point=initial_point)
 
         self.assertLess(result[1], -0.95)  # final loss
         self.assertEqual(result[2], 100)  # function evaluations
 
-    def test_callback(self):
-        """Test the callback."""
+    # def test_callback(self):
+    #     """Test the callback."""
 
-        history = []
+    #     history = []
 
-        def callback(*args):
-            history.append(args)
+    #     def callback(*args):
+    #         history.append(args)
 
-        optimizer = GradientDescent(maxiter=1, callback=callback)
+    #     optimizer = GradientDescent(maxiter=1, callback=callback)
+
+    #     def objective(x):
+    #         return np.linalg.norm(x)
+
+    #     _ = optimizer.minimize(objective, np.array([1, -1]))
+
+    #     self.assertEqual(len(history), 1)
+    #     self.assertIsInstance(history[0][0], int)  # nfevs
+    #     self.assertIsInstance(history[0][1], np.ndarray)  # parameters
+    #     self.assertIsInstance(history[0][2], float)  # function value
+    #     self.assertIsInstance(history[0][3], float)  # norm of the gradient
+
+    def test_random_failure(self):
+        def learning_rate():
+            power = 0.6
+            constant_coeff = 0.1
+
+            def powerlaw():
+                n = 0
+                while True:
+                    yield constant_coeff * (n**power)
+                    n += 1
+
+            return powerlaw()
 
         def objective(x):
-            return np.linalg.norm(x)
+            return (np.linalg.norm(x) - 1) ** 2
 
-        _ = optimizer.minimize(objective, np.array([1, -1]))
+        def grad(x):
+            if random.choice([True, False]):
+                return None
+            else:
+                return 2 * (np.linalg.norm(x) - 1) * x / np.linalg.norm(x)
 
-        self.assertEqual(len(history), 1)
-        self.assertIsInstance(history[0][0], int)  # nfevs
-        self.assertIsInstance(history[0][1], np.ndarray)  # parameters
-        self.assertIsInstance(history[0][2], float)  # function value
-        self.assertIsInstance(history[0][3], float)  # norm of the gradient
+        tol = 1e-4
+        N = 100
+        initial_point = np.random.normal(0, 1, size=(N,))
+
+        optimizer = GradientDescent(maxiter=20, learning_rate=learning_rate)
+        optimizer.initialize(x0=initial_point, fun=objective, jac=grad)
+
+        for _ in range(20):
+            ask_object = optimizer.ask()
+            evaluated_gradient = None
+
+            while evaluated_gradient is None:
+                evaluated_gradient = grad(ask_object.x_jac)
+                optimizer._state.njev += 1
+
+            tell_object = TellObject(eval_jac=evaluated_gradient)
+            optimizer.tell(ask_object=ask_object, tell_object=tell_object)
+
+        result = optimizer.create_result()
+        print(result.njev, result.nfev)
+        self.assertLess(result.fun, tol)
 
     def test_iterator_learning_rate(self):
         """Test setting the learning rate as iterator."""
