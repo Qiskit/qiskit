@@ -14,7 +14,6 @@
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import random
 import numpy as np
-from qiskit.algorithms.optimizers.cmaes import CMAES_TellObject
 from qiskit.algorithms.optimizers import SteppableCMAES
 
 
