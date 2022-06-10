@@ -109,6 +109,7 @@ from .cg import CG
 from .cobyla import COBYLA
 from .gsls import GSLS
 from .gradient_descent import GradientDescent
+from .steppable_gradient_descent import SteppableGD
 from .imfil import IMFIL
 from .l_bfgs_b import L_BFGS_B
 from .nelder_mead import NELDER_MEAD
@@ -137,7 +138,7 @@ __all__ = [
     "COBYLA",
     "GSLS",
     "GradientDescent",
-    "L_BFGS_B",
+    "SteppableGD" "L_BFGS_B",
     "NELDER_MEAD",
     "NFT",
     "P_BFGS",
