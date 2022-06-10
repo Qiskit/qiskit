@@ -75,7 +75,7 @@ class Decompose(TransformationPass):
         )
         self.gates_to_decompose = value
 
-    def run(self, dag: DAGCircuit, reps: int = 2) -> DAGCircuit:
+    def run(self, dag: DAGCircuit, reps: int = 1) -> DAGCircuit:
         """Run the Decompose pass on `dag`.
 
         Args:
