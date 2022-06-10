@@ -119,6 +119,7 @@ from .nlopts.direct_l_rand import DIRECT_L_RAND
 from .nlopts.esch import ESCH
 from .nlopts.isres import ISRES
 from .optimizer import Optimizer, OptimizerResult, OptimizerSupportLevel
+from .steppable_optimizer import SteppableOptimizer
 from .p_bfgs import P_BFGS
 from .powell import POWELL
 from .qnspsa import QNSPSA
@@ -130,13 +131,14 @@ from .tnc import TNC
 
 __all__ = [
     "Optimizer",
-    "OptimizerSupportLevel",
+    "SteppableOptimizer" "OptimizerSupportLevel",
     "ADAM",
     "AQGD",
     "CG",
     "COBYLA",
     "GSLS",
     "GradientDescent",
+    "SteppableGD",
     "L_BFGS_B",
     "NELDER_MEAD",
     "NFT",

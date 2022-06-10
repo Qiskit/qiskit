@@ -1,136 +1,56 @@
-# This code is part of Qiskit.
-#
-# (C) Copyright IBM 2021.
-#
-# This code is licensed under the Apache License, Version 2.0. You may
-# obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
-#
-# Any modifications or derivative works of this code must retain this
-# copyright notice, and modified files need to carry a notice indicating
-# that they have been altered from the originals.
-
-"""A standard gradient descent optimizer."""
-
-from typing import Iterator, Optional, Union, Callable, Dict, Any, List, Tuple
-from functools import partial
-
+from dataclasses import dataclass
+from abc import abstractmethod, ABC
+from dataclasses import dataclass
+from typing import Dict, Any, Union, Callable, Optional, Tuple, List, Iterator
 import numpy as np
+from numpy.lib.function_base import gradient
+
+from qiskit.algorithms.algorithm_result import AlgorithmResult
+
 
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
+from .steppable_optimizer import AskObject, TellObject, OptimizerState, SteppableOptimizer,CALLBACK
 
-CALLBACK = Callable[[int, np.ndarray, float, float], None]
+
+def constant(eta=0.01):
+    """Yield a constant."""
+
+    while True:
+        yield eta
 
 
-class GradientDescent(Optimizer):
-    r"""The gradient descent minimization routine.
-
-    For a function :math:`f` and an initial point :math:`\vec\theta_0`, the standard (or "vanilla")
-    gradient descent method is an iterative scheme to find the minimum :math:`\vec\theta^*` of
-    :math:`f` by updating the parameters in the direction of the negative gradient of :math:`f`
-
-    .. math::
-
-        \vec\theta_{n+1} = \vec\theta_{n} - \vec\eta\nabla f(\vec\theta_{n}),
-
-    for a small learning rate :math:`\eta > 0`.
-
-    You can either provide the analytic gradient :math:`\vec\nabla f` as ``gradient_function``
-    in the ``optimize`` method, or, if you do not provide it, use a finite difference approximation
-    of the gradient. To adapt the size of the perturbation in the finite difference gradients,
-    set the ``perturbation`` property in the initializer.
-
-    This optimizer supports a callback function. If provided in the initializer, the optimizer
-    will call the callback in each iteration with the following information in this order:
-    current number of function values, current parameters, current function value, norm of current
-    gradient.
-
-    Examples:
-
-        A minimum example that will use finite difference gradients with a default perturbation
-        of 0.01 and a default learning rate of 0.01.
-
-        .. code-block::python
-
-            from qiskit.algorithms.optimizers import GradientDescent
-
-            def f(x):
-                return (np.linalg.norm(x) - 1) ** 2
-
-            initial_point = np.array([1, 0.5, -0.2])
-
-            optimizer = GradientDescent(maxiter=100)
-            x_opt, fx_opt, nfevs = optimizer.optimize(initial_point.size,
-                                                      f,
-                                                      initial_point=initial_point)
-
-            print(f"Found minimum {x_opt} at a value of {fx_opt} using {nfevs} evaluations.")
-
-        An example where the learning rate is an iterator and we supply the analytic gradient.
-        Note how much faster this convergences (i.e. less ``nfevs``) compared to the previous
-        example.
-
-        .. code-block::python
-
-            from qiskit.algorithms.optimizers import GradientDescent
-
-            def learning_rate():
-                power = 0.6
-                constant_coeff = 0.1
-
-                def powerlaw():
-                    n = 0
-                    while True:
-                        yield constant_coeff * (n ** power)
-                        n += 1
-
-                return powerlaw()
-
-            def f(x):
-                return (np.linalg.norm(x) - 1) ** 2
-
-            def grad_f(x):
-                return 2 * (np.linalg.norm(x) - 1) * x / np.linalg.norm(x)
-
-            initial_point = np.array([1, 0.5, -0.2])
-
-            optimizer = GradientDescent(maxiter=100, learning_rate=learning_rate)
-            x_opt, fx_opt, nfevs = optimizer.optimize(initial_point.size,
-                                                      f,
-                                                      gradient_function=grad_f,
-                                                      initial_point=initial_point)
-
-            print(f"Found minimum {x_opt} at a value of {fx_opt} using {nfevs} evaluations.")
-
+@dataclass
+class GD_AskObject(AskObject):
     """
+    AskObject containing the current point for the gradient to be evaluated, a parameter epsilon in case the
+    gradient has to be approximatedand a bool flag telling the prefered way of evaluating the gradient.
+    """
+    epsilon: float
 
+
+@dataclass
+class GD_OptimizerState(OptimizerState):
+
+    eta: Union[float, Callable[[], Iterator]]
+    stepsize: float
+
+
+class GradientDescent(SteppableOptimizer):
     def __init__(
         self,
-        maxiter: int = 100,
+        maxiter: int = 1000,
+        callback: Optional[CALLBACK] = None,
         learning_rate: Union[float, Callable[[], Iterator]] = 0.01,
         tol: float = 1e-7,
-        callback: Optional[CALLBACK] = None,
         perturbation: Optional[float] = None,
+        **kwargs,
     ) -> None:
-        r"""
-        Args:
-            maxiter: The maximum number of iterations.
-            learning_rate: A constant or generator yielding learning rates for the parameter
-                updates. See the docstring for an example.
-            tol: If the norm of the parameter update is smaller than this threshold, the
-                optimizer is converged.
-            perturbation: If no gradient is passed to ``GradientDescent.optimize`` the gradient is
-                approximated with a symmetric finite difference scheme with ``perturbation``
-                perturbation in both directions (defaults to 1e-2 if required).
-                Ignored if a gradient callable is passed to ``GradientDescent.optimize``.
-        """
-        super().__init__()
 
-        self.maxiter = maxiter
+        super().__init__(maxiter=maxiter,callback=callback)
+
         self.learning_rate = learning_rate
         self.perturbation = perturbation
         self.tol = tol
-        self.callback = callback
 
     @property
     def settings(self) -> Dict[str, Any]:
@@ -149,60 +69,103 @@ class GradientDescent(Optimizer):
             "callback": self.callback,
         }
 
-    def minimize(
+    def ask(self) -> GD_AskObject:
+        """
+        This method is the part of the interface of the optimizer that asks the
+        user/quantum_circuit how and where the function to optimize needs to be evaluated. It is the
+        first method inside of a "step" in the optimization process.
+        For gradient descent this method simply returns an AskObject containing the current point for
+        the gradient to be evaluated, a parameter epsilon in case the gradient has to be approximated
+        and a bool flag telling the prefered way of evaluating the gradient.
+        """
+        return GD_AskObject(
+            epsilon=self.perturbation,
+            x_jac=self._state.x,
+        )
+
+    def tell(self, ask_object: AskObject, tell_object: TellObject) -> None:
+        """
+        This method is the part of the interface of the optimizer that tells the
+        user/quantum_circuit what is the next point that minimizes the function (with respect to last
+        step). In this case it is not going to return anything since instead it is just going to update
+        state of the optimizer.It is the last method called inside of a "step" in the optimization process.
+        For gradient descent this method updates self._state.x by an ammount proportional to the learning rate
+        and the gradient at that point.
+        """
+        update = next(self._state.eta) * tell_object.gradient
+        self._state.x -= update
+        self._state.stepsize = np.linalg.norm(update)
+
+    def evaluate(self, ask_object: AskObject) -> TellObject:
+        """
+        This is the default way of evaluating the function given the request by self.ask().
+        For gradient descent we are going to check how to evaluate the gradient, evaluate and
+        return a TellObject.
+        """
+        if self._state.jac is None:
+            grad = Optimizer.gradient_num_diff(
+                x_center=ask_object.x_center,
+                f=self._state.fun,
+                epsilon=ask_object.epsilon,
+                max_evals_grouped=1,  # Here there was some extra logic I am just neglecting for now.
+            )
+            self._state.nfev += 1 + len(ask_object.x_center)
+        else:
+            grad = self._state.jac(ask_object.x_jac)
+            self._state.njev += 1
+
+        return GD_TellObject(gradient=grad)
+
+    def create_result(self) -> OptimizerResult:
+        """
+        Creates a result of the optimization process using the values from self.state.
+        """
+        result = OptimizerResult()
+        result.x = self._state.x
+        result.fun = self._state.fun(self._state.x)
+        result.nfev = self._state.nfev
+        result.njev = self._state.njev
+        return result
+
+    def initialize(
         self,
         fun: Callable[[POINT], float],
         x0: POINT,
         jac: Optional[Callable[[POINT], POINT]] = None,
         bounds: Optional[List[Tuple[float, float]]] = None,
-    ) -> OptimizerResult:
-        # set learning rate
+    ) -> None:
+        """
+        This method will initialize the state of the optimizer so that an optimization can be performed.
+        It will always setup the initial point and will restart the counter for function evaluations.
+        This method is left blank because every optimizer has a different kind of state.
+        """
         if isinstance(self.learning_rate, float):
             eta = constant(self.learning_rate)
         else:
             eta = self.learning_rate()
 
-        if jac is None:
-            eps = 0.01 if self.perturbation is None else self.perturbation
-            jac = partial(
-                Optimizer.gradient_num_diff,
-                f=fun,
-                epsilon=eps,
-                max_evals_grouped=self._max_evals_grouped,
-            )
+        self._state = GD_OptimizerState(
+            fun=fun,
+            jac=jac,
+            x=np.asarray(x0),
+            nit=0,
+            nfev=0,
+            njev=0,
+            eta=eta,
+            stepsize=np.inf,
+        )
 
-        # prepare some initials
-        x = np.asarray(x0)
-        nfevs = 0
-
-        for _ in range(1, self.maxiter + 1):
-            # compute update -- gradient evaluation counts as one function evaluation
-            update = jac(x)
-            nfevs += 1
-
-            # compute next parameter value
-            x_next = x - next(eta) * update
-
-            # send information to callback
-            stepsize = np.linalg.norm(update)
-            if self.callback is not None:
-                self.callback(nfevs, x_next, fun(x_next), stepsize)
-
-            # update parameters
-            x = x_next
-
-            # check termination
-            if stepsize < self.tol:
-                break
-
-        # TODO the optimizer result should contain the number of gradient evaluations,
-        # if the gradient is passed
-        result = OptimizerResult()
-        result.x = x
-        result.fun = fun(x)
-        result.nfev = nfevs
-
-        return result
+    def continue_condition(self) -> bool:
+        """
+        Condition that indicates the optimization process should come to an end.
+        When the stepsize is smaller than the tolerance, the optimization process is considered
+        finished.
+        Returns:
+            True if the optimization process should continue, False otherwise.
+        """
+        cont_condition = self._state.stepsize > self.tol
+        cont_condition &= super().continue_condition()
+        return cont_condition
 
     def get_support_level(self):
         """Get the support level dictionary."""
@@ -211,24 +174,3 @@ class GradientDescent(Optimizer):
             "bounds": OptimizerSupportLevel.ignored,
             "initial_point": OptimizerSupportLevel.required,
         }
-
-    def optimize(
-        self,
-        num_vars,
-        objective_function,
-        gradient_function=None,
-        variable_bounds=None,
-        initial_point=None,
-    ):
-        super().optimize(
-            num_vars, objective_function, gradient_function, variable_bounds, initial_point
-        )
-        result = self.minimize(objective_function, initial_point, gradient_function)
-        return result.x, result.fun, result.nfev
-
-
-def constant(eta=0.01):
-    """Yield a constant."""
-
-    while True:
-        yield eta
