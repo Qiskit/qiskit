@@ -300,13 +300,13 @@ class TestDecompose(QiskitTestCase):
         decomposed = self.complex_circuit.decompose().decompose()
         self.assertEqual(decom_circ, decomposed)
 
-    def test_specific_single_gate_decompose(self):
+    def test_specific_single_gate_decompose_reps(self):
         q_bits = QuantumRegister(1)
         qc = QuantumCircuit(q_bits)
-        qc.x(0)
+        qc.ry(pi, 0)
         qc.h(0)
-        decom_circ = qc.decompose("h", reps=2)
+        decom_circ = qc.decompose("h", reps=2).decompose("ry", reps=1)
         dag = circuit_to_dag(decom_circ)
         self.assertEqual(len(dag.op_nodes()), 2)
-        self.assertEqual(dag.op_nodes()[0].name, "x")
+        self.assertEqual(dag.op_nodes()[0].name, "r")
         self.assertEqual(dag.op_nodes()[1].name, "u3")
