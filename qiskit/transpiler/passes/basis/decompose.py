@@ -75,36 +75,44 @@ class Decompose(TransformationPass):
         )
         self.gates_to_decompose = value
 
-    def run(self, dag: DAGCircuit) -> DAGCircuit:
+    def run(self, dag: DAGCircuit, reps: int = 2) -> DAGCircuit:
         """Run the Decompose pass on `dag`.
 
         Args:
             dag: input dag.
+            reps: number of repeat decompose
 
         Returns:
             output dag where ``gate`` was expanded.
         """
+        from qiskit.transpiler.passes import RemoveResetInZeroState
         # Walk through the DAG and expand each non-basis node
-        for node in dag.op_nodes():
-            if self._should_decompose(node):
-                if node.op.definition is None:
-                    continue
-                # TODO: allow choosing among multiple decomposition rules
-                rule = node.op.definition.data
-                if len(rule) == 1 and len(node.qargs) == len(rule[0][1]) == 1:
-                    if node.op.definition.global_phase:
-                        dag.global_phase += node.op.definition.global_phase
-                    dag.substitute_node(node, rule[0][0], inplace=True)
-                else:
-                    decomposition = circuit_to_dag(node.op.definition)
-                    dag.substitute_node_with_dag(node, decomposition)
+        for _ in range(reps):
+            gates = []
+            for node in dag.op_nodes():
+                if self._should_decompose(node):
+                    if node.op.definition is None:
+                        continue
+                    # TODO: allow choosing among multiple decomposition rules
+                    rule = node.op.definition.data
+                    if len(rule) == 1 and len(node.qargs) == len(rule[0][1]) == 1:
+                        if node.op.definition.global_phase:
+                            dag.global_phase += node.op.definition.global_phase
+                        dag.substitute_node(node, rule[0][0], inplace=True)
+                    else:
+                        decomposition = circuit_to_dag(node.op.definition)
+                        dag.substitute_node_with_dag(node, decomposition)
+                    gates.append(node.op.name)
+            self.gates_to_decompose = gates
 
-        return dag
+        return RemoveResetInZeroState.run(self=_, dag=dag)
 
     def _should_decompose(self, node) -> bool:
         """Call a decomposition pass on this circuit,
         to decompose one level (shallow decompose)."""
         if self.gates_to_decompose is None:  # check if no gates given
+            return True
+        if node.op.name == 'state_preparation':  # not sure about other gate also cant pass
             return True
 
         has_label = False

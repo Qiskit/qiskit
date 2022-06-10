@@ -1,0 +1,9 @@
+features:
+  - |
+    Added a new parameter, ``reps`` decomposem, it also support decompose specific gate specific times
+
+    Example
+    .. code:: python
+
+      #decompose ry 3 times, decompose initialize 2 times
+      qc.decompose(gates_to_decompose=['ry'], reps=3).decompose(gates_to_decompose=['initialize'], reps=2)
