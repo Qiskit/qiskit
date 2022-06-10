@@ -2121,7 +2121,7 @@ class QuantumCircuit:
             * all the qubits and clbits, including the registers
 
         Args:
-            name (str): name for the copied circuit. If None, then the name stays the same.
+            name (str): Name for the copied circuit. If None, then the name stays the same.
 
         Returns:
             QuantumCircuit: An empty copy of self.
