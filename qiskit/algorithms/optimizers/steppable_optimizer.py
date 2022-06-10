@@ -1,5 +1,5 @@
 from abc import abstractmethod, ABC
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, Any, Union, Callable, Optional, Tuple, List
 
 from .optimizer import Optimizer, POINT, OptimizerResult
@@ -12,7 +12,7 @@ class AskObject(ABC):
 
 @dataclass
 class TellObject(ABC):
-    """Base class for argument type of method SteppableOptimizer.ask()"""
+    """Base class for argument type of method SteppableOptimizer.tell()"""
 
 
 @dataclass
