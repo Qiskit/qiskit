@@ -19,14 +19,14 @@ class AskObject(ABC):
             next state of the optimizer.
     """
 
-    x_fun: Union[POINT, List[POINT],None] = None
-    x_jac: Union[POINT, List[POINT],None] = None
+    x_fun: Union[POINT, List[POINT], None] = None
+    x_jac: Union[POINT, List[POINT], None] = None
 
 
 @dataclass
 class TellObject(ABC):
     """
-    Base class for argument type of method SteppableOptimizer.tell().
+    Base class for argument type of methowouldd SteppableOptimizer.tell().
     Args:
         eval_fun: Image of the function at
             :attr:`~qiskit.algorithms.optimizers.SteppableOptimizer.Ask_Object.x_fun`.
@@ -34,8 +34,8 @@ class TellObject(ABC):
             :attr:`~qiskit.algorithms.optimizers.SteppableOptimizer.Ask_Object.x_fun`.
     """
 
-    eval_fun: Union[float, List[float],None] = None
-    eval_jac: Union[POINT, List[POINT],None] = None
+    eval_fun: Union[float, List[float], None] = None
+    eval_jac: Union[POINT, List[POINT], None] = None
 
 
 @dataclass
