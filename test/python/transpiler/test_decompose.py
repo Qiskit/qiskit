@@ -296,11 +296,13 @@ class TestDecompose(QiskitTestCase):
         self.assertEqual(len(decomposed.data), 0)
 
     def test_decompose_reps(self):
+        """Test decompose reps function is decomposed correctly"""
         decom_circ = self.complex_circuit.decompose(reps=2)
         decomposed = self.complex_circuit.decompose().decompose()
         self.assertEqual(decom_circ, decomposed)
 
-    def test_specific_single_gate_decompose_reps(self):
+    def test_single_gate_decompose_reps(self):
+        """Test decompsose specific gate is decomposed correctly"""
         q_bits = QuantumRegister(1)
         qc = QuantumCircuit(q_bits)
         qc.ry(pi, 0)
