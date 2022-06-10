@@ -30,6 +30,7 @@ class Decompose(TransformationPass):
         self,
         gate: Optional[Type[Gate]] = None,
         gates_to_decompose: Optional[Union[Type[Gate], List[Type[Gate]], List[str], str]] = None,
+        reps : int = 1
     ) -> None:
         """Decompose initializer.
 
@@ -44,6 +45,7 @@ class Decompose(TransformationPass):
             self.gates_to_decompose = gate
         else:
             self.gates_to_decompose = gates_to_decompose
+        self.reps = reps
 
     @property
     def gate(self) -> Gate:
@@ -75,7 +77,7 @@ class Decompose(TransformationPass):
         )
         self.gates_to_decompose = value
 
-    def run(self, dag: DAGCircuit, reps: int = 1) -> DAGCircuit:
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the Decompose pass on `dag`.
 
         Args:
@@ -86,7 +88,7 @@ class Decompose(TransformationPass):
             output dag where ``gate`` was expanded.
         """
         # Walk through the DAG and expand each non-basis node
-        for _ in range(reps):
+        for _ in range(self.reps):
             gates = []
             for node in dag.op_nodes():
                 if self._should_decompose(node):

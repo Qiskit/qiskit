@@ -1500,8 +1500,8 @@ class QuantumCircuit:
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
 
-        pass_ = Decompose(gates_to_decompose=gates_to_decompose)
-        decomposed_dag = pass_.run(dag=circuit_to_dag(self), reps=reps)
+        pass_ = Decompose(gates_to_decompose=gates_to_decompose, reps=reps)
+        decomposed_dag = pass_.run(dag=circuit_to_dag(self))
         return dag_to_circuit(decomposed_dag)
 
     def _check_compatible_regs(self, rhs: "QuantumCircuit") -> None:
