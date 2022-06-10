@@ -84,9 +84,9 @@ class VariationalPrinciple(ABC):
             self._qfi_gradient_callable = self.qfi.gradient_wrapper(
                 CircuitStateFn(ansatz), bind_params, gradient_params, quantum_instance
             )
-        metric_tensor_lse_lhs = 0.25 * self._qfi_gradient_callable(param_values)
+        metric_tensor = 0.25 * self._qfi_gradient_callable(param_values)
 
-        return metric_tensor_lse_lhs
+        return metric_tensor
 
     @abstractmethod
     def calc_evolution_grad(

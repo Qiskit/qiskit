@@ -132,26 +132,7 @@ class VarQTELinearSolver:
             param_values,
             self._quantum_instance,
         )
-        # print(evolution_grad_lse_rhs)
-        if self._time_param is not None:
-            evolution_grad_lse_rhs = self._post_bind_t_param(evolution_grad_lse_rhs, time_value)
 
-        # print(evolution_grad_lse_rhs)
         x = self._lse_solver(metric_tensor_lse_lhs, evolution_grad_lse_rhs)[0]
 
         return np.real(x), metric_tensor_lse_lhs, evolution_grad_lse_rhs
-
-    def _post_bind_t_param(
-        self, evolution_grad_lse_rhs: np.ndarray, time_value: float
-    ) -> np.ndarray:
-        """
-        In case of a time-dependent Hamiltonian, binds a time parameter in an evolution gradient
-        (if they contain a time parameter) with a current time value.
-        """
-        bound_evolution_grad_lse_rhs = np.zeros(len(evolution_grad_lse_rhs), dtype=complex)
-        for i, param_expr in enumerate(evolution_grad_lse_rhs):
-            bound_evolution_grad_lse_rhs[i] = param_expr.assign(
-                self._time_param, time_value
-            ).__complex__()
-        evolution_grad_lse_rhs = bound_evolution_grad_lse_rhs
-        return evolution_grad_lse_rhs
