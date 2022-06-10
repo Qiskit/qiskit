@@ -483,7 +483,7 @@ class TestCircuitOperations(QiskitTestCase):
         """Test copy_empty_like method makes a clear copy."""
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
-        qc = QuantumCircuit(qr, cr, global_phase=1.0, metadata={"key": "value"})
+        qc = QuantumCircuit(qr, cr, global_phase=1.0, name="qc", metadata={"key": "value"})
         qc.h(qr[0])
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
@@ -494,8 +494,12 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(qc, copied)
         self.assertEqual(qc.global_phase, copied.global_phase)
+        self.assertEqual(qc.name, copied.name)
         self.assertEqual(qc.metadata, copied.metadata)
         self.assertEqual(qc.calibrations, copied.calibrations)
+
+        copied = qc.copy_empty_like("copy")
+        self.assertEqual(copied.name, "copy")
 
     def test_clear_circuit(self):
         """Test clear method deletes instructions in circuit."""
