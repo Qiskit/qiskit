@@ -105,14 +105,14 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         # values from the prototype
         thetas_expected_sv = [
-            1.08784596007622,
-            1.7356903166934,
-            2.81361244193709,
-            2.67623775443742,
-            2.01957567991695,
-            1.54596235673807,
-            1.8823927630625,
-            2.04272368387118,
+            1.03914730208212,
+            1.91692131099535,
+            2.78454919039903,
+            2.78398207138289,
+            2.20638059571898,
+            1.62265763178013,
+            2.23140273133868,
+            1.9474305740338,
         ]
 
         thetas_expected_qasm = [
@@ -126,7 +126,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             1.9474305740338,
         ]
 
-        expected_aux_ops_evaluated_sv = [(-0.172693, 0.0), (0.253488, 0.0)]
+        expected_aux_ops_evaluated_sv = [(-0.146689, 0.0), (0.258695, 0.0)]
         expected_aux_ops_evaluated_qasm = [(-0.162, 0.015603), (0.2545, 0.015291)]
 
         for backend_name in self.backends_names:
@@ -146,6 +146,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
                 aux_ops = evolution_result.aux_ops_evaluated
 
                 parameter_values = evolved_state.data[0][0].params
+
                 if backend_name == "qi_qasm":
                     thetas_expected = thetas_expected_qasm
                     expected_aux_ops = expected_aux_ops_evaluated_qasm

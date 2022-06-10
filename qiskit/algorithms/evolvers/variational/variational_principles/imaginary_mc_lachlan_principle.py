@@ -11,11 +11,14 @@
 # that they have been altered from the originals.
 
 """Class for an Imaginary McLachlan's Variational Principle."""
-from typing import Dict, Union
+from typing import Dict, Union, List, Optional
+
+import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.opflow import StateFn, OperatorBase, CircuitSampler
+from qiskit.utils import QuantumInstance
 from .imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
@@ -29,15 +32,19 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
     variant means that we consider imaginary time dynamics.
     """
 
-    def modify_hamiltonian(
+    def calc_evolution_grad(
         self,
         hamiltonian: OperatorBase,
         ansatz: Union[StateFn, QuantumCircuit],
         circuit_sampler: CircuitSampler,
         param_dict: Dict[Parameter, complex],
-    ) -> OperatorBase:
+        bind_params: List[Parameter],
+        gradient_params: List[Parameter],
+        param_values: List[complex],
+        quantum_instance: Optional[QuantumInstance] = None,
+    ) -> np.ndarray:
         """
-        Modifies a Hamiltonian according to the rules of this variational principle.
+        Calculates an evolution gradient according to the rules of this variational principle.
         Args:
             hamiltonian:
                 Operator used for Variational Quantum Time Evolution.
@@ -48,7 +55,23 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
             ansatz: Quantum state in the form of a parametrized quantum circuit.
             circuit_sampler: A circuit sampler.
             param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
+            bind_params: List of parameters that are supposed to be bound.
+            gradient_params: List of parameters with respect to which gradients should be computed.
+            param_values: Values of parameters to be bound.
+            quantum_instance: Backend used to evaluate the quantum circuit outputs. If ``None``
+                provided, everything will be evaluated based on matrix multiplication (which is
+                slow).
         Returns:
-            An modified Hamiltonian composed with an ansatz.
+            An evolution gradient.
         """
-        return (-1) * (StateFn(hamiltonian, is_measurement=True) @ StateFn(ansatz))
+        if self._evolution_gradient_callable is None:
+            modified_hamiltonian = (-1) * (
+                StateFn(hamiltonian, is_measurement=True) @ StateFn(ansatz)
+            )
+
+            self._evolution_gradient_callable = self._evolution_gradient.gradient_wrapper(
+                modified_hamiltonian, bind_params, gradient_params, quantum_instance
+            )
+        evolution_grad_lse_rhs = 0.5 * self._evolution_gradient_callable(param_values)
+
+        return evolution_grad_lse_rhs

@@ -122,7 +122,8 @@ class DerivativeBase(ConverterBase):
                 return np.real(converter.eval())
             else:
                 p_values_dict = {k: [v] for k, v in p_values_dict.items()}
-                converter = sampler.convert(grad, p_values_dict)
+                grad2 = grad.assign_parameters({bind_params[-1]: p_values[-1]})
+                converter = sampler.convert(grad2, p_values_dict)
                 return np.real(converter.eval()[0])
 
         return gradient_fn

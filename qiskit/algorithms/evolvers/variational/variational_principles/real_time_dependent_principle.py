@@ -11,13 +11,16 @@
 # that they have been altered from the originals.
 
 """Class for a Real Time Dependent Variational Principle."""
-from typing import Union, Dict
+from typing import Union, Dict, List, Optional
+
+import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.opflow import Y, StateFn, CircuitQFI, OperatorBase, CircuitSampler
 from qiskit.opflow.gradients.circuit_gradients import LinComb
 from qiskit.opflow.gradients.circuit_qfis import LinCombFull
+from qiskit.utils import QuantumInstance
 from .real_variational_principle import (
     RealVariationalPrinciple,
 )
@@ -44,15 +47,19 @@ class RealTimeDependentPrinciple(RealVariationalPrinciple):
 
         super().__init__(qfi_method)
 
-    def modify_hamiltonian(
+    def calc_evolution_grad(
         self,
         hamiltonian: OperatorBase,
         ansatz: Union[StateFn, QuantumCircuit],
         circuit_sampler: CircuitSampler,
         param_dict: Dict[Parameter, complex],
-    ) -> OperatorBase:
+        bind_params: List[Parameter],
+        gradient_params: List[Parameter],
+        param_values: List[complex],
+        quantum_instance: Optional[QuantumInstance] = None,
+    ) -> np.ndarray:
         """
-        Modifies a Hamiltonian according to the rules of this variational principle.
+        Calculates an evolution gradient according to the rules of this variational principle.
         Args:
             hamiltonian:
                 Operator used for Variational Quantum Time Evolution.
@@ -63,7 +70,20 @@ class RealTimeDependentPrinciple(RealVariationalPrinciple):
             ansatz: Quantum state in the form of a parametrized quantum circuit.
             circuit_sampler: A circuit sampler.
             param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
+            bind_params: List of parameters that are supposed to be bound.
+            gradient_params: List of parameters with respect to which gradients should be computed.
+            param_values: Values of parameters to be bound.
+            quantum_instance: Backend used to evaluate the quantum circuit outputs. If ``None``
+                provided, everything will be evaluated based on matrix multiplication (which is
+                slow).
         Returns:
-            An modified Hamiltonian composed with an ansatz.
+            An evolution gradient.
         """
-        return StateFn(hamiltonian, is_measurement=True) @ StateFn(ansatz)
+        if self._evolution_gradient_callable is None:
+            modified_hamiltonian = StateFn(hamiltonian, is_measurement=True) @ StateFn(ansatz)
+            self._evolution_gradient_callable = self._evolution_gradient.gradient_wrapper(
+                modified_hamiltonian, bind_params, gradient_params, quantum_instance
+            )
+        evolution_grad_lse_rhs = 0.5 * self._evolution_gradient_callable(param_values)
+
+        return evolution_grad_lse_rhs

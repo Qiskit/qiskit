@@ -57,6 +57,7 @@ class VariationalPrinciple(ABC):
             self._grad_method = LinComb()
         self._evolution_gradient = Gradient(self._grad_method)
         self._qfi_gradient_callable = None
+        self._evolution_gradient_callable = None
 
     def calc_metric_tensor(
         self,
@@ -87,6 +88,7 @@ class VariationalPrinciple(ABC):
 
         return metric_tensor_lse_lhs
 
+    @abstractmethod
     def calc_evolution_grad(
         self,
         hamiltonian: OperatorBase,
@@ -118,41 +120,5 @@ class VariationalPrinciple(ABC):
                 slow).
         Returns:
             An evolution gradient.
-        """
-        # TODO calculate and sample energy separately
-        modified_hamiltonian = self.modify_hamiltonian(
-            hamiltonian, ansatz, circuit_sampler, param_dict
-        )
-        # TODO calculate energy separately, cache Hamiltonian only grad_callable and apply energy
-        #  post factum
-        grad_callable = self._evolution_gradient.gradient_wrapper(
-            modified_hamiltonian, bind_params, gradient_params, quantum_instance
-        )
-        evolution_grad_lse_rhs = 0.5 * grad_callable(param_values)
-
-        return evolution_grad_lse_rhs
-
-    @abstractmethod
-    def modify_hamiltonian(
-        self,
-        hamiltonian: OperatorBase,
-        ansatz: Union[StateFn, QuantumCircuit],
-        circuit_sampler: CircuitSampler,
-        param_dict: Dict[Parameter, complex],
-    ) -> OperatorBase:
-        """
-        Modifies a Hamiltonian according to the rules of this variational principle.
-        Args:
-            hamiltonian:
-                Operator used for Variational Quantum Time Evolution.
-                The operator may be given either as a composed op consisting of a Hermitian
-                observable and a ``CircuitStateFn`` or a ``ListOp`` of a ``CircuitStateFn`` with a
-                ``ComboFn``.
-                The latter case enables the evaluation of a Quantum Natural Gradient.
-            ansatz: Quantum state in the form of a parametrized quantum circuit.
-            circuit_sampler: A circuit sampler.
-            param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
-        Returns:
-            An modified Hamiltonian composed with an ansatz.
         """
         pass
