@@ -134,6 +134,7 @@ class SteppableGD(SteppableOptimizer):
         result.x = self._state.x
         result.fun = self._state.fun(self._state.x)
         result.nfev = self._state.nfev
+        result.njev = self._state.njev
         return result
 
     def initialize(

@@ -80,7 +80,9 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
             else:
                 return 2 * (np.linalg.norm(x) - 1) * x / np.linalg.norm(x)
 
-        initial_point = np.array([1, 0.5, -2])
+        tol = 1e-4
+        N = 100
+        initial_point = np.random.normal(0, 1, size=(N,))
 
         optimizer = GradientDescent(maxiter=20, learning_rate=learning_rate)
         optimizer.initialize(x0=initial_point, fun=objective, jac=grad)
@@ -91,9 +93,11 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
 
             while evaluated_gradient is None:
                 evaluated_gradient = grad(ask_object.x_center)
+                optimizer._state.njev += 1
+
             tell_object = GD_TellObject(gradient=evaluated_gradient)
-            optimizer.tell(tell_object=tell_object)
+            optimizer.tell(ask_object=ask_object, tell_object=tell_object)
 
         result = optimizer.create_result()
-
-        self.assertLess(result.fun, 1e-5)
+        print(result.njev, result.nfev)
+        self.assertLess(result.fun, tol)
