@@ -1,8 +1,0 @@
----
-fixes:
-  - |
-    Additional documentation has been added to
-    :meth:`~.pulse.library.ParametricPulse.validate_parameters`
-    which clarifies that this method serves only as an internal check for subclasses
-    and should not be interpreted or used as a part of the user-facing API. Refer to
-    `#7882 <https://github.com/Qiskit/qiskit-terra/issues/7882>` for more details.
