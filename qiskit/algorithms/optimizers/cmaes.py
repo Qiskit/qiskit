@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from dataclasses import dataclass
 from typing import Union, Callable, Optional, List
 import numpy as np
 from .optimizer import OptimizerSupportLevel, OptimizerResult, POINT
@@ -40,7 +39,7 @@ class CMAES_OptimizerState(OptimizerState):
     D: POINT  # Will store the sqrt of the diagonal elements
     sigma: float
 
-class SteppableCMAES(SteppableOptimizer):
+class CMAES(SteppableOptimizer):
     """
     Covariance Matrix Adaptation Evolution Strategy minimization routine.
     """
@@ -139,7 +138,7 @@ class SteppableCMAES(SteppableOptimizer):
         fun: Callable[[POINT], float],
         jac: Callable[[POINT], POINT] = None,
         tol: float = 1e-3,
-        population:Optional[int] = None
+        population_size:Optional[int] = None
     ) -> None:
         """
         This method will initialize the state of the optimizer so that an optimization can be performed.
@@ -164,7 +163,7 @@ class SteppableCMAES(SteppableOptimizer):
 
         # Initialize static variables
         self.N = self._state.x.size
-        self.lmbda = 4 + int(3 * np.log(self.N)) if population is None else population
+        self.lmbda = 4 + int(3 * np.log(self.N)) if population_size is None else population_size
         self.mu = int(self.lmbda / 2)
         self.weights = np.log((self.lmbda + 1) / 2) - np.log(np.arange(1, self.mu + 1))
 
