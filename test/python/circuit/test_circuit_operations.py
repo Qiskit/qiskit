@@ -27,6 +27,7 @@ from qiskit.circuit.quantumregister import AncillaQubit, AncillaRegister, Qubit
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.library.standard_gates import SGate
 from qiskit.quantum_info import Operator
+from qiskit.pulse import Schedule, Play, Gaussian, DriveChannel
 
 
 @ddt
@@ -482,15 +483,19 @@ class TestCircuitOperations(QiskitTestCase):
         """Test copy_empty_like method makes a clear copy."""
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
-        qc = QuantumCircuit(qr, cr)
+        qc = QuantumCircuit(qr, cr, global_phase=1.0, metadata={"key": "value"})
         qc.h(qr[0])
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
+        sched = Schedule(Play(Gaussian(160, 0.1, 40), DriveChannel(0)))
+        qc.add_calibration("h", [0, 1], sched)
         copied = qc.copy_empty_like()
         qc.clear()
 
         self.assertEqual(qc, copied)
         self.assertEqual(qc.global_phase, copied.global_phase)
+        self.assertEqual(qc.metadata, copied.metadata)
+        self.assertEqual(qc.calibrations, copied.calibrations)
 
     def test_clear_circuit(self):
         """Test clear method deletes instructions in circuit."""
