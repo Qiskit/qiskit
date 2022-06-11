@@ -1,6 +1,6 @@
 features:
   - |
-    Added a new parameter, ``reps`` decomposem, it also support decompose specific gate specific times
+    Added a new parameter, ``reps`` decomposem, it also support decompose specific gate specific times, but can't repeat decompose label gate.
 
     Example
     .. code:: python

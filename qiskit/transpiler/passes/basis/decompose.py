@@ -30,7 +30,7 @@ class Decompose(TransformationPass):
         self,
         gate: Optional[Type[Gate]] = None,
         gates_to_decompose: Optional[Union[Type[Gate], List[Type[Gate]], List[str], str]] = None,
-        reps : int = 1,
+        reps: int = 1,
     ) -> None:
         """Decompose initializer.
 
@@ -38,6 +38,7 @@ class Decompose(TransformationPass):
             gate: DEPRECATED gate to decompose.
             gates_to_decompose: optional subset of gates to be decomposed,
                 identified by gate label, name or type. Defaults to all gates.
+            reps: number of repeat decompose
         """
         super().__init__()
 
@@ -82,7 +83,6 @@ class Decompose(TransformationPass):
 
         Args:
             dag: input dag.
-            reps: number of repeat decompose
 
         Returns:
             output dag where ``gate`` was expanded.
@@ -104,8 +104,8 @@ class Decompose(TransformationPass):
                     else:
                         decomposition = circuit_to_dag(node.op.definition)
                         dag.substitute_node_with_dag(node, decomposition)
-                        for node in dag.op_nodes():
-                            gates.append(node.name)
+                        for nod in dag.op_nodes():
+                            gates.append(nod.name)
             self.gates_to_decompose = gates
 
         return dag
