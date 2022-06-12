@@ -288,7 +288,14 @@ class SymbolicPulse(Pulse):
 
         t, amp, freq = sympy.symbols("t, amp, freq")
         envelope = 2 * amp * (freq * t - sympy.floor(1 / 2 + freq * t))
-        my_pulse.envelope = envelope
+
+        my_pulse = SymbolicPulse(
+            pulse_type="Sawtooth",
+            duration=100,
+            parameters={"amp": 0.1, "freq": 0.05},
+            envelope=envelope,
+            name="pulse1",
+        )
 
         my_pulse.draw()
 
@@ -300,15 +307,15 @@ class SymbolicPulse(Pulse):
     .. code-block:: python
 
         def Sawtooth(duration, amp, freq, name):
+            t, amp, freq = sympy.symbols("t, amp, freq")
+
             instance = SymbolicPulse(
                 pulse_type="Sawtooth",
                 duration=duration,
                 parameters={"amp": amp, "freq": freq},
+                envelope=2 * amp * (freq * t - sympy.floor(1 / 2 + freq * t)),
                 name=name,
             )
-
-            t, amp, freq = sympy.symbols("t, amp, freq")
-            instance.envelope = 2 * amp * (freq * t - sympy.floor(1 / 2 + freq * t))
 
             return instance
 
@@ -340,15 +347,15 @@ class SymbolicPulse(Pulse):
     __slots__ = (
         "_pulse_type",
         "_params",
-        "envelope",
-        "constraints",
-        "valid_amp_conditions",
+        "_envelope",
+        "_constraints",
+        "_valid_amp_conditions",
     )
 
     # Lambdify caches keyed on sympy expressions. Returns the corresponding callable.
-    _envelope_lam = LambdifiedExpression("envelope")
-    _constraints_lam = LambdifiedExpression("constraints")
-    _valid_amp_conditions_lam = LambdifiedExpression("valid_amp_conditions")
+    _envelope_lam = LambdifiedExpression("_envelope")
+    _constraints_lam = LambdifiedExpression("_constraints")
+    _valid_amp_conditions_lam = LambdifiedExpression("_valid_amp_conditions")
 
     def __init__(
         self,
@@ -392,9 +399,9 @@ class SymbolicPulse(Pulse):
         self._pulse_type = pulse_type
         self._params = parameters
 
-        self.envelope = envelope
-        self.constraints = constraints
-        self.valid_amp_conditions = valid_amp_conditions
+        self._envelope = envelope
+        self._constraints = constraints
+        self._valid_amp_conditions = valid_amp_conditions
 
     def __getattr__(self, item):
         # Get pulse parameters with attribute-like access.
@@ -407,6 +414,21 @@ class SymbolicPulse(Pulse):
     def pulse_type(self) -> str:
         """Return display name of the pulse shape."""
         return self._pulse_type
+
+    @property
+    def envelope(self) -> sym.Expr:
+        """Return symbolic expression for the pulse envelope."""
+        return self._envelope
+
+    @property
+    def constraints(self) -> sym.Expr:
+        """Return symbolic expression for the pulse parameter constraints."""
+        return self._constraints
+
+    @property
+    def valid_amp_conditions(self) -> sym.Expr:
+        """Return symbolic expression for the pulse amplitude constraints."""
+        return self._valid_amp_conditions
 
     def get_waveform(self) -> Waveform:
         r"""Return a Waveform with samples filled according to the formula that the pulse
@@ -429,10 +451,10 @@ class SymbolicPulse(Pulse):
         if self.is_parameterized():
             raise PulseError("Unassigned parameter exists. All parameters must be assigned.")
 
-        if self.envelope is None:
+        if self._envelope is None:
             raise PulseError("Pulse envelope expression is not assigned.")
 
-        fargs = _get_expression_args(self.envelope, self.parameters)
+        fargs = _get_expression_args(self._envelope, self.parameters)
         return Waveform(samples=self._envelope_lam(*fargs), name=self.name)
 
     def validate_parameters(self) -> None:
@@ -444,18 +466,18 @@ class SymbolicPulse(Pulse):
         if self.is_parameterized():
             return
 
-        if self.constraints is not None:
-            fargs = _get_expression_args(self.constraints, self.parameters)
+        if self._constraints is not None:
+            fargs = _get_expression_args(self._constraints, self.parameters)
             if not bool(self._constraints_lam(*fargs)):
                 param_repr = ", ".join(f"{p}={v}" for p, v in self.parameters.items())
-                const_repr = str(self.constraints)
+                const_repr = str(self._constraints)
                 raise PulseError(
                     f"Assigned parameters {param_repr} violate following constraint: {const_repr}."
                 )
 
         if self.limit_amplitude:
-            if self.valid_amp_conditions is not None:
-                fargs = _get_expression_args(self.valid_amp_conditions, self.parameters)
+            if self._valid_amp_conditions is not None:
+                fargs = _get_expression_args(self._valid_amp_conditions, self.parameters)
                 check_full_waveform = not bool(self._valid_amp_conditions_lam(*fargs))
             else:
                 check_full_waveform = True
@@ -486,7 +508,10 @@ class SymbolicPulse(Pulse):
         if not isinstance(other, SymbolicPulse):
             return NotImplemented
 
-        if self.envelope != other.envelope:
+        if self._pulse_type != other._pulse_type:
+            return False
+
+        if self._envelope != other._envelope:
             return False
 
         if self.parameters != other.parameters:
