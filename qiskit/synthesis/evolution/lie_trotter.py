@@ -24,7 +24,7 @@ class LieTrotter(ProductFormula):
     r"""The Lie-Trotter product formula.
 
     The Lie-Trotter formula approximates the exponential of two non-commuting operators
-    with products of their exponentials up to a first order error:
+    with products of their exponentials up to a second order error:
 
     .. math::
 
@@ -35,7 +35,7 @@ class LieTrotter(ProductFormula):
 
     .. math::
 
-        e^{-it(XX + ZZ)} = e^{-it XX}e^{-it ZZ} + \mathcal{O}(t).
+        e^{-it(XX + ZZ)} = e^{-it XX}e^{-it ZZ} + \mathcal{O}(t^2).
 
     References:
 
