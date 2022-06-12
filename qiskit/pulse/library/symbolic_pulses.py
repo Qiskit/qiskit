@@ -87,7 +87,12 @@ def _is_amplitude_valid(symbolic_pulse: "SymbolicPulse") -> bool:
     Returns:
         Return True if no sample point exceeds 1.0 in absolute value.
     """
-    return np.all(np.abs(symbolic_pulse.get_waveform().samples) < 1.0)
+    try:
+        # Instantiation of Waveform does automatic amplitude validation.
+        symbolic_pulse.get_waveform()
+        return True
+    except PulseError:
+        return False
 
 
 def _get_expression_args(expr: sym.Expr, params: Dict[str, float]) -> List[float]:
@@ -114,11 +119,11 @@ def _get_expression_args(expr: sym.Expr, params: Dict[str, float]) -> List[float
             continue
         try:
             args.append(params[symbol.name])
-        except KeyError:
+        except KeyError as ex:
             raise PulseError(
                 f"Pulse parameter '{symbol.name}' is not defined for this instance. "
                 "Please check your waveform expression is correct."
-            )
+            ) from ex
     return args
 
 
@@ -132,7 +137,7 @@ class LambdifiedExpression:
 
     Note that this class is a python `Descriptor`_, and thus not intended to be
     directly called by end-users. This class is designed to be attached to the
-    :class:`.SymbolicPulse` as an attributes for symbolic expressions.
+    :class:`.SymbolicPulse` as attributes for symbolic expressions.
 
     _`Descriptor`: https://docs.python.org/3/reference/datamodel.html#descriptors
     """
@@ -265,7 +270,7 @@ class SymbolicPulse(Pulse):
     so that `healthy` symbolic pulses are created very quick.
     For example, for a simple pulse shape like ``amp * cos(f * t)``, we know that
     pulse amplitude is valid as long as ``amp`` remains less than magnitude 1.0.
-    So ``abs(amp) < 1`` could be passed as :attr:`SymbolicPulse.valid_amp_conditions` to skip
+    So ``abs(amp) <= 1`` could be passed as :attr:`SymbolicPulse.valid_amp_conditions` to skip
     doing a full waveform evaluation for amplitude validation.
     This expression is provided through the constructor. If this is not provided,
     the waveform is generated everytime when :meth:`.validate_parameters` is called.
@@ -529,6 +534,9 @@ class SymbolicPulse(Pulse):
         return True
 
     def __hash__(self) -> int:
+        # TODO hashing symbolic and parametric pulse is no longer correct behavior.
+        #  Remove the hash if possible -- but this might be used in user code.
+        #  We need polite deprecation to remove this.
         return hash((self._pulse_type, self.duration, *tuple(self._params.items())))
 
     def __repr__(self) -> str:
@@ -583,7 +591,7 @@ class Gaussian(SymbolicPulse):
 
         envelope_expr = _amp * _lifted_gaussian(_t, _center, _duration + 1, _sigma)
         consts_expr = _sigma > 0
-        valid_amp_conditions_expr = sym.Abs(_amp) < 1.0
+        valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
         super().__init__(
             pulse_type=self.__class__.__name__,
@@ -695,7 +703,7 @@ class GaussianSquare(SymbolicPulse):
             (_gaussian_ledge, _t <= _sq_t0), (_gaussian_redge, _t >= _sq_t1), (1, True)
         )
         consts_expr = sym.And(_sigma > 0, _width >= 0, _duration >= _width)
-        valid_amp_conditions_expr = sym.Abs(_amp) < 1.0
+        valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
         super().__init__(
             pulse_type=self.__class__.__name__,
@@ -789,7 +797,7 @@ class Drag(SymbolicPulse):
         envelope_expr = _amp * (_gauss + sym.I * _beta * _deriv)
 
         consts_expr = _sigma > 0
-        valid_amp_conditions_expr = sym.And(sym.Abs(_amp) < 1.0, sym.Abs(_beta) < _sigma)
+        valid_amp_conditions_expr = sym.And(sym.Abs(_amp) <= 1.0, sym.Abs(_beta) < _sigma)
 
         super().__init__(
             pulse_type=self.__class__.__name__,
@@ -842,7 +850,7 @@ class Constant(SymbolicPulse):
         #
         # See: https://github.com/sympy/sympy/issues/5642
         envelope_expr = _amp * sym.Piecewise((1, sym.And(_t >= 0, _t <= _duration)), (0, True))
-        valid_amp_conditions_expr = sym.Abs(_amp) < 1.0
+        valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
         super().__init__(
             pulse_type=self.__class__.__name__,
