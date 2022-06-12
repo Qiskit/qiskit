@@ -85,7 +85,7 @@ def _is_amplitude_valid(symbolic_pulse: "SymbolicPulse") -> bool:
         symbolic_pulse: A pulse to validate.
 
     Returns:
-        Return True if any sample point exceeds 1.0 in absolute value.
+        Return True if no sample point exceeds 1.0 in absolute value.
     """
     return np.all(np.abs(symbolic_pulse.get_waveform().samples) < 1.0)
 
@@ -116,9 +116,16 @@ def _get_expression_args(expr: sym.Expr, params: Dict[str, float]) -> List[float
 class LambdifiedExpression:
     """Descriptor to lambdify symbolic expression with cache.
 
-    When new symbolic expression is set for the first time,
-    this will internally lambdify the expressions and store the callbacks in the instance cache.
-    For the next time it will just return the cached callbacks for speed up.
+    When a new symbolic expression is assigned for the first time, :class:`.LambdifiedExpression`
+    will internally lambdify the expressions and store the resulting callbacks in its cache.
+    The next time it encounters the same expression it will return the cached callbacks
+    thereby increasing the code's speed.
+
+    Note that this class is a python `Descriptor`_, and thus not intended to be
+    directly called by end-users. This class is designed to be attached to the
+    :class:`.SymbolicPulse` as an attributes for symbolic expressions.
+
+    _`Descriptor`: https://docs.python.org/3/reference/datamodel.html#descriptors
     """
 
     def __init__(self, attribute: str):
@@ -207,7 +214,8 @@ class SymbolicPulse(Pulse):
     where :math:`\Theta` is the set of full pulse parameters in the :attr:`SymbolicPulse.parameters`
     dictionary which must include the :math:`\rm duration`.
     Note that the :math:`F` is an envelope of the waveform, and a programmer must provide this
-    as a symbolic expression. :math:`\overline{\rm params}` are arbitrary complex values.
+    as a symbolic expression. :math:`\overline{\rm params}` can be arbitrary complex values
+    as long as they pass :meth:`.validate_parameters` and your quantum backend can accept.
     The time :math:`t` and :math:`\rm duration` are in units of dt, i.e. sample time resolution,
     and this function is sampled with a discrete time vector in :math:`[0, {\rm duration}]`
     sampling the pulse envelope at every 0.5 dt (middle sampling strategy) when
@@ -229,7 +237,7 @@ class SymbolicPulse(Pulse):
     If there are multiple conditions to be evaluated, these conditions can be
     concatenated with logical expressions such as ``And`` and ``Or`` in SymPy or Symengine.
     The symbolic pulse instance can be played only when the constraint function returns ``True``.
-    The constraint is evaluated when :meth:`SymbolicPulse.validate_parameters` is called.
+    The constraint is evaluated when :meth:`.validate_parameters` is called.
 
 
     .. _symbolic_pulse_eval_condition:
@@ -241,13 +249,17 @@ class SymbolicPulse(Pulse):
     by this maximum power, namely :math:`\max |F| \leq 1`. This condition is
     evaluated along with above constraints when you set ``limit_amplitude = True`` in the constructor.
     To evaluate maximum amplitude of the waveform, we need to call :meth:`get_waveform`.
-    Hoever, this introduces a significant overhead in the validation, and this cannot be ignored
+    However, this introduces a significant overhead in the validation, and this cannot be ignored
     when you repeatedly instantiate pulse instances.
     :attr:`SymbolicPulse.eval_conditions` provides a condition to run this waveform validation,
     and the waveform is not generated as long as this condition returns ``False``,
     so that `healthy` symbolic pulses are created very quick.
+    For example, for a simple pulse shape like ``amp * cos(f * t)``, we know that
+    pulse amplitude is valid as long as ``amp`` remains less than magnitude 1.0.
+    So ``abs(amp) > 1`` could be passed as :attr:`SymbolicPulse.eval_conditions` to skip
+    doing a full waveform evaluation for amplitude validation.
     This expression is provided through the constructor. If this is not provided,
-    waveform is generated everytime when the :meth:`validate_parameters` is called.
+    the waveform is generated everytime when :meth:`.validate_parameters` is called.
 
 
     .. rubric:: Examples
