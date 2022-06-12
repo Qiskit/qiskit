@@ -258,7 +258,7 @@ class TestInverseCancellation(QiskitTestCase):
         self.assertIn("p", gates_after)
         self.assertEqual(gates_after["p"] % 2, 1)
 
-    def test_cphases_do_not_wrongly_cancel(self):
+    def test_cx_do_not_wrongly_cancel(self):
         """Test that CX(0,1) and CX(1, 0) do not cancel out, when (CX, CX) is passed
         as an inverse pair."""
         qc = QuantumCircuit(2, 0)
