@@ -615,7 +615,7 @@ class _PulseBuilder:
         """
         self._backend_ctx_token = BUILDER_CONTEXTVAR.set(self)
         output = self._context_stack[0]
-        output._name = self._name or output.name
+        output.name = self._name or output.name
 
         return output
 
@@ -826,7 +826,7 @@ class _PulseBuilder:
                 prefix = hex(hash(tuple(local_assignment.items())))
                 sub_name = f"{sub_name}_{prefix}"
             self.append_reference(reference_key=sub_name, channels=sub_channels)
-            self._context_stack[-1].assign_reference(sub_name, subroutine, inplace=True)
+            self._context_stack[-1].assign_references({sub_name: subroutine}, inplace=True)
         else:
             # If subroutine is schedule, use Call instruction.
             call_instruction = instructions.Call(subroutine, local_assignment, sub_name)

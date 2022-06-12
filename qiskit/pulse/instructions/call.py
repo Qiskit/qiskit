@@ -12,12 +12,15 @@
 
 """Call instruction that represents calling a schedule as a subroutine."""
 
-from typing import Optional, Union, Dict, Tuple, Sequence, Set
+from typing import Optional, Union, Dict, Tuple, Sequence, Set, TYPE_CHECKING
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions import instruction
+
+if TYPE_CHECKING:
+    from qiskit.pulse.schedule import Schedule
 
 
 class Call(instruction.Instruction):
@@ -32,7 +35,7 @@ class Call(instruction.Instruction):
 
     def __init__(
         self,
-        subroutine,
+        subroutine: "Schedule",
         value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None,
         name: Optional[str] = None,
     ):
@@ -41,7 +44,7 @@ class Call(instruction.Instruction):
         .. note:: Inline subroutine is mutable. This requires special care for modification.
 
         Args:
-            subroutine (Union[Schedule, ScheduleBlock]): A program subroutine to be referred to.
+            subroutine A program subroutine to be referred to.
             value_dict: Mapping of parameter object to assigned value.
             name: Unique ID of this subroutine. If not provided, this is generated based on
                 the subroutine name.
@@ -49,9 +52,9 @@ class Call(instruction.Instruction):
         Raises:
             PulseError: If subroutine is not valid data format.
         """
-        from qiskit.pulse.schedule import ScheduleBlock, Schedule
+        from qiskit.pulse.schedule import Schedule
 
-        if not isinstance(subroutine, (ScheduleBlock, Schedule)):
+        if not isinstance(subroutine, Schedule):
             raise PulseError(f"Subroutine type {subroutine.__class__.__name__} cannot be called.")
 
         value_dict = value_dict or {}
@@ -151,7 +154,7 @@ class Call(instruction.Instruction):
         """A helper function to generate hash of parameters."""
         return hash(tuple(self.arguments.items()))
 
-    def __eq__(self, other: "Instruction") -> bool:
+    def __eq__(self, other: instruction.Instruction) -> bool:
         """Check if this instruction is equal to the `other` instruction.
 
         Instructions are equal if they share the same type, operands, and channels.
@@ -222,12 +225,10 @@ class Reference(instruction.Instruction):
         return tuple(self.operands[1:])
 
     def __repr__(self) -> str:
-        data_repr = []
-        data_repr.append(f"ref_key={self.ref_key}")
-        data_repr.append("channels=" + ", ".join(map(str, self.channels)))
-        return f"{self.__class__.__name__}({', '.join(data_repr)})"
+        channels_repr = ", ".join(map(lambda c: c.name, self.channels))
+        return f"{self.__class__.__name__}(ref_key={self.ref_key}, channels={channels_repr})"
 
-    def __eq__(self, other: "Instruction") -> bool:
+    def __eq__(self, other: instruction.Instruction) -> bool:
         if not isinstance(other, self.__class__):
             return False
         if self.ref_key != other.ref_key:

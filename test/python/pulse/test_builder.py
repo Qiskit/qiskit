@@ -26,7 +26,6 @@ from qiskit.test.mock.utils.configurable_backend import (
     ConfigurableFakeBackend as ConfigurableBackend,
 )
 from qiskit.pulse import library, instructions
-from qiskit.pulse.reference_manager import SubroutineSpec
 
 
 class TestBuilder(QiskitTestCase):
@@ -1327,32 +1326,13 @@ class TestSubroutineWithCXGate(QiskitTestCase):
         self.assertSetEqual(scoped_params, {"lazy_ecr.cr", "lazy_ecr.ctrl"})
 
         # Assign CR and XP schedule to the empty reference
-        sched.assign_reference(
-            ref_key="cr",
-            schedule=self.cr_sched,
-        )
-        sched.assign_reference(
-            ref_key="xp",
-            schedule=self.xp_sched,
-        )
+        sched.assign_references({"cr": self.cr_sched})
+        sched.assign_references({"xp": self.xp_sched})
 
         # Check updated references
-        assigned_refs = list(sched.references)
-        ref_specs = [
-            SubroutineSpec(
-                scope="lazy_ecr",
-                ref_key="cr",
-                channels=(pulse.ControlChannel(self.cr_ch),),
-                schedule=self.cr_sched,
-            ),
-            SubroutineSpec(
-                scope="lazy_ecr",
-                ref_key="xp",
-                channels=(pulse.DriveChannel(self.control_ch),),
-                schedule=self.xp_sched,
-            ),
-        ]
-        self.assertListEqual(assigned_refs, ref_specs)
+        assigned_refs = sched.references
+        self.assertEqual(assigned_refs.get("cr"), self.cr_sched)
+        self.assertEqual(assigned_refs.get("xp"), self.xp_sched)
 
         # Parameter added from subroutines
         scoped_params = set(p.name for p in sched.scoped_parameters)
@@ -1389,16 +1369,12 @@ class TestSubroutineWithCXGate(QiskitTestCase):
         with pulse.build(name="main") as sched3:
             pulse.call(sched2)
 
-        refs = list(sched3.references)
+        refs = sched3.references
 
         # sched1 doesn't apper in the main scope
         self.assertEqual(len(refs), 1)
 
-        # channel parameter is exposed through reference instruction
-        params = set(p.name for p in sched3.parameters)
-        self.assertSetEqual(params, {"ctrl"})
-
-        # all parameters are exposed with scope
+        # all parameters are exposed
         scoped_params = set(p.name for p in sched3.scoped_parameters)
         ref_params = {
             "main.child.grand_child.xp.dur",
@@ -1420,11 +1396,11 @@ class TestSubroutineWithCXGate(QiskitTestCase):
         sched3 = pulse.ScheduleBlock(name="main")
         sched3.append(sched2)
 
-        refs = list(sched3.references)
+        refs = sched3.references
 
         # main directly refers to grand_child. this is not 'called'.
         self.assertEqual(len(refs), 1)
-        self.assertEqual(refs[0].schedule, self.xp_sched)
+        self.assertEqual(refs["xp"], self.xp_sched)
 
         # all parameters are now main scope
         scoped_params = set(p.name for p in sched3.scoped_parameters)
@@ -1437,11 +1413,10 @@ class TestSubroutineWithCXGate(QiskitTestCase):
             with pulse.align_right():  # another block is created here, but this is not reference
                 pulse.call(self.xp_sched)
 
-        refs = list(main_prog.references)
+        refs = main_prog.references
 
-        # main directly refers to grand_child. this is not 'called'.
         self.assertEqual(len(refs), 1)
-        self.assertEqual(refs[0].schedule, self.xp_sched)
+        self.assertEqual(refs["xp"], self.xp_sched)
 
         # all parameters are now main scope
         scoped_params = set(p.name for p in main_prog.scoped_parameters)

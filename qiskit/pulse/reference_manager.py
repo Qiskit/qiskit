@@ -12,174 +12,165 @@
 
 """Management of scehdule block reference."""
 
-from typing import TYPE_CHECKING, Iterator, Sequence, Set, Tuple
-from dataclasses import dataclass
+from collections.abc import MutableMapping, ItemsView, KeysView, ValuesView
+from typing import TYPE_CHECKING, Sequence, Any
 
-from qiskit.pulse.utils import scoping_parameter
 from qiskit.pulse.exceptions import PulseError
 
 if TYPE_CHECKING:
-    from qiskit.circuit.parameter import Parameter
     from .schedule import ScheduleBlock
     from .channels import Channel
 
 
-@dataclass(frozen=True)
-class SubroutineSpec:
-    """Description of subroutine."""
+_NOT_ASSIGNED = None
 
-    scope: str
-    ref_key: str
-    channels: Tuple["Channel", ...]
-    schedule: "ScheduleBlock"
+
+class ReferenceManager(MutableMapping):
+    """Helper class to manage reference to subroutine.
+
+    This is a dict-like object manages mapping to program and channels both
+    keyed on the subroutine name. New entry should be created with
+    :meth:`define_reference` method otherwise it raises an error when
+    it is directly created through ``__setitem__`` as in a standard python dictionary.
+
+    This class is intended to be manipulated by :class:`ScheduleBlock` instance,
+    but user can still access this object through :attr:`ScheduleBlock.references`.
+
+    This class implements pretty printing of reference information so that
+    user can easily understand the structure of the program.
+
+    Dictionary methods :meth:`item` and :meth:`values` are based on one for the program mapping
+    and thus channel information is dropped. Note that channels information is
+    available through the assigned schedule block, i.e. :attr:`ScheduleBlock.channels`.
+    Channels stored in the reference are used to validate a program assigned with ``__setitem__``.
+
+    This object is intended to be QPY-serializable.
+    """
+
+    def __init__(self, scope: str):
+        """Create new reference manager."""
+        self._scope = scope
+        self._keys = []
+        self._programs = []
+        self._channels = []
 
     @property
-    def full_name(self) -> str:
-        """Return full name of the subroutine."""
-        return f"{self.scope}.{self.ref_key}"
+    def scope(self) -> str:
+        """Returns the target scope of this manager."""
+        return self._scope
 
-
-class ReferenceManager:
-    """Helper class to manage reference to subroutine."""
-
-    def __init__(self):
-        """Create new reference manager."""
-        self._program_map = {}
-        self._channel_map = {}
-
-    def __contains__(self, item):
-        if item in self._program_map:
-            return True
-        return False
-
-    def __len__(self):
-        return len(self._program_map)
-
-    def add_key(
-        self,
-        ref_key: str,
-        channels: Sequence["Channel"],
-        scope: str,
-    ):
-        """Add new reference instruction.
+    def define_reference(self, key: str, channels: Sequence["Channel"]):
+        """Create new reference entry to this mapping.
 
         Args:
-            ref_key: Reference key to the subroutine.
-            channels: Channels associated with the subroutine.
-            scope: Scope that subroutine exist.
+            key: Key string of the reference.
+            channels: List of pulse channels associated with the subroutine.
         """
-        scoped_key = f"{scope}.{ref_key}"
-        if not scoped_key in self:
-            self._program_map[scoped_key] = None
-            self._channel_map[scoped_key] = channels
+        if key not in self._keys:
+            self._keys.append(key)
+            self._channels.append(channels)
+            self._programs.append(_NOT_ASSIGNED)
 
-    def get_subroutine_with_key(
-        self,
-        ref_key: str,
-        scope: str,
-    ) -> "ScheduleBlock":
-        """Get subroutine of corresponding reference instruction.
+    # pylint: disable=arguments-differ
+    def update(self, other: "ReferenceManager"):
+        if not isinstance(other, ReferenceManager):
+            raise TypeError(
+                f"Invalid object type for updating the ReferenceManager: '{other.__class__.__name__}'."
+            )
 
-        Args:
-            ref_key: Reference key to the subroutine.
-            scope: Scope that subroutine exist.
+        duplicated = set(self._keys) & set(other._keys)
 
-        Returns:
-            Assigned subtourine.
+        if duplicated:
+            raise PulseError(
+                f"Reference key {duplicated} in the reference '{other._scope}' conflicts with "
+                f"the current reference '{self._scope}'. "
+                f"Please call '{other._scope}' as a subroutine."
+            )
 
-        Raises:
-            PulseError: When subroutine of corresponding reference key is not found.
-        """
-        scoped_key = f"{scope}.{ref_key}"
-        if scoped_key not in self:
-            raise PulseError(f"Reference key {ref_key} does not exist in the scope {scope}.")
-        return self._program_map[scoped_key]
+        self._keys += other._keys
+        self._channels += other._channels
+        self._programs += other._programs
 
-    def assign_program_with_key(
-        self,
-        ref_key: str,
-        scope: str,
-        program: "ScheduleBlock",
-    ):
-        """Assign subroutine to reference instruction.
+    def get(self, key: str, default: Any = None) -> "ScheduleBlock":
+        try:
+            return self._programs[self._keys.index(key)]
+        except ValueError:
+            return default
 
-        Args:
-            ref_key: Unique reference key of the subroutine.
-            scope: Scope that subroutine exist.
-            program: Schedule to assign.
+    def items(self) -> ItemsView:
+        return ItemsView(dict(zip(self._keys, self._programs)))
 
-        Raises:
-            When subroutine of corresponding reference key is not found.
-            PulseError: When channels don't match with the reference instruction.
-            PulseError: When different subroutine is already assigned.
-        """
-        scoped_key = f"{scope}.{ref_key}"
-        if scoped_key not in self:
-            raise PulseError(f"Reference key {ref_key} does not exist in the scope {scope}.")
+    def keys(self) -> KeysView:
+        return KeysView(dict(zip(self._keys, self._programs)))
+
+    def values(self) -> ValuesView:
+        return ValuesView(dict(zip(self._keys, self._programs)))
+
+    def clear(self):
+        self._keys.clear()
+        self._programs.clear()
+        self._channels.clear()
+
+    def __setitem__(self, key: str, value: "ScheduleBlock"):
+        if key not in self._keys:
+            raise PulseError(f"Reference key {key} is not defined in the scope '{self._scope}'.")
+        index = self._keys.index(key)
 
         # Check channel equality
         # Use channel-name based equality since channel index can be parametrized.
-        # UUID based equality causes problem when channel indeces are separately created.
-        sub_channels = set(c.name for c in program.channels)
-        ref_channels = set(c.name for c in self._channel_map[scoped_key])
+        # UUID based equality causes problem when channel indices are separately created.
+        sub_channels = set(c.name for c in value.channels)
+        ref_channels = set(c.name for c in self._channels[index])
         if set(sub_channels) != set(ref_channels):
             raise PulseError(
                 f"Channels of assigned program {sub_channels} are not identical to the "
                 f"channels associated with the reference instruction {ref_channels}."
             )
-        if self._program_map[scoped_key] is not None:
-            if self._program_map[scoped_key] != program:
-                raise PulseError(
-                    f"Subroutine {ref_key} has been already assigned. "
-                    "Newly assigned schedule has conflict with the previous assignment."
-                )
-        else:
-            self._program_map[scoped_key] = program
-
-    @property
-    def parameters(self) -> Set["Parameter"]:
-        """Returns parameters defined in the all subroutines."""
-        sub_params = set()
-        for subroutine in self._program_map.values():
-            if subroutine is not None:
-                sub_params = sub_params | subroutine.parameters
-        return sub_params
-
-    def scoped_parameters(self, current_scope: str) -> Set["Parameter"]:
-        """Returns scoped parameters defined in the all subroutines.
-
-        Args:
-            current_scope: Name of current program scope.
-
-        Returns:
-            Set of parameter objects with updated name, while keeping UUID.
-        """
-        sub_params = set()
-        for scoped_keys, subroutine in self._program_map.items():
-            _, ref_key = scoped_keys.split(".")
-            if subroutine is None:
-                continue
-            full_scoped_key = f"{current_scope}.{ref_key}"
-            scoped_params = set()
-            for param in subroutine.parameters:
-                scoped_params.add(scoping_parameter(param, full_scoped_key))
-            sub_params = sub_params | scoped_params
-            if subroutine.is_referenced():
-                nested_params = subroutine._references.scoped_parameters(full_scoped_key)
-                sub_params = sub_params | nested_params
-        return sub_params
-
-    def get_reference_specs(self) -> Iterator[SubroutineSpec]:
-        """Get specs of the all referened subroutines.
-
-        Yields:
-            Dataclass representing the spec of the subroutine.
-        """
-        for scoped_key in self._program_map:
-            scope, ref_key = scoped_key.split(".")
-            yield SubroutineSpec(
-                scope=scope,
-                ref_key=ref_key,
-                channels=self._channel_map[scoped_key],
-                schedule=self._program_map[scoped_key],
+        if self._programs[index] is not None and self._programs[index] != value:
+            raise PulseError(
+                f"Subroutine '{key}' has been already assigned. "
+                "Newly assigned schedule has conflict with the previous assignment."
             )
+        self._programs[index] = value
+
+    def __getitem__(self, key: str):
+        if key not in self._keys:
+            raise PulseError(f"Reference key '{key}' does not exist in the scope {self._scope}.")
+        index = self._keys.index(key)
+
+        return self._programs[index]
+
+    def __delitem__(self, key: str):
+        if key in self:
+            index = self._keys.index(key)
+            del self._keys[index]
+            del self._programs[index]
+            del self._channels[index]
+
+    def __contains__(self, key: str):
+        if key in self._keys:
+            return True
+        return False
+
+    def __iter__(self):
+        return self._keys.__iter__()
+
+    def __len__(self):
+        return len(self._keys)
+
+    def __repr__(self):
+        keys = ", ".join(self._keys)
+        return f"{self.__class__.__name__}(keys=[{keys}])"
+
+    def __str__(self):
+        out = f"{self.__class__.__name__}"
+        out += f"\n  - current scope: {repr(self._scope)}"
+        out += f"\n  - # of references: {len(self)}"
+        out += "\n  - mappings:"
+        for index, key in enumerate(self.keys()):
+            prog_repr = repr(self._programs[index])
+            if len(prog_repr) > 50:
+                prog_repr = prog_repr[:50] + "..."
+            chan_repr = ", ".join(map(lambda c: c.name, self._channels[index]))
+            out += f"\n    * {repr(key)}: {prog_repr}, channels=[{chan_repr}]"
+        return out
