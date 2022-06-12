@@ -99,6 +99,9 @@ def _get_expression_args(expr: sym.Expr, params: Dict[str, float]) -> List[float
 
     Returns:
         Arguments passed to the lambdified expression.
+
+    Raises:
+        PulseError: When a free symbol value is not defined in the pulse instance parameters.
     """
     args = []
     for symbol in sorted(expr.free_symbols, key=lambda s: s.name):
@@ -109,7 +112,13 @@ def _get_expression_args(expr: sym.Expr, params: Dict[str, float]) -> List[float
             times = np.arange(0, params["duration"]) + 1 / 2
             args.insert(0, times)
             continue
-        args.append(params[symbol.name])
+        try:
+            args.append(params[symbol.name])
+        except KeyError:
+            raise PulseError(
+                f"Pulse parameter '{symbol.name}' is not defined for this instance. "
+                "Please check your waveform expression is correct."
+            )
     return args
 
 
