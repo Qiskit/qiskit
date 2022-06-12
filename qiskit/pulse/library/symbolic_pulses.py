@@ -250,13 +250,13 @@ class SymbolicPulse(Pulse):
     evaluated along with above constraints when you set ``limit_amplitude = True`` in the constructor.
     To evaluate maximum amplitude of the waveform, we need to call :meth:`get_waveform`.
     However, this introduces a significant overhead in the validation, and this cannot be ignored
-    when you repeatedly instantiate pulse instances.
-    :attr:`SymbolicPulse.eval_conditions` provides a condition to run this waveform validation,
-    and the waveform is not generated as long as this condition returns ``False``,
+    when you repeatedly instantiate symbolic pulse instances.
+    :attr:`SymbolicPulse.valid_amp_conditions` provides a condition to skip this waveform validation,
+    and the waveform is not generated as long as this condition returns ``True``,
     so that `healthy` symbolic pulses are created very quick.
     For example, for a simple pulse shape like ``amp * cos(f * t)``, we know that
     pulse amplitude is valid as long as ``amp`` remains less than magnitude 1.0.
-    So ``abs(amp) > 1`` could be passed as :attr:`SymbolicPulse.eval_conditions` to skip
+    So ``abs(amp) < 1`` could be passed as :attr:`SymbolicPulse.valid_amp_conditions` to skip
     doing a full waveform evaluation for amplitude validation.
     This expression is provided through the constructor. If this is not provided,
     the waveform is generated everytime when :meth:`.validate_parameters` is called.
@@ -342,13 +342,13 @@ class SymbolicPulse(Pulse):
         "_params",
         "envelope",
         "constraints",
-        "eval_conditions",
+        "valid_amp_conditions",
     )
 
     # Lambdify caches keyed on sympy expressions. Returns the corresponding callable.
     _envelope_lam = LambdifiedExpression("envelope")
     _constraints_lam = LambdifiedExpression("constraints")
-    _eval_conditions_lam = LambdifiedExpression("eval_conditions")
+    _valid_amp_conditions_lam = LambdifiedExpression("valid_amp_conditions")
 
     def __init__(
         self,
@@ -359,7 +359,7 @@ class SymbolicPulse(Pulse):
         limit_amplitude: Optional[bool] = None,
         envelope: Optional[sym.Expr] = None,
         constraints: Optional[sym.Expr] = None,
-        eval_conditions: Optional[sym.Expr] = None,
+        valid_amp_conditions: Optional[sym.Expr] = None,
     ):
         """Create a parametric pulse.
 
@@ -372,11 +372,11 @@ class SymbolicPulse(Pulse):
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
             envelope: Pulse envelope expression.
             constraints: Pulse parameter constraint expression.
-            eval_conditions: Extra conditions to evaluate a full waveform to check the
-                amplitude limit. If this condition is met, then the validation routine
-                will investigate the full waveform and raise an error when the amplitude norm
+            valid_amp_conditions: Extra conditions to skip a full-waveform check for the
+                amplitude limit. If this condition is not met, then the validation routine
+                will investigate the full-waveform and raise an error when the amplitude norm
                 of any data point exceeds 1.0. If not provided, the validation always
-                creates a full waveform.
+                creates a full-waveform.
 
         Raises:
             PulseError: When not all parameters are listed in the attribute :attr:`PARAM_DEF`.
@@ -394,7 +394,7 @@ class SymbolicPulse(Pulse):
 
         self.envelope = envelope
         self.constraints = constraints
-        self.eval_conditions = eval_conditions
+        self.valid_amp_conditions = valid_amp_conditions
 
     def __getattr__(self, item):
         # Get pulse parameters with attribute-like access.
@@ -454,9 +454,9 @@ class SymbolicPulse(Pulse):
                 )
 
         if self.limit_amplitude:
-            if self.eval_conditions is not None:
-                fargs = _get_expression_args(self.eval_conditions, self.parameters)
-                check_full_waveform = bool(self._eval_conditions_lam(*fargs))
+            if self.valid_amp_conditions is not None:
+                fargs = _get_expression_args(self.valid_amp_conditions, self.parameters)
+                check_full_waveform = not bool(self._valid_amp_conditions_lam(*fargs))
             else:
                 check_full_waveform = True
 
@@ -549,7 +549,7 @@ class Gaussian(SymbolicPulse):
 
         envelope_expr = _amp * _lifted_gaussian(_t, _center, _duration + 1, _sigma)
         consts_expr = _sigma > 0
-        eval_conditions_expr = sym.Abs(_amp) > 1.0
+        valid_amp_conditions_expr = sym.Abs(_amp) < 1.0
 
         super().__init__(
             pulse_type=self.__class__.__name__,
@@ -559,7 +559,7 @@ class Gaussian(SymbolicPulse):
             limit_amplitude=limit_amplitude,
             envelope=envelope_expr,
             constraints=consts_expr,
-            eval_conditions=eval_conditions_expr,
+            valid_amp_conditions=valid_amp_conditions_expr,
         )
         self.validate_parameters()
 
@@ -661,7 +661,7 @@ class GaussianSquare(SymbolicPulse):
             (_gaussian_ledge, _t <= _sq_t0), (_gaussian_redge, _t >= _sq_t1), (1, True)
         )
         consts_expr = sym.And(_sigma > 0, _width >= 0, _duration >= _width)
-        eval_conditions_expr = sym.Abs(_amp) > 1.0
+        valid_amp_conditions_expr = sym.Abs(_amp) < 1.0
 
         super().__init__(
             pulse_type=self.__class__.__name__,
@@ -671,7 +671,7 @@ class GaussianSquare(SymbolicPulse):
             limit_amplitude=limit_amplitude,
             envelope=envelope_expr,
             constraints=consts_expr,
-            eval_conditions=eval_conditions_expr,
+            valid_amp_conditions=valid_amp_conditions_expr,
         )
         self.validate_parameters()
 
@@ -755,7 +755,7 @@ class Drag(SymbolicPulse):
         envelope_expr = _amp * (_gauss + sym.I * _beta * _deriv)
 
         consts_expr = _sigma > 0
-        eval_conditions_expr = sym.Or(sym.Abs(_amp) > 1.0, sym.Abs(_beta) > _sigma)
+        valid_amp_conditions_expr = sym.And(sym.Abs(_amp) < 1.0, sym.Abs(_beta) < _sigma)
 
         super().__init__(
             pulse_type=self.__class__.__name__,
@@ -765,7 +765,7 @@ class Drag(SymbolicPulse):
             limit_amplitude=limit_amplitude,
             envelope=envelope_expr,
             constraints=consts_expr,
-            eval_conditions=eval_conditions_expr,
+            valid_amp_conditions=valid_amp_conditions_expr,
         )
         self.validate_parameters()
 
@@ -808,7 +808,7 @@ class Constant(SymbolicPulse):
         #
         # See: https://github.com/sympy/sympy/issues/5642
         envelope_expr = _amp * sym.Piecewise((1, sym.And(_t >= 0, _t <= _duration)), (0, True))
-        eval_conditions_expr = sym.Abs(_amp) > 1.0
+        valid_amp_conditions_expr = sym.Abs(_amp) < 1.0
 
         super().__init__(
             pulse_type=self.__class__.__name__,
@@ -817,6 +817,6 @@ class Constant(SymbolicPulse):
             name=name,
             limit_amplitude=limit_amplitude,
             envelope=envelope_expr,
-            eval_conditions=eval_conditions_expr,
+            valid_amp_conditions=valid_amp_conditions_expr,
         )
         self.validate_parameters()
