@@ -1427,6 +1427,7 @@ class Layer:
                         reg, _, reg_index = get_bit_reg_index(self._circuit, bit)
                         cond_bits.append(reg_index)
                         return self.set_cond_bullets(label, val_bits, clbits)
+                return []
             else:
                 for i, bit in enumerate(self.clbits):
                     if isinstance(bit, ClassicalRegister):
@@ -1447,6 +1448,9 @@ class Layer:
             val_bits (list(int)): A list of bit values
             clbits (list[Clbit]): The list of classical bits on
                 which the instruction is conditioned.
+
+        Returns:
+            List: list of tuples of open or closed bullets for condition bits
         """
         current_cons = []
         for i, bit in enumerate(clbits):
