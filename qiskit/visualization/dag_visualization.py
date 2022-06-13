@@ -19,10 +19,12 @@ from retworkx.visualization import graphviz_draw
 
 from qiskit.dagcircuit.dagnode import DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.circuit import Qubit
+from qiskit.utils import optionals as _optionals
 from qiskit.exceptions import InvalidFileError
 from .exceptions import VisualizationError
 
 
+@_optionals.HAS_GRAPHVIZ.require_in_call
 def dag_drawer(dag, scale=0.7, filename=None, style="color"):
     """Plot the directed acyclic graph (dag) to represent operation dependencies
     in a quantum circuit.
