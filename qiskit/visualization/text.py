@@ -677,6 +677,7 @@ class TextDrawing:
         self.cregbundle = cregbundle
         self.global_phase = circuit.global_phase
         self.plotbarriers = plotbarriers
+        self.reverse_bits = reverse_bits
         self.line_length = line_length
         if vertical_compression not in ["high", "medium", "low"]:
             raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
@@ -1394,6 +1395,9 @@ class Layer:
         Args:
             condition (list[Union(Clbit, ClassicalRegister), int]): The condition
             top_connect (char): The char to connect the box on the top.
+
+        Returns:
+            List: list of tuples of connections between clbits for multi-bit conditions
         """
         label, val_bits = get_condition_label_val(condition, self._circuit, self.cregbundle)
         if isinstance(condition[0], ClassicalRegister):
@@ -1505,7 +1509,7 @@ class Layer:
                 continue
 
             for index, affected_bit in enumerate(affected_bits):
-                if isinstance(affected_bit, ClBullet) or isinstance(affected_bit, ClOpenBullet):
+                if isinstance(affected_bit, (ClBullet, ClOpenBullet)):
                     wire_char = "║"
                     if index == 0 and len(affected_bits) > 1:
                         affected_bit.connect(wire_char, ["bot"])

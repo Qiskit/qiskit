@@ -166,6 +166,7 @@ class MatplotlibDrawer:
         self._subfont_factor = self._style["sfs"] * def_font_ratio / self._style["fs"]
 
         self._plot_barriers = plot_barriers
+        self._reverse_bits = reverse_bits
         if with_layout:
             self._layout = self._circuit._layout
         else:

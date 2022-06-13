@@ -172,6 +172,7 @@ class QCircuitImage:
         self._has_target = False
 
         self._plot_barriers = plot_barriers
+        self._reverse_bits = reverse_bits
         if with_layout:
             self._layout = self._circuit._layout
         else:
@@ -648,7 +649,7 @@ class QCircuitImage:
             cond_wires = []
             cond_bits = []
             for wire in self._wire_map:
-                reg, bit_index, reg_index = get_bit_reg_index(self._circuit, wire)
+                reg, _, reg_index = get_bit_reg_index(self._circuit, wire)
                 if reg == cond_reg:
                     cond_bits.append(reg_index)
                     cond_wires.append(self._wire_map[wire])

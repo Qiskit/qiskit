@@ -380,8 +380,12 @@ def _get_layered_instructions(
             the circuit should be justified.
         idle_wires (bool): Include idle wires. Default is True.
         wire_order (list): A list of ints that modifies the order of the bits
+
     Returns:
         Tuple(list,list,list): To be consumed by the visualizer directly.
+
+    Raises:
+        VisualizationError: if both reverse_bits and wire_order are entered.
     """
     if justify:
         justify = justify.lower()

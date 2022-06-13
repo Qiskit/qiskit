@@ -195,7 +195,7 @@ def circuit_drawer(
             "The wire_order list must be the same "
             "length as the sum of the number of qubits and clbits in the circuit."
         )
-    elif wire_order is not None and set(wire_order) != set(
+    if wire_order is not None and set(wire_order) != set(
         range(circuit.num_qubits + circuit.num_clbits)
     ):
         raise VisualizationError(
