@@ -19,8 +19,6 @@ from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
 
-from qiskit.extensions import Initialize
-
 from qiskit.transpiler.passes import Unroller
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import UnrollCustomDefinitions
@@ -46,7 +44,6 @@ from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import Size
-from qiskit.transpiler.passes.basis.decompose import Decompose
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import ApplyLayout
@@ -280,7 +277,6 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _direction = [GateDirection(coupling_map, target)]
 
     # 8. Remove zero-state reset
-    _decompose_init = Decompose(Initialize)
     _reset = RemoveResetInZeroState()
 
     # 9. Merge 1q rotations and cancel CNOT gates iteratively until no more change in depth
@@ -349,7 +345,6 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     ):
         pm1.append(_direction_check)
         pm1.append(_direction, condition=_direction_condition)
-    pm1.append(_decompose_init)
     pm1.append(_reset)
     pm1.append(_depth_check + _size_check)
     pm1.append(_opt + _unroll + _depth_check + _size_check, do_while=_opt_control)

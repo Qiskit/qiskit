@@ -20,8 +20,6 @@ from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
 
-from qiskit.extensions import Initialize
-
 from qiskit.transpiler.passes import Unroller
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import UnrollCustomDefinitions
@@ -45,7 +43,6 @@ from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import Size
-from qiskit.transpiler.passes.basis.decompose import Decompose
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CommutativeCancellation
@@ -265,7 +262,6 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _direction = [GateDirection(coupling_map, target)]
 
     # 7. Remove zero-state reset
-    _decompose_init = Decompose(Initialize)
     _reset = RemoveResetInZeroState()
 
     # 8. 1q rotation merge and commutative cancellation iteratively until no more change in depth
@@ -336,7 +332,6 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     ):
         pm2.append(_direction_check)
         pm2.append(_direction, condition=_direction_condition)
-    pm2.append(_decompose_init)
     pm2.append(_reset)
 
     pm2.append(_depth_check + _size_check)

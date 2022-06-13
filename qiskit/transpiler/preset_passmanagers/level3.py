@@ -21,8 +21,6 @@ from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
 
-from qiskit.extensions import Initialize
-
 from qiskit.transpiler.passes import Unroller
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import UnrollCustomDefinitions
@@ -46,7 +44,6 @@ from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import Size
-from qiskit.transpiler.passes.basis.decompose import Decompose
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CommutativeCancellation
@@ -270,7 +267,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _opt_control(property_set):
         return (not property_set["depth_fixed_point"]) or (not property_set["size_fixed_point"])
 
-    _decompose_init = [Decompose(Initialize)]
     _reset = [RemoveResetInZeroState()]
 
     _meas = [OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
@@ -294,7 +290,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     # Build pass manager
     pm3 = PassManager()
     pm3.append(_unroll3q)
-    pm3.append(_decompose_init)
     pm3.append(_reset + _meas)
     if coupling_map or initial_layout:
         pm3.append(_given_layout)
@@ -348,7 +343,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     ):
         pm3.append(_direction_check)
         pm3.append(_direction, condition=_direction_condition)
-        pm3.append(_decompose_init)
         pm3.append(_reset)
         pm3.append(_depth_check + _size_check)
         # For transpiling to a target we need to run GateDirection in the
@@ -362,7 +356,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         else:
             pm3.append(_opt + _unroll + _depth_check + _size_check, do_while=_opt_control)
     else:
-        pm3.append(_decompose_init)
         pm3.append(_reset)
         pm3.append(_depth_check + _size_check)
         pm3.append(_opt + _unroll + _depth_check + _size_check, do_while=_opt_control)
