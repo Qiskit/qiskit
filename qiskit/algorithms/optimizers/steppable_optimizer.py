@@ -24,7 +24,7 @@ CALLBACK = Callable[[int, np.ndarray, float, float], None]
 @dataclass
 class AskObject(ABC):
     """
-    Base class for return type of method :meth:`~qiskit.algorithms.optimizers.SteppableOptimizer.ask`.
+    Base class for return type of :meth:`~qiskit.algorithms.optimizers.SteppableOptimizer.ask`.
     Args:
         x_fun: Point or list of points where the function needs to be evaluated to compute the
             next state of the optimizer.
@@ -39,7 +39,7 @@ class AskObject(ABC):
 @dataclass
 class TellObject(ABC):
     """
-    Base class for argument type of methowouldd SteppableOptimizer.tell().
+    Base class for argument type of :meth:`~qiskit.algorithms.optimizers.SteppableOptimizer.tell`.
     Args:
         eval_fun: Image of the function at
             :attr:`~qiskit.algorithms.optimizers.SteppableOptimizer.Ask_Object.x_fun`.

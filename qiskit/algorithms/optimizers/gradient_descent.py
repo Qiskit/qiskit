@@ -31,7 +31,7 @@ class GradientDescentState(OptimizerState):
     """State of the gradient descent optimizer."""
 
     eta: Iterator
-    stepsize: float
+    stepsize: Optional[float]
 
 
 class GradientDescent(SteppableOptimizer):
@@ -93,11 +93,23 @@ class GradientDescent(SteppableOptimizer):
     def __init__(
         self,
         maxiter: int = 1000,
-        callback: Optional[CALLBACK] = None,
         learning_rate: Union[float, Callable[[], Iterator]] = 0.01,
         tol: float = 1e-7,
+        callback: Optional[CALLBACK] = None,
         perturbation: Optional[float] = None,
     ) -> None:
+        r"""
+        Args:
+            maxiter: The maximum number of iterations.
+            learning_rate: A constant or generator yielding learning rates for the parameter
+                updates. See the docstring for an example.
+            tol: If the norm of the parameter update is smaller than this threshold, the
+                optimizer is converged.
+            perturbation: If no gradient is passed to ``GradientDescent.optimize`` the gradient is
+                approximated with a symmetric finite difference scheme with ``perturbation``
+                perturbation in both directions (defaults to 1e-2 if required).
+                Ignored if a gradient callable is passed to ``GradientDescent.optimize``.
+        """
         super().__init__(maxiter=maxiter, callback=callback)
         self._state: GradientDescentState = None
         self.learning_rate = learning_rate
@@ -159,7 +171,7 @@ class GradientDescent(SteppableOptimizer):
                 x_center=ask_object.x_fun,
                 f=self._state.fun,
                 epsilon=self.perturbation,
-                max_evals_grouped=1,  # Here there was some extra logic I am just neglecting for now.
+                max_evals_grouped=self._max_evals_grouped,
             )
             self._state.nfev += 1 + len(ask_object.x_jac)
         else:
@@ -204,7 +216,7 @@ class GradientDescent(SteppableOptimizer):
             nfev=0,
             njev=0,
             eta=eta,
-            stepsize=np.inf,
+            stepsize=None,
         )
 
     def continue_condition(self) -> bool:
@@ -215,8 +227,7 @@ class GradientDescent(SteppableOptimizer):
         Returns:
             True if the optimization process should continue, False otherwise.
         """
-
-        cont_condition = self._state.stepsize > self.tol
+        cont_condition = self._state is None or self._state.stepsize > self.tol
         cont_condition &= super().continue_condition()
         return cont_condition
 
