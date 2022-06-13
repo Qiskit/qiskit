@@ -1192,7 +1192,9 @@ class TextDrawing:
             layer = Layer(self.qubits, self.clbits, self.cregbundle, self._circuit)
 
             for node in node_layer:
-                layer, current_cons, current_cons_cond, connection_label = self._node_to_gate(node, layer)
+                layer, current_cons, current_cons_cond, connection_label = self._node_to_gate(
+                    node, layer
+                )
 
                 layer.connections.append((connection_label, current_cons))
                 layer.connections.append((None, current_cons_cond))
@@ -1520,8 +1522,5 @@ class Layer:
             if label:
                 for affected_bit in affected_bits:
                     affected_bit.right_fill = len(label) + len(affected_bit.mid)
-                    if (
-                        isinstance(affected_bit, (Bullet, OpenBullet))
-                        and affected_bit.conditional
-                    ):
+                    if isinstance(affected_bit, (Bullet, OpenBullet)) and affected_bit.conditional:
                         affected_bit.left_fill = len(label) + len(affected_bit.mid)
