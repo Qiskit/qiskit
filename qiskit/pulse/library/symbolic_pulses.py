@@ -410,6 +410,13 @@ class SymbolicPulse(Pulse):
         if parameters is None:
             parameters = {}
 
+        # TODO remove this.
+        #  This is due to convention in IBM Quantum backends where "amp" is treated as a
+        #  special parameter that must be defined in the form [real, imaginary].
+        #  this check must be removed because Qiskit pulse should be backend agnostic.
+        if "amp" in parameters and not isinstance(parameters["amp"], ParameterExpression):
+            parameters["amp"] = complex(parameters["amp"])
+
         self._pulse_type = pulse_type
         self._params = parameters
 
@@ -581,10 +588,7 @@ class Gaussian(SymbolicPulse):
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
 
         """
-        parameters = {
-            "amp": amp if isinstance(amp, ParameterExpression) else complex(amp),
-            "sigma": sigma,
-        }
+        parameters = {"amp": amp, "sigma": sigma}
 
         # Prepare symbolic expressions
         _t, _duration, _amp, _sigma = sym.symbols("t, duration, amp, sigma")
@@ -684,11 +688,7 @@ class GaussianSquare(SymbolicPulse):
         if width is None and risefall_sigma_ratio is not None:
             width = duration - 2.0 * risefall_sigma_ratio * sigma
 
-        parameters = {
-            "amp": amp if isinstance(amp, ParameterExpression) else complex(amp),
-            "sigma": sigma,
-            "width": width,
-        }
+        parameters = {"amp": amp, "sigma": sigma, "width": width}
 
         # Prepare symbolic expressions
         _t, _duration, _amp, _sigma, _width = sym.symbols("t, duration, amp, sigma, width")
@@ -782,11 +782,7 @@ class Drag(SymbolicPulse):
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
         """
-        parameters = {
-            "amp": amp if isinstance(amp, ParameterExpression) else complex(amp),
-            "sigma": sigma,
-            "beta": beta,
-        }
+        parameters = {"amp": amp, "sigma": sigma, "beta": beta}
 
         # Prepare symbolic expressions
         _t, _duration, _amp, _sigma, _beta = sym.symbols("t, duration, amp, sigma, beta")
@@ -838,7 +834,7 @@ class Constant(SymbolicPulse):
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
         """
-        parameters = {"amp": amp if isinstance(amp, ParameterExpression) else complex(amp)}
+        parameters = {"amp": amp}
 
         # Prepare symbolic expressions
         _t, _amp, _duration = sym.symbols("t, amp, duration")
