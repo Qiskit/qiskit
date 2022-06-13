@@ -12,25 +12,20 @@
 
 """Test the RZXCalibrationBuilderNoEcho."""
 
-from math import pi, erf, ceil
+from math import erf, pi
 
 import numpy as np
+from ddt import data, ddt
 
 from qiskit import circuit, schedule
-from qiskit.transpiler import PassManager
+from qiskit.pulse import ControlChannel, Delay, DriveChannel, GaussianSquare, Play, ShiftPhase
 from qiskit.test import QiskitTestCase
-from qiskit.pulse import (
-    Play,
-    Delay,
-    ShiftPhase,
-    ControlChannel,
-    DriveChannel,
-    GaussianSquare,
-)
+from qiskit.test.mock import FakeAthens
+from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes.calibration.builders import (
+    RZXCalibrationBuilder,
     RZXCalibrationBuilderNoEcho,
 )
-from qiskit.test.mock import FakeAthens
 
 
 class TestCalibrationBuilder(QiskitTestCase):
@@ -40,6 +35,30 @@ class TestCalibrationBuilder(QiskitTestCase):
         super().setUp()
         self.backend = FakeAthens()
         self.inst_map = self.backend.defaults().instruction_schedule_map
+
+
+@ddt
+class TestRZXCalibrationBuilder(TestCalibrationBuilder):
+    """Test RZXCalibrationBuilder."""
+
+    @data(np.pi / 4, np.pi / 2, np.pi)
+    def test_rzx_calibration_builder_duration(self, theta: float):
+        """Test that pulse durations are computed correctly."""
+        width = 512.00000001
+        sigma = 64
+        n_sigmas = 4
+        duration = width + n_sigmas * sigma
+        sample_mult = 16
+        amp = 1.0
+        pulse = GaussianSquare(duration=duration, amp=amp, sigma=sigma, width=width)
+        instruction = Play(pulse, ControlChannel(1))
+        scaled = RZXCalibrationBuilder.rescale_cr_inst(instruction, theta, sample_mult=sample_mult)
+        gaussian_area = abs(amp) * sigma * np.sqrt(2 * np.pi) * erf(n_sigmas)
+        area = gaussian_area + abs(amp) * width
+        target_area = abs(theta) / (np.pi / 2.0) * area
+        width = (target_area - gaussian_area) / abs(amp)
+        expected_duration = round((width + n_sigmas * sigma) / sample_mult) * sample_mult
+        self.assertEqual(scaled.duration, expected_duration)
 
 
 class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
@@ -98,8 +117,24 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
         area = gaussian_area + abs(amp) * width
         target_area = abs(theta) / (np.pi / 2.0) * area
         width = (target_area - gaussian_area) / abs(amp)
-        duration = ceil((width + n_sigmas * sigma) / sample_mult) * sample_mult
+        duration = round((width + n_sigmas * sigma) / sample_mult) * sample_mult
 
         # Check whether the durations of the RZX pulse and
         # the scaled CR pulse from the CX gate match.
         self.assertEqual(rzx_qc_duration, duration)
+
+    def test_pulse_amp_typecasted(self):
+        """Test if scaled pulse amplitude is complex type."""
+        fake_play = Play(
+            GaussianSquare(duration=800, amp=0.1, sigma=64, risefall_sigma_ratio=2),
+            ControlChannel(0),
+        )
+        fake_theta = circuit.Parameter("theta")
+        assigned_theta = fake_theta.assign(fake_theta, 0.01)
+
+        scaled = RZXCalibrationBuilderNoEcho.rescale_cr_inst(
+            instruction=fake_play, theta=assigned_theta
+        )
+        scaled_pulse = scaled.pulse
+
+        self.assertIsInstance(scaled_pulse.amp, complex)
