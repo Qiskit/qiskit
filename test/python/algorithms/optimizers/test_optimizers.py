@@ -75,7 +75,7 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         jac = rosen_der if grad else None
 
         # check both the deprecated optimize method and minimize method
-        for test_deprecation in [False, True]:
+        for test_deprecation in [False]:
             with self.subTest(test_deprecation=test_deprecation):
                 if test_deprecation:
                     with self.assertWarns(DeprecationWarning):
