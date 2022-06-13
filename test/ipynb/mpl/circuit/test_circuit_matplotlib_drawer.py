@@ -547,9 +547,9 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename="global_phase.png")
 
-    def test_iqx_colors(self):
-        """Tests with iqx color scheme"""
-        for style in ["iqx", "iqx-dark"]:
+    def test_alternative_colors(self):
+        """Tests alternative color schemes"""
+        for style in ["iqx", "iqx-dark", "textbook"]:
             with self.subTest(style=style):
                 circuit = QuantumCircuit(7)
                 circuit.h(0)
