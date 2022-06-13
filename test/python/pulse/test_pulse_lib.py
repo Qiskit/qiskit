@@ -163,7 +163,9 @@ class TestParametricPulses(QiskitTestCase):
         )
 
     def test_gauss_square_passes_validation_after_construction(self):
-        """Test that parameter validation is consistent before and after construction."""
+        """Test that parameter validation is consistent before and after construction.
+
+        This previously used to raise an exception: see gh-7882."""
         pulse = GaussianSquare(duration=125, sigma=4, amp=0.5j, width=100)
         pulse.validate_parameters()
 
