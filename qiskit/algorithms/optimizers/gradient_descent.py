@@ -28,7 +28,7 @@ def constant(eta=0.01):
 
 @dataclass
 class GradientDescentState(OptimizerState):
-    """State of the gradient descent optimizer."""
+    """State of :class:`qiskit.algorithms.optimizers.GradientDescent`."""
 
     eta: Iterator
     stepsize: Optional[float]
@@ -39,7 +39,7 @@ class GradientDescent(SteppableOptimizer):
     For a function :math:`f` and an initial point :math:`\vec\theta_0`, the standard (or "vanilla")
     gradient descent method is an iterative scheme to find the minimum :math:`\vec\theta^*` of
     :math:`f` by updating the parameters in the direction of the negative gradient of :math:`f`
-    
+
     .. math::
 
         \vec\theta_{n+1} = \vec\theta_{n} - \vec\eta\nabla f(\vec\theta_{n}),
@@ -111,7 +111,7 @@ class GradientDescent(SteppableOptimizer):
                                                       initial_point=initial_point)
 
             print(f"Found minimum {x_opt} at a value of {fx_opt} using {nfevs} evaluations.")
-            
+
     """
 
     def __init__(
@@ -159,11 +159,9 @@ class GradientDescent(SteppableOptimizer):
 
     def ask(self) -> AskObject:
         """
-        This method is the part of the interface of the optimizer that asks the
-        user/quantum_circuit how and where the function to optimize needs to be evaluated. It is the
-        first method inside of a "step" in the optimization process.
-        For gradient descent this method simply returns an AskObject containing the current point for
-        the gradient to be evaluated, a parameter epsilon in case the gradient has to be approximated
+        For gradient descent this method simply returns an
+        :class:`qiskit.algorithms.optimizers.AskObject` containing the current point for the
+        gradient to be evaluated, a parameter epsilon in case the gradient has to be approximated
         and a bool flag telling the prefered way of evaluating the gradient.
         """
         return AskObject(
@@ -172,11 +170,7 @@ class GradientDescent(SteppableOptimizer):
 
     def tell(self, ask_object: AskObject, tell_object: TellObject) -> None:
         """
-        This method is the part of the interface of the optimizer that tells the
-        user/quantum_circuit what is the next point that minimizes the function (with respect to last
-        step). In this case it is not going to return anything since instead it is just going to update
-        state of the optimizer.It is the last method called inside of a "step" in the optimization
-        process. For gradient descent this method updates self._state.x by an ammount proportional
+        For gradient descent this method updates self._state.x by an ammount proportional
         to the learning rate and the gradient at that point.
         """
         update = tell_object.eval_jac
@@ -186,9 +180,9 @@ class GradientDescent(SteppableOptimizer):
 
     def evaluate(self, ask_object: AskObject) -> TellObject:
         """
-        This is the default way of evaluating the function given the request by self.ask().
-        For gradient descent we are going to check how to evaluate the gradient, evaluate and
-        return a TellObject.
+        For gradient descent we are going to check how to evaluate the gradient, either by evaluating
+        an analitic gradient or by approximating it with a finite difference scheme.
+        The value of the gradient is returned as a :class:`qiskit.algorithms.optimizers.TellObject`.
         """
         if self._state.jac is None:
             grad = Optimizer.gradient_num_diff(
@@ -206,7 +200,7 @@ class GradientDescent(SteppableOptimizer):
 
     def create_result(self) -> OptimizerResult:
         """
-        Creates a result of the optimization process using the values from self.state.
+        Creates a result of the optimization process using the values from :attr:`~.state`.
         """
         result = OptimizerResult()
         result.x = self._state.x
@@ -251,9 +245,10 @@ class GradientDescent(SteppableOptimizer):
         Returns:
             True if the optimization process should continue, False otherwise.
         """
-        cont_condition = self._state is None or self._state.stepsize > self.tol
-        cont_condition &= super().continue_condition()
-        return cont_condition
+        if self._state.stepsize is None:
+            return True
+        else:
+            return (self._state.stepsize > self.tol) and super().continue_condition()
 
     def get_support_level(self):
         """Get the support level dictionary."""

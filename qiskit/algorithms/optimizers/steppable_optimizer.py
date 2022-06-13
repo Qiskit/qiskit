@@ -39,12 +39,12 @@ class AskObject(ABC):
 @dataclass
 class TellObject(ABC):
     """
-    Base class for argument type of :meth:`~qiskit.algorithms.optimizers.SteppableOptimizer.tell`.
+    Base class for argument type of :meth:`~.SteppableOptimizer.tell`.
     Args:
         eval_fun: Image of the function at
-            :attr:`~qiskit.algorithms.optimizers.SteppableOptimizer.Ask_Object.x_fun`.
+            :attr:`~qiskit.algorithms.optimizers.Ask_Object.x_fun`.
         eval_jac: Image of the gradient-jacobian at
-            :attr:`~qiskit.algorithms.optimizers.SteppableOptimizer.Ask_Object.x_jac`.
+            :attr:`~qiskit.algorithms.optimizers.Ask_Object.x_jac`.
     """
 
     eval_fun: Union[float, List[float], None] = None
@@ -74,13 +74,13 @@ class SteppableOptimizer(Optimizer):
     This family of optimizers will be using the
     `ask and tell interface
     <https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/009_ask_and_tell.html>`_.
-    When using this interface the user has to call the function ask() in order to get information about
+    When using this interface the user has to call :meth:`~.ask` in order to get information about
     how to evaluate the fucntion (we are asking the optimizer about how to do the evaluation).
     This information will be mostly about at what point should we evaluate the function next, but
     depending on the optimizer it can also be about whether we should evaluate the function itself or
     its gradient.
 
-    Once the function has been evaluated, the user calls the method tell() to tell the optimizer what
+    Once the function has been evaluated, the user calls the method :meth:`~.tell` to tell the optimizer what
     has been the result of the function evaluation. The optimizer then updates its state accordingly and
     the user can decide whether to stop the optimization process or to repeat a step.
 
@@ -118,8 +118,10 @@ class SteppableOptimizer(Optimizer):
             while evaluated_gradient is None:
                 evaluated_gradient = grad(ask_object.x_center)
                 optimizer._state.njev += 1
+            
+            optmizer._state.nit += 1
 
-            tell_object = TellObject(gradient=evaluated_gradient)
+            tell_object = TellObject(eval_jac=evaluated_gradient)
             optimizer.tell(ask_object=ask_object, tell_object=tell_object)
 
         result = optimizer.create_result()
@@ -129,10 +131,10 @@ class SteppableOptimizer(Optimizer):
     optimizer.
 
     In case the user isn't dealing with complicated function and is more familiar with step by step
-     optimization algorithms, a method step() has been created that acts as a wrapper for ask()
-     and tell().
-    In the same spirit the method minimize() will optimize the function and return the result without
-    the user having to worry about the optimization process.
+    optimization algorithms, :meth:`~.step` has been created to acts as a wrapper for :meth:`~.ask`
+    and :meth:`~.tell`.
+    In the same spirit the method :meth:`~.minimize` will optimize the function and return the result
+    without directly.
 
     To see other libraries that use this interface one can visit:
     https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/009_ask_and_tell.html
@@ -172,7 +174,7 @@ class SteppableOptimizer(Optimizer):
     def tell(self, ask_object: AskObject, tell_object: TellObject) -> None:
         """
         Updates the optimization state once the objective function has been evaluated.
-        Canonical optimization workflow using :method:`~.SteppableOptimizer.ask`
+        A canonical optimization example using :method:`~.ask`
         and :method:`~.SteppableOptimizer.tell` can be seen in
         :method:`~.SteppableOptimizer.step`.
         Args:
@@ -185,10 +187,9 @@ class SteppableOptimizer(Optimizer):
     @abstractmethod
     def evaluate(self, ask_object: AskObject) -> TellObject:
         """
-        Evaluates the function according to the instructions contained in ask_object.
-        If the user decides to use step() instead of ask() and tell() this function will contain
-        the logic on how to evaluate
-        the function.
+        Evaluates the function according to the instructions contained in :attr:`~.ask_object`.
+        If the user decides to use :meth:`~.step` instead of :meth:`~.ask` and tell() this function
+        will contain the logic on how to evaluate the function.
         Args:
             ask_object: Contains the information on how to do the evaluation.
         Return:
@@ -199,7 +200,7 @@ class SteppableOptimizer(Optimizer):
     def step(self) -> None:
         """
         Performs one step in the optimization process.
-        This method composes ask(), evaluate(), and tell() to make a step in the optimization process.
+        This method composes :meth:`~.ask`, :meth:`~.evaluate`, and :meth:`~.tell` to make a step in the optimization process.
         """
         ask_object = self.ask()
         tell_object = self.evaluate(ask_object=ask_object)

@@ -38,6 +38,18 @@ Optimizer Base Class
    OptimizerSupportLevel
    Optimizer
 
+Steppable Optimizer Base Class
+==============================
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   SteppableOptimizer
+   AskObject
+   TellObject
+   OptimizerState
+
 Local Optimizers
 ================
 
@@ -52,6 +64,7 @@ Local Optimizers
    L_BFGS_B
    GSLS
    GradientDescent
+   GradientDescentState
    NELDER_MEAD
    NFT
    P_BFGS
@@ -108,7 +121,7 @@ from .bobyqa import BOBYQA
 from .cg import CG
 from .cobyla import COBYLA
 from .gsls import GSLS
-from .gradient_descent import GradientDescent
+from .gradient_descent import GradientDescent, GradientDescentState
 from .imfil import IMFIL
 from .l_bfgs_b import L_BFGS_B
 from .nelder_mead import NELDER_MEAD
@@ -118,7 +131,7 @@ from .nlopts.direct_l import DIRECT_L
 from .nlopts.direct_l_rand import DIRECT_L_RAND
 from .nlopts.esch import ESCH
 from .nlopts.isres import ISRES
-from .steppable_optimizer import SteppableOptimizer
+from .steppable_optimizer import SteppableOptimizer, AskObject, TellObject, OptimizerState
 from .optimizer import Minimizer, Optimizer, OptimizerResult, OptimizerSupportLevel
 from .p_bfgs import P_BFGS
 from .powell import POWELL
