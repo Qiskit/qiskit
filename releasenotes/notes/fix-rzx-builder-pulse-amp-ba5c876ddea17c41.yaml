@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug in the :class:`.RZXCalibrationBuilder` transpiler pass where
+    the scaled cross-resonance pulse amplitude could appear to be parametrized
+    even after assignment. This could cause the pulse visualization tools to
+    use the parametrized format instead of the expected numeric one.

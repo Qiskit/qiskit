@@ -139,7 +139,7 @@ class SabreSwap(TransformationPass):
         self.heuristic = heuristic
         self.seed = seed
         self.fake_run = fake_run
-        self.applied_predecessors = None
+        self.required_predecessors = None
         self.qubits_decay = None
         self._bit_indices = None
         self.dist_matrix = None
@@ -188,12 +188,9 @@ class SabreSwap(TransformationPass):
         self.qubits_decay = dict.fromkeys(dag.qubits, 1)
 
         # Start algorithm from the front layer and iterate until all gates done.
+        self.required_predecessors = self._build_required_predecessors(dag)
         num_search_steps = 0
         front_layer = dag.front_layer()
-        self.applied_predecessors = defaultdict(int)
-        for _, input_node in dag.input_map.items():
-            for successor in self._successors(input_node, dag):
-                self.applied_predecessors[successor] += 1
 
         while front_layer:
             execute_gate_list = []
@@ -228,7 +225,7 @@ class SabreSwap(TransformationPass):
                 for node in execute_gate_list:
                     self._apply_gate(mapped_dag, node, current_layout, canonical_register)
                     for successor in self._successors(node, dag):
-                        self.applied_predecessors[successor] += 1
+                        self.required_predecessors[successor] -= 1
                         if self._is_resolved(successor):
                             front_layer.append(successor)
 
@@ -314,6 +311,15 @@ class SabreSwap(TransformationPass):
         """
         self.qubits_decay = {k: 1 for k in self.qubits_decay.keys()}
 
+    def _build_required_predecessors(self, dag):
+        out = defaultdict(int)
+        # We don't need to count in- or out-wires: outs can never be predecessors, and all input
+        # wires are automatically satisfied at the start.
+        for node in dag.op_nodes():
+            for successor in self._successors(node, dag):
+                out[successor] += 1
+        return out
+
     def _successors(self, node, dag):
         """Return an iterable of the successors along each wire from the given node.
 
@@ -326,22 +332,22 @@ class SabreSwap(TransformationPass):
 
     def _is_resolved(self, node):
         """Return True if all of a node's predecessors in dag are applied."""
-        return self.applied_predecessors[node] == len(node.qargs) + len(node.cargs)
+        return self.required_predecessors[node] == 0
 
     def _obtain_extended_set(self, dag, front_layer):
         """Populate extended_set by looking ahead a fixed number of gates.
         For each existing element add a successor until reaching limit.
         """
         extended_set = []
-        incremented = []
+        decremented = []
         tmp_front_layer = front_layer
         done = False
         while tmp_front_layer and not done:
             new_tmp_front_layer = []
             for node in tmp_front_layer:
                 for successor in self._successors(node, dag):
-                    incremented.append(successor)
-                    self.applied_predecessors[successor] += 1
+                    decremented.append(successor)
+                    self.required_predecessors[successor] -= 1
                     if self._is_resolved(successor):
                         new_tmp_front_layer.append(successor)
                         if len(successor.qargs) == 2:
@@ -350,8 +356,8 @@ class SabreSwap(TransformationPass):
                     done = True
                     break
             tmp_front_layer = new_tmp_front_layer
-        for node in incremented:
-            self.applied_predecessors[node] -= 1
+        for node in decremented:
+            self.required_predecessors[node] += 1
         return extended_set
 
     def _obtain_swaps(self, front_layer, current_layout):
