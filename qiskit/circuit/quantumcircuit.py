@@ -1507,9 +1507,8 @@ class QuantumCircuit:
         dag = circuit_to_dag(self)
         if gates_to_decompose is not None and reps > 1:
             raise CircuitError("gates_to_decompose won't work with other than one repeat.")
-        else:
-            for _ in range(reps):
-                dag = pass_.run(dag)
+        for _ in range(reps):
+            dag = pass_.run(dag)
         return dag_to_circuit(dag)
 
     def _check_compatible_regs(self, rhs: "QuantumCircuit") -> None:
