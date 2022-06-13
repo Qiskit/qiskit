@@ -1,0 +1,28 @@
+---
+features:
+  - |
+    Added a new constructor method for the :class:`.Operator` class,
+    :meth:`.Operator.from_circuit` for creating a new :class:`.Operator`
+    object from a :class:`.QuantumCircuit`. While this was possible normally
+    using the default constructor, the :meth:`.Operator.from_circuit` method
+    provides additional options to adjust how the operator is created. Primarily
+    this lets you permute the qubit order based on a set :class:`.Layout`. For,
+    example::
+
+      from qiskit.circuit import QuantumCircuit
+      from qiskit import transpile
+      from qiskit.transpiler import CouplingMap
+      from qiskit.quantum_info import Operator
+
+      circuit = QuantumCircuit(3)
+      circuit.h(0)
+      circuit.cx(0, 1)
+      circuit.cx(1, 2)
+
+      cmap = CouplingMap.from_line(3)
+      out_circuit = transpile(circuit, initial_layout=[2, 1, 0], coupling_map=cmap)
+      operator = Operator.from_circuit(out_circuit)
+
+    the ``operator`` variable will have the qubits permuted based on the
+    layout so that it is identical to what is returned by ``Operator(circuit)``
+    before transpilation.

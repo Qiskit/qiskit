@@ -162,6 +162,13 @@ class TestParametricPulses(QiskitTestCase):
             gaus_square.get_waveform().samples[2:-2], const.get_waveform().samples[2:-2]
         )
 
+    def test_gauss_square_passes_validation_after_construction(self):
+        """Test that parameter validation is consistent before and after construction.
+
+        This previously used to raise an exception: see gh-7882."""
+        pulse = GaussianSquare(duration=125, sigma=4, amp=0.5j, width=100)
+        pulse.validate_parameters()
+
     def test_drag_pulse(self):
         """Test that the Drag sample pulse matches the pulse library."""
         drag = Drag(duration=25, sigma=4, amp=0.5j, beta=1)
@@ -205,6 +212,8 @@ class TestParametricPulses(QiskitTestCase):
             check_drag(duration=50, sigma=16, amp=1, beta=20)
         with self.assertRaises(PulseError):
             check_drag(duration=50, sigma=4, amp=0.8, beta=20)
+        with self.assertRaises(PulseError):
+            check_drag(duration=50, sigma=4, amp=0.8, beta=-20)
 
     def test_constant_samples(self):
         """Test the constant pulse and its sampled construction."""
@@ -216,7 +225,7 @@ class TestParametricPulses(QiskitTestCase):
             const = Constant(duration=150, amp=1.1 + 0.4j)
 
         with patch("qiskit.pulse.library.parametric_pulses.Pulse.limit_amplitude", new=False):
-            const = qiskit.pulse.library.parametric_pulses.Constant(duration=150, amp=0.1 + 0.4j)
+            const = qiskit.pulse.library.parametric_pulses.Constant(duration=150, amp=1.1 + 0.4j)
 
     def test_parameters(self):
         """Test that the parameters can be extracted as a dict through the `parameters`

@@ -242,6 +242,9 @@ class GaussianSquare(ParametricPulse):
             limit_amplitude: If ``True``, then limit the amplitude of the
                              waveform to 1. The default is ``True`` and the
                              amplitude is constrained to 1.
+
+        Raises:
+            PulseError: If the parameters passed are not valid.
         """
         if not _is_parameterized(amp):
             amp = complex(amp)
@@ -249,6 +252,13 @@ class GaussianSquare(ParametricPulse):
         self._sigma = sigma
         self._risefall_sigma_ratio = risefall_sigma_ratio
         self._width = width
+
+        if self.width is not None and self.risefall_sigma_ratio is not None:
+            raise PulseError(
+                "Either the pulse width or the risefall_sigma_ratio parameter can be specified"
+                " but not both."
+            )
+
         super().__init__(duration=duration, name=name, limit_amplitude=limit_amplitude)
 
     @property
@@ -284,11 +294,6 @@ class GaussianSquare(ParametricPulse):
             )
         if not _is_parameterized(self.sigma) and self.sigma <= 0:
             raise PulseError("Sigma must be greater than 0.")
-        if self.width is not None and self.risefall_sigma_ratio is not None:
-            raise PulseError(
-                "Either the pulse width or the risefall_sigma_ratio parameter can be specified"
-                " but not both."
-            )
         if self.width is None and self.risefall_sigma_ratio is None:
             raise PulseError(
                 "Either the pulse width or the risefall_sigma_ratio parameter must be specified."
@@ -341,23 +346,23 @@ class Drag(ParametricPulse):
     """The Derivative Removal by Adiabatic Gate (DRAG) pulse is a standard Gaussian pulse
     with an additional Gaussian derivative component and lifting applied.
 
-    It is designed to reduce the frequency spectrum of a normal gaussian pulse near
+    It is designed to reduce the frequency spectrum of a standard Gaussian pulse near
     the :math:`|1\\rangle\\leftrightarrow|2\\rangle` transition,
     reducing the chance of leakage to the :math:`|2\\rangle` state.
 
     .. math::
 
         g(x) &= \\exp\\Bigl(-\\frac12 \\frac{(x - \\text{duration}/2)^2}{\\text{sigma}^2}\\Bigr)\\\\
-        f'(x) &= g(x) + 1j \\times \\text{beta} \\times \\frac{\\mathrm d}{\\mathrm{d}x} g(x)\\\\
-              &= g(x) + 1j \\times \\text{beta} \\times\
-                    \\Bigl(-\\frac{x - \\text{duration}/2}{\\text{sigma}^2}\\Bigr)g(x)\\\\
-        f(x) &= \\text{amp}\\times\\frac{f'(x)-f'(-1)}{1-f'(-1)}, \\quad 0 \\le x < \\text{duration}
+        g'(x) &= \\text{amp}\\times\\frac{g(x)-g(-1)}{1-g(-1)}\\\\
+        f(x) &=  g'(x) \\times \\Bigl(1 + 1j \\times \\text{beta} \\times\
+            \\Bigl(-\\frac{x - \\text{duration}/2}{\\text{sigma}^2}\\Bigr)  \\Bigr),
+            \\quad 0 \\le x < \\text{duration}
 
-    where :math:`g(x)` is a standard unlifted gaussian waveform and
-    :math:`f'(x)` is the DRAG waveform without lifting or amplitude scaling.
+    where :math:`g(x)` is a standard unlifted Gaussian waveform and
+    :math:`g'(x)` is the lifted :class:`~qiskit.pulse.library.Gaussian` waveform.
 
-    This pulse would be more accurately named as ``LiftedDrag``, however, for historical
-    and practical DSP reasons it has the name ``Drag``.
+    This pulse, defined by :math:`f(x)`, would be more accurately named as ``LiftedDrag``, however,
+    for historical and practical DSP reasons it has the name ``Drag``.
 
     References:
         1. |citation1|_
@@ -439,7 +444,7 @@ class Drag(ParametricPulse):
         if (
             not _is_parameterized(self.beta)
             and not _is_parameterized(self.sigma)
-            and self.beta > self.sigma
+            and np.abs(self.beta) > self.sigma
             and self.limit_amplitude
         ):
             # If beta <= sigma, then the maximum amplitude is at duration / 2, which is

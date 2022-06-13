@@ -28,7 +28,13 @@ class UGate(Gate):
 
     .. math::
         U(\theta, \phi, \lambda) =
-            RZ(\phi - \pi/2) RX(\pi/2) RZ(\pi - \theta) RX(\pi/2) RZ(\lambda - \pi/2)
+            RZ(\phi) RX(-\pi/2) RZ(\theta) RX(\pi/2) RZ(\lambda)
+
+    Equivalent simplified form:
+
+    .. math::
+        U(\theta, \phi, \lambda) =
+            RZ(\phi + \pi/2) RX(\theta) RZ(\lambda - \pi/2)
 
     **Circuit symbol:**
 
@@ -46,8 +52,8 @@ class UGate(Gate):
 
         U(\theta, \phi, \lambda) =
             \begin{pmatrix}
-                \cos(\th)          & -e^{i\lambda}\sin(\th) \\
-                e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)}\cos(\th)
+                \cos\left(\th\right)          & -e^{i\lambda}\sin\left(\th\right) \\
+                e^{i\phi}\sin\left(\th\right) & e^{i(\phi+\lambda)}\cos\left(\th\right)
             \end{pmatrix}
 
     **Examples:**

@@ -21,7 +21,8 @@ from scipy import sparse as scisparse
 from qiskit.opflow import I, ListOp, OperatorBase, StateFn
 from qiskit.utils.validation import validate_min
 from ..exceptions import AlgorithmError
-from .eigen_solver import Eigensolver, EigensolverResult, ListOrDict
+from .eigen_solver import Eigensolver, EigensolverResult
+from ..list_or_dict import ListOrDict
 
 logger = logging.getLogger(__name__)
 
@@ -131,13 +132,9 @@ class NumPyEigensolver(Eigensolver):
                     eigval, eigvec = np.linalg.eig(operator.to_matrix())
             else:
                 if operator.is_hermitian():
-                    eigval, eigvec = scisparse.linalg.eigsh(
-                        operator.to_spmatrix(), k=self._k, which="SA"
-                    )
+                    eigval, eigvec = scisparse.linalg.eigsh(sp_mat, k=self._k, which="SA")
                 else:
-                    eigval, eigvec = scisparse.linalg.eigs(
-                        operator.to_spmatrix(), k=self._k, which="SR"
-                    )
+                    eigval, eigvec = scisparse.linalg.eigs(sp_mat, k=self._k, which="SR")
             indices = np.argsort(eigval)[: self._k]
             eigval = eigval[indices]
             eigvec = eigvec[:, indices]

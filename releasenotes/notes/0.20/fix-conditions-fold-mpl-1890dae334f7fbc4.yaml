@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue with the ``mpl`` backend for the circuit drawer function
+    :func:`~.circuit_drawer` and the :meth:`.QuantumCircuit.draw` method
+    where gates with conditions would not display properly when a sufficient
+    number of gates caused the drawer to fold over to a second row.
+    Fixed: `#7752 <https://github.com/Qiskit/qiskit-terra/pull/7752>`__.
