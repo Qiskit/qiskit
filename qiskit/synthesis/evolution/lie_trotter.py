@@ -42,6 +42,9 @@ class LieTrotter(ProductFormula):
         [1]: D. Berry, G. Ahokas, R. Cleve and B. Sanders,
         "Efficient quantum algorithms for simulating sparse Hamiltonians" (2006).
         `arXiv:quant-ph/0508139 <https://arxiv.org/abs/quant-ph/0508139>`_
+        [2]: N. Hatano and M. Suzuki,
+        "Finding Exponential Product Formulas of Higher Orders" (2005).
+        `arXiv:math-ph/0506007 <https://arxiv.org/pdf/math-ph/0506007.pdf>`_
     """
 
     def __init__(
