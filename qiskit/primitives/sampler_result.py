@@ -29,7 +29,7 @@ class SamplerResult:
 
         result = sampler(circuits, params)
 
-    where the i-th elements of ``result`` correspond to the circuit given by ``circuit_indices[i]``,
+    where the i-th elements of ``result`` correspond to the circuit given by ``circuits[i]``,
     and the parameter values bounds by ``params[i]``.
     For example, ``results.quasi_dists[i]`` gives the quasi-probabilities of bitstrings, and
     ``result.metadata[i]`` is a metadata dictionary for this circuit and parameters.
