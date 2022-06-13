@@ -534,9 +534,10 @@ class SymbolicPulse(Pulse):
         return True
 
     def __hash__(self) -> int:
-        # TODO hashing symbolic and parametric pulse is no longer correct behavior.
-        #  Remove the hash if possible -- but this might be used in user code.
-        #  We need polite deprecation to remove this.
+        if self.is_parameterized():
+            raise NotImplementedError(
+                "Hashing a symbolic pulse with unassigned parameter is not supported."
+            )
         return hash((self._pulse_type, self.duration, *tuple(self._params.items())))
 
     def __repr__(self) -> str:
