@@ -29,7 +29,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
     """Plot the directed acyclic graph (dag) to represent operation dependencies
     in a quantum circuit.
 
-    This function calls the `graphviz_draw` function from the `retworkx`
+    This function calls the :func:`~retworkx.visualization.graphviz_draw` function from the ``retworkx``
     package to draw the DAG.
 
     Args:
@@ -156,21 +156,16 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
             e["label"] = label
             return e
 
+    image_type = None
     if filename:
         if "." not in filename:
             raise InvalidFileError("Parameter 'filename' must be in format 'name.extension'")
-        return graphviz_draw(
-            dag._multi_graph,
-            node_attr_func,
-            edge_attr_func,
-            graph_attrs,
-            filename,
-            filename.split(".")[-1],
-        )
-    else:
-        return graphviz_draw(
-            dag._multi_graph,
-            node_attr_func,
-            edge_attr_func,
-            graph_attrs,
-        )
+        image_type = filename.split(".")[-1]
+    return graphviz_draw(
+        dag._multi_graph,
+        node_attr_func,
+        edge_attr_func,
+        graph_attrs,
+        filename,
+        image_type,
+    )
