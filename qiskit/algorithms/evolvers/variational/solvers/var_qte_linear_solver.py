@@ -41,7 +41,7 @@ class VarQTELinearSolver:
         ansatz: Union[StateFn, QuantumCircuit],
         gradient_params: List[Parameter],
         t_param: Optional[Parameter] = None,
-        lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.linalg.lstsq,
+        lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
         quantum_instance: Optional[QuantumInstance] = None,
         imag_part_tol: float = 1e-7,
     ) -> None:
@@ -58,7 +58,7 @@ class VarQTELinearSolver:
             gradient_params: List of parameters with respect to which gradients should be computed.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
             lse_solver: Linear system of equations solver that follows a NumPy
-                ``np.linalg.lstsq`` interface.
+                ``np.linalg.lstsq`` interface. If ``None``, the default ``np.linalg.lstsq`` is used.
             quantum_instance: Backend used to evaluate the quantum circuit outputs. If ``None``
                 provided, everything will be evaluated based on matrix multiplication (which is
                 slow).
@@ -71,12 +71,23 @@ class VarQTELinearSolver:
         self._gradient_params = gradient_params
         self._bind_params = gradient_params + [t_param] if t_param else gradient_params
         self._time_param = t_param
-        self._lse_solver = lse_solver
+        self.lse_solver = lse_solver
         self._quantum_instance = None
         self._circuit_sampler = None
         if quantum_instance is not None:
             self.quantum_instance = quantum_instance
         self._imag_part_tol = imag_part_tol
+
+    @property
+    def lse_solver(self):
+        return self._lse_solver
+
+    @lse_solver.setter
+    def lse_solver(self, lse_solver):
+        if lse_solver is None:
+            lse_solver = lambda a, b: np.linalg.lstsq(a, b, rcond=1e-2)[0]
+
+        self._lse_solver = lse_solver
 
     @property
     def quantum_instance(self) -> Optional[QuantumInstance]:
@@ -133,6 +144,6 @@ class VarQTELinearSolver:
             self._quantum_instance,
         )
 
-        x = self._lse_solver(metric_tensor_lse_lhs, evolution_grad_lse_rhs)[0]
+        x = self._lse_solver(metric_tensor_lse_lhs, evolution_grad_lse_rhs)
 
         return np.real(x), metric_tensor_lse_lhs, evolution_grad_lse_rhs

@@ -13,7 +13,6 @@
 """Test ODE function generator."""
 
 import unittest
-from functools import partial
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
@@ -66,8 +65,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         var_principle = ImaginaryMcLachlanPrinciple()
 
         t_param = None
-
-        linear_solver = partial(np.linalg.lstsq, rcond=1e-2)
+        linear_solver = None
         linear_solver = VarQTELinearSolver(
             var_principle,
             observable,
@@ -129,7 +127,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
 
         time = 2
 
-        linear_solver = partial(np.linalg.lstsq, rcond=1e-2)
+        linear_solver = None
         linear_solver = VarQTELinearSolver(
             var_principle,
             observable,

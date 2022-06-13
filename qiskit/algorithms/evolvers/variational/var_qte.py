@@ -12,7 +12,6 @@
 
 """The Variational Quantum Time Evolution Interface"""
 from abc import ABC
-from functools import partial
 from typing import Optional, Union, Dict, List, Callable, Any
 
 import numpy as np
@@ -58,9 +57,7 @@ class VarQTE(ABC):
         variational_principle: VariationalPrinciple,
         ode_function_factory: OdeFunctionFactory,
         ode_solver: Union[OdeSolver, str] = "RK45",
-        lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] = partial(
-            np.linalg.lstsq, rcond=1e-2
-        ),
+        lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
         expectation: Optional[ExpectationBase] = None,
         imag_part_tol: float = 1e-7,
         num_instability_tol: float = 1e-7,

@@ -13,7 +13,6 @@
 """Test solver of linear equations."""
 
 import unittest
-from functools import partial
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from test.python.algorithms.evolvers.variational.solvers.expected_results.test_varqte_linear_solver_expected_1 import (
@@ -64,7 +63,7 @@ class TestVarQTELinearSolver(QiskitAlgorithmsTestCase):
 
         var_principle = ImaginaryMcLachlanPrinciple()
         t_param = None
-        linear_solver = partial(np.linalg.lstsq, rcond=1e-2)
+        linear_solver = None
         linear_solver = VarQTELinearSolver(
             var_principle,
             observable,
