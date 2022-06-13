@@ -371,8 +371,8 @@ class DirectOnQuWire(DrawElement):
         self.mid_format = "─%s─"
         self.bot_format = " %s "
         self._mid_padding = self.mid_bck = "─"
-        self.top_connector = {"│": "│"}
-        self.bot_connector = {"│": "│"}
+        self.top_connector = {"│": "│", "║": "║"}
+        self.bot_connector = {"│": "│", "║": "║"}
 
 
 class Barrier(DirectOnQuWire):
@@ -473,8 +473,8 @@ class DirectOnClWire(DrawElement):
         self.mid_format = "═%s═"
         self.bot_format = " %s "
         self._mid_padding = self.mid_bck = "═"
-        self.top_connector = {"│": "│"}
-        self.bot_connector = {"│": "│"}
+        self.top_connector = {"│": "│", "║": "║"}
+        self.bot_connector = {"│": "│", "║": "║"}
 
 
 class ClBullet(DirectOnClWire):
@@ -1047,6 +1047,7 @@ class TextDrawing:
         any connections it introduces between qubits"""
         op = node.op
         current_cons = []
+        current_cons_cond = []
         connection_label = None
         conditional = False
         base_gate = getattr(op, "base_gate", None)
@@ -1059,7 +1060,7 @@ class TextDrawing:
 
         if op.condition is not None:
             # conditional
-            layer.set_cl_multibox(op.condition, top_connect="╨")
+            current_cons_cond += layer.set_cl_multibox(op.condition, top_connect="╨")
             conditional = True
 
         # add in a gate that operates over multiple qubits
@@ -1085,7 +1086,7 @@ class TextDrawing:
         elif op._directive:
             # barrier
             if not self.plotbarriers:
-                return layer, current_cons, connection_label
+                return layer, current_cons, current_cons_cond, connection_label
 
             for qubit in node.qargs:
                 if qubit in self.qubits:
@@ -1168,8 +1169,10 @@ class TextDrawing:
         # lines in the right direction
         current_cons.sort(key=lambda tup: tup[0])
         current_cons = [g for q, g in current_cons]
+        current_cons_cond.sort(key=lambda tup: tup[0])
+        current_cons_cond = [g for c, g in current_cons_cond]
 
-        return layer, current_cons, connection_label
+        return layer, current_cons, current_cons_cond, connection_label
 
     def build_layers(self):
         """
@@ -1189,9 +1192,10 @@ class TextDrawing:
             layer = Layer(self.qubits, self.clbits, self.cregbundle, self._circuit)
 
             for node in node_layer:
-                layer, current_connections, connection_label = self._node_to_gate(node, layer)
+                layer, current_cons, current_cons_cond, connection_label = self._node_to_gate(node, layer)
 
-                layer.connections.append((connection_label, current_connections))
+                layer.connections.append((connection_label, current_cons))
+                layer.connections.append((None, current_cons_cond))
             layer.connect_with("│")
             layers.append(layer.full_layer)
 
@@ -1405,15 +1409,19 @@ class Layer:
             # if it's a whole register
             else:
                 self.set_clbit(condition[0][0], BoxOnClWire(label=label, top_connect=top_connect))
+            return []
         else:
             clbits = []
+            cond_bits = []
 
             if isinstance(condition[0], Clbit):
                 for i, bit in enumerate(self.clbits):
                     if bit == condition[0]:
                         clbits.append(self.clbits[i])
+                        reg, _, reg_index = get_bit_reg_index(self._circuit, bit)
+                        cond_bits.append(reg_index)
+                        return self.set_cond_bullets(label, val_bits, clbits)
             else:
-                cond_bits = []
                 for i, bit in enumerate(self.clbits):
                     if isinstance(bit, ClassicalRegister):
                         reg = bit
@@ -1422,8 +1430,8 @@ class Layer:
                     if reg == cond_reg:
                         cond_bits.append(reg_index)
                         clbits.append(self.clbits[i])
-            val_bits_sorted = [bit for _, bit in sorted(zip(cond_bits, val_bits))]
-            self.set_cond_bullets(label, val_bits_sorted, clbits)
+                val_bits_sorted = [bit for _, bit in sorted(zip(cond_bits, val_bits))]
+                return self.set_cond_bullets(label, val_bits_sorted, clbits)
 
     def set_cond_bullets(self, label, val_bits, clbits):
         """Sets bullets for classical conditioning when cregbundle=False.
@@ -1434,6 +1442,7 @@ class Layer:
             clbits (list[Clbit]): The list of classical bits on
                 which the instruction is conditioned.
         """
+        current_cons = []
         for i, bit in enumerate(clbits):
             bot_connect = " "
             if bit == clbits[-1]:
@@ -1446,6 +1455,10 @@ class Layer:
                 self.clbit_layer[self.clbits.index(bit)] = ClOpenBullet(
                     top_connect="║", bot_connect=bot_connect
                 )
+            actual_index = self.clbits.index(bit) + len(self.qubits)
+            if actual_index not in [i for i, j in current_cons]:
+                current_cons.append((actual_index, self.clbit_layer[self.clbits.index(bit)]))
+        return current_cons
 
     def set_qu_multibox(
         self,
@@ -1484,23 +1497,31 @@ class Layer:
             wire_char (char): For example '║' or '│'.
         """
 
-        if len([qbit for qbit in self.qubit_layer if qbit is not None]) == 1:
-            # Nothing to connect
-            return
-
         for label, affected_bits in self.connections:
 
             if not affected_bits:
                 continue
 
-            affected_bits[0].connect(wire_char, ["bot"])
-            for affected_bit in affected_bits[1:-1]:
-                affected_bit.connect(wire_char, ["bot", "top"])
-
-            affected_bits[-1].connect(wire_char, ["top"], label)
+            for index, affected_bit in enumerate(affected_bits):
+                if isinstance(affected_bit, ClBullet) or isinstance(affected_bit, ClOpenBullet):
+                    wire_char = "║"
+                    if index == 0 and len(affected_bits) > 1:
+                        affected_bit.connect(wire_char, ["bot"])
+                    else:
+                        affected_bit.connect(wire_char, ["top"])
+                else:
+                    if index == 0:
+                        affected_bit.connect(wire_char, ["bot"])
+                    elif index == len(affected_bits) - 1:
+                        affected_bit.connect(wire_char, ["top"], label)
+                    else:
+                        affected_bit.connect(wire_char, ["bot", "top"])
 
             if label:
                 for affected_bit in affected_bits:
                     affected_bit.right_fill = len(label) + len(affected_bit.mid)
-                    if isinstance(affected_bit, (Bullet, OpenBullet)) and affected_bit.conditional:
+                    if (
+                        isinstance(affected_bit, (Bullet, OpenBullet))
+                        and affected_bit.conditional
+                    ):
                         affected_bit.left_fill = len(label) + len(affected_bit.mid)

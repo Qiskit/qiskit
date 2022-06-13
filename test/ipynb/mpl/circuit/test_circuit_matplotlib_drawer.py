@@ -896,6 +896,23 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 31)
         self.circuit_drawer(circuit, cregbundle=False, filename="fold_with_conditions.png")
 
+    def test_wire_order(self):
+        """Test the wire_order option"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(4, "c")
+        cr2 = ClassicalRegister(2, "cx")
+        circuit = QuantumCircuit(qr, cr, cr2)
+        circuit.h(0)
+        circuit.h(3)
+        circuit.x(1)
+        circuit.x(3).c_if(cr, 10)
+        self.circuit_drawer(
+            circuit,
+            cregbundle=False,
+            wire_order=[2, 1, 3, 0, 6, 8, 9, 5, 4, 7],
+            filename="wire_order.png",
+        )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)
