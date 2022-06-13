@@ -1494,15 +1494,23 @@ class QuantumCircuit:
 
         Returns:
             QuantumCircuit: a circuit one level decomposed
+
+        Raises:
+            CircuitError: if gates_to_decompose exist with more than one repeat.
         """
         # pylint: disable=cyclic-import
         from qiskit.transpiler.passes.basis.decompose import Decompose
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
 
-        pass_ = Decompose(gates_to_decompose=gates_to_decompose, reps=reps)
-        decomposed_dag = pass_.run(dag=circuit_to_dag(self))
-        return dag_to_circuit(decomposed_dag)
+        pass_ = Decompose(gates_to_decompose)
+        dag = circuit_to_dag(self)
+        if gates_to_decompose is not None and reps > 1:
+            raise CircuitError("gates_to_decompose won't work with other than one repeat.")
+        else:
+            for _ in range(reps):
+                dag = pass_.run(dag)
+        return dag_to_circuit(dag)
 
     def _check_compatible_regs(self, rhs: "QuantumCircuit") -> None:
         """Raise exception if the circuits are defined on incompatible registers"""

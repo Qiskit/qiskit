@@ -1,6 +1,6 @@
 features:
   - |
-    Added a new parameter, ``reps`` decomposem, it also support decompose specific gate specific times, but can't repeat decompose label gate.
+    Added a new parameter, ``reps`` decomposem, will raise an error when ``gates_to_decompose`` appear with more than or less than 1``reps``
 
     Example
     .. code:: python

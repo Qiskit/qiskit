@@ -30,7 +30,6 @@ class Decompose(TransformationPass):
         self,
         gate: Optional[Type[Gate]] = None,
         gates_to_decompose: Optional[Union[Type[Gate], List[Type[Gate]], List[str], str]] = None,
-        reps: int = 1,
     ) -> None:
         """Decompose initializer.
 
@@ -38,7 +37,6 @@ class Decompose(TransformationPass):
             gate: DEPRECATED gate to decompose.
             gates_to_decompose: optional subset of gates to be decomposed,
                 identified by gate label, name or type. Defaults to all gates.
-            reps: number of repeat decompose
         """
         super().__init__()
 
@@ -46,7 +44,6 @@ class Decompose(TransformationPass):
             self.gates_to_decompose = gate
         else:
             self.gates_to_decompose = gates_to_decompose
-        self.reps = reps
 
     @property
     def gate(self) -> Gate:
@@ -88,25 +85,19 @@ class Decompose(TransformationPass):
             output dag where ``gate`` was expanded.
         """
         # Walk through the DAG and expand each non-basis node
-        for _ in range(self.reps):
-            gates = []
-            for node in dag.op_nodes():
-                if self._should_decompose(node):
-                    if node.op.definition is None:
-                        continue
-                    # TODO: allow choosing among multiple decomposition rules
-                    rule = node.op.definition.data
-                    if len(rule) == 1 and len(node.qargs) == len(rule[0][1]) == 1:
-                        if node.op.definition.global_phase:
-                            dag.global_phase += node.op.definition.global_phase
-                        dag.substitute_node(node, rule[0][0], inplace=True)
-                        gates.append(node.op.name)
-                    else:
-                        decomposition = circuit_to_dag(node.op.definition)
-                        dag.substitute_node_with_dag(node, decomposition)
-                        for nod in dag.op_nodes():
-                            gates.append(nod.name)
-            self.gates_to_decompose = gates
+        for node in dag.op_nodes():
+            if self._should_decompose(node):
+                if node.op.definition is None:
+                    continue
+                # TODO: allow choosing among multiple decomposition rules
+                rule = node.op.definition.data
+                if len(rule) == 1 and len(node.qargs) == len(rule[0][1]) == 1:
+                    if node.op.definition.global_phase:
+                        dag.global_phase += node.op.definition.global_phase
+                    dag.substitute_node(node, rule[0][0], inplace=True)
+                else:
+                    decomposition = circuit_to_dag(node.op.definition)
+                    dag.substitute_node_with_dag(node, decomposition)
 
         return dag
 
@@ -114,9 +105,6 @@ class Decompose(TransformationPass):
         """Call a decomposition pass on this circuit,
         to decompose one level (shallow decompose)."""
         if self.gates_to_decompose is None:  # check if no gates given
-            return True
-
-        if node.op.name == "state_preparation":  # not sure about other gate also cant pass
             return True
 
         has_label = False
