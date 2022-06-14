@@ -1,9 +1,9 @@
 features:
   - |
-    Added a new parameter, ``reps`` decomposem, will raise an error when ``gates_to_decompose`` appear with more than or less than 1``reps``
+    Added a new parameter, ``reps`` decomposem, repeatly decompose gates
 
     Example
     .. code:: python
 
-      #decompose ry 3 times, decompose initialize 2 times
-      qc.decompose(gates_to_decompose=['ry'], reps=3).decompose(gates_to_decompose=['initialize'], reps=2)
+      #decompose ry 2 times
+      qc.decompose(gates_to_decompose=['ry','r'], reps=2)
