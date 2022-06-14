@@ -1185,19 +1185,19 @@ def num_to_latex_ket(raw_value: complex, first_term: bool) -> Optional[str]:
                 if element == "1":
                     element = ""
                 elif element == "-1":
-                    element = "-"
+                    element = "- "
             else:
 
                 if imag_value == 0 and real_value > 0:
-                    element = "+" + latex_element
+                    element = "+ " + latex_element
                 elif real_value == 0 and imag_value > 0:
-                    element = "+" + latex_element
+                    element = "+ " + latex_element
                 else:
                     element = latex_element
-                if element == "+1":
-                    element = "+"
-                elif element == "-1":
-                    element = "-"
+                if element == "+ 1":
+                    element = "+ "
+                elif element == "- 1":
+                    element = "- "
 
         return element
     else:
@@ -1242,24 +1242,29 @@ def _state_to_latex_ket(data: List[complex], max_size: int = 12) -> str:
 
     data = _round_if_close(data)
     nonzero_indices = np.where(data != 0)[0].tolist()
+    is_above_max_size = False
     if len(nonzero_indices) > max_size:
         nonzero_indices = (
             nonzero_indices[: max_size // 2] + [0] + nonzero_indices[-max_size // 2 + 1 :]
         )
         latex_terms = numbers_to_latex_terms(data[nonzero_indices])
         nonzero_indices[max_size // 2] = None
+        is_above_max_size = True
     else:
         latex_terms = numbers_to_latex_terms(data[nonzero_indices])
+        nonzero_indices = [idx for idx, term in enumerate(latex_terms) if term is not None]
 
     latex_str = ""
     for idx, ket_idx in enumerate(nonzero_indices):
-        if ket_idx is None:
-            latex_str += r" + \ldots "
-        else:
-            term = latex_terms[idx]
+        if ket_idx is not None:
+            latex_idx = idx if is_above_max_size else ket_idx
+            term = latex_terms[latex_idx]
             ket = ket_name(ket_idx)
-            latex_str += f"{term} |{ket}\\rangle"
-    return latex_str
+            latex_str += f"{term}|{ket}\\rangle "
+        else:
+            latex_str += "+ \\ldots "
+
+    return latex_str.strip()
 
 
 class TextMatrix:

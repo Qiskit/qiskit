@@ -1118,39 +1118,62 @@ class TestStatevector(QiskitTestCase):
         with self.subTest(msg=" draw('latex', convention='vector')"):
             sv.draw("latex", convention="vector")
 
+    def test_state_to_latex_for_none(self):
+        """
+        Test for `\rangleNone` output in latex representation
+        """
+        sv = Statevector(
+            [
+                7.07106781e-01 - 8.65956056e-17j,
+                -5.55111512e-17 - 8.65956056e-17j,
+                7.85046229e-17 + 8.65956056e-17j,
+                -7.07106781e-01 + 8.65956056e-17j,
+                0.00000000e00 + 0.00000000e00j,
+                -0.00000000e00 + 0.00000000e00j,
+                -0.00000000e00 + 0.00000000e00j,
+                0.00000000e00 - 0.00000000e00j,
+            ],
+            dims=(2, 2, 2),
+        )
+        latex_representation = state_to_latex(sv)
+        self.assertEqual(
+            latex_representation,
+            "\\frac{\\sqrt{2}}{2}|000\\rangle - \\frac{\\sqrt{2}}{2}|011\\rangle",
+        )
+
     def test_state_to_latex_for_large_statevector(self):
         """Test conversion of large dense state vector"""
         sv = Statevector(np.ones((2**15, 1)))
         latex_representation = state_to_latex(sv)
         self.assertEqual(
             latex_representation,
-            " |000000000000000\\rangle+ |000000000000001\\rangle+ |000000000000010\\rangle+"
-            " |000000000000011\\rangle+ |000000000000100\\rangle+ |000000000000101\\rangle +"
-            " \\ldots + |111111111111011\\rangle+ |111111111111100\\rangle+"
-            " |111111111111101\\rangle+ |111111111111110\\rangle+ |111111111111111\\rangle",
+            "|000000000000000\\rangle + |000000000000001\\rangle + |000000000000010\\rangle +"
+            " |000000000000011\\rangle + |000000000000100\\rangle + |000000000000101\\rangle +"
+            " \\ldots + |111111111111011\\rangle + |111111111111100\\rangle +"
+            " |111111111111101\\rangle + |111111111111110\\rangle + |111111111111111\\rangle",
         )
 
     def test_state_to_latex_for_large_sparse_statevector(self):
         """Test conversion of large sparse state vector"""
         sv = Statevector(np.eye(2**15, 1))
         latex_representation = state_to_latex(sv)
-        self.assertEqual(latex_representation, " |000000000000000\\rangle")
+        self.assertEqual(latex_representation, "|000000000000000\\rangle")
 
     def test_number_to_latex_terms(self):
         """Test conversions of complex numbers to latex terms"""
 
         cases = [
             ([1 - 8e-17, 0], ["", None]),
-            ([0, -1], [None, "-"]),
+            ([0, -1], [None, "- "]),
             ([0, 1], [None, ""]),
             ([0, 1j], [None, "i"]),
-            ([-1, 1], ["-", "+"]),
+            ([-1, 1], ["- ", "+ "]),
             ([0, 1j], [None, "i"]),
-            ([-1, 1j], ["-", "+i"]),
+            ([-1, 1j], ["- ", "+ i"]),
             ([1e-16 + 1j], ["i"]),
-            ([-1 + 1e-16 * 1j], ["-"]),
-            ([-1, -1 - 1j], ["-", "+ (-1 - i)"]),
-            ([np.sqrt(2) / 2, np.sqrt(2) / 2], ["\\frac{\\sqrt{2}}{2}", "+\\frac{\\sqrt{2}}{2}"]),
+            ([-1 + 1e-16 * 1j], ["- "]),
+            ([-1, -1 - 1j], ["- ", "+ (-1 - i)"]),
+            ([np.sqrt(2) / 2, np.sqrt(2) / 2], ["\\frac{\\sqrt{2}}{2}", "+ \\frac{\\sqrt{2}}{2}"]),
             ([1 + np.sqrt(2)], ["(1 + \\sqrt{2})"]),
         ]
         for numbers, latex_terms in cases:
@@ -1161,7 +1184,7 @@ class TestStatevector(QiskitTestCase):
         """Test numerical rounding errors are not printed"""
         sv = Statevector(np.array([1 - 8e-17, 8.32667268e-17j]))
         latex_string = sv.draw(output="latex_source")
-        self.assertTrue(latex_string.startswith(" |0\\rangle"))
+        self.assertTrue(latex_string.startswith("|0\\rangle"))
         self.assertNotIn("|1\\rangle", latex_string)
 
     def test_statevctor_iter(self):
