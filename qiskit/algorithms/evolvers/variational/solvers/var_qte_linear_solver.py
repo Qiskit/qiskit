@@ -79,11 +79,15 @@ class VarQTELinearSolver:
         self._imag_part_tol = imag_part_tol
 
     @property
-    def lse_solver(self):
+    def lse_solver(self) -> Callable[[np.ndarray, np.ndarray], np.ndarray]:
+        """Returns an LSE solver callable."""
         return self._lse_solver
 
     @lse_solver.setter
-    def lse_solver(self, lse_solver):
+    def lse_solver(
+        self, lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]]
+    ) -> None:
+        """Sets an LSE solver. Uses a ``np.linalg.lstsq`` callable if ``None`` provided."""
         if lse_solver is None:
             lse_solver = lambda a, b: np.linalg.lstsq(a, b, rcond=1e-2)[0]
 
