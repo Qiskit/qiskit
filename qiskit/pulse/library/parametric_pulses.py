@@ -242,6 +242,9 @@ class GaussianSquare(ParametricPulse):
             limit_amplitude: If ``True``, then limit the amplitude of the
                              waveform to 1. The default is ``True`` and the
                              amplitude is constrained to 1.
+
+        Raises:
+            PulseError: If the parameters passed are not valid.
         """
         if not _is_parameterized(amp):
             amp = complex(amp)
@@ -249,6 +252,13 @@ class GaussianSquare(ParametricPulse):
         self._sigma = sigma
         self._risefall_sigma_ratio = risefall_sigma_ratio
         self._width = width
+
+        if self.width is not None and self.risefall_sigma_ratio is not None:
+            raise PulseError(
+                "Either the pulse width or the risefall_sigma_ratio parameter can be specified"
+                " but not both."
+            )
+
         super().__init__(duration=duration, name=name, limit_amplitude=limit_amplitude)
 
     @property
@@ -284,11 +294,6 @@ class GaussianSquare(ParametricPulse):
             )
         if not _is_parameterized(self.sigma) and self.sigma <= 0:
             raise PulseError("Sigma must be greater than 0.")
-        if self.width is not None and self.risefall_sigma_ratio is not None:
-            raise PulseError(
-                "Either the pulse width or the risefall_sigma_ratio parameter can be specified"
-                " but not both."
-            )
         if self.width is None and self.risefall_sigma_ratio is None:
             raise PulseError(
                 "Either the pulse width or the risefall_sigma_ratio parameter must be specified."
