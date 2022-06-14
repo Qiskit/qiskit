@@ -545,7 +545,7 @@ class SymbolicPulse(Pulse):
             raise NotImplementedError(
                 "Hashing a symbolic pulse with unassigned parameter is not supported."
             )
-        return hash((self._pulse_type, self.duration, *tuple(self._params.items())))
+        return hash((self._pulse_type, self._envelope, self.duration, *tuple(self._params.items())))
 
     def __repr__(self) -> str:
         param_repr = ", ".join(f"{p}={v}" for p, v in self.parameters.items())
