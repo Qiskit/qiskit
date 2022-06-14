@@ -168,6 +168,8 @@ class Exporter:
 class GlobalNamespace:
     """Global namespace dict-like."""
 
+    BASIS_GATE = object()
+
     qiskit_gates = {
         "p": standard_gates.PhaseGate,
         "x": standard_gates.XGate,
@@ -205,7 +207,7 @@ class GlobalNamespace:
     include_paths = [abspath(join(dirname(__file__), "..", "qasm", "libs"))]
 
     def __init__(self, includelist, basis_gates=()):
-        self._data = {gate: None for gate in basis_gates}
+        self._data = {gate: self.BASIS_GATE for gate in basis_gates}
 
         for includefile in includelist:
             if includefile == "stdgates.inc":
@@ -240,13 +242,13 @@ class GlobalNamespace:
             return True
         if id(instruction) in self._data:
             return True
+        if self._data.get(instruction.name) is self.BASIS_GATE:
+            return True
         if type(instruction) in [Gate, Instruction]:  # user-defined instructions/gate
             return self._data.get(instruction.name, None) == instruction
-        if instruction.name in self._data:
-            if self._data.get(instruction.name) is None:  # it is a basis gate:
-                return True
-            if isinstance(instruction, self._data.get(instruction.name)):
-                return True
+        type_ = self._data.get(instruction.name)
+        if isinstance(type_, type) and isinstance(instruction, type_):
+            return True
         return False
 
     def register(self, instruction):
