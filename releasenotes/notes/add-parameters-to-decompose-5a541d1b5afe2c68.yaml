@@ -12,5 +12,5 @@ features:
         # decompose 2 times
         circuit.decompose(reps=2)
 
-        # decompose 2 times, but only RY and R gates
+        # decompose 2 times, but only RY 2 times and R gates 1 times
         circuit.decompose(gates_to_decompose=['ry','r'], reps=2)
