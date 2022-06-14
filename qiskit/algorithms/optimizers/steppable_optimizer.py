@@ -25,10 +25,11 @@ class AskObject(ABC):
     """
     Base class for return type of :meth:`~qiskit.algorithms.optimizers.SteppableOptimizer.ask`.
     Args:
-        x_fun: Point or list of points where the function needs to be evaluated to compute the
-            next state of the optimizer.
+        x_fun: Point or list of points where the function needs to be evaluated to compute the next
+        state of the optimizer.
         x_jac: Point or list of points where the gradient/jacobian needs to be evaluated to compute the
-            next state of the optimizer.
+        next state of the optimizer.
+
     """
 
     x_fun: Optional[Union[POINT, List[POINT]]] = None
@@ -41,9 +42,10 @@ class TellObject(ABC):
     Base class for argument type of :meth:`~.SteppableOptimizer.tell`.
     Args:
         eval_fun: Image of the function at
-            :attr:`~qiskit.algorithms.optimizers.Ask_Object.x_fun`.
+        :attr:`~qiskit.algorithms.optimizers.Ask_Object.x_fun`.
         eval_jac: Image of the gradient-jacobian at
-            :attr:`~qiskit.algorithms.optimizers.Ask_Object.x_jac`.
+        :attr:`~qiskit.algorithms.optimizers.Ask_Object.x_jac`.
+
     """
 
     eval_fun: Union[float, List[float], None] = None
@@ -79,10 +81,10 @@ class SteppableOptimizer(Optimizer):
     depending on the optimizer it can also be about whether we should evaluate the function itself or
     its gradient.
 
-    Once the function has been evaluated, the user calls the method :meth:`~.tell` to tell the
-    optimizer what has been the result of the function evaluation. The optimizer then updates its
-    state accordingly and the user can decide whether to stop the optimization process or to repeat
-    a step.
+    Once the function has been evaluated, the user calls the method :meth:`~.SteppableOptmizer.tell`
+    to tell the optimizer what has been the result of the function evaluation. The optimizer then
+    updates its state accordingly and the user can decide whether to stop the optimization process
+    or to repeat a step.
 
     This interface is more customizable, and allows the user to have full control over the evaluation
     of the function.
@@ -174,7 +176,7 @@ class SteppableOptimizer(Optimizer):
     def tell(self, ask_object: AskObject, tell_object: TellObject) -> None:
         """
         Updates the optimization state once the objective function has been evaluated.
-        A canonical optimization example using :method:`~.ask`
+        A canonical optimization example using :method:`~.SteppableOptimizer.ask`
         and :method:`~.SteppableOptimizer.tell` can be seen in
         :method:`~.SteppableOptimizer.step`.
         Args:
