@@ -1802,8 +1802,8 @@ class QuantumCircuit:
             cregbundle (bool): optional. If set True, bundle classical registers.
                 Default is True.
             wire_order (list): optional. A list of integers used to reorder the display
-                of the bits. The list must be the have an entry for every bit with the
-                bits in the range 0 to (num_qubits + num_clbits).
+                of the bits. The list must have an entry for every bit with the bits
+                in the range 0 to (num_qubits + num_clbits).
 
         Returns:
             :class:`TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or

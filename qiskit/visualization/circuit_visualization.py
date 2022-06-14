@@ -144,8 +144,8 @@ def circuit_drawer(
         cregbundle (bool): optional. If set True, bundle classical registers.
             Default is True.
         wire_order (list): optional. A list of integers used to reorder the display
-            of the bits. The list must be the have an entry for every bit with the
-            bits in the range 0 to (num_qubits + num_clbits).
+            of the bits. The list must have an entry for every bit with the bits
+            in the range 0 to (num_qubits + num_clbits).
 
     Returns:
         :class:`TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
@@ -328,8 +328,8 @@ def _text_circuit_drawer(
         encoding (str): Optional. Sets the encoding preference of the output.
             Default: ``sys.stdout.encoding``.
         wire_order (list): optional. A list of integers used to reorder the display
-            of the bits. The list must be the have an entry for every bit with the
-            bits in the range 0 to (num_qubits + num_clbits).
+            of the bits. The list must have an entry for every bit with the bits
+            in the range 0 to (num_qubits + num_clbits).
 
     Returns:
         TextDrawing: An instance that, when printed, draws the circuit in ascii art.
@@ -413,8 +413,8 @@ def _latex_circuit_drawer(
         cregbundle (bool): Optional. If set True, bundle classical registers.
             Default: ``False``.
         wire_order (list): optional. A list of integers used to reorder the display
-            of the bits. The list must be the have an entry for every bit with the
-            bits in the range 0 to (num_qubits + num_clbits).
+            of the bits. The list must have an entry for every bit with the bits
+            in the range 0 to (num_qubits + num_clbits).
 
     Returns:
         PIL.Image: an in-memory representation of the circuit diagram
@@ -530,8 +530,8 @@ def _generate_latex_source(
         cregbundle (bool): Optional. If set True, bundle classical registers.
             Default: ``False``.
         wire_order (list): optional. A list of integers used to reorder the display
-            of the bits. The list must be the have an entry for every bit with the
-            bits in the range 0 to (num_qubits + num_clbits).
+            of the bits. The list must have an entry for every bit with the bits
+            in the range 0 to (num_qubits + num_clbits).
 
     Returns:
         str: Latex string appropriate for writing to file.
@@ -618,8 +618,8 @@ def _matplotlib_circuit_drawer(
         cregbundle (bool): Optional. If set True bundle classical registers.
             Default: ``True``.
         wire_order (list): optional. A list of integers used to reorder the display
-            of the bits. The list must be the have an entry for every bit with the
-            bits in the range 0 to (num_qubits + num_clbits).
+            of the bits. The list must have an entry for every bit with the bits
+            in the range 0 to (num_qubits + num_clbits).
 
     Returns:
         matplotlib.figure: a matplotlib figure object for the circuit diagram
