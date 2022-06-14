@@ -450,6 +450,8 @@ class TestChoi(ChannelTestCase):
         targ = Choi(val * self.choiI)
         self.assertEqual(chan._multiply(val), targ)
         self.assertEqual(val * chan, targ)
+        targ = Choi(self.choiI * val)
+        self.assertEqual(chan * val, targ)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""

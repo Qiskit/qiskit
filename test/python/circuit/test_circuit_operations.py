@@ -1008,6 +1008,80 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(qc.reverse_bits(), expected)
 
+    def test_reverse_bits_with_overlapped_registers(self):
+        """Test reversing order of bits when registers are overlapped."""
+        qr1 = QuantumRegister(2, "a")
+        qr2 = QuantumRegister(bits=[qr1[0], qr1[1], Qubit()], name="b")
+        qc = QuantumCircuit(qr1, qr2)
+        qc.h(qr1[0])
+        qc.cx(qr1[0], qr1[1])
+        qc.cx(qr1[1], qr2[2])
+
+        qr2 = QuantumRegister(bits=[Qubit(), qr1[0], qr1[1]], name="b")
+        expected = QuantumCircuit(qr2, qr1)
+        expected.h(qr1[1])
+        expected.cx(qr1[1], qr1[0])
+        expected.cx(qr1[0], qr2[0])
+
+        self.assertEqual(qc.reverse_bits(), expected)
+
+    def test_reverse_bits_with_registerless_bits(self):
+        """Test reversing order of registerless bits."""
+        q0 = Qubit()
+        q1 = Qubit()
+        c0 = Clbit()
+        c1 = Clbit()
+        qc = QuantumCircuit([q0, q1], [c0, c1])
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.x(0).c_if(1, True)
+        qc.measure(0, 0)
+
+        expected = QuantumCircuit([c1, c0], [q1, q0])
+        expected.h(1)
+        expected.cx(1, 0)
+        expected.x(1).c_if(0, True)
+        expected.measure(1, 1)
+
+        self.assertEqual(qc.reverse_bits(), expected)
+
+    def test_reverse_bits_with_registers_and_bits(self):
+        """Test reversing order of bits with registers and registerless bits."""
+        qr = QuantumRegister(2, "a")
+        q = Qubit()
+        qc = QuantumCircuit(qr, [q])
+        qc.h(qr[0])
+        qc.cx(qr[0], qr[1])
+        qc.cx(qr[1], q)
+
+        expected = QuantumCircuit([q], qr)
+        expected.h(qr[1])
+        expected.cx(qr[1], qr[0])
+        expected.cx(qr[0], q)
+
+        self.assertEqual(qc.reverse_bits(), expected)
+
+    def test_reverse_bits_with_mixed_overlapped_registers(self):
+        """Test reversing order of bits with overlapped registers and registerless bits."""
+        q = Qubit()
+        qr1 = QuantumRegister(bits=[q, Qubit()], name="qr1")
+        qr2 = QuantumRegister(bits=[qr1[1], Qubit()], name="qr2")
+        qc = QuantumCircuit(qr1, qr2, [Qubit()])
+        qc.h(q)
+        qc.cx(qr1[0], qr1[1])
+        qc.cx(qr1[1], qr2[1])
+        qc.cx(2, 3)
+
+        qr2 = QuantumRegister(2, "qr2")
+        qr1 = QuantumRegister(bits=[qr2[1], q], name="qr1")
+        expected = QuantumCircuit([Qubit()], qr2, qr1)
+        expected.h(qr1[1])
+        expected.cx(qr1[1], qr1[0])
+        expected.cx(qr1[0], qr2[0])
+        expected.cx(1, 0)
+
+        self.assertEqual(qc.reverse_bits(), expected)
+
     def test_cnot_alias(self):
         """Test that the cnot method alias adds a cx gate."""
         qc = QuantumCircuit(2)

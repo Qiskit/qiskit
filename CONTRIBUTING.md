@@ -461,23 +461,28 @@ merged to it are bugfixes.
 
 ### Release cycle
 
-When it is time to release a new minor version of qiskit-terra we will:
+In the lead up to a release there are a few things to keep in mind. Prior to
+the release date there is a feature, removal, and deprecation proposal freeze
+date. This date in each release cycle is the last day where a new PR adding a
+new feature, removing something, or adding a new deprecation can be proposed (in
+a ready for review state) for potential inclusion in the release. If a new
+PR is opened after this date it will not be considered for inclusion in that
+release. Note, that meeting these deadlines does not guarantee inclusion in a
+release: they are preconditions. You can refer to the milestone page for each
+release to see these dates for each release (for example for 0.21.0 the page is:
+https://github.com/Qiskit/qiskit-terra/milestone/23).
 
-1.  Create a new tag with the version number and push it to github
-2.  Change the `main` version to the next release version.
-
-The release automation processes will be triggered by the new tag and perform
-the following steps:
-
-1.  Create a stable branch for the new minor version from the release tag
-    on the `main` branch
-2.  Build and upload binary wheels to pypi
-3.  Create a github release page with a generated changelog
-4.  Generate a PR on the meta-repository to bump the terra version and
-    meta-package version.
-
-The `stable/*` branches should only receive changes in the form of bug
-fixes.
+After the proposal freeze a release review period will begin, during this time
+release candidate PRs will be reviewed as we finalize the feature set and merge
+the last PRs for the release. Following the review period a release candidate will be
+tagged and published. This release candidate is pre-release that enables users and
+developers to test the release ahead of time. When the pre-release is tagged the release
+automation will publish the pre-release to PyPI (but only get installed on user request),
+create the `stable/*` branch, and generate a pre-release changelog/release page. At
+this point the `main` opens up for development of the next release. The `stable/*`
+branches should only  receive changes in the form of bug fixes at this point. If there
+is a need additional release candidates can be published from `stable/*` and when the
+release is ready a full release will be tagged and published from `stable/*`.
 
 ## Adding deprecation warnings
 The qiskit-terra code is part of Qiskit and, therefore, the [Qiskit Deprecation Policy](https://qiskit.org/documentation/contributing_to_qiskit.html#deprecation-policy) fully applies here. Additionally, qiskit-terra does not allow `DeprecationWarning`s in its testsuite. If you are deprecating code, you should add a test to use the new/non-deprecated method (most of the time based on the existing test of the deprecated method) and alter the existing test to check that the deprecated method still works as expected, [using `assertWarns`](https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertWarns). The `assertWarns` context will silence the deprecation warning while checking that it raises.

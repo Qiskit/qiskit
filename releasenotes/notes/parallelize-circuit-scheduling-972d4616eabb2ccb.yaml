@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    Circuit scheduling now executes in parallel when more than one
+    circuit is provided to :func:`~.compiler.schedule`. Refer to
+    `#2695 <https://github.com/Qiskit/qiskit-terra/issues/2695>`
+    for more details.

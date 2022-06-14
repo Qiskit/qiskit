@@ -183,6 +183,15 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         with self.assertRaises(QiskitError):
             _ = SparsePauliOp.from_sparse_list([("Z", [2], 1)], 1)
 
+    def test_from_index_list_same_index(self):
+        """Test from_list via Pauli + number of qubits raises correctly, if indices duplicate."""
+        with self.assertRaises(QiskitError):
+            _ = SparsePauliOp.from_sparse_list([("ZZ", [0, 0], 1)], 2)
+        with self.assertRaises(QiskitError):
+            _ = SparsePauliOp.from_sparse_list([("ZI", [0, 0], 1)], 2)
+        with self.assertRaises(QiskitError):
+            _ = SparsePauliOp.from_sparse_list([("IZ", [0, 0], 1)], 2)
+
     def test_from_zip(self):
         """Test from_list method for zipped input."""
         labels = ["XXZ", "IXI", "YZZ", "III"]
@@ -450,8 +459,13 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         spp_op = self.random_spp_op(num_qubits, 2**num_qubits)
         target = value * Operator(spp_op)
         op = value * spp_op
-        value = op.to_operator()
-        self.assertEqual(value, target)
+        value_mat = op.to_operator()
+        self.assertEqual(value_mat, target)
+        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
+        target = Operator(spp_op) * value
+        op = spp_op * value
+        value_mat = op.to_operator()
+        self.assertEqual(value_mat, target)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
     @combine(num_qubits=[1, 2, 3], value=[1, 1j, -3 + 4.4j])
