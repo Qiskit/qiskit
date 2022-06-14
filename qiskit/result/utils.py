@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=c-extension-no-member
+
 """Utility functions for working with Results."""
 
 from typing import List, Union, Optional, Dict
@@ -18,7 +20,14 @@ from copy import deepcopy
 
 from qiskit.exceptions import QiskitError
 from qiskit.result.result import Result
+from qiskit.result.counts import Counts
+from qiskit.result.distributions.probability import ProbDistribution
+from qiskit.result.distributions.quasi import QuasiDistribution
+
 from qiskit.result.postprocess import _bin_to_hex, _hex_to_bin
+
+# pylint: disable=import-error, no-name-in-module
+from qiskit._accelerate import results as results_rs
 
 
 def marginal_counts(
@@ -66,8 +75,9 @@ def marginal_counts(
 
             if indices is not None:
                 experiment_result.header.memory_slots = len(indices)
-                csize = experiment_result.header.creg_sizes
-                experiment_result.header.creg_sizes = _adjust_creg_sizes(csize, indices)
+                csize = getattr(experiment_result.header, "creg_sizes", None)
+                if csize is not None:
+                    experiment_result.header.creg_sizes = _adjust_creg_sizes(csize, indices)
 
             if getattr(experiment_result.data, "memory", None) is not None and indices is not None:
                 if marginalize_memory is False:
@@ -80,7 +90,7 @@ def marginal_counts(
                     )  # same convention as for the counts
                     bit_strings = [_hex_to_bin(s) for s in experiment_result.data.memory]
                     marginal_bit_strings = [
-                        "".join([s[-idx - 1] for idx in sorted_indices if idx < len(s)])
+                        "".join([s[-idx - 1] for idx in sorted_indices if idx < len(s)]) or "0"
                         for s in bit_strings
                     ]
                     experiment_result.data.memory = [_bin_to_hex(s) for s in marginal_bit_strings]
@@ -118,10 +128,54 @@ def _adjust_creg_sizes(creg_sizes, indices):
     return new_creg_sizes
 
 
+def marginal_distribution(
+    counts: dict, indices: Optional[List[int]] = None, format_marginal: bool = False
+) -> Dict[str, int]:
+    """Marginalize counts from an experiment over some indices of interest.
+
+    Unlike :func:`~.marginal_counts` this function respects the order of
+    the input ``indices``. If the input ``indices`` list is specified, the order
+    the bit indices will be the output order of the bitstrings
+    in the marginalized output.
+
+    Args:
+        counts: result to be marginalized
+        indices: The bit positions of interest
+            to marginalize over. If ``None`` (default), do not marginalize at all.
+        format_marginal: Default: False. If True, takes the output of
+            marginalize and formats it with placeholders between cregs and
+            for non-indices.
+    Returns:
+        dict(str, int): A marginalized dictionary
+    Raises:
+        QiskitError: If any value in ``indices`` is invalid or the ``counts`` dict
+        is invalid.
+    """
+    num_clbits = len(max(counts.keys()).replace(" ", ""))
+    if indices is not None and (not indices or not set(indices).issubset(range(num_clbits))):
+        raise QiskitError(f"indices must be in range [0, {num_clbits - 1}].")
+
+    if isinstance(counts, Counts):
+        res = results_rs.marginal_counts(counts, indices)
+    elif isinstance(counts, (ProbDistribution, QuasiDistribution)):
+        res = results_rs.marginal_distribution(counts, indices)
+    else:
+        first_value = next(iter(counts.values()))
+        if isinstance(first_value, int):
+            res = results_rs.marginal_counts(counts, indices)
+        elif isinstance(first_value, float):
+            res = results_rs.marginal_distribution(counts, indices)
+        else:
+            raise QiskitError("Values of counts must be an int or float")
+
+    if format_marginal and indices is not None:
+        return _format_marginal(counts, res, indices)
+    return res
+
+
 def _marginalize(counts, indices=None):
     """Get the marginal counts for the given set of indices"""
     num_clbits = len(next(iter(counts)).replace(" ", ""))
-
     # Check if we do not need to marginalize and if so, trim
     # whitespace and '_' and return
     if (indices is None) or set(range(num_clbits)) == set(indices):

@@ -162,6 +162,13 @@ class TestParametricPulses(QiskitTestCase):
             gaus_square.get_waveform().samples[2:-2], const.get_waveform().samples[2:-2]
         )
 
+    def test_gauss_square_passes_validation_after_construction(self):
+        """Test that parameter validation is consistent before and after construction.
+
+        This previously used to raise an exception: see gh-7882."""
+        pulse = GaussianSquare(duration=125, sigma=4, amp=0.5j, width=100)
+        pulse.validate_parameters()
+
     def test_drag_pulse(self):
         """Test that the Drag sample pulse matches the pulse library."""
         drag = Drag(duration=25, sigma=4, amp=0.5j, beta=1)

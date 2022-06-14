@@ -34,7 +34,8 @@ class CouplingMap:
     Directed graph specifying fixed coupling.
 
     Nodes correspond to physical qubits (integers) and directed edges correspond
-    to permitted CNOT gates
+    to permitted CNOT gates, with source and destination corresponding to control
+    and target qubits, respectively.
     """
 
     __slots__ = ("description", "graph", "_dist_matrix", "_qubit_list", "_size", "_is_symmetric")

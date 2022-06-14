@@ -1864,34 +1864,5 @@ class TestConditional(QiskitTestCase):
         )
 
 
-class TestDAGDeprecations(QiskitTestCase):
-    """Test DAG deprecations"""
-
-    def test_DAGNode_deprecations(self):
-        """Test DAGNode deprecations."""
-        from qiskit.dagcircuit import DAGNode
-
-        qr = QuantumRegister(1, "qr")
-        cr = ClassicalRegister(1, "cr")
-        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
-            op_node = DAGNode(type="op", op=HGate(), qargs=[qr[0]], cargs=[cr[0]])
-        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
-            in_node = DAGNode(type="in", wire=qr[0])
-        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
-            out_node = DAGNode(type="out", wire=cr[0])
-        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
-            _ = op_node.type
-        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
-            _ = op_node.op
-        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
-            _ = op_node.qargs
-        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
-            _ = op_node.cargs
-        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
-            _ = in_node.wire
-        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
-            _ = out_node.wire
-
-
 if __name__ == "__main__":
     unittest.main()
