@@ -1,9 +1,16 @@
 features:
   - |
-    Added a new parameter, ``reps`` decomposem, repeatly decompose gates
+    Added a new optional argument, ``reps`` to 
+    :meth:`~qiskit.QuantumCircuit.decompose`, which allows to
+    repeatedly decompose the circuit. For example::
 
-    Example
-    .. code:: python
+        from qiskit import QuantumCircuit
+        
+        circuit = QuantumCircuit(1)
+        circuit.ry(0.5, 0)
+        
+        # decompose 2 times
+        circuit.decompose(reps=2)
 
-      #decompose ry 2 times
-      qc.decompose(gates_to_decompose=['ry','r'], reps=2)
+        # decompose 2 times, but only RY and R gates
+        circuit.decompose(gates_to_decompose=['ry','r'], reps=2)
