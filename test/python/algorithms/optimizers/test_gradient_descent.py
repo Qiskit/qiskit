@@ -66,26 +66,27 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
         self.assertLess(result[1], -0.95)  # final loss
         self.assertEqual(result[2], 100)  # function evaluations
 
-    # def test_callback(self):
-    #     """Test the callback."""
+    def test_callback(self):
+        """Test the callback."""
 
-    #     history = []
+        history = []
 
-    #     def callback(*args):
-    #         history.append(args)
+        def callback(*args):
+            history.append(args)
+            # print(args)
 
-    #     optimizer = GradientDescent(maxiter=1, callback=callback)
+        optimizer = GradientDescent(maxiter=1, callback=callback)
 
-    #     def objective(x):
-    #         return np.linalg.norm(x)
+        def objective(x):
+            return np.linalg.norm(x)
 
-    #     _ = optimizer.minimize(objective, np.array([1, -1]))
+        _ = optimizer.minimize(objective, np.array([1, -1]))
 
-    #     self.assertEqual(len(history), 1)
-    #     self.assertIsInstance(history[0][0], int)  # nfevs
-    #     self.assertIsInstance(history[0][1], np.ndarray)  # parameters
-    #     self.assertIsInstance(history[0][2], float)  # function value
-    #     self.assertIsInstance(history[0][3], float)  # norm of the gradient
+        self.assertEqual(len(history), 1)
+        self.assertIsInstance(history[0][0], int)  # nfevs
+        self.assertIsInstance(history[0][1], np.ndarray)  # parameters
+        self.assertIsInstance(history[0][2], float)  # function value
+        self.assertIsInstance(history[0][3], float)  # norm of the gradient
 
     def test_random_failure(self):
         """

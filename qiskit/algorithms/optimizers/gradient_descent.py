@@ -16,7 +16,9 @@ from dataclasses import dataclass
 from typing import Dict, Any, Union, Callable, Optional, Tuple, List, Iterator
 import numpy as np
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
-from .steppable_optimizer import AskObject, TellObject, OptimizerState, SteppableOptimizer, CALLBACK
+from .steppable_optimizer import AskObject, TellObject, OptimizerState, SteppableOptimizer
+
+CALLBACK = Callable[[int, np.ndarray, float, float], None]
 
 
 def constant(eta=0.01):
@@ -140,6 +142,21 @@ class GradientDescent(SteppableOptimizer):
         self.perturbation = perturbation
         self.tol = tol
 
+    def _callback_wrapper(self, ask_object: AskObject, tell_object: TellObject) -> None:
+        """
+        Callback method for GradientDescent.
+        Will call :attr:`~.callback` and pass the following arguments:
+        current number of function values, current parameters, current function value,
+        norm of current gradient.
+        """
+        if self.callback is not None:
+            self.callback(
+                self._state.nfev,
+                self._state.x,
+                self._state.fun(self._state.x),  # This could also come from the tell_object.
+                self._state.stepsize,
+            )
+
     @property
     def settings(self) -> Dict[str, Any]:
         # if learning rate or perturbation are custom iterators expand them
@@ -174,7 +191,7 @@ class GradientDescent(SteppableOptimizer):
         to the learning rate and the gradient at that point.
         """
         update = tell_object.eval_jac
-        self._state.x -= next(self._state.eta) * update
+        self._state.x = self._state.x - next(self._state.eta) * update
         self._state.stepsize = np.linalg.norm(update)
         self._state.nit += 1
 
@@ -185,10 +202,11 @@ class GradientDescent(SteppableOptimizer):
         The value of the gradient is returned as a :class:`qiskit.algorithms.optimizers.TellObject`.
         """
         if self._state.jac is None:
+            eps = 0.01 if self.perturbation is None else self.perturbation
             grad = Optimizer.gradient_num_diff(
-                x_center=ask_object.x_fun,
+                x_center=ask_object.x_jac,
                 f=self._state.fun,
-                epsilon=self.perturbation,
+                epsilon=eps,
                 max_evals_grouped=self._max_evals_grouped,
             )
             self._state.nfev += 1 + len(ask_object.x_jac)

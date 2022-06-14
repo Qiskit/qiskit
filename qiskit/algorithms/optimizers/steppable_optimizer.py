@@ -15,10 +15,9 @@
 from abc import abstractmethod, ABC
 from dataclasses import dataclass
 from typing import Union, Callable, Optional, Tuple, List
-import numpy as np
 from .optimizer import Optimizer, POINT, OptimizerResult
 
-CALLBACK = Callable[[int, np.ndarray, float, float], None]
+CALLBACK = Callable
 
 
 @dataclass
@@ -80,9 +79,10 @@ class SteppableOptimizer(Optimizer):
     depending on the optimizer it can also be about whether we should evaluate the function itself or
     its gradient.
 
-    Once the function has been evaluated, the user calls the method :meth:`~.tell` to tell the optimizer what
-    has been the result of the function evaluation. The optimizer then updates its state accordingly and
-    the user can decide whether to stop the optimization process or to repeat a step.
+    Once the function has been evaluated, the user calls the method :meth:`~.tell` to tell the
+    optimizer what has been the result of the function evaluation. The optimizer then updates its
+    state accordingly and the user can decide whether to stop the optimization process or to repeat
+    a step.
 
     This interface is more customizable, and allows the user to have full control over the evaluation
     of the function.
@@ -118,7 +118,7 @@ class SteppableOptimizer(Optimizer):
             while evaluated_gradient is None:
                 evaluated_gradient = grad(ask_object.x_center)
                 optimizer._state.njev += 1
-            
+
             optmizer._state.nit += 1
 
             tell_object = TellObject(eval_jac=evaluated_gradient)
@@ -197,16 +197,26 @@ class SteppableOptimizer(Optimizer):
         """
         raise NotImplementedError
 
+    def _callback_wrapper(self, ask_object: AskObject, tell_object: TellObject) -> None:
+        """
+        Callback function to be called after each iteration.
+        Args:
+            ask_object: Contains the information on how to do the evaluation.
+            tell_object: Contains all relevant information about the evaluation of the objective
+            function.
+        """
+        raise NotImplementedError
+
     def step(self) -> None:
         """
         Performs one step in the optimization process.
-        This method composes :meth:`~.ask`, :meth:`~.evaluate`, and :meth:`~.tell` to make a step in the optimization process.
+        This method composes :meth:`~.ask`, :meth:`~.evaluate`, and :meth:`~.tell` to make a step
+        in the optimization process.
         """
         ask_object = self.ask()
         tell_object = self.evaluate(ask_object=ask_object)
         self.tell(ask_object=ask_object, tell_object=tell_object)
-        if self.callback is not None:
-            self.callback(state=self._state)
+        self._callback_wrapper(ask_object=ask_object, tell_object=tell_object)
 
     # pylint: disable=invalid-name
     @abstractmethod
