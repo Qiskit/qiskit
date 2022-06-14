@@ -24,7 +24,6 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.opflow.primitive_ops.pauli_op import PauliOp
-from qiskit.providers import BaseBackend
 from qiskit.providers import Backend
 from qiskit.opflow import (
     OperatorBase,
@@ -33,23 +32,29 @@ from qiskit.opflow import (
     StateFn,
     CircuitStateFn,
     ListOp,
-    I,
     CircuitSampler,
+    PauliSumOp,
 )
 from qiskit.opflow.gradients import GradientBase
 from qiskit.utils.validation import validate_min
 from qiskit.utils.backend_utils import is_aer_provider
 from qiskit.utils import QuantumInstance, algorithm_globals
+from ..list_or_dict import ListOrDict
 from ..optimizers import Optimizer, SLSQP
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
-from .eigen_solver import Eigensolver, EigensolverResult, ListOrDict
+from .eigen_solver import Eigensolver, EigensolverResult
+from ..minimum_eigen_solvers.vqe import MINIMIZER
 from ..exceptions import AlgorithmError
+from ..aux_ops_evaluator import eval_observables
 
 logger = logging.getLogger(__name__)
+
 
 # disable check for ansatzes, optimizer setter because of pylint bug
 # pylint: disable=no-member
 
+#TODO: adapt to eval_aux_ops
+#TODO: Add a more detailed explanation of the algorithm in the main docstring
 
 class VQD(VariationalAlgorithm, Eigensolver):
     r"""The Variational Quantum Deflation algorithm.
@@ -90,14 +95,14 @@ class VQD(VariationalAlgorithm, Eigensolver):
         ansatz: Optional[QuantumCircuit] = None,
         k: int = 2,
         betas: Optional[List[float]] = None,
-        optimizer: Optional[Optimizer] = None,
+        optimizer: Optional[Union[Optimizer, MINIMIZER]] = None,
         initial_point: Optional[np.ndarray] = None,
         gradient: Optional[Union[GradientBase, Callable]] = None,
         expectation: Optional[ExpectationBase] = None,
         include_custom: bool = False,
         max_evals_grouped: int = 1,
         callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
-        quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
     ) -> None:
         """
 
@@ -215,7 +220,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
     @quantum_instance.setter
     def quantum_instance(
-        self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
+        self, quantum_instance: Union[QuantumInstance, Backend]
     ) -> None:
         """Sets quantum_instance"""
         if not isinstance(quantum_instance, QuantumInstance):
@@ -312,7 +317,9 @@ class VQD(VariationalAlgorithm, Eigensolver):
         if optimizer is None:
             optimizer = SLSQP()
 
-        optimizer.set_max_evals_grouped(self.max_evals_grouped)
+        if isinstance(optimizer, Optimizer):
+            optimizer.set_max_evals_grouped(self.max_evals_grouped)
+        
         self._optimizer = optimizer
 
     @property
@@ -508,7 +515,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         bounds = _validate_bounds(self.ansatz)
         # We need to handle the array entries being zero or Optional i.e. having value None
         if aux_operators:
-            zero_op = I.tensorpower(operator.num_qubits) * 0.0
+            zero_op = PauliSumOp.from_list([("I" * self.ansatz.num_qubits, 0)])
 
             # Convert the None and zero values when aux_operators is a list.
             # Drop None and convert zero values when aux_operators is a dict.
@@ -617,8 +624,8 @@ class VQD(VariationalAlgorithm, Eigensolver):
             result.eigenstates.append(self._get_eigenstate(result.optimal_parameters[-1]))
 
             if aux_operators is not None:
-                aux_values.append(
-                    self._eval_aux_ops(opt_result.x, aux_operators, expectation=expectation)
+                bound_ansatz = self.ansatz.bind_parameters(result.optimal_point)
+                aux_values.append(eval_observables(self.quantum_instance, bound_ansatz, aux_operators, expectation=expectation)
                 )
 
             if step == 1:
