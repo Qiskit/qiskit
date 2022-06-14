@@ -1494,9 +1494,6 @@ class QuantumCircuit:
 
         Returns:
             QuantumCircuit: a circuit one level decomposed
-
-        Raises:
-            CircuitError: if gates_to_decompose exist with more than one repeat.
         """
         # pylint: disable=cyclic-import
         from qiskit.transpiler.passes.basis.decompose import Decompose
@@ -1505,8 +1502,6 @@ class QuantumCircuit:
 
         pass_ = Decompose(gates_to_decompose)
         dag = circuit_to_dag(self)
-        if gates_to_decompose is not None and reps > 1:
-            raise CircuitError("gates_to_decompose won't work with other than one repeat.")
         for _ in range(reps):
             dag = pass_.run(dag)
         return dag_to_circuit(dag)
