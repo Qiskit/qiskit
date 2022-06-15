@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds `~.SwapNetwork`. This circuit can be used to implement
+    arbitrary pairwise interactions between qubits in linear depth
+    using only linear connectivity.
