@@ -20,7 +20,3 @@ upgrade:
     :class:`~qiskit.pulse.library.Constant`.
     Becasue :class:`~SymbolicPulse` supports full backward compatibility,
     there is no loss of functionality due to the switching of the base class.
-deprecations:
-  - |
-    A pulse base class :class:`~ParametricPulse` has been deprecated and replaced with
-    :class:`~SymbolicPulse`.

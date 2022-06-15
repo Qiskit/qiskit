@@ -52,7 +52,15 @@ from qiskit.pulse.library.waveform import Waveform
 
 
 class ParametricPulse(Pulse):
-    """The abstract superclass for parametric pulses."""
+    """The abstract superclass for parametric pulses.
+
+    .. warning::
+
+        This class is superseded by :class:`.SymbolicPulse` and will be deprecated
+        and eventually removed in the future because of the poor flexibility
+        for defining a new waveform type and serializing it through the :mod:`qiskit.qpy` framework.
+
+    """
 
     @abstractmethod
     def __init__(
@@ -73,7 +81,7 @@ class ParametricPulse(Pulse):
         super().__init__(duration=duration, name=name, limit_amplitude=limit_amplitude)
 
         warnings.warn(
-            "ParametricPulse and its subclass have been deprecated and will be replaced with "
+            "ParametricPulse and its subclass will be deprecated and will be replaced with "
             "SymbolicPulse and its subclass because of QPY serialization support. "
             "See qiskit.pulse.library.symbolic_pulses for details.",
             PendingDeprecationWarning,

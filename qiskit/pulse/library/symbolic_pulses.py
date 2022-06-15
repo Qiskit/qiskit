@@ -211,9 +211,20 @@ class SymbolicPulse(Pulse):
     A symbolic pulse instance can be defined with an envelope and parameter constraints.
     Envelope and parameter constraints should be provided as symbolic expressions.
     Rather than creating a subclass, different pulse shapes can be distinguished by
-    the instance attributes :attr:`SymbolicPulse.envelope` and :attr:`SymbolicPulse.constraints`,
-    together with the ``pulse_type`` argument of the :class:`SymbolicPulse` constructor.
+    the instance attributes :attr:`SymbolicPulse.envelope` and :attr:`SymbolicPulse.pulse_type`.
 
+    The symbolic expressions must be defined either with SymPy_ or Symengine_.
+    Usually Symengine-based expression is much more performant for instantiation
+    of the :class:`SymbolicPulse`, however, it doesn't support every functions available in SymPy.
+    You may need to choose proper library depending on how you define your pulses.
+    Symengine works in the most envelopes and constraints, and thus it is recommended to use
+    this library especially when your program contains a lot of pulses.
+    Also note that Symengine has the limited platform support, in particular, for 32-bit platforms
+    such as ``i686`` and ``arm``, or Ubuntu Server such as ``s390x``. You must confirm Symengine
+    is available in your environment, otherwise it must fall back into SymPy.
+
+    .. _SymPy: https://www.sympy.org/en/index.html
+    .. _Symengine: https://symengine.org
 
     .. _symbolic_pulse_envelope:
 
@@ -344,7 +355,8 @@ class SymbolicPulse(Pulse):
 
     .. rubric:: Serialization
 
-    The :class:`~SymbolicPulse` subclass is QPY serialized with symbolic expressions.
+    The :class:`~SymbolicPulse` subclass can be serialized along with the
+    symbolic expressions through :mod:`qiskit.qpy`.
     A user can therefore create a custom pulse subclass with a novel envelope and constraints,
     and then one can instantiate the class with certain parameters to run on a backend.
     This pulse instance can be saved in the QPY binary, which can be loaded afterwards

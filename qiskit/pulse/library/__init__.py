@@ -32,8 +32,16 @@ that generate the waveform in a class instance.
 It thus provides greater memory efficiency at the price of less flexibility in the waveform.
 This model also defines a small set of pulse subclasses in :ref:`symbolic_pulses`
 which are commonly used in superconducting quantum processors.
-An instance of these subclasses can be serialized in the QPY binary format
+An instance of these subclasses can be serialized in the :ref:`qpy_format`
 while keeping the memory-efficient parametric representation of waveforms.
+Note that :class:`~Waveform` object can be generated from an instance of
+a :class:`~SymbolicPulse` which will set values for the parameters and
+sample the parametric expression to create the :class:`~Waveform`.
+
+.. note::
+
+    QPY serialization support for :class:`.SymbolicPulse` is currently not available.
+    This feature will be implemented soon in Qiskit terra version 0.21.
 
 
 .. _pulse_models:
@@ -46,6 +54,7 @@ Pulse Models
 
    Waveform
    SymbolicPulse
+   ParametricPulse
 
 
 .. _waveforms:
