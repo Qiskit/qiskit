@@ -264,6 +264,7 @@ class SteppableOptimizer(Optimizer):
         self.initialize(x0=x0, fun=fun, jac=jac, bounds=bounds)
         while self.continue_condition():
             self.step()
+            # callback
         return self.create_result()
 
     @abstractmethod

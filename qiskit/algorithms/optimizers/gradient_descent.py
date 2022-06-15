@@ -49,7 +49,7 @@ class GradientDescent(SteppableOptimizer):
     for a small learning rate :math:`\eta > 0`.
 
     You can either provide the analytic gradient :math:`\vec\nabla f` as ``gradient_function``
-    in the ``optimize`` method, or, if you do not provide it, use a finite difference approximation
+    in the ``minimize`` method, or, if you do not provide it, use a finite difference approximation
     of the gradient. To adapt the size of the perturbation in the finite difference gradients,
     set the ``perturbation`` property in the initializer.
 
@@ -73,14 +73,13 @@ class GradientDescent(SteppableOptimizer):
             initial_point = np.array([1, 0.5, -0.2])
 
             optimizer = GradientDescent(maxiter=100)
-            x_opt, fx_opt, nfevs = optimizer.optimize(initial_point.size,
-                                                      f,
-                                                      initial_point=initial_point)
+            result = optimizer.minimize(fun=fun, x0=initial_point)
 
-            print(f"Found minimum {x_opt} at a value of {fx_opt} using {nfevs} evaluations.")
+            print(f"Found minimum {result.x} at a value"
+                "of {result.fun} using {result.nfev} evaluations.")
 
         An example where the learning rate is an iterator and we supply the analytic gradient.
-        Note how much faster this convergences (i.e. less ``nfevs``) compared to the previous
+        Note how much faster this convergences (i.e. less ``nfev``) compared to the previous
         example.
 
         .. code-block::python
@@ -107,12 +106,10 @@ class GradientDescent(SteppableOptimizer):
             initial_point = np.array([1, 0.5, -0.2])
 
             optimizer = GradientDescent(maxiter=100, learning_rate=learning_rate)
-            x_opt, fx_opt, nfevs = optimizer.optimize(initial_point.size,
-                                                      f,
-                                                      gradient_function=grad_f,
-                                                      initial_point=initial_point)
+            result = optimizer.minimize(fun=fun, jac=grad_f, x0=initial_point)
 
-            print(f"Found minimum {x_opt} at a value of {fx_opt} using {nfevs} evaluations.")
+            print(f"Found minimum {result.x} at a value"
+            "of {result.fun} using {result.nfev} evaluations.")
 
     """
 
@@ -131,10 +128,10 @@ class GradientDescent(SteppableOptimizer):
                 updates. See the docstring for an example.
             tol: If the norm of the parameter update is smaller than this threshold, the
                 optimizer is converged.
-            perturbation: If no gradient is passed to ``GradientDescent.optimize`` the gradient is
+            perturbation: If no gradient is passed to :meth:`~.GradientDescent.minimize` the gradient is
                 approximated with a symmetric finite difference scheme with ``perturbation``
                 perturbation in both directions (defaults to 1e-2 if required).
-                Ignored if a gradient callable is passed to ``GradientDescent.optimize``.
+                Ignored if a gradient callable is passed to `~.GradientDescent.optimize`.
         """
         super().__init__(maxiter=maxiter, callback=callback)
         self._state: GradientDescentState = None
