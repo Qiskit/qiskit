@@ -21,8 +21,8 @@ from qiskit.opflow import (
     ExpectationBase,
 )
 from qiskit.utils import QuantumInstance
+from qiskit.algorithms.evolvers.variational import VarQTE
 from .solvers.ode.ode_function_factory import OdeFunctionFactory
-from .var_qte import VarQTE
 from .variational_principles.real_variational_principle import (
     RealVariationalPrinciple,
 )

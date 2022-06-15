@@ -21,8 +21,8 @@ from qiskit.opflow import (
 )
 from qiskit.algorithms.evolvers.imaginary_evolver import ImaginaryEvolver
 from qiskit.utils import QuantumInstance
+from qiskit.algorithms.evolvers.variational import VarQTE
 from .solvers.ode.ode_function_factory import OdeFunctionFactory
-from .var_qte import VarQTE
 from .variational_principles.imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
