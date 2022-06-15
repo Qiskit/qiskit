@@ -140,7 +140,7 @@ def test_circ2():
 
 
 if __name__ == "__main__":
-    test_clifford(10, 5000)
+    test_clifford(50, 5000)
     #test_circ1()
     # test_circ2()
 

@@ -109,34 +109,26 @@ class CommutativeInverseCancellation(TransformationPass):
 
         gate_names = [gate.name for gate in self.self_inverse_gates]
 
-        # This is not optimal
         for name in gate_names:
-            # print(f"Examining {name}")
+
             for idx1 in range(0, circ_size):
                 if topo_sorted_nodes[idx1].name != name:
                     continue
 
-                # print(f"...matched {idx1 = }")
                 matched_idx2 = -1
 
                 for idx2 in range(idx1-1, -1, -1):
-                    # print(f".....{idx2 = }")
                     if removed[idx2]:
                         continue
 
                     if topo_sorted_nodes[idx2].name == topo_sorted_nodes[idx1].name and topo_sorted_nodes[idx2].qargs == topo_sorted_nodes[idx1].qargs:
-                        # print(f".....MATCH FOUND!")
                         matched_idx2 = idx2
                         break
 
-                    commuting = cc.commute(topo_sorted_nodes[idx1], topo_sorted_nodes[idx2])
-                    # print(f"....commuting = {commuting}")
-                    if not commuting:
-                        # print(f"does not commute, break")
+                    if not cc.commute(topo_sorted_nodes[idx1], topo_sorted_nodes[idx2]):
                         break
 
                 if matched_idx2 != -1:
-                    # print(f"HERE: {idx1 = }, {matched_idx2 = }")
                     removed[idx1] = True
                     removed[matched_idx2] = True
 
@@ -153,29 +145,6 @@ class CommutativeInverseCancellation(TransformationPass):
             if removed[idx]:
                 dag.remove_op_node(topo_sorted_nodes[idx])
 
-
-        # for idx in range(0)
-        #
-        #
-        # # Sets of gate runs by name, for instance: [{(H 0, H 0), (H 1, H 1)}, {(X 0, X 0}]
-        # gate_runs_sets = [dag.collect_runs([gate.name]) for gate in self_inverse_gates]
-        # for gate_runs in gate_runs_sets:
-        #     for gate_cancel_run in gate_runs:
-        #         partitions = []
-        #         chunk = []
-        #         for i in range(len(gate_cancel_run) - 1):
-        #             chunk.append(gate_cancel_run[i])
-        #             if gate_cancel_run[i].qargs != gate_cancel_run[i + 1].qargs:
-        #                 partitions.append(chunk)
-        #                 chunk = []
-        #         chunk.append(gate_cancel_run[-1])
-        #         partitions.append(chunk)
-        #         # Remove an even number of gates from each chunk
-        #         for chunk in partitions:
-        #             if len(chunk) % 2 == 0:
-        #                 dag.remove_op_node(chunk[0])
-        #             for node in chunk[1:]:
-        #                 dag.remove_op_node(node)
         return dag
 
 
