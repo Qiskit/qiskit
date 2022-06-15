@@ -12,7 +12,7 @@
 
 """A ground state calculation employing the AdaptVQE algorithm."""
 from __future__ import annotations
-from typing import Optional, List, Tuple, Union, Callable
+from typing import Optional, List, Tuple, Union
 
 import copy
 import re
@@ -24,19 +24,19 @@ from qiskit import QiskitError
 from qiskit.algorithms import VQE
 from qiskit.algorithms.list_or_dict import ListOrDict
 from qiskit.algorithms.minimum_eigen_solvers.vqe import VQEResult
-from qiskit.algorithms import VariationalAlgorithm, VariationalResult
+from qiskit.algorithms import VariationalAlgorithm
 from qiskit.circuit import QuantumCircuit
-from qiskit.opflow import OperatorBase, PauliSumOp, ExpectationBase, CircuitSampler,StateFn
+from qiskit.opflow import OperatorBase, PauliSumOp, ExpectationBase, CircuitSampler
 from qiskit.opflow.gradients import GradientBase, Gradient
 from qiskit.circuit.library import EvolvedOperatorAnsatz
 from qiskit.utils.validation import validate_min
 
 
-from qiskit.algorithms.optimizers import Optimizer
-from qiskit.utils import QuantumInstance, quantum_instance
+from qiskit.utils import QuantumInstance
 from qiskit.providers import Backend
 from qiskit.algorithms.aux_ops_evaluator import eval_observables
-#from ..aux_ops_evaluator import eval_observables
+
+# from ..aux_ops_evaluator import eval_observables
 from enum import Enum
 
 # from .minimum_eigensolver_factories import MinimumEigensolverFactory
@@ -60,7 +60,7 @@ class AdaptVQE(VariationalAlgorithm):
 
     def __init__(
         self,
-        solver: VQE ,
+        solver: VQE,
         ansatz: Optional[QuantumCircuit] = None,
         threshold: float = 1e-5,
         max_iterations: Optional[int] = None,
@@ -82,7 +82,7 @@ class AdaptVQE(VariationalAlgorithm):
             excitation_pool: An entire list of excitations.
         """
         validate_min("threshold", threshold, 1e-15)
-        
+
         if adapt_gradient is None:
             adapt_gradient = Gradient(grad_method="param_shift")
         self._threshold = threshold
@@ -96,7 +96,6 @@ class AdaptVQE(VariationalAlgorithm):
         self.quantum_instance = quantum_instance
         self._excitation_list: List[OperatorBase] = []
 
-         
     @property
     def initial_point(self) -> Optional[np.ndarray]:
         """Returns initial point."""
@@ -137,9 +136,11 @@ class AdaptVQE(VariationalAlgorithm):
                 ~StateFn(operator) @ StateFn(self.solver.ansatz),
                 bind_params=list(self.solver.ansatz.parameters),
                 backend=self.quantum_instance)"""
-            op,expectation = self.solver.construct_expectation(theta1, operator, return_expectation=True)
+            op, expectation = self.solver.construct_expectation(
+                theta1, operator, return_expectation=True
+            )
             # compute gradient
-            #print(op)
+            # print(op)
             state_grad = self._adapt_gradient.convert(operator=op, params=param_sets)
             # Assign the parameters and evaluate the gradient
             value_dict = {param_sets[-1]: 0.0}
@@ -147,10 +148,11 @@ class AdaptVQE(VariationalAlgorithm):
                 result = gradient1(value)
             print(result[-1])
             res.append((np.abs(result[-1]), exc))"""
-            #print(state_grad)
+            # print(state_grad)
             state_grad_result = sampler.convert(state_grad, params=value_dict).eval()
             logger.info("Gradient computed : %s", str(state_grad_result))
             res.append((np.abs(state_grad_result[-1]), exc))
+            print(res)
         return res, expectation
 
     @staticmethod
@@ -197,7 +199,7 @@ class AdaptVQE(VariationalAlgorithm):
         else:
             return
 
-    def compute_minimum_eigensolver(
+    def compute_minimum_eigenvalue(
         self,
         operator: OperatorBase,
         aux_operators: Optional[ListOrDict[PauliSumOp]] = None,
@@ -258,12 +260,12 @@ class AdaptVQE(VariationalAlgorithm):
                     "Adaptive VQE terminated successfully with a final maximum gradient: %s",
                     str(np.abs(max_grad[0])),
                 )
-                finishing_criterion= Finishing_criterion.converged
+                finishing_criterion = Finishing_criterion.converged
                 break
             # check indices of picked gradients for cycles
             if self._check_cyclicity(prev_op_indices):
                 logger.info("Final maximum gradient: %s", str(np.abs(max_grad[0])))
-                finishing_criterion= Finishing_criterion.cyclicity
+                finishing_criterion = Finishing_criterion.cyclicity
                 break
             # add new excitation to self._ansatz
             self._excitation_list.append(max_grad[1])
@@ -272,17 +274,17 @@ class AdaptVQE(VariationalAlgorithm):
             self._tmp_ansatz.operators = self._excitation_list
             self.solver.ansatz = self._tmp_ansatz
             self.initial_point = theta
-            #self.solver.quantum_instance = self.quantum_instance
+            # self.solver.quantum_instance = self.quantum_instance
             raw_vqe_result = self.solver.compute_minimum_eigenvalue(operator)
             theta = raw_vqe_result.optimal_point.tolist()
         else:
             # reached maximum number of iterations
-            finishing_criterion= Finishing_criterion.maximum
+            finishing_criterion = Finishing_criterion.maximum
             logger.info("Maximum number of iterations reached. Finishing.")
             logger.info("Final maximum gradient: %s", str(np.abs(max_grad[0])))
 
-        if finishing_criterion==False:
-            finishing_criterion= Finishing_criterion.unknown
+        if finishing_criterion == False:
+            finishing_criterion = Finishing_criterion.unknown
             raise QiskitError("The algorithm finished due to an unforeseen reason!")
 
         result = AdaptVQEResult()

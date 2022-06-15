@@ -1,6 +1,7 @@
 """ Test of the AdaptVQE minimum eigensolver """
 import sys
 from qiskit.algorithms.minimum_eigen_solvers.vqe import VQE
+
 sys.path.append("/Users/freyashah/qiskit-terra/test")
 import unittest
 from qiskit.opflow.gradients.gradient import Gradient
@@ -54,26 +55,26 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
             ),
             PauliSumOp(
                 SparsePauliOp(
-                    ['ZXZY', 'IXIY', 'IYIX', 'ZYZX', 'IYZX', 'ZYIX', 'ZXIY', 'IXZY'],
+                    ["ZXZY", "IXIY", "IYIX", "ZYZX", "IYZX", "ZYIX", "ZXIY", "IXZY"],
                     coeffs=[
-                        -0.125 + 0.j,
-                        0.125 + 0.j,
-                        -0.125 + 0.j,
-                        0.125 + 0.j,
-                        0.125 + 0.j,
-                        -0.125 + 0.j,
-                        0.125 + 0.j,
-                        -0.125 + 0.j
-                    ]
+                        -0.125 + 0.0j,
+                        0.125 + 0.0j,
+                        -0.125 + 0.0j,
+                        0.125 + 0.0j,
+                        0.125 + 0.0j,
+                        -0.125 + 0.0j,
+                        0.125 + 0.0j,
+                        -0.125 + 0.0j,
+                    ],
                 ),
-                coeff=1.0
+                coeff=1.0,
             ),
         ]
         initial_state = QuantumCircuit(QuantumRegister(4))
         initial_state.x(0)
         initial_state.x(1)
         ansatz = EvolvedOperatorAnsatz(excitation_pool, initial_state=initial_state)
-        quantum_instance=BasicAer.get_backend("statevector_simulator")
+        quantum_instance = BasicAer.get_backend("statevector_simulator")
         calc = AdaptVQE(
             solver=VQE(quantum_instance=quantum_instance),
             ansatz=ansatz,
@@ -81,11 +82,12 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
             adapt_gradient=Gradient(grad_method="param_shift"),
             quantum_instance=quantum_instance,
         )
-        res = calc.compute_minimum_eigensolver(operator=self.h2_op)
+        res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
 
         expected = -1.85727503
 
         self.assertAlmostEqual(res.eigenvalue, expected, places=6)
-        
+
+
 if __name__ == "__main__":
     unittest.main()
