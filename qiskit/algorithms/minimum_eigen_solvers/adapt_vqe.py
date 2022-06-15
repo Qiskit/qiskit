@@ -18,6 +18,7 @@ import copy
 import re
 import logging
 
+from enum import Enum
 import numpy as np
 from qiskit import QiskitError
 
@@ -36,19 +37,14 @@ from qiskit.utils import QuantumInstance
 from qiskit.providers import Backend
 from qiskit.algorithms.aux_ops_evaluator import eval_observables
 
-# from ..aux_ops_evaluator import eval_observables
-from enum import Enum
-
-# from .minimum_eigensolver_factories import MinimumEigensolverFactory
-# from .ground_state_eigensolver import GroundStateEigensolver
 logger = logging.getLogger(__name__)
 
 
 class Finishing_criterion(Enum):
-    converged = "Threshold converged"
-    cyclicity = "Aborted due to cyclicity"
-    maximum = "Maximum number of iterations reached"
-    unknown = "The algorithm finished due to unforeseen reason"
+    CONVERGED = "Threshold converged"
+    CYCLICITY = "Aborted due to cyclicity"
+    MAXIMUM = "Maximum number of iterations reached"
+    UNKNOWN = "The algorithm finished due to unforeseen reason"
 
 
 class AdaptVQE(VariationalAlgorithm):
@@ -132,27 +128,17 @@ class AdaptVQE(VariationalAlgorithm):
             param_sets = list(self.solver.ansatz.parameters)
             # zip will only iterate the length of the shorter list
             theta1 = dict(zip(self.solver.ansatz.parameters, theta))
-            """gradient1 = self._adapt_gradient.gradient_wrapper(
-                ~StateFn(operator) @ StateFn(self.solver.ansatz),
-                bind_params=list(self.solver.ansatz.parameters),
-                backend=self.quantum_instance)"""
             op, expectation = self.solver.construct_expectation(
                 theta1, operator, return_expectation=True
             )
             # compute gradient
-            # print(op)
             state_grad = self._adapt_gradient.convert(operator=op, params=param_sets)
             # Assign the parameters and evaluate the gradient
             value_dict = {param_sets[-1]: 0.0}
-            """for value in enumerate(value_dict):
-                result = gradient1(value)
-            print(result[-1])
-            res.append((np.abs(result[-1]), exc))"""
             # print(state_grad)
             state_grad_result = sampler.convert(state_grad, params=value_dict).eval()
             logger.info("Gradient computed : %s", str(state_grad_result))
             res.append((np.abs(state_grad_result[-1]), exc))
-            print(res)
         return res, expectation
 
     @staticmethod
@@ -207,6 +193,7 @@ class AdaptVQE(VariationalAlgorithm):
         """Computes the ground state.
 
         Args:
+            operators: Operator to evaluate
             aux_operators: Additional auxiliary operators to evaluate.
 
         Raises:
@@ -240,7 +227,6 @@ class AdaptVQE(VariationalAlgorithm):
             iteration += 1
             logger.info("--- Iteration #%s ---", str(iteration))
             # compute gradients
-
             cur_grads, expectation = self._compute_gradients(theta, operator)
             # pick maximum gradient
             max_grad_index, max_grad = max(
@@ -260,12 +246,12 @@ class AdaptVQE(VariationalAlgorithm):
                     "Adaptive VQE terminated successfully with a final maximum gradient: %s",
                     str(np.abs(max_grad[0])),
                 )
-                finishing_criterion = Finishing_criterion.converged
+                finishing_criterion = Finishing_criterion.CONVERGED
                 break
             # check indices of picked gradients for cycles
             if self._check_cyclicity(prev_op_indices):
                 logger.info("Final maximum gradient: %s", str(np.abs(max_grad[0])))
-                finishing_criterion = Finishing_criterion.cyclicity
+                finishing_criterion = Finishing_criterion.CYCLICITY
                 break
             # add new excitation to self._ansatz
             self._excitation_list.append(max_grad[1])
@@ -279,12 +265,12 @@ class AdaptVQE(VariationalAlgorithm):
             theta = raw_vqe_result.optimal_point.tolist()
         else:
             # reached maximum number of iterations
-            finishing_criterion = Finishing_criterion.maximum
+            finishing_criterion = Finishing_criterion.MAXIMUM
             logger.info("Maximum number of iterations reached. Finishing.")
             logger.info("Final maximum gradient: %s", str(np.abs(max_grad[0])))
 
         if finishing_criterion == False:
-            finishing_criterion = Finishing_criterion.unknown
+            finishing_criterion = Finishing_criterion.UNKNOWN
             raise QiskitError("The algorithm finished due to an unforeseen reason!")
 
         result = AdaptVQEResult()
