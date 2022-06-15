@@ -49,3 +49,4 @@ features:
       evolution_problem = EvolutionProblem(observable, time, ansatz, param_value_dict=param_dict)
       var_qite = VarQITE(var_principle, backend=backend)
       evolution_result = var_qite.evolve(evolution_problem)
+
