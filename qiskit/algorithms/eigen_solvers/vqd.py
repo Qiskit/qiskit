@@ -12,7 +12,7 @@
 
 """The Variational Quantum Deflation Algorithm for computing higher energy states.
 
-See https://arxiv.org/abs/1805.08138
+See https://arxiv.org/abs/1805.08138.
 """
 
 from typing import Optional, List, Callable, Union, Dict, Tuple
@@ -75,7 +75,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
     the k eigenvalues of the Hamiltonian :math:`H` of a given system.
 
     An instance of VQD requires defining three algorithmic sub-components:
-    integer k denoting the number of eigenstates to calculate, a trial
+    an integer k denoting the number of eigenstates to calculate, a trial
     state (a.k.a. ansatz)which is a :class:`QuantumCircuit`,
     and one of the classical :mod:`~qiskit.algorithms.optimizers`.
     The ansatz is varied, via its set of parameters, by the optimizer,
@@ -205,7 +205,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         Args:
             ansatz: The parameterized circuit used as an ansatz.
-            If None is passed, RealAmplitudes is used by default.
+                If None is passed, RealAmplitudes is used by default.
 
         """
         if ansatz is None:
@@ -233,7 +233,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
     def quantum_instance(
         self, quantum_instance: Union[QuantumInstance, Backend]
     ) -> None:
-        """Sets quantum_instance"""
+        """Sets a quantum_instance."""
         if not isinstance(quantum_instance, QuantumInstance):
             quantum_instance = QuantumInstance(quantum_instance)
 
@@ -244,7 +244,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
     @property
     def initial_point(self) -> Optional[np.ndarray]:
-        """Returns initial point"""
+        """Returns initial point."""
         return self._initial_point
 
     @initial_point.setter
