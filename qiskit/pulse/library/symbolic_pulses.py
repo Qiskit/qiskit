@@ -219,11 +219,13 @@ class SymbolicPulse(Pulse):
     You may need to choose proper library depending on how you define your pulses.
     Symengine works in the most envelopes and constraints, and thus it is recommended to use
     this library especially when your program contains a lot of pulses.
-    Also note that Symengine has the limited platform support and may not be available for your local system.
-    Symengine is a required dependency for Qiskit on platforms that support it will always be installed along
-    with Qiskit on macOS ``x86_64`` and ``arm64``, and Linux ``x86_64``, ``aarch64``, and ``ppc64le``. For 64bit
-    Windows users they will need to manual install it. For 32-bit platforms such as ``i686`` and ``armv7`` Linux,
-    and on Linux ``s390x`` there are no pre-compiled packages available and to use symengine you'll need to
+    Also note that Symengine has the limited platform support and may not be available
+    for your local system. Symengine is a required dependency for Qiskit on platforms
+    that support it will always be installed along with Qiskit on macOS ``x86_64`` and ``arm64``,
+    and Linux ``x86_64``, ``aarch64``, and ``ppc64le``.
+    For 64-bit Windows users they will need to manual install it.
+    For 32-bit platforms such as ``i686`` and ``armv7`` Linux, and on Linux ``s390x``
+    there are no pre-compiled packages available and to use symengine you'll need to
     compile it from source. If Symengine is not available in your environment SymPy will be used.
 
     .. _SymPy: https://www.sympy.org/en/index.html
