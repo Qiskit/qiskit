@@ -55,6 +55,7 @@ from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import ContainsInstruction
 
 from qiskit.transpiler import TranspilerError
+from qiskit.utils.optionals import HAS_TOQM
 
 
 def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
@@ -137,6 +138,9 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _swap_condition(property_set):
         return not property_set["is_swap_mapped"]
 
+    def _swap_needs_basis(property_set):
+        return _swap_condition(property_set) and routing_method == "toqm"
+
     _swap = [BarrierBeforeFinalMeasurements()]
     if routing_method == "basic":
         _swap += [BasicSwap(coupling_map)]
@@ -146,6 +150,25 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _swap += [LookaheadSwap(coupling_map, search_depth=2, search_width=2)]
     elif routing_method == "sabre":
         _swap += [SabreSwap(coupling_map, heuristic="basic", seed=seed_transpiler)]
+    elif routing_method == "toqm":
+        HAS_TOQM.require_now("TOQM-based routing")
+        from qiskit_toqm import ToqmSwap, ToqmStrategyO0, latencies_from_target
+
+        if initial_layout:
+            raise TranspilerError("Initial layouts are not supported with TOQM-based routing.")
+
+        # Note: BarrierBeforeFinalMeasurements is skipped intentionally since ToqmSwap
+        #       does not yet support barriers.
+        _swap = [
+            ToqmSwap(
+                coupling_map,
+                strategy=ToqmStrategyO0(
+                    latencies_from_target(
+                        coupling_map, instruction_durations, basis_gates, backend_properties, target
+                    )
+                ),
+            )
+        ]
     elif routing_method == "none":
         _swap += [
             Error(
@@ -223,6 +246,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm0.append(_choose_layout, condition=_choose_layout_condition)
         pm0.append(_embed)
         pm0.append(_swap_check)
+        pm0.append(_unroll, condition=_swap_needs_basis)
         pm0.append(_swap, condition=_swap_condition)
     pm0.append(_unroll)
     if (coupling_map and not coupling_map.is_symmetric) or (
