@@ -20,6 +20,7 @@ import logging
 import warnings
 from time import time
 import numpy as np
+import scipy
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import RealAmplitudes
@@ -40,7 +41,7 @@ from qiskit.utils.validation import validate_min
 from qiskit.utils.backend_utils import is_aer_provider
 from qiskit.utils import QuantumInstance, algorithm_globals
 from ..list_or_dict import ListOrDict
-from ..optimizers import Optimizer, SLSQP
+from ..optimizers import Optimizer, SLSQP, OptimizerResult
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .eigen_solver import Eigensolver, EigensolverResult
 from ..minimum_eigen_solvers.vqe import MINIMIZER
@@ -49,11 +50,21 @@ from ..aux_ops_evaluator import eval_observables
 
 logger = logging.getLogger(__name__)
 
+OBJECTIVE = Callable[[np.ndarray], float]
+GRADIENT = Callable[[np.ndarray], np.ndarray]
+RESULT = Union[scipy.optimize.OptimizeResult, OptimizerResult]
+BOUNDS = List[Tuple[float, float]]
 
-# disable check for ansatzes, optimizer setter because of pylint bug
-# pylint: disable=no-member
+MINIMIZER = Callable[
+    [
+        OBJECTIVE,  # the objective function to minimize (the energy in the case of the VQE)
+        np.ndarray,  # the initial point for the optimization
+        Optional[GRADIENT],  # the gradient of the objective function
+        Optional[BOUNDS],  # parameters bounds for the optimization
+    ],
+    RESULT,  # a result object (either SciPy's or Qiskit's)
+]
 
-#TODO: adapt to eval_aux_ops
 #TODO: Add a more detailed explanation of the algorithm in the main docstring
 
 class VQD(VariationalAlgorithm, Eigensolver):
@@ -319,7 +330,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         if isinstance(optimizer, Optimizer):
             optimizer.set_max_evals_grouped(self.max_evals_grouped)
-        
+
         self._optimizer = optimizer
 
     @property
@@ -625,8 +636,8 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
             if aux_operators is not None:
                 bound_ansatz = self.ansatz.bind_parameters(result.optimal_point)
-                aux_values.append(eval_observables(self.quantum_instance, bound_ansatz, aux_operators, expectation=expectation)
-                )
+                aux_value = eval_observables(self.quantum_instance, bound_ansatz, aux_operators, expectation=expectation)
+                aux_values.append(aux_value)
 
             if step == 1:
 
