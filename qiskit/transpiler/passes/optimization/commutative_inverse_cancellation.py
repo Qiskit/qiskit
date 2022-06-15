@@ -101,53 +101,63 @@ class CommutativeInverseCancellation(TransformationPass):
         circ_size = len(topo_sorted_nodes)
 
         removed = [False for _ in range(circ_size)]
-        # print(removed)
 
         from .commutation_checker import CommutationChecker
+
         cc = CommutationChecker()
-        cc.print()
+        # cc.print()
 
         gate_names = [gate.name for gate in self.self_inverse_gates]
 
-        for name in gate_names:
+        for idx1 in range(0, circ_size):
+            if topo_sorted_nodes[idx1].name not in gate_names:
+                continue
 
-            for idx1 in range(0, circ_size):
-                if topo_sorted_nodes[idx1].name != name:
+            matched_idx2 = -1
+
+            for idx2 in range(idx1 - 1, -1, -1):
+                if removed[idx2]:
                     continue
 
-                matched_idx2 = -1
+                removed2 = False
 
-                for idx2 in range(idx1-1, -1, -1):
-                    if removed[idx2]:
-                        continue
+                if (
+                    topo_sorted_nodes[idx2].name == topo_sorted_nodes[idx1].name
+                    and topo_sorted_nodes[idx2].op.params == topo_sorted_nodes[idx1].op.params
+                    and topo_sorted_nodes[idx2].qargs == topo_sorted_nodes[idx1].qargs
+                ):
+                    matched_idx2 = idx2
+                    break
 
-                    if topo_sorted_nodes[idx2].name == topo_sorted_nodes[idx1].name and topo_sorted_nodes[idx2].qargs == topo_sorted_nodes[idx1].qargs:
-                        matched_idx2 = idx2
-                        break
+                if removed2:
+                    print("Should not happen")
+                    print(f"{topo_sorted_nodes[idx2]}")
+                    print(f"{topo_sorted_nodes[idx1]}")
+                    print(f"{topo_sorted_nodes[idx2].op}")
+                    print(f"{topo_sorted_nodes[idx1].op}")
 
-                    if not cc.commute(topo_sorted_nodes[idx1], topo_sorted_nodes[idx2]):
-                        break
+                    assert(False)
 
-                if matched_idx2 != -1:
-                    removed[idx1] = True
-                    removed[matched_idx2] = True
+                if not cc.commute(topo_sorted_nodes[idx1], topo_sorted_nodes[idx2]):
+                    break
 
-        print(f"At the end:")
+            if matched_idx2 != -1:
+                removed[idx1] = True
+                removed[matched_idx2] = True
+
+        # print(f"At the end:")
         num_removed = 0
         for i in range(len(removed)):
             if removed[i]:
                 num_removed += 1
-        print(f"{num_removed = }")
-        cc.print()
-
+        # print(f"{num_removed = }")
+        # cc.print()
 
         for idx in range(circ_size):
             if removed[idx]:
                 dag.remove_op_node(topo_sorted_nodes[idx])
 
         return dag
-
-
 
     def _run_on_inverse_pairs(self, dag: DAGCircuit, inverse_gate_pairs: List[Tuple[Gate, Gate]]):
         """
@@ -160,15 +170,6 @@ class CommutativeInverseCancellation(TransformationPass):
         Returns:
             DAGCircuit: Transformed DAG.
         """
-        for pair in inverse_gate_pairs:
-            gate_cancel_runs = dag.collect_runs([pair[0].name, pair[1].name])
-            for dag_nodes in gate_cancel_runs:
-                for i in range(len(dag_nodes) - 1):
-                    if dag_nodes[i].op == pair[0] and dag_nodes[i + 1].op == pair[1]:
-                        dag.remove_op_node(dag_nodes[i])
-                        dag.remove_op_node(dag_nodes[i + 1])
-                    elif dag_nodes[i].op == pair[1] and dag_nodes[i + 1].op == pair[0]:
-                        dag.remove_op_node(dag_nodes[i])
-                        dag.remove_op_node(dag_nodes[i + 1])
 
+        # NOT IMPLEMENTED FOR NOW
         return dag

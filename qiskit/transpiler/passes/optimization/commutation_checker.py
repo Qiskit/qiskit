@@ -10,22 +10,21 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Checks and hashes commutation relations between DAG nodes."""
+"""Code from commutative_analysis pass that checks commutation relations between DAG nodes."""
 
-from collections import defaultdict
 import numpy as np
-from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.quantum_info.operators import Operator
 from qiskit.dagcircuit import DAGOpNode
 
 _CUTOFF_PRECISION = 1e-10
 
 
-## Notes: want self.cache to be a part of the class since many think to evict less useful entries
-
 class CommutationChecker:
-    """Description.
+    """This code is essentially copy-pasted from commutative_analysis.py.
+    This code cleverly hashes commutativity and non-commutativity results between DAG nodes and seems
+    quite efficient for large Clifford circuits.
+    They may be other possible efficiency improvements: using rule-based commutativity analysis,
+    evicting from the cache less useful entries, etc.
     """
 
     def __init__(self):
@@ -56,10 +55,12 @@ class CommutationChecker:
         # Catch anything else with a slow conversion.
         return ("fallback", str(params))
 
-
-
     def commute(self, node1, node2):
-        # Create set of qubits on which the operation acts
+
+        # This portion is new, and says that two nodes with both different qubits and clbits
+        # necessarily commute. Presumably this was not present in commutative_analysis since
+        # the way commutative_analysis was used (e.g., for constructing DagDependency), this
+        # case never occurred.
         qarg1 = node1.qargs
         qarg2 = node2.qargs
 
@@ -71,8 +72,9 @@ class CommutationChecker:
         intersection_c = set(carg1).intersection(set(carg2))
 
         if not (intersection_q or intersection_c):
-            # _does_commute.total_time += time.time() - time_start
             return True
+
+        # The code below this line is from commutative_analysis
 
         if not isinstance(node1, DAGOpNode) or not isinstance(node2, DAGOpNode):
             return False
@@ -83,10 +85,6 @@ class CommutationChecker:
             return False
         if node1.op.is_parameterized() or node2.op.is_parameterized():
             return False
-
-        # print("")
-        # print(f"node1: {node1.name}, {node1.qargs}")
-        # print(f"node2: {node2.name}, {node2.qargs}")
 
         # Assign indices to each of the qubits such that all `node1`'s qubits come first, followed by
         # any _additional_ qubits `node2` addresses.  This helps later when we need to compose one
@@ -100,20 +98,12 @@ class CommutationChecker:
         qarg1 = tuple(qarg[q] for q in node1.qargs)
         qarg2 = tuple(qarg[q] for q in node2.qargs)
 
-
         node1_key = (node1.op.name, self._hashable_parameters(node1.op.params), qarg1)
         node2_key = (node2.op.name, self._hashable_parameters(node2.op.params), qarg2)
-
-        # print(f"{node1_key}")
-        # print(f"{node2_key}")
-
-
-
         try:
             # We only need to try one orientation of the keys, since if we've seen the compound key
             # before, we've set it in both orientations.
-            ret = self.cache[node1_key, node2_key]
-            return ret
+            return self.cache[node1_key, node2_key]
         except KeyError:
             pass
 
@@ -141,12 +131,8 @@ class CommutationChecker:
             op12 = operator_1.compose(operator_2, qargs=qarg2, front=False)
             op21 = operator_1.compose(operator_2, qargs=qarg2, front=True)
         self.cache[node1_key, node2_key] = self.cache[node2_key, node1_key] = ret = op12 == op21
-        # print(f"Computed value {ret}")
         return ret
 
     def print(self):
         print(f"CommutationChecker has cache of size {len(self.cache)}")
         # print(self.cache)
-
-
-
