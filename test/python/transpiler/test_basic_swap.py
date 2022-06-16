@@ -558,6 +558,7 @@ class TestBasicSwap(QiskitTestCase):
     def test_controlflow_while_loop(self):
         """test while loop"""
         from qiskit.circuit.library.standard_gates import CCXGate
+
         shots = 100
         num_qubits = 4
         qreg = QuantumRegister(num_qubits, "q")
