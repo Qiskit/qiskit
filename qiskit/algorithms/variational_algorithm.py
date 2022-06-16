@@ -54,7 +54,7 @@ class VariationalResult(AlgorithmResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._optimizer_evals: Optional[int]  = None
+        self._optimizer_evals: Optional[int] = None
         self._optimizer_time: Optional[float] = None
         self._optimal_value: Optional[float] = None
         self._optimal_point: Optional[np.ndarray] = None

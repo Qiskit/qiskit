@@ -75,7 +75,6 @@ class MeasurementFilter:
         """set the state label ordering of the cal matrix"""
         self._state_labels = new_state_labels
 
-
     def apply(self, raw_data, method="least_squares"):
         """Apply the calibration matrix to results.
 

@@ -119,7 +119,9 @@ class LoConfig:
     def __init__(
         self,
         channel_los: Optional[Dict[Union[DriveChannel, MeasureChannel], float]] = None,
-        lo_ranges: Optional[Dict[Union[DriveChannel, MeasureChannel], Union[LoRange, Tuple[int]]]] = None,
+        lo_ranges: Optional[
+            Dict[Union[DriveChannel, MeasureChannel], Union[LoRange, Tuple[int]]]
+        ] = None,
     ):
         """Lo channel configuration data structure.
 
@@ -132,8 +134,8 @@ class LoConfig:
 
         """
         self._q_lo_freq: Dict[Union[DriveChannel, MeasureChannel], float] = {}
-        self._m_lo_freq:Dict[Union[DriveChannel, MeasureChannel], float] = {}
-        self._lo_ranges: Dict[Union[DriveChannel, MeasureChannel],LoRange]= {}
+        self._m_lo_freq: Dict[Union[DriveChannel, MeasureChannel], float] = {}
+        self._lo_ranges: Dict[Union[DriveChannel, MeasureChannel], LoRange] = {}
 
         lo_ranges = lo_ranges if lo_ranges else {}
         for channel, freq in lo_ranges.items():

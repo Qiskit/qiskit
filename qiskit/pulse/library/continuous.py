@@ -198,7 +198,7 @@ def gaussian_deriv(
     ret_gaussian: bool = False,
     zeroed_width: Optional[float] = None,
     rescale_amp: bool = False,
-) -> Union[np.ndarray,Tuple[np.ndarray, np.ndarray]]:
+) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
     r"""Continuous unnormalized gaussian derivative pulse.
 
     Args:

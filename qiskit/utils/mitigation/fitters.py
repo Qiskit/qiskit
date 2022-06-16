@@ -99,7 +99,6 @@ class CompleteMeasFitter:
         """Return list of qubits."""
         return self._qubit_list
 
-
     @property
     def filter(self):
         """Return a measurement filter using the cal matrix."""
