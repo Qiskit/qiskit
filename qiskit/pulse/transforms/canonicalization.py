@@ -85,7 +85,10 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
     Returns:
         Compressed schedules.
     """
-    existing_pulses = []
+    pulse_index = 0
+    existing_pulse_set = set()
+    pulse_index_map = dict()    # mapping pulse -> index
+    index_pulse_map = dict()    # mapping index -> pulse
     new_schedules = []
 
     for schedule in schedules:
@@ -93,16 +96,20 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
 
         for time, inst in schedule.instructions:
             if isinstance(inst, instructions.Play):
-                if inst.pulse in existing_pulses:
-                    idx = existing_pulses.index(inst.pulse)
-                    identical_pulse = existing_pulses[idx]
+                if inst.pulse in existing_pulse_set:
+                    idx = pulse_index_map[inst.pulse]
+                    identical_pulse = index_pulse_map[idx]
+
                     new_schedule.insert(
                         time,
                         instructions.Play(identical_pulse, inst.channel, inst.name),
                         inplace=True,
                     )
                 else:
-                    existing_pulses.append(inst.pulse)
+                    existing_pulse_set.add(inst.pulse)
+                    pulse_index_map[inst.pulse] = pulse_index
+                    index_pulse_map[pulse_index] = inst.pulse
+                    pulse_index += 1
                     new_schedule.insert(time, inst, inplace=True)
             else:
                 new_schedule.insert(time, inst, inplace=True)
