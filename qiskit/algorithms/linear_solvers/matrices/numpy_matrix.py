@@ -12,7 +12,7 @@
 
 """Hamiltonian simulation of matrices given as numpy arrays."""
 
-from typing import Tuple
+from typing import Tuple, Optional
 import numpy as np
 import scipy as sp
 
@@ -60,9 +60,11 @@ class NumPyMatrix(LinearSystemMatrix):
         """
 
         # define internal parameters
-        self._num_state_qubits = None
-        self._tolerance = None
-        self._evolution_time = None  # makes sure the eigenvalues are contained in [0,1)
+        self._num_state_qubits: Optional[int] = None
+        self._tolerance: Optional[float] = None
+        self._evolution_time: Optional[
+            float
+        ] = None  # makes sure the eigenvalues are contained in [0,1)
         self._matrix = None
 
         super().__init__(

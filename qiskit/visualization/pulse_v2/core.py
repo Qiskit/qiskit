@@ -69,7 +69,7 @@ from copy import deepcopy
 from enum import Enum
 from functools import partial
 from itertools import chain
-from typing import Union, List, Tuple, Iterator, Optional, Set
+from typing import Union, List, Tuple, Iterator, Optional, Set, Dict
 
 import numpy as np
 from qiskit import pulse
@@ -115,7 +115,15 @@ class DrawerCanvas:
         self.disable_types: Set[str] = set()
 
         # data scaling
-        self.chan_scales = {}
+        self.chan_scales: Dict[
+            Union[
+                pulse.channels.DriveChannel,
+                pulse.channels.MeasureChannel,
+                pulse.channels.ControlChannel,
+                pulse.channels.AcquireChannel,
+            ],
+            Dict,
+        ] = {}
 
         # global time
         self._time_range = (0, 0)

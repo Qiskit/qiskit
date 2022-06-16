@@ -157,7 +157,7 @@ class MatrixFunctional(LinearSystemObservable):
         main_val = solution[0] / (scaling**2)
         return np.real(self._main_diag * main_val + self._off_diag * off_val)
 
-    def evaluate_classically(self, solution: Union[np.array, QuantumCircuit]) -> float:
+    def evaluate_classically(self, solution: Union[np.ndarray, QuantumCircuit]) -> float:
         """Evaluates the given observable on the solution to the linear system.
 
         Args:

@@ -133,7 +133,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         data: Counts,
         qubits: Optional[List[int]] = None,
         clbits: Optional[List[int]] = None,
-        shots: Optional[bool] = False,
+        shots: Optional[bool] = False,  # TODO:  unused?
     ) -> QuasiDistribution:
         """Compute mitigated quasi probabilities value.
 

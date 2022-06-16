@@ -14,7 +14,7 @@ Readout mitigator class based on the 1-qubit local tensored mitigation method
 """
 
 
-from typing import Optional, List, Tuple, Iterable, Callable, Union, Dict
+from typing import Optional, List, Tuple, Iterable, Callable, Union, Dict, Collection
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -39,7 +39,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
     def __init__(
         self,
         assignment_matrices: Optional[List[np.ndarray]] = None,
-        qubits: Optional[Iterable[int]] = None,
+        qubits: Optional[Collection[int]] = None,
         backend=None,
     ):
         """Initialize a LocalReadoutMitigator
@@ -100,7 +100,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         self,
         data: Counts,
         diagonal: Union[Callable, dict, str, np.ndarray] = None,
-        qubits: Iterable[int] = None,
+        qubits: Optional[Collection[int]] = None,
         clbits: Optional[List[int]] = None,
         shots: Optional[int] = None,
     ) -> Tuple[float, float]:

@@ -56,7 +56,7 @@ class Shor:
             quantum_instance: Quantum Instance or Backend
 
         """
-        self._quantum_instance = None
+        self._quantum_instance: Optional[QuantumInstance] = None
         if quantum_instance:
             self.quantum_instance = quantum_instance
 

@@ -182,21 +182,21 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._ansatz = None
         self.ansatz = ansatz
 
-        self._optimizer = None
+        self._optimizer: Optional[Optimizer] = None
         self.optimizer = optimizer
 
-        self._initial_point = None
+        self._initial_point: Optional[np.ndarray] = None
         self.initial_point = initial_point
-        self._gradient = None
+        self._gradient: Optional[Union[GradientBase, Callable]] = None
         self.gradient = gradient
-        self._quantum_instance = None
+        self._quantum_instance: Optional[QuantumInstance] = None
 
         if quantum_instance is not None:
             self.quantum_instance = quantum_instance
 
         self._eval_time = None
         self._eval_count = 0
-        self._callback = None
+        self._callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None
         self.callback = callback
 
         logger.info(self.print_settings())
@@ -566,7 +566,10 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self,
         operator: OperatorBase,
         return_expectation: bool = False,
-    ) -> Callable[[np.ndarray], Union[float, List[float]]]:
+    ) -> Union[
+        Callable[[np.ndarray], Union[float, List[float]]],
+        Tuple[Callable[[np.ndarray], Union[float, List[float]]], ExpectationBase],
+    ]:
         """Returns a function handle to evaluates the energy at given parameters for the ansatz.
 
         This is the objective function to be passed to the optimizer that is used for evaluation.
@@ -645,7 +648,7 @@ class VQEResult(VariationalResult, MinimumEigensolverResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._cost_function_evals = None
+        self._cost_function_evals: Optional[int] = None
 
     @property
     def cost_function_evals(self) -> Optional[int]:

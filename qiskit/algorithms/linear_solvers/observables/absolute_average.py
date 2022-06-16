@@ -108,7 +108,7 @@ class AbsoluteAverage(LinearSystemObservable):
 
         return np.real(np.sqrt(solution / (2**num_qubits)) / scaling)
 
-    def evaluate_classically(self, solution: Union[np.array, QuantumCircuit]) -> float:
+    def evaluate_classically(self, solution: Union[np.ndarray, QuantumCircuit]) -> float:
         """Evaluates the given observable on the solution to the linear system.
 
         Args:

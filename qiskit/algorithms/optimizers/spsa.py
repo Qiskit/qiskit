@@ -276,7 +276,7 @@ class SPSA(Optimizer):
 
         # runtime arguments
         self._nfev = None  # the number of function evaluations
-        self._smoothed_hessian = None  # smoothed average of the Hessians
+        self._smoothed_hessian: Optional[np.ndarray] = None  # smoothed average of the Hessians
 
     @staticmethod
     def calibrate(

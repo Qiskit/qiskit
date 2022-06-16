@@ -14,6 +14,7 @@ A definition of the approximate circuit compilation optimization problem based o
 definition.
 """
 from abc import ABC
+from typing import Optional
 
 import numpy as np
 from numpy import linalg as la
@@ -68,11 +69,11 @@ class DefaultCNOTUnitObjective(CNOTUnitObjective):
         super().__init__(num_qubits, cnots)
 
         # last objective computations to be re-used by gradient
-        self._last_thetas = None
-        self._cnot_right_collection = None
-        self._cnot_left_collection = None
-        self._rotation_matrix = None
-        self._cnot_matrix = None
+        self._last_thetas: Optional[np.ndarray] = None
+        self._cnot_right_collection: Optional[np.ndarray] = None
+        self._cnot_left_collection: Optional[np.ndarray] = None
+        self._rotation_matrix: Optional[np.ndarray] = None
+        self._cnot_matrix: Optional[np.ndarray] = None
 
     def objective(self, param_values: np.ndarray) -> float:
         # rename parameters just to make shorter and make use of our dictionary
