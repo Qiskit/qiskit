@@ -49,7 +49,7 @@ from qiskit.utils.deprecation import deprecate_function
 from .parameterexpression import ParameterExpression, ParameterValueType
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
-from .parametertable import ParameterTable, ParameterView
+from .parametertable import ParameterReferences, ParameterTable, ParameterView
 from .parametervector import ParameterVector, ParameterVectorElement
 from .instructionset import InstructionSet
 from .register import Register
@@ -245,6 +245,7 @@ class QuantumCircuit:
         # Data contains a list of instructions and their contexts,
         # in the order they were applied.
         self._data = []
+        self._op_start_times = None
 
         # A stack to hold the instruction sets that are being built up during for-, if- and
         # while-block construction.  These are stored as a stripped down sequence of instructions,
@@ -298,6 +299,27 @@ class QuantumCircuit:
             list of Clbit objects.
         """
         return QuantumCircuitData(self)
+
+    @property
+    def op_start_times(self) -> List[int]:
+        """Return a list of operation start times.
+
+        This attribute is enabled once one of scheduling analysis passes
+        runs on the quantum circuit.
+
+        Returns:
+            List of integers representing instruction start times.
+            The index corresponds to the index of instruction in :attr:`QuantumCircuit.data`.
+
+        Raises:
+            AttributeError: When circuit is not scheduled.
+        """
+        if self._op_start_times is None:
+            raise AttributeError(
+                "This circuit is not scheduled. "
+                "To schedule it run the circuit through one of the transpiler scheduling passes."
+            )
+        return self._op_start_times
 
     @data.setter
     def data(
@@ -1285,30 +1307,18 @@ class QuantumCircuit:
 
             for parameter in atomic_parameters:
                 if parameter in self._parameter_table:
-                    if not self._check_dup_param_spec(
-                        self._parameter_table[parameter], instruction, param_index
-                    ):
-                        self._parameter_table[parameter].append((instruction, param_index))
+                    self._parameter_table[parameter].add((instruction, param_index))
                 else:
                     if parameter.name in self._parameter_table.get_names():
                         raise CircuitError(f"Name conflict on adding parameter: {parameter.name}")
-                    self._parameter_table[parameter] = [(instruction, param_index)]
+                    self._parameter_table[parameter] = ParameterReferences(
+                        ((instruction, param_index),)
+                    )
 
                     # clear cache if new parameter is added
                     self._parameters = None
 
         return instruction
-
-    def _check_dup_param_spec(
-        self,
-        parameter_spec_list: Sequence[Tuple[Instruction, int]],
-        instruction: Instruction,
-        param_index: int,
-    ) -> bool:
-        for spec in parameter_spec_list:
-            if spec[0] is instruction and spec[1] == param_index:
-                return True
-        return False
 
     def add_register(self, *regs: Union[Register, int, Sequence[Bit]]) -> None:
         """Add registers."""
@@ -2118,10 +2128,10 @@ class QuantumCircuit:
 
         cpy._parameter_table = ParameterTable(
             {
-                param: [
+                param: ParameterReferences(
                     (instr_copies[id(instr)], param_index)
                     for instr, param_index in self._parameter_table[param]
-                ]
+                )
                 for param in self._parameter_table
             }
         )
@@ -2569,7 +2579,7 @@ class QuantumCircuit:
                 reference to a value that cannot be assigned.
         """
         # parameter might be in global phase only
-        if parameter in self._parameter_table.keys():
+        if parameter in self._parameter_table:
             for instr, param_index in self._parameter_table[parameter]:
                 assignee = instr.params[param_index]
                 # Normal ParameterExpression.
@@ -2598,7 +2608,7 @@ class QuantumCircuit:
                 entry = self._parameter_table.pop(parameter)
                 for new_parameter in value.parameters:
                     if new_parameter in self._parameter_table:
-                        self._parameter_table[new_parameter].extend(entry)
+                        self._parameter_table[new_parameter] |= entry
                     else:
                         self._parameter_table[new_parameter] = entry
             else:
@@ -4128,11 +4138,12 @@ class QuantumCircuit:
                 atomic_parameters.update(parameter.parameters)
         for atomic_parameter in atomic_parameters:
             entries = self._parameter_table[atomic_parameter]
-            new_entries = [
+            new_entries = ParameterReferences(
                 (entry_instruction, entry_index)
                 for entry_instruction, entry_index in entries
                 if entry_instruction is not instruction
-            ]
+            )
+
             if not new_entries:
                 del self._parameter_table[atomic_parameter]
                 # Invalidate cache.

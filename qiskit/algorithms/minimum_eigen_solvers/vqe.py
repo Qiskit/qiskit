@@ -15,54 +15,41 @@
 See https://arxiv.org/abs/1304.3061
 """
 
-from typing import Optional, List, Callable, Union, Dict, Tuple
-import logging
-import warnings
-from time import time
-import numpy as np
-import scipy
+from __future__ import annotations
 
-from qiskit.circuit import QuantumCircuit, Parameter
+import logging
+from time import time
+from typing import Callable, Dict, List, Optional, Tuple, Union
+import warnings
+
+import numpy as np
+
+from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.providers import Backend
 from qiskit.opflow import (
-    OperatorBase,
+    CircuitSampler,
+    CircuitStateFn,
     ExpectationBase,
     ExpectationFactory,
-    StateFn,
-    CircuitStateFn,
     ListOp,
-    CircuitSampler,
+    OperatorBase,
     PauliSumOp,
+    StateFn,
 )
 from qiskit.opflow.gradients import GradientBase
-from qiskit.utils.validation import validate_min
-from qiskit.utils.backend_utils import is_aer_provider
+from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance, algorithm_globals
+from qiskit.utils.backend_utils import is_aer_provider
+from qiskit.utils.validation import validate_min
+
+from ..aux_ops_evaluator import eval_observables
+from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
-from ..optimizers import Optimizer, SLSQP, OptimizerResult
+from ..optimizers import SLSQP, Minimizer, Optimizer
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
-from ..exceptions import AlgorithmError
-from ..aux_ops_evaluator import eval_observables
 
 logger = logging.getLogger(__name__)
-
-
-OBJECTIVE = Callable[[np.ndarray], float]
-GRADIENT = Callable[[np.ndarray], np.ndarray]
-RESULT = Union[scipy.optimize.OptimizeResult, OptimizerResult]
-BOUNDS = List[Tuple[float, float]]
-
-MINIMIZER = Callable[
-    [
-        OBJECTIVE,  # the objective function to minimize (the energy in the case of the VQE)
-        np.ndarray,  # the initial point for the optimization
-        Optional[GRADIENT],  # the gradient of the objective function
-        Optional[BOUNDS],  # parameters bounds for the optimization
-    ],
-    RESULT,  # a result object (either SciPy's or Qiskit's)
-]
 
 
 class VQE(VariationalAlgorithm, MinimumEigensolver):
@@ -137,7 +124,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     def __init__(
         self,
         ansatz: Optional[QuantumCircuit] = None,
-        optimizer: Optional[Union[Optimizer, MINIMIZER]] = None,
+        optimizer: Optional[Union[Optimizer, Minimizer]] = None,
         initial_point: Optional[np.ndarray] = None,
         gradient: Optional[Union[GradientBase, Callable]] = None,
         expectation: Optional[ExpectationBase] = None,

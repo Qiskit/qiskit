@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    The OpenQASM 3 exporter (:mod:`qiskit.qasm3`) will no longer attempt to produce
+    definitions for non-standard gates in the `basis_gates` option.
