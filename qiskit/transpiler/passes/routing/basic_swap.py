@@ -18,7 +18,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.layout import Layout
 from qiskit.circuit.library.standard_gates import SwapGate
-from qiskit.circuit import ControlFlowOp
+from qiskit.circuit import ControlFlowOp, IfElseOp, WhileLoopOp, ForLoopOp
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 
 
@@ -30,20 +30,23 @@ class BasicSwap(TransformationPass):
     one or more swaps in front to make it compatible.
     """
 
-    def __init__(self, coupling_map, fake_run=False):
+    def __init__(self, coupling_map, fake_run=False, initial_layout=None):
         """BasicSwap initializer.
 
         Args:
             coupling_map (CouplingMap): Directed graph represented a coupling map.
             fake_run (bool): if true, it only pretend to do routing, i.e., no
                 swap is effectively added.
+            initial_layout (Layout, None): Initial layout of circuit.
         """
         super().__init__()
         self.coupling_map = coupling_map
         self.fake_run = fake_run
-        #self.current_layout = None
-        self._all_swaps = []
         self.property_set["final_layout"] = None
+        self.initial_layout = initial_layout
+        self._swap_layers = []  # used to store swap layers
+        self._layout_layers = []  # used to store layout layers
+        self._op_layers = []
 
     def run(self, dag):
         """Run the BasicSwap pass on `dag`.
@@ -70,16 +73,19 @@ class BasicSwap(TransformationPass):
             raise TranspilerError("The layout does not match the amount of qubits in the DAG")
 
         canonical_register = dag.qregs["q"]
-        self.trivial_layout = Layout.generate_trivial_layout(canonical_register)
-        
-        current_layout = self.trivial_layout.copy()
-        self.property_set["final_layout"] = current_layout  # shouldn't be needed
+        if self.initial_layout:
+            trivial_layout = self.initial_layout
+        else:
+            trivial_layout = Layout.generate_trivial_layout(canonical_register)
+        current_layout = trivial_layout.copy()
 
         for layer in dag.serial_layers():
             subdag = layer["graph"]
             cf_layer = False
-            swap_layer = None
+            # swap_layer = None
             for gate in subdag.two_qubit_ops():
+                if isinstance(gate, ControlFlowOp):  # necessary?
+                    continue
                 physical_q0 = current_layout[gate.qargs[0]]
                 physical_q1 = current_layout[gate.qargs[1]]
                 if self.coupling_map.distance(physical_q0, physical_q1) != 1:
@@ -102,60 +108,82 @@ class BasicSwap(TransformationPass):
 
                     # layer insertion
                     order = current_layout.reorder_bits(new_dag.qubits)
+                    self._swap_layers.append(swap_layer)
                     new_dag.compose(swap_layer, qubits=order)
 
                     # update current_layout
                     for swap in range(len(path) - 2):
                         current_layout.swap(path[swap], path[swap + 1])
-            if not swap_layer:
-                for node in subdag.control_flow_ops():
-                    updated_ctrl_op, updated_qargs, xform_circ, xform_order, cf_layout = self.transpile_controlflow_blocks(node.op)
-                    node.op = updated_ctrl_op
-                    cf_layer = True
+                    self._layout_layers.append(current_layout)
+            # handle control flow operations
+            for node in subdag.control_flow_ops():
+                updated_ctrl_op, cf_layout = self._transpile_controlflow_op(node.op, current_layout)
+                node.op = updated_ctrl_op
+                cf_layer = True
             if cf_layer:
                 new_dag.compose(subdag)
+                current_layout = cf_layout
             else:
                 order = current_layout.reorder_bits(new_dag.qubits)
                 new_dag.compose(subdag, qubits=order)
-            if cf_layer:
-                current_layout = cf_layout
+            self._op_layers.append(subdag)
         self.property_set["final_layout"] = current_layout
-        
+
         return new_dag
 
-    def transpile_controlflow_blocks(self, cf_op):
-        import collections
+    def _transpile_controlflow_op(self, cf_op, current_layout):
+        """default function"""
+        if isinstance(cf_op, IfElseOp):
+            return self._transpile_controlflow_multiblock(cf_op, current_layout)
+        elif isinstance(cf_op, (ForLoopOp, WhileLoopOp)):
+            return self._transpile_controlflow_looping(cf_op, current_layout)
+        return cf_op, current_layout
+
+    def _transpile_controlflow_multiblock(self, cf_op, current_layout):
         from qiskit.transpiler.passes.routing import LayoutTransformation
+
         block_circuits = []  # control flow circuit blocks
-        block_dags = []  # control flow dag blocks        
-        block_layouts = [] # control flow layouts
-        starting_layout = self.property_set["final_layout"]
+        block_dags = []  # control flow dag blocks
+        block_layouts = []  # control flow layouts
+
         for i, block in enumerate(cf_op.blocks):
-            # # reset layout 
-            # self.current_layout = None
             dag_block = circuit_to_dag(block)
-            updated_dag_block = self.run(dag_block)
+            _pass = BasicSwap(self.coupling_map, initial_layout=current_layout)
+            updated_dag_block = _pass.run(dag_block)
             block_dags.append(updated_dag_block)
-            block_layouts.append(self.property_set["final_layout"].copy())
-            flow_circ_block = dag_to_circuit(updated_dag_block)
-        changed_layouts = [self.trivial_layout != layout for layout in block_layouts]
+            block_layouts.append(_pass.property_set["final_layout"].copy())
+        changed_layouts = [current_layout != layout for layout in block_layouts]
         if not any(changed_layouts):
-            return
-        swap_cnt = [bdag.count_ops().get('swap') for bdag in block_dags]
-        maxind = np.argmax(swap_cnt)
+            return cf_op, current_layout
+        depth_cnt = [bdag.depth() for bdag in block_dags]
+        maxind = np.argmax(depth_cnt)
 
         for i, dag in enumerate(block_dags):
             if i == maxind:
                 block_circuits.append(dag_to_circuit(dag))
             else:
-                layout_xform = LayoutTransformation(self.coupling_map,
-                                                    block_layouts[i],
-                                                    block_layouts[maxind]
-                                                    )
+                layout_xform = LayoutTransformation(
+                    self.coupling_map, block_layouts[i], block_layouts[maxind]
+                )
                 match_dag = layout_xform.run(block_dags[i])
                 block_circuits.append(dag_to_circuit(match_dag))
-        return cf_op.replace_blocks(block_circuits), list(block_layouts[maxind]._p2v.values()), layout_xform.perm_circ.circuit, layout_xform.order, block_layouts[maxind]
+        return cf_op.replace_blocks(block_circuits), block_layouts[maxind]
 
+    def _transpile_controlflow_looping(self, cf_op, current_layout):
+        """for looping this pass adds a swap layer at the end of the loop body to bring
+        the layout back to the expected starting layout. This could be reduced a bit by
+        specializing to for_loop and while_loop
+        """
+        from qiskit.transpiler.passes.routing import LayoutTransformation
+
+        dag_block = circuit_to_dag(cf_op.blocks[0])
+        _pass = BasicSwap(self.coupling_map, initial_layout=current_layout)
+        updated_dag_block = _pass.run(dag_block)
+        updated_layout = _pass.property_set["final_layout"].copy()
+        layout_xform = LayoutTransformation(self.coupling_map, updated_layout, current_layout)
+        match_dag = layout_xform.run(updated_dag_block)
+        match_circ = dag_to_circuit(match_dag)
+        return cf_op.replace_blocks([match_circ]), current_layout
 
     def _fake_run(self, dag):
         """Do a fake run the BasicSwap pass on `dag`.
@@ -186,7 +214,6 @@ class BasicSwap(TransformationPass):
                 physical_q0 = current_layout[gate.qargs[0]]
                 physical_q1 = current_layout[gate.qargs[1]]
 
-                
                 if self.coupling_map.distance(physical_q0, physical_q1) != 1:
                     path = self.coupling_map.shortest_undirected_path(physical_q0, physical_q1)
                     # update current_layout
@@ -195,13 +222,3 @@ class BasicSwap(TransformationPass):
 
         self.property_set["final_layout"] = current_layout
         return dag
-
-    def print_layout(self):
-        print_ordered_layout(self.property_set["final_layout"])
-
-
-def print_ordered_layout(layout):
-    import collections
-    import pprint
-    od = collections.OrderedDict(sorted(layout._p2v.items()))
-    pprint.pprint(od)

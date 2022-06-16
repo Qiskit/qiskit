@@ -355,3 +355,17 @@ class Layout:
         for qreg in qregs:
             out.add_register(qreg)
         return out
+
+    def compose(self, other):
+        """Return the real final_layout resulting from the composition
+        of an initial_layout with the final_layout reported by a pass.
+
+        The routing passes internally start with a trivial layout, as the
+        layout gets applied to the circuit prior to running them. So the
+        "final_layout" they report must be amended to account for the actual
+        initial_layout that was selected.
+        """
+        trivial_layout = Layout.generate_trivial_layout(*self._regs)
+        qubit_map = Layout.combine_into_edge_map(self, trivial_layout)
+        final_layout = {v: other._v2p[qubit_map[v]] for v in self._v2p}
+        return Layout(final_layout)

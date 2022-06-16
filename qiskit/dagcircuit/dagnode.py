@@ -15,8 +15,6 @@
 """Objects to represent the information at a node in the DAGCircuit."""
 
 import warnings
-import logging
-logger = logging.getLogger(__name__)
 
 
 class DAGNode:
@@ -76,30 +74,19 @@ class DAGNode:
             node2_cargs = [bit_indices2[carg] for carg in node2.cargs]
 
             # For barriers, qarg order is not significant so compare as sets
-            if "barrier" == node1.op.name == node2.op.name:
+            # if "barrier" == node1.op.name == node2.op.name:
+            if node1.op.name == node2.op.name and node1.op.name in [
+                "barrier",
+                "swap",
+                "continue_loop",
+                "break_loop",
+            ]:
                 return set(node1_qargs) == set(node2_qargs)
-
             if node1_qargs == node2_qargs:
                 if node1_cargs == node2_cargs:
                     if node1.op.condition == node2.op.condition:
                         if node1.op == node2.op:
                             return True
-                        else:
-                            logger.debug(
-                                f"ops not equal for DAG nodes {node1._node_id} "
-                                f"and {node2._node_id}")
-                    else:
-                        logger.debug(
-                            f"op condition not equal for DAG nodes {node1._node_id} "
-                            f"and {node2._node_id}")
-                else:
-                    logger.debug(
-                        f"cargs not equal for DAG nodes {node1._node_id} "
-                        f"and {node2._node_id}")
-            else:
-                logger.debug(
-                    f"qargs not equal for DAG nodes {node1._node_id} and {node2._node_id}")
-                
         elif (isinstance(node1, DAGInNode) and isinstance(node2, DAGInNode)) or (
             isinstance(node1, DAGOutNode) and isinstance(node2, DAGOutNode)
         ):

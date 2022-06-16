@@ -4555,6 +4555,7 @@ class QuantumCircuit:
             operation = ContinueLoopPlaceholder()
             resources = operation.placeholder_resources()
             return self.append(operation, resources.qubits, resources.clbits)
+
         return self.append(
             ContinueLoopOp(self.num_qubits, self.num_clbits), self.qubits, self.clbits
         )
