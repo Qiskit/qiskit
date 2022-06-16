@@ -11,9 +11,12 @@
 # that they have been altered from the originals.
 
 """Standard gates."""
+import numpy as np #required for rzx templates
+
 from qiskit.qasm import pi
-from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
+
 
 from . import (
     clifford_2_1,
@@ -80,8 +83,12 @@ from . import (
     template_nct_9d_8,
     template_nct_9d_9,
     template_nct_9d_10,
-    
-
+    rzx_cy,
+    rzx_xz,
+    rzx_yz,
+    rzx_zz1,
+    rzx_zz2,
+    rzx_zz3
 )
 
 _sel = StandardTemplateLibrary = TemplateLibrary()
@@ -2113,3 +2120,256 @@ def template_nct_9d_10():
 def_Template_nct_9d_10 = template_nct_9d_10()
 
 _sel.add_template(template_nct_9d_10(), def_Template_nct_9d_10)
+
+
+
+"""
+RZX based template for CX - RYGate - CX
+.. parsed-literal::
+                                                       ┌──────────┐
+q_0: ──■─────────────■─────────────────────────────────┤0         ├───────────
+     ┌─┴─┐┌───────┐┌─┴─┐┌────────┐┌──────────┐┌───────┐│  RZX(-ϴ) │┌─────────┐
+q_1: ┤ X ├┤ RY(ϴ) ├┤ X ├┤ RY(-ϴ) ├┤ RZ(-π/2) ├┤ RX(ϴ) ├┤1         ├┤ RZ(π/2) ├
+     └───┘└───────┘└───┘└────────┘└──────────┘└───────┘└──────────┘└─────────┘
+"""
+
+def rzx_cy(theta: float = None):
+    """Template for CX - RYGate - CX."""
+    if theta is None:
+        theta = Parameter("ϴ")
+
+    circ = QuantumCircuit(2)
+    circ.cx(0, 1)
+    circ.ry(theta, 1)
+    circ.cx(0, 1)
+    circ.ry(-1 * theta, 1)
+    circ.rz(-np.pi / 2, 1)
+    circ.rx(theta, 1)
+    circ.rzx(-1 * theta, 0, 1)
+    circ.rz(np.pi / 2, 1)
+
+    return circ
+
+def_rzx_cy = rzx_cy()
+
+_sel.add_template(rzx_cy(), def_rzx_cy)
+
+
+
+"""
+RZX based template for CX - RXGate - CX
+.. parsed-literal::
+     ┌───┐         ┌───┐┌─────────┐┌─────────┐┌─────────┐┌──────────┐»
+q_0: ┤ X ├─────────┤ X ├┤ RZ(π/2) ├┤ RX(π/2) ├┤ RZ(π/2) ├┤0         ├»
+     └─┬─┘┌───────┐└─┬─┘└─────────┘└─────────┘└─────────┘│  RZX(-ϴ) │»
+q_1: ──■──┤ RX(ϴ) ├──■───────────────────────────────────┤1         ├»
+          └───────┘                                      └──────────┘»
+«     ┌─────────┐┌─────────┐┌─────────┐
+«q_0: ┤ RZ(π/2) ├┤ RX(π/2) ├┤ RZ(π/2) ├
+«     └─────────┘└─────────┘└─────────┘
+«q_1: ─────────────────────────────────
+«
+"""
+
+def rzx_xz(theta: float = None):
+    """Template for CX - RXGate - CX."""
+    if theta is None:
+        theta = Parameter("ϴ")
+
+    qc = QuantumCircuit(2)
+    qc.cx(1, 0)
+    qc.rx(theta, 1)
+    qc.cx(1, 0)
+
+    qc.rz(np.pi / 2, 0)
+    qc.rx(np.pi / 2, 0)
+    qc.rz(np.pi / 2, 0)
+    qc.rzx(-1 * theta, 0, 1)
+    qc.rz(np.pi / 2, 0)
+    qc.rx(np.pi / 2, 0)
+    qc.rz(np.pi / 2, 0)
+    return qc
+
+def_rzx_xz = rzx_xz()
+
+_sel.add_template(rzx_xz(), def_rzx_xz)
+
+
+
+"""
+RZX based template for CX - RYGate - CX
+.. parsed-literal::
+          ┌────────┐     ┌─────────┐┌─────────┐┌──────────┐
+q_0: ──■──┤ RY(-ϴ) ├──■──┤ RX(π/2) ├┤0        ├┤ RX(-π/2) ├
+     ┌─┴─┐└────────┘┌─┴─┐└─────────┘│  RZX(ϴ) │└──────────┘
+q_1: ┤ X ├──────────┤ X ├───────────┤1        ├────────────
+     └───┘          └───┘           └─────────┘
+"""
+
+def rzx_yz(theta: float = None):
+    """Template for CX - RYGate - CX."""
+    if theta is None:
+        theta = Parameter("ϴ")
+
+    circ = QuantumCircuit(2)
+    circ.cx(0, 1)
+    circ.ry(-1 * theta, 0)
+    circ.cx(0, 1)
+    circ.rx(np.pi / 2, 0)
+    circ.rzx(theta, 0, 1)
+    circ.rx(-np.pi / 2, 0)
+
+    return circ
+
+def_rzx_yz = rzx_yz()
+
+_sel.add_template(rzx_yz(), def_rzx_yz)
+
+
+
+"""
+RZX based template for CX - phase - CX
+.. parsed-literal::
+                                                                            »
+q_0: ──■────────────────────────────────────────────■───────────────────────»
+     ┌─┴─┐┌───────┐┌────┐┌───────┐┌────┐┌────────┐┌─┴─┐┌────────┐┌─────────┐»
+q_1: ┤ X ├┤ RZ(ϴ) ├┤ √X ├┤ RZ(π) ├┤ √X ├┤ RZ(3π) ├┤ X ├┤ RZ(-ϴ) ├┤ RZ(π/2) ├»
+     └───┘└───────┘└────┘└───────┘└────┘└────────┘└───┘└────────┘└─────────┘»
+«                                    ┌──────────┐                      »
+«q_0: ───────────────────────────────┤0         ├──────────────────────»
+«     ┌─────────┐┌─────────┐┌───────┐│  RZX(-ϴ) │┌─────────┐┌─────────┐»
+«q_1: ┤ RX(π/2) ├┤ RZ(π/2) ├┤ RX(ϴ) ├┤1         ├┤ RZ(π/2) ├┤ RX(π/2) ├»
+«     └─────────┘└─────────┘└───────┘└──────────┘└─────────┘└─────────┘»
+«
+«q_0: ───────────
+«     ┌─────────┐
+«q_1: ┤ RZ(π/2) ├
+«     └─────────┘
+"""
+
+def rzx_zz1(theta: float = None):
+    """Template for CX - RZGate - CX."""
+    if theta is None:
+        theta = Parameter("ϴ")
+
+    qc = QuantumCircuit(2)
+    qc.cx(0, 1)
+    qc.rz(theta, 1)
+    qc.sx(1)
+    qc.rz(np.pi, 1)
+    qc.sx(1)
+    qc.rz(3 * np.pi, 1)
+    qc.cx(0, 1)
+    qc.rz(-1 * theta, 1)
+
+    # Hadamard
+    qc.rz(np.pi / 2, 1)
+    qc.rx(np.pi / 2, 1)
+    qc.rz(np.pi / 2, 1)
+
+    qc.rx(theta, 1)
+    qc.rzx(-1 * theta, 0, 1)
+    # Hadamard
+    qc.rz(np.pi / 2, 1)
+    qc.rx(np.pi / 2, 1)
+    qc.rz(np.pi / 2, 1)
+
+    return qc
+
+def_rzx_zz1 = rzx_zz1()
+
+_sel.add_template(rzx_zz1(), def_rzx_zz1)
+
+
+
+"""
+RZX based template for CX - PhaseGate - CX
+.. parsed-literal::
+                                                                          »
+q_0: ──■────────────■─────────────────────────────────────────────────────»
+     ┌─┴─┐┌──────┐┌─┴─┐┌───────┐┌─────────┐┌─────────┐┌─────────┐┌───────┐»
+q_1: ┤ X ├┤ P(ϴ) ├┤ X ├┤ P(-ϴ) ├┤ RZ(π/2) ├┤ RX(π/2) ├┤ RZ(π/2) ├┤ RX(ϴ) ├»
+     └───┘└──────┘└───┘└───────┘└─────────┘└─────────┘└─────────┘└───────┘»
+«     ┌──────────┐
+«q_0: ┤0         ├─────────────────────────────────
+«     │  RZX(-ϴ) │┌─────────┐┌─────────┐┌─────────┐
+«q_1: ┤1         ├┤ RZ(π/2) ├┤ RX(π/2) ├┤ RZ(π/2) ├
+«     └──────────┘└─────────┘└─────────┘└─────────┘
+"""
+
+def rzx_zz2(theta: float = None):
+    """Template for CX - RZGate - CX."""
+    if theta is None:
+        theta = Parameter("ϴ")
+
+    qc = QuantumCircuit(2)
+    qc.cx(0, 1)
+    qc.p(theta, 1)
+    qc.cx(0, 1)
+    qc.p(-1 * theta, 1)
+    # Hadamard
+    qc.rz(np.pi / 2, 1)
+    qc.rx(np.pi / 2, 1)
+    qc.rz(np.pi / 2, 1)
+
+    qc.rx(theta, 1)
+    qc.rzx(-1 * theta, 0, 1)
+    # Hadamard
+    qc.rz(np.pi / 2, 1)
+    qc.rx(np.pi / 2, 1)
+    qc.rz(np.pi / 2, 1)
+
+    return qc
+
+def_rzx_zz2 = rzx_zz2()
+
+_sel.add_template(rzx_zz2(), def_rzx_zz2)
+
+
+
+"""
+RZX based template for CX - RZGate - CX
+.. parsed-literal::
+                                                                            »
+q_0: ──■─────────────■──────────────────────────────────────────────────────»
+     ┌─┴─┐┌───────┐┌─┴─┐┌────────┐┌─────────┐┌─────────┐┌─────────┐┌───────┐»
+q_1: ┤ X ├┤ RZ(ϴ) ├┤ X ├┤ RZ(-ϴ) ├┤ RZ(π/2) ├┤ RX(π/2) ├┤ RZ(π/2) ├┤ RX(ϴ) ├»
+     └───┘└───────┘└───┘└────────┘└─────────┘└─────────┘└─────────┘└───────┘»
+«     ┌──────────┐
+«q_0: ┤0         ├─────────────────────────────────
+«     │  RZX(-ϴ) │┌─────────┐┌─────────┐┌─────────┐
+«q_1: ┤1         ├┤ RZ(π/2) ├┤ RX(π/2) ├┤ RZ(π/2) ├
+«     └──────────┘└─────────┘└─────────┘└─────────┘
+"""
+
+import numpy as np
+from qiskit.circuit import Parameter, QuantumCircuit
+
+
+def rzx_zz3(theta: float = None):
+    """Template for CX - RZGate - CX."""
+    if theta is None:
+        theta = Parameter("ϴ")
+
+    qc = QuantumCircuit(2)
+    qc.cx(0, 1)
+    qc.rz(theta, 1)
+    qc.cx(0, 1)
+    qc.rz(-1 * theta, 1)
+    # Hadamard
+    qc.rz(np.pi / 2, 1)
+    qc.rx(np.pi / 2, 1)
+    qc.rz(np.pi / 2, 1)
+
+    qc.rx(theta, 1)
+    qc.rzx(-1 * theta, 0, 1)
+    # Hadamard
+    qc.rz(np.pi / 2, 1)
+    qc.rx(np.pi / 2, 1)
+    qc.rz(np.pi / 2, 1)
+
+    return qc
+
+def_rzx_zz3 = rzx_zz3()
+
+_sel.add_template(rzx_zz3(), def_rzx_zz3)
