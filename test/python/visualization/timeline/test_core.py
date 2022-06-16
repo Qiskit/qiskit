@@ -143,7 +143,8 @@ class TestCanvas(QiskitTestCase):
             "gate_links": [],
         }
 
-        canvas.load_program(circ)
+        with self.assertWarns(DeprecationWarning):
+            canvas.load_program(circ)
         self.assertEqual(len(canvas._collections), 1)
 
     def test_multi_measurement_with_clbit_not_shown(self):
