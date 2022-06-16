@@ -54,8 +54,7 @@ class TellObject(ABC):
 class OptimizerState:
     """Base class representing the state of the optimizer.
 
-    Any variable that changes during the optimization and which is needed for the next optimization
-    step should be stored in this dataclass.
+    Any variable that changes during the optimization should be stored in this dataclass.
     """
 
     x: POINT  # pylint: disable=invalid-name
