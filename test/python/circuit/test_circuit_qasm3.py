@@ -22,7 +22,7 @@ import unittest
 from ddt import ddt, data
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
-from qiskit.circuit import Parameter, Qubit, Clbit, Instruction
+from qiskit.circuit import Parameter, Qubit, Clbit, Instruction, Gate
 from qiskit.test import QiskitTestCase
 from qiskit.qasm3 import Exporter, dumps, dump, QASM3ExporterError
 from qiskit.qasm3.exporter import QASM3Builder
@@ -368,10 +368,10 @@ class TestCircuitQASM3(QiskitTestCase):
             [
                 "OPENQASM 3;",
                 'include "stdgates.inc";',
+                "input float[64] a;",
                 "gate custom(a) _gate_q_0 {",
                 "  rx(a) _gate_q_0;",
                 "}",
-                "input float[64] a;",
                 "qubit[1] _all_qubits;",
                 "let q = _all_qubits[0:0];",
                 "custom(a) q[0];",
@@ -504,6 +504,8 @@ class TestCircuitQASM3(QiskitTestCase):
         expected_qasm = "\n".join(
             [
                 "OPENQASM 3;",
+                "input float[64] x;",
+                "input float[64] y;",
                 "gate rzx(x) _gate_q_0, _gate_q_1 {",
                 "  h _gate_q_1;",
                 "  cx _gate_q_0, _gate_q_1;",
@@ -511,8 +513,6 @@ class TestCircuitQASM3(QiskitTestCase):
                 "  cx _gate_q_0, _gate_q_1;",
                 "  h _gate_q_1;",
                 "}",
-                "input float[64] x;",
-                "input float[64] y;",
                 "qubit[2] _all_qubits;",
                 "let q = _all_qubits[0:1];",
                 "rzx(x) q[0], q[1];",
@@ -735,6 +735,27 @@ class TestCircuitQASM3(QiskitTestCase):
             expected_qasm,
         )
 
+    def test_opaque_instruction_in_basis_gates(self):
+        """Test that an instruction that is set in the basis gates is output verbatim with no
+        definition."""
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        qc.append(Gate("my_gate", 1, []), [0], [])
+
+        basis_gates = ["my_gate", "x"]
+        transpiled = transpile(qc, initial_layout=[0])
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3;",
+                "x $0;",
+                "my_gate $0;",
+                "",
+            ]
+        )
+        self.assertEqual(
+            Exporter(includes=[], basis_gates=basis_gates).dumps(transpiled), expected_qasm
+        )
+
     def test_reset_statement(self):
         """Test that a reset statement gets output into valid QASM 3.  This includes tests of reset
         operations on single qubits and in nested scopes."""
@@ -754,6 +775,32 @@ class TestCircuitQASM3(QiskitTestCase):
                 "qubit[2] _all_qubits;",
                 "let qr = _all_qubits[0:1];",
                 "reset qr[0];",
+                "inner_gate qr[1];",
+                "",
+            ]
+        )
+        self.assertEqual(Exporter(includes=[]).dumps(qc), expected_qasm)
+
+    def test_delay_statement(self):
+        """Test that delay operations get output into valid QASM 3."""
+        inner = QuantumCircuit(1, name="inner_gate")
+        inner.delay(50, unit="dt")
+        qreg = QuantumRegister(2, "qr")
+        qc = QuantumCircuit(qreg)
+        qc.delay(100, qreg[0], unit="ms")
+        qc.delay(2, qreg[1], unit="ps")  # "ps" is not a valid unit in OQ3, so we need to convert.
+        qc.append(inner, [1], [])
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3;",
+                "def inner_gate(qubit _gate_q_0) {",
+                "  delay[50dt] _gate_q_0;",
+                "}",
+                "qubit[2] _all_qubits;",
+                "let qr = _all_qubits[0:1];",
+                "delay[100ms] qr[0];",
+                "delay[2000ns] qr[1];",
                 "inner_gate qr[1];",
                 "",
             ]

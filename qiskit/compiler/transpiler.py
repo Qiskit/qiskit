@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 """Circuit transpile function"""
-import datetime
 import logging
 import warnings
 from time import time
@@ -22,7 +21,6 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.converters import isinstanceint, isinstancelist, dag_to_circuit, circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.providers import BaseBackend
 from qiskit.providers.backend import Backend
 from qiskit.providers.models import BackendProperties
 from qiskit.providers.models.backendproperties import Gate
@@ -41,14 +39,14 @@ from qiskit.transpiler.preset_passmanagers import (
     level_3_pass_manager,
 )
 from qiskit.transpiler.timing_constraints import TimingConstraints
-from qiskit.transpiler.target import Target
+from qiskit.transpiler.target import Target, target_to_backend_properties
 
 logger = logging.getLogger(__name__)
 
 
 def transpile(
     circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-    backend: Optional[Union[Backend, BaseBackend]] = None,
+    backend: Optional[Backend] = None,
     basis_gates: Optional[List[str]] = None,
     inst_map: Optional[List[InstructionScheduleMap]] = None,
     coupling_map: Optional[Union[CouplingMap, List[List[int]]]] = None,
@@ -96,12 +94,14 @@ def transpile(
             the custom gate definition to the circuit. This enables one to flexibly
             override the low-level instruction implementation. This feature is available
             iff the backend supports the pulse gate experiment.
-        coupling_map: Coupling map (perhaps custom) to target in mapping.
+        coupling_map: Directed coupling map (perhaps custom) to target in mapping. If
+            the coupling map is symmetric, both directions need to be specified.
+
             Multiple formats are supported:
 
             #. ``CouplingMap`` instance
             #. List, must be given as an adjacency matrix, where each entry
-               specifies all two-qubit interactions supported by backend,
+               specifies all directed two-qubit interactions supported by backend,
                e.g: ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
 
         backend_properties: properties returned by a backend, including information on gate
@@ -138,7 +138,9 @@ def transpile(
                     [qr[0], None, None, qr[1], None, qr[2]]
 
         layout_method: Name of layout selection pass ('trivial', 'dense', 'noise_adaptive', 'sabre')
-        routing_method: Name of routing pass ('basic', 'lookahead', 'stochastic', 'sabre', 'none')
+        routing_method: Name of routing pass
+            ('basic', 'lookahead', 'stochastic', 'sabre', 'toqm', 'none'). Note
+            that to use method 'toqm', package 'qiskit-toqm' must be installed.
         translation_method: Name of translation pass ('unroller', 'translator', 'synthesis')
         scheduling_method: Name of scheduling pass.
             * ``'as_soon_as_possible'``: Schedule instructions greedily, as early as possible
@@ -327,8 +329,6 @@ def _check_circuits_coupling_map(circuits, transpile_args, backend):
         # If coupling_map is None, the limit might be in the backend (like in 1Q devices)
         elif backend is not None:
             backend_version = getattr(backend, "version", 0)
-            if not isinstance(backend_version, int):
-                backend_version = 0
             if backend_version <= 1:
                 if not backend.configuration().simulator:
                     max_qubits = backend.configuration().n_qubits
@@ -516,7 +516,7 @@ def _parse_transpile_args(
         if timing_constraints is None:
             timing_constraints = target.timing_constraints()
         if backend_properties is None:
-            backend_properties = _target_to_backend_properties(target)
+            backend_properties = target_to_backend_properties(target)
 
     basis_gates = _parse_basis_gates(basis_gates, backend, circuits)
     inst_map = _parse_inst_map(inst_map, backend, num_circuits)
@@ -611,8 +611,6 @@ def _create_faulty_qubits_map(backend):
     faulty_qubits_map = None
     if backend is not None:
         backend_version = getattr(backend, "version", 0)
-        if not isinstance(backend_version, int):
-            backend_version = 0
         if backend_version > 1:
             return None
         if backend.properties():
@@ -647,8 +645,6 @@ def _parse_basis_gates(basis_gates, backend, circuits):
     # try getting basis_gates from user, else backend
     if basis_gates is None:
         backend_version = getattr(backend, "version", 0)
-        if not isinstance(backend_version, int):
-            backend_version = 0
         if backend_version <= 1:
             if getattr(backend, "configuration", None):
                 basis_gates = getattr(backend.configuration(), "basis_gates", None)
@@ -667,8 +663,6 @@ def _parse_inst_map(inst_map, backend, num_circuits):
     # try getting inst_map from user, else backend
     if inst_map is None:
         backend_version = getattr(backend, "version", 0)
-        if not isinstance(backend_version, int):
-            backend_version = 0
         if backend_version <= 1:
             if hasattr(backend, "defaults"):
                 inst_map = getattr(backend.defaults(), "instruction_schedule_map", None)
@@ -685,8 +679,6 @@ def _parse_coupling_map(coupling_map, backend, num_circuits):
     # try getting coupling_map from user, else backend
     if coupling_map is None:
         backend_version = getattr(backend, "version", 0)
-        if not isinstance(backend_version, int):
-            backend_version = 0
         if backend_version <= 1:
             if getattr(backend, "configuration", None):
                 configuration = backend.configuration()
@@ -726,92 +718,10 @@ def _parse_coupling_map(coupling_map, backend, num_circuits):
     return coupling_map
 
 
-def _target_to_backend_properties(target: Target):
-    properties_dict = {
-        "backend_name": "",
-        "backend_version": "",
-        "last_update_date": None,
-        "general": [],
-    }
-    gates = []
-    qubits = []
-    for gate, qargs_list in target.items():
-        if gate != "measure":
-            for qargs, props in qargs_list.items():
-                property_list = []
-                if props is not None:
-                    if props.duration is not None:
-                        property_list.append(
-                            {
-                                "date": datetime.datetime.utcnow(),
-                                "name": "gate_length",
-                                "unit": "s",
-                                "value": props.duration,
-                            }
-                        )
-                    if props.error is not None:
-                        property_list.append(
-                            {
-                                "date": datetime.datetime.utcnow(),
-                                "name": "gate_error",
-                                "unit": "",
-                                "value": props.error,
-                            }
-                        )
-                if property_list:
-                    gates.append(
-                        {
-                            "gate": gate,
-                            "qubits": list(qargs),
-                            "parameters": property_list,
-                            "name": gate + "_".join([str(x) for x in qargs]),
-                        }
-                    )
-        else:
-            qubit_props = {x: None for x in range(target.num_qubits)}
-            for qargs, props in qargs_list.items():
-                if qargs is None:
-                    continue
-                qubit = qargs[0]
-                props_list = []
-                if props.error is not None:
-                    props_list.append(
-                        {
-                            "date": datetime.datetime.utcnow(),
-                            "name": "readout_error",
-                            "unit": "",
-                            "value": props.error,
-                        }
-                    )
-                if props.duration is not None:
-                    props_list.append(
-                        {
-                            "date": datetime.datetime.utcnow(),
-                            "name": "readout_length",
-                            "unit": "s",
-                            "value": props.duration,
-                        }
-                    )
-                if not props_list:
-                    qubit_props = {}
-                    break
-                qubit_props[qubit] = props_list
-            if qubit_props and all(x is not None for x in qubit_props.values()):
-                qubits = [qubit_props[i] for i in range(target.num_qubits)]
-    if gates or qubits:
-        properties_dict["gates"] = gates
-        properties_dict["qubits"] = qubits
-        return BackendProperties.from_dict(properties_dict)
-    else:
-        return None
-
-
 def _parse_backend_properties(backend_properties, backend, num_circuits):
     # try getting backend_properties from user, else backend
     if backend_properties is None:
-        backend_version = getattr(backend, "version", None)
-        if not isinstance(backend_version, int):
-            backend_version = 0
+        backend_version = getattr(backend, "version", 0)
         if backend_version <= 1:
             if getattr(backend, "properties", None):
                 backend_properties = backend.properties()
@@ -843,7 +753,7 @@ def _parse_backend_properties(backend_properties, backend, num_circuits):
 
                     backend_properties.gates = gates
         else:
-            backend_properties = _target_to_backend_properties(backend.target)
+            backend_properties = target_to_backend_properties(backend.target)
     if not isinstance(backend_properties, list):
         backend_properties = [backend_properties] * num_circuits
     return backend_properties
@@ -854,8 +764,6 @@ def _parse_backend_num_qubits(backend, num_circuits):
         return [None] * num_circuits
     if not isinstance(backend, list):
         backend_version = getattr(backend, "version", 0)
-        if not isinstance(backend_version, int):
-            backend_version = 0
         if backend_version <= 1:
             return [backend.configuration().n_qubits] * num_circuits
         else:
@@ -863,8 +771,6 @@ def _parse_backend_num_qubits(backend, num_circuits):
     backend_num_qubits = []
     for a_backend in backend:
         backend_version = getattr(backend, "version", 0)
-        if not isinstance(backend_version, int):
-            backend_version = 0
         if backend_version <= 1:
             backend_num_qubits.append(a_backend.configuration().n_qubits)
         else:
@@ -938,11 +844,15 @@ def _parse_instruction_durations(backend, inst_durations, dt, circuits):
     take precedence over backend durations, but be superceded by ``inst_duration``s.
     """
     if not inst_durations:
-        backend_durations = InstructionDurations()
-        try:
-            backend_durations = InstructionDurations.from_backend(backend)
-        except AttributeError:
-            pass
+        backend_version = getattr(backend, "version", 0)
+        if backend_version <= 1:
+            backend_durations = InstructionDurations()
+            try:
+                backend_durations = InstructionDurations.from_backend(backend)
+            except AttributeError:
+                pass
+        else:
+            backend_durations = backend.instruction_durations
 
     durations = []
     for circ in circuits:
@@ -1065,8 +975,6 @@ def _parse_timing_constraints(backend, timing_constraints, num_circuits):
         timing_constraints = TimingConstraints()
     else:
         backend_version = getattr(backend, "version", 0)
-        if not isinstance(backend_version, int):
-            backend_version = 0
         if backend_version <= 1:
             if timing_constraints is None:
                 # get constraints from backend

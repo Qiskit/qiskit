@@ -77,7 +77,7 @@ Pulse programming has a simple imperative style. This leaves the programmer
 to worry about the raw experimental physics of pulse programming and not
 constructing cumbersome data structures.
 
-We can optionally pass a :class:`~qiskit.providers.BaseBackend` to
+We can optionally pass a :class:`~qiskit.providers.Backend` to
 :func:`build` to enable enhanced functionality. Below, we prepare a Bell state
 by automatically compiling the required pulses from their gate-level
 representations, while simultaneously applying a long decoupling pulse to a
@@ -543,7 +543,7 @@ class _PulseBuilder:
             duplication.
 
         Args:
-            backend (Union[Backend, BaseBackend]): Input backend to use in
+            backend (Backend): Input backend to use in
                 builder. If not set certain functionality will be unavailable.
             block: Initital ``ScheduleBlock`` to build on.
             name: Name of pulse program to be built.
@@ -557,7 +557,7 @@ class _PulseBuilder:
         Raises:
             PulseError: When invalid ``default_alignment`` or `block` is specified.
         """
-        #: BaseBackend: Backend instance for context builder.
+        #: Backend: Backend instance for context builder.
         self._backend = backend
 
         #: Union[None, ContextVar]: Token for this ``_PulseBuilder``'s ``ContextVar``.
@@ -627,7 +627,7 @@ class _PulseBuilder:
         """Returns the builder backend if set.
 
         Returns:
-            Optional[Union[Backend, BaseBackend]]: The builder's backend.
+            Optional[Backend]: The builder's backend.
         """
         return self._backend
 
@@ -879,7 +879,7 @@ def build(
         qiskit.execute(pulse_prog, backend)
 
     Args:
-        backend (Union[Backend, BaseBackend]): A Qiskit backend. If not supplied certain
+        backend (Backend): A Qiskit backend. If not supplied certain
             builder functionality will be unavailable.
         schedule: A pulse ``ScheduleBlock`` in which your pulse program will be built.
         name: Name of pulse program to be built.
@@ -929,7 +929,7 @@ def active_backend():
     """Get the backend of the currently active builder context.
 
     Returns:
-        Union[Backend, BaseBackend]: The active backend in the currently active
+        Backend: The active backend in the currently active
             builder context.
 
     Raises:
