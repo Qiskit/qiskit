@@ -56,10 +56,6 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     circuit to match the coupling map. Finally, optimizations in the form of adjacent
     gate collapse and redundant reset removal are performed.
 
-    Note:
-        In simulators where ``coupling_map=None``, only the unrolling and
-        optimization stages are done.
-
     Args:
         pass_manager_config: configuration of the pass manager.
 

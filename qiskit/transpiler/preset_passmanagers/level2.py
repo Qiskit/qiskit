@@ -58,10 +58,6 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     Finally, optimizations in the form of commutative gate cancellation and redundant
     reset removal are performed.
 
-    Note:
-        In simulators where ``coupling_map=None``, only the unrolling and
-        optimization stages are done.
-
     Args:
         pass_manager_config: configuration of the pass manager.
 

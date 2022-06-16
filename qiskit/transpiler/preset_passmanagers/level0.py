@@ -45,10 +45,6 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     The pass manager then unrolls the circuit to the desired basis, and transforms the
     circuit to match the coupling map.
 
-    Note:
-        In simulators where ``coupling_map=None``, only the unrolling and
-        optimization stages are done.
-
     Args:
         pass_manager_config: configuration of the pass manager.
 
