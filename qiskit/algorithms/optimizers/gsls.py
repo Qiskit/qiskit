@@ -12,11 +12,19 @@
 
 """Line search with Gaussian-smoothed samples on a sphere."""
 
-from typing import Dict, Optional, Tuple, List, Callable, Any
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
 import numpy as np
 
 from qiskit.utils import algorithm_globals
-from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
+
+from .optimizer import (
+    POINT,
+    Optimizer,
+    OptimizerCallback,
+    OptimizerResult,
+    OptimizerSupportLevel,
+)
 
 
 class GSLS(Optimizer):
@@ -61,6 +69,7 @@ class GSLS(Optimizer):
         armijo_parameter: float = 1.0e-1,
         min_gradient_norm: float = 1e-8,
         max_failed_rejection_sampling: int = 50,
+        callback: Optional[OptimizerCallback] = None,
     ) -> None:
         """
         Args:
@@ -80,7 +89,7 @@ class GSLS(Optimizer):
             max_failed_rejection_sampling: Maximum number of attempts to sample points within
                 bounds.
         """
-        super().__init__()
+        super().__init__(callback)
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 self._options[k] = v
@@ -235,6 +244,9 @@ class GSLS(Optimizer):
                 prev_sample_set_x, prev_sample_set_y = sample_set_x, sample_set_y
 
             iter_count += 1
+
+            if self.callback is not None:
+                self.callback(x)
 
             # Check termination criterion
             if (

@@ -14,6 +14,7 @@
 
 from typing import Optional
 
+from .optimizer import OptimizerCallback
 from .scipy_optimizer import SciPyOptimizer
 
 
@@ -39,6 +40,7 @@ class COBYLA(SciPyOptimizer):
         rhobeg: float = 1.0,
         tol: Optional[float] = None,
         options: Optional[dict] = None,
+        callback: Optional[OptimizerCallback] = None,
         **kwargs,
     ) -> None:
         """
@@ -56,4 +58,4 @@ class COBYLA(SciPyOptimizer):
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 options[k] = v
-        super().__init__(method="COBYLA", options=options, tol=tol, **kwargs)
+        super().__init__(method="COBYLA", options=options, tol=tol, callback=callback, **kwargs)

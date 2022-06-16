@@ -14,14 +14,15 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from enum import IntEnum
 import logging
 import sys
+from abc import ABC, abstractmethod
+from enum import IntEnum
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import scipy
+from scipy.optimize import OptimizeResult
 
 from qiskit.algorithms.algorithm_result import AlgorithmResult
 
@@ -148,11 +149,16 @@ class OptimizerSupportLevel(IntEnum):
     required = 3  # Feature is required and must be given, None is invalid
 
 
+class OptimizerCallback(Protocol):
+    def __call__(self, xk, state: Optional[OptimizeResult] = None) -> bool:
+        ...
+
+
 class Optimizer(ABC):
     """Base class for optimization algorithm."""
 
     @abstractmethod
-    def __init__(self):
+    def __init__(self, callback: Optional[OptimizerCallback] = None):
         """
         Initialize the optimization algorithm, setting the support
         level for _gradient_support_level, _bound_support_level,
@@ -163,6 +169,7 @@ class Optimizer(ABC):
         self._initial_point_support_level = self.get_support_level()["initial_point"]
         self._options = {}
         self._max_evals_grouped = 1
+        self.callback = callback
 
     @abstractmethod
     def get_support_level(self):

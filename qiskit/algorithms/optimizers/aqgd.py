@@ -13,12 +13,20 @@
 """Analytical Quantum Gradient Descent (AQGD) optimizer."""
 
 import logging
-from typing import Callable, Tuple, List, Dict, Union, Any, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
+
 from qiskit.utils.validation import validate_range_exclusive_max
-from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
+
 from ..exceptions import AlgorithmError
+from .optimizer import (
+    POINT,
+    Optimizer,
+    OptimizerCallback,
+    OptimizerResult,
+    OptimizerSupportLevel,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +62,7 @@ class AQGD(Optimizer):
         momentum: Union[float, List[float]] = 0.25,
         param_tol: float = 1e-6,
         averaging: int = 10,
+        callback: Optional[OptimizerCallback] = None,
     ) -> None:
         """
         Performs Analytical Quantum Gradient Descent (AQGD) with Epochs.
@@ -74,7 +83,7 @@ class AQGD(Optimizer):
         Raises:
             AlgorithmError: If the length of ``maxiter``, `momentum``, and ``eta`` is not the same.
         """
-        super().__init__()
+        super().__init__(callback)
         if isinstance(maxiter, int):
             maxiter = [maxiter]
         if isinstance(eta, (int, float)):
@@ -314,6 +323,9 @@ class AQGD(Optimizer):
         converged = False
         for (eta, mom_coeff) in zip(self._eta, self._momenta_coeff):
             logger.info("Epoch: %4d | Stepsize: %6.4f | Momentum: %6.4f", epoch, eta, mom_coeff)
+
+            if self.callback is not None:
+                self.callback(params)
 
             sum_max_iters = sum(self._maxiter[0 : epoch + 1])
             while iter_count < sum_max_iters:

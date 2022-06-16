@@ -14,6 +14,7 @@
 
 from typing import Optional
 
+from .optimizer import OptimizerCallback
 from .scipy_optimizer import SciPyOptimizer
 
 
@@ -46,6 +47,7 @@ class TNC(SciPyOptimizer):
         eps: float = 1e-08,
         options: Optional[dict] = None,
         max_evals_grouped: int = 1,
+        callback: Optional[OptimizerCallback] = None,
         **kwargs,
     ) -> None:
         """
@@ -79,5 +81,6 @@ class TNC(SciPyOptimizer):
             options=options,
             tol=tol,
             max_evals_grouped=max_evals_grouped,
+            callback=callback,
             **kwargs,
         )

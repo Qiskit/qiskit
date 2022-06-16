@@ -12,43 +12,37 @@
 
 """The Adam and AMSGRAD optimizers."""
 
-from typing import Any, Optional, Callable, Dict, Tuple, List
-import os
-
 import csv
+import os
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
 import numpy as np
+
 from qiskit.utils.deprecation import deprecate_arguments
-from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
+
+from .optimizer import POINT, Optimizer, OptimizerCallback, OptimizerResult, OptimizerSupportLevel
 
 # pylint: disable=invalid-name
 
 
 class ADAM(Optimizer):
     """Adam and AMSGRAD optimizers.
-
     Adam [1] is a gradient-based optimization algorithm that is relies on adaptive estimates of
     lower-order moments. The algorithm requires little memory and is invariant to diagonal
     rescaling of the gradients. Furthermore, it is able to cope with non-stationary objective
     functions and noisy and/or sparse gradients.
-
     AMSGRAD [2] (a variant of Adam) uses a 'long-term memory' of past gradients and, thereby,
     improves convergence properties.
-
     References:
-
         [1]: Kingma, Diederik & Ba, Jimmy (2014), Adam: A Method for Stochastic Optimization.
              `arXiv:1412.6980 <https://arxiv.org/abs/1412.6980>`_
-
         [2]: Sashank J. Reddi and Satyen Kale and Sanjiv Kumar (2018),
              On the Convergence of Adam and Beyond.
              `arXiv:1904.09237 <https://arxiv.org/abs/1904.09237>`_
-
     .. note::
-
         This component has some function that is normally random. If you want to reproduce behavior
         then you should set the random number generator seed in the algorithm_globals
         (``qiskit.utils.algorithm_globals.random_seed = seed``).
-
     """
 
     _OPTIONS = [
@@ -74,6 +68,7 @@ class ADAM(Optimizer):
         eps: float = 1e-10,
         amsgrad: bool = False,
         snapshot_dir: Optional[str] = None,
+        callback: Optional[OptimizerCallback] = None,
     ) -> None:
         """
         Args:
@@ -88,8 +83,9 @@ class ADAM(Optimizer):
             amsgrad: True to use AMSGRAD, False if not
             snapshot_dir: If not None save the optimizer's parameter
                 after every step to the given directory
+            callback:
         """
-        super().__init__()
+        super().__init__(callback)
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 self._options[k] = v
@@ -144,12 +140,9 @@ class ADAM(Optimizer):
 
     def save_params(self, snapshot_dir: str) -> None:
         """Save the current iteration parameters to a file called ``adam_params.csv``.
-
         Note:
-
             The current parameters are appended to the file, if it exists already.
             The file is not overwritten.
-
         Args:
             snapshot_dir: The directory to store the file in.
         """
@@ -166,7 +159,6 @@ class ADAM(Optimizer):
 
     def load_params(self, load_dir: str) -> None:
         """Load iteration parameters for a file called ``adam_params.csv``.
-
         Args:
             load_dir: The directory containing ``adam_params.csv``.
         """
@@ -214,7 +206,6 @@ class ADAM(Optimizer):
         # ) -> Tuple[np.ndarray, float, int]:
     ) -> OptimizerResult:  # TODO find proper way to deprecate return type
         """Minimize the scalar function.
-
         Args:
             fun: The scalar function to minimize.
             x0: The initial point for the minimization.
@@ -225,7 +216,6 @@ class ADAM(Optimizer):
             initial_point: DEPRECATED. The initial iteration point.
             gradient_function: DEPRECATED. A function handle to the gradient of the objective
                 function.
-
         Returns:
             The result of the optimization, containing e.g. the result as attribute ``x``.
         """
@@ -259,6 +249,9 @@ class ADAM(Optimizer):
 
             if self._snapshot_dir:
                 self.save_params(self._snapshot_dir)
+
+            if self.callback is not None:
+                self.callback(params_new)
 
             # check termination
             if np.linalg.norm(params - params_new) < self._tol:

@@ -14,6 +14,7 @@
 
 from typing import Optional
 
+from .optimizer import OptimizerCallback
 from .scipy_optimizer import SciPyOptimizer
 
 
@@ -50,6 +51,7 @@ class NELDER_MEAD(SciPyOptimizer):  # pylint: disable=invalid-name
         tol: Optional[float] = None,
         adaptive: bool = False,
         options: Optional[dict] = None,
+        callback: Optional[OptimizerCallback] = None,
         **kwargs,
     ) -> None:
         """
@@ -70,4 +72,6 @@ class NELDER_MEAD(SciPyOptimizer):  # pylint: disable=invalid-name
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 options[k] = v
-        super().__init__(method="Nelder-Mead", options=options, tol=tol, **kwargs)
+        super().__init__(
+            method="Nelder-Mead", options=options, tol=tol, callback=callback, **kwargs
+        )

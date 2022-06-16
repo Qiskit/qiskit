@@ -16,6 +16,7 @@ from typing import Optional
 
 import numpy as np
 
+from .optimizer import OptimizerCallback
 from .scipy_optimizer import SciPyOptimizer
 
 
@@ -55,6 +56,7 @@ class L_BFGS_B(SciPyOptimizer):  # pylint: disable=invalid-name
         eps: float = 1e-08,
         options: Optional[dict] = None,
         max_evals_grouped: int = 1,
+        callback: Optional[OptimizerCallback] = None,
         **kwargs,
     ):
         r"""
@@ -83,5 +85,6 @@ class L_BFGS_B(SciPyOptimizer):  # pylint: disable=invalid-name
             method="L-BFGS-B",
             options=options,
             max_evals_grouped=max_evals_grouped,
+            callback=callback,
             **kwargs,
         )

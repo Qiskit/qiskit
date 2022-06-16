@@ -14,6 +14,7 @@
 
 from typing import Optional
 
+from .optimizer import OptimizerCallback
 from .scipy_optimizer import SciPyOptimizer
 
 
@@ -43,6 +44,7 @@ class POWELL(SciPyOptimizer):
         xtol: float = 0.0001,
         tol: Optional[float] = None,
         options: Optional[dict] = None,
+        callback: Optional[OptimizerCallback] = None,
         **kwargs,
     ) -> None:
         """
@@ -62,4 +64,4 @@ class POWELL(SciPyOptimizer):
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 options[k] = v
-        super().__init__("Powell", options=options, tol=tol, **kwargs)
+        super().__init__("Powell", options=options, tol=tol, callback=callback, **kwargs)
