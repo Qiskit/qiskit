@@ -44,7 +44,7 @@ from qiskit.transpiler import TranspilerError
 from qiskit.utils.optionals import HAS_TOQM
 
 
-def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
+def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassManager:
     """Level 2 pass manager: medium optimization by initial layout selection and
     gate cancellation using commutativity rules.
 

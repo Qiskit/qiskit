@@ -51,7 +51,7 @@ from qiskit.transpiler import TranspilerError
 from qiskit.utils.optionals import HAS_TOQM
 
 
-def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
+def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassManager:
     """Level 3 pass manager: heavy optimization by noise adaptive qubit mapping and
     gate cancellation using commutativity rules and unitary synthesis.
 

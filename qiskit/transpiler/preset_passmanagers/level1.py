@@ -44,7 +44,7 @@ from qiskit.transpiler import TranspilerError
 from qiskit.utils.optionals import HAS_TOQM
 
 
-def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
+def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassManager:
     """Level 1 pass manager: light optimization by simple adjacent gate collapsing.
 
     This pass manager applies the user-given initial layout. If none is given,
