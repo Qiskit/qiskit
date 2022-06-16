@@ -9,7 +9,7 @@ features:
         circuit = QuantumCircuit(1)
         circuit.ry(0.5, 0)
         
-        # decompose 2 times
+        # Equivalent to circuit.decompose().decompose()
         circuit.decompose(reps=2)
 
         # decompose 2 times, but only RY gate 2 times and R gate 1 times
