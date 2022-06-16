@@ -129,6 +129,7 @@ def generate_routing_passmanager(
     backend_properties=None,
     seed_transpiler=None,
     check_trivial=False,
+    use_barrier_before_measurement=True,
 ):
     """Generate a routing :class:`~qiskit.transpiler.PassManager`
 
@@ -150,6 +151,9 @@ def generate_routing_passmanager(
             needed if the constructed pass manager runs :class:`~.TrivialLayout`
             as a first layout attempt and uses it if it's a perfect layout
             (as is the case with preset pass manager level 1).
+        use_barrier_before_measurement (bool): If true (the default) the
+            :class:`~.BarrierBeforeFinalMeasurements` transpiler pass will be run prior to the
+            specified pass in the ``routing_pass`` argument.
     Returns:
         PassManager: The routing pass manager
     """
@@ -169,7 +173,10 @@ def generate_routing_passmanager(
     def _swap_condition(property_set):
         return not property_set["is_swap_mapped"]
 
-    routing.append([BarrierBeforeFinalMeasurements(), routing_pass], condition=_swap_condition)
+    if use_barrier_before_measurement:
+        routing.append([BarrierBeforeFinalMeasurements(), routing_pass], condition=_swap_condition)
+    else:
+        routing.append([routing_pass], condition=_swap_condition)
 
     if (target is not None or backend_properties is not None) and vf2_call_limit is not None:
         routing.append(

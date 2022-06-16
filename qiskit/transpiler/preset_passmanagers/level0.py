@@ -32,6 +32,7 @@ from qiskit.transpiler.passes import SabreSwap
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler import TranspilerError
+from qiskit.utils.optionals import HAS_TOQM
 
 
 def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassManager:
@@ -91,6 +92,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
 
+    toqm_pass = False
     # Choose routing pass
     if routing_method == "basic":
         routing_pass = BasicSwap(coupling_map)
@@ -100,6 +102,24 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         routing_pass = LookaheadSwap(coupling_map, search_depth=2, search_width=2)
     elif routing_method == "sabre":
         routing_pass = SabreSwap(coupling_map, heuristic="basic", seed=seed_transpiler)
+    elif routing_method == "toqm":
+        HAS_TOQM.require_now("TOQM-based routing")
+        from qiskit_toqm import ToqmSwap, ToqmStrategyO0, latencies_from_target
+
+        if initial_layout:
+            raise TranspilerError("Initial layouts are not supported with TOQM-based routing.")
+
+        toqm_pass = True
+        # Note: BarrierBeforeFinalMeasurements is skipped intentionally since ToqmSwap
+        #       does not yet support barriers.
+        routing_pass = ToqmSwap(
+            coupling_map,
+            strategy=ToqmStrategyO0(
+                latencies_from_target(
+                    coupling_map, instruction_durations, basis_gates, backend_properties, target
+                )
+            ),
+        )
     elif routing_method == "none":
         routing_pass = Error(
             msg="No routing method selected, but circuit is not routed to device. "
@@ -128,6 +148,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             target,
             coupling_map=coupling_map,
             seed_transpiler=seed_transpiler,
+            use_barrier_before_measurement=not toqm_pass,
         )
     else:
         layout = None
@@ -142,6 +163,10 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         unitary_synthesis_method,
         unitary_synthesis_plugin_config,
     )
+    pre_routing = None
+    if toqm_pass:
+        pre_routing = translation
+
     if (coupling_map and not coupling_map.is_symmetric) or (
         target is not None and target.get_non_global_operation_names(strict_direction=True)
     ):
@@ -156,6 +181,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     return StagedPassManager(
         init=unroll_3q,
         layout=layout,
+        pre_routing=pre_routing,
         routing=routing,
         translation=translation,
         pre_optimization=pre_opt,
