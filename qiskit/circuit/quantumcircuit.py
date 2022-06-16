@@ -1502,6 +1502,7 @@ class QuantumCircuit:
         gates_to_decompose: Optional[
             Union[Type[Gate], Sequence[Type[Gate]], Sequence[str], str]
         ] = None,
+        reps: int = 1,
     ) -> "QuantumCircuit":
         """Call a decomposition pass on this circuit,
         to decompose one level (shallow decompose).
@@ -1509,6 +1510,9 @@ class QuantumCircuit:
         Args:
             gates_to_decompose (str or list(str)): optional subset of gates to decompose.
                 Defaults to all gates in circuit.
+            reps (int): Optional number of times the circuit should be decomposed.
+                For instance, ``reps=2`` equals calling ``circuit.decompose().decompose()``.
+                can decompose specific gates specific time
 
         Returns:
             QuantumCircuit: a circuit one level decomposed
@@ -1518,9 +1522,11 @@ class QuantumCircuit:
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
 
-        pass_ = Decompose(gates_to_decompose=gates_to_decompose)
-        decomposed_dag = pass_.run(circuit_to_dag(self))
-        return dag_to_circuit(decomposed_dag)
+        pass_ = Decompose(gates_to_decompose)
+        dag = circuit_to_dag(self)
+        for _ in range(reps):
+            dag = pass_.run(dag)
+        return dag_to_circuit(dag)
 
     def _check_compatible_regs(self, rhs: "QuantumCircuit") -> None:
         """Raise exception if the circuits are defined on incompatible registers"""
