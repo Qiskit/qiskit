@@ -16,7 +16,7 @@ Level 0 pass manager: no explicit optimization other than mapping to backend.
 """
 from typing import List
 
-from qiskit.transpiler.basepasses import BasePass, TBasePass
+from qiskit.transpiler.basepasses import TBasePass
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.timing_constraints import TimingConstraints

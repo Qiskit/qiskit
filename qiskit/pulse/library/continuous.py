@@ -15,7 +15,6 @@
 """Module for builtin continuous pulse functions."""
 
 import functools
-from numbers import Number
 from typing import Union, Tuple, Optional
 
 import numpy as np
@@ -107,7 +106,7 @@ def sin(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.nd
 
 def _fix_gaussian_width(
     gaussian_samples,
-    amp: Number,
+    amp: complex,
     center: float,
     sigma: float,
     zeroed_width: Optional[float] = None,
@@ -231,7 +230,7 @@ def gaussian_deriv(
 
 def _fix_sech_width(
     sech_samples,
-    amp: Number,
+    amp: complex,
     center: float,
     sigma: float,
     zeroed_width: Optional[float] = None,

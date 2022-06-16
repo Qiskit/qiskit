@@ -161,7 +161,7 @@ class InstructionDurations:
     def get(
         self,
         inst: Union[str, Instruction],
-        qubits: Union[int, List[int], Qubit, List[Qubit]],
+        qubits: Union[int, List[int], Qubit, List[Qubit], List[Union[int, Qubit]]],
         unit: str = "dt",
         parameters: Optional[List[float]] = None,
     ) -> float:
@@ -192,7 +192,7 @@ class InstructionDurations:
             inst_name = inst
 
         if isinstance(qubits, (int, Qubit)):
-            qubits: List[Union[int, Qubit]] = [qubits]
+            qubits = [qubits]
 
         if isinstance(qubits[0], Qubit):
             warnings.warn(

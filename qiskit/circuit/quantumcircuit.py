@@ -294,27 +294,6 @@ class QuantumCircuit:
         """
         return QuantumCircuitData(self)
 
-    @property
-    def op_start_times(self) -> List[int]:
-        """Return a list of operation start times.
-
-        This attribute is enabled once one of scheduling analysis passes
-        runs on the quantum circuit.
-
-        Returns:
-            List of integers representing instruction start times.
-            The index corresponds to the index of instruction in :attr:`QuantumCircuit.data`.
-
-        Raises:
-            AttributeError: When circuit is not scheduled.
-        """
-        if self._op_start_times is None:
-            raise AttributeError(
-                "This circuit is not scheduled. "
-                "To schedule it run the circuit through one of the transpiler scheduling passes."
-            )
-        return self._op_start_times
-
     @data.setter
     def data(self, data_input: Iterable):
         """Sets the circuit data from a list of instructions and context.
@@ -340,6 +319,27 @@ class QuantumCircuit:
         else:
             for instruction, qargs, cargs in data_input:
                 self.append(instruction, qargs, cargs)
+
+    @property
+    def op_start_times(self) -> List[int]:
+        """Return a list of operation start times.
+
+        This attribute is enabled once one of scheduling analysis passes
+        runs on the quantum circuit.
+
+        Returns:
+            List of integers representing instruction start times.
+            The index corresponds to the index of instruction in :attr:`QuantumCircuit.data`.
+
+        Raises:
+            AttributeError: When circuit is not scheduled.
+        """
+        if self._op_start_times is None:
+            raise AttributeError(
+                "This circuit is not scheduled. "
+                "To schedule it run the circuit through one of the transpiler scheduling passes."
+            )
+        return self._op_start_times
 
     @property
     def calibrations(self) -> dict:

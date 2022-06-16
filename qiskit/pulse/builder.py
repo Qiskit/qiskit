@@ -808,7 +808,7 @@ class _PulseBuilder:
             self.append_instruction(call_def)
 
     @_requires_backend
-    def call_gate(self, gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
+    def call_gate(self, gate: circuit.Gate, qubits: Union[int, Tuple[int, ...]], lazy: bool = True):
         """Call the circuit ``gate`` in the pulse program.
 
         The qubits are assumed to be defined on physical qubits.
@@ -2273,7 +2273,7 @@ def delay_qubits(duration: int, *qubits: Union[int, Iterable[int]]):
 
 
 # Gate instructions
-def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
+def call_gate(gate: circuit.Gate, qubits: Union[int, Tuple[int, ...]], lazy: bool = True):
     """Call a gate and lazily schedule it to its corresponding
     pulse instruction.
 

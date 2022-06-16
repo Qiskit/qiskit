@@ -37,8 +37,8 @@ def count_keys(num_qubits: int) -> List[str]:
 
 def complete_meas_cal(
     qubit_list: Optional[List[int]] = None,
-    qr: Union[int, List[Any]] = None,
-    cr: Union[int, List[Any]] = None,
+    qr: Optional[Union[int, List[Any]]] = None,
+    cr: Optional[Union[int, List[Any]]] = None,
     circlabel: str = "",
 ) -> Tuple[List[Any], List[str]]:
     """

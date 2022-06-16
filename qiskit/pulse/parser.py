@@ -27,7 +27,7 @@ from qiskit.circuit import ParameterExpression
 class PulseExpression(ast.NodeTransformer):
     """Expression parser to evaluate parameter values."""
 
-    _math_ops: Dict[str, Callable] = {
+    _math_ops: Dict[str, Union[Callable, float]] = {
         "acos": cmath.acos,
         "acosh": cmath.acosh,
         "asin": cmath.asin,

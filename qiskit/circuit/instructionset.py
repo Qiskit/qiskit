@@ -18,8 +18,6 @@ import functools
 import warnings
 from typing import Callable, Optional, Tuple, Union, List
 
-from qiskit.circuit import Qubit
-
 from qiskit.circuit.exceptions import CircuitError
 from .instruction import Instruction
 from .classicalregister import Clbit, ClassicalRegister
