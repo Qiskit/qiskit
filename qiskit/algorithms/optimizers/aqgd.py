@@ -232,7 +232,7 @@ class AQGD(Optimizer):
             return True
         return False
 
-    def _converged_parameter(self, parameter: List[float], tol: float) -> bool:
+    def _converged_parameter(self, parameter: np.ndarray, tol: float) -> bool:
         """
         Tests convergence based on change in parameter
 

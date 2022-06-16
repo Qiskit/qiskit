@@ -12,7 +12,7 @@
 
 """Permutation circuit."""
 
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import numpy as np
 
@@ -26,7 +26,7 @@ class Permutation(QuantumCircuit):
     def __init__(
         self,
         num_qubits: int,
-        pattern: Optional[List[int]] = None,
+        pattern: Optional[Union[List[int], np.ndarray]] = None,
         seed: Optional[int] = None,
     ) -> None:
         """Return an n_qubit permutation circuit implemented using SWAPs.

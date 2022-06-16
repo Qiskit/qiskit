@@ -73,8 +73,8 @@ class DrawerCanvas:
         self.layout = stylesheet.layout
 
         # drawings
-        self._collections = {}
-        self._output_dataset = {}
+        self._collections: Dict[str, drawings.ElementaryData] = {}
+        self._output_dataset: Dict[str, drawings.ElementaryData] = {}
 
         # vertical offset of bits
         self.bits = []

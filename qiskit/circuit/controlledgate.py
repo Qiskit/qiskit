@@ -97,7 +97,7 @@ class ControlledGate(Gate):
         self.num_ctrl_qubits = num_ctrl_qubits
         self.definition = copy.deepcopy(definition)
         self._ctrl_state = None
-        self.ctrl_state = ctrl_state
+        self.ctrl_state: Optional[Union[int, str]] = ctrl_state
         self._name = name
 
     @property

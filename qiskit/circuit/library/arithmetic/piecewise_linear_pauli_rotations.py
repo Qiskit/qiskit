@@ -96,7 +96,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
             self._reset_registers(self.num_state_qubits)
 
     @property
-    def slopes(self) -> List[int]:
+    def slopes(self) -> List[float]:
         """The breakpoints of the piecewise linear function.
 
         The function is linear in the intervals ``[point_i, point_{i+1}]`` where the last
@@ -134,7 +134,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         self._offsets = offsets
 
     @property
-    def mapped_slopes(self) -> List[float]:
+    def mapped_slopes(self) -> np.ndarray:
         """The slopes mapped to the internal representation.
 
         Returns:
@@ -147,7 +147,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         return mapped_slopes
 
     @property
-    def mapped_offsets(self) -> List[float]:
+    def mapped_offsets(self) -> np.ndarray:
         """The offsets mapped to the internal representation.
 
         Returns:

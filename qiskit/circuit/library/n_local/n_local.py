@@ -119,8 +119,8 @@ class NLocal(BlueprintCircuit):
         self._num_qubits = None
         self._insert_barriers = insert_barriers
         self._reps = reps
-        self._entanglement_blocks = []
-        self._rotation_blocks = []
+        self._entanglement_blocks: List[Instruction] = []
+        self._rotation_blocks: List[Instruction] = []
         self._prepended_blocks = []
         self._prepended_entanglement = []
         self._appended_blocks = []

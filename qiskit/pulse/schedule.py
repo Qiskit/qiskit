@@ -150,8 +150,8 @@ class Schedule:
         self._duration = 0
 
         # These attributes are populated by ``_mutable_insert``
-        self._timeslots = {}
-        self._children = []
+        self._timeslots: TimeSlots = {}
+        self._children: Tuple[int, "ScheduleComponent"] = []
         for sched_pair in schedules:
             try:
                 time, sched = sched_pair
@@ -756,7 +756,7 @@ class Schedule:
         """Return a new schedule which is shifted forward by ``time``."""
         return self.shift(time)
 
-    def __eq__(self, other: "ScheduleComponent") -> bool:
+    def __eq__(self, other: object) -> bool:
         """Test if two Schedule are equal.
 
         Equality is checked by verifying there is an equal instruction at every time
@@ -1245,7 +1245,7 @@ class ScheduleBlock:
         """Return number of instructions in the schedule."""
         return len(self.blocks)
 
-    def __eq__(self, other: "ScheduleBlock") -> bool:
+    def __eq__(self, other: object) -> bool:
         """Test if two ScheduleBlocks are equal.
 
         Equality is checked by verifying there is an equal instruction at every time

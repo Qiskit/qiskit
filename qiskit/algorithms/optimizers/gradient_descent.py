@@ -137,7 +137,9 @@ class GradientDescent(Optimizer):
         # if learning rate or perturbation are custom iterators expand them
         if callable(self.learning_rate):
             iterator = self.learning_rate()
-            learning_rate = np.array([next(iterator) for _ in range(self.maxiter)])
+            learning_rate: Union[float, np.ndarray] = np.array(
+                [next(iterator) for _ in range(self.maxiter)]
+            )
         else:
             learning_rate = self.learning_rate
 

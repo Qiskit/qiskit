@@ -192,7 +192,7 @@ class InstructionDurations:
             inst_name = inst
 
         if isinstance(qubits, (int, Qubit)):
-            qubits = [qubits]
+            qubits: List[Union[int, Qubit]] = [qubits]
 
         if isinstance(qubits[0], Qubit):
             warnings.warn(
