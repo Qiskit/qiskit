@@ -30,7 +30,7 @@ def constant(eta=0.01):
 
 @dataclass
 class GradientDescentState(OptimizerState):
-    """State of :class:`qiskit.algorithms.optimizers.GradientDescent`."""
+    """State of :class:`~.GradientDescent`."""
 
     eta: Iterator
     stepsize: Optional[float]
@@ -63,7 +63,7 @@ class GradientDescent(SteppableOptimizer):
         A minimum example that will use finite difference gradients with a default perturbation
         of 0.01 and a default learning rate of 0.01.
 
-        .. code-block::python
+        .. code-block:: python
 
             from qiskit.algorithms.optimizers import GradientDescent
 
@@ -73,6 +73,7 @@ class GradientDescent(SteppableOptimizer):
             initial_point = np.array([1, 0.5, -0.2])
 
             optimizer = GradientDescent(maxiter=100)
+
             result = optimizer.minimize(fun=fun, x0=initial_point)
 
             print(f"Found minimum {result.x} at a value"
@@ -82,7 +83,7 @@ class GradientDescent(SteppableOptimizer):
         Note how much faster this convergences (i.e. less ``nfev``) compared to the previous
         example.
 
-        .. code-block::python
+        .. code-block:: python
 
             from qiskit.algorithms.optimizers import GradientDescent
 
@@ -112,48 +113,48 @@ class GradientDescent(SteppableOptimizer):
             "of {result.fun} using {result.nfev} evaluations.")
 
 
-    In this case the evaluation of the function has a chance of failing. The user, with specific
-    knowledge about his function can catch this errors and handle before passing the result to the
-    optimizer.
+    An other example where the evaluation of the function has a chance of failing. The user, with
+    specific knowledge about his function can catch this errors and handle them before passing the
+    result to the optimizer.
 
-            .. code-block::python
+        .. code-block:: python
 
-        import random
-        import numpy as np
-        from qiskit.algorithms.optimizers import GradientDescent
+            import random
+            import numpy as np
+            from qiskit.algorithms.optimizers import GradientDescent
 
-        def objective(x):
-            if random.choice([True, False]):
-                return None
-            else:
-                return (np.linalg.norm(x) - 1) ** 2
+            def objective(x):
+                if random.choice([True, False]):
+                    return None
+                else:
+                    return (np.linalg.norm(x) - 1) ** 2
 
-        def grad(x):
-            if random.choice([True, False]):
-                return None
-            else:
-                return 2 * (np.linalg.norm(x) - 1) * x / np.linalg.norm(x)
+            def grad(x):
+                if random.choice([True, False]):
+                    return None
+                else:
+                    return 2 * (np.linalg.norm(x) - 1) * x / np.linalg.norm(x)
 
 
-        initial_point = np.random.normal(0, 1, size=(100,))
+            initial_point = np.random.normal(0, 1, size=(100,))
 
-        optimizer = GradientDescent(maxiter=20)
-        optimizer.initialize(x0=initial_point, fun=objective, jac=grad)
+            optimizer = GradientDescent(maxiter=20)
+            optimizer.initialize(x0=initial_point, fun=objective, jac=grad)
 
-        for _ in range(20):
-            ask_object = optimizer.ask()
-            evaluated_gradient = None
+            for _ in range(20):
+                ask_object = optimizer.ask()
+                evaluated_gradient = None
 
-            while evaluated_gradient is None:
-                evaluated_gradient = grad(ask_object.x_center)
-                optimizer._state.njev += 1
+                while evaluated_gradient is None:
+                    evaluated_gradient = grad(ask_object.x_center)
+                    optimizer._state.njev += 1
 
-            optmizer._state.nit += 1
+                optmizer._state.nit += 1
 
-            tell_object = TellObject(eval_jac=evaluated_gradient)
-            optimizer.tell(ask_object=ask_object, tell_object=tell_object)
+                tell_object = TellObject(eval_jac=evaluated_gradient)
+                optimizer.tell(ask_object=ask_object, tell_object=tell_object)
 
-        result = optimizer.create_result()
+            result = optimizer.create_result()
 
     In case the user isn't dealing with complicated function and is more familiar with step by step
     optimization algorithms, :meth:`~.step` has been created to acts as a wrapper for :meth:`~.ask`
@@ -182,10 +183,10 @@ class GradientDescent(SteppableOptimizer):
                 updates. See the docstring for an example.
             tol: If the norm of the parameter update is smaller than this threshold, the
                 optimizer is converged.
-            perturbation: If no gradient is passed to :meth:`~.GradientDescent.minimize` the gradient is
+            perturbation: If no gradient is passed to :meth:`~.minimize` the gradient is
                 approximated with a symmetric finite difference scheme with ``perturbation``
                 perturbation in both directions (defaults to 1e-2 if required).
-                Ignored if a gradient callable is passed to `~.GradientDescent.optimize`.
+                Ignored if a gradient callable is passed to `~.minimize`.
         """
         super().__init__(maxiter=maxiter, callback=callback)
         self._state: GradientDescentState = None
@@ -238,8 +239,8 @@ class GradientDescent(SteppableOptimizer):
 
     def tell(self, ask_object: AskObject, tell_object: TellObject) -> None:
         """
-        For gradient descent this method updates self._state.x by an ammount proportional
-        to the learning rate and the gradient at that point.
+        For gradient descent this method updates :attr:`.~GradientDescentState.x` by an ammount
+        proportional to the learning rate and the gradient at that point.
         """
         update = tell_object.eval_jac
         self._state.x = self._state.x - next(self._state.eta) * update
@@ -268,8 +269,8 @@ class GradientDescent(SteppableOptimizer):
         return TellObject(eval_jac=grad)
 
     def create_result(self) -> OptimizerResult:
-        """
-        Creates a result of the optimization process using the values from :attr:`~.state`.
+        """Creates a result of the optimization process using the values from
+        :class:`~.GradientDescentState`.
         """
         result = OptimizerResult()
         result.x = self._state.x
@@ -312,7 +313,7 @@ class GradientDescent(SteppableOptimizer):
         When the stepsize is smaller than the tolerance, the optimization process is considered
         finished.
         Returns:
-            True if the optimization process should continue, False otherwise.
+            ``True`` if the optimization process should continue, ``False`` otherwise.
         """
         if self._state.stepsize is None:
             return True
