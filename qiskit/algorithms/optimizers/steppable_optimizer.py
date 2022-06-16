@@ -54,10 +54,10 @@ class TellObject(ABC):
 
 @dataclass
 class OptimizerState:
-    """
-    Base class representing the state of the optmiizer.
-    Any variable that changes during the optimization process and is needed for the next step
-    of optimization should be stored in this dataclass.
+    """Base class representing the state of the optimizer.
+    
+    Any variable that changes during the optimization and which is needed for the next optimization
+    step should be stored in this dataclass.
     """
 
     x: POINT  # pylint: disable=invalid-name
@@ -77,12 +77,12 @@ class SteppableOptimizer(Optimizer):
     <https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/009_ask_and_tell.html>`_.
     When using this interface the user has to call :meth:`~.ask` in order to get information about
     how to evaluate the fucntion (we are asking the optimizer about how to do the evaluation).
-    This information will be mostly about at what point should we evaluate the function next, but
+    This information is typically the points at which we should evaluate the function next, but
     depending on the optimizer it can also be about whether we should evaluate the function itself or
     its gradient.
 
     Once the function has been evaluated, the user calls the method :meth:`~.SteppableOptmizer.tell`
-    to tell the optimizer what has been the result of the function evaluation. The optimizer then
+    to tell the optimizer what the result of the function evaluation(s) is. The optimizer then
     updates its state accordingly and the user can decide whether to stop the optimization process
     or to repeat a step.
 
@@ -132,11 +132,10 @@ class SteppableOptimizer(Optimizer):
     knowledge about his function can catch this errors and handle before passing the result to the
     optimizer.
 
-    In case the user isn't dealing with complicated function and is more familiar with step by step
-    optimization algorithms, :meth:`~.step` has been created to acts as a wrapper for :meth:`~.ask`
-    and :meth:`~.tell`.
-    In the same spirit the method :meth:`~.minimize` will optimize the function and return the result
-    without directly.
+    Users that aren't dealing with complicated functions and who are more familiar with step by step
+    optimization algorithms can use the :meth:`~.step` method which wraps the :meth:`~.ask`
+    and :meth:`~.tell` methods. In the same spirit the method :meth:`~.minimize` will optimize the 
+    function and return the result without directly.
 
     To see other libraries that use this interface one can visit:
     https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/009_ask_and_tell.html
