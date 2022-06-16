@@ -245,6 +245,7 @@ class QuantumCircuit:
         # Data contains a list of instructions and their contexts,
         # in the order they were applied.
         self._data = []
+        self._op_start_times = None
 
         # A stack to hold the instruction sets that are being built up during for-, if- and
         # while-block construction.  These are stored as a stripped down sequence of instructions,
@@ -298,6 +299,27 @@ class QuantumCircuit:
             list of Clbit objects.
         """
         return QuantumCircuitData(self)
+
+    @property
+    def op_start_times(self) -> List[int]:
+        """Return a list of operation start times.
+
+        This attribute is enabled once one of scheduling analysis passes
+        runs on the quantum circuit.
+
+        Returns:
+            List of integers representing instruction start times.
+            The index corresponds to the index of instruction in :attr:`QuantumCircuit.data`.
+
+        Raises:
+            AttributeError: When circuit is not scheduled.
+        """
+        if self._op_start_times is None:
+            raise AttributeError(
+                "This circuit is not scheduled. "
+                "To schedule it run the circuit through one of the transpiler scheduling passes."
+            )
+        return self._op_start_times
 
     @data.setter
     def data(
@@ -1480,6 +1502,7 @@ class QuantumCircuit:
         gates_to_decompose: Optional[
             Union[Type[Gate], Sequence[Type[Gate]], Sequence[str], str]
         ] = None,
+        reps: int = 1,
     ) -> "QuantumCircuit":
         """Call a decomposition pass on this circuit,
         to decompose one level (shallow decompose).
@@ -1487,6 +1510,9 @@ class QuantumCircuit:
         Args:
             gates_to_decompose (str or list(str)): optional subset of gates to decompose.
                 Defaults to all gates in circuit.
+            reps (int): Optional number of times the circuit should be decomposed.
+                For instance, ``reps=2`` equals calling ``circuit.decompose().decompose()``.
+                can decompose specific gates specific time
 
         Returns:
             QuantumCircuit: a circuit one level decomposed
@@ -1496,9 +1522,11 @@ class QuantumCircuit:
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
 
-        pass_ = Decompose(gates_to_decompose=gates_to_decompose)
-        decomposed_dag = pass_.run(circuit_to_dag(self))
-        return dag_to_circuit(decomposed_dag)
+        pass_ = Decompose(gates_to_decompose)
+        dag = circuit_to_dag(self)
+        for _ in range(reps):
+            dag = pass_.run(dag)
+        return dag_to_circuit(dag)
 
     def _check_compatible_regs(self, rhs: "QuantumCircuit") -> None:
         """Raise exception if the circuits are defined on incompatible registers"""
