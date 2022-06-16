@@ -73,7 +73,7 @@ class Diagonal(QuantumCircuit):
     `arXiv:0406176 <https://arxiv.org/pdf/quant-ph/0406176.pdf>`_
     """
 
-    def __init__(self, diag: Union[List, np.array]) -> None:
+    def __init__(self, diag: Union[List, np.ndarray]) -> None:
         """Create a new Diagonal circuit.
 
         Args:

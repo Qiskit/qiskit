@@ -118,8 +118,8 @@ class LoConfig:
 
     def __init__(
         self,
-        channel_los: Optional[Dict[PulseChannel, float]] = None,
-        lo_ranges: Optional[Dict[PulseChannel, Union[LoRange, Tuple[int]]]] = None,
+        channel_los: Optional[Dict[Union[DriveChannel, MeasureChannel], float]] = None,
+        lo_ranges: Optional[Dict[Union[DriveChannel, MeasureChannel], Union[LoRange, Tuple[int]]]] = None,
     ):
         """Lo channel configuration data structure.
 
@@ -131,9 +131,9 @@ class LoConfig:
             PulseError: If channel is not configurable or set lo is out of range.
 
         """
-        self._q_lo_freq = {}
-        self._m_lo_freq = {}
-        self._lo_ranges = {}
+        self._q_lo_freq: Dict[Union[DriveChannel, MeasureChannel], float] = {}
+        self._m_lo_freq:Dict[Union[DriveChannel, MeasureChannel], float] = {}
+        self._lo_ranges: Dict[Union[DriveChannel, MeasureChannel],LoRange]= {}
 
         lo_ranges = lo_ranges if lo_ranges else {}
         for channel, freq in lo_ranges.items():
@@ -182,6 +182,7 @@ class LoConfig:
             lo_range = lo_ranges[channel]
             if not lo_range.includes(freq):
                 raise PulseError(f"Specified LO freq {freq:f} is out of range {lo_range}")
+        return True
 
     def channel_lo(self, channel: Union[DriveChannel, MeasureChannel]) -> float:
         """Return channel lo.

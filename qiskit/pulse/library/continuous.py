@@ -112,7 +112,7 @@ def _fix_gaussian_width(
     zeroed_width: Optional[float] = None,
     rescale_amp: bool = False,
     ret_scale_factor: bool = False,
-) -> np.ndarray:
+) -> Union[np.ndarray, Tuple[np.ndarray, float]]:
     r"""Enforce that the supplied gaussian pulse is zeroed at a specific width.
 
     This is achieved by subtracting $\Omega_g(center \pm zeroed_width/2)$ from all samples.
@@ -130,7 +130,7 @@ def _fix_gaussian_width(
     if zeroed_width is None:
         zeroed_width = 2 * (center + 1)
 
-    zero_offset = gaussian(np.array([zeroed_width / 2]), amp, 0, sigma)
+    zero_offset: np.ndarray = gaussian(np.array([zeroed_width / 2]), amp, 0, sigma)
     gaussian_samples -= zero_offset
     amp_scale_factor = 1.0
     if rescale_amp:
@@ -198,7 +198,7 @@ def gaussian_deriv(
     ret_gaussian: bool = False,
     zeroed_width: Optional[float] = None,
     rescale_amp: bool = False,
-) -> np.ndarray:
+) -> Union[np.ndarray,Tuple[np.ndarray, np.ndarray]]:
     r"""Continuous unnormalized gaussian derivative pulse.
 
     Args:
@@ -236,7 +236,7 @@ def _fix_sech_width(
     zeroed_width: Optional[float] = None,
     rescale_amp: bool = False,
     ret_scale_factor: bool = False,
-) -> np.ndarray:
+) -> Union[np.ndarray, Tuple[np.ndarray, float]]:
     r"""Enforce that the supplied sech pulse is zeroed at a specific width.
 
     This is achieved by subtracting $\Omega_g(center \pm zeroed_width/2)$ from all samples.
@@ -316,7 +316,7 @@ def sech(
 
 def sech_deriv(
     times: np.ndarray, amp: complex, center: float, sigma: float, ret_sech: bool = False
-) -> np.ndarray:
+) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
     """Continuous unnormalized sech derivative pulse.
 
     Args:

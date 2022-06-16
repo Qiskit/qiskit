@@ -60,6 +60,11 @@ class MeasurementFilter:
         """Return cal_matrix."""
         return self._cal_matrix
 
+    @cal_matrix.setter
+    def cal_matrix(self, new_cal_matrix):
+        """Set cal_matrix."""
+        self._cal_matrix = new_cal_matrix
+
     @property
     def state_labels(self):
         """return the state label ordering of the cal matrix"""
@@ -70,10 +75,6 @@ class MeasurementFilter:
         """set the state label ordering of the cal matrix"""
         self._state_labels = new_state_labels
 
-    @cal_matrix.setter
-    def cal_matrix(self, new_cal_matrix):
-        """Set cal_matrix."""
-        self._cal_matrix = new_cal_matrix
 
     def apply(self, raw_data, method="least_squares"):
         """Apply the calibration matrix to results.

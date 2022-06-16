@@ -12,7 +12,7 @@
 """
 ParameterExpression Class to enable creating simple expressions of Parameters.
 """
-from typing import Callable, Dict, Set, Union
+from typing import Callable, Dict, Set, Union, Optional
 
 import numbers
 import operator
@@ -48,7 +48,7 @@ class ParameterExpression:
         self._parameter_symbols = symbol_map
         self._parameters = set(self._parameter_symbols)
         self._symbol_expr = expr
-        self._name_map = None
+        self._name_map: Optional[Dict] = None
 
     @property
     def parameters(self) -> Set:

@@ -128,8 +128,8 @@ class AQGD(Optimizer):
         }
 
     def _compute_objective_fn_and_gradient(
-        self, params: List[float], obj: Callable
-    ) -> Tuple[float, np.array]:
+        self, params: Union[np.ndarray, List[float]], obj: Callable
+    ) -> Tuple[float, np.ndarray]:
         """
         Obtains the objective function value for params and the analytical quantum derivatives of
         the objective function with respect to each parameter. Requires

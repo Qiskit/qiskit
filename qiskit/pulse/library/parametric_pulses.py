@@ -110,7 +110,9 @@ class ParametricPulse(Pulse):
         """Return True iff the instruction is parameterized."""
         return any(_is_parameterized(val) for val in self.parameters.values())
 
-    def __eq__(self, other: Pulse) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Pulse):
+            return NotImplemented
         return super().__eq__(other) and self.parameters == other.parameters
 
     def __hash__(self) -> int:

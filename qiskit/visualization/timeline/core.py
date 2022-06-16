@@ -108,6 +108,11 @@ class DrawerCanvas:
 
         return new_t0, new_t1
 
+    @time_range.setter
+    def time_range(self, new_range: Tuple[int, int]):
+        """Update time range to draw."""
+        self._time_range = new_range
+
     @property
     def collections(self) -> Iterator[Tuple[str, drawings.ElementaryData]]:
         """Return currently active entries from drawing data collection.
@@ -117,11 +122,6 @@ class DrawerCanvas:
         the value is substituted by current time range preference.
         """
         yield from self._output_dataset.items()
-
-    @time_range.setter
-    def time_range(self, new_range: Tuple[int, int]):
-        """Update time range to draw."""
-        self._time_range = new_range
 
     def add_data(self, data: drawings.ElementaryData):
         """Add drawing to collections.

@@ -265,7 +265,7 @@ class QuantumCircuit:
         self._clbit_indices = {}
 
         self._ancillas = []
-        self._calibrations = defaultdict(dict)
+        self._calibrations: typing.DefaultDict = defaultdict(dict)
         self.add_register(*regs)
 
         # Parameter table tracks instructions with variable parameters.
@@ -1924,7 +1924,7 @@ class QuantumCircuit:
         )
 
     def size(
-        self, filter_function: Optional[callable] = lambda x: not x.operation._directive
+        self, filter_function: Optional[typing.Callable] = lambda x: not x.operation._directive
     ) -> int:
         """Returns total number of instructions in circuit.
 
@@ -1939,7 +1939,7 @@ class QuantumCircuit:
         return sum(map(filter_function, self._data))
 
     def depth(
-        self, filter_function: Optional[callable] = lambda x: not x.operation._directive
+        self, filter_function: Optional[typing.Callable] = lambda x: not x.operation._directive
     ) -> int:
         """Return circuit depth (i.e., length of critical path).
 

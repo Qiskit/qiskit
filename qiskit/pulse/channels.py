@@ -50,7 +50,7 @@ All channels are children of the same abstract base class:
 .. autoclass:: Channel
 """
 from abc import ABCMeta
-from typing import Any, Set, Union
+from typing import Any, Set, Union, Optional
 
 import numpy as np
 
@@ -143,7 +143,7 @@ class Channel(metaclass=ABCMeta):
     def __repr__(self):
         return f"{self.__class__.__name__}({self._index})"
 
-    def __eq__(self, other: "Channel") -> bool:
+    def __eq__(self, other: object) -> bool:
         """Return True iff self and other are equal, specifically, iff they have the same type
         and the same index.
 
@@ -153,6 +153,8 @@ class Channel(metaclass=ABCMeta):
         Returns:
             True iff equal.
         """
+        if not isinstance(other, Channel):
+            return NotImplemented
         return type(self) is type(other) and self._index == other._index
 
     def __hash__(self):

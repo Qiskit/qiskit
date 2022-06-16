@@ -20,6 +20,8 @@ use the fitters to produce a filter.
 """
 from typing import List, Tuple, Union
 
+from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+
 
 def count_keys(num_qubits: int) -> List[str]:
     """Return ordered count keys.

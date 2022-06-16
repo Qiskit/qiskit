@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Map (with minimum effort) a DAGCircuit onto a `coupling_map` adding swap gates."""
-from typing import Union
+from typing import Union, Optional
 
 import numpy as np
 
@@ -33,7 +33,7 @@ class LayoutTransformation(TransformationPass):
         coupling_map: CouplingMap,
         from_layout: Union[Layout, str],
         to_layout: Union[Layout, str],
-        seed: Union[int, np.random.default_rng] = None,
+        seed: Optional[Union[int, np.random.Generator]] = None,
         trials=4,
     ):
         """LayoutTransformation initializer.
@@ -50,7 +50,7 @@ class LayoutTransformation(TransformationPass):
                 The final layout of qubits on physical qubits.
                 If the type is str, look up `property_set` when this pass runs.
 
-            seed (Union[int, np.random.default_rng]):
+            seed (Optional[Union[int, np.random.Generator]]):
                 Seed to use for random trials.
 
             trials (int):

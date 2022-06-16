@@ -63,7 +63,7 @@ class IQP(QuantumCircuit):
     `arXiv:1504.07999 <https://arxiv.org/abs/1504.07999>`_
     """
 
-    def __init__(self, interactions: Union[List, np.array]) -> None:
+    def __init__(self, interactions: Union[List, np.ndarray]) -> None:
         """Create IQP circuit.
 
         Args:

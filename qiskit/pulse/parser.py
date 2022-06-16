@@ -13,7 +13,7 @@
 # pylint: disable=invalid-name
 
 """Parser for mathematical string expressions returned by backends."""
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Callable
 import ast
 import copy
 import operator
@@ -27,7 +27,7 @@ from qiskit.circuit import ParameterExpression
 class PulseExpression(ast.NodeTransformer):
     """Expression parser to evaluate parameter values."""
 
-    _math_ops = {
+    _math_ops: Dict[str, Callable] = {
         "acos": cmath.acos,
         "acosh": cmath.acosh,
         "asin": cmath.asin,

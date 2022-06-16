@@ -70,7 +70,7 @@ def step_wise(
     samples_ = np.repeat(samples, 2)
     re_y_ = np.real(samples_)
     im_y_ = np.imag(samples_)
-    time__ = np.concatenate(([time[0]], np.repeat(time[1:-1], 2), [time[-1]]))
+    time__: np.ndarray = np.concatenate(([time[0]], np.repeat(time[1:-1], 2), [time[-1]]))
     return time__, re_y_, im_y_
 
 

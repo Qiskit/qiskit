@@ -41,12 +41,12 @@ class OptimizerResult(AlgorithmResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._x = None  # pylint: disable=invalid-name
-        self._fun = None
-        self._jac = None
-        self._nfev = None
-        self._njev = None
-        self._nit = None
+        self._x: Optional[POINT] = None  # pylint: disable=invalid-name
+        self._fun:Optional[float] = None
+        self._jac: Optional[POINT] = None
+        self._nfev:Optional[int] = None
+        self._njev:Optional[int] = None
+        self._nit:Optional[int] = None
 
     @property
     def x(self) -> Optional[POINT]:

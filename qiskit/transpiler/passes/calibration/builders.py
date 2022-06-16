@@ -13,7 +13,7 @@
 """Calibration creators."""
 
 from abc import abstractmethod
-from typing import List, Union
+from typing import List, Union, Tuple
 
 import math
 import numpy as np
@@ -313,7 +313,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
     """
 
     @staticmethod
-    def _filter_control(inst: (int, Union["Schedule", PulseInst])) -> bool:
+    def _filter_control(inst: Tuple[int, Union["Schedule", PulseInst]]) -> bool:
         """
         Looks for Gaussian square pulses applied to control channels.
 
@@ -333,7 +333,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
         return False
 
     @staticmethod
-    def _filter_drive(inst: (int, Union["Schedule", PulseInst])) -> bool:
+    def _filter_drive(inst: Tuple[int, Union["Schedule", PulseInst]]) -> bool:
         """
         Looks for Gaussian square pulses applied to drive channels.
 

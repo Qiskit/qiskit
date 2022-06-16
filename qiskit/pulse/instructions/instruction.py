@@ -54,7 +54,7 @@ class Instruction(ABC):
         """
         self._operands = operands
         self._name = name
-        self._hash = None
+        self._hash: Optional[int] = None
 
         for channel in self.channels:
             if not isinstance(channel, Channel):
@@ -97,12 +97,12 @@ class Instruction(ABC):
         raise NotImplementedError
 
     @property
-    def _children(self) -> Tuple["Instruction"]:
+    def _children(self) -> Tuple["Instruction", ...]:
         """Instruction has no child nodes."""
         return ()
 
     @property
-    def instructions(self) -> Tuple[Tuple[int, "Instruction"]]:
+    def instructions(self) -> Tuple[Tuple[int, "Instruction"], ...]:
         """Iterable for getting instructions from Schedule tree."""
         return tuple(self._instructions())
 
@@ -262,11 +262,13 @@ class Instruction(ABC):
             channels=channels,
         )
 
-    def __eq__(self, other: "Instruction") -> bool:
+    def __eq__(self, other: object) -> bool:
         """Check if this Instruction is equal to the `other` instruction.
 
         Equality is determined by the instruction sharing the same operands and channels.
         """
+        if not isinstance(other, Instruction):
+            return NotImplemented
         return isinstance(other, type(self)) and self.operands == other.operands
 
     def __hash__(self) -> int:

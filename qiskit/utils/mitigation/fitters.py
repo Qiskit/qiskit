@@ -89,15 +89,16 @@ class CompleteMeasFitter:
         """Return state_labels."""
         return self._tens_fitt.substate_labels_list[0]
 
+    @state_labels.setter
+    def state_labels(self, new_state_labels):
+        """Set state label."""
+        self._tens_fitt.substate_labels_list[0] = new_state_labels
+
     @property
     def qubit_list(self):
         """Return list of qubits."""
         return self._qubit_list
 
-    @state_labels.setter
-    def state_labels(self, new_state_labels):
-        """Set state label."""
-        self._tens_fitt.substate_labels_list[0] = new_state_labels
 
     @property
     def filter(self):
