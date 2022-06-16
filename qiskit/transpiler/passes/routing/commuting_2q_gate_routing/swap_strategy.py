@@ -66,9 +66,9 @@ class SwapStrategy:
         self._coupling_map = coupling_map
         self._num_vertices = coupling_map.size()
         self._swap_layers = swap_layers
-        self._distance_matrix = None
-        self._possible_edges = None
-        self._missing_couplings = None
+        self._distance_matrix: Optional[np.ndarray] = None
+        self._possible_edges: Optional[Set[Tuple[int, int]]] = None
+        self._missing_couplings: Optional[Set[Tuple[int, int]]] = None
         self._inverse_composed_permutation = {0: list(range(self._num_vertices))}
 
         edge_set = set(self._coupling_map.get_edges())
@@ -164,7 +164,7 @@ class SwapStrategy:
         return list(self._swap_layers[idx])
 
     @property
-    def distance_matrix(self) -> np.array:
+    def distance_matrix(self) -> np.ndarray:
         """A matrix describing when qubits become adjacent in the swap strategy.
 
         Returns:

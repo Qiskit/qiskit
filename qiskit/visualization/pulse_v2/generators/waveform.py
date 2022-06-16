@@ -354,7 +354,7 @@ def _draw_shaped_waveform(
     ydata = np.repeat(ydata, 2)
     re_y = np.real(ydata)
     im_y = np.imag(ydata)
-    time = np.concatenate(([xdata[0]], np.repeat(xdata[1:-1], 2), [xdata[-1]]))
+    time: np.ndarray = np.concatenate(([xdata[0]], np.repeat(xdata[1:-1], 2), [xdata[-1]]))
 
     # setup style options
     style = {

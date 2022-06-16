@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """A swap strategy pass for blocks of commuting gates."""
-
+import typing
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple
 
@@ -114,7 +114,7 @@ class Commuting2qGateRouter(TransformationPass):
         """
         super().__init__()
         self._swap_strategy = swap_strategy
-        self._bit_indices = None
+        self._bit_indices: Dict[Any, Any] = None
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the pass by decomposing the nodes it applies on.
@@ -310,7 +310,7 @@ class Commuting2qGateRouter(TransformationPass):
     ) -> Dict[int, Dict[tuple, Gate]]:
         """Creates layers of two-qubit gates based on the distance in the swap strategy."""
 
-        gate_layers = defaultdict(dict)
+        gate_layers: Dict[int, Dict[tuple, Gate]] = defaultdict(dict)
 
         for node in op.node_block:
             edge = (self._bit_indices[node.qargs[0]], self._bit_indices[node.qargs[1]])

@@ -18,9 +18,7 @@
 Measurement calibration circuits. To apply the measurement mitigation
 use the fitters to produce a filter.
 """
-from typing import List, Tuple, Union
-
-from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from typing import List, Tuple, Union, Any
 
 
 def count_keys(num_qubits: int) -> List[str]:
@@ -39,10 +37,10 @@ def count_keys(num_qubits: int) -> List[str]:
 
 def complete_meas_cal(
     qubit_list: List[int] = None,
-    qr: Union[int, List["QuantumRegister"]] = None,
-    cr: Union[int, List["ClassicalRegister"]] = None,
+    qr: Union[int, List[Any]] = None,
+    cr: Union[int, List[Any]] = None,
     circlabel: str = "",
-) -> Tuple[List["QuantumCircuit"], List[str]]:
+) -> Tuple[List[Any], List[str]]:
     """
     Return a list of measurement calibration circuits for the full
     Hilbert space.
@@ -155,7 +153,7 @@ def tensored_meas_cal(
         QiskitError: if a qubit appears more than once in `mit_pattern`.
 
     """
-    # Runtime imports to avoid circular imports causeed by QuantumInstance
+    # Runtime imports to avoid circular imports caused by QuantumInstance
     # getting initialized by imported utils/__init__ which is imported
     # by qiskit.circuit
     from qiskit.circuit.quantumregister import QuantumRegister

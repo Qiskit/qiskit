@@ -22,7 +22,7 @@ Measurement correction filters.
 
 """
 
-from typing import List
+from typing import List, Dict, Any
 from copy import deepcopy
 
 import numpy as np
@@ -236,8 +236,8 @@ class TensoredFilter:
         """
 
         self._cal_matrices = cal_matrices
-        self._qubit_list_sizes = []
-        self._indices_list = []
+        self._qubit_list_sizes: List[int] = []
+        self._indices_list: List[Dict[Any, Any]] = []
         self._substate_labels_list = []
         self.substate_labels_list = substate_labels_list
         self._mit_pattern = mit_pattern
