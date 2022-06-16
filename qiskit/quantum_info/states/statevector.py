@@ -31,8 +31,11 @@ from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
-# pylint: disable=no-name-in-module
-from .cython.exp_value import expval_pauli_no_x, expval_pauli_with_x
+# pylint: disable=import-error
+from qiskit._accelerate.pauli_expval import (
+    expval_pauli_no_x,
+    expval_pauli_with_x,
+)
 
 
 class Statevector(QuantumState, TolerancesMixin):
@@ -214,6 +217,12 @@ class Statevector(QuantumState, TolerancesMixin):
             return self._data[key]
         else:
             raise QiskitError("Key must be int or a valid binary string.")
+
+    def __iter__(self):
+        yield from self._data
+
+    def __len__(self):
+        return len(self._data)
 
     @property
     def data(self):
@@ -466,7 +475,7 @@ class Statevector(QuantumState, TolerancesMixin):
             return pauli_phase * expval_pauli_no_x(self.data, self.num_qubits, z_mask)
 
         x_max = qubits[pauli.x][-1]
-        y_phase = (-1j) ** np.sum(pauli.x & pauli.z)
+        y_phase = (-1j) ** pauli._count_y()
 
         return pauli_phase * expval_pauli_with_x(
             self.data, self.num_qubits, z_mask, x_mask, y_phase, x_max
@@ -723,7 +732,7 @@ class Statevector(QuantumState, TolerancesMixin):
         if isinstance(instruction, QuantumCircuit):
             instruction = instruction.to_instruction()
         # Initialize an the statevector in the all |0> state
-        init = np.zeros(2 ** instruction.num_qubits, dtype=complex)
+        init = np.zeros(2**instruction.num_qubits, dtype=complex)
         init[0] = 1.0
         vec = Statevector(init, dims=instruction.num_qubits * (2,))
         return Statevector._evolve_instruction(vec, instruction)

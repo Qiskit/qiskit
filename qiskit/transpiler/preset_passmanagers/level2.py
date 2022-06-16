@@ -27,7 +27,8 @@ from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import GateDirection
 from qiskit.transpiler.passes import SetLayout
-from qiskit.transpiler.passes import CSPLayout
+from qiskit.transpiler.passes import VF2Layout
+from qiskit.transpiler.passes import VF2PostLayout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
@@ -41,25 +42,30 @@ from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
+from qiskit.transpiler.passes import Size
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import ApplyLayout
-from qiskit.transpiler.passes import Layout2qDistance
 from qiskit.transpiler.passes import CheckGateDirection
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import TimeUnitConversion
-from qiskit.transpiler.passes import ALAPSchedule
-from qiskit.transpiler.passes import ASAPSchedule
-from qiskit.transpiler.passes import AlignMeasures
+from qiskit.transpiler.passes import ALAPScheduleAnalysis
+from qiskit.transpiler.passes import ASAPScheduleAnalysis
+from qiskit.transpiler.passes import ConstrainedReschedule
+from qiskit.transpiler.passes import InstructionDurationCheck
 from qiskit.transpiler.passes import ValidatePulseGates
 from qiskit.transpiler.passes import PulseGates
+from qiskit.transpiler.passes import PadDelay
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import ContainsInstruction
+from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
+from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
 
 from qiskit.transpiler import TranspilerError
+from qiskit.utils.optionals import HAS_TOQM
 
 
 def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
@@ -104,88 +110,79 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
     unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
+    target = pass_manager_config.target
 
-    # 1. Search for a perfect layout, or choose a dense layout, if no layout given
+    # 1. Unroll to 1q or 2q gates
+    _unroll3q = [
+        # Use unitary synthesis for basis aware decomposition of UnitaryGates
+        UnitarySynthesis(
+            basis_gates,
+            approximation_degree=approximation_degree,
+            method=unitary_synthesis_method,
+            min_qubits=3,
+            plugin_config=unitary_synthesis_plugin_config,
+            target=target,
+        ),
+        Unroll3qOrMore(target=target, basis_gates=basis_gates),
+    ]
+
+    # 2. Search for a perfect layout, or choose a dense layout, if no layout given
     _given_layout = SetLayout(initial_layout)
 
     def _choose_layout_condition(property_set):
         # layout hasn't been set yet
         return not property_set["layout"]
 
-    # 1a. If layout_method is not set, first try a trivial layout
-    _choose_layout_0 = (
-        []
-        if pass_manager_config.layout_method
-        else [
-            TrivialLayout(coupling_map),
-            Layout2qDistance(coupling_map, property_name="trivial_layout_score"),
-        ]
-    )
-    # 1b. If a trivial layout wasn't perfect (ie no swaps are needed) then try using
-    # CSP layout to find a perfect layout
-    _choose_layout_1 = (
-        []
-        if pass_manager_config.layout_method
-        else CSPLayout(coupling_map, call_limit=1000, time_limit=10, seed=seed_transpiler)
-    )
-
-    def _trivial_not_perfect(property_set):
-        # Verify that a trivial layout  is perfect. If trivial_layout_score > 0
-        # the layout is not perfect. The layout is unconditionally set by trivial
-        # layout so we need to clear it before contuing.
-        if property_set["trivial_layout_score"] is not None:
-            if property_set["trivial_layout_score"] != 0:
-                return True
-        return False
-
-    def _csp_not_found_match(property_set):
-        # If a layout hasn't been set by the time we run csp we need to run layout
+    def _vf2_match_not_found(property_set):
+        # If a layout hasn't been set by the time we run vf2 layout we need to
+        # run layout
         if property_set["layout"] is None:
             return True
-        # if CSP layout stopped for any reason other than solution found we need
-        # to run layout since CSP didn't converge.
+        # if VF2 layout stopped for any reason other than solution found we need
+        # to run layout since VF2 didn't converge.
         if (
-            property_set["CSPLayout_stop_reason"] is not None
-            and property_set["CSPLayout_stop_reason"] != "solution found"
+            property_set["VF2Layout_stop_reason"] is not None
+            and property_set["VF2Layout_stop_reason"] is not VF2LayoutStopReason.SOLUTION_FOUND
         ):
             return True
         return False
 
-    # 1c. if CSP layout doesn't converge on a solution use layout_method (dense) to get a layout
+    # 2a. Try using VF2 layout to find a perfect layout
+    _choose_layout_0 = (
+        []
+        if pass_manager_config.layout_method
+        else VF2Layout(
+            coupling_map,
+            seed=seed_transpiler,
+            call_limit=int(5e6),  # Set call limit to ~10 sec with retworkx 0.10.2
+            properties=backend_properties,
+            target=target,
+        )
+    )
+
+    # 2b. if VF2 layout doesn't converge on a solution use layout_method (dense) to get a layout
     if layout_method == "trivial":
-        _choose_layout_2 = TrivialLayout(coupling_map)
+        _choose_layout_1 = TrivialLayout(coupling_map)
     elif layout_method == "dense":
-        _choose_layout_2 = DenseLayout(coupling_map, backend_properties)
+        _choose_layout_1 = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
-        _choose_layout_2 = NoiseAdaptiveLayout(backend_properties)
+        _choose_layout_1 = NoiseAdaptiveLayout(backend_properties)
     elif layout_method == "sabre":
-        _choose_layout_2 = SabreLayout(coupling_map, max_iterations=2, seed=seed_transpiler)
+        _choose_layout_1 = SabreLayout(coupling_map, max_iterations=2, seed=seed_transpiler)
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
 
-    # 2. Extend dag/layout with ancillas using the full coupling map
+    # 3. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
-
-    # 3. Unroll to 1q or 2q gates
-    _unroll3q = [
-        # Use unitary synthesis for basis aware decomposition of UnitaryGates
-        UnitarySynthesis(
-            basis_gates,
-            approximation_degree=approximation_degree,
-            coupling_map=coupling_map,
-            backend_props=backend_properties,
-            method=unitary_synthesis_method,
-            min_qubits=3,
-            plugin_config=unitary_synthesis_plugin_config,
-        ),
-        Unroll3qOrMore(),
-    ]
 
     # 4. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
 
     def _swap_condition(property_set):
         return not property_set["is_swap_mapped"]
+
+    def _swap_needs_basis(property_set):
+        return _swap_condition(property_set) and routing_method == "toqm"
 
     _swap = [BarrierBeforeFinalMeasurements()]
     if routing_method == "basic":
@@ -196,6 +193,25 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _swap += [LookaheadSwap(coupling_map, search_depth=5, search_width=5)]
     elif routing_method == "sabre":
         _swap += [SabreSwap(coupling_map, heuristic="decay", seed=seed_transpiler)]
+    elif routing_method == "toqm":
+        HAS_TOQM.require_now("TOQM-based routing")
+        from qiskit_toqm import ToqmSwap, ToqmStrategyO2, latencies_from_target
+
+        if initial_layout:
+            raise TranspilerError("Initial layouts are not supported with TOQM-based routing.")
+
+        # Note: BarrierBeforeFinalMeasurements is skipped intentionally since ToqmSwap
+        #       does not yet support barriers.
+        _swap = [
+            ToqmSwap(
+                coupling_map,
+                strategy=ToqmStrategyO2(
+                    latencies_from_target(
+                        coupling_map, instruction_durations, basis_gates, backend_properties, target
+                    )
+                ),
+            )
+        ]
     elif routing_method == "none":
         _swap += [
             Error(
@@ -225,9 +241,10 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 backend_props=backend_properties,
                 method=unitary_synthesis_method,
                 plugin_config=unitary_synthesis_plugin_config,
+                target=target,
             ),
             UnrollCustomDefinitions(sel, basis_gates),
-            BasisTranslator(sel, basis_gates),
+            BasisTranslator(sel, basis_gates, target),
         ]
     elif translation_method == "synthesis":
         _unroll = [
@@ -241,10 +258,11 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 method=unitary_synthesis_method,
                 plugin_config=unitary_synthesis_plugin_config,
                 min_qubits=3,
+                target=target,
             ),
-            Unroll3qOrMore(),
+            Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
-            ConsolidateBlocks(basis_gates=basis_gates),
+            ConsolidateBlocks(basis_gates=basis_gates, target=target),
             UnitarySynthesis(
                 basis_gates,
                 approximation_degree=approximation_degree,
@@ -252,89 +270,155 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 backend_props=backend_properties,
                 method=unitary_synthesis_method,
                 plugin_config=unitary_synthesis_plugin_config,
+                target=target,
             ),
         ]
     else:
         raise TranspilerError("Invalid translation method %s." % translation_method)
 
     # 6. Fix any bad CX directions
-    _direction_check = [CheckGateDirection(coupling_map)]
+    _direction_check = [CheckGateDirection(coupling_map, target)]
 
     def _direction_condition(property_set):
         return not property_set["is_direction_mapped"]
 
-    _direction = [GateDirection(coupling_map)]
+    _direction = [GateDirection(coupling_map, target)]
 
     # 7. Remove zero-state reset
     _reset = RemoveResetInZeroState()
 
     # 8. 1q rotation merge and commutative cancellation iteratively until no more change in depth
+    # and size
     _depth_check = [Depth(), FixedPoint("depth")]
+    _size_check = [Size(), FixedPoint("size")]
 
     def _opt_control(property_set):
-        return not property_set["depth_fixed_point"]
+        return (not property_set["depth_fixed_point"]) or (not property_set["size_fixed_point"])
 
     _opt = [
         Optimize1qGatesDecomposition(basis_gates),
         CommutativeCancellation(basis_gates=basis_gates),
     ]
 
-    # 9. Unify all durations (either SI, or convert to dt if known)
-    # Schedule the circuit only when scheduling_method is supplied
-    _time_unit_setup = [ContainsInstruction("delay")]
-    _time_unit_conversion = [TimeUnitConversion(instruction_durations)]
-
-    def _contains_delay(property_set):
-        return property_set["contains_delay"]
-
-    _scheduling = []
-    if scheduling_method:
-        _scheduling += _time_unit_conversion
-        if scheduling_method in {"alap", "as_late_as_possible"}:
-            _scheduling += [ALAPSchedule(instruction_durations)]
-        elif scheduling_method in {"asap", "as_soon_as_possible"}:
-            _scheduling += [ASAPSchedule(instruction_durations)]
-        else:
-            raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
-
-    # 10. Call measure alignment. Should come after scheduling.
-    if (
-        timing_constraints.granularity != 1
-        or timing_constraints.min_length != 1
-        or timing_constraints.acquire_alignment != 1
-    ):
-        _alignments = [
-            ValidatePulseGates(
-                granularity=timing_constraints.granularity, min_length=timing_constraints.min_length
-            ),
-            AlignMeasures(alignment=timing_constraints.acquire_alignment),
-        ]
-    else:
-        _alignments = []
-
     # Build pass manager
     pm2 = PassManager()
     if coupling_map or initial_layout:
         pm2.append(_given_layout)
-        pm2.append(_choose_layout_0, condition=_choose_layout_condition)
-        pm2.append(_choose_layout_1, condition=_trivial_not_perfect)
-        pm2.append(_choose_layout_2, condition=_csp_not_found_match)
-        pm2.append(_embed)
         pm2.append(_unroll3q)
+        pm2.append(_choose_layout_0, condition=_choose_layout_condition)
+        pm2.append(_choose_layout_1, condition=_vf2_match_not_found)
+        pm2.append(_embed)
         pm2.append(_swap_check)
+        pm2.append(_unroll, condition=_swap_needs_basis)
         pm2.append(_swap, condition=_swap_condition)
+        if (
+            (coupling_map and backend_properties)
+            and initial_layout is None
+            and pass_manager_config.layout_method is None
+        ):
+
+            def _run_post_layout_condition(property_set):
+                vf2_stop_reason = property_set["VF2Layout_stop_reason"]
+                if (
+                    vf2_stop_reason is not None
+                    and vf2_stop_reason == VF2LayoutStopReason.SOLUTION_FOUND
+                ):
+                    return False
+                return True
+
+            def _apply_post_layout_condition(property_set):
+                # if VF2 Post layout found a solution we need to re-apply the better
+                # layout. Otherwise we can skip apply layout.
+                if (
+                    property_set["VF2PostLayout_stop_reason"] is not None
+                    and property_set["VF2PostLayout_stop_reason"]
+                    is VF2PostLayoutStopReason.SOLUTION_FOUND
+                ):
+                    return True
+                return False
+
+            pm2.append(
+                VF2PostLayout(
+                    target,
+                    coupling_map,
+                    backend_properties,
+                    seed_transpiler,
+                    call_limit=int(5e6),  # Set call limit to ~10 sec with retworkx 0.10.2
+                    strict_direction=False,
+                ),
+                condition=_run_post_layout_condition,
+            )
+            pm2.append(ApplyLayout(), condition=_apply_post_layout_condition)
+
     pm2.append(_unroll)
-    if coupling_map and not coupling_map.is_symmetric:
+    if (coupling_map and not coupling_map.is_symmetric) or (
+        target is not None and target.get_non_global_operation_names(strict_direction=True)
+    ):
         pm2.append(_direction_check)
         pm2.append(_direction, condition=_direction_condition)
     pm2.append(_reset)
-    pm2.append(_depth_check + _opt + _unroll, do_while=_opt_control)
+
+    pm2.append(_depth_check + _size_check)
+    pm2.append(_opt + _unroll + _depth_check + _size_check, do_while=_opt_control)
+
     if inst_map and inst_map.has_custom_gate():
         pm2.append(PulseGates(inst_map=inst_map))
+
+    # 9. Unify all durations (either SI, or convert to dt if known)
+    # Schedule the circuit only when scheduling_method is supplied
+    # Apply alignment analysis regardless of scheduling for delay validation.
     if scheduling_method:
-        pm2.append(_scheduling)
+        # Do scheduling after unit conversion.
+        scheduler = {
+            "alap": ALAPScheduleAnalysis,
+            "as_late_as_possible": ALAPScheduleAnalysis,
+            "asap": ASAPScheduleAnalysis,
+            "as_soon_as_possible": ASAPScheduleAnalysis,
+        }
+        pm2.append(TimeUnitConversion(instruction_durations))
+        try:
+            pm2.append(scheduler[scheduling_method](instruction_durations))
+        except KeyError as ex:
+            raise TranspilerError("Invalid scheduling method %s." % scheduling_method) from ex
     elif instruction_durations:
-        pm2.append(_time_unit_setup)
-        pm2.append(_time_unit_conversion, condition=_contains_delay)
-    pm2.append(_alignments)
+        # No scheduling. But do unit conversion for delays.
+        def _contains_delay(property_set):
+            return property_set["contains_delay"]
+
+        pm2.append(ContainsInstruction("delay"))
+        pm2.append(TimeUnitConversion(instruction_durations), condition=_contains_delay)
+    if (
+        timing_constraints.granularity != 1
+        or timing_constraints.min_length != 1
+        or timing_constraints.acquire_alignment != 1
+        or timing_constraints.pulse_alignment != 1
+    ):
+        # Run alignment analysis regardless of scheduling.
+
+        def _require_alignment(property_set):
+            return property_set["reschedule_required"]
+
+        pm2.append(
+            InstructionDurationCheck(
+                acquire_alignment=timing_constraints.acquire_alignment,
+                pulse_alignment=timing_constraints.pulse_alignment,
+            )
+        )
+        pm2.append(
+            ConstrainedReschedule(
+                acquire_alignment=timing_constraints.acquire_alignment,
+                pulse_alignment=timing_constraints.pulse_alignment,
+            ),
+            condition=_require_alignment,
+        )
+        pm2.append(
+            ValidatePulseGates(
+                granularity=timing_constraints.granularity,
+                min_length=timing_constraints.min_length,
+            )
+        )
+    if scheduling_method:
+        # Call padding pass if circuit is scheduled
+        pm2.append(PadDelay())
+
     return pm2

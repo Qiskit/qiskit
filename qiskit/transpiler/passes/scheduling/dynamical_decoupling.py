@@ -13,6 +13,7 @@
 """Dynamical Decoupling insertion pass."""
 
 import itertools
+import warnings
 
 import numpy as np
 from qiskit.circuit.delay import Delay
@@ -112,6 +113,14 @@ class DynamicalDecoupling(TransformationPass):
                 periods that immediately follow initialized/reset qubits (as
                 qubits in the ground state are less susceptile to decoherence).
         """
+        warnings.warn(
+            "The DynamicalDecoupling class has been supersceded by the "
+            "DynamicalDecouplingPadding class which performs the same function but "
+            "requires scheduling and alignment analysis passes to run prior to it. "
+            "This class will be deprecated in a future release and subsequently "
+            "removed after that.",
+            PendingDeprecationWarning,
+        )
         super().__init__()
         self._durations = durations
         self._dd_sequence = dd_sequence
@@ -166,7 +175,7 @@ class DynamicalDecoupling(TransformationPass):
             end = mid / 2
             self._spacing = [end] + [mid] * (num_pulses - 1) + [end]
 
-        new_dag = dag._copy_circuit_metadata()
+        new_dag = dag.copy_empty_like()
 
         qubit_index_map = {qubit: index for index, qubit in enumerate(new_dag.qubits)}
         index_sequence_duration_map = {}

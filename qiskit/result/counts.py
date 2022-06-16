@@ -183,3 +183,7 @@ class Counts(dict):
     def _remove_space_underscore(bitstring):
         """Removes all spaces and underscores from bitstring"""
         return int(bitstring.replace(" ", "").replace("_", ""), 2)
+
+    def shots(self):
+        """Return the number of shots"""
+        return sum(self.values())

@@ -22,12 +22,13 @@ import numpy as np
 
 from qiskit.circuit import Instruction, QuantumCircuit
 from qiskit.circuit.barrier import Barrier
+from qiskit.circuit.delay import Delay
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
-from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
+from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli, _count_y
 from qiskit.utils.deprecation import deprecate_function
 
 
@@ -104,7 +105,7 @@ class Pauli(BasePauli):
 
     .. math::
 
-        P &= (-i)^{q + z\cdot x} Z^z \cdot X^x.
+        P = (-i)^{q + z\cdot x} Z^z \cdot X^x.
 
     The :math:`k`th qubit corresponds to the :math:`k`th entry in the
     :math:`z` and :math:`x` arrays
@@ -135,7 +136,7 @@ class Pauli(BasePauli):
 
     For example
 
-    .. code:
+    .. code-block:: python
 
         p = Pauli('-iXYZ')
 
@@ -201,6 +202,16 @@ class Pauli(BasePauli):
         if base_z.shape[0] != 1:
             raise QiskitError("Input is not a single Pauli")
         super().__init__(base_z, base_x, base_phase)
+
+    @property
+    def name(self):
+        """Unique string identifier for operation type."""
+        return "pauli"
+
+    @property
+    def num_clbits(self):
+        """Number of classical bits."""
+        return 0
 
     def __repr__(self):
         """Display representation."""
@@ -312,7 +323,7 @@ class Pauli(BasePauli):
         self._z[0, qubits] = value.z
         self._x[0, qubits] = value.x
         # Add extra phase from new Pauli to current
-        self._phase += value._phase
+        self._phase = self._phase + value._phase
 
     def delete(self, qubits):
         """Return a Pauli with qubits deleted.
@@ -546,14 +557,18 @@ class Pauli(BasePauli):
         """
         return np.logical_not(self.commutes(other, qargs=qargs))
 
-    def evolve(self, other, qargs=None):
+    def evolve(self, other, qargs=None, frame="h"):
         r"""Heisenberg picture evolution of a Pauli by a Clifford.
 
         This returns the Pauli :math:`P^\prime = C^\dagger.P.C`.
 
+        By choosing the parameter frame='s', this function returns the Schrödinger evolution of the Pauli
+        :math:`P^\prime = C.P.C^\dagger`. This option yields a faster calculation.
+
         Args:
             other (Pauli or Clifford or QuantumCircuit): The Clifford operator to evolve by.
             qargs (list): a list of qubits to apply the Clifford to.
+            frame (string): 'h' for Heisenberg or 's' for Schrödinger framework.
 
         Returns:
             Pauli: the Pauli :math:`C^\dagger.P.C`.
@@ -571,7 +586,7 @@ class Pauli(BasePauli):
             # Convert to a Pauli
             other = Pauli(other)
 
-        return Pauli(super().evolve(other, qargs=qargs))
+        return Pauli(super().evolve(other, qargs=qargs, frame=frame))
 
     # ---------------------------------------------------------------------
     # Initialization helper functions
@@ -614,9 +629,7 @@ class Pauli(BasePauli):
             raise QiskitError(f"{op} is not an N-qubit identity")
         base_z = np.zeros((1, op.num_qubits), dtype=bool)
         base_x = np.zeros((1, op.num_qubits), dtype=bool)
-        base_phase = np.mod(
-            cls._phase_from_complex(op.coeff) + np.sum(np.logical_and(base_z, base_x), axis=1), 4
-        )
+        base_phase = np.mod(cls._phase_from_complex(op.coeff) + _count_y(base_x, base_z), 4)
         return base_z, base_x, base_phase
 
     @classmethod
@@ -667,7 +680,7 @@ class Pauli(BasePauli):
                 raise QiskitError(
                     f"Cannot apply instruction with classical registers: {dinstr.name}"
                 )
-            if not isinstance(dinstr, Barrier):
+            if not isinstance(dinstr, (Barrier, Delay)):
                 next_instr = BasePauli(*cls._from_circuit(dinstr))
                 if next_instr is not None:
                     qargs = [tup.index for tup in qregs]

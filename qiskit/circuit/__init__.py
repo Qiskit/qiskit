@@ -187,8 +187,6 @@ Gates and Instructions
    Gate
    ControlledGate
    Delay
-   Measure
-   Reset
    Instruction
    InstructionSet
    EquivalenceLibrary

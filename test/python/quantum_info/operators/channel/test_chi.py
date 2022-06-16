@@ -141,7 +141,11 @@ class TestChi(ChannelTestCase):
         chan1 = Chi(chi1, input_dims=2, output_dims=2)
         chan2 = Chi(chi2, input_dims=2, output_dims=2)
         target = rho.evolve(chan1).evolve(chan2)
-        output = rho.evolve(chan2.dot(chan1))
+        chan = chan2.dot(chan1)
+        output = rho.evolve(chan)
+        self.assertEqual(output, target)
+        chan = chan2 @ chan1
+        output = rho.evolve(chan)
         self.assertEqual(output, target)
 
     def test_compose_front(self):
@@ -232,7 +236,7 @@ class TestChi(ChannelTestCase):
         depol = Chi(self.depol_chi(1 - p_id))
 
         # Compose 3 times
-        p_id3 = p_id ** 3
+        p_id3 = p_id**3
         chan3 = depol.power(3)
         targ3 = Chi(self.depol_chi(1 - p_id3))
         self.assertEqual(chan3, targ3)
@@ -253,7 +257,7 @@ class TestChi(ChannelTestCase):
 
     def test_add_qargs(self):
         """Test add method with qargs."""
-        mat = self.rand_matrix(8 ** 2, 8 ** 2)
+        mat = self.rand_matrix(8**2, 8**2)
         mat0 = self.rand_matrix(4, 4)
         mat1 = self.rand_matrix(4, 4)
 
@@ -300,7 +304,7 @@ class TestChi(ChannelTestCase):
 
     def test_sub_qargs(self):
         """Test subtract method with qargs."""
-        mat = self.rand_matrix(8 ** 2, 8 ** 2)
+        mat = self.rand_matrix(8**2, 8**2)
         mat0 = self.rand_matrix(4, 4)
         mat1 = self.rand_matrix(4, 4)
 
@@ -359,6 +363,8 @@ class TestChi(ChannelTestCase):
         targ = Chi(val * self.chiI)
         self.assertEqual(chan._multiply(val), targ)
         self.assertEqual(val * chan, targ)
+        targ = Chi(self.chiI * val)
+        self.assertEqual(chan * val, targ)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""

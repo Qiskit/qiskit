@@ -10,15 +10,18 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unused-import
+# pylint: disable=wrong-import-position, unused-import
 
-"""Old import path for the QPY serialization module."""
+"""Alias for Qiskit QPY import."""
 
-import warnings
+# TODO deprecate this in 0.21.0
 from qiskit.qpy import dump, load
 
-warnings.warn(
-    "Importing from qiskit.circuits.qpy_serialization has been deprecated and this will be removed soon."
-    "Use qiskit.qpy instead.",
-    DeprecationWarning,
+# For backward compatibility. Provide, Runtime, Experiment call these private functions.
+from qiskit.qpy import (
+    _write_instruction,
+    _read_instruction,
+    _write_parameter_expression,
+    _read_parameter_expression,
+    _read_parameter_expression_v3,
 )

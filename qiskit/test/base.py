@@ -30,14 +30,8 @@ import warnings
 import unittest
 from unittest.util import safe_repr
 
-try:
-    import fixtures
-    import testtools
-
-    HAS_FIXTURES = True
-except ImportError:
-    HAS_FIXTURES = False
-
+from qiskit.tools.parallel import get_platform_parallel_default
+from qiskit.utils import optionals as _optionals
 from .decorators import enforce_subclasses_call
 from .utils import Path, setup_test_logging
 
@@ -48,7 +42,8 @@ __unittest = True  # Allows shorter stack trace for .assertDictAlmostEqual
 # If testtools is installed use that as a (mostly) drop in replacement for
 # unittest's TestCase. This will enable the fixtures used for capturing stdout
 # stderr, and pylogging to attach the output to stestr's result stream.
-if HAS_FIXTURES:
+if _optionals.HAS_TESTTOOLS:
+    import testtools  # pylint: disable=import-error
 
     class BaseTestCase(testtools.TestCase):
         """Base test class."""
@@ -61,7 +56,6 @@ if HAS_FIXTURES:
         # our tests work as expected.
         assertRaises = unittest.TestCase.assertRaises
         assertEqual = unittest.TestCase.assertEqual
-
 
 else:
 
@@ -151,6 +145,24 @@ class BaseQiskitTestCase(BaseTestCase):
             msg = self._formatMessage(msg, error_msg)
             raise self.failureException(msg)
 
+    def enable_parallel_processing(self):
+        """
+        Enables parallel processing, for the duration of a test, on platforms
+        that support it. This is done by temporarily overriding the value of
+        the QISKIT_PARALLEL environment variable with the platform specific default.
+        """
+        parallel_default = str(get_platform_parallel_default()).upper()
+
+        def set_parallel_env(name, value):
+            os.environ[name] = value
+
+        self.addCleanup(
+            lambda value: set_parallel_env("QISKIT_PARALLEL", value),
+            os.getenv("QISKIT_PARALLEL", parallel_default),
+        )
+
+        os.environ["QISKIT_PARALLEL"] = parallel_default
+
 
 class QiskitTestCase(BaseQiskitTestCase):
     """Terra-specific extra functionality for test cases."""
@@ -198,9 +210,6 @@ class QiskitTestCase(BaseQiskitTestCase):
         for mod in allow_DeprecationWarning_modules:
             warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
         allow_DeprecationWarning_message = [
-            r".*LogNormalDistribution.*",
-            r".*NormalDistribution.*",
-            r".*UniformDistribution.*",
             r".*QuantumCircuit\.combine.*",
             r".*QuantumCircuit\.__add__.*",
             r".*QuantumCircuit\.__iadd__.*",
@@ -214,6 +223,11 @@ class QiskitTestCase(BaseQiskitTestCase):
             r"The QuantumCircuit.cu.",
             r"The CXDirection pass has been deprecated",
             r"The pauli_basis function with PauliTable.*",
+            # TODO: remove the following ignore after seaborn 0.12.0 releases
+            r"distutils Version classes are deprecated. Use packaging\.version",
+            # Internal deprecation warning emitted by jupyter client when
+            # calling nbconvert in python 3.10
+            r"There is no current event loop",
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
@@ -227,7 +241,10 @@ class FullQiskitTestCase(QiskitTestCase):
     If you derive directly from it, you may try and instantiate the class without satisfying its
     dependencies."""
 
+    @_optionals.HAS_FIXTURES.require_in_call("output-capturing test cases")
     def setUp(self):
+        import fixtures
+
         super().setUp()
         if os.environ.get("QISKIT_TEST_CAPTURE_STREAMS"):
             stdout = self.useFixture(fixtures.StringStream("stdout")).stream
@@ -299,5 +316,5 @@ def dicts_almost_equal(dict1, dict2, delta=None, places=None, default_value=0):
 # Maintain naming backwards compatibility for downstream packages.
 BasicQiskitTestCase = QiskitTestCase
 
-if HAS_FIXTURES:
+if _optionals.HAS_TESTTOOLS and _optionals.HAS_FIXTURES:
     QiskitTestCase = FullQiskitTestCase

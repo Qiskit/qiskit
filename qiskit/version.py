@@ -17,7 +17,6 @@
 from collections.abc import Mapping
 import os
 import subprocess
-import pkg_resources
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -97,12 +96,13 @@ class QiskitVersion(Mapping):
             "qiskit-aer": None,
             "qiskit-ignis": None,
             "qiskit-ibmq-provider": None,
-            "qiskit-aqua": None,
             "qiskit": None,
         }
         self._loaded = False
 
     def _load_versions(self):
+        import pkg_resources
+
         try:
             from qiskit.providers import aer
 
@@ -121,14 +121,6 @@ class QiskitVersion(Mapping):
             self._version_dict["qiskit-ibmq-provider"] = ibmq.__version__
         except Exception:
             self._version_dict["qiskit-ibmq-provider"] = None
-        # TODO: Remove aqua after deprecation is complete and it is removed from
-        # the metapackage
-        try:
-            from qiskit import aqua
-
-            self._version_dict["qiskit-aqua"] = aqua.__version__
-        except Exception:
-            self._version_dict["qiskit-aqua"] = None
         try:
             import qiskit_nature
 

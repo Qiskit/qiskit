@@ -12,6 +12,8 @@
 
 """Pass Manager Configuration class."""
 
+import pprint
+
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
 
@@ -36,6 +38,7 @@ class PassManagerConfig:
         timing_constraints=None,
         unitary_synthesis_method="default",
         unitary_synthesis_plugin_config=None,
+        target=None,
     ):
         """Initialize a PassManagerConfig object
 
@@ -66,6 +69,7 @@ class PassManagerConfig:
             unitary_synthesis_method (str): The string method to use for the
                 :class:`~qiskit.transpiler.passes.UnitarySynthesis` pass. Will
                 search installed plugins for a valid method.
+            target (Target): The backend target
         """
         self.initial_layout = initial_layout
         self.basis_gates = basis_gates
@@ -82,6 +86,7 @@ class PassManagerConfig:
         self.timing_constraints = timing_constraints
         self.unitary_synthesis_method = unitary_synthesis_method
         self.unitary_synthesis_plugin_config = unitary_synthesis_plugin_config
+        self.target = target
 
     @classmethod
     def from_backend(cls, backend, **pass_manager_options):
@@ -113,5 +118,39 @@ class PassManagerConfig:
             res.instruction_durations = InstructionDurations.from_backend(backend)
         if res.backend_properties is None:
             res.backend_properties = backend.properties()
+        if res.target is None:
+            backend_version = getattr(backend, "version", 0)
+            if not isinstance(backend_version, int):
+                backend_version = 0
+            if backend_version >= 2:
+                res.target = backend.target
 
         return res
+
+    def __str__(self):
+        newline = "\n"
+        newline_tab = "\n\t"
+        if self.backend_properties is not None:
+            backend_props = pprint.pformat(self.backend_properties.to_dict())
+            backend_props = backend_props.replace(newline, newline_tab)
+        else:
+            backend_props = str(None)
+        return (
+            "Pass Manager Config:\n"
+            f"\tinitial_layout: {self.initial_layout}\n"
+            f"\tbasis_gates: {self.basis_gates}\n"
+            f"\tinst_map: {str(self.inst_map).replace(newline, newline_tab)}\n"
+            f"\tcoupling_map: {self.coupling_map}\n"
+            f"\tlayout_method: {self.layout_method}\n"
+            f"\trouting_method: {self.routing_method}\n"
+            f"\ttranslation_method: {self.translation_method}\n"
+            f"\tscheduling_method: {self.scheduling_method}\n"
+            f"\tinstruction_durations: {str(self.instruction_durations).replace(newline, newline_tab)}\n"
+            f"\tbackend_properties: {backend_props}\n"
+            f"\tapproximation_degree: {self.approximation_degree}\n"
+            f"\tseed_transpiler: {self.seed_transpiler}\n"
+            f"\ttiming_constraints: {self.timing_constraints}\n"
+            f"\tunitary_synthesis_method: {self.unitary_synthesis_method}\n"
+            f"\tunitary_synthesis_plugin_config: {self.unitary_synthesis_plugin_config}\n"
+            f"\ttarget: {str(self.target).replace(newline, newline_tab)}\n"
+        )

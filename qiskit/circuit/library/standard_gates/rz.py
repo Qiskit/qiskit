@@ -37,7 +37,7 @@ class RZGate(Gate):
 
     .. math::
 
-        RZ(\lambda) = exp(-i\frac{\lambda}{2}Z) =
+        RZ(\lambda) = \exp\left(-i\frac{\lambda}{2}Z\right) =
             \begin{pmatrix}
                 e^{-i\frac{\lambda}{2}} & 0 \\
                 0 & e^{i\frac{\lambda}{2}}
@@ -204,6 +204,10 @@ class CRZGate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
 
+        # q_0: ─────────────■────────────────■──
+        #      ┌─────────┐┌─┴─┐┌──────────┐┌─┴─┐
+        # q_1: ┤ Rz(λ/2) ├┤ X ├┤ Rz(-λ/2) ├┤ X ├
+        #      └─────────┘└───┘└──────────┘└───┘
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [

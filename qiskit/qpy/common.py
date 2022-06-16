@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2017, 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -9,131 +9,276 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Common functions across several serialization and deserialization modules."""
 
+# pylint: disable=too-many-return-statements
+
+"""
+Common functions across several serialization and deserialization modules.
+"""
+
+import io
 import struct
-from collections import namedtuple
 from enum import Enum
 
 import numpy as np
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.pulse.channels import Channel
-from qiskit.pulse.library import Waveform, ParametricPulse
-from qiskit.pulse.schedule import ScheduleBlock
-from qiskit.pulse.instructions import Instruction as PulseInstruction
-from qiskit.pulse.configuration import Kernel, Discriminator
+from qiskit.circuit.parametervector import ParameterVectorElement
+from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.circuit import Gate, Instruction as CircuitInstruction, QuantumCircuit
+from qiskit.qpy import formats, exceptions
 
-# OBJECT binary format
-OBJECT = namedtuple("OBJECT", ["type", "size"])
-OBJECT_PACK = "!1cQ"
-OBJECT_PACK_SIZE = struct.calcsize(OBJECT_PACK)
+QPY_VERSION = 4
+ENCODE = "utf8"
 
 
-class TypeKey(str, Enum):
-    """Reserved type string for binary format header."""
+class CircuitInstructionTypeKey(bytes, Enum):
+    """Type key enum for circuit instruction object."""
 
-    FLOAT = "f"
-    INTEGER = "i"
-    COMPLEX = "c"
-    NUMPY = "n"
-    PARAMETER = "p"
-    PARAMETER_EXPRESSION = "e"
-    STRING = "s"
-    CHANNEL = "d"
-    PARAMETRIC_PULSE = "r"
-    WAVEFORM = "w"
-    QUANTUM_CIRCUIT = "q"
-    SCHEDULE_BLOCK = "b"
-    INSTRUCTION = "j"
-    DISCRIMINATOR = "m"
-    KERNEL = "k"
+    INSTRUCTION = b"i"
+    GATE = b"g"
+    PAULI_EVOL_GATE = b"p"
 
     @classmethod
-    def is_number(cls, type_key) -> bool:
-        """Return if input type is representation of numerical value."""
-        if type_key in [cls.FLOAT, cls.INTEGER, cls.COMPLEX, cls.NUMPY]:
-            return True
-        return False
+    def assign(cls, obj):
+        """Assign type key to given object.
+
+        Args:
+            obj (any): Arbitrary object to evaluate.
+
+        Returns:
+            CircuitInstructionTypeKey: Corresponding key object.
+
+        Raises:
+            QpyError: if object type is not defined in QPY. Likely not supported.
+        """
+        if isinstance(obj, PauliEvolutionGate):
+            return cls.PAULI_EVOL_GATE
+        if isinstance(obj, Gate):
+            return cls.GATE
+        if isinstance(obj, CircuitInstruction):
+            return cls.INSTRUCTION
+
+        raise exceptions.QpyError(
+            f"Object type {type(obj)} is not supported in {cls.__name__} namespace."
+        )
+
+
+class ValueTypeKey(bytes, Enum):
+    """Type key enum for value object, e.g. numbers, string, null, parameters."""
+
+    INTEGER = b"i"
+    FLOAT = b"f"
+    COMPLEX = b"c"
+    NUMPY_OBJ = b"n"
+    PARAMETER = b"p"
+    PARAMETER_VECTOR = b"v"
+    PARAMETER_EXPRESSION = b"e"
+    STRING = b"s"
+    NULL = b"z"
 
     @classmethod
-    def is_variable(cls, type_key) -> bool:
-        """Return if input type is representation of parameter value."""
-        if type_key in [cls.PARAMETER, cls.PARAMETER_EXPRESSION]:
-            return True
-        return False
+    def assign(cls, obj):
+        """Assign type key to given object.
+
+        Args:
+            obj (any): Arbitrary object to evaluate.
+
+        Returns:
+            ValueTypeKey: Corresponding key object.
+
+        Raises:
+            QpyError: if object type is not defined in QPY. Likely not supported.
+        """
+        if isinstance(obj, int):
+            return cls.INTEGER
+        if isinstance(obj, float):
+            return cls.FLOAT
+        if isinstance(obj, complex):
+            return cls.COMPLEX
+        if isinstance(obj, (np.integer, np.floating, np.ndarray, np.complexfloating)):
+            return cls.NUMPY_OBJ
+        if isinstance(obj, ParameterVectorElement):
+            return cls.PARAMETER_VECTOR
+        if isinstance(obj, Parameter):
+            return cls.PARAMETER
+        if isinstance(obj, ParameterExpression):
+            return cls.PARAMETER_EXPRESSION
+        if isinstance(obj, str):
+            return cls.STRING
+        if obj is None:
+            return cls.NULL
+
+        raise exceptions.QpyError(
+            f"Object type {type(obj)} is not supported in {cls.__name__} namespace."
+        )
 
 
-# pylint: disable=too-many-return-statements
-def assign_key(obj) -> TypeKey:
-    """Assign type key to input object.
+class ContainerTypeKey(bytes, Enum):
+    """Typle key enum for container-like object."""
 
-    Args:
-        obj (Any): Input object to evaluate.
+    RANGE = b"r"
+    TUPLE = b"t"
 
-    Returns:
-        Corresponding type key.
+    @classmethod
+    def assign(cls, obj):
+        """Assign type key to given object.
 
-    Raises:
-        TypeError: if object is not valid data type in QPY module.
-    """
-    if isinstance(obj, float):
-        return TypeKey.FLOAT
-    if isinstance(obj, int):
-        return TypeKey.INTEGER
-    if isinstance(obj, complex):
-        return TypeKey.COMPLEX
-    if isinstance(obj, (np.integer, np.floating, np.ndarray, np.complexfloating)):
-        return TypeKey.NUMPY
-    if isinstance(obj, Parameter):
-        return TypeKey.PARAMETER
-    if isinstance(obj, ParameterExpression):
-        return TypeKey.PARAMETER_EXPRESSION
-    if isinstance(obj, str):
-        return TypeKey.STRING
-    if isinstance(obj, Channel):
-        return TypeKey.CHANNEL
-    if isinstance(obj, Waveform):
-        return TypeKey.WAVEFORM
-    if isinstance(obj, ParametricPulse):
-        return TypeKey.PARAMETRIC_PULSE
-    if isinstance(obj, ScheduleBlock):
-        return TypeKey.SCHEDULE_BLOCK
-    if isinstance(obj, PulseInstruction):
-        return TypeKey.INSTRUCTION
-    if isinstance(obj, Kernel):
-        return TypeKey.KERNEL
-    if isinstance(obj, Discriminator):
-        return TypeKey.DISCRIMINATOR
+        Args:
+            obj (any): Arbitrary object to evaluate.
 
-    raise TypeError(f"Object type {type(obj)} is not supported.")
+        Returns:
+            ContainerTypeKey: Corresponding key object.
+
+        Raises:
+            QpyError: if object type is not defined in QPY. Likely not supported.
+        """
+        if isinstance(obj, range):
+            return cls.RANGE
+        if isinstance(obj, tuple):
+            return cls.TUPLE
+
+        raise exceptions.QpyError(
+            f"Object type {type(obj)} is not supported in {cls.__name__} namespace."
+        )
 
 
-def read_binary(file_obj):
+class ProgramTypeKey(bytes, Enum):
+    """Typle key enum for program that Qiskit generates."""
+
+    CIRCUIT = b"q"
+
+    @classmethod
+    def assign(cls, obj):
+        """Assign type key to given object.
+
+        Args:
+            obj (any): Arbitrary object to evaluate.
+
+        Returns:
+            ProgramTypeKey: Corresponding key object.
+
+        Raises:
+            QpyError: if object type is not defined in QPY. Likely not supported.
+        """
+        if isinstance(obj, QuantumCircuit):
+            return cls.CIRCUIT
+
+        raise exceptions.QpyError(
+            f"Object type {type(obj)} is not supported in {cls.__name__} namespace."
+        )
+
+
+def read_instruction_param(file_obj):
     """Read a single data chunk from the file like object.
 
     Args:
         file_obj (File): A file like object that contains the QPY binary data.
 
     Returns:
-        tuple: Tuple of ``TypeKey`` and the bytes object of the single data.
+        tuple: Tuple of type key binary and the bytes object of the single data.
     """
-    data_chunk = struct.unpack(OBJECT_PACK, file_obj.read(OBJECT_PACK_SIZE))
-    type_key = data_chunk[0].decode("utf8")
-    data_binary = file_obj.read(data_chunk[1])
+    data = formats.INSTRUCTION_PARAM(
+        *struct.unpack(
+            formats.INSTRUCTION_PARAM_PACK,
+            file_obj.read(formats.INSTRUCTION_PARAM_SIZE),
+        )
+    )
 
-    return TypeKey(type_key), data_binary
+    return data.type, file_obj.read(data.size)
 
 
-def write_binary(file_obj, data_binary, type_key):
-    """Write a single binary data to the file like object.
+def write_instruction_param(file_obj, type_key, data_binary):
+    """Write statically typed binary data to the file like object.
 
     Args:
         file_obj (File): A file like object to write data.
+        type_key (Enum): Object type of the data.
         data_binary (bytes): Binary data to write.
-        type_key (TypeKey): Object type of the data.
     """
-    data_header = struct.pack(OBJECT_PACK, type_key.encode("utf8"), len(data_binary))
+    data_header = struct.pack(formats.INSTRUCTION_PARAM_PACK, type_key, len(data_binary))
     file_obj.write(data_header)
     file_obj.write(data_binary)
+
+
+def data_to_binary(obj, serializer, **kwargs):
+    """Convert object into binary data with specified serializer.
+
+    Args:
+        obj (any): Object to serialize.
+        serializer (Callable): Serializer callback that can handle input object type.
+        kwargs: Options set to the serializer.
+
+    Returns:
+        bytes: Binary data.
+    """
+    with io.BytesIO() as container:
+        serializer(container, obj, **kwargs)
+        binary_data = container.getvalue()
+
+    return binary_data
+
+
+def sequence_to_binary(sequence, serializer, **kwargs):
+    """Convert sequence into binary data with specified serializer.
+
+    Args:
+        sequence (Sequence): Object to serialize.
+        serializer (Callable): Serializer callback that can handle input object type.
+        kwargs: Options set to the serializer.
+
+    Returns:
+        bytes: Binary data.
+    """
+    num_elements = len(sequence)
+
+    with io.BytesIO() as container:
+        container.write(struct.pack(formats.SEQUENCE_PACK, num_elements))
+        for datum in sequence:
+            serializer(container, datum, **kwargs)
+        binary_data = container.getvalue()
+
+    return binary_data
+
+
+def data_from_binary(binary_data, deserializer, **kwargs):
+    """Load object from binary data with specified deserializer.
+
+    Args:
+        binary_data (bytes): Binary data to deserialize.
+        deserializer (Callable): Deserializer callback that can handle input object type.
+        kwargs: Options set to the deserializer.
+
+    Returns:
+        any: Deserialized object.
+    """
+    with io.BytesIO(binary_data) as container:
+        obj = deserializer(container, **kwargs)
+    return obj
+
+
+def sequence_from_binary(binary_data, deserializer, **kwargs):
+    """Load object from binary sequence with specified deserializer.
+
+    Args:
+        binary_data (bytes): Binary data to deserialize.
+        deserializer (Callable): Deserializer callback that can handle input object type.
+        kwargs: Options set to the deserializer.
+
+    Returns:
+        any: Deserialized sequence.
+    """
+    sequence = []
+
+    with io.BytesIO(binary_data) as container:
+        data = formats.SEQUENCE._make(
+            struct.unpack(
+                formats.SEQUENCE_PACK,
+                container.read(formats.SEQUENCE_SIZE),
+            )
+        )
+        for _ in range(data.num_elements):
+            sequence.append(deserializer(container, **kwargs))
+
+    return sequence

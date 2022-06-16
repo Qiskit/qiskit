@@ -81,7 +81,7 @@ class ConfigurableFakeBackend(FakeBackend):
             qubit_t1 = np.random.normal(loc=qubit_t1 or 113.0, scale=std, size=n_qubits).tolist()
 
         if not isinstance(qubit_t2, list):
-            qubit_t2 = np.random.normal(loc=qubit_t1 or 150.2, scale=std, size=n_qubits).tolist()
+            qubit_t2 = np.random.normal(loc=qubit_t2 or 150.2, scale=std, size=n_qubits).tolist()
 
         if not isinstance(qubit_frequency, list):
             qubit_frequency = np.random.normal(

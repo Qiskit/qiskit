@@ -30,7 +30,7 @@ Instructions are identified by the following:
 Instructions do not have any context about where they are in a circuit (which qubits/clbits).
 The circuit itself keeps this context.
 """
-import warnings
+
 import copy
 from itertools import zip_longest
 from typing import List
@@ -69,6 +69,7 @@ class Instruction:
 
         Raises:
             CircuitError: when the register is not in the correct format.
+            TypeError: when the optional label is provided, but it is not a string.
         """
         if not isinstance(num_qubits, int) or not isinstance(num_clbits, int):
             raise CircuitError("num_qubits and num_clbits must be integer.")
@@ -76,9 +77,9 @@ class Instruction:
             raise CircuitError(
                 "bad instruction dimensions: %d qubits, %d clbits." % num_qubits, num_clbits
             )
-        self.name = name
-        self.num_qubits = num_qubits
-        self.num_clbits = num_clbits
+        self._name = name
+        self._num_qubits = num_qubits
+        self._num_clbits = num_clbits
 
         self._params = []  # a list of gate params stored
         # Custom instruction label
@@ -86,6 +87,8 @@ class Instruction:
         #       already set is a temporary work around that can be removed after
         #       the next stable qiskit-aer release
         if not hasattr(self, "_label"):
+            if label is not None and not isinstance(label, str):
+                raise TypeError("label expects a string or None")
             self._label = label
         # tuple (ClassicalRegister, int), tuple (Clbit, bool) or tuple (Clbit, int)
         # when the instruction has a conditional ("if")
@@ -322,20 +325,6 @@ class Instruction:
         else:
             raise TypeError("label expects a string or None")
 
-    def mirror(self):
-        """DEPRECATED: use instruction.reverse_ops().
-
-        Return:
-            qiskit.circuit.Instruction: a new instruction with sub-instructions
-                reversed.
-        """
-        warnings.warn(
-            "instruction.mirror() is deprecated. Use circuit.reverse_ops()"
-            "to reverse the order of gates.",
-            DeprecationWarning,
-        )
-        return self.reverse_ops()
-
     def reverse_ops(self):
         """For a composite instruction, reverse the order of sub-instructions.
 
@@ -546,3 +535,33 @@ class Instruction:
             return [self.condition[0]]
         else:  # ClassicalRegister
             return list(self.condition[0])
+
+    @property
+    def name(self):
+        """Return the name."""
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        """Set the name."""
+        self._name = name
+
+    @property
+    def num_qubits(self):
+        """Return the number of qubits."""
+        return self._num_qubits
+
+    @num_qubits.setter
+    def num_qubits(self, num_qubits):
+        """Set num_qubits."""
+        self._num_qubits = num_qubits
+
+    @property
+    def num_clbits(self):
+        """Return the number of clbits."""
+        return self._num_clbits
+
+    @num_clbits.setter
+    def num_clbits(self, num_clbits):
+        """Set num_clbits."""
+        self._num_clbits = num_clbits
