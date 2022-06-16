@@ -951,7 +951,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             result[DriveChannel(u_chan_lo.q)] = u_chan_lo.scale
         return result
 
-    def _parse_channels(self, channels: Dict[set, Any]) -> Dict[Any, Any]:
+    def _parse_channels(self, channels: Dict[str, Any]) -> Dict[Any, Any]:
         r"""
         Generates a dictionaries of ``Channel``\s, and tuple of qubit(s) they operate on.
 
@@ -985,7 +985,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
                     control_channels[qubits].append(channel_type(index))
         return dict(qubit_channel_map), dict(channel_qubit_map), dict(control_channels)
 
-    def _get_channel_prefix_index(self, channel: str) -> str:
+    def _get_channel_prefix_index(self, channel: str) -> Tuple[Union[str, Any], int]:
         """Return channel prefix and index from the given ``channel``.
 
         Args:

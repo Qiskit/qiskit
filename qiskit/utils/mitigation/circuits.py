@@ -18,7 +18,7 @@
 Measurement calibration circuits. To apply the measurement mitigation
 use the fitters to produce a filter.
 """
-from typing import List, Tuple, Union, Any
+from typing import List, Tuple, Union, Any, Optional, Collection
 
 
 def count_keys(num_qubits: int) -> List[str]:
@@ -36,7 +36,7 @@ def count_keys(num_qubits: int) -> List[str]:
 
 
 def complete_meas_cal(
-    qubit_list: List[int] = None,
+    qubit_list: Optional[List[int]] = None,
     qr: Union[int, List[Any]] = None,
     cr: Union[int, List[Any]] = None,
     circlabel: str = "",
@@ -113,11 +113,11 @@ def complete_meas_cal(
 
 
 def tensored_meas_cal(
-    mit_pattern: List[List[int]] = None,
-    qr: Union[int, List["QuantumRegister"]] = None,
-    cr: Union[int, List["ClassicalRegister"]] = None,
+    mit_pattern: Optional[List[List[int]]] = None,
+    qr: Optional[Union[int, Collection[Any]]] = None,
+    cr: Optional[Union[int, Collection[Any]]] = None,
     circlabel: str = "",
-) -> Tuple[List["QuantumCircuit"], List[List[int]]]:
+) -> Tuple[List[Any], List[List[int]]]:
     """
     Return a list of calibration circuits
 

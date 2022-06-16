@@ -241,7 +241,7 @@ class QuantumCircuit:
 
         # Data contains a list of instructions and their contexts,
         # in the order they were applied.
-        self._data = []
+        self._data: List[DataElement] = []
         self._op_start_times = None
 
         # A stack to hold the instruction sets that are being built up during for-, if- and
@@ -252,17 +252,17 @@ class QuantumCircuit:
         # full width of bits, but the builder interface won't know what bits are used until the end.
         self._control_flow_scopes = []
 
-        self.qregs = []
-        self.cregs = []
-        self._qubits = []
-        self._clbits = []
+        self.qregs: List[QuantumRegister] = []
+        self.cregs: List[ClassicalRegister] = []
+        self._qubits: List[Qubit] = []
+        self._clbits: List[Clbit] = []
 
         # Dict mapping Qubit or Clbit instances to tuple comprised of 0) the
         # corresponding index in circuit.{qubits,clbits} and 1) a list of
         # Register-int pairs for each Register containing the Bit and its index
         # within that register.
-        self._qubit_indices = {}
-        self._clbit_indices = {}
+        self._qubit_indices: Dict[Qubit, Tuple[int, List]] = {}
+        self._clbit_indices: Dict[Clbit, Tuple[int, List]] = {}
 
         self._ancillas = []
         self._calibrations: typing.DefaultDict = defaultdict(dict)

@@ -19,7 +19,9 @@ import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression
 
 
-def apply_prefix(value: Union[float, ParameterExpression], unit: str) -> float:
+def apply_prefix(
+    value: Union[float, ParameterExpression], unit: str
+) -> Union[float, ParameterExpression]:
     """
     Given a SI unit prefix and value, apply the prefix to convert to
     standard SI unit.

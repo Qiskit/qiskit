@@ -14,7 +14,7 @@ Readout mitigator class based on the 1-qubit local tensored mitigation method
 """
 
 
-from typing import Optional, List, Tuple, Iterable, Callable, Union, Dict, Collection
+from typing import Optional, List, Tuple, Callable, Union, Dict, Collection
 import numpy as np
 
 from qiskit.exceptions import QiskitError

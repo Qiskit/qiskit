@@ -114,7 +114,7 @@ def _get_expression_args(expr: sym.Expr, params: Dict[str, float]) -> List[float
     Raises:
         PulseError: When a free symbol value is not defined in the pulse instance parameters.
     """
-    args = []
+    args: List[Union[np.ndarray, float]] = []
     for symbol in sorted(expr.free_symbols, key=lambda s: s.name):
         if symbol.name == "t":
             # 't' is a special parameter to represent time vector.
@@ -156,7 +156,7 @@ class LambdifiedExpression:
                 the target expression to evaluate.
         """
         self.attribute = attribute
-        self.lambda_funcs = dict()
+        self.lambda_funcs: Dict[str, Callable] = dict()
 
     def __get__(self, instance, owner) -> Callable:
         expr = getattr(instance, self.attribute, None)
@@ -543,7 +543,7 @@ class SymbolicPulse(Pulse):
 
     @property
     def parameters(self) -> Dict[str, Any]:
-        params = {"duration": self.duration}
+        params: Dict[str, Union[ParameterExpression, complex, int]] = {"duration": self.duration}
         params.update(self._params)
         return params
 

@@ -14,7 +14,7 @@
 
 import copy
 import datetime
-from typing import Any, Iterable, Tuple, Union
+from typing import Any, Iterable, Tuple, Union, Dict, List
 import dateutil.parser
 
 from qiskit.providers.exceptions import BackendPropertyError
@@ -94,7 +94,7 @@ class Gate:
 
     _data = {}
 
-    def __init__(self, qubits, gate, parameters, **kwargs):
+    def __init__(self, qubits, gate: str, parameters, **kwargs):
         """Initialize a new Gate object
 
         Args:
@@ -166,7 +166,14 @@ class BackendProperties:
     _data = {}
 
     def __init__(
-        self, backend_name, backend_version, last_update_date, qubits, gates, general, **kwargs
+        self,
+        backend_name,
+        backend_version,
+        last_update_date,
+        qubits,
+        gates: List[Gate],
+        general,
+        **kwargs,
     ):
         """Initialize a BackendProperties instance.
 
@@ -201,7 +208,7 @@ class BackendProperties:
                 formatted_props[prop.name] = (value, prop.date)
                 self._qubits[qubit] = formatted_props
 
-        self._gates = {}
+        self._gates: Dict[str, Dict] = {}
         for gate in gates:
             if gate.gate not in self._gates:
                 self._gates[gate.gate] = {}

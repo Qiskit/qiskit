@@ -12,7 +12,7 @@
 
 """Unitary gate."""
 
-from typing import List, Optional, Union, Tuple, Any
+from typing import List, Optional, Union, Tuple, Any, Generator
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -118,7 +118,7 @@ class Gate(Instruction):
         return add_control(self, num_ctrl_qubits, label, ctrl_state)
 
     @staticmethod
-    def _broadcast_single_argument(qarg: List) -> Tuple[List[Any], List[Any]]:
+    def _broadcast_single_argument(qarg: List) -> Generator[Tuple[List[Any], List[Any]], Any, Any]:
         """Expands a single argument.
 
         For example: [q[0], q[1]] -> [q[0]], [q[1]]
