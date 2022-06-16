@@ -15,7 +15,7 @@ Configurations for pulse experiments.
 """
 from typing import Dict, Union, Tuple, Optional
 
-from .channels import PulseChannel, DriveChannel, MeasureChannel
+from .channels import DriveChannel, MeasureChannel
 from .exceptions import PulseError
 
 
@@ -178,6 +178,8 @@ class LoConfig:
             freq: lo frequency
         Raises:
             PulseError: If freq is outside of channels range
+        Returns:
+            True if lo is valid for channel
         """
         lo_ranges = self._lo_ranges
         if channel in lo_ranges:

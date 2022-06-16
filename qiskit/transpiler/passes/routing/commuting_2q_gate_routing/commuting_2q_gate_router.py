@@ -11,9 +11,8 @@
 # that they have been altered from the originals.
 
 """A swap strategy pass for blocks of commuting gates."""
-import typing
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from qiskit.circuit import Gate, QuantumCircuit
 from qiskit.converters import circuit_to_dag

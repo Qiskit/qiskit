@@ -17,6 +17,7 @@ Layout is the relation between virtual (qu)bits and physical (qu)bits.
 Virtual (qu)bits are tuples, e.g. `(QuantumRegister(3, 'qr'), 2)` or simply `qr[2]`.
 Physical (qu)bits are integers.
 """
+from typing import List
 
 from qiskit.circuit.quantumregister import Qubit, QuantumRegister
 from qiskit.transpiler.exceptions import LayoutError
@@ -251,7 +252,7 @@ class Layout:
 
         return edge_map
 
-    def reorder_bits(self, bits):
+    def reorder_bits(self, bits) -> List[int]:
         """Given an ordered list of bits, reorder them according to this layout.
 
         The list of bits must exactly match the virtual bits in this layout.

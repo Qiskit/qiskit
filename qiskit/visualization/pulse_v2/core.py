@@ -69,7 +69,7 @@ from copy import deepcopy
 from enum import Enum
 from functools import partial
 from itertools import chain
-from typing import Union, List, Tuple, Iterator, Optional
+from typing import Union, List, Tuple, Iterator, Optional, Set
 
 import numpy as np
 from qiskit import pulse
@@ -108,18 +108,18 @@ class DrawerCanvas:
 
         # chart
         self.global_charts = Chart(parent=self, name="global")
-        self.charts = []
+        self.charts: List[Chart] = []
 
         # visible controls
-        self.disable_chans = set()
-        self.disable_types = set()
+        self.disable_chans: Set[pulse.channels.Channel] = set()
+        self.disable_types: Set[str] = set()
 
         # data scaling
         self.chan_scales = {}
 
         # global time
         self._time_range = (0, 0)
-        self._time_breaks = []
+        self._time_breaks: List[Tuple[int, int]] = []
 
         # title
         self.fig_title = ""
