@@ -44,7 +44,6 @@ from ..list_or_dict import ListOrDict
 from ..optimizers import Optimizer, SLSQP, OptimizerResult
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .eigen_solver import Eigensolver, EigensolverResult
-from ..minimum_eigen_solvers.vqe import MINIMIZER
 from ..exceptions import AlgorithmError
 from ..aux_ops_evaluator import eval_observables
 
@@ -65,7 +64,8 @@ MINIMIZER = Callable[
     RESULT,  # a result object (either SciPy's or Qiskit's)
 ]
 
-#TODO: Add a more detailed explanation of the algorithm in the main docstring
+# TODO: Add a more detailed explanation of the algorithm in the main docstring
+
 
 class VQD(VariationalAlgorithm, Eigensolver):
     r"""The Variational Quantum Deflation algorithm.
@@ -230,9 +230,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(
-        self, quantum_instance: Union[QuantumInstance, Backend]
-    ) -> None:
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
         """Sets a quantum_instance."""
         if not isinstance(quantum_instance, QuantumInstance):
             quantum_instance = QuantumInstance(quantum_instance)
@@ -636,7 +634,9 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
             if aux_operators is not None:
                 bound_ansatz = self.ansatz.bind_parameters(result.optimal_point)
-                aux_value = eval_observables(self.quantum_instance, bound_ansatz, aux_operators, expectation=expectation)
+                aux_value = eval_observables(
+                    self.quantum_instance, bound_ansatz, aux_operators, expectation=expectation
+                )
                 aux_values.append(aux_value)
 
             if step == 1:
