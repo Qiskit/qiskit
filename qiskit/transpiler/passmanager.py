@@ -20,7 +20,7 @@ import dill
 
 from qiskit.tools.parallel import parallel_map
 from qiskit.circuit import QuantumCircuit
-from .basepasses import BasePass
+from .basepasses import BasePass, TBasePass
 from .exceptions import TranspilerError
 from .runningpassmanager import RunningPassManager, FlowController
 
@@ -28,7 +28,7 @@ from .runningpassmanager import RunningPassManager, FlowController
 class PassManager:
     """Manager for a set of Passes and their scheduling during transpilation."""
 
-    def __init__(self, passes: Union[BasePass, List[BasePass]] = None, max_iteration: int = 1000):
+    def __init__(self, passes: Union[BasePass, List[TBasePass]] = None, max_iteration: int = 1000):
         """Initialize an empty `PassManager` object (with no passes scheduled).
 
         Args:
@@ -48,7 +48,7 @@ class PassManager:
 
     def append(
         self,
-        passes: Union[BasePass, List[BasePass]],
+        passes: Union[BasePass, List[TBasePass]],
         max_iteration: int = None,
         **flow_controller_conditions: Any,
     ) -> None:
@@ -81,7 +81,7 @@ class PassManager:
     def replace(
         self,
         index: int,
-        passes: Union[BasePass, List[BasePass]],
+        passes: Union[BasePass, List[TBasePass]],
         max_iteration: int = None,
         **flow_controller_conditions: Any,
     ) -> None:
@@ -161,8 +161,8 @@ class PassManager:
 
     @staticmethod
     def _normalize_passes(
-        passes: Union[BasePass, List[BasePass], FlowController]
-    ) -> List[BasePass]:
+        passes: Union[BasePass, List[TBasePass], FlowController]
+    ) -> List[TBasePass]:
         if isinstance(passes, FlowController):
             return passes
         if isinstance(passes, BasePass):

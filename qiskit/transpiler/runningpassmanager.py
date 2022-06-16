@@ -17,10 +17,11 @@ from functools import partial
 from collections import OrderedDict
 import logging
 from time import time
+from typing import List
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.transpiler.basepasses import BasePass
+from qiskit.transpiler.basepasses import BasePass, TBasePass
 from .propertyset import PropertySet
 from .fencedobjs import FencedPropertySet, FencedDAGCircuit
 from .exceptions import TranspilerError
@@ -57,11 +58,11 @@ class RunningPassManager:
 
         self.count = 0
 
-    def append(self, passes, **flow_controller_conditions):
+    def append(self, passes: List[TBasePass], **flow_controller_conditions):
         """Append a Pass to the schedule of passes.
 
         Args:
-            passes (list[BasePass]): passes to be added to schedule
+            passes (List[TBasePass]): passes to be added to schedule
             flow_controller_conditions (kwargs): See add_flow_controller(): Dictionary of
             control flow plugins. Default:
 
@@ -306,7 +307,7 @@ class FlowController:
         """Constructs a flow controller based on the partially evaluated controller arguments.
 
         Args:
-            passes (list[BasePass]): passes to add to the flow controller.
+            passes (List[TBasePass]): passes to add to the flow controller.
             options (dict): PassManager options.
             **partial_controller (dict): Partially evaluated controller arguments in the form
                 `{name:partial}`

@@ -15,6 +15,8 @@
 from abc import abstractmethod
 from collections.abc import Hashable
 from inspect import signature
+from typing import TypeVar
+
 from .propertyset import PropertySet
 
 
@@ -147,6 +149,9 @@ class BasePass(metaclass=MetaPass):
             result_circuit._op_start_times = topological_start_times
 
         return result_circuit
+
+
+TBasePass = TypeVar("TBasePass", bound=BasePass)
 
 
 class AnalysisPass(BasePass):  # pylint: disable=abstract-method
