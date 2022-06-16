@@ -1018,7 +1018,101 @@ def template_nct_6b_1():
     qc.ccx(0, 2, 1)
     return qc
 
-
 def_Template_nct_6b_1 = template_nct_6b_1()
 
 _sel.add_template(template_nct_6b_1(), def_Template_nct_6b_1)
+
+
+
+"""
+Template 6b_2:
+.. parsed-literal::
+    q_0: ───────■────■─────────■────■──
+                │  ┌─┴─┐       │  ┌─┴─┐
+    q_1: ──■────■──┤ X ├──■────■──┤ X ├
+         ┌─┴─┐┌─┴─┐└─┬─┘┌─┴─┐┌─┴─┐└─┬─┘
+    q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
+         └───┘└───┘     └───┘└───┘
+"""
+
+def template_nct_6b_2():
+    """
+    Returns:
+        QuantumCircuit: template as a quantum circuit.
+    """
+    qc = QuantumCircuit(3)
+    qc.cx(1, 2)
+    qc.ccx(0, 1, 2)
+    qc.ccx(0, 2, 1)
+    qc.cx(1, 2)
+    qc.ccx(0, 1, 2)
+    qc.ccx(0, 2, 1)
+    return qc
+
+def_Template_nct_6b_2 = template_nct_6b_2()
+
+_sel.add_template(template_nct_6b_2(), def_Template_nct_6b_2)
+
+
+
+"""
+Template 6c_1:
+.. parsed-literal::
+    q_0: ──■─────────■─────────■────■──
+           │  ┌───┐  │  ┌───┐  │  ┌─┴─┐
+    q_1: ──■──┤ X ├──■──┤ X ├──■──┤ X ├
+         ┌─┴─┐└─┬─┘┌─┴─┐└─┬─┘┌─┴─┐└─┬─┘
+    q_2: ┤ X ├──■──┤ X ├──■──┤ X ├──■──
+         └───┘     └───┘     └───┘
+"""
+
+def template_nct_6c_1():
+    """
+    Returns:
+        QuantumCircuit: template as a quantum circuit.
+    """
+    qc = QuantumCircuit(3)
+    qc.ccx(0, 1, 2)
+    qc.cx(2, 1)
+    qc.ccx(0, 1, 2)
+    qc.cx(2, 1)
+    qc.ccx(0, 1, 2)
+    qc.ccx(0, 2, 1)
+    return qc
+
+def_Template_nct_6c_1 = template_nct_6c_1()
+
+_sel.add_template(template_nct_6c_1(), def_Template_nct_6c_1)
+
+
+
+"""
+Template 7a_1:
+.. parsed-literal::
+         ┌───┐                    ┌───┐
+    q_0: ┤ X ├──■─────────■────■──┤ X ├──■──
+         └─┬─┘┌─┴─┐       │  ┌─┴─┐└─┬─┘  │
+    q_1: ──■──┤ X ├──■────■──┤ X ├──■────■──
+              └───┘┌─┴─┐┌─┴─┐└───┘     ┌─┴─┐
+    q_2: ──────────┤ X ├┤ X ├──────────┤ X ├
+                   └───┘└───┘          └───┘
+"""
+
+def template_nct_7a_1():
+    """
+    Returns:
+        QuantumCircuit: template as a quantum circuit.
+    """
+    qc = QuantumCircuit(3)
+    qc.cx(1, 0)
+    qc.cx(0, 1)
+    qc.cx(1, 2)
+    qc.ccx(0, 1, 2)
+    qc.cx(0, 1)
+    qc.cx(1, 0)
+    qc.ccx(0, 1, 2)
+    return qc
+
+def_Template_nct_7a_1 = template_nct_7a_1()
+
+_sel.add_template(template_nct_7a_1(), def_Template_nct_7a_1)
