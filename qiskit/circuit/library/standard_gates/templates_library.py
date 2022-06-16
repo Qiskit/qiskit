@@ -33,7 +33,7 @@ from . import (
     clifford_8_1,
     clifford_8_2,
     clifford_8_3,
-    
+
 
 )
 
@@ -521,3 +521,504 @@ def clifford_8_3():
 def_Clifford8_3 = clifford_8_3()
 
 _sel.add_template(clifford_8_3(), def_Clifford8_3)
+
+
+
+"""
+Template 2a_1:
+.. parsed-literal::
+             ┌───┐┌───┐
+        q_0: ┤ X ├┤ X ├
+             └───┘└───┘
+"""
+
+def template_nct_2a_1():
+    """
+    Returns:
+        QuantumCircuit: template as a quantum circuit.
+    """
+    qc = QuantumCircuit(1)
+    qc.x(0)
+    qc.x(0)
+    return qc
+
+def_Template_nct_2a_1 = template_nct_2a_1()
+
+_sel.add_template(template_nct_2a_1(), def_Template_nct_2a_1)
+
+
+
+"""
+Template 2a_2:
+.. parsed-literal::
+    q_0: ──■────■──
+         ┌─┴─┐┌─┴─┐
+    q_1: ┤ X ├┤ X ├
+         └───┘└───┘
+"""
+
+def template_nct_2a_2():
+    """
+    Returns:
+        QuantumCircuit: template as a quantum circuit.
+    """
+    qc = QuantumCircuit(2)
+    qc.cx(0, 1)
+    qc.cx(0, 1)
+    return qc
+
+def_Template_nct_2a_2 = template_nct_2a_2()
+
+_sel.add_template(template_nct_2a_2(), def_Template_nct_2a_2)
+
+
+
+"""
+Template 2a_3:
+.. parsed-literal::
+    q_0: ──■────■──
+           │    │
+    q_1: ──■────■──
+         ┌─┴─┐┌─┴─┐
+    q_2: ┤ X ├┤ X ├
+         └───┘└───┘
+"""
+
+def template_nct_2a_3():
+    """
+    Returns:
+        QuantumCircuit: template as a quantum circuit.
+    """
+    qc = QuantumCircuit(3)
+    qc.ccx(0, 1, 2)
+    qc.ccx(0, 1, 2)
+    return qc
+
+def_Template_nct_2a_3 = template_nct_2a_3()
+
+_sel.add_template(template_nct_2a_3(), def_Template_nct_2a_3)
+
+
+
+"""
+Template 4a_1:
+.. parsed-literal::
+    q_0: ───────■─────────■──
+                │         │
+    q_1: ──■────┼────■────┼──
+           │    │    │    │
+    q_2: ──■────■────■────■──
+           │  ┌─┴─┐  │  ┌─┴─┐
+    q_3: ──┼──┤ X ├──┼──┤ X ├
+         ┌─┴─┐└───┘┌─┴─┐└───┘
+    q_4: ┤ X ├─────┤ X ├─────
+         └───┘     └───┘
+"""
+
+def template_nct_4a_1():
+    """
+    Returns:
+        QuantumCircuit: template as a quantum circuit.
+    """
+    qc = QuantumCircuit(5)
+    qc.ccx(1, 2, 4)
+    qc.ccx(0, 2, 3)
+    qc.ccx(1, 2, 4)
+    qc.ccx(0, 2, 3)
+    return qc
+
+def_Template_nct_4a_1 = template_nct_4a_1()
+
+_sel.add_template(template_nct_4a_1(), def_Template_nct_4a_1)
+
+
+
+"""
+Template 4a_2:
+.. parsed-literal::
+    q_0: ──■─────────■───────
+           │         │
+    q_1: ──■────■────■────■──
+           │  ┌─┴─┐  │  ┌─┴─┐
+    q_2: ──┼──┤ X ├──┼──┤ X ├
+         ┌─┴─┐└───┘┌─┴─┐└───┘
+    q_3: ┤ X ├─────┤ X ├─────
+         └───┘     └───┘
+"""
+
+def template_nct_4a_2():
+    """
+    Returns:
+        QuantumCircuit: template as a quantum circuit.
+    """
+    qc = QuantumCircuit(4)
+    qc.ccx(0, 1, 3)
+    qc.cx(1, 2)
+    qc.ccx(0, 1, 3)
+    qc.cx(1, 2)
+    return qc
+
+def_Template_nct_4a_2 = template_nct_4a_2()
+
+_sel.add_template(template_nct_4a_2(), def_Template_nct_4a_2)
+
+
+
+"""
+Template 4a_3:
+.. parsed-literal::
+    q_0: ──■────■────■────■──
+           │  ┌─┴─┐  │  ┌─┴─┐
+    q_1: ──┼──┤ X ├──┼──┤ X ├
+         ┌─┴─┐└───┘┌─┴─┐└───┘
+    q_2: ┤ X ├─────┤ X ├─────
+         └───┘     └───┘
+"""
+
+def template_nct_4a_3():
+    """
+    Returns:
+        QuantumCircuit: template as a quantum circuit.
+    """
+    qc = QuantumCircuit(3)
+    qc.cx(0, 2)
+    qc.cx(0, 1)
+    qc.cx(0, 2)
+    qc.cx(0, 1)
+    return qc
+
+def_Template_nct_4a_3 = template_nct_4a_3()
+
+_sel.add_template(template_nct_4a_3(), def_Template_nct_4a_3)
+
+
+
+"""
+Template 4b_1:
+.. parsed-literal::
+    q_0: ───────■─────────■──
+                │         │
+    q_1: ──■────┼────■────┼──
+           │    │    │    │
+    q_2: ──■────■────■────■──
+         ┌─┴─┐┌─┴─┐┌─┴─┐┌─┴─┐
+    q_3: ┤ X ├┤ X ├┤ X ├┤ X ├
+         └───┘└───┘└───┘└───┘
+"""
+
+def template_nct_4b_1():
+    """
+    Returns:
+        QuantumCircuit: template as a quantum circuit.
+    """
+    qc = QuantumCircuit(4)
+    qc.ccx(1, 2, 3)
+    qc.ccx(0, 2, 3)
+    qc.ccx(1, 2, 3)
+    qc.ccx(0, 2, 3)
+    return qc
+
+def_Template_nct_4b_1 = template_nct_4b_1()
+
+_sel.add_template(template_nct_4b_1(), def_Template_nct_4b_1)
+
+
+
+"""
+Template 4b_2:
+.. parsed-literal::
+    q_0: ──■─────────■───────
+           │         │
+    q_1: ──■────■────■────■──
+         ┌─┴─┐┌─┴─┐┌─┴─┐┌─┴─┐
+    q_2: ┤ X ├┤ X ├┤ X ├┤ X ├
+         └───┘└───┘└───┘└───┘
+"""
+
+def template_nct_4b_2():
+    """
+    Returns:
+        QuantumCircuit: template as a quantum circuit.
+    """
+    qc = QuantumCircuit(3)
+    qc.ccx(0, 1, 2)
+    qc.cx(1, 2)
+    qc.ccx(0, 1, 2)
+    qc.cx(1, 2)
+    return qc
+
+def_Template_nct_4b_2 = template_nct_4b_2()
+
+_sel.add_template(template_nct_4b_2(), def_Template_nct_4b_2)
+
+
+
+"""
+Template 5a_1:
+.. parsed-literal::
+    q_0: ──■────■────■────■────■──
+           │  ┌─┴─┐  │  ┌─┴─┐  │
+    q_1: ──■──┤ X ├──■──┤ X ├──┼──
+         ┌─┴─┐└───┘┌─┴─┐└───┘┌─┴─┐
+    q_2: ┤ X ├─────┤ X ├─────┤ X ├
+         └───┘     └───┘     └───┘
+"""
+
+def template_nct_5a_1():
+    """
+    Returns:
+        QuantumCircuit: template as a quantum circuit.
+    """
+    qc = QuantumCircuit(3)
+    qc.ccx(0, 1, 2)
+    qc.cx(0, 1)
+    qc.ccx(0, 1, 2)
+    qc.cx(0, 1)
+    qc.cx(0, 2)
+    return qc
+
+def_Template_nct_5a_1 = template_nct_5a_1()
+
+_sel.add_template(template_nct_5a_1(), def_Template_nct_5a_1)
+
+
+
+"""
+Template 5a_2:
+.. parsed-literal::
+    q_0: ──■─────────■─────────■──
+           │  ┌───┐  │  ┌───┐  │
+    q_1: ──■──┤ X ├──■──┤ X ├──┼──
+         ┌─┴─┐└───┘┌─┴─┐└───┘┌─┴─┐
+    q_2: ┤ X ├─────┤ X ├─────┤ X ├
+         └───┘     └───┘     └───┘
+"""
+
+def template_nct_5a_2():
+    """
+    Returns:
+        QuantumCircuit: template as a quantum circuit.
+    """
+    qc = QuantumCircuit(3)
+    qc.ccx(0, 1, 2)
+    qc.x(1)
+    qc.ccx(0, 1, 2)
+    qc.x(1)
+    qc.cx(0, 2)
+    return qc
+
+def_Template_nct_5a_2 = template_nct_5a_2()
+
+_sel.add_template(template_nct_5a_2(), def_Template_nct_5a_2)
+
+"""
+Template 5a_3:
+.. parsed-literal::
+    q_0: ───────■─────────■────■──
+              ┌─┴─┐     ┌─┴─┐  │
+    q_1: ──■──┤ X ├──■──┤ X ├──┼──
+         ┌─┴─┐└───┘┌─┴─┐└───┘┌─┴─┐
+    q_2: ┤ X ├─────┤ X ├─────┤ X ├
+         └───┘     └───┘     └───┘
+"""
+
+def template_nct_5a_3():
+    """
+    Returns:
+        QuantumCircuit: template as a quantum circuit.
+    """
+    qc = QuantumCircuit(3)
+    qc.cx(1, 2)
+    qc.cx(0, 1)
+    qc.cx(1, 2)
+    qc.cx(0, 1)
+    qc.cx(0, 2)
+    return qc
+
+def_Template_nct_5a_3 = template_nct_5a_3()
+
+_sel.add_template(template_nct_5a_3(), def_Template_nct_5a_3)
+
+
+
+"""
+Template 5a_4:
+.. parsed-literal::
+              ┌───┐     ┌───┐
+    q_0: ──■──┤ X ├──■──┤ X ├
+         ┌─┴─┐└───┘┌─┴─┐├───┤
+    q_1: ┤ X ├─────┤ X ├┤ X ├
+         └───┘     └───┘└───┘
+"""
+
+def template_nct_5a_4():
+    """
+    Returns:
+        QuantumCircuit: template as a quantum circuit.
+    """
+    qc = QuantumCircuit(2)
+    qc.cx(0, 1)
+    qc.x(0)
+    qc.cx(0, 1)
+    qc.x(0)
+    qc.x(1)
+    return qc
+
+def_Template_nct_5a_4 = template_nct_5a_4()
+
+_sel.add_template(template_nct_5a_4(), def_Template_nct_5a_4)
+
+
+
+"""
+Template 6a_1:
+.. parsed-literal::
+              ┌───┐     ┌───┐     ┌───┐
+    q_0: ──■──┤ X ├──■──┤ X ├──■──┤ X ├
+         ┌─┴─┐└─┬─┘┌─┴─┐└─┬─┘┌─┴─┐└─┬─┘
+    q_1: ┤ X ├──■──┤ X ├──■──┤ X ├──■──
+         └───┘     └───┘     └───┘
+"""
+
+def template_nct_6a_1():
+    """
+    Returns:
+        QuantumCircuit: template as a quantum circuit.
+    """
+    qc = QuantumCircuit(2)
+    qc.cx(0, 1)
+    qc.cx(1, 0)
+    qc.cx(0, 1)
+    qc.cx(1, 0)
+    qc.cx(0, 1)
+    qc.cx(1, 0)
+    return qc
+
+def_Template_nct_6a_1 = template_nct_6a_1()
+
+_sel.add_template(template_nct_6a_1(), def_Template_nct_6a_1)
+
+
+
+"""
+Template 6a_2:
+.. parsed-literal::
+    q_0: ──■────■────■────■────■────■──
+           │  ┌─┴─┐  │  ┌─┴─┐  │  ┌─┴─┐
+    q_1: ──■──┤ X ├──■──┤ X ├──■──┤ X ├
+         ┌─┴─┐└─┬─┘┌─┴─┐└─┬─┘┌─┴─┐└─┬─┘
+    q_2: ┤ X ├──■──┤ X ├──■──┤ X ├──■──
+         └───┘     └───┘     └───┘
+"""
+
+def template_nct_6a_2():
+    """
+    Returns:
+        QuantumCircuit: template as a quantum circuit.
+    """
+    qc = QuantumCircuit(3)
+    qc.ccx(0, 1, 2)
+    qc.ccx(0, 2, 1)
+    qc.ccx(0, 1, 2)
+    qc.ccx(0, 2, 1)
+    qc.ccx(0, 1, 2)
+    qc.ccx(0, 2, 1)
+    return qc
+
+def_Template_nct_6a_2 = template_nct_6a_2()
+
+_sel.add_template(template_nct_6a_2(), def_Template_nct_6a_2)
+
+
+
+"""
+Template 6a_3:
+.. parsed-literal::
+    q_0: ───────■─────────■────■────■──
+              ┌─┴─┐     ┌─┴─┐  │  ┌─┴─┐
+    q_1: ──■──┤ X ├──■──┤ X ├──■──┤ X ├
+         ┌─┴─┐└─┬─┘┌─┴─┐└─┬─┘┌─┴─┐└─┬─┘
+    q_2: ┤ X ├──■──┤ X ├──■──┤ X ├──■──
+         └───┘     └───┘     └───┘
+"""
+
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+
+
+def template_nct_6a_3():
+    """
+    Returns:
+        QuantumCircuit: template as a quantum circuit.
+    """
+    qc = QuantumCircuit(3)
+    qc.cx(1, 2)
+    qc.ccx(0, 2, 1)
+    qc.cx(1, 2)
+    qc.ccx(0, 2, 1)
+    qc.ccx(0, 1, 2)
+    qc.ccx(0, 2, 1)
+    return qc
+
+def_Template_nct_6a_3 = template_nct_6a_3()
+
+_sel.add_template(template_nct_6a_3(), def_Template_nct_6a_3)
+
+"""
+Template 6a_4:
+.. parsed-literal::
+    q_0: ───────■──────────────■───────
+              ┌─┴─┐     ┌───┐  │  ┌───┐
+    q_1: ──■──┤ X ├──■──┤ X ├──■──┤ X ├
+         ┌─┴─┐└─┬─┘┌─┴─┐└─┬─┘┌─┴─┐└─┬─┘
+    q_2: ┤ X ├──■──┤ X ├──■──┤ X ├──■──
+         └───┘     └───┘     └───┘
+"""
+def template_nct_6a_4():
+    """
+    Returns:
+        QuantumCircuit: template as a quantum circuit.
+    """
+    qc = QuantumCircuit(3)
+    qc.cx(1, 2)
+    qc.ccx(0, 2, 1)
+    qc.cx(1, 2)
+    qc.cx(2, 1)
+    qc.ccx(0, 1, 2)
+    qc.cx(2, 1)
+    return qc
+
+def_Template_nct_6a_3 = template_nct_6a_4()
+
+_sel.add_template(template_nct_6a_4(), def_Template_nct_6a_4)
+
+
+
+"""
+Template 6b_1:
+.. parsed-literal::
+    q_0: ──■─────────■────■─────────■──
+           │       ┌─┴─┐  │       ┌─┴─┐
+    q_1: ──■────■──┤ X ├──■────■──┤ X ├
+         ┌─┴─┐┌─┴─┐└─┬─┘┌─┴─┐┌─┴─┐└─┬─┘
+    q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
+         └───┘└───┘     └───┘└───┘
+"""
+
+def template_nct_6b_1():
+    """
+    Returns:
+        QuantumCircuit: template as a quantum circuit.
+    """
+    qc = QuantumCircuit(3)
+    qc.ccx(0, 1, 2)
+    qc.cx(1, 2)
+    qc.ccx(0, 2, 1)
+    qc.ccx(0, 1, 2)
+    qc.cx(1, 2)
+    qc.ccx(0, 2, 1)
+    return qc
+
+
+def_Template_nct_6b_1 = template_nct_6b_1()
+
+_sel.add_template(template_nct_6b_1(), def_Template_nct_6b_1)
