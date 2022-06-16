@@ -207,7 +207,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             vf2_call_limit=vf2_call_limit,
             backend_properties=backend_properties,
             seed_transpiler=seed_transpiler,
-            use_barrier_before_measurement=not toqm_pass
+            use_barrier_before_measurement=not toqm_pass,
         )
     else:
         layout = None

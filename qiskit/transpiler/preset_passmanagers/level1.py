@@ -175,7 +175,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 latencies_from_target(
                     coupling_map, instruction_durations, basis_gates, backend_properties, target
                 )
-            )
+            ),
         )
     elif routing_method == "none":
         routing_pass = Error(
