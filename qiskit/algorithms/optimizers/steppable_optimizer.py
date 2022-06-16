@@ -90,7 +90,9 @@ class SteppableOptimizer(Optimizer):
     of the function.
 
     For example:
+
     .. code-block::python
+
         import random
         import numpy as np
         from qiskit.algorithms.optimizers import GradientDescent
@@ -199,13 +201,9 @@ class SteppableOptimizer(Optimizer):
         """
         raise NotImplementedError
 
-    def _callback_wrapper(self, ask_object: AskObject, tell_object: TellObject) -> None:
+    def _callback_wrapper(self) -> None:
         """
-        Callback function to be called after each iteration.
-        Args:
-            ask_object: Contains the information on how to do the evaluation.
-            tell_object: Contains all relevant information about the evaluation of the objective
-            function.
+        Wraps the callback function to accomodate each optimizer.
         """
         raise NotImplementedError
 
@@ -218,7 +216,6 @@ class SteppableOptimizer(Optimizer):
         ask_object = self.ask()
         tell_object = self.evaluate(ask_object=ask_object)
         self.tell(ask_object=ask_object, tell_object=tell_object)
-        self._callback_wrapper(ask_object=ask_object, tell_object=tell_object)
 
     # pylint: disable=invalid-name
     @abstractmethod
@@ -264,7 +261,7 @@ class SteppableOptimizer(Optimizer):
         self.initialize(x0=x0, fun=fun, jac=jac, bounds=bounds)
         while self.continue_condition():
             self.step()
-            # callback
+            self._callback_wrapper()
         return self.create_result()
 
     @abstractmethod

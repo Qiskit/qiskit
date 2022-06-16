@@ -111,6 +111,60 @@ class GradientDescent(SteppableOptimizer):
             print(f"Found minimum {result.x} at a value"
             "of {result.fun} using {result.nfev} evaluations.")
 
+
+    In this case the evaluation of the function has a chance of failing. The user, with specific
+    knowledge about his function can catch this errors and handle before passing the result to the
+    optimizer.
+
+            .. code-block::python
+
+        import random
+        import numpy as np
+        from qiskit.algorithms.optimizers import GradientDescent
+
+        def objective(x):
+            if random.choice([True, False]):
+                return None
+            else:
+                return (np.linalg.norm(x) - 1) ** 2
+
+        def grad(x):
+            if random.choice([True, False]):
+                return None
+            else:
+                return 2 * (np.linalg.norm(x) - 1) * x / np.linalg.norm(x)
+
+
+        initial_point = np.random.normal(0, 1, size=(100,))
+
+        optimizer = GradientDescent(maxiter=20)
+        optimizer.initialize(x0=initial_point, fun=objective, jac=grad)
+
+        for _ in range(20):
+            ask_object = optimizer.ask()
+            evaluated_gradient = None
+
+            while evaluated_gradient is None:
+                evaluated_gradient = grad(ask_object.x_center)
+                optimizer._state.njev += 1
+
+            optmizer._state.nit += 1
+
+            tell_object = TellObject(eval_jac=evaluated_gradient)
+            optimizer.tell(ask_object=ask_object, tell_object=tell_object)
+
+        result = optimizer.create_result()
+
+    In case the user isn't dealing with complicated function and is more familiar with step by step
+    optimization algorithms, :meth:`~.step` has been created to acts as a wrapper for :meth:`~.ask`
+    and :meth:`~.tell`.
+    In the same spirit the method :meth:`~.minimize` will optimize the function and return the result
+    without directly.
+
+    To see other libraries that use this interface one can visit:
+    https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/009_ask_and_tell.html
+
+
     """
 
     def __init__(
@@ -139,9 +193,9 @@ class GradientDescent(SteppableOptimizer):
         self.perturbation = perturbation
         self.tol = tol
 
-    def _callback_wrapper(self, ask_object: AskObject, tell_object: TellObject) -> None:
+    def _callback_wrapper(self) -> None:
         """
-        Callback method for GradientDescent.
+        Wraps the callback function to accomodate GradientDescent.
         Will call :attr:`~.callback` and pass the following arguments:
         current number of function values, current parameters, current function value,
         norm of current gradient.
@@ -150,7 +204,7 @@ class GradientDescent(SteppableOptimizer):
             self.callback(
                 self._state.nfev,
                 self._state.x,
-                self._state.fun(self._state.x),  # This could also come from the tell_object.
+                self._state.fun(self._state.x),
                 self._state.stepsize,
             )
 
@@ -194,8 +248,8 @@ class GradientDescent(SteppableOptimizer):
 
     def evaluate(self, ask_object: AskObject) -> TellObject:
         """
-        For gradient descent we are going to check how to evaluate the gradient, either by evaluating
-        an analitic gradient or by approximating it with a finite difference scheme.
+        Evaluates the gradient, either by evaluating an analitic gradient or by approximating it with a
+        finite difference scheme.
         The value of the gradient is returned as a :class:`qiskit.algorithms.optimizers.TellObject`.
         """
         if self._state.jac is None:
