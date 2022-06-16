@@ -11,6 +11,6 @@ jobs:
     name: Qiskit Neko Integration Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: Qiskit/qiskit-neko
+      - uses: Qiskit/qiskit-neko@main
         with:
           test_selection: terra
