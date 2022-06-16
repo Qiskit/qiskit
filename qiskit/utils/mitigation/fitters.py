@@ -23,7 +23,6 @@ import copy
 import re
 
 import numpy as np
-from qiskit.result import Result
 
 from qiskit import QiskitError
 from qiskit.utils.mitigation.circuits import count_keys
@@ -255,7 +254,7 @@ class TensoredMeasFitter:
                 substate_labels_list
         """
 
-        self._result_list: List[Result] = []
+        self._result_list: List[Any] = []
         self._cal_matrices = None
         self._circlabel = circlabel
         self._mit_pattern = mit_pattern

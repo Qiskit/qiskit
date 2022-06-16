@@ -98,7 +98,7 @@ class AQGD(Optimizer):
 
         # state
         self._avg_objval = None
-        self._prev_param = None
+        self._prev_param: Optional[np.ndarray] = None
         self._eval_count = 0  # function evaluations
         self._prev_loss = []  # type: List[float]
         self._prev_grad = []  # type: List[List[float]]
@@ -172,7 +172,7 @@ class AQGD(Optimizer):
         mprev: np.ndarray,
         step_size: float,
         momentum_coeff: float,
-    ) -> Tuple[List[float], List[float]]:
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Updates full parameter array based on a step that is a convex
         combination of the gradient and previous momentum
