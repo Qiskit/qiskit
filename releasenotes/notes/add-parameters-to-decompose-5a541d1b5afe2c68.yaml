@@ -1,8 +1,8 @@
 features:
   - |
-    Added a new optional argument, ``reps`` to 
-    :meth:`~qiskit.QuantumCircuit.decompose`, which allows to
-    repeatedly decompose the circuit. For example::
+    Added a new optional argument, ``reps``, to 
+    :meth:`.QuantumCircuit.decompose`, which allows
+    repeated decomposition of the circuit. For example::
 
         from qiskit import QuantumCircuit
         
