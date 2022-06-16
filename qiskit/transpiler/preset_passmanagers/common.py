@@ -106,23 +106,19 @@ def _trivial_not_perfect(property_set):
     # Verify that a trivial layout is perfect. If trivial_layout_score > 0
     # the layout is not perfect. The layout is unconditionally set by trivial
     # layout so we need to clear it before contuing.
-    if (
+    return (
         property_set["trivial_layout_score"] is not None
         and property_set["trivial_layout_score"] != 0
-    ):
-        return True
-    return False
+    )
 
 
 def _apply_post_layout_condition(property_set):
     # if VF2 Post layout found a solution we need to re-apply the better
     # layout. Otherwise we can skip apply layout.
-    if (
+    return (
         property_set["VF2PostLayout_stop_reason"] is not None
         and property_set["VF2PostLayout_stop_reason"] is VF2PostLayoutStopReason.SOLUTION_FOUND
-    ):
-        return True
-    return False
+    )
 
 
 def generate_routing_passmanager(

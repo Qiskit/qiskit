@@ -16,4 +16,4 @@ features:
                                ConsolidateBlocks(basis_gates=basis_gates),
                                UnitarySynthesis(basis_gates)])
 
-      staged_pm = StagedPassManager(phases=['init', 'translation'], init=init, translation=translate)
+      staged_pm = StagedPassManager(stages=['init', 'translation'], init=init, translation=translate)
