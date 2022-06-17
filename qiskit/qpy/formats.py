@@ -85,6 +85,26 @@ CIRCUIT_INSTRUCTION = namedtuple(
 CIRCUIT_INSTRUCTION_PACK = "!HHHII?Hq"
 CIRCUIT_INSTRUCTION_SIZE = struct.calcsize(CIRCUIT_INSTRUCTION_PACK)
 
+# CIRCUIT_INSTRUCTION_V2
+CIRCUIT_INSTRUCTION_V2 = namedtuple(
+    "CIRCUIT_INSTRUCTION",
+    [
+        "name_size",
+        "label_size",
+        "num_parameters",
+        "num_qargs",
+        "num_cargs",
+        "has_condition",
+        "condition_register_size",
+        "condition_value",
+        "num_ctrl_qubits",
+        "ctrl_state",
+    ],
+)
+CIRCUIT_INSTRUCTION_V2_PACK = "!HHHII?HqII"
+CIRCUIT_INSTRUCTION_V2_SIZE = struct.calcsize(CIRCUIT_INSTRUCTION_V2_PACK)
+
+
 # CIRCUIT_INSTRUCTION_ARG
 CIRCUIT_INSTRUCTION_ARG = namedtuple("CIRCUIT_INSTRUCTION_ARG", ["type", "size"])
 CIRCUIT_INSTRUCTION_ARG_PACK = "!1cI"
@@ -107,6 +127,25 @@ PAULI_EVOLUTION_DEF_SIZE = struct.calcsize(PAULI_EVOLUTION_DEF_PACK)
 CUSTOM_CIRCUIT_DEF_HEADER = namedtuple("CUSTOM_CIRCUIT_DEF_HEADER", ["size"])
 CUSTOM_CIRCUIT_DEF_HEADER_PACK = "!Q"
 CUSTOM_CIRCUIT_DEF_HEADER_SIZE = struct.calcsize(CUSTOM_CIRCUIT_DEF_HEADER_PACK)
+
+# CUSTOM_CIRCUIT_INST_DEF_V2
+CUSTOM_CIRCUIT_INST_DEF_V2 = namedtuple(
+    "CUSTOM_CIRCUIT_INST_DEF",
+    [
+        "gate_name_size",
+        "type",
+        "num_qubits",
+        "num_clbits",
+        "custom_definition",
+        "size",
+        "num_ctrl_qubits",
+        "ctrl_state",
+        "base_gate_size",
+    ],
+)
+CUSTOM_CIRCUIT_INST_DEF_V2_PACK = "!H1cII?QIIQ"
+CUSTOM_CIRCUIT_INST_DEF_V2_SIZE = struct.calcsize(CUSTOM_CIRCUIT_INST_DEF_V2_PACK)
+
 
 # CUSTOM_CIRCUIT_INST_DEF
 CUSTOM_CIRCUIT_INST_DEF = namedtuple(
