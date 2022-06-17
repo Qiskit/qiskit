@@ -500,7 +500,9 @@ class ParameterExpression:
 
                 return sympify(self._symbol_expr).equals(sympify(other._symbol_expr))
             else:
-                return self._symbol_expr.equals(other._symbol_expr)
+                from sympy import sympify
+
+                return sympify(self._symbol_expr - other._symbol_expr) < 1e-10
         elif isinstance(other, numbers.Number):
             return len(self.parameters) == 0 and complex(self._symbol_expr) == other
         return False
