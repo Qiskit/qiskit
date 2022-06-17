@@ -47,7 +47,7 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
     def __init__(self) -> None:
         self._instance_id = next(self._count)
 
-    @property
+    @property  # type: ignore
     @abstractmethod
     def settings(self) -> Dict:
         """Return settings of this object in a dictionary.
@@ -66,7 +66,7 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
         """Return the unique instance id."""
         return self._instance_id
 
-    @property
+    @property  # type: ignore
     @abstractmethod
     def num_qubits(self) -> int:
         r"""The number of qubits over which the Operator is defined. If
@@ -309,7 +309,7 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
         """
         raise NotImplementedError
 
-    @property
+    @property  # type: ignore
     @abstractmethod
     def parameters(self):
         r"""Return a set of Parameter objects contained in the Operator."""

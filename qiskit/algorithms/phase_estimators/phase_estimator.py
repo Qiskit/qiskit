@@ -44,7 +44,7 @@ class PhaseEstimator(ABC):
 class PhaseEstimatorResult(AlgorithmResult):
     """Phase Estimator Result."""
 
-    @property
+    @property  # type: ignore
     @abstractmethod
     def phase(self) -> float:
         r"""Return the estimated phase as a number in :math:`[0.0, 1.0)`.

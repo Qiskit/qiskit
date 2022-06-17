@@ -36,13 +36,13 @@ from .algorithm_result import AlgorithmResult
 class VariationalAlgorithm(ABC):
     """The Variational Algorithm Base Class."""
 
-    @property
+    @property  # type: ignore
     @abstractmethod
     def initial_point(self) -> Optional[np.ndarray]:
         """Returns initial point."""
         pass
 
-    @initial_point.setter
+    @initial_point.setter  # type: ignore
     @abstractmethod
     def initial_point(self, initial_point: Optional[np.ndarray]) -> None:
         """Sets initial point."""

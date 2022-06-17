@@ -362,7 +362,7 @@ class BackendV2(Backend, ABC):
             logger.warning(msg)
         return list(self.target.operation_names)
 
-    @property
+    @property  # type: ignore
     @abstractmethod
     def target(self):
         """A :class:`qiskit.transpiler.Target` object for the backend.
@@ -386,7 +386,7 @@ class BackendV2(Backend, ABC):
         """Return the :class:`~qiskit.transpiler.InstructionDurations` object."""
         return self.target.durations()
 
-    @property
+    @property  # type: ignore
     @abstractmethod
     def max_circuits(self):
         """The maximum number of circuits (or Pulse schedules) that can be

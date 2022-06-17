@@ -55,7 +55,7 @@ class Pulse(ABC):
         """Unique identifier for this pulse."""
         return id(self)
 
-    @property
+    @property  # type: ignore
     @abstractmethod
     def parameters(self) -> Dict[str, Any]:
         """Return a dictionary containing the pulse's parameters."""

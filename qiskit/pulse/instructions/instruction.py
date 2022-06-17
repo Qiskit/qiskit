@@ -75,7 +75,7 @@ class Instruction(ABC):
         """Return instruction operands."""
         return self._operands
 
-    @property
+    @property  # type: ignore
     @abstractmethod
     def channels(self) -> Tuple[Channel]:
         """Returns the channels that this schedule uses."""

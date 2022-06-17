@@ -653,7 +653,7 @@ class _PulseBuilder:
         """
         return self._context_stack[-1]
 
-    @property
+    @property  # type: ignore
     @_requires_backend
     def num_qubits(self):
         """Get the number of qubits in the backend."""

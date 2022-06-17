@@ -21,7 +21,7 @@ from qiskit.circuit import QuantumCircuit, Instruction
 class ControlFlowOp(Instruction, ABC):
     """Abstract class to encapsulate all control flow operations."""
 
-    @property
+    @property  # type: ignore
     @abstractmethod
     def blocks(self) -> Tuple[QuantumCircuit, ...]:
         """Tuple of QuantumCircuits which may be executed as part of the

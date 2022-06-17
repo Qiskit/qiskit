@@ -184,7 +184,7 @@ class UnitarySynthesisPlugin(abc.ABC):
     This abstract class defines the interface for unitary synthesis plugins.
     """
 
-    @property
+    @property  # type: ignore
     @abc.abstractmethod
     def max_qubits(self):
         """Return the maximum number of qubits the unitary synthesis plugin supports.
@@ -196,7 +196,7 @@ class UnitarySynthesisPlugin(abc.ABC):
         """
         pass
 
-    @property
+    @property  # type: ignore
     @abc.abstractmethod
     def min_qubits(self):
         """Return the minimum number of qubits the unitary synthesis plugin supports.
@@ -208,7 +208,7 @@ class UnitarySynthesisPlugin(abc.ABC):
         """
         pass
 
-    @property
+    @property  # type: ignore
     @abc.abstractmethod
     def supports_basis_gates(self):
         """Return whether the plugin supports taking ``basis_gates``
@@ -218,7 +218,7 @@ class UnitarySynthesisPlugin(abc.ABC):
         backend supports. For example, ``['sx', 'x', 'cx', 'id', 'rz']``."""
         pass
 
-    @property
+    @property  # type: ignore
     @abc.abstractmethod
     def supports_coupling_map(self):
         """Return whether the plugin supports taking ``coupling_map``
@@ -234,7 +234,7 @@ class UnitarySynthesisPlugin(abc.ABC):
         """
         pass
 
-    @property
+    @property  # type: ignore
     @abc.abstractmethod
     def supports_natural_direction(self):
         """Return whether the plugin supports a toggle for considering
@@ -245,7 +245,7 @@ class UnitarySynthesisPlugin(abc.ABC):
         """
         pass
 
-    @property
+    @property  # type: ignore
     @abc.abstractmethod
     def supports_pulse_optimize(self):
         """Return whether the plugin supports a toggle to optimize pulses
@@ -256,7 +256,7 @@ class UnitarySynthesisPlugin(abc.ABC):
         """
         pass
 
-    @property
+    @property  # type: ignore
     @abc.abstractmethod
     def supports_gate_lengths(self):
         """Return whether the plugin supports taking ``gate_lengths``
@@ -277,7 +277,7 @@ class UnitarySynthesisPlugin(abc.ABC):
         """
         pass
 
-    @property
+    @property  # type: ignore
     @abc.abstractmethod
     def supports_gate_errors(self):
         """Return whether the plugin supports taking ``gate_errors``
@@ -298,7 +298,7 @@ class UnitarySynthesisPlugin(abc.ABC):
         """
         pass
 
-    @property
+    @property  # type: ignore
     @abc.abstractmethod
     def supported_bases(self):
         """Returns a dictionary of supported bases for synthesis

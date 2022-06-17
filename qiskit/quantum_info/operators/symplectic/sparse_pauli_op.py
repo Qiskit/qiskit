@@ -172,7 +172,7 @@ class SparsePauliOp(LinearOp):
 
     # pylint: disable=bad-docstring-quotes
 
-    @property
+    @property  # type: ignore
     @deprecate_function(
         "The SparsePauliOp.table method is deprecated as of Qiskit Terra 0.19.0 "
         "and will be removed no sooner than 3 months after the releasedate. "

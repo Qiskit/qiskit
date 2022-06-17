@@ -1001,7 +1001,7 @@ class ScheduleBlock:
                     return False
         return True
 
-    @property
+    @property  # type: ignore
     @_require_schedule_conversion
     def duration(self) -> int:
         """Duration of this schedule block."""
@@ -1016,7 +1016,7 @@ class ScheduleBlock:
                 chans.add(chan)
         return tuple(chans)
 
-    @property
+    @property  # type: ignore
     @_require_schedule_conversion
     def instructions(self) -> Tuple[Tuple[int, Instruction]]:
         """Get the time-ordered instructions from self."""

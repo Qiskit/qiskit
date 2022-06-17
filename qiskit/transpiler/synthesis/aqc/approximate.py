@@ -29,7 +29,7 @@ class ApproximateCircuit(QuantumCircuit, ABC):
         """
         super().__init__(num_qubits, name=name)
 
-    @property
+    @property  # type: ignore
     @abstractmethod
     def thetas(self) -> np.ndarray:
         """
@@ -105,7 +105,7 @@ class ApproximatingObjective(ABC):
         """
         self._target_matrix = target_matrix
 
-    @property
+    @property  # type: ignore
     @abstractmethod
     def num_thetas(self) -> int:
         """
