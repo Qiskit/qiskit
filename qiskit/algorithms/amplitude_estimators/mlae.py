@@ -328,9 +328,9 @@ class MaximumLikelihoodAmplitudeEstimationResult(AmplitudeEstimatorResult):
         super().__init__()
         self._theta = None
         self._minimizer = None
-        self._good_counts = None
-        self._evaluation_schedule = None
-        self._fisher_information = None
+        self._good_counts: Optional[List[float]] = None
+        self._evaluation_schedule: Optional[List[int]] = None
+        self._fisher_information: Optional[float] = None
 
     @property
     def theta(self) -> float:
@@ -343,12 +343,12 @@ class MaximumLikelihoodAmplitudeEstimationResult(AmplitudeEstimatorResult):
         self._theta = value
 
     @property
-    def minimizer(self) -> callable:
+    def minimizer(self) -> Callable:
         """Return the minimizer used for the search of the likelihood function."""
         return self._minimizer
 
     @minimizer.setter
-    def minimizer(self, value: callable) -> None:
+    def minimizer(self, value: Callable) -> None:
         """Set the number minimizer used for the search of the likelihood function."""
         self._minimizer = value
 

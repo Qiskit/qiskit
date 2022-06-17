@@ -14,6 +14,7 @@
 Utilities for constructing Target object from configuration, properties and
 pulse defaults json files
 """
+from typing import Dict
 
 from qiskit.transpiler.target import Target, InstructionProperties
 from qiskit.providers.backend import QubitProperties
@@ -47,7 +48,7 @@ def convert_to_target(conf_dict: dict, props_dict: dict = None, defs_dict: dict 
     # Parse from properties if it exsits
     if props_dict is not None:
         # Parse instructions
-        gates = {}
+        gates: Dict[str, Dict] = {}
         for gate in props_dict["gates"]:
             name = gate["gate"]
             if name in name_mapping:

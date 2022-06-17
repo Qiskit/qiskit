@@ -261,10 +261,10 @@ class FasterAmplitudeEstimationResult(AmplitudeEstimatorResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._success_probability = None
-        self._num_steps = None
-        self._num_first_state_steps = None
-        self._theta_intervals = None
+        self._success_probability: Optional[int] = None
+        self._num_steps: Optional[int] = None
+        self._num_first_state_steps: Optional[int] = None
+        self._theta_intervals: Optional[List[List[float]]] = None
 
     @property
     def success_probability(self) -> int:

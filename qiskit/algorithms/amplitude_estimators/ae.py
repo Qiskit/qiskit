@@ -349,7 +349,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
     @staticmethod
     def compute_confidence_interval(
         result: "AmplitudeEstimationResult", alpha: float = 0.05, kind: str = "likelihood_ratio"
-    ) -> Tuple[float, float]:
+    ) -> Tuple[float, ...]:
         """Compute the (1 - alpha) confidence interval.
 
         Args:
@@ -386,13 +386,13 @@ class AmplitudeEstimationResult(AmplitudeEstimatorResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._num_evaluation_qubits = None
-        self._mle = None
-        self._mle_processed = None
-        self._samples = None
-        self._samples_processed = None
-        self._y_measurements = None
-        self._max_probability = None
+        self._num_evaluation_qubits: Optional[int] = None
+        self._mle: Optional[float] = None
+        self._mle_processed: Optional[float] = None
+        self._samples: Optional[Dict[float, float]] = None
+        self._samples_processed: Optional[Dict[float, float]] = None
+        self._y_measurements: Optional[Dict[int, float]] = None
+        self._max_probability: Optional[float] = None
 
     @property
     def num_evaluation_qubits(self) -> int:
@@ -500,7 +500,7 @@ def _compute_fisher_information(result: AmplitudeEstimationResult, observed: boo
 
 def _fisher_confint(
     result: AmplitudeEstimationResult, alpha: float, observed: bool = False
-) -> List[float]:
+) -> Tuple[float, ...]:
     """Compute the Fisher information confidence interval for the MLE of the previous run.
 
     Args:
@@ -520,7 +520,7 @@ def _fisher_confint(
     return tuple(result.post_processing(bound) for bound in confint)
 
 
-def _likelihood_ratio_confint(result: AmplitudeEstimationResult, alpha: float) -> List[float]:
+def _likelihood_ratio_confint(result: AmplitudeEstimationResult, alpha: float) -> Tuple[float, ...]:
     """Compute the likelihood ratio confidence interval for the MLE of the previous run.
 
     Args:

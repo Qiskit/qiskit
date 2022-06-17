@@ -202,7 +202,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         logger.info(self.print_settings())
 
         # TODO remove this once the stateful methods are deleted
-        self._ret = None
+        self._ret: Optional[VQEResult] = None
 
     @property
     def ansatz(self) -> QuantumCircuit:

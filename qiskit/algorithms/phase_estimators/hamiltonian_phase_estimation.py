@@ -100,7 +100,7 @@ class HamiltonianPhaseEstimation:
             num_evaluation_qubits=num_evaluation_qubits, quantum_instance=quantum_instance
         )
 
-    def _get_scale(self, hamiltonian, bound=None) -> None:
+    def _get_scale(self, hamiltonian, bound=None) -> PhaseEstimationScale:
         if bound is None:
             return PhaseEstimationScale.from_pauli_sum(hamiltonian)
 

@@ -133,8 +133,8 @@ class SPSA(Optimizer):
         blocking: bool = False,
         allowed_increase: Optional[float] = None,
         trust_region: bool = False,
-        learning_rate: Optional[Union[float, np.array, Callable[[], Iterator]]] = None,
-        perturbation: Optional[Union[float, np.array, Callable[[], Iterator]]] = None,
+        learning_rate: Optional[Union[float, np.ndarray, Callable[[], Iterator]]] = None,
+        perturbation: Optional[Union[float, np.ndarray, Callable[[], Iterator]]] = None,
         last_avg: int = 1,
         resamplings: Union[int, Dict[int, int]] = 1,
         perturbation_dims: Optional[int] = None,
@@ -275,7 +275,7 @@ class SPSA(Optimizer):
         self.initial_hessian = initial_hessian
 
         # runtime arguments
-        self._nfev = None  # the number of function evaluations
+        self._nfev: Optional[int] = None  # the number of function evaluations
         self._smoothed_hessian: Optional[np.ndarray] = None  # smoothed average of the Hessians
 
     @staticmethod
@@ -289,7 +289,7 @@ class SPSA(Optimizer):
         gamma: float = 0.101,
         modelspace: bool = False,
         max_evals_grouped: int = 1,
-    ) -> Tuple[Iterator[float], Iterator[float]]:
+    ) -> Tuple[Callable, Callable]:
         r"""Calibrate SPSA parameters with a powerseries as learning rate and perturbation coeffs.
 
         The powerseries are:
@@ -332,7 +332,7 @@ class SPSA(Optimizer):
 
         losses = _batch_evaluate(loss, points, max_evals_grouped)
 
-        avg_magnitudes = 0
+        avg_magnitudes = 0.0
         for i in range(steps):
             delta = losses[2 * i] - losses[2 * i + 1]
             avg_magnitudes += np.abs(delta / (2 * c))

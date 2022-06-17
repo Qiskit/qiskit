@@ -151,7 +151,7 @@ class MatrixFunctional(LinearSystemObservable):
             raise ValueError("Solution probabilities must be given in list form.")
 
         # Calculate the value from the off-diagonal elements
-        off_val = 0
+        off_val = 0.0
         for i in range(1, len(solution), 2):
             off_val += (solution[i] - solution[i + 1]) / (scaling**2)
         main_val = solution[0] / (scaling**2)

@@ -61,7 +61,7 @@ class ApproximatingObjective(ABC):
 
     def __init__(self) -> None:
         # must be set before optimization
-        self._target_matrix = None
+        self._target_matrix: Optional[np.ndarray] = None
 
     @abstractmethod
     def objective(self, param_values: np.ndarray) -> float:

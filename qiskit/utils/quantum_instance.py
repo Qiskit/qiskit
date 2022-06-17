@@ -12,7 +12,7 @@
 
 """ Quantum Instance module """
 
-from typing import Optional, List, Union, Dict, Callable, Tuple
+from typing import Optional, List, Union, Dict, Callable, Tuple, Any
 from enum import Enum
 import copy
 import logging
@@ -332,7 +332,7 @@ class QuantumInstance:
                 )
         else:
             self._meas_error_mitigation_cls = measurement_error_mitigation_cls
-        self._meas_error_mitigation_fitters: Dict[str, Tuple[np.ndarray, float]] = {}
+        self._meas_error_mitigation_fitters: Dict[str, Tuple[Any, float]] = {}
         # TODO: support different fitting method in error mitigation?
         self._meas_error_mitigation_method = "least_squares"
         self._cals_matrix_refresh_period = cals_matrix_refresh_period

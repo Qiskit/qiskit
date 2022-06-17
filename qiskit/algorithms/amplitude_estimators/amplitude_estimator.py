@@ -40,13 +40,13 @@ class AmplitudeEstimatorResult(AlgorithmResult):
     def __init__(self) -> None:
         super().__init__()
         self._circuit_results = None
-        self._shots = None
-        self._estimation = None
-        self._estimation_processed = None
-        self._num_oracle_queries = None
-        self._post_processing = None
-        self._confidence_interval = None
-        self._confidence_interval_processed = None
+        self._shots: Optional[int] = None
+        self._estimation: Optional[float] = None
+        self._estimation_processed: Optional[float] = None
+        self._num_oracle_queries: Optional[int] = None
+        self._post_processing: Optional[Callable[[float], float]] = None
+        self._confidence_interval: Optional[Tuple[float, float]] = None
+        self._confidence_interval_processed: Optional[Tuple[float, float]] = None
 
     @property
     def circuit_results(self) -> Optional[Union[np.ndarray, Dict[str, int]]]:

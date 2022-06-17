@@ -16,7 +16,7 @@ Instruction collection.
 
 import functools
 import warnings
-from typing import Callable, Optional, Tuple, Union, List
+from typing import Callable, Optional, Tuple, Union, List, Any
 
 from qiskit.circuit.exceptions import CircuitError
 from .instruction import Instruction

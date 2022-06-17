@@ -156,7 +156,7 @@ class Grover(AmplitudeAmplifier):
         else:
             self._iterations = iterations
 
-        self._quantum_instance = None
+        self._quantum_instance: Optional[QuantumInstance] = None
         if quantum_instance is not None:
             self.quantum_instance = quantum_instance
 

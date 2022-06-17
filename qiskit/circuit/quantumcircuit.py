@@ -34,8 +34,8 @@ from typing import (
     Mapping,
     Set,
     Iterable,
+    Any,
 )
-import typing
 import numpy as np
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from qiskit.utils.multiprocessing import is_main_process
@@ -265,7 +265,7 @@ class QuantumCircuit:
         self._clbit_indices: Dict[Clbit, BitLocations] = {}
 
         self._ancillas = []
-        self._calibrations: typing.DefaultDict[str, Dict[Tuple, Any]] = defaultdict(dict)
+        self._calibrations: typing.DefaultDict[str, Dict[Tuple, typing.Any]] = defaultdict(dict)
         self.add_register(*regs)
 
         # Parameter table tracks instructions with variable parameters.

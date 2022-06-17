@@ -36,7 +36,7 @@ class LinearSolverResult(AlgorithmResult):
 
         # Set the default to None, if the algorithm knows how to calculate it can override it.
         self._state = None
-        self._observable = None
+        self._observable: Optional[Union[float, List[float]]] = None
         self._euclidean_norm = None
         self._circuit_results = None
 

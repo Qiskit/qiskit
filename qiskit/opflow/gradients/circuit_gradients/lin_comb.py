@@ -751,7 +751,7 @@ class LinComb(CircuitGradient):
 
                         # compute the correct coefficient and append to list of circuits
                         coeff = np.sqrt(np.abs(grad_coeff)) * state_op.coeff
-                        state = CircuitStateFn(grad_circuit, coeff=coeff)
+                        state: OperatorBase = CircuitStateFn(grad_circuit, coeff=coeff)
 
                         # apply the chain rule if the parameter expression if required
                         param_expression = gate.params[idx]

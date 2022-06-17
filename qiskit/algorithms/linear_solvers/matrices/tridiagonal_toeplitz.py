@@ -12,7 +12,7 @@
 
 """Hamiltonian simulation of tridiagonal Toeplitz symmetric matrices."""
 
-from typing import Tuple
+from typing import Tuple, Optional
 import numpy as np
 from scipy.sparse import diags
 
@@ -77,11 +77,13 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             name: The name of the object.
         """
         # define internal parameters
-        self._num_state_qubits = None
+        self._num_state_qubits: Optional[int] = None
         self._main_diag = None
         self._off_diag = None
-        self._tolerance = None
-        self._evolution_time = None  # makes sure the eigenvalues are contained in [0,1)
+        self._tolerance: Optional[float] = None
+        self._evolution_time: Optional[
+            float
+        ] = None  # makes sure the eigenvalues are contained in [0,1)
         self._trotter_steps = None
 
         # store parameters

@@ -100,6 +100,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
 from copy import copy
+from typing import List
 
 import numpy as np
 
@@ -138,7 +139,7 @@ class BaseSampler(ABC):
 
         # To guarantee that they exist as instance variable.
         # With only dynamic set, the python will not know if the attribute exists or not.
-        self._circuit_ids = self._circuit_ids
+        self._circuit_ids: List[int] = self._circuit_ids
 
         if parameters is None:
             self._parameters = tuple(circ.parameters for circ in self._circuits)

@@ -432,15 +432,15 @@ class IterativeAmplitudeEstimationResult(AmplitudeEstimatorResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._alpha = None
-        self._epsilon_target = None
-        self._epsilon_estimated = None
-        self._epsilon_estimated_processed = None
-        self._estimate_intervals = None
-        self._theta_intervals = None
-        self._powers = None
-        self._ratios = None
-        self._confidence_interval_processed = None
+        self._alpha: Optional[float] = None
+        self._epsilon_target: Optional[float] = None
+        self._epsilon_estimated: Optional[float] = None
+        self._epsilon_estimated_processed: Optional[float] = None
+        self._estimate_intervals: Optional[List[List[float]]] = None
+        self._theta_intervals: Optional[List[List[float]]] = None
+        self._powers: Optional[List[int]] = None
+        self._ratios: Optional[List[float]] = None
+        self._confidence_interval_processed: Optional[Tuple[float, float]] = None
 
     @property
     def alpha(self) -> float:

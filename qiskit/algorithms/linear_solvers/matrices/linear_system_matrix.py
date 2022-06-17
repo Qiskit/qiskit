@@ -13,7 +13,7 @@
 """An abstract class for matrices input to the linear systems solvers in Qiskit."""
 
 from abc import ABC, abstractmethod
-from typing import Tuple
+from typing import Tuple, Optional
 
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import BlueprintCircuit
@@ -39,9 +39,11 @@ class LinearSystemMatrix(BlueprintCircuit, ABC):
         super().__init__(name=name)
 
         # define internal parameters
-        self._num_state_qubits = None
-        self._tolerance = None
-        self._evolution_time = None  # makes sure the eigenvalues are contained in [0,1)
+        self._num_state_qubits: Optional[int] = None
+        self._tolerance: Optional[float] = None
+        self._evolution_time: Optional[
+            float
+        ] = None  # makes sure the eigenvalues are contained in [0,1)
 
         # store parameters
         self.num_state_qubits = num_state_qubits
