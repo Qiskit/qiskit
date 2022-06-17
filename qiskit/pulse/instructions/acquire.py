@@ -88,9 +88,9 @@ class Acquire(Instruction):
         return self.operands[1]
 
     @property
-    def channels(self) -> Tuple[Union[AcquireChannel, MemorySlot, RegisterSlot]]:
+    def channels(self) -> Tuple[AcquireChannel]:
         """Returns the channels that this schedule uses."""
-        return tuple(self.operands[ind] for ind in (1, 2, 3) if self.operands[ind] is not None)
+        return self.channel,
 
     @property
     def duration(self) -> Union[int, ParameterExpression]:

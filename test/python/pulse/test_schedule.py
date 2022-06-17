@@ -332,7 +332,7 @@ class TestScheduleBuilding(BaseTestSchedule):
             )
 
         self.assertEqual(len(sched_single.instructions), 2)
-        self.assertEqual(len(sched_single.channels), 6)
+        self.assertEqual(len(sched_single.channels), 2)
 
     def test_parametric_commands_in_sched(self):
         """Test that schedules can be built with parametric commands."""

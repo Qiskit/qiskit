@@ -22,9 +22,9 @@ from qiskit.circuit.duration import convert_durations_to_dt
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import Schedule
+from qiskit.pulse import Schedule, Acquire
 from qiskit.pulse import instructions as pulse_inst
-from qiskit.pulse.channels import AcquireChannel, MemorySlot, DriveChannel
+from qiskit.pulse.channels import AcquireChannel, DriveChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.macros import measure
 from qiskit.scheduler.config import ScheduleConfig
@@ -79,7 +79,9 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
                     meas_q = target_qobj_transform(meas_q)
                     acquire_q = meas_q.filter(channels=[AcquireChannel(qubit)])
                     mem_slot_index = [
-                        chan.index for chan in acquire_q.channels if isinstance(chan, MemorySlot)
+                        acquire[1].mem_slot.index
+                        for acquire in acquire_q.instructions
+                        if isinstance(acquire[1], Acquire) and not (acquire[1].mem_slot is None)
                     ][0]
                     if mem_slot_index != qubit_mem_slots[qubit]:
                         raise KeyError(
