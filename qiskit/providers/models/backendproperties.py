@@ -31,7 +31,7 @@ class Nduv:
         value: value.
     """
 
-    def __init__(self, date, name, unit, value):
+    def __init__(self, date, name: str, unit: str, value):
         """Initialize a new name-date-unit-value object
 
         Args:
@@ -94,7 +94,7 @@ class Gate:
 
     _data = {}
 
-    def __init__(self, qubits, gate: str, parameters, **kwargs):
+    def __init__(self, qubits, gate: str, parameters: List[Nduv], **kwargs):
         """Initialize a new Gate object
 
         Args:
@@ -208,7 +208,7 @@ class BackendProperties:
                 formatted_props[prop.name] = (value, prop.date)
                 self._qubits[qubit] = formatted_props
 
-        self._gates: Dict[str, Dict] = {}
+        self._gates: Dict[str, Dict[Tuple, Dict[str, Tuple]]] = {}
         for gate in gates:
             if gate.gate not in self._gates:
                 self._gates[gate.gate] = {}
@@ -284,7 +284,7 @@ class BackendProperties:
 
     def gate_property(
         self, gate: str, qubits: Union[int, Iterable[int]] = None, name: str = None
-    ) -> Tuple[Any, datetime.datetime]:
+    ) -> Union[Tuple[Any, datetime.datetime], Dict[str, Tuple]]:
         """
         Return the property of the given gate.
 

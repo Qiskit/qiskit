@@ -502,7 +502,7 @@ class ScheduleDrawer:
             scale_dict: Scale factor of each channel.
         """
         # count numbers of valid waveform
-        scale_dict = {chan: 0 for chan in output_channels.keys()}
+        scale_dict: Dict[Channel, float] = {chan: 0.0 for chan in output_channels.keys()}
         for channel, events in output_channels.items():
             v_max = 0
             if channels:
@@ -581,7 +581,7 @@ class ScheduleDrawer:
                 # pylint: enable=unbalanced-tuple-unpacking
                 time, ch_name, data_str = data
                 # item
-                cell_value[r][3 * c + 0] = "t = %s" % time * dt
+                cell_value[r][3 * c + 0] = "t = %s" % time * dt  # TODO: worng operator priority?
                 cell_value[r][3 * c + 1] = "ch %s" % ch_name
                 cell_value[r][3 * c + 2] = data_str
             table = tb.table(

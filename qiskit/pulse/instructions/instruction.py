@@ -52,7 +52,7 @@ class Instruction(ABC):
             PulseError: If the input ``channels`` are not all of
                 type :class:`Channel`.
         """
-        self._operands = operands
+        self._operands: Tuple = operands
         self._name = name
         self._hash: Optional[int] = None
 
