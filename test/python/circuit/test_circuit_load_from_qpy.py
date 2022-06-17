@@ -32,7 +32,7 @@ from qiskit.synthesis import LieTrotter, SuzukiTrotter
 from qiskit.extensions import UnitaryGate
 from qiskit.opflow import I, X, Y, Z
 from qiskit.test import QiskitTestCase
-from qiskit.qpy import dump, load
+from qiskit.circuit.qpy_serialization import dump, load
 from qiskit.quantum_info.random import random_unitary
 
 
