@@ -279,43 +279,35 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         return self.copy()._append_circuit(other.inverse(), qargs=qargs)
 
     def _evolve_clifford(self, other, qargs=None, frame="h"):
+
         """Heisenberg picture evolution of a Pauli by a Clifford."""
-        if qargs is None:
-            idx = slice(None)
-            num_act = self.num_qubits
-        else:
-            idx = list(qargs)
-            num_act = len(idx)
 
-        # Set return to I on qargs
-        ret = self.copy()
-        ret._x[:, idx] = False
-        ret._z[:, idx] = False
-
-        # pylint: disable=cyclic-import
-        from qiskit.quantum_info.operators.symplectic.pauli import Pauli
-        from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
-
-        # Get action of Pauli's from Clifford
         if frame == "s":
-            adj = other.copy()
+            adj = other
         else:
             adj = other.adjoint()
-        pauli_list = []
-        for z in self._z[:, idx]:
-            pauli = Pauli("I" * num_act)
-            for row in adj.stabilizer[z]:
-                pauli.compose(Pauli((row.Z[0], row.X[0], 2 * row.phase[0])), inplace=True)
-            pauli_list.append(pauli)
-        ret.dot(PauliList(pauli_list), qargs=qargs, inplace=True)
 
-        pauli_list = []
-        for x in self._x[:, idx]:
-            pauli = Pauli("I" * num_act)
-            for row in adj.destabilizer[x]:
-                pauli.compose(Pauli((row.Z[0], row.X[0], 2 * row.phase[0])), inplace=True)
-            pauli_list.append(pauli)
-        ret.dot(PauliList(pauli_list), qargs=qargs, inplace=True)
+        if qargs is None:
+            qargs_ = slice(None)
+            num_act = self.num_qubits
+        else:
+            qargs_ = list(qargs)
+            num_act = len(qargs_)
+
+        ret = self.copy()
+
+        idx = np.concatenate((self.x[:,qargs_], self.z[:,qargs_]), axis=1) # axes: [pauli_list, input qubit q (or p)]
+        ret._x[:,qargs_] = idx.dot(adj.table.X.astype(int))%2 # converting to int b/c dot product of booleans interprets True + True = True rather than desired XOR.
+        ret._z[:,qargs_] = idx.dot(adj.table.Z.astype(int))%2
+        ret._phase += 2*idx.dot(adj.table.phase.astype(int)) # this sums phase/2 over all Pauli rows, but we want to sum _phase/2
+
+        # extra phase from commuting all X rightward past all Z:
+        uptri = np.zeros((2*num_act, 2*num_act), dtype=int)
+        uptri[np.triu_indices_from(uptri,k=1)] = 2
+        np.fill_diagonal(uptri, 1) # combines with earlier sum of phase/2 to total sum of _phase/2
+        commutations = np.einsum('qQ, pQ, qp -> qp', adj.table.Z, adj.table.X, uptri) # Q axis = output qubit
+        ret._phase += np.einsum('lq,lp,qp -> l', idx, idx, commutations)
+        ret._phase = (ret._phase)%4
         return ret
 
     def _eq(self, other):
