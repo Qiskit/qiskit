@@ -724,7 +724,8 @@ def write_circuit(file_obj, circuit, metadata_serializer=None):
     with io.BytesIO() as custom_instructions_buffer:
         new_custom_instructions = list(custom_instructions.keys())
         while new_custom_instructions:
-            for name in new_custom_instructions:
+            instructions_to_serialize = new_custom_instructions.copy()
+            for name in instructions_to_serialize:
                 instruction = custom_instructions[name]
                 new_custom_instructions = _write_custom_instruction(
                     custom_instructions_buffer, name, instruction, custom_instructions
