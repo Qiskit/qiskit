@@ -14,7 +14,7 @@
 import numpy as np #required for rzx templates
 
 from qiskit.qasm import pi
-from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit import Parameter, QuantumCircuit, TemplateLibrary
 from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
 
 
