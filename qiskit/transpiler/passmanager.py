@@ -40,7 +40,7 @@ class PassManager:
         # the pass manager's schedule of passes, including any control-flow.
         # Populated via PassManager.append().
 
-        self._pass_sets = []
+        self._pass_sets: List[Dict[str, Any]] = []
         if passes is not None:
             self.append(passes)
         self.max_iteration = max_iteration

@@ -23,6 +23,7 @@ from qiskit.pulse.exceptions import UnassignedDurationError
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule, ScheduleBlock, ScheduleComponent
+from qiskit.pulse.library import Pulse
 
 
 def block_to_schedule(block: ScheduleBlock) -> Schedule:
@@ -85,7 +86,7 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
     Returns:
         Compressed schedules.
     """
-    existing_pulses = []
+    existing_pulses: List[Pulse] = []
     new_schedules = []
 
     for schedule in schedules:

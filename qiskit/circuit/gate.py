@@ -52,7 +52,7 @@ class Gate(Instruction):
         """
         if hasattr(self, "__array__"):
             # pylint: disable=no-member
-            return self.__array__(dtype=complex)
+            return self.__array__(dtype=complex)  # type: ignore[attr-defined]
         raise CircuitError(f"to_matrix not defined for this {type(self)}")
 
     def power(self, exponent: float):

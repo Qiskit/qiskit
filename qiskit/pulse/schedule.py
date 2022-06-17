@@ -915,7 +915,7 @@ class ScheduleBlock:
         self._metadata = metadata or {}
 
         self._alignment_context = alignment_context or AlignLeft()
-        self._blocks = []
+        self._blocks: List["BlockComponent"] = []
 
         # get parameters from context
         self._parameter_manager.update_parameter_table(self._alignment_context)

@@ -10,6 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """A collection of functions to convert ScheduleBlock to DAG representation."""
+from typing import List, Tuple
 
 import retworkx as rx
 
@@ -73,7 +74,7 @@ def _sequential_allocation(block: ScheduleBlock) -> rx.PyDAG:
     dag_blocks = rx.PyDAG()
 
     prev_node = None
-    edges = []
+    edges: List[Tuple[int, int]] = []
     for inst in block.blocks:
         current_node = dag_blocks.add_node(inst)
         if prev_node is not None:

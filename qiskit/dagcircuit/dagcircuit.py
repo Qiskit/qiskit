@@ -84,8 +84,8 @@ class DAGCircuit:
         self.cregs = OrderedDict()
 
         # List of Qubit/Clbit wires that the DAG acts on.
-        self.qubits = []
-        self.clbits = []
+        self.qubits: List[Qubit] = []
+        self.clbits: List[Clbit] = []
 
         self._global_phase = 0
         self._calibrations = defaultdict(dict)

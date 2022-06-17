@@ -121,9 +121,9 @@ class NLocal(BlueprintCircuit):
         self._reps = reps
         self._entanglement_blocks: List[Instruction] = []
         self._rotation_blocks: List[Instruction] = []
-        self._prepended_blocks = []
+        self._prepended_blocks: List[QuantumCircuit] = []
         self._prepended_entanglement = []
-        self._appended_blocks = []
+        self._appended_blocks: List[QuantumCircuit] = []
         self._appended_entanglement = []
         self._entanglement = None
         self._entangler_maps = None

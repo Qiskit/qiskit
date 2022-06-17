@@ -350,7 +350,7 @@ def _draw_shaped_waveform(
     resolution = formatter["general.vertical_resolution"]
 
     # stepwise interpolation
-    xdata = np.concatenate((xdata, [xdata[-1] + 1]))
+    xdata: np.ndarray = np.concatenate((xdata, [xdata[-1] + 1]))
     ydata = np.repeat(ydata, 2)
     re_y = np.real(ydata)
     im_y = np.imag(ydata)

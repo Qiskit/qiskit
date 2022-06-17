@@ -484,7 +484,7 @@ class ShorResult(AlgorithmResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._factors = []
+        self._factors: Optional[List[List[int]]] = []
         self._total_counts = 0
         self._successful_counts = 0
 

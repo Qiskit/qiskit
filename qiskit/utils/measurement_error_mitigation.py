@@ -91,7 +91,7 @@ def get_measured_qubits_from_qobj(qobj: QasmQobj) -> Tuple[List[int], Dict[str, 
     """
 
     qubit_index = None
-    qubit_mappings = {}
+    qubit_mappings: Dict[str, List[int]] = {}
 
     for idx, exp in enumerate(qobj.experiments):
         measured_qubits = []

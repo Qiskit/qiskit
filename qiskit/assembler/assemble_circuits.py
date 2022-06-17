@@ -188,7 +188,7 @@ def _assemble_pulse_gates(
     if not hasattr(run_config, "parametric_pulses"):
         run_config.parametric_pulses = []
     calibrations = []
-    pulse_library = {}
+    pulse_library: Dict[str, List[complex]] = {}
     for gate, cals in circuit.calibrations.items():
         for (qubits, params), schedule in cals.items():
             qobj_instructions, _ = _assemble_schedule(

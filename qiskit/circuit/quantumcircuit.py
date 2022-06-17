@@ -936,7 +936,7 @@ class QuantumCircuit:
 
         edge_map = {**qubit_map, **clbit_map} or {**identity_qubit_map, **identity_clbit_map}
 
-        mapped_instrs = []
+        mapped_instrs: List[CircuitInstruction] = []
         for instr in instrs:
             n_qargs = [edge_map[qarg] for qarg in instr.qubits]
             n_cargs = [edge_map[carg] for carg in instr.clbits]
@@ -4215,7 +4215,7 @@ class QuantumCircuit:
             :meth:`.QuantumCircuit.append`, so this should be safe.  Trying to account for it would
             involve adding a potentially quadratic-scaling loop to check each entry in ``data``.
         """
-        atomic_parameters = []
+        atomic_parameters: List[Parameter] = []
         for index, parameter in enumerate(instruction.operation.params):
             if isinstance(parameter, (ParameterExpression, QuantumCircuit)):
                 atomic_parameters.extend((p, index) for p in parameter.parameters)
