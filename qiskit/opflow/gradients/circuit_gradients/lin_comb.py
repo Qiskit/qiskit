@@ -100,7 +100,7 @@ class LinComb(CircuitGradient):
     }
 
     # pylint: disable=signature-differs, arguments-differ
-    def __init__(self, aux_meas_op: OperatorBase = Z):
+    def __init__(self, aux_meas_op: OperatorBase = Z):  # type: ignore[override]
         """
         Args:
             aux_meas_op: The operator that the auxiliary qubit is measured with respect to.

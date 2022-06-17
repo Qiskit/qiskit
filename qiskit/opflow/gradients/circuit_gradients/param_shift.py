@@ -92,7 +92,7 @@ class ParamShift(CircuitGradient):
             Tuple[ParameterExpression, ParameterExpression],
             List[Tuple[ParameterExpression, ParameterExpression]],
         ],
-    ) -> OperatorBase:
+    ) -> OperatorBase:  # type: ignore[override]
         """
         Args:
             operator: The operator corresponding to our quantum state we are taking the
