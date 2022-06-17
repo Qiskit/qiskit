@@ -97,7 +97,6 @@ stages:
               pythonVersion: ${{ version }}
               testQPY: false
               testImages: false
-              testMSRV: true
 
           - template: ".azure/test-macos.yml"
             parameters:
@@ -145,6 +144,7 @@ stages:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
             testQPY: false
             testImages: false
+            rustVersion: "1.56.1"
 
     # The rest of the PR pipeline is to test the oldest and newest supported
     # versions of Python, along with the integration tests (via the tutorials).
