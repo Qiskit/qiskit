@@ -1,10 +1,12 @@
 from dataclasses import dataclass
-from typing import Union, Callable, Optional, List
+from typing import Union, Callable, Optional, List, Tuple
 import numpy as np
-from .optimizer import OptimizerSupportLevel, OptimizerResult, POINT
-from .steppable_optimizer import AskObject, TellObject, OptimizerState, SteppableOptimizer
+from qiskit.algorithms.optimizers.optimizer import OptimizerSupportLevel, OptimizerResult, POINT
+from qiskit.algorithms.optimizers.steppable_optimizer import AskObject, TellObject, OptimizerState, SteppableOptimizer
+# from .optimizer import OptimizerSupportLevel, OptimizerResult, POINT
+# from .steppable_optimizer import AskObject, TellObject, OptimizerState, SteppableOptimizer
 
-CALLBACK = Callable[[int, np.ndarray, float, float], None]
+CALLBACK = Callable[[], None]
 
 
 @dataclass
@@ -14,11 +16,11 @@ class CMAES_AskObject(AskObject):
         x_fun_translation: Sampling from a multivariate normal distribution used to create CMAES_AskObject.cloud.
     """
 
-    x_fun_translation: Union[POINT, List[POINT]]
+    x_fun_translation: Optional[Union[POINT, List[POINT]]] = None
 
 
 @dataclass
-class CMAES_OptimizerState(OptimizerState):
+class CMAESState(OptimizerState):
     """
     Args:
         p_sigma: Used to store
@@ -47,17 +49,21 @@ class CMAES(SteppableOptimizer):
 
     def __init__(
         self,
+        maxiter: int = 1000,
+        callback: Optional[CALLBACK] = None,
         tol: float = 1e-3,
-        **kwargs,
+        population_size: Optional[int] = None,
     ) -> None:
 
-        super().__init__(**kwargs)
+        super().__init__(maxiter=maxiter, callback=callback)
+        self._state: CMAESState = None
         self.N = None
         self.lmbda = None
         self.weights = None
         self.mu = None
         self.mueff = None
         self.tol = tol
+        self.population_size = population_size
         self.cc = None
         self.cs = None
         self.c1 = None
@@ -139,8 +145,7 @@ class CMAES(SteppableOptimizer):
         x0: POINT,
         fun: Callable[[POINT], float],
         jac: Callable[[POINT], POINT] = None,
-        tol: float = 1e-3,
-        population_size: Optional[int] = None,
+        bounds: Optional[List[Tuple[float, float]]] = None,
     ) -> None:
         """
         This method will initialize the state of the optimizer so that an optimization can be performed.
@@ -148,7 +153,7 @@ class CMAES(SteppableOptimizer):
         This method is left blank because every optimizer has a different kind of state.
         """
         # initialize state
-        self._state = CMAES_OptimizerState(
+        self._state = CMAESState(
             x=x0,
             fun=fun,
             jac=jac,
@@ -165,7 +170,9 @@ class CMAES(SteppableOptimizer):
 
         # Initialize static variables
         self.N = self._state.x.size
-        self.lmbda = 4 + int(3 * np.log(self.N)) if population_size is None else population_size
+        self.lmbda = (
+            4 + int(3 * np.log(self.N)) if self.population_size is None else self.population_size
+        )
         self.mu = int(self.lmbda / 2)
         self.weights = np.log((self.lmbda + 1) / 2) - np.log(np.arange(1, self.mu + 1))
 
@@ -179,13 +186,18 @@ class CMAES(SteppableOptimizer):
         self.damps = 1 + 2 * max(0, np.sqrt((self.mueff - 1) / (self.N + 1)) - 1) + self.cs
         self.chiN = self.N**0.5 * (1 - 1 / (4 * self.N) + 1 / (21 * self.N**2))
 
-        self.tol = tol
-
-    def stop_condition(self) -> bool:
+    def continue_condition(self) -> bool:
         """
         This is the condition that will be checked after each step to stop the optimization process.
         """
-        return self._state.fun(self._state.x) < self.tol
+        return self._state.fun(self._state.x) > self.tol and super().continue_condition()
+
+    def _callback_wrapper(self,nfev:int,x:POINT,sigma:float,) -> None:
+        """
+        This is the wrapper for the callback function.
+        """
+        if self.callback is not None:
+            self.callback(self,nfev,x,sigma)
 
     def get_support_level(self):
         """Get the support level dictionary."""
@@ -194,17 +206,3 @@ class CMAES(SteppableOptimizer):
             "bounds": OptimizerSupportLevel.ignored,
             "initial_point": OptimizerSupportLevel.required,
         }
-
-    def optimize(
-        self,
-        num_vars,
-        objective_function,
-        gradient_function=None,
-        variable_bounds=None,
-        initial_point=None,
-    ):
-        super().optimize(
-            num_vars, objective_function, gradient_function, variable_bounds, initial_point
-        )
-        result = self.minimize(objective_function, initial_point, gradient_function)
-        return result.x, result.fun, result.nfev
