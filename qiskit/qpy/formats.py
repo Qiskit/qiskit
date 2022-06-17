@@ -126,12 +126,12 @@ SCHEDULE_BLOCK_HEADER = namedtuple(
     ],
 )
 SCHEDULE_BLOCK_HEADER_PACK = "!HQQ"
-SCHEDULE_BLOCK_HEADER_PACK_SIZE = struct.calcsize(SCHEDULE_BLOCK_HEADER_PACK)
+SCHEDULE_BLOCK_HEADER_SIZE = struct.calcsize(SCHEDULE_BLOCK_HEADER_PACK)
 
 # WAVEFORM binary format
 WAVEFORM = namedtuple("WAVEFORM", ["epsilon", "data_size", "amp_limited"])
 WAVEFORM_PACK = "!fQ?"
-WAVEFORM_PACK_SIZE = struct.calcsize(WAVEFORM_PACK)
+WAVEFORM_SIZE = struct.calcsize(WAVEFORM_PACK)
 
 # SYMBOLIC_PULSE
 SYMBOLIC_PULSE = namedtuple(
@@ -145,12 +145,12 @@ SYMBOLIC_PULSE = namedtuple(
     ],
 )
 SYMBOLIC_PULSE_PACK = "!HHHH?"
-SYMBOLIC_PULSE_PACK_SIZE = struct.calcsize(SYMBOLIC_PULSE_PACK)
+SYMBOLIC_PULSE_SIZE = struct.calcsize(SYMBOLIC_PULSE_PACK)
 
 # INSTRUCTION_PARAM
-TYPED_DATA = namedtuple("TYPED_DATA", ["type", "size"])
-TYPED_DATA_PACK = "!1cQ"
-TYPED_DATA_SIZE = struct.calcsize(TYPED_DATA_PACK)
+INSTRUCTION_PARAM = namedtuple("INSTRUCTION_PARAM", ["type", "size"])
+INSTRUCTION_PARAM_PACK = "!1cQ"
+INSTRUCTION_PARAM_SIZE = struct.calcsize(INSTRUCTION_PARAM_PACK)
 
 # PARAMETER
 PARAMETER = namedtuple("PARAMETER", ["name_size", "uuid"])
@@ -193,3 +193,8 @@ RANGE_SIZE = struct.calcsize(RANGE_PACK)
 SEQUENCE = namedtuple("SEQUENCE", ["num_elements"])
 SEQUENCE_PACK = "!Q"
 SEQUENCE_SIZE = struct.calcsize(SEQUENCE_PACK)
+
+# MAP_ITEM
+MAP_ITEM = namedtuple("MAP_ITEM", ["key_size", "type", "size"])
+MAP_ITEM_PACK = "!H1cH"
+MAP_ITEM_SIZE = struct.calcsize(MAP_ITEM_PACK)

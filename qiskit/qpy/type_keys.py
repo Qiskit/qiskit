@@ -285,15 +285,9 @@ class ScheduleElement(TypeKeyBase):
 class ScheduleOperand(TypeKeyBase):
     """Type key enum for schedule instruction operand object."""
 
-    INTEGER = b"i"
-    FLOAT = b"f"
-    NUMPY_OBJ = b"n"
-    PARAMETER = b"p"
-    PARAMETER_EXPRESSION = b"e"
     WAVEFORM = b"w"
     SYMBOLIC_PULSE = b"s"
     CHANNEL = b"c"
-    NULL = b"z"
 
     # Discriminator and Acquire instance are not serialzied.
     # Data format of these object is somewhat opaque and not defiend well.
@@ -301,24 +295,12 @@ class ScheduleOperand(TypeKeyBase):
 
     @classmethod
     def assign(cls, obj):
-        if isinstance(obj, int):
-            return cls.INTEGER
-        if isinstance(obj, float):
-            return cls.FLOAT
-        if isinstance(obj, (np.integer, np.floating, np.ndarray, np.complexfloating)):
-            return cls.NUMPY_OBJ
-        if isinstance(obj, Parameter):
-            return cls.PARAMETER
-        if isinstance(obj, ParameterExpression):
-            return cls.PARAMETER_EXPRESSION
         if isinstance(obj, Waveform):
             return cls.WAVEFORM
         if isinstance(obj, SymbolicPulse):
             return cls.SYMBOLIC_PULSE
         if isinstance(obj, Channel):
             return cls.CHANNEL
-        if obj is None:
-            return cls.NULL
 
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."

@@ -19,7 +19,7 @@ import struct
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import library
+from qiskit.pulse import library, channels
 from qiskit.pulse.schedule import ScheduleBlock
 from qiskit.qpy import formats, common, type_keys
 from qiskit.qpy.binary_io import value
@@ -39,7 +39,7 @@ def _read_waveform(file_obj, version):
     header = formats.WAVEFORM._make(
         struct.unpack(
             formats.WAVEFORM_PACK,
-            file_obj.read(formats.WAVEFORM_PACK_SIZE),
+            file_obj.read(formats.WAVEFORM_SIZE),
         )
     )
     samples_raw = file_obj.read(header.data_size)
@@ -59,29 +59,21 @@ def _read_symbolic_pulse(file_obj, version):
     header = formats.SYMBOLIC_PULSE._make(
         struct.unpack(
             formats.SYMBOLIC_PULSE_PACK,
-            file_obj.read(formats.SYMBOLIC_PULSE_PACK_SIZE),
+            file_obj.read(formats.SYMBOLIC_PULSE_SIZE),
         )
     )
     pulse_type = file_obj.read(header.type_size).decode(common.ENCODE)
     envelope_bytes = file_obj.read(header.envelope_size)
     constraints_bytes = file_obj.read(header.constraints_size)
     valid_amp_conditions_bytes = file_obj.read(header.valid_amp_condition_size)
-    pkeys = common.read_sequence(
+    parameters = common.read_mapping(
         file_obj,
-        deserializer=value.read_value,
+        deserializer=value.loads_value,
         version=version,
         vectors={},
     )
-    pvals = common.read_sequence(
-        file_obj,
-        deserializer=value.read_value,
-        version=version,
-        vectors={},
-    )
+    duration = value.read_value(file_obj, version, {})
     name = value.read_value(file_obj, version, {})
-
-    parameters = dict(zip(pkeys, pvals))
-    duration = parameters.pop("duration")
     envelope = parse_expr(envelope_bytes.decode(common.ENCODE))
     constaints = parse_expr(constraints_bytes.decode(common.ENCODE))
     valid_amp_conditions = parse_expr(valid_amp_conditions_bytes.decode(common.ENCODE))
@@ -126,7 +118,7 @@ def _read_alignment_context(file_obj, version):
 
     context_params = common.read_sequence(
         file_obj,
-        deserializer=value.read_value,
+        deserializer=value.loads_value,
         version=version,
         vectors={},
     )
@@ -138,17 +130,15 @@ def _read_alignment_context(file_obj, version):
     return instance
 
 
-def _read_operand(file_obj, version):
-    type_key = common.read_type_key(file_obj)
-
+def _loads_operand(type_key, data_bytes, version):
     if type_key == type_keys.ScheduleOperand.WAVEFORM:
-        return _read_waveform(file_obj, version)
+        return common.data_from_binary(data_bytes, _read_waveform, version=version)
     if type_key == type_keys.ScheduleOperand.SYMBOLIC_PULSE:
-        return _read_symbolic_pulse(file_obj, version)
+        return common.data_from_binary(data_bytes, _read_symbolic_pulse, version=version)
     if type_key == type_keys.ScheduleOperand.CHANNEL:
-        return _read_channel(file_obj, version)
+        return common.data_from_binary(data_bytes, _read_channel, version=version)
 
-    return value.read_value(file_obj, version, {})
+    return value.loads_value(type_key, data_bytes, version, {})
 
 
 def _read_element(file_obj, version, metadata_deserializer):
@@ -159,7 +149,7 @@ def _read_element(file_obj, version, metadata_deserializer):
 
     operands = common.read_sequence(
         file_obj,
-        deserializer=_read_operand,
+        deserializer=_loads_operand,
         version=version,
     )
     name = value.read_value(file_obj, version, {})
@@ -199,7 +189,6 @@ def _write_symbolic_pulse(file_obj, data):
     envelope_bytes = srepr(sympify(data.envelope)).encode(common.ENCODE)
     constraints_bytes = srepr(sympify(data.constraints)).encode(common.ENCODE)
     valid_amp_conditions_bytes = srepr(sympify(data.valid_amp_conditions)).encode(common.ENCODE)
-    pkeys, pvals = zip(*data.parameters.items())
 
     header_bytes = struct.pack(
         formats.SYMBOLIC_PULSE_PACK,
@@ -214,16 +203,12 @@ def _write_symbolic_pulse(file_obj, data):
     file_obj.write(envelope_bytes)
     file_obj.write(constraints_bytes)
     file_obj.write(valid_amp_conditions_bytes)
-    common.write_sequence(
+    common.write_mapping(
         file_obj,
-        sequence=pkeys,
-        serializer=value.write_value,
+        mapping=data._params,
+        serializer=value.dumps_value,
     )
-    common.write_sequence(
-        file_obj,
-        sequence=pvals,
-        serializer=value.write_value,
-    )
+    value.write_value(file_obj, data.duration)
     value.write_value(file_obj, data.name)
 
 
@@ -233,24 +218,24 @@ def _write_alignment_context(file_obj, context):
     common.write_sequence(
         file_obj,
         sequence=context._context_params,
-        serializer=value.write_value,
+        serializer=value.dumps_value,
     )
 
 
-def _write_operand(file_obj, operand):
-    type_key = type_keys.ScheduleOperand.assign(operand)
-
-    if type_key == type_keys.ScheduleOperand.WAVEFORM:
-        common.write_type_key(file_obj, type_key)
-        _write_waveform(file_obj, operand)
-    elif type_key == type_keys.ScheduleOperand.SYMBOLIC_PULSE:
-        common.write_type_key(file_obj, type_key)
-        _write_symbolic_pulse(file_obj, operand)
-    elif type_key == type_keys.ScheduleOperand.CHANNEL:
-        common.write_type_key(file_obj, type_key)
-        _write_channel(file_obj, operand)
+def _dumps_operand(operand):
+    if isinstance(operand, library.Waveform):
+        type_key = type_keys.ScheduleOperand.WAVEFORM
+        data_bytes = common.data_to_binary(operand, _write_waveform)
+    elif isinstance(operand, library.SymbolicPulse):
+        type_key = type_keys.ScheduleOperand.SYMBOLIC_PULSE
+        data_bytes = common.data_to_binary(operand, _write_symbolic_pulse)
+    elif isinstance(operand, channels.Channel):
+        type_key = type_keys.ScheduleOperand.CHANNEL
+        data_bytes = common.data_to_binary(operand, _write_channel)
     else:
-        value.write_value(file_obj, operand)
+        type_key, data_bytes = value.dumps_value(operand)
+
+    return type_key, data_bytes
 
 
 def _write_element(file_obj, element, metadata_serializer):
@@ -263,7 +248,7 @@ def _write_element(file_obj, element, metadata_serializer):
         common.write_sequence(
             file_obj,
             sequence=element.operands,
-            serializer=_write_operand,
+            serializer=_dumps_operand,
         )
         value.write_value(file_obj, element.name)
 
@@ -295,7 +280,7 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None):
     data = formats.SCHEDULE_BLOCK_HEADER._make(
         struct.unpack(
             formats.SCHEDULE_BLOCK_HEADER_PACK,
-            file_obj.read(formats.SCHEDULE_BLOCK_HEADER_PACK_SIZE),
+            file_obj.read(formats.SCHEDULE_BLOCK_HEADER_SIZE),
         )
     )
     name = file_obj.read(data.name_size).decode(common.ENCODE)

@@ -120,31 +120,29 @@ def _read_registers(file_obj, num_registers):
     return registers
 
 
-def _read_instruction_parameter(file_obj, version, vectors):
-    type_key, bin_data = common.read_generic_typed_data(file_obj)
-
+def _loads_instruction_parameter(type_key, data_bytes, version, vectors):
     if type_key == type_keys.Program.CIRCUIT:
-        param = common.data_from_binary(bin_data, read_circuit, version=version)
+        param = common.data_from_binary(data_bytes, read_circuit, version=version)
     elif type_key == type_keys.Container.RANGE:
-        data = formats.RANGE._make(struct.unpack(formats.RANGE_PACK, bin_data))
+        data = formats.RANGE._make(struct.unpack(formats.RANGE_PACK, data_bytes))
         param = range(data.start, data.stop, data.step)
     elif type_key == type_keys.Container.TUPLE:
         param = tuple(
             common.sequence_from_binary(
-                bin_data,
-                _read_instruction_parameter,
+                data_bytes,
+                _loads_instruction_parameter,
                 version=version,
                 vectors=vectors,
             )
         )
     elif type_key == type_keys.Value.INTEGER:
         # TODO This uses little endian. Should be fixed in the next QPY version.
-        param = struct.unpack("<q", bin_data)[0]
+        param = struct.unpack("<q", data_bytes)[0]
     elif type_key == type_keys.Value.FLOAT:
         # TODO This uses little endian. Should be fixed in the next QPY version.
-        param = struct.unpack("<d", bin_data)[0]
+        param = struct.unpack("<d", data_bytes)[0]
     else:
-        param = value.loads_value(type_key, bin_data, version, vectors)
+        param = value.loads_value(type_key, data_bytes, version, vectors)
 
     return param
 
@@ -206,7 +204,8 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions, version
 
     # Load Parameters
     for _param in range(instruction.num_parameters):
-        param = _read_instruction_parameter(file_obj, version, vectors)
+        type_key, data_bytes = common.read_generic_typed_data(file_obj)
+        param = _loads_instruction_parameter(type_key, data_bytes, version, vectors)
         params.append(param)
 
     # Load Gate object
@@ -355,27 +354,28 @@ def _read_custom_instructions(file_obj, version, vectors):
     return custom_instructions
 
 
-def _write_instruction_parameter(file_obj, param):
+def _dumps_instruction_parameter(param):
     if isinstance(param, QuantumCircuit):
         type_key = type_keys.Program.CIRCUIT
-        data = common.data_to_binary(param, write_circuit)
+        data_bytes = common.data_to_binary(param, write_circuit)
     elif isinstance(param, range):
         type_key = type_keys.Container.RANGE
-        data = struct.pack(formats.RANGE_PACK, param.start, param.stop, param.step)
+        data_bytes = struct.pack(formats.RANGE_PACK, param.start, param.stop, param.step)
     elif isinstance(param, tuple):
         type_key = type_keys.Container.TUPLE
-        data = common.sequence_to_binary(param, _write_instruction_parameter)
+        data_bytes = common.sequence_to_binary(param, _dumps_instruction_parameter)
     elif isinstance(param, int):
         # TODO This uses little endian. This should be fixed in next QPY version.
         type_key = type_keys.Value.INTEGER
-        data = struct.pack("<q", param)
+        data_bytes = struct.pack("<q", param)
     elif isinstance(param, float):
         # TODO This uses little endian. This should be fixed in next QPY version.
         type_key = type_keys.Value.FLOAT
-        data = struct.pack("<d", param)
+        data_bytes = struct.pack("<d", param)
     else:
-        type_key, data = value.dumps_value(param)
-    common.write_generic_typed_data(file_obj, type_key, data)
+        type_key, data_bytes = value.dumps_value(param)
+
+    return type_key, data_bytes
 
 
 # pylint: disable=too-many-boolean-expressions
@@ -448,7 +448,8 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
         file_obj.write(instruction_arg_raw)
     # Encode instruction params
     for param in instruction_tuple[0].params:
-        _write_instruction_parameter(file_obj, param)
+        type_key, data_bytes = _dumps_instruction_parameter(param)
+        common.write_generic_typed_data(file_obj, type_key, data_bytes)
 
 
 def _write_pauli_evolution_gate(file_obj, evolution_gate):
