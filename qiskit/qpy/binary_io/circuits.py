@@ -316,7 +316,7 @@ def _parse_custom_instruction(custom_instructions, gate_name, params, version, v
         inst_obj.definition = definition
         return inst_obj
 
-    if type_key == common.CircuitInstructionTypeKey.CONTROLLED_GATE:
+    if version >= 5 and type_key == common.CircuitInstructionTypeKey.CONTROLLED_GATE:
         with io.BytesIO(base_gate_raw) as base_gate_obj:
             base_gate = _read_instruction(
                 base_gate_obj, None, registers, custom_instructions, version, vectors
