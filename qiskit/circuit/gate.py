@@ -12,7 +12,7 @@
 
 """Unitary gate."""
 
-from typing import List, Optional, Union, Tuple, Any, Generator, Iterator
+from typing import List, Optional, Union, Tuple, Any, Iterator
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression

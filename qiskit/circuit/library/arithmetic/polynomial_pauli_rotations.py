@@ -14,7 +14,7 @@
 """Polynomially controlled Pauli-rotations."""
 
 import warnings
-from typing import List, Optional, Dict, Sequence, Tuple
+from typing import List, Optional, Dict, Tuple
 
 from itertools import product
 
