@@ -245,6 +245,7 @@ class QuantumCircuit:
         # Data contains a list of instructions and their contexts,
         # in the order they were applied.
         self._data = []
+        self._op_start_times = None
 
         # A stack to hold the instruction sets that are being built up during for-, if- and
         # while-block construction.  These are stored as a stripped down sequence of instructions,
@@ -298,6 +299,27 @@ class QuantumCircuit:
             list of Clbit objects.
         """
         return QuantumCircuitData(self)
+
+    @property
+    def op_start_times(self) -> List[int]:
+        """Return a list of operation start times.
+
+        This attribute is enabled once one of scheduling analysis passes
+        runs on the quantum circuit.
+
+        Returns:
+            List of integers representing instruction start times.
+            The index corresponds to the index of instruction in :attr:`QuantumCircuit.data`.
+
+        Raises:
+            AttributeError: When circuit is not scheduled.
+        """
+        if self._op_start_times is None:
+            raise AttributeError(
+                "This circuit is not scheduled. "
+                "To schedule it run the circuit through one of the transpiler scheduling passes."
+            )
+        return self._op_start_times
 
     @data.setter
     def data(
@@ -1480,6 +1502,7 @@ class QuantumCircuit:
         gates_to_decompose: Optional[
             Union[Type[Gate], Sequence[Type[Gate]], Sequence[str], str]
         ] = None,
+        reps: int = 1,
     ) -> "QuantumCircuit":
         """Call a decomposition pass on this circuit,
         to decompose one level (shallow decompose).
@@ -1487,6 +1510,9 @@ class QuantumCircuit:
         Args:
             gates_to_decompose (str or list(str)): optional subset of gates to decompose.
                 Defaults to all gates in circuit.
+            reps (int): Optional number of times the circuit should be decomposed.
+                For instance, ``reps=2`` equals calling ``circuit.decompose().decompose()``.
+                can decompose specific gates specific time
 
         Returns:
             QuantumCircuit: a circuit one level decomposed
@@ -1496,9 +1522,11 @@ class QuantumCircuit:
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
 
-        pass_ = Decompose(gates_to_decompose=gates_to_decompose)
-        decomposed_dag = pass_.run(circuit_to_dag(self))
-        return dag_to_circuit(decomposed_dag)
+        pass_ = Decompose(gates_to_decompose)
+        dag = circuit_to_dag(self)
+        for _ in range(reps):
+            dag = pass_.run(dag)
+        return dag_to_circuit(dag)
 
     def _check_compatible_regs(self, rhs: "QuantumCircuit") -> None:
         """Raise exception if the circuits are defined on incompatible registers"""
@@ -2090,18 +2118,9 @@ class QuantumCircuit:
         Returns:
           QuantumCircuit: a deepcopy of the current circuit, with the specified name
         """
-        cpy = copy.copy(self)
-        # copy registers correctly, in copy.copy they are only copied via reference
-        cpy.qregs = self.qregs.copy()
-        cpy.cregs = self.cregs.copy()
-        cpy._qubits = self._qubits.copy()
-        cpy._ancillas = self._ancillas.copy()
-        cpy._clbits = self._clbits.copy()
-        cpy._qubit_indices = self._qubit_indices.copy()
-        cpy._clbit_indices = self._clbit_indices.copy()
+        cpy = self.copy_empty_like(name)
 
         instr_instances = {id(instr): instr for instr, _, __ in self._data}
-
         instr_copies = {id_: instr.copy() for id_, instr in instr_instances.items()}
 
         cpy._parameter_table = ParameterTable(
@@ -2119,12 +2138,49 @@ class QuantumCircuit:
             for inst, qargs, cargs in self._data
         ]
 
+        return cpy
+
+    def copy_empty_like(self, name: Optional[str] = None) -> "QuantumCircuit":
+        """Return a copy of self with the same structure but empty.
+
+        That structure includes:
+            * name, calibrations and other metadata
+            * global phase
+            * all the qubits and clbits, including the registers
+
+        Args:
+            name (str): Name for the copied circuit. If None, then the name stays the same.
+
+        Returns:
+            QuantumCircuit: An empty copy of self.
+        """
+        cpy = copy.copy(self)
+        # copy registers correctly, in copy.copy they are only copied via reference
+        cpy.qregs = self.qregs.copy()
+        cpy.cregs = self.cregs.copy()
+        cpy._qubits = self._qubits.copy()
+        cpy._ancillas = self._ancillas.copy()
+        cpy._clbits = self._clbits.copy()
+        cpy._qubit_indices = self._qubit_indices.copy()
+        cpy._clbit_indices = self._clbit_indices.copy()
+
+        cpy._parameter_table = ParameterTable()
+        cpy._data = []
+
         cpy._calibrations = copy.deepcopy(self._calibrations)
         cpy._metadata = copy.deepcopy(self._metadata)
 
         if name:
             cpy.name = name
         return cpy
+
+    def clear(self) -> None:
+        """Clear all instructions in self.
+
+        Clearing the circuits will keep the metadata and calibrations.
+        """
+        self._data.clear()
+        self._parameter_table.clear()
 
     def _create_creg(self, length: int, name: str) -> ClassicalRegister:
         """Creates a creg, checking if ClassicalRegister with same name exists"""
