@@ -169,7 +169,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         data: Counts,
         qubits: Optional[List[int]] = None,
         clbits: Optional[List[int]] = None,
-        shots: Optional[bool] = False,
+        shots: Optional[bool] = False,  # TODO: unused?
     ) -> QuasiDistribution:
         """Compute mitigated quasi probabilities value.
 
@@ -274,7 +274,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             gammas = self._gammas[qubit_indices]
         return np.product(gammas)
 
-    def stddev_upper_bound(self, shots: int, qubits: List[int] = None):
+    def stddev_upper_bound(self, shots: int, qubits: Optional[Collection[int]] = None):
         """Return an upper bound on standard deviation of expval estimator.
 
         Args:

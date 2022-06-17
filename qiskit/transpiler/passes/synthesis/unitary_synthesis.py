@@ -13,7 +13,7 @@
 """Synthesize UnitaryGates."""
 
 from math import pi, inf
-from typing import List, Union
+from typing import List, Union, Collection
 from copy import deepcopy
 from itertools import product
 
@@ -146,7 +146,7 @@ class UnitarySynthesis(TransformationPass):
         backend_props: BackendProperties = None,
         pulse_optimize: Union[bool, None] = None,
         natural_direction: Union[bool, None] = None,
-        synth_gates: Union[List[str], None] = None,
+        synth_gates: Union[Collection[str], None] = None,
         method: str = "default",
         min_qubits: int = None,
         plugin_config: dict = None,

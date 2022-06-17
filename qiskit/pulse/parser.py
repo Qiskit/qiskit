@@ -13,7 +13,7 @@
 # pylint: disable=invalid-name
 
 """Parser for mathematical string expressions returned by backends."""
-from typing import Dict, List, Union, Callable
+from typing import Dict, List, Union, Callable, Any, Set
 import ast
 import copy
 import operator
@@ -72,8 +72,8 @@ class PulseExpression(ast.NodeTransformer):
             PulseError: When invalid string is specified.
         """
         self._partial_binding = partial_binding
-        self._locals_dict = {}
-        self._params = set()
+        self._locals_dict: Dict[str, Any] = {}
+        self._params: Set[str] = set()
 
         if isinstance(source, ast.Expression):
             self._tree = source

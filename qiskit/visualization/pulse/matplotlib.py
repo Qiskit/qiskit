@@ -15,7 +15,7 @@
 """Matplotlib classes for pulse visualization."""
 
 import collections
-from typing import Dict, List, Tuple, Callable, Union, Any
+from typing import Dict, List, Tuple, Callable, Union, Any, Optional
 
 import numpy as np
 
@@ -58,11 +58,11 @@ class EventsOutputChannels:
             t0: starting time of plot
             tf: ending time of plot
         """
-        self.pulses = {}
+        self.pulses: Dict[int, Instruction] = {}
         self.t0 = t0
         self.tf = tf
 
-        self._waveform = None
+        self._waveform: Optional[np.ndarray] = None
         self._framechanges = None
         self._setphase = None
         self._frequencychanges = None
@@ -640,6 +640,7 @@ class ScheduleDrawer:
                 ha="center",
                 va="center",
             )
+        # TODO: doesn't return anyting?
 
     def _draw_frequency_changes(self, ax, sf: Dict[int, SetFrequency], y0: float) -> bool:
         """Draw set frequency of given channel to given mpl axis.
@@ -659,6 +660,7 @@ class ScheduleDrawer:
                 va="center",
                 rotation=90,
             )
+        # TODO: doesn't return anyting?
 
     def _get_channel_color(self, channel: Channel) -> str:
         """Lookup table for waveform color.

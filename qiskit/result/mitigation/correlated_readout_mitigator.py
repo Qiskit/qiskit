@@ -13,7 +13,7 @@
 Readout mitigator class based on the A-matrix inversion method
 """
 
-from typing import Optional, List, Tuple, Iterable, Callable, Union, Dict
+from typing import Optional, List, Tuple, Iterable, Callable, Union, Dict, Collection
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -33,7 +33,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
     :math:`2^N x 2^N` so the mitigation complexity is :math:`O(4^N)`.
     """
 
-    def __init__(self, assignment_matrix: np.ndarray, qubits: Optional[Iterable[int]] = None):
+    def __init__(self, assignment_matrix: np.ndarray, qubits: Optional[Collection[int]] = None):
         """Initialize a CorrelatedReadoutMitigator
 
         Args:
@@ -60,7 +60,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
             self._num_qubits = len(self._qubits)
         self._qubit_index = dict(zip(self._qubits, range(self._num_qubits)))
         self._assignment_mat = assignment_matrix
-        self._mitigation_mats = {}
+        self._mitigation_mats: Dict[Tuple[int, ...], np.ndarray] = {}
 
     @property
     def settings(self) -> Dict:

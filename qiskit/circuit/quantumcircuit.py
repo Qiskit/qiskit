@@ -1677,7 +1677,7 @@ class QuantumCircuit:
             "c4x",
         ]
 
-        existing_composite_circuits = []
+        existing_composite_circuits: List[Instruction] = []
 
         string_temp = self.header + "\n"
         string_temp += self.extension_lib + "\n"
@@ -2078,7 +2078,7 @@ class QuantumCircuit:
         """
         # Convert registers to ints (as done in depth).
         bits = self.qubits if unitary_only else (self.qubits + self.clbits)
-        bit_indices = {bit: idx for idx, bit in enumerate(bits)}
+        bit_indices: Dict[Union[Qubit, Clbit], int] = {bit: idx for idx, bit in enumerate(bits)}
 
         # Start with each qubit or cbit being its own subgraph.
         sub_graphs = [[bit] for bit in range(len(bit_indices))]
@@ -2812,7 +2812,9 @@ class QuantumCircuit:
 
         instructions = InstructionSet(resource_requester=self._resolve_classical_resource)
         for q in qubits:
-            inst = (Delay(duration, unit), [q], [])
+            inst: Tuple[
+                Instruction, Optional[Sequence[QubitSpecifier]], Optional[Sequence[ClbitSpecifier]]
+            ] = (Delay(duration, unit), [q], [])
             self.append(*inst)
             instructions.add(*inst)
         return instructions

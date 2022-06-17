@@ -14,7 +14,9 @@
 import itertools
 import warnings
 from collections import defaultdict
-from typing import List, Union
+from typing import List, Union, Dict
+
+from qiskit.circuit.quantumcircuit import ClbitSpecifier, QubitSpecifier
 
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.instruction import Instruction
@@ -139,10 +141,12 @@ class AlignMeasures(TransformationPass):
         # * pad_with_delay is called only with non-delay node to avoid consecutive delay
         new_dag = dag.copy_empty_like()
 
-        qubit_time_available = defaultdict(int)  # to track op start time
-        qubit_stop_times = defaultdict(int)  # to track delay start time for padding
-        clbit_readable = defaultdict(int)
-        clbit_writeable = defaultdict(int)
+        qubit_time_available: Dict[QubitSpecifier, int] = defaultdict(int)  # to track op start time
+        qubit_stop_times: Dict[QubitSpecifier, int] = defaultdict(
+            int
+        )  # to track delay start time for padding
+        clbit_readable: Dict[ClbitSpecifier, int] = defaultdict(int)
+        clbit_writeable: Dict[ClbitSpecifier, int] = defaultdict(int)
 
         def pad_with_delays(qubits: List[int], until, unit) -> None:
             """Pad idle time-slots in ``qubits`` with delays in ``unit`` until ``until``."""

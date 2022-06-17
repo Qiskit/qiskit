@@ -32,7 +32,7 @@ def z_diagonal(dim, dtype=float):
     return (-1) ** np.mod(parity, 2)
 
 
-def expval_with_stddev(coeffs: np.ndarray, probs: np.ndarray, shots: int) -> Tuple[float, float]:
+def expval_with_stddev(coeffs: np.ndarray, probs: np.ndarray, shots: int) -> List[float]:
     """Compute expectation value and standard deviation.
     Args:
         coeffs: array of diagonal operator coefficients.

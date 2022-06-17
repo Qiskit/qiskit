@@ -12,7 +12,7 @@
 
 """The Random Pauli circuit class."""
 
-from typing import Optional
+from typing import Optional, List, Dict
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
@@ -81,7 +81,7 @@ class PauliTwoDesign(TwoLocal):
         self._rng = np.random.default_rng(seed)
 
         # store a dict to keep track of the random gates
-        self._gates = {}
+        self._gates: Dict[int, List[str]] = {}
 
         super().__init__(
             num_qubits,

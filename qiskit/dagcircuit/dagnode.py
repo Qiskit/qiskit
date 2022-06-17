@@ -15,6 +15,9 @@
 """Objects to represent the information at a node in the DAGCircuit."""
 
 import warnings
+from typing import Optional, Tuple
+
+from qiskit.circuit.quantumcircuit import QubitSpecifier, ClbitSpecifier
 
 
 class DAGNode:
@@ -100,8 +103,8 @@ class DAGOpNode(DAGNode):
         """Create an Instruction node"""
         super().__init__()
         self.op = op
-        self.qargs = tuple(qargs)
-        self.cargs = tuple(cargs)
+        self.qargs: Optional[Tuple[QubitSpecifier, ...]] = tuple(qargs)
+        self.cargs: Optional[Tuple[ClbitSpecifier, ...]] = tuple(cargs)
         self.sort_key = str(self.qargs)
 
     @property

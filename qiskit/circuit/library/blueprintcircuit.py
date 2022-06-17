@@ -12,7 +12,7 @@
 
 """Blueprint circuit object."""
 
-from typing import Optional
+from typing import Optional, List
 from abc import ABC, abstractmethod
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterTable, ParameterView
@@ -32,8 +32,8 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     def __init__(self, *regs, name: Optional[str] = None) -> None:
         """Create a new blueprint circuit."""
         super().__init__(*regs, name=name)
-        self._qregs = []
-        self._cregs = []
+        self._qregs: List[QuantumRegister] = []
+        self._cregs: List[ClassicalRegister] = []
         self._qubits = []
         self._qubit_indices = {}
         self._is_built = False

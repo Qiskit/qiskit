@@ -191,7 +191,7 @@ class Commuting2qGateRouter(TransformationPass):
         """
         # Add all the non-swap strategy nodes that we have accumulated up to now.
         order = layout.reorder_bits(new_dag.qubits)
-        order_bits = [None] * len(layout)
+        order_bits: List[Optional[int]] = [None] * len(layout)
         for idx, val in enumerate(order):
             order_bits[val] = idx
 

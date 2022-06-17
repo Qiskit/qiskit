@@ -14,7 +14,7 @@
 """Polynomially controlled Pauli-rotations."""
 
 import warnings
-from typing import List, Optional, Dict, Sequence
+from typing import List, Optional, Dict, Sequence, Tuple
 
 from itertools import product
 
@@ -277,7 +277,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
             # iterate over the multinomial coefficients
             for comb, num_combs in _multinomial_coefficients(self.num_state_qubits, i).items():
-                control_state = ()
+                control_state: Tuple[int, ...] = ()
                 power = 1
                 for j, qubit in enumerate(comb):
                     if qubit > 0:  # means we control on qubit i

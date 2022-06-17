@@ -129,7 +129,9 @@ class Gate(Instruction):
             yield [arg0], []
 
     @staticmethod
-    def _broadcast_2_arguments(qarg0: List, qarg1: List) -> Generator[Tuple[List[Any], List[Any]], Any, Any]:
+    def _broadcast_2_arguments(
+        qarg0: List, qarg1: List
+    ) -> Generator[Tuple[List[Any], List[Any]], Any, Any]:
         if len(qarg0) == len(qarg1):
             # [[q[0], q[1]], [r[0], r[1]]] -> [q[0], r[0]]
             #                              -> [q[1], r[1]]

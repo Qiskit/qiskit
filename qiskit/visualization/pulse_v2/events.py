@@ -158,6 +158,7 @@ class ChannelEvents:
             init_frequency: Modulation frequency in Hz.
             init_phase: Initial phase in rad.
         """
+        # TODO: should be float?
         self._dt = dt or 1
         self._init_frequency = init_frequency or 0
         self._init_phase = init_phase or 0

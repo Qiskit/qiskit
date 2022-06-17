@@ -60,7 +60,7 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
     circ_pulse_defs = []
 
     inst_map = schedule_config.inst_map
-    qubit_mem_slots = {}  # Map measured qubit index to classical bit index
+    qubit_mem_slots: Dict[int, int] = {}  # Map measured qubit index to classical bit index
 
     # convert the unit of durations from SI to dt before lowering
     circuit = convert_durations_to_dt(circuit, dt_in_sec=schedule_config.dt, inplace=False)

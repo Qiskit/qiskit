@@ -453,8 +453,8 @@ class Chart:
         self.parent = parent
 
         # data stored in this channel
-        self._collections = {}
-        self._output_dataset = {}
+        self._collections: Dict[str, drawings.ElementaryData] = {}
+        self._output_dataset: Dict[str, drawings.ElementaryData] = {}
 
         # channel metadata
         self.index = self._cls_index()
