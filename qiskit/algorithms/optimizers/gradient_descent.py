@@ -277,6 +277,7 @@ class GradientDescent(SteppableOptimizer):
         result.fun = self._state.fun(self._state.x)
         result.nfev = self._state.nfev
         result.njev = self._state.njev
+        result. nit = self._state.nit
         return result
 
     def initialize(
