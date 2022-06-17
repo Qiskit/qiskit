@@ -12,7 +12,7 @@
 
 """X, CX, CCX and multi-controlled X gates."""
 
-from typing import Optional, Union
+from typing import Optional, Union, Dict, Type
 from math import ceil
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
@@ -895,7 +895,7 @@ class MCXGate(ControlledGate):
         """
         # The CXGate and CCXGate will be implemented for all modes of the MCX, and
         # the C3XGate and C4XGate will be implemented in the MCXGrayCode class.
-        explicit = {1: CXGate, 2: CCXGate}
+        explicit: Dict[int, Type[ControlledGate]] = {1: CXGate, 2: CCXGate}
         if num_ctrl_qubits in explicit:
             gate_class = explicit[num_ctrl_qubits]
             gate = gate_class.__new__(gate_class, label=label, ctrl_state=ctrl_state)

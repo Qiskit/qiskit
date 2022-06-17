@@ -664,7 +664,7 @@ class _PulseBuilder:
         """The builder's transpiler settings."""
         return self._transpiler_settings
 
-    @transpiler_settings.setter
+    @transpiler_settings.setter  # type: ignore
     @_compile_lazy_circuit_before
     def transpiler_settings(self, settings: Mapping):
         self._compile_lazy_circuit()
@@ -675,7 +675,7 @@ class _PulseBuilder:
         """The builder's circuit to pulse scheduler settings."""
         return self._circuit_scheduler_settings
 
-    @circuit_scheduler_settings.setter
+    @circuit_scheduler_settings.setter  # type: ignore
     @_compile_lazy_circuit_before
     def circuit_scheduler_settings(self, settings: Mapping):
         self._compile_lazy_circuit()

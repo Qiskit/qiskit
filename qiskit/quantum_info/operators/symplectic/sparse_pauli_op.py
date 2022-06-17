@@ -182,7 +182,7 @@ class SparsePauliOp(LinearOp):
         """DEPRECATED - Return the the PauliTable."""
         return PauliTable(np.column_stack((self.paulis.x, self.paulis.z)))
 
-    @table.setter
+    @table.setter  # type: ignore
     @deprecate_function(
         "The SparsePauliOp.table method is deprecated as of Qiskit Terra 0.19.0 "
         "and will be removed no sooner than 3 months after the releasedate. "

@@ -13,7 +13,7 @@
 """Limited-memory BFGS Bound optimizer."""
 
 import warnings
-from typing import Optional
+from typing import Optional, SupportsFloat
 
 import numpy as np
 
@@ -54,7 +54,7 @@ class L_BFGS_B(SciPyOptimizer):  # pylint: disable=invalid-name
         self,
         maxfun: int = 1000,
         maxiter: int = 15000,
-        ftol: float = 10 * np.finfo(float).eps,
+        ftol: SupportsFloat = 10 * np.finfo(float).eps,
         factr: Optional[float] = None,
         iprint: int = -1,
         epsilon: float = 1e-08,

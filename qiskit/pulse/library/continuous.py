@@ -132,7 +132,7 @@ def _fix_gaussian_width(
 
     zero_offset = gaussian(np.array([zeroed_width / 2]), amp, 0, sigma)
     gaussian_samples -= zero_offset
-    amp_scale_factor = 1.0
+    amp_scale_factor: Union[complex, float, np.ndarray] = 1.0
     if rescale_amp:
         amp_scale_factor = amp / (amp - zero_offset) if amp - zero_offset != 0 else 1.0
         gaussian_samples *= amp_scale_factor

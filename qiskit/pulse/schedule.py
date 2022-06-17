@@ -151,7 +151,7 @@ class Schedule:
 
         # These attributes are populated by ``_mutable_insert``
         self._timeslots: TimeSlots = {}
-        self._children: Tuple[int, "ScheduleComponent"] = []
+        self._children: List[Tuple[int, "ScheduleComponent"]] = []
         for sched_pair in schedules:
             try:
                 time, sched = sched_pair

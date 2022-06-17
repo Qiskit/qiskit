@@ -12,7 +12,7 @@
 
 """The n-local circuit class."""
 
-from typing import Union, Optional, List, Any, Tuple, Sequence, Set, Callable
+from typing import Union, Optional, List, Any, Tuple, Sequence, Set, Callable, Mapping
 from itertools import combinations
 import warnings
 
@@ -784,7 +784,10 @@ class NLocal(BlueprintCircuit):
 
     def assign_parameters(
         self,
-        parameters: Union[dict, List[float], List[Parameter], ParameterVector],
+        parameters: Union[
+            Mapping[Parameter, Union[ParameterExpression, float]],
+            Sequence[Union[ParameterExpression, float]],
+        ],
         inplace: bool = False,
     ) -> Optional[QuantumCircuit]:
         """Assign parameters to the n-local circuit.
@@ -982,7 +985,7 @@ def get_parameters(block: Union[QuantumCircuit, Instruction]) -> List[Parameter]
 
 def get_entangler_map(
     num_block_qubits: int, num_circuit_qubits: int, entanglement: str, offset: int = 0
-) -> List[Sequence[int]]:
+) -> List[Tuple[int, ...]]:
     """Get an entangler map for an arbitrary number of qubits.
 
     Args:

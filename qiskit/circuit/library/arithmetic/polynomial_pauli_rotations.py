@@ -255,7 +255,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
         return valid
 
-    def _get_rotation_coefficients(self) -> Dict[Sequence[int], float]:
+    def _get_rotation_coefficients(self) -> Dict[Tuple[int, ...], float]:
         """Compute the coefficient of each monomial.
 
         Returns:

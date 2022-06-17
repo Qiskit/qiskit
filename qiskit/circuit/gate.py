@@ -12,7 +12,7 @@
 
 """Unitary gate."""
 
-from typing import List, Optional, Union, Tuple, Any, Generator
+from typing import List, Optional, Union, Tuple, Any, Generator, Iterator
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -118,7 +118,7 @@ class Gate(Instruction):
         return add_control(self, num_ctrl_qubits, label, ctrl_state)
 
     @staticmethod
-    def _broadcast_single_argument(qarg: List) -> Generator[Tuple[List[Any], List[Any]], Any, Any]:
+    def _broadcast_single_argument(qarg: List) -> Iterator[Tuple[List[Any], List[Any]]]:
         """Expands a single argument.
 
         For example: [q[0], q[1]] -> [q[0]], [q[1]]
@@ -129,9 +129,7 @@ class Gate(Instruction):
             yield [arg0], []
 
     @staticmethod
-    def _broadcast_2_arguments(
-        qarg0: List, qarg1: List
-    ) -> Generator[Tuple[List[Any], List[Any]], Any, Any]:
+    def _broadcast_2_arguments(qarg0: List, qarg1: List) -> Iterator[Tuple[List[Any], List[Any]]]:
         if len(qarg0) == len(qarg1):
             # [[q[0], q[1]], [r[0], r[1]]] -> [q[0], r[0]]
             #                              -> [q[1], r[1]]
@@ -153,7 +151,7 @@ class Gate(Instruction):
             )
 
     @staticmethod
-    def _broadcast_3_or_more_args(qargs: List) -> Generator[Tuple[List[Any], List[Any]], Any, Any]:
+    def _broadcast_3_or_more_args(qargs: List) -> Iterator[Tuple[List[Any], List[Any]]]:
         if all(len(qarg) == len(qargs[0]) for qarg in qargs):
             for arg in zip(*qargs):
                 yield list(arg), []
