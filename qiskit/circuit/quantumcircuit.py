@@ -1959,7 +1959,9 @@ class QuantumCircuit:
         """
         # Assign each bit in the circuit a unique integer
         # to index into op_stack.
-        bit_indices = {bit: idx for idx, bit in enumerate(self.qubits + self.clbits)}
+        bit_indices: Dict[Union[Qubit, Clbit], int] = {
+            bit: idx for idx, bit in enumerate(self.qubits + self.clbits)
+        }
 
         # If no bits, return 0
         if not bit_indices:

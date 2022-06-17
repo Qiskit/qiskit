@@ -101,7 +101,9 @@ def _is_amplitude_valid(symbolic_pulse: "SymbolicPulse") -> bool:
         return False
 
 
-def _get_expression_args(expr: sym.Expr, params: Dict[str, float]) -> List[float]:
+def _get_expression_args(
+    expr: sym.Expr, params: Dict[str, float]
+) -> List[Union[np.ndarray, float]]:
     """A helper function to get argument to evaluate expression.
 
     Args:

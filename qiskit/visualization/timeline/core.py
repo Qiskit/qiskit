@@ -51,7 +51,7 @@ the lookup table of the handler and the drawings by using this data key.
 import warnings
 from copy import deepcopy
 from functools import partial
-from typing import Tuple, Iterator, Dict
+from typing import Tuple, Iterator, Dict, Set, List
 from enum import Enum
 
 import numpy as np
@@ -81,8 +81,8 @@ class DrawerCanvas:
         self.assigned_coordinates = {}
 
         # visible controls
-        self.disable_bits = set()
-        self.disable_types = set()
+        self.disable_bits: Set[types.Bits] = set()
+        self.disable_types: Set[str] = set()
 
         # time
         self._time_range = (0, 0)
@@ -409,7 +409,7 @@ class DrawerCanvas:
             return np.array([self.assigned_coordinates.get(bit, np.nan) for bit in link.bits])
 
         # group overlapped links
-        overlapped_group = []
+        overlapped_group: List[List[str]] = []
         data_keys = list(links.keys())
         while len(data_keys) > 0:
             ref_key = data_keys.pop()
