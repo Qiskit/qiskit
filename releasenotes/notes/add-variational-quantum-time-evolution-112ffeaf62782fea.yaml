@@ -12,9 +12,7 @@ features:
     Both algorithms require solving ODE equations and linear equations which is handled by classes
     implemented in `qiskit.algorithms.evolvers.variational.solvers` module.
 
-    Examples::
-
-    .. code-block::
+    .. code-block:: python
 
       from qiskit import BasicAer
       from qiskit.circuit.library import EfficientSU2
@@ -49,4 +47,3 @@ features:
       evolution_problem = EvolutionProblem(observable, time, ansatz, param_value_dict=param_dict)
       var_qite = VarQITE(var_principle, backend=backend)
       evolution_result = var_qite.evolve(evolution_problem)
-

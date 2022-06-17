@@ -69,6 +69,7 @@ class VariationalPrinciple(ABC):
     ) -> np.ndarray:
         """
         Calculates a metric tensor according to the rules of this variational principle.
+
         Args:
             ansatz: Quantum state in the form of a parametrized quantum circuit.
             bind_params: List of parameters that are supposed to be bound.
@@ -77,6 +78,7 @@ class VariationalPrinciple(ABC):
             quantum_instance: Backend used to evaluate the quantum circuit outputs. If ``None``
                 provided, everything will be evaluated based on matrix multiplication (which is
                 slow).
+
         Returns:
             Metric tensor.
         """
@@ -102,13 +104,12 @@ class VariationalPrinciple(ABC):
     ) -> np.ndarray:
         """
         Calculates an evolution gradient according to the rules of this variational principle.
+
         Args:
-            hamiltonian:
-                Operator used for Variational Quantum Time Evolution.
-                The operator may be given either as a composed op consisting of a Hermitian
-                observable and a ``CircuitStateFn`` or a ``ListOp`` of a ``CircuitStateFn`` with a
-                ``ComboFn``.
-                The latter case enables the evaluation of a Quantum Natural Gradient.
+            hamiltonian: Operator used for Variational Quantum Time Evolution. The operator may be
+                given either as a composed op consisting of a Hermitian observable and a
+                ``CircuitStateFn`` or a ``ListOp`` of a ``CircuitStateFn`` with a ``ComboFn``. The
+                latter case enables the evaluation of a Quantum Natural Gradient.
             ansatz: Quantum state in the form of a parametrized quantum circuit.
             circuit_sampler: A circuit sampler.
             param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
@@ -118,6 +119,7 @@ class VariationalPrinciple(ABC):
             quantum_instance: Backend used to evaluate the quantum circuit outputs. If ``None``
                 provided, everything will be evaluated based on matrix multiplication (which is
                 slow).
+
         Returns:
             An evolution gradient.
         """

@@ -181,7 +181,6 @@ class VarQTE(ABC):
             initial_state: Quantum state to be evolved.
             error_calculator: Not yet supported. Calculator of errors for error-based ODE functions.
 
-
         Returns:
             Result of the evolution which is a quantum circuit with bound parameters as an
             evolved state.
@@ -232,6 +231,7 @@ class VarQTE(ABC):
 
         Returns:
             Dictionary that maps parameters of an initial state to some values.
+
         Raises:
             ValueError: If the dictionary with parameter values provided does not include all
                 parameters present in the initial state or if the list of values provided is not the

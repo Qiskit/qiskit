@@ -72,13 +72,12 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
     ) -> np.ndarray:
         """
         Calculates an evolution gradient according to the rules of this variational principle.
+
         Args:
-            hamiltonian:
-                Operator used for Variational Quantum Time Evolution.
-                The operator may be given either as a composed op consisting of a Hermitian
-                observable and a ``CircuitStateFn`` or a ``ListOp`` of a ``CircuitStateFn`` with a
-                ``ComboFn``.
-                The latter case enables the evaluation of a Quantum Natural Gradient.
+            hamiltonian: Operator used for Variational Quantum Time Evolution. The operator may be
+                given either as a composed op consisting of a Hermitian observable and a
+                ``CircuitStateFn`` or a ``ListOp`` of a ``CircuitStateFn`` with a ``ComboFn``. The
+                latter case enables the evaluation of a Quantum Natural Gradient.
             ansatz: Quantum state in the form of a parametrized quantum circuit.
             circuit_sampler: A circuit sampler.
             param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
@@ -88,6 +87,7 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
             quantum_instance: Backend used to evaluate the quantum circuit outputs. If ``None``
                 provided, everything will be evaluated based on matrix multiplication (which is
                 slow).
+
         Returns:
             An evolution gradient.
         """
@@ -123,15 +123,15 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
     ) -> OperatorBase:
         """
         Modifies a Hamiltonian according to the rules of this variational principle.
+
         Args:
-            hamiltonian:
-                Operator used for Variational Quantum Time Evolution.
-                The operator may be given either as a composed op consisting of a Hermitian
-                observable and a ``CircuitStateFn`` or a ``ListOp`` of a ``CircuitStateFn`` with a
-                ``ComboFn``.
-                The latter case enables the evaluation of a Quantum Natural Gradient.
+            hamiltonian: Operator used for Variational Quantum Time Evolution. The operator may be
+                given either as a composed op consisting of a Hermitian observable and a
+                ``CircuitStateFn`` or a ``ListOp`` of a ``CircuitStateFn`` with a ``ComboFn``. The
+                latter case enables the evaluation of a Quantum Natural Gradient.
             ansatz: Quantum state in the form of a parametrized quantum circuit.
             energy_param: Parameter for energy correction.
+
         Returns:
             An modified Hamiltonian composed with an ansatz.
         """

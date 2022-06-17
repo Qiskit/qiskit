@@ -52,8 +52,10 @@ class OdeFunctionFactory(ABC):
             error_calculator: Calculator of errors for error-based ODE functions.
             param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
+
         Returns:
             An ODE function.
+
         Raises:
             ValueError: If unsupported ODE function provided.
 
