@@ -412,7 +412,7 @@ class CouplingMap:
         This function calls the :func:`~retworkx.visualization.graphviz_draw` function from the
         ``retworkx`` package to draw the :class:`CouplingMap` object.
 
-        :returns:
+        Returns:
             PIL.Image: Drawn coupling map.
 
         """
