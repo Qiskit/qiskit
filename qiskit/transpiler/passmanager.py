@@ -12,6 +12,8 @@
 
 """Manager for a set of Passes and their scheduling during transpilation."""
 
+import io
+import re
 from typing import Union, List, Callable, Dict, Any
 
 import dill
@@ -355,6 +357,10 @@ class StagedPassManager(PassManager):
     to set that to the earliest stage in sequence that it covers.
     """
 
+    invalid_stage_regex = re.compile(
+        r"\s|\+|\-|\*|\/|\\|\%|\<|\>|\@|\!|\~|\^|\&|\:|\[|\]|\{|\}|\(|\)"
+    )
+
     def __init__(self, stages=None, **kwargs):
         """Initialize a new StagedPassManager object
 
@@ -370,6 +376,7 @@ class StagedPassManager(PassManager):
 
         Raises:
             AttributeError: If a stage in the input keyword arguments is not defined.
+            ValueError: If an invalid stage name is specified.
         """
         if stages is None:
             self.stages = [
@@ -381,6 +388,16 @@ class StagedPassManager(PassManager):
                 "scheduling",
             ]
         else:
+            invalid_stages = [
+                stage for stage in stages if self.invalid_stage_regex.search(stage) is not None
+            ]
+            if invalid_stages:
+                with io.StringIO() as msg:
+                    msg.write(f"The following stage names are not valid: {invalid_stages[0]}")
+                    for invalid_stage in invalid_stages[1:]:
+                        msg.write(f", {invalid_stage}")
+                    raise ValueError(msg.getvalue())
+
             self.stages = stages
         super().__init__()
         for stage in self.stages:

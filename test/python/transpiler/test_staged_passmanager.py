@@ -66,3 +66,29 @@ class TestStagedPassManager(QiskitTestCase):
             spm.append(Depth())
         with self.assertRaises(NotImplementedError):
             spm += PassManager()
+
+    def test_invalid_stages(self):
+        invalid_stages = [
+            "two words",
+            "two-words",
+            "two+words",
+            "two&words",
+            "[two_words]",
+            "<two_words>",
+            "{two_words}",
+            "(two_words)",
+            "two^words",
+            "two_words!",
+            "^two_words",
+            "@two_words",
+            "two~words",
+            r"two\words",
+            "two/words",
+        ]
+        all_stages = invalid_stages + ["two_words", "init"]
+
+        with self.assertRaises(ValueError) as err:
+            StagedPassManager(all_stages)
+        message = str(err.exception)
+        for stage in invalid_stages:
+            self.assertIn(stage, message)
