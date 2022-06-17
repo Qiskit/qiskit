@@ -64,6 +64,8 @@ load that QPY file with qiskit-terra 0.19.0 and a hypothetical qiskit-terra
 0.29.0. However, loading that QPY file with 0.18.0 is not supported and may not
 work.
 
+.. _qpy_format:
+
 **********
 QPY Format
 **********

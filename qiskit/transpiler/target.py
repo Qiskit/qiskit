@@ -17,6 +17,7 @@ from a backend
 
 from collections.abc import Mapping
 from collections import defaultdict
+import datetime
 import io
 import logging
 
@@ -30,6 +31,7 @@ from qiskit.transpiler.timing_constraints import TimingConstraints
 # import QubitProperties here to provide convenience alias for building a
 # full target
 from qiskit.providers.backend import QubitProperties  # pylint: disable=unused-import
+from qiskit.providers.models.backendproperties import BackendProperties
 
 logger = logging.getLogger(__name__)
 
@@ -782,3 +784,85 @@ class Target(Mapping):
                     prop_str_pieces.append(f"\t\t\tExtra properties:\n{extra_props_str}\n")
                 output.write("".join(prop_str_pieces))
         return output.getvalue()
+
+
+def target_to_backend_properties(target: Target):
+    """Convert a :class:`~.Target` object into a legacy :class:`~.BackendProperties`"""
+
+    properties_dict = {
+        "backend_name": "",
+        "backend_version": "",
+        "last_update_date": None,
+        "general": [],
+    }
+    gates = []
+    qubits = []
+    for gate, qargs_list in target.items():
+        if gate != "measure":
+            for qargs, props in qargs_list.items():
+                property_list = []
+                if props is not None:
+                    if props.duration is not None:
+                        property_list.append(
+                            {
+                                "date": datetime.datetime.utcnow(),
+                                "name": "gate_length",
+                                "unit": "s",
+                                "value": props.duration,
+                            }
+                        )
+                    if props.error is not None:
+                        property_list.append(
+                            {
+                                "date": datetime.datetime.utcnow(),
+                                "name": "gate_error",
+                                "unit": "",
+                                "value": props.error,
+                            }
+                        )
+                if property_list:
+                    gates.append(
+                        {
+                            "gate": gate,
+                            "qubits": list(qargs),
+                            "parameters": property_list,
+                            "name": gate + "_".join([str(x) for x in qargs]),
+                        }
+                    )
+        else:
+            qubit_props = {x: None for x in range(target.num_qubits)}
+            for qargs, props in qargs_list.items():
+                if qargs is None:
+                    continue
+                qubit = qargs[0]
+                props_list = []
+                if props.error is not None:
+                    props_list.append(
+                        {
+                            "date": datetime.datetime.utcnow(),
+                            "name": "readout_error",
+                            "unit": "",
+                            "value": props.error,
+                        }
+                    )
+                if props.duration is not None:
+                    props_list.append(
+                        {
+                            "date": datetime.datetime.utcnow(),
+                            "name": "readout_length",
+                            "unit": "s",
+                            "value": props.duration,
+                        }
+                    )
+                if not props_list:
+                    qubit_props = {}
+                    break
+                qubit_props[qubit] = props_list
+            if qubit_props and all(x is not None for x in qubit_props.values()):
+                qubits = [qubit_props[i] for i in range(target.num_qubits)]
+    if gates or qubits:
+        properties_dict["gates"] = gates
+        properties_dict["qubits"] = qubits
+        return BackendProperties.from_dict(properties_dict)
+    else:
+        return None
