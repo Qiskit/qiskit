@@ -156,7 +156,7 @@ def _read_element(file_obj, version, metadata_deserializer):
     )
     name = value.read_value(file_obj, version, {})
 
-    instance = object.__new__(type_keys.ScheduleElement.retrieve(type_key))
+    instance = object.__new__(type_keys.ScheduleInstruction.retrieve(type_key))
     instance._operands = tuple(operands)
     instance._name = name
     instance._hash = None
@@ -250,7 +250,7 @@ def _write_element(file_obj, element, metadata_serializer):
         common.write_type_key(file_obj, type_keys.Program.SCHEDULE_BLOCK)
         write_schedule_block(file_obj, element, metadata_serializer)
     else:
-        type_key = type_keys.ScheduleElement.assign(element)
+        type_key = type_keys.ScheduleInstruction.assign(element)
         common.write_type_key(file_obj, type_key)
         common.write_sequence(
             file_obj,

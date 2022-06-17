@@ -216,8 +216,8 @@ class ScheduleAlignment(TypeKeyBase):
         )
 
 
-class ScheduleElement(TypeKeyBase):
-    """Type key enum for schedule block element object."""
+class ScheduleInstruction(TypeKeyBase):
+    """Type key enum for schedule instruction object."""
 
     ACQUIRE = b"a"
     PLAY = b"p"
@@ -238,7 +238,7 @@ class ScheduleElement(TypeKeyBase):
     @classmethod
     def assign(cls, obj):
         if isinstance(obj, Acquire):
-            return (cls.ACQUIRE,)
+            return cls.ACQUIRE
         if isinstance(obj, Play):
             return cls.PLAY
         if isinstance(obj, Delay):
