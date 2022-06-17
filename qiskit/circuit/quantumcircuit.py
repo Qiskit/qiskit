@@ -261,11 +261,11 @@ class QuantumCircuit:
         # corresponding index in circuit.{qubits,clbits} and 1) a list of
         # Register-int pairs for each Register containing the Bit and its index
         # within that register.
-        self._qubit_indices: Dict[Qubit, Tuple[int, List]] = {}
-        self._clbit_indices: Dict[Clbit, Tuple[int, List]] = {}
+        self._qubit_indices: Dict[Qubit, BitLocations] = {}
+        self._clbit_indices: Dict[Clbit, BitLocations] = {}
 
         self._ancillas = []
-        self._calibrations: typing.DefaultDict = defaultdict(dict)
+        self._calibrations: typing.DefaultDict[str, Dict[Tuple, Any]] = defaultdict(dict)
         self.add_register(*regs)
 
         # Parameter table tracks instructions with variable parameters.

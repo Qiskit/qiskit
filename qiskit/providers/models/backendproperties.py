@@ -373,7 +373,9 @@ class BackendProperties:
         """
         return self.gate_property(gate, qubits, "gate_length")[0]  # Throw away datetime at index 1
 
-    def qubit_property(self, qubit: int, name: str = None) -> Tuple[Any, datetime.datetime]:
+    def qubit_property(
+        self, qubit: int, name: str = None
+    ) -> Union[Tuple[Any, datetime.datetime], Dict[str, Tuple]]:
         """
         Return the property of the given qubit.
 

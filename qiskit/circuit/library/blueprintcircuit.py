@@ -14,7 +14,8 @@
 
 from typing import Optional, List
 from abc import ABC, abstractmethod
-from qiskit.circuit import QuantumCircuit
+
+from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.parametertable import ParameterTable, ParameterView
 
 
