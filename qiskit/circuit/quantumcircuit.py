@@ -20,6 +20,7 @@ import functools
 import multiprocessing as mp
 import string
 import re
+import typing
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
     Union,
@@ -35,6 +36,7 @@ from typing import (
     Set,
     Iterable,
     Any,
+    DefaultDict,
 )
 import numpy as np
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
@@ -265,7 +267,7 @@ class QuantumCircuit:
         self._clbit_indices: Dict[Clbit, BitLocations] = {}
 
         self._ancillas = []
-        self._calibrations: typing.DefaultDict[str, Dict[Tuple, typing.Any]] = defaultdict(dict)
+        self._calibrations: DefaultDict[str, Dict[Tuple, Any]] = defaultdict(dict)
         self.add_register(*regs)
 
         # Parameter table tracks instructions with variable parameters.
@@ -1786,7 +1788,7 @@ class QuantumCircuit:
         fold: Optional[int] = None,
         # The type of ax is matplotlib.axes.Axes, but this is not a fixed dependency, so cannot be
         # safely forward-referenced.
-        ax: Optional[typing.Any] = None,
+        ax: Optional[Any] = None,
         initial_state: bool = False,
         cregbundle: bool = True,
     ):
