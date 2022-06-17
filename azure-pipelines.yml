@@ -45,6 +45,12 @@ parameters:
     type: string
     default: "3.10"
 
+  - name: "minimumRustVersion"
+    displayName: "Minimum supported version of Rust"
+    type: string
+    default: "1.56.1"
+
+
   # These two versions of Python can be chosen somewhat arbitrarily, but we get
   # slightly better coverage per PR if they're neither the maximum nor minimum
   # supported versions.
@@ -144,7 +150,7 @@ stages:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
             testQPY: false
             testImages: false
-            rustVersion: "1.56.1"
+            rustVersion: ${{ parameters.minimumRustVersion }}
 
     # The rest of the PR pipeline is to test the oldest and newest supported
     # versions of Python, along with the integration tests (via the tutorials).
