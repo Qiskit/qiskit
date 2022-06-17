@@ -398,7 +398,7 @@ def generate_circuits(version_str=None):
         ]
     if version_parts >= (0, 19, 2):
         output_circuits["control_flow.qpy"] = generate_control_flow_circuits()
-    if version_parts >= (0, 20, 2):
+    if version_parts >= (0, 21, 0):
         output_circuits["controlled_gates.qpy"] = generate_controlled_gates()
 
     return output_circuits
