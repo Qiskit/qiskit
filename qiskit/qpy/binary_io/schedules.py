@@ -15,6 +15,7 @@
 """Read and write schedule and schedule instructions."""
 import json
 import struct
+import zlib
 
 import numpy as np
 
@@ -53,9 +54,20 @@ def _read_waveform(file_obj, version):
     )
 
 
-def _read_symbolic_pulse(file_obj, version):
+def _loads_symbolic_expr(expr_bytes):
     from sympy import parse_expr
 
+    expr_txt = zlib.decompress(expr_bytes).decode(common.ENCODE)
+    expr = parse_expr(expr_txt)
+
+    if _optional.HAS_SYMENGINE:
+        from symengine import sympify
+
+        return sympify(expr)
+    return expr
+
+
+def _read_symbolic_pulse(file_obj, version):
     header = formats.SYMBOLIC_PULSE._make(
         struct.unpack(
             formats.SYMBOLIC_PULSE_PACK,
@@ -63,9 +75,9 @@ def _read_symbolic_pulse(file_obj, version):
         )
     )
     pulse_type = file_obj.read(header.type_size).decode(common.ENCODE)
-    envelope_bytes = file_obj.read(header.envelope_size)
-    constraints_bytes = file_obj.read(header.constraints_size)
-    valid_amp_conditions_bytes = file_obj.read(header.valid_amp_condition_size)
+    envelope = _loads_symbolic_expr(file_obj.read(header.envelope_size))
+    constraints = _loads_symbolic_expr(file_obj.read(header.constraints_size))
+    valid_amp_conditions = _loads_symbolic_expr(file_obj.read(header.valid_amp_condition_size))
     parameters = common.read_mapping(
         file_obj,
         deserializer=value.loads_value,
@@ -74,16 +86,6 @@ def _read_symbolic_pulse(file_obj, version):
     )
     duration = value.read_value(file_obj, version, {})
     name = value.read_value(file_obj, version, {})
-    envelope = parse_expr(envelope_bytes.decode(common.ENCODE))
-    constaints = parse_expr(constraints_bytes.decode(common.ENCODE))
-    valid_amp_conditions = parse_expr(valid_amp_conditions_bytes.decode(common.ENCODE))
-
-    if _optional.HAS_SYMENGINE:
-        from symengine import sympify
-
-        envelope = sympify(envelope)
-        constaints = sympify(constaints)
-        valid_amp_conditions = sympify(valid_amp_conditions)
 
     # TODO remove this and merge subclasses into a single kind of SymbolicPulse
     #  We need some refactoring of our codebase,
@@ -107,7 +109,7 @@ def _read_symbolic_pulse(file_obj, version):
     instance._pulse_type = pulse_type
     instance._params = parameters
     instance._envelope = envelope
-    instance._constraints = constaints
+    instance._constraints = constraints
     instance._valid_amp_conditions = valid_amp_conditions
 
     return instance
@@ -182,13 +184,18 @@ def _write_waveform(file_obj, data):
     value.write_value(file_obj, data.name)
 
 
-def _write_symbolic_pulse(file_obj, data):
+def _dumps_symbolic_expr(expr):
     from sympy import srepr, sympify
 
+    expr_bytes = srepr(sympify(expr)).encode(common.ENCODE)
+    return zlib.compress(expr_bytes)
+
+
+def _write_symbolic_pulse(file_obj, data):
     pulse_type_bytes = data.pulse_type.encode(common.ENCODE)
-    envelope_bytes = srepr(sympify(data.envelope)).encode(common.ENCODE)
-    constraints_bytes = srepr(sympify(data.constraints)).encode(common.ENCODE)
-    valid_amp_conditions_bytes = srepr(sympify(data.valid_amp_conditions)).encode(common.ENCODE)
+    envelope_bytes = _dumps_symbolic_expr(data.envelope)
+    constraints_bytes = _dumps_symbolic_expr(data.constraints)
+    valid_amp_conditions_bytes = _dumps_symbolic_expr(data.valid_amp_conditions)
 
     header_bytes = struct.pack(
         formats.SYMBOLIC_PULSE_PACK,

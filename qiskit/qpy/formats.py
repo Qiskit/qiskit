@@ -125,12 +125,12 @@ SCHEDULE_BLOCK_HEADER = namedtuple(
         "num_elements",
     ],
 )
-SCHEDULE_BLOCK_HEADER_PACK = "!HQQ"
+SCHEDULE_BLOCK_HEADER_PACK = "!IQI"
 SCHEDULE_BLOCK_HEADER_SIZE = struct.calcsize(SCHEDULE_BLOCK_HEADER_PACK)
 
 # WAVEFORM binary format
 WAVEFORM = namedtuple("WAVEFORM", ["epsilon", "data_size", "amp_limited"])
-WAVEFORM_PACK = "!fQ?"
+WAVEFORM_PACK = "!fI?"
 WAVEFORM_SIZE = struct.calcsize(WAVEFORM_PACK)
 
 # SYMBOLIC_PULSE
