@@ -121,7 +121,7 @@ def _read_registers(file_obj, num_registers):
 
 
 def _read_instruction_parameter(file_obj, version, vectors):
-    type_key, bin_data = common.read_instruction_param(file_obj)
+    type_key, bin_data = common.read_generic_typed_data(file_obj)
 
     if type_key == common.ProgramTypeKey.CIRCUIT:
         param = common.data_from_binary(bin_data, read_circuit, version=version)
@@ -375,7 +375,7 @@ def _write_instruction_parameter(file_obj, param):
         data = struct.pack("<d", param)
     else:
         type_key, data = value.dumps_value(param)
-    common.write_instruction_param(file_obj, type_key, data)
+    common.write_generic_typed_data(file_obj, type_key, data)
 
 
 # pylint: disable=too-many-boolean-expressions
@@ -570,7 +570,7 @@ def write_circuit(file_obj, circuit, metadata_serializer=None):
         circuit (QuantumCircuit): The circuit data to write.
         metadata_serializer (JSONEncoder): An optional JSONEncoder class that
             will be passed the :attr:`.QuantumCircuit.metadata` dictionary for
-            each circuit in ``circuits`` and will be used as the ``cls`` kwarg
+            ``circuit`` and will be used as the ``cls`` kwarg
             on the ``json.dump()`` call to JSON serialize that dictionary.
     """
     metadata_raw = json.dumps(
@@ -631,8 +631,8 @@ def read_circuit(file_obj, version, metadata_deserializer=None):
         metadata_deserializer (JSONDecoder): An optional JSONDecoder class
             that will be used for the ``cls`` kwarg on the internal
             ``json.load`` call used to deserialize the JSON payload used for
-            the :attr:`.QuantumCircuit.metadata` attribute for any circuits
-            in the QPY file. If this is not specified the circuit metadata will
+            the :attr:`.QuantumCircuit.metadata` attribute for a circuit
+            in the file-like object. If this is not specified the circuit metadata will
             be parsed as JSON with the stdlib ``json.load()`` function using
             the default ``JSONDecoder`` class.
 

@@ -26,7 +26,7 @@ from qiskit.utils import optionals as _optional
 
 
 def _write_parameter(file_obj, obj):
-    name_bytes = obj._name.encode("utf8")
+    name_bytes = obj._name.encode(ENCODE)
     file_obj.write(struct.pack(formats.PARAMETER_PACK, len(name_bytes), obj._uuid.bytes))
     file_obj.write(name_bytes)
 
@@ -243,6 +243,17 @@ def dumps_value(obj):
     return type_key, binary_data
 
 
+def write_value(file_obj, obj):
+    """Write a value to the file like object.
+
+    Args:
+        file_obj (File): A file like object to write data.
+        obj (any): Value to write.
+    """
+    type_key, data = dumps_value(obj)
+    common.write_generic_typed_data(file_obj, type_key, data)
+
+
 def loads_value(type_key, binary_data, version, vectors):
     """Deserialize input binary data to value object.
 
@@ -258,33 +269,49 @@ def loads_value(type_key, binary_data, version, vectors):
     Raises:
         QpyError: Serializer for given format is not ready.
     """
+    # pylint: disable=too-many-return-statements
+
     if isinstance(type_key, bytes):
         type_key = TypeKey(type_key)
 
     if type_key == TypeKey.INTEGER:
-        obj = struct.unpack("!q", binary_data)[0]
-    elif type_key == TypeKey.FLOAT:
-        obj = struct.unpack("!d", binary_data)[0]
-    elif type_key == TypeKey.COMPLEX:
-        obj = complex(*struct.unpack(formats.COMPLEX_PACK, binary_data))
-    elif type_key == TypeKey.NUMPY_OBJ:
-        obj = common.data_from_binary(binary_data, np.load)
-    elif type_key == TypeKey.STRING:
-        obj = binary_data.decode(ENCODE)
-    elif type_key == TypeKey.NULL:
-        obj = None
-    elif type_key == TypeKey.PARAMETER_VECTOR:
-        obj = common.data_from_binary(binary_data, _read_parameter_vec, vectors=vectors)
-    elif type_key == TypeKey.PARAMETER:
-        obj = common.data_from_binary(binary_data, _read_parameter)
-    elif type_key == TypeKey.PARAMETER_EXPRESSION:
+        return struct.unpack("!q", binary_data)[0]
+    if type_key == TypeKey.FLOAT:
+        return struct.unpack("!d", binary_data)[0]
+    if type_key == TypeKey.COMPLEX:
+        return complex(*struct.unpack(formats.COMPLEX_PACK, binary_data))
+    if type_key == TypeKey.NUMPY_OBJ:
+        return common.data_from_binary(binary_data, np.load)
+    if type_key == TypeKey.STRING:
+        return binary_data.decode(ENCODE)
+    if type_key == TypeKey.NULL:
+        return None
+    if type_key == TypeKey.PARAMETER_VECTOR:
+        return common.data_from_binary(binary_data, _read_parameter_vec, vectors=vectors)
+    if type_key == TypeKey.PARAMETER:
+        return common.data_from_binary(binary_data, _read_parameter)
+    if type_key == TypeKey.PARAMETER_EXPRESSION:
         if version < 3:
-            obj = common.data_from_binary(binary_data, _read_parameter_expression)
+            return common.data_from_binary(binary_data, _read_parameter_expression)
         else:
-            obj = common.data_from_binary(
+            return common.data_from_binary(
                 binary_data, _read_parameter_expression_v3, vectors=vectors
             )
-    else:
-        raise exceptions.QpyError(f"Serialization for {type_key} is not implemented in value I/O.")
 
-    return obj
+    raise exceptions.QpyError(f"Serialization for {type_key} is not implemented in value I/O.")
+
+
+def read_value(file_obj, version, vectors):
+    """Read a value from the file like object.
+
+    Args:
+        file_obj (File): A file like object to write data.
+        version (int): QPY version.
+        vectors (dict): ParameterVector in current scope.
+
+    Returns:
+        any: Deserialized value object.
+    """
+    type_key, data = common.read_generic_typed_data(file_obj)
+
+    return loads_value(type_key, data, version, vectors)

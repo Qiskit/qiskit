@@ -1,0 +1,350 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2021.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+# pylint: disable=invalid-name
+
+"""Read and write schedule and schedule instructions."""
+import json
+import struct
+
+import numpy as np
+
+from qiskit.exceptions import QiskitError
+from qiskit.pulse import library
+from qiskit.pulse.schedule import ScheduleBlock
+from qiskit.qpy import formats, common
+from qiskit.qpy.binary_io import value
+from qiskit.utils import optionals as _optional
+
+
+def _read_channel(file_obj, version):
+    type_key = common.read_type_key(file_obj)
+    index = value.read_value(file_obj, version, {})
+
+    channel_cls = common.ScheduleChannelTypeKey.retrieve(type_key)
+
+    return channel_cls(index)
+
+
+def _read_waveform(file_obj, version):
+    header = formats.WAVEFORM._make(
+        struct.unpack(
+            formats.WAVEFORM_PACK,
+            file_obj.read(formats.WAVEFORM_PACK_SIZE),
+        )
+    )
+    samples_raw = file_obj.read(header.data_size)
+    name = value.read_value(file_obj, version, {})
+
+    return library.Waveform(
+        samples=common.data_from_binary(samples_raw, np.load),
+        name=name,
+        epsilon=header.epsilon,
+        limit_amplitude=header.amp_limited,
+    )
+
+
+def _read_symbolic_pulse(file_obj, version):
+    from sympy import parse_expr
+
+    header = formats.SYMBOLIC_PULSE._make(
+        struct.unpack(
+            formats.SYMBOLIC_PULSE_PACK,
+            file_obj.read(formats.SYMBOLIC_PULSE_PACK_SIZE),
+        )
+    )
+    pulse_type = file_obj.read(header.type_size).decode(common.ENCODE)
+    envelope_bytes = file_obj.read(header.envelope_size)
+    constraints_bytes = file_obj.read(header.constraints_size)
+    valid_amp_conditions_bytes = file_obj.read(header.valid_amp_condition_size)
+    pkeys = common.read_sequence(
+        file_obj,
+        deserializer=value.read_value,
+        version=version,
+        vectors={},
+    )
+    pvals = common.read_sequence(
+        file_obj,
+        deserializer=value.read_value,
+        version=version,
+        vectors={},
+    )
+    name = value.read_value(file_obj, version, {})
+
+    parameters = dict(zip(pkeys, pvals))
+    duration = parameters.pop("duration")
+    envelope = parse_expr(envelope_bytes.decode(common.ENCODE))
+    constaints = parse_expr(constraints_bytes.decode(common.ENCODE))
+    valid_amp_conditions = parse_expr(valid_amp_conditions_bytes.decode(common.ENCODE))
+
+    if _optional.HAS_SYMENGINE:
+        from symengine import sympify
+
+        envelope = sympify(envelope)
+        constaints = sympify(constaints)
+        valid_amp_conditions = sympify(valid_amp_conditions)
+
+    # TODO remove this and merge subclasses into a single kind of SymbolicPulse
+    #  We need some refactoring of our codebase,
+    #  mainly removal of isinstance check and name access with self.__class__.__name__.
+    if pulse_type == "Gaussian":
+        pulse_cls = library.Gaussian
+    elif pulse_type == "GaussianSquare":
+        pulse_cls = library.GaussianSquare
+    elif pulse_type == "Drag":
+        pulse_cls = library.Drag
+    elif pulse_type == "Constant":
+        pulse_cls = library.Constant
+    else:
+        pulse_cls = library.SymbolicPulse
+
+    # Skip calling constructor to absorb signature mismatch in subclass.
+    instance = object.__new__(pulse_cls)
+    instance.duration = duration
+    instance.name = name
+    instance._limit_amplitude = header.amp_limited
+    instance._pulse_type = pulse_type
+    instance._params = parameters
+    instance._envelope = envelope
+    instance._constraints = constaints
+    instance._valid_amp_conditions = valid_amp_conditions
+
+    return instance
+
+
+def _read_alignment_context(file_obj, version):
+    type_key = common.read_type_key(file_obj)
+
+    context_params = common.read_sequence(
+        file_obj,
+        deserializer=value.read_value,
+        version=version,
+        vectors={},
+    )
+    context_cls = common.ScheduleAlignmentTypeKey.retrieve(type_key)
+
+    instance = object.__new__(context_cls)
+    instance._context_params = tuple(context_params)
+
+    return instance
+
+
+def _read_operand(file_obj, version):
+    type_key = common.read_type_key(file_obj)
+
+    if type_key == common.ScheduleOperandTypeKey.WAVEFORM:
+        return _read_waveform(file_obj, version)
+    if type_key == common.ScheduleOperandTypeKey.SYMBOLIC_PULSE:
+        return _read_symbolic_pulse(file_obj, version)
+    if type_key == common.ScheduleOperandTypeKey.CHANNEL:
+        return _read_channel(file_obj, version)
+
+    return value.read_value(file_obj, version, {})
+
+
+def _read_element(file_obj, version, metadata_deserializer):
+    type_key = common.read_type_key(file_obj)
+
+    if type_key == common.ProgramTypeKey.SCHEDULE_BLOCK:
+        return read_schedule_block(file_obj, version, metadata_deserializer)
+
+    operands = common.read_sequence(
+        file_obj,
+        deserializer=_read_operand,
+        version=version,
+    )
+    name = value.read_value(file_obj, version, {})
+
+    instance = object.__new__(common.ScheduleElementTypeKey.retrieve(type_key))
+    instance._operands = tuple(operands)
+    instance._name = name
+    instance._hash = None
+
+    return instance
+
+
+def _write_channel(file_obj, data):
+    type_key = common.ScheduleChannelTypeKey.assign(data)
+    common.write_type_key(file_obj, type_key)
+    value.write_value(file_obj, data.index)
+
+
+def _write_waveform(file_obj, data):
+    samples_bytes = common.data_to_binary(data, np.save)
+
+    header = struct.pack(
+        formats.WAVEFORM_PACK,
+        data.epsilon,
+        len(samples_bytes),
+        data.limit_amplitude,
+    )
+    file_obj.write(header)
+    file_obj.write(samples_bytes)
+    value.write_value(file_obj, data.name)
+
+
+def _write_symbolic_pulse(file_obj, data):
+    from sympy import srepr, sympify
+
+    pulse_type_bytes = data.pulse_type.encode(common.ENCODE)
+    envelope_bytes = srepr(sympify(data.envelope)).encode(common.ENCODE)
+    constraints_bytes = srepr(sympify(data.constraints)).encode(common.ENCODE)
+    valid_amp_conditions_bytes = srepr(sympify(data.valid_amp_conditions)).encode(common.ENCODE)
+    pkeys, pvals = zip(*data.parameters.items())
+
+    header_bytes = struct.pack(
+        formats.SYMBOLIC_PULSE_PACK,
+        len(pulse_type_bytes),
+        len(envelope_bytes),
+        len(constraints_bytes),
+        len(valid_amp_conditions_bytes),
+        data.limit_amplitude,
+    )
+    file_obj.write(header_bytes)
+    file_obj.write(pulse_type_bytes)
+    file_obj.write(envelope_bytes)
+    file_obj.write(constraints_bytes)
+    file_obj.write(valid_amp_conditions_bytes)
+    common.write_sequence(
+        file_obj,
+        sequence=pkeys,
+        serializer=value.write_value,
+    )
+    common.write_sequence(
+        file_obj,
+        sequence=pvals,
+        serializer=value.write_value,
+    )
+    value.write_value(file_obj, data.name)
+
+
+def _write_alignment_context(file_obj, context):
+    type_key = common.ScheduleAlignmentTypeKey.assign(context)
+    common.write_type_key(file_obj, type_key)
+    common.write_sequence(
+        file_obj,
+        sequence=context._context_params,
+        serializer=value.write_value,
+    )
+
+
+def _write_operand(file_obj, operand):
+    type_key = common.ScheduleOperandTypeKey.assign(operand)
+
+    if type_key == common.ScheduleOperandTypeKey.WAVEFORM:
+        common.write_type_key(file_obj, type_key)
+        _write_waveform(file_obj, operand)
+    elif type_key == common.ScheduleOperandTypeKey.SYMBOLIC_PULSE:
+        common.write_type_key(file_obj, type_key)
+        _write_symbolic_pulse(file_obj, operand)
+    elif type_key == common.ScheduleOperandTypeKey.CHANNEL:
+        common.write_type_key(file_obj, type_key)
+        _write_channel(file_obj, operand)
+    else:
+        value.write_value(file_obj, operand)
+
+
+def _write_element(file_obj, element, metadata_serializer):
+    if isinstance(element, ScheduleBlock):
+        common.write_type_key(file_obj, common.ProgramTypeKey.SCHEDULE_BLOCK)
+        write_schedule_block(file_obj, element, metadata_serializer)
+    else:
+        type_key = common.ScheduleElementTypeKey.assign(element)
+        common.write_type_key(file_obj, type_key)
+        common.write_sequence(
+            file_obj,
+            sequence=element.operands,
+            serializer=_write_operand,
+        )
+        value.write_value(file_obj, element.name)
+
+
+def read_schedule_block(file_obj, version, metadata_deserializer=None):
+    """Read a single ScheduleBlock from the file like object.
+
+    Args:
+        file_obj (File): A file like object that contains the QPY binary data.
+        version (int): QPY version.
+        metadata_deserializer (JSONDecoder): An optional JSONDecoder class
+            that will be used for the ``cls`` kwarg on the internal
+            ``json.load`` call used to deserialize the JSON payload used for
+            the :attr:`.ScheduleBlock.metadata` attribute for a schdule block
+            in the file-like object. If this is not specified the circuit metadata will
+            be parsed as JSON with the stdlib ``json.load()`` function using
+            the default ``JSONDecoder`` class.
+
+    Returns:
+        ScheduleBlock: The schedule block object from the file.
+
+    Raises:
+        TypeError: If any of the instructions is invalid data format.
+        QiskitError: QPY version is earlier than block support.
+    """
+    if version < 6:
+        QiskitError(f"QPY version {version} does not support ScheduleBlock.")
+
+    data = formats.SCHEDULE_BLOCK_HEADER._make(
+        struct.unpack(
+            formats.SCHEDULE_BLOCK_HEADER_PACK,
+            file_obj.read(formats.SCHEDULE_BLOCK_HEADER_PACK_SIZE),
+        )
+    )
+    name = file_obj.read(data.name_size).decode(common.ENCODE)
+    metadata_raw = file_obj.read(data.metadata_size)
+    metadata = json.loads(metadata_raw, cls=metadata_deserializer)
+    context = _read_alignment_context(file_obj, version)
+
+    block = ScheduleBlock(
+        name=name,
+        metadata=metadata,
+        alignment_context=context,
+    )
+    for _ in range(data.num_elements):
+        block_elm = _read_element(file_obj, version, metadata_deserializer)
+        block.append(block_elm, inplace=True)
+
+    return block
+
+
+def write_schedule_block(file_obj, block, metadata_serializer=None):
+    """Write a single ScheduleBlock object in the file like object.
+
+    Args:
+        file_obj (File): The file like object to write the circuit data in.
+        block (ScheduleBlock): A schedule block data to write.
+        metadata_serializer (JSONEncoder): An optional JSONEncoder class that
+            will be passed the :attr:`.ScheduleBlock.metadata` dictionary for
+            ``block`` and will be used as the ``cls`` kwarg
+            on the ``json.dump()`` call to JSON serialize that dictionary.
+
+    Raises:
+        TypeError: If any of the instructions is invalid data format.
+    """
+    metadata = json.dumps(block.metadata, separators=(",", ":"), cls=metadata_serializer).encode(
+        common.ENCODE
+    )
+    block_name = block.name.encode(common.ENCODE)
+
+    # Write schedule block header
+    header_raw = formats.SCHEDULE_BLOCK_HEADER(
+        name_size=len(block_name),
+        metadata_size=len(metadata),
+        num_elements=len(block),
+    )
+    header = struct.pack(formats.SCHEDULE_BLOCK_HEADER_PACK, *header_raw)
+    file_obj.write(header)
+    file_obj.write(block_name)
+    file_obj.write(metadata)
+
+    _write_alignment_context(file_obj, block.alignment_context)
+    for block_elm in block.blocks:
+        _write_element(file_obj, block_elm, metadata_serializer)

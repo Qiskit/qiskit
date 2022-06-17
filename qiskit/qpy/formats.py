@@ -21,7 +21,7 @@ from collections import namedtuple
 # FILE_HEADER
 FILE_HEADER = namedtuple(
     "FILE_HEADER",
-    ["preface", "qpy_version", "major_version", "minor_version", "patch_version", "num_circuits"],
+    ["preface", "qpy_version", "major_version", "minor_version", "patch_version", "num_programs"],
 )
 FILE_HEADER_PACK = "!6sBBBBQ"
 FILE_HEADER_SIZE = struct.calcsize(FILE_HEADER_PACK)
@@ -116,10 +116,41 @@ CUSTOM_CIRCUIT_INST_DEF = namedtuple(
 CUSTOM_CIRCUIT_INST_DEF_PACK = "!H1cII?Q"
 CUSTOM_CIRCUIT_INST_DEF_SIZE = struct.calcsize(CUSTOM_CIRCUIT_INST_DEF_PACK)
 
+# SCHEDULE_BLOCK binary format
+SCHEDULE_BLOCK_HEADER = namedtuple(
+    "SCHEDULE_BLOCK",
+    [
+        "name_size",
+        "metadata_size",
+        "num_elements",
+    ],
+)
+SCHEDULE_BLOCK_HEADER_PACK = "!HQQ"
+SCHEDULE_BLOCK_HEADER_PACK_SIZE = struct.calcsize(SCHEDULE_BLOCK_HEADER_PACK)
+
+# WAVEFORM binary format
+WAVEFORM = namedtuple("WAVEFORM", ["epsilon", "data_size", "amp_limited"])
+WAVEFORM_PACK = "!fQ?"
+WAVEFORM_PACK_SIZE = struct.calcsize(WAVEFORM_PACK)
+
+# SYMBOLIC_PULSE
+SYMBOLIC_PULSE = namedtuple(
+    "SYMBOLIC_PULSE",
+    [
+        "type_size",
+        "envelope_size",
+        "constraints_size",
+        "valid_amp_condition_size",
+        "amp_limited",
+    ],
+)
+SYMBOLIC_PULSE_PACK = "!HHHH?"
+SYMBOLIC_PULSE_PACK_SIZE = struct.calcsize(SYMBOLIC_PULSE_PACK)
+
 # INSTRUCTION_PARAM
-INSTRUCTION_PARAM = namedtuple("TYPED_OBJECT", ["type", "size"])
-INSTRUCTION_PARAM_PACK = "!1cQ"
-INSTRUCTION_PARAM_SIZE = struct.calcsize(INSTRUCTION_PARAM_PACK)
+TYPED_DATA = namedtuple("TYPED_DATA", ["type", "size"])
+TYPED_DATA_PACK = "!1cQ"
+TYPED_DATA_SIZE = struct.calcsize(TYPED_DATA_PACK)
 
 # PARAMETER
 PARAMETER = namedtuple("PARAMETER", ["name_size", "uuid"])
