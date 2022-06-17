@@ -21,7 +21,7 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import library
 from qiskit.pulse.schedule import ScheduleBlock
-from qiskit.qpy import formats, common
+from qiskit.qpy import formats, common, type_keys
 from qiskit.qpy.binary_io import value
 from qiskit.utils import optionals as _optional
 
@@ -30,7 +30,7 @@ def _read_channel(file_obj, version):
     type_key = common.read_type_key(file_obj)
     index = value.read_value(file_obj, version, {})
 
-    channel_cls = common.ScheduleChannelTypeKey.retrieve(type_key)
+    channel_cls = type_keys.ScheduleChannel.retrieve(type_key)
 
     return channel_cls(index)
 
@@ -130,7 +130,7 @@ def _read_alignment_context(file_obj, version):
         version=version,
         vectors={},
     )
-    context_cls = common.ScheduleAlignmentTypeKey.retrieve(type_key)
+    context_cls = type_keys.ScheduleAlignment.retrieve(type_key)
 
     instance = object.__new__(context_cls)
     instance._context_params = tuple(context_params)
@@ -141,11 +141,11 @@ def _read_alignment_context(file_obj, version):
 def _read_operand(file_obj, version):
     type_key = common.read_type_key(file_obj)
 
-    if type_key == common.ScheduleOperandTypeKey.WAVEFORM:
+    if type_key == type_keys.ScheduleOperand.WAVEFORM:
         return _read_waveform(file_obj, version)
-    if type_key == common.ScheduleOperandTypeKey.SYMBOLIC_PULSE:
+    if type_key == type_keys.ScheduleOperand.SYMBOLIC_PULSE:
         return _read_symbolic_pulse(file_obj, version)
-    if type_key == common.ScheduleOperandTypeKey.CHANNEL:
+    if type_key == type_keys.ScheduleOperand.CHANNEL:
         return _read_channel(file_obj, version)
 
     return value.read_value(file_obj, version, {})
@@ -154,7 +154,7 @@ def _read_operand(file_obj, version):
 def _read_element(file_obj, version, metadata_deserializer):
     type_key = common.read_type_key(file_obj)
 
-    if type_key == common.ProgramTypeKey.SCHEDULE_BLOCK:
+    if type_key == type_keys.Program.SCHEDULE_BLOCK:
         return read_schedule_block(file_obj, version, metadata_deserializer)
 
     operands = common.read_sequence(
@@ -164,7 +164,7 @@ def _read_element(file_obj, version, metadata_deserializer):
     )
     name = value.read_value(file_obj, version, {})
 
-    instance = object.__new__(common.ScheduleElementTypeKey.retrieve(type_key))
+    instance = object.__new__(type_keys.ScheduleElement.retrieve(type_key))
     instance._operands = tuple(operands)
     instance._name = name
     instance._hash = None
@@ -173,7 +173,7 @@ def _read_element(file_obj, version, metadata_deserializer):
 
 
 def _write_channel(file_obj, data):
-    type_key = common.ScheduleChannelTypeKey.assign(data)
+    type_key = type_keys.ScheduleChannel.assign(data)
     common.write_type_key(file_obj, type_key)
     value.write_value(file_obj, data.index)
 
@@ -228,7 +228,7 @@ def _write_symbolic_pulse(file_obj, data):
 
 
 def _write_alignment_context(file_obj, context):
-    type_key = common.ScheduleAlignmentTypeKey.assign(context)
+    type_key = type_keys.ScheduleAlignment.assign(context)
     common.write_type_key(file_obj, type_key)
     common.write_sequence(
         file_obj,
@@ -238,15 +238,15 @@ def _write_alignment_context(file_obj, context):
 
 
 def _write_operand(file_obj, operand):
-    type_key = common.ScheduleOperandTypeKey.assign(operand)
+    type_key = type_keys.ScheduleOperand.assign(operand)
 
-    if type_key == common.ScheduleOperandTypeKey.WAVEFORM:
+    if type_key == type_keys.ScheduleOperand.WAVEFORM:
         common.write_type_key(file_obj, type_key)
         _write_waveform(file_obj, operand)
-    elif type_key == common.ScheduleOperandTypeKey.SYMBOLIC_PULSE:
+    elif type_key == type_keys.ScheduleOperand.SYMBOLIC_PULSE:
         common.write_type_key(file_obj, type_key)
         _write_symbolic_pulse(file_obj, operand)
-    elif type_key == common.ScheduleOperandTypeKey.CHANNEL:
+    elif type_key == type_keys.ScheduleOperand.CHANNEL:
         common.write_type_key(file_obj, type_key)
         _write_channel(file_obj, operand)
     else:
@@ -255,10 +255,10 @@ def _write_operand(file_obj, operand):
 
 def _write_element(file_obj, element, metadata_serializer):
     if isinstance(element, ScheduleBlock):
-        common.write_type_key(file_obj, common.ProgramTypeKey.SCHEDULE_BLOCK)
+        common.write_type_key(file_obj, type_keys.Program.SCHEDULE_BLOCK)
         write_schedule_block(file_obj, element, metadata_serializer)
     else:
-        type_key = common.ScheduleElementTypeKey.assign(element)
+        type_key = type_keys.ScheduleElement.assign(element)
         common.write_type_key(file_obj, type_key)
         common.write_sequence(
             file_obj,

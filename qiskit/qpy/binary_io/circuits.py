@@ -31,7 +31,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.extensions import quantum_initializer
-from qiskit.qpy import common, formats, exceptions
+from qiskit.qpy import common, formats, exceptions, type_keys
 from qiskit.qpy.binary_io import value
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.synthesis import evolution as evo_synth
@@ -123,12 +123,12 @@ def _read_registers(file_obj, num_registers):
 def _read_instruction_parameter(file_obj, version, vectors):
     type_key, bin_data = common.read_generic_typed_data(file_obj)
 
-    if type_key == common.ProgramTypeKey.CIRCUIT:
+    if type_key == type_keys.Program.CIRCUIT:
         param = common.data_from_binary(bin_data, read_circuit, version=version)
-    elif type_key == common.ContainerTypeKey.RANGE:
+    elif type_key == type_keys.Container.RANGE:
         data = formats.RANGE._make(struct.unpack(formats.RANGE_PACK, bin_data))
         param = range(data.start, data.stop, data.step)
-    elif type_key == common.ContainerTypeKey.TUPLE:
+    elif type_key == type_keys.Container.TUPLE:
         param = tuple(
             common.sequence_from_binary(
                 bin_data,
@@ -137,10 +137,10 @@ def _read_instruction_parameter(file_obj, version, vectors):
                 vectors=vectors,
             )
         )
-    elif type_key == common.ValueTypeKey.INTEGER:
+    elif type_key == type_keys.Value.INTEGER:
         # TODO This uses little endian. Should be fixed in the next QPY version.
         param = struct.unpack("<q", bin_data)[0]
-    elif type_key == common.ValueTypeKey.FLOAT:
+    elif type_key == type_keys.Value.FLOAT:
         # TODO This uses little endian. Should be fixed in the next QPY version.
         param = struct.unpack("<d", bin_data)[0]
     else:
@@ -259,20 +259,20 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions, version
 
 def _parse_custom_instruction(custom_instructions, gate_name, params):
     type_str, num_qubits, num_clbits, definition = custom_instructions[gate_name]
-    type_key = common.CircuitInstructionTypeKey(type_str)
+    type_key = type_keys.CircuitInstruction(type_str)
 
-    if type_key == common.CircuitInstructionTypeKey.INSTRUCTION:
+    if type_key == type_keys.CircuitInstruction.INSTRUCTION:
         inst_obj = Instruction(gate_name, num_qubits, num_clbits, params)
         if definition is not None:
             inst_obj.definition = definition
         return inst_obj
 
-    if type_key == common.CircuitInstructionTypeKey.GATE:
+    if type_key == type_keys.CircuitInstruction.GATE:
         inst_obj = Gate(gate_name, num_qubits, params)
         inst_obj.definition = definition
         return inst_obj
 
-    if type_key == common.CircuitInstructionTypeKey.PAULI_EVOL_GATE:
+    if type_key == type_keys.CircuitInstruction.PAULI_EVOL_GATE:
         return definition
 
     raise ValueError("Invalid custom instruction type '%s'" % type_str)
@@ -306,7 +306,7 @@ def _read_pauli_evolution_gate(file_obj, version, vectors):
         pauli_op = operator_list
 
     time = value.loads_value(
-        common.ValueTypeKey(pauli_evolution_def.time_type),
+        pauli_evolution_def.time_type,
         file_obj.read(pauli_evolution_def.time_size),
         version=version,
         vectors=vectors,
@@ -357,21 +357,21 @@ def _read_custom_instructions(file_obj, version, vectors):
 
 def _write_instruction_parameter(file_obj, param):
     if isinstance(param, QuantumCircuit):
-        type_key = common.ProgramTypeKey.CIRCUIT
+        type_key = type_keys.Program.CIRCUIT
         data = common.data_to_binary(param, write_circuit)
     elif isinstance(param, range):
-        type_key = common.ContainerTypeKey.RANGE
+        type_key = type_keys.Container.RANGE
         data = struct.pack(formats.RANGE_PACK, param.start, param.stop, param.step)
     elif isinstance(param, tuple):
-        type_key = common.ContainerTypeKey.TUPLE
+        type_key = type_keys.Container.TUPLE
         data = common.sequence_to_binary(param, _write_instruction_parameter)
     elif isinstance(param, int):
         # TODO This uses little endian. This should be fixed in next QPY version.
-        type_key = common.ValueTypeKey.INTEGER
+        type_key = type_keys.Value.INTEGER
         data = struct.pack("<q", param)
     elif isinstance(param, float):
         # TODO This uses little endian. This should be fixed in next QPY version.
-        type_key = common.ValueTypeKey.FLOAT
+        type_key = type_keys.Value.FLOAT
         data = struct.pack("<d", param)
     else:
         type_key, data = value.dumps_value(param)
@@ -492,14 +492,14 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate):
 
 
 def _write_custom_instruction(file_obj, name, instruction):
-    type_key = common.CircuitInstructionTypeKey.assign(instruction)
+    type_key = type_keys.CircuitInstruction.assign(instruction)
     has_definition = False
     size = 0
     data = None
     num_qubits = instruction.num_qubits
     num_clbits = instruction.num_clbits
 
-    if type_key == common.CircuitInstructionTypeKey.PAULI_EVOL_GATE:
+    if type_key == type_keys.CircuitInstruction.PAULI_EVOL_GATE:
         has_definition = True
         data = common.data_to_binary(instruction, _write_pauli_evolution_gate)
         size = len(data)

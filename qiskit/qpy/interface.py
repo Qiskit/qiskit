@@ -20,7 +20,7 @@ import warnings
 from qiskit.circuit import QuantumCircuit
 from qiskit.pulse import ScheduleBlock
 from qiskit.exceptions import QiskitError
-from qiskit.qpy import formats, common, binary_io
+from qiskit.qpy import formats, common, binary_io, type_keys
 from qiskit.qpy.exceptions import QpyError
 from qiskit.version import __version__
 
@@ -109,11 +109,11 @@ def dump(
         )
     program_type = next(iter(program_types))
 
-    if program_type is QuantumCircuit:
-        type_key = common.ProgramTypeKey.CIRCUIT
+    if issubclass(program_type, QuantumCircuit):
+        type_key = type_keys.Program.CIRCUIT
         writer = binary_io.write_circuit
     elif program_type is ScheduleBlock:
-        type_key = common.ProgramTypeKey.SCHEDULE_BLOCK
+        type_key = type_keys.Program.SCHEDULE_BLOCK
         writer = binary_io.write_schedule_block
     else:
         raise TypeError(f"'{program_type}' is not supported data type.")
@@ -219,13 +219,13 @@ def load(
         )
 
     if data.qpy_version < 6:
-        type_key = common.ProgramTypeKey.CIRCUIT
+        type_key = type_keys.Program.CIRCUIT
     else:
         type_key = common.read_type_key(file_obj)
 
-    if type_key == common.ProgramTypeKey.CIRCUIT:
+    if type_key == type_keys.Program.CIRCUIT:
         loader = binary_io.read_circuit
-    elif type_key == common.ProgramTypeKey.SCHEDULE_BLOCK:
+    elif type_key == type_keys.Program.SCHEDULE_BLOCK:
         loader = binary_io.read_schedule_block
     else:
         raise TypeError(f"Invalid payload format data kind '{type_key}'.")
