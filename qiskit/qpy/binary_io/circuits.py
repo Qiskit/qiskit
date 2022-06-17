@@ -27,6 +27,7 @@ from qiskit import extensions
 from qiskit.circuit import library, controlflow
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
@@ -150,12 +151,20 @@ def _read_instruction_parameter(file_obj, version, vectors):
 
 
 def _read_instruction(file_obj, circuit, registers, custom_instructions, version, vectors):
-    instruction = formats.CIRCUIT_INSTRUCTION._make(
-        struct.unpack(
-            formats.CIRCUIT_INSTRUCTION_PACK,
-            file_obj.read(formats.CIRCUIT_INSTRUCTION_SIZE),
+    if version < 5:
+        instruction = formats.CIRCUIT_INSTRUCTION._make(
+            struct.unpack(
+                formats.CIRCUIT_INSTRUCTION_PACK,
+                file_obj.read(formats.CIRCUIT_INSTRUCTION_SIZE),
+            )
         )
-    )
+    else:
+        instruction = formats.CIRCUIT_INSTRUCTION_V2._make(
+            struct.unpack(
+                formats.CIRCUIT_INSTRUCTION_V2_PACK,
+                file_obj.read(formats.CIRCUIT_INSTRUCTION_V2_SIZE),
+            )
+        )
     gate_name = file_obj.read(instruction.name_size).decode(common.ENCODE)
     label = file_obj.read(instruction.label_size).decode(common.ENCODE)
     condition_register = file_obj.read(instruction.condition_register_size).decode(common.ENCODE)
@@ -179,30 +188,35 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions, version
                 )
         else:
             condition_tuple = (registers["c"][condition_register], instruction.condition_value)
-    qubit_indices = dict(enumerate(circuit.qubits))
-    clbit_indices = dict(enumerate(circuit.clbits))
+    if circuit is not None:
+        qubit_indices = dict(enumerate(circuit.qubits))
+        clbit_indices = dict(enumerate(circuit.clbits))
+    else:
+        qubit_indices = {}
+        clbit_indices = {}
 
     # Load Arguments
-    for _qarg in range(instruction.num_qargs):
-        qarg = formats.CIRCUIT_INSTRUCTION_ARG._make(
-            struct.unpack(
-                formats.CIRCUIT_INSTRUCTION_ARG_PACK,
-                file_obj.read(formats.CIRCUIT_INSTRUCTION_ARG_SIZE),
+    if circuit is not None:
+        for _qarg in range(instruction.num_qargs):
+            qarg = formats.CIRCUIT_INSTRUCTION_ARG._make(
+                struct.unpack(
+                    formats.CIRCUIT_INSTRUCTION_ARG_PACK,
+                    file_obj.read(formats.CIRCUIT_INSTRUCTION_ARG_SIZE),
+                )
             )
-        )
-        if qarg.type.decode(common.ENCODE) == "c":
-            raise TypeError("Invalid input carg prior to all qargs")
-        qargs.append(qubit_indices[qarg.size])
-    for _carg in range(instruction.num_cargs):
-        carg = formats.CIRCUIT_INSTRUCTION_ARG._make(
-            struct.unpack(
-                formats.CIRCUIT_INSTRUCTION_ARG_PACK,
-                file_obj.read(formats.CIRCUIT_INSTRUCTION_ARG_SIZE),
+            if qarg.type.decode(common.ENCODE) == "c":
+                raise TypeError("Invalid input carg prior to all qargs")
+            qargs.append(qubit_indices[qarg.size])
+        for _carg in range(instruction.num_cargs):
+            carg = formats.CIRCUIT_INSTRUCTION_ARG._make(
+                struct.unpack(
+                    formats.CIRCUIT_INSTRUCTION_ARG_PACK,
+                    file_obj.read(formats.CIRCUIT_INSTRUCTION_ARG_SIZE),
+                )
             )
-        )
-        if carg.type.decode(common.ENCODE) == "q":
-            raise TypeError("Invalid input qarg after all qargs")
-        cargs.append(clbit_indices[carg.size])
+            if carg.type.decode(common.ENCODE) == "q":
+                raise TypeError("Invalid input qarg after all qargs")
+            cargs.append(clbit_indices[carg.size])
 
     # Load Parameters
     for _param in range(instruction.num_parameters):
@@ -210,20 +224,28 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions, version
         params.append(param)
 
     # Load Gate object
-    if gate_name in ("Gate", "Instruction"):
-        inst_obj = _parse_custom_instruction(custom_instructions, gate_name, params)
+    if gate_name in {"Gate", "Instruction", "ControlledGate"}:
+        inst_obj = _parse_custom_instruction(
+            custom_instructions, gate_name, params, version, vectors, registers
+        )
         inst_obj.condition = condition_tuple
         if instruction.label_size > 0:
             inst_obj.label = label
+        if circuit is None:
+            return inst_obj
         circuit._append(inst_obj, qargs, cargs)
-        return
+        return None
     elif gate_name in custom_instructions:
-        inst_obj = _parse_custom_instruction(custom_instructions, gate_name, params)
+        inst_obj = _parse_custom_instruction(
+            custom_instructions, gate_name, params, version, vectors, registers
+        )
         inst_obj.condition = condition_tuple
         if instruction.label_size > 0:
             inst_obj.label = label
+        if circuit is None:
+            return inst_obj
         circuit._append(inst_obj, qargs, cargs)
-        return
+        return None
     elif hasattr(library, gate_name):
         gate_class = getattr(library, gate_name)
     elif hasattr(circuit_mod, gate_name):
@@ -239,6 +261,14 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions, version
 
     if gate_name in {"IfElseOp", "WhileLoopOp"}:
         gate = gate_class(condition_tuple, *params)
+    elif version >= 5 and issubclass(gate_class, ControlledGate):
+        if gate_name in {"MCPhaseGate", "MCU1Gate"}:
+            gate = gate_class(*params, instruction.num_ctrl_qubits)
+        else:
+            gate = gate_class(*params)
+            gate.num_ctrl_qubits = instruction.num_ctrl_qubits
+            gate.ctrl_state = instruction.ctrl_state
+        gate.condition = condition_tuple
     else:
         if gate_name in {"Initialize", "UCRXGate", "UCRYGate", "UCRZGate"}:
             gate = gate_class(params)
@@ -251,14 +281,28 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions, version
         gate.condition = condition_tuple
     if instruction.label_size > 0:
         gate.label = label
+    if circuit is None:
+        return gate
     if not isinstance(gate, Instruction):
         circuit.append(gate, qargs, cargs)
     else:
         circuit._append(gate, qargs, cargs)
+    return None
 
 
-def _parse_custom_instruction(custom_instructions, gate_name, params):
-    type_str, num_qubits, num_clbits, definition = custom_instructions[gate_name]
+def _parse_custom_instruction(custom_instructions, gate_name, params, version, vectors, registers):
+    if version >= 5:
+        (
+            type_str,
+            num_qubits,
+            num_clbits,
+            definition,
+            num_ctrl_qubits,
+            ctrl_state,
+            base_gate_raw,
+        ) = custom_instructions[gate_name]
+    else:
+        type_str, num_qubits, num_clbits, definition = custom_instructions[gate_name]
     type_key = common.CircuitInstructionTypeKey(type_str)
 
     if type_key == common.CircuitInstructionTypeKey.INSTRUCTION:
@@ -269,6 +313,22 @@ def _parse_custom_instruction(custom_instructions, gate_name, params):
 
     if type_key == common.CircuitInstructionTypeKey.GATE:
         inst_obj = Gate(gate_name, num_qubits, params)
+        inst_obj.definition = definition
+        return inst_obj
+
+    if version >= 5 and type_key == common.CircuitInstructionTypeKey.CONTROLLED_GATE:
+        with io.BytesIO(base_gate_raw) as base_gate_obj:
+            base_gate = _read_instruction(
+                base_gate_obj, None, registers, custom_instructions, version, vectors
+            )
+        inst_obj = ControlledGate(
+            gate_name,
+            num_qubits,
+            params,
+            num_ctrl_qubits=num_ctrl_qubits,
+            ctrl_state=ctrl_state,
+            base_gate=base_gate,
+        )
         inst_obj.definition = definition
         return inst_obj
 
@@ -327,12 +387,21 @@ def _read_custom_instructions(file_obj, version, vectors):
     )
     if custom_definition_header.size > 0:
         for _ in range(custom_definition_header.size):
-            data = formats.CUSTOM_CIRCUIT_INST_DEF._make(
-                struct.unpack(
-                    formats.CUSTOM_CIRCUIT_INST_DEF_PACK,
-                    file_obj.read(formats.CUSTOM_CIRCUIT_INST_DEF_SIZE),
+            if version < 5:
+                data = formats.CUSTOM_CIRCUIT_INST_DEF._make(
+                    struct.unpack(
+                        formats.CUSTOM_CIRCUIT_INST_DEF_PACK,
+                        file_obj.read(formats.CUSTOM_CIRCUIT_INST_DEF_SIZE),
+                    )
                 )
-            )
+            else:
+                data = formats.CUSTOM_CIRCUIT_INST_DEF_V2._make(
+                    struct.unpack(
+                        formats.CUSTOM_CIRCUIT_INST_DEF_V2_PACK,
+                        file_obj.read(formats.CUSTOM_CIRCUIT_INST_DEF_V2_SIZE),
+                    )
+                )
+
             name = file_obj.read(data.gate_name_size).decode(common.ENCODE)
             type_str = data.type
             definition_circuit = None
@@ -346,12 +415,20 @@ def _read_custom_instructions(file_obj, version, vectors):
                     definition_circuit = common.data_from_binary(
                         def_binary, _read_pauli_evolution_gate, version=version, vectors=vectors
                     )
-            custom_instructions[name] = (
-                type_str,
-                data.num_qubits,
-                data.num_clbits,
-                definition_circuit,
-            )
+            if version < 5:
+                data_payload = (type_str, data.num_qubits, data.num_clbits, definition_circuit)
+            else:
+                base_gate = file_obj.read(data.base_gate_size)
+                data_payload = (
+                    type_str,
+                    data.num_qubits,
+                    data.num_clbits,
+                    definition_circuit,
+                    data.num_ctrl_qubits,
+                    data.ctrl_state,
+                    base_gate,
+                )
+            custom_instructions[name] = data_payload
     return custom_instructions
 
 
@@ -381,6 +458,7 @@ def _write_instruction_parameter(file_obj, param):
 # pylint: disable=too-many-boolean-expressions
 def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_map):
     gate_class_name = instruction_tuple[0].__class__.__name__
+    custom_instructions_list = []
     if (
         (
             not hasattr(library, gate_class_name)
@@ -391,15 +469,18 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
         )
         or gate_class_name == "Gate"
         or gate_class_name == "Instruction"
+        or gate_class_name == "ControlledGate"
         or isinstance(instruction_tuple[0], library.BlueprintCircuit)
     ):
         if instruction_tuple[0].name not in custom_instructions:
             custom_instructions[instruction_tuple[0].name] = instruction_tuple[0]
+            custom_instructions_list.append(instruction_tuple[0].name)
         gate_class_name = instruction_tuple[0].name
 
     elif isinstance(instruction_tuple[0], library.PauliEvolutionGate):
         gate_class_name = r"###PauliEvolutionGate_" + str(uuid.uuid4())
         custom_instructions[gate_class_name] = instruction_tuple[0]
+        custom_instructions_list.append(gate_class_name)
 
     has_condition = False
     condition_register = b""
@@ -420,8 +501,11 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
         label_raw = label.encode(common.ENCODE)
     else:
         label_raw = b""
+
+    num_ctrl_qubits = getattr(instruction_tuple[0], "num_ctrl_qubits", 0)
+    ctrl_state = getattr(instruction_tuple[0], "ctrl_state", 0)
     instruction_raw = struct.pack(
-        formats.CIRCUIT_INSTRUCTION_PACK,
+        formats.CIRCUIT_INSTRUCTION_V2_PACK,
         len(gate_class_name),
         len(label_raw),
         len(instruction_tuple[0].params),
@@ -430,6 +514,8 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
         has_condition,
         len(condition_register),
         condition_value,
+        num_ctrl_qubits,
+        ctrl_state,
     )
     file_obj.write(instruction_raw)
     file_obj.write(gate_class_name)
@@ -449,6 +535,7 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
     # Encode instruction params
     for param in instruction_tuple[0].params:
         _write_instruction_parameter(file_obj, param)
+    return custom_instructions_list
 
 
 def _write_pauli_evolution_gate(file_obj, evolution_gate):
@@ -491,13 +578,17 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate):
     file_obj.write(synth_data)
 
 
-def _write_custom_instruction(file_obj, name, instruction):
+def _write_custom_instruction(file_obj, name, instruction, custom_instructions):
     type_key = common.CircuitInstructionTypeKey.assign(instruction)
     has_definition = False
     size = 0
     data = None
     num_qubits = instruction.num_qubits
     num_clbits = instruction.num_clbits
+    ctrl_state = 0
+    num_ctrl_qubits = 0
+    base_gate = None
+    new_custom_instruction = []
 
     if type_key == common.CircuitInstructionTypeKey.PAULI_EVOL_GATE:
         has_definition = True
@@ -507,20 +598,37 @@ def _write_custom_instruction(file_obj, name, instruction):
         has_definition = True
         data = common.data_to_binary(instruction.definition, write_circuit)
         size = len(data)
+    if type_key == common.CircuitInstructionTypeKey.CONTROLLED_GATE:
+        num_ctrl_qubits = instruction.num_ctrl_qubits
+        ctrl_state = instruction.ctrl_state
+        base_gate = instruction.base_gate
+    if base_gate is None:
+        base_gate_raw = b""
+    else:
+        with io.BytesIO() as base_gate_buffer:
+            new_custom_instruction = _write_instruction(
+                base_gate_buffer, (base_gate, [], []), custom_instructions, {}
+            )
+            base_gate_raw = base_gate_buffer.getvalue()
     name_raw = name.encode(common.ENCODE)
     custom_instruction_raw = struct.pack(
-        formats.CUSTOM_CIRCUIT_INST_DEF_PACK,
+        formats.CUSTOM_CIRCUIT_INST_DEF_V2_PACK,
         len(name_raw),
         type_key,
         num_qubits,
         num_clbits,
         has_definition,
         size,
+        num_ctrl_qubits,
+        ctrl_state,
+        len(base_gate_raw),
     )
     file_obj.write(custom_instruction_raw)
     file_obj.write(name_raw)
     if data:
         file_obj.write(data)
+    file_obj.write(base_gate_raw)
+    return new_custom_instruction
 
 
 def _write_registers(file_obj, in_circ_regs, full_bits):
@@ -612,13 +720,23 @@ def write_circuit(file_obj, circuit, metadata_serializer=None):
     index_map["c"] = {bit: index for index, bit in enumerate(circuit.clbits)}
     for instruction in circuit.data:
         _write_instruction(instruction_buffer, instruction, custom_instructions, index_map)
-    file_obj.write(struct.pack(formats.CUSTOM_CIRCUIT_DEF_HEADER_PACK, len(custom_instructions)))
 
-    for name, instruction in custom_instructions.items():
-        _write_custom_instruction(file_obj, name, instruction)
+    with io.BytesIO() as custom_instructions_buffer:
+        new_custom_instructions = list(custom_instructions.keys())
+        while new_custom_instructions:
+            instructions_to_serialize = new_custom_instructions.copy()
+            for name in instructions_to_serialize:
+                instruction = custom_instructions[name]
+                new_custom_instructions = _write_custom_instruction(
+                    custom_instructions_buffer, name, instruction, custom_instructions
+                )
 
-    instruction_buffer.seek(0)
-    file_obj.write(instruction_buffer.read())
+        file_obj.write(
+            struct.pack(formats.CUSTOM_CIRCUIT_DEF_HEADER_PACK, len(custom_instructions))
+        )
+        file_obj.write(custom_instructions_buffer.getvalue())
+
+    file_obj.write(instruction_buffer.getvalue())
     instruction_buffer.close()
 
 
