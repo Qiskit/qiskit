@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Standard gates."""
-import numpy as np #required for rzx templates
+import numpy as np  # required for rzx templates
 
 from qiskit.qasm import pi
 from qiskit.circuit import Parameter, QuantumCircuit, TemplateLibrary
@@ -88,12 +88,12 @@ from . import (
     rzx_yz,
     rzx_zz1,
     rzx_zz2,
-    rzx_zz3
+    rzx_zz3,
 )
 
 _sel = StandardTemplateLibrary = TemplateLibrary()
 
-#Clifford templates
+# Clifford templates
 
 """
 Clifford template 2_1:
@@ -103,6 +103,7 @@ Clifford template 2_1:
               │  │
         q_1: ─■──■─
 """
+
 
 def clifford_2_1():
     """
@@ -114,10 +115,10 @@ def clifford_2_1():
     qc.cz(0, 1)
     return qc
 
+
 def_Clifford2_1 = clifford_2_1()
 
 _sel.add_template(clifford_2_1(), def_Clifford2_1)
-
 
 
 """
@@ -130,6 +131,7 @@ Clifford template 2_2:
              └───┘└───┘
 """
 
+
 def clifford_2_2():
     """
     Returns:
@@ -140,10 +142,10 @@ def clifford_2_2():
     qc.cx(0, 1)
     return qc
 
+
 def_Clifford2_2 = clifford_2_2()
 
 _sel.add_template(clifford_2_2(), def_Clifford2_2)
-
 
 
 """
@@ -153,6 +155,7 @@ Clifford template 2_3:
         q_0: ┤ H ├┤ H ├
              └───┘└───┘
 """
+
 
 def clifford_2_3():
     """
@@ -164,10 +167,10 @@ def clifford_2_3():
     qc.h(0)
     return qc
 
+
 def_Clifford2_3 = clifford_2_3()
 
 _sel.add_template(clifford_2_3(), def_Clifford2_3)
-
 
 
 """
@@ -179,6 +182,7 @@ Clifford template 2_4:
         q_1: ─X──X─
 """
 
+
 def clifford_2_4():
     """
     Returns:
@@ -189,10 +193,10 @@ def clifford_2_4():
     qc.swap(1, 0)
     return qc
 
+
 def_Clifford2_4 = clifford_2_4()
 
 _sel.add_template(clifford_2_4(), def_Clifford2_4)
-
 
 
 """
@@ -203,6 +207,7 @@ Clifford template 3_1:
         q_0: ┤ S ├┤ S ├┤ Z ├
              └───┘└───┘└───┘
 """
+
 
 def clifford_3_1():
     """
@@ -215,10 +220,10 @@ def clifford_3_1():
     qc.z(0)
     return qc
 
+
 def_Clifford3_1 = clifford_3_1()
 
 _sel.add_template(clifford_3_1(), def_Clifford3_1)
-
 
 
 """
@@ -231,6 +236,8 @@ Clifford template 4_1:
         q_1: ┤ X ├──■──┤ X ├─X─
              └───┘     └───┘
 """
+
+
 def clifford_4_1():
     """
     Returns:
@@ -243,10 +250,10 @@ def clifford_4_1():
     qc.swap(0, 1)
     return qc
 
+
 def_Clifford4_1 = clifford_4_1()
 
 _sel.add_template(clifford_4_1(), def_Clifford4_1)
-
 
 
 """
@@ -258,6 +265,7 @@ Clifford template 4_2:
         q_1: ┤ H ├┤ X ├┤ H ├─■─
              └───┘└───┘└───┘
 """
+
 
 def clifford_4_2():
     """
@@ -271,10 +279,10 @@ def clifford_4_2():
     qc.cz(0, 1)
     return qc
 
+
 def_Clifford4_2 = clifford_4_2()
 
 _sel.add_template(clifford_4_2(), def_Clifford4_2)
-
 
 
 """
@@ -287,6 +295,8 @@ Clifford template 4_3:
         q_1: ─────┤ X ├───────┤ X ├
                   └───┘       └───┘
 """
+
+
 def clifford_4_3():
     """
     Returns:
@@ -299,10 +309,10 @@ def clifford_4_3():
     qc.cx(0, 1)
     return qc
 
+
 def_Clifford4_3 = clifford_4_3()
 
 _sel.add_template(clifford_4_3(), def_Clifford4_3)
-
 
 
 """
@@ -314,6 +324,8 @@ Clifford template 4_4:
              └───┘ │ └─────┘ │
         q_1: ──────■─────────■─
 """
+
+
 def clifford_4_4():
     """
     Returns:
@@ -325,6 +337,7 @@ def clifford_4_4():
     qc.sdg(0)
     qc.cz(0, 1)
     return qc
+
 
 def_Clifford4_4 = clifford_4_4()
 
@@ -343,6 +356,7 @@ Clifford template 5_1:
                   └───┘     └───┘└───┘
 """
 
+
 def clifford_5_1():
     """
     Returns:
@@ -356,10 +370,10 @@ def clifford_5_1():
     qc.cx(0, 2)
     return qc
 
+
 def_Clifford5_1 = clifford_5_1()
 
 _sel.add_template(clifford_5_1(), def_Clifford5_1)
-
 
 
 """
@@ -372,6 +386,7 @@ Clifford template 6_2:
         q_1: ┤ S ├┤ X ├┤ SDG ├┤ X ├─■─
              └───┘└───┘└─────┘└───┘
 """
+
 
 def clifford_6_2():
     """
@@ -387,10 +402,10 @@ def clifford_6_2():
     qc.cz(0, 1)
     return qc
 
+
 def_Clifford6_2 = clifford_6_2()
 
 _sel.add_template(clifford_6_2(), def_Clifford6_2)
-
 
 
 """
@@ -403,6 +418,8 @@ Clifford template 6_3:
         q_1: ─X──■──────┤ X ├──■──┤ H ├
                         └───┘     └───┘
 """
+
+
 def clifford_6_3():
     """
     Returns:
@@ -417,10 +434,10 @@ def clifford_6_3():
     qc.h(1)
     return qc
 
+
 def_Clifford6_3 = clifford_6_3()
 
 _sel.add_template(clifford_6_3(), def_Clifford6_3)
-
 
 
 """
@@ -431,6 +448,7 @@ Clifford template 6_4:
         q_0: ┤ S ├┤ H ├┤ S ├┤ H ├┤ S ├┤ H ├
              └───┘└───┘└───┘└───┘└───┘└───┘
 """
+
 
 def clifford_6_4():
     """
@@ -445,6 +463,7 @@ def clifford_6_4():
     qc.s(0)
     qc.h(0)
     return qc
+
 
 def_Clifford6_4 = clifford_6_4()
 
@@ -462,6 +481,7 @@ Clifford template 6_5:
                 └───┘└─────┘└───┘└───┘
 """
 
+
 def clifford_6_5():
     """
     Returns:
@@ -476,10 +496,10 @@ def clifford_6_5():
     qc.s(1)
     return qc
 
+
 def_Clifford6_5 = clifford_6_5()
 
 _sel.add_template(clifford_6_5(), def_Clifford6_5)
-
 
 
 """
@@ -492,6 +512,7 @@ Clifford template 8_1:
         q_1: ┤ X ├┤ H ├──■──┤ SDG ├──■───┤ H ├─
              └───┘└───┘     └─────┘      └───┘
 """
+
 
 def clifford_8_1():
     """
@@ -509,10 +530,10 @@ def clifford_8_1():
     qc.h(1)
     return qc
 
+
 def_Clifford8_1 = clifford_8_1()
 
 _sel.add_template(clifford_8_1(), def_Clifford8_1)
-
 
 
 """
@@ -525,6 +546,7 @@ Clifford template 8_2:
         q_1: ┤ X ├┤ H ├┤ X ├┤ SDG ├┤ X ├┤ S ├┤ H ├
              └───┘└───┘└───┘└─────┘└───┘└───┘└───┘
 """
+
 
 def clifford_8_2():
     """
@@ -542,6 +564,7 @@ def clifford_8_2():
     qc.h(1)
     return qc
 
+
 def_Clifford8_2 = clifford_8_2()
 
 _sel.add_template(clifford_8_2(), def_Clifford8_2)
@@ -555,6 +578,7 @@ Clifford template 8_3:
         q_1: ┤ S ├┤ H ├┤ S ├┤ X ├┤ SDG ├┤ H ├┤ SDG ├┤ X ├
              └───┘└───┘└───┘└───┘└─────┘└───┘└─────┘└───┘
 """
+
 
 def clifford_8_3():
     """
@@ -572,10 +596,10 @@ def clifford_8_3():
     qc.cx(0, 1)
     return qc
 
+
 def_Clifford8_3 = clifford_8_3()
 
 _sel.add_template(clifford_8_3(), def_Clifford8_3)
-
 
 
 """
@@ -585,6 +609,7 @@ Template 2a_1:
         q_0: ┤ X ├┤ X ├
              └───┘└───┘
 """
+
 
 def template_nct_2a_1():
     """
@@ -596,10 +621,10 @@ def template_nct_2a_1():
     qc.x(0)
     return qc
 
+
 def_Template_nct_2a_1 = template_nct_2a_1()
 
 _sel.add_template(template_nct_2a_1(), def_Template_nct_2a_1)
-
 
 
 """
@@ -611,6 +636,7 @@ Template 2a_2:
          └───┘└───┘
 """
 
+
 def template_nct_2a_2():
     """
     Returns:
@@ -621,10 +647,10 @@ def template_nct_2a_2():
     qc.cx(0, 1)
     return qc
 
+
 def_Template_nct_2a_2 = template_nct_2a_2()
 
 _sel.add_template(template_nct_2a_2(), def_Template_nct_2a_2)
-
 
 
 """
@@ -638,6 +664,7 @@ Template 2a_3:
          └───┘└───┘
 """
 
+
 def template_nct_2a_3():
     """
     Returns:
@@ -648,10 +675,10 @@ def template_nct_2a_3():
     qc.ccx(0, 1, 2)
     return qc
 
+
 def_Template_nct_2a_3 = template_nct_2a_3()
 
 _sel.add_template(template_nct_2a_3(), def_Template_nct_2a_3)
-
 
 
 """
@@ -669,6 +696,7 @@ Template 4a_1:
          └───┘     └───┘
 """
 
+
 def template_nct_4a_1():
     """
     Returns:
@@ -681,10 +709,10 @@ def template_nct_4a_1():
     qc.ccx(0, 2, 3)
     return qc
 
+
 def_Template_nct_4a_1 = template_nct_4a_1()
 
 _sel.add_template(template_nct_4a_1(), def_Template_nct_4a_1)
-
 
 
 """
@@ -700,6 +728,7 @@ Template 4a_2:
          └───┘     └───┘
 """
 
+
 def template_nct_4a_2():
     """
     Returns:
@@ -712,10 +741,10 @@ def template_nct_4a_2():
     qc.cx(1, 2)
     return qc
 
+
 def_Template_nct_4a_2 = template_nct_4a_2()
 
 _sel.add_template(template_nct_4a_2(), def_Template_nct_4a_2)
-
 
 
 """
@@ -729,6 +758,7 @@ Template 4a_3:
          └───┘     └───┘
 """
 
+
 def template_nct_4a_3():
     """
     Returns:
@@ -741,10 +771,10 @@ def template_nct_4a_3():
     qc.cx(0, 1)
     return qc
 
+
 def_Template_nct_4a_3 = template_nct_4a_3()
 
 _sel.add_template(template_nct_4a_3(), def_Template_nct_4a_3)
-
 
 
 """
@@ -760,6 +790,7 @@ Template 4b_1:
          └───┘└───┘└───┘└───┘
 """
 
+
 def template_nct_4b_1():
     """
     Returns:
@@ -772,10 +803,10 @@ def template_nct_4b_1():
     qc.ccx(0, 2, 3)
     return qc
 
+
 def_Template_nct_4b_1 = template_nct_4b_1()
 
 _sel.add_template(template_nct_4b_1(), def_Template_nct_4b_1)
-
 
 
 """
@@ -789,6 +820,7 @@ Template 4b_2:
          └───┘└───┘└───┘└───┘
 """
 
+
 def template_nct_4b_2():
     """
     Returns:
@@ -801,10 +833,10 @@ def template_nct_4b_2():
     qc.cx(1, 2)
     return qc
 
+
 def_Template_nct_4b_2 = template_nct_4b_2()
 
 _sel.add_template(template_nct_4b_2(), def_Template_nct_4b_2)
-
 
 
 """
@@ -817,6 +849,7 @@ Template 5a_1:
     q_2: ┤ X ├─────┤ X ├─────┤ X ├
          └───┘     └───┘     └───┘
 """
+
 
 def template_nct_5a_1():
     """
@@ -831,10 +864,10 @@ def template_nct_5a_1():
     qc.cx(0, 2)
     return qc
 
+
 def_Template_nct_5a_1 = template_nct_5a_1()
 
 _sel.add_template(template_nct_5a_1(), def_Template_nct_5a_1)
-
 
 
 """
@@ -848,6 +881,7 @@ Template 5a_2:
          └───┘     └───┘     └───┘
 """
 
+
 def template_nct_5a_2():
     """
     Returns:
@@ -860,6 +894,7 @@ def template_nct_5a_2():
     qc.x(1)
     qc.cx(0, 2)
     return qc
+
 
 def_Template_nct_5a_2 = template_nct_5a_2()
 
@@ -876,6 +911,7 @@ Template 5a_3:
          └───┘     └───┘     └───┘
 """
 
+
 def template_nct_5a_3():
     """
     Returns:
@@ -889,10 +925,10 @@ def template_nct_5a_3():
     qc.cx(0, 2)
     return qc
 
+
 def_Template_nct_5a_3 = template_nct_5a_3()
 
 _sel.add_template(template_nct_5a_3(), def_Template_nct_5a_3)
-
 
 
 """
@@ -904,6 +940,7 @@ Template 5a_4:
     q_1: ┤ X ├─────┤ X ├┤ X ├
          └───┘     └───┘└───┘
 """
+
 
 def template_nct_5a_4():
     """
@@ -918,10 +955,10 @@ def template_nct_5a_4():
     qc.x(1)
     return qc
 
+
 def_Template_nct_5a_4 = template_nct_5a_4()
 
 _sel.add_template(template_nct_5a_4(), def_Template_nct_5a_4)
-
 
 
 """
@@ -933,6 +970,7 @@ Template 6a_1:
     q_1: ┤ X ├──■──┤ X ├──■──┤ X ├──■──
          └───┘     └───┘     └───┘
 """
+
 
 def template_nct_6a_1():
     """
@@ -948,10 +986,10 @@ def template_nct_6a_1():
     qc.cx(1, 0)
     return qc
 
+
 def_Template_nct_6a_1 = template_nct_6a_1()
 
 _sel.add_template(template_nct_6a_1(), def_Template_nct_6a_1)
-
 
 
 """
@@ -964,6 +1002,7 @@ Template 6a_2:
     q_2: ┤ X ├──■──┤ X ├──■──┤ X ├──■──
          └───┘     └───┘     └───┘
 """
+
 
 def template_nct_6a_2():
     """
@@ -979,10 +1018,10 @@ def template_nct_6a_2():
     qc.ccx(0, 2, 1)
     return qc
 
+
 def_Template_nct_6a_2 = template_nct_6a_2()
 
 _sel.add_template(template_nct_6a_2(), def_Template_nct_6a_2)
-
 
 
 """
@@ -1013,6 +1052,7 @@ def template_nct_6a_3():
     qc.ccx(0, 2, 1)
     return qc
 
+
 def_Template_nct_6a_3 = template_nct_6a_3()
 
 _sel.add_template(template_nct_6a_3(), def_Template_nct_6a_3)
@@ -1027,6 +1067,8 @@ Template 6a_4:
     q_2: ┤ X ├──■──┤ X ├──■──┤ X ├──■──
          └───┘     └───┘     └───┘
 """
+
+
 def template_nct_6a_4():
     """
     Returns:
@@ -1041,10 +1083,10 @@ def template_nct_6a_4():
     qc.cx(2, 1)
     return qc
 
+
 def_Template_nct_6a_3 = template_nct_6a_4()
 
 _sel.add_template(template_nct_6a_4(), def_Template_nct_6a_4)
-
 
 
 """
@@ -1057,6 +1099,7 @@ Template 6b_1:
     q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
          └───┘└───┘     └───┘└───┘
 """
+
 
 def template_nct_6b_1():
     """
@@ -1072,10 +1115,10 @@ def template_nct_6b_1():
     qc.ccx(0, 2, 1)
     return qc
 
+
 def_Template_nct_6b_1 = template_nct_6b_1()
 
 _sel.add_template(template_nct_6b_1(), def_Template_nct_6b_1)
-
 
 
 """
@@ -1088,6 +1131,7 @@ Template 6b_2:
     q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
          └───┘└───┘     └───┘└───┘
 """
+
 
 def template_nct_6b_2():
     """
@@ -1103,10 +1147,10 @@ def template_nct_6b_2():
     qc.ccx(0, 2, 1)
     return qc
 
+
 def_Template_nct_6b_2 = template_nct_6b_2()
 
 _sel.add_template(template_nct_6b_2(), def_Template_nct_6b_2)
-
 
 
 """
@@ -1119,6 +1163,7 @@ Template 6c_1:
     q_2: ┤ X ├──■──┤ X ├──■──┤ X ├──■──
          └───┘     └───┘     └───┘
 """
+
 
 def template_nct_6c_1():
     """
@@ -1134,10 +1179,10 @@ def template_nct_6c_1():
     qc.ccx(0, 2, 1)
     return qc
 
+
 def_Template_nct_6c_1 = template_nct_6c_1()
 
 _sel.add_template(template_nct_6c_1(), def_Template_nct_6c_1)
-
 
 
 """
@@ -1151,6 +1196,7 @@ Template 7a_1:
     q_2: ──────────┤ X ├┤ X ├──────────┤ X ├
                    └───┘└───┘          └───┘
 """
+
 
 def template_nct_7a_1():
     """
@@ -1167,10 +1213,10 @@ def template_nct_7a_1():
     qc.ccx(0, 1, 2)
     return qc
 
+
 def_Template_nct_7a_1 = template_nct_7a_1()
 
 _sel.add_template(template_nct_7a_1(), def_Template_nct_7a_1)
-
 
 
 """
@@ -1184,6 +1230,7 @@ Template 7b_1:
     q_2: ──────────┤ X ├┤ X ├──────────┤ X ├
                    └───┘└───┘          └───┘
 """
+
 
 def template_nct_7b_1():
     """
@@ -1200,10 +1247,10 @@ def template_nct_7b_1():
     qc.ccx(0, 1, 2)
     return qc
 
+
 def_Template_nct_7b_1 = template_nct_7b_1()
 
 _sel.add_template(template_nct_7b_1(), def_Template_nct_7b_1)
-
 
 
 """
@@ -1217,6 +1264,7 @@ Template 7c_1:
     q_2: ───────■──┤ X ├┤ X ├──■───────┤ X ├
                    └───┘└───┘          └───┘
 """
+
 
 def template_nct_7c_1():
     """
@@ -1233,10 +1281,10 @@ def template_nct_7c_1():
     qc.ccx(0, 1, 2)
     return qc
 
+
 def_Template_nct_7c_1 = template_nct_7c_1()
 
 _sel.add_template(template_nct_7c_1(), def_Template_nct_7c_1)
-
 
 
 """
@@ -1250,6 +1298,7 @@ Template 7d_1:
     q_2: ───────■──┤ X ├┤ X ├──■───────┤ X ├
                    └───┘└───┘          └───┘
 """
+
 
 def template_nct_7d_1():
     """
@@ -1266,10 +1315,10 @@ def template_nct_7d_1():
     qc.ccx(0, 1, 2)
     return qc
 
+
 def_Template_nct_7d_1 = template_nct_7d_1()
 
 _sel.add_template(template_nct_7d_1(), def_Template_nct_7d_1)
-
 
 
 """
@@ -1283,6 +1332,7 @@ Template 7e_1:
     q_2: ───────■──┤ X ├┤ X ├──■───────┤ X ├
                    └───┘└───┘          └───┘
 """
+
 
 def template_nct_7e_1():
     """
@@ -1299,10 +1349,10 @@ def template_nct_7e_1():
     qc.cx(0, 2)
     return qc
 
+
 def_Template_nct_7e_1 = template_nct_7e_1()
 
 _sel.add_template(template_nct_7e_1(), def_Template_nct_7e_1)
-
 
 
 """
@@ -1316,6 +1366,7 @@ Template 9a_1:
     q_2: ───────■────■──┤ X ├──■──┤ X ├──■──
                         └───┘     └───┘
 """
+
 
 def template_nct_9a_1():
     """
@@ -1334,10 +1385,10 @@ def template_nct_9a_1():
     qc.ccx(0, 2, 1)
     return qc
 
+
 def_Template_nct_9a_1 = template_nct_9a_1()
 
 _sel.add_template(template_nct_9a_1(), def_Template_nct_9a_1)
-
 
 
 """
@@ -1349,6 +1400,7 @@ Template 9c_1:
     q_1: ──■──┤ X ├───────■──┤ X ├──■──┤ X ├┤ X ├──■──
               └───┘          └───┘     └───┘└───┘
 """
+
 
 def template_nct_9c_1():
     """
@@ -1367,10 +1419,10 @@ def template_nct_9c_1():
     qc.cx(1, 0)
     return qc
 
+
 def_Template_nct_9c_1 = template_nct_9c_1()
 
 _sel.add_template(template_nct_9c_1(), def_Template_nct_9c_1)
-
 
 
 """
@@ -1383,6 +1435,7 @@ Template 9c_2:
     q_2: ──■──┤ X ├───────■──┤ X ├──■──┤ X ├┤ X ├──■──
               └───┘          └───┘     └───┘└───┘
 """
+
 
 def template_nct_9c_2():
     """
@@ -1401,10 +1454,10 @@ def template_nct_9c_2():
     qc.ccx(0, 2, 1)
     return qc
 
+
 def_Template_nct_9c_2 = template_nct_9c_2()
 
 _sel.add_template(template_nct_9c_2(), def_Template_nct_9c_2)
-
 
 
 """
@@ -1417,6 +1470,7 @@ Template 9c_3:
     q_2: ──■──┤ X ├───────■──┤ X ├──■──┤ X ├┤ X ├──■──
               └───┘          └───┘     └───┘└───┘
 """
+
 
 def template_nct_9c_3():
     """
@@ -1435,10 +1489,10 @@ def template_nct_9c_3():
     qc.cx(2, 1)
     return qc
 
+
 def_Template_nct_9c_3 = template_nct_9c_3()
 
 _sel.add_template(template_nct_9c_3(), def_Template_nct_9c_3)
-
 
 
 """
@@ -1451,6 +1505,7 @@ Template 9c_4:
     q_2: ──■──┤ X ├───────■──┤ X ├──■──┤ X ├┤ X ├──■──
               └───┘          └───┘     └───┘└───┘
 """
+
 
 def template_nct_9c_4():
     """
@@ -1469,10 +1524,10 @@ def template_nct_9c_4():
     qc.cx(2, 1)
     return qc
 
+
 def_Template_nct_9c_4 = template_nct_9c_4()
 
 _sel.add_template(template_nct_9c_4(), def_Template_nct_9c_4)
-
 
 
 """
@@ -1485,6 +1540,7 @@ Template 9c_5:
     q_2: ──■──┤ X ├───────■──┤ X ├──■──┤ X ├┤ X ├──■──
               └───┘          └───┘     └───┘└───┘
 """
+
 
 def template_nct_9c_5():
     """
@@ -1503,10 +1559,10 @@ def template_nct_9c_5():
     qc.cx(2, 1)
     return qc
 
+
 def_Template_nct_9c_5 = template_nct_9c_5()
 
 _sel.add_template(template_nct_9c_5(), def_Template_nct_9c_5)
-
 
 
 """
@@ -1519,6 +1575,7 @@ Template 9c_6:
     q_2: ──■──┤ X ├───────■──┤ X ├──■──┤ X ├┤ X ├──■──
               └───┘          └───┘     └───┘└───┘
 """
+
 
 def template_nct_9c_6():
     """
@@ -1537,10 +1594,10 @@ def template_nct_9c_6():
     qc.cx(2, 1)
     return qc
 
+
 def_Template_nct_9c_6 = template_nct_9c_6()
 
 _sel.add_template(template_nct_9c_6(), def_Template_nct_9c_6)
-
 
 
 """
@@ -1553,6 +1610,7 @@ Template 9c_7:
     q_2: ──■──┤ X ├───────■──┤ X ├──■──┤ X ├┤ X ├──■──
               └───┘          └───┘     └───┘└───┘
 """
+
 
 def template_nct_9c_7():
     """
@@ -1571,10 +1629,10 @@ def template_nct_9c_7():
     qc.cx(2, 1)
     return qc
 
+
 def_Template_nct_9c_7 = template_nct_9c_7()
 
 _sel.add_template(template_nct_9c_7(), def_Template_nct_9c_7)
-
 
 
 """
@@ -1587,6 +1645,7 @@ Template 9c_8:
     q_2: ──■──┤ X ├───────■──┤ X ├──■──┤ X ├┤ X ├──■──
               └───┘          └───┘     └───┘└───┘
 """
+
 
 def template_nct_9c_8():
     """
@@ -1605,10 +1664,10 @@ def template_nct_9c_8():
     qc.ccx(0, 2, 1)
     return qc
 
+
 def_Template_nct_9c_8 = template_nct_9c_8()
 
 _sel.add_template(template_nct_9c_8(), def_Template_nct_9c_8)
-
 
 
 """
@@ -1621,6 +1680,7 @@ Template 9c_9:
     q_2: ──■──┤ X ├───────■──┤ X ├──■──┤ X ├┤ X ├──■──
               └───┘          └───┘     └───┘└───┘
 """
+
 
 def template_nct_9c_9():
     """
@@ -1639,10 +1699,10 @@ def template_nct_9c_9():
     qc.ccx(0, 2, 1)
     return qc
 
+
 def_Template_nct_9c_9 = template_nct_9c_9()
 
 _sel.add_template(template_nct_9c_9(), def_Template_nct_9c_9)
-
 
 
 """
@@ -1655,6 +1715,7 @@ Template 9c_10:
     q_2: ──■──┤ X ├───────■──┤ X ├──■──┤ X ├┤ X ├──■──
               └───┘          └───┘     └───┘└───┘
 """
+
 
 def template_nct_9c_10():
     """
@@ -1673,10 +1734,10 @@ def template_nct_9c_10():
     qc.ccx(0, 2, 1)
     return qc
 
+
 def_Template_nct_9c_10 = template_nct_9c_10()
 
 _sel.add_template(template_nct_9c_10(), def_Template_nct_9c_10)
-
 
 
 """
@@ -1710,10 +1771,10 @@ def template_nct_9c_11():
     qc.ccx(0, 2, 1)
     return qc
 
+
 def_Template_nct_9c_11 = template_nct_9c_11()
 
 _sel.add_template(template_nct_9c_11(), def_Template_nct_9c_11)
-
 
 
 """
@@ -1726,6 +1787,7 @@ Template 9c_12:
     q_2: ──■──┤ X ├───────■──┤ X ├──■──┤ X ├┤ X ├──■──
               └───┘          └───┘     └───┘└───┘
 """
+
 
 def template_nct_9c_12():
     """
@@ -1744,10 +1806,10 @@ def template_nct_9c_12():
     qc.ccx(0, 2, 1)
     return qc
 
+
 def_Template_nct_9c_12 = template_nct_9c_12()
 
 _sel.add_template(template_nct_9c_12(), def_Template_nct_9c_12)
-
 
 
 """
@@ -1759,6 +1821,7 @@ Template 9d_1:
     q_1: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
          └───┘└───┘     └───┘└───┘     └───┘└───┘
 """
+
 
 def template_nct_9d_1():
     """
@@ -1777,10 +1840,10 @@ def template_nct_9d_1():
     qc.cx(1, 0)
     return qc
 
+
 def_Template_nct_9d_1 = template_nct_9d_1()
 
 _sel.add_template(template_nct_9d_1(), def_Template_nct_9d_1)
-
 
 
 """
@@ -1793,6 +1856,7 @@ Template 9d_2:
     q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
          └───┘└───┘     └───┘└───┘     └───┘└───┘
 """
+
 
 def template_nct_9d_2():
     """
@@ -1811,10 +1875,10 @@ def template_nct_9d_2():
     qc.ccx(0, 2, 1)
     return qc
 
+
 def_Template_nct_9d_1 = template_nct_9d_1()
 
 _sel.add_template(template_nct_9d_1(), def_Template_nct_9d_1)
-
 
 
 """
@@ -1827,6 +1891,7 @@ Template 9d_2:
     q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
          └───┘└───┘     └───┘└───┘     └───┘└───┘
 """
+
 
 def template_nct_9d_2():
     """
@@ -1844,11 +1909,11 @@ def template_nct_9d_2():
     qc.cx(1, 2)
     qc.ccx(0, 2, 1)
     return qc
+
 
 def_Template_nct_9d_2 = template_nct_9d_2()
 
 _sel.add_template(template_nct_9d_2(), def_Template_nct_9d_2)
-
 
 
 """
@@ -1861,6 +1926,7 @@ Template 9d_3:
     q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
          └───┘└───┘     └───┘└───┘     └───┘└───┘
 """
+
 
 def template_nct_9d_3():
     """
@@ -1879,10 +1945,10 @@ def template_nct_9d_3():
     qc.cx(2, 1)
     return qc
 
+
 def_Template_nct_9d_3 = template_nct_9d_3()
 
 _sel.add_template(template_nct_9d_3(), def_Template_nct_9d_3)
-
 
 
 """
@@ -1895,6 +1961,7 @@ Template 9d_4:
     q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
          └───┘└───┘     └───┘└───┘     └───┘└───┘
 """
+
 
 def template_nct_9d_4():
     """
@@ -1913,10 +1980,10 @@ def template_nct_9d_4():
     qc.cx(2, 1)
     return qc
 
+
 def_Template_nct_9d_4 = template_nct_9d_4()
 
 _sel.add_template(template_nct_9d_4(), def_Template_nct_9d_4)
-
 
 
 """
@@ -1929,6 +1996,7 @@ Template 9d_5:
     q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
          └───┘└───┘     └───┘└───┘     └───┘└───┘
 """
+
 
 def template_nct_9d_5():
     """
@@ -1947,10 +2015,10 @@ def template_nct_9d_5():
     qc.cx(2, 1)
     return qc
 
+
 def_Template_nct_9d_5 = template_nct_9d_5()
 
 _sel.add_template(template_nct_9d_5(), def_Template_nct_9d_5)
-
 
 
 """
@@ -1963,6 +2031,7 @@ Template 9d_6:
     q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
          └───┘└───┘     └───┘└───┘     └───┘└───┘
 """
+
 
 def template_nct_9d_6():
     """
@@ -1981,10 +2050,10 @@ def template_nct_9d_6():
     qc.cx(2, 1)
     return qc
 
+
 def_Template_nct_9d_6 = template_nct_9d_6()
 
 _sel.add_template(template_nct_9d_6(), def_Template_nct_9d_6)
-
 
 
 """
@@ -1997,6 +2066,7 @@ Template 9d_7:
     q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
          └───┘└───┘     └───┘└───┘     └───┘└───┘
 """
+
 
 def template_nct_9d_7():
     """
@@ -2015,10 +2085,10 @@ def template_nct_9d_7():
     qc.cx(2, 1)
     return qc
 
+
 def_Template_nct_9d_7 = template_nct_9d_7()
 
 _sel.add_template(template_nct_9d_7(), def_Template_nct_9d_7)
-
 
 
 """
@@ -2031,6 +2101,7 @@ Template 9d_8:
     q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
          └───┘└───┘     └───┘└───┘     └───┘└───┘
 """
+
 
 def template_nct_9d_8():
     """
@@ -2049,10 +2120,10 @@ def template_nct_9d_8():
     qc.ccx(0, 2, 1)
     return qc
 
+
 def_Template_nct_9d_8 = template_nct_9d_8()
 
 _sel.add_template(template_nct_9d_8(), def_Template_nct_9d_8)
-
 
 
 """
@@ -2065,6 +2136,7 @@ Template 9d_9:
     q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
          └───┘└───┘     └───┘└───┘     └───┘└───┘
 """
+
 
 def template_nct_9d_9():
     """
@@ -2083,10 +2155,10 @@ def template_nct_9d_9():
     qc.ccx(0, 2, 1)
     return qc
 
+
 def_Template_nct_9d_9 = template_nct_9d_9()
 
 _sel.add_template(template_nct_9d_9(), def_Template_nct_9d_9)
-
 
 
 """
@@ -2099,6 +2171,7 @@ Template 9d_10:
     q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
          └───┘└───┘     └───┘└───┘     └───┘└───┘
 """
+
 
 def template_nct_9d_10():
     """
@@ -2117,10 +2190,10 @@ def template_nct_9d_10():
     qc.ccx(0, 2, 1)
     return qc
 
+
 def_Template_nct_9d_10 = template_nct_9d_10()
 
 _sel.add_template(template_nct_9d_10(), def_Template_nct_9d_10)
-
 
 
 """
@@ -2132,6 +2205,7 @@ q_0: ──■─────────────■────────
 q_1: ┤ X ├┤ RY(ϴ) ├┤ X ├┤ RY(-ϴ) ├┤ RZ(-π/2) ├┤ RX(ϴ) ├┤1         ├┤ RZ(π/2) ├
      └───┘└───────┘└───┘└────────┘└──────────┘└───────┘└──────────┘└─────────┘
 """
+
 
 def rzx_cy(theta: float = None):
     """Template for CX - RYGate - CX."""
@@ -2150,10 +2224,10 @@ def rzx_cy(theta: float = None):
 
     return circ
 
+
 def_rzx_cy = rzx_cy()
 
 _sel.add_template(rzx_cy(), def_rzx_cy)
-
 
 
 """
@@ -2170,6 +2244,7 @@ q_1: ──■──┤ RX(ϴ) ├──■────────────�
 «q_1: ─────────────────────────────────
 «
 """
+
 
 def rzx_xz(theta: float = None):
     """Template for CX - RXGate - CX."""
@@ -2190,10 +2265,10 @@ def rzx_xz(theta: float = None):
     qc.rz(np.pi / 2, 0)
     return qc
 
+
 def_rzx_xz = rzx_xz()
 
 _sel.add_template(rzx_xz(), def_rzx_xz)
-
 
 
 """
@@ -2205,6 +2280,7 @@ q_0: ──■──┤ RY(-ϴ) ├──■──┤ RX(π/2) ├┤0        �
 q_1: ┤ X ├──────────┤ X ├───────────┤1        ├────────────
      └───┘          └───┘           └─────────┘
 """
+
 
 def rzx_yz(theta: float = None):
     """Template for CX - RYGate - CX."""
@@ -2221,10 +2297,10 @@ def rzx_yz(theta: float = None):
 
     return circ
 
+
 def_rzx_yz = rzx_yz()
 
 _sel.add_template(rzx_yz(), def_rzx_yz)
-
 
 
 """
@@ -2246,6 +2322,7 @@ q_1: ┤ X ├┤ RZ(ϴ) ├┤ √X ├┤ RZ(π) ├┤ √X ├┤ RZ(3π) �
 «q_1: ┤ RZ(π/2) ├
 «     └─────────┘
 """
+
 
 def rzx_zz1(theta: float = None):
     """Template for CX - RZGate - CX."""
@@ -2276,10 +2353,10 @@ def rzx_zz1(theta: float = None):
 
     return qc
 
+
 def_rzx_zz1 = rzx_zz1()
 
 _sel.add_template(rzx_zz1(), def_rzx_zz1)
-
 
 
 """
@@ -2296,6 +2373,7 @@ q_1: ┤ X ├┤ P(ϴ) ├┤ X ├┤ P(-ϴ) ├┤ RZ(π/2) ├┤ RX(π/2) �
 «q_1: ┤1         ├┤ RZ(π/2) ├┤ RX(π/2) ├┤ RZ(π/2) ├
 «     └──────────┘└─────────┘└─────────┘└─────────┘
 """
+
 
 def rzx_zz2(theta: float = None):
     """Template for CX - RZGate - CX."""
@@ -2321,10 +2399,10 @@ def rzx_zz2(theta: float = None):
 
     return qc
 
+
 def_rzx_zz2 = rzx_zz2()
 
 _sel.add_template(rzx_zz2(), def_rzx_zz2)
-
 
 
 """
@@ -2369,6 +2447,7 @@ def rzx_zz3(theta: float = None):
     qc.rz(np.pi / 2, 1)
 
     return qc
+
 
 def_rzx_zz3 = rzx_zz3()
 
