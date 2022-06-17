@@ -170,7 +170,7 @@ def execute(
             measurement level 2 supports this option. Default: False
 
         max_credits (int): DEPRECATED This parameter is deprecated as of Qiskit Terra 0.20.0
-            and will be removed in a future release. This parameter has no effect on modern 
+            and will be removed in a future release. This parameter has no effect on modern
             IBM Quantum systems, no alternative is necessary.
 
         seed_simulator (int): Random seed to control sampling, for when backend is a simulator
