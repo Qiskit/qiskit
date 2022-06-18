@@ -20,7 +20,7 @@ from typing import List, Optional, Type
 import numpy as np
 
 import qiskit.circuit.library.standard_gates as gates
-from circuit import Gate
+from qiskit.circuit import Gate
 from qiskit.exceptions import QiskitError
 
 # Single qubit gates supported by ``single_gate_params``.

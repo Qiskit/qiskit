@@ -384,7 +384,10 @@ class HHL(LinearSolver):
         nl = max(nb + 1, int(np.ceil(np.log2(kappa + 1)))) + neg_vals
 
         # check if the matrix can calculate bounds for the eigenvalues
-        if hasattr(matrix_circuit, "eigs_bounds") and matrix_circuit.eigs_bounds() is not None:  # type: ignore[attr-defined]
+        if (
+            hasattr(matrix_circuit, "eigs_bounds")
+            and matrix_circuit.eigs_bounds() is not None  # type: ignore[attr-defined]
+        ):
             lambda_min, lambda_max = matrix_circuit.eigs_bounds()  # type: ignore[attr-defined]
             # Constant so that the minimum eigenvalue is represented exactly, since it contributes
             # the most to the solution of the system. -1 to take into account the sign qubit

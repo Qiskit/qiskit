@@ -38,7 +38,7 @@ from qiskit.utils.mitigation import (
     CompleteMeasFitter,
     TensoredMeasFitter,
 )
-from result import Result
+from qiskit.result import Result
 
 logger = logging.getLogger(__name__)
 
@@ -251,7 +251,7 @@ class QuantumInstance:
 
             if isinstance(backend, Backend):
                 if hasattr(backend, "options"):  # should always be true for V1
-                    backend_shots = backend.options.get("shots", 1024)
+                    backend_shots = backend.options.get("shots", 1024)  # type: ignore[attr-defined]
                     if shots != backend_shots:
                         logger.info(
                             "Overwriting the number of shots in the quantum instance with "

@@ -112,7 +112,9 @@ CIRCUIT_INSTRUCTION_ARG_PACK = "!1cI"
 CIRCUIT_INSTRUCTION_ARG_SIZE = struct.calcsize(CIRCUIT_INSTRUCTION_ARG_PACK)
 
 # SparsePauliOp List
-SPARSE_PAULI_OP_LIST_ELEM = namedtuple("SPARSE_PAULI_OP_LIST_ELEMENT", ["size"])  # type: ignore[name-match]
+SPARSE_PAULI_OP_LIST_ELEM = namedtuple(  # type: ignore[name-match]
+    "SPARSE_PAULI_OP_LIST_ELEMENT", ["size"]
+)
 SPARSE_PAULI_OP_LIST_ELEM_PACK = "!Q"
 SPARSE_PAULI_OP_LIST_ELEM_SIZE = struct.calcsize(SPARSE_PAULI_OP_LIST_ELEM_PACK)
 
@@ -231,7 +233,9 @@ PARAM_EXPR_MAP_ELEM_V3_PACK = "!ccQ"
 PARAM_EXPR_MAP_ELEM_V3_SIZE = struct.calcsize(PARAM_EXPR_MAP_ELEM_V3_PACK)
 
 # PARAMETER_EXPR_MAP_ELEM
-PARAM_EXPR_MAP_ELEM = namedtuple("PARAMETER_EXPR_MAP_ELEM", ["type", "size"])  # type: ignore[name-match]
+PARAM_EXPR_MAP_ELEM = namedtuple(  # type: ignore[name-match]
+    "PARAMETER_EXPR_MAP_ELEM", ["type", "size"]
+)
 PARAM_EXPR_MAP_ELEM_PACK = "!cQ"
 PARAM_EXPR_MAP_ELEM_SIZE = struct.calcsize(PARAM_EXPR_MAP_ELEM_PACK)
 
