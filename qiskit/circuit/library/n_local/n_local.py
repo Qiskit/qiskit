@@ -122,9 +122,9 @@ class NLocal(BlueprintCircuit):
         self._entanglement_blocks: List[Instruction] = []
         self._rotation_blocks: List[Instruction] = []
         self._prepended_blocks: List[QuantumCircuit] = []
-        self._prepended_entanglement = []
+        self._prepended_entanglement: List[List[int]] = []
         self._appended_blocks: List[QuantumCircuit] = []
-        self._appended_entanglement = []
+        self._appended_entanglement: List[List[int]] = []
         self._entanglement = None
         self._entangler_maps = None
         self._ordered_parameters = ParameterVector(name=parameter_prefix)

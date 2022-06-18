@@ -252,7 +252,9 @@ class QuantumCircuit:
         # builder interfaces need to wait until they are completed before they can fill in things
         # like `break` and `continue`.  This is because these instructions need to "operate" on the
         # full width of bits, but the builder interface won't know what bits are used until the end.
-        self._control_flow_scopes = []
+        self._control_flow_scopes: List[
+            qiskit.circuit.controlflow.builder.ControlFlowBuilderBlock
+        ] = []
 
         self.qregs: List[QuantumRegister] = []
         self.cregs: List[ClassicalRegister] = []
@@ -266,7 +268,7 @@ class QuantumCircuit:
         self._qubit_indices: Dict[Qubit, BitLocations] = {}
         self._clbit_indices: Dict[Clbit, BitLocations] = {}
 
-        self._ancillas = []
+        self._ancillas: List[AncillaQubit] = []
         self._calibrations: DefaultDict[str, Dict[Tuple, Any]] = defaultdict(dict)
         self.add_register(*regs)
 

@@ -771,7 +771,7 @@ class ScheduleDrawer:
             Value of final vertical axis of canvas.
         """
         y0 = 0
-        prev_labels = []
+        prev_labels: List[Dict[int, Union[Waveform, Acquire]]] = []
         for channel, events in output_channels.items():
             if events.enable:
                 # scaling value of this channel

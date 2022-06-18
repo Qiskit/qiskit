@@ -10,10 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """A collection of functions to convert ScheduleBlock to DAG representation."""
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 import retworkx as rx
 
+from qiskit.pulse.channels import Channel
 from qiskit.pulse.schedule import ScheduleBlock
 
 
@@ -89,8 +90,8 @@ def _parallel_allocation(block: ScheduleBlock) -> rx.PyDAG:
     """A helper function to create a DAG of a parallel alignment context."""
     dag_blocks = rx.PyDAG()
 
-    slots = {}
-    edges = []
+    slots: Dict[Channel, int] = {}
+    edges: List[Tuple[int, int]] = []
     for inst in block.blocks:
         current_node = dag_blocks.add_node(inst)
         for chan in inst.channels:

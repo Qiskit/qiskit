@@ -220,7 +220,7 @@ class TensoredFilter:
     to data.
     """
 
-    def __init__(self, cal_matrices: np.matrix, substate_labels_list: list, mit_pattern: list):
+    def __init__(self, cal_matrices: np.matrix, substate_labels_list: List[str], mit_pattern: list):
         """
         Initialize a tensored measurement error mitigation filter using
         the cal_matrices from a tensored measurement calibration fitter.
@@ -238,7 +238,7 @@ class TensoredFilter:
         self._cal_matrices = cal_matrices
         self._qubit_list_sizes: List[int] = []
         self._indices_list: List[Dict[Any, Any]] = []
-        self._substate_labels_list = []
+        self._substate_labels_list: List[str] = []
         self.substate_labels_list = substate_labels_list
         self._mit_pattern = mit_pattern
 

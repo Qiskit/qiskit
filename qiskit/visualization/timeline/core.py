@@ -77,8 +77,8 @@ class DrawerCanvas:
         self._output_dataset: Dict[str, drawings.ElementaryData] = {}
 
         # vertical offset of bits
-        self.bits = []
-        self.assigned_coordinates = {}
+        self.bits: List[types.Bits] = []
+        self.assigned_coordinates: Dict[types.Bits, float] = {}
 
         # visible controls
         self.disable_bits: Set[types.Bits] = set()

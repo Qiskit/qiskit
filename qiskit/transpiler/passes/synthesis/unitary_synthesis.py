@@ -13,7 +13,7 @@
 """Synthesize UnitaryGates."""
 
 from math import pi, inf
-from typing import List, Union, Collection
+from typing import List, Union, Collection, Dict
 from copy import deepcopy
 from itertools import product
 
@@ -35,6 +35,7 @@ from qiskit.circuit.library.standard_gates import (
     RZXGate,
     ECRGate,
 )
+from qiskit.circuit.quantumregister import Qubit
 from qiskit.transpiler.passes.synthesis import plugin
 from qiskit.providers.models import BackendProperties
 
@@ -259,7 +260,7 @@ class UnitarySynthesis(TransformationPass):
             plugin_method = DefaultUnitarySynthesis()
         plugin_kwargs = {"config": self._plugin_config}
         _gate_lengths = _gate_errors = None
-        dag_bit_indices = {}
+        dag_bit_indices: Dict[Qubit, int] = {}
 
         if self.method == "default":
             # If the method is the default, we only need to evaluate one set of keyword arguments.

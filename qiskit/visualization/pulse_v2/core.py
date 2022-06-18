@@ -459,7 +459,7 @@ class Chart:
         # channel metadata
         self.index = self._cls_index()
         self.name = name or ""
-        self._channels = set()
+        self._channels: Set[pulse.channels.Channel] = set()
 
         # vertical axis information
         self.vmax = 0

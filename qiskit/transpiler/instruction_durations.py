@@ -12,7 +12,7 @@
 
 """Durations of instructions, one of transpiler configurations."""
 import warnings
-from typing import Optional, List, Tuple, Union, Iterable, Set
+from typing import Optional, List, Tuple, Union, Iterable, Set, Dict
 
 from qiskit.circuit import Barrier, Delay
 from qiskit.circuit import Instruction, Qubit, ParameterExpression
@@ -37,9 +37,11 @@ class InstructionDurations:
     def __init__(
         self, instruction_durations: Optional["InstructionDurationsType"] = None, dt: float = None
     ):
-        self.duration_by_name = {}
-        self.duration_by_name_qubits = {}
-        self.duration_by_name_qubits_params = {}
+        self.duration_by_name: Dict[str, Tuple[float, str]] = {}
+        self.duration_by_name_qubits: Dict[Tuple[str, Tuple[int, ...]], Tuple[float, str]] = {}
+        self.duration_by_name_qubits_params: Dict[
+            Tuple[str, Tuple[int, ...], Tuple[float, ...]], Tuple[float, str]
+        ] = {}
         self.dt = dt
         if instruction_durations:
             self.update(instruction_durations)

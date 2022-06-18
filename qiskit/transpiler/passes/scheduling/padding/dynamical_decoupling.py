@@ -12,7 +12,7 @@
 
 """Dynamical Decoupling insertion pass."""
 
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 import numpy as np
 from qiskit.circuit import Qubit, Gate
@@ -158,7 +158,7 @@ class PadDynamicalDecoupling(BasePadding):
         self._spacing = spacing
         self._extra_slack_distribution = extra_slack_distribution
 
-        self._dd_sequence_lengths = dict()
+        self._dd_sequence_lengths: Dict[Qubit, List[float]] = dict()
         self._sequence_phase = 0
 
     def _pre_runhook(self, dag: DAGCircuit):

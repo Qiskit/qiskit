@@ -103,7 +103,7 @@ def _assemble_experiments(
     formatted_schedules = [transforms.target_qobj_transform(sched) for sched in schedules]
     compressed_schedules = transforms.compress_pulses(formatted_schedules)
 
-    user_pulselib = {}
+    user_pulselib: Dict[str, List[complex]] = {}
     experiments = []
     for idx, sched in enumerate(compressed_schedules):
         qobj_instructions, max_memory_slot = _assemble_instructions(
