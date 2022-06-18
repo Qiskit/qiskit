@@ -13,7 +13,7 @@
 """An abstract class for linear systems solvers."""
 
 from abc import ABC, abstractmethod
-from typing import Union, Optional, List, Callable
+from typing import Union, Optional, List, Callable, SupportsFloat
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -37,7 +37,7 @@ class LinearSolverResult(AlgorithmResult):
         # Set the default to None, if the algorithm knows how to calculate it can override it.
         self._state: Optional[Union[QuantumCircuit, np.ndarray]] = None
         self._observable: Optional[Union[float, List[float]]] = None
-        self._euclidean_norm: Optional[float] = None
+        self._euclidean_norm: Optional[SupportsFloat] = None
         self._circuit_results: Optional[Union[List[float], List[Result]]] = None
 
     @property
@@ -69,12 +69,12 @@ class LinearSolverResult(AlgorithmResult):
         self._state = state
 
     @property
-    def euclidean_norm(self) -> float:
+    def euclidean_norm(self) -> SupportsFloat:
         """return the euclidean norm if the algorithm knows how to calculate it"""
         return self._euclidean_norm
 
     @euclidean_norm.setter
-    def euclidean_norm(self, norm: float) -> None:
+    def euclidean_norm(self, norm: SupportsFloat) -> None:
         """Set the euclidean norm of the solution.
 
         Args:

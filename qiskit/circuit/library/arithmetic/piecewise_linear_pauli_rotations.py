@@ -13,7 +13,7 @@
 
 """Piecewise-linearly-controlled rotation."""
 
-from typing import List, Optional
+from typing import List, Optional, Union
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit
@@ -48,8 +48,8 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         self,
         num_state_qubits: Optional[int] = None,
         breakpoints: Optional[List[int]] = None,
-        slopes: Optional[List[float]] = None,
-        offsets: Optional[List[float]] = None,
+        slopes: Optional[Union[List[float], np.ndarray]] = None,
+        offsets: Optional[Union[List[float], np.ndarray]] = None,
         basis: str = "Y",
         name: str = "pw_lin",
     ) -> None:

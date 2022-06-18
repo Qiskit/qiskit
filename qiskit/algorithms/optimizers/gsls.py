@@ -12,7 +12,7 @@
 
 """Line search with Gaussian-smoothed samples on a sphere."""
 
-from typing import Dict, Optional, Tuple, List, Callable, Any
+from typing import Dict, Optional, Tuple, List, Callable, Any, SupportsFloat
 import numpy as np
 
 from qiskit.utils import algorithm_globals
@@ -169,7 +169,7 @@ class GSLS(Optimizer):
         prev_directions, prev_sample_set_x, prev_sample_set_y = None, None, None
         consecutive_fail_iter = 0
         alpha = self._options["initial_step_size"]
-        grad_norm = np.inf
+        grad_norm: SupportsFloat = np.inf
         sample_set_size = int(round(self._options["sample_size_factor"] * n))
 
         # Initial point

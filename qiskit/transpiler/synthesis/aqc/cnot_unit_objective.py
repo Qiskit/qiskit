@@ -73,7 +73,7 @@ class DefaultCNOTUnitObjective(CNOTUnitObjective):
         self._last_thetas: Optional[np.ndarray] = None
         self._cnot_right_collection: Optional[np.ndarray] = None
         self._cnot_left_collection: Optional[np.ndarray] = None
-        self._rotation_matrix: Optional[np.ndarray] = None
+        self._rotation_matrix: Optional[typing.Union[int, np.ndarray]] = None
         self._cnot_matrix: Optional[np.ndarray] = None
 
     def objective(self, param_values: np.ndarray) -> typing.SupportsFloat:
@@ -145,7 +145,7 @@ class DefaultCNOTUnitObjective(CNOTUnitObjective):
 
         # this is the matrix corresponding to the initial rotations
         # we start with 1 and kronecker product each qubit's rotations
-        rotation_matrix = 1
+        rotation_matrix: typing.Union[int, np.ndarray] = 1
         for q in range(n):
             theta_index = 4 * num_cnots + 3 * q
             rz0 = rz_matrix(thetas[0 + theta_index])
@@ -270,7 +270,7 @@ class DefaultCNOTUnitObjective(CNOTUnitObjective):
         # now we compute the partial derivatives in the rotation part
         # we start with 1 and kronecker product each qubit's rotations
         for i in range(3 * n):
-            der_rotation_matrix = 1
+            der_rotation_matrix: typing.Union[int, np.ndarray] = 1
             for q in range(n):
                 theta_index = 4 * num_cnots + 3 * q
                 rz0 = rz_matrix(thetas[0 + theta_index])

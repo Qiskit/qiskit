@@ -11,8 +11,7 @@
 # that they have been altered from the originals.
 
 """ CircuitStateFn Class """
-
-
+import typing
 from typing import Dict, List, Optional, Set, Union, cast
 
 import numpy as np
@@ -47,7 +46,7 @@ class CircuitStateFn(StateFn):
     def __init__(
         self,
         primitive: Union[QuantumCircuit, Instruction] = None,
-        coeff: Union[complex, ParameterExpression] = 1.0,
+        coeff: Union[typing.SupportsComplex, ParameterExpression] = 1.0,
         is_measurement: bool = False,
         from_operator: bool = False,
     ) -> None:

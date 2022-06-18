@@ -15,7 +15,7 @@
 This implementation allows both, standard first-order as well as second-order SPSA.
 """
 
-from typing import Iterator, Optional, Union, Callable, Tuple, Dict, List, Any
+from typing import Iterator, Optional, Union, Callable, Tuple, Dict, List, Any, SupportsFloat
 import logging
 import warnings
 from time import time
@@ -30,8 +30,8 @@ from qiskit.utils.deprecation import deprecate_function
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
 # number of function evaluations, parameters, loss, stepsize, accepted
-CALLBACK = Callable[[int, np.ndarray, float, float, bool], None]
-TERMINATIONCHECKER = Callable[[int, np.ndarray, float, float, bool], bool]
+CALLBACK = Callable[[int, np.ndarray, float, SupportsFloat, bool], None]
+TERMINATIONCHECKER = Callable[[int, np.ndarray, float, SupportsFloat, bool], bool]
 
 logger = logging.getLogger(__name__)
 

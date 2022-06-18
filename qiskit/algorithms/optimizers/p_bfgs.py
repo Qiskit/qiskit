@@ -16,7 +16,7 @@ import logging
 import multiprocessing
 import platform
 import sys
-from typing import Optional, List, Tuple, Callable
+from typing import Optional, List, Tuple, Callable, SupportsFloat
 
 import numpy as np
 
@@ -49,7 +49,7 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
     def __init__(
         self,
         maxfun: int = 1000,
-        ftol: float = 10 * np.finfo(float).eps,
+        ftol: SupportsFloat = 10 * np.finfo(float).eps,
         iprint: int = -1,
         max_processes: Optional[int] = None,
         options: Optional[dict] = None,
