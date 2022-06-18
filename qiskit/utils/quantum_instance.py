@@ -38,6 +38,7 @@ from qiskit.utils.mitigation import (
     CompleteMeasFitter,
     TensoredMeasFitter,
 )
+from result import Result
 
 logger = logging.getLogger(__name__)
 
@@ -466,7 +467,7 @@ class QuantumInstance:
 
         return compiler.assemble(circuits, **self._run_config.to_dict())
 
-    def execute(self, circuits, had_transpiled: bool = False):
+    def execute(self, circuits, had_transpiled: bool = False) -> Result:
         """
         A wrapper to interface with quantum backend.
 

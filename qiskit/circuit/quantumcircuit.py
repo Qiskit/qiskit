@@ -1249,6 +1249,7 @@ class QuantumCircuit:
         else:
             operation = instruction
         # Convert input to instruction
+        # TODO: define type SupportsInstruction?
         if not isinstance(operation, Instruction) and not hasattr(operation, "to_instruction"):
             if issubclass(operation, Instruction):
                 raise CircuitError(
@@ -4882,7 +4883,7 @@ def _insert_composite_gate_definition_qasm(
     # Generate gate definition string
     for instruction in existing_composite_circuits:
         if hasattr(instruction, "_qasm_definition"):
-            qasm_string = instruction._qasm_definition
+            qasm_string = instruction._qasm_definition  # type: ignore[attr-defined]
         else:
             qasm_string = _get_composite_circuit_qasm_from_instruction(instruction)
         gate_definition_string += "\n" + qasm_string

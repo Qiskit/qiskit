@@ -301,7 +301,7 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             qc_control.p(theta, 0)
             return qc_control
 
-        qc.control = control
+        qc.control = control  # type: ignore[assignment]
         return qc
 
     def _off_diag_circ(self, theta: float = 1) -> QuantumCircuit:
@@ -399,7 +399,7 @@ class TridiagonalToeplitz(LinearSystemMatrix):
                 qc_control.cx(qr[i], qr[i + 1])
             return qc_control
 
-        qc.control = control
+        qc.control = control  # type: ignore[assignment]
         return qc
 
     def inverse(self):
@@ -477,5 +477,5 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             )
             return qc
 
-        qc_raw.control = control
+        qc_raw.control = control  # type: ignore[assignment]
         return qc_raw

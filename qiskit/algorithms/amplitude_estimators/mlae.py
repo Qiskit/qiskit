@@ -12,7 +12,7 @@
 
 """The Maximum Likelihood Amplitude Estimation algorithm."""
 
-from typing import Optional, List, Union, Tuple, Dict, Callable
+from typing import Optional, List, Union, Tuple, Dict, Callable, Sequence
 import numpy as np
 from scipy.optimize import brute
 from scipy.stats import norm, chi2
@@ -170,7 +170,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         alpha: float,
         kind: str = "fisher",
         apply_post_processing: bool = False,
-    ) -> Tuple[float, float]:
+    ) -> Tuple[float, ...]:
         """Compute the `alpha` confidence interval using the method `kind`.
 
         The confidence level is (1 - `alpha`) and supported kinds are 'fisher',
@@ -191,7 +191,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
             AlgorithmError: If `run()` hasn't been called yet.
             NotImplementedError: If the method `kind` is not supported.
         """
-        interval = None
+        interval: Optional[Union[List[float]], Tuple[float, float]] = None
 
         # if statevector simulator the estimate is exact
         if all(isinstance(data, (list, np.ndarray)) for data in result.circuit_results):
@@ -538,7 +538,7 @@ def _likelihood_ratio_confint(
 
 
 def _get_counts(
-    circuit_results: List[Union[np.ndarray, List[float], Dict[str, int]]],
+    circuit_results: Sequence[Union[np.ndarray, List[float], Dict[str, int]]],
     estimation_problem: EstimationProblem,
     num_state_qubits: int,
 ) -> Tuple[List[float], List[int]]:

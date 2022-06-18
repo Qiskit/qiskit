@@ -368,14 +368,14 @@ class HHL(LinearSolver):
 
         # Set the tolerance for the matrix approximation
         if hasattr(matrix_circuit, "tolerance"):
-            matrix_circuit.tolerance = self._epsilon_a
+            matrix_circuit.tolerance = self._epsilon_a  # type: ignore[attr-defined]
 
         # check if the matrix can calculate the condition number and store the upper bound
         if (
             hasattr(matrix_circuit, "condition_bounds")
-            and matrix_circuit.condition_bounds() is not None
+            and matrix_circuit.condition_bounds() is not None  # type: ignore[attr-defined]
         ):
-            kappa = matrix_circuit.condition_bounds()[1]
+            kappa = matrix_circuit.condition_bounds()[1]  # type: ignore[attr-defined]
         else:
             kappa = 1
         # Update the number of qubits required to represent the eigenvalues
@@ -384,8 +384,8 @@ class HHL(LinearSolver):
         nl = max(nb + 1, int(np.ceil(np.log2(kappa + 1)))) + neg_vals
 
         # check if the matrix can calculate bounds for the eigenvalues
-        if hasattr(matrix_circuit, "eigs_bounds") and matrix_circuit.eigs_bounds() is not None:
-            lambda_min, lambda_max = matrix_circuit.eigs_bounds()
+        if hasattr(matrix_circuit, "eigs_bounds") and matrix_circuit.eigs_bounds() is not None:  # type: ignore[attr-defined]
+            lambda_min, lambda_max = matrix_circuit.eigs_bounds()  # type: ignore[attr-defined]
             # Constant so that the minimum eigenvalue is represented exactly, since it contributes
             # the most to the solution of the system. -1 to take into account the sign qubit
             delta = self._get_delta(nl - neg_vals, lambda_min, lambda_max)

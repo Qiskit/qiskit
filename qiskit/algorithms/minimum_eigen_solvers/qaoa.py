@@ -127,6 +127,7 @@ class QAOA(VQE):
         )
 
     def _check_operator_ansatz(self, operator: OperatorBase) -> OperatorBase:
+        # TODO: should return something?
         # Recreates a circuit based on operator parameter.
         if operator != self._cost_operator:
             self._cost_operator = operator

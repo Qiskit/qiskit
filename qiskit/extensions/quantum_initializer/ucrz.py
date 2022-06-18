@@ -92,4 +92,4 @@ def ucrz(self, angle_list, q_controls, q_target):
     return self.append(UCRZGate(angle_list), [q_target] + q_controls, [])
 
 
-QuantumCircuit.ucrz = ucrz
+QuantumCircuit.ucrz = ucrz  # type: ignore[attr-defined]

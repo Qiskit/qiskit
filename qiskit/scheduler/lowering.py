@@ -69,7 +69,7 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
         """Create a schedule to measure the qubits queued for measuring."""
         sched = Schedule()
         # Exclude acquisition on these qubits, since they are handled by the user calibrations
-        acquire_excludes = {}
+        acquire_excludes: Dict[int, int] = {}
         if Measure().name in circuit.calibrations.keys():
             qubits = tuple(sorted(qubit_mem_slots.keys()))
             params = ()

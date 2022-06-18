@@ -468,6 +468,8 @@ class Drag(ParametricPulse):
         ):
             # If beta <= sigma, then the maximum amplitude is at duration / 2, which is
             # already constrained by self.amp <= 1
+            assert isinstance(self.beta, float)
+            assert isinstance(self.sigma, float)
 
             # 1. Find the first maxima associated with the beta * d/dx gaussian term
             #    This eq is derived from solving for the roots of the norm of the drag function.

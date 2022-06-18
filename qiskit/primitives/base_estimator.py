@@ -113,6 +113,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
 from copy import copy
+from typing import List
 
 import numpy as np
 
@@ -163,8 +164,8 @@ class BaseEstimator(ABC):
 
         # To guarantee that they exist as instance variable.
         # With only dynamic set, the python will not know if the attribute exists or not.
-        self._circuit_ids = self._circuit_ids
-        self._observable_ids = self._observable_ids
+        self._circuit_ids: List[int] = self._circuit_ids
+        self._observable_ids: List[int] = self._observable_ids
 
         if parameters is None:
             self._parameters = tuple(circ.parameters for circ in self._circuits)
@@ -296,7 +297,7 @@ class BaseEstimator(ABC):
                 if not isinstance(circuit, (int, np.integer))
                 else circuit
                 for circuit in circuits
-            ]
+            ]  # TODO: typed as list of int after this operations
         except StopIteration as err:
             raise QiskitError(
                 "The circuits passed when calling estimator is not one of the circuits used to "
@@ -308,7 +309,7 @@ class BaseEstimator(ABC):
                 if not isinstance(observable, (int, np.integer))
                 else observable
                 for observable in observables
-            ]
+            ]  # TODO: typed as list of int after this operations
         except StopIteration as err:
             raise QiskitError(
                 "The observables passed when calling estimator is not one of the observables used to "

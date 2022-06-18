@@ -101,7 +101,7 @@ class ElementaryData(ABC):
         self.data_type = str(data_type)
         self.xvals = np.array(xvals, dtype=object)
         self.yvals = np.array(yvals, dtype=object)
-        self.channels = channels or []
+        self.channels: List[Channel] = channels or []
         self.meta = meta or {}
         self.ignore_scaling = ignore_scaling
         self.styles = styles or {}

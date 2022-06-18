@@ -154,4 +154,4 @@ def diagonal(self, diag, qubit):
     return self.append(DiagonalGate(diag), qubit)
 
 
-QuantumCircuit.diagonal = diagonal
+QuantumCircuit.diagonal = diagonal  # type: ignore[attr-defined]

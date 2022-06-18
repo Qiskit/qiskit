@@ -350,4 +350,4 @@ def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False):
     return self.append(UCGate(gate_list, up_to_diagonal), [q_target] + q_controls)
 
 
-QuantumCircuit.uc = uc
+QuantumCircuit.uc = uc  # type: ignore[attr-defined]

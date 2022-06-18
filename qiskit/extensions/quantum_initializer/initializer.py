@@ -188,4 +188,4 @@ def initialize(self, params, qubits=None):
     return self.append(Initialize(params, num_qubits), qubits)
 
 
-QuantumCircuit.initialize = initialize
+QuantumCircuit.initialize = initialize  # type: ignore[attr-defined]

@@ -269,6 +269,7 @@ class FasterAmplitudeEstimationResult(AmplitudeEstimatorResult):
     @property
     def success_probability(self) -> int:
         """Return the success probability of the algorithm."""
+        # TODO: should be float?
         return self._success_probability
 
     @success_probability.setter

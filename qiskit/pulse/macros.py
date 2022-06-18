@@ -80,6 +80,7 @@ def measure(
         for time, inst in default_sched.instructions:
             if inst.channel.index not in qubits:
                 continue
+            assert isinstance(inst.channel.index, int)
             if qubit_mem_slots and isinstance(inst, instructions.Acquire):
                 if inst.channel.index in qubit_mem_slots:
                     mem_slot = channels.MemorySlot(qubit_mem_slots[inst.channel.index])

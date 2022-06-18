@@ -33,7 +33,7 @@ PhaseFreqTuple.phase.__doc__ = "Phase value in rad."
 PhaseFreqTuple.freq.__doc__ = "Frequency value in Hz."
 
 
-PulseInstruction = NamedTuple(
+PulseInstruction = NamedTuple(  # type: ignore[name-match]
     "InstructionTuple",
     [
         ("t0", int),
@@ -51,7 +51,7 @@ PulseInstruction.inst.__doc__ = "Pulse instruction."
 PulseInstruction.is_opaque.__doc__ = "If there is any unbound parameters."
 
 
-BarrierInstruction = NamedTuple(
+BarrierInstruction = NamedTuple(  # type: ignore[name-match]
     "Barrier", [("t0", int), ("dt", Optional[float]), ("channels", List[pulse.channels.Channel])]
 )
 BarrierInstruction.__doc__ = "Data to represent special pulse instruction of barrier."
@@ -60,7 +60,7 @@ BarrierInstruction.dt.__doc__ = "System cycle time."
 BarrierInstruction.channels.__doc__ = "A list of channel associated with this barrier."
 
 
-SnapshotInstruction = NamedTuple(
+SnapshotInstruction = NamedTuple(  # type: ignore[name-match]
     "Snapshots", [("t0", int), ("dt", Optional[float]), ("inst", pulse.instructions.Snapshot)]
 )
 SnapshotInstruction.__doc__ = "Data to represent special pulse instruction of snapshot."

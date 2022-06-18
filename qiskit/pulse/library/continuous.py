@@ -105,7 +105,7 @@ def sin(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.nd
 
 
 def _fix_gaussian_width(
-    gaussian_samples,
+    gaussian_samples: np.ndarray,
     amp: complex,
     center: float,
     sigma: float,
@@ -230,7 +230,7 @@ def gaussian_deriv(
 
 
 def _fix_sech_width(
-    sech_samples,
+    sech_samples: np.ndarray,
     amp: complex,
     center: float,
     sigma: float,

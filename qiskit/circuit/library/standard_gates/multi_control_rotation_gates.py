@@ -239,6 +239,6 @@ def mcrz(
         )
 
 
-QuantumCircuit.mcrx = mcrx
-QuantumCircuit.mcry = mcry
-QuantumCircuit.mcrz = mcrz
+QuantumCircuit.mcrx = mcrx  # type: ignore[attr-defined]
+QuantumCircuit.mcry = mcry  # type: ignore[attr-defined]
+QuantumCircuit.mcrz = mcrz  # type: ignore[attr-defined]

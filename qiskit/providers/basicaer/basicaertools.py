@@ -15,11 +15,12 @@
 """
 
 from string import ascii_uppercase, ascii_lowercase
-from typing import List, Optional
+from typing import List, Optional, Type
 
 import numpy as np
 
 import qiskit.circuit.library.standard_gates as gates
+from circuit import Gate
 from qiskit.exceptions import QiskitError
 
 # Single qubit gates supported by ``single_gate_params``.
@@ -41,6 +42,7 @@ def single_gate_matrix(gate: str, params: Optional[List[float]] = None):
     if params is None:
         params = []
 
+    gc: Type[Gate]
     if gate == "U":
         gc = gates.UGate
     elif gate == "u3":

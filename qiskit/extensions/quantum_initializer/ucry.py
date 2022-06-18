@@ -91,4 +91,4 @@ def ucry(self, angle_list, q_controls, q_target):
     return self.append(UCRYGate(angle_list), [q_target] + q_controls, [])
 
 
-QuantumCircuit.ucry = ucry
+QuantumCircuit.ucry = ucry  # type: ignore[attr-defined]

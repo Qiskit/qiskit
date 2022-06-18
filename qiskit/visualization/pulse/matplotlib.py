@@ -15,7 +15,7 @@
 """Matplotlib classes for pulse visualization."""
 
 import collections
-from typing import Dict, List, Tuple, Callable, Union, Any, Optional
+from typing import Dict, List, Tuple, Callable, Union, Any, Optional, Set
 
 import numpy as np
 
@@ -420,7 +420,7 @@ class ScheduleDrawer:
         control_channels = collections.OrderedDict()
         acquire_channels = collections.OrderedDict()
         snapshot_channels = collections.OrderedDict()
-        _channels = set()
+        _channels: Set[Channel] = set()
         if show_framechange_channels:
             _channels.update(schedule.channels)
         # take channels that do not only contain framechanges
