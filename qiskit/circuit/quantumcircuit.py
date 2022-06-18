@@ -253,7 +253,7 @@ class QuantumCircuit:
         # like `break` and `continue`.  This is because these instructions need to "operate" on the
         # full width of bits, but the builder interface won't know what bits are used until the end.
         self._control_flow_scopes: List[
-            qiskit.circuit.controlflow.builder.ControlFlowBuilderBlock
+            "qiskit.circuit.controlflow.builder.ControlFlowBuilderBlock"
         ] = []
 
         self.qregs: List[QuantumRegister] = []

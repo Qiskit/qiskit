@@ -75,6 +75,10 @@ if _optionals.HAS_Z3:
     # MULTI-QUBIT GATES #
     # SwapGate
     SwapGate._trivial_if = lambda self, x1, x2: x1 == x2  # type: ignore[attr-defined]
-    SwapGate._postconditions = lambda self, x1, x2, y1, y2: z3.And(x1 == y2, x2 == y1)  # type: ignore[attr-defined]
+    SwapGate._postconditions = lambda self, x1, x2, y1, y2: z3.And(
+        x1 == y2, x2 == y1
+    )  # type: ignore[attr-defined]
     CSwapGate._trivial_if = lambda self, x1, x2: x1 == x2  # type: ignore[attr-defined]
-    CSwapGate._postconditions = lambda self, x1, x2, y1, y2: z3.And(x1 == y2, x2 == y1)  # type: ignore[attr-defined]
+    CSwapGate._postconditions = lambda self, x1, x2, y1, y2: z3.And(
+        x1 == y2, x2 == y1
+    )  # type: ignore[attr-defined]

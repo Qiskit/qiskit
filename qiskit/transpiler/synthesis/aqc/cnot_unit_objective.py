@@ -13,6 +13,7 @@
 A definition of the approximate circuit compilation optimization problem based on CNOT unit
 definition.
 """
+import typing
 from abc import ABC
 from typing import Optional
 
@@ -75,7 +76,7 @@ class DefaultCNOTUnitObjective(CNOTUnitObjective):
         self._rotation_matrix: Optional[np.ndarray] = None
         self._cnot_matrix: Optional[np.ndarray] = None
 
-    def objective(self, param_values: np.ndarray) -> float:
+    def objective(self, param_values: np.ndarray) -> typing.SupportsFloat:
         # rename parameters just to make shorter and make use of our dictionary
         thetas = param_values
         n = self._num_qubits
