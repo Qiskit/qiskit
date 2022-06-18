@@ -819,7 +819,8 @@ class TestGates(TestBuilder):
     def test_u1(self):
         """Test u1 gate."""
         with pulse.build(self.backend) as schedule:
-            pulse.u1(np.pi / 2, 0)
+            with pulse.transpiler_settings(layout_method="trivial"):
+                pulse.u1(np.pi / 2, 0)
 
         reference_qc = circuit.QuantumCircuit(1)
         reference_qc.append(circuit.library.U1Gate(np.pi / 2), [0])

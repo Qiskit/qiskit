@@ -29,6 +29,7 @@ from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import GateDirection
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import VF2Layout
+from qiskit.transpiler.passes import VF2PostLayout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
@@ -64,8 +65,10 @@ from qiskit.transpiler.passes import PadDelay
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import ContainsInstruction
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
+from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
 
 from qiskit.transpiler import TranspilerError
+from qiskit.utils.optionals import HAS_TOQM
 
 
 def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
@@ -123,7 +126,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             min_qubits=3,
             target=target,
         ),
-        Unroll3qOrMore(),
+        Unroll3qOrMore(target=target, basis_gates=basis_gates),
     ]
 
     # 2. Layout on good qubits if calibration info available, otherwise on dense links
@@ -155,7 +158,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             coupling_map,
             seed=seed_transpiler,
             call_limit=int(3e7),  # Set call limit to ~60 sec with retworkx 0.10.2
-            time_limit=60,
             properties=backend_properties,
             target=target,
         )
@@ -181,6 +183,9 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _swap_condition(property_set):
         return not property_set["is_swap_mapped"]
 
+    def _swap_needs_basis(property_set):
+        return _swap_condition(property_set) and routing_method == "toqm"
+
     _swap = [BarrierBeforeFinalMeasurements()]
     if routing_method == "basic":
         _swap += [BasicSwap(coupling_map)]
@@ -190,6 +195,25 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _swap += [LookaheadSwap(coupling_map, search_depth=5, search_width=6)]
     elif routing_method == "sabre":
         _swap += [SabreSwap(coupling_map, heuristic="decay", seed=seed_transpiler)]
+    elif routing_method == "toqm":
+        HAS_TOQM.require_now("TOQM-based routing")
+        from qiskit_toqm import ToqmSwap, ToqmStrategyO3, latencies_from_target
+
+        if initial_layout:
+            raise TranspilerError("Initial layouts are not supported with TOQM-based routing.")
+
+        # Note: BarrierBeforeFinalMeasurements is skipped intentionally since ToqmSwap
+        #       does not yet support barriers.
+        _swap = [
+            ToqmSwap(
+                coupling_map,
+                strategy=ToqmStrategyO3(
+                    latencies_from_target(
+                        coupling_map, instruction_durations, basis_gates, backend_properties, target
+                    )
+                ),
+            )
+        ]
     elif routing_method == "none":
         _swap += [
             Error(
@@ -234,7 +258,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 min_qubits=3,
                 target=target,
             ),
-            Unroll3qOrMore(),
+            Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates, target=target),
             UnitarySynthesis(
@@ -296,7 +320,47 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm3.append(_choose_layout_1, condition=_vf2_match_not_found)
         pm3.append(_embed)
         pm3.append(_swap_check)
+        pm3.append(_unroll, condition=_swap_needs_basis)
         pm3.append(_swap, condition=_swap_condition)
+        if (
+            (coupling_map and backend_properties)
+            and initial_layout is None
+            and pass_manager_config.layout_method is None
+        ):
+
+            def _run_post_layout_condition(property_set):
+                vf2_stop_reason = property_set["VF2Layout_stop_reason"]
+                if (
+                    vf2_stop_reason is not None
+                    and vf2_stop_reason == VF2LayoutStopReason.SOLUTION_FOUND
+                ):
+                    return False
+                return True
+
+            def _apply_post_layout_condition(property_set):
+                # if VF2 Post layout found a solution we need to re-apply the better
+                # layout. Otherwise we can skip apply layout.
+                if (
+                    property_set["VF2PostLayout_stop_reason"] is not None
+                    and property_set["VF2PostLayout_stop_reason"]
+                    is VF2PostLayoutStopReason.SOLUTION_FOUND
+                ):
+                    return True
+                return False
+
+            pm3.append(
+                VF2PostLayout(
+                    target,
+                    coupling_map,
+                    backend_properties,
+                    seed_transpiler,
+                    call_limit=int(3e7),  # Set call limit to ~60 sec with retworkx 0.10.2
+                    strict_direction=False,
+                ),
+                condition=_run_post_layout_condition,
+            )
+            pm3.append(ApplyLayout(), condition=_apply_post_layout_condition)
+
     pm3.append(_unroll)
     if (coupling_map and not coupling_map.is_symmetric) or (
         target is not None and target.get_non_global_operation_names(strict_direction=True)
@@ -319,6 +383,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm3.append(_reset)
         pm3.append(_depth_check + _size_check)
         pm3.append(_opt + _unroll + _depth_check + _size_check, do_while=_opt_control)
+
     if inst_map and inst_map.has_custom_gate():
         pm3.append(PulseGates(inst_map=inst_map))
 

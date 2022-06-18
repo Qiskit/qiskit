@@ -64,6 +64,8 @@ load that QPY file with qiskit-terra 0.19.0 and a hypothetical qiskit-terra
 0.29.0. However, loading that QPY file with 0.18.0 is not supported and may not
 work.
 
+.. _qpy_format:
+
 **********
 QPY Format
 **********
@@ -97,6 +99,82 @@ Each individual circuit is composed of the following parts:
 There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
+
+.. _qpy_version_5:
+
+Version 5
+=========
+
+Version 5 changes from :ref:`qpy_version_4` by changing two payloads the INSTRUCTION metadata
+payload and the CUSTOM_INSTRUCTION block. These now have new fields to better account for
+:class:`~.ControlledGate` objects in a circuit.
+
+INSTRUCTION
+-----------
+
+The INSTRUCTION block was modified to add two new fields ``num_ctrl_qubits`` and ``ctrl_state``
+which are used to model the :attr:`.ControlledGate.num_ctrl_qubits` and
+:attr:`.ControlledGate.ctrl_state` attributes. The new payload packed struct
+format is:
+
+.. code-block:: c
+
+    struct {
+        uint16_t name_size;
+        uint16_t label_size;
+        uint16_t num_parameters;
+        uint32_t num_qargs;
+        uint32_t num_cargs;
+        _Bool has_conditional;
+        uint16_t conditional_reg_name_size;
+        int64_t conditional_value;
+        uint32_t num_ctrl_qubits;
+        uint32_t ctrl_state;
+    }
+
+The rest of the instruction payload is the same. You can refer to
+:ref:`qpy_instructions` for the details of the full payload.
+
+CUSTOM_INSTRUCTION
+------------------
+
+The CUSTOM_INSTRUCTION block in QPY version 5 adds a new field
+``base_gate_size`` which is used to define the size of the
+:class:`qiskit.circuit.Instruction` object stored in the
+:attr:`.ControlledGate.base_gate` attribute for a custom
+:class:`~.ControlledGate` object. With this change the CUSTOM_INSTRUCTION
+metadata block becomes:
+
+.. code-block:: c
+
+    struct {
+        uint16_t name_size;
+        char type;
+        uint32_t num_qubits;
+        uint32_t num_clbits;
+        _Bool custom_definition;
+        uint64_t size;
+        uint32_t num_ctrl_qubits;
+        uint32_t ctrl_state;
+        uint64_t base_gate_size
+    }
+
+Immediately following the CUSTOM_INSTRUCTION struct is the utf8 encoded name
+of size ``name_size``.
+
+If ``custom_definition`` is ``True`` that means that the immediately following
+``size`` bytes contains a QPY circuit data which can be used for the custom
+definition of that gate. If ``custom_definition`` is ``False`` then the
+instruction can be considered opaque (ie no definition). The ``type`` field
+determines what type of object will get created with the custom definition.
+If it's ``'g'`` it will be a :class:`~qiskit.circuit.Gate` object, ``'i'``
+it will be a :class:`~qiskit.circuit.Instruction` object.
+
+Following this the next ``base_gate_size`` bytes contain the ``INSTRUCTION``
+payload for the :attr:`.ControlledGate.base_gate`.
+
+Additionally an addition value for ``type`` is added ``'c'`` which is used to
+indicate the custom instruction is a custom :class:`~.ControlledGate`.
 
 .. _qpy_version_4:
 
@@ -453,6 +531,8 @@ Each custom instruction is defined with a CUSTOM_INSTRUCTION block defined as:
     struct {
         uint16_t name_size;
         char type;
+        uint32_t num_qubits;
+        uint32_t num_clbits;
         _Bool custom_definition;
         uint64_t size;
     }
@@ -467,6 +547,8 @@ instruction can be considered opaque (ie no definition). The ``type`` field
 determines what type of object will get created with the custom definition.
 If it's ``'g'`` it will be a :class:`~qiskit.circuit.Gate` object, ``'i'``
 it will be a :class:`~qiskit.circuit.Instruction` object.
+
+.. _qpy_instructions:
 
 INSTRUCTIONS
 ------------

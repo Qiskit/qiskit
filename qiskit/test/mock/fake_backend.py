@@ -16,28 +16,23 @@
 Base class for dummy backends.
 """
 
-import uuid
 import warnings
 import json
 import os
 
-from typing import List, Union
+from typing import List
 
 from qiskit import circuit
 from qiskit.providers.models import BackendProperties
-from qiskit.providers import BackendV2, BackendV1, BaseBackend, QubitProperties
+from qiskit.providers import BackendV2, BackendV1
 from qiskit import pulse
 from qiskit.exceptions import QiskitError
-from qiskit.test.mock import fake_job
 from qiskit.test.mock.utils.json_decoder import (
     decode_backend_configuration,
     decode_backend_properties,
     decode_pulse_defaults,
 )
-from qiskit.test.mock.utils.backend_converter import (
-    convert_to_target,
-    qubit_props_from_props,
-)
+from qiskit.test.mock.utils.backend_converter import convert_to_target
 from qiskit.utils import optionals as _optionals
 from qiskit.providers import basicaer
 from qiskit.transpiler import Target
@@ -76,8 +71,8 @@ class FakeBackendV2(BackendV2):
     def __init__(self):
         """FakeBackendV2 initializer."""
         self._conf_dict = self._get_conf_dict_from_json()
-        self._props_dict = self._set_props_dict_from_json()
-        self._defs_dict = self._set_defs_dict_from_json()
+        self._props_dict = None
+        self._defs_dict = None
         super().__init__(
             provider=None,
             name=self._conf_dict.get("backend_name"),
@@ -85,14 +80,25 @@ class FakeBackendV2(BackendV2):
             online_date=self._conf_dict.get("online_date"),
             backend_version=self._conf_dict.get("backend_version"),
         )
-        self._target = convert_to_target(
-            conf_dict=self._conf_dict,
-            props_dict=self._props_dict,
-            defs_dict=self._defs_dict,
-        )
-        self._qubit_properties = qubit_props_from_props(self._props_dict)
+        self._target = None
+        self.sim = None
 
-    def _get_conf_dict_from_json(self) -> dict:
+    def _setup_sim(self):
+        if _optionals.HAS_AER:
+            from qiskit.providers import aer
+
+            self.sim = aer.AerSimulator()
+            if self._props_dict:
+                noise_model = self._get_noise_model_from_backend_v2()
+                self.sim.set_options(noise_model=noise_model)
+                # Update fake backend default too to avoid overwriting
+                # it when run() is called
+                self.set_options(noise_model=noise_model)
+
+        else:
+            self.sim = basicaer.QasmSimulatorPy()
+
+    def _get_conf_dict_from_json(self):
         if not self.conf_filename:
             return None
         conf_dict = self._load_json(self.conf_filename)
@@ -100,19 +106,17 @@ class FakeBackendV2(BackendV2):
         conf_dict["backend_name"] = self.backend_name
         return conf_dict
 
-    def _set_props_dict_from_json(self) -> dict:
-        if not self.props_filename:
-            return None
-        props_dict = self._load_json(self.props_filename)
-        decode_backend_properties(props_dict)
-        return props_dict
+    def _set_props_dict_from_json(self):
+        if self.props_filename:
+            props_dict = self._load_json(self.props_filename)
+            decode_backend_properties(props_dict)
+            self._props_dict = props_dict
 
-    def _set_defs_dict_from_json(self) -> dict:
-        if not self.defs_filename:
-            return None
-        defs_dict = self._load_json(self.defs_filename)
-        decode_pulse_defaults(defs_dict)
-        return defs_dict
+    def _set_defs_dict_from_json(self):
+        if self.defs_filename:
+            defs_dict = self._load_json(self.defs_filename)
+            decode_pulse_defaults(defs_dict)
+            self._defs_dict = defs_dict
 
     def _load_json(self, filename: str) -> dict:
         with open(os.path.join(self.dirname, filename)) as f_json:
@@ -125,6 +129,18 @@ class FakeBackendV2(BackendV2):
 
         :rtype: Target
         """
+        if self._target is None:
+            self._get_conf_dict_from_json()
+            if self._props_dict is None:
+                self._set_props_dict_from_json()
+            if self._defs_dict is None:
+                self._set_defs_dict_from_json()
+            self._target = convert_to_target(
+                conf_dict=self._conf_dict,
+                props_dict=self._props_dict,
+                defs_dict=self._defs_dict,
+            )
+
         return self._target
 
     @property
@@ -147,7 +163,7 @@ class FakeBackendV2(BackendV2):
         if _optionals.HAS_AER:
             from qiskit.providers import aer
 
-            return aer.QasmSimulator._default_options()
+            return aer.AerSimulator._default_options()
         else:
             return basicaer.QasmSimulatorPy._default_options()
 
@@ -158,7 +174,12 @@ class FakeBackendV2(BackendV2):
         Returns:
             dtm: The output signal timestep in seconds.
         """
-        return self._conf_dict.get("dtm")
+        dtm = self._conf_dict.get("dtm")
+        if dtm is not None:
+            # converting `dtm` in nanoseconds in configuration file to seconds
+            return dtm * 1e-9
+        else:
+            return None
 
     @property
     def meas_map(self) -> List[List[int]]:
@@ -170,28 +191,6 @@ class FakeBackendV2(BackendV2):
             meas_map: The grouping of measurements which are multiplexed
         """
         return self._conf_dict.get("meas_map")
-
-    def qubit_properties(
-        self, qubit: Union[int, List[int]]
-    ) -> Union[QubitProperties, List[QubitProperties]]:
-        """Return QubitProperties for a given qubit.
-        Args:
-            qubit: The qubit to get the
-                :class:`~qiskit.provider.QubitProperties` object for. This can
-                be a single integer for 1 qubit or a list of qubits and a list
-                of :class:`~qiskit.provider.QubitProperties` objects will be
-                returned in the same order
-        Returns:
-            qubit_properties: The :class:`~qiskit.provider.QubitProperties`
-            object for the specified qubit. If a list of qubits is provided a
-            list will be returned. If properties are missing for a qubit this
-            can be ``None``.
-        """
-        if isinstance(qubit, int):  # type: ignore[unreachable]
-            return self._qubit_properties.get(qubit)
-        if isinstance(qubit, List):
-            return [self._qubit_properties.get(q) for q in qubit]
-        return None
 
     def run(self, run_input, **options):
         """Run on the fake backend using a simulator.
@@ -243,22 +242,14 @@ class FakeBackendV2(BackendV2):
                 "QuantumCircuit, Schedule, or a list of either" % circuits
             )
         if pulse_job:  # pulse job
-            raise QiskitError("Pulse simulation is currently not supported for V2 backends.")
+            raise QiskitError("Pulse simulation is currently not supported for V2 fake backends.")
         # circuit job
-        if _optionals.HAS_AER:
-            from qiskit.providers import aer
-
-            sim = aer.Aer.get_backend("qasm_simulator")
-            sim._options = self._options
-            if self._props_dict:
-                noise_model = self._get_noise_model_from_backend_v2()
-                job = sim.run(circuits, noise_model=noise_model, **options)
-            else:  # simulate without noise
-                job = sim.run(circuits, **options)
-        else:
+        if not _optionals.HAS_AER:
             warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
-            sim = basicaer.BasicAer.get_backend("qasm_simulator")
-            job = sim.run(circuits, **options)
+        if self.sim is None:
+            self._setup_sim()
+        self.sim._options = self._options
+        job = self.sim.run(circuits, **options)
         return job
 
     def _get_noise_model_from_backend_v2(
@@ -287,6 +278,9 @@ class FakeBackendV2(BackendV2):
         )
         from qiskit.providers.aer.noise.passes import RelaxationNoisePass
 
+        if self._props_dict is None:
+            self._set_props_dict_from_json()
+
         properties = BackendProperties.from_dict(self._props_dict)
         basis_gates = self.operation_names
         num_qubits = self.num_qubits
@@ -303,7 +297,6 @@ class FakeBackendV2(BackendV2):
         with warnings.catch_warnings():
             warnings.filterwarnings(
                 "ignore",
-                category=DeprecationWarning,
                 module="qiskit.providers.aer.noise.device.models",
             )
             gate_errors = basic_device_gate_errors(
@@ -357,6 +350,22 @@ class FakeBackend(BackendV1):
         super().__init__(configuration)
         self.time_alive = time_alive
         self._credentials = _Credentials()
+        self.sim = None
+
+    def _setup_sim(self):
+        if _optionals.HAS_AER:
+            from qiskit.providers import aer
+            from qiskit.providers.aer.noise import NoiseModel
+
+            self.sim = aer.AerSimulator()
+            if self.properties():
+                noise_model = NoiseModel.from_backend(self, warnings=False)
+                self.sim.set_options(noise_model=noise_model)
+                # Update fake backend default options too to avoid overwriting
+                # it when run() is called
+                self.set_options(noise_model=noise_model)
+        else:
+            self.sim = basicaer.QasmSimulatorPy()
 
     def properties(self):
         """Return backend properties"""
@@ -436,129 +445,21 @@ class FakeBackend(BackendV1):
                 "Invalid input object %s, must be either a "
                 "QuantumCircuit, Schedule, or a list of either" % circuits
             )
-        if _optionals.HAS_AER:
-            from qiskit.providers import aer
-
-            if pulse_job:
+        if pulse_job:
+            if _optionals.HAS_AER:
+                from qiskit.providers import aer
                 from qiskit.providers.aer.pulse import PulseSystemModel
 
                 system_model = PulseSystemModel.from_backend(self)
                 sim = aer.Aer.get_backend("pulse_simulator")
                 job = sim.run(circuits, system_model=system_model, **kwargs)
             else:
-                sim = aer.Aer.get_backend("qasm_simulator")
-                if self.properties():
-                    from qiskit.providers.aer.noise import NoiseModel
-
-                    noise_model = NoiseModel.from_backend(self, warnings=False)
-                    job = sim.run(circuits, noise_model=noise_model, **kwargs)
-                else:
-                    job = sim.run(circuits, **kwargs)
-        else:
-            if pulse_job:
                 raise QiskitError("Unable to run pulse schedules without qiskit-aer installed")
-            warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
-            sim = basicaer.BasicAer.get_backend("qasm_simulator")
-            job = sim.run(circuits, **kwargs)
+        else:
+            if self.sim is None:
+                self._setup_sim()
+            if not _optionals.HAS_AER:
+                warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
+            self.sim._options = self._options
+            job = self.sim.run(circuits, **kwargs)
         return job
-
-
-class FakeLegacyBackend(BaseBackend):
-    """This is a dummy backend just for testing purposes of the legacy providers interface."""
-
-    def __init__(self, configuration, time_alive=10):
-        """FakeBackend initializer.
-        Args:
-            configuration (BackendConfiguration): backend configuration
-            time_alive (int): time to wait before returning result
-        """
-        super().__init__(configuration)
-        self.time_alive = time_alive
-        self._credentials = _Credentials()
-
-    def properties(self):
-        """Return backend properties"""
-        coupling_map = self.configuration().coupling_map
-        unique_qubits = list(set().union(*coupling_map))
-
-        properties = {
-            "backend_name": self.name(),
-            "backend_version": self.configuration().backend_version,
-            "last_update_date": "2000-01-01 00:00:00Z",
-            "qubits": [
-                [
-                    {"date": "2000-01-01 00:00:00Z", "name": "T1", "unit": "\u00b5s", "value": 0.0},
-                    {"date": "2000-01-01 00:00:00Z", "name": "T2", "unit": "\u00b5s", "value": 0.0},
-                    {
-                        "date": "2000-01-01 00:00:00Z",
-                        "name": "frequency",
-                        "unit": "GHz",
-                        "value": 0.0,
-                    },
-                    {
-                        "date": "2000-01-01 00:00:00Z",
-                        "name": "readout_error",
-                        "unit": "",
-                        "value": 0.0,
-                    },
-                    {"date": "2000-01-01 00:00:00Z", "name": "operational", "unit": "", "value": 1},
-                ]
-                for _ in range(len(unique_qubits))
-            ],
-            "gates": [
-                {
-                    "gate": "cx",
-                    "name": "CX" + str(pair[0]) + "_" + str(pair[1]),
-                    "parameters": [
-                        {
-                            "date": "2000-01-01 00:00:00Z",
-                            "name": "gate_error",
-                            "unit": "",
-                            "value": 0.0,
-                        }
-                    ],
-                    "qubits": [pair[0], pair[1]],
-                }
-                for pair in coupling_map
-            ],
-            "general": [],
-        }
-
-        return BackendProperties.from_dict(properties)
-
-    def run(self, qobj):
-        """Main job in simulator"""
-        if _optionals.HAS_AER:
-            from qiskit.providers import aer
-
-            if qobj.type == "PULSE":
-                from qiskit.providers.aer.pulse import PulseSystemModel
-
-                system_model = PulseSystemModel.from_backend(self)
-                sim = aer.Aer.get_backend("pulse_simulator")
-                job = sim.run(qobj, system_model)
-            else:
-                sim = aer.Aer.get_backend("qasm_simulator")
-                if self.properties():
-                    from qiskit.providers.aer.noise import NoiseModel
-
-                    noise_model = NoiseModel.from_backend(self, warnings=False)
-                    job = sim.run(qobj, noise_model=noise_model)
-                else:
-                    job = sim.run(qobj)
-
-            out_job = fake_job.FakeLegacyJob(self, job.job_id, None)
-            out_job._future = job._future
-        else:
-            if qobj.type == "PULSE":
-                raise QiskitError("Unable to run pulse schedules without qiskit-aer installed")
-            warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
-
-            def run_job():
-                sim = basicaer.BasicAer.get_backend("qasm_simulator")
-                return sim.run(qobj).result()
-
-            job_id = uuid.uuid4()
-            out_job = fake_job.FakeLegacyJob(self, job_id, run_job)
-            out_job.submit()
-        return out_job
