@@ -24,7 +24,8 @@ from qiskit.circuit import Reset
 from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.circuit.tools.pi_check import pi_check
-from qiskit.visualization.utils import (
+
+from .circuit_utils import (
     get_gate_ctrl_text,
     get_param_str,
     get_wire_map,
@@ -33,7 +34,7 @@ from qiskit.visualization.utils import (
     get_wire_label,
     get_condition_label_val,
 )
-from .exceptions import VisualizationError
+from ..exceptions import VisualizationError
 
 
 class TextDrawerCregBundle(VisualizationError):

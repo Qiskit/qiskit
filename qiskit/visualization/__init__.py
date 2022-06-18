@@ -116,8 +116,10 @@ import os
 import sys
 import warnings
 
-from qiskit.visualization.graph.counts_visualization import plot_histogram
-from qiskit.visualization.graph.state_visualization import (
+from .array import array_to_latex
+
+from .graph.counts_visualization import plot_histogram
+from .graph.state_visualization import (
     plot_state_hinton,
     plot_bloch_vector,
     plot_bloch_multivector,
@@ -125,14 +127,14 @@ from qiskit.visualization.graph.state_visualization import (
     plot_state_paulivec,
     plot_state_qsphere,
 )
-from qiskit.visualization.graph.transition_visualization import visualize_transition
-from qiskit.visualization.graph.array import array_to_latex
-from qiskit.visualization.graph.dag_visualization import dag_drawer
-from qiskit.visualization.graph.gate_map import plot_gate_map, plot_circuit_layout, plot_error_map, plot_coupling_map
-from qiskit.visualization.graph.pass_manager_visualization import pass_manager_drawer
+from .graph.transition_visualization import visualize_transition
+from .graph.dag_visualization import dag_drawer
+from .graph.gate_map import plot_gate_map, plot_circuit_layout, plot_error_map, plot_coupling_map
+from .graph.pass_manager_visualization import pass_manager_drawer
 
-from qiskit.visualization.circuit.circuit_visualization import circuit_drawer
-from qiskit.visualization.exceptions import VisualizationError
+from .circuit.circuit_visualization import circuit_drawer
+from .circuit import text, matplotlib, latex
+from .exceptions import VisualizationError
 from .pulse.interpolation import step_wise, linear, cubic_spline
 from .pulse.qcstyle import PulseStyle, SchedStyle
 from .pulse_visualization import pulse_drawer

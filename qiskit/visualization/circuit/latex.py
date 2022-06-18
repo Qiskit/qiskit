@@ -22,9 +22,10 @@ from qiskit.circuit import Clbit, Qubit, ClassicalRegister, QuantumRegister, Qua
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.library.standard_gates import SwapGate, XGate, ZGate, RZZGate, U1Gate, PhaseGate
 from qiskit.circuit.measure import Measure
-from qiskit.visualization.qcstyle import load_style
 from qiskit.circuit.tools.pi_check import pi_check
-from .utils import (
+
+from .qcstyle import load_style
+from .circuit_utils import (
     get_gate_ctrl_text,
     get_param_str,
     get_wire_map,

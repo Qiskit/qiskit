@@ -32,11 +32,12 @@ import tempfile
 
 from qiskit import user_config
 from qiskit.utils import optionals as _optionals
-from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization import latex as _latex
-from qiskit.visualization import text as _text
-from qiskit.visualization import utils
-from qiskit.visualization import matplotlib as _matplotlib
+from ..exceptions import VisualizationError
+from . import latex as _latex
+from . import text as _text
+from . import matplotlib as _matplotlib
+from . import circuit_utils
+from .. import utils
 
 
 logger = logging.getLogger(__name__)
@@ -304,7 +305,7 @@ def _text_circuit_drawer(
     Raises:
         VisualizationError: When the filename extenstion is not .txt.
     """
-    qubits, clbits, nodes = utils._get_layered_instructions(
+    qubits, clbits, nodes = circuit_utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
     text_drawing = _text.TextDrawing(
@@ -490,7 +491,7 @@ def _generate_latex_source(
     Returns:
         str: Latex string appropriate for writing to file.
     """
-    qubits, clbits, nodes = utils._get_layered_instructions(
+    qubits, clbits, nodes = circuit_utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
     qcimg = _latex.QCircuitImage(
@@ -572,7 +573,7 @@ def _matplotlib_circuit_drawer(
             if the ``ax`` kwarg is not set.
     """
 
-    qubits, clbits, nodes = utils._get_layered_instructions(
+    qubits, clbits, nodes = circuit_utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
     if fold is None:

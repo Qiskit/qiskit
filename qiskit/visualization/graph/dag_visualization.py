@@ -21,7 +21,7 @@ from qiskit.dagcircuit.dagnode import DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.circuit import Qubit
 from qiskit.utils import optionals as _optionals
 from qiskit.exceptions import InvalidFileError
-from .exceptions import VisualizationError
+from ..exceptions import VisualizationError
 
 
 @_optionals.HAS_GRAPHVIZ.require_in_call

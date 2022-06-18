@@ -30,8 +30,11 @@ from qiskit.circuit.library.standard_gates import (
     ZGate,
 )
 from qiskit.extensions import Initialize
-from qiskit.visualization.qcstyle import load_style
-from qiskit.visualization.utils import (
+from qiskit.circuit.tools.pi_check import pi_check
+from qiskit.utils import optionals as _optionals
+
+from .qcstyle import load_style
+from .circuit_utils import (
     get_gate_ctrl_text,
     get_param_str,
     get_wire_map,
@@ -39,10 +42,8 @@ from qiskit.visualization.utils import (
     get_bit_reg_index,
     get_wire_label,
     get_condition_label_val,
-    matplotlib_close_if_inline,
 )
-from qiskit.circuit.tools.pi_check import pi_check
-from qiskit.utils import optionals as _optionals
+from ..utils import matplotlib_close_if_inline
 
 # Default gate width and height
 WID = 0.65

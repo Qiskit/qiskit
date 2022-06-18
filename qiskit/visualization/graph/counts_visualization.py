@@ -19,8 +19,8 @@ import functools
 import numpy as np
 
 from qiskit.utils import optionals as _optionals
-from .exceptions import VisualizationError
-from .utils import matplotlib_close_if_inline
+from ..exceptions import VisualizationError
+from ..utils import matplotlib_close_if_inline
 
 
 def hamming_distance(str1, str2):

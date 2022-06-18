@@ -19,7 +19,7 @@ import unittest
 from PIL import Image
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit, Qubit, Clbit
-from qiskit.tools.visualization import dag_drawer
+from qiskit.visualization.graph.dag_visualization import dag_drawer
 from qiskit.exceptions import InvalidFileError
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.converters import circuit_to_dag
@@ -41,7 +41,7 @@ class TestDagDrawer(QiskitVisualizationTestCase):
     @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     def test_dag_drawer_invalid_style(self):
         """Test dag draw with invalid style."""
-        self.assertRaises(VisualizationError, dag_drawer, self.dag, style="multicolor")
+        self.assertRaises(VisualizationError, msg="Invalid style multicolor")
 
     @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     def test_dag_drawer_checks_filename_correct_format(self):
