@@ -340,7 +340,7 @@ class GroverResult(AmplitudeAmplifierResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._iterations = None
+        self._iterations: Optional[List[int]] = None
         self._circuit_results = None
         self._shots = None
 

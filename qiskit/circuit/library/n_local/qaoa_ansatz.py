@@ -59,11 +59,11 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
 
         self._cost_operator = None
         self._reps = reps
-        self._initial_state = initial_state
+        self._initial_state: Optional[QuantumCircuit] = initial_state
         self._mixer = mixer_operator
 
         # set this circuit as a not-built circuit
-        self._bounds = None
+        self._bounds: Optional[List[Tuple[Optional[float], Optional[float]]]] = None
 
         # store cost operator and set the registers if the operator is not None
         self.cost_operator = cost_operator

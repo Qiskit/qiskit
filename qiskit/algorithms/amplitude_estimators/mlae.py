@@ -216,7 +216,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
 
     def compute_mle(
         self,
-        circuit_results: Union[List[Dict[str, int]], List[np.ndarray]],
+        circuit_results: List[Union[Dict[str, int], np.ndarray]],
         estimation_problem: EstimationProblem,
         num_state_qubits: Optional[int] = None,
         return_counts: bool = False,
@@ -326,8 +326,8 @@ class MaximumLikelihoodAmplitudeEstimationResult(AmplitudeEstimatorResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._theta = None
-        self._minimizer = None
+        self._theta: Optional[float] = None
+        self._minimizer: Optional[Callable] = None
         self._good_counts: Optional[List[float]] = None
         self._evaluation_schedule: Optional[List[int]] = None
         self._fisher_information: Optional[float] = None

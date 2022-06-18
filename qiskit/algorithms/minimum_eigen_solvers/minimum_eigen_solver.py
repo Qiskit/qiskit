@@ -73,7 +73,7 @@ class MinimumEigensolverResult(AlgorithmResult):
         super().__init__()
         self._eigenvalue: Optional[complex] = None
         self._eigenstate: Optional[np.ndarray] = None
-        self._aux_operator_eigenvalues = None
+        self._aux_operator_eigenvalues: Optional[ListOrDict[Tuple[complex, complex]]] = None
 
     @property
     def eigenvalue(self) -> Optional[complex]:

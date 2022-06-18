@@ -179,7 +179,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self.expectation = expectation
         self._include_custom = include_custom
 
-        self._ansatz = None
+        self._ansatz: Optional[QuantumCircuit] = None
         self.ansatz = ansatz
 
         self._optimizer: Optional[Optimizer] = None

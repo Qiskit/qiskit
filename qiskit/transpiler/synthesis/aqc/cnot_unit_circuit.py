@@ -53,7 +53,7 @@ class CNOTUnitCircuit(ApproximateCircuit):
         self._tol = tol
 
         # Thetas to be optimizer by the AQC algorithm
-        self._thetas = None
+        self._thetas: Optional[np.ndarray] = None
 
     @property
     def thetas(self) -> np.ndarray:

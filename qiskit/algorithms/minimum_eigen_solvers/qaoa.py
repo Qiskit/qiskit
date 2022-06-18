@@ -112,7 +112,7 @@ class QAOA(VQE):
         self._reps = reps
         self._mixer = mixer
         self._initial_state = initial_state
-        self._cost_operator = None
+        self._cost_operator: Optional[OperatorBase] = None
 
         super().__init__(
             ansatz=None,

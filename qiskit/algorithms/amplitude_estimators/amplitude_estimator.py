@@ -39,7 +39,7 @@ class AmplitudeEstimatorResult(AlgorithmResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._circuit_results = None
+        self._circuit_results: Optional[Union[np.ndarray, Dict[str, int]]] = None
         self._shots: Optional[int] = None
         self._estimation: Optional[float] = None
         self._estimation_processed: Optional[float] = None

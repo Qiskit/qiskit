@@ -63,7 +63,7 @@ class AmplificationProblem:
         if is_good_state is not None:
             self._is_good_state = is_good_state
         elif hasattr(oracle, "evaluate_bitstring"):
-            self._is_good_state = oracle.evaluate_bitstring
+            self._is_good_state = oracle.evaluate_bitstring  # type: ignore[attr-defined]
         else:
             self._is_good_state = None
 

@@ -67,9 +67,9 @@ class EigensolverResult(AlgorithmResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._eigenvalues = None
-        self._eigenstates = None
-        self._aux_operator_eigenvalues = None
+        self._eigenvalues: Optional[np.ndarray] = None
+        self._eigenstates: Optional[np.ndarray] = None
+        self._aux_operator_eigenvalues: Optional[List[ListOrDict[Tuple[complex, complex]]]] = None
 
     @property
     def eigenvalues(self) -> Optional[np.ndarray]:

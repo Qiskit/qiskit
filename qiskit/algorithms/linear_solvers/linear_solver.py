@@ -35,10 +35,10 @@ class LinearSolverResult(AlgorithmResult):
         super().__init__()
 
         # Set the default to None, if the algorithm knows how to calculate it can override it.
-        self._state = None
+        self._state: Optional[Union[QuantumCircuit, np.ndarray]] = None
         self._observable: Optional[Union[float, List[float]]] = None
-        self._euclidean_norm = None
-        self._circuit_results = None
+        self._euclidean_norm: Optional[float] = None
+        self._circuit_results: Optional[Union[List[float], List[Result]]] = None
 
     @property
     def observable(self) -> Union[float, List[float]]:
