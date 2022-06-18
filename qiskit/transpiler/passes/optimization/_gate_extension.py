@@ -29,52 +29,52 @@ if _optionals.HAS_Z3:
 
     # FLIP GATES #
     # XGate
-    XGate._postconditions = lambda self, x1, y1: y1 == z3.Not(x1)
-    CXGate._postconditions = lambda self, x1, y1: y1 == z3.Not(x1)
-    CCXGate._postconditions = lambda self, x1, y1: y1 == z3.Not(x1)
+    XGate._postconditions = lambda self, x1, y1: y1 == z3.Not(x1)  # type: ignore[attr-defined]
+    CXGate._postconditions = lambda self, x1, y1: y1 == z3.Not(x1)  # type: ignore[attr-defined]
+    CCXGate._postconditions = lambda self, x1, y1: y1 == z3.Not(x1)  # type: ignore[attr-defined]
 
     # YGate
-    YGate._postconditions = lambda self, x1, y1: y1 == z3.Not(x1)
-    CYGate._postconditions = lambda self, x1, y1: y1 == z3.Not(x1)
+    YGate._postconditions = lambda self, x1, y1: y1 == z3.Not(x1)  # type: ignore[attr-defined]
+    CYGate._postconditions = lambda self, x1, y1: y1 == z3.Not(x1)  # type: ignore[attr-defined]
 
     # PHASE GATES #
     # IdGate
-    IGate._postconditions = lambda self, x1, y1: y1 == x1
+    IGate._postconditions = lambda self, x1, y1: y1 == x1  # type: ignore[attr-defined]
 
     # ZGate
-    ZGate._trivial_if = lambda self, x1: True
-    ZGate._postconditions = lambda self, x1, y1: y1 == x1
-    CZGate._trivial_if = lambda self, x1: True
-    CZGate._postconditions = lambda self, x1, y1: y1 == x1
+    ZGate._trivial_if = lambda self, x1: True  # type: ignore[attr-defined]
+    ZGate._postconditions = lambda self, x1, y1: y1 == x1  # type: ignore[attr-defined]
+    CZGate._trivial_if = lambda self, x1: True  # type: ignore[attr-defined]
+    CZGate._postconditions = lambda self, x1, y1: y1 == x1  # type: ignore[attr-defined]
 
     # SGate
-    SGate._trivial_if = lambda self, x1: True
-    SGate._postconditions = lambda self, x1, y1: y1 == x1
-    SdgGate._trivial_if = lambda self, x1: True
-    SdgGate._postconditions = lambda self, x1, y1: y1 == x1
+    SGate._trivial_if = lambda self, x1: True  # type: ignore[attr-defined]
+    SGate._postconditions = lambda self, x1, y1: y1 == x1  # type: ignore[attr-defined]
+    SdgGate._trivial_if = lambda self, x1: True  # type: ignore[attr-defined]
+    SdgGate._postconditions = lambda self, x1, y1: y1 == x1  # type: ignore[attr-defined]
 
     # TGate
-    TGate._trivial_if = lambda self, x1: True
-    TGate._postconditions = lambda self, x1, y1: y1 == x1
-    TdgGate._trivial_if = lambda self, x1: True
-    TdgGate._postconditions = lambda self, x1, y1: y1 == x1
+    TGate._trivial_if = lambda self, x1: True  # type: ignore[attr-defined]
+    TGate._postconditions = lambda self, x1, y1: y1 == x1  # type: ignore[attr-defined]
+    TdgGate._trivial_if = lambda self, x1: True  # type: ignore[attr-defined]
+    TdgGate._postconditions = lambda self, x1, y1: y1 == x1  # type: ignore[attr-defined]
 
     # RzGate
-    RZGate._trivial_if = lambda self, x1: True
-    RZGate._postconditions = lambda self, x1, y1: y1 == x1
-    CRZGate._postconditions = lambda self, x1, y1: y1 == x1
+    RZGate._trivial_if = lambda self, x1: True  # type: ignore[attr-defined]
+    RZGate._postconditions = lambda self, x1, y1: y1 == x1  # type: ignore[attr-defined]
+    CRZGate._postconditions = lambda self, x1, y1: y1 == x1  # type: ignore[attr-defined]
 
     #  U1Gate
-    U1Gate._trivial_if = lambda self, x1: True
-    U1Gate._postconditions = lambda self, x1, y1: y1 == x1
-    CU1Gate._trivial_if = lambda self, x1: True
-    CU1Gate._postconditions = lambda self, x1, y1: y1 == x1
-    MCU1Gate._trivial_if = lambda self, x1: True
-    MCU1Gate._postconditions = lambda self, x1, y1: y1 == x1
+    U1Gate._trivial_if = lambda self, x1: True  # type: ignore[attr-defined]
+    U1Gate._postconditions = lambda self, x1, y1: y1 == x1  # type: ignore[attr-defined]
+    CU1Gate._trivial_if = lambda self, x1: True  # type: ignore[attr-defined]
+    CU1Gate._postconditions = lambda self, x1, y1: y1 == x1  # type: ignore[attr-defined]
+    MCU1Gate._trivial_if = lambda self, x1: True  # type: ignore[attr-defined]
+    MCU1Gate._postconditions = lambda self, x1, y1: y1 == x1  # type: ignore[attr-defined]
 
     # MULTI-QUBIT GATES #
     # SwapGate
-    SwapGate._trivial_if = lambda self, x1, x2: x1 == x2
-    SwapGate._postconditions = lambda self, x1, x2, y1, y2: z3.And(x1 == y2, x2 == y1)
-    CSwapGate._trivial_if = lambda self, x1, x2: x1 == x2
-    CSwapGate._postconditions = lambda self, x1, x2, y1, y2: z3.And(x1 == y2, x2 == y1)
+    SwapGate._trivial_if = lambda self, x1, x2: x1 == x2  # type: ignore[attr-defined]
+    SwapGate._postconditions = lambda self, x1, x2, y1, y2: z3.And(x1 == y2, x2 == y1)  # type: ignore[attr-defined]
+    CSwapGate._trivial_if = lambda self, x1, x2: x1 == x2  # type: ignore[attr-defined]
+    CSwapGate._postconditions = lambda self, x1, x2, y1, y2: z3.And(x1 == y2, x2 == y1)  # type: ignore[attr-defined]

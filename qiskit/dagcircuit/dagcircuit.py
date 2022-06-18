@@ -24,7 +24,7 @@ from collections import OrderedDict, defaultdict
 import copy
 import itertools
 import math
-from typing import Generator, Any
+from typing import Generator, Any, List
 
 import numpy as np
 import retworkx as rx
