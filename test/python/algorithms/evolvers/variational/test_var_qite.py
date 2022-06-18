@@ -24,7 +24,7 @@ from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_factory imp
 from qiskit.utils import algorithm_globals, QuantumInstance
 from qiskit import BasicAer
 from qiskit.algorithms import EvolutionProblem, VarQITE
-from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_principle import (
+from qiskit.algorithms.evolvers.variational.variational_principles import (
     ImaginaryMcLachlanPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2

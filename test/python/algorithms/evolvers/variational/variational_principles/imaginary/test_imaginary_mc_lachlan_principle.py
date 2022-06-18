@@ -19,7 +19,7 @@ from test.python.algorithms.evolvers.variational.variational_principles.expected
 )
 import numpy as np
 
-from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_principle import (
+from qiskit.algorithms.evolvers.variational.variational_principles import (
     ImaginaryMcLachlanPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2

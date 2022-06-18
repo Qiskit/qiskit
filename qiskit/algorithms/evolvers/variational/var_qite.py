@@ -16,15 +16,11 @@ from typing import Optional, Callable, Union
 import numpy as np
 from scipy.integrate import OdeSolver
 
-from qiskit.opflow import (
-    ExpectationBase,
-)
+from qiskit.opflow import ExpectationBase
 from qiskit.algorithms.evolvers.imaginary_evolver import ImaginaryEvolver
 from qiskit.utils import QuantumInstance
 from .solvers.ode.ode_function_factory import OdeFunctionFactory
-from .variational_principles.imaginary_variational_principle import (
-    ImaginaryVariationalPrinciple,
-)
+from .variational_principles import ImaginaryVariationalPrinciple
 from .var_qte import VarQTE
 
 
@@ -36,8 +32,9 @@ class VarQITE(VarQTE, ImaginaryEvolver):
         from qiskit import BasicAer
         from qiskit.circuit.library import EfficientSU2
         from qiskit.opflow import SummedOp, I, Z, Y, X
-        from qiskit.algorithms.evolvers.variational.variational_principles.\
-            imaginary_mc_lachlan_principle import ImaginaryMcLachlanPrinciple
+        from qiskit.algorithms.evolvers.variational.variational_principles import (
+            ImaginaryMcLachlanPrinciple,
+        )
         from qiskit.algorithms import EvolutionProblem
         from qiskit.algorithms import VarQITE
 

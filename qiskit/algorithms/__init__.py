@@ -101,7 +101,7 @@ Classes used by variational quantum time evolution algorithms - VarQITE and VarQ
 .. autosummary::
    :toctree: ../stubs/
 
-   variational
+   evolvers.variational
 
 
 Evolvers

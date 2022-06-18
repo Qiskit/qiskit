@@ -18,7 +18,7 @@ from test.python.algorithms.evolvers.variational.variational_principles.expected
     expected_bound_metric_tensor_2,
 )
 import numpy as np
-from qiskit.algorithms.evolvers.variational.variational_principles.real_mc_lachlan_principle import (
+from qiskit.algorithms.evolvers.variational.variational_principles import (
     RealMcLachlanPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
