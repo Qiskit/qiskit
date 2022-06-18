@@ -18,7 +18,9 @@ import numpy as np
 from scipy.integrate import OdeSolver
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms import EvolutionProblem, EvolutionResult, eval_observables
+from qiskit.algorithms.aux_ops_evaluator import eval_observables
+from qiskit.algorithms.evolvers.evolution_problem import EvolutionProblem
+from qiskit.algorithms.evolvers.evolution_result import EvolutionResult
 from qiskit.circuit import Parameter
 from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance

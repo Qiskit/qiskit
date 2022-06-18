@@ -259,7 +259,6 @@ from .phase_estimators import (
 from .exceptions import AlgorithmError
 from .aux_ops_evaluator import eval_observables
 from .evolvers.trotterization import TrotterQRTE
-from .evolvers import variational
 from .evolvers.variational.var_qite import VarQITE
 from .evolvers.variational.var_qrte import VarQRTE
 
@@ -286,7 +285,6 @@ __all__ = [
     "RealEvolver",
     "ImaginaryEvolver",
     "TrotterQRTE",
-    "variational",
     "VarQITE",
     "VarQRTE",
     "EvolutionResult",

@@ -27,9 +27,8 @@ variational approach is taken  according to a variational principle chosen by a 
     from qiskit import BasicAer
     from qiskit.circuit.library import EfficientSU2
     from qiskit.opflow import SummedOp, I, Z, Y, X
-    from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_principle import (
-    ImaginaryMcLachlanPrinciple,
-    )
+    from qiskit.algorithms.evolvers.variational.variational_principles.\
+        imaginary_mc_lachlan_principle import ImaginaryMcLachlanPrinciple
     from qiskit.algorithms import EvolutionProblem
     from qiskit.algorithms import VarQITE
 
@@ -131,5 +130,4 @@ __all__ = [
     "RealMcLachlanPrinciple",
     "RealTimeDependentPrinciple",
     "ImaginaryMcLachlanPrinciple",
-    "solvers",
 ]

@@ -21,11 +21,11 @@ from qiskit.opflow import (
 )
 from qiskit.algorithms.evolvers.imaginary_evolver import ImaginaryEvolver
 from qiskit.utils import QuantumInstance
-from qiskit.algorithms.evolvers.variational import VarQTE
 from .solvers.ode.ode_function_factory import OdeFunctionFactory
 from .variational_principles.imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
+from .var_qte import VarQTE
 
 
 class VarQITE(VarQTE, ImaginaryEvolver):
@@ -36,9 +36,8 @@ class VarQITE(VarQTE, ImaginaryEvolver):
         from qiskit import BasicAer
         from qiskit.circuit.library import EfficientSU2
         from qiskit.opflow import SummedOp, I, Z, Y, X
-        from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_principle import (
-        ImaginaryMcLachlanPrinciple,
-        )
+        from qiskit.algorithms.evolvers.variational.variational_principles.\
+            imaginary_mc_lachlan_principle import ImaginaryMcLachlanPrinciple
         from qiskit.algorithms import EvolutionProblem
         from qiskit.algorithms import VarQITE
 

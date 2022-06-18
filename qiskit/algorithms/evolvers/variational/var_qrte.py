@@ -21,11 +21,11 @@ from qiskit.opflow import (
     ExpectationBase,
 )
 from qiskit.utils import QuantumInstance
-from qiskit.algorithms.evolvers.variational import VarQTE
 from .solvers.ode.ode_function_factory import OdeFunctionFactory
 from .variational_principles.real_variational_principle import (
     RealVariationalPrinciple,
 )
+from .var_qte import VarQTE
 
 
 class VarQRTE(VarQTE, RealEvolver):
@@ -36,9 +36,8 @@ class VarQRTE(VarQTE, RealEvolver):
         from qiskit import BasicAer
         from qiskit.circuit.library import EfficientSU2
         from qiskit.opflow import SummedOp, I, Z, Y, X
-        from qiskit.algorithms.evolvers.variational.variational_principles.real_mc_lachlan_principle import (
-        RealMcLachlanPrinciple,
-        )
+        from qiskit.algorithms.evolvers.variational.variational_principles.\
+            real_mc_lachlan_principle import RealMcLachlanPrinciple
         from qiskit.algorithms import EvolutionProblem
         from qiskit.algorithms import VarQRTE
 

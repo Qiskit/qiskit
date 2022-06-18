@@ -63,5 +63,6 @@ class OdeFunctionFactory(ABC):
         if self._ode_type == OdeFunctionType.STANDARD_ODE:
             return OdeFunction(varqte_linear_solver, error_calculator, param_dict, t_param)
         raise ValueError(
-            f"Unsupported ODE function provided: {self._ode_type}. Only {[tp.value for tp in OdeFunctionType]} are supported."
+            f"Unsupported ODE function provided: {self._ode_type}."
+            f" Only {[tp.value for tp in OdeFunctionType]} are supported."
         )
