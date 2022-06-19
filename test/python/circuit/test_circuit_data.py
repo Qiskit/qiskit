@@ -422,6 +422,6 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         qc0.append(rx, [0])
         qc1.append(rx, [0])
         qc0.assign_parameters({a: b}, inplace=True)
-        qc0_instance = qc0._parameter_table[b][0][0]
-        qc1_instance = qc1._parameter_table[a][0][0]
+        qc0_instance = next(iter(qc0._parameter_table[b]))[0]
+        qc1_instance = next(iter(qc1._parameter_table[a]))[0]
         self.assertNotEqual(qc0_instance, qc1_instance)
