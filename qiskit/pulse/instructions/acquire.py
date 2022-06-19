@@ -90,7 +90,7 @@ class Acquire(Instruction):
     @property
     def channels(self) -> Tuple[AcquireChannel]:
         """Returns the channels that this schedule uses."""
-        return self.channel,
+        return (self.channel,)
 
     @property
     def duration(self) -> Union[int, ParameterExpression]:
