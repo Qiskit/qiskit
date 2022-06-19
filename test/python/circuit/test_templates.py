@@ -24,6 +24,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators import Operator
 import qiskit.circuit.library.templates as templib
 
+from qiskit.circuit import TemplateLibrary
 
 @ddt
 class TestTemplates(QiskitTestCase):
