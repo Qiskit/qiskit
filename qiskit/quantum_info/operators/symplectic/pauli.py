@@ -28,7 +28,7 @@ from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
-from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
+from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli, _count_y
 from qiskit.utils.deprecation import deprecate_function
 
 
@@ -105,7 +105,7 @@ class Pauli(BasePauli):
 
     .. math::
 
-        P &= (-i)^{q + z\cdot x} Z^z \cdot X^x.
+        P = (-i)^{q + z\cdot x} Z^z \cdot X^x.
 
     The :math:`k`th qubit corresponds to the :math:`k`th entry in the
     :math:`z` and :math:`x` arrays
@@ -136,7 +136,7 @@ class Pauli(BasePauli):
 
     For example
 
-    .. code:
+    .. code-block:: python
 
         p = Pauli('-iXYZ')
 
@@ -323,7 +323,7 @@ class Pauli(BasePauli):
         self._z[0, qubits] = value.z
         self._x[0, qubits] = value.x
         # Add extra phase from new Pauli to current
-        self._phase += value._phase
+        self._phase = self._phase + value._phase
 
     def delete(self, qubits):
         """Return a Pauli with qubits deleted.
@@ -629,9 +629,7 @@ class Pauli(BasePauli):
             raise QiskitError(f"{op} is not an N-qubit identity")
         base_z = np.zeros((1, op.num_qubits), dtype=bool)
         base_x = np.zeros((1, op.num_qubits), dtype=bool)
-        base_phase = np.mod(
-            cls._phase_from_complex(op.coeff) + np.sum(np.logical_and(base_z, base_x), axis=1), 4
-        )
+        base_phase = np.mod(cls._phase_from_complex(op.coeff) + _count_y(base_x, base_z), 4)
         return base_z, base_x, base_phase
 
     @classmethod

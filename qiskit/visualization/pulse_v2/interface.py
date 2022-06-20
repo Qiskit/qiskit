@@ -24,7 +24,7 @@ the configured canvas is passed to the one of plotter APIs to generate visualiza
 from typing import Union, Optional, Dict, Any, Tuple, List
 
 from qiskit.providers import Backend
-from qiskit.pulse import Waveform, ParametricPulse, Schedule, ScheduleBlock
+from qiskit.pulse import Waveform, ParametricPulse, SymbolicPulse, Schedule, ScheduleBlock
 from qiskit.pulse.channels import Channel
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import core, device_info, stylesheet, types
@@ -32,7 +32,7 @@ from qiskit.exceptions import MissingOptionalLibraryError
 
 
 def draw(
-    program: Union[Waveform, ParametricPulse, Schedule, ScheduleBlock],
+    program: Union[Waveform, ParametricPulse, SymbolicPulse, Schedule, ScheduleBlock],
     style: Optional[Dict[str, Any]] = None,
     backend: Optional[Backend] = None,
     time_range: Optional[Tuple[int, int]] = None,
@@ -50,7 +50,8 @@ def draw(
     Args:
         program: Program to visualize. This program can be arbitrary Qiskit Pulse program,
             such as :py:class:`~qiskit.pulse.Waveform`, :py:class:`~qiskit.pulse.ParametricPulse`,
-            and :py:class:`~qiskit.pulse.Schedule`.
+            :py:class:`~qiskit.pulse.SymbolicPulse`, :py:class:`~qiskit.pulse.Schedule`
+            and :py:class:`~qiskit.pulse.ScheduleBlock`.
         style: Stylesheet options. This can be dictionary or preset stylesheet classes. See
             :py:class:`~qiskit.visualization.pulse_v2.stylesheets.IQXStandard`,
             :py:class:`~qiskit.visualization.pulse_v2.stylesheets.IQXSimple`, and
