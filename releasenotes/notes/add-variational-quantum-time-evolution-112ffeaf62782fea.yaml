@@ -14,14 +14,20 @@ features:
 
     .. code-block:: python
 
+      from qiskit.algorithms import EvolutionProblem
+      from qiskit.algorithms import VarQITE
       from qiskit import BasicAer
       from qiskit.circuit.library import EfficientSU2
       from qiskit.opflow import SummedOp, I, Z, Y, X
       from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_principle import (
           ImaginaryMcLachlanPrinciple,
       )
+      from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_factory import (
+          OdeFunctionFactory,
+          OdeFunctionType,
+      )
       from qiskit.algorithms import EvolutionProblem
-      from qiskit.algorithms import VarQITE
+      import numpy as np
 
       observable = SummedOp(
           [
@@ -33,7 +39,6 @@ features:
               0.091 * (X ^ X),
           ]
       ).reduce()
-
       d = 1
       ansatz = EfficientSU2(observable.num_qubits, reps=d)
       parameters = ansatz.parameters
@@ -45,5 +50,6 @@ features:
       backend = BasicAer.get_backend("statevector_simulator")
       time = 1
       evolution_problem = EvolutionProblem(observable, time, ansatz, param_value_dict=param_dict)
-      var_qite = VarQITE(var_principle, backend=backend)
+      ode_function = OdeFunctionFactory(OdeFunctionType.STANDARD_ODE)
+      var_qite = VarQITE(var_principle, ode_function, quantum_instance=backend)
       evolution_result = var_qite.evolve(evolution_problem)

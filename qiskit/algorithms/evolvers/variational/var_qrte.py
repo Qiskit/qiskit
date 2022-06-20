@@ -29,14 +29,20 @@ class VarQRTE(VarQTE, RealEvolver):
 
     .. code-block::python
 
+        from qiskit.algorithms import EvolutionProblem
+        from qiskit.algorithms import VarQITE
         from qiskit import BasicAer
         from qiskit.circuit.library import EfficientSU2
         from qiskit.opflow import SummedOp, I, Z, Y, X
-        from qiskit.algorithms.evolvers.variational.variational_principles import (
+        from qiskit.algorithms.evolvers.variational.variational_principles.real_mc_lachlan_principle import (
             RealMcLachlanPrinciple,
         )
+        from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_factory import (
+            OdeFunctionFactory,
+            OdeFunctionType,
+        )
         from qiskit.algorithms import EvolutionProblem
-        from qiskit.algorithms import VarQRTE
+        import numpy as np
 
         observable = SummedOp(
             [
@@ -48,22 +54,19 @@ class VarQRTE(VarQTE, RealEvolver):
                 0.091 * (X ^ X),
             ]
         ).reduce()
-
         d = 1
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
         parameters = ansatz.parameters
-        init_param_values = np.zeros(len(ansatz.ordered_parameters))
-        for i in range(len(ansatz.parameters)):
+        init_param_values = np.zeros(len(ansatz.parameters))
+        for i in range(len(ansatz.ordered_parameters)):
             init_param_values[i] = np.pi / 2
         param_dict = dict(zip(parameters, init_param_values))
         var_principle = RealMcLachlanPrinciple()
         backend = BasicAer.get_backend("statevector_simulator")
         time = 1
-        evolution_problem = EvolutionProblem(observable, time, ansatz,
-        param_value_dict=param_dict)
-        var_qite = VarQRTE(
-            var_principle, backend=backend
-        )
+        evolution_problem = EvolutionProblem(observable, time, ansatz, param_value_dict=param_dict)
+        ode_function = OdeFunctionFactory(OdeFunctionType.STANDARD_ODE)
+        var_qrte = VarQRTE(var_principle, ode_function, quantum_instance=backend)
         evolution_result = var_qite.evolve(evolution_problem)
     """
 
@@ -84,8 +87,9 @@ class VarQRTE(VarQTE, RealEvolver):
             ode_function_factory: Factory for the ODE function.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
-            lse_solver: Linear system of equations solver that follows a NumPy
-                ``np.linalg.lstsq`` interface.
+            lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
+                solve ``Ax=b`` and returns ``x``. If ``None``, the default ``np.linalg.lstsq``
+                solver is used.
             expectation: An instance of ``ExpectationBase`` which defines a method for calculating
                 expectation values of ``EvolutionProblem.aux_operators``.
             imag_part_tol: Allowed value of an imaginary part that can be neglected if no

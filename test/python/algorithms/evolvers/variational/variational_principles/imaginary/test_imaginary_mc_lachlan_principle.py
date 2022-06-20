@@ -14,6 +14,9 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
+from ..expected_results.test_imaginary_mc_lachlan_variational_principle_expected1 import (
+    expected_bound_metric_tensor_1,
+)
 import numpy as np
 
 from qiskit.algorithms.evolvers.variational.variational_principles import (
@@ -21,9 +24,6 @@ from qiskit.algorithms.evolvers.variational.variational_principles import (
 )
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import SummedOp, X, Y, I, Z
-from ..expected_results.test_imaginary_mc_lachlan_variational_principle_expected1 import (
-    expected_bound_metric_tensor_1,
-)
 
 
 class TestImaginaryMcLachlanPrinciple(QiskitAlgorithmsTestCase):
@@ -50,7 +50,7 @@ class TestImaginaryMcLachlanPrinciple(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = ImaginaryMcLachlanPrinciple()
 
-        bound_metric_tensor = var_principle.calc_metric_tensor(
+        bound_metric_tensor = var_principle.metric_tensor(
             ansatz, parameters, parameters, param_dict.values(), None
         )
 
@@ -77,7 +77,7 @@ class TestImaginaryMcLachlanPrinciple(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = ImaginaryMcLachlanPrinciple()
 
-        bound_evolution_grad = var_principle.calc_evolution_grad(
+        bound_evolution_grad = var_principle.evolution_grad(
             observable, ansatz, None, param_dict, parameters, parameters, param_dict.values(), None
         )
 

@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Class for an Imaginary McLachlan's Variational Principle."""
-from typing import Dict, Union, List, Optional
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -32,10 +32,10 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
     variant means that we consider imaginary time dynamics.
     """
 
-    def calc_evolution_grad(
+    def evolution_grad(
         self,
         hamiltonian: OperatorBase,
-        ansatz: Union[StateFn, QuantumCircuit],
+        ansatz: QuantumCircuit,
         circuit_sampler: CircuitSampler,
         param_dict: Dict[Parameter, complex],
         bind_params: List[Parameter],

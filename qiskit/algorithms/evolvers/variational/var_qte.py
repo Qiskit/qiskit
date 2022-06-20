@@ -71,8 +71,9 @@ class VarQTE(ABC):
             ode_function_factory: Factory for the ODE function.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
-            lse_solver: Linear system of equations solver that follows a NumPy
-                ``np.linalg.lstsq`` interface.
+            lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
+                solve ``Ax=b`` and returns ``x``. If ``None``, the default ``np.linalg.lstsq``
+                solver is used.
             expectation: An instance of ``ExpectationBase`` which defines a method for calculating
                 expectation values of ``EvolutionProblem.aux_operators``.
             imag_part_tol: Allowed value of an imaginary part that can be neglected if no

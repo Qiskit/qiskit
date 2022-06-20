@@ -47,10 +47,10 @@ class RealTimeDependentPrinciple(RealVariationalPrinciple):
 
         super().__init__(qfi_method)
 
-    def calc_evolution_grad(
+    def evolution_grad(
         self,
         hamiltonian: OperatorBase,
-        ansatz: Union[StateFn, QuantumCircuit],
+        ansatz: QuantumCircuit,
         circuit_sampler: CircuitSampler,
         param_dict: Dict[Parameter, complex],
         bind_params: List[Parameter],

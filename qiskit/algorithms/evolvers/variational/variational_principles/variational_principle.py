@@ -27,9 +27,7 @@ from qiskit.opflow import (
     CircuitStateFn,
     CircuitSampler,
     OperatorBase,
-    StateFn,
 )
-from qiskit.opflow.gradients.circuit_gradients import LinComb
 from qiskit.utils import QuantumInstance
 
 
@@ -45,7 +43,7 @@ class VariationalPrinciple(ABC):
         """
         Args:
             grad_method: The method used to compute the state gradient. Can be either
-                ``'param_shift'`` or ``'lin_comb'`` or ``'fin_diff'``.
+                ``'param_shift'`` or ``'lin_comb'`` or ``'fin_diff'`` or ``CircuitGradient``.
             qfi_method: The method used to compute the QFI. Can be either
                 ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'`` or
                 ``CircuitQFI``.
@@ -53,15 +51,13 @@ class VariationalPrinciple(ABC):
         self._qfi_method = qfi_method
         self.qfi = QFI(qfi_method)
         self._grad_method = grad_method
-        if self._grad_method == "lin_comb":
-            self._grad_method = LinComb()
         self._evolution_gradient = Gradient(self._grad_method)
         self._qfi_gradient_callable = None
         self._evolution_gradient_callable = None
 
-    def calc_metric_tensor(
+    def metric_tensor(
         self,
-        ansatz: Union[StateFn, QuantumCircuit],
+        ansatz: QuantumCircuit,
         bind_params: List[Parameter],
         gradient_params: List[Parameter],
         param_values: List[complex],
@@ -91,10 +87,10 @@ class VariationalPrinciple(ABC):
         return metric_tensor
 
     @abstractmethod
-    def calc_evolution_grad(
+    def evolution_grad(
         self,
         hamiltonian: OperatorBase,
-        ansatz: Union[StateFn, QuantumCircuit],
+        ansatz: QuantumCircuit,
         circuit_sampler: CircuitSampler,
         param_dict: Dict[Parameter, complex],
         bind_params: List[Parameter],

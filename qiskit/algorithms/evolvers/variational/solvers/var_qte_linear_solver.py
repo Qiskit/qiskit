@@ -23,7 +23,6 @@ from qiskit.algorithms.evolvers.variational.variational_principles.variational_p
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
     CircuitSampler,
-    StateFn,
     OperatorBase,
 )
 from qiskit.providers import Backend
@@ -38,7 +37,7 @@ class VarQTELinearSolver:
         self,
         var_principle: VariationalPrinciple,
         hamiltonian: OperatorBase,
-        ansatz: Union[StateFn, QuantumCircuit],
+        ansatz: QuantumCircuit,
         gradient_params: List[Parameter],
         t_param: Optional[Parameter] = None,
         lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
@@ -57,8 +56,9 @@ class VarQTELinearSolver:
             ansatz: Quantum state in the form of a parametrized quantum circuit.
             gradient_params: List of parameters with respect to which gradients should be computed.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
-            lse_solver: Linear system of equations solver that follows a NumPy
-                ``np.linalg.lstsq`` interface. If ``None``, the default ``np.linalg.lstsq`` is used.
+            lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
+                solve ``Ax=b`` and returns ``x``. If ``None``, the default ``np.linalg.lstsq``
+                solver is used.
             quantum_instance: Backend used to evaluate the quantum circuit outputs. If ``None``
                 provided, everything will be evaluated based on matrix multiplication (which is
                 slow).
@@ -130,14 +130,14 @@ class VarQTELinearSolver:
         if self._time_param is not None:
             param_values.append(time_value)
 
-        metric_tensor_lse_lhs = self._var_principle.calc_metric_tensor(
+        metric_tensor_lse_lhs = self._var_principle.metric_tensor(
             self._ansatz,
             self._bind_params,
             self._gradient_params,
             param_values,
             self._quantum_instance,
         )
-        evolution_grad_lse_rhs = self._var_principle.calc_evolution_grad(
+        evolution_grad_lse_rhs = self._var_principle.evolution_grad(
             self._hamiltonian,
             self._ansatz,
             self._circuit_sampler,

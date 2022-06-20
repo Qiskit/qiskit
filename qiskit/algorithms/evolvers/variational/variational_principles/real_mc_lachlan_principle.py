@@ -59,10 +59,10 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
 
         super().__init__(qfi_method)
 
-    def calc_evolution_grad(
+    def evolution_grad(
         self,
         hamiltonian: OperatorBase,
-        ansatz: Union[StateFn, QuantumCircuit],
+        ansatz: QuantumCircuit,
         circuit_sampler: CircuitSampler,
         param_dict: Dict[Parameter, complex],
         bind_params: List[Parameter],
@@ -93,7 +93,9 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
         """
         if self._evolution_gradient_callable is None:
             self._energy_param = Parameter("alpha")
-            modified_hamiltonian = self._modify_hamiltonian(hamiltonian, ansatz, self._energy_param)
+            modified_hamiltonian = self._construct_expectation(
+                hamiltonian, ansatz, self._energy_param
+            )
 
             self._evolution_gradient_callable = self._evolution_gradient.gradient_wrapper(
                 modified_hamiltonian,
@@ -118,8 +120,8 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
         return evolution_grad
 
     @staticmethod
-    def _modify_hamiltonian(
-        hamiltonian: OperatorBase, ansatz: Union[StateFn, QuantumCircuit], energy_param: Parameter
+    def _construct_expectation(
+        hamiltonian: OperatorBase, ansatz: QuantumCircuit, energy_param: Parameter
     ) -> OperatorBase:
         """
         Modifies a Hamiltonian according to the rules of this variational principle.
