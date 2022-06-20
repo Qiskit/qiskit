@@ -74,12 +74,12 @@ V2 Backends
     FakeQuitoV2
     FakeRochesterV2
     FakeRomeV2
-    .. FakeRueschlikonV2
+    .. FakeRueschlikonV2 # no v2 version
     FakeSantiagoV2
     FakeSingaporeV2
     FakeSydneyV2
-    .. FakeTenerifeV2
-    .. FakeTokyoV2
+    .. FakeTenerifeV2 # no v2 version
+    .. FakeTokyoV2 # no v2 version
     FakeTorontoV2
     FakeValenciaV2
     FakeVigoV2
