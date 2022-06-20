@@ -15,7 +15,8 @@
 import unittest
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from test.python.algorithms.evolvers.variational.solvers.expected_results.test_varqte_linear_solver_expected_1 import (
+from test.python.algorithms.evolvers.variational.solvers.expected_results. \
+    test_varqte_linear_solver_expected_1 import (
     expected_metric_res_1,
 )
 from ddt import ddt, data
