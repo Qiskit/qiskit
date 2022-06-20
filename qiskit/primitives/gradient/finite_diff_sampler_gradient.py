@@ -36,8 +36,7 @@ class FiniteDiffSamplerGradient:
         run_options = run_options.copy()
 
         dim = len(parameter_value)
-        params = []
-        params.append(parameter_value)
+        params = [parameter_value]
         for i in range(dim):
             ei = parameter_value.copy()
             ei[i] += self._epsilon
