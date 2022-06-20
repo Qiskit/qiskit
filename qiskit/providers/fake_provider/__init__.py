@@ -58,7 +58,7 @@ V2 Backends
     FakeHanoiV2
     FakeJakartaV2
     FakeJohannesburgV2
-    FakeKolkataV2V2
+    FakeKolkataV2
     FakeLagosV2
     FakeLimaV2
     FakeLondonV2
@@ -74,12 +74,12 @@ V2 Backends
     FakeQuitoV2
     FakeRochesterV2
     FakeRomeV2
-    FakeRueschlikonV2
+    .. FakeRueschlikonV2
     FakeSantiagoV2
     FakeSingaporeV2
     FakeSydneyV2
-    FakeTenerifeV2
-    FakeTokyoV2
+    .. FakeTenerifeV2
+    .. FakeTokyoV2
     FakeTorontoV2
     FakeValenciaV2
     FakeVigoV2
@@ -106,7 +106,7 @@ V1 Backends
     FakeEssex
     FakeGuadalupe
     FakeHanoi
-    FakeJakartaV2
+    FakeJakarta
     FakeJohannesburg
     FakeKolkata
     FakeLagos
@@ -129,7 +129,7 @@ V1 Backends
     FakeSingapore
     FakeSydney
     FakeTenerife
-    FakeTokyoV2
+    FakeTokyo
     FakeToronto
     FakeValencia
     FakeVigo
