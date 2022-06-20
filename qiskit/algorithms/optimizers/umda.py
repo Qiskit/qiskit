@@ -258,6 +258,9 @@ class UMDA(Optimizer):
 
         Args:
             value: Size of the generations (number of individuals per generation).
+
+        Raises:
+            ValueError: If `value` is lower than 1.
         """
         if value <= 0:
             raise ValueError("The size of the generation should be greater than 0.")
@@ -275,6 +278,9 @@ class UMDA(Optimizer):
 
         Args:
             value: Maximum number of iterations of the algorithm.
+
+        Raises:
+            ValueError: If `value` is lower than 1.
         """
         if value <= 0:
             raise ValueError("The maximum number of iterations should be greater than 0.")
@@ -295,8 +301,11 @@ class UMDA(Optimizer):
 
         Args:
             value: Percentage [0,1] of generation selected to update the probabilistic model.
+
+        Raises:
+            ValueError: If `value` is lower than 0 or greater than 1.
         """
-        if (0 > value) or (value > 1):
+        if (value < 0) or (value > 1):
             raise ValueError(
                 "Alpha represents a percentage and should be greater than 0 but lower " "than 1"
             )
