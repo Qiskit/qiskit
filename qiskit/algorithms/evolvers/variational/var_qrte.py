@@ -34,7 +34,8 @@ class VarQRTE(VarQTE, RealEvolver):
         from qiskit import BasicAer
         from qiskit.circuit.library import EfficientSU2
         from qiskit.opflow import SummedOp, I, Z, Y, X
-        from qiskit.algorithms.evolvers.variational.variational_principles.real_mc_lachlan_principle import (
+        from qiskit.algorithms.evolvers.variational.variational_principles.
+        real_mc_lachlan_principle import (
             RealMcLachlanPrinciple,
         )
         from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_factory import (

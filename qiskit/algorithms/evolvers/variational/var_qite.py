@@ -34,7 +34,8 @@ class VarQITE(VarQTE, ImaginaryEvolver):
         from qiskit import BasicAer
         from qiskit.circuit.library import EfficientSU2
         from qiskit.opflow import SummedOp, I, Z, Y, X
-        from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_principle import (
+        from qiskit.algorithms.evolvers.variational.variational_principles.
+        imaginary_mc_lachlan_principle import (
             ImaginaryMcLachlanPrinciple,
         )
         from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_factory import (

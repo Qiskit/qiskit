@@ -14,15 +14,15 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from ..expected_results.test_imaginary_mc_lachlan_variational_principle_expected3 import (
-    expected_bound_metric_tensor_3,
-)
 import numpy as np
 from qiskit.algorithms.evolvers.variational.variational_principles.real_time_dependent_principle import (
     RealTimeDependentPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import SummedOp, X, Y, I, Z
+from ..expected_results.test_imaginary_mc_lachlan_variational_principle_expected3 import (
+    expected_bound_metric_tensor_3,
+)
 
 
 class TestRealTimeDependentPrinciple(QiskitAlgorithmsTestCase):
