@@ -351,6 +351,17 @@ class StagedPassManager(PassManager):
        optimize the circuit until a condtion (such as fixed depth) is reached.
     #. ``scheduling`` - Any hardware aware scheduling passes
 
+    .. note::
+
+        For backwards compatibility the relative positioning of these default
+        stages will remain stable moving forward. However, new stages may be
+        added to the default stage list in between current stages. For example,
+        in a future release a new phase, something like ``logical_optimization``, could be added
+        immediately after the existing ``init`` stage in the default stage list.
+        This would preserve compatibility for pre-existing ``StagedPassManager``
+        users as the relative positions of the stage are preserved so the behavior
+        will not change between releases.
+
     These stages will be executed in order and any stage set to ``None`` will be skipped. If
     a :class:`~qiskit.transpiler.PassManager` input is being used for more than 1 stage here
     (for example in the case of a :class:`~.Pass` that covers both Layout and Routing) you will want
