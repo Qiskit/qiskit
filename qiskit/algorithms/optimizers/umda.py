@@ -120,9 +120,7 @@ class UMDA(Optimizer):
     ELITE_FACTOR = 0.4
     STD_BOUND = 0.3
 
-    def __init__(
-        self, maxiter: int, size_gen: int, alpha: float = 0.5
-    ) -> None:
+    def __init__(self, maxiter: int, size_gen: int, alpha: float = 0.5) -> None:
         r"""
         Args:
             maxiter: Maximum number of function evaluations.
@@ -262,7 +260,7 @@ class UMDA(Optimizer):
             value: Size of the generations (number of individuals per generation).
         """
         if value <= 0:
-            raise ValueError('The size of the generation should be greater than 0.')
+            raise ValueError("The size of the generation should be greater than 0.")
         self._size_gen = value
 
     @property
@@ -279,7 +277,7 @@ class UMDA(Optimizer):
             value: Maximum number of iterations of the algorithm.
         """
         if value <= 0:
-            raise ValueError('The maximum number of iterations should be greater than 0.')
+            raise ValueError("The maximum number of iterations should be greater than 0.")
 
         self._max_iter = value
 
@@ -299,7 +297,9 @@ class UMDA(Optimizer):
             value: Percentage [0,1] of generation selected to update the probabilistic model.
         """
         if (0 > value) or (value > 1):
-            raise ValueError("Alpha represents a percentage and should be greater than 0 but lower " "than 1")
+            raise ValueError(
+                "Alpha represents a percentage and should be greater than 0 but lower " "than 1"
+            )
 
         self._alpha = value
 
