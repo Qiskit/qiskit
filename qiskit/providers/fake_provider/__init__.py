@@ -141,7 +141,15 @@ Special Fake Backends
 
 .. autosummary::
     :toctree: ../stubs/
+
     FakeQasmSimulator
+    FakeOpenPulse2Q
+    FakeOpenPulse3Q
+    Fake1Q
+    FakeBackendV2
+    FakeBackend5QV2
+    FakeMumbaiFractionalCX
+    ConfigurableFakeBackend
 
 """
 
