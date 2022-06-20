@@ -12,7 +12,6 @@
 
 """Tests for visualization of latex state and unitary drawers"""
 
-import os
 import unittest
 
 from qiskit.quantum_info import Statevector
