@@ -20,7 +20,7 @@ import sys
 
 import numpy as np
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, __version__
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.parameter import Parameter
@@ -411,7 +411,7 @@ def generate_circuits(version_str=None):
     """Generate reference circuits."""
     version_parts = None
     if version_str:
-        version_match = re.search(VERSION_PATTERN, __version__, re.VERBOSE | re.IGNORECASE)
+        version_match = re.search(VERSION_PATTERN, version_str, re.VERBOSE | re.IGNORECASE)
         version_parts = tuple(int(x) for x in version_match.group("release").split("."))
 
     output_circuits = {
