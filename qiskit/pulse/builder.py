@@ -748,7 +748,7 @@ class _PulseBuilder:
         reference_key: str,
         channels: List[chans.Channel],
     ):
-        """Add external program as a reference instruction.
+        """Add external program as a :class:`~qiskit.pulse.instructions.Reference` instruction.
 
         Args:
             reference_key: Unique key of the subroutine.
@@ -1927,14 +1927,16 @@ def call(
     parameters which will be assigned to the target program.
 
     .. note::
-        If the ``target`` program is instance of schedule or quantum cirucit,
-        it will be assigned as :class:`~qiskit.pulse.instructions.Call` instruction.
-        Otherwise :class:`~qiskit.pulse.instructions.Reference` instruction
-        is added and ``target`` is separately registered to the references.
+
+        If the ``target`` program is a schedule or a quantum cirucit instance, then
+        it will be assigned as a :class:`~qiskit.pulse.instructions.Call` instruction.
+        If the ``target`` program is not given and only its ``name`` is given, then
+        a :class:`~qiskit.pulse.instructions.Reference` instruction is added and
+        the ``target`` program is separately registered to the references at a later stage.
 
     Examples:
 
-        1. Call with substantial program.
+        1. Call with a target program.
 
         .. code-block:: python
 
@@ -1989,7 +1991,7 @@ def call(
 
         .. code-block:: python
 
-            qiskit import pulse
+            from qiskit import pulse
 
             with pulse.build() as main_prog:
                 ref_key = "my_subroutine"
@@ -1998,19 +2000,19 @@ def call(
             with pulse.build() as subroutine:
                 pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
 
-            main_prog.assign_reference(ref_key=ref_key, schedule=subroutine)
+            main_prog.assign_references(subroutine_dict={ref_key: subroutine})
 
         When you call without actual program, you can assign the program afterwards
-        through the :meth:`ScheduleBlock.assign_reference` method.
+        through the :meth:`ScheduleBlock.assign_references` method.
 
     Args:
         target: Target circuit or pulse schedule to call. If this program is not
-            provided, both ``name`` and ``channels`` should be provided instead.
+            provided, both ``name`` and ``channels`` must be provided.
         name: Name of subroutine if defined.
         channels: Optional. Channels associated to the subroutine.
-        value_dict: Optional. Local scoped parameters assigned to the subroutine.
+        value_dict: Optional. Parameters assigned to the ``target`` program.
             If this dictionary is provided, the ``target`` program is copied and
-            then stored in the main built schedule with having parameters assigned.
+            then stored in the main built schedule and its parameters are assigned to the given values.
             This dictionary is keyed on the :class:`~.Parameter` object,
             thus parameter name collision can be avoided.
             This option is valid only when the subroutine is called with ``target``.

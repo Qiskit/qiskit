@@ -22,13 +22,14 @@ if TYPE_CHECKING:
     from .channels import Channel
 
 
+# A variable to represent an empty (unassigned) subrotuine in the reference table.
 _NOT_ASSIGNED = None
 
 
 class ReferenceManager(MutableMapping):
     """Helper class to manage reference to subroutine.
 
-    This is a dict-like object manages mapping to program and channels both
+    This dict-like object manages mapping to program and channels both
     keyed on the subroutine name. New entry should be created with
     :meth:`define_reference` method otherwise it raises an error when
     it is directly created through ``__setitem__`` as in a standard python dictionary.

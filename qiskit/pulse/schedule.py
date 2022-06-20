@@ -48,7 +48,7 @@ from qiskit.pulse.dagschedule import DAGSchedule
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions import Instruction, Reference
-from qiskit.pulse.utils import instruction_duration_validation, scoping_parameter
+from qiskit.pulse.utils import instruction_duration_validation, scope_parameter
 from qiskit.pulse.reference_manager import ReferenceManager
 from qiskit.utils.multiprocessing import is_main_process
 
@@ -821,11 +821,11 @@ def _require_schedule_conversion(function: Callable) -> Callable:
 class ScheduleBlock:
     """Time-ordered sequence of instructions with alignment context.
 
-    :class:`ScheduleBlock` supports lazy scheduling of context instruction,
+    :class:`.ScheduleBlock` supports lazy scheduling of context instruction,
     i.e. its timeslot is always generated at runtime.
     This indicates we can parametrize instruction durations as well as
-    other parameters. In contrast to :class:`Schedule` being somewhat static,
-    :class:`ScheduleBlock` is a dynamic representation of pulse program.
+    other parameters. In contrast to :class:`.Schedule` being somewhat static,
+    :class:`.ScheduleBlock` is a dynamic representation of pulse program.
 
     .. rubric:: Pulse Builder
 
@@ -842,41 +842,41 @@ class ScheduleBlock:
     Several preset contexts are available in :ref:`pulse_alignments`.
     Schedule block is instantiated with one of above alignment contexts.
     Default context is :class:`AlignLeft`, in which all instructions are left-justified,
-    in other word, as-soon-as-possible scheduling.
+    in other words, as-soon-as-possible scheduling.
 
-    If you need absolute-time interval in between instructions, you can explicitly
-    insert :class:`~qiskit.pulse.instructions.Delay` instruction.
+    If you need an absolute-time interval in between instructions, you can explicitly
+    insert :class:`~qiskit.pulse.instructions.Delay` instructions.
 
     .. rubric:: Nested blocks
 
-    Schedule block can nest other blocks with different alignment context.
-    This enables complicated scheduling, where a subset of instructions is
-    locally scheduled in different manner.
-    Note that :class:`Schedule` instance cannot be directly added to the schedule block.
-    Schedule instances should be wrapped by :class:`Call` instruction to be added.
-    This is implicitly performed when a schedule added through the :ref:`pulse_builder`.
+    A schedule block can contain other nested blocks with different alignment contexts.
+    This enables advanced scheduling, where a subset of instructions is
+    locally scheduled in a different manner.
+    Note that a :class:`.Schedule` instance cannot be directly added to a schedule block.
+    To add a :class:`.Schedule` instance, wrap it in a :class:`.Call` instruction.
+    This is implicitly performed when a schedule is added through the :ref:`pulse_builder`.
 
     .. rubric:: Unsupported operations
 
-    Because the schedule block is the representation lacking timeslots, it cannot
+    Because the schedule block representation lacks timeslots, it cannot
     perform particular operations such as :meth:`insert` or :meth:`shift` that
     require instruction start time ``t0``.
     In addition, :meth:`exclude` and :meth:`filter` methods are not supported
     because these operations may identify the target instruction with ``t0``.
-    Except for these operations, :class:`ScheduleBlock` provides full compatibility
-    with the :class:`Schedule`.
+    Except for these operations, :class:`.ScheduleBlock` provides full compatibility
+    with :class:`.Schedule`.
 
     .. rubric:: Subroutine
 
-    Timeslots-free representation offers much higher flexibility to write pulse programs.
-    Because it only cares the ordering of the child blocks,
-    we can add undefined pulse sequence as a subroutine of the main program.
+    The timeslots-free representation offers much greater flexibility for writing pulse programs.
+    Because it only cares about the ordering of the child blocks,
+    we can add an undefined pulse sequence as a subroutine of the main program.
     If your program contains the same sequence multiple times, this representation may
     reduce the memory footprint required by the program construction.
-    Such subroutine is realized by the special compiler directive
+    Such a subroutine is realized by the special compiler directive
     :class:`~qiskit.pulse.instructions.Reference` that is defined by
     a unique reference key to the subroutine and associated channels.
-    The substantial (executable) subroutine is separately stored in the main program.
+    The (executable) subroutine is separately stored in the main program.
     Appended reference directives are resolved when the main program is executed.
     Subroutines must be assigned through the :meth:`assign_references` before execution.
 
@@ -884,7 +884,7 @@ class ScheduleBlock:
 
     When you call a subroutine from another subroutine, or append a schedule block
     to another schedule block, the management of references and parameters
-    may become hard task. Schedule block offers a convenient feature to help this
+    can be a hard task. Schedule block offers a convenient feature to help with this
     by automatically scoping the parameters and subroutines.
 
     .. jupyter-execute::
@@ -906,7 +906,7 @@ class ScheduleBlock:
     the scoped name doesn't break its reference.
 
     You may want to call this program from another program.
-    Here the program is called with the reference key ``grand_child``.
+    In this example, the program is called with the reference key ``grand_child``.
     You can call a subroutine without specifying a substantial program, i.e. ``sched1``.
 
     .. jupyter-execute::
@@ -1164,7 +1164,7 @@ class ScheduleBlock:
             All parameters defined under the current scope.
         """
         parameters = set(
-            scoping_parameter(param, scope) if add_scope else param
+            scope_parameter(param, scope) if add_scope else param
             for param in self._parameter_manager.parameters
         )
         for sub_namespace, subroutine in self.references.items():
@@ -1428,9 +1428,9 @@ class ScheduleBlock:
         subroutine_dict: Dict[str, "ScheduleBlock"],
         inplace: bool = True,
     ) -> "ScheduleBlock":
-        """Assign schedule to reference.
+        """Assign schedules to references.
 
-        It is only capable of assigning a substantial program to child subroutines
+        It is only capable of assigning a scheduel block to child subroutines
         which are directly referred within the current scope, because
         nested subroutines are not exposed to the current scope.
 
@@ -1447,9 +1447,9 @@ class ScheduleBlock:
             with pulse.build(name="C") as main_prog:
                 pulse.call(name="B", channels=[pulse.DriveChannel(0)])
 
-        In above example, the ``main_prog`` ("C") is only aware of the subroutine "C.B" and its
-        reference of "B.A" is not exposed to the namespace of "C".
-        This is because to prevent the breaking reference by the assignment of "C.B".
+        In above example, the ``main_prog`` ("C") is only aware of the subroutine "C.B" and the
+        reference of "B" to program "A", i.e., "B.A", is not exposed to the namespace of "C".
+        This prevents breaking the reference "C.B.A" by the assignment of "C.B".
         For example, if a user could indirectly assign "C.B.A" from the program "C",
         one can later assign another program to "C.B" that doesn't contain "A" within it.
         In this situation, a reference "C.B.A" still lives in the reference manager of "C",
@@ -1498,7 +1498,7 @@ class ScheduleBlock:
         """Get parameter object bound to this schedule by string name.
 
         Note that we can define different parameter objects with the same name,
-        because these object is identified by the object uuid.
+        because these different objects are identified by their unique uuid.
 
         .. code-block:: python
 

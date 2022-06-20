@@ -174,18 +174,18 @@ class Call(instruction.Instruction):
 
 
 class Reference(instruction.Instruction):
-    """Pulse compiler directive that refers to subroutine.
+    """Pulse compiler directive that refers to a subroutine.
 
-    If a pulse program uses same subset of instructions multiple times,
-    using :class:`~.Reference` may significantly reduces memory footprint of the program.
-    This instruction only stores name and associated channels in its instance.
+    If a pulse program uses the same subset of instructions multiple times, then
+    using the :class:`~.Reference` class may significantly reduce the memory footprint of
+    the program. This instruction only stores the name and the associated channels.
 
     The actual pulse program is stored in the :attr:`ScheduleBlock.references`
     that this reference instruction belongs to.
 
-    You can later assign schedule through :meth:`ScheduleBlock.assign_reference` method.
+    You can later assign schedules with the :meth:`ScheduleBlock.assign_references` method.
     This allows you to build the main program without knowing the actual subroutine,
-    that is spplied later at the run time.
+    that is supplied at a later time.
     """
 
     def __init__(
