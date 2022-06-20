@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Abstract Base class of Gradient.
+Abstract Base class of Gradient for Estimator.
 """
 
 from __future__ import annotations
@@ -19,19 +19,43 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 
+from qiskit import QuantumCircuit
+from qiskit.quantum_info import SparsePauliOp
+
 from ..base_estimator import BaseEstimator
+from ..estimator_result import EstimatorResult
+from .estimator_gradient_result import EstimatorGradientResult
 
 
 class BaseEstimatorGradient(ABC):
-    def __init__(self, estimator: BaseEstimator):
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+    ):
         self._estimator = estimator
 
     @abstractmethod
     def gradient(
         self,
-        circuit_indices: Sequence[int],
-        observable_indices: Sequence[int],
+        circuits: Sequence[int | QuantumCircuit],
+        observables: Sequence[int | SparsePauliOp],
+        parameter_values: Sequence[Sequence[float]],
+        **run_options,
+    ) -> EstimatorGradientResult:
+        ...
+
+    @abstractmethod
+    def estimate(
+        self,
+        circuits: Sequence[int | QuantumCircuit],
+        observables: Sequence[int | SparsePauliOp],
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> EstimatorResult:
         ...
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        self._estimator.close()

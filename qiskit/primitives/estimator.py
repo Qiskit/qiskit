@@ -16,6 +16,7 @@ Estimator class
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from functools import partial
 
 import numpy as np
 
@@ -27,6 +28,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator import BaseEstimator
 from .estimator_result import EstimatorResult
+from .factories import EstimatorFromCircuitsAndObservables
 from .utils import init_circuit, init_observable
 
 
@@ -90,3 +92,7 @@ class Estimator(BaseEstimator):
 
     def close(self):
         self._is_closed = True
+
+    @classmethod
+    def create_estimator_from_circuits_and_observables(cls) -> EstimatorFromCircuitsAndObservables:
+        return partial(cls)

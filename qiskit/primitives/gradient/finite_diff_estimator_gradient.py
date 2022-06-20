@@ -18,39 +18,72 @@ import numpy as np
 
 from ..base_estimator import BaseEstimator
 from ..estimator_result import EstimatorResult
+from ..factories import EstimatorFromCircuitsAndObservables
 from .base_estimator_gradient import BaseEstimatorGradient
+from .estimator_gradient_result import EstimatorGradientResult
 
 
 class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
-    def __init__(self, estimator: BaseEstimator, epsilon: float = 1e-6):
+    def __init__(
+        self,
+        estimator_factory: EstimatorFromCircuitsAndObservables,
+        circuits: QuantumCircuit | Sequence[QuantumCircuit],
+        observables: BaseOperator | PauliSumOp | Sequence[BaseOperator | PauliSumOp],
+        epsilon: float = 1e-6,
+    ):
         self._epsilon = epsilon
+        estimator = estimator_factory(circuits, observables)
+        self._num_circuits = len(circuits)
+        self._num_observables = len(observables)
         super().__init__(estimator)
 
     def gradient(
         self,
-        circuit_index: int,
-        observable_index: int,
-        parameter_value: Sequence[float],
+        circuits: Sequence[int | QuantumCircuit],
+        observables: Sequence[int | SparsePauliOp],
+        parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> EstimatorResult:
-        run_options = run_options.copy()
+        # TODO: support QC and SPO
+        gradients = []
+        for circuit_index, observable_index, parameter_value in zip(
+            circuits, observables, parameter_values
+        ):
+            dim = len(parameter_value)
+            ret = [parameter_value]
+            for i in range(dim):
+                ei = parameter_value.copy()
+                ei[i] += self._epsilon
+                ret.append(ei)
+            param_array = np.array(ret).tolist()
+            circuit_indices = [circuit_index] * (dim + 1)
+            observable_indices = [observable_index] * (dim + 1)
+            # TODO: batch
+            results = self._estimator.__call__(
+                circuit_indices, observable_indices, param_array, **run_options
+            )
 
-        dim = len(parameter_value)
-        ret = [parameter_value]
-        for i in range(dim):
-            ei = parameter_value.copy()
-            ei[i] += self._epsilon
-            ret.append(ei)
-        param_array = np.array(ret).tolist()
-        circuit_indices = [circuit_index] * (dim + 1)
-        observable_indices = [observable_index] * (dim + 1)
-        results = self._estimator.__call__(
-            circuit_indices, observable_indices, param_array, **run_options
-        )
+            values = results.values
+            gradient = np.zeros(dim)
+            f_ref = values[0]
+            for i, f_i in enumerate(values[1:]):
+                gradient[i] = (f_i - f_ref) / self._epsilon
+            gradients.append(gradient)
+        return EstimatorGradientResult(values=gradients, metadata=[{}] * len(gradients))
 
-        values = results.values
-        grad = np.zeros(dim)
-        f_ref = values[0]
-        for i, f_i in enumerate(values[1:]):
-            grad[i] = (f_i - f_ref) / self._epsilon
-        return EstimatorResult(values=grad, metadata=[{}] * len(grad))
+    def estimate(
+        self,
+        circuits: Sequence[int | QuantumCircuit],
+        observables: Sequence[int | SparsePauliOp],
+        parameter_values: Sequence[Sequence[float]],
+        **run_options,
+    ) -> EstimatorResult:
+        # TODO: support QC and SPO
+        for circuit in circuits:
+            if circuit >= self._num_circuits:
+                raise IndexError()
+        for observable in observables:
+            if observable >= self._num_observables:
+                raise IndexError()
+
+        return self._estimator(circuits, observables, parameter_values, **run_options)
