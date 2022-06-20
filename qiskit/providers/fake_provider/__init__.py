@@ -11,13 +11,56 @@
 # that they have been altered from the originals.
 
 """
-Utilities for mocking the IBMQ provider, including job responses and backends.
+======================================================
+Fake Provider (:mod:`qiskit.providers.fake_provider`)
+======================================================
 
-The module includes dummy provider, backends, and jobs.
-The purpose of these classes is to fake backends for testing purposes:
-testing local timeouts, arbitrary responses or behavior, etc.
+.. currentmodule:: qiskit.providers.fake_provider
 
-The mock devices are mainly for testing the compiler.
+Overview
+========
+
+The FakeProvider class contains fake providers and fake backends, primarily used for unit testing of
+the transpiler.
+
+Fake Providers
+==============
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    FakeProviderFactory
+    FakeProviderForBackendV2
+    FakeProvider
+
+Fake Backends
+=============
+
+V2 Backends
+-----------
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    FakeAlmadenV2
+    FakeArmonkV2
+
+V1 Backends
+-----------
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    FakeAlmaden
+    FakeArmonk
+
+Special Fake Backends
+=====================
+
+.. autosummary::
+    :toctree: ../stubs/
+    FakeQasmSimulator
+
 """
 
 # Fake job and qobj classes
