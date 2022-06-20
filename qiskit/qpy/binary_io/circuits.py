@@ -599,7 +599,7 @@ def _write_custom_instruction(file_obj, name, instruction, custom_instructions):
         has_definition = True
         data = common.data_to_binary(instruction.definition, write_circuit)
         size = len(data)
-    if type_key == common.CircuitInstruction.CONTROLLED_GATE:
+    if type_key == type_keys.CircuitInstruction.CONTROLLED_GATE:
         num_ctrl_qubits = instruction.num_ctrl_qubits
         ctrl_state = instruction.ctrl_state
         base_gate = instruction.base_gate

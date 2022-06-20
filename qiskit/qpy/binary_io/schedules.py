@@ -47,7 +47,7 @@ def _read_waveform(file_obj, version):
     name = value.read_value(file_obj, version, {})
 
     return library.Waveform(
-        samples=common.data_from_binary(samples_raw, np.load),
+        samples=np.frombuffer(samples_raw, dtype=complex),
         name=name,
         epsilon=header.epsilon,
         limit_amplitude=header.amp_limited,
@@ -56,6 +56,9 @@ def _read_waveform(file_obj, version):
 
 def _loads_symbolic_expr(expr_bytes):
     from sympy import parse_expr
+
+    if expr_bytes == b"":
+        return None
 
     expr_txt = zlib.decompress(expr_bytes).decode(common.ENCODE)
     expr = parse_expr(expr_txt)
@@ -171,7 +174,7 @@ def _write_channel(file_obj, data):
 
 
 def _write_waveform(file_obj, data):
-    samples_bytes = common.data_to_binary(data, np.save)
+    samples_bytes = data.samples.tobytes()
 
     header = struct.pack(
         formats.WAVEFORM_PACK,
@@ -186,6 +189,9 @@ def _write_waveform(file_obj, data):
 
 def _dumps_symbolic_expr(expr):
     from sympy import srepr, sympify
+
+    if expr is None:
+        return b""
 
     expr_bytes = srepr(sympify(expr)).encode(common.ENCODE)
     return zlib.compress(expr_bytes)

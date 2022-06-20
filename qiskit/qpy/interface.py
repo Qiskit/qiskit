@@ -218,7 +218,7 @@ def load(
             "version" % (".".join([str(x) for x in header_version_parts]), __version__)
         )
 
-    if data.qpy_version < 6:
+    if data.qpy_version < 5:
         type_key = type_keys.Program.CIRCUIT
     else:
         type_key = common.read_type_key(file_obj)

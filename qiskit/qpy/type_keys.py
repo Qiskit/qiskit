@@ -31,6 +31,7 @@ from qiskit.pulse.channels import (
     DriveChannel,
     MeasureChannel,
     ControlChannel,
+    AcquireChannel,
     MemorySlot,
     RegisterSlot,
 )
@@ -106,7 +107,7 @@ class Value(TypeKeyBase):
             return cls.FLOAT
         if isinstance(obj, complex):
             return cls.COMPLEX
-        if isinstance(obj, (np.integer, np.floating, np.ndarray, np.complexfloating)):
+        if isinstance(obj, (np.integer, np.floating, np.complexfloating, np.ndarray)):
             return cls.NUMPY_OBJ
         if isinstance(obj, ParameterVectorElement):
             return cls.PARAMETER_VECTOR
@@ -334,7 +335,7 @@ class ScheduleChannel(TypeKeyBase):
             return cls.CONTROL
         if isinstance(obj, MeasureChannel):
             return cls.MEASURE
-        if isinstance(obj, Acquire):
+        if isinstance(obj, AcquireChannel):
             return cls.ACQURE
         if isinstance(obj, MemorySlot):
             return cls.MEM_SLOT
@@ -354,7 +355,7 @@ class ScheduleChannel(TypeKeyBase):
         if type_key == cls.MEASURE:
             return MeasureChannel
         if type_key == cls.ACQURE:
-            return Acquire
+            return AcquireChannel
         if type_key == cls.MEM_SLOT:
             return MemorySlot
         if type_key == cls.REG_SLOT:
