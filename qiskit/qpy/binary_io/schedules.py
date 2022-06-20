@@ -44,10 +44,11 @@ def _read_waveform(file_obj, version):
         )
     )
     samples_raw = file_obj.read(header.data_size)
+    samples = common.data_from_binary(samples_raw, np.load)
     name = value.read_value(file_obj, version, {})
 
     return library.Waveform(
-        samples=np.frombuffer(samples_raw, dtype=complex),
+        samples=samples,
         name=name,
         epsilon=header.epsilon,
         limit_amplitude=header.amp_limited,
@@ -174,7 +175,7 @@ def _write_channel(file_obj, data):
 
 
 def _write_waveform(file_obj, data):
-    samples_bytes = data.samples.tobytes()
+    samples_bytes = common.data_to_binary(data.samples, np.save)
 
     header = struct.pack(
         formats.WAVEFORM_PACK,

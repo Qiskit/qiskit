@@ -258,6 +258,7 @@ def data_from_binary(binary_data, deserializer, **kwargs):
         any: Deserialized object.
     """
     with io.BytesIO(binary_data) as container:
+        container.seek(0)
         obj = deserializer(container, **kwargs)
     return obj
 
