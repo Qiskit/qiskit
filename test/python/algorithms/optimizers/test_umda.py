@@ -14,7 +14,6 @@
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
-import numpy as np
 from qiskit.algorithms.optimizers.umda import UMDA
 
 
