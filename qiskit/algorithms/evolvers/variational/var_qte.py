@@ -45,8 +45,8 @@ from .solvers.ode.var_qte_ode_solver import (
 class VarQTE(ABC):
     """Variational Quantum Time Evolution.
 
-    Algorithms that use variational variational_principles to compute a time evolution for a given
-    Hermitian operator (Hamiltonian) and a quantum state.
+    Algorithms that use variational principles to compute a time evolution for a given
+    Hermitian operator (Hamiltonian) and a quantum state prepared by a parameterized quantum circuit.
 
     References:
 

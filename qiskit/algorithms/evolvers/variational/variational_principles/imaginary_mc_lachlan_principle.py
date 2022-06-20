@@ -65,13 +65,10 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
             An evolution gradient.
         """
         if self._evolution_gradient_callable is None:
-            modified_hamiltonian = (-1) * (
-                StateFn(hamiltonian, is_measurement=True) @ StateFn(ansatz)
-            )
-
+            expectation = StateFn(hamiltonian, is_measurement=True) @ StateFn(ansatz)
             self._evolution_gradient_callable = self._evolution_gradient.gradient_wrapper(
-                modified_hamiltonian, bind_params, gradient_params, quantum_instance
+                expectation, bind_params, gradient_params, quantum_instance
             )
-        evolution_grad_lse_rhs = 0.5 * self._evolution_gradient_callable(param_values)
+        evolution_grad_lse_rhs = -0.5 * self._evolution_gradient_callable(param_values)
 
         return evolution_grad_lse_rhs

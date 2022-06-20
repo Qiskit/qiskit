@@ -142,7 +142,6 @@ class LinComb(CircuitGradient):
             An operator corresponding to the gradient resp. Hessian. The order is in accordance with
             the order of the given parameters.
         """
-        # print(operator)
         return self._prepare_operator(operator, params)
 
     # pylint: disable=too-many-return-statements

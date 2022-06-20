@@ -93,8 +93,8 @@ class VarQITE(VarQTE, ImaginaryEvolver):
             num_instability_tol: The amount of negative value that is allowed to be
                 rounded up to 0 for quantities that are expected to be non-negative.
             quantum_instance: Backend used to evaluate the quantum circuit outputs. If ``None``
-                provided, everything will be evaluated based on matrix multiplication (which is
-                slow).
+                provided, everything will be evaluated based on NumPy matrix multiplication 
+                (which might be slow for larger numbers of qubits).
         """
         super().__init__(
             variational_principle,
