@@ -66,10 +66,10 @@ class FakeProviderFactory:
 
 
 class FakeProviderForBackendV2(ProviderV1):
-    """Dummy provider just for testing purposes.
+    """Fake provider containing fake V2 backends.
 
-    Only filtering backends by name is implemented.
-    This class contains fake V2 backends
+    Only filtering backends by name is implemented. This class contains all fake V2 backends
+    availabe in the :mod:`qiskit.providers.fake_provider`.
     """
 
     def get_backend(self, name=None, **kwargs):
@@ -134,9 +134,10 @@ class FakeProviderForBackendV2(ProviderV1):
 
 
 class FakeProvider(ProviderV1):
-    """Dummy provider just for testing purposes.
+    """Fake provider containing fake V1 backends.
 
-    Only filtering backends by name is implemented.
+    Only filtering backends by name is implemented. This class contains all fake V1 backends
+    availabe in the :mod:`qiskit.providers.fake_provider`.
     """
 
     def get_backend(self, name=None, **kwargs):
