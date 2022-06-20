@@ -27,7 +27,8 @@ from qiskit.circuit.parametervector import ParameterVector
 from qiskit.circuit.qpy_serialization import dump, load
 from qiskit.opflow import X, Y, Z, I
 from qiskit.quantum_info.random import random_unitary
-from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT
+from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT, DCXGate
+from qiskit.circuit.gate import Gate
 
 
 def generate_full_circuit():
@@ -340,6 +341,31 @@ def generate_control_flow_circuits():
     return circuits
 
 
+def generate_controlled_gates():
+    """Test QPY serialization with custom ControlledGates."""
+    circuits = []
+    qc = QuantumCircuit(3)
+    controlled_gate = DCXGate().control(1)
+    qc.append(controlled_gate, [0, 1, 2])
+    circuits.append(qc)
+    custom_gate = Gate("black_box", 1, [])
+    custom_definition = QuantumCircuit(1)
+    custom_definition.h(0)
+    custom_definition.rz(1.5, 0)
+    custom_definition.sdg(0)
+    custom_gate.definition = custom_definition
+    nested_qc = QuantumCircuit(3)
+    qc.append(custom_gate, [0])
+    controlled_gate = custom_gate.control(2)
+    nested_qc.append(controlled_gate, [0, 1, 2])
+    nested_qc.measure_all()
+    circuits.append(nested_qc)
+    qc_open = QuantumCircuit(2)
+    qc_open.cx(0, 1, ctrl_state=0)
+    circuits.append(qc_open)
+    return circuits
+
+
 def generate_circuits(version_str=None):
     """Generate reference circuits."""
     version_parts = None
@@ -372,6 +398,8 @@ def generate_circuits(version_str=None):
         ]
     if version_parts >= (0, 19, 2):
         output_circuits["control_flow.qpy"] = generate_control_flow_circuits()
+    if version_parts >= (0, 21, 0):
+        output_circuits["controlled_gates.qpy"] = generate_controlled_gates()
 
     return output_circuits
 
