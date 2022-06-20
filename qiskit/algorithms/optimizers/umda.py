@@ -30,7 +30,8 @@ class UMDA(Optimizer):
 
     .. seealso::
 
-        This code and analysis where obtained from EDAspy Python package [2].
+        This code and analysis were obtained from EDAspy Python package [2] which has been
+        developed by the original author of this implementation (Vicente P. Soloviev).
 
     EDAs are stochastic search algorithms and belongs to the family of the evolutionary algorithms.
     The main difference is that EDAs have a probabilistic model which is updated in each iteration
@@ -81,7 +82,7 @@ class UMDA(Optimizer):
 
             p = 2  # Toy example: 2 layers with 2 parameters in each layer: 4 variables
 
-            opt = UMDA(maxiter=100, size_gen=20, n_variables=p*2, disp=True)
+            opt = UMDA(maxiter=100, size_gen=20)
 
             backend = Aer.get_backend('statevector_simulator')
             vqe = QAOA(opt,
@@ -96,7 +97,7 @@ class UMDA(Optimizer):
 
         .. code-block:: python
 
-            opt = UMDA(maxiter=100, size_gen=20, n_variables=p*2, alpha = 0.6, disp=True)
+            opt = UMDA(maxiter=100, size_gen=20, alpha = 0.6)
 
             backend = Aer.get_backend('statevector_simulator')
             vqe = QAOA(opt,
@@ -119,48 +120,36 @@ class UMDA(Optimizer):
     ELITE_FACTOR = 0.4
     STD_BOUND = 0.3
 
-    # setting = "---"
-
     def __init__(
-        self, maxiter: int, size_gen: int, n_variables: int, alpha: float = 0.5, disp: bool = False
+        self, maxiter: int, size_gen: int, alpha: float = 0.5
     ) -> None:
         r"""
         Args:
             maxiter: Maximum number of function evaluations.
             size_gen: Population size of each generation.
-            n_variables: Number of variables to be optimized. For example in QAOA the number of variables
-                is 2p, where p is the number of layers of the circuit.
             alpha: Percentage [0, 1] of the population to be selected as elite selection.
-            disp: Set to True to print convergence messages.
         """
 
-        self.__disp = disp
-        self.__size_gen = size_gen
-        self.__max_iter = maxiter
-        assert 0 < alpha < 1, (
-            "Alpha represents a percentage and should be greater than 0 but lower " "than 1"
-        )
-        self.__alpha = alpha
-        self.__n_variables = n_variables
-        self.__vector = self._initialization()
-        self.__dead_iter = int(self.__max_iter / 5)
-
-        self.__best_cost_global = 999999999999
-        self.__truncation_length = int(size_gen * alpha)
-
+        self.size_gen = size_gen
+        self.max_iter = maxiter
+        self.alpha = alpha
+        self._vector = None
         # initialization of generation
-        self.__generation = algorithm_globals.random.normal(
-            self.__vector[0, :], self.__vector[1, :], [self.__size_gen, self.__n_variables]
-        )
+        self._generation = None
+        self._dead_iter = int(self._max_iter / 5)
+
+        self._truncation_length = int(size_gen * alpha)
 
         super().__init__()
 
-        self.__best_ind_global = 9999999
-        self.__history = []
-        self.__evaluations = np.array(0)
+        self._best_cost_global = None
+        self._best_ind_global = None
+        self._evaluations = None
+
+        self._n_variables = None
 
     def _initialization(self):
-        vector = np.zeros((4, self.__n_variables))
+        vector = np.zeros((4, self._n_variables))
 
         vector[0, :] = np.pi  # mu
         vector[1, :] = 0.5  # std
@@ -174,25 +163,25 @@ class UMDA(Optimizer):
         """
 
         gen = algorithm_globals.random.normal(
-            self.__vector[0, :], self.__vector[1, :], [self.__size_gen, self.__n_variables]
+            self._vector[0, :], self._vector[1, :], [self._size_gen, self._n_variables]
         )
 
-        self.__generation = self.__generation[: int(self.ELITE_FACTOR * len(self.__generation))]
-        self.__generation = np.vstack((self.__generation, gen))
+        self._generation = self._generation[: int(self.ELITE_FACTOR * len(self._generation))]
+        self._generation = np.vstack((self._generation, gen))
 
     # truncate the generation at alpha percent
     def _truncation(self):
         """Selection of the best individuals of the actual generation.
         Updates the generation by selecting the best individuals.
         """
-        best_indices = self.__evaluations.argsort()[: self.__truncation_length]
-        self.__generation = self.__generation[best_indices, :]
-        self.__evaluations = np.take(self.__evaluations, best_indices)
+        best_indices = self._evaluations.argsort()[: self._truncation_length]
+        self._generation = self._generation[best_indices, :]
+        self._evaluations = np.take(self._evaluations, best_indices)
 
     # check each individual of the generation
     def _check_generation(self, objective_function):
         """Check the cost of each individual in the cost function implemented by the user."""
-        self.__evaluations = np.apply_along_axis(objective_function, 1, self.__generation)
+        self._evaluations = np.apply_along_axis(objective_function, 1, self._generation)
 
     # update the probability vector
     def _update_vector(self):
@@ -200,10 +189,10 @@ class UMDA(Optimizer):
         generation can sample from it. Update the vector of normal distributions
         """
 
-        for i in range(self.__n_variables):
-            self.__vector[0, i], self.__vector[1, i] = norm.fit(self.__generation[:, i])
-            if self.__vector[1, i] < self.STD_BOUND:
-                self.__vector[1, i] = self.STD_BOUND
+        for i in range(self._n_variables):
+            self._vector[0, i], self._vector[1, i] = norm.fit(self._generation[:, i])
+            if self._vector[1, i] < self.STD_BOUND:
+                self._vector[1, i] = self.STD_BOUND
 
     def minimize(
         self,
@@ -216,59 +205,53 @@ class UMDA(Optimizer):
         not_better_count = 0
         result = OptimizerResult()
 
-        for _ in range(self.__max_iter):
+        self._n_variables = len(x0)
+        self._best_cost_global = 999999999999
+        self._best_ind_global = 9999999
+        history = []
+        self._evaluations = np.array(0)
+
+        self._vector = self._initialization()
+
+        # initialization of generation
+        self._generation = algorithm_globals.random.normal(
+            self._vector[0, :], self._vector[1, :], [self._size_gen, self._n_variables]
+        )
+
+        for _ in range(self._max_iter):
             self._check_generation(fun)
             self._truncation()
             self._update_vector()
 
-            best_mae_local = min(self.__evaluations)
+            best_mae_local = min(self._evaluations)
 
-            self.__history.append(best_mae_local)
-            best_ind_local = np.where(self.__evaluations == best_mae_local)[0][0]
-            best_ind_local = self.__generation[best_ind_local]
+            history.append(best_mae_local)
+            best_ind_local = np.where(self._evaluations == best_mae_local)[0][0]
+            best_ind_local = self._generation[best_ind_local]
 
             # update the best values ever
-            if best_mae_local < self.__best_cost_global:
-                self.__best_cost_global = best_mae_local
-                self.__best_ind_global = best_ind_local
+            if best_mae_local < self._best_cost_global:
+                self._best_cost_global = best_mae_local
+                self._best_ind_global = best_ind_local
                 not_better_count = 0
 
             else:
                 not_better_count += 1
-                if not_better_count == self.__dead_iter:
+                if not_better_count == self._dead_iter:
                     break
 
             self._new_generation()
 
-        result.x = self.__best_ind_global
-        result.fun = self.__best_cost_global
-        result.nfev = len(self.__history) * self.__size_gen
-
-        if self.__disp:
-            print("\tNFVALS = " + str(result.nfev) + " F = " + str(result.fun))
-            print("\tX = " + str(result.x))
+        result.x = self._best_ind_global
+        result.fun = self._best_cost_global
+        result.nfev = len(history) * self._size_gen
 
         return result
 
     @property
-    def disp(self) -> bool:
-        """Returns True if user desires to display final result, and False otherwise"""
-        return self.__disp
-
-    @disp.setter
-    def disp(self, value: bool):
-        """
-        Sets the value of the display variable.
-
-        Args:
-            value: Set to True to print convergence messages.
-        """
-        self.__disp = value
-
-    @property
     def size_gen(self) -> int:
         """Returns the size of the generations (number of individuals per generation)"""
-        return self.__size_gen
+        return self._size_gen
 
     @size_gen.setter
     def size_gen(self, value: int):
@@ -278,12 +261,14 @@ class UMDA(Optimizer):
         Args:
             value: Size of the generations (number of individuals per generation).
         """
-        self.__size_gen = value
+        if value <= 0:
+            raise ValueError('The size of the generation should be greater than 0.')
+        self._size_gen = value
 
     @property
     def max_iter(self) -> int:
         """Returns the maximum number of iterations"""
-        return self.__max_iter
+        return self._max_iter
 
     @max_iter.setter
     def max_iter(self, value: int):
@@ -293,13 +278,16 @@ class UMDA(Optimizer):
         Args:
             value: Maximum number of iterations of the algorithm.
         """
-        self.__max_iter = value
+        if value <= 0:
+            raise ValueError('The maximum number of iterations should be greater than 0.')
+
+        self._max_iter = value
 
     @property
     def alpha(self) -> float:
         """Returns the alpha parameter value (percentage of population selected to update
         probabilistic model)"""
-        return self.__alpha
+        return self._alpha
 
     @alpha.setter
     def alpha(self, value: float):
@@ -310,28 +298,16 @@ class UMDA(Optimizer):
         Args:
             value: Percentage [0,1] of generation selected to update the probabilistic model.
         """
-        self.__alpha = value
+        if (0 > value) or (value > 1):
+            raise ValueError("Alpha represents a percentage and should be greater than 0 but lower " "than 1")
 
-    @property
-    def n_variables(self) -> int:
-        """Returns the number of variables desired to be optimized"""
-        return self.__n_variables
-
-    @n_variables.setter
-    def n_variables(self, value: int):
-        """
-        Sets the number of variables to be optimized by the UMDA.
-
-        Args:
-            value: Number of variables to be optimized.
-        """
-        self.__n_variables = value
+        self._alpha = value
 
     @property
     def dead_iter(self) -> int:
         """Returns the stopping criteria: the number of iterations with no improvement, after
         which the algorithm converges"""
-        return self.__dead_iter
+        return self._dead_iter
 
     @dead_iter.setter
     def dead_iter(self, value: int):
@@ -342,22 +318,22 @@ class UMDA(Optimizer):
         Args:
             value: Number of iterations with no improvement after which the algorithm converges.
         """
-        self.__dead_iter = value
+        self._dead_iter = value
 
     @property
     def best_cost_global(self) -> float:
         """Returns the best individual cost found until the moment"""
-        return self.__best_cost_global
+        return self._best_cost_global
 
     @property
     def best_ind_global(self):
         """Returns the best individual instance found until the moment"""
-        return self.__best_ind_global
+        return self._best_ind_global
 
     @property
     def generation(self):
         """Returns the actual generation of solutions"""
-        return self.__generation
+        return self._generation
 
     @generation.setter
     def generation(self, value: np.array):
@@ -368,12 +344,7 @@ class UMDA(Optimizer):
         Args:
             value: set of solutions to be set as generation.
         """
-        self.__generation = value
-
-    @property
-    def history(self) -> list:
-        """Returns the best cost found in each iteration during runtime"""
-        return self.__history
+        self._generation = value
 
     @property
     def settings(self) -> Dict[str, Any]:
@@ -382,9 +353,6 @@ class UMDA(Optimizer):
             "alpha": self.alpha,
             "dead_iter": self.dead_iter,
             "size_gen": self.size_gen,
-            "n_variables": self.n_variables,
-            "best_cost_global": self.best_cost_global,
-            "best_ind_global": self.best_ind_global,
         }
 
     def get_support_level(self):
