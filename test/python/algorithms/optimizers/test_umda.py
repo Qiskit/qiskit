@@ -21,21 +21,9 @@ from qiskit.algorithms.optimizers.umda import UMDA
 class TestUMDA(QiskitAlgorithmsTestCase):
     """Tests for the UMDA optimizer."""
 
-    def test_truncation(self):
-        """Test if truncation is performed as expected"""
-        umda = UMDA(maxiter=1, size_gen=20, n_variables=10)
-
-        def objective_function(array):
-            return sum(array)
-
-        umda.minimize(objective_function, np.array([np.pi] * 10))
-
-        siz = int(umda.ELITE_FACTOR * int(umda.size_gen * umda.alpha))
-        assert umda.generation.shape == (siz + umda.size_gen, umda.n_variables)
-
     def test_get_set(self):
         """Test if getters and setters work as expected"""
-        umda = UMDA(maxiter=1, size_gen=20, n_variables=10)
+        umda = UMDA(maxiter=1, size_gen=20)
         umda.disp = True
         umda.size_gen = 30
         umda.alpha = 0.6
@@ -50,7 +38,7 @@ class TestUMDA(QiskitAlgorithmsTestCase):
 
     def test_settings(self):
         """Test if the settings display works well"""
-        umda = UMDA(maxiter=1, size_gen=20, n_variables=10)
+        umda = UMDA(maxiter=1, size_gen=20)
         umda.disp = True
         umda.size_gen = 30
         umda.alpha = 0.6
@@ -62,9 +50,6 @@ class TestUMDA(QiskitAlgorithmsTestCase):
             "alpha": 0.6,
             "dead_iter": 10,
             "size_gen": 30,
-            "n_variables": 10,
-            "best_cost_global": umda.best_cost_global,
-            "best_ind_global": umda.best_ind_global,
         }
 
         assert umda.settings == set_
