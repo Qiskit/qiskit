@@ -80,7 +80,7 @@ def _read_symbolic_pulse(file_obj, version):
     pulse_type = file_obj.read(header.type_size).decode(common.ENCODE)
     envelope = _loads_symbolic_expr(file_obj.read(header.envelope_size))
     constraints = _loads_symbolic_expr(file_obj.read(header.constraints_size))
-    valid_amp_conditions = _loads_symbolic_expr(file_obj.read(header.valid_amp_condition_size))
+    valid_amp_conditions = _loads_symbolic_expr(file_obj.read(header.valid_amp_conditions_size))
     parameters = common.read_mapping(
         file_obj,
         deserializer=value.loads_value,

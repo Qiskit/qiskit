@@ -179,7 +179,7 @@ SYMBOLIC_PULSE = namedtuple(
         "type_size",
         "envelope_size",
         "constraints_size",
-        "valid_amp_condition_size",
+        "valid_amp_conditions_size",
         "amp_limited",
     ],
 )
