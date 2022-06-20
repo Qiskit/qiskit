@@ -93,6 +93,11 @@ class Acquire(Instruction):
         return (self.channel,)
 
     @property
+    def slots(self) -> Tuple[Union[MemorySlot, RegisterSlot]]:
+        """Returns the slots that this schedule uses."""
+        return tuple(self.operands[ind] for ind in (2, 3) if self.operands[ind] is not None)
+
+    @property
     def duration(self) -> Union[int, ParameterExpression]:
         """Duration of this instruction."""
         return self.operands[0]
