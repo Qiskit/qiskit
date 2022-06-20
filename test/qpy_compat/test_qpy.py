@@ -29,6 +29,7 @@ from qiskit.opflow import X, Y, Z, I
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT, DCXGate
 from qiskit.circuit.gate import Gate
+from qiskit.qpy.interface import VERSION_PATTERN
 
 
 def generate_full_circuit():
@@ -370,7 +371,8 @@ def generate_circuits(version_str=None):
     """Generate reference circuits."""
     version_parts = None
     if version_str:
-        version_parts = tuple(int(x) for x in version_str.split("."))
+        version_match = re.search(VERSION_PATTERN, __version__, re.VERBOSE | re.IGNORECASE)
+        version_parts = tuple(int(x) for x in version_match.group("release").split("."))
 
     output_circuits = {
         "full.qpy": [generate_full_circuit()],
