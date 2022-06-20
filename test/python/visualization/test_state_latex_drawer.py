@@ -28,12 +28,10 @@ class TestLatexStateDrawer(QiskitVisualizationTestCase):
         sv = Statevector.from_label("+-rl")
         output = state_drawer(sv, "latex_source")
         expected_output = (
-            "\\frac{1}{4} |0000\\rangle- \\frac{i}{4} "
-            "|0001\\rangle+\\frac{i}{4} |0010\\rangle+\\frac{1}{4} |0"
-            "011\\rangle- \\frac{1}{4} |0100\\rangle+\\frac{i}{4} |01"
-            "01\\rangle + \\ldots +\\frac{1}{4} |1011\\rangle- \\frac"
-            "{1}{4} |1100\\rangle+\\frac{i}{4} |1101\\rangle- \\frac{"
-            "i}{4} |1110\\rangle- \\frac{1}{4} |1111\\rangle"
+            r"\frac{1}{4} |0000\rangle- \frac{i}{4} |0001\rangle+\frac{i}{4} |0010\rangle"
+            r"+\frac{1}{4} |0011\rangle- \frac{1}{4} |0100\rangle+\frac{i}{4} |0101\rangle"
+            r" + \ldots +\frac{1}{4} |1011\rangle- \frac{1}{4} |1100\rangle"
+            r"+\frac{i}{4} |1101\rangle- \frac{i}{4} |1110\rangle- \frac{1}{4} |1111\rangle"
         )
         self.assertEqual(output, expected_output)
 
@@ -43,8 +41,8 @@ class TestLatexStateDrawer(QiskitVisualizationTestCase):
         sv = Statevector.from_label("+-rl")
         output = state_drawer(sv, "latex_source", max_size=4)
         expected_output = (
-            "\\frac{1}{4} |0000\\rangle- \\frac{i}{4} "
-            "|0001\\rangle + \\ldots - \\frac{1}{4} |1111\\rangle"
+            r"\frac{1}{4} |0000\rangle- \frac{i}{4} |0001\rangle"
+            r" + \ldots - \frac{1}{4} |1111\rangle"
         )
         self.assertEqual(output, expected_output)
 
