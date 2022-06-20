@@ -1146,7 +1146,17 @@ class ScheduleBlock:
 
     @property
     def blocks(self) -> Tuple["BlockComponent", ...]:
-        """Get the time-ordered instructions from self."""
+        """Get the block elements added to self.
+
+        .. note::
+
+            The sequence of element is retuend in order of addition. Because the first element is
+            schedule first, e.g. FIFO, the returned sequence is roughly time-ordered,
+            however, in the parallel alignment context, especially in
+            the as-late-as-possible scheduling, or :class:`.AlignRight` context,
+            actual timing when the intruction is issued is unknown until self is scheduled
+            and converted into :class:`.Schedule`.
+        """
         return tuple(self._blocks.nodes())
 
     def _collect_parameters(self, scope: str, add_scope: bool = False) -> Set[Parameter]:
