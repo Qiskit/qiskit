@@ -15,10 +15,6 @@
 import unittest
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from test.python.algorithms.evolvers.variational.solvers.expected_results. \
-    test_varqte_linear_solver_expected_1 import (
-    expected_metric_res_1,
-)
 from ddt import ddt, data
 import numpy as np
 
@@ -31,6 +27,9 @@ from qiskit.algorithms.evolvers.variational.solvers.var_qte_linear_solver import
 )
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import SummedOp, X, Y, I, Z
+from .expected_results.test_varqte_linear_solver_expected_1 import (
+    expected_metric_res_1,
+)
 
 
 @ddt

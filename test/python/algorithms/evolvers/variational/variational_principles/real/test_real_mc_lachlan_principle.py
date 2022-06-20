@@ -14,16 +14,15 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from test.python.algorithms.evolvers.variational.variational_principles.expected_results. \
-    test_imaginary_mc_lachlan_variational_principle_expected2 import (
-    expected_bound_metric_tensor_2,
-)
 import numpy as np
 from qiskit.algorithms.evolvers.variational.variational_principles import (
     RealMcLachlanPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import SummedOp, X, Y, I, Z
+from ..expected_results.test_imaginary_mc_lachlan_variational_principle_expected2 import (
+    expected_bound_metric_tensor_2,
+)
 
 
 class TestRealMcLachlanPrinciple(QiskitAlgorithmsTestCase):
