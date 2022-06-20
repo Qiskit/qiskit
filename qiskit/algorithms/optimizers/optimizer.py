@@ -12,15 +12,25 @@
 
 """Optimizer interface"""
 
-from typing import Dict, Any, Union, Callable, Optional, Tuple, List
+from __future__ import annotations
 
-import warnings
+from abc import ABC, abstractmethod
 from enum import IntEnum
 import logging
-from abc import ABC, abstractmethod
+import sys
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+import warnings
+
 import numpy as np
+import scipy
 
 from qiskit.algorithms.algorithm_result import AlgorithmResult
+
+if sys.version_info >= (3, 8):
+    # pylint: disable=no-name-in-module, ungrouped-imports
+    from typing import Protocol
+else:
+    from typing_extensions import Protocol
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +108,35 @@ class OptimizerResult(AlgorithmResult):
     def nit(self, nit: Optional[int]) -> None:
         """Set the total number of iterations."""
         self._nit = nit
+
+
+class Minimizer(Protocol):
+    """Callback Protocol for minimizer."""
+
+    # pylint: disable=invalid-name
+    def __call__(
+        self,
+        fun: Callable[[np.ndarray], float],
+        x0: np.ndarray,
+        jac: Callable[[np.ndarray], np.ndarray] | None,
+        bounds: list[tuple[float, float]] | None,
+    ) -> scipy.optimize.OptimizeResult | OptimizerResult:
+        """Minimize the objective function.
+
+        This interface is based on `SciPy's optimize module <https://docs.scipy.org/doc
+        /scipy/reference/generated/scipy.optimize.minimize.html>`__.
+
+        Args:
+            fun: The objective function to minimize (for example the energy in the case of the VQE).
+            x0: The initial point for the optimization.
+            jac: The gradient of the objective function.
+            bounds: Parameters bounds for the optimization. Note that these might not be supported
+                by all optimizers.
+
+        Returns:
+             The minimization result object (either SciPy's or Qiskit's).
+        """
+        ...
 
 
 class OptimizerSupportLevel(IntEnum):

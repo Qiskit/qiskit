@@ -49,7 +49,7 @@ from qiskit.utils.deprecation import deprecate_function
 from .parameterexpression import ParameterExpression, ParameterValueType
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
-from .parametertable import ParameterTable, ParameterView
+from .parametertable import ParameterReferences, ParameterTable, ParameterView
 from .parametervector import ParameterVector, ParameterVectorElement
 from .instructionset import InstructionSet
 from .register import Register
@@ -245,6 +245,7 @@ class QuantumCircuit:
         # Data contains a list of instructions and their contexts,
         # in the order they were applied.
         self._data = []
+        self._op_start_times = None
 
         # A stack to hold the instruction sets that are being built up during for-, if- and
         # while-block construction.  These are stored as a stripped down sequence of instructions,
@@ -298,6 +299,27 @@ class QuantumCircuit:
             list of Clbit objects.
         """
         return QuantumCircuitData(self)
+
+    @property
+    def op_start_times(self) -> List[int]:
+        """Return a list of operation start times.
+
+        This attribute is enabled once one of scheduling analysis passes
+        runs on the quantum circuit.
+
+        Returns:
+            List of integers representing instruction start times.
+            The index corresponds to the index of instruction in :attr:`QuantumCircuit.data`.
+
+        Raises:
+            AttributeError: When circuit is not scheduled.
+        """
+        if self._op_start_times is None:
+            raise AttributeError(
+                "This circuit is not scheduled. "
+                "To schedule it run the circuit through one of the transpiler scheduling passes."
+            )
+        return self._op_start_times
 
     @data.setter
     def data(
@@ -1285,30 +1307,18 @@ class QuantumCircuit:
 
             for parameter in atomic_parameters:
                 if parameter in self._parameter_table:
-                    if not self._check_dup_param_spec(
-                        self._parameter_table[parameter], instruction, param_index
-                    ):
-                        self._parameter_table[parameter].append((instruction, param_index))
+                    self._parameter_table[parameter].add((instruction, param_index))
                 else:
                     if parameter.name in self._parameter_table.get_names():
                         raise CircuitError(f"Name conflict on adding parameter: {parameter.name}")
-                    self._parameter_table[parameter] = [(instruction, param_index)]
+                    self._parameter_table[parameter] = ParameterReferences(
+                        ((instruction, param_index),)
+                    )
 
                     # clear cache if new parameter is added
                     self._parameters = None
 
         return instruction
-
-    def _check_dup_param_spec(
-        self,
-        parameter_spec_list: Sequence[Tuple[Instruction, int]],
-        instruction: Instruction,
-        param_index: int,
-    ) -> bool:
-        for spec in parameter_spec_list:
-            if spec[0] is instruction and spec[1] == param_index:
-                return True
-        return False
 
     def add_register(self, *regs: Union[Register, int, Sequence[Bit]]) -> None:
         """Add registers."""
@@ -1492,6 +1502,7 @@ class QuantumCircuit:
         gates_to_decompose: Optional[
             Union[Type[Gate], Sequence[Type[Gate]], Sequence[str], str]
         ] = None,
+        reps: int = 1,
     ) -> "QuantumCircuit":
         """Call a decomposition pass on this circuit,
         to decompose one level (shallow decompose).
@@ -1499,6 +1510,9 @@ class QuantumCircuit:
         Args:
             gates_to_decompose (str or list(str)): optional subset of gates to decompose.
                 Defaults to all gates in circuit.
+            reps (int): Optional number of times the circuit should be decomposed.
+                For instance, ``reps=2`` equals calling ``circuit.decompose().decompose()``.
+                can decompose specific gates specific time
 
         Returns:
             QuantumCircuit: a circuit one level decomposed
@@ -1508,9 +1522,11 @@ class QuantumCircuit:
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
 
-        pass_ = Decompose(gates_to_decompose=gates_to_decompose)
-        decomposed_dag = pass_.run(circuit_to_dag(self))
-        return dag_to_circuit(decomposed_dag)
+        pass_ = Decompose(gates_to_decompose)
+        dag = circuit_to_dag(self)
+        for _ in range(reps):
+            dag = pass_.run(dag)
+        return dag_to_circuit(dag)
 
     def _check_compatible_regs(self, rhs: "QuantumCircuit") -> None:
         """Raise exception if the circuits are defined on incompatible registers"""
@@ -2102,6 +2118,42 @@ class QuantumCircuit:
         Returns:
           QuantumCircuit: a deepcopy of the current circuit, with the specified name
         """
+        cpy = self.copy_empty_like(name)
+
+        instr_instances = {id(instr): instr for instr, _, __ in self._data}
+        instr_copies = {id_: instr.copy() for id_, instr in instr_instances.items()}
+
+        cpy._parameter_table = ParameterTable(
+            {
+                param: ParameterReferences(
+                    (instr_copies[id(instr)], param_index)
+                    for instr, param_index in self._parameter_table[param]
+                )
+                for param in self._parameter_table
+            }
+        )
+
+        cpy._data = [
+            (instr_copies[id(inst)], qargs.copy(), cargs.copy())
+            for inst, qargs, cargs in self._data
+        ]
+
+        return cpy
+
+    def copy_empty_like(self, name: Optional[str] = None) -> "QuantumCircuit":
+        """Return a copy of self with the same structure but empty.
+
+        That structure includes:
+            * name, calibrations and other metadata
+            * global phase
+            * all the qubits and clbits, including the registers
+
+        Args:
+            name (str): Name for the copied circuit. If None, then the name stays the same.
+
+        Returns:
+            QuantumCircuit: An empty copy of self.
+        """
         cpy = copy.copy(self)
         # copy registers correctly, in copy.copy they are only copied via reference
         cpy.qregs = self.qregs.copy()
@@ -2112,24 +2164,8 @@ class QuantumCircuit:
         cpy._qubit_indices = self._qubit_indices.copy()
         cpy._clbit_indices = self._clbit_indices.copy()
 
-        instr_instances = {id(instr): instr for instr, _, __ in self._data}
-
-        instr_copies = {id_: instr.copy() for id_, instr in instr_instances.items()}
-
-        cpy._parameter_table = ParameterTable(
-            {
-                param: [
-                    (instr_copies[id(instr)], param_index)
-                    for instr, param_index in self._parameter_table[param]
-                ]
-                for param in self._parameter_table
-            }
-        )
-
-        cpy._data = [
-            (instr_copies[id(inst)], qargs.copy(), cargs.copy())
-            for inst, qargs, cargs in self._data
-        ]
+        cpy._parameter_table = ParameterTable()
+        cpy._data = []
 
         cpy._calibrations = copy.deepcopy(self._calibrations)
         cpy._metadata = copy.deepcopy(self._metadata)
@@ -2137,6 +2173,14 @@ class QuantumCircuit:
         if name:
             cpy.name = name
         return cpy
+
+    def clear(self) -> None:
+        """Clear all instructions in self.
+
+        Clearing the circuits will keep the metadata and calibrations.
+        """
+        self._data.clear()
+        self._parameter_table.clear()
 
     def _create_creg(self, length: int, name: str) -> ClassicalRegister:
         """Creates a creg, checking if ClassicalRegister with same name exists"""
@@ -2569,7 +2613,7 @@ class QuantumCircuit:
                 reference to a value that cannot be assigned.
         """
         # parameter might be in global phase only
-        if parameter in self._parameter_table.keys():
+        if parameter in self._parameter_table:
             for instr, param_index in self._parameter_table[parameter]:
                 assignee = instr.params[param_index]
                 # Normal ParameterExpression.
@@ -2598,7 +2642,7 @@ class QuantumCircuit:
                 entry = self._parameter_table.pop(parameter)
                 for new_parameter in value.parameters:
                     if new_parameter in self._parameter_table:
-                        self._parameter_table[new_parameter].extend(entry)
+                        self._parameter_table[new_parameter] |= entry
                     else:
                         self._parameter_table[new_parameter] = entry
             else:
@@ -4128,11 +4172,12 @@ class QuantumCircuit:
                 atomic_parameters.update(parameter.parameters)
         for atomic_parameter in atomic_parameters:
             entries = self._parameter_table[atomic_parameter]
-            new_entries = [
+            new_entries = ParameterReferences(
                 (entry_instruction, entry_index)
                 for entry_instruction, entry_index in entries
                 if entry_instruction is not instruction
-            ]
+            )
+
             if not new_entries:
                 del self._parameter_table[atomic_parameter]
                 # Invalidate cache.
