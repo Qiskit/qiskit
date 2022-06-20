@@ -45,6 +45,46 @@ V2 Backends
     FakeAlmadenV2
     FakeArmonkV2
     FakeAthensV2
+    FakeBelemV2
+    FakeBoeblingenV2
+    FakeBogotaV2
+    FakeBrooklynV2
+    FakeBurlingtonV2
+    FakeCairoV2
+    FakeCambridgeV2
+    FakeCasablancaV2
+    FakeEssexV2
+    FakeGuadalupeV2
+    FakeHanoiV2
+    FakeJakartaV2
+    FakeJohannesburgV2
+    FakeKolkataV2V2
+    FakeLagosV2
+    FakeLimaV2
+    FakeLondonV2
+    FakeManhattanV2
+    FakeManilaV2
+    FakeMelbourneV2
+    FakeMontrealV2
+    FakeMumbaiV2
+    FakeNairobiV2
+    FakeOurenseV2
+    FakeParisV2
+    FakePoughkeepsieV2
+    FakeQuitoV2
+    FakeRochesterV2
+    FakeRomeV2
+    FakeRueschlikonV2
+    FakeSantiagoV2
+    FakeSingaporeV2
+    FakeSydneyV2
+    FakeTenerifeV2
+    FakeTokyoV2
+    FakeTorontoV2
+    FakeValenciaV2
+    FakeVigoV2
+    FakeWashingtonV2
+    FakeYorktownV2
 
 V1 Backends
 -----------
@@ -55,6 +95,46 @@ V1 Backends
     FakeAlmaden
     FakeArmonk
     FakeAthens
+    FakeBelem
+    FakeBoeblingen
+    FakeBogota
+    FakeBrooklyn
+    FakeBurlington
+    FakeCairo
+    FakeCambridge
+    FakeCasablanca
+    FakeEssex
+    FakeGuadalupe
+    FakeHanoi
+    FakeJakartaV2
+    FakeJohannesburg
+    FakeKolkata
+    FakeLagos
+    FakeLima
+    FakeLondon
+    FakeManhattan
+    FakeManila
+    FakeMelbourne
+    FakeMontreal
+    FakeMumbai
+    FakeNairobi
+    FakeOurense
+    FakeParis
+    FakePoughkeepsie
+    FakeQuito
+    FakeRochester
+    FakeRome
+    FakeRueschlikon
+    FakeSantiago
+    FakeSingapore
+    FakeSydney
+    FakeTenerife
+    FakeTokyoV2
+    FakeToronto
+    FakeValencia
+    FakeVigo
+    FakeWashington
+    FakeYorktown
 
 Special Fake Backends
 =====================
