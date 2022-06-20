@@ -1762,8 +1762,8 @@ class TestParameterEquality(QiskitTestCase):
 
         self.assertEqual(expr1, expr2)
 
-    def test_parameter_expression_equal_after_add(self):
-        """Verify an expression created by adding is identical to expected results."""
+    def test_parameter_expression_not_equal_after_add(self):
+        """Verify an expression created by adding different parameter isn't identical."""
         phi = Parameter("$\\phi$")
         expr1 = 2.0 * Parameter("$\\phi$") + 0.3
         expr2 = phi + 0.1 + phi + 0.2
