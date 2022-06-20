@@ -289,25 +289,26 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
         if qargs is None:
             qargs_ = slice(None)
-            num_act = self.num_qubits
         else:
             qargs_ = list(qargs)
-            num_act = len(qargs_)
+        
+        is_pauli_list = len(self.x.shape) > 1
 
         ret = self.copy()
+        ret._x[:,qargs_] = False
+        ret._z[:,qargs_] = False
+        
+        # pylint: disable=cyclic-import
+        from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 
-        idx = np.concatenate((self._x[:,qargs_], self._z[:,qargs_]), axis=1).astype('uint8') # axes: [pauli_list, input qubit q (or p)]
-        ret._x[:,qargs_] = idx.dot(adj.table.X)%2 # converting to int b/c dot product of booleans interprets True + True = True rather than desired XOR.
-        ret._z[:,qargs_] = idx.dot(adj.table.Z)%2
-        ret._phase += 2*idx.dot(adj.table.phase) # this sums phase/2 over all Pauli rows, but we want to sum _phase/2
+        idx = np.concatenate((self._x[:,qargs_], self._z[:,qargs_]), axis=1)
+        for idx_, row in zip(idx.T, PauliList.from_symplectic(z=adj.table.Z, x=adj.table.X, phase=2*adj.table.phase)):
+            if idx_.any():
+                if is_pauli_list:
+                    ret[idx_] = ret[idx_].compose(row, qargs=qargs)
+                else:
+                    ret = ret.compose(row, qargs=qargs)
 
-        # extra phase from commuting all X rightward past all Z:
-        uptri = np.zeros((2*num_act, 2*num_act), dtype='uint8')
-        uptri[np.triu_indices_from(uptri,k=1)] = 2
-        np.fill_diagonal(uptri, 1) # combines with earlier sum of phase/2 to total sum of _phase/2
-        commutations = np.einsum('qQ, pQ, qp -> qp', adj.table.Z, adj.table.X, uptri) # Q axis = output qubit
-        ret._phase += np.einsum('lq,lp,qp -> l', idx, idx, commutations)
-        ret._phase = (ret._phase)%4
         return ret
 
     def _eq(self, other):
