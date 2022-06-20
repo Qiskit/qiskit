@@ -20,8 +20,8 @@ Fake Provider (:mod:`qiskit.providers.fake_provider`)
 Overview
 ========
 
-The FakeProvider class contains fake providers and fake backends, primarily used for unit testing of
-the transpiler.
+The fake provider module contains fake providers and fake backends classes, primarily used for unit
+testing of the transpiler.
 
 Fake Providers
 ==============
@@ -44,6 +44,7 @@ V2 Backends
 
     FakeAlmadenV2
     FakeArmonkV2
+    FakeAthensV2
 
 V1 Backends
 -----------
@@ -53,6 +54,7 @@ V1 Backends
 
     FakeAlmaden
     FakeArmonk
+    FakeAthens
 
 Special Fake Backends
 =====================
