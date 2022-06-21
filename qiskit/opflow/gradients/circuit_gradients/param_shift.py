@@ -207,8 +207,13 @@ class ParamShift(CircuitGradient):
 
             shifted_ops = []
             summed_shifted_op = None
-            for m, param_occurence in enumerate(circ._parameter_table[param]):
-                param_index = param_occurence[1]
+
+            iref_to_data_index = {id(inst): idx for idx, (inst, _, _) in enumerate(circ.data)}
+
+            for param_reference in circ._parameter_table[param]:
+                original_gate, param_index = param_reference
+                m = iref_to_data_index[id(original_gate)]
+
                 pshift_op = deepcopy(operator)
                 mshift_op = deepcopy(operator)
 
@@ -216,8 +221,8 @@ class ParamShift(CircuitGradient):
                 pshift_circ = self.get_unique_circuits(pshift_op)[0]
                 mshift_circ = self.get_unique_circuits(mshift_op)[0]
 
-                pshift_gate = pshift_circ._parameter_table[param][m][0]
-                mshift_gate = mshift_circ._parameter_table[param][m][0]
+                pshift_gate = pshift_circ.data[m][0]
+                mshift_gate = mshift_circ.data[m][0]
 
                 p_param = pshift_gate.params[param_index]
                 m_param = mshift_gate.params[param_index]
