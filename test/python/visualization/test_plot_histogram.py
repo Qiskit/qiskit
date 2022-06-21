@@ -13,15 +13,21 @@
 """Tests for plot_histogram."""
 
 import unittest
+from io import BytesIO
+from collections import Counter
+
 import matplotlib as mpl
+from PIL import Image
 
-from qiskit.test import QiskitTestCase
 from qiskit.tools.visualization import plot_histogram
+from qiskit.utils import optionals
+from .visualization import QiskitVisualizationTestCase
 
 
-class TestPlotHistogram(QiskitTestCase):
+class TestPlotHistogram(QiskitVisualizationTestCase):
     """Qiskit plot_histogram tests."""
 
+    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_different_counts_lengths(self):
         """Test plotting two different length dists works"""
         exact_dist = {
@@ -106,6 +112,107 @@ class TestPlotHistogram(QiskitTestCase):
 
         fig = plot_histogram([raw_dist, exact_dist])
         self.assertIsInstance(fig, mpl.figure.Figure)
+
+    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+    def test_with_number_to_keep(self):
+        """Test plotting using number_to_keep"""
+        dist = {"00": 3, "01": 5, "11": 8, "10": 11}
+        fig = plot_histogram(dist, number_to_keep=2)
+        self.assertIsInstance(fig, mpl.figure.Figure)
+
+    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+    def test_with_number_to_keep_multiple_executions(self):
+        """Test plotting using number_to_keep with multiple executions"""
+        dist = [{"00": 3, "01": 5, "11": 8, "10": 11}, {"00": 3, "01": 7, "10": 11}]
+        fig = plot_histogram(dist, number_to_keep=2)
+        self.assertIsInstance(fig, mpl.figure.Figure)
+
+    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+    def test_with_number_to_keep_multiple_executions_correct_image(self):
+        """Test plotting using number_to_keep with multiple executions"""
+        data_noisy = {
+            "00000": 0.22,
+            "00001": 0.003,
+            "00010": 0.005,
+            "00011": 0.0,
+            "00100": 0.004,
+            "00101": 0.001,
+            "00110": 0.004,
+            "00111": 0.001,
+            "01000": 0.005,
+            "01001": 0.0,
+            "01010": 0.002,
+            "01011": 0.0,
+            "01100": 0.225,
+            "01101": 0.001,
+            "01110": 0.003,
+            "01111": 0.003,
+            "10000": 0.012,
+            "10001": 0.002,
+            "10010": 0.001,
+            "10011": 0.001,
+            "10100": 0.247,
+            "10101": 0.004,
+            "10110": 0.003,
+            "10111": 0.001,
+            "11000": 0.225,
+            "11001": 0.005,
+            "11010": 0.002,
+            "11011": 0.0,
+            "11100": 0.015,
+            "11101": 0.004,
+            "11110": 0.001,
+            "11111": 0.0,
+        }
+        data_ideal = {
+            "00000": 0.25,
+            "00001": 0,
+            "00010": 0,
+            "00011": 0,
+            "00100": 0,
+            "00101": 0,
+            "00110": 0,
+            "00111": 0.0,
+            "01000": 0.0,
+            "01001": 0,
+            "01010": 0.0,
+            "01011": 0.0,
+            "01100": 0.25,
+            "01101": 0,
+            "01110": 0,
+            "01111": 0,
+            "10000": 0,
+            "10001": 0,
+            "10010": 0.0,
+            "10011": 0.0,
+            "10100": 0.25,
+            "10101": 0,
+            "10110": 0,
+            "10111": 0,
+            "11000": 0.25,
+            "11001": 0,
+            "11010": 0,
+            "11011": 0,
+            "11100": 0.0,
+            "11101": 0,
+            "11110": 0,
+            "11111": 0.0,
+        }
+        data_ref_noisy = dict(Counter(data_noisy).most_common(5))
+        data_ref_noisy["rest"] = sum(data_noisy.values()) - sum(data_ref_noisy.values())
+        data_ref_ideal = dict(Counter(data_ideal).most_common(4))  # do not add 0 values
+        data_ref_ideal["rest"] = 0
+        figure_ref = plot_histogram([data_ref_ideal, data_ref_noisy])
+        figure_truncated = plot_histogram([data_ideal, data_noisy], number_to_keep=5)
+        with BytesIO() as img_buffer_ref:
+            figure_ref.savefig(img_buffer_ref, format="png")
+            img_buffer_ref.seek(0)
+            with BytesIO() as img_buffer:
+                figure_truncated.savefig(img_buffer, format="png")
+                img_buffer.seek(0)
+                self.assertImagesAreEqual(Image.open(img_buffer_ref), Image.open(img_buffer), 0.2)
+        mpl.pyplot.close(figure_ref)
+        mpl.pyplot.close(figure_truncated)
 
 
 if __name__ == "__main__":
