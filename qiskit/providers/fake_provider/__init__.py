@@ -20,46 +20,71 @@ Fake Provider (:mod:`qiskit.providers.fake_provider`)
 Overview
 ========
 
-The fake provider module contains fake providers and fake backends classes, primarily used for unit
-testing of the transpiler.
+The fake provider module contains fake providers and fake backends classes. The fake backends are
+built to micmic the behaviors of IBM Quantum systems using system snapshots. The system snapshots
+contain important information about the quantum system such as coupling map, basis gates, qubit
+properties (T1, T2, error rate, etc.) which are useful for testing the transpiler and performing
+noisy simulation of the
+system.
+
+Example Usage
+=============
+
+Here is an example of using a fake backend for transpilation and simulation.
 
 .. jupyter-execute::
 
-    from qiskit import QuantumCircuit, transpile
+    from qiskit import QuantumCircuit
     from qiskit.providers.fake_provider import FakeProviderForBackendV2
 
-    # get a fake backend from a fake provider
+    # Get a fake backend from a fake provider
     provider = FakeProviderForBackendV2()
     backend = provider.get_backend('fake_manila_v2')
 
-    # create a simple circuit
-    qc = QuantumCircuit(2)
-    qc.h(0)
-    qc.cx(0,1)
-    qc.measure_all()
+    # Create a simple circuit
+    circuit = QuantumCircuit(3)
+    circuit.h(0)
+    circuit.cx(0,1)
+    circuit.cx(0,2)
+    circuit.measure_all()
+    circuit.draw()
 
-    # transpile the circuit and run using the simulated fake backend
-    tqc = transpile(qc, backend=backend)
-    job = backend.run(tqc)
-    print(job.result().get_counts())
+.. jupyter-execute::
 
-Please note that the simulation is done using the snapshots obtained in the past (sometimes a few
-years ago) and probably will not represent the latest behaviour of the real quantum system which the
-fake backend is mimicking. If you want to run noisy simulations to compare with the real quantum
-system, please follow steps below to generate a simulator mimics a real quantum system with the
-latest calibration results.
+    from qiskit import transpile
 
-.. code-block:: python
+    # Transpile the ideal circuit to a circuit that can be directly executed by the backend
+    transpiled_circuit = transpile(circuit, backend)
+    transpiled_circuit.draw()
 
-    from qiskit import IBMQ
-    from qiskit.providers.aer import AerSimulator
+.. jupyter-execute::
 
-    # get a real backend from a real provider
-    provider = IBMQ.load_account()
-    backend = provider.get_backend('ibmq_manila')
+    from qiskit.tools.visualization import plot_histogram
 
-    # generate a simulator that mimics the real quantum system with the latest calibration results
-    backend_sim = AerSimulator.from_backend(backend)
+    # Run the transpiled circuit using the simulated fake backend
+    job = backend.run(transpiled_circuit)
+    counts = job.result().get_counts()
+    plot_histogram(counts)
+
+.. important::
+
+    Please note that the simulation is done using noise model generated from system snapshots
+    obtained in the past (sometimes a few years ago) and the results are not representative of the
+    latest behaviours of the real quantum system which the fake backend is mimicking. If you want to
+    run noisy simulations to compare with the real quantum system, please follow steps below to
+    generate a simulator mimics a real quantum system with the latest calibration results.
+
+    .. code-block:: python
+
+        from qiskit import IBMQ
+        from qiskit.providers.aer import AerSimulator
+
+        # get a real backend from a real provider
+        provider = IBMQ.load_account()
+        backend = provider.get_backend('ibmq_manila')
+
+        # generate a simulator that mimics the real quantum system with the latest calibration results
+        backend_sim = AerSimulator.from_backend(backend)
 
 
 Fake Providers
