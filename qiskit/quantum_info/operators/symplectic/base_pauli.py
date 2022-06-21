@@ -292,14 +292,14 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         else:
             qargs_ = list(qargs)
 
-        more_than_one_pauli = len(self._x.shape) > 1
+        # pylint: disable=cyclic-import
+        from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
+
+        is_pauli_list = isinstance(self, PauliList)
 
         ret = self.copy()
         ret._x[:, qargs_] = False
         ret._z[:, qargs_] = False
-
-        # pylint: disable=cyclic-import
-        from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 
         idx = np.concatenate((self._x[:, qargs_], self._z[:, qargs_]), axis=1)
         for idx_, row in zip(
@@ -307,7 +307,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             PauliList.from_symplectic(z=adj.table.Z, x=adj.table.X, phase=2 * adj.table.phase),
         ):
             if idx_.any():
-                if more_than_one_pauli:
+                if is_pauli_list:
                     ret[idx_] = ret[idx_].compose(row, qargs=qargs)
                 else:
                     ret = ret.compose(row, qargs=qargs)
