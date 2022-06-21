@@ -13,6 +13,9 @@
 """Test real time dependent variational principle."""
 
 import unittest
+
+from numpy.testing import assert_raises
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from qiskit.algorithms.evolvers.variational.variational_principles.real_time_dependent_principle import (
@@ -108,6 +111,11 @@ class TestRealTimeDependentPrinciple(QiskitAlgorithmsTestCase):
         np.testing.assert_almost_equal(
             bound_evolution_grad, expected_bound_evolution_grad, decimal=5
         )
+
+    def test_init_errors(self):
+        """Tests if an error is raised if wrong input type."""
+        with assert_raises(ValueError):
+            _ = RealTimeDependentPrinciple("overlap_block_diag")
 
 
 if __name__ == "__main__":

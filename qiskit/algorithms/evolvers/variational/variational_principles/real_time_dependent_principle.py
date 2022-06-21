@@ -37,11 +37,20 @@ class RealTimeDependentPrinciple(RealVariationalPrinciple):
         """
         Args:
             qfi_method: The method used to compute the QFI. Can be either
-                ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'`` or
-                ``CircuitQFI``.
+                ``'lin_comb_full'`` or a ``CircuitQFI`` corresponding to ``'lin_comb_full'``.
+
+        Raises:
+            ValueError: If a QFI method different than ``'lin_comb_full'`` or a ``CircuitQFI``
+                corresponding to ``'lin_comb_full'``
         """
         if qfi_method == "lin_comb_full" or isinstance(qfi_method, LinCombFull):
             qfi_method = LinCombFull(aux_meas_op=-Y)
+        else:
+            raise ValueError(
+                f"Unsupported QFI method provided {qfi_method}. Only "
+                f"``'lin_comb_full'`` or a ``CircuitQFI`` corresponding to "
+                f"``'lin_comb_full'`` is currently supported."
+            )
         self._grad_method = LinComb()
 
         super().__init__(qfi_method)
