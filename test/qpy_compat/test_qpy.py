@@ -57,7 +57,7 @@ def generate_full_circuit():
 
 def generate_unitary_gate_circuit():
     """Generate a circuit with a unitary gate."""
-    unitary_circuit = QuantumCircuit(5)
+    unitary_circuit = QuantumCircuit(5, name="unitary_circuit")
     unitary_circuit.unitary(random_unitary(32, seed=100), [0, 1, 2, 3, 4])
     unitary_circuit.measure_all()
     return unitary_circuit
@@ -67,7 +67,7 @@ def generate_random_circuits():
     """Generate multiple random circuits."""
     random_circuits = []
     for i in range(1, 15):
-        qc = QuantumCircuit(i)
+        qc = QuantumCircuit(i, name=f"random_circuit-{i}")
         qc.h(0)
         if i > 1:
             for j in range(i - 1):
@@ -84,7 +84,9 @@ def generate_random_circuits():
 
 def generate_string_parameters():
     """Generate a circuit from pauli tensor opflow."""
-    return (X ^ Y ^ Z).to_circuit_op().to_circuit()
+    op_circuit = (X ^ Y ^ Z).to_circuit_op().to_circuit()
+    op_circuit.name = "X^Y^Z"
+    return op_circuit
 
 
 def generate_register_edge_cases():
@@ -92,7 +94,7 @@ def generate_register_edge_cases():
     register_edge_cases = []
     # Circuit with shared bits in a register
     qubits = [Qubit() for _ in range(5)]
-    shared_qc = QuantumCircuit()
+    shared_qc = QuantumCircuit(name="shared_bits")
     shared_qc.add_bits(qubits)
     shared_qr = QuantumRegister(bits=qubits)
     shared_qc.add_register(shared_qr)
@@ -109,7 +111,7 @@ def generate_register_edge_cases():
     qr = QuantumRegister(name="bar", bits=qr[:3] + [Qubit(), Qubit()])
     cr = ClassicalRegister(5, "foo")
     cr = ClassicalRegister(name="classical_bar", bits=cr[:3] + [Clbit(), Clbit()])
-    hybrid_qc = QuantumCircuit(qr, cr)
+    hybrid_qc = QuantumCircuit(qr, cr, name="mix_standalone_bits_registers")
     hybrid_qc.h(0)
     hybrid_qc.cx(0, 1)
     hybrid_qc.cx(0, 2)
@@ -120,7 +122,7 @@ def generate_register_edge_cases():
     # Circuit with mixed standalone and shared registers
     qubits = [Qubit() for _ in range(5)]
     clbits = [Clbit() for _ in range(5)]
-    mixed_qc = QuantumCircuit()
+    mixed_qc = QuantumCircuit(name="mix_standalone_bits_with_registers")
     mixed_qc.add_bits(qubits)
     mixed_qc.add_bits(clbits)
     qr = QuantumRegister(bits=qubits)
@@ -140,7 +142,7 @@ def generate_register_edge_cases():
     qr_standalone = QuantumRegister(2, "standalone")
     qubits = [Qubit() for _ in range(5)]
     clbits = [Clbit() for _ in range(5)]
-    ooo_qc = QuantumCircuit()
+    ooo_qc = QuantumCircuit(name="out_of_order_bits")
     ooo_qc.add_bits(qubits)
     ooo_qc.add_bits(clbits)
     random.seed(42)
@@ -166,7 +168,7 @@ def generate_register_edge_cases():
 
 def generate_parameterized_circuit():
     """Generate a circuit with parameters and parameter expressions."""
-    param_circuit = QuantumCircuit(1)
+    param_circuit = QuantumCircuit(1, name="parameterized")
     theta = Parameter("theta")
     lam = Parameter("λ")
     theta_pi = 3.14159 * theta
@@ -194,7 +196,7 @@ def generate_qft_circuit():
     )
 
     qubits = 3
-    qft_circ = QuantumCircuit(qubits, qubits)
+    qft_circ = QuantumCircuit(qubits, qubits, name="QFT")
     qft_circ.initialize(state)
     qft_circ.append(QFT(qubits), range(qubits))
     qft_circ.measure(range(qubits), range(qubits))
@@ -208,7 +210,7 @@ def generate_param_phase():
     theta = Parameter("theta")
     phi = Parameter("phi")
     sum_param = theta + phi
-    qc = QuantumCircuit(5, 1, global_phase=sum_param)
+    qc = QuantumCircuit(5, 1, global_phase=sum_param, name="parameter_phase")
     qc.h(0)
     for i in range(4):
         qc.cx(i, i + 1)
@@ -224,7 +226,7 @@ def generate_param_phase():
     output_circuits.append(qc)
     # Generate circuit with Parameter global phase
     theta = Parameter("theta")
-    bell_qc = QuantumCircuit(2, global_phase=theta)
+    bell_qc = QuantumCircuit(2, global_phase=theta, name="bell_param_global_phase")
     bell_qc.h(0)
     bell_qc.cx(0, 1)
     bell_qc.measure_all()
@@ -246,7 +248,7 @@ def generate_single_clbit_condition_teleportation():  # pylint: disable=invalid-
 
 def generate_parameter_vector():
     """Generate tests for parameter vector element ordering."""
-    qc = QuantumCircuit(11)
+    qc = QuantumCircuit(11, name="parameter_vector")
     input_params = ParameterVector("x_par", 11)
     user_params = ParameterVector("θ_par", 11)
     for i, param in enumerate(user_params):
@@ -258,7 +260,7 @@ def generate_parameter_vector():
 
 def generate_parameter_vector_expression():  # pylint: disable=invalid-name
     """Generate tests for parameter vector element ordering."""
-    qc = QuantumCircuit(7)
+    qc = QuantumCircuit(7, name="vector_expansion")
     entanglement = [[i, i + 1] for i in range(7 - 1)]
     input_params = ParameterVector("x_par", 14)
     user_params = ParameterVector("\u03B8_par", 1)
@@ -284,7 +286,7 @@ def generate_evolution_gate():
 
     synthesis = SuzukiTrotter()
     evo = PauliEvolutionGate([(Z ^ I) + (I ^ Z)] * 5, time=2.0, synthesis=synthesis)
-    qc = QuantumCircuit(2)
+    qc = QuantumCircuit(2, name="pauli_evolution_circuit")
     qc.append(evo, range(2))
     return qc
 
@@ -295,7 +297,7 @@ def generate_control_flow_circuits():
 
     # If instruction
     circuits = []
-    qc = QuantumCircuit(2, 2)
+    qc = QuantumCircuit(2, 2, name="control_flow")
     qc.h(0)
     qc.measure(0, 0)
     true_body = QuantumCircuit(1)
@@ -305,7 +307,7 @@ def generate_control_flow_circuits():
     qc.measure(1, 1)
     circuits.append(qc)
     # If else instruction
-    qc = QuantumCircuit(2, 2)
+    qc = QuantumCircuit(2, 2, name="if_else")
     qc.h(0)
     qc.measure(0, 0)
     false_body = QuantumCircuit(1)
@@ -315,7 +317,7 @@ def generate_control_flow_circuits():
     qc.measure(1, 1)
     circuits.append(qc)
     # While loop
-    qc = QuantumCircuit(2, 1)
+    qc = QuantumCircuit(2, 1, name="while_loop")
     block = QuantumCircuit(2, 1)
     block.h(0)
     block.cx(0, 1)
@@ -324,7 +326,7 @@ def generate_control_flow_circuits():
     qc.append(while_loop, [0, 1], [0])
     circuits.append(qc)
     # for loop range
-    qc = QuantumCircuit(2, 1)
+    qc = QuantumCircuit(2, 1, name="for_loop")
     body = QuantumCircuit(2, 1)
     body.h(0)
     body.cx(0, 1)
@@ -334,7 +336,7 @@ def generate_control_flow_circuits():
     qc.append(for_loop_op, [0, 1], [0])
     circuits.append(qc)
     # For loop iterator
-    qc = QuantumCircuit(2, 1)
+    qc = QuantumCircuit(2, 1, name="for_loop_iterator")
     for_loop_op = ForLoopOp(iter(range(5)), None, body=body)
     qc.append(for_loop_op, [0, 1], [0])
     circuits.append(qc)
@@ -427,7 +429,7 @@ def assert_equal(reference, qpy, count, bind=None):
         sys.exit(1)
     # Don't compare name on bound circuits
     if bind is None and reference.name != qpy.name:
-        msg = f"Circuit {count} name mismatch {reference.name} != {qpy.name}"
+        msg = f"Circuit {count} name mismatch {reference.name} != {qpy.name}\n{reference}\n{qpy}"
         sys.stderr.write(msg)
         sys.exit(2)
     if reference.metadata != qpy.metadata:
