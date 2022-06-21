@@ -11,9 +11,8 @@
 # that they have been altered from the originals.
 
 """Variational Quantum Real Time Evolution algorithm."""
-from typing import Optional, Callable, Union
+from typing import Optional, Union
 
-import numpy as np
 from scipy.integrate import OdeSolver
 
 from qiskit.algorithms.evolvers.real_evolver import RealEvolver
@@ -76,7 +75,6 @@ class VarQRTE(VarQTE, RealEvolver):
         variational_principle: RealVariationalPrinciple,
         ode_function_factory: OdeFunctionFactory,
         ode_solver: Union[OdeSolver, str] = "RK45",
-        lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
         expectation: Optional[ExpectationBase] = None,
         imag_part_tol: float = 1e-7,
         num_instability_tol: float = 1e-7,
@@ -88,9 +86,6 @@ class VarQRTE(VarQTE, RealEvolver):
             ode_function_factory: Factory for the ODE function.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
-            lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
-                solve ``Ax=b`` and returns ``x``. If ``None``, the default ``np.linalg.lstsq``
-                solver is used.
             expectation: An instance of ``ExpectationBase`` which defines a method for calculating
                 expectation values of ``EvolutionProblem.aux_operators``.
             imag_part_tol: Allowed value of an imaginary part that can be neglected if no
@@ -102,5 +97,12 @@ class VarQRTE(VarQTE, RealEvolver):
                 provided, everything will be evaluated based on matrix multiplication (which is
                 slow).
         """
-        super().__init__(variational_principle, ode_function_factory, ode_solver, expectation,
-                         imag_part_tol, num_instability_tol, quantum_instance)
+        super().__init__(
+            variational_principle,
+            ode_function_factory,
+            ode_solver,
+            expectation,
+            imag_part_tol,
+            num_instability_tol,
+            quantum_instance,
+        )

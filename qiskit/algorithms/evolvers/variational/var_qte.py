@@ -12,7 +12,7 @@
 
 """The Variational Quantum Time Evolution Interface"""
 from abc import ABC
-from typing import Optional, Union, Dict, List, Callable, Any
+from typing import Optional, Union, Dict, List, Any
 
 import numpy as np
 from scipy.integrate import OdeSolver
@@ -54,21 +54,22 @@ class VarQTE(ABC):
         Theory of variational quantum simulation. `<https://doi.org/10.22331/q-2019-10-07-191>`_
     """
 
-    def __init__(self, variational_principle: VariationalPrinciple,
-                 ode_function_factory: OdeFunctionFactory,
-                 ode_solver: Union[OdeSolver, str] = "RK45",
-                 expectation: Optional[ExpectationBase] = None, imag_part_tol: float = 1e-7,
-                 num_instability_tol: float = 1e-7,
-                 quantum_instance: Optional[QuantumInstance] = None) -> None:
+    def __init__(
+        self,
+        variational_principle: VariationalPrinciple,
+        ode_function_factory: OdeFunctionFactory,
+        ode_solver: Union[OdeSolver, str] = "RK45",
+        expectation: Optional[ExpectationBase] = None,
+        imag_part_tol: float = 1e-7,
+        num_instability_tol: float = 1e-7,
+        quantum_instance: Optional[QuantumInstance] = None,
+    ) -> None:
         r"""
         Args:
             variational_principle: Variational Principle to be used.
             ode_function_factory: Factory for the ODE function.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
-            lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
-                solve ``Ax=b`` and returns ``x``. If ``None``, the default ``np.linalg.lstsq``
-                solver is used.
             expectation: An instance of ``ExpectationBase`` which defines a method for calculating
                 expectation values of ``EvolutionProblem.aux_operators``.
             imag_part_tol: Allowed value of an imaginary part that can be neglected if no
@@ -88,7 +89,6 @@ class VarQTE(ABC):
         self.expectation = expectation
         self.ode_function_factory = ode_function_factory
         self.ode_solver = ode_solver
-        self.lse_solver = lse_solver
         self.imag_part_tol = imag_part_tol
         self.num_instability_tol = num_instability_tol
 
@@ -193,7 +193,7 @@ class VarQTE(ABC):
             initial_state,
             init_state_parameters,
             t_param,
-            self.ode_function_factory._lse_solver,
+            self.ode_function_factory.lse_solver,
             self._quantum_instance,
             self.imag_part_tol,
         )

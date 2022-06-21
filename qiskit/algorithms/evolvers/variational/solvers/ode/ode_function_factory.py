@@ -14,7 +14,10 @@
 
 from abc import ABC
 from enum import Enum
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Callable
+
+import numpy as np
+
 from qiskit.circuit import Parameter
 from .abstract_ode_function import AbstractOdeFunction
 from .ode_function import OdeFunction
@@ -33,9 +36,20 @@ class OdeFunctionType(Enum):
 class OdeFunctionFactory(ABC):
     """Factory for building ODE functions."""
 
-    def __init__(self, ode_function_type: OdeFunctionType) -> None:
-
-        self._ode_type = ode_function_type
+    def __init__(
+        self,
+        ode_function_type: OdeFunctionType,
+        lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
+    ) -> None:
+        """
+        Args:
+            ode_function_type: An Enum that defines a type of an ODE function to be built.
+            lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
+                solve ``Ax=b`` and returns ``x``. If ``None``, the default ``np.linalg.lstsq``
+                solver is used.
+        """
+        self.ode_function_type = ode_function_type
+        self.lse_solver = lse_solver
 
     def _build(
         self,
@@ -60,9 +74,9 @@ class OdeFunctionFactory(ABC):
             ValueError: If unsupported ODE function provided.
 
         """
-        if self._ode_type == OdeFunctionType.STANDARD_ODE:
+        if self.ode_function_type == OdeFunctionType.STANDARD_ODE:
             return OdeFunction(varqte_linear_solver, error_calculator, param_dict, t_param)
         raise ValueError(
-            f"Unsupported ODE function provided: {self._ode_type}."
+            f"Unsupported ODE function provided: {self.ode_function_type}."
             f" Only {[tp.value for tp in OdeFunctionType]} are supported."
         )
