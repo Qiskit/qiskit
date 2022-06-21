@@ -382,6 +382,7 @@ class Instruction:
             inverse_gate = Gate(name=name, num_qubits=self.num_qubits, params=self.params.copy())
 
         inverse_definition = self._definition.copy_empty_like()
+        inverse_definition.global_phase = -inverse_definition.global_phase
         for inst in reversed(self._definition):
             inverse_definition._append(inst.operation.inverse(), inst.qubits, inst.clbits)
         inverse_gate.definition = inverse_definition
