@@ -1266,6 +1266,16 @@ class TestCircuitProperties(QiskitTestCase):
 
         self.assertEqual(qc1.metadata["a"], 0)
 
+    def test_scheduling(self):
+        """Test cannot return schedule information without scheduling."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        with self.assertRaises(AttributeError):
+            # pylint: disable=pointless-statement
+            qc.op_start_times
+
 
 if __name__ == "__main__":
     unittest.main()

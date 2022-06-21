@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug in which the latex state vector drawer ignores the `max_size`
+    parameter.

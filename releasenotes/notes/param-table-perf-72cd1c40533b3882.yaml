@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Improves the performance of building and working with parameterized
+    :class:`~qiskit.circuit.QuantumCircuit` instances with many gates
+    that share a relatively small number of parameters.
