@@ -20,12 +20,6 @@ from qiskit.providers.fake_provider import fake_qasm_backend, fake_backend
 
 class FakeYorktownV2(fake_backend.FakeBackendV2):
     """A fake 5 qubit backend.
-
-        1
-      / |
-    0 - 2 - 3
-        | /
-        4
     """
 
     dirname = os.path.dirname(__file__)
@@ -36,12 +30,6 @@ class FakeYorktownV2(fake_backend.FakeBackendV2):
 
 class FakeYorktown(fake_qasm_backend.FakeQasmBackend):
     """A fake 5 qubit backend.
-
-        1
-      / |
-    0 - 2 - 3
-        | /
-        4
     """
 
     dirname = os.path.dirname(__file__)

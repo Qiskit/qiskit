@@ -20,14 +20,6 @@ from qiskit.providers.fake_provider import fake_pulse_backend, fake_backend
 
 class FakeBoeblingenV2(fake_backend.FakeBackendV2):
     """A fake Boeblingen V2 backend.
-
-    00 ↔ 01 ↔ 02 ↔ 03 ↔ 04
-          ↕         ↕
-    05 ↔ 06 ↔ 07 ↔ 08 ↔ 09
-     ↕         ↕         ↕
-    10 ↔ 11 ↔ 12 ↔ 13 ↔ 14
-          ↕         ↕
-    15 ↔ 16 ↔ 17 ↔ 18 ↔ 19
     """
 
     dirname = os.path.dirname(__file__)
@@ -39,14 +31,6 @@ class FakeBoeblingenV2(fake_backend.FakeBackendV2):
 
 class FakeBoeblingen(fake_pulse_backend.FakePulseBackend):
     """A fake Boeblingen backend.
-
-    00 ↔ 01 ↔ 02 ↔ 03 ↔ 04
-          ↕         ↕
-    05 ↔ 06 ↔ 07 ↔ 08 ↔ 09
-     ↕         ↕         ↕
-    10 ↔ 11 ↔ 12 ↔ 13 ↔ 14
-          ↕         ↕
-    15 ↔ 16 ↔ 17 ↔ 18 ↔ 19
     """
 
     dirname = os.path.dirname(__file__)
