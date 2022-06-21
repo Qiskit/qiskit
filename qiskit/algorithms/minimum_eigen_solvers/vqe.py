@@ -20,7 +20,6 @@ from __future__ import annotations
 import logging
 from time import time
 from typing import Callable, Dict, List, Optional, Tuple, Union
-import warnings
 
 import numpy as np
 

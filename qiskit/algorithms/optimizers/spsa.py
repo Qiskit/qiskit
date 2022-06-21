@@ -646,6 +646,7 @@ class SPSA(Optimizer):
             "initial_point": OptimizerSupportLevel.required,
         }
 
+    # pylint: disable=bad-docstring-quotes
     @deprecate_function(
         "The SPSA.optimize method is deprecated as of Qiskit Terra 0.21.0 and will be removed no "
         "sooner than 3 months after the release date. Instead, use SPSA.minimize as a replacement, "

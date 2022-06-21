@@ -19,7 +19,6 @@ from enum import IntEnum
 import logging
 import sys
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-import warnings
 
 import numpy as np
 import scipy
