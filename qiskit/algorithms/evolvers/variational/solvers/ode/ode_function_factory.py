@@ -38,12 +38,13 @@ class OdeFunctionFactory(ABC):
 
     def __init__(
         self,
-        ode_function_type: OdeFunctionType,
+        ode_function_type: OdeFunctionType = OdeFunctionType.STANDARD_ODE,
         lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
     ) -> None:
         """
         Args:
-            ode_function_type: An Enum that defines a type of an ODE function to be built.
+            ode_function_type: An Enum that defines a type of an ODE function to be built. If
+                not provided, a default ``STANDARD_ODE`` is used.
             lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
                 solve ``Ax=b`` and returns ``x``. If ``None``, the default ``np.linalg.lstsq``
                 solver is used.

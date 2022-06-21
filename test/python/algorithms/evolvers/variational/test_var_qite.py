@@ -94,8 +94,6 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         param_dict = dict(zip(parameters, init_param_values))
 
-        ode_function = OdeFunctionFactory(OdeFunctionType.STANDARD_ODE)
-
         time = 1
 
         evolution_problem = EvolutionProblem(
@@ -136,9 +134,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
                     operator=observable,
                     backend=backend,
                 )
-                var_qite = VarQITE(
-                    var_principle, ode_function, quantum_instance=backend, expectation=expectation
-                )
+                var_qite = VarQITE(var_principle, expectation=expectation, quantum_instance=backend)
                 evolution_result = var_qite.evolve(evolution_problem)
 
                 evolved_state = evolution_result.evolved_state
@@ -186,8 +182,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         backend = BasicAer.get_backend("statevector_simulator")
 
-        ode_function = OdeFunctionFactory(OdeFunctionType.STANDARD_ODE)
-        var_qite = VarQITE(var_principle, ode_function, quantum_instance=backend)
+        var_qite = VarQITE(var_principle, quantum_instance=backend)
         time = 7
         # values from the prototype
         thetas_expected = [
@@ -238,7 +233,9 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         backend = BasicAer.get_backend("statevector_simulator")
 
         ode_function = OdeFunctionFactory(OdeFunctionType.STANDARD_ODE)
-        var_qite = VarQITE(var_principle, ode_function, quantum_instance=backend)
+        var_qite = VarQITE(
+            var_principle, ode_function_factory=ode_function, quantum_instance=backend
+        )
         time = 1
 
         # values from the prototype

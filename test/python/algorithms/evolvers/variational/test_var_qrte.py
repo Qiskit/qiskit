@@ -139,7 +139,10 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
                     backend=backend,
                 )
                 var_qrte = VarQRTE(
-                    var_principle, ode_function, quantum_instance=backend, expectation=expectation
+                    var_principle,
+                    ode_function_factory=ode_function,
+                    expectation=expectation,
+                    quantum_instance=backend,
                 )
                 evolution_result = var_qrte.evolve(evolution_problem)
 
@@ -195,8 +198,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
 
         backend = BasicAer.get_backend("statevector_simulator")
 
-        ode_function = OdeFunctionFactory(OdeFunctionType.STANDARD_ODE)
-        var_qrte = VarQRTE(var_principle, ode_function, quantum_instance=backend)
+        var_qrte = VarQRTE(var_principle, quantum_instance=backend)
         time = 1
 
         thetas_expected = [

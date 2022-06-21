@@ -57,8 +57,8 @@ class VarQTE(ABC):
     def __init__(
         self,
         variational_principle: VariationalPrinciple,
-        ode_function_factory: OdeFunctionFactory,
         ode_solver: Union[OdeSolver, str] = "RK45",
+        ode_function_factory: Optional[OdeFunctionFactory] = None,
         expectation: Optional[ExpectationBase] = None,
         imag_part_tol: float = 1e-7,
         num_instability_tol: float = 1e-7,
@@ -67,9 +67,10 @@ class VarQTE(ABC):
         r"""
         Args:
             variational_principle: Variational Principle to be used.
-            ode_function_factory: Factory for the ODE function.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
+            ode_function_factory: Factory for the ODE function. If ``None`` provided, an instance
+                with default settings is created.
             expectation: An instance of ``ExpectationBase`` which defines a method for calculating
                 expectation values of ``EvolutionProblem.aux_operators``.
             imag_part_tol: Allowed value of an imaginary part that can be neglected if no
@@ -87,6 +88,8 @@ class VarQTE(ABC):
         if quantum_instance is not None:
             self.quantum_instance = quantum_instance
         self.expectation = expectation
+        if ode_function_factory is None:
+            ode_function_factory = OdeFunctionFactory()
         self.ode_function_factory = ode_function_factory
         self.ode_solver = ode_solver
         self.imag_part_tol = imag_part_tol
