@@ -40,7 +40,7 @@ class UMDA(Optimizer):
     univariate EDA as the embedded probabilistic model is univariate.
 
     UMDA has been compared to some of the already implemented algorithms in Qiskit library to
-    optimize the parameters of a Variational algorithm such as QAOA or VQE and competitive results
+    optimize the parameters of variational algorithms such as QAOA or VQE and competitive results
     have been obtained [1]. UMDA seems to provide very good solutions for those circuits in which
     the number of layers is not big.
 
