@@ -175,7 +175,14 @@ def plot_state_hinton(
 
 
 @_optionals.HAS_MATPLOTLIB.require_in_call
-def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartesian"):
+def plot_bloch_vector(
+    bloch,
+    title="",
+    ax=None,
+    figsize=None,
+    coord_type="cartesian",
+    **kwargs,
+):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
@@ -191,6 +198,8 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
         figsize (tuple): Figure size in inches. Has no effect is passing ``ax``.
         coord_type (str): a string that specifies coordinate type for bloch
             (Cartesian or spherical), default is Cartesian
+        **kwargs:
+                Options as for matplotlib.patches.FancyArrowPatch
 
     Returns:
         Figure: A matplotlib figure instance if ``ax = None``.
@@ -216,7 +225,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
         bloch[0] = r * np.sin(theta) * np.cos(phi)
         bloch[1] = r * np.sin(theta) * np.sin(phi)
         bloch[2] = r * np.cos(theta)
-    B.add_vectors(bloch)
+    B.add_vectors(bloch, **kwargs)
     B.render(title=title)
     if ax is None:
         fig = B.fig
@@ -229,7 +238,14 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
 @deprecate_arguments({"rho": "state"})
 @_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_bloch_multivector(
-    state, title="", figsize=None, *, rho=None, reverse_bits=False, filename=None
+    state,
+    title="",
+    figsize=None,
+    *,
+    rho=None,
+    reverse_bits=False,
+    filename=None,
+    **kwargs,
 ):
     """Plot the Bloch sphere.
 
@@ -240,6 +256,8 @@ def plot_bloch_multivector(
         title (str): a string that represents the plot title
         figsize (tuple): Has no effect, here for compatibility only.
         reverse_bits (bool): If True, plots qubits following Qiskit's convention [Default:False].
+        **kwargs:
+                Options as for matplotlib.patches.FancyArrowPatch
 
     Returns:
         matplotlib.Figure:
@@ -276,7 +294,13 @@ def plot_bloch_multivector(
     for i in range(num):
         pos = num - 1 - i if reverse_bits else i
         ax = fig.add_subplot(1, num, i + 1, projection="3d")
-        plot_bloch_vector(bloch_data[i], "qubit " + str(pos), ax=ax, figsize=figsize)
+        plot_bloch_vector(
+            bloch_data[i],
+            "qubit " + str(pos),
+            ax=ax,
+            figsize=figsize,
+            **kwargs,
+        )
     fig.suptitle(title, fontsize=16, y=1.01)
     matplotlib_close_if_inline(fig)
     if filename is None:
