@@ -16,6 +16,7 @@ Sampler class
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from functools import partial
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -23,6 +24,7 @@ from qiskit.quantum_info import Statevector
 from qiskit.result import QuasiDistribution
 
 from .base_sampler import BaseSampler
+from .factories import SamplerFromCircuits
 from .sampler_result import SamplerResult
 from .utils import final_measurement_mapping, init_circuit
 
@@ -95,3 +97,7 @@ class Sampler(BaseSampler):
 
     def close(self):
         self._is_closed = True
+
+    @classmethod
+    def create_sampler_from_circuits(cls) -> SamplerFromCircuits:
+        return partial(cls)

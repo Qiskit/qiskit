@@ -22,7 +22,7 @@ from qiskit.result import QuasiDistribution
 
 
 @dataclass(frozen=True)
-class SamplerResult:
+class SamplerGradientResult:
     """Result of SamplerGradient.
 
     Args:
