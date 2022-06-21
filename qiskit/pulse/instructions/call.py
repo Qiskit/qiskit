@@ -227,12 +227,3 @@ class Reference(instruction.Instruction):
     def __repr__(self) -> str:
         channels_repr = ", ".join(map(lambda c: c.name, self.channels))
         return f"{self.__class__.__name__}(ref_key={self.ref_key}, channels={channels_repr})"
-
-    def __eq__(self, other: instruction.Instruction) -> bool:
-        if not isinstance(other, self.__class__):
-            return False
-        if self.ref_key != other.ref_key:
-            return False
-        if set(self.channels) != set(other.channels):
-            return False
-        return True

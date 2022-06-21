@@ -1199,7 +1199,7 @@ class ScheduleBlock:
     @property
     def references(self) -> ReferenceManager:
         """Return a reference manager of the current scope."""
-        if self._parent:
+        if self._parent is not None:
             return self._parent.references
         return self._reference_manager
 
@@ -1246,13 +1246,28 @@ class ScheduleBlock:
             self.references.define_reference(block.ref_key, block.channels)
 
         elif isinstance(block, ScheduleBlock):
-            block._parent = self
+            block = copy.deepcopy(block)
             if block.is_referenced():
-                # Expose nested subroutines to the current main scope.
-                # The 'block' is not a reference. This is just directly appended to the current scope.
-                # Reference manager of added block is cleared because of data reduction.
-                self.references.update(block.references)
-                block.references.clear()
+                if block._parent is not None:
+                    # This is an edge case:
+                    # If this is not a parent, block.references points to the parent's reference
+                    # where subroutine not referred within the 'block' may exist in there.
+                    # Copy only references existing in the 'block'.
+                    # See 'test.python.pulse.test_reference.TestReference.test_appending_child_block'
+                    for ref in _get_references(block.blocks):
+                        self.references.define_reference(ref.ref_key, ref.channels)
+                        self.references[ref.ref_key] = copy.deepcopy(block.references[ref.ref_key])
+                else:
+                    # Expose subroutines to the current main scope.
+                    # Note that this 'block' is not called.
+                    # The block is just directly appended to the current scope.
+                    # This operation is much faster because this is list concatenation.
+                    # Reference manager of appended block is cleared because of data reduction.
+                    self.references.update(block._reference_manager)
+                    block._reference_manager.clear()
+
+            # Now switch the parent becasue block is appended to self.
+            block._parent = self
 
         self._blocks.append(block)
         self._parameter_manager.update_parameter_table(block)
@@ -1367,16 +1382,36 @@ class ScheduleBlock:
             schedule = copy.deepcopy(self)
             return schedule.replace(old, new, inplace=True)
 
+        if isinstance(old, (ScheduleBlock, Reference)):
+            # If removed element may contain reference,
+            # it regenerates the reference table without removed element.
+            new_manager = ReferenceManager(scope=self.references.scope)
+            for ref in _get_references(self.blocks, excludes=[old]):
+                new_manager.define_reference(ref.ref_key, ref.channels)
+                new_manager[ref.ref_key] = self.references[ref.ref_key]
+        else:
+            new_manager = self.references
+
         if isinstance(new, Reference):
-            self.references.define_reference(new.ref_key, new.channels)
+            new_manager.define_reference(new.ref_key, new.channels)
 
         elif isinstance(new, ScheduleBlock):
-            new._parent = self
+            # Same logic with .append is applied here
+            new = copy.deepcopy(new)
             if new.is_referenced():
-                self.references.update(new.references)
-                new.references.clear()
+                if new._parent is not None:
+                    for ref in _get_references(new.blocks):
+                        new_manager.define_reference(ref.ref_key, ref.channels)
+                        new_manager[ref.ref_key] = copy.deepcopy(new.references[ref.ref_key])
+                else:
+                    new_manager.update(new._reference_manager)
+                    new._reference_manager.clear()
+            new._parent = self
 
         self._blocks.replace(old, new)
+
+        self.references.clear()
+        self.references.update(new_manager)
 
         if old.parameters == new.parameters:
             return self
@@ -1817,6 +1852,32 @@ def _get_timeslots(schedule: "ScheduleComponent") -> TimeSlots:
         raise PulseError(f"Invalid schedule type {type(schedule)} is specified.")
 
     return timeslots
+
+
+def _get_references(
+    block_elms: List["BlockComponent"],
+    excludes: Optional[List["BlockComponent"]] = None,
+) -> Set[Reference]:
+    """Recursively get reference instructions in the current program.
+
+    Args:
+        block_elms: List of schedule block elements to investigate.
+        excludes: List of element to exclude.
+
+    Returns:
+        A set of unique reference instructions.
+    """
+    excludes = excludes or []
+
+    references = []
+    for block_elm in block_elms:
+        if block_elm in excludes:
+            continue
+        if isinstance(block_elm, ScheduleBlock):
+            references += _get_references(block_elm.blocks)
+        elif isinstance(block_elm, Reference):
+            references.append(block_elm)
+    return set(references)
 
 
 # These type aliases are defined at the bottom of the file, because as of 2022-01-18 they are
