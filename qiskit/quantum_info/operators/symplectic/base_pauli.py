@@ -292,7 +292,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         else:
             qargs_ = list(qargs)
 
-        is_pauli_list = len(self.x.shape) > 1
+        more_than_one_pauli = len(self._x.shape) > 1
 
         ret = self.copy()
         ret._x[:, qargs_] = False
@@ -307,7 +307,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             PauliList.from_symplectic(z=adj.table.Z, x=adj.table.X, phase=2 * adj.table.phase),
         ):
             if idx_.any():
-                if is_pauli_list:
+                if more_than_one_pauli:
                     ret[idx_] = ret[idx_].compose(row, qargs=qargs)
                 else:
                     ret = ret.compose(row, qargs=qargs)
