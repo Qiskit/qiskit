@@ -443,17 +443,14 @@ def _serial_transpile_circuit(
     return result
 
 
-def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> QuantumCircuit:
+def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, str, Dict]) -> QuantumCircuit:
     """Select a PassManager and run a single circuit through it.
     Args:
         circuit_config_tuple (tuple):
             circuit (QuantumCircuit): circuit to transpile
-            transpile_config (dict): configuration dictating how to transpile. The
-                dictionary has the following format:
-                {'optimization_level': int,
-                 'output_name': string,
-                 'callback': callable,
-                 'pass_manager_config': PassManagerConfig}
+            name (str): The name of the shared memory object containing a pickled dict of shared
+                arguments between parallel works
+            unique_config (dict): configuration dictating unique arguments for transpile.
     Returns:
         The transpiled circuit
     Raises:
@@ -563,7 +560,7 @@ def _parse_transpile_args(
     unitary_synthesis_method,
     unitary_synthesis_plugin_config,
     target,
-) -> List[Dict]:
+) -> Tuple[List[Dict], Dict]:
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
     what types of inputs are allowed.
@@ -573,7 +570,8 @@ def _parse_transpile_args(
     arg has more priority than the arg set by backend).
 
     Returns:
-        list[dicts]: a list of transpile parameters.
+        Tuple[list[dict], dict]: a tuple contain a list of unique transpile parameter dicts and
+        the second element contains a dict of shared transpiler argument across all circuits.
 
     Raises:
         TranspilerError: If instruction_durations are required but not supplied or found.
