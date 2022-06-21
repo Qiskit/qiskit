@@ -33,7 +33,7 @@ class UMDA(Optimizer):
         This code and analysis were obtained from EDAspy Python package [2] which has been
         developed by the original author of this implementation (Vicente P. Soloviev).
 
-    EDAs are stochastic search algorithms and belongs to the family of the evolutionary algorithms.
+    EDAs are stochastic search algorithms and belong to the family of the evolutionary algorithms.
     The main difference is that EDAs have a probabilistic model which is updated in each iteration
     from the best individuals of previous generations (elite selection). Depending on the complexity
     of the probabilistic model, EDAs can be classified in a different way. In this case, UMDA is a
