@@ -97,7 +97,7 @@ class AerWrapper:
                 self.aer = aer.Aer
                 warnings.warn(
                     "The qiskit.Aer entry point will be deprecated in a future release and "
-                    "will subsequently removed after that. Instead you should use this "
+                    "subsequently removed. Instead you should use this "
                     "directly from the root of the qiskit-aer package.",
                     PendingDeprecationWarning,
                     stacklevel=2,
@@ -114,7 +114,7 @@ class AerWrapper:
                 self.aer = aer.Aer
                 warnings.warn(
                     "The qiskit.Aer entry point will be deprecated in a future release and "
-                    "will subsequently removed after that. Instead you should use this "
+                    "subsequently removed. Instead you should use this "
                     "directly from the root of the qiskit-aer package.",
                     PendingDeprecationWarning,
                     stacklevel=2,
