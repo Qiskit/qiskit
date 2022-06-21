@@ -26,6 +26,8 @@ testing of the transpiler.
 Fake Providers
 ==============
 
+Fake providers provide access to a list of fake backends.
+
 .. autosummary::
     :toctree: ../stubs/
 
@@ -36,8 +38,11 @@ Fake Providers
 Fake Backends
 =============
 
-V2 Backends
------------
+Fake V2 Backends
+----------------
+
+Fake V2 backends are fake backends with IBM Quantum systems snapshots implemented with
+:mod:`~qiskit.providers.backend.BackendV2` interface.
 
 .. autosummary::
     :toctree: ../stubs/
@@ -86,8 +91,11 @@ V2 Backends
     FakeWashingtonV2
     FakeYorktownV2
 
-V1 Backends
------------
+Fake V1 Backends
+----------------
+
+Fake V1 backends are fake backends with IBM Quantum systems snapshots implemented with
+:mod:`~qiskit.providers.backend.BackendV1` interface.
 
 .. autosummary::
     :toctree: ../stubs/
@@ -138,6 +146,8 @@ V1 Backends
 
 Special Fake Backends
 =====================
+
+Special fake backends are fake backends that were created for special testing purposes.
 
 .. autosummary::
     :toctree: ../stubs/
