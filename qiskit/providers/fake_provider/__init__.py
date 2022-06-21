@@ -24,8 +24,7 @@ The fake provider module contains fake providers and fake backends classes. The 
 built to micmic the behaviors of IBM Quantum systems using system snapshots. The system snapshots
 contain important information about the quantum system such as coupling map, basis gates, qubit
 properties (T1, T2, error rate, etc.) which are useful for testing the transpiler and performing
-noisy simulation of the
-system.
+noisy simulation of the system.
 
 Example Usage
 =============
