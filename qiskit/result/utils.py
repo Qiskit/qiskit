@@ -144,7 +144,7 @@ def marginal_memory(
     Args:
         memory: The input memory list, this is either a list of hexadecimal strings to be marginalized
             representing measure level 2 memory or a numpy array representing level 0 measurement
-            memory (avg or single) or level 1 measurement memory (single or avg).
+            memory (single or avg) or level 1 measurement memory (single or avg).
         indices: The bit positions of interest to marginalize over. If
             ``None`` (default), do not marginalize at all.
         int_return: If set to ``True`` the output will be a list of integers.
@@ -159,7 +159,7 @@ def marginal_memory(
             ``True`` to indicate it's a avg level 0 data instead of level 1
             single data.
         parallel_threshold: The number of elements in ``memory`` to start running in multiple
-            threads. If ``len(memory)`` is >= this value this function will run in multiple
+            threads. If ``len(memory)`` is >= this value, the function will run in multiple
             threads. By default this is set to 1000.
 
     Returns:
