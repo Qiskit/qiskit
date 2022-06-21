@@ -30,8 +30,8 @@ class UMDA(Optimizer):
 
     .. seealso::
 
-        This code and analysis were obtained from EDAspy Python package [2] which has been
-        developed by the original author of this implementation (Vicente P. Soloviev).
+        This original implementation of the UDMA optimizer for Qiskit was inspired by my
+        (Vicente P. Soloviev) work on the EDAspy Python package [2].
 
     EDAs are stochastic search algorithms and belong to the family of the evolutionary algorithms.
     The main difference is that EDAs have a probabilistic model which is updated in each iteration
@@ -45,17 +45,17 @@ class UMDA(Optimizer):
     the number of layers is not big.
 
     The optimization process can be personalized depending on the paremeters chosen in the
-    initialization. The main parameter is the population size. As bigger it is, the performance
+    initialization. The main parameter is the population size. The bigger it is, the final result
     will be better. However, this increases the complexity of the algorithm and the runtime will
     be much heavier. In the work [1] different experiments have been performed where population
     size has been set to 20 - 30.
 
     .. note::
 
-        The UMDA implementation has more parameter but these have been set in the initialization
-        for better understanding of the user. For example, ``\alpha`` parameter has been set to 0.5
-        and is the percentage of the population which is selected in each iteration to update the
-        probabilistic model.
+        The UMDA implementation has more parameters but these have default values for the
+        initialization for better understanding of the user. For example, ``\alpha`` parameter has
+        been set to 0.5 and is the percentage of the population which is selected in each iteration
+        to update the probabilistic model.
 
 
     Example:
@@ -120,21 +120,21 @@ class UMDA(Optimizer):
     ELITE_FACTOR = 0.4
     STD_BOUND = 0.3
 
-    def __init__(self, maxiter: int, size_gen: int, alpha: float = 0.5) -> None:
+    def __init__(self, maxiter: int = 100, size_gen: int = 20, alpha: float = 0.5) -> None:
         r"""
         Args:
-            maxiter: Maximum number of function evaluations.
+            maxiter: Maximum number of iterations.
             size_gen: Population size of each generation.
-            alpha: Percentage [0, 1] of the population to be selected as elite selection.
+            alpha: Percentage (0, 1] of the population to be selected as elite selection.
         """
 
         self.size_gen = size_gen
-        self.max_iter = maxiter
+        self.maxiter = maxiter
         self.alpha = alpha
         self._vector = None
         # initialization of generation
         self._generation = None
-        self._dead_iter = int(self._max_iter / 5)
+        self._dead_iter = int(self._maxiter / 5)
 
         self._truncation_length = int(size_gen * alpha)
 
@@ -216,7 +216,7 @@ class UMDA(Optimizer):
             self._vector[0, :], self._vector[1, :], [self._size_gen, self._n_variables]
         )
 
-        for _ in range(self._max_iter):
+        for _ in range(self._maxiter):
             self._check_generation(fun)
             self._truncation()
             self._update_vector()
@@ -267,12 +267,12 @@ class UMDA(Optimizer):
         self._size_gen = value
 
     @property
-    def max_iter(self) -> int:
+    def maxiter(self) -> int:
         """Returns the maximum number of iterations"""
-        return self._max_iter
+        return self._maxiter
 
-    @max_iter.setter
-    def max_iter(self, value: int):
+    @maxiter.setter
+    def maxiter(self, value: int):
         """
         Sets the maximum number of iterations of the algorithm.
 
@@ -285,7 +285,7 @@ class UMDA(Optimizer):
         if value <= 0:
             raise ValueError("The maximum number of iterations should be greater than 0.")
 
-        self._max_iter = value
+        self._maxiter = value
 
     @property
     def alpha(self) -> float:
@@ -300,14 +300,14 @@ class UMDA(Optimizer):
         model)
 
         Args:
-            value: Percentage [0,1] of generation selected to update the probabilistic model.
+            value: Percentage (0,1] of generation selected to update the probabilistic model.
 
         Raises:
             ValueError: If `value` is lower than 0 or greater than 1.
         """
-        if (value < 0) or (value > 1):
+        if (value <= 0) or (value > 1):
             raise ValueError(
-                "Alpha represents a percentage and should be greater than 0 but lower " "than 1"
+                f"alpha must be in the range (0, 1], value given was {value}"
             )
 
         self._alpha = value
@@ -340,27 +340,10 @@ class UMDA(Optimizer):
         return self._best_ind_global
 
     @property
-    def generation(self):
-        """Returns the actual generation of solutions"""
-        return self._generation
-
-    @generation.setter
-    def generation(self, value: np.array):
-        """
-        Sets the generation to be evaluated. The user may want to initialize the algorithm from a
-        specific set of solutions.
-
-        Args:
-            value: set of solutions to be set as generation.
-        """
-        self._generation = value
-
-    @property
     def settings(self) -> Dict[str, Any]:
         return {
-            "max_iter": self.max_iter,
+            "maxiter": self.maxiter,
             "alpha": self.alpha,
-            "dead_iter": self.dead_iter,
             "size_gen": self.size_gen,
         }
 

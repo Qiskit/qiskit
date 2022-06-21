@@ -27,13 +27,13 @@ class TestUMDA(QiskitAlgorithmsTestCase):
         umda.size_gen = 30
         umda.alpha = 0.6
         umda.dead_iter = 10
-        umda.max_iter = 100
+        umda.maxiter = 100
 
         assert umda.disp is True
         assert umda.size_gen == 30
         assert umda.alpha == 0.6
         assert umda.dead_iter == 10
-        assert umda.max_iter == 100
+        assert umda.maxiter == 100
 
     def test_settings(self):
         """Test if the settings display works well"""
@@ -42,13 +42,31 @@ class TestUMDA(QiskitAlgorithmsTestCase):
         umda.size_gen = 30
         umda.alpha = 0.6
         umda.dead_iter = 10
-        umda.max_iter = 100
+        umda.maxiter = 100
 
         set_ = {
-            "max_iter": 100,
+            "maxiter": 100,
             "alpha": 0.6,
             "dead_iter": 10,
             "size_gen": 30,
         }
 
         assert umda.settings == set_
+
+    def test_minimize(self):
+        """optimize function test"""
+        from scipy.optimize import rosen
+
+        optimizer = UMDA(maxiter=100, size_gen=20)
+        x_0 = [1.3, 0.7, 0.8, 1.9, 1.2]
+        res = optimizer.minimize(rosen, x_0)
+
+        assert res.fun is not None
+        assert len(res.x) == len(x_0)
+
+        optimizer.maxiter = 200
+        res = optimizer.minimize(rosen, x_0)
+
+        assert res.fun is not None
+        assert len(res.x) == len(x_0)
+
