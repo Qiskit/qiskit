@@ -35,9 +35,9 @@ Here is an example of using a fake backend for transpilation and simulation.
 .. jupyter-execute::
 
     from qiskit import QuantumCircuit
-    from qiskit.providers.fake_provider import FakeManilaV2()
+    from qiskit.providers.fake_provider import FakeManilaV2
 
-    # Get a fake backend from a fake provider
+    # Get a fake backend from the fake provider
     backend = FakeManilaV2()
 
     # Create a simple circuit
