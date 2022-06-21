@@ -13,7 +13,7 @@
 """User interface of qpy serializer."""
 
 from json import JSONEncoder, JSONDecoder
-from typing import Union, List, BinaryIO
+from typing import Union, List, BinaryIO, Type, Optional
 from collections.abc import Iterable
 import struct
 import warnings
@@ -35,7 +35,7 @@ QPY_SUPPORTED_TYPES = Union[QuantumCircuit, ScheduleBlock]
 def dump(
     programs: Union[List[QPY_SUPPORTED_TYPES], QPY_SUPPORTED_TYPES],
     file_obj: BinaryIO,
-    metadata_serializer: JSONEncoder = None,
+    metadata_serializer: Optional[Type[JSONEncoder]] = None,
 ):
     """Write QPY binary data to a file
 
@@ -128,7 +128,7 @@ def dump(
 
 def load(
     file_obj: BinaryIO,
-    metadata_deserializer: JSONDecoder = None,
+    metadata_deserializer: Optional[Type[JSONDecoder]] = None,
 ) -> List[QPY_SUPPORTED_TYPES]:
     """Load a QPY binary file
 
