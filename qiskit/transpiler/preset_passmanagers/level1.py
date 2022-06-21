@@ -65,6 +65,7 @@ from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
 
 from qiskit.transpiler import TranspilerError
+from qiskit.utils.optionals import HAS_TOQM
 
 
 def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
@@ -196,6 +197,9 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _swap_condition(property_set):
         return not property_set["is_swap_mapped"]
 
+    def _swap_needs_basis(property_set):
+        return _swap_condition(property_set) and routing_method == "toqm"
+
     _swap = [BarrierBeforeFinalMeasurements()]
     if routing_method == "basic":
         _swap += [BasicSwap(coupling_map)]
@@ -205,6 +209,25 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _swap += [LookaheadSwap(coupling_map, search_depth=4, search_width=4)]
     elif routing_method == "sabre":
         _swap += [SabreSwap(coupling_map, heuristic="lookahead", seed=seed_transpiler)]
+    elif routing_method == "toqm":
+        HAS_TOQM.require_now("TOQM-based routing")
+        from qiskit_toqm import ToqmSwap, ToqmStrategyO1, latencies_from_target
+
+        if initial_layout:
+            raise TranspilerError("Initial layouts are not supported with TOQM-based routing.")
+
+        # Note: BarrierBeforeFinalMeasurements is skipped intentionally since ToqmSwap
+        #       does not yet support barriers.
+        _swap = [
+            ToqmSwap(
+                coupling_map,
+                strategy=ToqmStrategyO1(
+                    latencies_from_target(
+                        coupling_map, instruction_durations, basis_gates, backend_properties, target
+                    )
+                ),
+            )
+        ]
     elif routing_method == "none":
         _swap += [
             Error(
@@ -299,6 +322,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm1.append(_improve_layout, condition=_vf2_match_not_found)
         pm1.append(_embed)
         pm1.append(_swap_check)
+        pm1.append(_unroll, condition=_swap_needs_basis)
         pm1.append(_swap, condition=_swap_condition)
         if (
             (coupling_map and backend_properties)
