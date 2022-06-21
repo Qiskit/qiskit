@@ -52,16 +52,17 @@ class TestUMDA(QiskitAlgorithmsTestCase):
     def test_minimize(self):
         """optimize function test"""
         from scipy.optimize import rosen
+        import numpy as np
+        from qiskit.utils import algorithm_globals
 
-        optimizer = UMDA(maxiter=100, size_gen=20)
-        x_0 = [1.3, 0.7, 0.8, 1.9, 1.2]
+        # UMDA is volatile so we need to set the seeds for the execution
+        algorithm_globals.random_seed = 52
+
+        optimizer = UMDA(maxiter=1000, size_gen=100)
+        x_0 = [1.3, 0.7, 1.5]
         res = optimizer.minimize(rosen, x_0)
 
         assert res.fun is not None
         assert len(res.x) == len(x_0)
 
-        optimizer.maxiter = 200
-        res = optimizer.minimize(rosen, x_0)
-
-        assert res.fun is not None
-        assert len(res.x) == len(x_0)
+        np.testing.assert_array_almost_equal(res.x, [1.0] * len(x_0), decimal=2)
