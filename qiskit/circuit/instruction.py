@@ -335,19 +335,11 @@ class Instruction:
             qiskit.circuit.Instruction: a new instruction with
                 sub-instructions reversed.
         """
-        from qiskit.circuit import QuantumCircuit  # pylint: disable=cyclic-import
-
         if not self._definition:
             return self.copy()
 
         reverse_inst = self.copy(name=self.name + "_reverse")
-        reversed_definition = QuantumCircuit(
-            self._definition.qubits,
-            self._definition.clbits,
-            *self._definition.qregs,
-            *self._definition.cregs,
-            global_phase=self.definition.global_phase,
-        )
+        reversed_definition = self._definition.copy_empty_like()
         for inst in reversed(self._definition):
             reversed_definition.append(inst.operation.reverse_ops(), inst.qubits, inst.clbits)
         reverse_inst.definition = reversed_definition
@@ -372,7 +364,7 @@ class Instruction:
         if self.definition is None:
             raise CircuitError("inverse() not implemented for %s." % self.name)
 
-        from qiskit.circuit import QuantumCircuit, Gate  # pylint: disable=cyclic-import
+        from qiskit.circuit import Gate  # pylint: disable=cyclic-import
 
         if self.name.endswith("_dg"):
             name = self.name[:-3]
@@ -389,13 +381,7 @@ class Instruction:
         else:
             inverse_gate = Gate(name=name, num_qubits=self.num_qubits, params=self.params.copy())
 
-        inverse_definition = QuantumCircuit(
-            self.definition.qubits,
-            self.definition.clbits,
-            *self.definition.qregs,
-            *self.definition.cregs,
-            global_phase=-self.definition.global_phase,
-        )
+        inverse_definition = self._definition.copy_empty_like()
         for inst in reversed(self._definition):
             inverse_definition._append(inst.operation.inverse(), inst.qubits, inst.clbits)
         inverse_gate.definition = inverse_definition
