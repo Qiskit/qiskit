@@ -19,6 +19,7 @@ indexmap = "1.9.0"
 ahash = "0.7.6"
 num-complex = "0.4"
 num-bigint = "0.4"
+lazy_static = "1.4.0"
 
 [dependencies.pyo3]
 version = "0.16.5"
