@@ -26,13 +26,11 @@ class TestUMDA(QiskitAlgorithmsTestCase):
         umda.disp = True
         umda.size_gen = 30
         umda.alpha = 0.6
-        umda.dead_iter = 10
         umda.maxiter = 100
 
         assert umda.disp is True
         assert umda.size_gen == 30
         assert umda.alpha == 0.6
-        assert umda.dead_iter == 10
         assert umda.maxiter == 100
 
     def test_settings(self):
@@ -41,13 +39,11 @@ class TestUMDA(QiskitAlgorithmsTestCase):
         umda.disp = True
         umda.size_gen = 30
         umda.alpha = 0.6
-        umda.dead_iter = 10
         umda.maxiter = 100
 
         set_ = {
             "maxiter": 100,
             "alpha": 0.6,
-            "dead_iter": 10,
             "size_gen": 30,
         }
 
