@@ -101,7 +101,6 @@ def _assemble_circuit(
 
     # TODO: why do we need n_qubits and memory_slots in both the header and the config
     config = QasmQobjExperimentConfig(n_qubits=num_qubits, memory_slots=memory_slots)
-
     calibrations, pulse_library = _assemble_pulse_gates(circuit, run_config)
     if calibrations:
         config.calibrations = calibrations
