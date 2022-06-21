@@ -56,6 +56,8 @@ class TestConfigurableFakeBackend(QiskitTestCase):
                 self.assertEqual(properties.backend_name, "Tashkent")
                 self.assertEqual(len(properties.qubits), n_qubits)
                 self.assertEqual(len(properties.gates), n_qubits)
+                self.assertAlmostEqual(properties.t1(0), 99e-6, places=7)
+                self.assertAlmostEqual(properties.t2(0), 146e-6, places=7)
 
                 configuration = fake_backend.configuration()
                 self.assertEqual(configuration.backend_version, "0.0.1")

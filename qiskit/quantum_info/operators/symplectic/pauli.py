@@ -136,7 +136,7 @@ class Pauli(BasePauli):
 
     For example
 
-    .. code:
+    .. code-block:: python
 
         p = Pauli('-iXYZ')
 
