@@ -14,8 +14,6 @@
 import retworkx as rx
 
 from qiskit.pulse.schedule import ScheduleBlock
-from qiskit.pulse.transforms.alignments import SequentialContext, ParallelContext
-from qiskit.pulse.exceptions import PulseError
 
 
 def block_to_dag(block: ScheduleBlock) -> rx.PyDAG:
@@ -64,14 +62,10 @@ def block_to_dag(block: ScheduleBlock) -> rx.PyDAG:
     Raises:
         PulseError: When the context is invalid subclass.
     """
-    if isinstance(block.alignment_context, SequentialContext):
+    if block.alignment_context.is_sequential:
         return _sequential_allocation(block)
-    if isinstance(block.alignment_context, ParallelContext):
+    else:
         return _parallel_allocation(block)
-    raise PulseError(
-        "Invalid context subclass. Context must be a subclass of "
-        "either SequentialContext or ParallelContext."
-    )
 
 
 def _sequential_allocation(block: ScheduleBlock) -> rx.PyDAG:
