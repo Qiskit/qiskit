@@ -19,8 +19,7 @@ from qiskit.providers.fake_provider import fake_pulse_backend, fake_backend
 
 
 class FakeAlmadenV2(fake_backend.FakeBackendV2):
-    """A fake Almaden V2 backend.
-    """
+    """A fake Almaden V2 backend."""
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_almaden.json"
@@ -30,8 +29,7 @@ class FakeAlmadenV2(fake_backend.FakeBackendV2):
 
 
 class FakeAlmaden(fake_pulse_backend.FakePulseBackend):
-    """A fake Almaden backend.
-    """
+    """A fake Almaden backend."""
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_almaden.json"

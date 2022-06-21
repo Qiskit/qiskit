@@ -19,8 +19,7 @@ from qiskit.providers.fake_provider import fake_qasm_backend, fake_backend
 
 
 class FakeYorktownV2(fake_backend.FakeBackendV2):
-    """A fake 5 qubit backend.
-    """
+    """A fake 5 qubit backend."""
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_yorktown.json"
@@ -29,8 +28,7 @@ class FakeYorktownV2(fake_backend.FakeBackendV2):
 
 
 class FakeYorktown(fake_qasm_backend.FakeQasmBackend):
-    """A fake 5 qubit backend.
-    """
+    """A fake 5 qubit backend."""
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_yorktown.json"
