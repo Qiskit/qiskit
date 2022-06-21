@@ -29,9 +29,8 @@ from .real_variational_principle import (
 class RealTimeDependentPrinciple(RealVariationalPrinciple):
     """Class for a Real Time Dependent Variational Principle. It works by evaluating the Lagrangian
     corresponding the given system at a parametrized trial state and applying the Euler-Lagrange
-    equation. The principle leads to a system of linear equations handled by the
-    `~qiskit.algorithms.evolvers.variational.solvers.VarQTELinearSolver` class. The real variant
-    means that we consider real time dynamics.
+    equation. The principle leads to a system of linear equations handled by a linear solver.
+    The real variant means that we consider real time dynamics.
     """
 
     def __init__(self, qfi_method: Union[str, CircuitQFI] = "lin_comb_full") -> None:

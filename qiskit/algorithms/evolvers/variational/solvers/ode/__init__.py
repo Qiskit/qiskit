@@ -10,27 +10,4 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Solvers (:mod:`qiskit.algorithms.evolvers.variational.solvers.ode`)
-===================================================================
-This package contains the necessary classes to solve ordinary differential equations (ODE) which
-describe ansatz parameter propagation that implements a variational time evolution. An ODE salver
-uses one of ODE functions generators. OdeFunction utilizes a natural gradient to steer evolution.
-
-ODE functions generators
-====================
-.. autosummary::
-   :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
-
-    AbstractOdeFunction
-    OdeFunction
-
-ODE Solver
-================
-.. autosummary::
-   :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
-
-    VarQTEOdeSolver
-"""
+"""ODE Solvers"""

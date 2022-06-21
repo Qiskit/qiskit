@@ -31,13 +31,13 @@ class OdeFunctionType(Enum):
 
 
 class OdeFunctionFactory(ABC):
-    """Abstract class for generating ODE functions."""
+    """Factory for building ODE functions."""
 
     def __init__(self, ode_function_type: OdeFunctionType) -> None:
 
         self._ode_type = ode_function_type
 
-    def build(
+    def _build(
         self,
         varqte_linear_solver: VarQTELinearSolver,
         error_calculator: Any,

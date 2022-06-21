@@ -27,9 +27,8 @@ from .imaginary_variational_principle import (
 class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
     """Class for an Imaginary McLachlan's Variational Principle. It aims to minimize the distance
     between both sides of the Wick-rotated Schrödinger equation with a quantum state given as a
-    parametrized trial state. The principle leads to a system of linear equations handled by the
-    `~qiskit.algorithms.evolvers.variational.solvers.VarQTELinearSolver` class. The imaginary
-    variant means that we consider imaginary time dynamics.
+    parametrized trial state. The principle leads to a system of linear equations handled by a
+    linear solver. The imaginary variant means that we consider imaginary time dynamics.
     """
 
     def evolution_grad(

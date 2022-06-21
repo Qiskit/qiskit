@@ -54,17 +54,12 @@ class VarQTE(ABC):
         Theory of variational quantum simulation. `<https://doi.org/10.22331/q-2019-10-07-191>`_
     """
 
-    def __init__(
-        self,
-        variational_principle: VariationalPrinciple,
-        ode_function_factory: OdeFunctionFactory,
-        ode_solver: Union[OdeSolver, str] = "RK45",
-        lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
-        expectation: Optional[ExpectationBase] = None,
-        imag_part_tol: float = 1e-7,
-        num_instability_tol: float = 1e-7,
-        quantum_instance: Optional[QuantumInstance] = None,
-    ) -> None:
+    def __init__(self, variational_principle: VariationalPrinciple,
+                 ode_function_factory: OdeFunctionFactory,
+                 ode_solver: Union[OdeSolver, str] = "RK45",
+                 expectation: Optional[ExpectationBase] = None, imag_part_tol: float = 1e-7,
+                 num_instability_tol: float = 1e-7,
+                 quantum_instance: Optional[QuantumInstance] = None) -> None:
         r"""
         Args:
             variational_principle: Variational Principle to be used.
@@ -198,13 +193,13 @@ class VarQTE(ABC):
             initial_state,
             init_state_parameters,
             t_param,
-            self.lse_solver,
+            self.ode_function_factory._lse_solver,
             self._quantum_instance,
             self.imag_part_tol,
         )
 
         # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator
-        ode_function = self.ode_function_factory.build(
+        ode_function = self.ode_function_factory._build(
             linear_solver, error_calculator, init_state_param_dict, t_param
         )
 

@@ -99,11 +99,28 @@ They can be divided into two categories:
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
+    RealVariationalPrinciple
+    ImaginaryVariationalPrinciple
     RealMcLachlanPrinciple
     RealTimeDependentPrinciple
     ImaginaryMcLachlanPrinciple
+
+ODE functions factory
+---------------------
+Builds functions used by an ODE solver. An ODE function utilizes a natural gradient to steer
+evolution.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+    OdeFunctionFactory
+    OdeFunctionType
+
 """
+from .solvers.ode.ode_function_factory import OdeFunctionFactory, OdeFunctionType
 from .var_qte import VarQTE
+from .variational_principles import RealVariationalPrinciple, ImaginaryVariationalPrinciple
 from .variational_principles.imaginary_mc_lachlan_principle import (
     ImaginaryMcLachlanPrinciple,
 )
@@ -116,7 +133,11 @@ from .variational_principles.real_time_dependent_principle import (
 
 
 __all__ = [
+    "OdeFunctionFactory",
+    "OdeFunctionType",
     "VarQTE",
+    "RealVariationalPrinciple",
+    "ImaginaryVariationalPrinciple",
     "RealMcLachlanPrinciple",
     "RealTimeDependentPrinciple",
     "ImaginaryMcLachlanPrinciple",

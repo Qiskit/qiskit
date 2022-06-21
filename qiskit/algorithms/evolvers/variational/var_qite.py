@@ -101,13 +101,5 @@ class VarQITE(VarQTE, ImaginaryEvolver):
                 provided, everything will be evaluated based on NumPy matrix multiplication
                 (which might be slow for larger numbers of qubits).
         """
-        super().__init__(
-            variational_principle,
-            ode_function_factory,
-            ode_solver,
-            lse_solver,
-            expectation,
-            imag_part_tol,
-            num_instability_tol,
-            quantum_instance,
-        )
+        super().__init__(variational_principle, ode_function_factory, ode_solver, expectation,
+                         imag_part_tol, num_instability_tol, quantum_instance)

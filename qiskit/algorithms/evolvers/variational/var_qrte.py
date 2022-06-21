@@ -102,13 +102,5 @@ class VarQRTE(VarQTE, RealEvolver):
                 provided, everything will be evaluated based on matrix multiplication (which is
                 slow).
         """
-        super().__init__(
-            variational_principle,
-            ode_function_factory,
-            ode_solver,
-            lse_solver,
-            expectation,
-            imag_part_tol,
-            num_instability_tol,
-            quantum_instance,
-        )
+        super().__init__(variational_principle, ode_function_factory, ode_solver, expectation,
+                         imag_part_tol, num_instability_tol, quantum_instance)
