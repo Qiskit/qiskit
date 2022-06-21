@@ -710,8 +710,6 @@ def _parse_basis_gates(basis_gates, backend):
                 basis_gates = getattr(backend.configuration(), "basis_gates", None)
         else:
             basis_gates = backend.operation_names
-    if basis_gates is not None:
-        basis_gates = list(basis_gates)
     return basis_gates
 
 
