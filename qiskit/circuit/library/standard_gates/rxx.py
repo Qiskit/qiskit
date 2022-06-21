@@ -11,7 +11,8 @@
 # that they have been altered from the originals.
 
 """Two-qubit XX-rotation gate."""
-
+import math
+import numpy
 from typing import Optional
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -108,11 +109,9 @@ class RXXGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a Numpy.array for the RXX gate."""
-        import numpy
-
         theta2 = float(self.params[0]) / 2
-        cos = numpy.cos(theta2)
-        isin = 1j * numpy.sin(theta2)
+        cos = math.cos(theta2)
+        isin = 1j * math.sin(theta2)
         return numpy.array(
             [[cos, 0, 0, -isin], [0, cos, -isin, 0], [0, -isin, cos, 0], [-isin, 0, 0, cos]],
             dtype=dtype,
