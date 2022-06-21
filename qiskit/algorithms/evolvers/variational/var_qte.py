@@ -72,7 +72,8 @@ class VarQTE(ABC):
             ode_function_factory: Factory for the ODE function. If ``None`` provided, an instance
                 with default settings is created.
             expectation: An instance of ``ExpectationBase`` which defines a method for calculating
-                expectation values of ``EvolutionProblem.aux_operators``.
+                a metric tensor and an evolution gradient and, if provided, expectation values of
+                ``EvolutionProblem.aux_operators``.
             imag_part_tol: Allowed value of an imaginary part that can be neglected if no
                 imaginary part is expected.
             num_instability_tol: The amount of negative value that is allowed to be
@@ -197,8 +198,9 @@ class VarQTE(ABC):
             init_state_parameters,
             t_param,
             self.ode_function_factory.lse_solver,
-            self._quantum_instance,
             self.imag_part_tol,
+            self.expectation,
+            self._quantum_instance,
         )
 
         # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator

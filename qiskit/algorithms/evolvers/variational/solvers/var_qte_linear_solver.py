@@ -24,6 +24,7 @@ from qiskit.circuit import Parameter
 from qiskit.opflow import (
     CircuitSampler,
     OperatorBase,
+    ExpectationBase,
 )
 from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
@@ -41,8 +42,9 @@ class VarQTELinearSolver:
         gradient_params: List[Parameter],
         t_param: Optional[Parameter] = None,
         lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
-        quantum_instance: Optional[QuantumInstance] = None,
         imag_part_tol: float = 1e-7,
+        expectation: Optional[ExpectationBase] = None,
+        quantum_instance: Optional[QuantumInstance] = None,
     ) -> None:
         """
         Args:
@@ -59,11 +61,13 @@ class VarQTELinearSolver:
             lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
                 solve ``Ax=b`` and returns ``x``. If ``None``, the default ``np.linalg.lstsq``
                 solver is used.
+            imag_part_tol: Allowed value of an imaginary part that can be neglected if no
+                imaginary part is expected.
+            expectation: An instance of ``ExpectationBase`` used for calculating a metric tensor
+                and an evolution gradient. If ``None`` provided, a ``PauliExpectation`` is used.
             quantum_instance: Backend used to evaluate the quantum circuit outputs. If ``None``
                 provided, everything will be evaluated based on matrix multiplication (which is
                 slow).
-            imag_part_tol: Allowed value of an imaginary part that can be neglected if no
-                imaginary part is expected.
         """
         self._var_principle = var_principle
         self._hamiltonian = hamiltonian
@@ -74,9 +78,10 @@ class VarQTELinearSolver:
         self.lse_solver = lse_solver
         self._quantum_instance = None
         self._circuit_sampler = None
+        self._imag_part_tol = imag_part_tol
+        self._expectation = expectation
         if quantum_instance is not None:
             self.quantum_instance = quantum_instance
-        self._imag_part_tol = imag_part_tol
 
     @property
     def lse_solver(self) -> Callable[[np.ndarray, np.ndarray], np.ndarray]:
@@ -135,6 +140,7 @@ class VarQTELinearSolver:
             self._bind_params,
             self._gradient_params,
             param_values,
+            self._expectation,
             self._quantum_instance,
         )
         evolution_grad_lse_rhs = self._var_principle.evolution_grad(
@@ -145,6 +151,7 @@ class VarQTELinearSolver:
             self._bind_params,
             self._gradient_params,
             param_values,
+            self._expectation,
             self._quantum_instance,
         )
 

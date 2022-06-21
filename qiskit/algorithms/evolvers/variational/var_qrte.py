@@ -88,7 +88,8 @@ class VarQRTE(VarQTE, RealEvolver):
             ode_function_factory: Factory for the ODE function. If ``None`` provided, an instance
                 with default settings is created.
             expectation: An instance of ``ExpectationBase`` which defines a method for calculating
-                expectation values of ``EvolutionProblem.aux_operators``.
+                a metric tensor and an evolution gradient and, if provided, expectation values of
+                ``EvolutionProblem.aux_operators``.
             imag_part_tol: Allowed value of an imaginary part that can be neglected if no
                 imaginary part is expected.
             num_instability_tol: The amount of negative value that is allowed to be

@@ -27,6 +27,7 @@ from qiskit.opflow import (
     CircuitQFI,
     CircuitSampler,
     OperatorBase,
+    ExpectationBase,
 )
 from qiskit.opflow.gradients.circuit_gradients import LinComb
 from qiskit.utils import QuantumInstance
@@ -67,6 +68,7 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
         bind_params: List[Parameter],
         gradient_params: List[Parameter],
         param_values: List[complex],
+        expectation: Optional[ExpectationBase] = None,
         quantum_instance: Optional[QuantumInstance] = None,
     ) -> np.ndarray:
         """
@@ -83,6 +85,8 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
             bind_params: List of parameters that are supposed to be bound.
             gradient_params: List of parameters with respect to which gradients should be computed.
             param_values: Values of parameters to be bound.
+            expectation: An instance of ``ExpectationBase`` used for calculating an evolution
+                gradient. If ``None`` provided, a ``PauliExpectation`` is used.
             quantum_instance: Backend used to evaluate the quantum circuit outputs. If ``None``
                 provided, everything will be evaluated based on matrix multiplication (which is
                 slow).
@@ -101,10 +105,13 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
                 bind_params + [self._energy_param],
                 gradient_params,
                 quantum_instance,
+                expectation,
             )
 
             energy = StateFn(hamiltonian, is_measurement=True) @ StateFn(ansatz)
-            self._energy = PauliExpectation().convert(energy)
+            if expectation is None:
+                expectation = PauliExpectation()
+            self._energy = expectation.convert(energy)
 
         if circuit_sampler is not None:
             energy = circuit_sampler.convert(self._energy, param_dict).eval()

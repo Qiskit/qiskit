@@ -17,7 +17,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
-from qiskit.opflow import Y, StateFn, CircuitQFI, OperatorBase, CircuitSampler
+from qiskit.opflow import Y, StateFn, CircuitQFI, OperatorBase, CircuitSampler, ExpectationBase
 from qiskit.opflow.gradients.circuit_gradients import LinComb
 from qiskit.opflow.gradients.circuit_qfis import LinCombFull
 from qiskit.utils import QuantumInstance
@@ -55,6 +55,7 @@ class RealTimeDependentPrinciple(RealVariationalPrinciple):
         bind_params: List[Parameter],
         gradient_params: List[Parameter],
         param_values: List[complex],
+        expectation: Optional[ExpectationBase] = None,
         quantum_instance: Optional[QuantumInstance] = None,
     ) -> np.ndarray:
         """
@@ -71,6 +72,8 @@ class RealTimeDependentPrinciple(RealVariationalPrinciple):
             bind_params: List of parameters that are supposed to be bound.
             gradient_params: List of parameters with respect to which gradients should be computed.
             param_values: Values of parameters to be bound.
+            expectation: An instance of ``ExpectationBase`` used for calculating an evolution
+                gradient. If ``None`` provided, a ``PauliExpectation`` is used.
             quantum_instance: Backend used to evaluate the quantum circuit outputs. If ``None``
                 provided, everything will be evaluated based on matrix multiplication (which is
                 slow).
@@ -79,9 +82,9 @@ class RealTimeDependentPrinciple(RealVariationalPrinciple):
             An evolution gradient.
         """
         if self._evolution_gradient_callable is None:
-            modified_hamiltonian = StateFn(hamiltonian, is_measurement=True) @ StateFn(ansatz)
+            operator = StateFn(hamiltonian, is_measurement=True) @ StateFn(ansatz)
             self._evolution_gradient_callable = self._evolution_gradient.gradient_wrapper(
-                modified_hamiltonian, bind_params, gradient_params, quantum_instance
+                operator, bind_params, gradient_params, quantum_instance, expectation
             )
         evolution_grad = 0.5 * self._evolution_gradient_callable(param_values)
 

@@ -73,7 +73,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
             parameters,
             t_param,
             linear_solver,
-            backend,
+            quantum_instance=backend,
         )
 
         time = 2
@@ -135,7 +135,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
             parameters,
             t_param,
             linear_solver,
-            backend,
+            quantum_instance=backend,
         )
         ode_function_generator = OdeFunction(
             linear_solver, error_calculator=None, t_param=t_param, param_dict=param_dict

@@ -71,7 +71,7 @@ class TestVarQTELinearSolver(QiskitAlgorithmsTestCase):
             parameters,
             t_param,
             linear_solver,
-            backend,
+            quantum_instance=backend,
         )
 
         nat_grad_res, metric_res, grad_res = linear_solver.solve_lse(param_dict)

@@ -51,7 +51,7 @@ class TestImaginaryMcLachlanPrinciple(QiskitAlgorithmsTestCase):
         var_principle = ImaginaryMcLachlanPrinciple()
 
         bound_metric_tensor = var_principle.metric_tensor(
-            ansatz, parameters, parameters, param_dict.values(), None
+            ansatz, parameters, parameters, param_dict.values(), None, None
         )
 
         np.testing.assert_almost_equal(bound_metric_tensor, expected_bound_metric_tensor_1)
@@ -78,7 +78,15 @@ class TestImaginaryMcLachlanPrinciple(QiskitAlgorithmsTestCase):
         var_principle = ImaginaryMcLachlanPrinciple()
 
         bound_evolution_grad = var_principle.evolution_grad(
-            observable, ansatz, None, param_dict, parameters, parameters, param_dict.values(), None
+            observable,
+            ansatz,
+            None,
+            param_dict,
+            parameters,
+            parameters,
+            param_dict.values(),
+            None,
+            None,
         )
 
         expected_bound_evolution_grad = [

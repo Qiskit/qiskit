@@ -83,7 +83,7 @@ class TestVarQTEOdeSolver(QiskitAlgorithmsTestCase):
             parameters,
             t_param,
             linear_solver,
-            backend,
+            quantum_instance=backend,
         )
         ode_function_generator = OdeFunction(linear_solver, None, param_dict, t_param)
 

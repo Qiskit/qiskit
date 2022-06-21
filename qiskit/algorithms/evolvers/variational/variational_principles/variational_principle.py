@@ -27,6 +27,7 @@ from qiskit.opflow import (
     CircuitStateFn,
     CircuitSampler,
     OperatorBase,
+    ExpectationBase,
 )
 from qiskit.utils import QuantumInstance
 
@@ -61,6 +62,7 @@ class VariationalPrinciple(ABC):
         bind_params: List[Parameter],
         gradient_params: List[Parameter],
         param_values: List[complex],
+        expectation: Optional[ExpectationBase] = None,
         quantum_instance: Optional[QuantumInstance] = None,
     ) -> np.ndarray:
         """
@@ -71,6 +73,8 @@ class VariationalPrinciple(ABC):
             bind_params: List of parameters that are supposed to be bound.
             gradient_params: List of parameters with respect to which gradients should be computed.
             param_values: Values of parameters to be bound.
+            expectation: An instance of ``ExpectationBase`` used for calculating a metric tensor.
+                If ``None`` provided, a ``PauliExpectation`` is used.
             quantum_instance: Backend used to evaluate the quantum circuit outputs. If ``None``
                 provided, everything will be evaluated based on matrix multiplication (which is
                 slow).
@@ -80,7 +84,7 @@ class VariationalPrinciple(ABC):
         """
         if self._qfi_gradient_callable is None:
             self._qfi_gradient_callable = self.qfi.gradient_wrapper(
-                CircuitStateFn(ansatz), bind_params, gradient_params, quantum_instance
+                CircuitStateFn(ansatz), bind_params, gradient_params, quantum_instance, expectation
             )
         metric_tensor = 0.25 * self._qfi_gradient_callable(param_values)
 
@@ -96,6 +100,7 @@ class VariationalPrinciple(ABC):
         bind_params: List[Parameter],
         gradient_params: List[Parameter],
         param_values: List[complex],
+        expectation: Optional[ExpectationBase] = None,
         quantum_instance: Optional[QuantumInstance] = None,
     ) -> np.ndarray:
         """
@@ -112,6 +117,8 @@ class VariationalPrinciple(ABC):
             bind_params: List of parameters that are supposed to be bound.
             gradient_params: List of parameters with respect to which gradients should be computed.
             param_values: Values of parameters to be bound.
+            expectation: An instance of ``ExpectationBase`` used for calculating an evolution
+                gradient. If ``None`` provided, a ``PauliExpectation`` is used.
             quantum_instance: Backend used to evaluate the quantum circuit outputs. If ``None``
                 provided, everything will be evaluated based on matrix multiplication (which is
                 slow).
