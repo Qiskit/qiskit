@@ -288,7 +288,7 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None):
         TypeError: If any of the instructions is invalid data format.
         QiskitError: QPY version is earlier than block support.
     """
-    if version < 6:
+    if version < 5:
         QiskitError(f"QPY version {version} does not support ScheduleBlock.")
 
     data = formats.SCHEDULE_BLOCK_HEADER._make(

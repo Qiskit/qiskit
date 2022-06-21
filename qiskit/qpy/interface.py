@@ -24,17 +24,18 @@ from qiskit.exceptions import QiskitError
 from qiskit.qpy import formats, common, binary_io, type_keys
 from qiskit.qpy.exceptions import QpyError
 from qiskit.version import __version__
+from qiskit.utils.deprecation import deprecate_arguments
 
 
 # pylint: disable=invalid-name
 QPY_SUPPORTED_TYPES = Union[QuantumCircuit, ScheduleBlock]
 
 
+@deprecate_arguments({"circuits": "programs"})
 def dump(
     programs: Union[List[QPY_SUPPORTED_TYPES], QPY_SUPPORTED_TYPES],
     file_obj: BinaryIO,
     metadata_serializer: JSONEncoder = None,
-    circuits: QuantumCircuit = None,
 ):
     """Write QPY binary data to a file
 
@@ -80,19 +81,11 @@ def dump(
         metadata_serializer: An optional JSONEncoder class that
             will be passed the ``.metadata`` attribute for each program in ``programs`` and will be
             used as the ``cls`` kwarg on the `json.dump()`` call to JSON serialize that dictionary.
-        circuits: Deprecated. Use ``programs`` instead.
 
     Raises:
         QpyError: When multiple data format is mixed in the output.
         TypeError: When invalid data type is input.
     """
-    if circuits is not None:
-        warnings.warn(
-            "'circuits' has been deprecated. Use 'programs' instead.",
-            DeprecationWarning,
-        )
-        programs = circuits
-
     if not isinstance(programs, Iterable):
         programs = [programs]
 
