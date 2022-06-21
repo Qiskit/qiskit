@@ -306,9 +306,7 @@ class UMDA(Optimizer):
             ValueError: If `value` is lower than 0 or greater than 1.
         """
         if (value <= 0) or (value > 1):
-            raise ValueError(
-                f"alpha must be in the range (0, 1], value given was {value}"
-            )
+            raise ValueError(f"alpha must be in the range (0, 1], value given was {value}")
 
         self._alpha = value
 

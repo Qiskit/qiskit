@@ -69,4 +69,3 @@ class TestUMDA(QiskitAlgorithmsTestCase):
 
         assert res.fun is not None
         assert len(res.x) == len(x_0)
-
