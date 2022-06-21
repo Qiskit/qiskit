@@ -390,14 +390,18 @@ def _log_transpile_time(start_time, end_time):
 
 
 def _combine_args(shared_transpiler_args, unique_config):
-    optimization_level = shared_transpiler_args.pop("optimization_level")
+    # Pop optimization_level to exclude it from the kwargs when building a
+    # PassManagerConfig
+    level = shared_transpiler_args.pop("optimization_level")
     pass_manager_config = shared_transpiler_args
     pass_manager_config.update(unique_config.pop("pass_manager_config"))
     pass_manager_config = PassManagerConfig(**pass_manager_config)
+    # restore optimization_level in the input shared dict in case it's used again
+    # in the same process
+    shared_transpiler_args["optimization_level"] = level
 
     transpile_config = unique_config
     transpile_config["pass_manager_config"] = pass_manager_config
-    transpile_config["optimization_level"] = optimization_level
 
     if transpile_config["faulty_qubits_map"]:
         pass_manager_config.initial_layout = _remap_layout_faulty_backend(
@@ -405,9 +409,6 @@ def _combine_args(shared_transpiler_args, unique_config):
         )
 
     # we choose an appropriate one based on desired optimization level
-    level = transpile_config["optimization_level"]
-    shared_transpiler_args["optimization_level"] = optimization_level
-
     if level == 0:
         pass_manager = level_0_pass_manager(pass_manager_config)
     elif level == 1:
