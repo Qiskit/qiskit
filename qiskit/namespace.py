@@ -64,6 +64,6 @@ class QiskitElementImport(MetaPathFinder):
                 return importlib.util.spec_from_loader(
                     fullname, QiskitLoader(self.new_package, self.old_namespace), origin="qiskit"
                 )
-            except Exception:  # pylint: disable=broad-except
+            except ModuleNotFoundError:  # pylint: disable=broad-except
                 return None
         return None
