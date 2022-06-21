@@ -80,12 +80,7 @@ class Result:
                 self.results,
             )
         )
-        if hasattr(self, "date"):
-            out += ", date=%s" % self.date
-        if hasattr(self, "status"):
-            out += ", status=%s" % self.status
-        if hasattr(self, "header"):
-            out += ", status=%s" % self.header
+        out += f", date={self.date}, status={self.status}, header={self.header}"
         for key in self._metadata:
             if isinstance(self._metadata[key], str):
                 value_str = "'%s'" % self._metadata[key]
