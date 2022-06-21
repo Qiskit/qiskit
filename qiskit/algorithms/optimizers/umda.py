@@ -36,7 +36,7 @@ class UMDA(Optimizer):
     EDAs are stochastic search algorithms and belong to the family of the evolutionary algorithms.
     The main difference is that EDAs have a probabilistic model which is updated in each iteration
     from the best individuals of previous generations (elite selection). Depending on the complexity
-    of the probabilistic model, EDAs can be classified in a different way. In this case, UMDA is a
+    of the probabilistic model, EDAs can be classified in different ways. In this case, UMDA is a
     univariate EDA as the embedded probabilistic model is univariate.
 
     UMDA has been compared to some of the already implemented algorithms in Qiskit library to
