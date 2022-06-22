@@ -32,6 +32,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
     "sphinx.ext.extlinks",
+    "sphinx.ext.intersphinx",
     "jupyter_sphinx",
     "sphinx_autodoc_typehints",
     "reno.sphinxext",
@@ -59,6 +60,9 @@ add_module_names = False
 # (e.g., if this is set to ['foo.'], then foo.bar is shown under B, not F).
 modindex_common_prefix = ["qiskit."]
 
+intersphinx_mapping = {
+    'retworkx': ('https://qiskit.org/documentation/retworkx/', None),
+}
 
 # -- Options for HTML output -------------------------------------------------
 

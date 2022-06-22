@@ -28,7 +28,7 @@ from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
-from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
+from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli, _count_y
 from qiskit.utils.deprecation import deprecate_function
 
 
@@ -105,7 +105,7 @@ class Pauli(BasePauli):
 
     .. math::
 
-        P &= (-i)^{q + z\cdot x} Z^z \cdot X^x.
+        P = (-i)^{q + z\cdot x} Z^z \cdot X^x.
 
     The :math:`k`th qubit corresponds to the :math:`k`th entry in the
     :math:`z` and :math:`x` arrays
@@ -136,7 +136,7 @@ class Pauli(BasePauli):
 
     For example
 
-    .. code:
+    .. code-block:: python
 
         p = Pauli('-iXYZ')
 
@@ -323,7 +323,7 @@ class Pauli(BasePauli):
         self._z[0, qubits] = value.z
         self._x[0, qubits] = value.x
         # Add extra phase from new Pauli to current
-        self._phase += value._phase
+        self._phase = self._phase + value._phase
 
     def delete(self, qubits):
         """Return a Pauli with qubits deleted.
@@ -629,9 +629,7 @@ class Pauli(BasePauli):
             raise QiskitError(f"{op} is not an N-qubit identity")
         base_z = np.zeros((1, op.num_qubits), dtype=bool)
         base_x = np.zeros((1, op.num_qubits), dtype=bool)
-        base_phase = np.mod(
-            cls._phase_from_complex(op.coeff) + np.sum(np.logical_and(base_z, base_x), axis=1), 4
-        )
+        base_phase = np.mod(cls._phase_from_complex(op.coeff) + _count_y(base_x, base_z), 4)
         return base_z, base_x, base_phase
 
     @classmethod
@@ -677,15 +675,15 @@ class Pauli(BasePauli):
             ret.phase = cls._phase_from_complex(np.exp(1j * float(instr.global_phase)))
 
         # Recursively apply instructions
-        for dinstr, qregs, cregs in instr.data:
-            if cregs:
+        for inner in instr.data:
+            if inner.clbits:
                 raise QiskitError(
-                    f"Cannot apply instruction with classical registers: {dinstr.name}"
+                    f"Cannot apply instruction with classical bits: {inner.operation.name}"
                 )
-            if not isinstance(dinstr, (Barrier, Delay)):
-                next_instr = BasePauli(*cls._from_circuit(dinstr))
+            if not isinstance(inner.operation, (Barrier, Delay)):
+                next_instr = BasePauli(*cls._from_circuit(inner.operation))
                 if next_instr is not None:
-                    qargs = [tup.index for tup in qregs]
+                    qargs = [tup.index for tup in inner.qubits]
                     ret = ret.compose(next_instr, qargs=qargs)
         return ret._z, ret._x, ret._phase
 
