@@ -358,7 +358,6 @@ dependencies = [
  "ahash",
  "hashbrown",
  "indexmap",
- "lazy_static",
  "ndarray",
  "num-bigint",
  "num-complex",
