@@ -579,7 +579,7 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate):
     file_obj.write(synth_data)
 
 
-def _write_custom_instruction(file_obj, name, operation, custom_operations):
+def _write_custom_operation(file_obj, name, operation, custom_operations):
     type_key = type_keys.CircuitInstruction.assign(operation)
     has_definition = False
     size = 0

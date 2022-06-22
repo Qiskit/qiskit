@@ -345,9 +345,7 @@ def generate_control_flow_circuits():
 
 def generate_schedule_blocks():
     """Standard QPY testcase for schedule blocks."""
-    import numpy as np
     from qiskit.pulse import builder, channels, library
-    from qiskit.circuit import Parameter
     from qiskit.utils import optionals
 
     schedule_blocks = []
@@ -373,14 +371,14 @@ def generate_schedule_blocks():
     phase = Parameter("phase")
     with builder.build() as block:
         builder.shift_phase(phase, channels.DriveChannel(ch))
-        builder.play(library.Gaussian(duration, amp, duration/4), channels.DriveChannel(ch))
+        builder.play(library.Gaussian(duration, amp, duration / 4), channels.DriveChannel(ch))
     schedule_blocks.append(block)
     # Raw symbolic pulse
     if optionals.HAS_SYMENGINE:
         import symengine as sym
     else:
         import sympy as sym
-    duration, amp, t = sym.symbols("duration amp freq t")
+    duration, amp, t = sym.symbols("duration amp freq t")  # pylint: disable=invalid-name
     expr = amp * sym.sin(2 * sym.pi * t / duration)
     my_pulse = library.SymbolicPulse(
         pulse_type="Sinusoidal",
