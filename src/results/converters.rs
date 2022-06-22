@@ -10,8 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-const fn generate_lookup_table() -> [&'static str; 256] {
-    let mut lookup = [""; 256];
+const fn generate_lookup_table() -> [&'static str; 103] {
+    let mut lookup = [""; 103];
     lookup[b'0' as usize] = "0000";
     lookup[b'1' as usize] = "0001";
     lookup[b'2' as usize] = "0010";
@@ -37,7 +37,7 @@ const fn generate_lookup_table() -> [&'static str; 256] {
     lookup
 }
 
-static HEX_TO_BIN_LUT: [&str; 256] = generate_lookup_table();
+static HEX_TO_BIN_LUT: [&str; 103] = generate_lookup_table();
 
 #[inline]
 pub fn hex_to_bin(hex: &str) -> String {
