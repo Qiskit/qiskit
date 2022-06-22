@@ -85,59 +85,59 @@ def _append_circuit(elem, circuit, qargs=None):
         for index, bit in enumerate(bits)
     }
 
-    for instr, qregs, _ in gate.definition:
-        if isinstance(instr, (Barrier, Delay)):
+    for instruction in gate.definition:
+        if isinstance(instruction.operation, (Barrier, Delay)):
             continue
         # Get the integer position of the flat register
-        new_qubits = [qargs[bit_indices[tup]] for tup in qregs]
+        new_qubits = [qargs[bit_indices[tup]] for tup in instruction.qubits]
 
-        if instr.name == "x" or gate.name == "x":
+        if instruction.operation.name == "x" or gate.name == "x":
             if len(new_qubits) != 1:
                 raise QiskitError("Invalid qubits for 1-qubit gate x.")
             elem._append_x(new_qubits[0])
 
-        elif instr.name == "z" or gate.name == "z":
+        elif instruction.operation.name == "z" or gate.name == "z":
             if len(new_qubits) != 1:
                 raise QiskitError("Invalid qubits for 1-qubit gate z.")
             elem._append_phase(4, new_qubits[0])
 
-        elif instr.name == "y" or gate.name == "y":
+        elif instruction.operation.name == "y" or gate.name == "y":
             if len(new_qubits) != 1:
                 raise QiskitError("Invalid qubits for 1-qubit gate y.")
             elem._append_x(new_qubits[0])
             elem._append_phase(4, new_qubits[0])
 
-        elif instr.name == "p" or gate.name == "p":
-            if len(new_qubits) != 1 or len(instr.params) != 1:
+        elif instruction.operation.name == "p" or gate.name == "p":
+            if len(new_qubits) != 1 or len(instruction.operation.params) != 1:
                 raise QiskitError("Invalid qubits or params for 1-qubit gate p.")
-            elem._append_phase(int(4 * instr.params[0] / np.pi), new_qubits[0])
+            elem._append_phase(int(4 * instruction.operation.params[0] / np.pi), new_qubits[0])
 
-        elif instr.name == "t" or gate.name == "t":
+        elif instruction.operation.name == "t" or gate.name == "t":
             if len(new_qubits) != 1:
                 raise QiskitError("Invalid qubits for 1-qubit gate t.")
             elem._append_phase(1, new_qubits[0])
 
-        elif instr.name == "tdg" or gate.name == "tdg":
+        elif instruction.operation.name == "tdg" or gate.name == "tdg":
             if len(new_qubits) != 1:
                 raise QiskitError("Invalid qubits for 1-qubit gate tdg.")
             elem._append_phase(7, new_qubits[0])
 
-        elif instr.name == "s" or gate.name == "s":
+        elif instruction.operation.name == "s" or gate.name == "s":
             if len(new_qubits) != 1:
                 raise QiskitError("Invalid qubits for 1-qubit gate s.")
             elem._append_phase(2, new_qubits[0])
 
-        elif instr.name == "sdg" or gate.name == "sdg":
+        elif instruction.operation.name == "sdg" or gate.name == "sdg":
             if len(new_qubits) != 1:
                 raise QiskitError("Invalid qubits for 1-qubit gate sdg.")
             elem._append_phase(6, new_qubits[0])
 
-        elif instr.name == "cx":
+        elif instruction.operation.name == "cx":
             if len(new_qubits) != 2:
                 raise QiskitError("Invalid qubits for 2-qubit gate cx.")
             elem._append_cx(new_qubits[0], new_qubits[1])
 
-        elif instr.name == "cz":
+        elif instruction.operation.name == "cz":
             if len(new_qubits) != 2:
                 raise QiskitError("Invalid qubits for 2-qubit gate cz.")
             elem._append_phase(7, new_qubits[1])
@@ -148,17 +148,17 @@ def _append_circuit(elem, circuit, qargs=None):
             elem._append_phase(7, new_qubits[1])
             elem._append_phase(7, new_qubits[0])
 
-        elif instr.name == "swap" or gate.name == "swap":
+        elif instruction.operation.name == "swap" or gate.name == "swap":
             if len(new_qubits) != 2:
                 raise QiskitError("Invalid qubits for 2-qubit gate swap.")
             elem._append_cx(new_qubits[0], new_qubits[1])
             elem._append_cx(new_qubits[1], new_qubits[0])
             elem._append_cx(new_qubits[0], new_qubits[1])
 
-        elif instr.name == "id":
+        elif instruction.operation.name == "id":
             pass
 
         else:
-            raise QiskitError(f"Not a CNOT-Dihedral gate: {instr.name}")
+            raise QiskitError(f"Not a CNOT-Dihedral gate: {instruction.operation.name}")
 
     return elem

@@ -383,7 +383,7 @@ class InstructionToQobjConverter:
         Returns:
             dict: Dictionary of required parameters.
         """
-        if isinstance(instruction.pulse, library.ParametricPulse):
+        if isinstance(instruction.pulse, (library.ParametricPulse, library.SymbolicPulse)):
             command_dict = {
                 "name": "parametric_pulse",
                 "pulse_shape": ParametricPulseShapes(type(instruction.pulse)).name,
