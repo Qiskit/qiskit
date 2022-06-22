@@ -328,3 +328,4 @@ class GradientDescent(SteppableOptimizer):
             "bounds": OptimizerSupportLevel.ignored,
             "initial_point": OptimizerSupportLevel.required,
         }
+

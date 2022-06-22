@@ -19,7 +19,6 @@ from enum import IntEnum
 import logging
 import sys
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-import warnings
 
 import numpy as np
 import scipy
@@ -283,8 +282,7 @@ class Optimizer(ABC):
         """
         raise NotImplementedError("The settings method is not implemented per default.")
 
-    # TODO make abstract after the deprecation period
-    # @abstractmethod
+    @abstractmethod
     def minimize(
         self,
         fun: Callable[[POINT], float],
@@ -305,78 +303,6 @@ class Optimizer(ABC):
             The result of the optimization, containing e.g. the result as attribute ``x``.
         """
         raise NotImplementedError()
-
-    def optimize(
-        self,
-        num_vars,
-        objective_function,  # pylint: disable=unused-argument
-        gradient_function=None,
-        variable_bounds=None,
-        initial_point=None,
-    ):
-        """
-        Perform optimization.
-
-        Args:
-            num_vars (int) : Number of parameters to be optimized.
-            objective_function (callable) : A function that
-                computes the objective function.
-            gradient_function (callable) : A function that
-                computes the gradient of the objective function, or
-                None if not available.
-            variable_bounds (list[(float, float)]) : List of variable
-                bounds, given as pairs (lower, upper). None means
-                unbounded.
-            initial_point (numpy.ndarray[float]) : Initial point.
-
-        Returns:
-            point, value, nfev
-               point: is a 1D numpy.ndarray[float] containing the solution
-               value: is a float with the objective function value
-               nfev: number of objective function calls made if available or None
-        Raises:
-            ValueError: invalid input
-        """
-        warnings.warn(
-            f"The {self.__class__.__name__}.optimize method is deprecated as of Qiskit Terra "
-            "0.19.0 and will be removed no sooner than 3 months after the release date. "
-            f"Instead, use the {self.__class__.__name__}.minimize method, which mimics the "
-            "signature of scipy.optimize.minimize.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-        if initial_point is not None and len(initial_point) != num_vars:
-            raise ValueError("Initial point does not match dimension")
-        if variable_bounds is not None and len(variable_bounds) != num_vars:
-            raise ValueError("Variable bounds not match dimension")
-
-        has_bounds = False
-        if variable_bounds is not None:
-            # If *any* value is *equal* in bounds array to None then the does *not* have bounds
-            has_bounds = not np.any(np.equal(variable_bounds, None))
-
-        if gradient_function is None and self.is_gradient_required:
-            raise ValueError("Gradient is required but None given")
-        if not has_bounds and self.is_bounds_required:
-            raise ValueError("Variable bounds is required but None given")
-        if initial_point is None and self.is_initial_point_required:
-            raise ValueError("Initial point is required but None given")
-
-        if gradient_function is not None and self.is_gradient_ignored:
-            logger.debug(
-                "WARNING: %s does not support gradient function. It will be ignored.",
-                self.__class__.__name__,
-            )
-        if has_bounds and self.is_bounds_ignored:
-            logger.debug(
-                "WARNING: %s does not support bounds. It will be ignored.", self.__class__.__name__
-            )
-        if initial_point is not None and self.is_initial_point_ignored:
-            logger.debug(
-                "WARNING: %s does not support initial point. It will be ignored.",
-                self.__class__.__name__,
-            )
 
     @property
     def gradient_support_level(self):

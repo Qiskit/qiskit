@@ -577,14 +577,14 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             for index, bit in enumerate(bits)
         }
 
-        for instr, qregs, cregs in flat_instr:
-            if cregs:
+        for instruction in flat_instr:
+            if instruction.clbits:
                 raise QiskitError(
-                    f"Cannot apply Instruction with classical registers: {instr.name}"
+                    f"Cannot apply Instruction with classical bits: {instruction.operation.name}"
                 )
             # Get the integer position of the flat register
-            new_qubits = [qargs[bit_indices[tup]] for tup in qregs]
-            self._append_circuit(instr, new_qubits)
+            new_qubits = [qargs[bit_indices[tup]] for tup in instruction.qubits]
+            self._append_circuit(instruction.operation, new_qubits)
 
         # Since the individual gate evolution functions don't take mod
         # of phase we update it at the end
