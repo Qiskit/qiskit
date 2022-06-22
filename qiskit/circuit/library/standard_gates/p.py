@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Phase Gate."""
-
+from cmath import exp
 from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
@@ -120,7 +120,7 @@ class PhaseGate(Gate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the Phase gate."""
         lam = float(self.params[0])
-        return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=dtype)
+        return numpy.array([[1, 0], [0, exp(1j * lam)]], dtype=dtype)
 
 
 class CPhaseGate(ControlledGate):
@@ -231,7 +231,7 @@ class CPhaseGate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CPhase gate."""
-        eith = numpy.exp(1j * float(self.params[0]))
+        eith = exp(1j * float(self.params[0]))
         if self.ctrl_state:
             return numpy.array(
                 [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, eith]], dtype=dtype
@@ -291,8 +291,8 @@ class MCPhaseGate(ControlledGate):
 
             scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
             bottom_gate = CPhaseGate(scaled_lam)
-            definition = _gray_code_chain(q, self.num_ctrl_qubits, bottom_gate)
-            qc.data = definition
+            for operation, qubits, clbits in _gray_code_chain(q, self.num_ctrl_qubits, bottom_gate):
+                qc._append(operation, qubits, clbits)
         self.definition = qc
 
     def control(

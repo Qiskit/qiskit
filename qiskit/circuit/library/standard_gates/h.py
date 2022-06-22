@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Hadamard gate."""
-
+from math import sqrt
 from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
@@ -156,7 +156,7 @@ class CHGate(ControlledGate):
                 \end{pmatrix}
     """
     # Define class constants. This saves future allocation time.
-    _sqrt2o2 = 1 / numpy.sqrt(2)
+    _sqrt2o2 = 1 / sqrt(2)
     _matrix1 = numpy.array(
         [[1, 0, 0, 0], [0, _sqrt2o2, 0, _sqrt2o2], [0, 0, 1, 0], [0, _sqrt2o2, 0, -_sqrt2o2]],
         dtype=complex,
