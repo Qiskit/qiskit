@@ -24,12 +24,6 @@ from qiskit.circuit.quantumregister import QuantumRegister
 class U3Gate(Gate):
     r"""Generic single-qubit rotation gate with 3 Euler angles.
 
-    Implemented using two X90 pulses on IBM Quantum systems:
-
-    .. math::
-        U3(\theta, \phi, \lambda) =
-            RZ(\phi) RX(-\pi/2) RZ(\theta) RX(\pi/2) RZ(\lambda)
-
     **Circuit symbol:**
 
     .. parsed-literal::
@@ -49,6 +43,12 @@ class U3Gate(Gate):
                 \cos\left(\th\right)          & -e^{i\lambda}\sin\left(\th\right) \\
                 e^{i\phi}\sin\left(\th\right) & e^{i(\phi+\lambda)}\cos\left(\th\right)
             \end{pmatrix}
+
+    .. note::
+
+        The matrix representation shown here differs from the `OpenQASM 2.0 specification
+        <https://doi.org/10.48550/arXiv.1707.03429>`_ by a global phase of
+        :math:`e^{i(\phi+\lambda)/2}`.
 
     **Examples:**
 
