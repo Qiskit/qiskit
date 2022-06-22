@@ -37,7 +37,7 @@ class TestDataPreparation(QiskitTestCase):
 
         with self.subTest(msg="rotation blocks is H gate"):
             self.assertEqual(len(encoding.rotation_blocks), 1)
-            self.assertIsInstance(encoding.rotation_blocks[0].data[0][0], HGate)
+            self.assertIsInstance(encoding.rotation_blocks[0].data[0].operation, HGate)
 
     @data((2, 3, ["X", "YY"]), (5, 2, ["ZZZXZ", "XZ"]))
     @unpack

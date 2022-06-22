@@ -23,13 +23,14 @@ import numpy as np
 
 from qiskit.circuit import Gate, Instruction
 from qiskit.circuit import (
+    CircuitInstruction,
     QuantumCircuit,
     QuantumRegister,
     ParameterVector,
     ParameterExpression,
     Parameter,
 )
-from qiskit.circuit.parametertable import ParameterTable
+from qiskit.circuit.parametertable import ParameterReferences, ParameterTable
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.library import SGate, SdgGate, XGate
 from qiskit.circuit.library.standard_gates import (
@@ -523,6 +524,7 @@ class LinComb(CircuitGradient):
         Raises:
             RuntimeError: If ``gate`` is not in ``circuit``.
         """
+        qr_superpos_qubits = tuple(qr_superpos)
         # copy the input circuit taking the gates by reference
         out = QuantumCircuit(*circuit.qregs)
         out._data = circuit._data.copy()
@@ -532,9 +534,9 @@ class LinComb(CircuitGradient):
 
         # get the data index and qubits of the target gate  TODO use built-in
         gate_idx, gate_qubits = None, None
-        for i, (op, qarg, _) in enumerate(out._data):
-            if op is gate:
-                gate_idx, gate_qubits = i, qarg
+        for i, instruction in enumerate(out._data):
+            if instruction.operation is gate:
+                gate_idx, gate_qubits = i, instruction.qubits
                 break
         if gate_idx is None:
             raise RuntimeError("The specified gate could not be found in the circuit data.")
@@ -547,51 +549,62 @@ class LinComb(CircuitGradient):
         is_complex = np.iscomplex(grad_coeff)
 
         if sign < 0 and is_complex:
-            replacement.append((SdgGate(), qr_superpos[:], []))
+            replacement.append(CircuitInstruction(SdgGate(), qr_superpos_qubits, ()))
         elif sign < 0:
-            replacement.append((ZGate(), qr_superpos[:], []))
+            replacement.append(CircuitInstruction(ZGate(), qr_superpos_qubits, ()))
         elif is_complex:
-            replacement.append((SGate(), qr_superpos[:], []))
+            replacement.append(CircuitInstruction(SGate(), qr_superpos_qubits, ()))
         # else no additional gate required
 
         # open control if specified
         if open_ctrl:
-            replacement += [(XGate(), qr_superpos[:], [])]
+            replacement += [CircuitInstruction(XGate(), qr_superpos_qubits, [])]
 
         # compute the replacement
         if isinstance(gate, UGate) and param_index == 0:
             theta = gate.params[2]
             rz_plus, rz_minus = RZGate(theta), RZGate(-theta)
-            replacement += [(rz_plus, [qubit], []) for qubit in gate_qubits]
-            replacement += [(RXGate(np.pi / 2), [qubit], []) for qubit in gate_qubits]
-            replacement.append((grad_gate, qr_superpos[:] + gate_qubits, []))
-            replacement += [(RXGate(-np.pi / 2), [qubit], []) for qubit in gate_qubits]
-            replacement += [(rz_minus, [qubit], []) for qubit in gate_qubits]
+            replacement += [CircuitInstruction(rz_plus, (qubit,), ()) for qubit in gate_qubits]
+            replacement += [
+                CircuitInstruction(RXGate(np.pi / 2), (qubit,), ()) for qubit in gate_qubits
+            ]
+            replacement.append(CircuitInstruction(grad_gate, qr_superpos_qubits + gate_qubits, []))
+            replacement += [
+                CircuitInstruction(RXGate(-np.pi / 2), (qubit,), ()) for qubit in gate_qubits
+            ]
+            replacement += [CircuitInstruction(rz_minus, (qubit,), ()) for qubit in gate_qubits]
 
             # update parametertable if necessary
             if isinstance(theta, ParameterExpression):
-                out._update_parameter_table(rz_plus)
-                out._update_parameter_table(rz_minus)
+                # This dangerously subverts ParameterTable by abusing the fact that binding will
+                # mutate the exact instruction instance, and relies on all instances of `rz_plus`
+                # that were added before being the same in memory, which QuantumCircuit usually
+                # ensures is not the case.  I'm leaving this as close to its previous form as
+                # possible, to avoid introducing further complications, but this whole method
+                # accesses internal attributes of `QuantumCircuit` and needs rewriting.
+                # - Jake Lishman, 2022-03-02.
+                out._update_parameter_table(CircuitInstruction(rz_plus, (gate_qubits[0],), ()))
+                out._update_parameter_table(CircuitInstruction(rz_minus, (gate_qubits[0],), ()))
 
             if open_ctrl:
-                replacement += [(XGate(), qr_superpos[:], [])]
+                replacement.append(CircuitInstruction(XGate(), qr_superpos_qubits, ()))
 
             if not trim_after_grad_gate:
-                replacement.append((gate, gate_qubits, []))
+                replacement.append(CircuitInstruction(gate, gate_qubits, ()))
 
         elif isinstance(gate, UGate) and param_index == 1:
             # gradient gate is applied after the original gate in this case
-            replacement.append((gate, gate_qubits, []))
-            replacement.append((grad_gate, qr_superpos[:] + gate_qubits, []))
+            replacement.append(CircuitInstruction(gate, gate_qubits, ()))
+            replacement.append(CircuitInstruction(grad_gate, qr_superpos_qubits + gate_qubits, ()))
             if open_ctrl:
-                replacement += [(XGate(), qr_superpos[:], [])]
+                replacement.append(CircuitInstruction(XGate(), qr_superpos_qubits, ()))
 
         else:
-            replacement.append((grad_gate, qr_superpos[:] + gate_qubits, []))
+            replacement.append(CircuitInstruction(grad_gate, qr_superpos_qubits + gate_qubits, ()))
             if open_ctrl:
-                replacement += [(XGate(), qr_superpos[:], [])]
+                replacement.append(CircuitInstruction(XGate(), qr_superpos_qubits, ()))
             if not trim_after_grad_gate:
-                replacement.append((gate, gate_qubits, []))
+                replacement.append(CircuitInstruction(gate, gate_qubits, ()))
 
         # replace the parameter we compute the derivative of with the replacement
         # TODO can this be done more efficiently?
@@ -599,14 +612,14 @@ class LinComb(CircuitGradient):
             out._data[gate_idx:] = replacement
             # reset parameter table
             table = ParameterTable()
-            for op, _, _ in out._data:
-                for idx, param_expression in enumerate(op.params):
+            for instruction in out._data:
+                for idx, param_expression in enumerate(instruction.operation.params):
                     if isinstance(param_expression, ParameterExpression):
                         for param in param_expression.parameters:
                             if param not in table.keys():
-                                table[param] = [(op, idx)]
+                                table[param] = ParameterReferences(((instruction.operation, idx),))
                             else:
-                                table[param].append((op, idx))
+                                table[param].add((instruction.operation, idx))
 
             out._parameter_table = table
 

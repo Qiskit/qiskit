@@ -429,26 +429,26 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         circ = self.to_instruction()
         new_circ = QuantumCircuit(self.num_qubits)
         bit_indices = {bit: index for index, bit in enumerate(circ.definition.qubits)}
-        for instr, qregs, _ in circ.definition:
-            new_qubits = [bit_indices[tup] for tup in qregs]
-            if instr.name == "p":
-                params = 2 * np.pi - instr.params[0]
-                instr.params[0] = params
-                new_circ.append(instr, new_qubits)
-            elif instr.name == "t":
-                instr.name = "tdg"
-                new_circ.append(instr, new_qubits)
-            elif instr.name == "tdg":
-                instr.name = "t"
-                new_circ.append(instr, new_qubits)
-            elif instr.name == "s":
-                instr.name = "sdg"
-                new_circ.append(instr, new_qubits)
-            elif instr.name == "sdg":
-                instr.name = "s"
-                new_circ.append(instr, new_qubits)
+        for instruction in circ.definition:
+            new_qubits = [bit_indices[tup] for tup in instruction.qubits]
+            if instruction.operation.name == "p":
+                params = 2 * np.pi - instruction.operation.params[0]
+                instruction.operation.params[0] = params
+                new_circ.append(instruction.operation, new_qubits)
+            elif instruction.operation.name == "t":
+                instruction.operation.name = "tdg"
+                new_circ.append(instruction.operation, new_qubits)
+            elif instruction.operation.name == "tdg":
+                instruction.operation.name = "t"
+                new_circ.append(instruction.operation, new_qubits)
+            elif instruction.operation.name == "s":
+                instruction.operation.name = "sdg"
+                new_circ.append(instruction.operation, new_qubits)
+            elif instruction.operation.name == "sdg":
+                instruction.operation.name = "s"
+                new_circ.append(instruction.operation, new_qubits)
             else:
-                new_circ.append(instr, new_qubits)
+                new_circ.append(instruction.operation, new_qubits)
         result = self._from_circuit(new_circ)
         return result
 

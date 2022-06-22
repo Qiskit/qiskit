@@ -11,7 +11,8 @@
 # that they have been altered from the originals.
 
 """Two-pulse single-qubit gate."""
-
+import math
+from cmath import exp
 from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
@@ -114,15 +115,15 @@ class UGate(Gate):
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=complex):
         """Return a numpy.array for the U gate."""
         theta, phi, lam = (float(param) for param in self.params)
         return numpy.array(
             [
-                [numpy.cos(theta / 2), -numpy.exp(1j * lam) * numpy.sin(theta / 2)],
+                [math.cos(theta / 2), -exp(1j * lam) * math.sin(theta / 2)],
                 [
-                    numpy.exp(1j * phi) * numpy.sin(theta / 2),
-                    numpy.exp(1j * (phi + lam)) * numpy.cos(theta / 2),
+                    exp(1j * phi) * math.sin(theta / 2),
+                    exp(1j * (phi + lam)) * math.cos(theta / 2),
                 ],
             ],
             dtype=dtype,
