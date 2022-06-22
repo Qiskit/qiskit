@@ -146,9 +146,9 @@ class TestTranspile(QiskitTestCase):
 
         qubit_indices = {bit: idx for idx, bit in enumerate(new_circuit.qubits)}
 
-        for gate, qargs, _ in new_circuit.data:
-            if isinstance(gate, CXGate):
-                self.assertIn([qubit_indices[x] for x in qargs], coupling_map)
+        for instruction in new_circuit.data:
+            if isinstance(instruction.operation, CXGate):
+                self.assertIn([qubit_indices[x] for x in instruction.qubits], coupling_map)
 
     def test_transpile_qft_grid(self):
         """Transpile pipeline can handle 8-qubit QFT on 14-qubit grid."""
@@ -165,9 +165,9 @@ class TestTranspile(QiskitTestCase):
 
         qubit_indices = {bit: idx for idx, bit in enumerate(new_circuit.qubits)}
 
-        for gate, qargs, _ in new_circuit.data:
-            if isinstance(gate, CXGate):
-                self.assertIn([qubit_indices[x] for x in qargs], coupling_map)
+        for instruction in new_circuit.data:
+            if isinstance(instruction.operation, CXGate):
+                self.assertIn([qubit_indices[x] for x in instruction.qubits], coupling_map)
 
     def test_already_mapped_1(self):
         """Circuit not remapped if matches topology.
@@ -198,7 +198,7 @@ class TestTranspile(QiskitTestCase):
             initial_layout=Layout.generate_trivial_layout(qr),
         )
         qubit_indices = {bit: idx for idx, bit in enumerate(new_qc.qubits)}
-        cx_qubits = [qargs for (gate, qargs, _) in new_qc.data if gate.name == "cx"]
+        cx_qubits = [instr.qubits for instr in new_qc.data if instr.operation.name == "cx"]
         cx_qubits_physical = [
             [qubit_indices[ctrl], qubit_indices[tgt]] for [ctrl, tgt] in cx_qubits
         ]
@@ -331,7 +331,7 @@ class TestTranspile(QiskitTestCase):
             qc, coupling_map=coupling_map, basis_gates=basis_gates, initial_layout=initial_layout
         )
         qubit_indices = {bit: idx for idx, bit in enumerate(new_qc.qubits)}
-        cx_qubits = [qargs for (gate, qargs, _) in new_qc.data if gate.name == "cx"]
+        cx_qubits = [instr.qubits for instr in new_qc.data if instr.operation.name == "cx"]
         cx_qubits_physical = [
             [qubit_indices[ctrl], qubit_indices[tgt]] for [ctrl, tgt] in cx_qubits
         ]
@@ -501,8 +501,8 @@ class TestTranspile(QiskitTestCase):
         qubit_indices = {bit: idx for idx, bit in enumerate(new_circ.qubits)}
         mapped_qubits = []
 
-        for _, qargs, _ in new_circ.data:
-            mapped_qubits.append(qubit_indices[qargs[0]])
+        for instruction in new_circ.data:
+            mapped_qubits.append(qubit_indices[instruction.qubits[0]])
 
         self.assertEqual(mapped_qubits, [4, 6, 10])
 
@@ -1236,11 +1236,11 @@ class TestTranspile(QiskitTestCase):
         backend = FakeRueschlikon()
         backend.configuration().dt = 0.5e-6
         out = transpile([qc, qc], backend)
-        self.assertEqual(out[0].data[0][0].unit, "dt")
-        self.assertEqual(out[1].data[0][0].unit, "dt")
+        self.assertEqual(out[0].data[0].operation.unit, "dt")
+        self.assertEqual(out[1].data[0].operation.unit, "dt")
 
         out = transpile(qc, dt=1e-9)
-        self.assertEqual(out.data[0][0].unit, "dt")
+        self.assertEqual(out.data[0].operation.unit, "dt")
 
     def test_scheduling_backend_v2(self):
         """Test that scheduling method works with Backendv2."""

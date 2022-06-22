@@ -42,13 +42,14 @@ class TestBackendV2(QiskitTestCase):
 
     def assertMatchesTargetConstraints(self, tqc, target):
         qubit_indices = {qubit: index for index, qubit in enumerate(tqc.qubits)}
-        for instr, qargs, _ in tqc.data:
-            qargs = tuple(qubit_indices[x] for x in qargs)
-            target_set = target[instr.name].keys()
+        for instruction in tqc.data:
+            qubits = tuple(qubit_indices[x] for x in instruction.qubits)
+            target_set = target[instruction.operation.name].keys()
             self.assertIn(
-                qargs,
+                qubits,
                 target_set,
-                f"qargs: {qargs} not found in target for operation {instr.name}: {set(target_set)}",
+                f"qargs: {qubits} not found in target for operation {instruction.operation.name}:"
+                f" {set(target_set)}",
             )
 
     def test_qubit_properties(self):

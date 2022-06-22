@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Two-qubit ZZ-rotation gate."""
-
+from cmath import exp
 from typing import Optional
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -122,10 +122,10 @@ class RZZGate(Gate):
         itheta2 = 1j * float(self.params[0]) / 2
         return numpy.array(
             [
-                [numpy.exp(-itheta2), 0, 0, 0],
-                [0, numpy.exp(itheta2), 0, 0],
-                [0, 0, numpy.exp(itheta2), 0],
-                [0, 0, 0, numpy.exp(-itheta2)],
+                [exp(-itheta2), 0, 0, 0],
+                [0, exp(itheta2), 0, 0],
+                [0, 0, exp(itheta2), 0],
+                [0, 0, 0, exp(-itheta2)],
             ],
             dtype=dtype,
         )

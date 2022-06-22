@@ -95,8 +95,8 @@ class TestLinearFunctions(QiskitTestCase):
                 self.assertIsInstance(synthesized_linear_function, QuantumCircuit)
 
                 # check that the synthesized linear function only contains CX and SWAP gates
-                for inst, _, _ in synthesized_linear_function.data:
-                    self.assertIsInstance(inst, (CXGate, SwapGate))
+                for instruction in synthesized_linear_function.data:
+                    self.assertIsInstance(instruction.operation, (CXGate, SwapGate))
 
                 # check equivalence to the original function
                 self.assertEqual(Operator(linear_circuit), Operator(synthesized_linear_function))
@@ -120,8 +120,8 @@ class TestLinearFunctions(QiskitTestCase):
             self.assertIsInstance(synthesized_circuit, QuantumCircuit)
 
             # check that the synthesized linear function only contains CX and SWAP gates
-            for inst, _, _ in synthesized_circuit.data:
-                self.assertIsInstance(inst, (CXGate, SwapGate))
+            for instruction in synthesized_circuit.data:
+                self.assertIsInstance(instruction.operation, (CXGate, SwapGate))
 
             # construct a linear function out of this linear circuit
             synthesized_linear_function = LinearFunction(synthesized_circuit, validate_input=True)
