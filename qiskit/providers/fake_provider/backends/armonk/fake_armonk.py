@@ -21,7 +21,9 @@ from qiskit.providers.fake_provider import fake_pulse_backend, fake_backend
 class FakeArmonkV2(fake_backend.FakeBackendV2):
     """A fake 1 qubit backend.
 
-    0
+    .. code-block:: text
+
+        0
     """
 
     dirname = os.path.dirname(__file__)
@@ -34,7 +36,9 @@ class FakeArmonkV2(fake_backend.FakeBackendV2):
 class FakeArmonk(fake_pulse_backend.FakePulseBackend):
     """A fake 1 qubit backend.
 
-    0
+    .. code-block:: text
+
+        0
     """
 
     dirname = os.path.dirname(__file__)

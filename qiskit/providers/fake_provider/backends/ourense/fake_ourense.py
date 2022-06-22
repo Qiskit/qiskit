@@ -21,9 +21,11 @@ from qiskit.providers.fake_provider import fake_qasm_backend, fake_backend
 class FakeOurenseV2(fake_backend.FakeBackendV2):
     """A fake 5 qubit backend.
 
-    0 ↔ 1 ↔ 3 ↔ 4
-        ↕
-        2
+    .. code-block:: text
+
+        0 ↔ 1 ↔ 3 ↔ 4
+            ↕
+            2
     """
 
     dirname = os.path.dirname(__file__)
@@ -35,9 +37,11 @@ class FakeOurenseV2(fake_backend.FakeBackendV2):
 class FakeOurense(fake_qasm_backend.FakeQasmBackend):
     """A fake 5 qubit backend.
 
-    0 ↔ 1 ↔ 3 ↔ 4
-        ↕
-        2
+    .. code-block:: text
+
+        0 ↔ 1 ↔ 3 ↔ 4
+            ↕
+            2
     """
 
     dirname = os.path.dirname(__file__)

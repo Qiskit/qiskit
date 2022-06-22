@@ -21,13 +21,15 @@ from qiskit.providers.fake_provider import fake_pulse_backend, fake_backend
 class FakeAlmadenV2(fake_backend.FakeBackendV2):
     """A fake Almaden V2 backend.
 
-    00 ↔ 01 ↔ 02 ↔ 03 ↔ 04
-          ↕         ↕
-    05 ↔ 06 ↔ 07 ↔ 08 ↔ 09
-     ↕         ↕         ↕
-    10 ↔ 11 ↔ 12 ↔ 13 ↔ 14
-          ↕         ↕
-    15 ↔ 16 ↔ 17 ↔ 18 ↔ 19
+    .. code-block:: text
+
+        00 ↔ 01 ↔ 02 ↔ 03 ↔ 04
+              ↕         ↕
+        05 ↔ 06 ↔ 07 ↔ 08 ↔ 09
+         ↕         ↕         ↕
+        10 ↔ 11 ↔ 12 ↔ 13 ↔ 14
+              ↕         ↕
+        15 ↔ 16 ↔ 17 ↔ 18 ↔ 19
     """
 
     dirname = os.path.dirname(__file__)
@@ -40,13 +42,15 @@ class FakeAlmadenV2(fake_backend.FakeBackendV2):
 class FakeAlmaden(fake_pulse_backend.FakePulseBackend):
     """A fake Almaden backend.
 
-    00 ↔ 01 ↔ 02 ↔ 03 ↔ 04
-          ↕         ↕
-    05 ↔ 06 ↔ 07 ↔ 08 ↔ 09
-     ↕         ↕         ↕
-    10 ↔ 11 ↔ 12 ↔ 13 ↔ 14
-          ↕         ↕
-    15 ↔ 16 ↔ 17 ↔ 18 ↔ 19
+    .. code-block:: text
+
+        00 ↔ 01 ↔ 02 ↔ 03 ↔ 04
+              ↕         ↕
+        05 ↔ 06 ↔ 07 ↔ 08 ↔ 09
+         ↕         ↕         ↕
+        10 ↔ 11 ↔ 12 ↔ 13 ↔ 14
+              ↕         ↕
+        15 ↔ 16 ↔ 17 ↔ 18 ↔ 19
     """
 
     dirname = os.path.dirname(__file__)
