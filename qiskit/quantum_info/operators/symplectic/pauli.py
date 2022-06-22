@@ -150,7 +150,7 @@ class Pauli(BasePauli):
 
     _VALID_LABEL_PATTERN = re.compile(r"^[+-]?1?[ij]?[IXYZ]+$")
 
-    def __init__(self, data, x=None, *, z=None, label=None):
+    def __init__(self, data=None, x=None, *, z=None, label=None):
         """Initialize the Pauli.
 
         When using the symplectic array input data both z and x arguments must
