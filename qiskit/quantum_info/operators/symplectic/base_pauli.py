@@ -295,7 +295,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         # pylint: disable=cyclic-import
         from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 
-        is_pauli_list = isinstance(self, PauliList)
+        num_paulis = self._x.shape[0]
 
         ret = self.copy()
         ret._x[:, qargs_] = False
@@ -306,11 +306,13 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             idx.T,
             PauliList.from_symplectic(z=adj.table.Z, x=adj.table.X, phase=2 * adj.table.phase),
         ):
+            # most of the logic below is to properly index if self is a PauliList (2D),
+            # while not trying to index if the object is just a Pauli (1D).
             if idx_.any():
-                if is_pauli_list:
-                    ret[idx_] = ret[idx_].compose(row, qargs=qargs)
+                if np.sum(idx_) == num_paulis:
+                    ret.compose(row, qargs=qargs, inplace=True)
                 else:
-                    ret = ret.compose(row, qargs=qargs)
+                    ret[idx_] = ret[idx_].compose(row, qargs=qargs)
 
         return ret
 
