@@ -247,7 +247,7 @@ Waveform block starts with WAVEFORM header:
 
     struct {
         double epsilon;
-        uint16_t data_size;
+        uint32_t data_size;
         _bool amp_limited;
     }
 
@@ -268,10 +268,10 @@ SymbolicPulse block starts with SYMBOLIC_PULSE header:
 .. code-block:: c
 
     struct {
-        uint32_t type_size;
-        uint32_t envelope_size;
-        uint32_t constraints_size;
-        uint32_t valid_amp_conditions_size;
+        uint16_t type_size;
+        uint16_t envelope_size;
+        uint16_t constraints_size;
+        uint16_t valid_amp_conditions_size;
         _bool amp_limited;
     }
 
@@ -305,9 +305,9 @@ A MAP_ITEM starts with a header defined as:
 .. code-block:: c
 
     struct {
-        uint32_t key_size;
+        uint16_t key_size;
         char type;
-        uint32_t size;
+        uint16_t size;
     }
 
 which is immediately followed by the ``key_size`` utf8 bytes representing
