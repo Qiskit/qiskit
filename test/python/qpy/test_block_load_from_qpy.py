@@ -33,7 +33,7 @@ from qiskit.pulse.channels import (
     MemorySlot,
     RegisterSlot,
 )
-from qiskit.circuit import Parameter
+from qiskit.circuit import Parameter, QuantumCircuit, Gate
 from qiskit.test import QiskitTestCase
 from qiskit.qpy import dump, load
 from qiskit.utils import optionals as _optional
@@ -191,3 +191,81 @@ class TestLoadFromQPY(QpyScheduleTestCase):
                     builder.acquire(8000, AcquireChannel(0), MemorySlot(0))
 
         self.assert_roundtrip_equal(test_sched)
+
+
+class TestPulseGate(QpyScheduleTestCase):
+    """Test loading and saving pulse gate attached circuit to qpy file."""
+
+    def test_1q_gate(self):
+        """Test for single qubit pulse gate."""
+        mygate = Gate("mygate", 1, [])
+
+        with builder.build() as caldef:
+            builder.play(Constant(100, 0.1), DriveChannel(0))
+
+        qc = QuantumCircuit(2)
+        qc.append(mygate, [0])
+        qc.add_calibration(mygate, (0,), caldef)
+
+        self.assert_roundtrip_equal(qc)
+
+    def test_2q_gate(self):
+        """Test for two qubit pulse gate."""
+        mygate = Gate("mygate", 2, [])
+
+        with builder.build() as caldef:
+            builder.play(Constant(100, 0.1), ControlChannel(0))
+
+        qc = QuantumCircuit(2)
+        qc.append(mygate, [0, 1])
+        qc.add_calibration(mygate, (0, 1), caldef)
+
+        self.assert_roundtrip_equal(qc)
+
+    def test_parameterized_gate(self):
+        """Test for parameterized pulse gate."""
+        amp = Parameter("amp")
+        angle = Parameter("angle")
+        mygate = Gate("mygate", 2, [amp, angle])
+
+        with builder.build() as caldef:
+            builder.play(Constant(100, amp * np.exp(1j * angle)), ControlChannel(0))
+
+        qc = QuantumCircuit(2)
+        qc.append(mygate, [0, 1])
+        qc.add_calibration(mygate, (0, 1), caldef)
+
+        self.assert_roundtrip_equal(qc)
+
+    def test_override(self):
+        """Test for overriding standard gate with pulse gate."""
+        amp = Parameter("amp")
+
+        with builder.build() as caldef:
+            builder.play(Constant(100, amp), ControlChannel(0))
+
+        qc = QuantumCircuit(2)
+        qc.rx(amp, 0)
+        qc.add_calibration("rx", (0,), caldef, [amp])
+
+        self.assert_roundtrip_equal(qc)
+
+    def test_multiple_calibrations(self):
+        """Test for circuit with multiple pulse gates."""
+        amp1 = Parameter("amp1")
+        amp2 = Parameter("amp2")
+        mygate = Gate("mygate", 1, [amp2])
+
+        with builder.build() as caldef1:
+            builder.play(Constant(100, amp1), DriveChannel(0))
+
+        with builder.build() as caldef2:
+            builder.play(Constant(100, amp2), DriveChannel(1))
+
+        qc = QuantumCircuit(2)
+        qc.rx(amp1, 0)
+        qc.append(mygate, [1])
+        qc.add_calibration("rx", (0,), caldef1, [amp1])
+        qc.add_calibration(mygate, (1,), caldef2)
+
+        self.assert_roundtrip_equal(qc)

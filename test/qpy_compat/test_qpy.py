@@ -399,6 +399,42 @@ def generate_schedule_blocks():
     return schedule_blocks
 
 
+def generate_calibrated_circuits():
+    """Test for QPY serialization with calibrations."""
+    from qiskit.pulse import builder, Constant, DriveChannel
+
+    circuits = []
+
+    # custom gate
+    mygate = Gate("mygate", 1, [])
+    qc = QuantumCircuit(1)
+    qc.append(mygate, [0])
+    with builder.build() as caldef:
+        builder.play(Constant(100, 0.1), DriveChannel(0))
+    qc.add_calibration(mygate, (0,), caldef)
+    circuits.append(qc)
+    # parameterized custom gate
+    param1 = Parameter("P1")
+    param2 = Parameter("P2")
+    mygate = Gate("mygate", 2, [param1, param2])
+    qc = QuantumCircuit(2)
+    qc.append(mygate, [0, 1])
+    with builder.build() as caldef:
+        builder.play(Constant(100, param1), DriveChannel(0))
+        builder.play(Constant(100, param2), DriveChannel(1))
+    qc.add_calibration(mygate, (0, 1), caldef)
+    circuits.append(qc)
+    # override instruction
+    qc = QuantumCircuit(1)
+    qc.x(0)
+    with builder.build() as caldef:
+        builder.play(Constant(100, 0.1), DriveChannel(0))
+    qc.add_calibration("x", (0,), caldef)
+    circuits.append(qc)
+
+    return circuits
+
+
 def generate_controlled_gates():
     """Test QPY serialization with custom ControlledGates."""
     circuits = []
@@ -459,6 +495,7 @@ def generate_circuits(version_str=None):
     if version_parts >= (0, 21, 0):
         output_circuits["controlled_gates.qpy"] = generate_controlled_gates()
         output_circuits["schedule_blocks.qpy"] = generate_schedule_blocks()
+        output_circuits["pulse_gates.qpy"] = generate_calibrated_circuits()
 
     return output_circuits
 

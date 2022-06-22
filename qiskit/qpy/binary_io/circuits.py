@@ -33,7 +33,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.extensions import quantum_initializer
 from qiskit.qpy import common, formats, exceptions, type_keys
-from qiskit.qpy.binary_io import value
+from qiskit.qpy.binary_io import value, schedules
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.synthesis import evolution as evo_synth
 
@@ -431,6 +431,34 @@ def _read_custom_operations(file_obj, version, vectors):
     return custom_operations
 
 
+def _read_calibrations(file_obj, version, vectors, metadata_deserializer):
+    calibrations = {}
+
+    header = formats.CALIBRATION._make(
+        struct.unpack(formats.CALIBRATION_PACK, file_obj.read(formats.CALIBRATION_SIZE))
+    )
+    for _ in range(header.num_cals):
+        defheader = formats.CALIBRATION_DEF._make(
+            struct.unpack(formats.CALIBRATION_DEF_PACK, file_obj.read(formats.CALIBRATION_DEF_SIZE))
+        )
+        name = file_obj.read(defheader.name_size).decode(common.ENCODE)
+        qubits = tuple(
+            struct.unpack("!q", file_obj.read(struct.calcsize("!q")))[0]
+            for _ in range(defheader.num_qubits)
+        )
+        params = tuple(
+            value.read_value(file_obj, version, vectors) for _ in range(defheader.num_params)
+        )
+        schedule = schedules.read_schedule_block(file_obj, version, metadata_deserializer)
+
+        if name not in calibrations:
+            calibrations[name] = {(qubits, params): schedule}
+        else:
+            calibrations[name][(qubits, params)] = schedule
+
+    return calibrations
+
+
 def _dumps_instruction_parameter(param):
     if isinstance(param, QuantumCircuit):
         type_key = type_keys.Program.CIRCUIT
@@ -632,6 +660,34 @@ def _write_custom_operation(file_obj, name, operation, custom_operations):
     return new_custom_instruction
 
 
+def _write_calibrations(file_obj, calibrations, metadata_serializer):
+    flatten_dict = {}
+    for gate, caldef in calibrations.items():
+        for (qubits, params), schedule in caldef.items():
+            key = (gate, qubits, params)
+            flatten_dict[key] = schedule
+    header = struct.pack(formats.CALIBRATION_PACK, len(flatten_dict))
+    file_obj.write(header)
+    for (name, qubits, params), schedule in flatten_dict.items():
+        # In principle ScheduleBlock and Schedule can be supported.
+        # As of version 5 only ScheduleBlock is supported.
+        name_bytes = name.encode(common.ENCODE)
+        defheader = struct.pack(
+            formats.CALIBRATION_DEF_PACK,
+            len(name_bytes),
+            len(qubits),
+            len(params),
+            type_keys.Program.assign(schedule),
+        )
+        file_obj.write(defheader)
+        file_obj.write(name_bytes)
+        for qubit in qubits:
+            file_obj.write(struct.pack("!q", qubit))
+        for param in params:
+            value.write_value(file_obj, param)
+        schedules.write_schedule_block(file_obj, schedule, metadata_serializer)
+
+
 def _write_registers(file_obj, in_circ_regs, full_bits):
     bitmap = {bit: index for index, bit in enumerate(full_bits)}
     processed_indices = set()
@@ -737,6 +793,9 @@ def write_circuit(file_obj, circuit, metadata_serializer=None):
 
     file_obj.write(instruction_buffer.getvalue())
     instruction_buffer.close()
+
+    # Write calibrations
+    _write_calibrations(file_obj, circuit.calibrations, metadata_serializer)
 
 
 def read_circuit(file_obj, version, metadata_deserializer=None):
@@ -894,6 +953,11 @@ def read_circuit(file_obj, version, metadata_deserializer=None):
     custom_operations = _read_custom_operations(file_obj, version, vectors)
     for _instruction in range(num_instructions):
         _read_instruction(file_obj, circ, out_registers, custom_operations, version, vectors)
+
+    # Read calibrations
+    if version >= 5:
+        circ.calibrations = _read_calibrations(file_obj, version, vectors, metadata_deserializer)
+
     for vec_name, (vector, initialized_params) in vectors.items():
         if len(initialized_params) != len(vector):
             warnings.warn(

@@ -110,6 +110,12 @@ and changing two payloads the INSTRUCTION metadata payload and the CUSTOM_INSTRU
 These now have new fields to better account for :class:`~.ControlledGate` objects in a circuit.
 In addition, new payload MAP_ITEM is defined to implement the :ref:`qpy_mapping` block.
 
+With the support of :class:`.~ScheduleBlock`, now :class:`~.QuantumCircuit` can be
+serialized together with :attr:`~.QuantumCircuit.calibrations`, or
+`Pulse Gates <https://qiskit.org/documentation/tutorials/circuits_advanced/05_pulse_gates.html>`_.
+In QPY version 5 and above, :ref:`qpy_circuit_calibrations` payload is
+packed after the :ref:`qpy_instructions` block.
+
 In QPY version 5 and above,
 
 .. code-block:: c
@@ -308,6 +314,40 @@ which is immediately followed by the ``key_size`` utf8 bytes representing
 the dictionary key in string and ``size`` utf8 bytes of arbitrary object data of
 QPY serializable ``type``.
 
+.. _qpy_circuit_calibrations:
+
+CIRCUIT_CALIBRATIONS
+--------------------
+
+The CIRCUIT_CALIBRATIONS block is a dictionary to define pulse calibrations of the custom
+instruction set. This block starts with the following CALIBRATION header:
+
+.. code-block:: c
+
+    struct {
+        uint16_t num_cals;
+    }
+
+which is followed by the ``num_cals`` length of calibration entries, each starts with
+the CALIBRATION_DEF header:
+
+.. code-block:: c
+
+    struct {
+        uint16_t name_size;
+        uint16_t num_qubits;
+        uint16_t num_params;
+        char type;
+    }
+
+The calibration definition header is then followed by ``name_size`` utf8 bytes of
+the gate name, ``num_qubits`` length of integers representing a sequence of qubits,
+and ``num_params`` length of INSTRUCTION_PARAM payload for parameters
+associated to the custom instruction.
+The ``type`` indicates the class of pulse program which is either, in pricinple,
+:class:`~.ScheduleBlock` or :class:`~.Schedule`. As of QPY Version 5,
+only :class:`~.ScheduleBlock` payload is supported.
+Finally, :ref:`qpy_schedule_block` payload is packed for each CALIBRATION_DEF entry.
 
 INSTRUCTION
 -----------
