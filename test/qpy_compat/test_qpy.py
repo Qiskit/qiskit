@@ -341,6 +341,64 @@ def generate_control_flow_circuits():
     return circuits
 
 
+def generate_schedule_blocks():
+    """Standard QPY testcase for schedule blocks."""
+    import numpy as np
+    from qiskit.pulse import builder, channels, library
+    from qiskit.circuit import Parameter
+    from qiskit.utils import optionals
+
+    schedule_blocks = []
+
+    # Instructions without parameters
+    with builder.build() as block:
+        with builder.align_sequential():
+            builder.set_frequency(5e9, channels.DriveChannel(0))
+            builder.shift_frequency(10e6, channels.DriveChannel(1))
+            builder.set_phase(1.57, channels.DriveChannel(0))
+            builder.shift_phase(0.1, channels.DriveChannel(1))
+            builder.barrier(channels.DriveChannel(0), channels.DriveChannel(1))
+            builder.play(library.Gaussian(160, 0.1, 40), channels.DriveChannel(0))
+            builder.play(library.GaussianSquare(800, 0.1, 64, 544), channels.ControlChannel(0))
+            builder.play(library.Drag(160, 0.1, 40, 1.5), channels.DriveChannel(1))
+            builder.play(library.Constant(800, 0.1), channels.MeasureChannel(0))
+            builder.acquire(1000, channels.AcquireChannel(0), channels.MemorySlot(0))
+    schedule_blocks.append(block)
+    # Instructions with parameters
+    duration = Parameter("duration")
+    amp = Parameter("amp")
+    ch = Parameter("ch")
+    phase = Parameter("phase")
+    with builder.build() as block:
+        builder.shift_phase(phase, channels.DriveChannel(ch))
+        builder.play(library.Gaussian(duration, amp, duration/4), channels.DriveChannel(ch))
+    schedule_blocks.append(block)
+    # Raw symbolic pulse
+    if optionals.HAS_SYMENGINE:
+        import symengine as sym
+    else:
+        import sympy as sym
+    duration, amp, t = sym.symbols("duration amp freq t")
+    expr = amp * sym.sin(2 * sym.pi * t / duration)
+    my_pulse = library.SymbolicPulse(
+        pulse_type="Sinusoidal",
+        duration=100,
+        parameters={"amp": 0.1},
+        envelope=expr,
+        valid_amp_conditions=sym.Abs(amp) <= 1.0,
+    )
+    with builder.build() as block:
+        builder.play(my_pulse, channels.DriveChannel(0))
+    schedule_blocks.append(block)
+    # Raw waveform
+    my_waveform = 0.1 * np.sin(2 * np.pi * np.linspace(0, 1, 100))
+    with builder.build() as block:
+        builder.play(my_waveform, channels.DriveChannel(0))
+    schedule_blocks.append(block)
+
+    return schedule_blocks
+
+
 def generate_controlled_gates():
     """Test QPY serialization with custom ControlledGates."""
     circuits = []
@@ -400,6 +458,7 @@ def generate_circuits(version_str=None):
         output_circuits["control_flow.qpy"] = generate_control_flow_circuits()
     if version_parts >= (0, 21, 0):
         output_circuits["controlled_gates.qpy"] = generate_controlled_gates()
+        output_circuits["schedule_blocks.qpy"] = generate_schedule_blocks()
 
     return output_circuits
 
