@@ -522,6 +522,16 @@ def plot_gate_map(
             f"does not match the device number of qubits: {num_qubits}"
         )
 
+    # set default coloring if not set before
+    qubit_color, line_color = _set_default_coloring(
+        qubit_color, line_color, num_qubits, coupling_map
+    )
+
+    # disable qubits or gates?
+    backend_version = getattr(backend, "version", 0)
+    if backend_version <= 1:
+        _color_faulty_backend(backend, qubit_color, line_color)
+
     return plot_coupling_map(
         num_qubits,
         qubit_coordinates,
@@ -646,10 +656,9 @@ def plot_coupling_map(
         ax.axis("off")
 
     # set coloring
-    if qubit_color is None:
-        qubit_color = ["#648fff"] * num_qubits
-    if line_color is None:
-        line_color = ["#648fff"] * len(coupling_map) if coupling_map else []
+    qubit_color, line_color = _set_default_coloring(
+        qubit_color, line_color, num_qubits, coupling_map
+    )
 
     # Add lines for couplings
     if num_qubits != 1:
@@ -743,6 +752,49 @@ def plot_coupling_map(
             fig.savefig(filename)
         return fig
     return None
+
+
+def _set_default_coloring(qubit_color, line_color, num_qubits, coupling_map):
+    if qubit_color is None:
+        qubit_color = ["#648fff"] * num_qubits
+    if line_color is None:
+        line_color = ["#648fff"] * len(coupling_map) if coupling_map else []
+    return qubit_color, line_color
+
+
+def _color_faulty_backend(
+    backend, qubit_color, line_color, faulty_color="#f24b4b", disabled_color="#b59696"
+):
+    """Changes in place the colors in qubit_color and line_color with faulty_color for the gates/qubits
+    that are not operational and disabled_color with the gates/qubits that are going to be disabled
+    as a consequence"""
+    faulty_qubits = backend.properties().faulty_qubits()
+    faulty_gates = backend.properties().faulty_gates()
+    faulty_edges = [gates.qubits for gates in backend.properties().faulty_gates()]
+
+    if not (faulty_qubits or faulty_gates):
+        return
+
+    cmap = backend.configuration().coupling_map
+    n_qubits = backend.configuration().n_qubits
+
+    from qiskit.compiler.transpiler import (  # pylint: disable=cyclic-import
+        _connected_working_qubits,
+    )
+
+    connected_working_qubits = _connected_working_qubits(backend)
+
+    for qubit in range(n_qubits):
+        if qubit not in connected_working_qubits:
+            qubit_color[qubit] = disabled_color
+        if qubit in faulty_qubits:
+            qubit_color[qubit] = faulty_color
+
+    for idx, edge in enumerate(cmap):
+        if any(node not in connected_working_qubits for node in edge):
+            line_color[idx] = disabled_color
+        if edge in faulty_edges:
+            line_color[idx] = faulty_color
 
 
 def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None):
