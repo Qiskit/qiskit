@@ -311,33 +311,6 @@ class UMDA(Optimizer):
         self._alpha = value
 
     @property
-    def dead_iter(self) -> int:
-        """Returns the stopping criteria: the number of iterations with no improvement, after
-        which the algorithm converges"""
-        return self._dead_iter
-
-    @dead_iter.setter
-    def dead_iter(self, value: int):
-        """
-        Sets the stopping criteria: the number of iterations with no improvement after which the
-        algorithm converges and stops.
-
-        Args:
-            value: Number of iterations with no improvement after which the algorithm converges.
-        """
-        self._dead_iter = value
-
-    @property
-    def best_cost_global(self) -> float:
-        """Returns the best individual cost found until the moment"""
-        return self._best_cost_global
-
-    @property
-    def best_ind_global(self):
-        """Returns the best individual instance found until the moment"""
-        return self._best_ind_global
-
-    @property
     def settings(self) -> Dict[str, Any]:
         return {
             "maxiter": self.maxiter,
