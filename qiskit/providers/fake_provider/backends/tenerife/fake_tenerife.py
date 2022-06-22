@@ -25,6 +25,13 @@ class FakeTenerife(FakeBackend):
     """A fake 5 qubit backend."""
 
     def __init__(self):
+        """
+            1
+          ↙ ↑
+        0 ← 2 ← 3
+            ↑ ↙
+            4
+        """
         cmap = [[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]
 
         configuration = QasmBackendConfiguration(

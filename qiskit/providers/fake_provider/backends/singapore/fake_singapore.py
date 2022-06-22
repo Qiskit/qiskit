@@ -20,6 +20,14 @@ from qiskit.providers.fake_provider import fake_pulse_backend, fake_backend
 
 class FakeSingaporeV2(fake_backend.FakeBackendV2):
     """A fake Singapore backend.
+
+    00 ↔ 01 ↔ 02 ↔ 03 ↔ 04
+          ↕         ↕
+    05 ↔ 06 ↔ 07 ↔ 08 ↔ 09
+     ↕         ↕         ↕
+    10 ↔ 11 ↔ 12 ↔ 13 ↔ 14
+          ↕         ↕
+    15 ↔ 16 ↔ 17 ↔ 18 ↔ 19
     """
 
     dirname = os.path.dirname(__file__)
@@ -31,6 +39,14 @@ class FakeSingaporeV2(fake_backend.FakeBackendV2):
 
 class FakeSingapore(fake_pulse_backend.FakePulseBackend):
     """A fake Singapore backend.
+
+    00 ↔ 01 ↔ 02 ↔ 03 ↔ 04
+          ↕         ↕
+    05 ↔ 06 ↔ 07 ↔ 08 ↔ 09
+     ↕         ↕         ↕
+    10 ↔ 11 ↔ 12 ↔ 13 ↔ 14
+          ↕         ↕
+    15 ↔ 16 ↔ 17 ↔ 18 ↔ 19
     """
 
     dirname = os.path.dirname(__file__)
