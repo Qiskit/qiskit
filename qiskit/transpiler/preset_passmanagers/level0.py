@@ -16,7 +16,7 @@ Level 0 pass manager: no explicit optimization other than mapping to backend.
 """
 from typing import List
 
-from qiskit.transpiler.basepasses import TBasePass
+from qiskit.transpiler.basepasses import TBasePass, BasePass
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.timing_constraints import TimingConstraints
@@ -81,7 +81,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         return not property_set["layout"]
 
     if layout_method == "trivial":
-        _choose_layout = TrivialLayout(coupling_map)
+        _choose_layout: BasePass = TrivialLayout(coupling_map)
     elif layout_method == "dense":
         _choose_layout = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
@@ -94,7 +94,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     toqm_pass = False
     # Choose routing pass
     if routing_method == "basic":
-        routing_pass = BasicSwap(coupling_map)
+        routing_pass: BasePass = BasicSwap(coupling_map)
     elif routing_method == "stochastic":
         routing_pass = StochasticSwap(coupling_map, trials=20, seed=seed_transpiler)
     elif routing_method == "lookahead":

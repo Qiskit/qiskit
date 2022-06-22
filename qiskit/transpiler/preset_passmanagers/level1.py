@@ -16,7 +16,7 @@ Level 1 pass manager: light optimization by simple adjacent gate collapsing.
 """
 from typing import List
 
-from qiskit.transpiler.basepasses import TBasePass
+from qiskit.transpiler.basepasses import TBasePass, BasePass
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
@@ -138,7 +138,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     )
 
     if layout_method == "trivial":
-        _improve_layout = TrivialLayout(coupling_map)
+        _improve_layout: BasePass = TrivialLayout(coupling_map)
     elif layout_method == "dense":
         _improve_layout = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
