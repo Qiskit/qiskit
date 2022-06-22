@@ -17,6 +17,7 @@ from typing import Union, List, BinaryIO, Type, Optional
 from collections.abc import Iterable
 import struct
 import warnings
+import re
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.pulse import ScheduleBlock
@@ -29,6 +30,45 @@ from qiskit.utils.deprecation import deprecate_arguments
 
 # pylint: disable=invalid-name
 QPY_SUPPORTED_TYPES = Union[QuantumCircuit, ScheduleBlock]
+
+# This version pattern is taken from the pypa packaging project:
+# https://github.com/pypa/packaging/blob/21.3/packaging/version.py#L223-L254
+# which is dual licensed Apache 2.0 and BSD see the source for the original
+# authors and other details
+VERSION_PATTERN = (
+    "^"
+    + r"""
+    v?
+    (?:
+        (?:(?P<epoch>[0-9]+)!)?                           # epoch
+        (?P<release>[0-9]+(?:\.[0-9]+)*)                  # release segment
+        (?P<pre>                                          # pre-release
+            [-_\.]?
+            (?P<pre_l>(a|b|c|rc|alpha|beta|pre|preview))
+            [-_\.]?
+            (?P<pre_n>[0-9]+)?
+        )?
+        (?P<post>                                         # post release
+            (?:-(?P<post_n1>[0-9]+))
+            |
+            (?:
+                [-_\.]?
+                (?P<post_l>post|rev|r)
+                [-_\.]?
+                (?P<post_n2>[0-9]+)?
+            )
+        )?
+        (?P<dev>                                          # dev release
+            [-_\.]?
+            (?P<dev_l>dev)
+            [-_\.]?
+            (?P<dev_n>[0-9]+)?
+        )?
+    )
+    (?:\+(?P<local>[a-z0-9]+(?:[-_\.][a-z0-9]+)*))?       # local version
+"""
+    + "$"
+)
 
 
 @deprecate_arguments({"circuits": "programs"})
@@ -109,7 +149,8 @@ def dump(
     else:
         raise TypeError(f"'{program_type}' is not supported data type.")
 
-    version_parts = [int(x) for x in __version__.split(".")[0:3]]
+    version_match = re.search(VERSION_PATTERN, __version__, re.VERBOSE | re.IGNORECASE)
+    version_parts = [int(x) for x in version_match.group("release").split(".")]
     header = struct.pack(
         formats.FILE_HEADER_PACK,
         b"QISKIT",
@@ -185,7 +226,9 @@ def load(
     )
     if data.preface.decode(common.ENCODE) != "QISKIT":
         raise QiskitError("Input file is not a valid QPY file")
-    version_parts = [int(x) for x in __version__.split(".")[0:3]]
+    version_match = re.search(VERSION_PATTERN, __version__, re.VERBOSE | re.IGNORECASE)
+    version_parts = [int(x) for x in version_match.group("release").split(".")]
+
     header_version_parts = [data.major_version, data.minor_version, data.patch_version]
 
     # pylint: disable=too-many-boolean-expressions
