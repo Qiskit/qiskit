@@ -99,6 +99,7 @@ They can be divided into two categories:
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
+    VariationalPrinciple
     RealVariationalPrinciple
     ImaginaryVariationalPrinciple
     RealMcLachlanPrinciple
@@ -120,6 +121,7 @@ evolution.
 """
 from .solvers.ode.ode_function_factory import OdeFunctionFactory, OdeFunctionType
 from .var_qte import VarQTE
+from .variational_principles.variational_principle import VariationalPrinciple
 from .variational_principles import RealVariationalPrinciple, ImaginaryVariationalPrinciple
 from .variational_principles.imaginary_mc_lachlan_principle import (
     ImaginaryMcLachlanPrinciple,
@@ -136,6 +138,7 @@ __all__ = [
     "OdeFunctionFactory",
     "OdeFunctionType",
     "VarQTE",
+    "VariationalPrinciple",
     "RealVariationalPrinciple",
     "ImaginaryVariationalPrinciple",
     "RealMcLachlanPrinciple",
