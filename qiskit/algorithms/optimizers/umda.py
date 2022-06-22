@@ -235,7 +235,7 @@ class UMDA(Optimizer):
 
             else:
                 not_better_count += 1
-                if not_better_count == self._dead_iter:
+                if not_better_count >= self._dead_iter:
                     break
 
             self._new_generation()
