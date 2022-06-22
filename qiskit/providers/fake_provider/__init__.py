@@ -21,7 +21,7 @@ Overview
 ========
 
 The fake provider module contains fake providers and fake backends classes. The fake backends are
-built to micmic the behaviors of IBM Quantum systems using system snapshots. The system snapshots
+built to mimic the behaviors of IBM Quantum systems using system snapshots. The system snapshots
 contain important information about the quantum system such as coupling map, basis gates, qubit
 properties (T1, T2, error rate, etc.) which are useful for testing the transpiler and performing
 noisy simulation of the system.
@@ -66,7 +66,7 @@ Here is an example of using a fake backend for transpilation and simulation.
 
 .. important::
 
-    Please note that the simulation is done using noise model generated from system snapshots
+    Please note that the simulation is done using a noise model generated from system snapshots
     obtained in the past (sometimes a few years ago) and the results are not representative of the
     latest behaviours of the real quantum system which the fake backend is mimicking. If you want to
     run noisy simulations to compare with the real quantum system, please follow steps below to
@@ -93,7 +93,6 @@ Fake providers provide access to a list of fake backends.
 .. autosummary::
     :toctree: ../stubs/
 
-    FakeProviderFactory
     FakeProviderForBackendV2
     FakeProvider
 
