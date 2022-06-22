@@ -170,7 +170,7 @@ class GradientDescent(SteppableOptimizer):
 
     def __init__(
         self,
-        maxiter: int = 1000,
+        maxiter: int = 100,
         learning_rate: Union[float, Callable[[], Iterator]] = 0.01,
         tol: float = 1e-7,
         callback: Optional[CALLBACK] = None,
@@ -188,8 +188,9 @@ class GradientDescent(SteppableOptimizer):
                 perturbation in both directions (defaults to 1e-2 if required).
                 Ignored if a gradient callable is passed to `~.minimize`.
         """
-        super().__init__(maxiter=maxiter, callback=callback)
-        self._state: GradientDescentState = None
+        super().__init__(maxiter=maxiter)
+        self.callback = callback
+        self._state: Optional[GradientDescentState] = None
         self.learning_rate = learning_rate
         self.perturbation = perturbation
         self.tol = tol
@@ -242,9 +243,8 @@ class GradientDescent(SteppableOptimizer):
         For gradient descent this method updates :attr:`.~GradientDescentState.x` by an ammount
         proportional to the learning rate and the gradient at that point.
         """
-        update = tell_object.eval_jac
-        self._state.x = self._state.x - next(self._state.eta) * update
-        self._state.stepsize = np.linalg.norm(update)
+        self._state.x = self._state.x - next(self._state.eta) * tell_object.eval_jac
+        self._state.stepsize = np.linalg.norm(tell_object.eval_jac)
         self._state.nit += 1
 
     def evaluate(self, ask_object: AskObject) -> TellObject:
@@ -277,7 +277,7 @@ class GradientDescent(SteppableOptimizer):
         result.fun = self._state.fun(self._state.x)
         result.nfev = self._state.nfev
         result.njev = self._state.njev
-        result. nit = self._state.nit
+        result.nit = self._state.nit
         return result
 
     def initialize(

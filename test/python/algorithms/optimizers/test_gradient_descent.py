@@ -73,7 +73,6 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
 
         def callback(*args):
             history.append(args)
-            # print(args)
 
         optimizer = GradientDescent(maxiter=1, callback=callback)
 

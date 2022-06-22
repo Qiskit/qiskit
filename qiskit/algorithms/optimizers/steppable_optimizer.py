@@ -146,16 +146,13 @@ class SteppableOptimizer(Optimizer):
     def __init__(
         self,
         maxiter: int = 1000,
-        callback: Optional[CALLBACK] = None,
     ):
         """
         Args:
             maxiter: Number of steps in the optimization process before ending the loop.
-            callback: Function to be called after each iteration.
         """
         super().__init__()
         self._state: OptimizerState = None
-        self.callback = callback
         self.maxiter = maxiter
 
     def ask(self) -> AskObject:
@@ -205,7 +202,7 @@ class SteppableOptimizer(Optimizer):
         """
         Wraps the callback function to accomodate each optimizer.
         """
-        raise NotImplementedError
+        pass
 
     def step(self) -> None:
         """
