@@ -15,6 +15,7 @@ N-qubit Pauli Operator Class
 # pylint: disable=invalid-name
 
 import re
+import warnings
 from typing import Dict
 
 import numpy as np
@@ -149,7 +150,7 @@ class Pauli(BasePauli):
 
     _VALID_LABEL_PATTERN = re.compile(r"^[+-]?1?[ij]?[IXYZ]+$")
 
-    def __init__(self, data):
+    def __init__(self, data, x=None, *, z=None, label=None):
         """Initialize the Pauli.
 
         When using the symplectic array input data both z and x arguments must
@@ -183,6 +184,27 @@ class Pauli(BasePauli):
             base_z, base_x, base_phase = self._from_scalar_op(data)
         elif isinstance(data, (QuantumCircuit, Instruction)):
             base_z, base_x, base_phase = self._from_circuit(data)
+        elif x is not None:
+            if z is None:
+                # Using old Pauli initialization with positional args instead of kwargs
+                z = data
+            warnings.warn(
+                "Passing 'z' and 'x' arrays separately to 'Pauli' is deprecated as of"
+                " Qiskit Terra 0.17 and will be removed in version 0.23 or later."
+                " Use a tuple instead, such as 'Pauli((z, x[, phase]))'.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            base_z, base_x, base_phase = self._from_array(z, x)
+        elif label is not None:
+            warnings.warn(
+                "The 'label' keyword argument of 'Pauli' is deprecated as of"
+                " Qiskit Terra 0.17 and will be removed in version 0.23 or later."
+                " Pass the label positionally instead, such as 'Pauli(\"XYZ\")'.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            base_z, base_x, base_phase = self._from_label(label)
         else:
             raise QiskitError("Invalid input data for Pauli.")
 
