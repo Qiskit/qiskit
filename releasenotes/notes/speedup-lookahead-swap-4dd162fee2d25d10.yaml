@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    The transpiler pass :class:`.LookaheadSwap` (used by :func:`.transpile` when
+    ``routing_method="lookahead"``) has seen some performance improvements and
+    will now be approximately three times as fast.  This is purely being more
+    efficient in its calculations, and does not change the complexity of the
+    algorithm.  In most cases, a more modern routing algorithm like
+    :class:`.SabreSwap` (``routing_method="sabre"``) will be vastly more
+    performant.

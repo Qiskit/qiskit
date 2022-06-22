@@ -692,4 +692,6 @@ from qiskit.providers.jobstatus import JobStatus
 
 
 # Allow extending this namespace.
+# TODO: Remove when we drop support for importing qiskit-aer < 0.11.0 and the
+# qiskit-ibmq-provider package is retired/archived.
 __path__ = pkgutil.extend_path(__path__, __name__)
