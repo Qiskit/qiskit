@@ -348,6 +348,13 @@ def generate_schedule_blocks():
     from qiskit.pulse import builder, channels, library
     from qiskit.utils import optionals
 
+    # Parameterized schedule test is avoided.
+    # Generated reference and loaded QPY object may induce parameter uuid mismatch.
+    # As workaround, we need test with bounded parameters, however, schedule.parameters
+    # are returned as Set and thus its order is random.
+    # Since schedule parameters are validated, we cannot assign random numbers.
+    # We need to upgrade testing framework.
+
     schedule_blocks = []
 
     # Instructions without parameters
@@ -363,15 +370,6 @@ def generate_schedule_blocks():
             builder.play(library.Drag(160, 0.1, 40, 1.5), channels.DriveChannel(1))
             builder.play(library.Constant(800, 0.1), channels.MeasureChannel(0))
             builder.acquire(1000, channels.AcquireChannel(0), channels.MemorySlot(0))
-    schedule_blocks.append(block)
-    # Instructions with parameters
-    duration = Parameter("duration")
-    amp = Parameter("amp")
-    ch = Parameter("ch")
-    phase = Parameter("phase")
-    with builder.build() as block:
-        builder.shift_phase(phase, channels.DriveChannel(ch))
-        builder.play(library.Gaussian(duration, amp, duration / 4), channels.DriveChannel(ch))
     schedule_blocks.append(block)
     # Raw symbolic pulse
     if optionals.HAS_SYMENGINE:
@@ -412,17 +410,6 @@ def generate_calibrated_circuits():
     with builder.build() as caldef:
         builder.play(Constant(100, 0.1), DriveChannel(0))
     qc.add_calibration(mygate, (0,), caldef)
-    circuits.append(qc)
-    # parameterized custom gate
-    param1 = Parameter("P1")
-    param2 = Parameter("P2")
-    mygate = Gate("mygate", 2, [param1, param2])
-    qc = QuantumCircuit(2)
-    qc.append(mygate, [0, 1])
-    with builder.build() as caldef:
-        builder.play(Constant(100, param1), DriveChannel(0))
-        builder.play(Constant(100, param2), DriveChannel(1))
-    qc.add_calibration(mygate, (0, 1), caldef)
     circuits.append(qc)
     # override instruction
     qc = QuantumCircuit(1)
