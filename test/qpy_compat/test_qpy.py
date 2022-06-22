@@ -378,7 +378,7 @@ def generate_schedule_blocks():
         import symengine as sym
     else:
         import sympy as sym
-    duration, amp, t = sym.symbols("duration amp freq t")  # pylint: disable=invalid-name
+    duration, amp, t = sym.symbols("duration amp t")  # pylint: disable=invalid-name
     expr = amp * sym.sin(2 * sym.pi * t / duration)
     my_pulse = library.SymbolicPulse(
         pulse_type="Sinusoidal",
