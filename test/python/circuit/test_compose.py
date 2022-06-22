@@ -587,11 +587,11 @@ class TestCircuitCompose(QiskitTestCase):
 
         with self.subTest("wrapping a unitary circuit"):
             qc = qc_init.compose(qc_unitary, wrap=True)
-            self.assertIsInstance(qc.data[1][0], Gate)
+            self.assertIsInstance(qc.data[1].operation, Gate)
 
         with self.subTest("wrapping a non-unitary circuit"):
             qc = qc_init.compose(qc_nonunitary, wrap=True)
-            self.assertIsInstance(qc.data[1][0], Instruction)
+            self.assertIsInstance(qc.data[1].operation, Instruction)
 
     def test_single_bit_condition(self):
         """Test that compose can correctly handle circuits that contain conditions on single
@@ -601,7 +601,7 @@ class TestCircuitCompose(QiskitTestCase):
         test = QuantumCircuit(1, 1).compose(base)
         self.assertIsNot(base.clbits[0], test.clbits[0])
         self.assertEqual(base, test)
-        self.assertIs(test.data[0][0].condition[0], test.clbits[0])
+        self.assertIs(test.data[0].operation.condition[0], test.clbits[0])
 
     def test_condition_mapping_ifelseop(self):
         """Test that the condition in an `IfElseOp` is correctly mapped to a new set of bits and
@@ -620,8 +620,8 @@ class TestCircuitCompose(QiskitTestCase):
         test_qreg = QuantumRegister(1)
         test = QuantumCircuit(test_qreg, [test_loose], test_creg).compose(base)
 
-        bit_instruction, *_ = test.data[0]
-        reg_instruction, *_ = test.data[1]
+        bit_instruction = test.data[0].operation
+        reg_instruction = test.data[1].operation
         self.assertIs(bit_instruction.condition[0], test_loose)
         self.assertEqual(bit_instruction.condition, (test_loose, True))
         self.assertIs(reg_instruction.condition[0], test_creg)
@@ -644,8 +644,8 @@ class TestCircuitCompose(QiskitTestCase):
         test_qreg = QuantumRegister(1)
         test = QuantumCircuit(test_qreg, [test_loose], test_creg).compose(base)
 
-        bit_instruction, *_ = test.data[0]
-        reg_instruction, *_ = test.data[1]
+        bit_instruction = test.data[0].operation
+        reg_instruction = test.data[1].operation
         self.assertIs(bit_instruction.condition[0], test_loose)
         self.assertEqual(bit_instruction.condition, (test_loose, True))
         self.assertIs(reg_instruction.condition[0], test_creg)
