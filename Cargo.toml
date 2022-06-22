@@ -18,10 +18,12 @@ rand_distr = "0.4.3"
 indexmap = "1.9.1"
 ahash = "0.7.6"
 num-complex = "0.4"
+num-bigint = "0.4"
+lazy_static = "1.4.0"
 
 [dependencies.pyo3]
 version = "0.16.5"
-features = ["extension-module", "hashbrown", "num-complex"]
+features = ["extension-module", "hashbrown", "num-complex", "num-bigint"]
 
 [dependencies.ndarray]
 version = "^0.15.0"
