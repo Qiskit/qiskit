@@ -15,4 +15,4 @@ features:
         target.instruction_supported(operation_class=RXGate, parameters=[pi/2])
 
     which will return ``True`` if ``target`` supports running :class:`~.RXGate`
-    with :math:`\theta = \frac{\pi}{2}` and ``False if it does not.
+    with :math:`\theta = \frac{\pi}{2}` and ``False`` if it does not.
