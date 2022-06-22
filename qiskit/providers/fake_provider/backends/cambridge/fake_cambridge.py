@@ -19,7 +19,8 @@ from qiskit.providers.fake_provider import fake_qasm_backend, fake_backend
 
 
 class FakeCambridgeV2(fake_backend.FakeBackendV2):
-    """A fake Cambridge backend."""
+    """A fake Cambridge backend.
+    """
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_cambridge.json"
@@ -28,7 +29,8 @@ class FakeCambridgeV2(fake_backend.FakeBackendV2):
 
 
 class FakeCambridge(fake_qasm_backend.FakeQasmBackend):
-    """A fake Cambridge backend."""
+    """A fake Cambridge backend.
+    """
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_cambridge.json"

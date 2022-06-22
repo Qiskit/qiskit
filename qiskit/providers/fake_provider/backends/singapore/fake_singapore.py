@@ -19,7 +19,8 @@ from qiskit.providers.fake_provider import fake_pulse_backend, fake_backend
 
 
 class FakeSingaporeV2(fake_backend.FakeBackendV2):
-    """A fake Singapore backend."""
+    """A fake Singapore backend.
+    """
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_singapore.json"
@@ -29,7 +30,8 @@ class FakeSingaporeV2(fake_backend.FakeBackendV2):
 
 
 class FakeSingapore(fake_pulse_backend.FakePulseBackend):
-    """A fake Singapore backend."""
+    """A fake Singapore backend.
+    """
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_singapore.json"

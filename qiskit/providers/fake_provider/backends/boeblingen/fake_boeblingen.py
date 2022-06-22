@@ -19,7 +19,8 @@ from qiskit.providers.fake_provider import fake_pulse_backend, fake_backend
 
 
 class FakeBoeblingenV2(fake_backend.FakeBackendV2):
-    """A fake Boeblingen V2 backend."""
+    """A fake Boeblingen V2 backend.
+    """
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_boeblingen.json"
@@ -29,7 +30,8 @@ class FakeBoeblingenV2(fake_backend.FakeBackendV2):
 
 
 class FakeBoeblingen(fake_pulse_backend.FakePulseBackend):
-    """A fake Boeblingen backend."""
+    """A fake Boeblingen backend.
+    """
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_boeblingen.json"

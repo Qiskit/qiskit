@@ -19,7 +19,8 @@ from qiskit.providers.fake_provider import fake_pulse_backend, fake_backend
 
 
 class FakeParisV2(fake_backend.FakeBackendV2):
-    """A fake Paris backend."""
+    """A fake Paris backend.
+    """
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_paris.json"
@@ -29,7 +30,8 @@ class FakeParisV2(fake_backend.FakeBackendV2):
 
 
 class FakeParis(fake_pulse_backend.FakePulseBackend):
-    """A fake Paris backend."""
+    """A fake Paris backend.
+    """
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_paris.json"

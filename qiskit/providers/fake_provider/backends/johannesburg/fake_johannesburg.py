@@ -19,7 +19,8 @@ from qiskit.providers.fake_provider import fake_pulse_backend, fake_backend
 
 
 class FakeJohannesburgV2(fake_backend.FakeBackendV2):
-    """A fake Johannesburg V2 backend."""
+    """A fake Johannesburg V2 backend.
+    """
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_johannesburg.json"
@@ -29,7 +30,8 @@ class FakeJohannesburgV2(fake_backend.FakeBackendV2):
 
 
 class FakeJohannesburg(fake_pulse_backend.FakePulseBackend):
-    """A fake Johannesburg backend."""
+    """A fake Johannesburg backend.
+    """
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_johannesburg.json"
