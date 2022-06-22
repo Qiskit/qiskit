@@ -17,4 +17,19 @@
 DEPRECATED Tools for working with Pauli Operators.
 """
 
-from qiskit.quantum_info.operators.symplectic.pauli import Pauli
+import warnings
+
+
+def __getattr__(name):
+    if name == "Pauli":
+        from qiskit.quantum_info import Pauli
+
+        warnings.warn(
+            f"Importing from '{__name__}' is deprecated since Qiskit Terra 0.21 and the module"
+            " will be removed in a future release.  Import directly from 'qiskit.quantum_info'.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+
+        return Pauli
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
