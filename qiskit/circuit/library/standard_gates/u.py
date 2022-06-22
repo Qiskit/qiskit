@@ -118,8 +118,8 @@ class UGate(Gate):
         sin = math.sin(theta / 2)
         return numpy.array(
             [
-                [cos, -numpy.exp(1j * lam) * sin],
-                [numpy.exp(1j * phi) * sin, numpy.exp(1j * (phi + lam)) * cos],
+                [cos, -exp(1j * lam) * sin],
+                [exp(1j * phi) * sin, exp(1j * (phi + lam)) * cos],
             ],
             dtype=dtype,
         )
