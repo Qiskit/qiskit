@@ -14,10 +14,9 @@
 
 import unittest
 
-from numpy.testing import assert_raises
-
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
+from numpy.testing import assert_raises
 from qiskit.algorithms.evolvers.variational.variational_principles.real_time_dependent_principle import (
     RealTimeDependentPrinciple,
 )
