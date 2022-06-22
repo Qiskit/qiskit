@@ -16,7 +16,6 @@ import logging
 import multiprocessing
 import platform
 import sys
-import warnings
 from typing import Optional, List, Tuple, Callable
 
 import numpy as np
@@ -74,6 +73,7 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
         """
         if max_processes:
             validate_min("max_processes", max_processes, 1)
+
         if options is None:
             options = {}
         for k, v in list(locals().items()):
@@ -86,27 +86,6 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
             **kwargs,
         )
         self._max_processes = max_processes
-
-    def optimize(
-        self,
-        num_vars,
-        objective_function,
-        gradient_function=None,
-        variable_bounds=None,
-        initial_point=None,
-    ):
-        warnings.warn(
-            "The P_BFGS.optimize method is deprecated as of Qiskit Terra "
-            "0.19.0 and will be removed no sooner than 3 months after the release date. "
-            "Instead, use the P_BFGS.minimize method, which mimics the "
-            "signature of scipy.optimize.minimize.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        result = self.minimize(
-            objective_function, initial_point, gradient_function, variable_bounds
-        )
-        return result.x, result.fun, result.nfev
 
     def minimize(
         self,

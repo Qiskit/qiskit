@@ -21,9 +21,9 @@ copyright = "2019, Qiskit Development Team"  # pylint: disable=redefined-builtin
 author = "Qiskit Development Team"
 
 # The short X.Y version
-version = ""
+version = "0.21"
 # The full version, including alpha/beta/rc tags
-release = "0.21.0"
+release = "0.21.0rc1"
 
 extensions = [
     "sphinx.ext.napoleon",
@@ -61,7 +61,7 @@ add_module_names = False
 modindex_common_prefix = ["qiskit."]
 
 intersphinx_mapping = {
-    'retworkx': ('https://qiskit.org/documentation/retworkx/', None),
+    "retworkx": ("https://qiskit.org/documentation/retworkx/", None),
 }
 
 # -- Options for HTML output -------------------------------------------------
