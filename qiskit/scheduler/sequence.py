@@ -47,11 +47,11 @@ def sequence(scheduled_circuit: QuantumCircuit, schedule_config: ScheduleConfig)
     # find the measurement start time (assume measurement once)
     def _meas_start_time():
         _qubit_time_available = defaultdict(int)
-        for inst, qubits, _ in scheduled_circuit.data:
-            if isinstance(inst, Measure):
-                return _qubit_time_available[qubits[0]]
-            for q in qubits:
-                _qubit_time_available[q] += inst.duration
+        for instruction in scheduled_circuit.data:
+            if isinstance(instruction.operation, Measure):
+                return _qubit_time_available[instruction.qubits[0]]
+            for q in instruction.qubits:
+                _qubit_time_available[q] += instruction.operation.duration
         return None
 
     meas_time = _meas_start_time()

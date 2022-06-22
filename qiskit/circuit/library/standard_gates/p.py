@@ -291,8 +291,8 @@ class MCPhaseGate(ControlledGate):
 
             scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
             bottom_gate = CPhaseGate(scaled_lam)
-            definition = _gray_code_chain(q, self.num_ctrl_qubits, bottom_gate)
-            qc.data = definition
+            for operation, qubits, clbits in _gray_code_chain(q, self.num_ctrl_qubits, bottom_gate):
+                qc._append(operation, qubits, clbits)
         self.definition = qc
 
     def control(
