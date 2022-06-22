@@ -114,8 +114,8 @@ class UGate(Gate):
     def __array__(self, dtype=complex):
         """Return a numpy.array for the U gate."""
         theta, phi, lam = (float(param) for param in self.params)
-        cos = numpy.cos(theta / 2)
-        sin = numpy.sin(theta / 2)
+        cos = math.cos(theta / 2)
+        sin = math.sin(theta / 2)
         return numpy.array(
             [
                 [cos, -numpy.exp(1j * lam) * sin],
