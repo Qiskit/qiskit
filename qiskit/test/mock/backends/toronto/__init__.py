@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,15 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Utilities for mocking the IBMQ provider, including job responses and backends.
-
-The module includes dummy provider, backends, and jobs.
-The purpose of these classes is to fake backends for testing purposes:
-testing local timeouts, arbitrary responses or behavior, etc.
-
-The mock devices are mainly for testing the compiler.
-"""
+"""Deprecation warnings for moved functionality."""
 
 import warnings
 
@@ -33,7 +25,7 @@ def __getattr__(name):
     warnings.warn(
         f"The module '{__name__}' is deprecated since "
         "Qiskit Terra 0.21.0, and will be removed 3 months or more later. "
-        "Instead, you should import the desired object directly 'qiskit.providers.fake_provider'.",
+        "Instead, you should import from `qiskit.providers.fake_provider` directly.",
         category=DeprecationWarning,
         stacklevel=2,
     )
