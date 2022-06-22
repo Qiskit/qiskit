@@ -349,8 +349,7 @@ def _transform_gate_for_system(gate, state):
 
     device_qreg = state.register
     layout_map = state.layout._v2p
-    mapped_qargs = [device_qreg[layout_map[a]] for a in mapped_op_node.qargs]
-    mapped_op_node.qargs = mapped_qargs
+    mapped_op_node.qargs = tuple(device_qreg[layout_map[a]] for a in mapped_op_node.qargs)
 
     return mapped_op_node
 
@@ -358,10 +357,10 @@ def _transform_gate_for_system(gate, state):
 def _swap_ops_from_edge(edge, state):
     """Generate list of ops to implement a SWAP gate along a coupling edge."""
     device_qreg = state.register
-    qreg_edge = [device_qreg[i] for i in edge]
+    qreg_edge = tuple(device_qreg[i] for i in edge)
 
     # TODO shouldn't be making other nodes not by the DAG!!
-    return [DAGOpNode(op=SwapGate(), qargs=qreg_edge, cargs=[])]
+    return [DAGOpNode(op=SwapGate(), qargs=qreg_edge, cargs=())]
 
 
 def _first_op_node(dag):
