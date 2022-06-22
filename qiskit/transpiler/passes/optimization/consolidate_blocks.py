@@ -117,7 +117,7 @@ class ConsolidateBlocks(TransformationPass):
         # If 1q runs are collected before consolidate those too
         runs = self.property_set["run_list"] or []
         for run in runs:
-            if run[0] in all_block_gates:
+            if any(gate in all_block_gates for gate in run):
                 continue
             if len(run) == 1 and not self._check_not_in_basis(
                 run[0].name, run[0].qargs, global_index_map
@@ -135,6 +135,11 @@ class ConsolidateBlocks(TransformationPass):
                     continue
                 unitary = UnitaryGate(operator)
                 dag.replace_block_with_op(run, unitary, {qubit: 0}, cycle_check=False)
+        # Clear collected blocks and runs as they are no longer valid after consolidation
+        if "run_list" in self.property_set:
+            del self.property_set["run_list"]
+        if "block_list" in self.property_set:
+            del self.property_set["block_list"]
         return dag
 
     def _check_not_in_basis(self, gate_name, qargs, global_index_map):

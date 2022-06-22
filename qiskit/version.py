@@ -104,6 +104,8 @@ class QiskitVersion(Mapping):
         import pkg_resources
 
         try:
+            # TODO: Update to use qiskit_aer instead when we remove the
+            # namespace redirect
             from qiskit.providers import aer
 
             self._version_dict["qiskit-aer"] = aer.__version__

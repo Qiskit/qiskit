@@ -312,11 +312,11 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         qc = QuantumCircuit(5, 2)
         qc.append(op, [1, 2, 3], [1])
 
-        self.assertEqual(qc.data[0][0].name, "while_loop")
-        self.assertEqual(qc.data[0][0].params, [body])
-        self.assertEqual(qc.data[0][0].condition, condition)
-        self.assertEqual(qc.data[0][1], qc.qubits[1:4])
-        self.assertEqual(qc.data[0][2], [qc.clbits[1]])
+        self.assertEqual(qc.data[0].operation.name, "while_loop")
+        self.assertEqual(qc.data[0].operation.params, [body])
+        self.assertEqual(qc.data[0].operation.condition, condition)
+        self.assertEqual(qc.data[0].qubits, tuple(qc.qubits[1:4]))
+        self.assertEqual(qc.data[0].clbits, (qc.clbits[1],))
 
     @data(
         (Clbit(), True),
@@ -331,11 +331,11 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         qc = QuantumCircuit(5, 2)
         qc.while_loop(condition, body, [1, 2, 3], [1])
 
-        self.assertEqual(qc.data[0][0].name, "while_loop")
-        self.assertEqual(qc.data[0][0].params, [body])
-        self.assertEqual(qc.data[0][0].condition, condition)
-        self.assertEqual(qc.data[0][1], qc.qubits[1:4])
-        self.assertEqual(qc.data[0][2], [qc.clbits[1]])
+        self.assertEqual(qc.data[0].operation.name, "while_loop")
+        self.assertEqual(qc.data[0].operation.params, [body])
+        self.assertEqual(qc.data[0].operation.condition, condition)
+        self.assertEqual(qc.data[0].qubits, tuple(qc.qubits[1:4]))
+        self.assertEqual(qc.data[0].clbits, (qc.clbits[1],))
 
     def test_appending_for_loop_op(self):
         """Verify we can append a ForLoopOp to a QuantumCircuit."""
@@ -350,10 +350,10 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         qc = QuantumCircuit(5, 2)
         qc.append(op, [1, 2, 3], [1])
 
-        self.assertEqual(qc.data[0][0].name, "for_loop")
-        self.assertEqual(qc.data[0][0].params, [indexset, loop_parameter, body])
-        self.assertEqual(qc.data[0][1], qc.qubits[1:4])
-        self.assertEqual(qc.data[0][2], [qc.clbits[1]])
+        self.assertEqual(qc.data[0].operation.name, "for_loop")
+        self.assertEqual(qc.data[0].operation.params, [indexset, loop_parameter, body])
+        self.assertEqual(qc.data[0].qubits, tuple(qc.qubits[1:4]))
+        self.assertEqual(qc.data[0].clbits, (qc.clbits[1],))
 
     def test_quantumcircuit_for_loop_op(self):
         """Verify we can append a ForLoopOp to a QuantumCircuit via qc.for_loop."""
@@ -366,10 +366,10 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         qc = QuantumCircuit(5, 2)
         qc.for_loop(indexset, loop_parameter, body, [1, 2, 3], [1])
 
-        self.assertEqual(qc.data[0][0].name, "for_loop")
-        self.assertEqual(qc.data[0][0].params, [indexset, loop_parameter, body])
-        self.assertEqual(qc.data[0][1], qc.qubits[1:4])
-        self.assertEqual(qc.data[0][2], [qc.clbits[1]])
+        self.assertEqual(qc.data[0].operation.name, "for_loop")
+        self.assertEqual(qc.data[0].operation.params, [indexset, loop_parameter, body])
+        self.assertEqual(qc.data[0].qubits, tuple(qc.qubits[1:4]))
+        self.assertEqual(qc.data[0].clbits, (qc.clbits[1],))
 
     @data(
         (Clbit(), True),
@@ -387,11 +387,11 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         qc.add_register([condition[0]] if isinstance(condition[0], Clbit) else condition[0])
         qc.append(op, [1, 2, 3], [1])
 
-        self.assertEqual(qc.data[0][0].name, "if_else")
-        self.assertEqual(qc.data[0][0].params, [true_body, false_body])
-        self.assertEqual(qc.data[0][0].condition, condition)
-        self.assertEqual(qc.data[0][1], qc.qubits[1:4])
-        self.assertEqual(qc.data[0][2], [qc.clbits[1]])
+        self.assertEqual(qc.data[0].operation.name, "if_else")
+        self.assertEqual(qc.data[0].operation.params, [true_body, false_body])
+        self.assertEqual(qc.data[0].operation.condition, condition)
+        self.assertEqual(qc.data[0].qubits, tuple(qc.qubits[1:4]))
+        self.assertEqual(qc.data[0].clbits, (qc.clbits[1],))
 
     @data(
         (Clbit(), True),
@@ -407,11 +407,11 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         qc.add_register([condition[0]] if isinstance(condition[0], Clbit) else condition[0])
         qc.if_else(condition, true_body, false_body, [1, 2, 3], [1])
 
-        self.assertEqual(qc.data[0][0].name, "if_else")
-        self.assertEqual(qc.data[0][0].params, [true_body, false_body])
-        self.assertEqual(qc.data[0][0].condition, condition)
-        self.assertEqual(qc.data[0][1], qc.qubits[1:4])
-        self.assertEqual(qc.data[0][2], [qc.clbits[1]])
+        self.assertEqual(qc.data[0].operation.name, "if_else")
+        self.assertEqual(qc.data[0].operation.params, [true_body, false_body])
+        self.assertEqual(qc.data[0].operation.condition, condition)
+        self.assertEqual(qc.data[0].qubits, tuple(qc.qubits[1:4]))
+        self.assertEqual(qc.data[0].clbits, (qc.clbits[1],))
 
     @data(
         (Clbit(), True),
@@ -426,11 +426,11 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         qc.add_register([condition[0]] if isinstance(condition[0], Clbit) else condition[0])
         qc.if_test(condition, true_body, [1, 2, 3], [1])
 
-        self.assertEqual(qc.data[0][0].name, "if_else")
-        self.assertEqual(qc.data[0][0].params, [true_body, None])
-        self.assertEqual(qc.data[0][0].condition, condition)
-        self.assertEqual(qc.data[0][1], qc.qubits[1:4])
-        self.assertEqual(qc.data[0][2], [qc.clbits[1]])
+        self.assertEqual(qc.data[0].operation.name, "if_else")
+        self.assertEqual(qc.data[0].operation.params, [true_body, None])
+        self.assertEqual(qc.data[0].operation.condition, condition)
+        self.assertEqual(qc.data[0].qubits, tuple(qc.qubits[1:4]))
+        self.assertEqual(qc.data[0].clbits, (qc.clbits[1],))
 
     @data(
         (Clbit(), True),
@@ -457,18 +457,18 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         qc = QuantumCircuit(3, 1)
         qc.append(op, [0, 1, 2], [0])
 
-        self.assertEqual(qc.data[0][0].name, "continue_loop")
-        self.assertEqual(qc.data[0][1], qc.qubits)
-        self.assertEqual(qc.data[0][2], qc.clbits)
+        self.assertEqual(qc.data[0].operation.name, "continue_loop")
+        self.assertEqual(qc.data[0].qubits, tuple(qc.qubits))
+        self.assertEqual(qc.data[0].clbits, tuple(qc.clbits))
 
     def test_quantumcircuit_continue_loop_op(self):
         """Verify we can append a ContinueLoopOp to a QuantumCircuit via qc.continue_loop."""
         qc = QuantumCircuit(3, 1)
         qc.continue_loop()
 
-        self.assertEqual(qc.data[0][0].name, "continue_loop")
-        self.assertEqual(qc.data[0][1], qc.qubits)
-        self.assertEqual(qc.data[0][2], qc.clbits)
+        self.assertEqual(qc.data[0].operation.name, "continue_loop")
+        self.assertEqual(qc.data[0].qubits, tuple(qc.qubits))
+        self.assertEqual(qc.data[0].clbits, tuple(qc.clbits))
 
     def test_appending_break_loop_op(self):
         """Verify we can append a BreakLoopOp to a QuantumCircuit."""
@@ -477,18 +477,18 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         qc = QuantumCircuit(3, 1)
         qc.append(op, [0, 1, 2], [0])
 
-        self.assertEqual(qc.data[0][0].name, "break_loop")
-        self.assertEqual(qc.data[0][1], qc.qubits)
-        self.assertEqual(qc.data[0][2], qc.clbits)
+        self.assertEqual(qc.data[0].operation.name, "break_loop")
+        self.assertEqual(qc.data[0].qubits, tuple(qc.qubits))
+        self.assertEqual(qc.data[0].clbits, tuple(qc.clbits))
 
     def test_quantumcircuit_break_loop_op(self):
         """Verify we can append a BreakLoopOp to a QuantumCircuit via qc.break_loop."""
         qc = QuantumCircuit(3, 1)
         qc.break_loop()
 
-        self.assertEqual(qc.data[0][0].name, "break_loop")
-        self.assertEqual(qc.data[0][1], qc.qubits)
-        self.assertEqual(qc.data[0][2], qc.clbits)
+        self.assertEqual(qc.data[0].operation.name, "break_loop")
+        self.assertEqual(qc.data[0].qubits, tuple(qc.qubits))
+        self.assertEqual(qc.data[0].clbits, tuple(qc.clbits))
 
     def test_no_c_if_for_while_loop_if_else(self):
         """Verify we raise if a user attempts to use c_if on an op which sets .condition."""

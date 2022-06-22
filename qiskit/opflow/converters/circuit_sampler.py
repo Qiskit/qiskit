@@ -400,9 +400,9 @@ class CircuitSampler(ConverterBase):
             return float(inst_param.bind(param_mappings))
 
         gate_index = 0
-        for inst, _, _ in circuit.data:
+        for instruction in circuit.data:
             param_index = 0
-            for inst_param in inst.params:
+            for inst_param in instruction.operation.params:
                 val = resolve_param(inst_param)
                 if val is not None:
                     param_key = (gate_index, param_index)
