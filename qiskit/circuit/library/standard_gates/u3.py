@@ -48,7 +48,7 @@ class U3Gate(Gate):
 
         The matrix representation shown here differs from the `OpenQASM 2.0 specification 
         <https://doi.org/10.48550/arXiv.1707.03429>`_ by a global phase of
-        :math:`e^{i(\phi+\lambda)/2}.
+        :math:`e^{i(\phi+\lambda)/2}`.
 
     **Examples:**
 
