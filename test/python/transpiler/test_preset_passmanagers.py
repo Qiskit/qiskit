@@ -499,9 +499,9 @@ class TestInitialLayouts(QiskitTestCase):
         self.assertEqual(qc_b._layout._p2v, final_layout)
 
         output_qr = qc_b.qregs[0]
-        for gate, qubits, _ in qc_b:
-            if gate.name == "cx":
-                for qubit in qubits:
+        for instruction in qc_b:
+            if instruction.operation.name == "cx":
+                for qubit in instruction.qubits:
                     self.assertIn(qubit, [output_qr[11], output_qr[3]])
 
     @data(0, 1, 2, 3)
@@ -552,14 +552,11 @@ class TestInitialLayouts(QiskitTestCase):
 
         self.assertEqual(qc_b._layout._p2v, final_layout)
 
-        gate_0, qubits_0, _ = qc_b[0]
-        gate_1, qubits_1, _ = qc_b[1]
-
         output_qr = qc_b.qregs[0]
-        self.assertIsInstance(gate_0, U3Gate)
-        self.assertEqual(qubits_0[0], output_qr[6])
-        self.assertIsInstance(gate_1, U2Gate)
-        self.assertEqual(qubits_1[0], output_qr[12])
+        self.assertIsInstance(qc_b[0].operation, U3Gate)
+        self.assertEqual(qc_b[0].qubits[0], output_qr[6])
+        self.assertIsInstance(qc_b[1].operation, U2Gate)
+        self.assertEqual(qc_b[1].qubits[0], output_qr[12])
 
 
 @ddt
@@ -982,8 +979,7 @@ class TestOptimizationOnSize(QiskitTestCase):
 
         # ensure no gates are using qubits - [0,1,2,3]
         for gate in circ_data:
-            qubits = gate[1]
-            indices = {circ.find_bit(qubit).index for qubit in qubits}
+            indices = {circ.find_bit(qubit).index for qubit in gate.qubits}
             common = indices.intersection(free_qubits)
             for common_qubit in common:
                 self.assertTrue(common_qubit not in free_qubits)

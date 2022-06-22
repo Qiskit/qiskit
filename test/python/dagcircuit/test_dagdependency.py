@@ -145,11 +145,15 @@ class TestDagNodeEdge(QiskitTestCase):
         circuit = QuantumCircuit(self.qreg, self.creg)
 
         circuit.h(self.qreg[0])
-        self.dag.add_op_node(circuit.data[0][0], circuit.data[0][1], circuit.data[0][2])
+        self.dag.add_op_node(
+            circuit.data[0].operation, circuit.data[0].qubits, circuit.data[0].clbits
+        )
         self.assertIsInstance(self.dag.get_node(0).op, HGate)
 
         circuit.measure(self.qreg[0], self.creg[0])
-        self.dag.add_op_node(circuit.data[1][0], circuit.data[1][1], circuit.data[1][2])
+        self.dag.add_op_node(
+            circuit.data[1].operation, circuit.data[1].qubits, circuit.data[1].clbits
+        )
         self.assertIsInstance(self.dag.get_node(1).op, Measure)
 
         nodes = list(self.dag.get_nodes())

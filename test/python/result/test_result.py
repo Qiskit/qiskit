@@ -121,7 +121,8 @@ class TestResultOperations(QiskitTestCase):
             "results=[ExperimentResult(shots=14, success=True, "
             "meas_level=2, data=ExperimentResultData(counts={'0x0': 4,"
             " '0x2': 10}), header=QobjExperimentHeader(creg_sizes="
-            "[['c0', 2], ['c0', 1], ['c1', 1]], memory_slots=4))])"
+            "[['c0', 2], ['c0', 1], ['c1', 1]], memory_slots=4))], date=None, "
+            "status=None, header=None)"
         )
         self.assertEqual(expected, repr(result))
 

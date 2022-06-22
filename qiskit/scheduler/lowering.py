@@ -115,37 +115,42 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
     qubit_indices = {bit: idx for idx, bit in enumerate(circuit.qubits)}
     clbit_indices = {bit: idx for idx, bit in enumerate(circuit.clbits)}
 
-    for inst, qubits, clbits in circuit.data:
-        inst_qubits = [qubit_indices[qubit] for qubit in qubits]
+    for instruction in circuit.data:
+        inst_qubits = [qubit_indices[qubit] for qubit in instruction.qubits]
 
         if any(q in qubit_mem_slots for q in inst_qubits):
             # If we are operating on a qubit that was scheduled to be measured, process that first
             circ_pulse_defs.append(get_measure_schedule(qubit_mem_slots))
 
-        if isinstance(inst, Barrier):
-            circ_pulse_defs.append(CircuitPulseDef(schedule=inst, qubits=inst_qubits))
-        elif isinstance(inst, Delay):
-            sched = Schedule(name=inst.name)
+        if isinstance(instruction.operation, Barrier):
+            circ_pulse_defs.append(
+                CircuitPulseDef(schedule=instruction.operation, qubits=inst_qubits)
+            )
+        elif isinstance(instruction.operation, Delay):
+            sched = Schedule(name=instruction.operation.name)
             for qubit in inst_qubits:
                 for channel in [DriveChannel]:
-                    sched += pulse_inst.Delay(duration=inst.duration, channel=channel(qubit))
+                    sched += pulse_inst.Delay(
+                        duration=instruction.operation.duration, channel=channel(qubit)
+                    )
             circ_pulse_defs.append(CircuitPulseDef(schedule=sched, qubits=inst_qubits))
-        elif isinstance(inst, Measure):
-            if len(inst_qubits) != 1 and len(clbits) != 1:
+        elif isinstance(instruction.operation, Measure):
+            if len(inst_qubits) != 1 and len(instruction.clbits) != 1:
                 raise QiskitError(
                     "Qubit '{}' or classical bit '{}' errored because the "
                     "circuit Measure instruction only takes one of "
-                    "each.".format(inst_qubits, clbits)
+                    "each.".format(inst_qubits, instruction.clbits)
                 )
-            qubit_mem_slots[inst_qubits[0]] = clbit_indices[clbits[0]]
+            qubit_mem_slots[inst_qubits[0]] = clbit_indices[instruction.clbits[0]]
         else:
             try:
-                gate_cals = circuit.calibrations[inst.name]
+                gate_cals = circuit.calibrations[instruction.operation.name]
                 schedule = gate_cals[
                     (
                         tuple(inst_qubits),
                         tuple(
-                            p if getattr(p, "parameters", None) else float(p) for p in inst.params
+                            p if getattr(p, "parameters", None) else float(p)
+                            for p in instruction.operation.params
                         ),
                     )
                 ]
@@ -156,14 +161,16 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
                 pass  # Calibration not defined for this operation
 
             try:
-                schedule = inst_map.get(inst, inst_qubits, *inst.params)
+                schedule = inst_map.get(
+                    instruction.operation, inst_qubits, *instruction.operation.params
+                )
                 schedule = target_qobj_transform(schedule)
                 circ_pulse_defs.append(CircuitPulseDef(schedule=schedule, qubits=inst_qubits))
             except PulseError as ex:
                 raise QiskitError(
-                    f"Operation '{inst.name}' on qubit(s) {inst_qubits} not supported by the "
-                    "backend command definition. Did you remember to transpile your input "
-                    "circuit for the same backend?"
+                    f"Operation '{instruction.operation.name}' on qubit(s) {inst_qubits} "
+                    "not supported by the backend command definition. Did you remember to "
+                    "transpile your input circuit for the same backend?"
                 ) from ex
 
     if qubit_mem_slots:

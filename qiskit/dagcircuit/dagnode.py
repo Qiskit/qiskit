@@ -96,12 +96,12 @@ class DAGOpNode(DAGNode):
 
     __slots__ = ["op", "qargs", "cargs", "sort_key"]
 
-    def __init__(self, op, qargs=None, cargs=None):
+    def __init__(self, op, qargs=(), cargs=()):
         """Create an Instruction node"""
         super().__init__()
         self.op = op
-        self.qargs = qargs
-        self.cargs = cargs
+        self.qargs = tuple(qargs)
+        self.cargs = tuple(cargs)
         self.sort_key = str(self.qargs)
 
     @property
