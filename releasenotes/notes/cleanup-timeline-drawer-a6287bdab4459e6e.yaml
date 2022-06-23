@@ -1,14 +1,12 @@
 ---
 features:
   - |
-    New attribute :attr:`op_start_times` has been added to :class:`~QuantumCircuit`.
-    This information is populated when one of scheduling analysis passes is run on the circuit.
-    It can be used to obtain circuit instruction with instruction time, for example:
-
-    .. code-block:: python
+    A new attribute :attr:`.QuantumCircuit.op_start_times` 
+    is populated when one of scheduling analysis passes is run on the circuit.
+    It can be used to obtain circuit instruction with instruction time, for example::
 
       from qiskit import QuantumCircuit, transpile
-      from qiskit.test.mock import FakeMontreal
+      from qiskit.providers.fake_provider import FakeMontreal
 
       backend = FakeMontreal()
 
@@ -23,11 +21,12 @@ features:
 
 fixes:
   - |
-    Time misalignment bug of drawing classical register with :func:`~timeline_drawer`
-    has been fixed. Now classical register slots are drawn at correct position.
+    The :func:`.timeline_drawer` visualization will no longer misalign classical
+    register slots.
 deprecations:
   - |
-    Calling :func:`~timeline_drawer` with unscheduled circuit has been deprecated.
-    All circuits, e.g. even though one consisting only of delay instructions,
-    must be transpiled with ``scheduling_method`` option to generate
-    schedule information being stored in :attr:`QuantumCircuit.op_start_times`.
+    Calling :func:`.timeline_drawer` with an unscheduled circuit has been deprecated.
+    All circuits, even one consisting only of delay instructions,
+    must be transpiled with the ``scheduling_method`` keyword argument of
+    :func:`.transpile` set, to generate schedule information being stored in
+    :attr:`.QuantumCircuit.op_start_times`.
