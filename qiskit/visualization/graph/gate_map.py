@@ -21,8 +21,8 @@ import retworkx as rx
 from qiskit.exceptions import QiskitError
 from qiskit.utils import optionals as _optionals
 from qiskit.providers.exceptions import BackendPropertyError
-from ..exceptions import VisualizationError
 from ..utils import matplotlib_close_if_inline
+from ..exceptions import VisualizationError
 
 
 def _get_backend_interface_version(backend):

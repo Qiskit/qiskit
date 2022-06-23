@@ -23,14 +23,15 @@ import colorsys
 import numpy as np
 from qiskit import user_config
 from qiskit.quantum_info.states.statevector import Statevector
+from qiskit.quantum_info.operators.symplectic import PauliList, SparsePauliOp
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from qiskit.utils.deprecation import deprecate_arguments
 from qiskit.utils import optionals as _optionals
 from qiskit.circuit.tools.pi_check import pi_check
 
 from ..array import array_to_latex
-from ..exceptions import VisualizationError
 from ..utils import matplotlib_close_if_inline
+from ..exceptions import VisualizationError
 
 
 @deprecate_arguments({"rho": "state"})
@@ -203,7 +204,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
 
            plot_bloch_vector([0,1,0], title="New Bloch Sphere")
     """
-    from qiskit.visualization.bloch import Bloch
+    from qiskit.visualization.graph.bloch import Bloch
 
     if figsize is None:
         figsize = (5, 5)
@@ -715,7 +716,7 @@ def plot_state_qsphere(
     from matplotlib.patches import Circle
     import seaborn as sns
     from scipy import linalg
-    from qiskit.visualization.bloch import Arrow3D
+    from qiskit.visualization.graph.bloch import Arrow3D
 
     rho = DensityMatrix(state)
     num = rho.num_qubits

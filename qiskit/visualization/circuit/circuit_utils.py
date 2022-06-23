@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Common visualization utilities."""
+"""Common circuit visualization utilities."""
 
 import re
 from collections import OrderedDict
@@ -31,10 +31,7 @@ from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit import ClassicalRegister
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
-from qiskit.quantum_info.operators.symplectic import PauliList, SparsePauliOp
-from qiskit.quantum_info.states import DensityMatrix
 from qiskit.utils import optionals as _optionals
-from ..exceptions import VisualizationError
 
 
 def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):

@@ -15,7 +15,7 @@
 Module for the primary interface to the circuit drawers.
 
 This module contains the end user facing API for drawing quantum circuits.
-There are 3 available drawer backends available:
+There are 3 available drawer backends:
 
  0. ASCII art
  1. LaTeX
@@ -32,12 +32,12 @@ import tempfile
 
 from qiskit import user_config
 from qiskit.utils import optionals as _optionals
-from ..exceptions import VisualizationError
 from . import latex as _latex
 from . import text as _text
 from . import matplotlib as _matplotlib
 from . import circuit_utils
 from .. import utils
+from ..exceptions import VisualizationError
 
 
 logger = logging.getLogger(__name__)
