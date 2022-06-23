@@ -42,7 +42,7 @@ class Sampler(BaseSampler):
           Otherwise, it samples from multinomial distributions.
 
         - **seed_primitive** (np.random.Generator or int) --
-          Set a fixed seed or generator for rng. If shots is None, this option is ignored.
+          Set a fixed seed or generator for the multinomial distribution. If shots is None, this option is ignored.
     """
 
     def __init__(

@@ -32,9 +32,7 @@ from .utils import init_circuit, init_observable
 
 class Estimator(BaseEstimator):
     """
-    Estimator class.
-
-    :class:`~Estimator` is a reference implementation of :class:`BaseEstimator`.
+    Reference implementation of :class:`BaseEstimator`.
 
     :Run Options:
 
