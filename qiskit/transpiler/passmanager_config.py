@@ -12,6 +12,8 @@
 
 """Pass Manager Configuration class."""
 
+import pprint
+
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
 
@@ -104,23 +106,64 @@ class PassManagerConfig:
             AttributeError: If the backend does not support a `configuration()` method.
         """
         res = cls(**pass_manager_options)
-        config = backend.configuration()
+        backend_version = getattr(backend, "version", 0)
+        if not isinstance(backend_version, int):
+            backend_version = 0
+        if backend_version < 2:
+            config = backend.configuration()
 
         if res.basis_gates is None:
-            res.basis_gates = getattr(config, "basis_gates", None)
-        if res.inst_map is None and hasattr(backend, "defaults"):
-            res.inst_map = backend.defaults().instruction_schedule_map
+            if backend_version < 2:
+                res.basis_gates = getattr(config, "basis_gates", None)
+            else:
+                res.basis_gates = backend.operation_names
+        if res.inst_map is None:
+            if backend_version < 2:
+                if hasattr(backend, "defaults"):
+                    res.inst_map = backend.defaults().instruction_schedule_map
+            else:
+                res.inst_map = backend.instruction_schedule_map
         if res.coupling_map is None:
-            res.coupling_map = CouplingMap(getattr(config, "coupling_map", None))
+            if backend_version < 2:
+                res.coupling_map = CouplingMap(getattr(config, "coupling_map", None))
+            else:
+                res.coupling_map = backend.coupling_map
         if res.instruction_durations is None:
-            res.instruction_durations = InstructionDurations.from_backend(backend)
-        if res.backend_properties is None:
+            if backend_version < 2:
+                res.instruction_durations = InstructionDurations.from_backend(backend)
+            else:
+                res.instruction_durations = backend.instruction_durations
+        if res.backend_properties is None and backend_version < 2:
             res.backend_properties = backend.properties()
         if res.target is None:
-            backend_version = getattr(backend, "version", 0)
-            if not isinstance(backend_version, int):
-                backend_version = 0
             if backend_version >= 2:
                 res.target = backend.target
-
         return res
+
+    def __str__(self):
+        newline = "\n"
+        newline_tab = "\n\t"
+        if self.backend_properties is not None:
+            backend_props = pprint.pformat(self.backend_properties.to_dict())
+            backend_props = backend_props.replace(newline, newline_tab)
+        else:
+            backend_props = str(None)
+        return (
+            "Pass Manager Config:\n"
+            f"\tinitial_layout: {self.initial_layout}\n"
+            f"\tbasis_gates: {self.basis_gates}\n"
+            f"\tinst_map: {str(self.inst_map).replace(newline, newline_tab)}\n"
+            f"\tcoupling_map: {self.coupling_map}\n"
+            f"\tlayout_method: {self.layout_method}\n"
+            f"\trouting_method: {self.routing_method}\n"
+            f"\ttranslation_method: {self.translation_method}\n"
+            f"\tscheduling_method: {self.scheduling_method}\n"
+            f"\tinstruction_durations: {str(self.instruction_durations).replace(newline, newline_tab)}\n"
+            f"\tbackend_properties: {backend_props}\n"
+            f"\tapproximation_degree: {self.approximation_degree}\n"
+            f"\tseed_transpiler: {self.seed_transpiler}\n"
+            f"\ttiming_constraints: {self.timing_constraints}\n"
+            f"\tunitary_synthesis_method: {self.unitary_synthesis_method}\n"
+            f"\tunitary_synthesis_plugin_config: {self.unitary_synthesis_plugin_config}\n"
+            f"\ttarget: {str(self.target).replace(newline, newline_tab)}\n"
+        )
