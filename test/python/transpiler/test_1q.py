@@ -17,7 +17,7 @@ from ddt import ddt
 from qiskit import QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import Fake1Q
+from qiskit.providers.fake_provider import Fake1Q
 from qiskit.transpiler import TranspilerError
 
 

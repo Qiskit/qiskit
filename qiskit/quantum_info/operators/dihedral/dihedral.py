@@ -19,9 +19,8 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.operator import Operator
-from qiskit.quantum_info.operators.pauli import Pauli
+from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
-from qiskit.quantum_info.synthesis.cnotdihedral_decompose import decompose_cnotdihedral
 from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
 from qiskit.circuit import QuantumCircuit, Instruction
 from .dihedral_circuits import _append_circuit
@@ -314,6 +313,8 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
                *Scalable randomised benchmarking of non-Clifford gates*,
                npj Quantum Inf 2, 16012 (2016).
         """
+        from qiskit.quantum_info.synthesis.cnotdihedral_decompose import decompose_cnotdihedral
+
         return decompose_cnotdihedral(self)
 
     def to_instruction(self):
@@ -428,26 +429,26 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         circ = self.to_instruction()
         new_circ = QuantumCircuit(self.num_qubits)
         bit_indices = {bit: index for index, bit in enumerate(circ.definition.qubits)}
-        for instr, qregs, _ in circ.definition:
-            new_qubits = [bit_indices[tup] for tup in qregs]
-            if instr.name == "p":
-                params = 2 * np.pi - instr.params[0]
-                instr.params[0] = params
-                new_circ.append(instr, new_qubits)
-            elif instr.name == "t":
-                instr.name = "tdg"
-                new_circ.append(instr, new_qubits)
-            elif instr.name == "tdg":
-                instr.name = "t"
-                new_circ.append(instr, new_qubits)
-            elif instr.name == "s":
-                instr.name = "sdg"
-                new_circ.append(instr, new_qubits)
-            elif instr.name == "sdg":
-                instr.name = "s"
-                new_circ.append(instr, new_qubits)
+        for instruction in circ.definition:
+            new_qubits = [bit_indices[tup] for tup in instruction.qubits]
+            if instruction.operation.name == "p":
+                params = 2 * np.pi - instruction.operation.params[0]
+                instruction.operation.params[0] = params
+                new_circ.append(instruction.operation, new_qubits)
+            elif instruction.operation.name == "t":
+                instruction.operation.name = "tdg"
+                new_circ.append(instruction.operation, new_qubits)
+            elif instruction.operation.name == "tdg":
+                instruction.operation.name = "t"
+                new_circ.append(instruction.operation, new_qubits)
+            elif instruction.operation.name == "s":
+                instruction.operation.name = "sdg"
+                new_circ.append(instruction.operation, new_qubits)
+            elif instruction.operation.name == "sdg":
+                instruction.operation.name = "s"
+                new_circ.append(instruction.operation, new_qubits)
             else:
-                new_circ.append(instr, new_qubits)
+                new_circ.append(instruction.operation, new_qubits)
         result = self._from_circuit(new_circ)
         return result
 

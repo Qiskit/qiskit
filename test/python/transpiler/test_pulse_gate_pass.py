@@ -14,7 +14,7 @@
 
 from qiskit import pulse, circuit, transpile
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeAthens
+from qiskit.providers.fake_provider import FakeAthens
 
 
 class TestPulseGate(QiskitTestCase):
