@@ -8,7 +8,6 @@ other:
   - |
     Changes required in the qiskit.utils library:
     Introduced a new folder Entanglement with 3 python scripts with function as follows: (i) circuit.py - has the circuits comprising of 19 parametric circuits in the https://doi.org/10.1007/s42484-021-00038-w
-    (ii) meyer_wallach_measure.py - computes the meyer wallach entanglement measure for using with two libraries : qiskit and qutip ; qutip is tested to give faster computation.
-    (iii) von_neumann_entropy.py - computes the von neumann entanglement measure using with two libraries : qiskit and qutip ; qutip is tested to give faster computation.
+    (ii) meyer_wallach_measure.py - computes the meyer wallach entanglement measure.
+    (iii) von_neumann_entropy.py - computes the von neumann entanglement measure.
     We have introduced changes in the python script of /qiskit/utils/circuit_util.py and added a class entanglement which is utility class to calculate the entanglement capability of a particular parametric circuit with initialized parameters using the function present in the /qiskit/utils/entaglement/
-    there are 2 functions written in qiskit and 2 using qutip. the python codes in QuTip are compiled to C++ during runtime so it is  more efficient than qiskit matrix operations as it is numpy(python based). but the qutip functions can be removed as well if needed and have no dependency on the rest of the code.
