@@ -1,7 +1,7 @@
 ---
 upgrade:
   - |
-    The deprecated function ``qiskit.quantum_info.pauli_group()`` has been removed.
+    The deprecated function :func:`.pauli_group` has been removed.
     It was originally deprecated in Qiskit Terra 0.17.
   - |
     Several deprecated methods on :class:`.Pauli` have been removed, which were

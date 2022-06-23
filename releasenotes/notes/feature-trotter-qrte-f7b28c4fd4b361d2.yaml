@@ -1,23 +1,17 @@
 ---
 features:
   - |
-    Added Trotterization-based Quantum Real Time Evolution Algorithm
-    :class:`qiskit.algorithms.TrotterQRTE`. It is compliant with the new Quantum Time Evolution
-    Framework and makes use of :class:`qiskit.synthesis.evolution.ProductFormula` and
-    :class:`qiskit.circuit.library.PauliEvolutionGate` implementations.
+    Added a Trotterization-based quantum real-time evolution algorithm
+    :class:`qiskit.algorithms.TrotterQRTE`. It is compliant with the new quantum time evolution
+    framework and makes use of the :class:`.ProductFormula` and
+    :class:`.PauliEvolutionGate` implementations.
 
     .. code-block:: python
 
       from qiskit.algorithms import EvolutionProblem
-      from qiskit.algorithms.evolvers.trotterization import (
-          TrotterQRTE,
-      )
-      from qiskit.opflow import (
-          X,
-          Z,
-          StateFn,
-          SummedOp,
-      )
+      from qiskit.algorithms.evolvers.trotterization import TrotterQRTE
+      from qiskit.opflow import X, Z, StateFn, SummedOp
+
       operator = SummedOp([X, Z])
       initial_state = StateFn([1, 0])
       time = 1

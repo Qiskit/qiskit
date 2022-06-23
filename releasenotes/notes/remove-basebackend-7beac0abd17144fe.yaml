@@ -15,11 +15,11 @@ upgrade:
     example, with a :class:`~.BackendV1` backend::
 
         from qiskit.transpiler.passes import RZXCalibrationBuilder
-        from qiskit.test.mock import FakeMumbai
+        from qiskit.providers.fake_provider import FakeMumbai
 
         backend = FakeMumbai()
         inst_map = backend.defaults().instruction_schedule_map
-        channel_map = self.backend.configuration().qubit_channel_mapping
+        channel_map = backend.configuration().qubit_channel_mapping
         cal_pass = RZXCalibrationBuilder(
             instruction_schedule_map=inst_map,
             qubit_channel_mapping=channel_map,
@@ -28,7 +28,7 @@ upgrade:
     or with a :class:`~.BackendV2` backend::
 
         from qiskit.transpiler.passes import RZXCalibrationBuilder
-        from qiskit.test.mock import FakeMumbaiV2
+        from qiskit.providers.fake_provider import FakeMumbaiV2
 
         backend = FakeMumbaiV2()
         inst_map = backend.instruction_schedule_map

@@ -5,8 +5,6 @@ features:
     which partition these operators into sublists where each element commutes with all the others.
     For example::
 
-    .. code-block:: python
-
       from qiskit.quantum_info import PauliList, SparsePauliOp
 
       groups = PauliList(["XX", "YY", "IZ", "ZZ"]).group_commuting()
