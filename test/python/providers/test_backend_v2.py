@@ -24,13 +24,13 @@ from qiskit.compiler import transpile
 from qiskit.compiler.transpiler import _parse_inst_map
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.test.base import QiskitTestCase
-from qiskit.test.mock.fake_backend_v2 import (
+from qiskit.providers.fake_provider import FakeMumbaiFractionalCX
+from qiskit.providers.fake_provider.fake_backend_v2 import (
     FakeBackendV2,
     FakeBackend5QV2,
     FakeBackendSimple,
     FakeBackendV2LegacyQubitProps,
 )
-from qiskit.test.mock.fake_mumbai_v2 import FakeMumbaiFractionalCX
 from qiskit.quantum_info import Operator
 
 
