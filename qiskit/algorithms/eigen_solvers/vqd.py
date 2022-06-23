@@ -51,8 +51,6 @@ from ..aux_ops_evaluator import eval_observables
 logger = logging.getLogger(__name__)
 
 
-
-
 class VQD(VariationalAlgorithm, Eigensolver):
     r"""The Variational Quantum Deflation algorithm.
 
