@@ -74,7 +74,7 @@ from .lazy_tester import LazyDependencyManager, LazyImportTester, LazySubprocess
 
 from . import optionals
 
-from .circuit_utils import summarize_circuits
+from .circuit_utils import summarize_circuits, entanglement
 from .entangler_map import get_entangler_map, validate_entangler_map
 from .backend_utils import has_ibmq, has_aer
 from .name_unnamed_args import name_args
@@ -87,6 +87,7 @@ __all__ = [
     "LazySubprocessTester",
     "QuantumInstance",
     "summarize_circuits",
+    "entanglement",
     "get_entangler_map",
     "validate_entangler_map",
     "has_ibmq",

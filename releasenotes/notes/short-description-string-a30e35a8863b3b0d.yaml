@@ -1,0 +1,14 @@
+---
+prelude: >
+    This PR adds a new feature - "Entangling capacity" a metric to measure quality of ansatz for variational algorithms. there is a python file added called "test_entanglement" which shows how to call the function entanglement to measure the entangling capacity of any ansatz in a variational algorithm. Issue in Qiskit-terra - https://github.com/Qiskit/qiskit-terra/issues/8176
+features:
+  - |
+    We have implemented Entangling capacity using two different measures - Meyer Wallach measure (proposed in https://arxiv.org/pdf/1905.10876.pdf ) as well as using Von Neumann measure. Users can choose between the two measures and if not mentioned Meyer Wallach will run by default.
+other:
+  - |
+    Changes required in the qiskit.utils library:
+    Introduced a new folder Entanglement with 3 python scripts with function as follows: (i) circuit.py - has the circuits comprising of 19 parametric circuits in the https://doi.org/10.1007/s42484-021-00038-w
+    (ii) meyer_wallach_measure.py - computes the meyer wallach entanglement measure for using with two libraries : qiskit and qutip ; qutip is tested to give faster computation.
+    (iii) von_neumann_entropy.py - computes the von neumann entanglement measure using with two libraries : qiskit and qutip ; qutip is tested to give faster computation.
+    We have introduced changes in the python script of /qiskit/utils/circuit_util.py and added a class entanglement which is utility class to calculate the entanglement capability of a particular parametric circuit with initialized parameters using the function present in the /qiskit/utils/entaglement/
+    there are 2 functions written in qiskit and 2 using qutip. the python codes in QuTip are compiled to C++ during runtime so it is  more efficient than qiskit matrix operations as it is numpy(python based). but the qutip functions can be removed as well if needed and have no dependency on the rest of the code.
