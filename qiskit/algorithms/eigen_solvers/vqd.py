@@ -39,11 +39,12 @@ from qiskit.opflow import (
 from qiskit.opflow.gradients import GradientBase
 from qiskit.utils.validation import validate_min
 from qiskit.utils.backend_utils import is_aer_provider
-from qiskit.utils import QuantumInstance, algorithm_globals
+from qiskit.utils import QuantumInstance
 from ..list_or_dict import ListOrDict
 from ..optimizers import Optimizer, SLSQP, OptimizerResult
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .eigen_solver import Eigensolver, EigensolverResult
+from ..minimum_eigen_solvers.vqe import _validate_bounds, _validate_initial_point
 from ..exceptions import AlgorithmError
 from ..aux_ops_evaluator import eval_observables
 
@@ -73,6 +74,12 @@ class VQD(VariationalAlgorithm, Eigensolver):
     `VQD <https://arxiv.org/abs/1805.08138>`__ is a quantum algorithm that uses a
     variational technique to find
     the k eigenvalues of the Hamiltonian :math:`H` of a given system.
+
+    The algorithm computes excited state energies of generalised hamiltonians
+    by optimising over a modified cost function where each succesive eigen value
+    is calculated iteratively by introducing an overlap term with all
+    the previously computed eigenstaes that must be minimised, thus ensuring
+    higher energy eigen states are found.
 
     An instance of VQD requires defining three algorithmic sub-components:
     an integer k denoting the number of eigenstates to calculate, a trial
@@ -121,7 +128,10 @@ class VQD(VariationalAlgorithm, Eigensolver):
             ansatz: A parameterized circuit used as ansatz for the wave function.
             optimizer: A classical optimizer.
             k: the number of eigenvalues to return. Returns the lowest k eigenvalues.
-            beta: beta parameter in the VQD paper. Should have size k -1, the number of excited states.
+            betas: beta parameter in the VQD paper. Should have size k -1, the number of excited states.
+                It is a hyperparameter that balances the contribution of the overlap
+                term to the cost function and has a default value computed as
+                mean square sum of coefficients of observable.
             initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
@@ -165,7 +175,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         self._include_custom = include_custom
 
         # set ansatz -- still supporting pre 0.18.0 sorting
-        self._ansatz_params = None
+
         self._ansatz = None
         self.ansatz = ansatz
 
@@ -212,7 +222,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
             ansatz = RealAmplitudes()
 
         self._ansatz = ansatz
-        self._ansatz_params = list(ansatz.parameters)
 
     @property
     def gradient(self) -> Optional[Union[GradientBase, Callable]]:
@@ -302,7 +311,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 # try to set the number of qubits on the ansatz, if possible
                 try:
                     self.ansatz.num_qubits = operator.num_qubits
-                    self._ansatz_params = sorted(self.ansatz.parameters, key=lambda p: p.name)
                 except AttributeError as ex:
                     raise AlgorithmError(
                         "The number of qubits of the ansatz does not match the "
@@ -407,8 +415,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         else:
             expectation = self.expectation
 
-        param_dict = dict(zip(self._ansatz_params, parameter))  # type: Dict
-        wave_function = self.ansatz.assign_parameters(param_dict)
+        wave_function = self.ansatz.assign_parameters(parameter)
 
         observable_meas = expectation.convert(StateFn(operator, is_measurement=True))
         ansatz_circuit_op = CircuitStateFn(wave_function)
@@ -550,7 +557,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 else abs(operator.coeff) * sum(abs(operation.coeff) for operation in operator)
             )
             self.betas = [upper_bound * 10] * (self.k)
-            print("beta autoevaluated to ", self.betas[0])
+            logger.info("beta autoevaluated to %s", self.betas[0])
 
         result = VQDResult()
         result.optimal_point = []
@@ -577,7 +584,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
             if isinstance(self._gradient, GradientBase):
                 gradient = self._gradient.gradient_wrapper(
                     StateFn(operator, is_measurement=True) @ StateFn(self.ansatz),
-                    grad_params=self._ansatz_params,
                     bind_params=list(self.ansatz.parameters),
                     backend=self._quantum_instance,
                 )
@@ -617,7 +623,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
             eval_time = time() - start_time
 
             result.optimal_point.append(opt_result.x)
-            result.optimal_parameters.append(dict(zip(self._ansatz_params, opt_result.x)))
+            result.optimal_parameters.append(dict(zip(self.ansatz.parameters, opt_result.x)))
             result.optimal_value.append(opt_result.fun)
             result.cost_function_evals.append(opt_result.nfev)
             result.optimizer_time.append(eval_time)
@@ -633,7 +639,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
             result.eigenstates.append(self._get_eigenstate(result.optimal_parameters[-1]))
 
             if aux_operators is not None:
-                bound_ansatz = self.ansatz.bind_parameters(result.optimal_point)
+                bound_ansatz = self.ansatz.bind_parameters(result.optimal_point[-1])
                 aux_value = eval_observables(
                     self.quantum_instance, bound_ansatz, aux_operators, expectation=expectation
                 )
@@ -683,7 +689,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
     ) -> Callable[[np.ndarray], Union[float, List[float]]]:
         """Returns a function handle to evaluates the energy at given parameters for the ansatz.
 
-        This is the objective function to be passed to the optimizer that is used for evaluation.
+        This return value is the objective function to be passed to the optimizer for evaluation.
 
         Args:
             step: level of enegy being calculated. 0 for ground, 1 for first excited state and so on.
@@ -713,15 +719,15 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         if step > 1 and (len(prev_states) + 1) != step:
             raise RuntimeError(
-                "Passed previous states of the wrong size. Passed array has length "
-                + str(len(prev_states))
+                f"Passed previous states of the wrong size. Passed array has length {str(len(prev_states))}"
             )
 
         self._check_operator_ansatz(operator)
         overlap_op = []
 
+        ansatz_params = self.ansatz.parameters
         expect_op, expectation = self.construct_expectation(
-            self._ansatz_params, operator, return_expectation=True
+            ansatz_params, operator, return_expectation=True
         )
 
         for state in range(step - 1):
@@ -732,7 +738,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         def energy_evaluation(parameters):
             parameter_sets = np.reshape(parameters, (-1, num_parameters))
             # Create dict associating each parameter with the lists of parameterization values for it
-            param_bindings = dict(zip(self._ansatz_params, parameter_sets.transpose().tolist()))
+            param_bindings = dict(zip(ansatz_params, parameter_sets.transpose().tolist()))
 
             sampled_expect_op = self._circuit_sampler.convert(expect_op, params=param_bindings)
             mean = np.real(sampled_expect_op.eval())
@@ -791,50 +797,3 @@ class VQDResult(VariationalResult, EigensolverResult):
     def eigenstates(self, value: np.ndarray) -> None:
         """set eigen state"""
         self._eigenstates = value
-
-
-def _validate_initial_point(point, ansatz):
-    expected_size = ansatz.num_parameters
-
-    # try getting the initial point from the ansatz
-    if point is None and hasattr(ansatz, "preferred_init_points"):
-        point = ansatz.preferred_init_points
-    # if the point is None choose a random initial point
-
-    if point is None:
-        # get bounds if ansatz has them set, otherwise use [-2pi, 2pi] for each parameter
-        bounds = getattr(ansatz, "parameter_bounds", None)
-        if bounds is None:
-            bounds = [(-2 * np.pi, 2 * np.pi)] * expected_size
-
-        # replace all Nones by [-2pi, 2pi]
-        lower_bounds = []
-        upper_bounds = []
-        for lower, upper in bounds:
-            lower_bounds.append(lower if lower is not None else -2 * np.pi)
-            upper_bounds.append(upper if upper is not None else 2 * np.pi)
-
-        # sample from within bounds
-        point = algorithm_globals.random.uniform(lower_bounds, upper_bounds)
-
-    elif len(point) != expected_size:
-        raise ValueError(
-            f"The dimension of the initial point ({len(point)}) does not match the "
-            f"number of parameters in the circuit ({expected_size})."
-        )
-
-    return point
-
-
-def _validate_bounds(ansatz):
-    if hasattr(ansatz, "parameter_bounds") and ansatz.parameter_bounds is not None:
-        bounds = ansatz.parameter_bounds
-        if len(bounds) != ansatz.num_parameters:
-            raise ValueError(
-                f"The number of bounds ({len(bounds)}) does not match the number of "
-                f"parameters in the circuit ({ansatz.num_parameters})."
-            )
-    else:
-        bounds = [(None, None)] * ansatz.num_parameters
-
-    return bounds

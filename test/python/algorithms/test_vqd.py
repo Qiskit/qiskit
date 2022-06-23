@@ -41,23 +41,10 @@ from qiskit.opflow import (
 )
 
 from qiskit.utils import QuantumInstance, algorithm_globals, has_aer
-from ..transpiler._dummy_passes import DummyAP
+
 
 if has_aer():
     from qiskit import Aer
-
-logger = "LocalLogger"
-
-
-class LogPass(DummyAP):
-    """A dummy analysis pass that logs when executed"""
-
-    def __init__(self, message):
-        super().__init__()
-        self.message = message
-
-    def run(self, dag):
-        logging.getLogger(logger).info(self.message)
 
 
 @ddt
@@ -493,6 +480,16 @@ class TestVQD(QiskitAlgorithmsTestCase):
         vqd = VQD(
             ansatz=wavefunction,
             expectation=PauliExpectation(),
+            initial_point=[
+                1.70256666,
+                -5.34843975,
+                -0.39542903,
+                5.99477786,
+                -2.74374986,
+                -4.85284669,
+                0.2442925,
+                -1.51638917,
+            ],
             optimizer=COBYLA(maxiter=0),
             quantum_instance=self.qasm_simulator,
         )
@@ -506,7 +503,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][0], 2.0, places=1)
         self.assertAlmostEqual(
-            result.aux_operator_eigenvalues[0][1][0], 0.5784419552370315, places=1
+            result.aux_operator_eigenvalues[0][1][0], 0.0019531249999999445, places=1
         )
         # standard deviations
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][1], 0.0)
@@ -520,7 +517,9 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.assertEqual(len(result.aux_operator_eigenvalues[0]), 4)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][0], 2.0, places=1)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1][0], 0.56640625, places=1)
+        self.assertAlmostEqual(
+            result.aux_operator_eigenvalues[0][1][0], 0.0019531249999999445, places=1
+        )
         self.assertEqual(result.aux_operator_eigenvalues[0][2][0], 0.0)
         self.assertEqual(result.aux_operator_eigenvalues[0][3][0], 0.0)
         # # standard deviations
