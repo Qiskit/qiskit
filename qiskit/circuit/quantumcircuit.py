@@ -822,8 +822,8 @@ class QuantumCircuit:
     def compose(
         self,
         other: Union["QuantumCircuit", Instruction],
-        qubits: Optional[Iterable[Union[Qubit, int]]] = None,
-        clbits: Optional[Iterable[Union[Clbit, int]]] = None,
+        qubits: Optional[Sequence[Union[Qubit, int]]] = None,
+        clbits: Optional[Sequence[Union[Clbit, int]]] = None,
         front: bool = False,
         inplace: bool = False,
         wrap: bool = False,

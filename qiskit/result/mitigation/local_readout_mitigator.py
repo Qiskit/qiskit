@@ -14,7 +14,7 @@ Readout mitigator class based on the 1-qubit local tensored mitigation method
 """
 
 
-from typing import Optional, List, Tuple, Callable, Union, Dict, Collection
+from typing import Optional, List, Tuple, Callable, Union, Dict, Collection, Sequence
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -167,8 +167,8 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
     def quasi_probabilities(
         self,
         data: Counts,
-        qubits: Optional[List[int]] = None,
-        clbits: Optional[List[int]] = None,
+        qubits: Optional[Sequence[int]] = None,
+        clbits: Optional[Sequence[int]] = None,
         shots: Optional[bool] = False,  # TODO: unused?
     ) -> QuasiDistribution:
         """Compute mitigated quasi probabilities value.

@@ -16,7 +16,7 @@ Instruction collection.
 
 import functools
 import warnings
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable, Optional, Tuple, Union, List
 
 from qiskit.circuit.exceptions import CircuitError
 from .instruction import Instruction
@@ -124,7 +124,7 @@ class InstructionSet:
             CircuitError: if both ``resource_requester`` and ``circuit_cregs`` are passed.  Only one
                 of these may be passed, and it should be ``resource_requester``.
         """
-        self._instructions = []
+        self._instructions: List[CircuitInstruction] = []
         if circuit_cregs is not None:
             if resource_requester is not None:
                 raise CircuitError("Cannot pass both 'circuit_cregs' and 'resource_requester'.")

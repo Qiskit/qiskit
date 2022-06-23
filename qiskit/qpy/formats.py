@@ -87,7 +87,7 @@ CIRCUIT_INSTRUCTION_PACK = "!HHHII?Hq"
 CIRCUIT_INSTRUCTION_SIZE = struct.calcsize(CIRCUIT_INSTRUCTION_PACK)
 
 # CIRCUIT_INSTRUCTION_V2
-CIRCUIT_INSTRUCTION_V2 = namedtuple(
+CIRCUIT_INSTRUCTION_V2 = namedtuple(  # type: ignore[name-match]
     "CIRCUIT_INSTRUCTION",
     [
         "name_size",
@@ -132,7 +132,7 @@ CUSTOM_CIRCUIT_DEF_HEADER_PACK = "!Q"
 CUSTOM_CIRCUIT_DEF_HEADER_SIZE = struct.calcsize(CUSTOM_CIRCUIT_DEF_HEADER_PACK)
 
 # CUSTOM_CIRCUIT_INST_DEF_V2
-CUSTOM_CIRCUIT_INST_DEF_V2 = namedtuple(
+CUSTOM_CIRCUIT_INST_DEF_V2 = namedtuple(  # type: ignore[name-match]
     "CUSTOM_CIRCUIT_INST_DEF",
     [
         "gate_name_size",
@@ -168,7 +168,7 @@ CALIBRATION_DEF_PACK = "!HHH1c"
 CALIBRATION_DEF_SIZE = struct.calcsize(CALIBRATION_DEF_PACK)
 
 # SCHEDULE_BLOCK binary format
-SCHEDULE_BLOCK_HEADER = namedtuple(
+SCHEDULE_BLOCK_HEADER = namedtuple(  # type: ignore[name-match]
     "SCHEDULE_BLOCK",
     [
         "name_size",
