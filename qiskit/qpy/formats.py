@@ -21,7 +21,7 @@ from collections import namedtuple
 # FILE_HEADER
 FILE_HEADER = namedtuple(
     "FILE_HEADER",
-    ["preface", "qpy_version", "major_version", "minor_version", "patch_version", "num_circuits"],
+    ["preface", "qpy_version", "major_version", "minor_version", "patch_version", "num_programs"],
 )
 FILE_HEADER_PACK = "!6sBBBBQ"
 FILE_HEADER_SIZE = struct.calcsize(FILE_HEADER_PACK)
@@ -146,7 +146,6 @@ CUSTOM_CIRCUIT_INST_DEF_V2 = namedtuple(
 CUSTOM_CIRCUIT_INST_DEF_V2_PACK = "!H1cII?QIIQ"
 CUSTOM_CIRCUIT_INST_DEF_V2_SIZE = struct.calcsize(CUSTOM_CIRCUIT_INST_DEF_V2_PACK)
 
-
 # CUSTOM_CIRCUIT_INST_DEF
 CUSTOM_CIRCUIT_INST_DEF = namedtuple(
     "CUSTOM_CIRCUIT_INST_DEF",
@@ -155,8 +154,49 @@ CUSTOM_CIRCUIT_INST_DEF = namedtuple(
 CUSTOM_CIRCUIT_INST_DEF_PACK = "!H1cII?Q"
 CUSTOM_CIRCUIT_INST_DEF_SIZE = struct.calcsize(CUSTOM_CIRCUIT_INST_DEF_PACK)
 
+# CALIBRATION
+CALIBRATION = namedtuple("CALIBRATION", ["num_cals"])
+CALIBRATION_PACK = "!H"
+CALIBRATION_SIZE = struct.calcsize(CALIBRATION_PACK)
+
+# CALIBRATION_DEF
+CALIBRATION_DEF = namedtuple("CALIBRATION_DEF", ["name_size", "num_qubits", "num_params", "type"])
+CALIBRATION_DEF_PACK = "!HHH1c"
+CALIBRATION_DEF_SIZE = struct.calcsize(CALIBRATION_DEF_PACK)
+
+# SCHEDULE_BLOCK binary format
+SCHEDULE_BLOCK_HEADER = namedtuple(
+    "SCHEDULE_BLOCK",
+    [
+        "name_size",
+        "metadata_size",
+        "num_elements",
+    ],
+)
+SCHEDULE_BLOCK_HEADER_PACK = "!HQH"
+SCHEDULE_BLOCK_HEADER_SIZE = struct.calcsize(SCHEDULE_BLOCK_HEADER_PACK)
+
+# WAVEFORM binary format
+WAVEFORM = namedtuple("WAVEFORM", ["epsilon", "data_size", "amp_limited"])
+WAVEFORM_PACK = "!fI?"
+WAVEFORM_SIZE = struct.calcsize(WAVEFORM_PACK)
+
+# SYMBOLIC_PULSE
+SYMBOLIC_PULSE = namedtuple(
+    "SYMBOLIC_PULSE",
+    [
+        "type_size",
+        "envelope_size",
+        "constraints_size",
+        "valid_amp_conditions_size",
+        "amp_limited",
+    ],
+)
+SYMBOLIC_PULSE_PACK = "!HHHH?"
+SYMBOLIC_PULSE_SIZE = struct.calcsize(SYMBOLIC_PULSE_PACK)
+
 # INSTRUCTION_PARAM
-INSTRUCTION_PARAM = namedtuple("TYPED_OBJECT", ["type", "size"])
+INSTRUCTION_PARAM = namedtuple("INSTRUCTION_PARAM", ["type", "size"])
 INSTRUCTION_PARAM_PACK = "!1cQ"
 INSTRUCTION_PARAM_SIZE = struct.calcsize(INSTRUCTION_PARAM_PACK)
 
@@ -201,3 +241,8 @@ RANGE_SIZE = struct.calcsize(RANGE_PACK)
 SEQUENCE = namedtuple("SEQUENCE", ["num_elements"])
 SEQUENCE_PACK = "!Q"
 SEQUENCE_SIZE = struct.calcsize(SEQUENCE_PACK)
+
+# MAP_ITEM
+MAP_ITEM = namedtuple("MAP_ITEM", ["key_size", "type", "size"])
+MAP_ITEM_PACK = "!H1cH"
+MAP_ITEM_SIZE = struct.calcsize(MAP_ITEM_PACK)
