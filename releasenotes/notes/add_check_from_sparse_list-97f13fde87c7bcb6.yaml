@@ -1,6 +1,6 @@
 ---
-features:
+fixes:
   - |
-    Allow checking for duplicate qubit indices in :meth:`~qiskit.quantum_info.SparsePauliOp.from_sparse_list`.
-    The checks can be turned off by setting the new keyword argument ``do_checks`` to ``False`` 
-    (it  is ``True`` per default).
+    Duplicate qubit indices given to :meth:`.SparsePauliOp.from_sparse_list` will now
+    correctly raise an error, instead of silently overwriting previous values.
+    The old behavior can be accessed by passing the new keyword argument ``do_checks=False``.

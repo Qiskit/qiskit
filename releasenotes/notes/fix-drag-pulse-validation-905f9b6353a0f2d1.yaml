@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    Parameter validation for :class:`~Drag` was not sensitive to
-    a large beta value with negative sign, which may results in the waveform samples
-    with the maximum value exceeing the amplitude limit of 1.0.
-    Parameter validation has been fixed.

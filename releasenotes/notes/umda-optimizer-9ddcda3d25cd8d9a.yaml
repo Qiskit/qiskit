@@ -2,14 +2,10 @@
 
 features:
   - |
-    Introduced a new optimizer to Qiskit library, that adds support to the
-    optimization of parameters of variational quantum algorithms. This is,
-    the Univariate Marginal Distribution Algorithm (UMDA) which is a specific
-    type of the Estimation of Distribution Algorithms. A brief example to
-    optimize the parameters of a Quantum Approximate Optimization Algorithm is
-    the following.
-
-    .. code-block:: python
+    Introduced a new optimizer to Qiskit library, which adds support to the
+    optimization of parameters of variational quantum algorithms. This is
+    the Univariate Marginal Distribution Algorithm (UMDA), which is a specific
+    type of the Estimation of Distribution Algorithms.  For example::
 
       from qiskit.opflow import X, Z, I
       from qiskit import Aer
