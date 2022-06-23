@@ -17,7 +17,6 @@ See https://arxiv.org/abs/1805.08138.
 
 from typing import Optional, List, Callable, Union, Dict, Tuple
 import logging
-import warnings
 from time import time
 import numpy as np
 
@@ -183,9 +182,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
         self.callback = callback
 
         logger.info(self.print_settings())
-
-        # TODO remove this once the stateful methods are deleted
-        self._ret = None
 
     @property
     def ansatz(self) -> QuantumCircuit:
@@ -576,32 +572,13 @@ class VQD(VariationalAlgorithm, Eigensolver):
             start_time = time()
 
             # keep this until Optimizer.optimize is removed
-            try:
-                opt_result = self.optimizer.minimize(
-                    fun=energy_evaluation,
-                    x0=initial_point,
-                    jac=gradient if step == 1 else None,
-                    bounds=bounds,
-                )
-            except AttributeError:
-                # self.optimizer is an optimizer with the deprecated interface that uses
-                # ``optimize`` instead of ``minimize```
-                warnings.warn(
-                    "Using an optimizer that is run with the ``optimize`` method is "
-                    "deprecated as of Qiskit Terra 0.19.0 and will be unsupported no "
-                    "sooner than 3 months after the release date. Instead use an optimizer "
-                    "providing ``minimize`` (see qiskit.algorithms.optimizers.Optimizer).",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
 
-                opt_result = self.optimizer.optimize(
-                    len(initial_point),
-                    energy_evaluation,
-                    gradient if step == 1 else None,
-                    bounds,
-                    initial_point,
-                )
+            opt_result = self.optimizer.minimize(
+                fun=energy_evaluation,
+                x0=initial_point,
+                jac=gradient if step == 1 else None,
+                bounds=bounds,
+            )
 
             eval_time = time() - start_time
 
@@ -654,9 +631,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
         result.optimal_value = np.array(result.optimal_value)
         result.cost_function_evals = np.array(result.cost_function_evals)
         result.optimizer_time = np.array(result.optimizer_time)
-
-        # TODO delete as soon as get_optimal_vector etc are removed
-        self._ret = result
 
         if aux_operators is not None:
             result.aux_operator_eigenvalues = aux_values
