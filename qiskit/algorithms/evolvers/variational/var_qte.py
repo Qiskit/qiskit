@@ -12,7 +12,7 @@
 
 """The Variational Quantum Time Evolution Interface"""
 from abc import ABC
-from typing import Optional, Union, Dict, List, Any
+from typing import Optional, Union, Dict, List, Any, Type
 
 import numpy as np
 from scipy.integrate import OdeSolver
@@ -58,7 +58,7 @@ class VarQTE(ABC):
     def __init__(
         self,
         variational_principle: VariationalPrinciple,
-        ode_solver: Union[OdeSolver, str] = ForwardEulerSolver,
+        ode_solver: Union[Type[OdeSolver], str] = ForwardEulerSolver,
         ode_function_factory: Optional[OdeFunctionFactory] = None,
         expectation: Optional[ExpectationBase] = None,
         imag_part_tol: float = 1e-7,

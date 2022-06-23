@@ -24,7 +24,7 @@ from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_factory imp
 from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.quantum_info import state_fidelity, Statevector
 from qiskit.algorithms import EvolutionProblem, VarQRTE
-from qiskit.algorithms.evolvers.variational.variational_principles import (
+from qiskit.algorithms.evolvers.variational import (
     RealMcLachlanPrinciple,
 )
 from qiskit import BasicAer

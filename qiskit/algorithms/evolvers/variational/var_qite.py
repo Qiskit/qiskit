@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Variational Quantum Imaginary Time Evolution algorithm."""
-from typing import Optional, Union
+from typing import Optional, Union, Type
 
 from scipy.integrate import OdeSolver
 

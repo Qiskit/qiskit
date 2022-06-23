@@ -16,7 +16,7 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
-from qiskit.algorithms.evolvers.variational.variational_principles import (
+from qiskit.algorithms.evolvers.variational import (
     ImaginaryMcLachlanPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2

@@ -17,7 +17,7 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from numpy.testing import assert_raises
-from qiskit.algorithms.evolvers.variational.variational_principles.real_time_dependent_principle import (
+from qiskit.algorithms.evolvers.variational import (
     RealTimeDependentPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2

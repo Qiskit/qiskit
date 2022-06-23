@@ -19,7 +19,7 @@ from ddt import ddt, data
 import numpy as np
 
 from qiskit import BasicAer
-from qiskit.algorithms.evolvers.variational.variational_principles import (
+from qiskit.algorithms.evolvers.variational import (
     ImaginaryMcLachlanPrinciple,
 )
 from qiskit.algorithms.evolvers.variational.solvers.var_qte_linear_solver import (

@@ -12,7 +12,7 @@
 
 """Class for solving ODEs for Quantum Time Evolution."""
 
-from typing import List, Union
+from typing import List, Union, Type
 
 from scipy.integrate import OdeSolver, solve_ivp
 
@@ -29,7 +29,7 @@ class VarQTEOdeSolver:
         self,
         init_params: List[complex],
         ode_function: AbstractOdeFunction,
-        ode_solver: Union[OdeSolver, str] = ForwardEulerSolver,
+        ode_solver: Union[Type[OdeSolver], str] = ForwardEulerSolver,
         num_t_steps: int = 25,
     ) -> None:
         """
