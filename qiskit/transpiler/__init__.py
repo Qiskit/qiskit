@@ -64,7 +64,7 @@ Supplementary Information
       :hide-code:
       :hide-output:
 
-      from qiskit.test.mock import FakeVigo
+      from qiskit.providers.fake_provider import FakeVigo
       backend = FakeVigo()
 
    .. jupyter-execute::
@@ -198,7 +198,7 @@ Supplementary Information
 
       from qiskit import QuantumCircuit, transpile
       from qiskit.visualization import plot_circuit_layout
-      from qiskit.test.mock import FakeVigo
+      from qiskit.providers.fake_provider import FakeVigo
       backend = FakeVigo()
 
       ghz = QuantumCircuit(3, 3)
@@ -274,7 +274,7 @@ Supplementary Information
 
       import matplotlib.pyplot as plt
       from qiskit import QuantumCircuit, transpile
-      from qiskit.test.mock import FakeBoeblingen
+      from qiskit.providers.fake_provider import FakeBoeblingen
       backend = FakeBoeblingen()
 
       ghz = QuantumCircuit(5)
@@ -335,7 +335,7 @@ Supplementary Information
 
       import matplotlib.pyplot as plt
       from qiskit import QuantumCircuit, transpile
-      from qiskit.test.mock import FakeBoeblingen
+      from qiskit.providers.fake_provider import FakeBoeblingen
       backend = FakeBoeblingen()
 
       ghz = QuantumCircuit(5)
@@ -370,7 +370,7 @@ Supplementary Information
    .. jupyter-execute::
 
       from qiskit import QuantumCircuit, transpile
-      from qiskit.test.mock import FakeBoeblingen
+      from qiskit.providers.fake_provider import FakeBoeblingen
       backend = FakeBoeblingen()
 
       ghz = QuantumCircuit(5)

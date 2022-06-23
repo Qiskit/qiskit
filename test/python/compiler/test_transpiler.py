@@ -35,7 +35,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate, RXGate, RYGate, RZGate, UGate
 from qiskit.circuit.measure import Measure
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeMelbourne, FakeRueschlikon, FakeAlmaden, FakeMumbaiV2
+from qiskit.providers.fake_provider import FakeMelbourne, FakeRueschlikon, FakeAlmaden, FakeMumbaiV2
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.target import Target
