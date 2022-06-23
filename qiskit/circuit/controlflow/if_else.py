@@ -389,10 +389,7 @@ class IfContext:
         else:
             # If we're not in a loop, we don't need to be worried about passing in any outer-scope
             # resources because there can't be anything that will consume them.
-            true_body = true_block.build(
-                true_block.qubits,
-                true_block.clbits,
-            )
+            true_body = true_block.build(true_block.qubits, true_block.clbits)
             self._appended_instructions = self._circuit.append(
                 IfElseOp(self._condition, true_body=true_body, false_body=None, label=self._label),
                 tuple(true_body.qubits),
@@ -486,7 +483,8 @@ class ElseContext:
             # the resulting object to use them (because it tries to be minimal), so it's best to
             # pass it nothing extra (allows some fast path constructions), and add all necessary
             # bits onto the circuits at the end.
-
+            true_body = self._if_instruction.operation.blocks[0]
+            false_body = false_block.build(false_block.qubits, false_block.clbits)
             true_body, false_body = _unify_circuit_resources(true_body, false_body)
             circuit.append(
                 IfElseOp(
