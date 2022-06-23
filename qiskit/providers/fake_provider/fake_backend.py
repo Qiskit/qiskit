@@ -20,7 +20,7 @@ import warnings
 import json
 import os
 
-from typing import List
+from typing import List, Any
 
 from qiskit import circuit
 from qiskit.providers.models import BackendProperties
@@ -84,6 +84,15 @@ class FakeBackendV2(BackendV2):
         self._target = None
         self.sim = None
 
+    def __getattr__(self, name: str) -> Any:
+        """Gets attribute from configuration if self does not yet have it."""
+        if self._conf_dict and name in self._conf_dict:
+            return self._conf_dict[name]
+
+        raise AttributeError(
+            "'{}' object has no attribute '{}'".format(self.__class__.__name__, name)
+        )
+
     def _setup_sim(self):
         if _optionals.HAS_AER:
             from qiskit.providers import aer
@@ -131,7 +140,6 @@ class FakeBackendV2(BackendV2):
         :rtype: Target
         """
         if self._target is None:
-            self._get_conf_dict_from_json()
             if self._props_dict is None:
                 self._set_props_dict_from_json()
             if self._defs_dict is None:
