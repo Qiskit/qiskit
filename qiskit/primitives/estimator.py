@@ -42,7 +42,8 @@ class Estimator(BaseEstimator):
           deviations using normal distribution approximation.
 
         - **seed** (np.random.Generator or int) --
-          Set a fixed seed or generator for rng. If shots is None, this option is ignored.
+          Set a fixed seed or generator for the normal distribution. If shots is None,
+          this option is ignored.
     """
 
     def __init__(
