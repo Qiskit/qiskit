@@ -1,0 +1,21 @@
+---
+upgrade:
+  - |
+    For Python 3.7 `shared-memory38 <https://pypi.org/project/shared-memory38/>`__
+    is now a dependency. This was added as a dependency for Python 3.7 to enable
+    leveraging the shared memory constructs in the standard library of newer
+    versions of Python. If you're running on Python >= 3.8 there is no extra
+    dependency required.
+fixes:
+  - |
+    Fixed an issue with :func:`~.transpile` where in some cases providing a
+    list of basis gate strings with the ``basis_gates`` keyword argument or
+    implicitly via a :class:`~.Target` input via the ``target`` keyword
+    argument would not be interpreted correctly and result in a subset of the
+    listed gates being used for each circuit.
+  - |
+    Fixed an issue in the :class:`~.UnitarySynthesis` transpiler pass which
+    would result in an error when a :class:`~.Target` that didn't have any
+    qubit restrictions on the operations (e.g. in the case of an ideal
+    simulator target) was specified with the ``target`` keyword argument for the
+    constructor.

@@ -24,8 +24,7 @@ from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.execute_function import execute
 from qiskit.test.base import QiskitTestCase
-from qiskit.test.mock import FakeProviderForBackendV2, FakeProvider
-from qiskit.test.mock import FakeMumbaiV2
+from qiskit.providers.fake_provider import FakeProviderForBackendV2, FakeProvider, FakeMumbaiV2
 from qiskit.utils import optionals
 
 FAKE_PROVIDER_FOR_BACKEND_V2 = FakeProviderForBackendV2()
