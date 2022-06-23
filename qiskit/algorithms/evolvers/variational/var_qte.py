@@ -30,6 +30,7 @@ from qiskit.opflow import (
     ExpectationBase,
 )
 from qiskit.utils.backend_utils import is_aer_provider
+from .solvers.ode.forward_euler_solver import ForwardEulerSolver
 from .solvers.ode.ode_function_factory import OdeFunctionFactory
 from .solvers.var_qte_linear_solver import (
     VarQTELinearSolver,
@@ -57,7 +58,7 @@ class VarQTE(ABC):
     def __init__(
         self,
         variational_principle: VariationalPrinciple,
-        ode_solver: Union[OdeSolver, str] = "RK45",
+        ode_solver: Union[OdeSolver, str] = ForwardEulerSolver,
         ode_function_factory: Optional[OdeFunctionFactory] = None,
         expectation: Optional[ExpectationBase] = None,
         imag_part_tol: float = 1e-7,

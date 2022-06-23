@@ -70,7 +70,8 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         self.backends_names = ["qi_qasm", "b_sv", "qi_sv"]
 
     def test_run_d_1_with_aux_ops(self):
-        """Test VarQRTE for d = 1 and t = 0.1 with evaluating auxiliary operators."""
+        """Test VarQRTE for d = 1 and t = 0.1 with evaluating auxiliary operators and the Forward
+        Euler solver."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),
@@ -102,28 +103,28 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         )
 
         thetas_expected_sv = [
-            0.889685101137242,
-            1.53753067428015,
-            1.57072498632892,
-            1.58873758085771,
-            1.6011502888168,
-            1.57014891508061,
-            1.63785623370778,
-            1.53753777387315,
+            0.88967020378258,
+            1.53740751016451,
+            1.57076759018861,
+            1.58893301221363,
+            1.60100970594142,
+            1.57008242207638,
+            1.63791241090936,
+            1.53741371076912,
         ]
 
         thetas_expected_qasm = [
-            0.88962583025324,
-            1.53720123673233,
-            1.57205862500955,
-            1.58871008540355,
-            1.6004478920347,
-            1.57148505764323,
-            1.6376295618507,
-            1.53718774456843,
+            0.88967811203145,
+            1.53745130248168,
+            1.57206794045495,
+            1.58901347342829,
+            1.60101431615503,
+            1.57138020823337,
+            1.63796000651177,
+            1.53742227084076,
         ]
 
-        expected_aux_ops_evaluated_sv = [(0.066695, 0.0), (0.772656, 0.0)]
+        expected_aux_ops_evaluated_sv = [(0.06675, 0.0), (0.772636, 0.0)]
 
         expected_aux_ops_evaluated_qasm = [
             (0.06450000000000006, 0.01577846435810532),
@@ -158,6 +159,18 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
                     thetas_expected = thetas_expected_sv
                     expected_aux_ops = expected_aux_ops_evaluated_sv
 
+                # TODO remove print before merging
+                print(
+                    state_fidelity(
+                        Statevector(evolved_state),
+                        Statevector(
+                            ansatz.assign_parameters(
+                                dict(zip(list(ansatz.parameters), thetas_expected))
+                            )
+                        ),
+                    )
+                )
+
                 for i, parameter_value in enumerate(parameter_values):
                     np.testing.assert_almost_equal(
                         float(parameter_value), thetas_expected[i], decimal=3
@@ -183,7 +196,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         + 0.091 * (X ^ X),
     )
     def test_run_d_2(self, observable):
-        """Test VarQRTE for d = 2 and t = 1."""
+        """Test VarQRTE for d = 2 and t = 1 with RK45 ODE solver."""
         d = 2
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
@@ -198,7 +211,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
 
         backend = BasicAer.get_backend("statevector_simulator")
 
-        var_qrte = VarQRTE(var_principle, quantum_instance=backend)
+        var_qrte = VarQRTE(var_principle, quantum_instance=backend, ode_solver="RK45")
         time = 1
 
         thetas_expected = [

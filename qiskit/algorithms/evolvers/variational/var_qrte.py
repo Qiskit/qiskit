@@ -18,6 +18,7 @@ from scipy.integrate import OdeSolver
 from qiskit.algorithms.evolvers.real_evolver import RealEvolver
 from qiskit.opflow import ExpectationBase
 from qiskit.utils import QuantumInstance
+from .solvers.ode.forward_euler_solver import ForwardEulerSolver
 from .solvers.ode.ode_function_factory import OdeFunctionFactory
 from .variational_principles import RealVariationalPrinciple
 from .var_qte import VarQTE
@@ -73,7 +74,7 @@ class VarQRTE(VarQTE, RealEvolver):
     def __init__(
         self,
         variational_principle: RealVariationalPrinciple,
-        ode_solver: Union[OdeSolver, str] = "RK45",
+        ode_solver: Union[OdeSolver, str] = ForwardEulerSolver,
         ode_function_factory: Optional[OdeFunctionFactory] = None,
         expectation: Optional[ExpectationBase] = None,
         imag_part_tol: float = 1e-7,

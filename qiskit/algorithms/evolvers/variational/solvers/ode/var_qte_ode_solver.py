@@ -15,11 +15,13 @@
 import itertools
 from typing import List, Union
 
+from numpy import ndarray
 from scipy.integrate import OdeSolver, solve_ivp
 
 from .abstract_ode_function import (
     AbstractOdeFunction,
 )
+from .forward_euler_solver import ForwardEulerSolver
 
 
 class VarQTEOdeSolver:
@@ -29,7 +31,7 @@ class VarQTEOdeSolver:
         self,
         init_params: List[complex],
         ode_function: AbstractOdeFunction,
-        ode_solver: Union[OdeSolver, str] = "RK45",
+        ode_solver: Union[OdeSolver, str] = ForwardEulerSolver,
     ) -> None:
         """
         Initialize ODE Solver.
@@ -59,8 +61,8 @@ class VarQTEOdeSolver:
             (0, evolution_time),
             self._init_params,
             method=self._ode_solver,
-            t_eval=[evolution_time],
+            num_t_steps=25,
         )
-        final_params_vals = list(itertools.chain(*sol.y))
+        final_params_vals = [lst[-1] for lst in sol.y]
 
         return final_params_vals

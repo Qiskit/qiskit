@@ -14,6 +14,11 @@
 
 import unittest
 
+from ddt import ddt, data, unpack
+
+from qiskit.algorithms.evolvers.variational.solvers.ode.forward_euler_solver import (
+    ForwardEulerSolver,
+)
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from qiskit.algorithms.evolvers.variational.solvers.var_qte_linear_solver import (
@@ -39,10 +44,40 @@ from qiskit.opflow import (
 )
 
 
+@ddt
 class TestVarQTEOdeSolver(QiskitAlgorithmsTestCase):
     """Test solver of ODEs."""
 
-    def test_run_no_backend(self):
+    @data(
+        (
+            "RK45",
+            [
+                -0.30076755873631345,
+                -0.8032811383782005,
+                1.1674108371914734e-15,
+                3.2293849116821145e-16,
+                2.541585055586039,
+                1.155475184255733,
+                -2.966331417968169e-16,
+                9.604292449638343e-17,
+            ],
+        ),
+        (
+            ForwardEulerSolver,
+            [
+                -3.2707e-01,
+                -8.0960e-01,
+                3.4323e-16,
+                8.9034e-17,
+                2.5290e00,
+                1.1563e00,
+                3.0227e-16,
+                -2.2769e-16,
+            ],
+        ),
+    )
+    @unpack
+    def test_run_no_backend(self, ode_solver, expected_result):
         """Test ODE solver with no backend."""
         observable = SummedOp(
             [
@@ -88,22 +123,10 @@ class TestVarQTEOdeSolver(QiskitAlgorithmsTestCase):
         ode_function_generator = OdeFunction(linear_solver, None, param_dict, t_param)
 
         var_qte_ode_solver = VarQTEOdeSolver(
-            list(param_dict.values()),
-            ode_function_generator,
+            list(param_dict.values()), ode_function_generator, ode_solver=ode_solver
         )
 
         result = var_qte_ode_solver.run(time)
-
-        expected_result = [
-            -0.30076755873631345,
-            -0.8032811383782005,
-            1.1674108371914734e-15,
-            3.2293849116821145e-16,
-            2.541585055586039,
-            1.155475184255733,
-            -2.966331417968169e-16,
-            9.604292449638343e-17,
-        ]
 
         np.testing.assert_array_almost_equal(result, expected_result, decimal=4)
 

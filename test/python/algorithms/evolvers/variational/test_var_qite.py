@@ -102,29 +102,32 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         # values from the prototype
         thetas_expected_sv = [
-            1.03914730208212,
-            1.91692131099535,
-            2.78454919039903,
-            2.78398207138289,
-            2.20638059571898,
-            1.62265763178013,
-            2.23140273133868,
-            1.9474305740338,
+            1.03612467538419,
+            1.91891042963193,
+            2.81129500883365,
+            2.78938736703301,
+            2.2215151699331,
+            1.61953721158502,
+            2.23490753161058,
+            1.97145113701782,
         ]
 
         thetas_expected_qasm = [
-            1.03914730208212,
-            1.91692131099535,
-            2.78454919039903,
-            2.78398207138289,
-            2.20638059571898,
-            1.62265763178013,
-            2.23140273133868,
-            1.9474305740338,
+            1.03612467538419,
+            1.91891042963193,
+            2.81129500883365,
+            2.78938736703301,
+            2.2215151699331,
+            1.61953721158502,
+            2.23490753161058,
+            1.97145113701782,
         ]
 
-        expected_aux_ops_evaluated_sv = [(-0.146689, 0.0), (0.258695, 0.0)]
-        expected_aux_ops_evaluated_qasm = [(-0.162, 0.015603), (0.2545, 0.015291)]
+        expected_aux_ops_evaluated_sv = [(-0.16089896005435056, 0.0), (0.26206970389246464, 0.0)]
+        expected_aux_ops_evaluated_qasm = [
+            (-0.17650000000000007, 0.015563159624574954),
+            (0.25549999999999995, 0.015286593390942273),
+        ]
 
         for backend_name in self.backends_names:
             with self.subTest(msg=f"Test {backend_name} backend."):
@@ -182,7 +185,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         backend = BasicAer.get_backend("statevector_simulator")
 
-        var_qite = VarQITE(var_principle, quantum_instance=backend)
+        var_qite = VarQITE(var_principle, quantum_instance=backend, ode_solver="RK45")
         time = 7
         # values from the prototype
         thetas_expected = [
@@ -234,7 +237,10 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         ode_function = OdeFunctionFactory(OdeFunctionType.STANDARD_ODE)
         var_qite = VarQITE(
-            var_principle, ode_function_factory=ode_function, quantum_instance=backend
+            var_principle,
+            ode_function_factory=ode_function,
+            quantum_instance=backend,
+            ode_solver="RK45",
         )
         time = 1
 

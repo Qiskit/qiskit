@@ -26,7 +26,7 @@ class ForwardEulerSolver(OdeSolver):
         t_bound: float,
         vectorized: bool = False,
         support_complex: bool = False,
-        num_t_steps: int = 10,
+        num_t_steps: int = 15,
     ):
         """
         Forward Euler ODE solver that implements an interface from SciPy.

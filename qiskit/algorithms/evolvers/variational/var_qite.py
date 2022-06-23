@@ -18,6 +18,7 @@ from scipy.integrate import OdeSolver
 from qiskit.opflow import ExpectationBase
 from qiskit.algorithms.evolvers.imaginary_evolver import ImaginaryEvolver
 from qiskit.utils import QuantumInstance
+from .solvers.ode.forward_euler_solver import ForwardEulerSolver
 from .solvers.ode.ode_function_factory import OdeFunctionFactory
 from .variational_principles import ImaginaryVariationalPrinciple
 from .var_qte import VarQTE
@@ -73,7 +74,7 @@ class VarQITE(VarQTE, ImaginaryEvolver):
     def __init__(
         self,
         variational_principle: ImaginaryVariationalPrinciple,
-        ode_solver: Union[OdeSolver, str] = "RK45",
+        ode_solver: Union[OdeSolver, str] = ForwardEulerSolver,
         ode_function_factory: Optional[OdeFunctionFactory] = None,
         expectation: Optional[ExpectationBase] = None,
         imag_part_tol: float = 1e-7,
