@@ -642,7 +642,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         step: int,
         operator: OperatorBase,
         return_expectation: bool = False,
-        prev_states: List[float] = None,
+        prev_states: Optional[List[np.ndarray]] = None,
     ) -> Callable[[np.ndarray], Union[float, List[float]]]:
         """Returns a function handle to evaluates the energy at given parameters for the ansatz.
 
@@ -658,8 +658,8 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
 
         Returns:
-            Energy of the hamiltonian of each parameter, and, optionally, the expectation
-            converter.
+            A callable that computes and returns the energy of the hamiltonian
+            of each parameter, and, optionally, the expectation
 
         Raises:
             RuntimeError: If the circuit is not parameterized (i.e. has 0 free parameters).
