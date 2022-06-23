@@ -361,9 +361,8 @@ class TestEstimator(QiskitTestCase):
             result_15 = est(
                 [0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed_primitive=15
             )
-        self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result_42.values, result_15.values)
-        
+
 
 if __name__ == "__main__":
     unittest.main()
