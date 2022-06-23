@@ -124,7 +124,7 @@ def qs_decomposition(
     return circ
 
 
-def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, _depth=0):
+def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0):
     """decomposes a generic multiplexer.
 
           ────□────
@@ -153,6 +153,10 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, _depth=0):
        um1 (ndarray): applied if MSB is 1
        opt_a1 (bool): whether to try optimization A.1 from Shende. This should elliminate 1 cnot
           per call. If True CZ gates are left in the output. If desired these can be further decomposed
+       opt_a2 (bool): whether to try  optimization A.2 from Shende. This decomposes two qubit
+          unitaries into a diagonal gate and a two cx unitary and reduces overal cx count by
+          4^(n-2) - 1.
+       _depth (int): This is an internal variable to track the recursion depth.
 
     Returns:
         QuantumCircuit: decomposed circuit

@@ -33,7 +33,6 @@ from typing import ClassVar, Optional, Type
 import logging
 
 import numpy as np
-import scipy
 
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
@@ -1418,9 +1417,10 @@ class TwoQubitDecomposeUpToDiagonal:
         self.sysy = np.kron(self.sy, self.sy)
 
     def _u4_to_su4(self, u4):
-        phase_factor = np.conj(scipy.linalg.det(u4) ** (-1 / u4.shape[0]))
+        from scipy import linalg as la
+
+        phase_factor = np.conj(la.det(u4) ** (-1 / u4.shape[0]))
         su4 = u4 / phase_factor
-        assert cmath.isclose(scipy.linalg.det(su4), 1)
         return su4, cmath.phase(phase_factor)
 
     def _gamma(self, mat):
