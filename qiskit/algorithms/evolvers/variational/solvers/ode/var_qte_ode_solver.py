@@ -12,10 +12,8 @@
 
 """Class for solving ODEs for Quantum Time Evolution."""
 
-import itertools
 from typing import List, Union
 
-from numpy import ndarray
 from scipy.integrate import OdeSolver, solve_ivp
 
 from .abstract_ode_function import (
@@ -32,7 +30,7 @@ class VarQTEOdeSolver:
         init_params: List[complex],
         ode_function: AbstractOdeFunction,
         ode_solver: Union[OdeSolver, str] = ForwardEulerSolver,
-        num_t_steps: int = 25
+        num_t_steps: int = 25,
     ) -> None:
         """
         Initialize ODE Solver.

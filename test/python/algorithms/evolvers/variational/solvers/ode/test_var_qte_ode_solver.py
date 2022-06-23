@@ -13,14 +13,12 @@
 """Test solver of ODEs."""
 
 import unittest
-
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, unpack
-
+import numpy as np
 from qiskit.algorithms.evolvers.variational.solvers.ode.forward_euler_solver import (
     ForwardEulerSolver,
 )
-from test.python.algorithms import QiskitAlgorithmsTestCase
-import numpy as np
 from qiskit.algorithms.evolvers.variational.solvers.var_qte_linear_solver import (
     VarQTELinearSolver,
 )

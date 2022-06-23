@@ -10,6 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """Forward Euler ODE solver."""
+
 from typing import Iterable
 
 import numpy as np
@@ -18,6 +19,8 @@ from scipy.integrate._ivp.base import ConstantDenseOutput
 
 
 class ForwardEulerSolver(OdeSolver):
+    """Forward Euler ODE solver."""
+
     def __init__(
         self,
         function: callable,
@@ -63,7 +66,7 @@ class ForwardEulerSolver(OdeSolver):
             self.y = list(np.add(self.y, self.step_length * self.fun(self.t, self.y)))
             self.t += self.step_length
             return True, None
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             return False, "Unknown ODE solver error"
 
     def _dense_output_impl(self):
