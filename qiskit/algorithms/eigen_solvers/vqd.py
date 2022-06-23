@@ -571,14 +571,14 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
             start_time = time()
 
-            # keep this until Optimizer.optimize is removed
-
-            opt_result = self.optimizer.minimize(
-                fun=energy_evaluation,
-                x0=initial_point,
-                jac=gradient if step == 1 else None,
-                bounds=bounds,
-            )
+            if callable(self.optimizer):
+                opt_result = self.optimizer(  # pylint: disable=not-callable
+                    fun=energy_evaluation, x0=initial_point, jac=gradient, bounds=bounds
+                )
+            else:
+                opt_result = self.optimizer.minimize(
+                    fun=energy_evaluation, x0=initial_point, jac=gradient, bounds=bounds
+                )
 
             eval_time = time() - start_time
 
