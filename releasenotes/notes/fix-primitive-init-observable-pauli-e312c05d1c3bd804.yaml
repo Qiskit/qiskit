@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Fixed an accidental exponential time complexity when
-    :class:`~qiskit.quantum_info.Pauli` was input to
-    :func:`~qiskit.primitives.utils.init_observables`.

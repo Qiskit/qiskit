@@ -1,5 +1,0 @@
-fixes:
-  - |
-    The :func:`~qiskit.algorithms.eval_observables` function now correctly
-    accepts :class:`.StateFn` values as its ``quantum_state`` argument, as
-    its type hints suggest.

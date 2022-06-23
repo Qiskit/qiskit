@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    Parameter validation for :class:`.Drag` will no longer accept negative
-    values of ``beta`` with too-large magnitudes.  Previously, excessive negative
-    values of ``beta`` would allow waveform samples to exceed the amplitude limit
-    of 1.
