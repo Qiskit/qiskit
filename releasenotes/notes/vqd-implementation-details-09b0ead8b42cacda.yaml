@@ -7,6 +7,8 @@ features:
     the previous iterations and have the lowest energy when computed over the ansatz.
     The interface implemented is very similar to that of VQE and is of the form:
     
+     .. code-block:: python
+
       from qiskit.algorithms import VQD
       from qiskit.utils import QuantumInstance
       from qiskit.circuit.library import TwoLocal
