@@ -32,6 +32,7 @@ class VarQTEOdeSolver:
         init_params: List[complex],
         ode_function: AbstractOdeFunction,
         ode_solver: Union[OdeSolver, str] = ForwardEulerSolver,
+        num_t_steps: int = 25
     ) -> None:
         """
         Initialize ODE Solver.
@@ -41,10 +42,12 @@ class VarQTEOdeSolver:
             ode_function: Generates the ODE function.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
+            num_t_steps: Number of ODE steps. Only relevant in case of the ``ForwardEulerSolver``.
         """
         self._init_params = init_params
         self._ode_function = ode_function.var_qte_ode_function
         self._ode_solver = ode_solver
+        self._num_t_steps = num_t_steps
 
     def run(self, evolution_time: float) -> List[complex]:
         """
@@ -61,7 +64,7 @@ class VarQTEOdeSolver:
             (0, evolution_time),
             self._init_params,
             method=self._ode_solver,
-            num_t_steps=25,
+            num_t_steps=self._num_t_steps,
         )
         final_params_vals = [lst[-1] for lst in sol.y]
 
