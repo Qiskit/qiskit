@@ -1,5 +1,5 @@
 ---
-fix:
+fixes:
   - |
     Duplicate qubit indices given to :meth:`.SparsePauliOp.from_sparse_list` will now
     correctly raise an error, instead of silently overwriting previous values.
