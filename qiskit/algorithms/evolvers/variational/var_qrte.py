@@ -74,7 +74,7 @@ class VarQRTE(VarQTE, RealEvolver):
     def __init__(
         self,
         variational_principle: RealVariationalPrinciple,
-        ode_solver: Union[OdeSolver, str] = ForwardEulerSolver,
+        ode_solver: Union[Type[OdeSolver], str] = ForwardEulerSolver,
         ode_function_factory: Optional[OdeFunctionFactory] = None,
         expectation: Optional[ExpectationBase] = None,
         imag_part_tol: float = 1e-7,
