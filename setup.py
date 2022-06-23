@@ -76,6 +76,10 @@ setup(
     ],
     keywords="qiskit sdk quantum",
     packages=find_packages(exclude=["test*"]),
+    package_data={
+        "qiskit.qasm.libs": ["*.inc"],
+        "qiskit.visualization.styles": ["*json"],
+    },
     install_requires=REQUIREMENTS,
     include_package_data=True,
     python_requires=">=3.7",
