@@ -192,21 +192,21 @@ class UnitaryGate(Gate):
         )
 
         # map from gates in the definition to params in the method
-        reg_to_qasm = OrderedDict()
-        current_reg = 0
+        bit_to_qasm = OrderedDict()
+        current_bit = 0
 
         gates_def = ""
-        for gate in self.definition.data:
+        for instruction in self.definition.data:
 
-            # add regs from this gate to the overall set of params
-            for reg in gate[1] + gate[2]:
-                if reg not in reg_to_qasm:
-                    reg_to_qasm[reg] = "p" + str(current_reg)
-                    current_reg += 1
+            # add bits from this gate to the overall set of params
+            for bit in instruction.qubits + instruction.clbits:
+                if bit not in bit_to_qasm:
+                    bit_to_qasm[bit] = "p" + str(current_bit)
+                    current_bit += 1
 
             curr_gate = "\t{} {};\n".format(
-                gate[0].qasm(),
-                ",".join([reg_to_qasm[j] for j in gate[1] + gate[2]]),
+                instruction.operation.qasm(),
+                ",".join([bit_to_qasm[j] for j in instruction.qubits + instruction.clbits]),
             )
             gates_def += curr_gate
 
@@ -215,7 +215,7 @@ class UnitaryGate(Gate):
             "gate "
             + self._qasm_name
             + " "
-            + ",".join(reg_to_qasm.values())
+            + ",".join(bit_to_qasm.values())
             + " {\n"
             + gates_def
             + "}"

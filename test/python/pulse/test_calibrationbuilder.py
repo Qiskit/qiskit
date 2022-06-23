@@ -20,7 +20,7 @@ from ddt import data, ddt
 from qiskit import circuit, schedule
 from qiskit.pulse import ControlChannel, Delay, DriveChannel, GaussianSquare, Play, ShiftPhase
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeAthens
+from qiskit.providers.fake_provider import FakeAthens
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes.calibration.builders import (
     RZXCalibrationBuilder,

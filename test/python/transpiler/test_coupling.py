@@ -14,7 +14,7 @@
 
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.exceptions import CouplingError
-from qiskit.test.mock import FakeRueschlikon
+from qiskit.providers.fake_provider import FakeRueschlikon
 from qiskit.test import QiskitTestCase
 
 

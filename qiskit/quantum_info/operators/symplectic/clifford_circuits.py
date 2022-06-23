@@ -98,12 +98,14 @@ def _append_circuit(clifford, circuit, qargs=None):
             )
         )
     qubit_indices = {bit: idx for idx, bit in enumerate(gate.definition.qubits)}
-    for instr, qregs, cregs in gate.definition:
-        if cregs:
-            raise QiskitError(f"Cannot apply Instruction with classical registers: {instr.name}")
+    for instruction in gate.definition:
+        if instruction.clbits:
+            raise QiskitError(
+                f"Cannot apply Instruction with classical bits: {instruction.operation.name}"
+            )
         # Get the integer position of the flat register
-        new_qubits = [qargs[qubit_indices[tup]] for tup in qregs]
-        _append_circuit(clifford, instr, new_qubits)
+        new_qubits = [qargs[qubit_indices[tup]] for tup in instruction.qubits]
+        _append_circuit(clifford, instruction.operation, new_qubits)
     return clifford
 
 
