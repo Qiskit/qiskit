@@ -411,18 +411,14 @@ class TestSampler(QiskitTestCase):
         """test with shots option."""
         params, target = self._generate_params_target([1])
         with Sampler(circuits=self._pqc) as sampler:
-            result = sampler(circuits=[0], parameter_values=params, shots=1024, seed_primitive=15)
+            result = sampler(circuits=[0], parameter_values=params, shots=1024, seed=15)
             self._compare_probs(result.quasi_dists, target)
 
     def test_with_shots_option_none(self):
         """test with shots=None option. Seed is ignored then."""
         with Sampler([self._pqc]) as sampler:
-            result_42 = sampler(
-                [0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed_primitive=42
-            )
-            result_15 = sampler(
-                [0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed_primitive=15
-            )
+            result_42 = sampler([0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed=42)
+            result_15 = sampler([0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed=15)
         self.assertDictAlmostEqual(result_42.quasi_dists, result_15.quasi_dists)
 
 

@@ -41,7 +41,7 @@ class Sampler(BaseSampler):
           The number of shots. If None, it calculates the probabilities.
           Otherwise, it samples from multinomial distributions.
 
-        - **seed_primitive** (np.random.Generator or int) --
+        - **seed** (np.random.Generator or int) --
           Set a fixed seed or generator for the multinomial distribution. If shots is None, this
           option is ignored.
     """
@@ -88,13 +88,13 @@ class Sampler(BaseSampler):
             raise QiskitError("The primitive has been closed.")
 
         shots = run_options.pop("shots", None)
-        seed_primitive = run_options.pop("seed_primitive", None)
-        if seed_primitive is None:
+        seed = run_options.pop("seed", None)
+        if seed is None:
             rng = np.random.default_rng()
-        elif isinstance(seed_primitive, np.random.Generator):
-            rng = seed_primitive
+        elif isinstance(seed, np.random.Generator):
+            rng = seed
         else:
-            rng = np.random.default_rng(seed_primitive)
+            rng = np.random.default_rng(seed)
 
         # Initialize metadata
         metadata = [{}] * len(circuits)
