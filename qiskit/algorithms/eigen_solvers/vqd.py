@@ -20,7 +20,6 @@ import logging
 import warnings
 from time import time
 import numpy as np
-import scipy
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import RealAmplitudes

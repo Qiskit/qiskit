@@ -12,7 +12,6 @@
 
 """ Test VQD """
 
-import logging
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
