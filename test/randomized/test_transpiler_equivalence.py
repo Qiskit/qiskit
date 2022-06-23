@@ -59,7 +59,7 @@ import hypothesis.strategies as st
 from qiskit import transpile, Aer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import Measure, Reset, Gate, Barrier
-from qiskit.test.mock import (
+from qiskit.providers.fake_provider import (
     FakeProvider,
     FakeOpenPulse2Q,
     FakeOpenPulse3Q,

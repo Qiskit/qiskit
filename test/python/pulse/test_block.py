@@ -18,7 +18,7 @@ from qiskit import pulse, circuit
 from qiskit.pulse import transforms
 from qiskit.pulse.exceptions import PulseError
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q, FakeArmonk
+from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeArmonk
 from qiskit.utils import has_aer
 
 

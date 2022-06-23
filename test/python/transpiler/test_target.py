@@ -40,8 +40,7 @@ from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler import Target
 from qiskit.transpiler import InstructionProperties
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock.fake_backend_v2 import FakeBackendV2
-from qiskit.test.mock.fake_mumbai_v2 import FakeMumbaiFractionalCX
+from qiskit.providers.fake_provider import FakeBackendV2, FakeMumbaiFractionalCX
 
 
 class TestTarget(QiskitTestCase):
