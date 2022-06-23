@@ -41,7 +41,7 @@ from qiskit.utils.validation import validate_min
 from qiskit.utils.backend_utils import is_aer_provider
 from qiskit.utils import QuantumInstance
 from ..list_or_dict import ListOrDict
-from ..optimizers import Optimizer, SLSQP, OptimizerResult
+from ..optimizers import Optimizer, SLSQP, Minimizer
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .eigen_solver import Eigensolver, EigensolverResult
 from ..minimum_eigen_solvers.vqe import _validate_bounds, _validate_initial_point
@@ -50,22 +50,7 @@ from ..aux_ops_evaluator import eval_observables
 
 logger = logging.getLogger(__name__)
 
-OBJECTIVE = Callable[[np.ndarray], float]
-GRADIENT = Callable[[np.ndarray], np.ndarray]
-RESULT = Union[scipy.optimize.OptimizeResult, OptimizerResult]
-BOUNDS = List[Tuple[float, float]]
 
-MINIMIZER = Callable[
-    [
-        OBJECTIVE,  # the objective function to minimize (the energy in the case of the VQE)
-        np.ndarray,  # the initial point for the optimization
-        Optional[GRADIENT],  # the gradient of the objective function
-        Optional[BOUNDS],  # parameters bounds for the optimization
-    ],
-    RESULT,  # a result object (either SciPy's or Qiskit's)
-]
-
-# TODO: Add a more detailed explanation of the algorithm in the main docstring
 
 
 class VQD(VariationalAlgorithm, Eigensolver):
@@ -99,10 +84,10 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
     The length of the *initial_point* list value must match the number of the parameters
     expected by the ansatz being used. If the *initial_point* is left at the default
-    of ``None``, then VQE will look to the ansatz for a preferred value, based on its
+    of ``None``, then VQD will look to the ansatz for a preferred value, based on its
     given initial state. If the ansatz returns ``None``,
     then a random point will be generated within the parameter bounds set, as per above.
-    If the ansatz provides ``None`` as the lower bound, then VQE
+    If the ansatz provides ``None`` as the lower bound, then VQD
     will default it to :math:`-2\pi`; similarly, if the ansatz returns ``None``
     as the upper bound, the default value will be :math:`2\pi`.
 
@@ -113,7 +98,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         ansatz: Optional[QuantumCircuit] = None,
         k: int = 2,
         betas: Optional[List[float]] = None,
-        optimizer: Optional[Union[Optimizer, MINIMIZER]] = None,
+        optimizer: Optional[Union[Optimizer, Minimizer]] = None,
         initial_point: Optional[np.ndarray] = None,
         gradient: Optional[Union[GradientBase, Callable]] = None,
         expectation: Optional[ExpectationBase] = None,
@@ -126,14 +111,15 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         Args:
             ansatz: A parameterized circuit used as ansatz for the wave function.
-            optimizer: A classical optimizer.
             k: the number of eigenvalues to return. Returns the lowest k eigenvalues.
             betas: beta parameter in the VQD paper. Should have size k -1, the number of excited states.
                 It is a hyperparameter that balances the contribution of the overlap
                 term to the cost function and has a default value computed as
                 mean square sum of coefficients of observable.
+            optimizer: A classical optimizer. Can either be a Qiskit optimizer or a callable
+                that takes an array as input and returns a Qiskit or SciPy optimization result.
             initial_point: An optional initial point (i.e. initial parameter values)
-                for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
+                for the optimizer. If ``None`` then VQD will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
             gradient: An optional gradient function or operator for optimizer.
                 Only used to compute the ground state at the moment.
@@ -142,7 +128,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 :class:`~qiskit.opflow.expectations.ExpectationFactory` is used to select
                 an appropriate expectation based on the operator and backend. When using Aer
                 qasm_simulator backend, with paulis, it is however much faster to leverage custom
-                Aer function for the computation but, although VQE performs much faster
+                Aer function for the computation but, although VQD performs much faster
                 with it, the outcome is ideal, with no shot noise, like using a state vector
                 simulator. If you are just looking for the quickest performance when choosing Aer
                 qasm_simulator and the lack of shot noise is not an issue then set `include_custom`
@@ -719,7 +705,8 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         if step > 1 and (len(prev_states) + 1) != step:
             raise RuntimeError(
-                f"Passed previous states of the wrong size. Passed array has length {str(len(prev_states))}"
+                f"Passed previous states of the wrong size."
+                f"Passed array has length {str(len(prev_states))}"
             )
 
         self._check_operator_ansatz(operator)
@@ -772,7 +759,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
 
 class VQDResult(VariationalResult, EigensolverResult):
-    """VQE Result."""
+    """VQD Result."""
 
     def __init__(self) -> None:
         super().__init__()
