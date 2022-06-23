@@ -69,8 +69,14 @@ def _lifted_gaussian(
     Returns:
         Symbolic equation.
     """
-    gauss = sym.exp(-(((t - center) / sigma) ** 2) / 2)
-    offset = sym.exp(-(((t_zero - center) / sigma) ** 2) / 2)
+    # Sympy automatically does expand.
+    # This causes expression inconsistency after qpy round-trip serializing through sympy.
+    # See issue for details: https://github.com/symengine/symengine.py/issues/409
+    t_shifted = (t - center).expand()
+    t_offset = (t_zero - center).expand()
+
+    gauss = sym.exp(-((t_shifted / sigma) ** 2) / 2)
+    offset = sym.exp(-((t_offset / sigma) ** 2) / 2)
 
     return (gauss - offset) / (1 - offset)
 

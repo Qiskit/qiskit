@@ -75,10 +75,10 @@ class Acquire(Instruction):
         if not (mem_slot or reg_slot):
             raise PulseError("Neither MemorySlots nor RegisterSlots were supplied.")
 
-        self._kernel = kernel
-        self._discriminator = discriminator
-
-        super().__init__(operands=(duration, channel, mem_slot, reg_slot), name=name)
+        super().__init__(
+            operands=(duration, channel, mem_slot, reg_slot, kernel, discriminator),
+            name=name,
+        )
 
     @property
     def channel(self) -> AcquireChannel:
@@ -100,12 +100,12 @@ class Acquire(Instruction):
     @property
     def kernel(self) -> Kernel:
         """Return kernel settings."""
-        return self._kernel
+        return self._operands[4]
 
     @property
     def discriminator(self) -> Discriminator:
         """Return discrimination settings."""
-        return self._discriminator
+        return self._operands[5]
 
     @property
     def acquire(self) -> AcquireChannel:

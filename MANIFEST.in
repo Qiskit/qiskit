@@ -7,7 +7,7 @@ include qiskit/VERSION.txt
 recursive-include qiskit *.pyx
 recursive-include qiskit *.pxd
 include qiskit/visualization/styles/*.json
-recursive-include qiskit/test/mock/backends *.json
+recursive-include qiskit/providers/fake_provider/backends *.json
 
 # Include the tests files.
 recursive-include test *.py
