@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests for swap strategy routers."""
+"""Tests for routing FindCommutingPauliEvolutions and Commuting2qGateRouter."""
 
 from qiskit.circuit import QuantumCircuit, Qubit, QuantumRegister
 from qiskit.transpiler import PassManager, CouplingMap, Layout, TranspilerError
@@ -38,8 +38,8 @@ from qiskit.transpiler.passes.routing.commuting_2q_gate_routing import (
 )
 
 
-class TestPauliEvolutionSwapStrategies(QiskitTestCase):
-    """A class to test the swap strategies transpiler passes."""
+class TestPauliEvolutionRouting(QiskitTestCase):
+    """Test the swap strategies on FindCommutingPauliEvolutions and Commuting2qGateRouter passes."""
 
     def setUp(self):
         """Assume a linear coupling map."""

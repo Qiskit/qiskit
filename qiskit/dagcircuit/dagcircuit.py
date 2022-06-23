@@ -1003,6 +1003,18 @@ class DAGCircuit:
 
         return rx.is_isomorphic_node_match(self._multi_graph, other._multi_graph, node_eq)
 
+    def layered_topological_op_nodes(self):
+        """
+        Yield nodes in topological order by layers.
+
+        Yield:
+            generator(DAGOpNode, DAGInNode, or DAGOutNode): node in topological order
+        """
+        for layer in self.multigraph_layers():
+            for nd in layer:
+                if isinstance(nd, DAGOpNode):
+                    yield nd
+
     def topological_nodes(self, key=None):
         """
         Yield nodes in topological order.
