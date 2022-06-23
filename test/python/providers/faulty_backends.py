@@ -13,7 +13,7 @@
 """Faulty fake backends for testing"""
 
 from qiskit.providers.models import BackendProperties
-from qiskit.test.mock import FakeOurense
+from qiskit.providers.fake_provider import FakeOurense
 
 
 class FakeOurenseFaultyQ1(FakeOurense):

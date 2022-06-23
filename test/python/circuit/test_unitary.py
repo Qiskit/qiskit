@@ -87,7 +87,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         self.assertTrue(len(dag_nodes) == 1)
         dnode = dag_nodes[0]
         self.assertIsInstance(dnode.op, UnitaryGate)
-        self.assertEqual(dnode.qargs, [qr[0]])
+        self.assertEqual(dnode.qargs, (qr[0],))
         assert_allclose(dnode.op.to_matrix(), matrix)
 
     def test_2q_unitary(self):
@@ -113,7 +113,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         self.assertEqual(len(nodes), 1)
         dnode = nodes[0]
         self.assertIsInstance(dnode.op, UnitaryGate)
-        self.assertEqual(dnode.qargs, [qr[0], qr[1]])
+        self.assertEqual(dnode.qargs, (qr[0], qr[1]))
         assert_allclose(dnode.op.to_matrix(), matrix)
         qc3 = dag_to_circuit(dag)
         self.assertEqual(qc2, qc3)
@@ -136,7 +136,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         self.assertEqual(len(nodes), 1)
         dnode = nodes[0]
         self.assertIsInstance(dnode.op, UnitaryGate)
-        self.assertEqual(dnode.qargs, [qr[0], qr[1], qr[3]])
+        self.assertEqual(dnode.qargs, (qr[0], qr[1], qr[3]))
         assert_allclose(dnode.op.to_matrix(), matrix)
 
     def test_1q_unitary_int_qargs(self):

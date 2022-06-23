@@ -89,7 +89,7 @@ def pulse_drawer(
             import numpy as np
             import qiskit
             from qiskit import pulse
-            from qiskit.test.mock.backends.almaden import FakeAlmaden
+            from qiskit.providers.fake_provider import FakeAlmaden
 
             inst_map = FakeAlmaden().defaults().instruction_schedule_map
 
@@ -117,7 +117,7 @@ def pulse_drawer(
             import numpy as np
             import qiskit
             from qiskit import pulse
-            from qiskit.test.mock.backends.almaden import FakeAlmaden
+            from qiskit.providers.fake_provider import FakeAlmaden
 
             inst_map = FakeAlmaden().defaults().instruction_schedule_map
 

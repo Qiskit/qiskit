@@ -106,25 +106,38 @@ class PassManagerConfig:
             AttributeError: If the backend does not support a `configuration()` method.
         """
         res = cls(**pass_manager_options)
-        config = backend.configuration()
+        backend_version = getattr(backend, "version", 0)
+        if not isinstance(backend_version, int):
+            backend_version = 0
+        if backend_version < 2:
+            config = backend.configuration()
 
         if res.basis_gates is None:
-            res.basis_gates = getattr(config, "basis_gates", None)
-        if res.inst_map is None and hasattr(backend, "defaults"):
-            res.inst_map = backend.defaults().instruction_schedule_map
+            if backend_version < 2:
+                res.basis_gates = getattr(config, "basis_gates", None)
+            else:
+                res.basis_gates = backend.operation_names
+        if res.inst_map is None:
+            if backend_version < 2:
+                if hasattr(backend, "defaults"):
+                    res.inst_map = backend.defaults().instruction_schedule_map
+            else:
+                res.inst_map = backend.instruction_schedule_map
         if res.coupling_map is None:
-            res.coupling_map = CouplingMap(getattr(config, "coupling_map", None))
+            if backend_version < 2:
+                res.coupling_map = CouplingMap(getattr(config, "coupling_map", None))
+            else:
+                res.coupling_map = backend.coupling_map
         if res.instruction_durations is None:
-            res.instruction_durations = InstructionDurations.from_backend(backend)
-        if res.backend_properties is None:
+            if backend_version < 2:
+                res.instruction_durations = InstructionDurations.from_backend(backend)
+            else:
+                res.instruction_durations = backend.instruction_durations
+        if res.backend_properties is None and backend_version < 2:
             res.backend_properties = backend.properties()
         if res.target is None:
-            backend_version = getattr(backend, "version", 0)
-            if not isinstance(backend_version, int):
-                backend_version = 0
             if backend_version >= 2:
                 res.target = backend.target
-
         return res
 
     def __str__(self):
