@@ -398,7 +398,8 @@ class StagedPassManager(PassManager):
             "scheduling",
         ]
         self._validate_stages(stages)
-        self._stages = stages
+        self._stages: List[str] = list(stages)
+        self._expanded_stages: List[str] = list(self._generate_expanded_stages())
         super().__init__()
         self._validate_kwargs(kwargs)
         for stage in self.expanded_stages:
@@ -417,8 +418,9 @@ class StagedPassManager(PassManager):
                 raise ValueError(msg.getvalue())
 
     def _validate_kwargs(self, kwargs: Dict[str, Any]) -> None:
+        expanded_stages = set(self.expanded_stages)
         for stage in kwargs.keys():
-            if stage not in self.expanded_stages:
+            if stage not in expanded_stages:
                 raise AttributeError(f"{stage} is not a valid stage.")
 
     @property
@@ -429,7 +431,7 @@ class StagedPassManager(PassManager):
     @property
     def expanded_stages(self) -> List[str]:
         """Expanded Pass manager stages including 'pre_' and 'post_' phases."""
-        return list(self._generate_expanded_stages())
+        return self._expanded_stages
 
     def _generate_expanded_stages(self) -> Iterator[str]:
         for stage in self.stages:
