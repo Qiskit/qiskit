@@ -138,8 +138,7 @@ class UCGate(Gate):
         circuit = QuantumCircuit(q)
         # If there is no control, we use the ZYZ decomposition
         if not q_controls:
-            theta, phi, lamb = _DECOMPOSER1Q.angles(self.params[0])
-            circuit.u(theta, phi, lamb, q)
+            circuit.unitary(self.params[0], [q])
             return circuit, diag
         # If there is at least one control, first,
         # we find the single qubit gates of the decomposition.
@@ -160,7 +159,7 @@ class UCGate(Gate):
                     .dot(HGate().to_matrix())
                 )
             # Add single-qubit gate
-            circuit.squ(squ, q_target)
+            circuit.unitary(squ, [q_target])
             # The number of the control qubit is given by the number of zeros at the end
             # of the binary representation of (i+1)
             binary_rep = np.binary_repr(i + 1)
@@ -169,6 +168,7 @@ class UCGate(Gate):
             # Add C-NOT gate
             if not i == len(single_qubit_gates) - 1:
                 circuit.cx(q_controls[q_contr_index], q_target)
+                circuit.global_phase -= 0.25 * np.pi
         if not self.up_to_diagonal:
             # Important: the diagonal gate is given in the computational basis of the qubits
             # q[k-1],...,q[0],q_target (ordered with decreasing significance),
