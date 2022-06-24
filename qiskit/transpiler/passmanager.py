@@ -15,6 +15,7 @@
 import io
 import re
 from typing import Union, List, Callable, Dict, Any
+from warnings import warn
 
 import dill
 
@@ -306,8 +307,9 @@ class PassManager:
 
         return pass_manager_drawer(self, filename=filename, style=style, raw=raw)
 
+    @property
     def passes(self) -> List[Dict[str, BasePass]]:
-        """Return a list structure of the appended passes and its options.
+        """List structure of the appended passes and its options.
 
         Returns:
             A list of pass sets, as defined in ``append()``.
@@ -320,6 +322,14 @@ class PassManager:
             else:
                 item["flow_controllers"] = {}
             ret.append(item)
+
+        def call(self):
+            warn("The `PassManager.passes()` method is deprecated as of 0.22.0, and "
+                  "will be removed no earlier than 3 months after that "
+                  "release date. You should use the `PassManager.passes` property instead.", DeprecationWarning, stacklevel=2)
+            return self
+
+        ret.__call__ = call
         return ret
 
 
@@ -491,9 +501,10 @@ class StagedPassManager(PassManager):
         self._update_passmanager()
         return super()._create_running_passmanager()
 
+    @property
     def passes(self) -> List[Dict[str, BasePass]]:
         self._update_passmanager()
-        return super().passes()
+        return super().passes
 
     def run(
         self,
