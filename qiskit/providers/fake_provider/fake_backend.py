@@ -85,8 +85,20 @@ class FakeBackendV2(BackendV2):
         self.sim = None
 
     def __getattr__(self, name: str) -> Any:
-        """Gets attribute from configuration if self does not yet have it."""
+        """Getter of minimal hidden attributes necessary for pulse-level simulation."""
+        if name not in {"hamiltonian", "u_channel_lo"}:
+            raise AttributeError(
+                "'{}' object has no attribute '{}'".format(self.__class__.__name__, name)
+            )
+
         if self._conf_dict and name in self._conf_dict:
+            if name == "u_channel_lo":
+                from qiskit.providers.models import UchannelLO
+
+                return [
+                    [UchannelLO.from_dict(x) for x in channel] for channel in self._conf_dict[name]
+                ]
+
             return self._conf_dict[name]
 
         raise AttributeError(
