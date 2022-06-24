@@ -353,6 +353,25 @@ class TestReference(QiskitTestCase):
         self.assertEqual(sched_z2.references[("r1",)], sched_r1)
         self.assertEqual(sched_z2.references[("y1",)], sched_y1)
 
+    def test_special_parameter_name(self):
+        """Testcase to guarantee usage of some special symbols in parameter name.
+
+        These symbols might be often used in user code.
+        No conflict should occur with the default scope delimiter.
+        """
+        param = circuit.Parameter("my.parameter_object")
+
+        with pulse.build() as sched_x1:
+            pulse.play(pulse.Constant(100, param, name="x1"), pulse.DriveChannel(0))
+
+        with pulse.build() as sched_y1:
+            pulse.refer("sub", "q0")
+        sched_y1.assign_references({("sub", "q0"): sched_x1})
+
+        ret_param = sched_y1.get_parameters("my.parameter_object", scope=r"\Ssub,q0")[0]
+
+        self.assertEqual(param, ret_param)
+
 
 class TestSubroutineWithCXGate(QiskitTestCase):
     """Test called program scope with practical example of building fully parametrized CX gate."""
