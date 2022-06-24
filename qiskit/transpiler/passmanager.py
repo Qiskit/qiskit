@@ -14,7 +14,7 @@
 
 import io
 import re
-from typing import Union, List, Callable, Dict, Any
+from typing import Union, List, Callable, Dict, Any, Iterator
 
 import dill
 
