@@ -24,4 +24,5 @@ from qiskit.qpy import (
     _write_parameter_expression,
     _read_parameter_expression,
     _read_parameter_expression_v3,
+    _read_parameter_expression_v6,
 )

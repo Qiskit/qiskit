@@ -181,6 +181,23 @@ WAVEFORM = namedtuple("WAVEFORM", ["epsilon", "data_size", "amp_limited"])
 WAVEFORM_PACK = "!fI?"
 WAVEFORM_SIZE = struct.calcsize(WAVEFORM_PACK)
 
+# SYMBOLIC_PULSE_V6
+SYMBOLIC_PULSE_V6 = namedtuple(
+    "SYMBOLIC_PULSE",
+    [
+        "type_size",
+        "envelope_type",
+        "envelope_size",
+        "constraints_type",
+        "constraints_size",
+        "valid_amp_conditions_type",
+        "valid_amp_conditions_size",
+        "amp_limited",
+    ],
+)
+SYMBOLIC_PULSE_V6_PACK = "!H1cH1cH1cH?"
+SYMBOLIC_PULSE_V6_SIZE = struct.calcsize(SYMBOLIC_PULSE_V6_PACK)
+
 # SYMBOLIC_PULSE
 SYMBOLIC_PULSE = namedtuple(
     "SYMBOLIC_PULSE",
@@ -216,6 +233,11 @@ PARAMETER_VECTOR_ELEMENT = namedtuple(
 )
 PARAMETER_VECTOR_ELEMENT_PACK = "!HQ16sQ"
 PARAMETER_VECTOR_ELEMENT_SIZE = struct.calcsize(PARAMETER_VECTOR_ELEMENT_PACK)
+
+# PARAMETER_EXPR_V6
+PARAMETER_EXPR_V6 = namedtuple("PARAMETER_EXPR", ["map_elements", "expr_type", "expr_size"])
+PARAMETER_EXPR_V6_PACK = "!Q1cQ"
+PARAMETER_EXPR_V6_SIZE = struct.calcsize(PARAMETER_EXPR_V6_PACK)
 
 # PARAMETER_EXPR
 PARAMETER_EXPR = namedtuple("PARAMETER_EXPR", ["map_elements", "expr_size"])

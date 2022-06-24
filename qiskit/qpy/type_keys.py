@@ -98,6 +98,8 @@ class Value(TypeKeyBase):
     PARAMETER_EXPRESSION = b"e"
     STRING = b"s"
     NULL = b"z"
+    SYMPY_EXPR = b"y"
+    SYMENGINE_EXPR = b"m"
 
     @classmethod
     def assign(cls, obj):
@@ -119,6 +121,18 @@ class Value(TypeKeyBase):
             return cls.STRING
         if obj is None:
             return cls.NULL
+        try:
+            import sympy
+            if isinstance(obj, sympy.Expr):
+                return cls.SYMPY_EXPR
+        except ImportError:
+            pass
+        try:
+            import symengine
+            if isinstance(obj, symengine.Expr):
+                return cls.SYMENGINE_EXPR
+        except ImportError:
+            pass
 
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
