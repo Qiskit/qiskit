@@ -131,22 +131,22 @@ class UMDA(Optimizer):
         self.size_gen = size_gen
         self.maxiter = maxiter
         self.alpha = alpha
-        self._vector = None
+        self._vector: Optional[np.ndarray] = None
         # initialization of generation
-        self._generation = None
+        self._generation: Optional[np.ndarray] = None
         self._dead_iter = int(self._maxiter / 5)
 
         self._truncation_length = int(size_gen * alpha)
 
         super().__init__()
 
-        self._best_cost_global = None
-        self._best_ind_global = None
-        self._evaluations = None
+        self._best_cost_global: Optional[float] = None
+        self._best_ind_global: Optional[int] = None
+        self._evaluations: Optional[np.ndarray] = None
 
-        self._n_variables = None
+        self._n_variables: Optional[int] = None
 
-    def _initialization(self):
+    def _initialization(self) -> np.ndarray:
         vector = np.zeros((4, self._n_variables))
 
         vector[0, :] = np.pi  # mu
@@ -203,7 +203,7 @@ class UMDA(Optimizer):
         not_better_count = 0
         result = OptimizerResult()
 
-        self._n_variables = len(x0)
+        self._n_variables = len(x0)  # TODO: what if x0 is float?
         self._best_cost_global = 999999999999
         self._best_ind_global = 9999999
         history = []
@@ -221,7 +221,7 @@ class UMDA(Optimizer):
             self._truncation()
             self._update_vector()
 
-            best_mae_local = min(self._evaluations)
+            best_mae_local: float = min(self._evaluations)
 
             history.append(best_mae_local)
             best_ind_local = np.where(self._evaluations == best_mae_local)[0][0]

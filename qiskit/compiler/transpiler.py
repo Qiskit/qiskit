@@ -254,7 +254,8 @@ def transpile(
             or errors in passes
     """
     arg_circuits_list = isinstance(circuits, list)
-    circuits = circuits if arg_circuits_list else [circuits]
+    circuits = circuits if arg_circuits_list else [circuits]  # type: ignore[list-item]
+    assert isinstance(circuits, list)
 
     if not circuits:
         return []
@@ -313,7 +314,7 @@ def transpile(
     )
     # Get transpile_args to configure the circuit transpilation job(s)
     if coupling_map in unique_transpile_args:
-        cmap_conf = unique_transpile_args["coupling_map"]
+        cmap_conf = unique_transpile_args["coupling_map"]  # TODO: unique_transpile_args is a list
     else:
         cmap_conf = [shared_args["coupling_map"]] * len(circuits)
     _check_circuits_coupling_map(circuits, cmap_conf, backend)

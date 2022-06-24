@@ -169,6 +169,7 @@ class MatrixFunctional(LinearSystemObservable):
         # Check if it is QuantumCircuits and get the array from them
         if isinstance(solution, QuantumCircuit):
             solution = Statevector(solution).data
+        assert isinstance(solution, np.ndarray)
 
         matrix = diags(
             [self._off_diag, self._main_diag, self._off_diag],

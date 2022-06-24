@@ -74,7 +74,7 @@ class Statevector(QuantumState, TolerancesMixin):
         if isinstance(data, (list, np.ndarray)):
             # Finally we check if the input is a raw vector in either a
             # python list or numpy array format.
-            self._data = np.asarray(data, dtype=complex)
+            self._data: np.ndarray = np.asarray(data, dtype=complex)
         elif isinstance(data, Statevector):
             self._data = data._data
             if dims is None:
@@ -225,7 +225,7 @@ class Statevector(QuantumState, TolerancesMixin):
         return len(self._data)
 
     @property
-    def data(self):
+    def data(self) -> np.ndarray:
         """Return data."""
         return self._data
 

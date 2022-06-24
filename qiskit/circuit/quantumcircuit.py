@@ -1382,11 +1382,11 @@ class QuantumCircuit:
             elif len(regs) == 2 and all(isinstance(reg, int) for reg in regs):
                 # QuantumCircuit with anonymous wires e.g. QuantumCircuit(2, 3)
                 if regs[0] == 0:
-                    qregs = tuple()
+                    qregs: Tuple[QuantumRegister, ...] = tuple()
                 else:
                     qregs = (QuantumRegister(regs[0], "q"),)
                 if regs[1] == 0:
-                    cregs = tuple()
+                    cregs: Tuple[ClassicalRegister, ...] = tuple()
                 else:
                     cregs = (ClassicalRegister(regs[1], "c"),)
                 regs = qregs + cregs
@@ -2640,6 +2640,7 @@ class QuantumCircuit:
         unrolled_value_dict: Dict[Parameter, ParameterValueType] = {}
         for (param, value) in value_dict.items():
             if isinstance(param, ParameterVector):
+                assert isinstance(param, ParameterVector)
                 if not len(param) == len(value):
                     raise CircuitError(
                         "ParameterVector {} has length {}, which "
@@ -4218,7 +4219,7 @@ class QuantumCircuit:
             :meth:`.QuantumCircuit.append`, so this should be safe.  Trying to account for it would
             involve adding a potentially quadratic-scaling loop to check each entry in ``data``.
         """
-        atomic_parameters: List[Parameter] = []
+        atomic_parameters: List[Tuple[Parameter, int]] = []
         for index, parameter in enumerate(instruction.operation.params):
             if isinstance(parameter, (ParameterExpression, QuantumCircuit)):
                 atomic_parameters.extend((p, index) for p in parameter.parameters)

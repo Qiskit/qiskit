@@ -12,7 +12,7 @@
 
 """Evolution problem class."""
 
-from typing import Union, Optional, Dict
+from typing import Union, Optional, Dict, Set
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
@@ -92,7 +92,7 @@ class EvolutionProblem:
             t_param_set = set()
             if self.t_param is not None:
                 t_param_set.add(self.t_param)
-            hamiltonian_dict_param_set = set()
+            hamiltonian_dict_param_set: Set[Parameter] = set()
             if self.hamiltonian_value_dict is not None:
                 hamiltonian_dict_param_set = hamiltonian_dict_param_set.union(
                     set(self.hamiltonian_value_dict.keys())

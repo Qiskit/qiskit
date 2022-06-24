@@ -46,7 +46,7 @@ class Decompose(TransformationPass):
             self.gates_to_decompose = gates_to_decompose
 
     @property
-    def gate(self) -> Gate:
+    def gate(self) -> Type[Gate]:
         """Returns the gate"""
         warnings.warn(
             "The gate argument is deprecated as of qiskit-terra 0.19.0, and "

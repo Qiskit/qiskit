@@ -41,9 +41,11 @@ def target_qobj_transform(
             sched = canonicalization.block_to_schedule(sched)
         else:
             sched = Schedule(*_format_schedule_component(sched))
+    assert isinstance(sched, Schedule)
 
     # remove subroutines, i.e. Call instructions
     sched = canonicalization.inline_subroutines(sched)
+    assert isinstance(sched, Schedule)
 
     # inline nested schedules
     sched = canonicalization.flatten(sched)

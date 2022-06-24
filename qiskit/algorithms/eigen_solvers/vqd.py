@@ -158,27 +158,27 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         # set ansatz -- still supporting pre 0.18.0 sorting
 
-        self._ansatz = None
+        self._ansatz: Optional[QuantumCircuit] = None
         self.ansatz = ansatz
 
         self.k = k
         self.betas = betas
 
-        self._optimizer = None
+        self._optimizer: Optional[Optimizer] = None
         self.optimizer = optimizer
 
-        self._initial_point = None
+        self._initial_point: Optional[np.ndarray] = None
         self.initial_point = initial_point
-        self._gradient = None
+        self._gradient: Optional[Union[GradientBase, Callable]] = None
         self.gradient = gradient
-        self._quantum_instance = None
+        self._quantum_instance: Optional[QuantumInstance] = None
 
         if quantum_instance is not None:
             self.quantum_instance = quantum_instance
 
         self._eval_time = None
         self._eval_count = 0
-        self._callback = None
+        self._callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None
         self.callback = callback
 
         logger.info(self.print_settings())
@@ -643,7 +643,10 @@ class VQD(VariationalAlgorithm, Eigensolver):
         operator: OperatorBase,
         return_expectation: bool = False,
         prev_states: Optional[List[np.ndarray]] = None,
-    ) -> Callable[[np.ndarray], Union[float, List[float]]]:
+    ) -> Union[
+        Callable[[np.ndarray], Union[float, List[float]]],
+        Tuple[Callable[[np.ndarray], Union[float, List[float]]], ExpectationBase],
+    ]:
         """Returns a function handle to evaluates the energy at given parameters for the ansatz.
 
         This return value is the objective function to be passed to the optimizer for evaluation.

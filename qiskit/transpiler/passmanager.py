@@ -162,7 +162,7 @@ class PassManager:
     @staticmethod
     def _normalize_passes(
         passes: Union[BasePass, List[TBasePass], FlowController]
-    ) -> List[TBasePass]:
+    ) -> Union[List[TBasePass], FlowController]:
         if isinstance(passes, FlowController):
             return passes
         if isinstance(passes, BasePass):

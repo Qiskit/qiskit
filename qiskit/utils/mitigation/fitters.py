@@ -18,7 +18,7 @@
 """
 Measurement correction fitters.
 """
-from typing import List, Any, Dict
+from typing import List, Any, Dict, Optional, Sequence
 import copy
 import re
 
@@ -38,7 +38,7 @@ class CompleteMeasFitter:
         self,
         results,
         state_labels: List[str],
-        qubit_list: List[int] = None,
+        qubit_list: Optional[Sequence[int]] = None,
         circlabel: str = "",
     ):
         """
@@ -217,7 +217,7 @@ class TensoredMeasFitter:
     def __init__(
         self,
         results,
-        mit_pattern: List[List[int]],
+        mit_pattern: List[Sequence[int]],
         substate_labels_list: List[List[str]] = None,
         circlabel: str = "",
     ):

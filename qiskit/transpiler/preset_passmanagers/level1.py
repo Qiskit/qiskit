@@ -148,7 +148,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
 
     toqm_pass = False
     if routing_method == "basic":
-        routing_pass = BasicSwap(coupling_map)
+        routing_pass: BasePass = BasicSwap(coupling_map)
     elif routing_method == "stochastic":
         routing_pass = StochasticSwap(coupling_map, trials=20, seed=seed_transpiler)
     elif routing_method == "lookahead":

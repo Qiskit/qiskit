@@ -167,14 +167,17 @@ class AmplificationProblem:
             return self._is_good_state  # returns None if no is_good_state arg has been set
         elif isinstance(self._is_good_state, list):
             if all(isinstance(good_bitstr, str) for good_bitstr in self._is_good_state):
-                return lambda bitstr: bitstr in self._is_good_state
+                return lambda bitstr: bitstr in self._is_good_state  # type:ignore[operator]
             else:
                 return lambda bitstr: all(
-                    bitstr[good_index] == "1"  # type:ignore
-                    for good_index in self._is_good_state
+                    bitstr[good_index] == "1"  # type:ignore[index]
+                    for good_index in self._is_good_state  # type:ignore[union-attr]
                 )
 
-        return lambda bitstr: bitstr in self._is_good_state.probabilities_dict()
+        return (
+            lambda bitstr: bitstr
+            in self._is_good_state.probabilities_dict()  # type:ignore[union-attr]
+        )
 
     @is_good_state.setter
     def is_good_state(

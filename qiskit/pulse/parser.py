@@ -296,7 +296,7 @@ class PulseExpression(ast.NodeTransformer):
         raise PulseError("Unsupported node: %s" % node.__class__.__name__)
 
 
-def parse_string_expr(source: str, partial_binding: bool = False):
+def parse_string_expr(source: str, partial_binding: bool = False) -> PulseExpression:
     """Safe parsing of string expression.
 
     Args:

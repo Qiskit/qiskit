@@ -14,7 +14,7 @@
 Utilities for constructing Target object from configuration, properties and
 pulse defaults json files
 """
-from typing import Dict
+from typing import Dict, List
 
 from qiskit.transpiler.target import Target, InstructionProperties
 from qiskit.providers.backend import QubitProperties
@@ -131,7 +131,7 @@ def convert_to_target(conf_dict: dict, props_dict: dict = None, defs_dict: dict 
     return target
 
 
-def qubit_props_from_props(properties: dict) -> list:
+def qubit_props_from_props(properties: dict) -> List[QubitProperties]:
     """Returns a dictionary of `qiskit.providers.backend.QubitProperties` using
     a backend properties dictionary created by loading props.json payload.
     """

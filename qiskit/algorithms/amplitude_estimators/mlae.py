@@ -191,7 +191,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
             AlgorithmError: If `run()` hasn't been called yet.
             NotImplementedError: If the method `kind` is not supported.
         """
-        interval: Optional[Union[List[float]], Tuple[float, float]] = None
+        interval: Optional[Union[List[float], Tuple[float, float]]] = None
 
         # if statevector simulator the estimate is exact
         if all(isinstance(data, (list, np.ndarray)) for data in result.circuit_results):
@@ -490,7 +490,7 @@ def _likelihood_ratio_confint(
     result: MaximumLikelihoodAmplitudeEstimationResult,
     alpha: float = 0.05,
     nevals: Optional[int] = None,
-) -> List[float]:
+) -> Tuple[float, ...]:
     """Compute the likelihood-ratio confidence interval.
 
     Args:

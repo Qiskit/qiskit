@@ -235,7 +235,7 @@ class Schedule:
         return self.duration
 
     @property
-    def channels(self) -> Tuple[Channel]:
+    def channels(self) -> Tuple[Channel, ...]:
         """Returns channels that this schedule uses."""
         return tuple(self._timeslots.keys())
 
@@ -256,7 +256,7 @@ class Schedule:
         return tuple(self._children)
 
     @property
-    def instructions(self) -> Tuple[Tuple[int, Instruction]]:
+    def instructions(self) -> Tuple[Tuple[int, Instruction], ...]:
         """Get the time-ordered instructions from self."""
 
         def key(time_inst_pair):
@@ -1008,7 +1008,7 @@ class ScheduleBlock:
         return self.duration
 
     @property
-    def channels(self) -> Tuple[Channel]:
+    def channels(self) -> Tuple[Channel, ...]:
         """Returns channels that this schedule clock uses."""
         chans = set()
         for block in self.blocks:

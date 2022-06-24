@@ -212,5 +212,5 @@ class NumPyMatrix(LinearSystemMatrix):
         """
         qc = QuantumCircuit(self.num_state_qubits)
         evolved = sp.linalg.expm(1j * self.matrix * self.evolution_time)
-        qc.unitary(evolved, qc.qubits)
+        qc.unitary(evolved, qc.qubits)  # type: ignore[attr-defined]
         return qc.power(power)
