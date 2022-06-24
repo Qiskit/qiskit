@@ -323,14 +323,15 @@ class PassManager:
                 item["flow_controllers"] = {}
             ret.append(item)
 
-        def call(self):
-            warn("The `PassManager.passes()` method is deprecated as of 0.22.0, and "
-                  "will be removed no earlier than 3 months after that "
-                  "release date. You should use the `PassManager.passes` property instead.", DeprecationWarning, stacklevel=2)
-            return self
+        class CallableList(list):
+            def __call__(self) -> List:
+                warn("The `PassManager.passes()` method is deprecated as of 0.22.0, and "
+                    "will be removed no earlier than 3 months after that "
+                    "release date. You should use the `PassManager.passes` property instead.",
+                    DeprecationWarning, stacklevel=2)
+                return self
 
-        ret.__call__ = call
-        return ret
+        return CallableList(ret)
 
 
 class StagedPassManager(PassManager):

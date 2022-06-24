@@ -114,3 +114,12 @@ class TestPassManager(QiskitTestCase):
         self.assertIsInstance(calls[0]["time"], float)
         self.assertIsInstance(calls[0]["property_set"], PropertySet)
         self.assertEqual("MyCircuit", calls[1]["dag"].name)
+
+    def test_passes_deprecation_warning(self):
+        passmanager = PassManager()
+        passmanager.append(CommutativeCancellation(basis_gates=["u1", "u2", "u3", "cx"]))
+        with self.assertWarns(DeprecationWarning):
+            passes = passmanager.passes()
+        self.assertIsInstance(passes, list)
+        self.assertIsInstance(passmanager.passes, list)
+        self.assertEqual(passes, passmanager.passes)
