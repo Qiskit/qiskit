@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Allows for composing a circuit with classical registers, or registerless `Clbits`
+    to a circuit without.  This fits the common pattern of appending a circuit with
+    measurements to a circuit without.
