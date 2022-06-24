@@ -1,3 +1,3 @@
 from .parametric_circuits import ansatz
-from .meyer_wallach_measure import compute_Q_ptrace_qutip, compute_Q_ptrace_qiskit
-from .von_neumann_entropy import compute_vn_entropy_qiskit, compute_vn_entropy_qutip
+from .meyer_wallach_measure import compute_Q_ptrace_qiskit
+from .von_neumann_entropy import compute_vn_entropy_qiskit

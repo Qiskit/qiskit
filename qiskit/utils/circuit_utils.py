@@ -13,13 +13,9 @@
 """ Circuit utility functions """
 
 import numpy as np
-# from qiskit import Aer
-from qiskit.utils.entanglement import compute_Q_ptrace_qutip, compute_Q_ptrace_qiskit
-from qiskit.utils.entanglement import compute_vn_entropy_qutip, compute_vn_entropy_qiskit
-# from qiskit.compiler import transpile
-# from qiskit import Aer
-# from qiskit import Aer, transpile
 
+from qiskit.utils.entanglement import compute_Q_ptrace_qiskit
+from qiskit.utils.entanglement import compute_vn_entropy_qiskit
 
 
 def summarize_circuits(circuits):
@@ -75,49 +71,15 @@ def summarize_circuits(circuits):
     ret += "============================================================================\n"
     return ret
 
+
 class entanglement:
-    # Runtime imports to avoid circular imports causeed by QuantumInstance
-    # getting initialized by imported utils/__init__ which is imported
-    # by qiskit.circuit
-    # from qiskit import Aer
-
-    
-    # global backend
-    # backend=Aer.get_backend("statevector_simulator")
-
-    def __init__(self, parametric_circuit, backend, ent_measure = 1, feature_dim = 4, num_params = 2000):
+    def __init__(self, parametric_circuit, backend, ent_measure=1, feature_dim=4, num_params=2000):
 
         self.parametric_circuit = parametric_circuit
         self.num_params = num_params
         self.feature_dim = feature_dim
         self.backend = backend
         self.ent_measure = ent_measure
-        
-    def entanglement_capibility_qutip(self):
-
-        # Runtime imports to avoid circular imports causeed by QuantumInstance
-        # getting initialized by imported utils/__init__ which is imported
-        # by qiskit.circuit
-        from qiskit import transpile
-        
-
-        entanglement_cap = []
-        for samples in range(self.num_params):
-
-            transpiled_circ=transpile(self.parametric_circuit, self.backend, optimization_level=3)
-            job_sim = self.backend.run(transpiled_circ)
-            result_sim = job_sim.result()
-
-            state_vector = result_sim.get_statevector(transpiled_circ, decimals=5)
-            state_vector = np.array(state_vector)
-
-            Q_value = compute_Q_ptrace_qutip(ket = state_vector, N=self.feature_dim)
-            entanglement_cap.append(Q_value)
-
-        entanglement_cap = np.array(entanglement_cap)
-        net_entanglement_cap = np.sum(entanglement_cap)/self.num_params
-
-        return net_entanglement_cap
 
     def entanglement_capibility_qiskit(self):
 
@@ -125,24 +87,22 @@ class entanglement:
         # getting initialized by imported utils/__init__ which is imported
         # by qiskit.circuit
         from qiskit import transpile
-        
-        
 
         entanglement_cap = []
-        
+
         for samples in range(self.num_params):
-            transpiled_circ=transpile(self.parametric_circuit, self.backend, optimization_level=3)
+            transpiled_circ = transpile(self.parametric_circuit, self.backend, optimization_level=3)
             job_sim = self.backend.run(transpiled_circ)
             result_sim = job_sim.result()
 
-            state_vector = result_sim.get_statevector(transpiled_circ, decimals=5)
+            state_vector = result_sim.get_statevector(transpiled_circ)
             state_vector = np.array(state_vector)
 
-            Q_value = compute_Q_ptrace_qiskit(ket = state_vector, N=self.feature_dim)
+            Q_value = compute_Q_ptrace_qiskit(ket=state_vector, N=self.feature_dim)
             entanglement_cap.append(Q_value)
 
         entanglement_cap = np.array(entanglement_cap)
-        net_entanglement_cap = np.sum(entanglement_cap)/self.num_params
+        net_entanglement_cap = np.sum(entanglement_cap) / self.num_params
 
         return net_entanglement_cap
 
@@ -152,65 +112,31 @@ class entanglement:
         # getting initialized by imported utils/__init__ which is imported
         # by qiskit.circuit
         from qiskit import transpile
-        # from qiskit import Aer
-        # backend=Aer.get_backend("statevector_simulator")
-        
 
         entanglement_cap = []
 
         for samples in range(self.num_params):
 
-            transpiled_circ=transpile(self.parametric_circuit, self.backend, optimization_level=3)
+            transpiled_circ = transpile(self.parametric_circuit, self.backend, optimization_level=3)
             job_sim = self.backend.run(transpiled_circ)
             result_sim = job_sim.result()
 
-            state_vector = result_sim.get_statevector(transpiled_circ, decimals=5)
+            state_vector = result_sim.get_statevector(transpiled_circ)
             state_vector = np.array(state_vector)
 
-            Q_value = compute_vn_entropy_qiskit(ket = state_vector, N=self.feature_dim)
+            Q_value = compute_vn_entropy_qiskit(ket=state_vector, N=self.feature_dim)
             entanglement_cap.append(Q_value)
 
         entanglement_cap = np.array(entanglement_cap)
-        net_entanglement_cap = np.sum(entanglement_cap)/self.num_params
-
-        return net_entanglement_cap
-
-    
-
-    def von_neumann_entanglement_qutip(self):
-
-        # Runtime imports to avoid circular imports causeed by QuantumInstance
-        # getting initialized by imported utils/__init__ which is imported
-        # by qiskit.circuit
-        from qiskit import transpile
-        # from qiskit import Aer
-        # backend=Aer.get_backend("statevector_simulator")
-        
-
-        entanglement_cap = []
-        for samples in range(self.num_params):
-
-            transpiled_circ=transpile(self.parametric_circuit, self.backend, optimization_level=3)
-            job_sim = self.backend.run(transpiled_circ)
-            result_sim = job_sim.result()
-
-            state_vector = result_sim.get_statevector(transpiled_circ, decimals=5)
-            state_vector = np.array(state_vector)
-
-            Q_value = compute_vn_entropy_qutip(ket = state_vector, N=self.feature_dim)
-            entanglement_cap.append(Q_value)
-
-        entanglement_cap = np.array(entanglement_cap)
-        net_entanglement_cap = np.sum(entanglement_cap)/self.num_params
+        net_entanglement_cap = np.sum(entanglement_cap) / self.num_params
 
         return net_entanglement_cap
 
     def get_entanglement(self):
 
-        ent_cap = {1: self.entanglement_capibility_qiskit(),
-        2: self.entanglement_capibility_qutip(),
-        3: self.von_neumann_entanglement_qiskit(),
-        4: self.von_neumann_entanglement_qutip()
+        ent_cap = {
+            1: self.entanglement_capibility_qiskit(),
+            2: self.von_neumann_entanglement_qiskit(),
         }
 
         return ent_cap[self.ent_measure]
