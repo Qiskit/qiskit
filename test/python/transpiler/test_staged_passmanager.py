@@ -13,8 +13,9 @@
 # pylint: disable=missing-function-docstring,missing-class-docstring
 
 """Test the staged passmanager logic"""
-from ddt import data, ddt
 from unittest.mock import patch
+
+from ddt import data, ddt
 
 from qiskit.transpiler import PassManager, StagedPassManager
 from qiskit.transpiler.exceptions import TranspilerError
@@ -127,5 +128,5 @@ class TestStagedPassManager(QiskitTestCase):
         spm = StagedPassManager(init=pm)
         mock_target = "qiskit.transpiler.passmanager.StagedPassManager._update_passmanager"
         with patch(mock_target, spec=True) as mock:
-            item = spm[0]
+            _ = spm[0]
             mock.assert_called_once()

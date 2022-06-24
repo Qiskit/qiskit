@@ -426,12 +426,12 @@ class StagedPassManager(PassManager):
     @property
     def stages(self) -> List[str]:
         """Pass manager stages"""
-        return self._stages
+        return self._stages  # pylint: disable=E1101
 
     @property
     def expanded_stages(self) -> List[str]:
         """Expanded Pass manager stages including ``pre_`` and ``post_`` phases."""
-        return self._expanded_stages
+        return self._expanded_stages  # pylint: disable=E1101
 
     def _generate_expanded_stages(self) -> Iterator[str]:
         for stage in self.stages:
