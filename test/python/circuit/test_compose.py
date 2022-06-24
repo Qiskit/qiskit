@@ -26,7 +26,7 @@ from qiskit.circuit import (
     Qubit,
     Parameter,
     Gate,
-    Instruction
+    Instruction,
 )
 from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate, TwoLocal
 from qiskit.test import QiskitTestCase
