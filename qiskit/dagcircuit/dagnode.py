@@ -17,7 +17,7 @@
 import warnings
 from typing import Optional, Tuple
 
-from qiskit.circuit.quantumcircuit import QubitSpecifier, ClbitSpecifier
+from qiskit.circuit import Qubit, Clbit
 
 
 class DAGNode:
@@ -103,8 +103,8 @@ class DAGOpNode(DAGNode):
         """Create an Instruction node"""
         super().__init__()
         self.op = op
-        self.qargs: Optional[Tuple[QubitSpecifier, ...]] = tuple(qargs)
-        self.cargs: Optional[Tuple[ClbitSpecifier, ...]] = tuple(cargs)
+        self.qargs: Optional[Tuple[Qubit, ...]] = tuple(qargs)
+        self.cargs: Optional[Tuple[Clbit, ...]] = tuple(cargs)
         self.sort_key = str(self.qargs)
 
     @property

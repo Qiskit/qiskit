@@ -19,13 +19,15 @@ q_0: ──■──┤ RY(-ϴ) ├──■──┤ RX(π/2) ├┤0        �
 q_1: ┤ X ├──────────┤ X ├───────────┤1        ├────────────
      └───┘          └───┘           └─────────┘
 """
-from typing import Union, Optional
+from typing import Optional
 
 import numpy as np
+
 from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 
-def rzx_yz(theta: Optional[Union[Parameter, float]] = None):
+def rzx_yz(theta: Optional[ParameterValueType] = None):
     """Template for CX - RYGate - CX."""
     if theta is None:
         theta = Parameter("ϴ")

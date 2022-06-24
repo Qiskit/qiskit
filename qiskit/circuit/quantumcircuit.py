@@ -2640,7 +2640,6 @@ class QuantumCircuit:
         unrolled_value_dict: Dict[Parameter, ParameterValueType] = {}
         for (param, value) in value_dict.items():
             if isinstance(param, ParameterVector):
-                assert isinstance(param, ParameterVector)
                 if not len(param) == len(value):
                     raise CircuitError(
                         "ParameterVector {} has length {}, which "
