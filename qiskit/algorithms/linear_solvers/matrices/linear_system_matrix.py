@@ -41,9 +41,8 @@ class LinearSystemMatrix(BlueprintCircuit, ABC):
         # define internal parameters
         self._num_state_qubits: Optional[int] = None
         self._tolerance: Optional[float] = None
-        self._evolution_time: Optional[
-            float
-        ] = None  # makes sure the eigenvalues are contained in [0,1)
+        # makes sure the eigenvalues are contained in [0,1)
+        self._evolution_time: Optional[float] = None
 
         # store parameters
         self.num_state_qubits = num_state_qubits
