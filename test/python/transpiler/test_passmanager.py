@@ -118,7 +118,7 @@ class TestPassManager(QiskitTestCase):
     def test_passes_deprecation_warning(self):
         passmanager = PassManager()
         passmanager.append(CommutativeCancellation(basis_gates=["u1", "u2", "u3", "cx"]))
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             passes = passmanager.passes()
         self.assertIsInstance(passes, list)
         self.assertIsInstance(passmanager.passes, list)

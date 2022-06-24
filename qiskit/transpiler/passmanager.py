@@ -328,7 +328,7 @@ class PassManager:
                 warn("The `PassManager.passes()` method is deprecated as of 0.22.0, and "
                     "will be removed no earlier than 3 months after that "
                     "release date. You should use the `PassManager.passes` property instead.",
-                    DeprecationWarning, stacklevel=2)
+                    PendingDeprecationWarning, stacklevel=2)
                 return self
 
         return CallableList(ret)
