@@ -21,7 +21,6 @@ from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate, HG
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
-from qiskit.quantum_info.synthesis.clifford_decompose import decompose_clifford
 from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
 from qiskit.quantum_info.operators.symplectic.base_pauli import _count_y
 from .stabilizer_table import StabilizerTable
@@ -384,6 +383,8 @@ class Clifford(BaseOperator, AdjointMixin):
                Phys. Rev. A 70, 052328 (2004).
                `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
         """
+        from qiskit.quantum_info.synthesis.clifford_decompose import decompose_clifford
+
         return decompose_clifford(self)
 
     def to_instruction(self):

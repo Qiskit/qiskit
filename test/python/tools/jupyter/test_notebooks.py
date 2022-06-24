@@ -53,7 +53,7 @@ class TestJupyter(QiskitTestCase):
         import qiskit.providers.ibmq
         import sys
         from unittest.mock import create_autospec, MagicMock
-        from qiskit.test.mock import FakeProviderFactory
+        from qiskit.providers.fake_provider import FakeProviderFactory
         from qiskit.providers import basicaer
         fake_prov = FakeProviderFactory()
         qiskit.IBMQ = fake_prov
