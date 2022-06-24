@@ -57,9 +57,10 @@ class Instruction(ABC):
         self._name = name
         self._hash = None
 
-        for channel in self.channels:
-            if not isinstance(channel, Channel):
-                raise PulseError(f"Expected a channel, got {channel} instead.")
+        if self.channels is not NotImplemented:
+            for channel in self.channels:
+                if not isinstance(channel, Channel):
+                    raise PulseError(f"Expected a channel, got {channel} instead.")
 
     @property
     def name(self) -> str:

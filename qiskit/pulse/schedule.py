@@ -41,10 +41,10 @@ import sys
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Any
 
 import numpy as np
+import retworkx as rx
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
-from qiskit.pulse.dagschedule import DAGSchedule
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions import Instruction, Reference
@@ -875,7 +875,7 @@ class ScheduleBlock:
     reduce the memory footprint required by the program construction.
     Such a subroutine is realized by the special compiler directive
     :class:`~qiskit.pulse.instructions.Reference` that is defined by
-    a unique reference key to the subroutine and associated channels.
+    a unique set of reference key strings to the subroutine.
     The (executable) subroutine is separately stored in the main program.
     Appended reference directives are resolved when the main program is executed.
     Subroutines must be assigned through the :meth:`assign_references` before execution.
@@ -901,26 +901,28 @@ class ScheduleBlock:
 
     The :attr:`~ScheduleBlock.scoped_parameters` property returns all :class:`~.Parameter`
     objects defined in the schedule block. The parameter name is updated to reflect
-    its scope information, i.e. where it is defined, namely, the name of schedule.
+    its scope information, i.e. where it is defined.
+    The outer scope is usually called "root". Since "amp" parameter is directly used
+    in the current builder context, it is prefixed with "root".
     Note that the :class:`Parameter` object is evaluated by the hidden `UUID`_ key,
-    the scoped name doesn't break its reference.
+    and the scoped name doesn't break its reference.
 
     You may want to call this program from another program.
-    In this example, the program is called with the reference key ``grand_child``.
+    In this example, the program is called with the reference key "grand_child".
     You can call a subroutine without specifying a substantial program, i.e. ``sched1``.
 
     .. jupyter-execute::
 
         amp2 = Parameter("amp")
 
-        with pulse.build(name="child") as sched2:
+        with pulse.build() as sched2:
             with pulse.align_right():
-                pulse.call(name="grand_child", channels=[pulse.DriveChannel(0)])
-                pulse.play(pulse.Constant(200, amp2), pulse.DriveChannel(1))
+                pulse.refer("grand_child")
+                pulse.play(pulse.Constant(200, amp2), pulse.DriveChannel(0))
 
         print(sched2.scoped_parameters)
 
-    This only returns ``child.amp`` because ``grand_child`` is unknown.
+    This only returns "root.amp" because "grand_child" reference is unknown.
     Now you assign the actual pulse program to this reference.
 
     .. jupyter-execute::
@@ -928,53 +930,61 @@ class ScheduleBlock:
         sched2.assign_references({"grand_child": sched1})
         print(sched2.scoped_parameters)
 
-    Now you get two parameters ``child.amp`` and ``child.grand_child.amp``.
-    The second parameter indicates it is defined within the called program ``grand_child``.
-    The program calling the ``grand_child`` has a reference program description
+    Now you get two parameters "root.amp" and "root.grand_child.amp".
+    The second parameter indicates it is defined within the referred program "grand_child".
+    The program calling the "grand_child" has a reference program description
     which is accessed through :attr:`ScheduleBlock.references`.
 
     .. jupyter-execute::
 
         print(sched2.references)
 
-    This indicates ``grand_child`` is defined under the scope of ``child``.
     Finally, you may want to call this program from another program.
     Here we try different approach to define subroutine, namely, we call
-    a subroutine from the "main" program with actual program ``sched2``.
+    a subroutine from the root program with actual program ``sched2``.
 
     .. jupyter-execute::
 
         amp3 = Parameter("amp")
 
-        with pulse.build(name="main") as main:
-            pulse.play(pulse.Constant(300, amp3), pulse.DriveChannel(1))
-            pulse.call(sched2)
+        with pulse.build() as main:
+            pulse.play(pulse.Constant(300, amp3), pulse.DriveChannel(0))
+            pulse.call(sched2, name="child")
 
         print(main.scoped_parameters)
 
-    This implicitly creates a reference within the "main" program and assign ``sched2`` to it.
-    You get three parameters ``main.amp``, ``main.child.amp``, and ``main.child.grand_child.amp``.
-    As you can see, each parameter reflects the layer of calls from the main program.
+    This implicitly creates a reference within the root program and assign ``sched2`` to it.
+    You get three parameters "root.amp", "root.child.amp", and "root.child.grand_child.amp".
+    As you can see, each parameter name reflects the layer of calls from the root program.
     If you know the scope of parameter, you can directly get the parameter object as follows.
 
     .. jupyter-execute::
 
-        main.get_parameters("amp", scope="main.child.grand_child")
+        main.get_parameters("amp", scope="root.child.grand_child")
 
-    Note that the main program is only aware of its direct references.
+    You can use regular expression to specify the scope.
+    This returns the parameters defined within the scope of "ground_child"
+    regardless of its parent scope. This is sometimes convenient if you
+    want to extract parameters from a deeply nested program.
+
+    .. jupyter-execute::
+
+        main.get_parameters("amp", scope="\\S.grand_child")
+
+    Note that the root program is only aware of its direct references.
 
     .. jupyter-execute::
 
         print(main.references)
 
-    As you can see the main program cannot directly access to the ``grand_child`` because
-    this subroutine is not called within the scope of ``main``.
-    However, the returned :class:`.ReferenceManager` is a dict-like object, and you can
-    reach to ``grand_child`` via ``child`` program with the following chained dict access.
+    As you can see the main program cannot directly access to the "grand_child" because
+    this subroutine is not called within the root program, i.e. indirectly called by "child".
+    However, the returned :class:`.ReferenceManager` is a dict-like object, and you can still
+    reach to "grand_child" via "child" program with the following chained dict access.
 
     .. jupyter-execute::
 
-        main.references["child"].references["grand_child"]
+        main.references[("child", )].references[("grand_child", )]
 
     .. _UUID: https://docs.python.org/3/library/uuid.html#module-uuid
     """
@@ -1008,6 +1018,7 @@ class ScheduleBlock:
                 used in the schedule.
             alignment_context (AlignmentKind): ``AlignmentKind`` instance that manages
                 scheduling of instructions in this block.
+
         Raises:
             TypeError: if metadata is not a dict.
         """
@@ -1021,9 +1032,9 @@ class ScheduleBlock:
         self._parent = None
         self._name = name
         self._parameter_manager = ParameterManager()
-        self._reference_manager = ReferenceManager(scope=name)
+        self._reference_manager = ReferenceManager()
         self._alignment_context = alignment_context or AlignLeft()
-        self._blocks = DAGSchedule(is_sequential=self._alignment_context.is_sequential)
+        self._blocks = []
 
         # get parameters from context
         self._parameter_manager.update_parameter_table(self._alignment_context)
@@ -1044,7 +1055,7 @@ class ScheduleBlock:
             New block object with name and metadata.
 
         Raises:
-            PulseError: When `other_program` does not provide necessary information.
+            PulseError: When ``other_program`` does not provide necessary information.
         """
         try:
             name = name or other_program.name
@@ -1110,16 +1121,12 @@ class ScheduleBlock:
                 return False
 
         # check duration assignment
-        for block in self.blocks:
-            if isinstance(block, Reference):
-                block = self.references.get(block.ref_key)
-                if block is None:
-                    return False
-            if isinstance(block, ScheduleBlock):
-                if not block.is_schedulable():
+        for elm in self.blocks:
+            if isinstance(elm, ScheduleBlock):
+                if not elm.is_schedulable():
                     return False
             else:
-                if not isinstance(block.duration, int):
+                if not isinstance(elm.duration, int):
                     return False
         return True
 
@@ -1133,9 +1140,13 @@ class ScheduleBlock:
     def channels(self) -> Tuple[Channel]:
         """Returns channels that this schedule clock uses."""
         chans = set()
-        for block in self.blocks:
-            for chan in block.channels:
-                chans.add(chan)
+        for elm in self.blocks:
+            if isinstance(elm, Reference):
+                raise PulseError(
+                    f"This schedule contains unassigned reference {elm.ref_key} "
+                    "and channels are ambiguous. Please assign the subroutine first."
+                )
+            chans = chans | set(elm.channels)
         return tuple(chans)
 
     @property
@@ -1157,7 +1168,12 @@ class ScheduleBlock:
             actual timing when the intruction is issued is unknown until self is scheduled
             and converted into :class:`.Schedule`.
         """
-        return tuple(self._blocks.nodes())
+        blocks = []
+        for elm in self._blocks:
+            if isinstance(elm, Reference):
+                elm = self.references.get(elm.ref_keys, None) or elm
+            blocks.append(elm)
+        return tuple(blocks)
 
     def _collect_parameters(self, scope: str, add_scope: bool = False) -> Set[Parameter]:
         """A helper method to return parameters.
@@ -1174,13 +1190,14 @@ class ScheduleBlock:
             All parameters defined under the current scope.
         """
         parameters = set(
-            scope_parameter(param, scope) if add_scope else param
+            scope_parameter(param, scope, Reference.scope_delimiter) if add_scope else param
             for param in self._parameter_manager.parameters
         )
         for sub_namespace, subroutine in self.references.items():
             if subroutine is None:
                 continue
-            full_path = f"{scope}.{sub_namespace}"
+            composite_key = ",".join(sub_namespace)
+            full_path = f"{scope}{Reference.scope_delimiter}{composite_key}"
             sub_parameters = subroutine._collect_parameters(scope=full_path, add_scope=add_scope)
             parameters = parameters | sub_parameters
 
@@ -1189,12 +1206,22 @@ class ScheduleBlock:
     @property
     def parameters(self) -> Set:
         """Return unassigned parameters with raw names."""
-        return self._collect_parameters(scope=self.references.scope, add_scope=False)
+        return self._collect_parameters(scope="root", add_scope=False)
 
     @property
     def scoped_parameters(self) -> Set:
-        """Return unassigned parameters with scoped names."""
-        return self._collect_parameters(scope=self.references.scope, add_scope=True)
+        """Return unassigned parameters with scoped names.
+
+        .. note::
+
+            If a parameter is defined within a nested scope,
+            it is prefixed with all parent-scope names with the delimiter string,
+            which is typically ":". If a reference key of the scope consists of
+            multiple key strings, it will be represented by a single string joined with ",".
+            For example, "root:xgate,q0:amp" for the parameter "amp" defined in the
+            reference specified by the key strings ("xgate", "q0").
+        """
+        return self._collect_parameters(scope="root", add_scope=True)
 
     @property
     def references(self) -> ReferenceManager:
@@ -1243,29 +1270,27 @@ class ScheduleBlock:
             return schedule
 
         if isinstance(block, Reference):
-            self.references.define_reference(block.ref_key, block.channels)
+            self.references[block.ref_keys] = None
 
         elif isinstance(block, ScheduleBlock):
             block = copy.deepcopy(block)
+            # Expose subroutines to the current main scope.
+            # Note that this 'block' is not called.
+            # The block is just directly appended to the current scope.
             if block.is_referenced():
                 if block._parent is not None:
                     # This is an edge case:
                     # If this is not a parent, block.references points to the parent's reference
-                    # where subroutine not referred within the 'block' may exist in there.
-                    # Copy only references existing in the 'block'.
+                    # where subroutine not referred within the 'block' may exist.
+                    # Move only references existing in the 'block'.
                     # See 'test.python.pulse.test_reference.TestReference.test_appending_child_block'
-                    for ref in _get_references(block.blocks):
-                        self.references.define_reference(ref.ref_key, ref.channels)
-                        self.references[ref.ref_key] = copy.deepcopy(block.references[ref.ref_key])
+                    for ref in _get_references(block._blocks):
+                        self.references[ref.ref_keys] = block.references[ref.ref_keys]
                 else:
-                    # Expose subroutines to the current main scope.
-                    # Note that this 'block' is not called.
-                    # The block is just directly appended to the current scope.
-                    # This operation is much faster because this is list concatenation.
+                    # This operation is much faster because this is dict update.
                     # Reference manager of appended block is cleared because of data reduction.
                     self.references.update(block._reference_manager)
                     block._reference_manager.clear()
-
             # Now switch the parent becasue block is appended to self.
             block._parent = self
 
@@ -1382,47 +1407,39 @@ class ScheduleBlock:
             schedule = copy.deepcopy(self)
             return schedule.replace(old, new, inplace=True)
 
-        if isinstance(old, (ScheduleBlock, Reference)):
-            # If removed element may contain reference,
-            # it regenerates the reference table without removed element.
-            new_manager = ReferenceManager(scope=self.references.scope)
-            for ref in _get_references(self.blocks, excludes=[old]):
-                new_manager.define_reference(ref.ref_key, ref.channels)
-                new_manager[ref.ref_key] = self.references[ref.ref_key]
-        else:
-            new_manager = self.references
+        # Temporarily copies references
+        all_references = ReferenceManager()
+        all_references.update(self.references)
 
-        if isinstance(new, Reference):
-            new_manager.define_reference(new.ref_key, new.channels)
-
-        elif isinstance(new, ScheduleBlock):
-            # Same logic with .append is applied here
+        if isinstance(new, ScheduleBlock):
             new = copy.deepcopy(new)
-            if new.is_referenced():
-                if new._parent is not None:
-                    for ref in _get_references(new.blocks):
-                        new_manager.define_reference(ref.ref_key, ref.channels)
-                        new_manager[ref.ref_key] = copy.deepcopy(new.references[ref.ref_key])
-                else:
-                    new_manager.update(new._reference_manager)
-                    new._reference_manager.clear()
+            all_references.update(new.references)
+            new._reference_manager.clear()
             new._parent = self
 
-        self._blocks.replace(old, new)
+        # Regenerate parameter table by regenerating elements.
+        # Note that removal of parameters in old is not sufficient,
+        # because corresponding parameters might be also used in another block element.
+        self._parameter_manager.clear()
+        self._parameter_manager.update_parameter_table(self._alignment_context)
+        new_elms = []
+        for elm in self._blocks:
+            if elm == old:
+                elm = new
+            self._parameter_manager.update_parameter_table(elm)
+            new_elms.append(elm)
+        self._blocks = new_elms
 
+        # Regenerate reference table
+        # Note that reference is attached to the outer schedule if nested.
+        # Thus this investigates all references within the scope.
         self.references.clear()
-        self.references.update(new_manager)
+        root = self
+        while root._parent is not None:
+            root = root._parent
+        for ref in _get_references(root._blocks):
+            self.references[ref.ref_keys] = all_references[ref.ref_keys]
 
-        if old.parameters == new.parameters:
-            return self
-
-        # Replaced with node with different parameters.
-        # Need to regenerate parameter manager.
-        manager = self._parameter_manager
-        manager._parameters = set()
-        manager.update_parameter_table(self._alignment_context)
-        for new_block in self.blocks:
-            manager.update_parameter_table(new_block)
         return self
 
     def is_parameterized(self) -> bool:
@@ -1478,27 +1495,28 @@ class ScheduleBlock:
         It is only capable of assigning a scheduel block to child subroutines
         which are directly referred within the current scope, because
         nested subroutines are not exposed to the current scope.
+        Let's see following example:
 
         .. code-block:: python
 
             from qiskit import pulse
 
-            with pulse.build(name="A") as nested_prog:
+            with pulse.build() as subroutine:
                 pulse.delay(10, pulse.DriveChannel(0))
 
-            with pulse.build(name="B") as sub_prog:
-                pulse.call(name="A", channels=[pulse.DriveChannel(0)])
+            with pulse.build() as sub_prog:
+                pulse.refer("A")
 
-            with pulse.build(name="C") as main_prog:
-                pulse.call(name="B", channels=[pulse.DriveChannel(0)])
+            with pulse.build() as main_prog:
+                pulse.refer("B")
 
-        In above example, the ``main_prog`` ("C") is only aware of the subroutine "C.B" and the
-        reference of "B" to program "A", i.e., "B.A", is not exposed to the namespace of "C".
-        This prevents breaking the reference "C.B.A" by the assignment of "C.B".
-        For example, if a user could indirectly assign "C.B.A" from the program "C",
-        one can later assign another program to "C.B" that doesn't contain "A" within it.
-        In this situation, a reference "C.B.A" still lives in the reference manager of "C",
-        however the subroutine "C.B.A" is never used in the actual pulse program "C".
+        In above example, the ``main_prog`` is only aware of the subroutine "root:B" and the
+        reference of "B" to program "A", i.e., "B:A", is not exposed to the root namespace.
+        This prevents breaking the reference "root:B:A" by the assignment of "root:B".
+        For example, if a user could indirectly assign "root:B:A" from the root program,
+        one can later assign another program to "root:B" that doesn't contain "A" within it.
+        In this situation, a reference "root:B:A" still lives in the reference manager of the root,
+        however the subroutine "root:B:A" is never used in the actual pulse program.
         To assign subroutine "A" to the ``sub_prog``, you must first assign "A" to the ``sub_prog``,
         then assign the ``sub_prog`` to the ``main_prog``.
 
@@ -1512,7 +1530,7 @@ class ScheduleBlock:
         .. code-block:: python
 
             main_prog.assign_references({"B": sub_prog}, inplace=True)
-            main_prog.references["B"].assign_references({"A": nested_prog}, inplace=True)
+            main_prog.references[("B", )].assign_references({"A": nested_prog}, inplace=True)
 
         here :attr:`.references` returns a dict-like object, and you can
         mutably update the nested reference of the particular subroutine.
@@ -1525,12 +1543,23 @@ class ScheduleBlock:
 
         Returns:
             Schedule block with assigned subroutine.
+
+        Raises:
+            PulseError: When reference key is not defined in the current scope.
         """
         if not inplace:
             new_schedule = copy.deepcopy(self)
             return new_schedule.assign_references(subroutine_dict, inplace=True)
 
         for key, subroutine in subroutine_dict.items():
+            if isinstance(key, str):
+                key = (key,)
+            if key not in self.references:
+                unassigned_keys = ", ".join(map(repr, self.references.unassigned()))
+                raise PulseError(
+                    f"Reference instruction with {key} doesn't exist "
+                    f"in the current scope: {unassigned_keys}"
+                )
             self.references[key] = copy.deepcopy(subroutine)
 
         return self
@@ -1552,11 +1581,11 @@ class ScheduleBlock:
             amp1 = circuit.Parameter("amp")
             amp2 = circuit.Parameter("amp")
 
-            with pulse.build(name="A") as sub_prog:
+            with pulse.build() as sub_prog:
                 pulse.play(pulse.Constant(100, amp1), pulse.DriveChannel(0))
 
-            with pulse.build(name="B") as main_prog:
-                pulse.call(sub_prog)
+            with pulse.build() as main_prog:
+                pulse.call(sub_prog, name="sub")
                 pulse.play(pulse.Constant(100, amp2), pulse.DriveChannel(0))
 
         For example,
@@ -1569,9 +1598,9 @@ class ScheduleBlock:
 
         .. code-block:: python
 
-            main_prog.get_parameters("amp", scope="B.A")
+            main_prog.get_parameters("amp", scope="root:sub")
 
-        returns only ``amp1`` with scoped name "B.A.amp". Parameter name doesn't matter here
+        returns only ``amp1`` with scoped name "root:sub:amp". Parameter name doesn't matter here
         because these are managed by the object uuid.
 
         Args:
@@ -1588,8 +1617,8 @@ class ScheduleBlock:
 
         matched = set()
         for param in self.scoped_parameters:
-            scope_and_name = param.name.split(".")
-            eval_scope = ".".join(scope_and_name[:-1])
+            scope_and_name = param.name.split(Reference.scope_delimiter)
+            eval_scope = Reference.scope_delimiter.join(scope_and_name[:-1])
             eval_name = scope_and_name[-1]
             if re.search(scope, eval_scope) and parameter_name == eval_name:
                 matched.add(param)
@@ -1627,16 +1656,17 @@ class ScheduleBlock:
         if self.alignment_context != other.alignment_context:
             return False
 
-        # 2. channel check
-        if set(self.channels) != set(other.channels):
-            return False
-
-        # 3. size check
+        # 2. size check
         if len(self) != len(other):
             return False
 
-        # 4. instruction check with alignment
-        return self._blocks == other._blocks
+        # 3. instruction check with alignment
+        from qiskit.pulse.transforms.dag import block_to_dag as dag
+
+        if not rx.is_isomorphic_node_match(dag(self), dag(other), lambda x, y: x == y):
+            return False
+
+        return True
 
     def __repr__(self) -> str:
         name = format(self._name) if self._name else ""
@@ -1854,29 +1884,21 @@ def _get_timeslots(schedule: "ScheduleComponent") -> TimeSlots:
     return timeslots
 
 
-def _get_references(
-    block_elms: List["BlockComponent"],
-    excludes: Optional[List["BlockComponent"]] = None,
-) -> Set[Reference]:
-    """Recursively get reference instructions in the current program.
+def _get_references(block_elms: List["BlockComponent"]) -> Set[Reference]:
+    """Recursively get reference instructions in the current scope.
 
     Args:
         block_elms: List of schedule block elements to investigate.
-        excludes: List of element to exclude.
 
     Returns:
         A set of unique reference instructions.
     """
-    excludes = excludes or []
-
     references = []
-    for block_elm in block_elms:
-        if block_elm in excludes:
-            continue
-        if isinstance(block_elm, ScheduleBlock):
-            references += _get_references(block_elm.blocks)
-        elif isinstance(block_elm, Reference):
-            references.append(block_elm)
+    for elm in block_elms:
+        if isinstance(elm, ScheduleBlock):
+            references += _get_references(elm._blocks)
+        elif isinstance(elm, Reference):
+            references.append(elm)
     return set(references)
 
 

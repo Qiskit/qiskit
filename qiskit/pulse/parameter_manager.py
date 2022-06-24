@@ -58,7 +58,6 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse import instructions, channels
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library import ParametricPulse, Waveform
-from qiskit.pulse.dagschedule import DAGSchedule
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind
 from qiskit.pulse.utils import format_parameter_value
@@ -137,18 +136,8 @@ class ParameterSetter(NodeVisitor):
         .. note:: ``ScheduleBlock`` can have parameters in blocks and its alignment.
         """
         node._alignment_context = self.visit_AlignmentKind(node.alignment_context)
-
-        if any(c.is_parameterized() for c in node.channels):
-            # Channel is parametrized.
-            # Assignment may change DAG edges thus DAG is regenerated.
-            new_blocks = DAGSchedule(node._alignment_context.is_sequential)
-            for block in node.blocks:
-                new_blocks.append(self.visit(block))
-            node._blocks = new_blocks
-        else:
-            # Instruction is mutably updated.
-            for block in node.blocks:
-                self.visit(block)
+        for elm in node._blocks:
+            self.visit(elm)
 
         self._update_parameter_manager(node)
         return node
@@ -366,6 +355,10 @@ class ParameterManager:
     def parameters(self) -> Set:
         """Parameters which determine the schedule behavior."""
         return self._parameters
+
+    def clear(self):
+        """Remove the parameters linked to this manager."""
+        self._parameters.clear()
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""

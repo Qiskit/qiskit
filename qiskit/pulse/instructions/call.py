@@ -12,15 +12,12 @@
 
 """Call instruction that represents calling a schedule as a subroutine."""
 
-from typing import Optional, Union, Dict, Tuple, Sequence, Set, TYPE_CHECKING
+from typing import Optional, Union, Dict, Tuple, Set
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions import instruction
-
-if TYPE_CHECKING:
-    from qiskit.pulse.schedule import Schedule
 
 
 class Call(instruction.Instruction):
@@ -35,7 +32,7 @@ class Call(instruction.Instruction):
 
     def __init__(
         self,
-        subroutine: "Schedule",
+        subroutine,
         value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None,
         name: Optional[str] = None,
     ):
@@ -44,7 +41,7 @@ class Call(instruction.Instruction):
         .. note:: Inline subroutine is mutable. This requires special care for modification.
 
         Args:
-            subroutine A program subroutine to be referred to.
+            subroutine (Union[Schedule, ScheduleBlock]): A program subroutine to be referred to.
             value_dict: Mapping of parameter object to assigned value.
             name: Unique ID of this subroutine. If not provided, this is generated based on
                 the subroutine name.
@@ -52,9 +49,9 @@ class Call(instruction.Instruction):
         Raises:
             PulseError: If subroutine is not valid data format.
         """
-        from qiskit.pulse.schedule import Schedule
+        from qiskit.pulse.schedule import Schedule, ScheduleBlock
 
-        if not isinstance(subroutine, Schedule):
+        if not isinstance(subroutine, (Schedule, ScheduleBlock)):
             raise PulseError(f"Subroutine type {subroutine.__class__.__name__} cannot be called.")
 
         value_dict = value_dict or {}
@@ -171,59 +168,3 @@ class Call(instruction.Instruction):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.assigned_subroutine()}, name='{self.name}')"
-
-
-class Reference(instruction.Instruction):
-    """Pulse compiler directive that refers to a subroutine.
-
-    If a pulse program uses the same subset of instructions multiple times, then
-    using the :class:`~.Reference` class may significantly reduce the memory footprint of
-    the program. This instruction only stores the name and the associated channels.
-
-    The actual pulse program is stored in the :attr:`ScheduleBlock.references`
-    that this reference instruction belongs to.
-
-    You can later assign schedules with the :meth:`ScheduleBlock.assign_references` method.
-    This allows you to build the main program without knowing the actual subroutine,
-    that is supplied at a later time.
-    """
-
-    def __init__(
-        self,
-        ref_key: str,
-        channels: Sequence[Channel],
-    ):
-        """Create new reference.
-
-        Args:
-            ref_key: Unique reference key to the subroutine.
-            channels: Channels associated to the subroutine referred by the instruction.
-
-        Raises:
-            PulseError: When "." is used in the reference name.
-        """
-        if "." in ref_key:
-            raise PulseError(
-                f"'{ref_key}' is not valid reference key. "
-                "'.' is reserved for the separator of the program scope information."
-            )
-        super().__init__(operands=(ref_key, *channels), name=ref_key)
-
-    @property
-    def ref_key(self) -> str:
-        """Returns unique key of the subroutine."""
-        return self.operands[0]
-
-    @property
-    def duration(self) -> Union[int, ParameterExpression]:
-        """Duration of this instruction."""
-        raise NotImplementedError("Reference to subroutine does not define duration.")
-
-    @property
-    def channels(self) -> Tuple[Channel, ...]:
-        """Returns the channels that this schedule uses."""
-        return tuple(self.operands[1:])
-
-    def __repr__(self) -> str:
-        channels_repr = ", ".join(map(lambda c: c.name, self.channels))
-        return f"{self.__class__.__name__}(ref_key={self.ref_key}, channels={channels_repr})"

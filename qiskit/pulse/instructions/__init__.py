@@ -58,9 +58,10 @@ These are all instances of the same base class:
 from .acquire import Acquire
 from .delay import Delay
 from .directives import Directive, RelativeBarrier
-from .call import Call, Reference
+from .call import Call
 from .instruction import Instruction
 from .frequency import SetFrequency, ShiftFrequency
 from .phase import ShiftPhase, SetPhase
 from .play import Play
 from .snapshot import Snapshot
+from .reference import Reference

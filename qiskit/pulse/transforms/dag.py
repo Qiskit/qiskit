@@ -11,17 +11,12 @@
 # that they have been altered from the originals.
 """A collection of functions to convert ScheduleBlock to DAG representation."""
 
-from typing import TYPE_CHECKING
 import retworkx as rx
 
-from qiskit.pulse.utils import deprecated_functionality
-
-if TYPE_CHECKING:
-    from qiskit.pulse.schedule import ScheduleBlock, BlockComponent
+from qiskit.pulse.instructions import Reference
 
 
-@deprecated_functionality
-def block_to_dag(block: "ScheduleBlock") -> rx.PyDAG:
+def block_to_dag(block) -> rx.PyDAG:
     """Convert schedule block instruction into DAG.
 
     ``ScheduleBlock`` can be represented as a DAG as needed.
@@ -59,9 +54,51 @@ def block_to_dag(block: "ScheduleBlock") -> rx.PyDAG:
     This can be easily found on the DAG representation.
 
     Args:
-        block: A schedule block to be converted.
+        block ("ScheduleBlock"): A schedule block to be converted.
 
     Returns:
         Instructions in DAG representation.
     """
-    return block._blocks._dag
+    if block.alignment_context.is_sequential:
+        return _sequential_allocation(block)
+    return _parallel_allocation(block)
+
+
+def _sequential_allocation(block) -> rx.PyDAG:
+    """A helper function to create a DAG of a sequential alignment context."""
+    dag = rx.PyDAG()
+
+    edges = []
+    for elm in block.blocks:
+        node_id = dag.add_node(elm)
+        if dag.num_nodes() == 1:
+            continue
+        prev_id = dag.node_indices()[-1]
+        edges.append((prev_id, node_id))
+    dag.add_edges_from_no_data(edges)
+
+    return dag
+
+
+def _parallel_allocation(block) -> rx.PyDAG:
+    """A helper function to create a DAG of a parallel alignment context."""
+    dag = rx.PyDAG()
+
+    slots = {}
+    edges = []
+    for elm in block.blocks:
+        node_id = dag.add_node(elm)
+        if isinstance(elm, Reference):
+            # Bloadcasting channels because reference channels is unknown.
+            for chan, prev_id in slots.copy().items():
+                edges.append((prev_id, node_id))
+                slots[chan] = node_id
+        else:
+            for chan in elm.channels:
+                prev_id = slots.pop(chan, None)
+                if prev_id is not None:
+                    edges.append((prev_id, node_id))
+                slots[chan] = node_id
+    dag.add_edges_from_no_data(edges)
+
+    return dag

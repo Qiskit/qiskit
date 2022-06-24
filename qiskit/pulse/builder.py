@@ -302,6 +302,7 @@ Pulse instructions are available within the builder interface. Here's an example
     call
     delay
     play
+    refer
     set_frequency
     set_phase
     shift_frequency
@@ -743,18 +744,14 @@ class _PulseBuilder:
         if len(context_block) > 0:
             self._context_stack[-1].append(context_block)
 
-    def append_reference(
-        self,
-        reference_key: str,
-        channels: List[chans.Channel],
-    ):
+    def append_reference(self, *ref_keys: str, name: Optional[str] = None):
         """Add external program as a :class:`~qiskit.pulse.instructions.Reference` instruction.
 
         Args:
-            reference_key: Unique key of the subroutine.
-            channels: Channels associated with the subroutine.
+            ref_keys: Set of keys to uniquely specify the reference.
+            name: Optional. A label of instruction.
         """
-        reference = instructions.Reference(ref_key=reference_key, channels=channels)
+        reference = instructions.Reference(*ref_keys, name=name)
         self.append_instruction(reference)
 
     def call_subroutine(
@@ -814,22 +811,33 @@ class _PulseBuilder:
         if value_dict:
             local_assignment.update(value_dict)
 
-        sub_name = name or subroutine.name
-
         if isinstance(subroutine, ScheduleBlock):
             # If subroutine is schedule block, use reference mechanism.
-            sub_channels = subroutine.channels
             if local_assignment:
-                # Reference doesn't have mechanism to manage local-scoped parameters.
-                # Assigned reference will become a new entry.
                 subroutine = subroutine.assign_parameters(local_assignment, inplace=False)
-                prefix = hex(hash(tuple(local_assignment.items())))
-                sub_name = f"{sub_name}_{prefix}"
-            self.append_reference(reference_key=sub_name, channels=sub_channels)
-            self._context_stack[-1].assign_references({sub_name: subroutine}, inplace=True)
+            if name is None:
+                # Add unique key to schedule.
+                # If subroutine is called twice in the context, equality of them must be properly
+                # evaluated. If they are the same object, only one reference is created
+                # and subroutine is reused. Otherwise, two entries are created.
+                # Generation of unique tag is bit tricky, because schedule block is unhashable.
+                # In addition, if subroutine is parameterized, repr(subroutine) could be the same
+                # for different object, because parameter uuid doesn't apper in the repr.
+                # Using object id doesn't work because deepcopied subroutine, i.e. assignment with
+                # inplace=False above, may have the same id with non-overlapping lifetime.
+                # https://docs.python.org/3.9/library/functions.html#id
+                sched_repr = repr(subroutine)
+                sched_params = sorted(subroutine.parameters, key=lambda p: p.name)
+                unique_str = hex(hash((sched_repr, *sched_params)))
+                keys = (subroutine.name, unique_str)
+            else:
+                keys = (name,)
+            self.append_reference(*keys)
+            self.get_context().assign_references({keys: subroutine}, inplace=True)
         else:
             # If subroutine is schedule, use Call instruction.
-            call_instruction = instructions.Call(subroutine, local_assignment, sub_name)
+            name = name or subroutine.name
+            call_instruction = instructions.Call(subroutine, local_assignment, name)
             self.append_instruction(call_instruction)
 
     @_requires_backend
@@ -1917,9 +1925,8 @@ def snapshot(label: str, snapshot_type: str = "statevector"):
 
 
 def call(
-    target: Optional[Union[circuit.QuantumCircuit, Schedule, ScheduleBlock]] = None,
+    target: Optional[Union[circuit.QuantumCircuit, Schedule, ScheduleBlock]],
     name: Optional[str] = None,
-    channels: Optional[List[chans.Channel]] = None,
     value_dict: Optional[Dict[ParameterValueType, ParameterValueType]] = None,
     **kw_params: ParameterValueType,
 ):
@@ -1928,54 +1935,89 @@ def call(
 
     .. note::
 
-        If the ``target`` program is a schedule or a quantum cirucit instance, then
-        it will be assigned as a :class:`~qiskit.pulse.instructions.Call` instruction.
-        If the ``target`` program is not given and only its ``name`` is given, then
-        a :class:`~qiskit.pulse.instructions.Reference` instruction is added and
-        the ``target`` program is separately registered to the references at a later stage.
+        It the ``target`` program is :class:`.Schedule`, it will be wrapped by the
+        :class:`.Call` instruction and appended to the current context to avoid
+        mixed representation of :class:`.ScheduleBlock` and :class:`.Schedule`.
+        If the ``target`` program is :class:`.QuantumCircuit` it will be scheduled
+        and outcome :class:`.Schedule` is added as a :class:`.Call` instruction.
+        If the ``target`` program is :class:`.ScheduleBlock`, then :class:`.Reference`
+        instruction is created and appended to the current context.
+        The ``target`` program is immediately assined to the current scope as a subrotuine.
 
     Examples:
 
-        1. Call with a target program.
+        1. Calling quantum circuit.
 
-        .. code-block:: python
-
-            from qiskit import circuit, pulse, schedule, transpile
-            from qiskit.test.mock import FakeOpenPulse2Q
-
-            backend = FakeOpenPulse2Q()
-
-            qc = circuit.QuantumCircuit(2)
-            qc.cx(0, 1)
-            qc_transpiled = transpile(qc, optimization_level=3)
-            sched = schedule(qc_transpiled, backend)
-
-            with pulse.build(backend) as pulse_prog:
-                    pulse.call(sched)
-                    pulse.call(qc)
-
-        This function can optionally take parameter dictionary with the parameterized target program.
-
-        .. code-block:: python
+        .. jupyter-execute::
 
             from qiskit import circuit, pulse
+            from qiskit.test.mock import FakeBogotaV2
 
-            amp = circuit.Parameter('amp')
+            backend = FakeBogotaV2()
+
+            qc = circuit.QuantumCircuit(1)
+            qc.x(0)
+
+            with pulse.build(backend) as pulse_prog:
+                pulse.call(qc)
+
+            print(pulse_prog)
+
+        .. warning::
+
+            Calling circuit from scheduel is not encouraged. Currently Qiskit execution model
+            is migrating toward the pulse gate model, where schedules are attached to
+            circuit through :meth:`.QuantumCircuit.add_calibration` method.
+
+        2. Calling schedule
+
+        .. jupyter-execute::
+
+            backend = FakeBogotaV2()
+            x_sched = backend.instruction_schedule_map.get("x", (0,))
+
+            with pulse.build(backend) as pulse_prog:
+                pulse.call(x_sched)
+
+            print(pulse_prog)
+
+        3. Calling schedule block (recommended)
+
+        .. jupyter-execute::
+
+            with pulse.build() as x_sched:
+                pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
+
+            with pulse.build(backend) as pulse_prog:
+                pulse.call(x_sched)
+
+            print(pulse_prog)
+
+        Actual program is stored in the reference table attached to the schedule.
+
+        .. jupyter-execute::
+
+            print(pulse_prog.references)
+
+        In addition, you can call a parameterized target programs with parameter assignment.
+
+        .. jupyter-execute::
+
+            amp = circuit.Parameter("amp")
 
             with pulse.build() as subroutine:
                 pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
 
-            with pulse.build() as main_prog:
+            with pulse.build(backend) as pulse_prog:
                 pulse.call(subroutine, amp=0.1)
                 pulse.call(subroutine, amp=0.3)
 
-        If there is any parameter name collision, you can distinguish them by specifying
-        each parameter object as a python dictionary. Otherwise ``amp1`` and ``amp2`` will be
-        updated with the same value.
+            print(pulse_prog)
 
-        .. code-block:: python
+        If there is parameter name collision, you can distinguish them by specifying
+        each parameter object as a python dictionary. For example,
 
-            from qiskit import circuit, pulse
+        .. jupyter-execute::
 
             amp1 = circuit.Parameter('amp')
             amp2 = circuit.Parameter('amp')
@@ -1984,39 +2026,20 @@ def call(
                 pulse.play(pulse.Gaussian(160, amp1, 40), pulse.DriveChannel(0))
                 pulse.play(pulse.Gaussian(160, amp2, 40), pulse.DriveChannel(1))
 
-            with pulse.build() as main_prog:
-                pulse.call(subroutine, value_dict={amp1: 0.1, amp2: 0.2})
+            with pulse.build() as pulse_prog:
+                pulse.call(subroutine, value_dict={amp1: 0.1, amp2: 0.3})
 
-        2. Call with unassigned program.
-
-        .. code-block:: python
-
-            from qiskit import pulse
-
-            with pulse.build() as main_prog:
-                ref_key = "my_subroutine"
-                pulse.call(name=ref_key, channels=[pulse.DriveChannel(0)])
-
-            with pulse.build() as subroutine:
-                pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
-
-            main_prog.assign_references(subroutine_dict={ref_key: subroutine})
-
-        When you call without actual program, you can assign the program afterwards
-        through the :meth:`ScheduleBlock.assign_references` method.
+            print(pulse_prog)
 
     Args:
-        target: Target circuit or pulse schedule to call. If this program is not
-            provided, both ``name`` and ``channels`` must be provided.
-        name: Name of subroutine if defined.
-        channels: Optional. Channels associated to the subroutine.
+        target: Target circuit or pulse schedule to call.
+        name: Optional. Name of subroutine if defined.
         value_dict: Optional. Parameters assigned to the ``target`` program.
             If this dictionary is provided, the ``target`` program is copied and
             then stored in the main built schedule and its parameters are assigned to the given values.
             This dictionary is keyed on the :class:`~.Parameter` object,
             thus parameter name collision can be avoided.
-            This option is valid only when the subroutine is called with ``target``.
-        kw_params: Alternative way to provide local scoped parameters.
+        kw_params: Alternative way to provide parameters.
             Since this is keyed on the string parameter name,
             the parameters having the same name are all updated together.
             If you want to avoid name collision, use ``value_dict`` with :class:`~.Parameter`
@@ -2024,30 +2047,37 @@ def call(
 
     Raises:
         exceptions.PulseError: If the input ``target`` type is not supported.
-        exceptions.PulseError: Target program is empty and name and channels are not both provided.
-        exceptions.PulseError: Subroutine is called by name and channels but
-            local scoped parameters are also provided.
     """
-    if target is None:
-        if value_dict is not None or any(kw_params):
-            raise exceptions.PulseError(
-                "Parameters are provided without target program. "
-                "These parameters cannot be assigned."
-            )
-        if name is None or channels is None:
-            raise exceptions.PulseError(
-                "Subroutine name and channels are not both provided. "
-                "Please call subroutine with target program, or both name and channels."
-            )
-        _active_builder().append_reference(reference_key=name, channels=channels)
-    else:
-        if not isinstance(target, (circuit.QuantumCircuit, Schedule, ScheduleBlock)):
-            raise exceptions.PulseError(
-                f'Target of type "{target.__class__.__name__}" is not supported.'
-            )
-        _active_builder().call_subroutine(
-            subroutine=target, name=name, value_dict=value_dict, **kw_params
-        )
+    if not isinstance(target, (circuit.QuantumCircuit, Schedule, ScheduleBlock)):
+        raise exceptions.PulseError(f"'{target.__class__.__name__}' is not valid target object.")
+    _active_builder().call_subroutine(
+        subroutine=target, name=name, value_dict=value_dict, **kw_params
+    )
+
+
+def refer(*ref_keys: str, name: Optional[str] = None):
+    """Refer to undefined subroutine by string keys.
+
+    A :class:`~qiskit.pulse.instructions.Reference` instruction is implicitly created
+    and schedule can be separately registered to the references at a later stage.
+
+    .. code-block:: python
+
+        from qiskit import pulse
+
+        with pulse.build() as main_prog:
+            pulse.refer("x_gate", "q0")
+
+        with pulse.build() as subroutine:
+            pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
+
+        main_prog.assign_references(subroutine_dict={("x_gate", "q0"): subroutine})
+
+    Args:
+        ref_keys: A set of string that represent this reference.
+        name: Optional. A label of this reference.
+    """
+    _active_builder().append_reference(*ref_keys, name=name)
 
 
 # Directives
