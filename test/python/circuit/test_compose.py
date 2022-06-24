@@ -23,10 +23,10 @@ from qiskit.circuit import (
     ClassicalRegister,
     Clbit,
     QuantumCircuit,
+    Qubit,
     Parameter,
     Gate,
-    Instruction,
-    Clbit,
+    Instruction
 )
 from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate, TwoLocal
 from qiskit.test import QiskitTestCase
@@ -687,6 +687,15 @@ class TestCircuitCompose(QiskitTestCase):
         qc.measure(0, cb[1])
         out = ansatz.compose(qc)
         self.assertEqual(out.cregs, qc.cregs)
+
+    def test_compose_noclbits_registerless(self):
+        """Combining a circuit with cregs to one without, registerless case"""
+        inner = QuantumCircuit([Qubit(), Qubit()], [Clbit(), Clbit()])
+        inner.measure([0, 1], [0, 1])
+        outer = QuantumCircuit(2)
+        outer.compose(inner, inplace=True)
+        self.assertEqual(len(outer.clbits), 2)
+        self.assertEqual(len(outer.cregs), 0)
 
 
 if __name__ == "__main__":
