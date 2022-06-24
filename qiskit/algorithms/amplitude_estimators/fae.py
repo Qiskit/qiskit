@@ -234,7 +234,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         theta = np.mean(theta_ci)
         rescaling = 4 if self._rescale else 1
         value = (rescaling * np.sin(theta)) ** 2
-        value_ci = [(rescaling * np.sin(x)) ** 2 for x in theta_ci]
+        value_ci = [(rescaling * np.sin(x)) ** 2 for x in theta_ci]  # TODO should be tuple?
 
         result = FasterAmplitudeEstimationResult()
         result.num_oracle_queries = self._num_oracle_calls

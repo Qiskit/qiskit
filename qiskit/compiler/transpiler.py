@@ -255,7 +255,6 @@ def transpile(
     """
     arg_circuits_list = isinstance(circuits, list)
     circuits = circuits if arg_circuits_list else [circuits]  # type: ignore[list-item]
-    assert isinstance(circuits, list)
 
     if not circuits:
         return []

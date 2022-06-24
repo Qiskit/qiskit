@@ -195,7 +195,6 @@ class ParameterSetter(NodeVisitor):
     def visit_Channel(self, node: channels.Channel):
         """Assign parameters to ``Channel`` object."""
         if node.is_parameterized():
-            assert isinstance(node.index, ParameterExpression)
             new_index = self._assign_parameter_expression(node.index)
 
             # validate
