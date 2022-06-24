@@ -30,7 +30,7 @@ class BasePrimitiveResult(ABC):
         Verify that all fields in any inheriting result dataclass are consistent, after
         instantiation, with the number of experiments being represented.
 
-        This magic method is especific of `dataclasses.dataclass`, therefore all inheriting
+        This magic method is specific of `dataclasses.dataclass`, therefore all inheriting
         classes must have this decorator.
 
         Raises:
