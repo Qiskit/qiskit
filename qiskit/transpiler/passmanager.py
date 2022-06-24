@@ -430,7 +430,7 @@ class StagedPassManager(PassManager):
 
     @property
     def expanded_stages(self) -> List[str]:
-        """Expanded Pass manager stages including 'pre_' and 'post_' phases."""
+        """Expanded Pass manager stages including ``pre_`` and ``post_`` phases."""
         return self._expanded_stages
 
     def _generate_expanded_stages(self) -> Iterator[str]:
