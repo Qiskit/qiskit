@@ -319,7 +319,7 @@ class PassManager:
                 item["flow_controllers"] = {}
             ret.append(item)
 
-        class CallableList(list):
+        class CallableList(list):  # pylint: disable=C0115
             def __call__(self) -> List:
                 warn(
                     "The `PassManager.passes()` method is deprecated as of 0.22.0, and "

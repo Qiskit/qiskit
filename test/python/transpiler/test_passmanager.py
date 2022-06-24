@@ -116,6 +116,7 @@ class TestPassManager(QiskitTestCase):
         self.assertEqual("MyCircuit", calls[1]["dag"].name)
 
     def test_passes_deprecation_warning(self):
+        """Test deprecation logic for passes callable"""
         passmanager = PassManager()
         passmanager.append(CommutativeCancellation(basis_gates=["u1", "u2", "u3", "cx"]))
         with self.assertWarns(PendingDeprecationWarning):
