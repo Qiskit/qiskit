@@ -29,6 +29,7 @@ jobs:
         env:
           CIBW_ARCHS_LINUX: s390x
           CIBW_TEST_SKIP: "cp*"
+          CIBW_BEFORE_BUILD: "cargo build && cargo metadata"
       - uses: actions/upload-artifact@v2
         with:
           path: ./wheelhouse/*.whl
@@ -57,6 +58,7 @@ jobs:
         env:
           CIBW_ARCHS_LINUX: ppc64le
           CIBW_TEST_SKIP: "cp*"
+          CIBW_BEFORE_BUILD: "cargo build && cargo metadata"
       - uses: actions/upload-artifact@v2
         with:
           path: ./wheelhouse/*.whl
@@ -84,6 +86,7 @@ jobs:
         uses: pypa/cibuildwheel@v2.3.1
         env:
           CIBW_ARCHS_LINUX: aarch64
+          CIBW_BEFORE_BUILD: "cargo build && cargo metadata"
       - uses: actions/upload-artifact@v2
         with:
           path: ./wheelhouse/*.whl
