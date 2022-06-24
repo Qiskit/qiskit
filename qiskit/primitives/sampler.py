@@ -40,13 +40,15 @@ class Sampler(BaseSampler):
         """
         Args:
             circuits: circuits to be executed
+            parameters: Parameters of each of the quantum circuits.
+                Defaults to ``[circ.parameters for circ in circuits]``.
 
         Raises:
             QiskitError: if some classical bits are not used for measurements.
         """
         if isinstance(circuits, QuantumCircuit):
-            circuits = [circuits]
-        circuits = [init_circuit(circuit) for circuit in circuits]
+            circuits = (circuits,)
+        circuits = tuple(init_circuit(circuit) for circuit in circuits)
         q_c_mappings = [final_measurement_mapping(circuit) for circuit in circuits]
         self._qargs_list = []
         for circuit, q_c_mapping in zip(circuits, q_c_mappings):
@@ -58,33 +60,21 @@ class Sampler(BaseSampler):
                 )
             c_q_mapping = sorted((c, q) for q, c in q_c_mapping.items())
             self._qargs_list.append([q for _, q in c_q_mapping])
-        circuits = [circuit.remove_final_measurements(inplace=False) for circuit in circuits]
+        circuits = tuple(circuit.remove_final_measurements(inplace=False) for circuit in circuits)
         super().__init__(circuits, parameters)
         self._is_closed = False
 
-    def __call__(
+    def _call(
         self,
-        circuits: Sequence[int] | None = None,
-        parameters: Sequence[Sequence[float]] | None = None,
+        circuits: Sequence[int],
+        parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> SamplerResult:
         if self._is_closed:
             raise QiskitError("The primitive has been closed.")
 
-        if circuits is None and parameters is not None and len(self._circuits) == 1:
-            circuits = [0] * len(parameters)
-        if circuits is None:
-            circuits = list(range(len(self._circuits)))
-        if parameters is None:
-            parameters = [[]] * len(circuits)
-        if len(circuits) != len(parameters):
-            raise QiskitError(
-                f"The number of circuits ({len(circuits)}) does not match "
-                f"the number of parameter sets ({len(parameters)})."
-            )
-
         bound_circuits_qargs = []
-        for i, value in zip(circuits, parameters):
+        for i, value in zip(circuits, parameter_values):
             if len(value) != len(self._parameters[i]):
                 raise QiskitError(
                     f"The number of values ({len(value)}) does not match "

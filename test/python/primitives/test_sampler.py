@@ -12,11 +12,11 @@
 
 """Tests for Sampler."""
 
-import unittest
 from test import combine
+import unittest
 
-import numpy as np
 from ddt import ddt
+import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
@@ -84,7 +84,7 @@ class TestSampler(QiskitTestCase):
         """test for sampler"""
         circuits, target = self._generate_circuits_target(indices)
         with Sampler(circuits=circuits) as sampler:
-            result = sampler(parameters=[[] for _ in indices])
+            result = sampler(list(range(len(indices))), parameter_values=[[] for _ in indices])
             self._compare_probs(result.quasi_dists, target)
 
     @combine(indices=[[0], [1], [0, 1]])
@@ -92,7 +92,7 @@ class TestSampler(QiskitTestCase):
         """test for sampler with a parametrized circuit"""
         params, target = self._generate_params_target(indices)
         with Sampler(circuits=self._pqc) as sampler:
-            result = sampler(parameters=params)
+            result = sampler([0] * len(params), params)
             self._compare_probs(result.quasi_dists, target)
 
     @combine(indices=[[0, 0], [0, 1], [1, 1]])
@@ -101,7 +101,7 @@ class TestSampler(QiskitTestCase):
         circs = [self._pqc, self._pqc]
         params, target = self._generate_params_target(indices)
         with Sampler(circuits=circs) as sampler:
-            result = sampler(parameters=params)
+            result = sampler(indices, parameter_values=params)
             self._compare_probs(result.quasi_dists, target)
 
     def test_sampler_example(self):
@@ -114,7 +114,7 @@ class TestSampler(QiskitTestCase):
 
         # executes a Bell circuit
         with Sampler(circuits=[bell], parameters=[[]]) as sampler:
-            result = sampler(parameters=[[]], circuits=[0])
+            result = sampler(parameter_values=[[]], circuits=[0])
             self.assertIsInstance(result, SamplerResult)
             self.assertEqual(len(result.quasi_dists), 1)
             keys, values = zip(*sorted(result.quasi_dists[0].items()))
@@ -125,6 +125,16 @@ class TestSampler(QiskitTestCase):
         # executes three Bell circuits
         with Sampler([bell] * 3, [[]] * 3) as sampler:
             result = sampler([0, 1, 2], [[]] * 3)
+            self.assertIsInstance(result, SamplerResult)
+            self.assertEqual(len(result.quasi_dists), 3)
+            self.assertEqual(len(result.metadata), 3)
+            for dist in result.quasi_dists:
+                keys, values = zip(*sorted(dist.items()))
+                self.assertTupleEqual(keys, tuple(range(4)))
+                np.testing.assert_allclose(values, [0.5, 0, 0, 0.5])
+
+        with Sampler([bell]) as sampler:
+            result = sampler([bell, bell, bell])
             self.assertIsInstance(result, SamplerResult)
             self.assertEqual(len(result.quasi_dists), 3)
             self.assertEqual(len(result.metadata), 3)
@@ -147,6 +157,7 @@ class TestSampler(QiskitTestCase):
             result = sampler([0, 0, 1], [theta1, theta2, theta3])
             self.assertIsInstance(result, SamplerResult)
             self.assertEqual(len(result.quasi_dists), 3)
+            self.assertEqual(len(result.metadata), 3)
 
             keys, values = zip(*sorted(result.quasi_dists[0].items()))
             self.assertTupleEqual(keys, tuple(range(4)))
@@ -344,6 +355,57 @@ class TestSampler(QiskitTestCase):
                     quasi_dist = {k: v for k, v in q_d.items() if v != 0.0}
                     self.assertDictEqual(quasi_dist, {0: 1.0})
                 self.assertEqual(len(result.metadata), 2)
+
+    def test_numpy_params(self):
+        """Test for numpy array as parameter values"""
+        qc = RealAmplitudes(num_qubits=2, reps=2)
+        qc.measure_all()
+        k = 5
+        params_array = np.random.rand(k, qc.num_parameters)
+        params_list = params_array.tolist()
+        params_list_array = list(params_array)
+        with Sampler(circuits=qc) as sampler:
+            target = sampler([0] * k, params_list)
+
+            with self.subTest("ndarrary"):
+                result = sampler([0] * k, params_array)
+                self.assertEqual(len(result.metadata), k)
+                for i in range(k):
+                    self.assertDictEqual(result.quasi_dists[i], target.quasi_dists[i])
+
+            with self.subTest("list of ndarray"):
+                result = sampler([0] * k, params_list_array)
+                self.assertEqual(len(result.metadata), k)
+                for i in range(k):
+                    self.assertDictEqual(result.quasi_dists[i], target.quasi_dists[i])
+
+    def test_passing_objects(self):
+        """Test passing objects for Sampler."""
+
+        params, target = self._generate_params_target([0])
+
+        with self.subTest("Valid test"):
+            with Sampler(circuits=self._pqc) as sampler:
+                result = sampler(circuits=[self._pqc], parameter_values=params)
+                self._compare_probs(result.quasi_dists, target)
+
+        with self.subTest("Invalid circuit test"):
+            circuit = QuantumCircuit(2)
+            with Sampler(circuits=self._pqc) as sampler:
+                with self.assertRaises(QiskitError):
+                    result = sampler(circuits=[circuit], parameter_values=params)
+
+    @combine(indices=[[0], [1], [0, 1]])
+    def test_deprecated_circuit_indices(self, indices):
+        """Test for deprecated arguments"""
+        circuits, target = self._generate_circuits_target(indices)
+        with Sampler(circuits=circuits) as sampler:
+            with self.assertWarns(DeprecationWarning):
+                result = sampler(
+                    circuit_indices=list(range(len(indices))),
+                    parameter_values=[[] for _ in indices],
+                )
+            self._compare_probs(result.quasi_dists, target)
 
 
 if __name__ == "__main__":

@@ -100,7 +100,7 @@ Monospaced output
 import warnings
 
 from IPython import get_ipython
-from qiskit.test.mock import FakeBackend
+from qiskit.providers.fake_provider import FakeBackend
 from qiskit.utils import optionals as _optionals
 from .jupyter_magics import ProgressBarMagic, StatusMagic
 from .progressbar import HTMLProgressBar

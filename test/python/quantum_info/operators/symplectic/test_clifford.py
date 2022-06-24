@@ -55,7 +55,8 @@ class VGate(Gate):
         """V Gate definition."""
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q)
-        qc.data = [(SdgGate(), [q[0]], []), (HGate(), [q[0]], [])]
+        qc.sdg(0)
+        qc.h(0)
         self.definition = qc
 
 
@@ -70,7 +71,8 @@ class WGate(Gate):
         """W Gate definition."""
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q)
-        qc.data = [(VGate(), [q[0]], []), (VGate(), [q[0]], [])]
+        qc.append(VGate(), [q[0]], [])
+        qc.append(VGate(), [q[0]], [])
         self.definition = qc
 
 
@@ -391,6 +393,21 @@ class TestCliffordGates(QiskitTestCase):
             cliff = _append_circuit(cliff, "cx", [1, 0])
             cliff = _append_circuit(cliff, "sdg", [0])
             self.assertEqual(cliff, cliff1)
+
+    def test_barrier_delay_sim(self):
+        """Test barrier and delay instructions can be simulated"""
+        target_circ = QuantumCircuit(2)
+        target_circ.h(0)
+        target_circ.cx(0, 1)
+        target = Clifford(target_circ)
+
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.delay(100, 0)
+        circ.barrier([0, 1])
+        circ.cx(0, 1)
+        value = Clifford(circ)
+        self.assertEqual(value, target)
 
 
 @ddt

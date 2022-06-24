@@ -11,7 +11,8 @@
 # that they have been altered from the originals.
 
 """Two-qubit XX-YY gate."""
-
+import math
+from cmath import exp
 from typing import Optional
 
 import numpy as np
@@ -51,12 +52,12 @@ class XXMinusYYGate(Gate):
         \newcommand{\th}{\frac{\theta}{2}}
 
         R_{XX-YY}(\theta, \beta) q_0, q_1 =
-          RZ_1(\beta) \cdot exp(-i \frac{\theta}{2} \frac{XX-YY}{2}) \cdot RZ_1(-\beta) =
+          RZ_1(\beta) \cdot \exp\left(-i \frac{\theta}{2} \frac{XX-YY}{2}\right) \cdot RZ_1(-\beta) =
             \begin{pmatrix}
-                \cos(\th)             & 0 & 0 & -i\sin(\th)e^{-i\beta}  \\
+                \cos\left(\th\right)             & 0 & 0 & -i\sin\left(\th\right)e^{-i\beta}  \\
                 0                     & 1 & 0 & 0  \\
                 0                     & 0 & 1 & 0  \\
-                -i\sin(\th)e^{i\beta} & 0 & 0 & \cos(\th)
+                -i\sin\left(\th\right)e^{i\beta} & 0 & 0 & \cos\left(\th\right)
             \end{pmatrix}
 
     .. note::
@@ -81,12 +82,12 @@ class XXMinusYYGate(Gate):
             \newcommand{\th}{\frac{\theta}{2}}
 
             R_{XX-YY}(\theta, \beta) q_1, q_0 =
-            RZ_0(\beta) \cdot exp(-i \frac{\theta}{2} \frac{XX-YY}{2}) \cdot RZ_0(-\beta) =
+            RZ_0(\beta) \cdot \exp\left(-i \frac{\theta}{2} \frac{XX-YY}{2}\right) \cdot RZ_0(-\beta) =
                 \begin{pmatrix}
-                    \cos(\th)             & 0 & 0 & -i\sin(\th)e^{i\beta}  \\
+                    \cos\left(\th\right)             & 0 & 0 & -i\sin\left(\th\right)e^{i\beta}  \\
                     0                     & 1 & 0 & 0  \\
                     0                     & 0 & 1 & 0  \\
-                    -i\sin(\th)e^{-i\beta} & 0 & 0 & \cos(\th)
+                    -i\sin\left(\th\right)e^{-i\beta} & 0 & 0 & \cos\left(\th\right)
                 \end{pmatrix}
     """
 
@@ -154,17 +155,17 @@ class XXMinusYYGate(Gate):
         theta, beta = self.params
         return XXMinusYYGate(-theta, beta)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=complex):
         """Gate matrix."""
         theta, beta = self.params
-        cos = np.cos(theta / 2)
-        sin = np.sin(theta / 2)
+        cos = math.cos(theta / 2)
+        sin = math.sin(theta / 2)
         return np.array(
             [
-                [cos, 0, 0, -1j * sin * np.exp(-1j * beta)],
+                [cos, 0, 0, -1j * sin * exp(-1j * beta)],
                 [0, 1, 0, 0],
                 [0, 0, 1, 0],
-                [-1j * sin * np.exp(1j * beta), 0, 0, cos],
+                [-1j * sin * exp(1j * beta), 0, 0, cos],
             ],
             dtype=dtype,
         )

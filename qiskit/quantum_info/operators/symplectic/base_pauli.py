@@ -20,6 +20,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.barrier import Barrier
+from qiskit.circuit.delay import Delay
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.mixins import AdjointMixin, MultiplyMixin
@@ -130,9 +131,9 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         # Get phase shift
         phase = self._phase + other._phase
         if front:
-            phase += 2 * np.sum(np.logical_and(x1, z2), axis=1)
+            phase += 2 * _count_y(x1, z2)
         else:
-            phase += 2 * np.sum(np.logical_and(z1, x2), axis=1)
+            phase += 2 * _count_y(x2, z1)
 
         # Update Pauli
         x = np.logical_xor(x1, x2)
@@ -218,8 +219,8 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             x1, z1 = self._x[:, inds], self._z[:, inds]
         else:
             x1, z1 = self._x, self._z
-        a_dot_b = np.mod(np.sum(np.logical_and(x1, other._z), axis=1), 2)
-        b_dot_a = np.mod(np.sum(np.logical_and(z1, other._x), axis=1), 2)
+        a_dot_b = np.mod(_count_y(x1, other._z), 2)
+        b_dot_a = np.mod(_count_y(other._x, z1), 2)
         return a_dot_b == b_dot_a
 
     def evolve(self, other, qargs=None, frame="h"):
@@ -338,9 +339,9 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         ret._phase = np.mod(self._phase + 2, 4)
         return ret
 
-    def _count_y(self):
+    def _count_y(self, dtype=None):
         """Count the number of I Pauli's"""
-        return np.sum(np.logical_and(self._x, self._z), axis=1)
+        return _count_y(self._x, self._z, dtype=dtype)
 
     @staticmethod
     def _stack(array, size, vertical=True):
@@ -389,7 +390,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             raise QiskitError("z and x vectors are different size.")
 
         # Convert group phase convention to internal ZX-phase conversion.
-        base_phase = np.mod(np.sum(np.logical_and(base_x, base_z), axis=1, dtype=int) + phase, 4)
+        base_phase = np.mod(_count_y(base_x, base_z) + phase, 4)
         return base_z, base_x, base_phase
 
     @staticmethod
@@ -473,6 +474,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
                             for the label from the full Pauli group.
         """
         num_qubits = z.size
+        phase = int(phase)
         coeff_labels = {0: "", 1: "-i", 2: "-", 3: "i"}
         label = ""
         for i in range(num_qubits):
@@ -507,7 +509,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         Raises:
             QiskitError: if input gate cannot be decomposed into Clifford gates.
         """
-        if isinstance(circuit, Barrier):
+        if isinstance(circuit, (Barrier, Delay)):
             return self
 
         if qargs is None:
@@ -575,14 +577,14 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             for index, bit in enumerate(bits)
         }
 
-        for instr, qregs, cregs in flat_instr:
-            if cregs:
+        for instruction in flat_instr:
+            if instruction.clbits:
                 raise QiskitError(
-                    f"Cannot apply Instruction with classical registers: {instr.name}"
+                    f"Cannot apply Instruction with classical bits: {instruction.operation.name}"
                 )
             # Get the integer position of the flat register
-            new_qubits = [qargs[bit_indices[tup]] for tup in qregs]
-            self._append_circuit(instr, new_qubits)
+            new_qubits = [qargs[bit_indices[tup]] for tup in instruction.qubits]
+            self._append_circuit(instruction.operation, new_qubits)
 
         # Since the individual gate evolution functions don't take mod
         # of phase we update it at the end
@@ -683,3 +685,11 @@ def _evolve_swap(base_pauli, q1, q2):
     base_pauli._x[:, q2] = x1
     base_pauli._z[:, q2] = z1
     return base_pauli
+
+
+def _count_y(x, z, dtype=None):
+    """Count the number of I Pauli's"""
+    axis = 1
+    if dtype is None:
+        dtype = np.min_scalar_type(x.shape[axis])
+    return (x & z).sum(axis=axis, dtype=dtype)

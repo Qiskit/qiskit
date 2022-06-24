@@ -24,7 +24,7 @@ from .probability import ProbDistribution
 # __setitem__ so overloading __setitem__ would not always provide the expected
 # result
 class QuasiDistribution(dict):
-    """A dict-like class for representing qasi-probabilities."""
+    """A dict-like class for representing quasi-probabilities."""
 
     _bitstring_regex = re.compile(r"^[01]+$")
 

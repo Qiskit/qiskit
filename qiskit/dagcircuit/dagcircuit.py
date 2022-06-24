@@ -95,6 +95,9 @@ class DAGCircuit:
         self.unit = "dt"
 
     @_optionals.HAS_NETWORKX.require_in_call
+    @deprecate_function(
+        "The to_networkx() method is deprecated and will be removed in a future release."
+    )
     def to_networkx(self):
         """Returns a copy of the DAGCircuit in networkx format."""
         import networkx as nx
@@ -109,6 +112,9 @@ class DAGCircuit:
 
     @classmethod
     @_optionals.HAS_NETWORKX.require_in_call
+    @deprecate_function(
+        "The from_networkx() method is deprecated and will be removed in a future release."
+    )
     def from_networkx(cls, graph):
         """Take a networkx MultiDigraph and create a new DAGCircuit.
 
@@ -531,13 +537,13 @@ class DAGCircuit:
 
         return target_dag
 
-    def apply_operation_back(self, op, qargs=None, cargs=None):
+    def apply_operation_back(self, op, qargs=(), cargs=()):
         """Apply an operation to the output of the circuit.
 
         Args:
             op (qiskit.circuit.Instruction): the operation associated with the DAG node
-            qargs (list[Qubit]): qubits that op will be applied to
-            cargs (list[Clbit]): cbits that op will be applied to
+            qargs (tuple[Qubit]): qubits that op will be applied to
+            cargs (tuple[Clbit]): cbits that op will be applied to
         Returns:
             DAGOpNode: the node for the op that was added to the dag
 
@@ -545,8 +551,8 @@ class DAGCircuit:
             DAGCircuitError: if a leaf node is connected to multiple outputs
 
         """
-        qargs = qargs or []
-        cargs = cargs or []
+        qargs = tuple(qargs) if qargs is not None else ()
+        cargs = tuple(cargs) if cargs is not None else ()
 
         all_cbits = self._bits_in_condition(op.condition)
         all_cbits = set(all_cbits).union(cargs)
@@ -567,13 +573,13 @@ class DAGCircuit:
         )
         return self._multi_graph[node_index]
 
-    def apply_operation_front(self, op, qargs, cargs):
+    def apply_operation_front(self, op, qargs=(), cargs=()):
         """Apply an operation to the input of the circuit.
 
         Args:
             op (qiskit.circuit.Instruction): the operation associated with the DAG node
-            qargs (list[Qubit]): qubits that op will be applied to
-            cargs (list[Clbit]): cbits that op will be applied to
+            qargs (tuple[Qubit]): qubits that op will be applied to
+            cargs (tuple[Clbit]): cbits that op will be applied to
         Returns:
             DAGOpNode: the node for the op that was added to the dag
 
@@ -958,7 +964,6 @@ class DAGCircuit:
         # Try to convert to float, but in case of unbound ParameterExpressions
         # a TypeError will be raise, fallback to normal equality in those
         # cases
-
         try:
             self_phase = float(self.global_phase)
             other_phase = float(other.global_phase)

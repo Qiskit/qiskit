@@ -16,7 +16,6 @@ Estimator class
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import cast
 
 import numpy as np
 
@@ -43,12 +42,12 @@ class Estimator(BaseEstimator):
         parameters: Iterable[Iterable[Parameter]] | None = None,
     ):
         if isinstance(circuits, QuantumCircuit):
-            circuits = [circuits]
-        circuits = [init_circuit(circuit) for circuit in circuits]
+            circuits = (circuits,)
+        circuits = tuple(init_circuit(circuit) for circuit in circuits)
 
         if isinstance(observables, (PauliSumOp, BaseOperator)):
-            observables = [observables]
-        observables = [init_observable(observable) for observable in observables]
+            observables = (observables,)
+        observables = tuple(init_observable(observable) for observable in observables)
 
         super().__init__(
             circuits=circuits,
@@ -57,42 +56,18 @@ class Estimator(BaseEstimator):
         )
         self._is_closed = False
 
-    def __call__(
+    def _call(
         self,
-        circuits: Sequence[int] | None = None,
-        observables: Sequence[int] | None = None,
-        parameters: Sequence[Sequence[float]] | Sequence[float] | None = None,
+        circuits: Sequence[int],
+        observables: Sequence[int],
+        parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> EstimatorResult:
         if self._is_closed:
             raise QiskitError("The primitive has been closed.")
 
-        if parameters and not isinstance(parameters[0], Sequence):
-            parameters = cast("Sequence[float]", parameters)
-            parameters = [parameters]
-        if (
-            circuits is None
-            and len(self._circuits) == 1
-            and observables is None
-            and len(self._observables) == 1
-            and parameters is not None
-        ):
-            circuits = [0] * len(parameters)
-            observables = [0] * len(parameters)
-        if circuits is None:
-            circuits = list(range(len(self._circuits)))
-        if observables is None:
-            observables = list(range(len(self._observables)))
-        if parameters is None:
-            parameters = [[]] * len(circuits)
-        if len(circuits) != len(parameters):
-            raise QiskitError(
-                f"The number of circuits ({len(circuits)}) does not match "
-                f"the number of parameter sets ({len(parameters)})."
-            )
-
         bound_circuits = []
-        for i, value in zip(circuits, parameters):
+        for i, value in zip(circuits, parameter_values):
             if len(value) != len(self._parameters[i]):
                 raise QiskitError(
                     f"The number of values ({len(value)}) does not match "
@@ -111,7 +86,7 @@ class Estimator(BaseEstimator):
                 )
             expectation_values.append(Statevector(circ).expectation_value(obs))
 
-        return EstimatorResult(np.real_if_close(expectation_values), [])
+        return EstimatorResult(np.real_if_close(expectation_values), [{}] * len(expectation_values))
 
     def close(self):
         self._is_closed = True

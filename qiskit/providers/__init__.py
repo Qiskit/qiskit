@@ -112,6 +112,25 @@ Job
    Job
    JobV1
 
+Job Status
+----------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   JobStatus
+
+Exceptions
+----------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QiskitBackendNotFoundError
+   BackendPropertyError
+   JobError
+   JobTimeoutError
+
 ======================
 Writing a New Provider
 ======================
@@ -647,47 +666,6 @@ with :obj:`~BackendV2`:
        operation on a given qubit is used to model the readout length. However, a
        :obj:`~BackendV2` can implement multiple measurement types and list them
        separately in a :class:`~qiskit.transpiler.Target`.
-
-
-================================================================
-Legacy Provider Interface Base Objects (:mod:`qiskit.providers`)
-================================================================
-
-These abstract interfaces are deprecated and will be removed in a future
-release. The documentation here is left for reference purposes while they're
-still supported, but if you're creating or maintaining a provider you should
-be using the versioned interface.
-
-.. currentmodule:: qiskit.providers
-
-Base Objects
-============
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   BaseProvider
-   BaseBackend
-   BaseJob
-
-Job Status
-==========
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   JobStatus
-
-Exceptions
-==========
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   QiskitBackendNotFoundError
-   BackendPropertyError
-   JobError
-   JobTimeoutError
 """
 
 import pkgutil
@@ -703,10 +681,6 @@ from qiskit.providers.options import Options
 from qiskit.providers.job import Job
 from qiskit.providers.job import JobV1
 
-# Legacy providers interface
-from qiskit.providers.basebackend import BaseBackend
-from qiskit.providers.baseprovider import BaseProvider
-from qiskit.providers.basejob import BaseJob
 from qiskit.providers.exceptions import (
     JobError,
     JobTimeoutError,
@@ -718,4 +692,6 @@ from qiskit.providers.jobstatus import JobStatus
 
 
 # Allow extending this namespace.
+# TODO: Remove when we drop support for importing qiskit-aer < 0.11.0 and the
+# qiskit-ibmq-provider package is retired/archived.
 __path__ = pkgutil.extend_path(__path__, __name__)

@@ -40,7 +40,7 @@ class RXGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        RX(\theta) = exp(-i \th X) =
+        RX(\theta) = \exp\left(-i \th X\right) =
             \begin{pmatrix}
                 \cos{\th}   & -i\sin{\th} \\
                 -i\sin{\th} & \cos{\th}
@@ -122,7 +122,7 @@ class CRXGate(ControlledGate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        CRX(\lambda)\ q_0, q_1 =
+        CRX(\theta)\ q_0, q_1 =
             I \otimes |0\rangle\langle 0| + RX(\theta) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
@@ -217,8 +217,8 @@ class CRXGate(ControlledGate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the CRX gate."""
         half_theta = float(self.params[0]) / 2
-        cos = numpy.cos(half_theta)
-        isin = 1j * numpy.sin(half_theta)
+        cos = math.cos(half_theta)
+        isin = 1j * math.sin(half_theta)
         if self.ctrl_state:
             return numpy.array(
                 [[1, 0, 0, 0], [0, cos, 0, -isin], [0, 0, 1, 0], [0, -isin, 0, cos]], dtype=dtype
