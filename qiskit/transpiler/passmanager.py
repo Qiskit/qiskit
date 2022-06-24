@@ -309,11 +309,7 @@ class PassManager:
 
     @property
     def passes(self) -> List[Dict[str, BasePass]]:
-        """List structure of the appended passes and its options.
-
-        Returns:
-            A list of pass sets, as defined in ``append()``.
-        """
+        """List structure of the appended passes and its options"""
         ret = []
         for pass_set in self._pass_sets:
             item = {"passes": pass_set["passes"]}
