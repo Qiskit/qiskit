@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    * Convert `PassManager.passes()` to a property.
+deprecations:
+  - |
+    * Pending deprecation of method call `PassManager.passes()`.
