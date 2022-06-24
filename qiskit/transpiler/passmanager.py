@@ -398,8 +398,8 @@ class StagedPassManager(PassManager):
             "scheduling",
         ]
         self._validate_stages(stages)
-        self._stages: List[str] = list(stages)
-        self._expanded_stages: List[str] = list(self._generate_expanded_stages())
+        super().__setattr__("_stages", list(stages))
+        super().__setattr__("_expanded_stages", list(self._generate_expanded_stages()))
         super().__init__()
         self._validate_kwargs(kwargs)
         for stage in self.expanded_stages:

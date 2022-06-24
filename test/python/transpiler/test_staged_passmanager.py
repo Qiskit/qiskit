@@ -13,12 +13,16 @@
 # pylint: disable=missing-function-docstring,missing-class-docstring
 
 """Test the staged passmanager logic"""
+from ddt import data, ddt
+from unittest.mock import patch
 
 from qiskit.transpiler import PassManager, StagedPassManager
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import Optimize1qGates, Unroller, Depth
 from qiskit.test import QiskitTestCase
 
 
+@ddt
 class TestStagedPassManager(QiskitTestCase):
     def test_default_stages(self):
         spm = StagedPassManager()
@@ -92,3 +96,36 @@ class TestStagedPassManager(QiskitTestCase):
         message = str(err.exception)
         for stage in invalid_stages:
             self.assertIn(stage, message)
+
+    def test_edit_stages(self):
+        spm = StagedPassManager()
+        with self.assertRaises(AttributeError):
+            spm.stages = ["init"]
+        with self.assertRaises(AttributeError):
+            spm.expanded_stages = ["init"]
+
+    @data(None, ["init"], ["init", "schedule"])
+    def test_expanded_stages(self, stages):
+        spm = StagedPassManager(stages=stages)
+        expanded_stages = (stage for stage in spm.expanded_stages)
+        for stage in spm.stages:
+            self.assertEqual(next(expanded_stages), "pre_" + stage)
+            self.assertEqual(next(expanded_stages), stage)
+            self.assertEqual(next(expanded_stages), "post_" + stage)
+
+    def test_setattr(self):
+        spm = StagedPassManager()
+        with self.assertRaises(TranspilerError):
+            spm.init = spm
+        mock_target = "qiskit.transpiler.passmanager.StagedPassManager._update_passmanager"
+        with patch(mock_target, spec=True) as mock:
+            spm.init = None
+            mock.assert_called_once()
+
+    def test_getitem(self):
+        pm = PassManager(Depth())
+        spm = StagedPassManager(init=pm)
+        mock_target = "qiskit.transpiler.passmanager.StagedPassManager._update_passmanager"
+        with patch(mock_target, spec=True) as mock:
+            item = spm[0]
+            mock.assert_called_once()
