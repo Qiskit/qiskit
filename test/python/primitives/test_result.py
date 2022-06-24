@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests for BaseResult."""
+"""Tests for BasePrimitiveResult."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from typing import Any
 
 from ddt import data, ddt, unpack
 
-from qiskit.primitives.base_result import BaseResult
+from qiskit.primitives.base_result import BasePrimitiveResult
 from qiskit.test import QiskitTestCase
 
 
@@ -28,8 +28,8 @@ from qiskit.test import QiskitTestCase
 ## STUB DATACLASS
 ################################################################################
 @dataclass
-class Result(BaseResult):
-    """Dummy result dataclass implementing BaseResult."""
+class Result(BasePrimitiveResult):
+    """Dummy result dataclass implementing BasePrimitiveResult."""
 
     field_1: Collection[Any]
     field_2: Collection[Any]
@@ -39,8 +39,8 @@ class Result(BaseResult):
 ## TESTS
 ################################################################################
 @ddt
-class TestBaseResult(QiskitTestCase):
-    """Tests BaseResult."""
+class TestBasePrimitiveResult(QiskitTestCase):
+    """Tests BasePrimitiveResult."""
 
     @data(([1], []), ([], [1]), ([1, 2], []), ([1], [1, 2]))
     @unpack

@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Adds a primitive result :class:`qiskit.primitives.base_result.BaseResult` to provide common functionality to all inheriting result dataclasses.
+    Adds a primitive result :class:`qiskit.primitives.base_result.BasePrimitiveResult` to provide common functionality to all inheriting result dataclasses.
     * Adds :py:meth:`result.num_experiments` property.
     * Adds :py:meth:`result.experiments` property.
     * Checks for consistency in the number of experiments across data fields after instantiation (i.e. on dataclass :py:meth:`__post_init__`).

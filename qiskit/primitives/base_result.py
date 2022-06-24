@@ -18,7 +18,7 @@ from dataclasses import fields
 from typing import Any, Sized, Tuple
 
 
-class BaseResult(ABC):
+class BasePrimitiveResult(ABC):
     """Primitive result abstract base class.
 
     Base class for Primitive results meant to provide common functionality to all inheriting
