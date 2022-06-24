@@ -69,6 +69,7 @@ VERSION_PATTERN = (
 """
     + "$"
 )
+VERSION_PATTERN_REGEX = re.compile(VERSION_PATTERN, re.VERBOSE | re.IGNORECASE)
 
 
 @deprecate_arguments({"circuits": "programs"})
@@ -149,7 +150,7 @@ def dump(
     else:
         raise TypeError(f"'{program_type}' is not supported data type.")
 
-    version_match = re.search(VERSION_PATTERN, __version__, re.VERBOSE | re.IGNORECASE)
+    version_match = VERSION_PATTERN_REGEX.search(__version__)
     version_parts = [int(x) for x in version_match.group("release").split(".")]
     header = struct.pack(
         formats.FILE_HEADER_PACK,
@@ -226,7 +227,7 @@ def load(
     )
     if data.preface.decode(common.ENCODE) != "QISKIT":
         raise QiskitError("Input file is not a valid QPY file")
-    version_match = re.search(VERSION_PATTERN, __version__, re.VERBOSE | re.IGNORECASE)
+    version_match = VERSION_PATTERN_REGEX.search(__version__)
     version_parts = [int(x) for x in version_match.group("release").split(".")]
 
     header_version_parts = [data.major_version, data.minor_version, data.patch_version]
