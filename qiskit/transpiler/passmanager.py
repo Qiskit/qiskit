@@ -12,6 +12,8 @@
 
 """Manager for a set of Passes and their scheduling during transpilation."""
 
+import io
+import re
 from typing import Union, List, Callable, Dict, Any
 
 import dill
@@ -319,3 +321,185 @@ class PassManager:
                 item["flow_controllers"] = {}
             ret.append(item)
         return ret
+
+
+class StagedPassManager(PassManager):
+    """A Pass manager pipeline built up of individual stages
+
+    This class enables building a compilation pipeline out of fixed stages.
+    Each ``StagedPassManager`` defines a list of stages which are executed in
+    a fixed order, and each stage is defined as a standalone :class:`~.PassManager`
+    instance. There are also ``pre_`` and ``post_`` stages for each defined stage.
+    This enables easily composing and replacing different stages and also adding
+    hook points to enable programmtic modifications to a pipeline. When using a staged
+    pass manager you are not able to modify the individual passes and are only able
+    to modify stages.
+
+    By default instances of StagedPassManager define a typical full compilation
+    pipeline from an abstract virtual circuit to one that is optimized and
+    capable of running on the specified backend. The default pre-defined stages are:
+
+    #. ``init`` - any initial passes that are run before we start embedding the circuit to the backend
+    #. ``layout`` - This stage runs layout and maps the virtual qubits in the
+       circuit to the physical qubits on a backend
+    #. ``routing`` - This stage runs after a layout has been run and will insert any
+       necessary gates to move the qubit states around until it can be run on
+       backend's compuling map.
+    #. ``translation`` - Perform the basis gate translation, in other words translate the gates
+       in the circuit to the target backend's basis set
+    #. ``optimization`` - The main optimization loop, this will typically run in a loop trying to
+       optimize the circuit until a condtion (such as fixed depth) is reached.
+    #. ``scheduling`` - Any hardware aware scheduling passes
+
+    .. note::
+
+        For backwards compatibility the relative positioning of these default
+        stages will remain stable moving forward. However, new stages may be
+        added to the default stage list in between current stages. For example,
+        in a future release a new phase, something like ``logical_optimization``, could be added
+        immediately after the existing ``init`` stage in the default stage list.
+        This would preserve compatibility for pre-existing ``StagedPassManager``
+        users as the relative positions of the stage are preserved so the behavior
+        will not change between releases.
+
+    These stages will be executed in order and any stage set to ``None`` will be skipped. If
+    a :class:`~qiskit.transpiler.PassManager` input is being used for more than 1 stage here
+    (for example in the case of a :class:`~.Pass` that covers both Layout and Routing) you will want
+    to set that to the earliest stage in sequence that it covers.
+    """
+
+    invalid_stage_regex = re.compile(
+        r"\s|\+|\-|\*|\/|\\|\%|\<|\>|\@|\!|\~|\^|\&|\:|\[|\]|\{|\}|\(|\)"
+    )
+
+    def __init__(self, stages=None, **kwargs):
+        """Initialize a new StagedPassManager object
+
+        Args:
+            stages (List[str]): An optional list of stages to use for this
+                instance. If this is not specified the default stages list
+                ``['init', 'layout', 'routing', 'translation', 'optimization', 'scheduling']`` is
+                used
+            kwargs: The initial :class:`~.PassManager` values for any stages
+                defined in ``stages``. If a argument is not defined the
+                stages will default to ``None`` indicating an empty/undefined
+                stage.
+
+        Raises:
+            AttributeError: If a stage in the input keyword arguments is not defined.
+            ValueError: If an invalid stage name is specified.
+        """
+        if stages is None:
+            self.stages = [
+                "init",
+                "layout",
+                "routing",
+                "translation",
+                "optimization",
+                "scheduling",
+            ]
+        else:
+            invalid_stages = [
+                stage for stage in stages if self.invalid_stage_regex.search(stage) is not None
+            ]
+            if invalid_stages:
+                with io.StringIO() as msg:
+                    msg.write(f"The following stage names are not valid: {invalid_stages[0]}")
+                    for invalid_stage in invalid_stages[1:]:
+                        msg.write(f", {invalid_stage}")
+                    raise ValueError(msg.getvalue())
+
+            self.stages = stages
+        super().__init__()
+        for stage in self.stages:
+            pre_stage = "pre_" + stage
+            post_stage = "post_" + stage
+            setattr(self, pre_stage, None)
+            setattr(self, stage, None)
+            setattr(self, post_stage, None)
+        for stage, pm in kwargs.items():
+            if (
+                stage not in self.stages
+                and not (stage.startswith("pre_") and stage[4:] in self.stages)
+                and not (stage.startswith("post_") and stage[5:] in self.stages)
+            ):
+                raise AttributeError(f"{stage} is not a valid stage.")
+            setattr(self, stage, pm)
+        self._update_passmanager()
+
+    def _update_passmanager(self):
+        self._pass_sets = []
+        for stage in self.stages:
+            # Add pre-stage PM
+            pre_stage_pm = getattr(self, "pre_" + stage, None)
+            if pre_stage_pm is not None:
+                self._pass_sets.extend(pre_stage_pm._pass_sets)
+            # Add stage PM
+            stage_pm = getattr(self, stage, None)
+            if stage_pm is not None:
+                self._pass_sets.extend(stage_pm._pass_sets)
+            # Add post-stage PM
+            post_stage_pm = getattr(self, "post_" + stage, None)
+            if post_stage_pm is not None:
+                self._pass_sets.extend(post_stage_pm._pass_sets)
+
+    def __setattr__(self, attr, value):
+        super().__setattr__(attr, value)
+        if (
+            attr in self.stages
+            or (attr.startswith("pre_") and attr[4:] not in self.stages)
+            or (attr.startswith("post_") and attr[5:] not in self.stages)
+        ):
+            self._update_passmanager()
+
+    def append(
+        self,
+        passes: Union[BasePass, List[BasePass]],
+        max_iteration: int = None,
+        **flow_controller_conditions: Any,
+    ) -> None:
+        raise NotImplementedError
+
+    def replace(
+        self,
+        index: int,
+        passes: Union[BasePass, List[BasePass]],
+        max_iteration: int = None,
+        **flow_controller_conditions: Any,
+    ) -> None:
+        raise NotImplementedError
+
+    # Raise NotImplemntedError on individual pass manipulation
+    def remove(self, index: int) -> None:
+        raise NotImplementedError
+
+    def __getitem(self, index):
+        self._update_passmanager()
+        return super().__getitem__(index)
+
+    def __len__(self):
+        self._update_passmanager()
+        return super().__len__()
+
+    def __setitem__(self, index, item):
+        raise NotImplementedError
+
+    def __add__(self, other):
+        raise NotImplementedError
+
+    def _create_running_passmanager(self) -> RunningPassManager:
+        self._update_passmanager()
+        return super()._create_running_passmanager()
+
+    def passes(self) -> List[Dict[str, BasePass]]:
+        self._update_passmanager()
+        return super().passes()
+
+    def run(
+        self,
+        circuits: Union[QuantumCircuit, List[QuantumCircuit]],
+        output_name: str = None,
+        callback: Callable = None,
+    ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
+        self._update_passmanager()
+        return super().run(circuits, output_name, callback)

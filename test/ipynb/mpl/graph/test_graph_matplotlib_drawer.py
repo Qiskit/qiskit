@@ -25,7 +25,7 @@ from qiskit.utils import optionals
 from qiskit.visualization.graph.state_visualization import state_drawer
 from qiskit.visualization.graph.counts_visualization import plot_histogram
 from qiskit.visualization.graph.gate_map import plot_gate_map, plot_coupling_map
-from qiskit.test.mock.fake_provider import (
+from qiskit.providers.fake_provider import (
     FakeArmonk,
     FakeBelem,
     FakeCasablanca,
