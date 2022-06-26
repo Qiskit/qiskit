@@ -14,7 +14,7 @@
 
 import io
 import re
-from typing import Union, List, Callable, Dict, Any, Iterator
+from typing import Union, List, Callable, Dict, Any, Optional, Iterator, Iterable
 
 import dill
 
@@ -372,11 +372,11 @@ class StagedPassManager(PassManager):
         r"\s|\+|\-|\*|\/|\\|\%|\<|\>|\@|\!|\~|\^|\&|\:|\[|\]|\{|\}|\(|\)"
     )
 
-    def __init__(self, stages=None, **kwargs):
+    def __init__(self, stages: Optional[Iterable[str]] = None, **kwargs) -> None:
         """Initialize a new StagedPassManager object
 
         Args:
-            stages (List[str]): An optional list of stages to use for this
+            stages (Iterable[str]): An optional list of stages to use for this
                 instance. If this is not specified the default stages list
                 ``['init', 'layout', 'routing', 'translation', 'optimization', 'scheduling']`` is
                 used
@@ -398,15 +398,15 @@ class StagedPassManager(PassManager):
             "scheduling",
         ]
         self._validate_stages(stages)
-        super().__setattr__("_stages", list(stages))
-        super().__setattr__("_expanded_stages", list(self._generate_expanded_stages()))
+        super().__setattr__("_stages", tuple(stages))
+        super().__setattr__("_expanded_stages", tuple(self._generate_expanded_stages()))
         super().__init__()
-        self._validate_kwargs(kwargs)
+        self._validate_init_kwargs(kwargs)
         for stage in self.expanded_stages:
             pm = kwargs.get(stage, None)
             setattr(self, stage, pm)
 
-    def _validate_stages(self, stages: List[str]) -> None:
+    def _validate_stages(self, stages: Iterable[str]) -> None:
         invalid_stages = [
             stage for stage in stages if self.invalid_stage_regex.search(stage) is not None
         ]
@@ -417,19 +417,19 @@ class StagedPassManager(PassManager):
                     msg.write(f", {invalid_stage}")
                 raise ValueError(msg.getvalue())
 
-    def _validate_kwargs(self, kwargs: Dict[str, Any]) -> None:
+    def _validate_init_kwargs(self, kwargs: Dict[str, Any]) -> None:
         expanded_stages = set(self.expanded_stages)
         for stage in kwargs.keys():
             if stage not in expanded_stages:
                 raise AttributeError(f"{stage} is not a valid stage.")
 
     @property
-    def stages(self) -> List[str]:
+    def stages(self) -> Tuple[str, ...]:
         """Pass manager stages"""
         return self._stages  # pylint: disable=E1101
 
     @property
-    def expanded_stages(self) -> List[str]:
+    def expanded_stages(self) -> Tuple[str, ...]:
         """Expanded Pass manager stages including ``pre_`` and ``post_`` phases."""
         return self._expanded_stages  # pylint: disable=E1101
 
