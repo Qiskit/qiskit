@@ -28,7 +28,7 @@ class TestStagedPassManager(QiskitTestCase):
     def test_default_stages(self):
         spm = StagedPassManager()
         self.assertEqual(
-            spm.stages, ["init", "layout", "routing", "translation", "optimization", "scheduling"]
+            spm.stages, ("init", "layout", "routing", "translation", "optimization", "scheduling")
         )
         spm = StagedPassManager(
             init=PassManager([Optimize1qGates()]),
