@@ -659,10 +659,7 @@ class TestCircuitCompose(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.measure_all()
         out = ansatz.compose(qc)
-        self.assertEqual(
-            out.clbits,
-            [Clbit(ClassicalRegister(2, "meas"), 0), Clbit(ClassicalRegister(2, "meas"), 1)],
-        )
+        self.assertEqual(out.clbits, qc.clbits)
 
     def test_compose_no_clbits_in_one_inplace(self):
         """Test combining a circuit with cregs to one without inplace"""
@@ -671,10 +668,7 @@ class TestCircuitCompose(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.measure_all()
         ansatz.compose(qc, inplace=True)
-        self.assertEqual(
-            ansatz.clbits,
-            [Clbit(ClassicalRegister(2, "meas"), 0), Clbit(ClassicalRegister(2, "meas"), 1)],
-        )
+        self.assertEqual(ansatz.clbits, qc.clbits)
 
     def test_compose_no_clbits_in_one_multireg(self):
         """Test combining a circuit with cregs to one without, multi cregs"""
@@ -686,6 +680,7 @@ class TestCircuitCompose(QiskitTestCase):
         qc = QuantumCircuit(qa, ca, cb)
         qc.measure(0, cb[1])
         out = ansatz.compose(qc)
+        self.assertEqual(out.clbits, qc.clbits)
         self.assertEqual(out.cregs, qc.cregs)
 
     def test_compose_noclbits_registerless(self):
@@ -694,8 +689,8 @@ class TestCircuitCompose(QiskitTestCase):
         inner.measure([0, 1], [0, 1])
         outer = QuantumCircuit(2)
         outer.compose(inner, inplace=True)
-        self.assertEqual(len(outer.clbits), 2)
-        self.assertEqual(len(outer.cregs), 0)
+        self.assertEqual(outer.clbits, inner.clbits)
+        self.assertEqual(outer.cregs, [])
 
 
 if __name__ == "__main__":
