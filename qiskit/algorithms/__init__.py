@@ -91,6 +91,7 @@ knowledge to do this in that application domain.
    :nosignatures:
 
    NumPyEigensolver
+   VQD
 
 
 Variational Quantum Time Evolution
@@ -237,7 +238,7 @@ from .amplitude_estimators import (
     MaximumLikelihoodAmplitudeEstimationResult,
     EstimationProblem,
 )
-from .eigen_solvers import NumPyEigensolver, Eigensolver, EigensolverResult
+from .eigen_solvers import NumPyEigensolver, Eigensolver, EigensolverResult, VQD, VQDResult
 from .factorizers import Shor, ShorResult
 from .linear_solvers import HHL, LinearSolver, NumPyLinearSolver, LinearSolverResult
 from .minimum_eigen_solvers import (
@@ -305,6 +306,7 @@ __all__ = [
     "MinimumEigensolverResult",
     "HamiltonianPhaseEstimation",
     "HamiltonianPhaseEstimationResult",
+    "VQD",
     "PhaseEstimationScale",
     "PhaseEstimation",
     "PhaseEstimationResult",
