@@ -46,8 +46,8 @@ Steppable Optimizer Base Class
    :nosignatures:
 
    SteppableOptimizer
-   AskObject
-   TellObject
+   AskData
+   TellData
    OptimizerState
 
 Local Optimizers
@@ -132,7 +132,7 @@ from .nlopts.direct_l import DIRECT_L
 from .nlopts.direct_l_rand import DIRECT_L_RAND
 from .nlopts.esch import ESCH
 from .nlopts.isres import ISRES
-from .steppable_optimizer import SteppableOptimizer, AskObject, TellObject, OptimizerState
+from .steppable_optimizer import SteppableOptimizer, AskData, TellData, OptimizerState
 from .optimizer import Minimizer, Optimizer, OptimizerResult, OptimizerSupportLevel
 from .p_bfgs import P_BFGS
 from .powell import POWELL

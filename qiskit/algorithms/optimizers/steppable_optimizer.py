@@ -14,21 +14,21 @@
 
 from abc import abstractmethod, ABC
 from dataclasses import dataclass
-from typing import Union, Callable, Optional, Tuple, List
+from typing import Union, Callable, Optional, Tuple, List, Any
 from .optimizer import Optimizer, POINT, OptimizerResult
 
-CALLBACK = Callable
+CALLBACK = Callable[Any, None]
 
 
 @dataclass
-class AskObject(ABC):
+class AskData(ABC):
     """Base class for return type of :meth:`~.SteppableOptimizer.ask`.
 
     Args:
         x_fun: Point or list of points where the function needs to be evaluated to compute the next
         state of the optimizer.
-        x_jac: Point or list of points where the gradient/jacobian needs to be evaluated to compute the
-        next state of the optimizer.
+        x_jac: Point or list of points where the gradient/jacobian needs to be evaluated to compute
+        the next state of the optimizer.
 
     """
 
@@ -37,12 +37,12 @@ class AskObject(ABC):
 
 
 @dataclass
-class TellObject(ABC):
+class TellData(ABC):
     """Base class for argument type of :meth:`~.SteppableOptimizer.tell`.
 
     Args:
-        eval_fun: Image of the function at :attr:`~.Ask_Object.x_fun`.
-        eval_jac: Image of the gradient-jacobian at :attr:`~.Ask_Object.x_jac`.
+        eval_fun: Image of the function at :attr:`~.ask_data.x_fun`.
+        eval_jac: Image of the gradient-jacobian at :attr:`~.ask_data.x_jac`.
 
     """
 
@@ -116,17 +116,17 @@ class SteppableOptimizer(Optimizer):
             optimizer.initialize(x0=initial_point, fun=objective, jac=grad)
 
             for _ in range(20):
-                ask_object = optimizer.ask()
+                ask_data = optimizer.ask()
                 evaluated_gradient = None
 
                 while evaluated_gradient is None:
-                    evaluated_gradient = grad(ask_object.x_center)
-                    optimizer._state.njev += 1
+                    evaluated_gradient = grad(ask_data.x_center)
+                    optimizer.state.njev += 1
 
-                optmizer._state.nit += 1
+                optmizer.state.nit += 1
 
-                tell_object = TellObject(eval_jac=evaluated_gradient)
-                optimizer.tell(ask_object=ask_object, tell_object=tell_object)
+                 cf  = TellData(eval_jac=evaluated_gradient)
+                optimizer.tell(ask_data=ask_data, tell_data=tell_data)
 
             result = optimizer.create_result()
 
@@ -145,17 +145,32 @@ class SteppableOptimizer(Optimizer):
 
     def __init__(
         self,
-        maxiter: int = 1000,
+        maxiter: int = 100,
     ):
         """
         Args:
             maxiter: Number of steps in the optimization process before ending the loop.
         """
         super().__init__()
-        self._state: OptimizerState = None
-        self.maxiter = maxiter
+        self._state: Optional[OptimizerState] = None
+        self._maxiter = maxiter
 
-    def ask(self) -> AskObject:
+    @property
+    def state(self) -> OptimizerState:
+        """Return the current state of the optimizer."""
+        return self._state
+
+    @property
+    def maxiter(self) -> int:
+        """Returns the number of steps in the optimization process before ending the loop."""
+        return self._maxiter
+
+    @maxiter.setter
+    def maxiter(self, maxiter: int) -> None:
+        """Set the number of steps in the optimization process before ending the loop."""
+        self._maxiter = maxiter
+
+    def ask(self) -> AskData:
         """Ask the optimizer for a set of points to evaluate.
 
         This method asks the optimizer which are the next points to evaluate.
@@ -164,36 +179,36 @@ class SteppableOptimizer(Optimizer):
         It is the first method inside of a :meth:`~.step` in the optimization process.
 
         Returns:
-            Since the way to evaluate the function can vary much with different
-            optimization algorithms, the object will be a custom dataclass for each optimizer.
+            An object containing the data needed to make the funciton evaluation to advance the
+            optimization process.
 
         """
         raise NotImplementedError
 
-    def tell(self, ask_object: AskObject, tell_object: TellObject) -> None:
-        """Updates the optimization state once the objective function has been evaluated.
-        A canonical optimization example using :meth:`~.ask`
-        and :meth:`~.tell` can be seen in :meth:`~.step`.
+    def tell(self, ask_data: AskData, tell_data: TellData) -> None:
+        """Updates the optimization state using the results of the function evaluation.
+        A canonical optimization example using :meth:`~.ask` and :meth:`~.tell` can be seen
+        in :meth:`~.step`.
 
         Args:
-            ask_object: Contains the information on how the evaluation was done.
-            tell_object: Contains all relevant information about the evaluation of the objective
+            ask_data: Contains the information on how the evaluation was done.
+            tell_data: Contains all relevant information about the evaluation of the objective
                 function.
         """
         raise NotImplementedError
 
     @abstractmethod
-    def evaluate(self, ask_object: AskObject) -> TellObject:
+    def evaluate(self, ask_data: AskData) -> TellData:
         """
-        Evaluates the function according to the instructions contained in :attr:`~.ask_object`.
+        Evaluates the function according to the instructions contained in :attr:`~.ask_data`.
         If the user decides to use :meth:`~.step` instead of :meth:`~.ask` and :meth:`~.tell`
         this function will contain the logic on how to evaluate the function.
 
         Args:
-            ask_object: Contains the information on how to do the evaluation.
+            ask_data: Contains the information on how to do the evaluation.
 
         Return:
-            Contains all relevant information about the evaluation of the objective function.
+            Contains all relevant information about the function evaluation.
 
         """
         raise NotImplementedError
@@ -207,12 +222,12 @@ class SteppableOptimizer(Optimizer):
     def step(self) -> None:
         """
         Performs one step in the optimization process.
-        This method composes :meth:`~.ask`, :meth:`~.evaluate`, and :meth:`~.tell` to make a `step`
+        This method composes :meth:`~.ask`, :meth:`~.evaluate`, and :meth:`~.tell` to make a "step"
         in the optimization process.
         """
-        ask_object = self.ask()
-        tell_object = self.evaluate(ask_object=ask_object)
-        self.tell(ask_object=ask_object, tell_object=tell_object)
+        ask_data = self.ask()
+        tell_data = self.evaluate(ask_data=ask_data)
+        self.tell(ask_data=ask_data, tell_data=tell_data)
 
     # pylint: disable=invalid-name
     @abstractmethod
@@ -224,9 +239,9 @@ class SteppableOptimizer(Optimizer):
         bounds: Optional[List[Tuple[float, float]]] = None,
     ) -> None:
         """
-        This method sets (or restarts) the optimization state and the parameters to perform a
+        This method initializes (or restarts) the optimization state and the parameters to perform a
         new optimization.
-        Needs to be called before starting the optimization loop and also will need.
+        Needs to be called before starting the optimization loop the first time.
 
         Args:
             fun: Function to minimize.
@@ -245,9 +260,8 @@ class SteppableOptimizer(Optimizer):
         bounds: Optional[List[Tuple[float, float]]] = None,
     ) -> OptimizerResult:
         """For well behaved functions the user can call this method to minimize a function.
-        If the user
-        wants more control on how to evaluate the function a custom loop can be created using
-        :meth:`~.ask` and :meth:`~.tell` and evaluating the function manually.
+        If the user wants more control on how to evaluate the function a custom loop can be
+        created using :meth:`~.ask` and :meth:`~.tell` and evaluating the function manually.
 
         Args:
             fun: Function to minimize.
@@ -269,7 +283,9 @@ class SteppableOptimizer(Optimizer):
     def create_result(self) -> OptimizerResult:
         """
         Returns the result of the optimization.
-        All the information needed to create the result should be stored in the optimizer state.
+        All the information needed to create such a result should be stored in the optimizer state
+        and will typically contain the best point found, the function value and gradient at that point,
+        the number of function and gradient evaluation and the number of iterations in the optimization.
 
         Returns:
             The result of the optimization process.
