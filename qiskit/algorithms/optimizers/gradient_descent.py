@@ -248,10 +248,10 @@ class GradientDescent(SteppableOptimizer):
         """
         if self.callback is not None:
             self.callback(
-                self._state.nfev,
-                self._state.x,
-                self._state.fun(self._state.x),
-                self._state.stepsize,
+                self.state.nfev,
+                self.state.x,
+                self.state.fun(self.state.x),
+                self.state.stepsize,
             )
 
     @property
@@ -277,7 +277,7 @@ class GradientDescent(SteppableOptimizer):
         gradient to be evaluated.
         """
         return AskData(
-            x_jac=self._state.x,
+            x_jac=self.state.x,
         )
 
     def tell(self, ask_data: AskData, tell_data: TellData) -> None:
@@ -289,9 +289,9 @@ class GradientDescent(SteppableOptimizer):
             ask_data: The data used to evaluate the function.
             tell_data: The data from the function evaluation.
         """
-        self._state.x = self._state.x - next(self._state.eta) * tell_data.eval_jac
-        self._state.stepsize = np.linalg.norm(tell_data.eval_jac)
-        self._state.nit += 1
+        self.state.x = self.state.x - next(self.state.eta) * tell_data.eval_jac
+        self.state.stepsize = np.linalg.norm(tell_data.eval_jac)
+        self.state.nit += 1
 
     def evaluate(self, ask_data: AskData) -> TellData:
         """
@@ -305,18 +305,18 @@ class GradientDescent(SteppableOptimizer):
             The data containing the gradient evaluation.
 
         """
-        if self._state.jac is None:
+        if self.state.jac is None:
             eps = 0.01 if self.perturbation is None else self.perturbation
             grad = Optimizer.gradient_num_diff(
                 x_center=ask_data.x_jac,
-                f=self._state.fun,
+                f=self.state.fun,
                 epsilon=eps,
                 max_evals_grouped=self._max_evals_grouped,
             )
-            self._state.nfev += 1 + len(ask_data.x_jac)
+            self.state.nfev += 1 + len(ask_data.x_jac)
         else:
-            grad = self._state.jac(ask_data.x_jac)
-            self._state.njev += 1
+            grad = self.state.jac(ask_data.x_jac)
+            self.state.njev += 1
 
         return TellData(eval_jac=grad)
 
@@ -328,11 +328,11 @@ class GradientDescent(SteppableOptimizer):
             The result of the optimization process.
         """
         result = OptimizerResult()
-        result.x = self._state.x
-        result.fun = self._state.fun(self._state.x)
-        result.nfev = self._state.nfev
-        result.njev = self._state.njev
-        result.nit = self._state.nit
+        result.x = self.state.x
+        result.fun = self.state.fun(self.state.x)
+        result.nfev = self.state.nfev
+        result.njev = self.state.njev
+        result.nit = self.state.nit
         return result
 
     def initialize(
@@ -358,7 +358,7 @@ class GradientDescent(SteppableOptimizer):
         else:
             eta = self._learning_rate()
 
-        self._state = GradientDescentState(
+        self.state = GradientDescentState(
             fun=fun,
             jac=jac,
             x=np.asarray(x0),
@@ -377,10 +377,10 @@ class GradientDescent(SteppableOptimizer):
         Returns:
             ``True`` if the optimization process should continue, ``False`` otherwise.
         """
-        if self._state.stepsize is None:
+        if self.state.stepsize is None:
             return True
         else:
-            return (self._state.stepsize > self.tol) and super().continue_condition()
+            return (self.state.stepsize > self.tol) and super().continue_condition()
 
     def get_support_level(self):
         """Get the support level dictionary."""

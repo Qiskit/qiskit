@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from typing import Union, Callable, Optional, Tuple, List, Any
 from .optimizer import Optimizer, POINT, OptimizerResult
 
-CALLBACK = Callable[Any, None]
+CALLBACK = Callable[[Any], None]
 
 
 @dataclass
@@ -160,6 +160,11 @@ class SteppableOptimizer(Optimizer):
         """Return the current state of the optimizer."""
         return self._state
 
+    @state.setter
+    def state(self, state: OptimizerState):
+        """Set the current state of the optimizer."""
+        self._state = state
+
     @property
     def maxiter(self) -> int:
         """Returns the number of steps in the optimization process before ending the loop."""
@@ -299,4 +304,4 @@ class SteppableOptimizer(Optimizer):
         Returns:
             ``True`` if the optimization process should continue, ``False`` otherwise.
         """
-        return self._state.nit < self.maxiter
+        return self.state.nit < self.maxiter
