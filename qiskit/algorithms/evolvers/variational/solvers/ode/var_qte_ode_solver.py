@@ -30,7 +30,7 @@ class VarQTEOdeSolver:
         init_params: List[complex],
         ode_function: AbstractOdeFunction,
         ode_solver: Union[Type[OdeSolver], str] = ForwardEulerSolver,
-        num_t_steps: int = 25,
+        num_t_steps: int = 15,
     ) -> None:
         """
         Initialize ODE Solver.

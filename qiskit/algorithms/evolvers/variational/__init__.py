@@ -118,7 +118,20 @@ evolution.
     OdeFunctionFactory
     OdeFunctionType
 
+ODE solvers
+-----------
+ODE solvers that implement the SciPy ``OdeSolver`` interface. The ``ForwardEulerSolver`` is
+a preferred choice in the presence of noise. One might also use solvers provided by SciPy directly,
+e.g. RK45.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   ForwardEulerSolver
+
 """
+from .solvers.ode.forward_euler_solver import ForwardEulerSolver
 from .solvers.ode.ode_function_factory import OdeFunctionFactory, OdeFunctionType
 from .var_qte import VarQTE
 from .variational_principles.variational_principle import VariationalPrinciple
@@ -135,6 +148,7 @@ from .variational_principles.real_time_dependent_principle import (
 
 
 __all__ = [
+    "ForwardEulerSolver",
     "OdeFunctionFactory",
     "OdeFunctionType",
     "VarQTE",

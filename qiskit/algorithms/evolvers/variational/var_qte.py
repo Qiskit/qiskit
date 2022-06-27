@@ -59,6 +59,7 @@ class VarQTE(ABC):
         self,
         variational_principle: VariationalPrinciple,
         ode_solver: Union[Type[OdeSolver], str] = ForwardEulerSolver,
+        ode_num_t_steps: int = 15,
         ode_function_factory: Optional[OdeFunctionFactory] = None,
         expectation: Optional[ExpectationBase] = None,
         imag_part_tol: float = 1e-7,
@@ -70,6 +71,8 @@ class VarQTE(ABC):
             variational_principle: Variational Principle to be used.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
+            ode_num_t_steps: Number of ODE steps. Only relevant in case of the
+            ``ForwardEulerSolver``.
             ode_function_factory: Factory for the ODE function. If ``None`` provided, an instance
                 with default settings is created.
             expectation: An instance of ``ExpectationBase`` which defines a method for calculating
@@ -90,6 +93,7 @@ class VarQTE(ABC):
         if quantum_instance is not None:
             self.quantum_instance = quantum_instance
         self.expectation = expectation
+        self.ode_num_t_steps = ode_num_t_steps
         if ode_function_factory is None:
             ode_function_factory = OdeFunctionFactory()
         self.ode_function_factory = ode_function_factory
@@ -209,7 +213,9 @@ class VarQTE(ABC):
             linear_solver, error_calculator, init_state_param_dict, t_param
         )
 
-        ode_solver = VarQTEOdeSolver(init_state_parameters_values, ode_function, self.ode_solver)
+        ode_solver = VarQTEOdeSolver(
+            init_state_parameters_values, ode_function, self.ode_solver, self.ode_num_t_steps
+        )
         parameter_values = ode_solver.run(time)
         param_dict_from_ode = dict(zip(init_state_parameters, parameter_values))
 

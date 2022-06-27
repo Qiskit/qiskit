@@ -70,7 +70,8 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         self.backends_names = ["qi_qasm", "b_sv", "qi_sv"]
 
     def test_run_d_1_with_aux_ops(self):
-        """Test VarQITE for d = 1 and t = 1 with evaluating auxiliary operator."""
+        """Test VarQITE for d = 1 and t = 1 with evaluating auxiliary operator and the Forward
+        Euler solver.."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),
@@ -102,31 +103,31 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         # values from the prototype
         thetas_expected_sv = [
-            1.03612467538419,
-            1.91891042963193,
-            2.81129500883365,
-            2.78938736703301,
-            2.2215151699331,
-            1.61953721158502,
-            2.23490753161058,
-            1.97145113701782,
+            1.06063437491604,
+            1.8999379240424,
+            2.87868639456868,
+            2.83930910580161,
+            2.19349562289158,
+            1.60579026885358,
+            2.25770220142468,
+            1.9892898663481,
         ]
 
         thetas_expected_qasm = [
-            1.03612467538419,
-            1.91891042963193,
-            2.81129500883365,
-            2.78938736703301,
-            2.2215151699331,
-            1.61953721158502,
-            2.23490753161058,
-            1.97145113701782,
+            1.06063437491604,
+            1.8999379240424,
+            2.87868639456868,
+            2.83930910580161,
+            2.19349562289158,
+            1.60579026885358,
+            2.25770220142468,
+            1.9892898663481,
         ]
 
-        expected_aux_ops_evaluated_sv = [(-0.16089896005435056, 0.0), (0.26206970389246464, 0.0)]
+        expected_aux_ops_evaluated_sv = [(-0.171332, 0.0), (0.232002, 0.0)]
         expected_aux_ops_evaluated_qasm = [
-            (-0.17650000000000007, 0.015563159624574954),
-            (0.25549999999999995, 0.015286593390942273),
+            (-0.187, 0.015532),
+            (0.23, 0.015387),
         ]
 
         for backend_name in self.backends_names:
@@ -159,7 +160,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
                 np.testing.assert_array_almost_equal(aux_ops, expected_aux_ops)
 
     def test_run_d_1_t_7(self):
-        """Test VarQITE for d = 1 and t = 7."""
+        """Test VarQITE for d = 1 and t = 7 with RK45 ODE solver."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),
@@ -220,7 +221,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         + 0.091 * (X ^ X),
     )
     def test_run_d_2(self, observable):
-        """Test VarQITE for d = 2 and t = 1."""
+        """Test VarQITE for d = 2 and t = 1 with RK45 ODE solver."""
         d = 2
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 

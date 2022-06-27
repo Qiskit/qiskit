@@ -151,7 +151,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
                 aux_ops = evolution_result.aux_ops_evaluated
 
                 parameter_values = evolved_state.data[0][0].params
-
+                print(repr(parameter_values))
                 if backend_name == "qi_qasm":
                     thetas_expected = thetas_expected_qasm
                     expected_aux_ops = expected_aux_ops_evaluated_qasm

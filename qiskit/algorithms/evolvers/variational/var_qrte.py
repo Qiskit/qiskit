@@ -75,6 +75,7 @@ class VarQRTE(VarQTE, RealEvolver):
         self,
         variational_principle: RealVariationalPrinciple,
         ode_solver: Union[Type[OdeSolver], str] = ForwardEulerSolver,
+        ode_num_t_steps: int = 15,
         ode_function_factory: Optional[OdeFunctionFactory] = None,
         expectation: Optional[ExpectationBase] = None,
         imag_part_tol: float = 1e-7,
@@ -86,6 +87,8 @@ class VarQRTE(VarQTE, RealEvolver):
             variational_principle: Variational Principle to be used.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
+            ode_num_t_steps: Number of ODE steps. Only relevant in case of the
+            ``ForwardEulerSolver``.
             ode_function_factory: Factory for the ODE function. If ``None`` provided, an instance
                 with default settings is created.
             expectation: An instance of ``ExpectationBase`` which defines a method for calculating
@@ -103,6 +106,7 @@ class VarQRTE(VarQTE, RealEvolver):
         super().__init__(
             variational_principle,
             ode_solver,
+            ode_num_t_steps,
             ode_function_factory,
             expectation,
             imag_part_tol,
