@@ -24,7 +24,7 @@ qiskit-sphinx-theme>=1.6
 qiskit-toqm>=0.0.4;platform_machine != 'aarch64' or platform_system != 'Linux'
 sphinx-autodoc-typehints<1.14.0
 jupyter-sphinx
-sphinx-panels
+sphinx-design>=0.2.0
 pygments>=2.4
 networkx>=2.2
 scikit-learn>=0.20.0
