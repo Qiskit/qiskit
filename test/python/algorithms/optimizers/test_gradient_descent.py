@@ -63,7 +63,6 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
 
         result = optimizer.minimize(objective, x0=initial_point)
 
-
         self.assertLess(result.fun, -0.95)  # final loss
         self.assertEqual(result.nfev, 100)  # function evaluations
 

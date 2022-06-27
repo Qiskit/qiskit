@@ -21,8 +21,11 @@ from .steppable_optimizer import AskObject, TellObject, OptimizerState, Steppabl
 CALLBACK = Callable[[int, np.ndarray, float, float], None]
 
 
-def constant(eta=0.01):
-    """Yield a constant."""
+def constant_generator(eta=0.01):
+    """Returns a python generator that always yields the same value.
+    Args:
+        eta: The value to yield.
+    """
 
     while True:
         yield eta
@@ -293,7 +296,7 @@ class GradientDescent(SteppableOptimizer):
         This method is left blank because every optimizer has a different kind of state.
         """
         if isinstance(self.learning_rate, float):
-            eta = constant(self.learning_rate)
+            eta = constant_generator(self.learning_rate)
         else:
             eta = self.learning_rate()
 
@@ -328,4 +331,3 @@ class GradientDescent(SteppableOptimizer):
             "bounds": OptimizerSupportLevel.ignored,
             "initial_point": OptimizerSupportLevel.required,
         }
-
