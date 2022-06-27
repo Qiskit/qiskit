@@ -1,4 +1,5 @@
 ---
 features:
   - |
-    Conjugation of a long `PauliList` by a `Clifford` using `PauliList.evolve` will now run much faster. (Though passing `evolve` an equivalent Clifford `QuantumCircuit` may still be preferable in some cases.)
+    Conjugation of a long :class:`.PauliList` by a :class:`.Clifford` using
+    :meth:`.PauliList.evolve` will now run much faster.
