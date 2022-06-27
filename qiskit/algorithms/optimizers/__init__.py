@@ -74,6 +74,7 @@ Local Optimizers
    QNSPSA
    TNC
    SciPyOptimizer
+   UMDA
 
 Qiskit also provides the following optimizers, which are built-out using the optimizers from
 the `scikit-quant` package. The `scikit-quant` package is not installed by default but must be
@@ -141,6 +142,7 @@ from .slsqp import SLSQP
 from .snobfit import SNOBFIT
 from .spsa import SPSA
 from .tnc import TNC
+from .umda import UMDA
 
 __all__ = [
     "Optimizer",
@@ -170,4 +172,5 @@ __all__ = [
     "SNOBFIT",
     "BOBYQA",
     "IMFIL",
+    "UMDA",
 ]
