@@ -18,159 +18,14 @@ Common functions across several serialization and deserialization modules.
 
 import io
 import struct
-from enum import Enum
 
-import numpy as np
+from qiskit.qpy import formats
 
-from qiskit.circuit.parameter import Parameter
-from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.circuit.parametervector import ParameterVectorElement
-from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.circuit import Gate, Instruction as CircuitInstruction, QuantumCircuit
-from qiskit.qpy import formats, exceptions
-
-QPY_VERSION = 4
+QPY_VERSION = 5
 ENCODE = "utf8"
 
 
-class CircuitInstructionTypeKey(bytes, Enum):
-    """Type key enum for circuit instruction object."""
-
-    INSTRUCTION = b"i"
-    GATE = b"g"
-    PAULI_EVOL_GATE = b"p"
-
-    @classmethod
-    def assign(cls, obj):
-        """Assign type key to given object.
-
-        Args:
-            obj (any): Arbitrary object to evaluate.
-
-        Returns:
-            CircuitInstructionTypeKey: Corresponding key object.
-
-        Raises:
-            QpyError: if object type is not defined in QPY. Likely not supported.
-        """
-        if isinstance(obj, PauliEvolutionGate):
-            return cls.PAULI_EVOL_GATE
-        if isinstance(obj, Gate):
-            return cls.GATE
-        if isinstance(obj, CircuitInstruction):
-            return cls.INSTRUCTION
-
-        raise exceptions.QpyError(
-            f"Object type {type(obj)} is not supported in {cls.__name__} namespace."
-        )
-
-
-class ValueTypeKey(bytes, Enum):
-    """Type key enum for value object, e.g. numbers, string, null, parameters."""
-
-    INTEGER = b"i"
-    FLOAT = b"f"
-    COMPLEX = b"c"
-    NUMPY_OBJ = b"n"
-    PARAMETER = b"p"
-    PARAMETER_VECTOR = b"v"
-    PARAMETER_EXPRESSION = b"e"
-    STRING = b"s"
-    NULL = b"z"
-
-    @classmethod
-    def assign(cls, obj):
-        """Assign type key to given object.
-
-        Args:
-            obj (any): Arbitrary object to evaluate.
-
-        Returns:
-            ValueTypeKey: Corresponding key object.
-
-        Raises:
-            QpyError: if object type is not defined in QPY. Likely not supported.
-        """
-        if isinstance(obj, int):
-            return cls.INTEGER
-        if isinstance(obj, float):
-            return cls.FLOAT
-        if isinstance(obj, complex):
-            return cls.COMPLEX
-        if isinstance(obj, (np.integer, np.floating, np.ndarray, np.complexfloating)):
-            return cls.NUMPY_OBJ
-        if isinstance(obj, ParameterVectorElement):
-            return cls.PARAMETER_VECTOR
-        if isinstance(obj, Parameter):
-            return cls.PARAMETER
-        if isinstance(obj, ParameterExpression):
-            return cls.PARAMETER_EXPRESSION
-        if isinstance(obj, str):
-            return cls.STRING
-        if obj is None:
-            return cls.NULL
-
-        raise exceptions.QpyError(
-            f"Object type {type(obj)} is not supported in {cls.__name__} namespace."
-        )
-
-
-class ContainerTypeKey(bytes, Enum):
-    """Typle key enum for container-like object."""
-
-    RANGE = b"r"
-    TUPLE = b"t"
-
-    @classmethod
-    def assign(cls, obj):
-        """Assign type key to given object.
-
-        Args:
-            obj (any): Arbitrary object to evaluate.
-
-        Returns:
-            ContainerTypeKey: Corresponding key object.
-
-        Raises:
-            QpyError: if object type is not defined in QPY. Likely not supported.
-        """
-        if isinstance(obj, range):
-            return cls.RANGE
-        if isinstance(obj, tuple):
-            return cls.TUPLE
-
-        raise exceptions.QpyError(
-            f"Object type {type(obj)} is not supported in {cls.__name__} namespace."
-        )
-
-
-class ProgramTypeKey(bytes, Enum):
-    """Typle key enum for program that Qiskit generates."""
-
-    CIRCUIT = b"q"
-
-    @classmethod
-    def assign(cls, obj):
-        """Assign type key to given object.
-
-        Args:
-            obj (any): Arbitrary object to evaluate.
-
-        Returns:
-            ProgramTypeKey: Corresponding key object.
-
-        Raises:
-            QpyError: if object type is not defined in QPY. Likely not supported.
-        """
-        if isinstance(obj, QuantumCircuit):
-            return cls.CIRCUIT
-
-        raise exceptions.QpyError(
-            f"Object type {type(obj)} is not supported in {cls.__name__} namespace."
-        )
-
-
-def read_instruction_param(file_obj):
+def read_generic_typed_data(file_obj):
     """Read a single data chunk from the file like object.
 
     Args:
@@ -179,17 +34,86 @@ def read_instruction_param(file_obj):
     Returns:
         tuple: Tuple of type key binary and the bytes object of the single data.
     """
-    data = formats.INSTRUCTION_PARAM(
-        *struct.unpack(
-            formats.INSTRUCTION_PARAM_PACK,
-            file_obj.read(formats.INSTRUCTION_PARAM_SIZE),
-        )
+    data = formats.INSTRUCTION_PARAM._make(
+        struct.unpack(formats.INSTRUCTION_PARAM_PACK, file_obj.read(formats.INSTRUCTION_PARAM_SIZE))
     )
 
     return data.type, file_obj.read(data.size)
 
 
-def write_instruction_param(file_obj, type_key, data_binary):
+def read_sequence(file_obj, deserializer, **kwargs):
+    """Read a sequence of data from the file like object.
+
+    Args:
+        file_obj (File): A file like object that contains the QPY binary data.
+        deserializer (Callable): Deserializer callback that can handle input object type.
+            This must take type key and binary data of the element and return object.
+        kwargs: Options set to the deserializer.
+
+    Returns:
+        list: Deserialized object.
+    """
+    sequence = []
+
+    data = formats.SEQUENCE._make(
+        struct.unpack(formats.SEQUENCE_PACK, file_obj.read(formats.SEQUENCE_SIZE))
+    )
+    for _ in range(data.num_elements):
+        type_key, datum_bytes = read_generic_typed_data(file_obj)
+        sequence.append(deserializer(type_key, datum_bytes, **kwargs))
+
+    return sequence
+
+
+def read_mapping(file_obj, deserializer, **kwargs):
+    """Read a mapping from the file like object.
+
+    .. note::
+
+        This function must be used to make a binary data of mapping
+        which include QPY serialized values.
+        It's easier to use JSON serializer followed by encoding for standard data formats.
+        This only supports flat dictionary and key must be string.
+
+    Args:
+        file_obj (File): A file like object that contains the QPY binary data.
+        deserializer (Callable): Deserializer callback that can handle mapping item.
+            This must take type key and binary data of the mapping value and return object.
+        kwargs: Options set to the deserializer.
+
+    Returns:
+        dict: Deserialized object.
+    """
+    mapping = {}
+
+    data = formats.SEQUENCE._make(
+        struct.unpack(formats.SEQUENCE_PACK, file_obj.read(formats.SEQUENCE_SIZE))
+    )
+    for _ in range(data.num_elements):
+        map_header = formats.MAP_ITEM._make(
+            struct.unpack(formats.MAP_ITEM_PACK, file_obj.read(formats.MAP_ITEM_SIZE))
+        )
+        key = file_obj.read(map_header.key_size).decode(ENCODE)
+        datum = deserializer(map_header.type, file_obj.read(map_header.size), **kwargs)
+        mapping[key] = datum
+
+    return mapping
+
+
+def read_type_key(file_obj):
+    """Read a type key from the file like object.
+
+    Args:
+        file_obj (File): A file like object that contains the QPY binary data.
+
+    Returns:
+        bytes: Type key.
+    """
+    key_size = struct.calcsize("!1c")
+    return struct.unpack("!1c", file_obj.read(key_size))[0]
+
+
+def write_generic_typed_data(file_obj, type_key, data_binary):
     """Write statically typed binary data to the file like object.
 
     Args:
@@ -200,6 +124,63 @@ def write_instruction_param(file_obj, type_key, data_binary):
     data_header = struct.pack(formats.INSTRUCTION_PARAM_PACK, type_key, len(data_binary))
     file_obj.write(data_header)
     file_obj.write(data_binary)
+
+
+def write_sequence(file_obj, sequence, serializer, **kwargs):
+    """Write a sequence of data in the file like object.
+
+    Args:
+        file_obj (File): A file like object to write data.
+        sequence (Sequence): Object to serialize.
+        serializer (Callable): Serializer callback that can handle input object type.
+            This must return type key and binary data of each element.
+        kwargs: Options set to the serializer.
+    """
+    num_elements = len(sequence)
+
+    file_obj.write(struct.pack(formats.SEQUENCE_PACK, num_elements))
+    for datum in sequence:
+        type_key, datum_bytes = serializer(datum, **kwargs)
+        write_generic_typed_data(file_obj, type_key, datum_bytes)
+
+
+def write_mapping(file_obj, mapping, serializer, **kwargs):
+    """Write a mapping in the file like object.
+
+    .. note::
+
+        This function must be used to make a binary data of mapping
+        which include QPY serialized values.
+        It's easier to use JSON serializer followed by encoding for standard data formats.
+        This only supports flat dictionary and key must be string.
+
+    Args:
+        file_obj (File): A file like object to write data.
+        mapping (Mapping): Object to serialize.
+        serializer (Callable): Serializer callback that can handle mapping item.
+            This must return type key and binary data of the mapping value.
+        kwargs: Options set to the serializer.
+    """
+    num_elements = len(mapping)
+
+    file_obj.write(struct.pack(formats.SEQUENCE_PACK, num_elements))
+    for key, datum in mapping.items():
+        key_bytes = key.encode(ENCODE)
+        type_key, datum_bytes = serializer(datum, **kwargs)
+        item_header = struct.pack(formats.MAP_ITEM_PACK, len(key_bytes), type_key, len(datum_bytes))
+        file_obj.write(item_header)
+        file_obj.write(key_bytes)
+        file_obj.write(datum_bytes)
+
+
+def write_type_key(file_obj, type_key):
+    """Write a type key in the file like object.
+
+    Args:
+        file_obj (File): A file like object that contains the QPY binary data.
+        type_key (bytes): Type key to write.
+    """
+    file_obj.write(struct.pack("!1c", type_key))
 
 
 def data_to_binary(obj, serializer, **kwargs):
@@ -226,17 +207,40 @@ def sequence_to_binary(sequence, serializer, **kwargs):
     Args:
         sequence (Sequence): Object to serialize.
         serializer (Callable): Serializer callback that can handle input object type.
+            This must return type key and binary data of each element.
         kwargs: Options set to the serializer.
 
     Returns:
         bytes: Binary data.
     """
-    num_elements = len(sequence)
-
     with io.BytesIO() as container:
-        container.write(struct.pack(formats.SEQUENCE_PACK, num_elements))
-        for datum in sequence:
-            serializer(container, datum, **kwargs)
+        write_sequence(container, sequence, serializer, **kwargs)
+        binary_data = container.getvalue()
+
+    return binary_data
+
+
+def mapping_to_binary(mapping, serializer, **kwargs):
+    """Convert mapping into binary data with specified serializer.
+
+    .. note::
+
+        This function must be used to make a binary data of mapping
+        which include QPY serialized values.
+        It's easier to use JSON serializer followed by encoding for standard data formats.
+        This only supports flat dictionary and key must be string.
+
+    Args:
+        mapping (Mapping): Object to serialize.
+        serializer (Callable): Serializer callback that can handle mapping item.
+            This must return type key and binary data of the mapping value.
+        kwargs: Options set to the serializer.
+
+    Returns:
+        bytes: Binary data.
+    """
+    with io.BytesIO() as container:
+        write_mapping(container, mapping, serializer, **kwargs)
         binary_data = container.getvalue()
 
     return binary_data
@@ -254,6 +258,7 @@ def data_from_binary(binary_data, deserializer, **kwargs):
         any: Deserialized object.
     """
     with io.BytesIO(binary_data) as container:
+        container.seek(0)
         obj = deserializer(container, **kwargs)
     return obj
 
@@ -264,21 +269,38 @@ def sequence_from_binary(binary_data, deserializer, **kwargs):
     Args:
         binary_data (bytes): Binary data to deserialize.
         deserializer (Callable): Deserializer callback that can handle input object type.
+            This must take type key and binary data of the element and return object.
         kwargs: Options set to the deserializer.
 
     Returns:
         any: Deserialized sequence.
     """
-    sequence = []
-
     with io.BytesIO(binary_data) as container:
-        data = formats.SEQUENCE._make(
-            struct.unpack(
-                formats.SEQUENCE_PACK,
-                container.read(formats.SEQUENCE_SIZE),
-            )
-        )
-        for _ in range(data.num_elements):
-            sequence.append(deserializer(container, **kwargs))
+        sequence = read_sequence(container, deserializer, **kwargs)
 
     return sequence
+
+
+def mapping_from_binary(binary_data, deserializer, **kwargs):
+    """Load object from binary mapping with specified deserializer.
+
+    .. note::
+
+        This function must be used to make a binary data of mapping
+        which include QPY serialized values.
+        It's easier to use JSON serializer followed by encoding for standard data formats.
+        This only supports flat dictionary and key must be string.
+
+    Args:
+        binary_data (bytes): Binary data to deserialize.
+        deserializer (Callable): Deserializer callback that can handle mapping item.
+            This must take type key and binary data of the mapping value and return object.
+        kwargs: Options set to the deserializer.
+
+    Returns:
+        dict: Deserialized object.
+    """
+    with io.BytesIO(binary_data) as container:
+        mapping = read_mapping(container, deserializer, **kwargs)
+
+    return mapping

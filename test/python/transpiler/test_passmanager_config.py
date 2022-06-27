@@ -15,9 +15,7 @@
 from qiskit import QuantumRegister
 from qiskit.providers.backend import Backend
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeMelbourne
-from qiskit.test.mock.backends.almaden.fake_almaden import FakeAlmaden
-from qiskit.test.mock.backends import FakeArmonk
+from qiskit.providers.fake_provider import FakeMelbourne, FakeAlmaden, FakeAlmadenV2, FakeArmonk
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 
@@ -38,6 +36,14 @@ class TestPassManagerConfig(QiskitTestCase):
         self.assertEqual(
             str(config.coupling_map), str(CouplingMap(backend.configuration().coupling_map))
         )
+
+    def test_config_from_backend_v2(self):
+        """Test from_backend() with a BackendV2 instance."""
+        backend = FakeAlmadenV2()
+        config = PassManagerConfig.from_backend(backend)
+        self.assertEqual(config.basis_gates, backend.operation_names)
+        self.assertEqual(config.inst_map, backend.instruction_schedule_map)
+        self.assertEqual(config.coupling_map.get_edges(), backend.coupling_map.get_edges())
 
     def test_invalid_backend(self):
         """Test from_backend() with an invalid backend."""

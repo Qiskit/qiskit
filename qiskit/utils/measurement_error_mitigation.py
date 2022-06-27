@@ -51,12 +51,12 @@ def get_measured_qubits(
     qubit_mappings = {}
     for idx, qc in enumerate(transpiled_circuits):
         measured_qubits = []
-        for inst, qargs, _ in qc.data:
-            if inst.name != "measure":
+        for instruction in qc.data:
+            if instruction.operation.name != "measure":
                 continue
             for qreg in qc.qregs:
-                if qargs[0] in qreg:
-                    index = qreg[:].index(qargs[0])
+                if instruction.qubits[0] in qreg:
+                    index = qreg[:].index(instruction.qubits[0])
                     measured_qubits.append(index)
                     break
         measured_qubits_str = "_".join([str(x) for x in measured_qubits])

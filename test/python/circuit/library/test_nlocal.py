@@ -523,7 +523,7 @@ class TestTwoLocal(QiskitTestCase):
         rotation = two.rotation_blocks[0]
 
         # decompose
-        self.assertIsInstance(rotation.data[0][0], RXGate)
+        self.assertIsInstance(rotation.data[0].operation, RXGate)
 
     def test_parameter_setters(self):
         """Test different possibilities to set parameters."""
@@ -614,7 +614,7 @@ class TestTwoLocal(QiskitTestCase):
         two = RealAmplitudes(4)
         with self.subTest(msg="test rotation gate"):
             self.assertEqual(len(two.rotation_blocks), 1)
-            self.assertIsInstance(two.rotation_blocks[0].data[0][0], RYGate)
+            self.assertIsInstance(two.rotation_blocks[0].data[0].operation, RYGate)
 
         with self.subTest(msg="test parameter bounds"):
             expected = [(-np.pi, np.pi)] * two.num_parameters
@@ -656,8 +656,8 @@ class TestTwoLocal(QiskitTestCase):
         two = EfficientSU2(3)
         with self.subTest(msg="test rotation gate"):
             self.assertEqual(len(two.rotation_blocks), 2)
-            self.assertIsInstance(two.rotation_blocks[0].data[0][0], RYGate)
-            self.assertIsInstance(two.rotation_blocks[1].data[0][0], RZGate)
+            self.assertIsInstance(two.rotation_blocks[0].data[0].operation, RYGate)
+            self.assertIsInstance(two.rotation_blocks[1].data[0].operation, RZGate)
 
         with self.subTest(msg="test parameter bounds"):
             expected = [(-np.pi, np.pi)] * two.num_parameters
@@ -710,14 +710,14 @@ class TestTwoLocal(QiskitTestCase):
         two = ExcitationPreserving(5)
         with self.subTest(msg="test rotation gate"):
             self.assertEqual(len(two.rotation_blocks), 1)
-            self.assertIsInstance(two.rotation_blocks[0].data[0][0], RZGate)
+            self.assertIsInstance(two.rotation_blocks[0].data[0].operation, RZGate)
 
         with self.subTest(msg="test entanglement gate"):
             self.assertEqual(len(two.entanglement_blocks), 1)
             block = two.entanglement_blocks[0]
             self.assertEqual(len(block.data), 2)
-            self.assertIsInstance(block.data[0][0], RXXGate)
-            self.assertIsInstance(block.data[1][0], RYYGate)
+            self.assertIsInstance(block.data[0].operation, RXXGate)
+            self.assertIsInstance(block.data[1].operation, RYYGate)
 
         with self.subTest(msg="test parameter bounds"):
             expected = [(-np.pi, np.pi)] * two.num_parameters

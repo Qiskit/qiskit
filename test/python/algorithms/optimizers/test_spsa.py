@@ -69,7 +69,8 @@ class TestSPSA(QiskitAlgorithmsTestCase):
         else:
             spsa = SPSA(**settings)
 
-        result = spsa.optimize(circuit.num_parameters, objective, initial_point=initial_point)
+        with self.assertWarns(DeprecationWarning):
+            result = spsa.optimize(circuit.num_parameters, objective, initial_point=initial_point)
 
         with self.subTest("check final accuracy"):
             self.assertLess(result[1], -0.95)  # final loss
@@ -84,7 +85,7 @@ class TestSPSA(QiskitAlgorithmsTestCase):
             return -(x**2)
 
         spsa = SPSA(maxiter=1)
-        _ = spsa.optimize(1, objective, initial_point=np.array([0.5]))
+        _ = spsa.minimize(objective, x0=np.array([0.5]))
 
         self.assertIsNone(spsa.learning_rate)
         self.assertIsNone(spsa.perturbation)
@@ -114,9 +115,9 @@ class TestSPSA(QiskitAlgorithmsTestCase):
             return (np.linalg.norm(x) - 2) ** 2
 
         spsa = SPSA(learning_rate=get_learning_rate(), perturbation=get_perturbation())
-        result, _, _ = spsa.optimize(1, objective, initial_point=np.array([0.5, 0.5]))
+        result = spsa.minimize(objective, np.array([0.5, 0.5]))
 
-        self.assertAlmostEqual(np.linalg.norm(result), 2, places=2)
+        self.assertAlmostEqual(np.linalg.norm(result.x), 2, places=2)
 
     def test_learning_rate_perturbation_as_arrays(self):
         """Test the learning rate and perturbation can be arrays."""
@@ -128,9 +129,9 @@ class TestSPSA(QiskitAlgorithmsTestCase):
             return (np.linalg.norm(x) - 2) ** 2
 
         spsa = SPSA(learning_rate=learning_rate, perturbation=perturbation)
-        result, _, _ = spsa.optimize(1, objective, initial_point=np.array([0.5, 0.5]))
+        result = spsa.minimize(objective, x0=np.array([0.5, 0.5]))
 
-        self.assertAlmostEqual(np.linalg.norm(result), 2, places=2)
+        self.assertAlmostEqual(np.linalg.norm(result.x), 2, places=2)
 
     def test_termination_checker(self):
         """Test the termination_callback"""
@@ -153,9 +154,9 @@ class TestSPSA(QiskitAlgorithmsTestCase):
 
         maxiter = 400
         spsa = SPSA(maxiter=maxiter, termination_checker=TerminationChecker())
-        _, _, niter = spsa.optimize(2, objective, initial_point=[0.5, 0.5])
+        result = spsa.minimize(objective, x0=[0.5, 0.5])
 
-        self.assertLess(niter, maxiter)
+        self.assertLess(result.nit, maxiter)
 
     def test_callback(self):
         """Test using the callback."""
@@ -174,7 +175,7 @@ class TestSPSA(QiskitAlgorithmsTestCase):
 
         maxiter = 10
         spsa = SPSA(maxiter=maxiter, learning_rate=0.01, perturbation=0.01, callback=callback)
-        _ = spsa.optimize(1, objective, initial_point=np.array([0.5, 0.5]))
+        _ = spsa.minimize(objective, x0=np.array([0.5, 0.5]))
 
         expected_types = [int, np.ndarray, float, float, bool]
         for i, (key, values) in enumerate(history.items()):

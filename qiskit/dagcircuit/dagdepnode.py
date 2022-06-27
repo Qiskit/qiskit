@@ -49,8 +49,8 @@ class DAGDepNode:
         type=None,
         op=None,
         name=None,
-        qargs=None,
-        cargs=None,
+        qargs=(),
+        cargs=(),
         condition=None,
         successors=None,
         predecessors=None,
@@ -66,8 +66,8 @@ class DAGDepNode:
         self.type = type
         self._op = op
         self.name = name
-        self._qargs = qargs if qargs is not None else []
-        self.cargs = cargs if cargs is not None else []
+        self._qargs = tuple(qargs) if qargs is not None else ()
+        self.cargs = tuple(cargs) if cargs is not None else ()
         if condition:
             warnings.warn(
                 "The DAGDepNode 'condition' kwarg and 'condition' attribute are deprecated "
@@ -137,7 +137,7 @@ class DAGDepNode:
     @qargs.setter
     def qargs(self, new_qargs):
         """Sets the qargs to be the given list of qargs."""
-        self._qargs = new_qargs
+        self._qargs = tuple(new_qargs)
         self.sort_key = str(new_qargs)
 
     @staticmethod

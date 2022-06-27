@@ -21,9 +21,9 @@ copyright = "2019, Qiskit Development Team"  # pylint: disable=redefined-builtin
 author = "Qiskit Development Team"
 
 # The short X.Y version
-version = ""
+version = "0.22"
 # The full version, including alpha/beta/rc tags
-release = "0.21.0"
+release = "0.22.0"
 
 extensions = [
     "sphinx.ext.napoleon",
@@ -32,6 +32,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
     "sphinx.ext.extlinks",
+    "sphinx.ext.intersphinx",
     "jupyter_sphinx",
     "sphinx_autodoc_typehints",
     "reno.sphinxext",
@@ -59,6 +60,9 @@ add_module_names = False
 # (e.g., if this is set to ['foo.'], then foo.bar is shown under B, not F).
 modindex_common_prefix = ["qiskit."]
 
+intersphinx_mapping = {
+    'retworkx': ('https://qiskit.org/documentation/retworkx/', None),
+}
 
 # -- Options for HTML output -------------------------------------------------
 

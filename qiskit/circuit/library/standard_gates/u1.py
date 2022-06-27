@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """U1 Gate."""
-
+from cmath import exp
 from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
@@ -245,7 +245,7 @@ class CU1Gate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CU1 gate."""
-        eith = numpy.exp(1j * float(self.params[0]))
+        eith = exp(1j * float(self.params[0]))
         if self.ctrl_state:
             return numpy.array(
                 [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, eith]], dtype=dtype
