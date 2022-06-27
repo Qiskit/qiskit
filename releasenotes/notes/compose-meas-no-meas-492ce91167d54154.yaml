@@ -1,6 +1,16 @@
 ---
 features:
   - |
-    Allows for composing a circuit with classical registers, or registerless `Clbits`
-    to a circuit without.  This fits the common pattern of appending a circuit with
-    measurements to a circuit without.
+    :meth:`.QuantumCircuit.compose` will now accept an operand with classical
+    bits if the base circuit has none itself, as a convenience.  The pattern
+    of composing a circuit with measurements onto a quantum-only circuit is
+    now valid::
+
+      from qiskit import QuantumCircuit
+
+      base = QuantumCircuit(3)
+      terminus = QuantumCircuit(3, 3)
+      terminus.measure_all()
+
+      # This will now succeed, though it was previously a CircuitError.
+      base.compose(terminus)
