@@ -14,8 +14,8 @@
 
 import numpy as np
 
-from qiskit.utils.entanglement import compute_Q_ptrace_qiskit
-from qiskit.utils.entanglement import compute_vn_entropy_qiskit
+from qiskit.utils.entanglement import compute_ptrace
+from qiskit.utils.entanglement import compute_vn_entropy
 
 
 def summarize_circuits(circuits):
@@ -72,8 +72,39 @@ def summarize_circuits(circuits):
     return ret
 
 
-class entanglement:
-    def __init__(self, parametric_circuit, backend, ent_measure=1, feature_dim=4, num_params=2000):
+class Entanglement:
+
+    """
+    Class to measure the entanglement capacity of a parametric
+    quantum circuit using two different measures:Meyer-Wallach Measure :
+    Q-value = 1 => Maximum entangling capacity , Q-value = 0 => Minimum Entangling Capacity
+    Von-Nuemann Measure   : Q-value = log_e(2) => Maximum entangling capacity ,
+    Q-value = 0 => Minimum Entangling Capacity
+    """
+
+    def __init__(
+        self,
+        parametric_circuit,
+        backend,
+        ent_measure="meyer-wallach",
+        feature_dim=4,
+        num_params=2000,
+    ) -> None:
+        """
+        Args:
+            parametric_circuit : A parameterized circuit used input to
+            calculate the entangling capacity.
+            backend: The backend for running the circuit
+            ent_measure: The type of entanglement measure;
+                         ent_measure = "meyer-wallach" => Meyer-Wallach Measure
+                         (Default Measure),
+                         ent_measure = "von-neumann" => Von-Neumann Measure
+            feature_dim: The total no. of feature of parametric_circuit i.e. the
+                         no. of qubit in the parametric circuit; feature_dim = 4(Default Qubits)
+            num_params: The total no. of parameter to sample over to get mean entangling capacity
+                        over sampling again a sample size of num_params
+                        num_params = 2000 (Default Value)
+        """
 
         self.parametric_circuit = parametric_circuit
         self.num_params = num_params
@@ -81,7 +112,12 @@ class entanglement:
         self.backend = backend
         self.ent_measure = ent_measure
 
-    def entanglement_capibility_qiskit(self):
+    def meyer_wallach(self) -> float:
+        """
+        Returns:
+                net_entanglement_cap: The meyer-wallach entangling capacity of the
+                                       given parametric circuit.
+        """
 
         # Runtime imports to avoid circular imports causeed by QuantumInstance
         # getting initialized by imported utils/__init__ which is imported
@@ -90,7 +126,7 @@ class entanglement:
 
         entanglement_cap = []
 
-        for samples in range(self.num_params):
+        for _ in range(self.num_params):
             transpiled_circ = transpile(self.parametric_circuit, self.backend, optimization_level=3)
             job_sim = self.backend.run(transpiled_circ)
             result_sim = job_sim.result()
@@ -98,15 +134,20 @@ class entanglement:
             state_vector = result_sim.get_statevector(transpiled_circ)
             state_vector = np.array(state_vector)
 
-            Q_value = compute_Q_ptrace_qiskit(ket=state_vector, N=self.feature_dim)
-            entanglement_cap.append(Q_value)
+            q_value = compute_ptrace(ket=state_vector, num_qubits=self.feature_dim)
+            entanglement_cap.append(q_value)
 
         entanglement_cap = np.array(entanglement_cap)
         net_entanglement_cap = np.sum(entanglement_cap) / self.num_params
 
         return net_entanglement_cap
 
-    def von_neumann_entanglement_qiskit(self):
+    def von_neumann(self) -> float:
+
+        """
+        Returns:
+              net_entanglement_cap: The von_neumann entangling capacity of the given parametric circuit.
+        """
 
         # Runtime imports to avoid circular imports causeed by QuantumInstance
         # getting initialized by imported utils/__init__ which is imported
@@ -115,7 +156,7 @@ class entanglement:
 
         entanglement_cap = []
 
-        for samples in range(self.num_params):
+        for _ in range(self.num_params):
 
             transpiled_circ = transpile(self.parametric_circuit, self.backend, optimization_level=3)
             job_sim = self.backend.run(transpiled_circ)
@@ -124,19 +165,24 @@ class entanglement:
             state_vector = result_sim.get_statevector(transpiled_circ)
             state_vector = np.array(state_vector)
 
-            Q_value = compute_vn_entropy_qiskit(ket=state_vector, N=self.feature_dim)
-            entanglement_cap.append(Q_value)
+            q_value = compute_vn_entropy(ket=state_vector, num_qubits=self.feature_dim)
+            entanglement_cap.append(q_value)
 
         entanglement_cap = np.array(entanglement_cap)
         net_entanglement_cap = np.sum(entanglement_cap) / self.num_params
 
         return net_entanglement_cap
 
-    def get_entanglement(self):
+    def get_entanglement(self) -> float:
+        """
+        Returns:
+            ent_cap: The entangling capacity of the given parametric circuit ;
+                     Default: meyer-wallach measure
+        """
 
         ent_cap = {
-            1: self.entanglement_capibility_qiskit(),
-            2: self.von_neumann_entanglement_qiskit(),
+            "meyer-wallach": self.meyer_wallach(),
+            "von-neumann": self.von_neumann(),
         }
 
         return ent_cap[self.ent_measure]

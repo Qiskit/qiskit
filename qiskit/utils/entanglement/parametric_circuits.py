@@ -1,16 +1,50 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2022.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""Parametric Circuit Module"""
+
+from typing import Any
 import numpy as np
 
-# from qiskit.circuit.library import  NLocal
-# from qiskit import QuantumCircuit
 
+class Ansatz:
 
-class ansatz:
+    """
+    This class creates methods to create the parameteric circuits
+    mentioned in https://doi.org/10.1007/s42484-021-00038-w with random
+    parameters as initialization routine for testing the experessibility
+    and entangling capacity of a given parametric circuit.
+
+    """
+
     def __init__(self, repitition, feature_dim, circuit_id) -> None:
+
+        """
+        Args:
+            repitition: The no of repitition of the layers of parametric circuit
+            feature_dim: The no. of qubits required for a the parametric circuit
+            circuit_id: The id of the circuit in the order mentioned in
+                        https://doi.org/10.1007/s42484-021-00038-w to get the
+                        particular circuit.
+        """
         self.repitition = repitition
         self.feature_dim = feature_dim
         self.circuit_id = circuit_id
 
-    def get_circ_1(self):
+    def get_circ_1(self) -> Any:
+        """
+        Returns:
+            circ: Circuit 1 mentioned in  https://doi.org/10.1007/s42484-021-00038-w
+        """
 
         # Runtime imports to avoid circular imports causeed by QuantumInstance
         # getting initialized by imported utils/__init__ which is imported
@@ -29,7 +63,11 @@ class ansatz:
             circ.barrier()
         return circ
 
-    def get_circ_2(self):
+    def get_circ_2(self) -> Any:
+        """
+        Returns:
+            circ: Circuit 2 mentioned in  https://doi.org/10.1007/s42484-021-00038-w
+        """
 
         # Runtime imports to avoid circular imports causeed by QuantumInstance
         # getting initialized by imported utils/__init__ which is imported
@@ -51,7 +89,11 @@ class ansatz:
             circ.barrier()
         return circ
 
-    def get_circ_3(self):
+    def get_circ_3(self) -> Any:
+        """
+        Returns:
+            circ: Circuit 3 mentioned in  https://doi.org/10.1007/s42484-021-00038-w
+        """
 
         # Runtime imports to avoid circular imports causeed by QuantumInstance
         # getting initialized by imported utils/__init__ which is imported
@@ -76,7 +118,11 @@ class ansatz:
             circ.barrier()
         return circ
 
-    def get_circ_4(self):
+    def get_circ_4(self) -> Any:
+        """
+        Returns:
+            circ: Circuit 4 mentioned in  https://doi.org/10.1007/s42484-021-00038-w
+        """
 
         # Runtime imports to avoid circular imports causeed by QuantumInstance
         # getting initialized by imported utils/__init__ which is imported
@@ -101,7 +147,11 @@ class ansatz:
             circ.barrier()
         return circ
 
-    def get_circ_5(self):
+    def get_circ_5(self) -> Any:
+        """
+        Returns:
+            ansatz: Circuit 5 mentioned in  https://doi.org/10.1007/s42484-021-00038-w
+        """
 
         # Runtime imports to avoid circular imports causeed by QuantumInstance
         # getting initialized by imported utils/__init__ which is imported
@@ -131,7 +181,11 @@ class ansatz:
         )
         return ansatz
 
-    def get_circ_6(self):
+    def get_circ_6(self) -> Any:
+        """
+        Returns:
+            ansatz: Circuit 6 mentioned in  https://doi.org/10.1007/s42484-021-00038-w
+        """
 
         # Runtime imports to avoid circular imports causeed by QuantumInstance
         # getting initialized by imported utils/__init__ which is imported
@@ -161,7 +215,11 @@ class ansatz:
         )
         return ansatz
 
-    def get_circ_7(self):
+    def get_circ_7(self) -> Any:
+        """
+        Returns:
+            circ: Circuit 7 mentioned in  https://doi.org/10.1007/s42484-021-00038-w
+        """
 
         # Runtime imports to avoid circular imports causeed by QuantumInstance
         # getting initialized by imported utils/__init__ which is imported
@@ -193,11 +251,14 @@ class ansatz:
             for i in range(1, circ.num_qubits - 1, 2):
                 circ.crz(paravec[arg_count], i + 1, i)
                 arg_count += 1
-            circ.barrier
 
         return circ
 
-    def get_circ_8(self):
+    def get_circ_8(self) -> Any:
+        """
+        Returns:
+            circ: Circuit 8 mentioned in  https://doi.org/10.1007/s42484-021-00038-w
+        """
 
         # Runtime imports to avoid circular imports causeed by QuantumInstance
         # getting initialized by imported utils/__init__ which is imported
@@ -229,11 +290,14 @@ class ansatz:
             for i in range(1, circ.num_qubits - 1, 2):
                 circ.crx(paravec[arg_count], i + 1, i)
                 arg_count += 1
-            circ.barrier
 
         return circ
 
-    def get_circ_9(self):
+    def get_circ_9(self) -> Any:
+        """
+        Returns:
+            circ: Circuit 9 mentioned in  https://doi.org/10.1007/s42484-021-00038-w
+        """
 
         # Runtime imports to avoid circular imports causeed by QuantumInstance
         # getting initialized by imported utils/__init__ which is imported
@@ -256,7 +320,11 @@ class ansatz:
 
         return circ
 
-    def get_circ_10(self):
+    def get_circ_10(self) -> Any:
+        """
+        Returns:
+            circ: Circuit 10 mentioned in  https://doi.org/10.1007/s42484-021-00038-w
+        """
 
         # Runtime imports to avoid circular imports causeed by QuantumInstance
         # getting initialized by imported utils/__init__ which is imported
@@ -283,7 +351,11 @@ class ansatz:
 
         return circ
 
-    def get_circ_11(self):
+    def get_circ_11(self) -> Any:
+        """
+        Returns:
+            circ: Circuit 11 mentioned in  https://doi.org/10.1007/s42484-021-00038-w
+        """
 
         # Runtime imports to avoid circular imports causeed by QuantumInstance
         # getting initialized by imported utils/__init__ which is imported
@@ -319,10 +391,14 @@ class ansatz:
 
             for i in range(1, circ.num_qubits - 1, 2):
                 circ.cx(i + 1, i)
-            circ.barrier
+
         return circ
 
-    def get_circ_12(self):
+    def get_circ_12(self) -> Any:
+        """
+        Returns:
+            circ: Circuit 12 mentioned in  https://doi.org/10.1007/s42484-021-00038-w
+        """
 
         # Runtime imports to avoid circular imports causeed by QuantumInstance
         # getting initialized by imported utils/__init__ which is imported
@@ -362,7 +438,11 @@ class ansatz:
 
         return circ
 
-    def get_circ_13(self):
+    def get_circ_13(self) -> Any:
+        """
+        Returns:
+            circ: Circuit 13 mentioned in  https://doi.org/10.1007/s42484-021-00038-w
+        """
 
         # Runtime imports to avoid circular imports causeed by QuantumInstance
         # getting initialized by imported utils/__init__ which is imported
@@ -402,7 +482,11 @@ class ansatz:
 
         return circ
 
-    def get_circ_14(self):
+    def get_circ_14(self) -> Any:
+        """
+        Returns:
+            circ: Circuit 14 mentioned in  https://doi.org/10.1007/s42484-021-00038-w
+        """
 
         # Runtime imports to avoid circular imports causeed by QuantumInstance
         # getting initialized by imported utils/__init__ which is imported
@@ -443,7 +527,11 @@ class ansatz:
 
         return circ
 
-    def get_circ_15(self):
+    def get_circ_15(self) -> Any:
+        """
+        Returns:
+            circ: Circuit 15 mentioned in  https://doi.org/10.1007/s42484-021-00038-w
+        """
 
         # Runtime imports to avoid circular imports causeed by QuantumInstance
         # getting initialized by imported utils/__init__ which is imported
@@ -482,7 +570,11 @@ class ansatz:
 
         return circ
 
-    def get_circ_16(self):
+    def get_circ_16(self) -> Any:
+        """
+        Returns:
+            circ: Circuit 16 mentioned in  https://doi.org/10.1007/s42484-021-00038-w
+        """
 
         # Runtime imports to avoid circular imports causeed by QuantumInstance
         # getting initialized by imported utils/__init__ which is imported
@@ -514,7 +606,11 @@ class ansatz:
 
         return circ
 
-    def get_circ_17(self):
+    def get_circ_17(self) -> Any:
+        """
+        Returns:
+            circ: Circuit 17 mentioned in  https://doi.org/10.1007/s42484-021-00038-w
+        """
 
         # Runtime imports to avoid circular imports causeed by QuantumInstance
         # getting initialized by imported utils/__init__ which is imported
@@ -546,7 +642,11 @@ class ansatz:
 
         return circ
 
-    def get_circ_18(self):
+    def get_circ_18(self) -> Any:
+        """
+        Returns:
+            circ: Circuit 18 mentioned in  https://doi.org/10.1007/s42484-021-00038-w
+        """
 
         # Runtime imports to avoid circular imports causeed by QuantumInstance
         # getting initialized by imported utils/__init__ which is imported
@@ -577,7 +677,11 @@ class ansatz:
 
         return circ
 
-    def get_circ_19(self):
+    def get_circ_19(self) -> Any:
+        """
+        Returns:
+                circ: Circuit 9 mentioned in  https://doi.org/10.1007/s42484-021-00038-w
+        """
 
         # Runtime imports to avoid circular imports causeed by QuantumInstance
         # getting initialized by imported utils/__init__ which is imported
@@ -608,7 +712,15 @@ class ansatz:
 
         return circ
 
-    def get_ansatz(self):
+    def get_ansatz(self) -> Any:
+        """
+        Returns:
+                ansatzes: Circuits mentioned in  https://doi.org/10.1007/s42484-021-00038-w by
+                        declaring the particular circuit
+                        identity in the class variables e.g. circuit_id = 1 will return
+                        the 1st circuit mentioned in
+                        https://doi.org/10.1007/s42484-021-00038-w
+        """
 
         ansatzes = {
             1: self.get_circ_1(),

@@ -49,6 +49,7 @@ Algorithm Utilities
    :nosignatures:
 
    QuantumInstance
+   Entanglement
 
 A QuantumInstance holds the Qiskit `backend` as well as a number of compile and
 runtime parameters controlling circuit compilation and execution. Quantum
@@ -56,6 +57,9 @@ runtime parameters controlling circuit compilation and execution. Quantum
 are run on a device or simulator by passing a QuantumInstance setup with the desired
 backend etc.
 
+A Entanglement holds the function for calculating the the entanglement capability
+of a parametric circuit using Meyer-wallach measure and Von-Neumann measure
+as required by the user.
 
 Optional Depedency Checkers (:mod:`qiskit.utils.optionals`)
 ===========================================================
@@ -74,7 +78,7 @@ from .lazy_tester import LazyDependencyManager, LazyImportTester, LazySubprocess
 
 from . import optionals
 
-from .circuit_utils import summarize_circuits, entanglement
+from .circuit_utils import summarize_circuits, Entanglement
 from .entangler_map import get_entangler_map, validate_entangler_map
 from .backend_utils import has_ibmq, has_aer
 from .name_unnamed_args import name_args
@@ -87,7 +91,7 @@ __all__ = [
     "LazySubprocessTester",
     "QuantumInstance",
     "summarize_circuits",
-    "entanglement",
+    "Entanglement",
     "get_entangler_map",
     "validate_entangler_map",
     "has_ibmq",
