@@ -21,7 +21,7 @@ from .steppable_optimizer import AskData, TellData, OptimizerState, SteppableOpt
 CALLBACK = Callable[[int, np.ndarray, float, float], None]
 
 
-def constant_generator(eta:float =0.01) -> Generator[float,None,None]:
+def constant_generator(eta: float = 0.01) -> Generator[float, None, None]:
     """Returns a python generator that always yields the same value.
 
     Args:
