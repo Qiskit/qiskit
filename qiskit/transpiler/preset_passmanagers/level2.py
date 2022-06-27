@@ -83,6 +83,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
     unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
     target = pass_manager_config.target
+    call_limit = pass_manager_config.call_limit
 
     # Search for a perfect layout, or choose a dense layout, if no layout given
     _given_layout = SetLayout(initial_layout)
@@ -112,7 +113,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         else VF2Layout(
             coupling_map,
             seed=seed_transpiler,
-            call_limit=int(5e6),  # Set call limit to ~10 sec with retworkx 0.10.2
+            call_limit=call_limit,
             properties=backend_properties,
             target=target,
         )
@@ -195,7 +196,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         layout += common.generate_embed_passmanager(coupling_map)
         vf2_call_limit = None
         if pass_manager_config.layout_method is None and pass_manager_config.initial_layout is None:
-            vf2_call_limit = int(5e6)  # Set call limit to ~10 sec with retworkx 0.10.2
+            vf2_call_limit = call_limit
         routing = common.generate_routing_passmanager(
             routing_pass,
             target,

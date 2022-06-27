@@ -128,6 +128,15 @@ class VF2Layout(AnalysisPass):
             cm_graph_edge_count = len(self.coupling_map.graph.edge_list())
             self.max_trials = max(im_graph_edge_count, cm_graph_edge_count) + 15
 
+        # If call_limit is not set, scale call_limit based the size of
+        # `im_graph`  using the exponential relationship
+        #    call_limit = A*10^{B*|im_graph|}.
+        # See Issue #7705 for the development of the A,B coefficients.
+        if self.call_limit is None:
+            A = 9.12e-4
+            B = 0.354
+            self.call_limit = A * 10**(B*len(im_graph.edge_list()))
+
         logger.debug("Running VF2 to find mappings")
         mappings = vf2_mapping(
             cm_graph,
