@@ -33,10 +33,10 @@ class ForwardEulerSolver(OdeSolver):
     ):
         """
         Forward Euler ODE solver that implements an interface from SciPy.
+
         Args:
-            function :
-                Right-hand side of the system. The calling signature is ``fun(t, y)``.
-                Here ``t`` is a scalar, and there are two options for the ndarray ``y``:
+            function: Right-hand side of the system. The calling signature is ``fun(t, y)``. Here
+                ``t`` is a scalar, and there are two options for the ndarray ``y``:
                 It can either have shape (n,); then ``fun`` must return array_like with
                 shape (n,). Alternatively it can have shape (n, k); then ``fun``
                 must return an array_like with shape (n, k), i.e., each column

@@ -15,10 +15,11 @@ Variational Quantum Time Evolutions (:mod:`qiskit.algorithms.evolvers.variationa
 
 Algorithms for performing Variational Quantum Time Evolution of quantum states,
 which can be tailored to near-term devices.
-:class:`~qiskit.algorithms.VarQTE` base class exposes an interface, compliant with the Quantum Time
-Evolution Framework in Qiskit Terra, that is implemented by :class:`~qiskit.algorithms.VarQRTE` and
-:class:`~qiskit.algorithms.VarQITE` classes for real and imaginary time evolution respectively. The
-variational approach is taken according to a variational principle chosen by a user.
+:class:`~qiskit.algorithms.evolvers.variational.VarQTE` base class exposes an interface, compliant
+with the Quantum Time Evolution Framework in Qiskit Terra, that is implemented by
+:class:`~qiskit.algorithms.VarQRTE` and :class:`~qiskit.algorithms.VarQITE` classes for real and
+imaginary time evolution respectively. The variational approach is taken according to a variational
+principle chosen by a user.
 
 **Examples**
 
@@ -120,7 +121,7 @@ evolution.
 
 ODE solvers
 -----------
-ODE solvers that implement the SciPy ``OdeSolver`` interface. The ``ForwardEulerSolver`` is
+ODE solvers that implement the SciPy ODE Solver interface. The Forward Euler Solver is
 a preferred choice in the presence of noise. One might also use solvers provided by SciPy directly,
 e.g. RK45.
 
