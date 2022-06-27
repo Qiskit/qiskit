@@ -45,7 +45,7 @@ class TestEvolution(QiskitOpflowTestCase):
     def test_exp_i(self):
         """exponential of Pauli test"""
         op = Z.exp_i()
-        gate = op.to_circuit().data[0][0]
+        gate = op.to_circuit().data[0].operation
         self.assertIsInstance(gate, qiskit.circuit.library.RZGate)
         self.assertEqual(gate.params[0], 2)
 
