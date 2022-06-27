@@ -878,18 +878,9 @@ class QuantumCircuit:
         # that and add the registers to the output dest
         if isinstance(other, QuantumCircuit):
             if not self.clbits and other.clbits:
-                touched_regs = []
-                for bit in other.clbits:
-                    raw_bit = True
-                    for reg in other.cregs:
-                        if bit in reg:
-                            raw_bit = False
-                        if not raw_bit and reg.name not in touched_regs:
-                            dest.add_register(reg)
-                            touched_regs.append(reg.name)
-                            break
-                    if raw_bit:
-                        dest.clbits.append(copy.deepcopy(bit))
+                dest.add_bits(other.clbits)
+                for reg in other.cregs:
+                    dest.add_register(reg)
 
         if wrap:
             try:
