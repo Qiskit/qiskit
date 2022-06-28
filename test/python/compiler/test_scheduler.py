@@ -16,7 +16,7 @@ from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import InstructionScheduleMap, Schedule
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse3Q
+from qiskit.providers.fake_provider import FakeOpenPulse3Q
 from qiskit.compiler.scheduler import schedule
 
 

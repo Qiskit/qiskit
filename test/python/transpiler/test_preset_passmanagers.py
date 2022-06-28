@@ -25,7 +25,7 @@ from qiskit.compiler import transpile, assemble
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TranspilerError
 from qiskit.circuit.library import U2Gate, U3Gate
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import (
+from qiskit.providers.fake_provider import (
     FakeTenerife,
     FakeMelbourne,
     FakeJohannesburg,

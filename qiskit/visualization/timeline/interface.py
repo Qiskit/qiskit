@@ -291,7 +291,7 @@ def draw(
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.timeline import draw
-            from qiskit.test.mock import FakeAlmaden
+            from qiskit.providers.fake_provider import FakeAlmaden
 
             qc = QuantumCircuit(2)
             qc.h(0)
@@ -306,7 +306,7 @@ def draw(
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.timeline import draw, IQXSimple
-            from qiskit.test.mock import FakeAlmaden
+            from qiskit.providers.fake_provider import FakeAlmaden
 
             qc = QuantumCircuit(2)
             qc.h(0)
@@ -321,7 +321,7 @@ def draw(
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.timeline import draw, IQXDebugging
-            from qiskit.test.mock import FakeAlmaden
+            from qiskit.providers.fake_provider import FakeAlmaden
 
             qc = QuantumCircuit(2)
             qc.h(0)
