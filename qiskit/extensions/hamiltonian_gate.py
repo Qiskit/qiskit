@@ -134,4 +134,4 @@ def hamiltonian(self, operator, time, qubits, label=None):
     return self.append(HamiltonianGate(data=operator, time=time, label=label), qubits, [])
 
 
-QuantumCircuit.hamiltonian = hamiltonian
+QuantumCircuit.hamiltonian = hamiltonian  # type: ignore[attr-defined]

@@ -126,4 +126,4 @@ def snapshot(self, label, snapshot_type="statevector", qubits=None, params=None)
 
 
 # Add to QuantumCircuit class
-QuantumCircuit.snapshot = snapshot
+QuantumCircuit.snapshot = snapshot  # type: ignore[attr-defined]

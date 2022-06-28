@@ -201,4 +201,4 @@ def squ(
     return self.append(SingleQubitUnitary(unitary_matrix, mode, up_to_diagonal), [qubit], [])
 
 
-QuantumCircuit.squ = squ
+QuantumCircuit.squ = squ  # type: ignore[attr-defined]

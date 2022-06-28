@@ -251,4 +251,4 @@ def unitary(self, obj, qubits, label=None):
     return self.append(gate, qubits, [])
 
 
-QuantumCircuit.unitary = unitary
+QuantumCircuit.unitary = unitary  # type: ignore[attr-defined]

@@ -611,5 +611,5 @@ def iso(
 
 
 # support both QuantumCircuit.iso and QuantumCircuit.isometry
-QuantumCircuit.iso = iso
-QuantumCircuit.isometry = iso
+QuantumCircuit.iso = iso  # type: ignore[attr-defined]
+QuantumCircuit.isometry = iso  # type: ignore[attr-defined]
