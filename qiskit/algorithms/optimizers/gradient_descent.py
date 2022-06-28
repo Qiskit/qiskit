@@ -56,7 +56,7 @@ class GradientDescent(SteppableOptimizer):
     for a small learning rate :math:`\eta > 0`.
 
     You can either provide the analytic gradient :math:`\vec\nabla f` as ``gradient_function``
-    in the ``minimize`` method, or, if you do not provide it, use a finite difference approximation
+    in the :meth:`~.minimize` method, or, if you do not provide it, use a finite difference approximation
     of the gradient. To adapt the size of the perturbation in the finite difference gradients,
     set the ``perturbation`` property in the initializer.
 
@@ -146,7 +146,7 @@ class GradientDescent(SteppableOptimizer):
             initial_point = np.random.normal(0, 1, size=(100,))
 
             optimizer = GradientDescent(maxiter=20)
-            optimizer.initialize(x0=initial_point, fun=objective, jac=grad)
+            optimizer.start(x0=initial_point, fun=objective, jac=grad)
 
             for _ in range(20):
                 ask_data = optimizer.ask()
@@ -163,11 +163,11 @@ class GradientDescent(SteppableOptimizer):
 
             result = optimizer.create_result()
 
-    In case the user isn't dealing with complicated function and is more familiar with step by step
+    In case the user isn't dealing with complicated functI am not 100% sure about it, so if on and is more familiar with step by step
     optimization algorithms, :meth:`~.step` has been created to acts as a wrapper for :meth:`~.ask`
     and :meth:`~.tell`.
     In the same spirit the method :meth:`~.minimize` will optimize the function and return the result
-    without directly.
+    directly.
 
     To see other libraries that use this interface one can visit:
     https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/009_ask_and_tell.html
@@ -193,7 +193,7 @@ class GradientDescent(SteppableOptimizer):
             perturbation: If no gradient is passed to :meth:`~.minimize` the gradient is
                 approximated with a symmetric finite difference scheme with ``perturbation``
                 perturbation in both directions (defaults to 1e-2 if required).
-                Ignored if a gradient callable is passed to `~.minimize`.
+                Ignored when we have an explicit function for the gradient.
         """
         super().__init__(maxiter=maxiter)
         self.callback = callback
@@ -218,7 +218,7 @@ class GradientDescent(SteppableOptimizer):
 
     @property
     def tol(self) -> float:
-        """The tolerance.
+        """Returns the tolerance of the optimizer.
         Any step with smaller stepsize than this value will stop the optimization."""
         return self._tol
 
@@ -273,8 +273,9 @@ class GradientDescent(SteppableOptimizer):
 
     def ask(self) -> AskData:
         """
-        Returns a :class:`qiskit.algorithms.optimizers.AskData` with the current point for the
-        gradient to be evaluated.
+        Returns an object with the data needed in order to evaluate the gradient.
+        If this object contains a gradient function the gradient can be evaluated directly. Otherwise
+        approximate it with a finite difference scheme.
         """
         return AskData(
             x_jac=self.state.x,
@@ -282,8 +283,8 @@ class GradientDescent(SteppableOptimizer):
 
     def tell(self, ask_data: AskData, tell_data: TellData) -> None:
         """
-        This method updates :attr:`.~GradientDescentState.x` by an ammount proportional to the learning
-        rate and the gradient at that point.
+        Updates :attr:`.~GradientDescentState.x` by an ammount proportional to the learning
+        rate and value of the gradient at that point.
 
         Args:
             ask_data: The data used to evaluate the function.
@@ -294,15 +295,18 @@ class GradientDescent(SteppableOptimizer):
         self.state.nit += 1
 
     def evaluate(self, ask_data: AskData) -> TellData:
-        """
-        Evaluates the gradient, either by evaluating an analitic gradient or by approximating it with a
+        """Evaluates the gradient.
+        It does so either by evaluating an analitic gradient or by approximating it with a
         finite difference scheme. It will either add ``1`` to the number of gradient evaluations or add
         ``N+1`` to the number of function evaluations (Where N is the dimension of the gradient).
+
         Args:
-            ask_data: The data used to evaluate the function. It contains the point where the gradient
-                is to be evaluated.
+            ask_data: It contains the point where the gradient is to be evaluated and the gradient
+                      function or in it's defect the objective function to perform a finite difference
+                      approximation.
+
         Returns:
-            The data containing the gradient evaluation.
+        The data containing the gradient evaluation.
 
         """
         if self.state.jac is None:
@@ -321,9 +325,10 @@ class GradientDescent(SteppableOptimizer):
         return TellData(eval_jac=grad)
 
     def create_result(self) -> OptimizerResult:
-        """Creates a result of the optimization process containing the best point, the best function
-        value, the number of function evaluations or the number of gradient evaluations and the
-        number of iterations.
+        """Creates a result of the optimization process.
+        This result contains the best point, the best function value, the number of function/gradient
+        evaluations and the number of iterations.
+
         Returns:
             The result of the optimization process.
         """
@@ -335,24 +340,14 @@ class GradientDescent(SteppableOptimizer):
         result.nit = self.state.nit
         return result
 
-    def initialize(
+    def start(
         self,
         fun: Callable[[POINT], float],
         x0: POINT,
         jac: Optional[Callable[[POINT], POINT]] = None,
         bounds: Optional[List[Tuple[float, float]]] = None,
     ) -> None:
-        """
-        This method will initialize the state of the optimizer so that an optimization can be performed.
-        It will always setup the initial point and will restart the counter for function evaluations.
-        This method is left blank because every optimizer has a different kind of state.
-        Args:
-            fun: The function to be optimized.
-            x0: The initial point.
-            jac: The gradient of the function. If None, the gradient will be approximated with a
-                finite difference scheme.
-            bounds: The bounds of the optimization. If None, the function is unbounded.
-        """
+
         if isinstance(self.learning_rate, float):
             eta = constant_generator(self.learning_rate)
         else:
@@ -374,6 +369,7 @@ class GradientDescent(SteppableOptimizer):
         Condition that indicates the optimization process should come to an end.
         When the stepsize is smaller than the tolerance, the optimization process is considered
         finished.
+
         Returns:
             ``True`` if the optimization process should continue, ``False`` otherwise.
         """

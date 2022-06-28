@@ -117,7 +117,7 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
         initial_point = np.random.normal(0, 1, size=(dimension,))
 
         optimizer = GradientDescent(maxiter=20, learning_rate=learning_rate)
-        optimizer.initialize(x0=initial_point, fun=objective, jac=grad)
+        optimizer.minimize(x0=initial_point, fun=objective, jac=grad)
 
         for _ in range(20):
             ask_data = optimizer.ask()

@@ -113,7 +113,7 @@ class SteppableOptimizer(Optimizer):
             initial_point = np.random.normal(0, 1, size=(100,))
 
             optimizer = GradientDescent(maxiter=20)
-            optimizer.initialize(x0=initial_point, fun=objective, jac=grad)
+            optimizer.start(x0=initial_point, fun=objective, jac=grad)
 
             for _ in range(20):
                 ask_data = optimizer.ask()
@@ -212,8 +212,8 @@ class SteppableOptimizer(Optimizer):
         Args:
             ask_data: Contains the information on how to do the evaluation.
 
-        Return:
-            Contains all relevant information about the function evaluation.
+        Returns:
+            Data of all relevant information about the function evaluation.
 
         """
         raise NotImplementedError
@@ -234,19 +234,15 @@ class SteppableOptimizer(Optimizer):
         tell_data = self.evaluate(ask_data=ask_data)
         self.tell(ask_data=ask_data, tell_data=tell_data)
 
-    # pylint: disable=invalid-name
     @abstractmethod
-    def initialize(
+    def start(
         self,
         fun: Callable[[POINT], float],
         x0: POINT,
         jac: Optional[Callable[[POINT], POINT]] = None,
         bounds: Optional[List[Tuple[float, float]]] = None,
     ) -> None:
-        """
-        This method initializes (or restarts) the optimization state and the parameters to perform a
-        new optimization.
-        Needs to be called before starting the optimization loop the first time.
+        """Populates the state of the optimizer with the data provided and sets all the counters to 0.
 
         Args:
             fun: Function to minimize.
@@ -264,7 +260,8 @@ class SteppableOptimizer(Optimizer):
         jac: Optional[Callable[[POINT], POINT]] = None,
         bounds: Optional[List[Tuple[float, float]]] = None,
     ) -> OptimizerResult:
-        """For well behaved functions the user can call this method to minimize a function.
+        """Minimizes the function.
+        For well behaved functions the user can call this method to minimize a function.
         If the user wants more control on how to evaluate the function a custom loop can be
         created using :meth:`~.ask` and :meth:`~.tell` and evaluating the function manually.
 
@@ -278,7 +275,7 @@ class SteppableOptimizer(Optimizer):
             Object containing the result of the optimization.
 
         """
-        self.initialize(x0=x0, fun=fun, jac=jac, bounds=bounds)
+        self.start(x0=x0, fun=fun, jac=jac, bounds=bounds)
         while self.continue_condition():
             self.step()
             self._callback_wrapper()
