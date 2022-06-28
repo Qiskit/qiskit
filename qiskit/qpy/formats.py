@@ -17,7 +17,6 @@
 import struct
 from collections import namedtuple
 
-
 # FILE_HEADER
 FILE_HEADER = namedtuple(
     "FILE_HEADER",
@@ -27,7 +26,7 @@ FILE_HEADER_PACK = "!6sBBBBQ"
 FILE_HEADER_SIZE = struct.calcsize(FILE_HEADER_PACK)
 
 # CIRCUIT_HEADER_V2
-CIRCUIT_HEADER_V2 = namedtuple(
+CIRCUIT_HEADER_V2 = namedtuple(  # type: ignore[name-match]
     "HEADER",
     [
         "name_size",
@@ -44,7 +43,7 @@ CIRCUIT_HEADER_V2_PACK = "!H1cHIIQIQ"
 CIRCUIT_HEADER_V2_SIZE = struct.calcsize(CIRCUIT_HEADER_V2_PACK)
 
 # CIRCUIT_HEADER
-CIRCUIT_HEADER = namedtuple(
+CIRCUIT_HEADER = namedtuple(  # type: ignore[name-match]
     "HEADER",
     [
         "name_size",
@@ -60,7 +59,9 @@ CIRCUIT_HEADER_PACK = "!HdIIQIQ"
 CIRCUIT_HEADER_SIZE = struct.calcsize(CIRCUIT_HEADER_PACK)
 
 # REGISTER
-REGISTER_V4 = namedtuple("REGISTER", ["type", "standalone", "size", "name_size", "in_circuit"])
+REGISTER_V4 = namedtuple(  # type: ignore[name-match]
+    "REGISTER", ["type", "standalone", "size", "name_size", "in_circuit"]
+)
 REGISTER_V4_PACK = "!1c?IH?"
 REGISTER_V4_SIZE = struct.calcsize(REGISTER_V4_PACK)
 
@@ -86,7 +87,7 @@ CIRCUIT_INSTRUCTION_PACK = "!HHHII?Hq"
 CIRCUIT_INSTRUCTION_SIZE = struct.calcsize(CIRCUIT_INSTRUCTION_PACK)
 
 # CIRCUIT_INSTRUCTION_V2
-CIRCUIT_INSTRUCTION_V2 = namedtuple(
+CIRCUIT_INSTRUCTION_V2 = namedtuple(  # type: ignore[name-match]
     "CIRCUIT_INSTRUCTION",
     [
         "name_size",
@@ -111,7 +112,9 @@ CIRCUIT_INSTRUCTION_ARG_PACK = "!1cI"
 CIRCUIT_INSTRUCTION_ARG_SIZE = struct.calcsize(CIRCUIT_INSTRUCTION_ARG_PACK)
 
 # SparsePauliOp List
-SPARSE_PAULI_OP_LIST_ELEM = namedtuple("SPARSE_PAULI_OP_LIST_ELEMENT", ["size"])
+SPARSE_PAULI_OP_LIST_ELEM = namedtuple(  # type: ignore[name-match]
+    "SPARSE_PAULI_OP_LIST_ELEMENT", ["size"]
+)
 SPARSE_PAULI_OP_LIST_ELEM_PACK = "!Q"
 SPARSE_PAULI_OP_LIST_ELEM_SIZE = struct.calcsize(SPARSE_PAULI_OP_LIST_ELEM_PACK)
 
@@ -129,7 +132,7 @@ CUSTOM_CIRCUIT_DEF_HEADER_PACK = "!Q"
 CUSTOM_CIRCUIT_DEF_HEADER_SIZE = struct.calcsize(CUSTOM_CIRCUIT_DEF_HEADER_PACK)
 
 # CUSTOM_CIRCUIT_INST_DEF_V2
-CUSTOM_CIRCUIT_INST_DEF_V2 = namedtuple(
+CUSTOM_CIRCUIT_INST_DEF_V2 = namedtuple(  # type: ignore[name-match]
     "CUSTOM_CIRCUIT_INST_DEF",
     [
         "gate_name_size",
@@ -165,7 +168,7 @@ CALIBRATION_DEF_PACK = "!HHH1c"
 CALIBRATION_DEF_SIZE = struct.calcsize(CALIBRATION_DEF_PACK)
 
 # SCHEDULE_BLOCK binary format
-SCHEDULE_BLOCK_HEADER = namedtuple(
+SCHEDULE_BLOCK_HEADER = namedtuple(  # type: ignore[name-match]
     "SCHEDULE_BLOCK",
     [
         "name_size",
@@ -223,12 +226,16 @@ PARAMETER_EXPR_PACK = "!QQ"
 PARAMETER_EXPR_SIZE = struct.calcsize(PARAMETER_EXPR_PACK)
 
 # PARAMETER_EXPR_MAP_ELEM_V3
-PARAM_EXPR_MAP_ELEM_V3 = namedtuple("PARAMETER_EXPR_MAP_ELEM", ["symbol_type", "type", "size"])
+PARAM_EXPR_MAP_ELEM_V3 = namedtuple(  # type: ignore[name-match]
+    "PARAMETER_EXPR_MAP_ELEM", ["symbol_type", "type", "size"]
+)
 PARAM_EXPR_MAP_ELEM_V3_PACK = "!ccQ"
 PARAM_EXPR_MAP_ELEM_V3_SIZE = struct.calcsize(PARAM_EXPR_MAP_ELEM_V3_PACK)
 
 # PARAMETER_EXPR_MAP_ELEM
-PARAM_EXPR_MAP_ELEM = namedtuple("PARAMETER_EXPR_MAP_ELEM", ["type", "size"])
+PARAM_EXPR_MAP_ELEM = namedtuple(  # type: ignore[name-match]
+    "PARAMETER_EXPR_MAP_ELEM", ["type", "size"]
+)
 PARAM_EXPR_MAP_ELEM_PACK = "!cQ"
 PARAM_EXPR_MAP_ELEM_SIZE = struct.calcsize(PARAM_EXPR_MAP_ELEM_PACK)
 
