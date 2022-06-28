@@ -1,0 +1,25 @@
+---
+upgrade:
+  - |
+    :class:`.SymbolicPulse` and its subclass can be instantiated with ``granularity``.
+    This allows a user to parameterize ``duration`` and sweep it
+    without seriously concerning about hardware constraints.
+
+    .. code-block:: python
+
+      from qiskit import pulse, circuit
+      import numpy as np
+
+      sigma = circuit.Parameter("sigma")
+      with pulse.build() as sched:
+        pulse.play(
+          pulse.Gaussian(duration=4 * sigma, amp=0.1, sigma=sigma, granularity=16),
+          pulse.DriveChannel(0),
+        )
+
+      sigmas = np.linspace(40, 100, 10)
+      scheds = [sched.assign_parameters({sigma: s}, inplace=False) for s in sigmas]
+
+    Assigned ``scheds`` are guaranteed to be executable on a real hardware with
+    the pulse granularity constraints of 16, though one doesn't carefully manage
+    parameter values to assign.
