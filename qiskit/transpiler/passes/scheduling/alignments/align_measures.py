@@ -161,7 +161,10 @@ class AlignMeasures(TransformationPass):
             start_time = max(
                 itertools.chain(
                     (qubit_time_available[q] for q in node.qargs),
-                    (clbit_time_available[c] - delta for c in node.cargs + node.op.condition_bits),
+                    (
+                        clbit_time_available[c] - delta
+                        for c in node.cargs + tuple(node.op.condition_bits)
+                    ),
                 )
             )
 

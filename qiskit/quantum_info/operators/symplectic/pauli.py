@@ -675,15 +675,15 @@ class Pauli(BasePauli):
             ret.phase = cls._phase_from_complex(np.exp(1j * float(instr.global_phase)))
 
         # Recursively apply instructions
-        for dinstr, qregs, cregs in instr.data:
-            if cregs:
+        for inner in instr.data:
+            if inner.clbits:
                 raise QiskitError(
-                    f"Cannot apply instruction with classical registers: {dinstr.name}"
+                    f"Cannot apply instruction with classical bits: {inner.operation.name}"
                 )
-            if not isinstance(dinstr, (Barrier, Delay)):
-                next_instr = BasePauli(*cls._from_circuit(dinstr))
+            if not isinstance(inner.operation, (Barrier, Delay)):
+                next_instr = BasePauli(*cls._from_circuit(inner.operation))
                 if next_instr is not None:
-                    qargs = [tup.index for tup in qregs]
+                    qargs = [tup.index for tup in inner.qubits]
                     ret = ret.compose(next_instr, qargs=qargs)
         return ret._z, ret._x, ret._phase
 
