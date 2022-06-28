@@ -502,7 +502,11 @@ class ParameterExpression:
             else:
                 from sympy import sympify
 
-                return sympify(self._symbol_expr - other._symbol_expr) < 1e-10
+                try:
+                    val = abs(float(sympify(self._symbol_expr - other._symbol_expr)))
+                    return val < 1e-10
+                except TypeError:
+                    return False
         elif isinstance(other, numbers.Number):
             return len(self.parameters) == 0 and complex(self._symbol_expr) == other
         return False
