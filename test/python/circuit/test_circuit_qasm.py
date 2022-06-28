@@ -450,3 +450,28 @@ custom_{id(gate2)} q[1],q[0];\n"""
         names = ["invalid??", "invalid[]"]
         for idx, instruction in enumerate(base._data):
             self.assertEqual(instruction.operation.name, names[idx])
+
+    def test_circuit_qasm_with_double_precision_rotation_angle(self):
+        """Test circuit qasm() method when a rotation angle with more than 8 significant digits is used."""
+
+        qc = QuantumCircuit(1)
+        qc.p(0.123456789, 0)
+
+        expected_qasm = """OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[1];
+p(0.123456789) q[0];\n"""
+        self.assertEqual(qc.qasm(), expected_qasm)
+
+    def test_circuit_qasm_with_rotation_angles_close_to_pi(self):
+        """Test circuit qasm() method when a rotation angle is close to pi."""
+
+        qc = QuantumCircuit(1)
+        qc.p(pi + 1e-10, 0)
+        qc.p(pi + 1e-13, 0)
+        expected_qasm = """OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[1];
+p(3.141592653689793) q[0];
+p(pi) q[0];\n"""
+        self.assertEqual(qc.qasm(), expected_qasm)
