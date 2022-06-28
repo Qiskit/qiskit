@@ -71,6 +71,55 @@ def _loads_symbolic_expr(expr_bytes):
     return expr
 
 
+def _read_symbolic_pulse_v6(file_obj, version):
+    header = formats.SYMBOLIC_PULSE_V6._make(
+        struct.unpack(
+            formats.SYMBOLIC_PULSE_V6_PACK,
+            file_obj.read(formats.SYMBOLIC_PULSE_V6_SIZE),
+        )
+    )
+    pulse_type = file_obj.read(header.type_size).decode(common.ENCODE)
+    envelope = _loads_symbolic_expr(file_obj.read(header.envelope_size))
+    constraints = _loads_symbolic_expr(file_obj.read(header.constraints_size))
+    valid_amp_conditions = _loads_symbolic_expr(file_obj.read(header.valid_amp_conditions_size))
+    parameters = common.read_mapping(
+        file_obj,
+        deserializer=value.loads_value,
+        version=version,
+        vectors={},
+    )
+    duration = value.read_value(file_obj, version, {})
+    name = value.read_value(file_obj, version, {})
+
+    # TODO remove this and merge subclasses into a single kind of SymbolicPulse
+    #  We need some refactoring of our codebase,
+    #  mainly removal of isinstance check and name access with self.__class__.__name__.
+    if pulse_type == "Gaussian":
+        pulse_cls = library.Gaussian
+    elif pulse_type == "GaussianSquare":
+        pulse_cls = library.GaussianSquare
+    elif pulse_type == "Drag":
+        pulse_cls = library.Drag
+    elif pulse_type == "Constant":
+        pulse_cls = library.Constant
+    else:
+        pulse_cls = library.SymbolicPulse
+
+    # Skip calling constructor to absorb signature mismatch in subclass.
+    instance = object.__new__(pulse_cls)
+    instance.duration = duration
+    instance.name = name
+    instance._limit_amplitude = header.amp_limited
+    instance._pulse_type = pulse_type
+    instance._params = parameters
+    instance._envelope = envelope
+    instance._constraints = constraints
+    instance._valid_amp_conditions = valid_amp_conditions
+    instance._granularity = header.granularity
+
+    return instance
+
+
 def _read_symbolic_pulse(file_obj, version):
     header = formats.SYMBOLIC_PULSE._make(
         struct.unpack(
@@ -140,7 +189,11 @@ def _loads_operand(type_key, data_bytes, version):
     if type_key == type_keys.ScheduleOperand.WAVEFORM:
         return common.data_from_binary(data_bytes, _read_waveform, version=version)
     if type_key == type_keys.ScheduleOperand.SYMBOLIC_PULSE:
-        return common.data_from_binary(data_bytes, _read_symbolic_pulse, version=version)
+        if version < 6:
+            loader = _read_symbolic_pulse
+        else:
+            loader = _read_symbolic_pulse_v6
+        return common.data_from_binary(data_bytes, loader, version=version)
     if type_key == type_keys.ScheduleOperand.CHANNEL:
         return common.data_from_binary(data_bytes, _read_channel, version=version)
 
@@ -205,12 +258,13 @@ def _write_symbolic_pulse(file_obj, data):
     valid_amp_conditions_bytes = _dumps_symbolic_expr(data.valid_amp_conditions)
 
     header_bytes = struct.pack(
-        formats.SYMBOLIC_PULSE_PACK,
+        formats.SYMBOLIC_PULSE_V6_PACK,
         len(pulse_type_bytes),
         len(envelope_bytes),
         len(constraints_bytes),
         len(valid_amp_conditions_bytes),
         data.limit_amplitude,
+        data._granularity,
     )
     file_obj.write(header_bytes)
     file_obj.write(pulse_type_bytes)

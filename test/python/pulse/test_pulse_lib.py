@@ -30,6 +30,7 @@ from qiskit.pulse.library import (
 )
 
 from qiskit.pulse import functional_pulse, PulseError
+from qiskit.pulse.parameter_manager import ParameterSetter
 from qiskit.test import QiskitTestCase
 from qiskit.utils import optionals as _optional
 
@@ -383,6 +384,30 @@ class TestParametricPulses(QiskitTestCase):
         waveform = custom_pulse.get_waveform()
         reference = np.concatenate([-0.1 * np.ones(30), 0.1j * np.ones(50), -0.1 * np.ones(20)])
         np.testing.assert_array_almost_equal(waveform.samples, reference)
+
+    def test_constrained_pulse(self):
+        """Test duration multiple of granularity."""
+        gaussian_pulse = Gaussian(duration=120, amp=0.1, sigma=30, granularity=16)
+        self.assertEqual(gaussian_pulse.duration, 112)
+
+    def test_constrained_pulse_with_parameter(self):
+        """Test duration multiple of granularity, which is a single parameter."""
+        duration = Parameter("duration")
+        gaussian_pulse = Gaussian(duration=duration, amp=0.1, sigma=30, granularity=16)
+
+        param_setter = ParameterSetter({duration: 120})
+        gaussian_assigned = param_setter.visit_SymbolicPulse(gaussian_pulse)
+        self.assertEqual(gaussian_assigned.duration, 112)
+
+    def test_constrained_pulse_with_parameter_expression(self):
+        """Test duration multiple of granularity, which is parameter expression."""
+        ratio = Parameter("sigma_ratio")
+        sigma = Parameter("sigma")
+        gaussian_pulse = Gaussian(duration=ratio * sigma, amp=0.1, sigma=sigma, granularity=16)
+
+        param_setter = ParameterSetter({ratio: 4, sigma: 30})
+        gaussian_assigned = param_setter.visit_SymbolicPulse(gaussian_pulse)
+        self.assertEqual(gaussian_assigned.duration, 112)
 
 
 class TestFunctionalPulse(QiskitTestCase):

@@ -192,6 +192,15 @@ class TestLoadFromQPY(QpyScheduleTestCase):
 
         self.assert_roundtrip_equal(test_sched)
 
+    def test_constrained_pulse(self):
+        """Test pulse with granularity constraint."""
+        with builder.build() as test_sched:
+            builder.play(
+                Gaussian(120, 0.1, 30, granularity=16),
+                DriveChannel(0),
+            )
+        self.assert_roundtrip_equal(test_sched)
+
 
 class TestPulseGate(QpyScheduleTestCase):
     """Test loading and saving pulse gate attached circuit to qpy file."""

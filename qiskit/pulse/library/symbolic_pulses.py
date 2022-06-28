@@ -387,6 +387,7 @@ class SymbolicPulse(Pulse):
         "_envelope",
         "_constraints",
         "_valid_amp_conditions",
+        "_granularity",
     )
 
     # Lambdify caches keyed on sympy expressions. Returns the corresponding callable.
@@ -404,6 +405,7 @@ class SymbolicPulse(Pulse):
         envelope: Optional[sym.Expr] = None,
         constraints: Optional[sym.Expr] = None,
         valid_amp_conditions: Optional[sym.Expr] = None,
+        granularity: Optional[int] = 1,
     ):
         """Create a parametric pulse.
 
@@ -421,10 +423,15 @@ class SymbolicPulse(Pulse):
                 will investigate the full-waveform and raise an error when the amplitude norm
                 of any data point exceeds 1.0. If not provided, the validation always
                 creates a full-waveform.
+            granularity: Pulse granularity constraint on backend hardware. Duration value is
+                always truncated to nearest multiple of this value.
 
         Raises:
             PulseError: When not all parameters are listed in the attribute :attr:`PARAM_DEF`.
         """
+        if not isinstance(duration, ParameterExpression):
+            duration = granularity * int(duration / granularity)
+
         super().__init__(
             duration=duration,
             name=name,
@@ -442,6 +449,7 @@ class SymbolicPulse(Pulse):
 
         self._pulse_type = pulse_type
         self._params = parameters
+        self._granularity = granularity
 
         self._envelope = envelope
         self._constraints = constraints
@@ -558,6 +566,9 @@ class SymbolicPulse(Pulse):
         if self._envelope != other._envelope:
             return False
 
+        if self._granularity != other._granularity:
+            return False
+
         if self.parameters != other.parameters:
             return False
 
@@ -598,6 +609,7 @@ class Gaussian(SymbolicPulse):
         sigma: Union[float, ParameterExpression],
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
+        granularity: Optional[int] = 1,
     ):
         """Create new pulse instance.
 
@@ -609,7 +621,8 @@ class Gaussian(SymbolicPulse):
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
-
+            granularity: Pulse granularity constraint on backend hardware. Duration value is
+                always truncated to nearest multiple of this value.
         """
         parameters = {"amp": amp, "sigma": sigma}
 
@@ -630,6 +643,7 @@ class Gaussian(SymbolicPulse):
             envelope=envelope_expr,
             constraints=consts_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
+            granularity=granularity,
         )
         self.validate_parameters()
 
@@ -681,6 +695,7 @@ class GaussianSquare(SymbolicPulse):
         risefall_sigma_ratio: Optional[Union[float, ParameterExpression]] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
+        granularity: Optional[int] = 1,
     ):
         """Create new pulse instance.
 
@@ -694,6 +709,8 @@ class GaussianSquare(SymbolicPulse):
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+            granularity: Pulse granularity constraint on backend hardware. Duration value is
+                always truncated to nearest multiple of this value.
 
         Raises:
             PulseError: When width and risefall_sigma_ratio are both empty or both non-empty.
@@ -738,6 +755,7 @@ class GaussianSquare(SymbolicPulse):
             envelope=envelope_expr,
             constraints=consts_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
+            granularity=granularity,
         )
         self.validate_parameters()
 
@@ -792,6 +810,7 @@ class Drag(SymbolicPulse):
         beta: Union[float, ParameterExpression],
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
+        granularity: Optional[int] = 1,
     ):
         """Create new pulse instance.
 
@@ -804,6 +823,8 @@ class Drag(SymbolicPulse):
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+            granularity: Pulse granularity constraint on backend hardware. Duration value is
+                always truncated to nearest multiple of this value.
         """
         parameters = {"amp": amp, "sigma": sigma, "beta": beta}
 
@@ -828,6 +849,7 @@ class Drag(SymbolicPulse):
             envelope=envelope_expr,
             constraints=consts_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
+            granularity=granularity,
         )
         self.validate_parameters()
 
@@ -847,6 +869,7 @@ class Constant(SymbolicPulse):
         amp: Union[complex, ParameterExpression],
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
+        granularity: Optional[int] = 1,
     ):
         """Create new pulse instance.
 
@@ -856,6 +879,8 @@ class Constant(SymbolicPulse):
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+            granularity: Pulse granularity constraint on backend hardware. Duration value is
+                always truncated to nearest multiple of this value.
         """
         parameters = {"amp": amp}
 
@@ -880,5 +905,6 @@ class Constant(SymbolicPulse):
             limit_amplitude=limit_amplitude,
             envelope=envelope_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
+            granularity=granularity,
         )
         self.validate_parameters()

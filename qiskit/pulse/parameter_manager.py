@@ -225,7 +225,11 @@ class ParameterSetter(NodeVisitor):
         if node.is_parameterized():
             # Assign duration
             if isinstance(node.duration, ParameterExpression):
-                node.duration = self._assign_parameter_expression(node.duration)
+                assigned_dur = self._assign_parameter_expression(node.duration)
+                if not isinstance(assigned_dur, ParameterExpression):
+                    node.duration = node._granularity * int(assigned_dur / node._granularity)
+                else:
+                    node.duration = assigned_dur
             # Assign other parameters
             for name in node._params:
                 pval = node._params[name]

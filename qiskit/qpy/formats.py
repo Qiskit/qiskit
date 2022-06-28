@@ -195,6 +195,21 @@ SYMBOLIC_PULSE = namedtuple(
 SYMBOLIC_PULSE_PACK = "!HHHH?"
 SYMBOLIC_PULSE_SIZE = struct.calcsize(SYMBOLIC_PULSE_PACK)
 
+# SYMBOLIC_PULSE_V6
+SYMBOLIC_PULSE_V6 = namedtuple(
+    "SYMBOLIC_PULSE",
+    [
+        "type_size",
+        "envelope_size",
+        "constraints_size",
+        "valid_amp_conditions_size",
+        "amp_limited",
+        "granularity",
+    ],
+)
+SYMBOLIC_PULSE_V6_PACK = "!HHHH?H"
+SYMBOLIC_PULSE_V6_SIZE = struct.calcsize(SYMBOLIC_PULSE_V6_PACK)
+
 # INSTRUCTION_PARAM
 INSTRUCTION_PARAM = namedtuple("INSTRUCTION_PARAM", ["type", "size"])
 INSTRUCTION_PARAM_PACK = "!1cQ"

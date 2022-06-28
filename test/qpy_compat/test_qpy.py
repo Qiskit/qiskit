@@ -438,6 +438,16 @@ def generate_schedule_blocks():
     return schedule_blocks
 
 
+def generate_pulse_with_constraint():
+    """QPY schedule with pulse knowing constraint."""
+    from qiskit.pulse import builder, channels, library
+
+    # Pulse with granularity constraint
+    with builder.build() as block:
+        builder.play(library.Gaussian(120, 0.1, 30, granularity=16), channels.DriveChannel(0))
+    return [block]
+
+
 def generate_calibrated_circuits():
     """Test for QPY serialization with calibrations."""
     from qiskit.pulse import builder, Constant, DriveChannel
@@ -525,6 +535,8 @@ def generate_circuits(version_str=None):
         output_circuits["controlled_gates.qpy"] = generate_controlled_gates()
         output_circuits["schedule_blocks.qpy"] = generate_schedule_blocks()
         output_circuits["pulse_gates.qpy"] = generate_calibrated_circuits()
+    if version_parts >= (0, 22, 0):
+        output_circuits["constrained_pulse.qpy"] = generate_pulse_with_constraint()
 
     return output_circuits
 
