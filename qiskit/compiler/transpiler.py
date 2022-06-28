@@ -285,7 +285,7 @@ def transpile(
             or errors in passes
     """
     arg_circuits_list = isinstance(circuits, list)
-    circuits = circuits if arg_circuits_list else [circuits]
+    circuits = circuits if arg_circuits_list else [circuits]  # type: ignore[list-item]
 
     if not circuits:
         return []
