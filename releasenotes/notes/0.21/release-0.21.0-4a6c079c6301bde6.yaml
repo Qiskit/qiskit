@@ -4,14 +4,14 @@ prelude: |
 
    * Support for serialization of a pulse :class:`~.ScheduleBlock` via
      :mod:`qiskit.qpy`. The :ref:`qpy_format` has been updated to version 5
-     which includes a definition for including the pulse schedules
-     To support this a new :class:`~.SymbolicPulse` class was introduced to
-     enable defining parametric pulse waveforms via a symbolic expression.
-   * Improvements to working with preset pass managers. There is new function
-     :func:`~.generate_preset_pass_manager` which enables easily generating
+     which includes a definition for including the pulse schedules.
+     To support this, a new :class:`~.SymbolicPulse` class was introduced to
+     enable defining parametric pulse waveforms via symbolic expressions.
+   * Improvements to working with preset pass managers. A new function
+     :func:`~.generate_preset_pass_manager` enables easily generating
      a pass manager equivalent to what :func:`~.transpile` will use internally.
      Additionally, preset pass managers are now instances of
-     :class:`~.StagedPassManager` which makes it easier to modify sections
+     :class:`~.StagedPassManager` which makes it easier to modify sections.
    * A refactor of the internal data structure of the
      :attr:`.QuantumCircuit.data` attribute. It previously was a list of
      tuples in the form ``(instruction, qubits, clbits)`` and now is a list of
