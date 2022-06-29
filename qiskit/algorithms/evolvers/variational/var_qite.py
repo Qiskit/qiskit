@@ -88,7 +88,7 @@ class VarQITE(VarQTE, ImaginaryEvolver):
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
             ode_num_t_steps: Number of ODE steps. Only relevant in case of the
-            ``ForwardEulerSolver``.
+                ``ForwardEulerSolver``.
             ode_function_factory: Factory for the ODE function. If ``None`` provided, an instance
                 with default settings is created.
             expectation: An instance of ``ExpectationBase`` which defines a method for calculating

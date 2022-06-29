@@ -21,9 +21,9 @@ with the Quantum Time Evolution Framework in Qiskit Terra, that is implemented b
 imaginary time evolution respectively. The variational approach is taken according to a variational
 principle chosen by a user.
 
-**Examples**
+Examples:
 
-.. code-block::python
+.. code-block::
 
     from qiskit import BasicAer
     from qiskit.circuit.library import EfficientSU2
