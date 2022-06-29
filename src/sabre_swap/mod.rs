@@ -50,7 +50,7 @@ pub fn sabre_score_heuristic(
     let dist = distance_matrix.as_array();
     swap_scores
         .scores
-        .par_iter_mut()
+        .iter_mut()
         .for_each(|(swap_qubits, score)| {
             let mut trial_layout = layout.clone();
             trial_layout.swap_logical(swap_qubits[0], swap_qubits[1]);
