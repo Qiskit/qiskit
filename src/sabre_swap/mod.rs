@@ -94,10 +94,10 @@ fn score_lookahead(
 ) -> f64 {
     let mut first_cost = compute_cost(layer, layout, dist);
     first_cost /= layer.len() as f64;
-    let second_cost = if !extended_set.is_empty() {
-        compute_cost(extended_set, layout, dist)
-    } else {
+    let second_cost = if extended_set.is_empty() {
         0.
+    } else {
+        compute_cost(extended_set, layout, dist)
     };
     first_cost + EXTENDED_SET_WEIGHT * second_cost
 }
