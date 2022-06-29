@@ -421,7 +421,7 @@ class OpShape:
     def compose(self, other, qargs=None, front=False):
         """Return composed OpShape."""
         ret = OpShape()
-        if not qargs:
+        if qargs is None:
             if front:
                 if self._num_qargs_r != other._num_qargs_l or self._dims_r != other._dims_l:
                     raise QiskitError(

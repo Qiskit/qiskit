@@ -174,10 +174,10 @@ class ControlledGate(Gate):
         Raises:
             CircuitError: num_ctrl_qubits is not an integer in [1, num_qubits - 1].
         """
-        if num_ctrl_qubits == int(num_ctrl_qubits) and 1 <= num_ctrl_qubits < self.num_qubits:
+        if num_ctrl_qubits == int(num_ctrl_qubits) and 1 <= num_ctrl_qubits <= self.num_qubits:
             self._num_ctrl_qubits = num_ctrl_qubits
         else:
-            raise CircuitError("The number of control qubits must be in [1, num_qubits-1]")
+            raise CircuitError("The number of control qubits must be in [1, num_qubits]")
 
     @property
     def ctrl_state(self) -> int:

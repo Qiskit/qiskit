@@ -841,6 +841,13 @@ class TestOperator(OperatorTestCase):
         with self.assertRaises(KeyError):
             Operator.from_circuit(circuit, layout=layout)
 
+    def test_compose_scalar(self):
+        """Test that composition works with a scalar-valued operator over no qubits."""
+        base = Operator(np.eye(2, dtype=np.complex128))
+        scalar = Operator(np.array([[-1.0 + 0.0j]]))
+        composed = base.compose(scalar, qargs=[])
+        self.assertEqual(composed, Operator(-np.eye(2, dtype=np.complex128)))
+
 
 if __name__ == "__main__":
     unittest.main()

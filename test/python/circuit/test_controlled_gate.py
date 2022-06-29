@@ -1220,6 +1220,19 @@ class TestControlledGate(QiskitTestCase):
         target = _compute_control_matrix(base_mat, num_ctrl_qubits)
         self.assertEqual(Operator(ctrl_qc), Operator(target))
 
+    @data(1, 2)
+    def test_control_zero_operand_gate(self, num_ctrl_qubits):
+        """Test that a zero-operand gate (such as a make-shift global-phase gate) can be
+        controlled."""
+        gate = QuantumCircuit(global_phase=np.pi).to_gate()
+        controlled = gate.control(num_ctrl_qubits)
+        self.assertIsInstance(controlled, ControlledGate)
+        self.assertEqual(controlled.num_ctrl_qubits, num_ctrl_qubits)
+        self.assertEqual(controlled.num_qubits, num_ctrl_qubits)
+        target = np.eye(2**num_ctrl_qubits, dtype=np.complex128)
+        target.flat[-1] = -1
+        self.assertEqual(Operator(controlled), Operator(target))
+
 
 @ddt
 class TestOpenControlledToMatrix(QiskitTestCase):
