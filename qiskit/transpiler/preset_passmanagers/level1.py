@@ -83,6 +83,10 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     target = pass_manager_config.target
     call_limit = pass_manager_config.call_limit
 
+    call_limit = max(
+        int(5e4),  # Set call limit to ~100ms with retworkx 0.10.2
+        int(0.25*call_limit))
+
     # Use trivial layout if no layout given
     _given_layout = SetLayout(initial_layout)
 

@@ -92,6 +92,10 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     target = pass_manager_config.target
     call_limit = pass_manager_config.call_limit
 
+    call_limit = max(
+        int(3e7),  # Set call limit to ~60 sec with retworkx 0.10.2
+        int(0.75*call_limit))
+
     # Layout on good qubits if calibration info available, otherwise on dense links
     _given_layout = SetLayout(initial_layout)
 
