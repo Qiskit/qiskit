@@ -10,11 +10,14 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#![allow(clippy::too_many_arguments)]
+
 pub mod edge_list;
 pub mod qubits_decay;
 pub mod swap_scores;
 
 use ndarray::prelude::*;
+use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
@@ -39,6 +42,7 @@ pub enum Heuristic {
 
 #[pyfunction]
 pub fn sabre_score_heuristic(
+    py: Python,
     layer: EdgeList,
     layout: &NLayout,
     swap_scores: &mut SwapScores,
@@ -46,7 +50,7 @@ pub fn sabre_score_heuristic(
     distance_matrix: PyReadonlyArray2<f64>,
     qubits_decay: QubitsDecay,
     heuristic: &Heuristic,
-) -> Vec<[usize; 2]> {
+) -> PyObject {
     let dist = distance_matrix.as_array();
     swap_scores
         .scores
@@ -75,7 +79,7 @@ pub fn sabre_score_heuristic(
         .filter_map(|(k, v)| if v == min_score { Some(*k) } else { None })
         .collect();
     best_swaps.par_sort();
-    best_swaps
+    Array2::from(best_swaps).into_pyarray(py).into()
 }
 
 #[inline]
