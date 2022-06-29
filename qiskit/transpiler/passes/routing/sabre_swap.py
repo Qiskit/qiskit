@@ -38,7 +38,6 @@ from qiskit._accelerate.stochastic_swap import NLayout  # pylint: disable=import
 logger = logging.getLogger(__name__)
 
 EXTENDED_SET_SIZE = 20  # Size of lookahead window. TODO: set dynamically to len(current_layout)
-EXTENDED_SET_WEIGHT = 0.5  # Weight of lookahead window compared to front_layer.
 
 DECAY_RATE = 0.001  # Decay coefficient for penalizing serial swaps.
 DECAY_RESET_INTERVAL = 5  # How often to reset all decay rates to 1.

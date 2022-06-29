@@ -28,7 +28,7 @@ use edge_list::EdgeList;
 use qubits_decay::QubitsDecay;
 use swap_scores::SwapScores;
 
-const EXTENDED_SET_WEIGHT: f64 = 0.5;
+const EXTENDED_SET_WEIGHT: f64 = 0.5; // Weight of lookahead window compared to front_layer.
 
 #[pyclass]
 pub enum Heuristic {
