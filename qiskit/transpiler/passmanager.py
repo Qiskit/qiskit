@@ -379,7 +379,7 @@ class StagedPassManager(PassManager):
             stages (Iterable[str]): An optional list of stages to use for this
                 instance. If this is not specified the default stages list
                 ``['init', 'layout', 'routing', 'translation', 'optimization', 'scheduling']`` is
-                used
+                used. After instantiation, the final list will be immutable and stored as tuple.
             kwargs: The initial :class:`~.PassManager` values for any stages
                 defined in ``stages``. If a argument is not defined the
                 stages will default to ``None`` indicating an empty/undefined
@@ -398,6 +398,7 @@ class StagedPassManager(PassManager):
             "scheduling",
         ]
         self._validate_stages(stages)
+        # Set through parent class since `__setattr__` requieres `expanded_stages` to be defined
         super().__setattr__("_stages", tuple(stages))
         super().__setattr__("_expanded_stages", tuple(self._generate_expanded_stages()))
         super().__init__()
@@ -426,12 +427,12 @@ class StagedPassManager(PassManager):
     @property
     def stages(self) -> Tuple[str, ...]:
         """Pass manager stages"""
-        return self._stages  # pylint: disable=E1101
+        return self._stages  # pylint: disable=no-member
 
     @property
     def expanded_stages(self) -> Tuple[str, ...]:
         """Expanded Pass manager stages including ``pre_`` and ``post_`` phases."""
-        return self._expanded_stages  # pylint: disable=E1101
+        return self._expanded_stages  # pylint: disable=no-member
 
     def _generate_expanded_stages(self) -> Iterator[str]:
         for stage in self.stages:
