@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The function :func:`~qiskit.visualization.state_visualization.state_to_latex` produced not valid LaTeX in
+    presence of close-to-zero values, resulting in errors when :func:`~qiskit.visualization.state_visualization.state_drawer` is called.
+    Fixed `#8169 <https://github.com/Qiskit/qiskit-terra/issues/8169>`__.  

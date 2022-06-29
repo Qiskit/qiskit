@@ -1128,7 +1128,7 @@ class TestStatevector(QiskitTestCase):
                 np.sqrt(2) / 2,
                 -5.55111512e-17,
                 7.85046229e-17,
-                - np.sqrt(2) / 2,
+                -np.sqrt(2) / 2,
                 0,
                 0,
                 0,
