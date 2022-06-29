@@ -1138,7 +1138,7 @@ def state_to_latex(
 
 def _round_if_close(data):
     """Round real and imaginary parts of complex number of close to zero"""
-    data = np.real_if_close(data)
+    data = np.real_if_close(data + 1) - 1
     data = -1j * np.real_if_close(data * 1j)
     return data
 
@@ -1258,8 +1258,7 @@ def _state_to_latex_ket(data: List[complex], max_size: int = 12) -> str:
         else:
             term = latex_terms[idx]
             ket = ket_name(ket_idx)
-            if term is not None:
-                latex_str += f"{term} |{ket}\\rangle"
+            latex_str += f"{term} |{ket}\\rangle"
     return latex_str
 
 
