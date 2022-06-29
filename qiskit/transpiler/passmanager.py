@@ -14,7 +14,7 @@
 
 import io
 import re
-from typing import Union, List, Callable, Dict, Any
+from typing import Union, List, Tuple, Callable, Dict, Any, Optional, Iterator, Iterable
 
 import dill
 
@@ -372,14 +372,14 @@ class StagedPassManager(PassManager):
         r"\s|\+|\-|\*|\/|\\|\%|\<|\>|\@|\!|\~|\^|\&|\:|\[|\]|\{|\}|\(|\)"
     )
 
-    def __init__(self, stages=None, **kwargs):
+    def __init__(self, stages: Optional[Iterable[str]] = None, **kwargs) -> None:
         """Initialize a new StagedPassManager object
 
         Args:
-            stages (List[str]): An optional list of stages to use for this
+            stages (Iterable[str]): An optional list of stages to use for this
                 instance. If this is not specified the default stages list
                 ``['init', 'layout', 'routing', 'translation', 'optimization', 'scheduling']`` is
-                used
+                used. After instantiation, the final list will be immutable and stored as tuple.
             kwargs: The initial :class:`~.PassManager` values for any stages
                 defined in ``stages``. If a argument is not defined the
                 stages will default to ``None`` indicating an empty/undefined
@@ -389,67 +389,69 @@ class StagedPassManager(PassManager):
             AttributeError: If a stage in the input keyword arguments is not defined.
             ValueError: If an invalid stage name is specified.
         """
-        if stages is None:
-            self.stages = [
-                "init",
-                "layout",
-                "routing",
-                "translation",
-                "optimization",
-                "scheduling",
-            ]
-        else:
-            invalid_stages = [
-                stage for stage in stages if self.invalid_stage_regex.search(stage) is not None
-            ]
-            if invalid_stages:
-                with io.StringIO() as msg:
-                    msg.write(f"The following stage names are not valid: {invalid_stages[0]}")
-                    for invalid_stage in invalid_stages[1:]:
-                        msg.write(f", {invalid_stage}")
-                    raise ValueError(msg.getvalue())
-
-            self.stages = stages
+        stages = stages or [
+            "init",
+            "layout",
+            "routing",
+            "translation",
+            "optimization",
+            "scheduling",
+        ]
+        self._validate_stages(stages)
+        # Set through parent class since `__setattr__` requieres `expanded_stages` to be defined
+        super().__setattr__("_stages", tuple(stages))
+        super().__setattr__("_expanded_stages", tuple(self._generate_expanded_stages()))
         super().__init__()
-        for stage in self.stages:
-            pre_stage = "pre_" + stage
-            post_stage = "post_" + stage
-            setattr(self, pre_stage, None)
-            setattr(self, stage, None)
-            setattr(self, post_stage, None)
-        for stage, pm in kwargs.items():
-            if (
-                stage not in self.stages
-                and not (stage.startswith("pre_") and stage[4:] in self.stages)
-                and not (stage.startswith("post_") and stage[5:] in self.stages)
-            ):
-                raise AttributeError(f"{stage} is not a valid stage.")
+        self._validate_init_kwargs(kwargs)
+        for stage in self.expanded_stages:
+            pm = kwargs.get(stage, None)
             setattr(self, stage, pm)
-        self._update_passmanager()
 
-    def _update_passmanager(self):
-        self._pass_sets = []
+    def _validate_stages(self, stages: Iterable[str]) -> None:
+        invalid_stages = [
+            stage for stage in stages if self.invalid_stage_regex.search(stage) is not None
+        ]
+        if invalid_stages:
+            with io.StringIO() as msg:
+                msg.write(f"The following stage names are not valid: {invalid_stages[0]}")
+                for invalid_stage in invalid_stages[1:]:
+                    msg.write(f", {invalid_stage}")
+                raise ValueError(msg.getvalue())
+
+    def _validate_init_kwargs(self, kwargs: Dict[str, Any]) -> None:
+        expanded_stages = set(self.expanded_stages)
+        for stage in kwargs.keys():
+            if stage not in expanded_stages:
+                raise AttributeError(f"{stage} is not a valid stage.")
+
+    @property
+    def stages(self) -> Tuple[str, ...]:
+        """Pass manager stages"""
+        return self._stages  # pylint: disable=no-member
+
+    @property
+    def expanded_stages(self) -> Tuple[str, ...]:
+        """Expanded Pass manager stages including ``pre_`` and ``post_`` phases."""
+        return self._expanded_stages  # pylint: disable=no-member
+
+    def _generate_expanded_stages(self) -> Iterator[str]:
         for stage in self.stages:
-            # Add pre-stage PM
-            pre_stage_pm = getattr(self, "pre_" + stage, None)
-            if pre_stage_pm is not None:
-                self._pass_sets.extend(pre_stage_pm._pass_sets)
-            # Add stage PM
-            stage_pm = getattr(self, stage, None)
-            if stage_pm is not None:
-                self._pass_sets.extend(stage_pm._pass_sets)
-            # Add post-stage PM
-            post_stage_pm = getattr(self, "post_" + stage, None)
-            if post_stage_pm is not None:
-                self._pass_sets.extend(post_stage_pm._pass_sets)
+            yield "pre_" + stage
+            yield stage
+            yield "post_" + stage
+
+    def _update_passmanager(self) -> None:
+        self._pass_sets = []
+        for stage in self.expanded_stages:
+            pm = getattr(self, stage, None)
+            if pm is not None:
+                self._pass_sets.extend(pm._pass_sets)
 
     def __setattr__(self, attr, value):
+        if value == self and attr in self.expanded_stages:
+            raise TranspilerError("Recursive definition of StagedPassManager disallowed.")
         super().__setattr__(attr, value)
-        if (
-            attr in self.stages
-            or (attr.startswith("pre_") and attr[4:] not in self.stages)
-            or (attr.startswith("post_") and attr[5:] not in self.stages)
-        ):
+        if attr in self.expanded_stages:
             self._update_passmanager()
 
     def append(
@@ -473,7 +475,7 @@ class StagedPassManager(PassManager):
     def remove(self, index: int) -> None:
         raise NotImplementedError
 
-    def __getitem(self, index):
+    def __getitem__(self, index):
         self._update_passmanager()
         return super().__getitem__(index)
 
