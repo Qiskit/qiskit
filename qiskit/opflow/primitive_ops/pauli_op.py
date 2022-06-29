@@ -287,7 +287,7 @@ class PauliOp(PrimitiveOp):
             return PauliOp(self.primitive)
         if np.sum(sig_qubits) == 1:
             sig_qubit_index = sig_qubits.tolist().index(True)
-            coeff = (
+            coeff: Union[float, ParameterExpression] = (
                 np.real(self.coeff)
                 if not isinstance(self.coeff, ParameterExpression)
                 else self.coeff

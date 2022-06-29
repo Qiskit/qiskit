@@ -40,7 +40,7 @@ class LinCombFull(CircuitQFI):
         self,
         aux_meas_op: OperatorBase = Z,
         phase_fix: bool = True,
-    ):
+    ):  # type: ignore[override]
         """
         Args:
             aux_meas_op: The operator that the auxiliary qubit is measured with respect to.
