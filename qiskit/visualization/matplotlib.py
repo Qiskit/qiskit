@@ -10,11 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Init for circuit visualizations """
+"""mpl circuit visualization backend."""
 
-from .circuit_visualization import (
-    circuit_drawer,
-    _text_circuit_drawer,
-    _latex_circuit_drawer,
-    _matplotlib_circuit_drawer,
-)
+# Temporary import from 0.22.0 to be deprecated in future
+# pylint: disable=unused-import,missing-module-docstring
+from .circuit.matplotlib import *

@@ -10,11 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Init for circuit visualizations """
+"""A module for visualizing device coupling maps"""
 
-from .circuit_visualization import (
-    circuit_drawer,
-    _text_circuit_drawer,
-    _latex_circuit_drawer,
-    _matplotlib_circuit_drawer,
+# Temporary import from 0.22.0 to be deprecated in future
+# pylint: disable=unused-import,missing-module-docstring
+from .plots.gate_map import (
+    plot_gate_map,
+    plot_circuit_layout,
+    plot_error_map,
+    plot_coupling_map,
 )

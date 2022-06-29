@@ -537,13 +537,13 @@ class DAGCircuit:
 
         return target_dag
 
-    def apply_operation_back(self, op, qargs=(), cargs=()):
+    def apply_operation_back(self, op, qargs=None, cargs=None):
         """Apply an operation to the output of the circuit.
 
         Args:
             op (qiskit.circuit.Instruction): the operation associated with the DAG node
-            qargs (tuple[Qubit]): qubits that op will be applied to
-            cargs (tuple[Clbit]): cbits that op will be applied to
+            qargs (list[Qubit]): qubits that op will be applied to
+            cargs (list[Clbit]): cbits that op will be applied to
         Returns:
             DAGOpNode: the node for the op that was added to the dag
 
@@ -551,8 +551,8 @@ class DAGCircuit:
             DAGCircuitError: if a leaf node is connected to multiple outputs
 
         """
-        qargs = tuple(qargs) if qargs is not None else ()
-        cargs = tuple(cargs) if cargs is not None else ()
+        qargs = qargs or []
+        cargs = cargs or []
 
         all_cbits = self._bits_in_condition(op.condition)
         all_cbits = set(all_cbits).union(cargs)
@@ -573,13 +573,13 @@ class DAGCircuit:
         )
         return self._multi_graph[node_index]
 
-    def apply_operation_front(self, op, qargs=(), cargs=()):
+    def apply_operation_front(self, op, qargs, cargs):
         """Apply an operation to the input of the circuit.
 
         Args:
             op (qiskit.circuit.Instruction): the operation associated with the DAG node
-            qargs (tuple[Qubit]): qubits that op will be applied to
-            cargs (tuple[Clbit]): cbits that op will be applied to
+            qargs (list[Qubit]): qubits that op will be applied to
+            cargs (list[Clbit]): cbits that op will be applied to
         Returns:
             DAGOpNode: the node for the op that was added to the dag
 
@@ -964,6 +964,7 @@ class DAGCircuit:
         # Try to convert to float, but in case of unbound ParameterExpressions
         # a TypeError will be raise, fallback to normal equality in those
         # cases
+
         try:
             self_phase = float(self.global_phase)
             other_phase = float(other.global_phase)
@@ -1773,6 +1774,6 @@ class DAGCircuit:
             Ipython.display.Image: if in Jupyter notebook and not saving to file,
             otherwise None.
         """
-        from qiskit.visualization.graph.dag_visualization import dag_drawer
+        from qiskit.visualization import dag_drawer
 
         return dag_drawer(dag=self, scale=scale, filename=filename, style=style)

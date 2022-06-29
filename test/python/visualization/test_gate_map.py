@@ -24,7 +24,7 @@ from qiskit.providers.fake_provider import (
     FakeKolkataV2,
     FakeWashingtonV2,
 )
-from qiskit.visualization.graph.gate_map import (
+from qiskit.visualization import (
     plot_gate_map,
     plot_coupling_map,
     plot_circuit_layout,

@@ -12,6 +12,10 @@
 
 """Common visualization utilities."""
 
+# Temporary import from 0.22.0 to be deprecated in future
+# pylint: disable=unused-import,missing-module-docstring
+from .circuit.circuit_utils import *
+
 from qiskit.utils import optionals as _optionals
 
 

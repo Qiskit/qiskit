@@ -10,4 +10,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Init for graph visualizations """
+"""
+Visualization functions for measurement counts.
+"""
+
+# Temporary import from 0.22.0 to be deprecated in future
+# pylint: disable=unused-import,missing-module-docstring
+from .plots.counts_visualization import plot_histogram

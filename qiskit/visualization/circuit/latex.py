@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""latex visualization backends."""
+"""latex visualization backend."""
 
 import io
 import math

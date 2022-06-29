@@ -10,11 +10,18 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Init for circuit visualizations """
+"""
+Visualization functions for quantum states.
+"""
 
-from .circuit_visualization import (
-    circuit_drawer,
-    _text_circuit_drawer,
-    _latex_circuit_drawer,
-    _matplotlib_circuit_drawer,
+# Temporary import from 0.22.0 to be deprecated in future
+# pylint: disable=unused-import,missing-module-docstring
+from .plots.state_visualization import (
+    plot_state_hinton,
+    plot_bloch_vector,
+    plot_bloch_multivector,
+    plot_state_city,
+    plot_state_paulivec,
+    plot_state_qsphere,
+    state_drawer,
 )

@@ -118,8 +118,18 @@ import warnings
 
 from .array import array_to_latex
 
-from .graph.counts_visualization import plot_histogram
-from .graph.state_visualization import (
+from .circuit import (
+    circuit_drawer,
+    _text_circuit_drawer,
+    _latex_circuit_drawer,
+    _matplotlib_circuit_drawer,
+    text,
+    matplotlib,
+    latex,
+)
+
+from .plots import plot_histogram
+from .plots import (
     plot_state_hinton,
     plot_bloch_vector,
     plot_bloch_multivector,
@@ -127,19 +137,18 @@ from .graph.state_visualization import (
     plot_state_paulivec,
     plot_state_qsphere,
 )
-from .graph.transition_visualization import visualize_transition
-from .graph.dag_visualization import dag_drawer
-from .graph.gate_map import plot_gate_map, plot_circuit_layout, plot_error_map, plot_coupling_map
-from .graph.pass_manager_visualization import pass_manager_drawer
+from .plots import visualize_transition
+from .plots import dag_drawer
+from .plots import plot_gate_map, plot_circuit_layout, plot_error_map, plot_coupling_map
+from .plots import pass_manager_drawer
 
-from .circuit.circuit_visualization import circuit_drawer
-from .circuit import text, matplotlib, latex
-from .exceptions import VisualizationError
 from .pulse.interpolation import step_wise, linear, cubic_spline
 from .pulse.qcstyle import PulseStyle, SchedStyle
-from .pulse_visualization import pulse_drawer
 from .pulse_v2 import draw as pulse_drawer_v2
+
 from .timeline import draw as timeline_drawer
+
+from .exceptions import VisualizationError
 
 _DEPRECATED_NAMES = {
     "HAS_MATPLOTLIB",
