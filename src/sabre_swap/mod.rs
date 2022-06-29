@@ -97,7 +97,7 @@ fn score_lookahead(
     let second_cost = if extended_set.is_empty() {
         0.
     } else {
-        compute_cost(extended_set, layout, dist)
+        compute_cost(extended_set, layout, dist) / extended_set.len() as f64
     };
     first_cost + EXTENDED_SET_WEIGHT * second_cost
 }
