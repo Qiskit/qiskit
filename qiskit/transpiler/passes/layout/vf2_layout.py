@@ -135,7 +135,7 @@ class VF2Layout(AnalysisPass):
         if self.call_limit is None:
             A = 9.12e-4
             B = 0.354
-            self.call_limit = A * 10**(B*len(im_graph.edge_list()))
+            self.call_limit = A * 10**(B*im_graph.num_edges())
 
         logger.debug("Running VF2 to find mappings")
         mappings = vf2_mapping(
