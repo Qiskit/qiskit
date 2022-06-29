@@ -443,9 +443,7 @@ class SabreSwap(TransformationPass):
 def _transform_gate_for_layout(op_node, layout, device_qreg):
     """Return node implementing a virtual op on given layout."""
     mapped_op_node = copy(op_node)
-    mapped_op_node.qargs = [
-        device_qreg[layout.logical_to_physical(device_qreg.index(x))] for x in op_node.qargs
-    ]
+    mapped_op_node.qargs = tuple(device_qreg[layout.logical_to_physical(x)] for x in op_node.qargs)
     return mapped_op_node
 
 

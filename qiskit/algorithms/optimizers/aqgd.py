@@ -291,22 +291,6 @@ class AQGD(Optimizer):
             return True
         return False
 
-    def optimize(
-        self,
-        num_vars: int,
-        objective_function: Callable,
-        gradient_function: Callable = None,
-        variable_bounds: List[Tuple[float, float]] = None,
-        initial_point: np.ndarray = None,
-    ) -> Tuple[np.ndarray, float, int]:
-        super().optimize(
-            num_vars, objective_function, gradient_function, variable_bounds, initial_point
-        )
-        result = self.minimize(
-            objective_function, initial_point, gradient_function, variable_bounds
-        )
-        return result.x, result.fun, result.nfev
-
     def minimize(
         self,
         fun: Callable[[POINT], float],

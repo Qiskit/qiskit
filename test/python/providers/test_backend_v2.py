@@ -24,13 +24,13 @@ from qiskit.compiler import transpile
 from qiskit.compiler.transpiler import _parse_inst_map
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.test.base import QiskitTestCase
-from qiskit.test.mock.fake_backend_v2 import (
+from qiskit.providers.fake_provider import FakeMumbaiFractionalCX
+from qiskit.providers.fake_provider.fake_backend_v2 import (
     FakeBackendV2,
     FakeBackend5QV2,
     FakeBackendSimple,
     FakeBackendV2LegacyQubitProps,
 )
-from qiskit.test.mock.fake_mumbai_v2 import FakeMumbaiFractionalCX
 from qiskit.quantum_info import Operator
 
 
@@ -42,13 +42,14 @@ class TestBackendV2(QiskitTestCase):
 
     def assertMatchesTargetConstraints(self, tqc, target):
         qubit_indices = {qubit: index for index, qubit in enumerate(tqc.qubits)}
-        for instr, qargs, _ in tqc.data:
-            qargs = tuple(qubit_indices[x] for x in qargs)
-            target_set = target[instr.name].keys()
+        for instruction in tqc.data:
+            qubits = tuple(qubit_indices[x] for x in instruction.qubits)
+            target_set = target[instruction.operation.name].keys()
             self.assertIn(
-                qargs,
+                qubits,
                 target_set,
-                f"qargs: {qargs} not found in target for operation {instr.name}: {set(target_set)}",
+                f"qargs: {qubits} not found in target for operation {instruction.operation.name}:"
+                f" {set(target_set)}",
             )
 
     def test_qubit_properties(self):
@@ -187,5 +188,5 @@ class TestBackendV2(QiskitTestCase):
 
     def test_transpile_parse_inst_map(self):
         """Test that transpiler._parse_inst_map() supports BackendV2."""
-        inst_map = _parse_inst_map(inst_map=None, backend=self.backend, num_circuits=1)[0]
+        inst_map = _parse_inst_map(inst_map=None, backend=self.backend)
         self.assertIsInstance(inst_map, InstructionScheduleMap)

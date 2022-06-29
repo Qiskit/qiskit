@@ -20,13 +20,7 @@ import numpy as np
 from ddt import ddt
 
 from qiskit import QiskitError
-from qiskit.quantum_info.operators import (
-    Operator,
-    Pauli,
-    PauliList,
-    PauliTable,
-    SparsePauliOp,
-)
+from qiskit.quantum_info.operators import Operator, Pauli, PauliList, PauliTable, SparsePauliOp
 from qiskit.test import QiskitTestCase
 
 
@@ -611,6 +605,41 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             spp_op2 = SparsePauliOp.from_list([("X", 1), ("Y", 1), ("Z", 0)])
             self.assertNotEqual(spp_op1, spp_op2)
             self.assertTrue(spp_op1.equiv(spp_op2))
+
+    def test_group_commuting(self):
+        """Test general grouping commuting operators"""
+
+        def commutes(left: Pauli, right: Pauli) -> bool:
+            return len(left) == len(right) and left.commutes(right)
+
+        input_labels = ["IX", "IY", "IZ", "XX", "YY", "ZZ", "XY", "YX", "ZX", "ZY", "XZ", "YZ"]
+        np.random.shuffle(input_labels)
+        coefs = np.random.random(len(input_labels)) + np.random.random(len(input_labels)) * 1j
+        sparse_pauli_list = SparsePauliOp(input_labels, coefs)
+        groups = sparse_pauli_list.group_commuting()
+        # checking that every input Pauli in sparse_pauli_list is in a group in the ouput
+        output_labels = [pauli.to_label() for group in groups for pauli in group.paulis]
+        self.assertListEqual(sorted(output_labels), sorted(input_labels))
+        # checking that every coeffs are grouped according to sparse_pauli_list group
+        paulis_coeff_dict = dict(
+            sum([list(zip(group.paulis.to_labels(), group.coeffs)) for group in groups], [])
+        )
+        self.assertDictEqual(dict(zip(input_labels, coefs)), paulis_coeff_dict)
+
+        # Within each group, every operator commutes with every other operator.
+        for group in groups:
+            self.assertTrue(
+                all(commutes(pauli1, pauli2) for pauli1, pauli2 in it.combinations(group.paulis, 2))
+            )
+        # For every pair of groups, at least one element from one group does not commute with
+        # at least one element of the other.
+        for group1, group2 in it.combinations(groups, 2):
+            self.assertFalse(
+                all(
+                    commutes(group1_pauli, group2_pauli)
+                    for group1_pauli, group2_pauli in it.product(group1.paulis, group2.paulis)
+                )
+            )
 
 
 if __name__ == "__main__":
