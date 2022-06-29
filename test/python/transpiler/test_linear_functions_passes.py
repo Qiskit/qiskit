@@ -54,8 +54,8 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         # check that this circuit consists of a single LinearFunction
         self.assertIn("linear_function", optimized_circuit.count_ops().keys())
         self.assertEqual(len(optimized_circuit.data), 1)
-        inst1, _, _ = optimized_circuit.data[0]
-        self.assertIsInstance(inst1, LinearFunction)
+        inst1 = optimized_circuit.data[0]
+        self.assertIsInstance(inst1.operation, LinearFunction)
 
         # construct a circuit with linear function directly, without the transpiler pass
         expected_circuit = QuantumCircuit(4)
@@ -91,14 +91,14 @@ class TestLinearFunctionsPasses(QiskitTestCase):
 
         # We expect to see 3 gates (linear, h, linear)
         self.assertEqual(len(circuit2.data), 3)
-        inst1, qargs1, cargs1 = circuit2.data[0]
-        inst2, qargs2, cargs2 = circuit2.data[2]
-        self.assertIsInstance(inst1, LinearFunction)
-        self.assertIsInstance(inst2, LinearFunction)
+        inst1 = circuit2.data[0]
+        inst2 = circuit2.data[2]
+        self.assertIsInstance(inst1.operation, LinearFunction)
+        self.assertIsInstance(inst2.operation, LinearFunction)
 
         # Check that the first linear function represents the subcircuit before h
         resulting_subcircuit1 = QuantumCircuit(4)
-        resulting_subcircuit1.append(inst1, qargs1, cargs1)
+        resulting_subcircuit1.append(inst1)
 
         expected_subcircuit1 = QuantumCircuit(4)
         expected_subcircuit1.cx(0, 1)
@@ -108,7 +108,7 @@ class TestLinearFunctionsPasses(QiskitTestCase):
 
         # Check that the second linear function represents the subcircuit after h
         resulting_subcircuit2 = QuantumCircuit(4)
-        resulting_subcircuit2.append(inst2, qargs2, cargs2)
+        resulting_subcircuit2.append(inst2)
 
         expected_subcircuit2 = QuantumCircuit(4)
         expected_subcircuit2.swap(2, 3)

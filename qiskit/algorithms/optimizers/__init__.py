@@ -61,6 +61,7 @@ Local Optimizers
    QNSPSA
    TNC
    SciPyOptimizer
+   UMDA
 
 Qiskit also provides the following optimizers, which are built-out using the optimizers from
 the `scikit-quant` package. The `scikit-quant` package is not installed by default but must be
@@ -118,7 +119,7 @@ from .nlopts.direct_l import DIRECT_L
 from .nlopts.direct_l_rand import DIRECT_L_RAND
 from .nlopts.esch import ESCH
 from .nlopts.isres import ISRES
-from .optimizer import Optimizer, OptimizerResult, OptimizerSupportLevel
+from .optimizer import Minimizer, Optimizer, OptimizerResult, OptimizerSupportLevel
 from .p_bfgs import P_BFGS
 from .powell import POWELL
 from .qnspsa import QNSPSA
@@ -127,6 +128,7 @@ from .slsqp import SLSQP
 from .snobfit import SNOBFIT
 from .spsa import SPSA
 from .tnc import TNC
+from .umda import UMDA
 
 __all__ = [
     "Optimizer",
@@ -155,4 +157,5 @@ __all__ = [
     "SNOBFIT",
     "BOBYQA",
     "IMFIL",
+    "UMDA",
 ]
