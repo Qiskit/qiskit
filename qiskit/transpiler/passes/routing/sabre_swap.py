@@ -336,7 +336,7 @@ class SabreSwap(TransformationPass):
         return dag
 
     def _apply_gate(self, mapped_dag, node, current_layout, canonical_register):
-        new_node = _transform_gate_for_layout(node, current_layout, canonical_register)
+        new_node = self._transform_gate_for_layout(node, current_layout, canonical_register)
         if self.fake_run:
             return new_node
         return mapped_dag.apply_operation_back(new_node.op, new_node.qargs, new_node.cargs)
@@ -439,12 +439,13 @@ class SabreSwap(TransformationPass):
                 p1 = self._bit_indices[operation.qargs[1]]
                 layout.swap_logical(p0, p1)
 
-
-def _transform_gate_for_layout(op_node, layout, device_qreg):
-    """Return node implementing a virtual op on given layout."""
-    mapped_op_node = copy(op_node)
-    mapped_op_node.qargs = tuple(device_qreg[layout.logical_to_physical(x)] for x in op_node.qargs)
-    return mapped_op_node
+    def _transform_gate_for_layout(self, op_node, layout, device_qreg):
+        """Return node implementing a virtual op on given layout."""
+        mapped_op_node = copy(op_node)
+        mapped_op_node.qargs = tuple(
+            device_qreg[layout.logical_to_physical(self._bit_indices[x])] for x in op_node.qargs
+        )
+        return mapped_op_node
 
 
 def _shortest_swap_path(target_qubits, coupling_map, layout, qreg):
