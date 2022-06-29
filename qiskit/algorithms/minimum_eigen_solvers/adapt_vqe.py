@@ -14,7 +14,6 @@
 from __future__ import annotations
 from typing import Optional, List, Tuple, Union
 
-import copy
 import re
 import logging
 
@@ -31,18 +30,18 @@ from qiskit.opflow import OperatorBase, PauliSumOp, ExpectationBase, CircuitSamp
 from qiskit.opflow.gradients import GradientBase, Gradient
 from qiskit.circuit.library import EvolvedOperatorAnsatz
 from qiskit.utils.validation import validate_min
-
-
 from qiskit.utils import QuantumInstance
 from qiskit.providers import Backend
 from qiskit.algorithms.aux_ops_evaluator import eval_observables
+from ..exceptions import AlgorithmError
+
 
 logger = logging.getLogger(__name__)
 
 
 class Finishing_criterion(Enum):
     CONVERGED = "Threshold converged"
-    CYCLICITY = "Aborted due to cyclicity"
+    CYCLICITY = "Aborted due to cyclicity of gradient"
     MAXIMUM = "Maximum number of iterations reached"
     UNKNOWN = "The algorithm finished due to unforeseen reason"
 
@@ -68,13 +67,16 @@ class AdaptVQE(VariationalAlgorithm):
     ) -> None:
         """
         Args:
-            ansatz: A parameterized circuit used as Ansatz for the wave function.
             solver: a factory for the VQE solver employing a UCCSD ansatz.
+            ansatz: A parameterized circuit used as Ansatz for the wave function.
             threshold: the energy convergence threshold. It has a minimum value of 1e-15.
             max_iterations: the maximum number of iterations of the AdaptVQE algorithm.
-            gradient: a class that converts operator expression to the first-order gradient based
+            adapt_gradient: a class that converts operator expression to the first-order gradient based
                 on the method mentioned.
             initial_point: An optional initial point (i.e. initial parameter values) for the optimizer.
+            expectation: The Expectation converter for taking the average value of the
+                Observable over the ansatz state function.
+            quantum_instance: Quantum Instance or Backend
             excitation_pool: An entire list of excitations.
         """
         validate_min("threshold", threshold, 1e-15)
@@ -112,13 +114,18 @@ class AdaptVQE(VariationalAlgorithm):
 
         Args:
             theta: List of (up to now) optimal parameters
-            vqe: The variational quantum eigensolver instance used for solving
-
+            operator: operator whose gradient needs to be computed
         Returns:
             List of pairs consisting of gradient and excitation operator.
+        Raises:
+            AlgorithmError: If `quantum_instance` is not provided.
         """
         res = []
         # compute gradients for all excitation in operator pool
+        if self.quantum_instance is None:
+            raise AlgorithmError(
+                "A QuantumInstance or Backend must be supplied to run the quantum algorithm."
+            )
         sampler = CircuitSampler(self.quantum_instance)
         for exc in self._excitation_pool:
             # add next excitation to ansatz
@@ -135,7 +142,6 @@ class AdaptVQE(VariationalAlgorithm):
             state_grad = self._adapt_gradient.convert(operator=op, params=param_sets)
             # Assign the parameters and evaluate the gradient
             value_dict = {param_sets[-1]: 0.0}
-            # print(state_grad)
             state_grad_result = sampler.convert(state_grad, params=value_dict).eval()
             logger.info("Gradient computed : %s", str(state_grad_result))
             res.append((np.abs(state_grad_result[-1]), exc))
@@ -175,15 +181,13 @@ class AdaptVQE(VariationalAlgorithm):
         max_grad: Tuple[float, PauliSumOp | None],
     ):
         if logger.isEnabledFor(logging.INFO):
-            gradlog = f"\nGradients in iteration #{str(iteration)}"
+            gradlog = f"\nGradients in iteration #{str(iteration)} "
             gradlog += "\nID: Excitation Operator: Gradient  <(*) maximum>"
             for i, grad in enumerate(cur_grads):
                 gradlog += f"\n{str(i)}: {str(grad[1])}: {str(grad[0])}"
                 if grad[1] == max_grad[1]:
                     gradlog += "\t(*)"
             logger.info(gradlog)
-        else:
-            return
 
     def compute_minimum_eigenvalue(
         self,
@@ -193,12 +197,14 @@ class AdaptVQE(VariationalAlgorithm):
         """Computes the ground state.
 
         Args:
-            operators: Operator to evaluate
+            operator: Operator to evaluate
             aux_operators: Additional auxiliary operators to evaluate.
 
         Raises:
-            QiskitError: if a solver other than VQE or a ansatz other than EvolvedOperatorAnsatz is provided
-                or if the algorithm finishes due to an unforeseen reason.
+            QiskitError: If a solver other than VQE
+                (`qiskit.algorithms.minimum_eigen_solvers.vqe.py`) or a ansatz other than
+                EvolvedOperatorAnsatz (`qiskit.circuit.library.evolved_operator_ansatz.py`)
+                is provided or if the algorithm finishes due to an unforeseen reason.
             ValueError: If the grouped property object returned by the driver does not contain a
                 main property as requested by the problem being solved (`problem.main_property_name`)
             QiskitError: If the user-provided `aux_operators` contain a name which clashes
@@ -208,13 +214,14 @@ class AdaptVQE(VariationalAlgorithm):
             QiskitError: If the chosen gradient method appears to result in all-zero gradients.
 
         Returns:
-            An AdaptVQEResult which is an VQEResult but also includes runtime
-            information about the AdaptVQE algorithm like the number of iterations, finishing
-            criterion, and the final maximum gradient.
+            An AdaptVQEResult (`qiskit.algorithms.minimum_eigen_solvers.adapt_vqe.AdaptVQEResult`)
+            which is a VQEResult (`qiskit.algorithms.minimum_eigen_solvers.vqe.VQEResult`) but also
+            includes runtime information about the AdaptVQE algorithm like the number of iterations,
+            finishing criterion, and the final maximum gradient.
         """
         if not isinstance(self._tmp_ansatz, EvolvedOperatorAnsatz):
             raise QiskitError(
-                "The AdaptVQE algorithm requires the use of the  evolved operator ansatz"
+                "The AdaptVQE algorithm requires the use of the evolved operator ansatz"
             )
         # We construct the ansatz once to be able to extract the full set of excitation operators.
         self._tmp_ansatz._build()
@@ -269,7 +276,7 @@ class AdaptVQE(VariationalAlgorithm):
             logger.info("Maximum number of iterations reached. Finishing.")
             logger.info("Final maximum gradient: %s", str(np.abs(max_grad[0])))
 
-        if finishing_criterion == False:
+        if finishing_criterion is False:
             finishing_criterion = Finishing_criterion.UNKNOWN
             raise QiskitError("The algorithm finished due to an unforeseen reason!")
 
