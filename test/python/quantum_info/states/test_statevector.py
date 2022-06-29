@@ -1121,6 +1121,7 @@ class TestStatevector(QiskitTestCase):
     def test_state_to_latex_for_none(self):
         """
         Test for `\rangleNone` output in latex representation
+        See https://github.com/Qiskit/qiskit-terra/issues/8169
         """
         sv = Statevector(
             [
