@@ -91,32 +91,16 @@ def _read_symbolic_pulse(file_obj, version):
     duration = value.read_value(file_obj, version, {})
     name = value.read_value(file_obj, version, {})
 
-    # TODO remove this and merge subclasses into a single kind of SymbolicPulse
-    #  We need some refactoring of our codebase,
-    #  mainly removal of isinstance check and name access with self.__class__.__name__.
-    if pulse_type == "Gaussian":
-        pulse_cls = library.Gaussian
-    elif pulse_type == "GaussianSquare":
-        pulse_cls = library.GaussianSquare
-    elif pulse_type == "Drag":
-        pulse_cls = library.Drag
-    elif pulse_type == "Constant":
-        pulse_cls = library.Constant
-    else:
-        pulse_cls = library.SymbolicPulse
-
-    # Skip calling constructor to absorb signature mismatch in subclass.
-    instance = object.__new__(pulse_cls)
-    instance.duration = duration
-    instance.name = name
-    instance._limit_amplitude = header.amp_limited
-    instance._pulse_type = pulse_type
-    instance._params = parameters
-    instance._envelope = envelope
-    instance._constraints = constraints
-    instance._valid_amp_conditions = valid_amp_conditions
-
-    return instance
+    return library.SymbolicPulse(
+        pulse_type=pulse_type,
+        duration=duration,
+        parameters=parameters,
+        name=name,
+        limit_amplitude=header.amp_limited,
+        envelope=envelope,
+        constraints=constraints,
+        valid_amp_conditions=valid_amp_conditions,
+    )
 
 
 def _read_alignment_context(file_obj, version):

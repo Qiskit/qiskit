@@ -105,10 +105,8 @@ def gen_filled_waveform_stepwise(
             if isinstance(pval, circuit.ParameterExpression):
                 unbound_params.append(pname)
 
-        if hasattr(data.inst.pulse, "pulse_type"):
-            pulse_shape = data.inst.pulse.pulse_type
-        else:
-            pulse_shape = data.inst.pulse.__class__.__name__
+        pulse_data = data.inst.pulse
+        pulse_shape = getattr(pulse_data, "pulse_type", pulse_data.__class__.__name__)
 
         return _draw_opaque_waveform(
             init_time=data.t0,
@@ -174,7 +172,11 @@ def gen_ibmq_latex_waveform_name(
         systematic_name = data.inst.name or "Delay"
         latex_name = None
     else:
-        systematic_name = data.inst.pulse.name or data.inst.pulse.__class__.__name__
+        pulse_data = data.inst.pulse
+        if pulse_data.name:
+            systematic_name = pulse_data.name
+        else:
+            systematic_name = getattr(pulse_data, "pulse_type", pulse_data.__class__.__name__)
 
         template = r"(?P<op>[A-Z]+)(?P<angle>[0-9]+)?(?P<sign>[pm])_(?P<ch>[dum])[0-9]+"
         match_result = re.match(template, systematic_name)
@@ -560,12 +562,7 @@ def _parse_waveform(
             if isinstance(duration, circuit.Parameter):
                 duration = None
 
-            if hasattr(operand, "pulse_type"):
-                # Symbolic pulse
-                meta["waveform shape"] = operand.pulse_type
-            else:
-                meta["waveform"] = operand.__class__.__name__
-
+            meta["waveform shape"] = getattr(operand, "pulse_type", operand.__class__.__name__)
             meta.update(
                 {
                     key: val.name if isinstance(val, circuit.Parameter) else val

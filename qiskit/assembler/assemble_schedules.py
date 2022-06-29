@@ -191,7 +191,7 @@ def _assemble_instructions(
             if isinstance(instruction.pulse, (library.ParametricPulse, library.SymbolicPulse)):
                 is_backend_supported = True
                 try:
-                    pulse_shape = ParametricPulseShapes(type(instruction.pulse)).name
+                    pulse_shape = ParametricPulseShapes.from_instance(instruction.pulse).name
                     if pulse_shape not in run_config.parametric_pulses:
                         is_backend_supported = False
                 except ValueError:

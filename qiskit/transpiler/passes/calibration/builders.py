@@ -161,7 +161,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
             raise QiskitError("Target rotation angle is not assigned.") from ex
 
         pulse_ = instruction.pulse
-        if isinstance(pulse_, GaussianSquare):
+        if getattr(pulse_, "pulse_type", None) == "GaussianSquare":
             amp = pulse_.amp
             width = pulse_.width
             sigma = pulse_.sigma
@@ -234,7 +234,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
 
             # Identify the compensation tones.
             if isinstance(inst.channel, DriveChannel) and not isinstance(inst, ShiftPhase):
-                if isinstance(inst.pulse, GaussianSquare):
+                if getattr(inst.pulse, "pulse_type", None) == "GaussianSquare":
                     comp_tones.append((time, inst))
                     target = inst.channel.index
                     control = q1 if target == q2 else q2
@@ -325,7 +325,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
                 a Gaussian square pulse on the ControlChannel.
         """
         if isinstance(inst[1], Play):
-            if isinstance(inst[1].pulse, GaussianSquare) and isinstance(
+            if getattr(inst[1].pulse, "pulse_type", None) == "GaussianSquare" and isinstance(
                 inst[1].channel, ControlChannel
             ):
                 return True
@@ -345,7 +345,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
                 a Gaussian square pulse on the DriveChannel.
         """
         if isinstance(inst[1], Play):
-            if isinstance(inst[1].pulse, GaussianSquare) and isinstance(
+            if getattr(inst[1].pulse, "pulse_type", None) == "GaussianSquare" and isinstance(
                 inst[1].channel, DriveChannel
             ):
                 return True
@@ -389,7 +389,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
         for _, inst in cx_sched.instructions:
             # Identify the compensation tones.
             if isinstance(inst.channel, DriveChannel) and isinstance(inst, Play):
-                if isinstance(inst.pulse, GaussianSquare):
+                if getattr(inst.pulse, "pulse_type", None) == "GaussianSquare":
                     target = inst.channel.index
                     control = q1 if target == q2 else q2
 
