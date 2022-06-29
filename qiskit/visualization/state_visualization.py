@@ -1256,9 +1256,10 @@ def _state_to_latex_ket(data: List[complex], max_size: int = 12) -> str:
         if ket_idx is None:
             latex_str += r" + \ldots "
         else:
-            term = latex_terms[idx] or ""
+            term = latex_terms[idx]
             ket = ket_name(ket_idx)
-            latex_str += f"{term} |{ket}\\rangle"
+            if term is not None:
+                latex_str += f"{term} |{ket}\\rangle"
     return latex_str
 
 

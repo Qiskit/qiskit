@@ -1139,7 +1139,7 @@ class TestStatevector(QiskitTestCase):
         latex_representation = state_to_latex(sv)
         self.assertEqual(
             latex_representation,
-            "\\frac{\\sqrt{2}}{2}|000\\rangle - \\frac{\\sqrt{2}}{2}|011\\rangle",
+            "\\frac{\\sqrt{2}}{2} |000\\rangle- \\frac{\\sqrt{2}}{2} |011\\rangle",
         )
 
     def test_state_to_latex_for_large_statevector(self):
