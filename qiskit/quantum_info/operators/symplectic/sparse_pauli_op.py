@@ -15,7 +15,7 @@ N-Qubit Sparse Pauli Operator class.
 
 from collections import defaultdict
 from numbers import Number
-from typing import Dict
+from typing import Dict, Optional
 
 import numpy as np
 import retworkx as rx
@@ -139,7 +139,7 @@ class SparsePauliOp(LinearOp):
             and self.paulis == other.paulis
         )
 
-    def equiv(self, other):
+    def equiv(self, other, atol: Optional[float] = None):
         """Check if two SparsePauliOp operators are equivalent.
 
         Args:
@@ -150,7 +150,9 @@ class SparsePauliOp(LinearOp):
         """
         if not super().__eq__(other):
             return False
-        return np.allclose((self - other).simplify().coeffs, [0])
+        if atol is None:
+            atol = self.atol
+        return np.allclose((self - other).simplify().coeffs, 0.0, atol=atol)
 
     @property
     def settings(self) -> Dict:

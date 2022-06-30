@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Adds `atol` parameter to :meth:`.SparsePauliOp.equiv`.
