@@ -9,7 +9,7 @@ from typing import Optional, Callable, List, Union
 
 from qiskit_machine_learning import QiskitMachineLearningError
 
-SamplerFactory = Callable[List[QuantumCircuit], Sampler]
+SamplerFactory = Callable[[List[QuantumCircuit]], Sampler]
 
 
 class BaseFidelity:
