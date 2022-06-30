@@ -225,7 +225,8 @@ class SabreSwap(TransformationPass):
             new_front_layer = []
             for node in front_layer:
                 if len(node.qargs) == 2:
-                    v0, v1 = [self._bit_indices[x] for x in node.qargs]
+                    v0 = self._bit_indices[node.qargs[0]]
+                    v1 = self._bit_indices[node.qargs[1]]
                     if self.coupling_map.graph.has_edge(
                         layout.logical_to_physical(v0), layout.logical_to_physical(v1)
                     ):
@@ -304,7 +305,7 @@ class SabreSwap(TransformationPass):
                 self.heuristic,
             )
             best_swap = rng.choice(best_swaps)
-            best_swap_qargs = [canonical_register[x] for x in best_swap]
+            best_swap_qargs = [canonical_register[best_swap[0]], canonical_register[best_swap[1]]]
             swap_node = self._apply_gate(
                 mapped_dag,
                 DAGOpNode(op=SwapGate(), qargs=best_swap_qargs),
