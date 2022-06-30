@@ -88,10 +88,7 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
         rzx_qc = circuit.QuantumCircuit(2)
         rzx_qc.rzx(theta, 1, 0)
 
-        pass_ = RZXCalibrationBuilder(
-            instruction_schedule_map=inst_map,
-            qubit_channel_mapping=self.backend.configuration().qubit_channel_mapping,
-        )
+        pass_ = RZXCalibrationBuilder(instruction_schedule_map=inst_map)
         with self.assertWarns(UserWarning):
             # User warning that says q0 q1 is invalid
             cal_qc = PassManager(pass_).run(rzx_qc)
@@ -114,8 +111,7 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
 
         # apply the RZXCalibrationBuilderNoEcho.
         pass_ = RZXCalibrationBuilderNoEcho(
-            instruction_schedule_map=self.backend.defaults().instruction_schedule_map,
-            qubit_channel_mapping=self.backend.configuration().qubit_channel_mapping,
+            instruction_schedule_map=self.backend.defaults().instruction_schedule_map
         )
         cal_qc = PassManager(pass_).run(rzx_qc)
         rzx_qc_duration = schedule(cal_qc, self.backend).duration
@@ -194,10 +190,7 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
         rzx_qc = circuit.QuantumCircuit(2)
         rzx_qc.rzx(theta, 1, 0)
 
-        pass_ = RZXCalibrationBuilderNoEcho(
-            instruction_schedule_map=inst_map,
-            qubit_channel_mapping=self.backend.configuration().qubit_channel_mapping,
-        )
+        pass_ = RZXCalibrationBuilderNoEcho(instruction_schedule_map=inst_map)
         with self.assertWarns(UserWarning):
             # User warning that says q0 q1 is invalid
             cal_qc = PassManager(pass_).run(rzx_qc)
