@@ -18,7 +18,7 @@ use rayon::prelude::*;
 
 /// A simple container that contains a vector of vectors representing
 /// neighbors of each node in the coupling map
-#[pyclass(module = "qiskit._accelerate.stochastic_swap")]
+#[pyclass(module = "qiskit._accelerate.sabre_swap")]
 #[pyo3(text_signature = "(/)")]
 #[derive(Clone, Debug)]
 pub struct NeighborTable {
