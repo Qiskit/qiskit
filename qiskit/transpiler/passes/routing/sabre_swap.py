@@ -162,8 +162,8 @@ class SabreSwap(TransformationPass):
             raise TranspilerError("Heuristic %s not recognized." % heuristic)
 
         if seed is None:
-            ii64 = np.iinfo(np.int64)
-            self.seed = np.random.default_rng(None).integers(0, ii64.max, dtype=int)
+            ii32 = np.iinfo(np.int32)
+            self.seed = np.random.default_rng(None).integers(0, ii32.max, dtype=int)
         else:
             self.seed = seed
         self.fake_run = fake_run
