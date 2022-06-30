@@ -123,12 +123,10 @@ from .circuit import (
     _text_circuit_drawer,
     _latex_circuit_drawer,
     _matplotlib_circuit_drawer,
-    text,
-    matplotlib,
-    latex,
 )
 
 from .plots import plot_histogram
+from .plots import Bloch, Arrow3D
 from .plots import (
     plot_state_hinton,
     plot_bloch_vector,
@@ -136,6 +134,7 @@ from .plots import (
     plot_state_city,
     plot_state_paulivec,
     plot_state_qsphere,
+    state_drawer,
 )
 from .plots import visualize_transition
 from .plots import dag_drawer

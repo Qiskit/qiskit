@@ -21,7 +21,7 @@ from IPython.core import magic_arguments
 import matplotlib.pyplot as plt
 import ipywidgets as widgets
 from qiskit.tools.monitor.overview import get_unique_backends
-from qiskit.visualization.gate_map import plot_gate_map
+from qiskit.visualization.plots.gate_map import plot_gate_map
 
 
 @magics_class

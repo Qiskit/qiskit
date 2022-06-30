@@ -15,5 +15,5 @@ Visualization function for animation of state transitions by applying gates to s
 """
 
 # Temporary import from 0.22.0 to be deprecated in future
-# pylint: disable=unused-import,missing-module-docstring
+# pylint: disable=unused-import
 from .plots.transition_visualization import visualize_transition

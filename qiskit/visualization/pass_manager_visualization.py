@@ -16,5 +16,5 @@ flow controller, and coloured based on the type of pass.
 """
 
 # Temporary import from 0.22.0 to be deprecated in future
-# pylint: disable=unused-import,missing-module-docstring
+# pylint: disable=unused-import
 from .plots.pass_manager_visualization import pass_manager_drawer

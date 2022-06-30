@@ -15,5 +15,5 @@ Visualization function for DAG circuit representation.
 """
 
 # Temporary import from 0.22.0 to be deprecated in future
-# pylint: disable=unused-import,missing-module-docstring
+# pylint: disable=unused-import
 from .plots.dag_visualization import dag_drawer

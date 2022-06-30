@@ -13,7 +13,7 @@
 """A module for visualizing device coupling maps"""
 
 # Temporary import from 0.22.0 to be deprecated in future
-# pylint: disable=unused-import,missing-module-docstring
+# pylint: disable=unused-import
 from .plots.gate_map import (
     plot_gate_map,
     plot_circuit_layout,

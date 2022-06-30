@@ -204,7 +204,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
 
            plot_bloch_vector([0,1,0], title="New Bloch Sphere")
     """
-    from qiskit.visualization.graph.bloch import Bloch
+    from qiskit.visualization.plots.bloch import Bloch
 
     if figsize is None:
         figsize = (5, 5)
@@ -716,7 +716,7 @@ def plot_state_qsphere(
     from matplotlib.patches import Circle
     import seaborn as sns
     from scipy import linalg
-    from qiskit.visualization.graph.bloch import Arrow3D
+    from qiskit.visualization.plots.bloch import Arrow3D
 
     rho = DensityMatrix(state)
     num = rho.num_qubits

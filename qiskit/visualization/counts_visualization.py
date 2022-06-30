@@ -15,5 +15,5 @@ Visualization functions for measurement counts.
 """
 
 # Temporary import from 0.22.0 to be deprecated in future
-# pylint: disable=unused-import,missing-module-docstring
+# pylint: disable=unused-import
 from .plots.counts_visualization import plot_histogram

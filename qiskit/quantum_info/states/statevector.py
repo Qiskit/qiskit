@@ -180,7 +180,7 @@ class Statevector(QuantumState, TolerancesMixin):
 
         """
         # pylint: disable=cyclic-import
-        from qiskit.visualization import state_drawer
+        from qiskit.visualization.plots.state_visualization import state_drawer
 
         return state_drawer(self, output=output, **drawer_args)
 

@@ -20,9 +20,8 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 import ipywidgets as widgets
 from qiskit.exceptions import QiskitError
-from qiskit.visualization.gate_map import plot_gate_map, plot_error_map
+from qiskit.visualization.plots.gate_map import plot_gate_map, plot_error_map
 from qiskit.providers.fake_provider import FakeBackend
->>>>>>> main
 
 try:
     from qiskit.providers.ibmq import IBMQBackend

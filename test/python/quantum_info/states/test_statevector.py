@@ -32,7 +32,7 @@ from qiskit.quantum_info.states import Statevector
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.visualization.graph.state_visualization import numbers_to_latex_terms, state_to_latex
+from qiskit.visualization.plots.state_visualization import numbers_to_latex_terms, state_to_latex
 
 logger = logging.getLogger(__name__)
 

@@ -15,7 +15,7 @@ Visualization functions for quantum states.
 """
 
 # Temporary import from 0.22.0 to be deprecated in future
-# pylint: disable=unused-import,missing-module-docstring
+# pylint: disable=unused-import
 from .plots.state_visualization import (
     plot_state_hinton,
     plot_bloch_vector,

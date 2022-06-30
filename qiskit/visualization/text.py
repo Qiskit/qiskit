@@ -15,5 +15,5 @@ A module for drawing circuits in ascii art or some other text representation
 """
 
 # Temporary import from 0.22.0 to be deprecated in future
-# pylint: disable=unused-import,missing-module-docstring
+# pylint: disable=unused-wildcard-import,wildcard-import
 from .circuit.text import *

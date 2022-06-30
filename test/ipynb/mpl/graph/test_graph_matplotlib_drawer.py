@@ -22,9 +22,9 @@ from qiskit import BasicAer, execute
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit
 from qiskit.utils import optionals
-from qiskit.visualization.graph.state_visualization import state_drawer
-from qiskit.visualization.graph.counts_visualization import plot_histogram
-from qiskit.visualization.graph.gate_map import plot_gate_map, plot_coupling_map
+from qiskit.visualization.plots.state_visualization import state_drawer
+from qiskit.visualization.plots.counts_visualization import plot_histogram
+from qiskit.visualization.plots.gate_map import plot_gate_map, plot_coupling_map
 from qiskit.providers.fake_provider import (
     FakeArmonk,
     FakeBelem,

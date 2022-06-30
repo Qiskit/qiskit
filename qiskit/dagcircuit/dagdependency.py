@@ -546,7 +546,7 @@ class DAGDependency:
             Ipython.display.Image: if in Jupyter notebook and not saving to file,
                 otherwise None.
         """
-        from qiskit.visualization import dag_drawer
+        from qiskit.visualization.plots.dag_visualization import dag_drawer
 
         return dag_drawer(dag=self, scale=scale, filename=filename, style=style)
 

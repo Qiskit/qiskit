@@ -13,6 +13,7 @@
 """ Init for graph visualizations """
 
 from .counts_visualization import plot_histogram
+from .bloch import Bloch, Arrow3D
 from .state_visualization import (
     plot_state_hinton,
     plot_bloch_vector,
@@ -20,6 +21,7 @@ from .state_visualization import (
     plot_state_city,
     plot_state_paulivec,
     plot_state_qsphere,
+    state_drawer,
 )
 from .transition_visualization import visualize_transition
 from .dag_visualization import dag_drawer
