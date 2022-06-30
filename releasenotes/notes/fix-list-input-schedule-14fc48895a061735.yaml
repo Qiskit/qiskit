@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    Fixed an issue with the :class:`~qiskit.compiler.schedule` function where
-    previously passing in a ``list`` of :class:`~qiskit.circuit.QuantumCircuit`
-    objects with a single entry would incorrectly return a single
-    :class:`~.Schedule` object instead of the expected ``list`` return type.

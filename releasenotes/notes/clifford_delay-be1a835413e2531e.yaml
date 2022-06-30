@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    Fixes the :class:`.Clifford`, :class:`.Pauli` and :class:`.CNOTDihedral`
-    operators support initializing from compatible circuits that contain
-    :class:`~qiskit.circuit.Delay` instructions. These instructions are
-    treated as identity when converting to operators.
