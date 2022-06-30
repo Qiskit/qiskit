@@ -87,11 +87,6 @@ class Instruction(ABC):
         return 0
 
     @property
-    def slots(self) -> Tuple[Channel]:
-        """Returns any slots that this schedule uses"""
-        return ()
-
-    @property
     def stop_time(self) -> int:
         """Relative end time of this instruction."""
         return self.duration

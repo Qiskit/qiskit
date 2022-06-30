@@ -523,9 +523,7 @@ class Schedule:
         other_timeslots = _get_timeslots(schedule)
         self._duration = max(self._duration, time + schedule.duration)
 
-        for channel in schedule.channels + (
-            schedule.slots if isinstance(schedule, Instruction) else ()
-        ):
+        for channel in schedule.channels:
             if channel not in self._timeslots:
                 if time == 0:
                     self._timeslots[channel] = copy.copy(other_timeslots[channel])
@@ -577,9 +575,7 @@ class Schedule:
         if not isinstance(time, int):
             raise PulseError("Schedule start time must be an integer.")
 
-        for channel in schedule.channels + (
-            schedule.slots if isinstance(schedule, Instruction) else ()
-        ):
+        for channel in schedule.channels:
 
             if channel not in self._timeslots:
                 raise PulseError(f"The channel {channel} is not present in the schedule")
@@ -1499,7 +1495,7 @@ def _get_timeslots(schedule: "ScheduleComponent") -> TimeSlots:
     if isinstance(schedule, Instruction):
         duration = schedule.duration
         instruction_duration_validation(duration)
-        timeslots = {channel: [(0, duration)] for channel in schedule.channels + schedule.slots}
+        timeslots = {channel: [(0, duration)] for channel in schedule.channels}
     elif isinstance(schedule, Schedule):
         timeslots = schedule.timeslots
     else:
