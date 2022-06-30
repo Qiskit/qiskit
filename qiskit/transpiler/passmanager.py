@@ -14,7 +14,10 @@
 
 import io
 import re
-from functools import cached_property
+try:
+    from functools import cached_property
+except ImportError:
+    cached_property = property
 from typing import Union, List, Tuple, Callable, Dict, Any, Optional, Iterator, Iterable
 
 import dill
