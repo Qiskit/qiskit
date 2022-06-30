@@ -72,6 +72,21 @@ fn obtain_swaps(
     candidate_swaps
 }
 
+/// Run the sabre heuristic scoring
+///
+/// Args:
+///     layers (EdgeList): The input layer edge list to score and find the
+///         best swaps
+///     layout (NLayout): The current layout
+///     neighbor_table (NeighborTable): The table of neighbors for each node
+///         in the coupling graph
+///     extended_set (EdgeList): The extended set
+///     distance_matrix (ndarray): The 2D array distance matrix for the coupling
+///         graph
+///     qubits_decay (QubitsDecay): The current qubit decay factors for
+///     heuristic (Heuristic): The chosen heuristic method to use
+/// Returns:
+///     ndarray: A 2d array of the best swap candidates all with the minimum score
 #[pyfunction]
 pub fn sabre_score_heuristic(
     py: Python,

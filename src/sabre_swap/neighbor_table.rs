@@ -18,6 +18,14 @@ use rayon::prelude::*;
 
 /// A simple container that contains a vector of vectors representing
 /// neighbors of each node in the coupling map
+///
+/// This object is typically created once from the adjacency matrix of
+/// a coupling map, for example::
+///
+///     neigh_table = NeighborTable(retworkx.adjacency_matrix(coupling_map.graph))
+///
+/// and used solely to represent neighbors of each node in qiskit-terra's rust
+/// module.
 #[pyclass(module = "qiskit._accelerate.sabre_swap")]
 #[pyo3(text_signature = "(/)")]
 #[derive(Clone, Debug)]

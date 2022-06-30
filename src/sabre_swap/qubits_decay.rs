@@ -15,16 +15,14 @@ use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
 use pyo3::Python;
 
-/// An unsigned integer Vector based layout class
+/// A container for qubit decay values for each qubit
 ///
-/// This class tracks the layout (or mapping between virtual qubits in the the
-/// circuit and physical qubits on the physical device) efficiently
+/// This class tracks the qubit decay for the sabre heuristic. When initialized
+/// all qubits are set to a value of ``1.``. This class implements the sequence
+/// protocol and can be modified in place like any python sequence.
 ///
 /// Args:
-///     qubit_indices (dict): A dictionary mapping the virtual qubit index in the circuit to the
-///         physical qubit index on the coupling graph.
-///     logical_qubits (int): The number of logical qubits in the layout
-///     physical_qubits (int): The number of physical qubits in the layout
+///     qubit_count (int): The number of qubits
 #[pyclass(module = "qiskit._accelerate.sabre_swap")]
 #[pyo3(text_signature = "(qubit_indices, logical_qubits, physical_qubits, /)")]
 #[derive(Clone, Debug)]
@@ -79,6 +77,8 @@ impl QubitsDecay {
         Ok(format!("{:?}", self.decay))
     }
 
+    /// Reset decay for all qubits back to default ``1.``
+    #[pyo3(text_signature = "(self, /)")]
     pub fn reset(mut slf: PyRefMut<Self>) {
         slf.decay.fill_with(|| 1.);
     }
