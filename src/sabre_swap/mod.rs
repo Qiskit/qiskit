@@ -54,7 +54,11 @@ fn obtain_swaps(
     neighbors: &NeighborTable,
     layout: &NLayout,
 ) -> HashSet<[usize; 2]> {
-    let mut candidate_swaps: HashSet<[usize; 2]> = HashSet::new();
+    // This will likely under allocate as it's a function of the number of
+    // neighbors for the qubits in the layer too, but this is basically a
+    // minimum allocation assuming each qubit has only 1 unique neighbor
+    let mut candidate_swaps: HashSet<[usize; 2]> =
+        HashSet::with_capacity(2 * front_layer.edges.len());
     for node in &front_layer.edges {
         for v in node {
             let physical = layout.logic_to_phys[*v];
