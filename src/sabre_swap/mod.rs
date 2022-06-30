@@ -13,6 +13,7 @@
 #![allow(clippy::too_many_arguments)]
 
 pub mod edge_list;
+pub mod neighbor_table;
 pub mod qubits_decay;
 pub mod swap_scores;
 
@@ -23,11 +24,13 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
 
+use hashbrown::HashSet;
 use rayon::prelude::*;
 
 use crate::nlayout::NLayout;
 
 use edge_list::EdgeList;
+use neighbor_table::NeighborTable;
 use qubits_decay::QubitsDecay;
 use swap_scores::SwapScores;
 
@@ -40,44 +43,72 @@ pub enum Heuristic {
     Decay,
 }
 
+/// Return a set of candidate swaps that affect qubits in front_layer.
+///
+/// For each virtual qubit in front_layer, find its current location
+/// on hardware and the physical qubits in that neighborhood. Every SWAP
+/// on virtual qubits that corresponds to one of those physical couplings
+/// is a candidate SWAP.
+///
+/// Candidate swaps are sorted so SWAP(i,j) and SWAP(j,i) are not duplicated.
+fn obtain_swaps(
+    front_layer: &EdgeList,
+    neighbors: &NeighborTable,
+    layout: &NLayout,
+) -> HashSet<[usize; 2]> {
+    let mut candidate_swaps: HashSet<[usize; 2]> = HashSet::new();
+    for node in &front_layer.edges {
+        for v in node {
+            let physical = layout.logic_to_phys[*v];
+            for neighbor in &neighbors.neighbors[physical] {
+                let virtual_neighbor = layout.phys_to_logic[*neighbor];
+                let swap: [usize; 2] = if &virtual_neighbor > v {
+                    [*v, virtual_neighbor]
+                } else {
+                    [virtual_neighbor, *v]
+                };
+                candidate_swaps.insert(swap);
+            }
+        }
+    }
+    candidate_swaps
+}
+
 #[pyfunction]
 pub fn sabre_score_heuristic(
     py: Python,
     layer: EdgeList,
     layout: &NLayout,
-    swap_scores: &mut SwapScores,
+    neighbor_table: &NeighborTable,
     extended_set: EdgeList,
     distance_matrix: PyReadonlyArray2<f64>,
     qubits_decay: QubitsDecay,
     heuristic: &Heuristic,
 ) -> PyObject {
     let dist = distance_matrix.as_array();
-    swap_scores
-        .scores
-        .iter_mut()
-        .for_each(|(swap_qubits, score)| {
-            let mut trial_layout = layout.clone();
-            trial_layout.swap_logical(swap_qubits[0], swap_qubits[1]);
-            *score = score_heuristic(
-                heuristic,
-                &layer.edges,
-                &extended_set.edges,
-                &trial_layout,
-                swap_qubits,
-                &dist,
-                &qubits_decay.decay,
-            );
-        });
-    let min_score = swap_scores
-        .scores
-        .values()
-        .min_by(|a, b| a.partial_cmp(b).unwrap())
-        .unwrap();
-    let mut best_swaps: Vec<[usize; 2]> = swap_scores
-        .scores
-        .iter()
-        .filter_map(|(k, v)| if v == min_score { Some(*k) } else { None })
-        .collect();
+    let candidate_swaps = obtain_swaps(&layer, neighbor_table, layout);
+    let mut min_score = f64::MAX;
+    let mut best_swaps: Vec<[usize; 2]> = Vec::new();
+    for swap_qubits in candidate_swaps {
+        let mut trial_layout = layout.clone();
+        trial_layout.swap_logical(swap_qubits[0], swap_qubits[1]);
+        let score = score_heuristic(
+            heuristic,
+            &layer.edges,
+            &extended_set.edges,
+            &trial_layout,
+            &swap_qubits,
+            &dist,
+            &qubits_decay.decay,
+        );
+        if score < min_score {
+            min_score = score;
+            best_swaps.clear();
+            best_swaps.push(swap_qubits);
+        } else if score == min_score {
+            best_swaps.push(swap_qubits);
+        }
+    }
     best_swaps.par_sort();
     Array2::from(best_swaps).into_pyarray(py).into()
 }
@@ -143,5 +174,6 @@ pub fn sabre_swap(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Heuristic>()?;
     m.add_class::<EdgeList>()?;
     m.add_class::<QubitsDecay>()?;
+    m.add_class::<NeighborTable>()?;
     Ok(())
 }

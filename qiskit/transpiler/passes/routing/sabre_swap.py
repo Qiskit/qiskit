@@ -28,10 +28,10 @@ from qiskit.dagcircuit import DAGOpNode
 # pylint: disable=import-error
 from qiskit._accelerate.sabre_swap import (
     sabre_score_heuristic,
-    SwapScores,
     Heuristic,
     EdgeList,
     QubitsDecay,
+    NeighborTable,
 )
 from qiskit._accelerate.stochastic_swap import NLayout  # pylint: disable=import-error
 
@@ -147,6 +147,9 @@ class SabreSwap(TransformationPass):
         else:
             self.coupling_map = deepcopy(coupling_map)
             self.coupling_map.make_symmetric()
+        self._neighbor_table = None
+        if coupling_map is not None:
+            self._neighbor_table = NeighborTable(retworkx.adjacency_matrix(self.coupling_map.graph))
 
         if heuristic == "basic":
             self.heuristic = Heuristic.Basic
@@ -291,12 +294,10 @@ class SabreSwap(TransformationPass):
                 front_layer_list.append(
                     self._bit_indices[x.qargs[0]], self._bit_indices[x.qargs[1]]
                 )
-            swap_candidates = self._obtain_swaps(front_layer, layout)
-            swap_scores = SwapScores(list(swap_candidates))
             best_swaps = sabre_score_heuristic(
                 front_layer_list,
                 layout,
-                swap_scores,
+                self._neighbor_table,
                 extended_set_list,
                 self.dist_matrix,
                 self.qubits_decay,
@@ -324,7 +325,6 @@ class SabreSwap(TransformationPass):
             if do_expensive_logging:
                 logger.debug("SWAP Selection...")
                 logger.debug("extended_set: %s", [(n.name, n.qargs) for n in extended_set])
-                logger.debug("swap scores: %s", swap_scores)
                 logger.debug("best swap: %s", best_swap)
                 logger.debug("qubits decay: %s", self.qubits_decay)
         layout_mapping = layout.layout_mapping()
@@ -388,27 +388,6 @@ class SabreSwap(TransformationPass):
         for node in decremented:
             self.required_predecessors[node] += 1
         return extended_set
-
-    def _obtain_swaps(self, front_layer, current_layout):
-        """Return a set of candidate swaps that affect qubits in front_layer.
-
-        For each virtual qubit in front_layer, find its current location
-        on hardware and the physical qubits in that neighborhood. Every SWAP
-        on virtual qubits that corresponds to one of those physical couplings
-        is a candidate SWAP.
-
-        Candidate swaps are sorted so SWAP(i,j) and SWAP(j,i) are not duplicated.
-        """
-        candidate_swaps = set()
-        for node in front_layer:
-            for v in node.qargs:
-                virtual = self._bit_indices[v]
-                physical = current_layout.logical_to_physical(virtual)
-                for neighbor in self.coupling_map.neighbors(physical):
-                    virtual_neighbor = current_layout.physical_to_logical(neighbor)
-                    swap = tuple(sorted([virtual, virtual_neighbor]))
-                    candidate_swaps.add(swap)
-        return candidate_swaps
 
     def _add_greedy_swaps(self, front_layer, dag, layout, qubits):
         """Mutate ``dag`` and ``layout`` by applying greedy swaps to ensure that at least one gate
