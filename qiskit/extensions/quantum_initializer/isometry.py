@@ -308,9 +308,7 @@ class Isometry(Instruction):
         """Isometry parameter has to be an ndarray."""
         if isinstance(parameter, np.ndarray):
             return parameter
-        if isinstance(parameter, list):
-            return parameter
-        if isinstance(parameter, int):
+        if isinstance(parameter, (list, int)):
             return parameter
         else:
             raise CircuitError(f"invalid param type {type(parameter)} for gate {self.name}")
