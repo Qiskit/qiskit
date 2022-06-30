@@ -14,6 +14,7 @@
 
 import io
 import re
+from functools import cached_property
 from typing import Union, List, Tuple, Callable, Dict, Any, Optional, Iterator, Iterable
 
 import dill
@@ -379,7 +380,7 @@ class StagedPassManager(PassManager):
             stages (Iterable[str]): An optional list of stages to use for this
                 instance. If this is not specified the default stages list
                 ``['init', 'layout', 'routing', 'translation', 'optimization', 'scheduling']`` is
-                used. After instantiation, the final list will be immutable and stored as tuple.
+                used. After instantiation, the final list will be immutable and stored as a tuple.
             kwargs: The initial :class:`~.PassManager` values for any stages
                 defined in ``stages``. If a argument is not defined the
                 stages will default to ``None`` indicating an empty/undefined
@@ -398,9 +399,7 @@ class StagedPassManager(PassManager):
             "scheduling",
         ]
         self._validate_stages(stages)
-        # Set through parent class since `__setattr__` requieres `expanded_stages` to be defined
-        super().__setattr__("_stages", tuple(stages))
-        super().__setattr__("_expanded_stages", tuple(self._generate_expanded_stages()))
+        self._stages = tuple(stages)
         super().__init__()
         self._validate_init_kwargs(kwargs)
         for stage in self.expanded_stages:
@@ -427,12 +426,12 @@ class StagedPassManager(PassManager):
     @property
     def stages(self) -> Tuple[str, ...]:
         """Pass manager stages"""
-        return self._stages  # pylint: disable=no-member
+        return self._stages
 
-    @property
+    @cached_property
     def expanded_stages(self) -> Tuple[str, ...]:
         """Expanded Pass manager stages including ``pre_`` and ``post_`` phases."""
-        return self._expanded_stages  # pylint: disable=no-member
+        return tuple(self._generate_expanded_stages())
 
     def _generate_expanded_stages(self) -> Iterator[str]:
         for stage in self.stages:
