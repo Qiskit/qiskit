@@ -140,6 +140,11 @@ class Channel(metaclass=ABCMeta):
         """Return the shorthand alias for this channel, which is based on its type and index."""
         return f"{self.__class__.prefix}{self._index}"
 
+    @property
+    def is_schedulable(self) -> bool:
+        """Return whether this channel can be independently scheduled"""
+        return True
+
     def __repr__(self):
         return f"{self.__class__.__name__}({self._index})"
 
@@ -207,6 +212,11 @@ class MemorySlot(Channel):
 
     prefix = "m"
 
+    @property
+    def is_schedulable(self) -> bool:
+        """Return whether this channel can be independently scheduled"""
+        return False
+
 
 class RegisterSlot(Channel):
     """Classical resister slot channels represent classical registers (low-latency classical
@@ -214,3 +224,8 @@ class RegisterSlot(Channel):
     """
 
     prefix = "c"
+
+    @property
+    def is_schedulable(self) -> bool:
+        """Return whether this channel can be independently scheduled"""
+        return False

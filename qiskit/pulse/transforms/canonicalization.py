@@ -475,6 +475,8 @@ def pad(
     channels = channels or schedule.channels
 
     for channel in channels:
+        if not channel.is_schedulable:
+            continue
         if channel not in schedule.channels:
             schedule |= instructions.Delay(until, channel)
             continue

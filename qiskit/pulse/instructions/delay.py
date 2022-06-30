@@ -15,6 +15,7 @@ from typing import Optional, Union, Tuple
 
 from qiskit.circuit import ParameterExpression
 from qiskit.pulse.channels import Channel
+from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions.instruction import Instruction
 
 
@@ -48,8 +49,13 @@ class Delay(Instruction):
             duration: Length of time of the delay in terms of dt.
             channel: The channel that will have the delay.
             name: Name of the delay for display purposes.
+
+        Raises:
+            PulseError: If `channel` cannot be delayed because it cannot be scheduled.
         """
         super().__init__(operands=(duration, channel), name=name)
+        if not channel.is_schedulable:
+            raise PulseError("Cannot delay chanel because it is not schedulable.")
 
     @property
     def channel(self) -> Channel:
