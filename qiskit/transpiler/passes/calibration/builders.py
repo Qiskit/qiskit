@@ -14,6 +14,7 @@
 
 from abc import abstractmethod
 from typing import List, Union
+import warnings
 
 import math
 import numpy as np
@@ -35,6 +36,8 @@ from qiskit.pulse import (
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap, CalibrationPublisher
 from qiskit.pulse.instructions.instruction import Instruction as PulseInst
 from qiskit.transpiler.basepasses import TransformationPass
+
+from .exceptions import CalibrationNotAvailable
 
 
 class CalibrationBuilder(TransformationPass):
@@ -79,7 +82,11 @@ class CalibrationBuilder(TransformationPass):
 
             if self.supported(node.op, qubits) and not dag.has_calibration_for(node):
                 # calibration can be provided and no user-defined calibration is already provided
-                schedule = self.get_calibration(node.op, qubits)
+                try:
+                    schedule = self.get_calibration(node.op, qubits)
+                except CalibrationNotAvailable:
+                    # Fail in schedule generation. Just ignore.
+                    continue
                 publisher = schedule.metadata.get("publisher", CalibrationPublisher.QISKIT)
 
                 # add calibration if it is not backend default
@@ -106,6 +113,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         self,
         instruction_schedule_map: InstructionScheduleMap = None,
         qubit_channel_mapping: List[List[str]] = None,
+        verbose: bool = True,
     ):
         """
         Initializes a RZXGate calibration builder.
@@ -115,6 +123,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
                 default pulse calibrations for the target backend
             qubit_channel_mapping: The list mapping qubit indices to the list of
                 channel names that apply on that qubit.
+            verbose: Set True to raise a user warning when RZX schedule cannot be built.
 
         Raises:
             QiskitError: if open pulse is not supported by the backend.
@@ -125,6 +134,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
 
         self._inst_map = instruction_schedule_map
         self._channel_map = qubit_channel_mapping
+        self._verbose = verbose
 
     def supported(self, node_op: CircuitInst, qubits: List) -> bool:
         """Determine if a given node supports the calibration.
@@ -239,14 +249,14 @@ class RZXCalibrationBuilder(CalibrationBuilder):
                     target = inst.channel.index
                     control = q1 if target == q2 else q2
 
-        if control is None:
-            raise QiskitError("Control qubit is None.")
-        if target is None:
-            raise QiskitError("Target qubit is None.")
-
-        echo_x = self._inst_map.get("x", qubits=control)
-
-        # Build the schedule
+        if not (len(crs) == 2 and len(comp_tones) == 2):
+            if self._verbose:
+                warnings.warn(
+                    f"CX instruction for qubits {qubits} is not a valid echoed cross resonance form. "
+                    "RZX schedule is not generated for this qubit pair.",
+                    UserWarning,
+                )
+            raise CalibrationNotAvailable
 
         # Stretch/compress the CR gates and compensation tones
         cr1 = self.rescale_cr_inst(crs[0][1], theta)
@@ -257,11 +267,15 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         elif len(comp_tones) == 2:
             comp1 = self.rescale_cr_inst(comp_tones[0][1], theta)
             comp2 = self.rescale_cr_inst(comp_tones[1][1], theta)
-        else:
-            raise QiskitError(
-                "CX must have either 0 or 2 rotary tones between qubits %i and %i "
-                "but %i were found." % (control, target, len(comp_tones))
-            )
+
+        if control is None:
+            raise QiskitError("Control qubit is None.")
+        if target is None:
+            raise QiskitError("Target qubit is None.")
+
+        echo_x = self._inst_map.get("x", qubits=control)
+
+        # Build the schedule
 
         # Build the schedule for the RZXGate
         rzx_theta = rzx_theta.insert(0, cr1)
@@ -384,6 +398,19 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
         if theta == 0.0:
             return rzx_theta
 
+        # Get the filtered Schedule instructions for the CR gates and compensation tones.
+        crs = cx_sched.filter(*[self._filter_control]).instructions
+        rotaries = cx_sched.filter(*[self._filter_drive]).instructions
+
+        if not (len(crs) == 2 and len(rotaries) == 2):
+            if self._verbose:
+                warnings.warn(
+                    f"CX instruction for qubits {qubits} is not a valid echoed cross resonance form. "
+                    "RZX schedule is not generated for this qubit pair.",
+                    UserWarning,
+                )
+            raise CalibrationNotAvailable
+
         control, target = None, None
 
         for _, inst in cx_sched.instructions:
@@ -402,10 +429,6 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
             raise QiskitError(
                 "RZXCalibrationBuilderNoEcho only supports hardware-native RZX gates."
             )
-
-        # Get the filtered Schedule instructions for the CR gates and compensation tones.
-        crs = cx_sched.filter(*[self._filter_control]).instructions
-        rotaries = cx_sched.filter(*[self._filter_drive]).instructions
 
         # Stretch/compress the CR gates and compensation tones.
         cr = self.rescale_cr_inst(crs[0][1], 2 * theta)
