@@ -17,8 +17,27 @@ import re
 
 try:
     from functools import cached_property
+
+    class immutable_cached_property(cached_property):
+        def __set__(self, instance, value):
+            raise AttributeError("can't set attribute")
+
+        def __delete__(self, instance):
+            raise AttributeError("can't delete attribute")
+
 except ImportError:  # Below python 3.8
-    cached_property = property  # pylint: disable=invalid-name
+
+    class immutable_cached_property(property):
+        def __init__(self, func):
+            self.func = func
+
+        def __call__(self, *args, **kwargs):
+            try:
+                return self.cache
+            except AttributeError:
+                self.cache = self.func(*args, **kwargs)
+                return self.cache
+
 
 from typing import Union, List, Tuple, Callable, Dict, Any, Optional, Iterator, Iterable
 
@@ -433,7 +452,7 @@ class StagedPassManager(PassManager):
         """Pass manager stages"""
         return self._stages
 
-    @cached_property
+    @immutable_cached_property
     def expanded_stages(self) -> Tuple[str, ...]:
         """Expanded Pass manager stages including ``pre_`` and ``post_`` phases."""
         return tuple(self._generate_expanded_stages())
