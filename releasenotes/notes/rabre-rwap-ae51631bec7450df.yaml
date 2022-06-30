@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The :class:`~.SabreSwap` transpiler pass has significantly improved
+    performance because of a rewrite of the internal scoring heuristic in
+    Rust.
