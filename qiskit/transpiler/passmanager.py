@@ -18,7 +18,7 @@ import re
 try:
     from functools import cached_property
 except ImportError:  # Below python 3.8
-    cached_property = property
+    cached_property = property  # pylint: disable=invalid-name
 
 from typing import Union, List, Tuple, Callable, Dict, Any, Optional, Iterator, Iterable
 
@@ -424,7 +424,7 @@ class StagedPassManager(PassManager):
 
     def _validate_init_kwargs(self, kwargs: Dict[str, Any]) -> None:
         expanded_stages = set(self.expanded_stages)
-        for stage in kwargs.keys():
+        for stage in kwargs:
             if stage not in expanded_stages:
                 raise AttributeError(f"{stage} is not a valid stage.")
 
