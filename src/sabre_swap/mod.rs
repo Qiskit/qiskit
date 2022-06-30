@@ -95,7 +95,7 @@ fn obtain_swaps(
 pub fn sabre_score_heuristic(
     py: Python,
     layer: EdgeList,
-    layout: &NLayout,
+    layout: &mut NLayout,
     neighbor_table: &NeighborTable,
     extended_set: EdgeList,
     distance_matrix: PyReadonlyArray2<f64>,
@@ -107,13 +107,12 @@ pub fn sabre_score_heuristic(
     let mut min_score = f64::MAX;
     let mut best_swaps: Vec<[usize; 2]> = Vec::new();
     for swap_qubits in candidate_swaps {
-        let mut trial_layout = layout.clone();
-        trial_layout.swap_logical(swap_qubits[0], swap_qubits[1]);
+        layout.swap_logical(swap_qubits[0], swap_qubits[1]);
         let score = score_heuristic(
             heuristic,
             &layer.edges,
             &extended_set.edges,
-            &trial_layout,
+            layout,
             &swap_qubits,
             &dist,
             &qubits_decay.decay,
@@ -125,6 +124,7 @@ pub fn sabre_score_heuristic(
         } else if score == min_score {
             best_swaps.push(swap_qubits);
         }
+        layout.swap_logical(swap_qubits[0], swap_qubits[1]);
     }
     best_swaps.par_sort();
     Array2::from(best_swaps).into_pyarray(py).into()
