@@ -15,15 +15,16 @@
 pub mod edge_list;
 pub mod neighbor_table;
 pub mod qubits_decay;
+pub mod sabre_rng;
 
 use ndarray::prelude::*;
-use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
 
 use hashbrown::HashSet;
+use rand::prelude::SliceRandom;
 use rayon::prelude::*;
 
 use crate::nlayout::NLayout;
@@ -31,6 +32,7 @@ use crate::nlayout::NLayout;
 use edge_list::EdgeList;
 use neighbor_table::NeighborTable;
 use qubits_decay::QubitsDecay;
+use sabre_rng::SabreRng;
 
 const EXTENDED_SET_WEIGHT: f64 = 0.5; // Weight of lookahead window compared to front_layer.
 
@@ -93,7 +95,6 @@ fn obtain_swaps(
 ///     ndarray: A 2d array of the best swap candidates all with the minimum score
 #[pyfunction]
 pub fn sabre_score_heuristic(
-    py: Python,
     layer: EdgeList,
     layout: &mut NLayout,
     neighbor_table: &NeighborTable,
@@ -101,7 +102,8 @@ pub fn sabre_score_heuristic(
     distance_matrix: PyReadonlyArray2<f64>,
     qubits_decay: QubitsDecay,
     heuristic: &Heuristic,
-) -> PyObject {
+    rng: &mut SabreRng,
+) -> [usize; 2] {
     let dist = distance_matrix.as_array();
     let candidate_swaps = obtain_swaps(&layer, neighbor_table, layout);
     let mut min_score = f64::MAX;
@@ -127,7 +129,7 @@ pub fn sabre_score_heuristic(
         layout.swap_logical(swap_qubits[0], swap_qubits[1]);
     }
     best_swaps.par_sort();
-    Array2::from(best_swaps).into_pyarray(py).into()
+    *best_swaps.choose(&mut rng.rng).unwrap()
 }
 
 #[inline]
@@ -191,5 +193,6 @@ pub fn sabre_swap(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<EdgeList>()?;
     m.add_class::<QubitsDecay>()?;
     m.add_class::<NeighborTable>()?;
+    m.add_class::<SabreRng>()?;
     Ok(())
 }

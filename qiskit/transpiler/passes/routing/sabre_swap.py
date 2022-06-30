@@ -32,6 +32,7 @@ from qiskit._accelerate.sabre_swap import (
     EdgeList,
     QubitsDecay,
     NeighborTable,
+    SabreRng,
 )
 from qiskit._accelerate.stochastic_swap import NLayout  # pylint: disable=import-error
 
@@ -160,7 +161,11 @@ class SabreSwap(TransformationPass):
         else:
             raise TranspilerError("Heuristic %s not recognized." % heuristic)
 
-        self.seed = seed
+        if seed is None:
+            ii64 = np.iinfo(np.int64)
+            self.seed = np.random.default_rng(None).integers(0, ii64.max, dtype=int)
+        else:
+            self.seed = seed
         self.fake_run = fake_run
         self.required_predecessors = None
         self.qubits_decay = None
@@ -194,7 +199,7 @@ class SabreSwap(TransformationPass):
 
         self.dist_matrix = self.coupling_map.distance_matrix
 
-        rng = np.random.default_rng(self.seed)
+        rng = SabreRng(self.seed)
 
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
         mapped_dag = None
@@ -295,7 +300,7 @@ class SabreSwap(TransformationPass):
                 front_layer_list.append(
                     self._bit_indices[x.qargs[0]], self._bit_indices[x.qargs[1]]
                 )
-            best_swaps = sabre_score_heuristic(
+            best_swap = sabre_score_heuristic(
                 front_layer_list,
                 layout,
                 self._neighbor_table,
@@ -303,8 +308,8 @@ class SabreSwap(TransformationPass):
                 self.dist_matrix,
                 self.qubits_decay,
                 self.heuristic,
+                rng,
             )
-            best_swap = rng.choice(best_swaps)
             best_swap_qargs = [canonical_register[best_swap[0]], canonical_register[best_swap[1]]]
             swap_node = self._apply_gate(
                 mapped_dag,
