@@ -17,8 +17,9 @@ import re
 
 try:
     from functools import cached_property
-except ImportError:
+except ImportError:  # Below python 3.8
     cached_property = property
+
 from typing import Union, List, Tuple, Callable, Dict, Any, Optional, Iterator, Iterable
 
 import dill
