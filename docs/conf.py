@@ -224,7 +224,6 @@ modindex_common_prefix = ['qiskit.']
 extlinks = {
     'pull_terra': ('https://github.com/Qiskit/qiskit-terra/pull/%s', '#'),
     'pull_aer': ('https://github.com/Qiskit/qiskit-aer/pull/%s', '#'),
-    'pull_ignis': ('https://github.com/Qiskit/qiskit-ignis/pull/%s', '#'),
     'pull_ibmq-provider': ('https://github.com/Qiskit/qiskit-ibmq-provider/pull/%s', '#')
 }
 
@@ -259,8 +258,7 @@ autoclass_content = 'both'
 # --- Custom Extensions -----------------------------------------------------
 
 # Elements with api doc sources
-qiskit_elements = ['qiskit-terra', 'qiskit-aer', 'qiskit-ignis',
-                   'qiskit-ibmq-provider']
+qiskit_elements = ['qiskit-terra', 'qiskit-aer', 'qiskit-ibmq-provider']
 apidocs_exists = False
 apidocs_master = None
 

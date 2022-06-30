@@ -18,7 +18,6 @@ where you can find the individual projects that make up Qiskit, including
 
 * `Qiskit Terra <https://github.com/Qiskit/qiskit-terra>`__
 * `Qiskit Aer <https://github.com/Qiskit/qiskit-aer>`__
-* `Qiskit Ignis <https://github.com/Qiskit/qiskit-ignis>`__
 * `Qiskit IBMQ Provider <https://github.com/Qiskit/qiskit-ibmq-provider>`__
 * `Qiskit Tutorials <https://github.com/Qiskit/qiskit-tutorials>`__
 * `Qiskit API Documentation <https://github.com/Qiskit/qiskit/tree/master/docs>`__
@@ -52,7 +51,6 @@ Element                     Issue Tracker
 =========================== =============================================
 qiskit-terra                https://github.com/Qiskit/qiskit-terra/issues
 qiskit-aer                  https://github.com/Qiskit/qiskit-aer/issues
-qiskit-ignis                https://github.com/Qiskit/qiskit-ignis/issues
 Docs or Qiskit Meta-package https://github.com/Qiskit/qiskit/issues
 =========================== =============================================
 
@@ -140,7 +138,6 @@ Element                     Pull Requests
 =========================== =============================================
 qiskit-terra                https://github.com/Qiskit/qiskit-terra/pulls
 qiskit-aer                  https://github.com/Qiskit/qiskit-aer/pulls
-qiskit-ignis                https://github.com/Qiskit/qiskit-ignis/pulls
 Docs or Qiskit Meta-package https://github.com/Qiskit/qiskit/pulls
 =========================== =============================================
 
@@ -674,7 +671,6 @@ prevent installing versions of elements that may be lower than those desired if 
 
 #. :ref:`qiskit-terra <install-qiskit-terra>`
 #. :ref:`qiskit-aer <install-qiskit-aer>`
-#. :ref:`qiskit-ignis <install-qiskit-ignis>`
 #. :ref:`qiskit-ibmq-provider <install-qiskit-ibmq-provider>`
    (if you want to connect to the IBM Quantum devices or online
    simulator)
@@ -1028,44 +1024,6 @@ A list of common options depending on platform are:
     Some of these options are not platform-specific. These particular platforms are listed
     because they are commonly used in the environment. Refer to the
     tool documentation for more information.
-
-.. _install-qiskit-ignis:
-
-Installing Ignis from Source
-============================
-
-1. Clone the Ignis repository.
-
-   .. code:: sh
-
-      git clone https://github.com/Qiskit/qiskit-ignis.git
-
-2. Cloning the repository creates a local directory called ``qiskit-ignis``.
-
-   .. code:: sh
-
-      cd qiskit-ignis
-
-3. If you want to run tests or linting checks, install the developer requirements.
-   This is not required to install or use the qiskit-ignis package when installing
-   from source.
-
-   .. code:: sh
-
-      pip install -r requirements-dev.txt
-
-4. Install Ignis.
-
-   .. code:: sh
-
-      pip install .
-
-If you want to install it in editable mode, meaning that code changes to the
-project don't require a reinstall to be applied:
-
-.. code:: sh
-
-    pip install -e .
 
 .. _install-qiskit-ibmq-provider:
 

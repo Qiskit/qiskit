@@ -22,6 +22,25 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.37.0
+*************
+
+This release officially marks the end of support for the Qiskit Ignis project
+from Qiskit. It was originally deprecated in the 0.33.0 release and as was
+documented in that release the ``qiskit-ignis`` package has been removed from
+the Qiskit metapackage, which means in that future release
+``pip install qiskit`` will no longer include ``qiskit-ignis``. However, note
+because of limitations in python packaging we cannot automatically remove a
+pre-existing install of ``qiskit-ignis``. If you are upgrading from a previous
+version it's recommended that you manually uninstall Qiskit Ignis with
+``pip uninstall qiskit-ignis`` or install the metapackage
+in a fresh python environment.
+
+Qiskit Ignis has been supersceded by the `Qiskit Experiments <https://qiskit.org/documentation/experiments/>`__
+project. You can refer to the `migration guide <https://github.com/Qiskit/qiskit-ignis#migration-guide>`__
+for details on how to switch from Qiskit Ignis to Qiskit Experiments.
+
+*************
 Qiskit 0.36.2
 *************
 
@@ -131,7 +150,6 @@ IBM Q Provider 0.19.1
 =====================
 
 No change
-
 
 *************
 Qiskit 0.36.1
@@ -13432,7 +13450,7 @@ New Features
       The following example shows calibrating a 5-qubit expectation value
       measurement error mitigator using the ``'tensored'`` method.
 
-      .. jupyter-execute::
+      .. code-block::
 
           from qiskit import execute
           from qiskit.test.mock import FakeVigo
@@ -13455,7 +13473,7 @@ New Features
       The following shows how to use the above mitigator to apply measurement
       error mitigation to expectation value computations
 
-      .. jupyter-execute::
+      .. code-block::
 
           from qiskit import QuantumCircuit
 
