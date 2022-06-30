@@ -15,7 +15,6 @@
 pub mod edge_list;
 pub mod neighbor_table;
 pub mod qubits_decay;
-pub mod swap_scores;
 
 use ndarray::prelude::*;
 use numpy::IntoPyArray;
@@ -32,7 +31,6 @@ use crate::nlayout::NLayout;
 use edge_list::EdgeList;
 use neighbor_table::NeighborTable;
 use qubits_decay::QubitsDecay;
-use swap_scores::SwapScores;
 
 const EXTENDED_SET_WEIGHT: f64 = 0.5; // Weight of lookahead window compared to front_layer.
 
@@ -170,7 +168,6 @@ fn score_heuristic(
 #[pymodule]
 pub fn sabre_swap(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(sabre_score_heuristic))?;
-    m.add_class::<SwapScores>()?;
     m.add_class::<Heuristic>()?;
     m.add_class::<EdgeList>()?;
     m.add_class::<QubitsDecay>()?;
