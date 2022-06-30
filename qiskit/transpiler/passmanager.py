@@ -14,6 +14,7 @@
 
 import io
 import re
+
 try:
     from functools import cached_property
 except ImportError:
