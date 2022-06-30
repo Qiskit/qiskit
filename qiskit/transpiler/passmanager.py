@@ -18,7 +18,9 @@ import re
 try:
     from functools import cached_property
 
-    class immutable_cached_property(cached_property):
+    class immutable_cached_property(cached_property):  # pylint: disable=invalid-name
+        """Immutable cached_property memoization descriptor"""
+
         def __set__(self, instance, value):
             raise AttributeError("can't set attribute")
 
@@ -26,18 +28,7 @@ try:
             raise AttributeError("can't delete attribute")
 
 except ImportError:  # Below python 3.8
-
-    class immutable_cached_property(property):
-        def __init__(self, func):
-            self.func = func
-
-        def __call__(self, *args, **kwargs):
-            try:
-                return self.cache
-            except AttributeError:
-                self.cache = self.func(*args, **kwargs)
-                return self.cache
-
+    immutable_cached_property = property  # pylint: disable=invalid-name
 
 from typing import Union, List, Tuple, Callable, Dict, Any, Optional, Iterator, Iterable
 
