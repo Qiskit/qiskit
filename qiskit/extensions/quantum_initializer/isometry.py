@@ -72,7 +72,7 @@ class Isometry(Instruction):
         if len(isometry.shape) == 1:
             isometry = isometry.reshape(isometry.shape[0], 1)
 
-        self.iso_data = np.array(isometry)
+        self.iso_data = isometry
 
         self.num_ancillas_zero = num_ancillas_zero
         self.num_ancillas_dirty = num_ancillas_dirty
