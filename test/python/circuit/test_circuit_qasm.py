@@ -452,26 +452,31 @@ custom_{id(gate2)} q[1],q[0];\n"""
             self.assertEqual(instruction.operation.name, names[idx])
 
     def test_circuit_qasm_with_double_precision_rotation_angle(self):
-        """Test circuit qasm() method when a rotation angle with more than 8 significant digits is used."""
+        """Test that qasm() emits high precision rotation angles per default."""
+        from qiskit.circuit.tools.pi_check import MAX_FRAC
 
         qc = QuantumCircuit(1)
         qc.p(0.123456789, 0)
+        qc.p(pi * pi, 0)
+        qc.p(MAX_FRAC * pi + 1, 0)
 
         expected_qasm = """OPENQASM 2.0;
 include "qelib1.inc";
 qreg q[1];
-p(0.123456789) q[0];\n"""
+p(0.123456789) q[0];
+p(9.869604401089358) q[0];
+p(51.26548245743669) q[0];\n"""
         self.assertEqual(qc.qasm(), expected_qasm)
 
     def test_circuit_qasm_with_rotation_angles_close_to_pi(self):
-        """Test circuit qasm() method when a rotation angle is close to pi."""
+        """Test that qasm() properly rounds values closer than 1e-12 to pi."""
 
         qc = QuantumCircuit(1)
-        qc.p(pi + 1e-10, 0)
-        qc.p(pi + 1e-13, 0)
+        qc.p(pi + 1e-11, 0)
+        qc.p(pi + 1e-12, 0)
         expected_qasm = """OPENQASM 2.0;
 include "qelib1.inc";
 qreg q[1];
-p(3.141592653689793) q[0];
+p(3.141592653599793) q[0];
 p(pi) q[0];\n"""
         self.assertEqual(qc.qasm(), expected_qasm)
