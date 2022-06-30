@@ -144,6 +144,7 @@ class SparsePauliOp(LinearOp):
 
         Args:
             other (SparsePauliOp): an operator object.
+            atol: Absolute numerical tolerance for checking equivalence.
 
         Returns:
             bool: True if the operator is equivalent to ``self``.
