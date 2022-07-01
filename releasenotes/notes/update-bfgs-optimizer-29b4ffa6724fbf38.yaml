@@ -1,0 +1,7 @@
+upgrade:
+  - |
+    Deleted the deprecated ``factr`` and ``epsilon`` arguments of the :class:`.L_BFGS_B` optimizer.
+  - |
+    Change the default of maximum number of allowed function evaluations in :class:`.L_BFGS_B`
+    from 1000 to 15000 to match the SciPy default. This number also matches the default number 
+    of iterations.
