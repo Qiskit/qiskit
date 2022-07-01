@@ -14,7 +14,7 @@
 
 """Utility functions for working with Results."""
 
-from typing import List, Union, Optional, Dict
+from typing import Sequence, Union, Optional, Dict, List
 from collections import Counter
 from copy import deepcopy
 
@@ -199,7 +199,9 @@ def marginal_memory(
 
 
 def marginal_distribution(
-    counts: dict, indices: Optional[List[int]] = None, format_marginal: bool = False
+    counts: dict,
+    indices: Optional[Sequence[int]] = None,
+    format_marginal: bool = False,
 ) -> Dict[str, int]:
     """Marginalize counts from an experiment over some indices of interest.
 
@@ -222,7 +224,7 @@ def marginal_distribution(
         is invalid.
     """
     num_clbits = len(max(counts.keys()).replace(" ", ""))
-    if indices is not None and (not indices or not set(indices).issubset(range(num_clbits))):
+    if indices is not None and (len(indices) == 0 or not set(indices).issubset(range(num_clbits))):
         raise QiskitError(f"indices must be in range [0, {num_clbits - 1}].")
 
     if isinstance(counts, Counts):

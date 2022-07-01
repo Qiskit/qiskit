@@ -16,6 +16,8 @@
 
 import unittest
 
+import numpy as np
+
 from qiskit.result import counts
 from qiskit import exceptions
 from qiskit.result import utils
@@ -48,6 +50,14 @@ class TestCounts(unittest.TestCase):
         expected = {"00": 4, "01": 27, "10": 23}
         counts_obj = counts.Counts(raw_counts, creg_sizes=[["c0", 4]], memory_slots=4)
         result = utils.marginal_distribution(counts_obj, [0, 1])
+        self.assertEqual(expected, result)
+
+    def test_marginal_distribution_numpy_indices(self):
+        raw_counts = {"0x0": 4, "0x1": 7, "0x2": 10, "0x6": 5, "0x9": 11, "0xD": 9, "0xE": 8}
+        expected = {"00": 4, "01": 27, "10": 23}
+        indices = np.asarray([0, 1])
+        counts_obj = counts.Counts(raw_counts, creg_sizes=[["c0", 4]], memory_slots=4)
+        result = utils.marginal_distribution(counts_obj, indices)
         self.assertEqual(expected, result)
 
     def test_int_outcomes(self):
