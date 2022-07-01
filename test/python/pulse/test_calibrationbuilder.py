@@ -74,12 +74,12 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
         """Test if the pass is not terminated by error with direct CX input."""
         cx_sched = Schedule()
         # Fake direct cr
-        cx_sched.insert(0, Play(GaussianSquare(800, 0.2, 64, 544), ControlChannel(1)))
+        cx_sched.insert(0, Play(GaussianSquare(800, 0.2, 64, 544), ControlChannel(1)), inplace=True)
         # Fake direct compensation tone
         # Compensation tone doesn't have dedicated pulse class.
         # So it's reported as a waveform now.
         compensation_tone = Waveform(0.1 * np.ones(800, dtype=complex))
-        cx_sched.insert(0, Play(compensation_tone, DriveChannel(0)))
+        cx_sched.insert(0, Play(compensation_tone, DriveChannel(0)), inplace=True)
 
         inst_map = InstructionScheduleMap()
         inst_map.add("cx", (1, 0), schedule=cx_sched)
@@ -176,12 +176,12 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
         """Test if the pass is not terminated by error with direct CX input."""
         cx_sched = Schedule()
         # Fake direct cr
-        cx_sched.insert(0, Play(GaussianSquare(800, 0.2, 64, 544), ControlChannel(1)))
+        cx_sched.insert(0, Play(GaussianSquare(800, 0.2, 64, 544), ControlChannel(1)), inplace=True)
         # Fake direct compensation tone
         # Compensation tone doesn't have dedicated pulse class.
         # So it's reported as a waveform now.
         compensation_tone = Waveform(0.1 * np.ones(800, dtype=complex))
-        cx_sched.insert(0, Play(compensation_tone, DriveChannel(0)))
+        cx_sched.insert(0, Play(compensation_tone, DriveChannel(0)), inplace=True)
 
         inst_map = InstructionScheduleMap()
         inst_map.add("cx", (1, 0), schedule=cx_sched)
