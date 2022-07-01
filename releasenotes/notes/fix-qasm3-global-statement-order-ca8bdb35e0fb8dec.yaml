@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    The OpenQASM 3 exporter (:mod:`qiskit.qasm3`) will now output ``input`` or
-    ``output`` declarations before gate declarations.  This is more consistent
-    with the current reference ANTLR grammar from the OpenQASM 3 team.

@@ -1371,8 +1371,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        seed = (hash(self.id())) % 10000
-        np.random.seed(seed)
+        np.random.seed(657)  # this seed should work for calls to scipy.stats.<method>.rvs()
         self.qsd = qsd.qs_decomposition
 
     def _get_lower_cx_bound(self, n):

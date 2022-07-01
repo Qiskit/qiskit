@@ -19,7 +19,7 @@ from qiskit.circuit import Barrier
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock.backends import FakeLima
+from qiskit.providers.fake_provider import FakeLima
 from qiskit.transpiler import CouplingMap, Layout, PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BIPMapping

@@ -28,7 +28,7 @@ if ORIG_ENV_VAR is not None:
 
 from qiskit.compiler import transpile
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.test.mock import FakeRueschlikon
+from qiskit.providers.fake_provider import FakeRueschlikon
 
 
 def run_test():
