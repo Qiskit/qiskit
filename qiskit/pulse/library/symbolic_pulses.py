@@ -584,10 +584,7 @@ class _PulseType(type):
     """Metaclass to warn at isinstance check."""
 
     def __instancecheck__(cls, instance):
-        try:
-            cls_alias = getattr(cls, "alias")
-        except AttributeError:
-            return NotImplemented
+        cls_alias = getattr(cls, "alias", None)
 
         # TODO promote this to Deprecation warning in future.
         #  Once type information usage is removed from user code,

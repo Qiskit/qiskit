@@ -3,9 +3,9 @@ upgrade:
   - |
     Symbolic pulse subclasses :class:`.Gaussian`, :class:`.GaussianSquare`,
     :class:`.Drag` and :class:`.Constant` have been upgraded to
-    instantiate :class:`SymbolicPulse` rather than subclass itself.
+    instantiate :class:`SymbolicPulse` rather than the subclass itself.
     All parametric pulse object in pulse programs must be symbolic pulse instance,
-    because subclassing is no longer neccesay. Note that :class:`SymbolicPulse` can
+    because subclassing is no longer neccesary. Note that :class:`SymbolicPulse` can
     uniquely identify a particular envelope with the symbolic expression object
     defined in :attr:`SymbolicPulse.envelope`.
   - |

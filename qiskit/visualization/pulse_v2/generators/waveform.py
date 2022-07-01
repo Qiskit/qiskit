@@ -44,7 +44,7 @@ from typing import Dict, Any, List, Union
 import numpy as np
 
 from qiskit import pulse, circuit
-from qiskit.pulse import instructions
+from qiskit.pulse import instructions, library
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import drawings, types, device_info
 
@@ -106,7 +106,10 @@ def gen_filled_waveform_stepwise(
                 unbound_params.append(pname)
 
         pulse_data = data.inst.pulse
-        pulse_shape = getattr(pulse_data, "pulse_type", pulse_data.__class__.__name__)
+        if isinstance(pulse_data, library.SymbolicPulse):
+            pulse_shape = pulse_data.pulse_type
+        else:
+            pulse_shape = "Waveform"
 
         return _draw_opaque_waveform(
             init_time=data.t0,
@@ -176,7 +179,10 @@ def gen_ibmq_latex_waveform_name(
         if pulse_data.name:
             systematic_name = pulse_data.name
         else:
-            systematic_name = getattr(pulse_data, "pulse_type", pulse_data.__class__.__name__)
+            if isinstance(pulse_data, library.SymbolicPulse):
+                systematic_name = pulse_data.pulse_type
+            else:
+                systematic_name = "Waveform"
 
         template = r"(?P<op>[A-Z]+)(?P<angle>[0-9]+)?(?P<sign>[pm])_(?P<ch>[dum])[0-9]+"
         match_result = re.match(template, systematic_name)
@@ -562,7 +568,12 @@ def _parse_waveform(
             if isinstance(duration, circuit.Parameter):
                 duration = None
 
-            meta["waveform shape"] = getattr(operand, "pulse_type", operand.__class__.__name__)
+            if isinstance(operand, library.SymbolicPulse):
+                pulse_shape = operand.pulse_type
+            else:
+                pulse_shape = "Waveform"
+            meta["waveform shape"] = pulse_shape
+
             meta.update(
                 {
                     key: val.name if isinstance(val, circuit.Parameter) else val
