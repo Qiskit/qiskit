@@ -11,7 +11,8 @@
 # that they have been altered from the originals.
 
 """One-pulse single-qubit gate."""
-
+from math import sqrt
+from cmath import exp
 from typing import Optional
 import numpy
 from qiskit.qasm import pi
@@ -86,15 +87,15 @@ class U2Gate(Gate):
         """
         return U2Gate(-self.params[1] - pi, -self.params[0] + pi)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=complex):
         """Return a Numpy.array for the U2 gate."""
-        isqrt2 = 1 / numpy.sqrt(2)
+        isqrt2 = 1 / sqrt(2)
         phi, lam = self.params
         phi, lam = float(phi), float(lam)
         return numpy.array(
             [
-                [isqrt2, -numpy.exp(1j * lam) * isqrt2],
-                [numpy.exp(1j * phi) * isqrt2, numpy.exp(1j * (phi + lam)) * isqrt2],
+                [isqrt2, -exp(1j * lam) * isqrt2],
+                [exp(1j * phi) * isqrt2, exp(1j * (phi + lam)) * isqrt2],
             ],
             dtype=dtype,
         )

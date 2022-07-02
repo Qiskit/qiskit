@@ -13,11 +13,14 @@
 N-Qubit Sparse Pauli Operator class.
 """
 
+from collections import defaultdict
 from numbers import Number
 from typing import Dict
 
 import numpy as np
+import retworkx as rx
 
+from qiskit._accelerate.sparse_pauli_op import unordered_unique  # pylint: disable=import-error
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from qiskit.quantum_info.operators.linear_op import LinearOp
@@ -28,7 +31,6 @@ from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.symplectic.pauli_utils import pauli_basis
 from qiskit.utils.deprecation import deprecate_function
-from qiskit._accelerate.sparse_pauli_op import unordered_unique  # pylint: disable=import-error
 
 
 class SparsePauliOp(LinearOp):
@@ -612,7 +614,7 @@ class SparsePauliOp(LinearOp):
         return SparsePauliOp(paulis, coeffs, copy=False)
 
     @staticmethod
-    def from_sparse_list(obj, num_qubits):
+    def from_sparse_list(obj, num_qubits, do_checks=True):
         """Construct from a list of local Pauli strings and coefficients.
 
         Each list element is a 3-tuple of a local Pauli string, indices where to apply it,
@@ -637,6 +639,7 @@ class SparsePauliOp(LinearOp):
         Args:
             obj (Iterable[Tuple[str, List[int], complex]]): The list 3-tuples specifying the Paulis.
             num_qubits (int): The number of qubits of the operator.
+            do_checks (bool): The flag of checking if the input indices are not duplicated.
 
         Returns:
             SparsePauliOp: The SparsePauliOp representation of the Pauli terms.
@@ -644,6 +647,7 @@ class SparsePauliOp(LinearOp):
         Raises:
             QiskitError: If the list of Paulis is empty.
             QiskitError: If the number of qubits is incompatible with the indices of the Pauli terms.
+            QiskitError: If the designated qubit is already assigned.
         """
         obj = list(obj)  # To convert zip or other iterable
 
@@ -655,6 +659,8 @@ class SparsePauliOp(LinearOp):
         labels = np.zeros(size, dtype=f"<U{num_qubits}")
 
         for i, (paulis, indices, coeff) in enumerate(obj):
+            if do_checks and len(indices) != len(set(indices)):
+                raise QiskitError("Input indices are duplicated.")
             # construct the full label based off the non-trivial Paulis and indices
             label = ["I"] * num_qubits
             for pauli, index in zip(paulis, indices):
@@ -772,6 +778,54 @@ class SparsePauliOp(LinearOp):
                 return coeff * mat
 
         return MatrixIterator(self)
+
+    def _create_graph(self, qubit_wise):
+        """Transform measurement operator grouping problem into graph coloring problem
+
+        Args:
+            qubit_wise (bool): whether the commutation rule is applied to the whole operator,
+                or on a per-qubit basis.
+
+        Returns:
+            retworkx.PyGraph: A class of undirected graphs
+        """
+
+        edges = self.paulis._noncommutation_graph(qubit_wise)
+        graph = rx.PyGraph()
+        graph.add_nodes_from(range(self.size))
+        graph.add_edges_from_no_data(edges)
+        return graph
+
+    def group_commuting(self, qubit_wise=False):
+        """Partition a SparsePauliOp into sets of commuting Pauli strings.
+
+        Args:
+            qubit_wise (bool): whether the commutation rule is applied to the whole operator,
+                or on a per-qubit basis.  For example:
+
+                .. code-block:: python
+
+                    >>> op = SparsePauliOp.from_list([("XX", 2), ("YY", 1), ("IZ",2j), ("ZZ",1j)])
+                    >>> op.group_commuting()
+                    [SparsePauliOp(["IZ", "ZZ"], coeffs=[0.+2.j, 0.+1j]),
+                     SparsePauliOp(["XX", "YY"], coeffs=[2.+0.j, 1.+0.j])]
+                    >>> op.group_commuting(qubit_wise=True)
+                    [SparsePauliOp(['XX'], coeffs=[2.+0.j]),
+                     SparsePauliOp(['YY'], coeffs=[1.+0.j]),
+                     SparsePauliOp(['IZ', 'ZZ'], coeffs=[0.+2.j, 0.+1.j])]
+
+        Returns:
+            List[SparsePauliOp]: List of SparsePauliOp where each SparsePauliOp contains
+                commuting Pauli operators.
+        """
+
+        graph = self._create_graph(qubit_wise)
+        # Keys in coloring_dict are nodes, values are colors
+        coloring_dict = rx.graph_greedy_color(graph)
+        groups = defaultdict(list)
+        for idx, color in coloring_dict.items():
+            groups[color].append(idx)
+        return [self[group] for group in groups.values()]
 
 
 # Update docstrings for API docs

@@ -54,7 +54,15 @@ class TestAcquire(QiskitTestCase):
         self.assertIsInstance(acq.id, int)
         self.assertEqual(acq.name, "acquire")
         self.assertEqual(
-            acq.operands, (10, channels.AcquireChannel(0), channels.MemorySlot(0), None)
+            acq.operands,
+            (
+                10,
+                channels.AcquireChannel(0),
+                channels.MemorySlot(0),
+                None,
+                kernel,
+                discriminator,
+            ),
         )
 
     def test_instructions_hash(self):

@@ -340,10 +340,10 @@ class Instruction(Operation):
             return self.copy()
 
         reverse_inst = self.copy(name=self.name + "_reverse")
-        reverse_inst.definition._data = [
-            (inst.reverse_ops(), qargs, cargs) for inst, qargs, cargs in reversed(self._definition)
-        ]
-
+        reversed_definition = self._definition.copy_empty_like()
+        for inst in reversed(self._definition):
+            reversed_definition.append(inst.operation.reverse_ops(), inst.qubits, inst.clbits)
+        reverse_inst.definition = reversed_definition
         return reverse_inst
 
     def inverse(self):
@@ -365,7 +365,7 @@ class Instruction(Operation):
         if self.definition is None:
             raise CircuitError("inverse() not implemented for %s." % self.name)
 
-        from qiskit.circuit import QuantumCircuit, Gate  # pylint: disable=cyclic-import
+        from qiskit.circuit import Gate  # pylint: disable=cyclic-import
 
         if self.name.endswith("_dg"):
             name = self.name[:-3]
@@ -382,15 +382,11 @@ class Instruction(Operation):
         else:
             inverse_gate = Gate(name=name, num_qubits=self.num_qubits, params=self.params.copy())
 
-        inverse_gate.definition = QuantumCircuit(
-            *self.definition.qregs,
-            *self.definition.cregs,
-            global_phase=-self.definition.global_phase,
-        )
-        inverse_gate.definition._data = [
-            (inst.inverse(), qargs, cargs) for inst, qargs, cargs in reversed(self._definition)
-        ]
-
+        inverse_definition = self._definition.copy_empty_like()
+        inverse_definition.global_phase = -inverse_definition.global_phase
+        for inst in reversed(self._definition):
+            inverse_definition._append(inst.operation.inverse(), inst.qubits, inst.clbits)
+        inverse_gate.definition = inverse_definition
         return inverse_gate
 
     def c_if(self, classical, val):
@@ -459,6 +455,32 @@ class Instruction(Operation):
 
         return self._qasmif(name_param)
 
+    def broadcast_arguments(self, qargs, cargs):
+        """
+        Validation of the arguments.
+
+        Args:
+            qargs (List): List of quantum bit arguments.
+            cargs (List): List of classical bit arguments.
+
+        Yields:
+            Tuple(List, List): A tuple with single arguments.
+
+        Raises:
+            CircuitError: If the input is not valid. For example, the number of
+                arguments does not match the gate expectation.
+        """
+        if len(qargs) != self.num_qubits:
+            raise CircuitError(
+                f"The amount of qubit arguments {len(qargs)} does not match"
+                f" the instruction expectation ({self.num_qubits})."
+            )
+
+        #  [[q[0], q[1]], [c[0], c[1]]] -> [q[0], c[0]], [q[1], c[1]]
+        flat_qargs = [qarg for sublist in qargs for qarg in sublist]
+        flat_cargs = [carg for sublist in cargs for carg in sublist]
+        yield flat_qargs, flat_cargs
+
     def _return_repeat(self, exponent):
         return Instruction(
             name=f"{self.name}*{exponent}",
@@ -490,14 +512,16 @@ class Instruction(Operation):
 
         if instruction.definition is None:
             # pylint: disable=cyclic-import
-            from qiskit import QuantumCircuit
+            from qiskit.circuit import QuantumCircuit, CircuitInstruction
 
             qc = QuantumCircuit()
             if qargs:
                 qc.add_register(qargs)
             if cargs:
                 qc.add_register(cargs)
-            qc.data = [(self, qargs[:], cargs[:])] * n
+            circuit_instruction = CircuitInstruction(self, qargs, cargs)
+            for _ in [None] * n:
+                qc._append(circuit_instruction)
         instruction.definition = qc
         return instruction
 
@@ -520,16 +544,6 @@ class Instruction(Operation):
     def name(self, name):
         """Set the name."""
         self._name = name
-
-    @property
-    def condition(self):
-        """Returns the condition."""
-        return self._condition
-
-    @condition.setter
-    def condition(self, condition):
-        """Set condition."""
-        self._condition = condition
 
     @property
     def num_qubits(self):

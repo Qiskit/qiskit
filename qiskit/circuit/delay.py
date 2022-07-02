@@ -33,6 +33,9 @@ class Delay(Instruction):
         """Special case. Return self."""
         return self
 
+    def broadcast_arguments(self, qargs, cargs):
+        yield [qarg for sublist in qargs for qarg in sublist], []
+
     def c_if(self, classical, val):
         raise CircuitError("Conditional Delay is not yet implemented.")
 

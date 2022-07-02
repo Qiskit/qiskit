@@ -26,6 +26,10 @@ class Reset(Instruction):
         """Create new reset instruction."""
         super().__init__("reset", 1, 0, [])
 
+    def broadcast_arguments(self, qargs, cargs):
+        for qarg in qargs[0]:
+            yield [qarg], []
+
 
 def reset(circuit, qubit):
     """Reset a quantum bit on a circuit.

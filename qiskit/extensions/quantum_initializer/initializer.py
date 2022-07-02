@@ -82,6 +82,9 @@ class Initialize(Instruction):
         """Set initialize params."""
         self._stateprep.params = parameters
 
+    def broadcast_arguments(self, qargs, cargs):
+        return self._stateprep.broadcast_arguments(qargs, cargs)
+
 
 def initialize(self, params, qubits=None):
     r"""Initialize qubits in a specific state.

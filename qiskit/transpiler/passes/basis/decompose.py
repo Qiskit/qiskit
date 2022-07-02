@@ -87,17 +87,16 @@ class Decompose(TransformationPass):
         # Walk through the DAG and expand each non-basis node
         for node in dag.op_nodes():
             if self._should_decompose(node):
-                node_definition = getattr(node.op, "definition", None)
-                if node_definition is None:
+                if getattr(node.op, "definition", None) is None:
                     continue
                 # TODO: allow choosing among multiple decomposition rules
-                rule = node_definition.data
-                if len(rule) == 1 and len(node.qargs) == len(rule[0][1]) == 1:
-                    if node_definition.global_phase:
-                        dag.global_phase += node_definition.global_phase
-                    dag.substitute_node(node, rule[0][0], inplace=True)
+                rule = node.op.definition.data
+                if len(rule) == 1 and len(node.qargs) == len(rule[0].qubits) == 1:
+                    if node.op.definition.global_phase:
+                        dag.global_phase += node.op.definition.global_phase
+                    dag.substitute_node(node, rule[0].operation, inplace=True)
                 else:
-                    decomposition = circuit_to_dag(node_definition)
+                    decomposition = circuit_to_dag(node.op.definition)
                     dag.substitute_node_with_dag(node, decomposition)
 
         return dag
