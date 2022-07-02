@@ -1284,11 +1284,21 @@ class QuantumCircuit:
             appender = self._append
             requester = self._resolve_classical_resource
         instructions = InstructionSet(resource_requester=requester)
-        for qarg, carg in operation.broadcast_arguments(expanded_qargs, expanded_cargs):
-            self._check_dups(qarg)
-            instruction = CircuitInstruction(operation, qarg, carg)
-            appender(instruction)
-            instructions.add(instruction)
+        if isinstance(operation, Instruction):
+            for qarg, carg in operation.broadcast_arguments(expanded_qargs, expanded_cargs):
+                self._check_dups(qarg)
+                instruction = CircuitInstruction(operation, qarg, carg)
+                appender(instruction)
+                instructions.add(instruction)
+        else:
+            # For Operations that are non-Instructions, we use the Instruction's default method
+            for qarg, carg in Instruction.broadcast_arguments(
+                operation, expanded_qargs, expanded_cargs
+            ):
+                self._check_dups(qarg)
+                instruction = CircuitInstruction(operation, qarg, carg)
+                appender(instruction)
+                instructions.add(instruction)
         return instructions
 
     # Preferred new style.
@@ -1342,7 +1352,9 @@ class QuantumCircuit:
         if old_style:
             instruction = CircuitInstruction(instruction, qargs, cargs)
         self._data.append(instruction)
-        self._update_parameter_table(instruction)
+        if isinstance(instruction.operation, Instruction):
+            self._update_parameter_table(instruction)
+
         # mark as normal circuit if a new instruction is added
         self.duration = None
         self.unit = "dt"
@@ -4204,7 +4216,8 @@ class QuantumCircuit:
         if not self._data:
             raise CircuitError("This circuit contains no instructions.")
         instruction = self._data.pop()
-        self._update_parameter_table_on_instruction_removal(instruction)
+        if isinstance(instruction.operation, Instruction):
+            self._update_parameter_table_on_instruction_removal(instruction)
         return instruction
 
     def _update_parameter_table_on_instruction_removal(self, instruction: CircuitInstruction):
