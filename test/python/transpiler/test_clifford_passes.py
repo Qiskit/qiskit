@@ -24,6 +24,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators import Clifford
 from qiskit.transpiler import PassManager
 from qiskit.quantum_info import Operator, random_clifford
+from qiskit.compiler.transpiler import transpile
 
 
 class TestCliffordPasses(QiskitTestCase):
@@ -228,6 +229,46 @@ class TestCliffordPasses(QiskitTestCase):
             self.assertTrue(Operator(qc3).equiv(Operator(qc3.decompose())))
             self.assertTrue(Operator(qc1).equiv(Operator(qc2)))
             self.assertTrue(Operator(qc1).equiv(Operator(qc3)))
+
+    def test_transpile_level_0(self):
+        """Make sure that transpile with optimization_level=0 transpiles
+        the Clifford."""
+        cliff1 = self.create_cliff1()
+        qc = QuantumCircuit(3)
+        qc.append(cliff1, [0, 1, 2])
+        self.assertIn("clifford", qc.count_ops())
+        qc2 = transpile(qc, optimization_level=0)
+        self.assertNotIn("clifford", qc2.count_ops())
+
+    def test_transpile_level_1(self):
+        """Make sure that transpile with optimization_level=1 transpiles
+        the Clifford."""
+        cliff1 = self.create_cliff1()
+        qc = QuantumCircuit(3)
+        qc.append(cliff1, [0, 1, 2])
+        self.assertIn("clifford", qc.count_ops())
+        qc2 = transpile(qc, optimization_level=1)
+        self.assertNotIn("clifford", qc2.count_ops())
+
+    def test_transpile_level_2(self):
+        """Make sure that transpile with optimization_level=2 transpiles
+        the Clifford."""
+        cliff1 = self.create_cliff1()
+        qc = QuantumCircuit(3)
+        qc.append(cliff1, [0, 1, 2])
+        self.assertIn("clifford", qc.count_ops())
+        qc2 = transpile(qc, optimization_level=2)
+        self.assertNotIn("clifford", qc2.count_ops())
+
+    def test_transpile_level_3(self):
+        """Make sure that transpile with optimization_level=2 transpiles
+        the Clifford."""
+        cliff1 = self.create_cliff1()
+        qc = QuantumCircuit(3)
+        qc.append(cliff1, [0, 1, 2])
+        self.assertIn("clifford", qc.count_ops())
+        qc2 = transpile(qc, optimization_level=3)
+        self.assertNotIn("clifford", qc2.count_ops())
 
 
 if __name__ == "__main__":
