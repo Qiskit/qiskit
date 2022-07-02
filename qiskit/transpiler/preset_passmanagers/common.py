@@ -309,7 +309,7 @@ def generate_translation_passmanager(
                 method=unitary_synthesis_method,
                 target=target,
             ),
-            HighLevelSynthesis()
+            HighLevelSynthesis(),
         ]
     else:
         raise TranspilerError("Invalid translation method %s." % method)
