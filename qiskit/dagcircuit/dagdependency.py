@@ -18,14 +18,12 @@ import heapq
 from collections import OrderedDict, defaultdict
 import warnings
 
-import numpy as np
 import retworkx as rx
 
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.dagcircuit.dagdepnode import DAGDepNode
-from qiskit.quantum_info.operators import Operator
 from qiskit.exceptions import MissingOptionalLibraryError
 
 
@@ -93,6 +91,9 @@ class DAGDependency:
 
         self.duration = None
         self.unit = "dt"
+
+        from qiskit.transpiler.passes.optimization.commutation_checker import CommutationChecker
+        self.cc = CommutationChecker()
 
     @property
     def global_phase(self):
@@ -487,7 +488,7 @@ class DAGDependency:
             self._multi_graph.get_node_data(current_node_id).reachable = True
         # Check the commutation relation with reachable node, it adds edges if it does not commute
         for prev_node_id in range(max_node_id - 1, -1, -1):
-            if self._multi_graph.get_node_data(prev_node_id).reachable and not _does_commute(
+            if self._multi_graph.get_node_data(prev_node_id).reachable and not self.cc.commute(
                 self._multi_graph.get_node_data(prev_node_id), max_node
             ):
                 self._multi_graph.add_edge(prev_node_id, max_node_id, {"commute": False})
@@ -567,71 +568,3 @@ def merge_no_duplicates(*iterables):
             yield val
 
 
-def _does_commute(node1, node2):
-    """Function to verify commutation relation between two nodes in the DAG.
-
-    Args:
-        node1 (DAGnode): first node operation
-        node2 (DAGnode): second node operation
-
-    Return:
-        bool: True if the nodes commute and false if it is not the case.
-    """
-
-    # Create set of qubits on which the operation acts
-    qarg1 = [node1.qargs[i] for i in range(0, len(node1.qargs))]
-    qarg2 = [node2.qargs[i] for i in range(0, len(node2.qargs))]
-
-    # Create set of cbits on which the operation acts
-    carg1 = [node1.cargs[i] for i in range(0, len(node1.cargs))]
-    carg2 = [node2.cargs[i] for i in range(0, len(node2.cargs))]
-
-    # Commutation for classical conditional gates
-    # if and only if the qubits are different.
-    # TODO: qubits can be the same if conditions are identical and
-    # the non-conditional gates commute.
-    if node1.type == "op" and node2.type == "op":
-        if node1.op.condition or node2.op.condition:
-            intersection = set(qarg1).intersection(set(qarg2))
-            return not intersection
-
-    # Commutation for non-unitary or parameterized or opaque ops
-    # (e.g. measure, reset, directives or pulse gates)
-    # if and only if the qubits and clbits are different.
-    non_unitaries = ["measure", "reset", "initialize", "delay"]
-
-    def _unknown_commutator(n):
-        return n.op._directive or n.name in non_unitaries or n.op.is_parameterized()
-
-    if _unknown_commutator(node1) or _unknown_commutator(node2):
-        intersection_q = set(qarg1).intersection(set(qarg2))
-        intersection_c = set(carg1).intersection(set(carg2))
-        return not (intersection_q or intersection_c)
-
-    # Gates over disjoint sets of qubits commute
-    if not set(qarg1).intersection(set(qarg2)):
-        return True
-
-    # Known non-commuting gates (TODO: add more).
-    non_commute_gates = [{"x", "y"}, {"x", "z"}]
-    if qarg1 == qarg2 and ({node1.name, node2.name} in non_commute_gates):
-        return False
-
-    # Create matrices to check commutation relation if no other criteria are matched
-    qarg = list(set(node1.qargs + node2.qargs))
-    qbit_num = len(qarg)
-
-    qarg1 = [qarg.index(q) for q in node1.qargs]
-    qarg2 = [qarg.index(q) for q in node2.qargs]
-
-    dim = 2**qbit_num
-    id_op = np.reshape(np.eye(dim), (2, 2) * qbit_num)
-
-    op1 = np.reshape(node1.op.to_matrix(), (2, 2) * len(qarg1))
-    op2 = np.reshape(node2.op.to_matrix(), (2, 2) * len(qarg2))
-
-    op = Operator._einsum_matmul(id_op, op1, qarg1)
-    op12 = Operator._einsum_matmul(op, op2, qarg2, right_mul=False)
-    op21 = Operator._einsum_matmul(op, op2, qarg2, shift=qbit_num, right_mul=True)
-
-    return np.allclose(op12, op21)

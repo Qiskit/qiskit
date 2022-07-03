@@ -10,10 +10,8 @@ from qiskit.transpiler.passes import CommutationAnalysis, CommutativeCancellatio
     TemplateOptimization
 from qiskit.transpiler.passes.optimization.commutative_inverse_cancellation import CommutativeInverseCancellation
 from test.python.quantum_info.operators.symplectic.test_clifford import random_clifford_circuit
-from qiskit.dagcircuit.dagdependency import _does_commute
 from qiskit.circuit.library import Permutation, LinearFunction, CXGate, HGate, SGate, SdgGate, SwapGate, CZGate, ZGate, XGate, YGate
 from qiskit.quantum_info import Operator
-from qiskit.transpiler.passes.optimization.commutation_analysis import _commute
 from qiskit.quantum_info.operators import Clifford
 from qiskit.circuit.library.templates import *
 
@@ -170,6 +168,18 @@ def optimize_circ4():
     optimize_circuit_aux(qc, is_cliff=False)
 
 
+def optimize_circ5():
+    print(f"========RUNNING EXPERIMENT 5")
+    qc = QuantumCircuit(3)
+    qc.initialize("001", qc.qubits)
+    qc.cx(0, 1)
+    qc.measure_all()
+    print(qc)
+    qc2 = transpile(qc, optimization_level=0)
+    print(qc2)
+    # optimize_circuit_aux(qc, is_cliff=False)
+
+
 # Only the new pass
 def optimize_circuit_commutative_inverse_cancellation_aux(qc, is_cliff=True):
     # print("=== CommutativeInverseCancellation ===")
@@ -298,18 +308,43 @@ def time_template_optimization():
     time_template_optimization_aux(10, 1000, seed=0)
 
 
+def test_commutative1():
+    qc1 = QuantumCircuit(5)
+    qc1.z(3)
+    qc1.cx(3, 0)
+
+    qc2 = QuantumCircuit(5)
+    qc2.cx(3, 0)
+    qc2.z(3)
+
+    print(Operator(qc1) == Operator(qc2))
+
+def test_commutative2():
+    qc1 = QuantumCircuit(5)
+    qc1.cz(3, 1)
+    qc1.sdg(1)
+
+    qc2 = QuantumCircuit(5)
+    qc2.sdg(1)
+    qc2.cz(3, 1)
+
+    print(Operator(qc1) == Operator(qc2))
+
+
+
 
 if __name__ == "__main__":
     # time_construct_dag_dependency()
     # memory_construct_dag_dependency()
     # time_template_optimization()
-    # optimize()
-    optimize_commutative_inverse_cancellation()
+    optimize()
+    # optimize_commutative_inverse_cancellation()
     # optimize_circ1()
     # optimize_circ2()
     # optimize_circ3()
     # optimize_circ4()
-
+    # optimize_circ5()
+    # test_commutative2()
 
 
 

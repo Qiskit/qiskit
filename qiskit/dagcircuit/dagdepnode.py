@@ -17,9 +17,9 @@
 import warnings
 
 from qiskit.exceptions import QiskitError
+from qiskit.dagcircuit import DAGOpNode
 
-
-class DAGDepNode:
+class DAGDepNode(DAGOpNode):
     """Object to represent the information at a node in the DAGDependency().
 
     It is used as the return value from `*_nodes()` functions and can

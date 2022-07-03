@@ -56,6 +56,8 @@ class CommutationChecker:
         return ("fallback", str(params))
 
     def commute(self, node1, node2):
+        if not isinstance(node1, DAGOpNode) or not isinstance(node2, DAGOpNode):
+            return False
 
         # This portion is new, and says that two nodes with both different qubits and clbits
         # necessarily commute. Presumably this was not present in commutative_analysis since
@@ -76,8 +78,6 @@ class CommutationChecker:
 
         # The code below this line is from commutative_analysis
 
-        if not isinstance(node1, DAGOpNode) or not isinstance(node2, DAGOpNode):
-            return False
         for nd in [node1, node2]:
             if nd.op._directive or nd.name in {"measure", "reset", "delay"}:
                 return False
