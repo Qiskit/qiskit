@@ -31,7 +31,8 @@ class CommutationAnalysis(AnalysisPass):
     def __init__(self):
         super().__init__()
         from qiskit.transpiler.passes.optimization.commutation_checker import CommutationChecker
-        self.cc = CommutationChecker()
+
+        self.comm_checker = CommutationChecker()
 
     def run(self, dag):
         """Run the CommutationAnalysis pass on `dag`.
@@ -70,7 +71,7 @@ class CommutationAnalysis(AnalysisPass):
                     prev_gate = current_comm_set[-1][-1]
                     does_commute = False
                     try:
-                        does_commute = self.cc.commute(current_gate, prev_gate)
+                        does_commute = self.comm_checker.commute(current_gate, prev_gate)
                     except TranspilerError:
                         pass
                     if does_commute:
@@ -81,4 +82,3 @@ class CommutationAnalysis(AnalysisPass):
 
                 temp_len = len(current_comm_set)
                 self.property_set["commutation_set"][(current_gate, wire)] = temp_len - 1
-

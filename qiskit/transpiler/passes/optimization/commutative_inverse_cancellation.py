@@ -20,10 +20,6 @@ from qiskit.transpiler.basepasses import TransformationPass
 class CommutativeInverseCancellation(TransformationPass):
     """Cancel pairs of inverse gates exploiting commutation relations."""
 
-    def __init__(self):
-        """Initialize CommutativeInverseCancellation pass."""
-        super().__init__()
-
     def _skip_node(self, node):
         """Returns True if we should skip this node for the analysis."""
         if node.op._directive or node.name in {"measure", "reset", "delay"}:

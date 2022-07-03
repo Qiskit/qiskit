@@ -17,7 +17,8 @@
 import warnings
 
 from qiskit.exceptions import QiskitError
-from qiskit.dagcircuit import DAGOpNode
+from qiskit.dagcircuit.dagnode import DAGOpNode
+
 
 class DAGDepNode(DAGOpNode):
     """Object to represent the information at a node in the DAGDependency().
@@ -87,6 +88,7 @@ class DAGDepNode(DAGOpNode):
         self.successorstovisit = successorstovisit if successorstovisit is not None else []
         self.qindices = qindices if qindices is not None else []
         self.cindices = cindices if cindices is not None else []
+        super().__init__(op, qargs, cargs)
 
     @property
     def op(self):
@@ -141,6 +143,7 @@ class DAGDepNode(DAGOpNode):
         self.sort_key = str(new_qargs)
 
     @staticmethod
+    # pylint: disable=arguments-differ
     def semantic_eq(node1, node2):
         """
         Check if DAG nodes are considered equivalent, e.g., as a node_match for nx.is_isomorphic.

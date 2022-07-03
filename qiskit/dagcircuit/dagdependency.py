@@ -92,8 +92,10 @@ class DAGDependency:
         self.duration = None
         self.unit = "dt"
 
+        # pylint: disable=cyclic-import
         from qiskit.transpiler.passes.optimization.commutation_checker import CommutationChecker
-        self.cc = CommutationChecker()
+
+        self.comm_checker = CommutationChecker()
 
     @property
     def global_phase(self):
@@ -488,7 +490,9 @@ class DAGDependency:
             self._multi_graph.get_node_data(current_node_id).reachable = True
         # Check the commutation relation with reachable node, it adds edges if it does not commute
         for prev_node_id in range(max_node_id - 1, -1, -1):
-            if self._multi_graph.get_node_data(prev_node_id).reachable and not self.cc.commute(
+            if self._multi_graph.get_node_data(
+                prev_node_id
+            ).reachable and not self.comm_checker.commute(
                 self._multi_graph.get_node_data(prev_node_id), max_node
             ):
                 self._multi_graph.add_edge(prev_node_id, max_node_id, {"commute": False})
@@ -566,5 +570,3 @@ def merge_no_duplicates(*iterables):
         if val != last:
             last = val
             yield val
-
-

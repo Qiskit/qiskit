@@ -30,7 +30,7 @@ class CommutationChecker:
     def __init__(self):
         super().__init__()
         self.cache = {}
-        self._COMMUTE_ID_OP = {}
+        self.commute_id_op = {}
 
     def _hashable_parameters(self, params):
         """Convert the parameters of a gate into a hashable format for lookup in a dictionary.
@@ -56,6 +56,7 @@ class CommutationChecker:
         return ("fallback", str(params))
 
     def commute(self, node1, node2):
+        """Checks if two nodes commute."""
         if not isinstance(node1, DAGOpNode) or not isinstance(node2, DAGOpNode):
             return False
 
@@ -79,12 +80,13 @@ class CommutationChecker:
         # The code below this line is from commutative_analysis
 
         for nd in [node1, node2]:
-            if nd.op._directive or nd.name in {"measure", "reset", "delay"}:
+            if (
+                nd.op._directive
+                or nd.name in {"measure", "reset", "delay"}
+                or nd.op.condition
+                or nd.op.is_parameterized()
+            ):
                 return False
-        if node1.op.condition or node2.op.condition:
-            return False
-        if node1.op.is_parameterized() or node2.op.is_parameterized():
-            return False
 
         # Assign indices to each of the qubits such that all `node1`'s qubits come first, followed by
         # any _additional_ qubits `node2` addresses.  This helps later when we need to compose one
@@ -120,9 +122,9 @@ class CommutationChecker:
             extra_qarg2 = num_qubits - len(qarg1)
             if extra_qarg2:
                 try:
-                    id_op = self._COMMUTE_ID_OP[extra_qarg2]
+                    id_op = self.commute_id_op[extra_qarg2]
                 except KeyError:
-                    id_op = self._COMMUTE_ID_OP[extra_qarg2] = Operator(
+                    id_op = self.commute_id_op[extra_qarg2] = Operator(
                         np.eye(2**extra_qarg2),
                         input_dims=(2,) * extra_qarg2,
                         output_dims=(2,) * extra_qarg2,
@@ -132,7 +134,3 @@ class CommutationChecker:
             op21 = operator_1.compose(operator_2, qargs=qarg2, front=True)
         self.cache[node1_key, node2_key] = self.cache[node2_key, node1_key] = ret = op12 == op21
         return ret
-
-    def print(self):
-        print(f"CommutationChecker has cache of size {len(self.cache)}")
-        # print(self.cache)
