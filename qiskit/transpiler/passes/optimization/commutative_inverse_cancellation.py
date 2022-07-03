@@ -93,6 +93,3 @@ class CommutativeInverseCancellation(TransformationPass):
                 dag.remove_op_node(topo_sorted_nodes[idx])
 
         return dag
-
-
-
