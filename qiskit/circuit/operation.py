@@ -61,12 +61,6 @@ class Operation(ABC):
         raise NotImplementedError
 
     @property
-    def _directive(self):
-        """Class attribute to treat like barrier for transpiler, unroller, drawer.
-        This is temporary, please do not use."""
-        return False
-
-    @property
     def condition(self):
         """Condition for when the instruction has a conditional if.
         This is temporary, please do not use."""

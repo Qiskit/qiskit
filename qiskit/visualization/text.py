@@ -1055,7 +1055,7 @@ class TextDrawing:
         base_gate = getattr(op, "base_gate", None)
 
         params = get_param_str(op, "text", ndigits=5)
-        if not isinstance(op, (Measure, SwapGate, Reset)) and not op._directive:
+        if not isinstance(op, (Measure, SwapGate, Reset)) and not getattr(op, "_directive", False):
             gate_text, ctrl_text, _ = get_gate_ctrl_text(op, "text")
             gate_text = TextDrawing.special_label(op) or gate_text
             gate_text = gate_text + params
@@ -1087,7 +1087,7 @@ class TextDrawing:
             else:
                 layer.set_clbit(node.cargs[0], MeasureTo())
 
-        elif op._directive:
+        elif getattr(op, "_directive", False):
             # barrier
             if not self.plotbarriers:
                 return layer, current_cons, connection_label

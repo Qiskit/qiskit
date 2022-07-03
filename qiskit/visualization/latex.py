@@ -429,7 +429,7 @@ class QCircuitImage:
                 if isinstance(op, Measure):
                     self._build_measure(node, column)
 
-                elif op._directive:  # barrier, snapshot, etc.
+                elif getattr(op, "_directive", False):  # barrier, snapshot, etc.
                     self._build_barrier(node, column)
 
                 else:

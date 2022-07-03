@@ -54,7 +54,7 @@ class Unroller(TransformationPass):
         # Walk through the DAG and expand each non-basis node
         basic_insts = ["measure", "reset", "barrier", "snapshot", "delay"]
         for node in dag.op_nodes():
-            if node.op._directive:
+            if getattr(node.op, "_directive", False):
                 continue
 
             if node.name in basic_insts:

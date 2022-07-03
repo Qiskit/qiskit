@@ -1946,7 +1946,10 @@ class QuantumCircuit:
         )
 
     def size(
-        self, filter_function: Optional[callable] = lambda x: not x.operation._directive
+        self,
+        filter_function: Optional[callable] = lambda x: not getattr(
+            x.operation, "_directive", False
+        ),
     ) -> int:
         """Returns total number of instructions in circuit.
 
@@ -1961,7 +1964,10 @@ class QuantumCircuit:
         return sum(map(filter_function, self._data))
 
     def depth(
-        self, filter_function: Optional[callable] = lambda x: not x.operation._directive
+        self,
+        filter_function: Optional[callable] = lambda x: not getattr(
+            x.operation, "_directive", False
+        ),
     ) -> int:
         """Return circuit depth (i.e., length of critical path).
 
@@ -2074,7 +2080,9 @@ class QuantumCircuit:
         """
         multi_qubit_gates = 0
         for instruction in self._data:
-            if instruction.operation.num_qubits > 1 and not instruction.operation._directive:
+            if instruction.operation.num_qubits > 1 and not getattr(
+                instruction.operation, "_directive", False
+            ):
                 multi_qubit_gates += 1
         return multi_qubit_gates
 
@@ -2117,7 +2125,7 @@ class QuantumCircuit:
                 args = instruction.qubits + instruction.clbits
                 num_qargs = len(args) + (1 if instruction.operation.condition else 0)
 
-            if num_qargs >= 2 and not instruction.operation._directive:
+            if num_qargs >= 2 and not getattr(instruction.operation, "_directive", False):
                 graphs_touched = []
                 num_touched = 0
                 # Controls necessarily join all the cbits in the

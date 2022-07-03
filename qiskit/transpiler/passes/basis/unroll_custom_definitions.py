@@ -57,7 +57,7 @@ class UnrollCustomDefinitions(TransformationPass):
 
         for node in dag.op_nodes():
 
-            if node.op._directive:
+            if getattr(node.op, "_directive", False):
                 continue
 
             if dag.has_calibration_for(node):

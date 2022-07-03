@@ -1379,7 +1379,7 @@ class DAGCircuit:
         nodes = []
         for node in self._multi_graph.nodes():
             if isinstance(node, DAGOpNode):
-                if not include_directives and node.op._directive:
+                if not include_directives and getattr(node.op, "_directive", False):
                     continue
                 if op is None or isinstance(node.op, op):
                     nodes.append(node)
@@ -1584,7 +1584,9 @@ class DAGCircuit:
 
             # The quantum registers that have an operation in this layer.
             support_list = [
-                op_node.qargs for op_node in new_layer.op_nodes() if not op_node.op._directive
+                op_node.qargs
+                for op_node in new_layer.op_nodes()
+                if not getattr(op_node.op, "_directive", False)
             ]
 
             yield {"graph": new_layer, "partition": support_list}
@@ -1610,7 +1612,7 @@ class DAGCircuit:
             # Add node to new_layer
             new_layer.apply_operation_back(op, qargs, cargs)
             # Add operation to partition
-            if not next_node.op._directive:
+            if not getattr(next_node.op, "_directive", False):
                 support_list.append(list(qargs))
             l_dict = {"graph": new_layer, "partition": support_list}
             yield l_dict
