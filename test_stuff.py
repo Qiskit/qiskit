@@ -1,4 +1,5 @@
 import cProfile, pstats
+import numpy as np
 import time
 import qiskit.circuit.library
 from qiskit import QuantumCircuit, transpile
@@ -43,7 +44,8 @@ def optimize_circuit_aux(qc, is_cliff=True):
     # print(f"ops2: {ops2}")
     # print(f"#gates = {sum([ops2[x] for x in ops2])}")
     # print(f"time = {end_time-start_time:.4f}")
-    print(f"Transpile: #gates = {sum([ops2[x] for x in ops2])}, time = {end_time-start_time:.4f}")
+    print(f"Transpile: #qubits = {qc.num_qubits}, #gates = {sum([ops[x] for x in ops])}, #gates_opt = {sum([ops2[x] for x in ops2])}, time = {end_time - start_time:.4f}")
+
     # if is_cliff:
     #     cliff2 = Clifford(qc2)
     #     print(cliff2)
@@ -61,7 +63,8 @@ def optimize_circuit_aux(qc, is_cliff=True):
     # print(f"ops2: {ops2}")
     # print(f"#gates = {sum([ops2[x] for x in ops2])}")
     # print(f"time = {end_time-start_time:.4f}")
-    print(f"InverseCancellation: #gates = {sum([ops2[x] for x in ops2])}, time = {end_time-start_time:.4f}")
+    print(f"InverseCancellation: #qubits = {qc.num_qubits}, #gates = {sum([ops[x] for x in ops])}, #gates_opt = {sum([ops2[x] for x in ops2])}, time = {end_time - start_time:.4f}")
+
     if is_cliff:
         cliff2 = Clifford(qc2)
         # print(cliff2)
@@ -72,14 +75,15 @@ def optimize_circuit_aux(qc, is_cliff=True):
 
     # print("=== CommutativeInverseCancellation ===")
     start_time = time.time()
-    pm2 = PassManager(CommutativeInverseCancellation(gates_to_cancel=gates_to_cancel))
+    pm2 = PassManager(CommutativeInverseCancellation())
     qc2 = pm2.run(qc)
     end_time = time.time()
     ops2 = qc2.count_ops()
     # print(f"ops2: {ops2}")
     # print(f"#gates = {sum([ops2[x] for x in ops2])}")
     # print(f"time = {end_time-start_time:.4f}")
-    print(f"CommutativeInverseCancellation: #gates = {sum([ops2[x] for x in ops2])}, time = {end_time-start_time:.4f}")
+    print(f"CommutativeInverseCancellation: #qubits = {qc.num_qubits}, #gates = {sum([ops[x] for x in ops])}, #gates_opt = {sum([ops2[x] for x in ops2])}, time = {end_time-start_time:.4f}")
+
     if is_cliff:
         cliff2 = Clifford(qc2)
         # print(cliff2)
@@ -97,7 +101,7 @@ def optimize_circuit_aux(qc, is_cliff=True):
     # print(f"ops2: {ops2}")
     # print(f"#gates = {sum([ops2[x] for x in ops2])}")
     # print(f"time = {end_time-start_time:.4f}")
-    print(f"CommutativeCancellation: #gates = {sum([ops2[x] for x in ops2])}, time = {end_time-start_time:.4f}")
+    print(f"CommutativeCancellation: #qubits = {qc.num_qubits}, #gates = {sum([ops[x] for x in ops])}, #gates_opt = {sum([ops2[x] for x in ops2])}, time = {end_time-start_time:.4f}")
 
     # if is_cliff:
     #     cliff2 = Clifford(qc2)
@@ -146,6 +150,65 @@ def optimize_circ2():
     qc.h(1)
     print(qc)
     optimize_circuit_aux(qc)
+
+
+def optimize_circ3():
+    print(f"========RUNNING EXPERIMENT 3")
+    qc = QuantumCircuit(2)
+    qc.p(np.pi / 4, 0)
+    qc.p(-np.pi / 4, 0)
+    print(qc)
+    optimize_circuit_aux(qc, is_cliff=False)
+
+
+def optimize_circ4():
+    print(f"========RUNNING EXPERIMENT 4")
+    qc = QuantumCircuit(2)
+    qc.p(np.pi / 4, 0)
+    qc.p(-np.pi / 2, 0)
+    print(qc)
+    optimize_circuit_aux(qc, is_cliff=False)
+
+
+# Only the new pass
+def optimize_circuit_commutative_inverse_cancellation_aux(qc, is_cliff=True):
+    # print("=== CommutativeInverseCancellation ===")
+    gates_to_cancel = [CXGate(), HGate(), SwapGate(), CZGate(), ZGate(), XGate(), YGate()]
+    if is_cliff:
+        cliff = Clifford(qc)
+    ops = qc.count_ops()
+
+    start_time = time.time()
+    pm2 = PassManager(CommutativeInverseCancellation())
+    qc2 = pm2.run(qc)
+    end_time = time.time()
+    ops2 = qc2.count_ops()
+    # print(f"ops2: {ops2}")
+    # print(f"#gates = {sum([ops2[x] for x in ops2])}")
+    # print(f"time = {end_time-start_time:.4f}")
+    print(f"CommutativeInverseCancellation: #qubits = {qc.num_qubits}, #gates = {sum([ops[x] for x in ops])}, #gates_opt = {sum([ops2[x] for x in ops2])}, time = {end_time-start_time:.4f}")
+    if is_cliff:
+        cliff2 = Clifford(qc2)
+        # print(cliff2)
+        ok = cliff == cliff2
+        # print(f"{ok = }")
+        assert ok
+    # print("")
+
+
+def optimize_commutative_inverse_cancellation_aux(num_qubits, num_gates, seed):
+    gates = ["x", "y", "z", "h", "s", "sdg", "cx", "cz", "swap"]
+    qc = random_clifford_circuit(num_qubits, num_gates, gates=gates, seed=seed)
+    optimize_circuit_commutative_inverse_cancellation_aux(qc)
+
+
+def optimize_commutative_inverse_cancellation():
+    optimize_commutative_inverse_cancellation_aux(5, 1000, 0)
+    optimize_commutative_inverse_cancellation_aux(5, 5000, 0)
+    optimize_commutative_inverse_cancellation_aux(10, 1000, 0)
+    optimize_commutative_inverse_cancellation_aux(10, 5000, 0)
+    optimize_commutative_inverse_cancellation_aux(50, 1000, 0)
+    optimize_commutative_inverse_cancellation_aux(50, 5000, 0)
 
 
 # =====================================
@@ -240,7 +303,12 @@ if __name__ == "__main__":
     # time_construct_dag_dependency()
     # memory_construct_dag_dependency()
     # time_template_optimization()
-    optimize()
+    # optimize()
+    optimize_commutative_inverse_cancellation()
+    # optimize_circ1()
+    # optimize_circ2()
+    # optimize_circ3()
+    # optimize_circ4()
 
 
 
