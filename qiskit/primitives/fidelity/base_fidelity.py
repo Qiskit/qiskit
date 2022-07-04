@@ -13,16 +13,16 @@
 Base fidelity primitive
 """
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 
-from typing import List, Union
+from typing import List, Union, Optional
 
 
-class BaseFidelity:
+class BaseFidelity(ABC):
     """
     Implements the interface to calculate fidelities.
     """
@@ -31,14 +31,14 @@ class BaseFidelity:
         self,
         left_circuit: QuantumCircuit,
         right_circuit: QuantumCircuit,
-    ):
+    ) -> None:
         """
-        Initializes the class to evaluate the fidelities defined as the state overlap
-            |<left_circuit(x), right_circuit(y)>|^2,
-        where x and y are parametrizations of the circuits.
+        Initializes the class to evaluate the fidelities defined as the state fidelity
+            :math:`|\braket{\psi(x)} {\phi(y)}|^2`,
+        where x and y are parametrizations of the circuits :math:`\psi` and :math:`\phi`.
         Args:
-            - left_circuit: (Parametrized) quantum circuit
-            - right_circuit: (Parametrized) quantum circuit
+            - left_circuit: (Parametrized) quantum circuit :math:`\psi`
+            - right_circuit: (Parametrized) quantum circuit :math:`\phi`
         Raises:
             - ValueError: left_circuit and right_circuit don't have the same number of qubits
         """
@@ -51,19 +51,20 @@ class BaseFidelity:
         self._left_circuit = left_circuit
         self._right_circuit = right_circuit
 
-        # Assigning parameter arrays to the two circuits
-        self._left_parameters = ParameterVector("x", left_circuit.num_parameters)
-        self._left_circuit = left_circuit.assign_parameters(self._left_parameters)
+        # Reassigning parameters to make sure that left and right parameters are independent
+        # even in case that left_circuit == right_circuit
+        left_parameters = ParameterVector("x", left_circuit.num_parameters)
+        self._left_circuit = left_circuit.assign_parameters(left_parameters)
 
-        self._right_parameters = ParameterVector("y", right_circuit.num_parameters)
-        self._right_circuit = right_circuit.assign_parameters(self._right_parameters)
+        right_parameters = ParameterVector("y", right_circuit.num_parameters)
+        self._right_circuit = right_circuit.assign_parameters(right_parameters)
 
     @abstractmethod
     def compute(
         self,
-        values_left: Union[np.ndarray, List[np.ndarray]],
-        values_right: Union[np.ndarray, List[np.ndarray]],
-    ) -> Union[float, List[float]]:
+        values_left: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
+        values_right: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
+    ) -> np.ndarray:
         """Compute the overlap of two quantum states bound by the parametrizations values_left and values_right.
 
         Args:

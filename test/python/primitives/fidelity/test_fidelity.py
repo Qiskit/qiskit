@@ -40,7 +40,14 @@ class TestFidelity(QiskitTestCase):
         ry_rotations = QuantumCircuit(2)
         ry_rotations.ry(parameters[0], 0)
         ry_rotations.ry(parameters[1], 1)
-        self._circuit = [rx_rotations, ry_rotations]
+
+        plus = QuantumCircuit(2)
+        plus.h(0)
+        plus.h(1)
+
+        zero = QuantumCircuit(2)
+
+        self._circuit = [rx_rotations, ry_rotations, plus, zero]
         self._sampler_factory = partial(Sampler)
         self._params_left = np.array([[0, 0], [np.pi / 2, 0], [0, np.pi / 2], [np.pi, np.pi]])
         self._params_right = np.array([[0, 0], [0, 0], [np.pi / 2, 0], [0, 0]])
@@ -66,6 +73,24 @@ class TestFidelity(QiskitTestCase):
             results_1 = fidelity.compute(self._params_left, self._params_right)
             results_2 = fidelity.compute(self._params_right, self._params_left)
             np.testing.assert_allclose(results_1, results_2, atol=1e-16)
+
+    def test_fidelity_no_params(self):
+        """test for fidelity without parameters"""
+        with Fidelity(self._circuit[2], self._circuit[3], self._sampler_factory) as fidelity:
+            results = fidelity.compute()
+            np.testing.assert_allclose(results, np.array([0.25]), atol=1e-16)
+
+    def test_fidelity_left_param(self):
+        """test for fidelity with only left parameters"""
+        with Fidelity(self._circuit[1], self._circuit[3], self._sampler_factory) as fidelity:
+            results = fidelity.compute(values_left=self._params_left)
+            np.testing.assert_allclose(results, np.array([1.0, 0.5, 0.5, 0.0]), atol=1e-16)
+
+    def test_fidelity_right_param(self):
+        """test for fidelity with only right parameters"""
+        with Fidelity(self._circuit[3], self._circuit[1], self._sampler_factory) as fidelity:
+            results = fidelity.compute(values_right=self._params_left)
+            np.testing.assert_allclose(results, np.array([1.0, 0.5, 0.5, 0.0]), atol=1e-16)
 
 
 if __name__ == "__main__":
