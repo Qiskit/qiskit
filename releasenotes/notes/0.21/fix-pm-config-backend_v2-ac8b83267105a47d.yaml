@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed support in the :meth:`.PassManagerConfig.from_backend` constructor
+    method for building a :class:`~.PassManagerConfig` object from a
+    :class:`~.BackendV2` instance. Previously this wasn't handled correctly
+    and would fail when running with a :class:`~.BackendV2` object.

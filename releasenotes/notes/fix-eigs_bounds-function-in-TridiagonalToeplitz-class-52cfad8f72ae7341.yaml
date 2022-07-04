@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    Fix a bug in TridiagonalToeplitz.eigs_bounds() method, which caused
-    a returning of wrong eigenvalues bounds in some cases with negative
-    eigenvalues. Refer to `#7939 <https://github.com/Qiskit/qiskit-terra/issues/7939>` 
-    for more details.

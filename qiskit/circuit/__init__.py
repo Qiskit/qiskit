@@ -177,6 +177,7 @@ Quantum Circuit Construction
    Clbit
    AncillaRegister
    AncillaQubit
+   CircuitInstruction
 
 Gates and Instructions
 ----------------------
@@ -238,6 +239,7 @@ from .reset import Reset
 from .parameter import Parameter
 from .parametervector import ParameterVector
 from .parameterexpression import ParameterExpression
+from .quantumcircuitdata import CircuitInstruction
 from .equivalence import EquivalenceLibrary
 from .classicalfunction.types import Int1, Int2
 from .classicalfunction import classical_function, BooleanExpression
