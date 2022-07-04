@@ -30,6 +30,7 @@ Fidelity
 
 """
 
-from .fidelity import BaseFidelity, Fidelity
+from .base_fidelity import BaseFidelity
+from .fidelity import Fidelity
 
 __all__ = ["BaseFidelity", "Fidelity"]
