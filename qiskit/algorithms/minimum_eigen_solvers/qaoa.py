@@ -15,12 +15,11 @@
 from typing import List, Callable, Optional, Union
 import numpy as np
 
-from qiskit.algorithms.optimizers import Optimizer
+from qiskit.algorithms.optimizers import Minimizer, Optimizer
 from qiskit.circuit import QuantumCircuit
 from qiskit.opflow import OperatorBase, ExpectationBase
 from qiskit.opflow.gradients import GradientBase
 from qiskit.providers import Backend
-from qiskit.providers import BaseBackend
 from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.utils.validation import validate_min
 from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
@@ -55,7 +54,7 @@ class QAOA(VQE):
 
     def __init__(
         self,
-        optimizer: Optimizer = None,
+        optimizer: Optional[Union[Optimizer, Minimizer]] = None,
         reps: int = 1,
         initial_state: Optional[QuantumCircuit] = None,
         mixer: Union[QuantumCircuit, OperatorBase] = None,
@@ -65,11 +64,12 @@ class QAOA(VQE):
         include_custom: bool = False,
         max_evals_grouped: int = 1,
         callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
-        quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
     ) -> None:
         """
         Args:
-            optimizer: A classical optimizer.
+            optimizer: A classical optimizer, see also :class:`~qiskit.algorithms.VQE` for
+                more details on the possible types.
             reps: the integer parameter :math:`p` as specified in https://arxiv.org/abs/1411.4028,
                 Has a minimum valid value of 1.
             initial_state: An optional initial state to prepend the QAOA circuit with

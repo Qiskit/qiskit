@@ -14,17 +14,11 @@
 
 from typing import Any, Dict, Callable, Optional, List, Tuple
 
-from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.utils import optionals as _optionals
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
-try:
-    import skquant.opt as skq
 
-    _HAS_SKQUANT = True
-except ImportError:
-    _HAS_SKQUANT = False
-
-
+@_optionals.HAS_SKQUANT.require_in_instance
 class IMFIL(Optimizer):
     """IMplicit FILtering algorithm.
 
@@ -49,10 +43,6 @@ class IMFIL(Optimizer):
         Raises:
             MissingOptionalLibraryError: scikit-quant not installed
         """
-        if not _HAS_SKQUANT:
-            raise MissingOptionalLibraryError(
-                libname="scikit-quant", name="IMFIL", pip_install="pip install scikit-quant"
-            )
         super().__init__()
         self._maxiter = maxiter
 
@@ -77,6 +67,8 @@ class IMFIL(Optimizer):
         jac: Optional[Callable[[POINT], POINT]] = None,
         bounds: Optional[List[Tuple[float, float]]] = None,
     ) -> OptimizerResult:
+        from skquant import opt as skq
+
         res, history = skq.minimize(
             func=fun,
             x0=x0,
@@ -90,20 +82,3 @@ class IMFIL(Optimizer):
         optimizer_result.fun = res.optval
         optimizer_result.nfev = len(history)
         return optimizer_result
-
-    def optimize(
-        self,
-        num_vars,
-        objective_function,
-        gradient_function=None,
-        variable_bounds=None,
-        initial_point=None,
-    ):
-        """Runs the optimization."""
-        super().optimize(
-            num_vars, objective_function, gradient_function, variable_bounds, initial_point
-        )
-        result = self.minimize(
-            objective_function, initial_point, gradient_function, variable_bounds
-        )
-        return result.x, result.fun, result.nfev

@@ -17,16 +17,16 @@ import warnings
 
 from typing import Union, Callable, List, Dict, Tuple
 
-from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.pulse import Schedule, Instruction, Waveform
 from qiskit.pulse.channels import Channel
+from qiskit.utils import optionals as _optionals
 from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse import matplotlib as _matplotlib
-from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
 from qiskit.visualization.utils import matplotlib_close_if_inline
 
 
+@_optionals.HAS_MATPLOTLIB.require_in_call
 def pulse_drawer(
     data: Union[Waveform, Union[Schedule, Instruction]],
     dt: int = 1,
@@ -89,7 +89,7 @@ def pulse_drawer(
             import numpy as np
             import qiskit
             from qiskit import pulse
-            from qiskit.test.mock.backends.almaden import FakeAlmaden
+            from qiskit.providers.fake_provider import FakeAlmaden
 
             inst_map = FakeAlmaden().defaults().instruction_schedule_map
 
@@ -117,7 +117,7 @@ def pulse_drawer(
             import numpy as np
             import qiskit
             from qiskit import pulse
-            from qiskit.test.mock.backends.almaden import FakeAlmaden
+            from qiskit.providers.fake_provider import FakeAlmaden
 
             inst_map = FakeAlmaden().defaults().instruction_schedule_map
 
@@ -154,12 +154,6 @@ def pulse_drawer(
         DeprecationWarning,
     )
 
-    if not HAS_MATPLOTLIB:
-        raise MissingOptionalLibraryError(
-            libname="Matplotlib",
-            name="pulse_drawer",
-            pip_install="pip install matplotlib",
-        )
     if isinstance(data, Waveform):
         drawer = _matplotlib.WaveformDrawer(style=style)
         image = drawer.draw(data, dt=dt, interp_method=interp_method, scale=scale)

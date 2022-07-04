@@ -28,6 +28,7 @@ from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
+from qiskit.quantum_info.synthesis.qsd import qs_decomposition
 from qiskit.quantum_info.synthesis.two_qubit_decompose import two_qubit_cnot_decompose
 from qiskit.extensions.exceptions import ExtensionError
 
@@ -35,7 +36,28 @@ _DECOMPOSER1Q = OneQubitEulerDecomposer("U3")
 
 
 class UnitaryGate(Gate):
-    """Class for representing unitary gates"""
+    """Class quantum gates specified by a unitary matrix.
+
+    Example:
+
+        We can create a unitary gate from a unitary matrix then add it
+        to a quantum circuit. The matrix can also be directly applied
+        to the quantum circuit, see :meth:`~qiskit.QuantumCircuit.unitary`.
+
+        .. code-block::python
+
+            from qiskit import QuantumCircuit
+            from qiskit.extensions import UnitaryGate
+
+            matrix = [[0, 0, 0, 1],
+                      [0, 0, 1, 0],
+                      [1, 0, 0, 0],
+                      [0, 1, 0, 0]]
+            gate = UnitaryGate(matrix)
+
+            circuit = QuantumCircuit(2)
+            circuit.append(gate, [0, 1])
+    """
 
     def __init__(self, data, label=None):
         """Create a gate from a numeric unitary matrix.
@@ -64,7 +86,7 @@ class UnitaryGate(Gate):
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
         num_qubits = int(numpy.log2(input_dim))
-        if input_dim != output_dim or 2 ** num_qubits != input_dim:
+        if input_dim != output_dim or 2**num_qubits != input_dim:
             raise ExtensionError("Input matrix is not an N-qubit operator.")
 
         self._qasm_name = None
@@ -114,10 +136,7 @@ class UnitaryGate(Gate):
         elif self.num_qubits == 2:
             self.definition = two_qubit_cnot_decompose(self.to_matrix())
         else:
-            q = QuantumRegister(self.num_qubits, "q")
-            qc = QuantumCircuit(q, name=self.name)
-            qc.append(isometry.Isometry(self.to_matrix(), 0, 0), qargs=q[:])
-            self.definition = qc
+            self.definition = qs_decomposition(self.to_matrix())
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return controlled version of gate
@@ -172,22 +191,13 @@ class UnitaryGate(Gate):
             _qasm_escape_gate_name(self.label) if self.label else "unitary" + str(id(self))
         )
 
-        # map from gates in the definition to params in the method
-        reg_to_qasm = OrderedDict()
-        current_reg = 0
-
+        qubit_to_qasm = {bit: f"p{i}" for i, bit in enumerate(self.definition.qubits)}
         gates_def = ""
-        for gate in self.definition.data:
-
-            # add regs from this gate to the overall set of params
-            for reg in gate[1] + gate[2]:
-                if reg not in reg_to_qasm:
-                    reg_to_qasm[reg] = "p" + str(current_reg)
-                    current_reg += 1
+        for instruction in self.definition.data:
 
             curr_gate = "\t{} {};\n".format(
-                gate[0].qasm(),
-                ",".join([reg_to_qasm[j] for j in gate[1] + gate[2]]),
+                instruction.operation.qasm(),
+                ",".join(qubit_to_qasm[qubit] for qubit in instruction.qubits),
             )
             gates_def += curr_gate
 
@@ -196,7 +206,7 @@ class UnitaryGate(Gate):
             "gate "
             + self._qasm_name
             + " "
-            + ",".join(reg_to_qasm.values())
+            + ",".join(qubit_to_qasm[qubit] for qubit in self.definition.qubits)
             + " {\n"
             + gates_def
             + "}"
@@ -215,7 +225,22 @@ class UnitaryGate(Gate):
 
 
 def unitary(self, obj, qubits, label=None):
-    """Apply unitary gate to q."""
+    """Apply unitary gate specified by ``obj`` to ``qubits``.
+
+    Example:
+
+        Apply a gate specified by a unitary matrix to a quantum circuit
+
+        .. code-block::python
+
+            from qiskit import QuantumCircuit
+            matrix = [[0, 0, 0, 1],
+                      [0, 0, 1, 0],
+                      [1, 0, 0, 0],
+                      [0, 1, 0, 0]]
+            circuit = QuantumCircuit(2)
+            circuit.unitary(matrix, [0, 1])
+    """
     gate = UnitaryGate(obj, label=label)
     if isinstance(qubits, QuantumRegister):
         qubits = qubits[:]

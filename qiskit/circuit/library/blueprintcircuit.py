@@ -30,17 +30,13 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     """
 
     def __init__(self, *regs, name: Optional[str] = None) -> None:
-        """Create a new blueprint circuit.
-
-        The ``_data`` argument storing the internal circuit data is set to ``None`` to indicate
-        that the circuit has not been built yet.
-        """
+        """Create a new blueprint circuit."""
         super().__init__(*regs, name=name)
-        self._data = None
         self._qregs = []
         self._cregs = []
         self._qubits = []
-        self._qubit_indices = dict()
+        self._qubit_indices = {}
+        self._is_built = False
 
     @abstractmethod
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
@@ -59,20 +55,19 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     @abstractmethod
     def _build(self) -> None:
         """Build the circuit."""
-        # do not build the circuit if _data is already populated
-        if self._data is not None:
+        if self._is_built:
             return
-
-        self._data = []
 
         # check whether the configuration is valid
         self._check_configuration()
+        self._is_built = True
 
     def _invalidate(self) -> None:
         """Invalidate the current circuit build."""
-        self._data = None
+        self._data = []
         self._parameter_table = ParameterTable()
         self.global_phase = 0
+        self._is_built = False
 
     @property
     def qregs(self):
@@ -88,54 +83,53 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         self._qubit_indices = {}
 
         self.add_register(*qregs)
-
         self._invalidate()
 
     @property
     def data(self):
-        if self._data is None:
+        if not self._is_built:
             self._build()
         return super().data
 
-    def decompose(self, gates_to_decompose=None):
-        if self._data is None:
+    def decompose(self, gates_to_decompose=None, reps=1):
+        if not self._is_built:
             self._build()
-        return super().decompose(gates_to_decompose)
+        return super().decompose(gates_to_decompose, reps)
 
     def draw(self, *args, **kwargs):
-        if self._data is None:
+        if not self._is_built:
             self._build()
         return super().draw(*args, **kwargs)
 
     @property
     def num_parameters(self) -> int:
-        if self._data is None:
+        if not self._is_built:
             self._build()
         return super().num_parameters
 
     @property
     def parameters(self) -> ParameterView:
-        if self._data is None:
+        if not self._is_built:
             self._build()
         return super().parameters
 
     def qasm(self, formatted=False, filename=None, encoding=None):
-        if self._data is None:
+        if not self._is_built:
             self._build()
         return super().qasm(formatted, filename, encoding)
 
     def append(self, instruction, qargs=None, cargs=None):
-        if self._data is None:
+        if not self._is_built:
             self._build()
         return super().append(instruction, qargs, cargs)
 
     def compose(self, other, qubits=None, clbits=None, front=False, inplace=False, wrap=False):
-        if self._data is None:
+        if not self._is_built:
             self._build()
         return super().compose(other, qubits, clbits, front, inplace, wrap)
 
     def inverse(self):
-        if self._data is None:
+        if not self._is_built:
             self._build()
         return super().inverse()
 
@@ -146,41 +140,43 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         return self.data[item]
 
     def size(self, *args, **kwargs):
-        if self._data is None:
+        if not self._is_built:
             self._build()
         return super().size(*args, **kwargs)
 
     def to_instruction(self, parameter_map=None, label=None):
-        if self._data is None:
+        if not self._is_built:
             self._build()
         return super().to_instruction(parameter_map, label=label)
 
     def to_gate(self, parameter_map=None, label=None):
-        if self._data is None:
+        if not self._is_built:
             self._build()
         return super().to_gate(parameter_map, label=label)
 
     def depth(self, *args, **kwargs):
-        if self._data is None:
+        if not self._is_built:
             self._build()
         return super().depth(*args, **kwargs)
 
     def count_ops(self):
-        if self._data is None:
+        if not self._is_built:
             self._build()
         return super().count_ops()
 
     def num_nonlocal_gates(self):
-        if self._data is None:
+        if not self._is_built:
             self._build()
         return super().num_nonlocal_gates()
 
     def num_connected_components(self, unitary_only=False):
-        if self._data is None:
+        if not self._is_built:
             self._build()
         return super().num_connected_components(unitary_only=unitary_only)
 
     def copy(self, name=None):
-        if self._data is None:
+        if not self._is_built:
             self._build()
-        return super().copy(name=name)
+        circuit_copy = super().copy(name=name)
+        circuit_copy._is_built = self._is_built
+        return circuit_copy

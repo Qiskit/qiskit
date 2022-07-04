@@ -162,14 +162,14 @@ class OpShape:
         """Return the total input dimension."""
         if self._dims_r:
             return reduce(mul, self._dims_r)
-        return 2 ** self._num_qargs_r
+        return 2**self._num_qargs_r
 
     @property
     def _dim_l(self):
         """Return the total input dimension."""
         if self._dims_l:
             return reduce(mul, self._dims_l)
-        return 2 ** self._num_qargs_l
+        return 2**self._num_qargs_l
 
     def validate_shape(self, shape):
         """Raise an exception if shape is not valid for the OpShape"""
@@ -192,7 +192,7 @@ class OpShape:
                         "({} != {})".format(reduce(mul, self._dims_l), shape[0])
                     )
                 return False
-        elif shape[0] != 2 ** self._num_qargs_l:
+        elif shape[0] != 2**self._num_qargs_l:
             if raise_exception:
                 raise QiskitError("Number of left qubits does not match matrix shape")
             return False
@@ -206,7 +206,7 @@ class OpShape:
                             "({} != {})".format(reduce(mul, self._dims_r), shape[1])
                         )
                     return False
-            elif shape[1] != 2 ** self._num_qargs_r:
+            elif shape[1] != 2**self._num_qargs_r:
                 if raise_exception:
                     raise QiskitError("Number of right qubits does not match matrix shape")
                 return False
@@ -332,7 +332,7 @@ class OpShape:
         )
 
     def remove(self, qargs=None, qargs_l=None, qargs_r=None):
-        """Return the reduced OpShape with specified qargs removed"""
+        """Return a new :class:`OpShape` with the specified qargs removed"""
         if qargs:
             # Convert qargs to left and right qargs
             if qargs_l or qargs_r:
@@ -342,7 +342,7 @@ class OpShape:
             if self._num_qargs_r:
                 qargs_r = qargs
         if qargs_l is None and qargs_r is None:
-            return self
+            return self.copy()
 
         # Format integer qargs
         if isinstance(qargs_l, Integral):

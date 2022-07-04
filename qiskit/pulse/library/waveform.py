@@ -15,10 +15,8 @@ from typing import Dict, List, Optional, Union, Any
 
 import numpy as np
 
-from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
-from qiskit.pulse.utils import deprecated_functionality
 
 
 class Waveform(Pulse):
@@ -97,7 +95,7 @@ class Waveform(Pulse):
             samples[clip_where] = clipped_samples
             samples_norm[clip_where] = np.abs(clipped_samples)
 
-        if np.any(samples_norm > 1.0) and self.limit_amplitude:
+        if np.any(samples_norm > 1.0) and self._limit_amplitude:
             amp = np.max(samples_norm)
             raise PulseError(
                 f"Pulse contains sample with norm {amp} greater than 1+epsilon."
@@ -113,14 +111,7 @@ class Waveform(Pulse):
     @property
     def parameters(self) -> Dict[str, Any]:
         """Return a dictionary containing the pulse's parameters."""
-        return dict()
-
-    @deprecated_functionality
-    def assign_parameters(
-        self, value_dict: Dict[ParameterExpression, ParameterValueType]
-    ) -> "Waveform":
-        # Waveforms don't accept parameters
-        return self
+        return {}
 
     def __eq__(self, other: Pulse) -> bool:
         return (

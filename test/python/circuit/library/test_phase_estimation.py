@@ -105,6 +105,13 @@ class TestPhaseEstimation(QiskitTestCase):
             self.assertPhaseEstimationIsCorrect(pec, eigenstate, phase_as_binary)
 
         with self.subTest("a 3-q unitary"):
+            #      ┌───┐
+            # q_0: ┤ X ├──■────■───────
+            #      ├───┤  │    │
+            # q_1: ┤ X ├──■────■───────
+            #      ├───┤┌───┐┌─┴─┐┌───┐
+            # q_2: ┤ X ├┤ H ├┤ X ├┤ H ├
+            #      └───┘└───┘└───┘└───┘
             unitary = QuantumCircuit(3)
             unitary.x([0, 1, 2])
             unitary.cz(0, 1)
@@ -112,6 +119,13 @@ class TestPhaseEstimation(QiskitTestCase):
             unitary.ccx(0, 1, 2)
             unitary.h(2)
 
+            #      ┌───┐
+            # q_0: ┤ H ├──■────■──
+            #      └───┘┌─┴─┐  │
+            # q_1: ─────┤ X ├──┼──
+            #           └───┘┌─┴─┐
+            # q_2: ──────────┤ X ├
+            #                └───┘
             eigenstate = QuantumCircuit(3)
             eigenstate.h(0)
             eigenstate.cx(0, 1)
@@ -132,12 +146,14 @@ class TestPhaseEstimation(QiskitTestCase):
         with self.subTest("default QFT"):
             pec = PhaseEstimation(3, unitary)
             expected_qft = QFT(3, inverse=True, do_swaps=False)
-            self.assertEqual(pec.decompose().data[-1][0].definition, expected_qft.decompose())
+            self.assertEqual(
+                pec.decompose().data[-1].operation.definition, expected_qft.decompose()
+            )
 
         with self.subTest("custom QFT"):
             iqft = QFT(3, approximation_degree=2).inverse()
             pec = PhaseEstimation(3, unitary, iqft=iqft)
-            self.assertEqual(pec.decompose().data[-1][0].definition, iqft.decompose())
+            self.assertEqual(pec.decompose().data[-1].operation.definition, iqft.decompose())
 
 
 if __name__ == "__main__":

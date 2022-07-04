@@ -46,7 +46,6 @@ class TestMonodromyXXPolytope(unittest.TestCase):
         """Check that the nearest point calculator recovers some known cases."""
         polytope = XXPolytope.from_strengths(pi / 6, pi / 8, pi / 10)
         result = polytope.nearest(np.array(offbody))
-        print(offbody, result)
         self.assertTrue(np.all(np.abs(np.array(expected) - result) < EPSILON))
 
     def test_add_strengths(self):

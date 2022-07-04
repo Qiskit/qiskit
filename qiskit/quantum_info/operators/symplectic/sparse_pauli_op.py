@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,11 +13,14 @@
 N-Qubit Sparse Pauli Operator class.
 """
 
+from collections import defaultdict
 from numbers import Number
 from typing import Dict
 
 import numpy as np
+import retworkx as rx
 
+from qiskit._accelerate.sparse_pauli_op import unordered_unique  # pylint: disable=import-error
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from qiskit.quantum_info.operators.linear_op import LinearOp
@@ -98,9 +101,10 @@ class SparsePauliOp(LinearOp):
             self._coeffs = coeffs
         else:
             # move the phase of `pauli_list` to `self._coeffs`
-            phase = pauli_list.phase
-            self._coeffs = np.asarray((-1j) ** phase * coeffs, dtype=complex)
-            pauli_list._phase = np.mod(pauli_list._phase - phase, 4)
+            phase = pauli_list._phase
+            count_y = pauli_list._count_y()
+            self._coeffs = np.asarray((-1j) ** (phase - count_y) * coeffs, dtype=complex)
+            pauli_list._phase = np.mod(count_y, 4)
             self._pauli_list = pauli_list
 
         if self._coeffs.shape != (self._pauli_list.size,):
@@ -127,12 +131,26 @@ class SparsePauliOp(LinearOp):
         )
 
     def __eq__(self, other):
-        """Check if two SparsePauliOp operators are equal"""
+        """Entrywise comparison of two SparsePauliOp operators"""
         return (
             super().__eq__(other)
+            and self.coeffs.shape == other.coeffs.shape
             and np.allclose(self.coeffs, other.coeffs)
             and self.paulis == other.paulis
         )
+
+    def equiv(self, other):
+        """Check if two SparsePauliOp operators are equivalent.
+
+        Args:
+            other (SparsePauliOp): an operator object.
+
+        Returns:
+            bool: True if the operator is equivalent to ``self``.
+        """
+        if not super().__eq__(other):
+            return False
+        return np.allclose((self - other).simplify().coeffs, [0])
 
     @property
     def settings(self) -> Dict:
@@ -230,7 +248,7 @@ class SparsePauliOp(LinearOp):
         # Hence we need to multiply coeffs by -1 for rows with an
         # odd number of Y terms.
         ret = self.copy()
-        minus = (-1) ** np.mod(np.sum(ret.paulis.x & ret.paulis.z, axis=1), 2)
+        minus = (-1) ** ret.paulis._count_y()
         ret._coeffs *= minus
         return ret
 
@@ -272,7 +290,7 @@ class SparsePauliOp(LinearOp):
         else:
             q = np.logical_and(z1[:, np.newaxis], x2).reshape((-1, num_qubits))
         # `np.mod` will be applied to `phase` in `SparsePauliOp.__init__`
-        phase = phase + 2 * np.sum(q, axis=1)
+        phase = phase + 2 * q.sum(axis=1, dtype=np.uint8)
 
         x3 = np.logical_xor(x1[:, np.newaxis], x2).reshape((-1, num_qubits))
         z3 = np.logical_xor(z1[:, np.newaxis], z2).reshape((-1, num_qubits))
@@ -286,7 +304,10 @@ class SparsePauliOp(LinearOp):
             z4[:, qargs] = z3
             pauli_list = PauliList(BasePauli(z4, x4, phase))
 
-        coeffs = np.kron(self.coeffs, other.coeffs)
+        # note: the following is a faster code equivalent to
+        # `coeffs = np.kron(self.coeffs, other.coeffs)`
+        # since `self.coeffs` and `other.coeffs` are both 1d arrays.
+        coeffs = np.multiply.outer(self.coeffs, other.coeffs).ravel()
         return SparsePauliOp(pauli_list, coeffs, copy=False)
 
     def tensor(self, other):
@@ -385,11 +406,22 @@ class SparsePauliOp(LinearOp):
         if rtol is None:
             rtol = self.rtol
 
+        # Filter non-zero coefficients
+        non_zero = np.logical_not(np.isclose(self.coeffs, 0, atol=atol, rtol=rtol))
+        paulis_x = self.paulis.x[non_zero]
+        paulis_z = self.paulis.z[non_zero]
+        nz_coeffs = self.coeffs[non_zero]
+
         # Pack bool vectors into np.uint8 vectors by np.packbits
-        array = np.packbits(self.paulis.x, axis=1) * 256 + np.packbits(self.paulis.z, axis=1)
-        _, indexes, inverses = np.unique(array, return_index=True, return_inverse=True, axis=0)
+        array = np.packbits(paulis_x, axis=1) * 256 + np.packbits(paulis_z, axis=1)
+        indexes, inverses = unordered_unique(array)
+
+        if np.all(non_zero) and indexes.shape[0] == array.shape[0]:
+            # No zero operator or duplicate operator
+            return self.copy()
+
         coeffs = np.zeros(indexes.shape[0], dtype=complex)
-        np.add.at(coeffs, inverses, self.coeffs)
+        np.add.at(coeffs, inverses, nz_coeffs)
         # Delete zero coefficient rows
         is_zero = np.isclose(coeffs, 0, atol=atol, rtol=rtol)
         # Check edge case that we deleted all Paulis
@@ -401,9 +433,50 @@ class SparsePauliOp(LinearOp):
         else:
             non_zero = np.logical_not(is_zero)
             non_zero_indexes = indexes[non_zero]
-            x = self.paulis.x[non_zero_indexes]
-            z = self.paulis.z[non_zero_indexes]
+            x = paulis_x[non_zero_indexes]
+            z = paulis_z[non_zero_indexes]
             coeffs = coeffs[non_zero]
+
+        return SparsePauliOp(
+            PauliList.from_symplectic(z, x), coeffs, ignore_pauli_phase=True, copy=False
+        )
+
+    def chop(self, tol=1e-14):
+        """Set real and imaginary parts of the coefficients to 0 if ``< tol`` in magnitude.
+
+        For example, the operator representing ``1+1e-17j X + 1e-17 Y`` with a tolerance larger
+        than ``1e-17`` will be reduced to ``1 X`` whereas :meth:`.SparsePauliOp.simplify` would
+        return ``1+1e-17j X``.
+
+        If a both the real and imaginary part of a coefficient is 0 after chopping, the
+        corresponding Pauli is removed from the operator.
+
+        Args:
+            tol (float): The absolute tolerance to check whether a real or imaginary part should
+                be set to 0.
+
+        Returns:
+            SparsePauliOp: This operator with chopped coefficients.
+        """
+        realpart_nonzero = np.abs(self.coeffs.real) > tol
+        imagpart_nonzero = np.abs(self.coeffs.imag) > tol
+
+        remaining_indices = np.logical_or(realpart_nonzero, imagpart_nonzero)
+        remaining_real = realpart_nonzero[remaining_indices]
+        remaining_imag = imagpart_nonzero[remaining_indices]
+
+        if len(remaining_real) == 0:  # if no Paulis are left
+            x = np.zeros((1, self.num_qubits), dtype=bool)
+            z = np.zeros((1, self.num_qubits), dtype=bool)
+            coeffs = np.array([0j], dtype=complex)
+        else:
+            coeffs = np.zeros(np.count_nonzero(remaining_indices), dtype=complex)
+            coeffs.real[remaining_real] = self.coeffs.real[realpart_nonzero]
+            coeffs.imag[remaining_imag] = self.coeffs.imag[imagpart_nonzero]
+
+            x = self.paulis.x[remaining_indices]
+            z = self.paulis.z[remaining_indices]
+
         return SparsePauliOp(
             PauliList.from_symplectic(z, x), coeffs, ignore_pauli_phase=True, copy=False
         )
@@ -484,7 +557,7 @@ class SparsePauliOp(LinearOp):
         # Non-zero coefficients
         coeffs = []
         # Non-normalized basis factor
-        denom = 2 ** num_qubits
+        denom = 2**num_qubits
         # Compute coefficients from basis
         basis = pauli_basis(num_qubits, pauli_list=True)
         for i, mat in enumerate(basis.matrix_iter()):
@@ -498,15 +571,108 @@ class SparsePauliOp(LinearOp):
 
     @staticmethod
     def from_list(obj):
-        """Construct from a list [(pauli_str, coeffs)]"""
+        """Construct from a list of Pauli strings and coefficients.
+
+        For example, the 5-qubit Hamiltonian
+
+        .. math::
+
+            H = Z_1 X_4 + 2 Y_0 Y_3
+
+        can be constructed as
+
+        .. code-block:: python
+
+            # via tuples and the full Pauli string
+            op = SparsePauliOp.from_list([("XIIZI", 1), ("IYIIY", 2)])
+
+        Args:
+            obj (Iterable[Tuple[str, complex]]): The list of 2-tuples specifying the Pauli terms.
+
+        Returns:
+            SparsePauliOp: The SparsePauliOp representation of the Pauli terms.
+
+        Raises:
+            QiskitError: If the list of Paulis is empty.
+        """
         obj = list(obj)  # To convert zip or other iterable
+
+        size = len(obj)  # number of Pauli terms
+        if size == 0:
+            raise QiskitError("Input Pauli list is empty.")
+
+        # determine the number of qubits
         num_qubits = len(obj[0][0])
-        size = len(obj)
+
         coeffs = np.zeros(size, dtype=complex)
         labels = np.zeros(size, dtype=f"<U{num_qubits}")
         for i, item in enumerate(obj):
             labels[i] = item[0]
             coeffs[i] = item[1]
+
+        paulis = PauliList(labels)
+        return SparsePauliOp(paulis, coeffs, copy=False)
+
+    @staticmethod
+    def from_sparse_list(obj, num_qubits, do_checks=True):
+        """Construct from a list of local Pauli strings and coefficients.
+
+        Each list element is a 3-tuple of a local Pauli string, indices where to apply it,
+        and a coefficient.
+
+        For example, the 5-qubit Hamiltonian
+
+        .. math::
+
+            H = Z_1 X_4 + 2 Y_0 Y_3
+
+        can be constructed as
+
+        .. code-block:: python
+
+            # via triples and local Paulis with indices
+            op = SparsePauliOp.from_sparse_list([("ZX", [1, 4], 1), ("YY", [0, 3], 2)], num_qubits=5)
+
+            # equals the following construction from "dense" Paulis
+            op = SparsePauliOp.from_list([("XIIZI", 1), ("IYIIY", 2)])
+
+        Args:
+            obj (Iterable[Tuple[str, List[int], complex]]): The list 3-tuples specifying the Paulis.
+            num_qubits (int): The number of qubits of the operator.
+            do_checks (bool): The flag of checking if the input indices are not duplicated.
+
+        Returns:
+            SparsePauliOp: The SparsePauliOp representation of the Pauli terms.
+
+        Raises:
+            QiskitError: If the list of Paulis is empty.
+            QiskitError: If the number of qubits is incompatible with the indices of the Pauli terms.
+            QiskitError: If the designated qubit is already assigned.
+        """
+        obj = list(obj)  # To convert zip or other iterable
+
+        size = len(obj)  # number of Pauli terms
+        if size == 0:
+            raise QiskitError("Input Pauli list is empty.")
+
+        coeffs = np.zeros(size, dtype=complex)
+        labels = np.zeros(size, dtype=f"<U{num_qubits}")
+
+        for i, (paulis, indices, coeff) in enumerate(obj):
+            if do_checks and len(indices) != len(set(indices)):
+                raise QiskitError("Input indices are duplicated.")
+            # construct the full label based off the non-trivial Paulis and indices
+            label = ["I"] * num_qubits
+            for pauli, index in zip(paulis, indices):
+                if index >= num_qubits:
+                    raise QiskitError(
+                        f"The number of qubits ({num_qubits}) is smaller than a required index {index}."
+                    )
+                label[~index] = pauli
+
+            labels[i] = "".join(label)
+            coeffs[i] = coeff
+
         paulis = PauliList(labels)
         return SparsePauliOp(paulis, coeffs, copy=False)
 
@@ -612,6 +778,54 @@ class SparsePauliOp(LinearOp):
                 return coeff * mat
 
         return MatrixIterator(self)
+
+    def _create_graph(self, qubit_wise):
+        """Transform measurement operator grouping problem into graph coloring problem
+
+        Args:
+            qubit_wise (bool): whether the commutation rule is applied to the whole operator,
+                or on a per-qubit basis.
+
+        Returns:
+            retworkx.PyGraph: A class of undirected graphs
+        """
+
+        edges = self.paulis._noncommutation_graph(qubit_wise)
+        graph = rx.PyGraph()
+        graph.add_nodes_from(range(self.size))
+        graph.add_edges_from_no_data(edges)
+        return graph
+
+    def group_commuting(self, qubit_wise=False):
+        """Partition a SparsePauliOp into sets of commuting Pauli strings.
+
+        Args:
+            qubit_wise (bool): whether the commutation rule is applied to the whole operator,
+                or on a per-qubit basis.  For example:
+
+                .. code-block:: python
+
+                    >>> op = SparsePauliOp.from_list([("XX", 2), ("YY", 1), ("IZ",2j), ("ZZ",1j)])
+                    >>> op.group_commuting()
+                    [SparsePauliOp(["IZ", "ZZ"], coeffs=[0.+2.j, 0.+1j]),
+                     SparsePauliOp(["XX", "YY"], coeffs=[2.+0.j, 1.+0.j])]
+                    >>> op.group_commuting(qubit_wise=True)
+                    [SparsePauliOp(['XX'], coeffs=[2.+0.j]),
+                     SparsePauliOp(['YY'], coeffs=[1.+0.j]),
+                     SparsePauliOp(['IZ', 'ZZ'], coeffs=[0.+2.j, 0.+1.j])]
+
+        Returns:
+            List[SparsePauliOp]: List of SparsePauliOp where each SparsePauliOp contains
+                commuting Pauli operators.
+        """
+
+        graph = self._create_graph(qubit_wise)
+        # Keys in coloring_dict are nodes, values are colors
+        coloring_dict = rx.graph_greedy_color(graph)
+        groups = defaultdict(list)
+        for idx, color in coloring_dict.items():
+            groups[color].append(idx)
+        return [self[group] for group in groups.values()]
 
 
 # Update docstrings for API docs

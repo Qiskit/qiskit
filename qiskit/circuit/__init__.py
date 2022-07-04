@@ -177,6 +177,7 @@ Quantum Circuit Construction
    Clbit
    AncillaRegister
    AncillaQubit
+   CircuitInstruction
 
 Gates and Instructions
 ----------------------
@@ -187,11 +188,22 @@ Gates and Instructions
    Gate
    ControlledGate
    Delay
-   Measure
-   Reset
    Instruction
    InstructionSet
    EquivalenceLibrary
+
+Control Flow Operations
+-----------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ControlFlowOp
+   IfElseOp
+   WhileLoopOp
+   ForLoopOp
+   BreakLoopOp
+   ContinueLoopOp
 
 Parametric Quantum Circuits
 ---------------------------
@@ -227,6 +239,16 @@ from .reset import Reset
 from .parameter import Parameter
 from .parametervector import ParameterVector
 from .parameterexpression import ParameterExpression
+from .quantumcircuitdata import CircuitInstruction
 from .equivalence import EquivalenceLibrary
 from .classicalfunction.types import Int1, Int2
 from .classicalfunction import classical_function, BooleanExpression
+
+from .controlflow import (
+    ControlFlowOp,
+    WhileLoopOp,
+    ForLoopOp,
+    IfElseOp,
+    BreakLoopOp,
+    ContinueLoopOp,
+)

@@ -83,7 +83,7 @@ class SuperOp(QuantumChannel):
             dout, din = super_mat.shape
             input_dim = int(np.sqrt(din))
             output_dim = int(np.sqrt(dout))
-            if output_dim ** 2 != dout or input_dim ** 2 != din:
+            if output_dim**2 != dout or input_dim**2 != din:
                 raise QiskitError("Invalid shape for SuperOp matrix.")
             op_shape = OpShape.auto(
                 dims_l=output_dims, dims_r=input_dims, shape=(output_dim, input_dim)
@@ -292,7 +292,7 @@ class SuperOp(QuantumChannel):
             instruction = instruction.to_instruction()
         # Initialize an identity superoperator of the correct size
         # of the circuit
-        op = SuperOp(np.eye(4 ** instruction.num_qubits))
+        op = SuperOp(np.eye(4**instruction.num_qubits))
         op._append_instruction(instruction)
         return op
 
@@ -345,17 +345,18 @@ class SuperOp(QuantumChannel):
                     "expected QuantumCircuit".format(obj.name, type(obj.definition))
                 )
             qubit_indices = {bit: idx for idx, bit in enumerate(obj.definition.qubits)}
-            for instr, qregs, cregs in obj.definition.data:
-                if cregs:
+            for instruction in obj.definition.data:
+                if instruction.clbits:
                     raise QiskitError(
-                        f"Cannot apply instruction with classical registers: {instr.name}"
+                        "Cannot apply instruction with classical bits:"
+                        f" {instruction.operation.name}"
                     )
                 # Get the integer position of the flat register
                 if qargs is None:
-                    new_qargs = [qubit_indices[tup] for tup in qregs]
+                    new_qargs = [qubit_indices[tup] for tup in instruction.qubits]
                 else:
-                    new_qargs = [qargs[qubit_indices[tup]] for tup in qregs]
-                self._append_instruction(instr, qargs=new_qargs)
+                    new_qargs = [qargs[qubit_indices[tup]] for tup in instruction.qubits]
+                self._append_instruction(instruction.operation, qargs=new_qargs)
 
 
 # Update docstrings for API docs

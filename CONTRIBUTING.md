@@ -10,6 +10,32 @@ https://qiskit.org/documentation/contributing_to_qiskit.html
 In addition to the general guidelines there are specific details for
 contributing to terra, these are documented below.
 
+### Contents
+* [Choose an issue to work on](#Choose-an-issue-to-work-on)
+* [Pull request checklist](#pull-request-checklist)
+* [Changelog generation](#changelog-generation)
+* [Release Notes](#release-notes)
+* [Installing Qiskit Terra from source](#installing-qiskit-terra-from-source)
+* [Test](#test)
+  * [Snapshot testing for visualizations](#snapshot-testing-for-visualizations)
+* [Style and Lint](#style-and-lint)
+* [Development Cycle](#development-cycle)
+  * [Branches](#branches)
+  * [Release Cycle](#release-cycle)
+* [Adding deprecation warnings](#adding-deprecation-warnings)
+* [Using dependencies](#using-dependencies)
+  * [Adding a requirement](#adding-a-requirement)
+  * [Adding an optional dependency](#adding-an-optional-dependency)
+  * [Checking for optionals](#checking-for-optionals)
+* [Dealing with git blame ignore list](#dealing-with-the-git-blame-ignore-list)
+
+### Choose an issue to work on
+Qiskit Terra uses the following labels to help non-maintainers find issues best suited to their interests and experience level:
+
+* [good first issue](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) - these issues are typically the simplest available to work on, perfect for newcomers. They should already be fully scoped, with a clear approach outlined in the descriptions.
+* [help wanted](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22) - these issues are generally more complex than good first issues. They typically cover work that core maintainers don't currently have capacity to implement and may require more investigation/discussion. These are a great option for experienced contributors looking for something a bit more challenging.
+* [short project](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22short+project%22) - these issues are bigger pieces of work that require greater time commitment. Good options for hackathons, internship projects etc.
+
 ### Pull request checklist
 
 When submitting a pull request and you feel it is ready for review,
@@ -86,12 +112,12 @@ workflow for writing and compiling release notes.
 #### Adding a new release note
 
 Making a new release note is quite straightforward. Ensure that you have reno
-installed with::
+installed with:
 
     pip install -U reno
 
 Once you have reno installed you can make a new release note by running in
-your local repository checkout's root::
+your local repository checkout's root:
 
     reno new short-description-string
 
@@ -108,13 +134,13 @@ changes. When you open the newly created file it will be a full template of
 the different categories with a description of a category as a single entry
 in each category. You'll want to delete all the sections you aren't using and
 update the contents for those you are. For example, the end result should
-look something like::
+look something like:
 
 ```yaml
 features:
   - |
     Introduced a new feature foo, that adds support for doing something to
-    ``QuantumCircuit`` objects. It can be used by using the foo function,
+    :class:`.QuantumCircuit` objects. It can be used by using the foo function,
     for example::
 
       from qiskit import foo
@@ -122,10 +148,10 @@ features:
       foo(QuantumCircuit())
 
   - |
-    The ``qiskit.QuantumCircuit`` module has a new method ``foo()``. This is
-    the equivalent of calling the ``qiskit.foo()`` to do something to your
-    QuantumCircuit. This is the equivalent of running ``qiskit.foo()`` on
-    your circuit, but provides the convenience of running it natively on
+    The :class:`.QuantumCircuit` class has a new method :meth:`~.QuantumCircuit.foo`. 
+    This is the equivalent of calling the :func:`~qiskit.foo` to do something to your
+    :class:`.QuantumCircuit`. This is the equivalent of running :func:`~qiskit.foo` 
+    on your circuit, but provides the convenience of running it natively on
     an object. For example::
 
       from qiskit import QuantumCircuit
@@ -137,14 +163,15 @@ deprecations:
   - |
     The ``qiskit.bar`` module has been deprecated and will be removed in a
     future release. Its sole function, ``foobar()`` has been superseded by the
-    ``qiskit.foo()`` function which provides similar functionality but with
-    more accurate results and better performance. You should update your calls
-    ``qiskit.bar.foobar()`` calls to ``qiskit.foo()``.
+    :func:`~qiskit.foo` function which provides similar functionality but with
+    more accurate results and better performance. You should update your
+    :func:`~qiskit.bar.foobar` calls to :func:`~qiskit.foo`.
 ```
 
-You can also look at other release notes for other examples.
+You can also look at other release notes for other examples. 
 
-You can use any restructured text feature in them (code sections, tables,
+Note that you can use sphinx [restructured text syntax](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html).
+In fact, you can use any restructured text feature in them (code sections, tables,
 enumerated lists, bulleted list, etc) to express what is being changed as
 needed. In general you want the release notes to include as much detail as
 needed so that users will understand what has changed, why it changed, and how
@@ -171,17 +198,17 @@ fixes:
 
 #### Generating the release notes
 
-After release notes have been added if you want to see what the full output of
-the release notes. In general the output from reno that we'll get is a rst
+After release notes have been added, you can use reno to see what the full output
+of the release notes is. In general the output from reno that we'll get is a rst
 (ReStructuredText) file that can be compiled by
 [sphinx](https://www.sphinx-doc.org/en/master/). To generate the rst file you
 use the ``reno report`` command. If you want to generate the full terra release
-notes for all releases (since we started using reno during 0.9) you just run::
+notes for all releases (since we started using reno during 0.9) you just run:
 
     reno report
 
 but you can also use the ``--version`` argument to view a single release (after
-it has been tagged::
+it has been tagged:
 
     reno report --version 0.9.0
 
@@ -199,9 +226,36 @@ build all the documentation into `docs/_build/html` and the release notes in
 particular will be located at `docs/_build/html/release_notes.html`
 
 ## Installing Qiskit Terra from source
-Please see the [Installing Qiskit Terra from
-Source](https://qiskit.org/documentation/contributing_to_qiskit.html#installing-terra-from-source)
-section of the Qiskit documentation.
+
+Qiskit Terra is primarily written in Python but there are some core routines
+that are written in the [Rust](https://www.rust-lang.org/) programming
+language to improve the runtime performance. For the released versions of
+qiskit-terra we publish precompiled binaries on the
+[Python Package Index](https://pypi.org/) for all the supported platforms
+which only requires a functional Python environment to install. However, when
+building and installing from source you will need a rust compiler installed. You can do this very easily
+using rustup: https://rustup.rs/ which provides a single tool to install and
+configure the latest version of the rust compiler.
+[Other installation methods](https://forge.rust-lang.org/infra/other-installation-methods.html)
+exist too. For windows users besides rustup you will also need install
+the Visual C++ build tools so that rust can link against the system c/c++
+libraries. You can see more details on this in the
+[rustup documentation](https://rust-lang.github.io/rustup/installation/windows.html).
+
+Qiskit Terra has a minimum supported Rust version (MSRV) of 1.56.1. This means
+to build Qiskit Terra from source you must have at least rustc version 1.56.1
+installed, older versions will not be able to compile Qiskit.
+
+Once you have a rust compiler installed you can rely on the normal Python
+build/install steps to install Qiskit Terra. This means you just run
+`pip install .` in your local git clone to build and install Qiskit Terra.
+
+Do note that if you do use develop mode/editable install (via `python setup.py develop` or `pip install -e .`) the Rust extension will be built in debug mode
+without any optimizations enabled. This will result in poor runtime performance.
+If you'd like to use an editable install with an optimized binary you can
+run `python setup.py build_rust --release --inplace` after you install in
+editable mode to recompile the rust extensions in release mode.
+
 
 ## Test
 
@@ -411,23 +465,28 @@ merged to it are bugfixes.
 
 ### Release cycle
 
-When it is time to release a new minor version of qiskit-terra we will:
+In the lead up to a release there are a few things to keep in mind. Prior to
+the release date there is a feature, removal, and deprecation proposal freeze
+date. This date in each release cycle is the last day where a new PR adding a
+new feature, removing something, or adding a new deprecation can be proposed (in
+a ready for review state) for potential inclusion in the release. If a new
+PR is opened after this date it will not be considered for inclusion in that
+release. Note, that meeting these deadlines does not guarantee inclusion in a
+release: they are preconditions. You can refer to the milestone page for each
+release to see these dates for each release (for example for 0.21.0 the page is:
+https://github.com/Qiskit/qiskit-terra/milestone/23).
 
-1.  Create a new tag with the version number and push it to github
-2.  Change the `main` version to the next release version.
-
-The release automation processes will be triggered by the new tag and perform
-the following steps:
-
-1.  Create a stable branch for the new minor version from the release tag
-    on the `main` branch
-2.  Build and upload binary wheels to pypi
-3.  Create a github release page with a generated changelog
-4.  Generate a PR on the meta-repository to bump the terra version and
-    meta-package version.
-
-The `stable/*` branches should only receive changes in the form of bug
-fixes.
+After the proposal freeze a release review period will begin, during this time
+release candidate PRs will be reviewed as we finalize the feature set and merge
+the last PRs for the release. Following the review period a release candidate will be
+tagged and published. This release candidate is pre-release that enables users and
+developers to test the release ahead of time. When the pre-release is tagged the release
+automation will publish the pre-release to PyPI (but only get installed on user request),
+create the `stable/*` branch, and generate a pre-release changelog/release page. At
+this point the `main` opens up for development of the next release. The `stable/*`
+branches should only  receive changes in the form of bug fixes at this point. If there
+is a need additional release candidates can be published from `stable/*` and when the
+release is ready a full release will be tagged and published from `stable/*`.
 
 ## Adding deprecation warnings
 The qiskit-terra code is part of Qiskit and, therefore, the [Qiskit Deprecation Policy](https://qiskit.org/documentation/contributing_to_qiskit.html#deprecation-policy) fully applies here. Additionally, qiskit-terra does not allow `DeprecationWarning`s in its testsuite. If you are deprecating code, you should add a test to use the new/non-deprecated method (most of the time based on the existing test of the deprecated method) and alter the existing test to check that the deprecated method still works as expected, [using `assertWarns`](https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertWarns). The `assertWarns` context will silence the deprecation warning while checking that it raises.
@@ -455,6 +514,37 @@ def test_method2(self):
 ```
 
 `test_method1_deprecated` can be removed after `Obj.method1` is removed (following the [Qiskit Deprecation Policy](https://qiskit.org/documentation/contributing_to_qiskit.html#deprecation-policy)).
+
+## Using dependencies
+
+We distinguish between "requirements" and "optional dependencies" in qiskit-terra.
+A requirement is a package that is absolutely necessary for core functionality in qiskit-terra, such as Numpy or Scipy.
+An optional dependency is a package that is used for specialized functionality, which might not be needed by all users.
+If a new feature has a new dependency, it is almost certainly optional.
+
+### Adding a requirement
+
+Any new requirement must have broad system support; it needs to be supported on all the Python versions and operating systems that qiskit-terra supports.
+It also cannot impose many version restrictions on other packages.
+Users often install qiskit-terra into virtual environments with many different packages in, and we need to ensure that neither we, nor any of our requirements, conflict with their other packages.
+When adding a new requirement, you must add it to [`requirements.txt`](requirements.txt) with as loose a constraint on the allowed versions as possible.
+
+### Adding an optional dependency
+
+New features can also use optional dependencies, which might be used only in very limited parts of qiskit-terra.
+These are not required to use the rest of the package, and so should not be added to `requirements.txt`.
+Instead, if several optional dependencies are grouped together to provide one feature, you can consider adding an "extra" to the package metadata, such as the `visualization` extra that installs Matplotlib and Seaborn (amongst others).
+To do this, modify the [`setup.py`](setup.py) file, adding another entry in the `extras_require` keyword argument to `setup()` at the bottom of the file.
+You do not need to be quite as accepting of all versions here, but it is still a good idea to be as permissive as you possibly can be.
+You should also add a new "tester" to [`qiskit.utils.optionals`](qiskit/utils/optionals.py), for use in the next section.
+
+### Checking for optionals
+
+You cannot `import` an optional dependency at the top of a file, because if it is not installed, it will raise an error and qiskit-terra will be unusable.
+We also largely want to avoid importing packages until they are actually used; if we import a lot of packages during `import qiskit`, it becomes sluggish for the user if they have a large environment.
+Instead, you should use [one of the "lazy testers" for optional dependencies](https://qiskit.org/documentation/apidoc/utils.html#module-qiskit.utils.optionals), and import your optional dependency inside the function or class that uses it, as in the examples within that link.
+Very lightweight _requirements_ can be imported at the tops of files, but even this should be limited; it's always ok to `import numpy`, but Scipy modules are relatively heavy, so only import them within functions that use them.
+
 
 ## Dealing with the git blame ignore list
 

@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Rotation around the Z axis."""
-
+from cmath import exp
 from typing import Optional, Union
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
@@ -37,7 +37,7 @@ class RZGate(Gate):
 
     .. math::
 
-        RZ(\lambda) = exp(-i\frac{\lambda}{2}Z) =
+        RZ(\lambda) = \exp\left(-i\frac{\lambda}{2}Z\right) =
             \begin{pmatrix}
                 e^{-i\frac{\lambda}{2}} & 0 \\
                 0 & e^{i\frac{\lambda}{2}}
@@ -112,7 +112,7 @@ class RZGate(Gate):
         import numpy as np
 
         ilam2 = 0.5j * float(self.params[0])
-        return np.array([[np.exp(-ilam2), 0], [0, np.exp(ilam2)]], dtype=dtype)
+        return np.array([[exp(-ilam2), 0], [0, exp(ilam2)]], dtype=dtype)
 
 
 class CRZGate(ControlledGate):
@@ -204,6 +204,10 @@ class CRZGate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
 
+        # q_0: ─────────────■────────────────■──
+        #      ┌─────────┐┌─┴─┐┌──────────┐┌─┴─┐
+        # q_1: ┤ Rz(λ/2) ├┤ X ├┤ Rz(-λ/2) ├┤ X ├
+        #      └─────────┘└───┘└──────────┘└───┘
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
@@ -228,11 +232,11 @@ class CRZGate(ControlledGate):
         arg = 1j * float(self.params[0]) / 2
         if self.ctrl_state:
             return numpy.array(
-                [[1, 0, 0, 0], [0, numpy.exp(-arg), 0, 0], [0, 0, 1, 0], [0, 0, 0, numpy.exp(arg)]],
+                [[1, 0, 0, 0], [0, exp(-arg), 0, 0], [0, 0, 1, 0], [0, 0, 0, exp(arg)]],
                 dtype=dtype,
             )
         else:
             return numpy.array(
-                [[numpy.exp(-arg), 0, 0, 0], [0, 1, 0, 0], [0, 0, numpy.exp(arg), 0], [0, 0, 0, 1]],
+                [[exp(-arg), 0, 0, 0], [0, 1, 0, 0], [0, 0, exp(arg), 0], [0, 0, 0, 1]],
                 dtype=dtype,
             )

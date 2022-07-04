@@ -134,6 +134,16 @@ include as long as each plugin has a unique name. So a single package can
 expose multiple plugins if necessary. The name ``default`` is used by Qiskit
 itself and can't be used in a plugin.
 
+Unitary Synthesis Plugin Configuration
+''''''''''''''''''''''''''''''''''''''
+
+For some unitary synthesis plugins that expose multiple options and tunables
+the plugin interface has an option for users to provide a free form
+configuration dictionary. This will be passed through to the ``run()`` method
+as the ``config`` kwarg. If your plugin has these configuration options you
+should clearly document how a user should specify these configuration options
+and how they're used as it's a free form field.
+
 Using Plugins
 =============
 
@@ -312,6 +322,24 @@ class UnitarySynthesisPlugin(abc.ABC):
         basis gate set not matching the plugin's capabilities.
         """
         pass
+
+    @property
+    def supports_target(self):
+        """Whether the plugin supports taking ``target`` as an option
+
+        ``target`` will be a :class:`~.Target` object representing the target
+        device for the output of the synthesis pass.
+
+        By default this will be ``False`` since the plugin interface predates
+        the :class:`~.Target` class. If a plugin returns ``True`` for this
+        attribute, it is expected that the plugin will use the
+        :class:`~.Target` instead of the values passed if any of
+        ``supports_gate_lengths``, ``supports_gate_errors``,
+        ``supports_coupling_map``, and ``supports_basis_gates`` are set
+        (although ideally all those parameters should contain duplicate
+        information).
+        """
+        return False
 
     @abc.abstractmethod
     def run(self, unitary, **options):

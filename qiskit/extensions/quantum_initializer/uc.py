@@ -105,13 +105,12 @@ class UCGate(Gate):
         """
         inverse_gate = Gate(
             name=self.name + "_dg", num_qubits=self.num_qubits, params=[]
-        )  # remove parameters since array is deprecated as parameter
+        )  # removing the params because arrays are deprecated
 
-        inverse_gate.definition = QuantumCircuit(*self.definition.qregs)
-        inverse_gate.definition._data = [
-            (inst.inverse(), qargs, []) for inst, qargs, _ in reversed(self._definition)
-        ]
-
+        definition = QuantumCircuit(*self.definition.qregs)
+        for inst in reversed(self._definition):
+            definition._append(inst.replace(operation=inst.operation.inverse()))
+        inverse_gate.definition = definition
         return inverse_gate
 
     def _get_diagonal(self):
@@ -132,7 +131,7 @@ class UCGate(Gate):
         up_to_diagonal=True, the circuit implements the gate up to a diagonal gate and
         the diagonal gate is also returned.
         """
-        diag = np.ones(2 ** self.num_qubits).tolist()
+        diag = np.ones(2**self.num_qubits).tolist()
         q = QuantumRegister(self.num_qubits)
         q_controls = q[1:]
         q_target = q[0]
@@ -183,10 +182,10 @@ class UCGate(Gate):
         https://arxiv.org/pdf/quant-ph/0410066.pdf.
         """
         single_qubit_gates = [gate.astype(complex) for gate in self.params]
-        diag = np.ones(2 ** self.num_qubits, dtype=complex)
+        diag = np.ones(2**self.num_qubits, dtype=complex)
         num_contr = self.num_qubits - 1
         for dec_step in range(num_contr):
-            num_ucgs = 2 ** dec_step
+            num_ucgs = 2**dec_step
             # The decomposition works recursively and the following loop goes over the different
             # UCGates that arise in the decomposition
             for ucg_index in range(num_ucgs):

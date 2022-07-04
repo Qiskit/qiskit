@@ -62,7 +62,7 @@ def decompose_xxyy_into_xxyy_xx(a_target, b_target, a_source, b_source, interact
         1
         / 2
         * safe_arccos(
-            cminus ** 2 * ca ** 2 + sminus ** 2 * sa ** 2 - np.cos(a_target - b_target) ** 2,
+            cminus**2 * ca**2 + sminus**2 * sa**2 - np.cos(a_target - b_target) ** 2,
             2 * cminus * ca * sminus * sa,
         )
     )
@@ -70,7 +70,7 @@ def decompose_xxyy_into_xxyy_xx(a_target, b_target, a_source, b_source, interact
         1
         / 2
         * safe_arccos(
-            cplus ** 2 * ca ** 2 + splus ** 2 * sa ** 2 - np.cos(a_target + b_target) ** 2,
+            cplus**2 * ca**2 + splus**2 * sa**2 - np.cos(a_target + b_target) ** 2,
             2 * cplus * ca * splus * sa,
         )
     )
@@ -180,8 +180,8 @@ def xx_circuit_step(source, strength, target, embodiment):
                 continue
 
             # pick out the other coordinates
-            source_first, source_second = [x for x in [0, 1, 2] if x != source_shared]
-            target_first, target_second = [x for x in [0, 1, 2] if x != target_shared]
+            source_first, source_second = (x for x in [0, 1, 2] if x != source_shared)
+            target_first, target_second = (x for x in [0, 1, 2] if x != target_shared)
 
             # check for arccos validity
             r, s, u, v, x, y = decompose_xxyy_into_xxyy_xx(
@@ -205,7 +205,7 @@ def xx_circuit_step(source, strength, target, embodiment):
 
     if permute_source_for_overlap is None:
         raise QiskitError(
-            f"Error during RZX decomposition: Could not find a suitable Weyl "
+            "Error during RZX decomposition: Could not find a suitable Weyl "
             f"reflection to match {source} to {target} along {strength}."
         )
 

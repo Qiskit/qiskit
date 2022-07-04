@@ -18,11 +18,12 @@ import warnings
 from time import time
 from typing import Union, List, Dict, Optional
 
+import numpy as np
+
 from qiskit.assembler import assemble_circuits, assemble_schedules
 from qiskit.assembler.run_config import RunConfig
 from qiskit.circuit import QuantumCircuit, Qubit, Parameter
 from qiskit.exceptions import QiskitError
-from qiskit.providers import BaseBackend
 from qiskit.providers.backend import Backend
 from qiskit.pulse import LoConfig, Instruction
 from qiskit.pulse import Schedule, ScheduleBlock
@@ -48,7 +49,7 @@ def assemble(
         ScheduleBlock,
         List[ScheduleBlock],
     ],
-    backend: Optional[Union[Backend, BaseBackend]] = None,
+    backend: Optional[Backend] = None,
     qobj_id: Optional[str] = None,
     qobj_header: Optional[Union[QobjHeader, Dict]] = None,
     shots: Optional[int] = None,
@@ -102,7 +103,9 @@ def assemble(
         memory: If ``True``, per-shot measurement bitstrings are returned as well
             (provided the backend supports it). For OpenPulse jobs, only
             measurement level 2 supports this option.
-        max_credits: Maximum credits to spend on job. Default: 10
+        max_credits: DEPRECATED This parameter is deprecated as of
+            Qiskit Terra 0.20.0, and will be removed in a future release. This parameter has
+            no effect on modern IBM Quantum systems, and no alternative is necessary.
         seed_simulator: Random seed to control sampling, for when backend is a simulator
         qubit_lo_freq: List of job level qubit drive LO frequencies in Hz. Overridden by
             ``schedule_los`` if specified. Must have length ``n_qubits.``
@@ -155,6 +158,15 @@ def assemble(
     Raises:
         QiskitError: if the input cannot be interpreted as either circuits or schedules
     """
+    if max_credits is not None:
+        max_credits = None
+        warnings.warn(
+            "The `max_credits` parameter is deprecated as of Qiskit Terra 0.20.0, "
+            "and will be removed in a future release. This parameter has no effect on "
+            "modern IBM Quantum systems, and no alternative is necessary.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
     start_time = time()
     experiments = experiments if isinstance(experiments, list) else [experiments]
     pulse_qobj = any(isinstance(exp, (ScheduleBlock, Schedule, Instruction)) for exp in experiments)
@@ -310,7 +322,7 @@ def _parse_common_args(
             shots = min(1024, max_shots)
         else:
             shots = 1024
-    elif not isinstance(shots, int):
+    elif not isinstance(shots, (int, np.integer)):
         raise QiskitError("Argument 'shots' should be of type 'int'")
     elif max_shots and max_shots < shots:
         raise QiskitError(

@@ -44,9 +44,9 @@ from qiskit.pulse.channels import (
     MeasureChannel,
 )
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.schedule import Schedule, ParameterizedSchedule, _overlaps, _find_insertion_index
+from qiskit.pulse.schedule import Schedule, _overlaps, _find_insertion_index
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q
+from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
 
 class BaseTestSchedule(QiskitTestCase):
@@ -319,35 +319,6 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         sched_snapshot = snapshot | sched1
         self.assertEqual(sched_snapshot.name, "snapshot_label")
-
-    def test_multiple_parameters_not_returned(self):
-        """Constructing ParameterizedSchedule object from multiple ParameterizedSchedules sharing
-        arguments should not produce repeated parameters in resulting ParameterizedSchedule
-        object."""
-
-        def my_test_par_sched_one(x, y, z):
-            result = Play(Waveform(np.array([x, y, z]), name="sample"), self.config.drive(0))
-            return 0, result
-
-        def my_test_par_sched_two(x, y, z):
-            result = Play(Waveform(np.array([x, y, z]), name="sample"), self.config.drive(0))
-            return 5, result
-
-        par_sched_in_0 = ParameterizedSchedule(
-            my_test_par_sched_one, parameters={"x": 0, "y": 1, "z": 2}
-        )
-        par_sched_in_1 = ParameterizedSchedule(
-            my_test_par_sched_two, parameters={"x": 0, "y": 1, "z": 2}
-        )
-        par_sched = ParameterizedSchedule(par_sched_in_0, par_sched_in_1)
-        actual = par_sched(0.01, 0.02, 0.03)
-        expected = par_sched_in_0.bind_parameters(
-            0.01, 0.02, 0.03
-        ) | par_sched_in_1.bind_parameters(0.01, 0.02, 0.03)
-        self.assertEqual(actual.start_time, expected.start_time)
-        self.assertEqual(actual.stop_time, expected.stop_time)
-
-        self.assertEqual(par_sched.parameters, ("x", "y", "z"))
 
     def test_schedule_with_acquire_on_single_qubit(self):
         """Test schedule with acquire on single qubit."""
