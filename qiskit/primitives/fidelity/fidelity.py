@@ -74,7 +74,7 @@ class Fidelity(BaseFidelity):
         if values_right is None:
             if self._right_circuit.num_parameters != 0:
                 raise ValueError(
-                    f"`values_left` cannot be `None` because the left circuit has {self._left_circuit.num_parameters} free parameters."
+                    f"`values_right` cannot be `None` because the right circuit has {self._right_circuit.num_parameters} free parameters."
                 )
         else:
             values_list.append(np.atleast_2d(values_right))
