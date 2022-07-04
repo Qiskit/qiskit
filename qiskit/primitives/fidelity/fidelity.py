@@ -70,7 +70,7 @@ class Fidelity(BaseFidelity):
             )
 
         values = np.hstack([values_left, values_right])
-        result = self.sampler(circuit_indices=[0] * len(values), parameter_values=values)
+        result = self.sampler(circuits=[0] * len(values), parameter_values=values)
 
         overlaps = [prob_dist.get(0, 0) for prob_dist in result.quasi_dists]
         return np.array(overlaps)

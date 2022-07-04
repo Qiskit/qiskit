@@ -13,7 +13,6 @@
 """Tests for Sampler."""
 
 import unittest
-from test import combine
 
 import numpy as np
 from functools import partial
@@ -47,21 +46,26 @@ class TestFidelity(QiskitTestCase):
         self._params_right = np.array([[0, 0], [0, 0], [np.pi / 2, 0], [0, 0]])
 
     def test_fidelity_1param_pair(self):
-        """test for fidelity with one pai"""
+        """test for fidelity with one pair of parameters"""
 
         with Fidelity(self._circuit[0], self._circuit[1], self._sampler_factory) as fidelity:
             results = fidelity.compute(self._params_left[0], self._params_right[0])
             np.testing.assert_allclose(results, np.array([1.0]))
 
     def test_fidelity_4param_pairs(self):
-        """test for fidelity with one pai"""
+        """test for fidelity with four pairs of parameters"""
 
         with Fidelity(self._circuit[0], self._circuit[1], self._sampler_factory) as fidelity:
             results = fidelity.compute(self._params_left, self._params_right)
-            np.testing.assert_allclose(
-                results,
-                np.array([1.0, 0.5, 0.25, 0.0]),
-            )
+            np.testing.assert_allclose(results, np.array([1.0, 0.5, 0.25, 0.0]), atol=1e-16)
+
+    def test_fidelity_symmetry(self):
+        """test for fidelity with the same circuit"""
+
+        with Fidelity(self._circuit[0], self._circuit[0], self._sampler_factory) as fidelity:
+            results_1 = fidelity.compute(self._params_left, self._params_right)
+            results_2 = fidelity.compute(self._params_right, self._params_left)
+            np.testing.assert_allclose(results_1, results_2, atol=1e-16)
 
 
 if __name__ == "__main__":
