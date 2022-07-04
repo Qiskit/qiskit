@@ -23,11 +23,12 @@ from qiskit.circuit import (
     ClassicalRegister,
     Clbit,
     QuantumCircuit,
+    Qubit,
     Parameter,
     Gate,
     Instruction,
 )
-from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate
+from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate, TwoLocal
 from qiskit.test import QiskitTestCase
 
 
@@ -650,6 +651,46 @@ class TestCircuitCompose(QiskitTestCase):
         self.assertEqual(bit_instruction.condition, (test_loose, True))
         self.assertIs(reg_instruction.condition[0], test_creg)
         self.assertEqual(reg_instruction.condition, (test_creg, 3))
+
+    def test_compose_no_clbits_in_one(self):
+        """Test combining a circuit with cregs to one without"""
+        ansatz = TwoLocal(2, rotation_blocks="ry", entanglement_blocks="cx")
+
+        qc = QuantumCircuit(2)
+        qc.measure_all()
+        out = ansatz.compose(qc)
+        self.assertEqual(out.clbits, qc.clbits)
+
+    def test_compose_no_clbits_in_one_inplace(self):
+        """Test combining a circuit with cregs to one without inplace"""
+        ansatz = TwoLocal(2, rotation_blocks="ry", entanglement_blocks="cx")
+
+        qc = QuantumCircuit(2)
+        qc.measure_all()
+        ansatz.compose(qc, inplace=True)
+        self.assertEqual(ansatz.clbits, qc.clbits)
+
+    def test_compose_no_clbits_in_one_multireg(self):
+        """Test combining a circuit with cregs to one without, multi cregs"""
+        ansatz = TwoLocal(2, rotation_blocks="ry", entanglement_blocks="cx")
+
+        qa = QuantumRegister(2, "q")
+        ca = ClassicalRegister(2, "a")
+        cb = ClassicalRegister(2, "b")
+        qc = QuantumCircuit(qa, ca, cb)
+        qc.measure(0, cb[1])
+        out = ansatz.compose(qc)
+        self.assertEqual(out.clbits, qc.clbits)
+        self.assertEqual(out.cregs, qc.cregs)
+
+    def test_compose_noclbits_registerless(self):
+        """Combining a circuit with cregs to one without, registerless case"""
+        inner = QuantumCircuit([Qubit(), Qubit()], [Clbit(), Clbit()])
+        inner.measure([0, 1], [0, 1])
+        outer = QuantumCircuit(2)
+        outer.compose(inner, inplace=True)
+        self.assertEqual(outer.clbits, inner.clbits)
+        self.assertEqual(outer.cregs, [])
 
 
 if __name__ == "__main__":
