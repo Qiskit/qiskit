@@ -31,7 +31,7 @@ class EvolutionProblem:
         self,
         hamiltonian: OperatorBase,
         time: float,
-        initial_state: Union[StateFn, QuantumCircuit],
+        initial_state: Optional[Union[StateFn, QuantumCircuit]] = None,
         aux_operators: Optional[ListOrDict[OperatorBase]] = None,
         truncation_threshold: float = 1e-12,
         t_param: Optional[Parameter] = None,
@@ -41,7 +41,9 @@ class EvolutionProblem:
         Args:
             hamiltonian: The Hamiltonian under which to evolve the system.
             time: Total time of evolution.
-            initial_state: Quantum state to be evolved.
+            initial_state: The quantum state to be evolved for methods like Trotterization.
+                For variational time evolutions, where the evolution happens in an ansatz,
+                this argument is not required.
             aux_operators: Optional list of auxiliary operators to be evaluated with the
                 evolved ``initial_state`` and their expectation values returned.
             truncation_threshold: Defines a threshold under which values can be assumed to be 0.
