@@ -68,7 +68,7 @@ def pi_check(inpt, eps=1e-6, output="text", ndigits=None):
         return inpt
 
     def normalize(single_inpt):
-        if abs(single_inpt) < 1e-14:
+        if abs(single_inpt) < eps:
             return "0"
 
         if output == "text":
