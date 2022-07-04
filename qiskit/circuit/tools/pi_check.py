@@ -25,7 +25,7 @@ RECIP_MESH = N / D / np.pi
 POW_LIST = np.pi ** np.arange(2, 5)
 
 
-def pi_check(inpt, eps=1e-6, output="text", ndigits=None):
+def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
     """Computes if a number is close to an integer
     fraction or multiple of PI and returns the
     corresponding string.
