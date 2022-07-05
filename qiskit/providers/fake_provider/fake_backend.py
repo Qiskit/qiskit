@@ -85,7 +85,7 @@ class FakeBackendV2(BackendV2):
         self.sim = None
 
     def __getattr__(self, name: str) -> Any:
-        """Getter of minimal hidden attributes necessary for pulse-level simulation."""
+        """Getter of minimal custom attributes necessary for pulse-level simulation."""
         if name not in {"hamiltonian", "u_channel_lo"}:
             raise AttributeError(
                 "'{}' object has no attribute '{}'".format(self.__class__.__name__, name)
