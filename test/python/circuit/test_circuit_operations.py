@@ -27,6 +27,7 @@ from qiskit.circuit.quantumregister import AncillaQubit, AncillaRegister, Qubit
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.library.standard_gates import SGate
 from qiskit.quantum_info import Operator
+from qiskit.pulse import Schedule, Play, Gaussian, DriveChannel
 
 
 @ddt
@@ -158,7 +159,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc += qc
 
         # finally, qc should contain two X gates
-        self.assertEqual(["x", "x"], [x[0].name for x in qc.data])
+        self.assertEqual(["x", "x"], [x.operation.name for x in qc.data])
 
     def test_combine_circuit_common(self):
         """Test combining two circuits with same registers (inplace=False)."""
@@ -477,6 +478,41 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(len(qc.cregs), 1)
         self.assertEqual(len(copied.cregs), 2)
+
+    def test_copy_empty_like_circuit(self):
+        """Test copy_empty_like method makes a clear copy."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr, global_phase=1.0, name="qc", metadata={"key": "value"})
+        qc.h(qr[0])
+        qc.measure(qr[0], cr[0])
+        qc.measure(qr[1], cr[1])
+        sched = Schedule(Play(Gaussian(160, 0.1, 40), DriveChannel(0)))
+        qc.add_calibration("h", [0, 1], sched)
+        copied = qc.copy_empty_like()
+        qc.clear()
+
+        self.assertEqual(qc, copied)
+        self.assertEqual(qc.global_phase, copied.global_phase)
+        self.assertEqual(qc.name, copied.name)
+        self.assertEqual(qc.metadata, copied.metadata)
+        self.assertEqual(qc.calibrations, copied.calibrations)
+
+        copied = qc.copy_empty_like("copy")
+        self.assertEqual(copied.name, "copy")
+
+    def test_clear_circuit(self):
+        """Test clear method deletes instructions in circuit."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr)
+        qc.h(qr[0])
+        qc.measure(qr[0], cr[0])
+        qc.measure(qr[1], cr[1])
+        qc.clear()
+
+        self.assertEqual(len(qc.data), 0)
+        self.assertEqual(len(qc._parameter_table), 0)
 
     def test_measure_active(self):
         """Test measure_active
@@ -850,13 +886,13 @@ class TestCircuitOperations(QiskitTestCase):
             self.assertEqual(qc.power(4), qc.repeat(4))
 
         with self.subTest("explicit matrix power"):
-            self.assertEqual(qc.power(4, matrix_power=True).data[0][0], gate.power(4))
+            self.assertEqual(qc.power(4, matrix_power=True).data[0].operation, gate.power(4))
 
         with self.subTest("float power"):
-            self.assertEqual(qc.power(1.23).data[0][0], gate.power(1.23))
+            self.assertEqual(qc.power(1.23).data[0].operation, gate.power(1.23))
 
         with self.subTest("negative power"):
-            self.assertEqual(qc.power(-2).data[0][0], gate.power(-2))
+            self.assertEqual(qc.power(-2).data[0].operation, gate.power(-2))
 
     def test_power_parameterized_circuit(self):
         """Test taking a parameterized circuit to a power."""
@@ -932,9 +968,9 @@ class TestCircuitOperations(QiskitTestCase):
         rep = qc.repeat(3)
 
         if subtype == "gate":
-            self.assertTrue(all(isinstance(op[0], Gate) for op in rep.data))
+            self.assertTrue(all(isinstance(op.operation, Gate) for op in rep.data))
         else:
-            self.assertTrue(all(isinstance(op[0], Instruction) for op in rep.data))
+            self.assertTrue(all(isinstance(op.operation, Instruction) for op in rep.data))
 
     def test_reverse_bits(self):
         """Test reversing order of bits."""
@@ -1226,6 +1262,6 @@ class TestCircuitPrivateOperations(QiskitTestCase):
         last_instructions = test.u(x, y, 0, 0)
         self.assertEqual({x, y}, set(test.parameters))
 
-        instruction, _, _ = test._pop_previous_instruction_in_scope()
+        instruction = test._pop_previous_instruction_in_scope()
         self.assertEqual(list(last_instructions), [instruction])
         self.assertEqual({y}, set(test.parameters))

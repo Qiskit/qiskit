@@ -55,7 +55,8 @@ class VGate(Gate):
         """V Gate definition."""
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q)
-        qc.data = [(SdgGate(), [q[0]], []), (HGate(), [q[0]], [])]
+        qc.sdg(0)
+        qc.h(0)
         self.definition = qc
 
 
@@ -70,7 +71,8 @@ class WGate(Gate):
         """W Gate definition."""
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q)
-        qc.data = [(VGate(), [q[0]], []), (VGate(), [q[0]], [])]
+        qc.append(VGate(), [q[0]], [])
+        qc.append(VGate(), [q[0]], [])
         self.definition = qc
 
 

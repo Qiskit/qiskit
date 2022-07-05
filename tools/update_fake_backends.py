@@ -43,8 +43,8 @@ class BackendEncoder(json.JSONEncoder):
 DEFAULT_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     "qiskit",
-    "test",
-    "mock",
+    "providers",
+    "fake_provider",
     "backends",
 )
 
