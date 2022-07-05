@@ -26,12 +26,10 @@ from qiskit.algorithms.list_or_dict import ListOrDict
 from qiskit.algorithms.minimum_eigen_solvers.vqe import VQEResult
 from qiskit.algorithms import VariationalAlgorithm
 from qiskit.circuit import QuantumCircuit
-from qiskit.opflow import OperatorBase, PauliSumOp, ExpectationBase, CircuitSampler
+from qiskit.opflow import OperatorBase, PauliSumOp, CircuitSampler
 from qiskit.opflow.gradients import GradientBase, Gradient
 from qiskit.circuit.library import EvolvedOperatorAnsatz
 from qiskit.utils.validation import validate_min
-from qiskit.utils import QuantumInstance
-from qiskit.providers import Backend
 from qiskit.algorithms.aux_ops_evaluator import eval_observables
 from ..exceptions import AlgorithmError
 
@@ -49,9 +47,9 @@ class Finishingcriterion(Enum):
 class AdaptVQE(VariationalAlgorithm):
     """The Adaptive Variational Quantum Eigensolver algorithm.
 
-    `AdaptVQE <https://arxiv.org/abs/1812.11173>`__ is a quantum algorithm creates a compact ansatz 
-    by gradually building up the ansatz circuit by appending the excitation with the largest energy 
-    gradient to the circuit. This results in a wavefunction ansatz that is uniquely formed by the 
+    `AdaptVQE <https://arxiv.org/abs/1812.11173>`__ is a quantum algorithm creates a compact ansatz
+    by gradually building up the ansatz circuit by appending the excitation with the largest energy
+    gradient to the circuit. This results in a wavefunction ansatz that is uniquely formed by the
     algorithm.
     This is an adaptive wrapper of a VQE used internally as solver.
     The performance of AdaptVQE can significantly depend on the choice of gradient method, QFI
@@ -178,12 +176,14 @@ class AdaptVQE(VariationalAlgorithm):
     ):
         if logger.isEnabledFor(logging.INFO):
             gradlog = []
-            gradlog.append(f"\nGradients in iteration #{str(iteration)} \nID: Excitation Operator: Gradient  <(*) maximum>")
+            gradlog.append(
+                f"\nGradients in iteration #{str(iteration)} \nID: Excitation Operator: Gradient  <(*) maximum>"
+            )
             for i, grad in enumerate(cur_grads):
                 gradlog.append(f"\n{str(i)}: {str(grad[1])}: {str(grad[0])}")
                 if grad[1] == max_grad[1]:
                     gradlog.append("\t(*)")
-            logger.info(','.join(gradlog))
+            logger.info(",".join(gradlog))
 
     def compute_minimum_eigenvalue(
         self,
