@@ -30,7 +30,7 @@ def collect_linear_blocks(dag):
     pending_non_linear_ops = deque()
 
     def is_linear(op):
-        return op.name in ("cx", "swap") and op.condition is None
+        return op.name in ("cx", "swap") and getattr(op, "condition", None) is None
 
     def process_node(node):
         for suc in dag.successors(node):

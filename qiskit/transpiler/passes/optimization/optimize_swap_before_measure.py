@@ -37,7 +37,7 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
         """
         swaps = dag.op_nodes(SwapGate)
         for swap in swaps[::-1]:
-            if swap.op.condition is not None:
+            if getattr(swap.op, "condition", None) is not None:
                 continue
             final_successor = []
             for successor in dag.successors(swap):

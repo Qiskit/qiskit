@@ -120,7 +120,7 @@ def _commute(node1, node2, cache):
     for nd in [node1, node2]:
         if getattr(nd.op, "_directive", False) or nd.name in {"measure", "reset", "delay"}:
             return False
-    if node1.op.condition or node2.op.condition:
+    if getattr(node1.op, "condition", None) or getattr(node2.op, "condition", None):
         return False
     if node1.op.is_parameterized() or node2.op.is_parameterized():
         return False
