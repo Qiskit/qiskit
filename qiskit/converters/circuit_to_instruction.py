@@ -110,7 +110,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
 
     # fix condition
     for rule in definition:
-        condition = rule.operation.condition
+        condition = getattr(rule.operation, "condition", None)
         if condition:
             reg, val = condition
             if isinstance(reg, Clbit):

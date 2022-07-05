@@ -93,7 +93,7 @@ class Instruction(Operation):
             self._label = label
         # tuple (ClassicalRegister, int), tuple (Clbit, bool) or tuple (Clbit, int)
         # when the instruction has a conditional ("if")
-        self._condition = None
+        self.condition = None
         # list of instructions (and their contexts) that this instruction is composed of
         # empty definition means opaque or fundamental instruction
         self._definition = None
@@ -102,14 +102,6 @@ class Instruction(Operation):
         self._unit = unit
 
         self.params = params  # must be at last (other properties may be required for validation)
-
-    @property
-    def condition(self):
-        return self._condition
-
-    @condition.setter
-    def condition(self, condition):
-        self._condition = condition
 
     def __eq__(self, other):
         """Two instructions are the same if they have the same name,

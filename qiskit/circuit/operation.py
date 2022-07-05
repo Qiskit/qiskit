@@ -59,9 +59,3 @@ class Operation(ABC):
     def num_clbits(self):
         """Number of classical bits."""
         raise NotImplementedError
-
-    @property
-    def condition(self):
-        """Condition for when the instruction has a conditional if.
-        This is temporary, please do not use."""
-        return None
