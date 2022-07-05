@@ -12,11 +12,17 @@
 
 """Code from commutative_analysis pass that checks commutation relations between DAG nodes."""
 
+from functools import lru_cache
+
 import numpy as np
 from qiskit.quantum_info.operators import Operator
-from qiskit.dagcircuit import DAGOpNode
+from qiskit.dagcircuit import DAGOpNode, DAGDepNode
 
-_CUTOFF_PRECISION = 1e-10
+
+@lru_cache(maxsize=None)
+def _identity_op(num_qubits):
+    """Cached identity matrix"""
+    return Operator(np.eye(2**num_qubits), input_dims=(2,) * num_qubits, output_dims=(2,) * num_qubits)
 
 
 class CommutationChecker:
@@ -30,7 +36,6 @@ class CommutationChecker:
     def __init__(self):
         super().__init__()
         self.cache = {}
-        self.commute_id_op = {}
 
     def _hashable_parameters(self, params):
         """Convert the parameters of a gate into a hashable format for lookup in a dictionary.
@@ -56,38 +61,39 @@ class CommutationChecker:
         return ("fallback", str(params))
 
     def commute(self, node1, node2):
-        """Checks if two nodes commute."""
-        if not isinstance(node1, DAGOpNode) or not isinstance(node2, DAGOpNode):
+        """Checks if two DAG nodes commute."""
+
+        # The function works both with nodes from DagCircuit and from DagDependency
+        if not isinstance(node1, (DAGOpNode, DAGDepNode)) or not isinstance(
+            node2, (DAGOpNode, DAGDepNode)
+        ):
             return False
 
-        # This portion is new, and says that two nodes with both different qubits and clbits
-        # necessarily commute. Presumably this was not present in commutative_analysis since
-        # the way commutative_analysis was used (e.g., for constructing DagDependency), this
-        # case never occurred.
-        qarg1 = node1.qargs
-        qarg2 = node2.qargs
-
-        # Create set of cbits on which the operation acts
-        carg1 = node1.cargs
-        carg2 = node2.cargs
-
-        intersection_q = set(qarg1).intersection(set(qarg2))
-        intersection_c = set(carg1).intersection(set(carg2))
-
+        # These lines are adapted from dag_dependency and say that two gates over
+        # different quantum and classical bits necessarily commute. This is more
+        # permissive that the check from commutation_analysis, as for example it
+        # allows to commute X(1) and Measure(0, 0).
+        # Presumably this check was not present in commutation_analysis as
+        # it was only called on pairs of connected nodes from DagCircuit.
+        intersection_q = set(node1.qargs).intersection(set(node2.qargs))
+        intersection_c = set(node1.cargs).intersection(set(node2.cargs))
         if not (intersection_q or intersection_c):
             return True
 
-        # The code below this line is from commutative_analysis
-
+        # This lines are adapted from commutation_analysis, which is more restrictive
+        # than the check from dag_dependency when considering nodes with "_directive"
+        # or "condition". It would be nice to think which optimizations
+        # from dag_dependency can indeed be used.
         for nd in [node1, node2]:
             if (
-                nd.op._directive
+                getattr(nd.op, "_directive", False)
                 or nd.name in {"measure", "reset", "delay"}
-                or nd.op.condition
+                or getattr(nd.op, "condition", None)
                 or nd.op.is_parameterized()
             ):
                 return False
 
+        # The main code is adapted from commutative analysis.
         # Assign indices to each of the qubits such that all `node1`'s qubits come first, followed by
         # any _additional_ qubits `node2` addresses.  This helps later when we need to compose one
         # operator with the other, since we can easily expand `node1` with a suitable identity.
@@ -121,14 +127,7 @@ class CommutationChecker:
             # being the lowest possible indices so the identity can be tensored before it.
             extra_qarg2 = num_qubits - len(qarg1)
             if extra_qarg2:
-                try:
-                    id_op = self.commute_id_op[extra_qarg2]
-                except KeyError:
-                    id_op = self.commute_id_op[extra_qarg2] = Operator(
-                        np.eye(2**extra_qarg2),
-                        input_dims=(2,) * extra_qarg2,
-                        output_dims=(2,) * extra_qarg2,
-                    )
+                id_op = _identity_op(2**extra_qarg2)
                 operator_1 = id_op.tensor(operator_1)
             op12 = operator_1.compose(operator_2, qargs=qarg2, front=False)
             op21 = operator_1.compose(operator_2, qargs=qarg2, front=True)

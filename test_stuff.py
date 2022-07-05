@@ -221,6 +221,22 @@ def optimize_commutative_inverse_cancellation():
     optimize_commutative_inverse_cancellation_aux(50, 5000, 0)
 
 
+def time_commutative_inverse_cancellation():
+    gates = ["x", "y", "z", "h", "s", "sdg", "cx", "cz", "swap"]
+    circuits = []
+    for seed in range(10):
+        qc = random_clifford_circuit(50, 5000, gates=gates, seed=seed)
+        circuits.append(qc)
+
+    pm2 = PassManager(CommutativeInverseCancellation())
+
+    time_start = time.time()
+    for qc in circuits:
+        qc2 = pm2.run(qc)
+    time_end = time.time()
+
+    print(f"time_commutative_inverse: {time_end - time_start:.4f}")
+
 # =====================================
 # DAG DEPENDENCY
 # =====================================
@@ -331,13 +347,64 @@ def test_commutative2():
     print(Operator(qc1) == Operator(qc2))
 
 
+def test_circ1():
+    qc = QuantumCircuit(3)
+    qc.z(0)
+    qc.x(1)
+    qc.cx(0, 1)
+    qc.z(0)
+    qc.x(1)
+    print(qc)
+    pm2 = PassManager(CommutativeInverseCancellation())
+    qc2 = pm2.run(qc)
+    print(qc2)
+
+
+def test_successors_predecessors():
+    """Test the method direct_successors."""
+
+    circuit = QuantumCircuit(2, 1)
+    circuit.h(0)
+    circuit.x(0)
+    circuit.h(0)
+    circuit.x(1)
+    circuit.h(0)
+    circuit.measure(0, 0)
+    print(circuit)
+
+    dag = circuit_to_dagdependency(circuit)
+
+
+    dir_successors_second = dag.direct_successors(1)
+    print(f"{dir_successors_second = }, should be [2, 4]")
+
+    dir_successors_fourth = dag.direct_successors(3)
+    print(f"{dir_successors_fourth = }, should be []")
+
+    successors_second = dag.successors(1)
+    print(f"{successors_second = }, should be [2, 4, 5]")
+
+    successors_fourth = dag.successors(3)
+    print(f"{successors_fourth = }, should be []")
+
+    dir_predecessors_sixth = dag.direct_predecessors(5)
+    print(f"{dir_predecessors_sixth = }, should be [2, 4]")
+
+    dir_predecessors_fourth = dag.direct_predecessors(3)
+    print(f"{dir_predecessors_fourth = }, should be []")
+
+    predecessors_sixth = dag.predecessors(5)
+    print(f"{predecessors_sixth = }, should be [0, 1, 2, 4]")
+
+    predecessors_fourth = dag.predecessors(3)
+    print(f"{predecessors_fourth = }, should be []")
 
 
 if __name__ == "__main__":
     # time_construct_dag_dependency()
     # memory_construct_dag_dependency()
     # time_template_optimization()
-    optimize()
+    # optimize()
     # optimize_commutative_inverse_cancellation()
     # optimize_circ1()
     # optimize_circ2()
@@ -345,6 +412,10 @@ if __name__ == "__main__":
     # optimize_circ4()
     # optimize_circ5()
     # test_commutative2()
+    # test_circ1()
 
+    # time_commutative_inverse_cancellation()
+
+    test_successors_predecessors()
 
 

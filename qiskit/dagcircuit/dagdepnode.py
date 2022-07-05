@@ -17,10 +17,9 @@
 import warnings
 
 from qiskit.exceptions import QiskitError
-from qiskit.dagcircuit.dagnode import DAGOpNode
 
 
-class DAGDepNode(DAGOpNode):
+class DAGDepNode:
     """Object to represent the information at a node in the DAGDependency().
 
     It is used as the return value from `*_nodes()` functions and can
@@ -88,7 +87,6 @@ class DAGDepNode(DAGOpNode):
         self.successorstovisit = successorstovisit if successorstovisit is not None else []
         self.qindices = qindices if qindices is not None else []
         self.cindices = cindices if cindices is not None else []
-        super().__init__(op, qargs, cargs)
 
     @property
     def op(self):
