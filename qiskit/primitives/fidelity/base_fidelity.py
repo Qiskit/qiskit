@@ -14,12 +14,11 @@ Base fidelity primitive
 """
 
 from abc import ABC, abstractmethod
+from typing import List, Union, Optional
 import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
-
-from typing import List, Union, Optional
 
 
 class BaseFidelity(ABC):
@@ -32,20 +31,21 @@ class BaseFidelity(ABC):
         left_circuit: QuantumCircuit,
         right_circuit: QuantumCircuit,
     ) -> None:
-        """
-        Initializes the class to evaluate the fidelities defined as the state fidelity
-            :math:`|\braket{\psi(x)} {\phi(y)}|^2`,
+        r"""
+        Initializes the class to evaluate the fidelities defined as
+            :math:`|\langle\psi(x)|\phi(y)\rangle|^2`,
         where x and y are parametrizations of the circuits :math:`\psi` and :math:`\phi`.
         Args:
-            - left_circuit: (Parametrized) quantum circuit :math:`\psi`
-            - right_circuit: (Parametrized) quantum circuit :math:`\phi`
+            left_circuit: (Parametrized) quantum circuit :math:`|\psi\rangle`
+            right_circuit: (Parametrized) quantum circuit :math:`|\phi\rangle`
         Raises:
-            - ValueError: left_circuit and right_circuit don't have the same number of qubits
+            ValueError: left_circuit and right_circuit don't have the same number of qubits
         """
 
         if left_circuit.num_qubits != right_circuit.num_qubits:
             raise ValueError(
-                f"The number of qubits for the left circuit ({left_circuit.num_qubits}) and right circuit ({right_circuit.num_qubits}) do not coincide."
+                f"The number of qubits for the left circuit ({left_circuit.num_qubits})"
+                f"and right circuit ({right_circuit.num_qubits}) do not coincide."
             )
 
         self._left_circuit = left_circuit
@@ -65,7 +65,8 @@ class BaseFidelity(ABC):
         values_left: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
         values_right: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
     ) -> np.ndarray:
-        """Compute the overlap of two quantum states bound by the parametrizations values_left and values_right.
+        """Compute the overlap of two quantum states bound by the
+        parametrizations values_left and values_right.
 
         Args:
             values_left: Numerical parameters to be bound to the left circuit
