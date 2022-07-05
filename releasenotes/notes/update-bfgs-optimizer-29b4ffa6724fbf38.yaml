@@ -1,0 +1,5 @@
+upgrade:
+  - |
+    Change the default of maximum number of allowed function evaluations (``maxfun``) in
+    :class:`.L_BFGS_B` from 1000 to 15000 to match the SciPy default.
+    This number also matches the default number of iterations (``maxiter``).
