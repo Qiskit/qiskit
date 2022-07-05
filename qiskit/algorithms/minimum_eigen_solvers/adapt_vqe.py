@@ -62,7 +62,6 @@ class AdaptVQE(VariationalAlgorithm):
         threshold: float = 1e-5,
         max_iterations: Optional[int] = None,
         adapt_gradient: Optional[GradientBase] = None,
-        initial_point: Optional[np.ndarray] = None,
         excitation_pool: List[Union[OperatorBase, QuantumCircuit]] = None,
     ) -> None:
         """
@@ -72,7 +71,7 @@ class AdaptVQE(VariationalAlgorithm):
             max_iterations: the maximum number of iterations of the AdaptVQE algorithm.
             adapt_gradient: a class that converts operator expression to the first-order gradient based
                 on the method mentioned.
-            initial_point: An optional initial point (i.e. initial parameter values) for the optimizer.
+            
             excitation_pool: An entire list of excitations.
         """
         validate_min("threshold", threshold, 1e-15)
@@ -81,7 +80,6 @@ class AdaptVQE(VariationalAlgorithm):
             adapt_gradient = Gradient(grad_method="param_shift")
         self._threshold = threshold
         self.solver = solver
-        self.initial_point = initial_point
         self._tmp_ansatz = self.solver.ansatz
         self._max_iterations = max_iterations
         self._adapt_gradient = adapt_gradient
@@ -262,7 +260,7 @@ class AdaptVQE(VariationalAlgorithm):
             # run VQE on current Ansatz
             self._tmp_ansatz.operators = self._excitation_list
             self.solver.ansatz = self._tmp_ansatz
-            self.initial_point = theta
+            self.solver.initial_point = theta
             raw_vqe_result = self.solver.compute_minimum_eigenvalue(operator)
             theta = raw_vqe_result.optimal_point.tolist()
         else:
