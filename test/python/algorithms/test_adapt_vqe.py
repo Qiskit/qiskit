@@ -66,16 +66,15 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
             ),
         ]
         self.initial_state = QuantumCircuit(QuantumRegister(4))
-        self.initial_state.x(0) 
+        self.initial_state.x(0)
         self.initial_state.x(1)
         self.ansatz = EvolvedOperatorAnsatz(self.excitation_pool, initial_state=self.initial_state)
         self.quantum_instance = BasicAer.get_backend("statevector_simulator")
-        
 
     def test_default(self):
         """Default execution"""
         calc = AdaptVQE(
-            solver=VQE(ansatz=self.ansatz,quantum_instance=self.quantum_instance),
+            solver=VQE(ansatz=self.ansatz, quantum_instance=self.quantum_instance),
             excitation_pool=self.excitation_pool,
         )
         res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
@@ -87,7 +86,7 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
     def test_finite_diff(self):
         """test using finite difference gradient"""
         calc = AdaptVQE(
-            solver=VQE(ansatz=self.ansatz,quantum_instance=self.quantum_instance),
+            solver=VQE(ansatz=self.ansatz, quantum_instance=self.quantum_instance),
             excitation_pool=self.excitation_pool,
             adapt_gradient=Gradient(grad_method="fin_diff"),
         )
@@ -100,7 +99,7 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
     def test_param_shift(self):
         """test using parameter shift gradient"""
         calc = AdaptVQE(
-            solver=VQE(ansatz=self.ansatz,quantum_instance=self.quantum_instance),
+            solver=VQE(ansatz=self.ansatz, quantum_instance=self.quantum_instance),
             excitation_pool=self.excitation_pool,
             adapt_gradient=Gradient(grad_method="param_shift"),
         )

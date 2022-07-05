@@ -71,7 +71,7 @@ class AdaptVQE(VariationalAlgorithm):
             max_iterations: the maximum number of iterations of the AdaptVQE algorithm.
             adapt_gradient: a class that converts operator expression to the first-order gradient based
                 on the method mentioned.
-            
+
             excitation_pool: An entire list of excitations.
         """
         validate_min("threshold", threshold, 1e-15)
