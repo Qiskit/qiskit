@@ -16,8 +16,7 @@ import numpy as np
 
 
 def compute_ptrace(ket: np.ndarray, num_qubits: int) -> float:
-    """Return the values of entanglement capability using meyer-wallach
-        measure.
+    """Return the values of entanglement capability using meyer-wallach measure.
     Args:
         ket : (numpy.ndarray or list);Vector of amplitudes in 2**N dimensions
         num_qubits : (int)Number of qubits

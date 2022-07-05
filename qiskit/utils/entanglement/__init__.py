@@ -21,7 +21,7 @@ Entanglement Measure Utils (:mod:`qiskit.utils.entanglement`)
 
    compute_ptrace
    compute_vn_entropy
-   
+
 Entanglement Measure
 ======================
 
