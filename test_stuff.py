@@ -401,11 +401,11 @@ def test_successors_predecessors():
 
 
 if __name__ == "__main__":
-    # time_construct_dag_dependency()
+    time_construct_dag_dependency()
     # memory_construct_dag_dependency()
     # time_template_optimization()
     # optimize()
-    # optimize_commutative_inverse_cancellation()
+    optimize_commutative_inverse_cancellation()
     # optimize_circ1()
     # optimize_circ2()
     # optimize_circ3()
@@ -414,8 +414,8 @@ if __name__ == "__main__":
     # test_commutative2()
     # test_circ1()
 
-    # time_commutative_inverse_cancellation()
+    time_commutative_inverse_cancellation()
 
-    test_successors_predecessors()
+    # test_successors_predecessors()
 
 
