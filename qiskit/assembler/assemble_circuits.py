@@ -111,7 +111,9 @@ def _assemble_circuit(
     # their clbit_index, create a new register slot for every conditional gate
     # and add a bfunc to map the creg=val mask onto the gating register bit.
 
-    is_conditional_experiment = any(instruction.operation.condition for instruction in circuit.data)
+    is_conditional_experiment = any(
+        getattr(instruction.operation, "condition", None) for instruction in circuit.data
+    )
     max_conditional_idx = 0
 
     instructions = []

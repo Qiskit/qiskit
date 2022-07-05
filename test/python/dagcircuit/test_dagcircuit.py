@@ -120,7 +120,9 @@ def raise_if_dagcircuit_invalid(dag):
         in_wires = {data for src, dest, data in in_edges}
         out_wires = {data for src, dest, data in out_edges}
 
-        node_cond_bits = set(node.op.condition[0][:] if node.op.condition is not None else [])
+        node_cond_bits = set(
+            node.op.condition[0][:] if getattr(node.op, "condition", None) is not None else []
+        )
         node_qubits = set(node.qargs)
         node_clbits = set(node.cargs)
 
