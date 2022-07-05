@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The :meth:`.NaturalGradient._ridge` and :meth:`.NaturalGradient._lasso` methods
+    now use the :class:`~sklearn.preprocessing.StandardScaler` to scale the data
+    before fitting the model if the ``normalize`` parameter is set to ``True``.
