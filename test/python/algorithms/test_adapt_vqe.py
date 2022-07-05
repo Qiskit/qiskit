@@ -1,4 +1,5 @@
 """ Test of the AdaptVQE minimum eigensolver """
+from mimetypes import init
 import unittest
 import sys
 from test.python.algorithms import QiskitAlgorithmsTestCase
@@ -41,10 +42,7 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
                 ("ZXZX", -0.04523279994605788),
             ]
         )
-
-    def test_default(self):
-        """Default execution"""
-        excitation_pool = [
+        self.excitation_pool = [
             PauliSumOp(
                 SparsePauliOp(["IIIY", "IIZY"], coeffs=[0.5 + 0.0j, -0.5 + 0.0j]), coeff=1.0
             ),
@@ -68,16 +66,18 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
                 coeff=1.0,
             ),
         ]
-        initial_state = QuantumCircuit(QuantumRegister(4))
-        initial_state.x(0)
-        initial_state.x(1)
-        ansatz = EvolvedOperatorAnsatz(excitation_pool, initial_state=initial_state)
-        quantum_instance = BasicAer.get_backend("statevector_simulator")
+        self.initial_state = QuantumCircuit(QuantumRegister(4))
+        self.initial_state.x(0)
+        self.initial_state.x(1)
+        self.ansatz = EvolvedOperatorAnsatz(self.excitation_pool, initial_state=self.initial_state)
+        self.quantum_instance = BasicAer.get_backend("statevector_simulator")
+        
+
+    def test_default(self):
+        """Default execution"""
         calc = AdaptVQE(
-            solver=VQE(quantum_instance=quantum_instance),
-            ansatz=ansatz,
-            excitation_pool=excitation_pool,
-            quantum_instance=quantum_instance,
+            solver=VQE(ansatz=self.ansatz,quantum_instance=self.quantum_instance),
+            excitation_pool=self.excitation_pool,
         )
         res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
 
@@ -87,41 +87,12 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
 
     def test_finite_diff(self):
         """test using finite difference gradient"""
-        excitation_pool = [
-            PauliSumOp(
-                SparsePauliOp(["IIIY", "IIZY"], coeffs=[0.5 + 0.0j, -0.5 + 0.0j]), coeff=1.0
-            ),
-            PauliSumOp(
-                SparsePauliOp(["ZYII", "IYZI"], coeffs=[-0.5 + 0.0j, 0.5 + 0.0j]), coeff=1.0
-            ),
-            PauliSumOp(
-                SparsePauliOp(
-                    ["ZXZY", "IXIY", "IYIX", "ZYZX", "IYZX", "ZYIX", "ZXIY", "IXZY"],
-                    coeffs=[
-                        -0.125 + 0.0j,
-                        0.125 + 0.0j,
-                        -0.125 + 0.0j,
-                        0.125 + 0.0j,
-                        0.125 + 0.0j,
-                        -0.125 + 0.0j,
-                        0.125 + 0.0j,
-                        -0.125 + 0.0j,
-                    ],
-                ),
-                coeff=1.0,
-            ),
-        ]
-        initial_state = QuantumCircuit(QuantumRegister(4))
-        initial_state.x(0)
-        initial_state.x(1)
-        ansatz = EvolvedOperatorAnsatz(excitation_pool, initial_state=initial_state)
-        quantum_instance = BasicAer.get_backend("statevector_simulator")
         calc = AdaptVQE(
-            solver=VQE(quantum_instance=quantum_instance),
-            ansatz=ansatz,
-            excitation_pool=excitation_pool,
+            solver=VQE(quantum_instance=self.quantum_instance),
+            ansatz=self.ansatz,
+            excitation_pool=self.excitation_pool,
             adapt_gradient=Gradient(grad_method="fin_diff"),
-            quantum_instance=quantum_instance,
+            quantum_instance=self.quantum_instance,
         )
         res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
 
@@ -131,41 +102,12 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
 
     def test_param_shift(self):
         """test using parameter shift gradient"""
-        excitation_pool = [
-            PauliSumOp(
-                SparsePauliOp(["IIIY", "IIZY"], coeffs=[0.5 + 0.0j, -0.5 + 0.0j]), coeff=1.0
-            ),
-            PauliSumOp(
-                SparsePauliOp(["ZYII", "IYZI"], coeffs=[-0.5 + 0.0j, 0.5 + 0.0j]), coeff=1.0
-            ),
-            PauliSumOp(
-                SparsePauliOp(
-                    ["ZXZY", "IXIY", "IYIX", "ZYZX", "IYZX", "ZYIX", "ZXIY", "IXZY"],
-                    coeffs=[
-                        -0.125 + 0.0j,
-                        0.125 + 0.0j,
-                        -0.125 + 0.0j,
-                        0.125 + 0.0j,
-                        0.125 + 0.0j,
-                        -0.125 + 0.0j,
-                        0.125 + 0.0j,
-                        -0.125 + 0.0j,
-                    ],
-                ),
-                coeff=1.0,
-            ),
-        ]
-        initial_state = QuantumCircuit(QuantumRegister(4))
-        initial_state.x(0)
-        initial_state.x(1)
-        ansatz = EvolvedOperatorAnsatz(excitation_pool, initial_state=initial_state)
-        quantum_instance = BasicAer.get_backend("statevector_simulator")
         calc = AdaptVQE(
-            solver=VQE(quantum_instance=quantum_instance),
-            ansatz=ansatz,
-            excitation_pool=excitation_pool,
+            solver=VQE(quantum_instance=self.quantum_instance),
+            ansatz=self.ansatz,
+            excitation_pool=self.excitation_pool,
             adapt_gradient=Gradient(grad_method="param_shift"),
-            quantum_instance=quantum_instance,
+            quantum_instance=self.quantum_instance,
         )
         res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
 
