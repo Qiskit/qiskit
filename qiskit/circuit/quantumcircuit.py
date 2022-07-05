@@ -948,7 +948,7 @@ class QuantumCircuit:
             n_cargs = [edge_map[carg] for carg in instr.clbits]
             n_instr = instr.operation.copy()
 
-            if instr.operation.condition is not None:
+            if getattr(instr.operation, "condition", None) is not None:
                 from qiskit.dagcircuit import DAGCircuit  # pylint: disable=cyclic-import
 
                 n_instr.condition = DAGCircuit._map_condition(
@@ -2016,7 +2016,7 @@ class QuantumCircuit:
                     levels.append(op_stack[reg_ints[ind]])
             # Assuming here that there is no conditional
             # snapshots or barriers ever.
-            if instruction.operation.condition:
+            if getattr(instruction.operation, "condition", None):
                 # Controls operate over all bits of a classical register
                 # or over a single bit
                 if isinstance(instruction.operation.condition[0], Clbit):
@@ -2123,7 +2123,9 @@ class QuantumCircuit:
                 num_qargs = len(args)
             else:
                 args = instruction.qubits + instruction.clbits
-                num_qargs = len(args) + (1 if instruction.operation.condition else 0)
+                num_qargs = len(args) + (
+                    1 if getattr(instruction.operation, "condition", None) else 0
+                )
 
             if num_qargs >= 2 and not getattr(instruction.operation, "_directive", False):
                 graphs_touched = []

@@ -1037,7 +1037,7 @@ class TextDrawing:
         for i in range(len(ctrl_qubits)):
             # For sidetext gate alignment, need to set every Bullet with
             # conditional on if there's a condition.
-            if op.condition is not None:
+            if getattr(op, "condition", None) is not None:
                 conditional = True
             if cstate[i] == "1":
                 gates.append(Bullet(conditional=conditional, label=ctrl_text, bottom=bottom))
@@ -1060,7 +1060,7 @@ class TextDrawing:
             gate_text = TextDrawing.special_label(op) or gate_text
             gate_text = gate_text + params
 
-        if op.condition is not None:
+        if getattr(op, "condition", None) is not None:
             # conditional
             layer.set_cl_multibox(op.condition, top_connect="╨")
             conditional = True

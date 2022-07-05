@@ -795,7 +795,7 @@ class MatplotlibDrawer:
                     print(op)
 
                 # add conditional
-                if op.condition:
+                if getattr(op, "condition", None):
                     cond_xy = [
                         self._c_anchors[ii].plot_coord(anc_x_index, layer_width, self._x_offset)
                         for ii in self._clbits_dict

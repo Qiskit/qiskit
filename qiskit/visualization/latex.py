@@ -288,7 +288,10 @@ class QCircuitImage:
         if self._cregbundle and (
             self._nodes
             and self._nodes[0]
-            and (self._nodes[0][0].op.name == "measure" or self._nodes[0][0].op.condition)
+            and (
+                self._nodes[0][0].op.name == "measure"
+                or getattr(self._nodes[0][0].op, "condition", None)
+            )
         ):
             columns += 1
 
@@ -412,7 +415,10 @@ class QCircuitImage:
         if self._cregbundle and (
             self._nodes
             and self._nodes[0]
-            and (self._nodes[0][0].op.name == "measure" or self._nodes[0][0].op.condition)
+            and (
+                self._nodes[0][0].op.name == "measure"
+                or getattr(self._nodes[0][0].op, "condition", None)
+            )
         ):
             column += 1
 
@@ -423,7 +429,7 @@ class QCircuitImage:
                 op = node.op
                 num_cols_op = 1
                 wire_list = [self._wire_map[qarg] for qarg in node.qargs]
-                if op.condition:
+                if getattr(op, "condition", None):
                     self._add_condition(op, wire_list, column)
 
                 if isinstance(op, Measure):
@@ -563,7 +569,7 @@ class QCircuitImage:
         self._latex[wire1][col] = "\\meter"
 
         idx_str = ""
-        cond_offset = 1.5 if node.op.condition else 0.0
+        cond_offset = 1.5 if getattr(node.op, "condition", None) else 0.0
         if self._cregbundle:
             register = get_bit_register(self._circuit, node.cargs[0])
             if register is not None:

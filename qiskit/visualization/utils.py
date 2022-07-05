@@ -453,7 +453,7 @@ def _get_gate_span(qubits, node, reverse_bits):
         if index > max_index:
             max_index = index
 
-    if node.cargs or node.op.condition:
+    if node.cargs or getattr(node.op, "condition", None):
         if reverse_bits:
             return qubits[: max_index + 1]
         else:
@@ -532,7 +532,7 @@ class _LayerSpooler(list):
             curr_index = index
             last_insertable_index = -1
             index_stop = -1
-            if node.op.condition:
+            if getattr(node.op, "condition", None):
                 if isinstance(node.op.condition[0], Clbit):
                     cond_bit = [clbit for clbit in self.clbits if node.op.condition[0] == clbit]
                     index_stop = self.measure_map[cond_bit[0]]

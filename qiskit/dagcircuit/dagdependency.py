@@ -392,7 +392,7 @@ class DAGDependency:
             qindices_list = []
             for elem in qargs:
                 qindices_list.append(self.qubits.index(elem))
-            if operation.condition:
+            if getattr(operation, "condition", None):
                 for clbit in self.clbits:
                     if clbit in operation.condition[0]:
                         initial = self.clbits.index(clbit)
@@ -591,7 +591,7 @@ def _does_commute(node1, node2):
     # TODO: qubits can be the same if conditions are identical and
     # the non-conditional gates commute.
     if node1.type == "op" and node2.type == "op":
-        if node1.op.condition or node2.op.condition:
+        if getattr(node1.op, "condition", None) or getattr(node2.op, "condition", None):
             intersection = set(qarg1).intersection(set(qarg2))
             return not intersection
 

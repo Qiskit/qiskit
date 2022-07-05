@@ -111,7 +111,7 @@ class DAGDepNode:
             DeprecationWarning,
             2,
         )
-        return self._op.condition
+        return getattr(self._op, "condition", None)
 
     @condition.setter
     def condition(self, new_condition):
@@ -162,7 +162,9 @@ class DAGDepNode:
                     if node1._qargs == node2._qargs:
                         if node1.cargs == node2.cargs:
                             if node1.type == "op":
-                                if node1._op.condition != node2._op.condition:
+                                if getattr(node1._op, "condition", None) != getattr(
+                                    node2._op, "condition", None
+                                ):
                                     return False
                             return True
         return False

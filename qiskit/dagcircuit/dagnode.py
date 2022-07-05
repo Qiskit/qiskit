@@ -79,7 +79,7 @@ class DAGNode:
 
             if node1_qargs == node2_qargs:
                 if node1_cargs == node2_cargs:
-                    if node1.op.condition == node2.op.condition:
+                    if getattr(node1.op, "condition", None) == getattr(node2.op, "condition", None):
                         if node1.op == node2.op:
                             return True
         elif (isinstance(node1, DAGInNode) and isinstance(node2, DAGInNode)) or (
