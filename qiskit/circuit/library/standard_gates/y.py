@@ -111,7 +111,7 @@ class YGate(Gate):
         r"""Return inverted Y gate (:math:`Y{\dagger} = Y`)"""
         return YGate()  # self-inverse
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=complex):
         """Return a numpy.array for the Y gate."""
         return numpy.array([[0, -1j], [1j, 0]], dtype=dtype)
 
