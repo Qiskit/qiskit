@@ -133,8 +133,7 @@ class AdaptVQE(VariationalAlgorithm):
             # compute gradient
             state_grad = self._adapt_gradient.convert(operator=op, params=param_sets)
             # Assign the parameters and evaluate the gradient
-            value_dict = {param_sets[-1]: 0.0}
-            state_grad_result = sampler.convert(state_grad, params=value_dict).eval()
+            state_grad_result = sampler.convert(state_grad, params={param_sets[-1]: 0.0}).eval()
             logger.info("Gradient computed : %s", str(state_grad_result))
             res.append((np.abs(state_grad_result[-1]), exc))
         return res, expectation
