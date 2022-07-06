@@ -17,7 +17,6 @@ from typing import List, Dict, Union
 
 import numpy as np
 
-from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import UnassignedDurationError, QiskitError
 

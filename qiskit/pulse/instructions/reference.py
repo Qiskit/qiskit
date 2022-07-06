@@ -12,7 +12,7 @@
 
 """Reference instruction that is a placeholder for subroutine."""
 
-from typing import Optional, Union, Tuple, Set
+from typing import Union, Tuple, Set
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.channels import Channel
@@ -41,29 +41,27 @@ class Reference(instruction.Instruction):
     # Delimiter for tuple keys.
     key_delimiter = ","
 
-    def __init__(self, *ref_keys: str, name: Optional[str] = None):
+    def __init__(self, name: str, *extra_keys: str):
         """Create new reference.
 
         Args:
-            ref_keys: A single unique name or set of strings that represent this reference.
-                This depends on how user manages key mapping to a specific subroutine.
-                For example, "sx" schedule on qubit "q0" may be keyed with a single string
-                "sx_q0", or with a tuple of strings ("sx", "q0"). Users can use arbitrary
-                number of strings to uniquely determine the subroutine.
-            name: Optional. A label of this reference.
+            name: Name of subroutine.
+            extra_keys: Optional. A set of string keys that may be necessary to
+                refer to a particular subroutine. For example, when we use
+                "sx" as a name to refer to the subroutine of sx pulse,
+                this name might be used among schedules for different qubits.
+                In this example, you may specify "q0" in the extra keys
+                to distinguish the sx schedule for qubit 0 from others.
+                User can use arbitrary number of extra string keys to
+                uniquely determine the subroutine.
 
         Raises:
-            PulseError: When no key is provided, i.e. ``ref_keys`` has length 0.
             PulseError: When a key is not a string.
             PulseError: When a key in ``ref_keys`` contains the scope delimiter.
         """
-        if len(ref_keys) == 0:
-            raise PulseError("At least one key must be provided.")
-
-        if isinstance(ref_keys, str):
-            ref_keys = (ref_keys,)
-
         # Run validation
+        ref_keys = (name,) + tuple(extra_keys)
+
         for key in ref_keys:
             if not isinstance(key, str):
                 raise PulseError(f"Keys must be string. '{repr(key)}' is not a valid object.")
@@ -73,7 +71,7 @@ class Reference(instruction.Instruction):
                     f"'{key}' is not a valid key string."
                 )
 
-        super().__init__(operands=tuple(ref_keys), name=name)
+        super().__init__(operands=ref_keys, name=name)
 
     @property
     def ref_keys(self) -> Tuple[str, ...]:

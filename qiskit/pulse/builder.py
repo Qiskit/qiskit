@@ -447,6 +447,7 @@ import contextvars
 import functools
 import itertools
 import warnings
+import uuid
 from contextlib import contextmanager
 from typing import (
     Any,
@@ -744,14 +745,14 @@ class _PulseBuilder:
         if len(context_block) > 0:
             self._context_stack[-1].append(context_block)
 
-    def append_reference(self, *ref_keys: str, name: Optional[str] = None):
+    def append_reference(self, name: str, *extra_keys: str):
         """Add external program as a :class:`~qiskit.pulse.instructions.Reference` instruction.
 
         Args:
-            ref_keys: Set of keys to uniquely specify the reference.
-            name: Optional. A label of instruction.
+            name: Name of subroutine.
+            extra_keys: Assistance keys to uniquely specify the subroutine.
         """
-        reference = instructions.Reference(*ref_keys, name=name)
+        reference = instructions.Reference(name, *extra_keys)
         self.append_instruction(reference)
 
     def call_subroutine(
@@ -765,7 +766,7 @@ class _PulseBuilder:
 
         The ``subroutine`` is appended to the context schedule as a call instruction.
         This logic just generates a convenient program representation in the compiler.
-        Thus this doesn't affect execution of inline subroutines.
+        Thus, this doesn't affect execution of inline subroutines.
         See :class:`~pulse.instructions.Call` for more details.
 
         Args:
@@ -816,20 +817,8 @@ class _PulseBuilder:
             if local_assignment:
                 subroutine = subroutine.assign_parameters(local_assignment, inplace=False)
             if name is None:
-                # Add unique key to schedule.
-                # If subroutine is called twice in the context, equality of them must be properly
-                # evaluated. If they are the same object, only one reference is created
-                # and subroutine is reused. Otherwise, two entries are created.
-                # Generation of unique tag is bit tricky, because schedule block is unhashable.
-                # In addition, if subroutine is parameterized, repr(subroutine) could be the same
-                # for different object, because parameter uuid doesn't apper in the repr.
-                # Using object id doesn't work because deepcopied subroutine, i.e. assignment with
-                # inplace=False above, may have the same id with non-overlapping lifetime.
-                # https://docs.python.org/3.9/library/functions.html#id
-                sched_repr = repr(subroutine)
-                sched_params = sorted(subroutine.parameters, key=lambda p: p.name)
-                unique_str = hex(hash((sched_repr, *sched_params)))
-                keys = (subroutine.name, unique_str)
+                # Add unique string, not to accidentally override existing reference entry.
+                keys = (subroutine.name, uuid.uuid4().hex)
             else:
                 keys = (name,)
             self.append_reference(*keys)
@@ -2055,7 +2044,7 @@ def call(
     )
 
 
-def refer(*ref_keys: str, name: Optional[str] = None):
+def refer(name: str, *extra_keys: str):
     """Refer to undefined subroutine by string keys.
 
     A :class:`~qiskit.pulse.instructions.Reference` instruction is implicitly created
@@ -2074,10 +2063,10 @@ def refer(*ref_keys: str, name: Optional[str] = None):
         main_prog.assign_references(subroutine_dict={("x_gate", "q0"): subroutine})
 
     Args:
-        ref_keys: A set of string that represent this reference.
-        name: Optional. A label of this reference.
+        name: Name of subroutine.
+        extra_keys: Assistance keys to uniquely specify the subroutine.
     """
-    _active_builder().append_reference(*ref_keys, name=name)
+    _active_builder().append_reference(name, *extra_keys)
 
 
 # Directives

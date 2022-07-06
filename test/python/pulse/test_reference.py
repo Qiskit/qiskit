@@ -235,8 +235,8 @@ class TestReference(QiskitTestCase):
             pulse.play(pulse.Constant(100, param, name="x1"), pulse.DriveChannel(0))
 
         with pulse.build() as sched_z1:
-            pulse.call(sched_x1)
-            pulse.call(sched_x1)
+            pulse.call(sched_x1, name="same_sched")
+            pulse.call(sched_x1, name="same_sched")
 
         self.assertEqual(len(sched_z1.references), 1)
 

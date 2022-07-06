@@ -1487,7 +1487,7 @@ class ScheduleBlock:
 
     def assign_references(
         self,
-        subroutine_dict: Dict[str, "ScheduleBlock"],
+        subroutine_dict: Dict[Union[str, Tuple[str, ...]], "ScheduleBlock"],
         inplace: bool = True,
     ) -> "ScheduleBlock":
         """Assign schedules to references.
