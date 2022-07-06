@@ -513,8 +513,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
     def test_sort(self):
         """Test sort method."""
         with self.assertRaises(QiskitError):
-            # Error when setting an empty List as an argument
-            _ = SparsePauliOp([],[])
+            target = SparsePauliOp([], [])
 
         with self.subTest(msg="1 qubit real number"):
             target = SparsePauliOp(
