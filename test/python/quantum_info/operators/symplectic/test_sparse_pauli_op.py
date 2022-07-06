@@ -20,13 +20,7 @@ import numpy as np
 from ddt import ddt
 
 from qiskit import QiskitError
-from qiskit.quantum_info.operators import (
-    Operator,
-    Pauli,
-    PauliList,
-    PauliTable,
-    SparsePauliOp,
-)
+from qiskit.quantum_info.operators import Operator, Pauli, PauliList, PauliTable, SparsePauliOp
 from qiskit.test import QiskitTestCase
 
 
@@ -182,6 +176,15 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         """Test from_list via Pauli + indices raises correctly, if number of qubits invalid."""
         with self.assertRaises(QiskitError):
             _ = SparsePauliOp.from_sparse_list([("Z", [2], 1)], 1)
+
+    def test_from_index_list_same_index(self):
+        """Test from_list via Pauli + number of qubits raises correctly, if indices duplicate."""
+        with self.assertRaises(QiskitError):
+            _ = SparsePauliOp.from_sparse_list([("ZZ", [0, 0], 1)], 2)
+        with self.assertRaises(QiskitError):
+            _ = SparsePauliOp.from_sparse_list([("ZI", [0, 0], 1)], 2)
+        with self.assertRaises(QiskitError):
+            _ = SparsePauliOp.from_sparse_list([("IZ", [0, 0], 1)], 2)
 
     def test_from_zip(self):
         """Test from_list method for zipped input."""
@@ -712,6 +715,13 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         if not spp_op2.equiv(zero):
             self.assertFalse(spp_op2.equiv(spp_op2 + spp_op2))
 
+    def test_equiv_atol(self):
+        """Test equiv method with atol."""
+        op1 = SparsePauliOp.from_list([("X", 1), ("Y", 2)])
+        op2 = op1 + 1e-7 * SparsePauliOp.from_list([("I", 1)])
+        self.assertFalse(op1.equiv(op2))
+        self.assertTrue(op1.equiv(op2, atol=1e-7))
+
     def test_eq_equiv(self):
         """Test __eq__ and equiv methods with some specific cases."""
         with self.subTest("shuffled"):
@@ -725,6 +735,41 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             spp_op2 = SparsePauliOp.from_list([("X", 1), ("Y", 1), ("Z", 0)])
             self.assertNotEqual(spp_op1, spp_op2)
             self.assertTrue(spp_op1.equiv(spp_op2))
+
+    def test_group_commuting(self):
+        """Test general grouping commuting operators"""
+
+        def commutes(left: Pauli, right: Pauli) -> bool:
+            return len(left) == len(right) and left.commutes(right)
+
+        input_labels = ["IX", "IY", "IZ", "XX", "YY", "ZZ", "XY", "YX", "ZX", "ZY", "XZ", "YZ"]
+        np.random.shuffle(input_labels)
+        coefs = np.random.random(len(input_labels)) + np.random.random(len(input_labels)) * 1j
+        sparse_pauli_list = SparsePauliOp(input_labels, coefs)
+        groups = sparse_pauli_list.group_commuting()
+        # checking that every input Pauli in sparse_pauli_list is in a group in the ouput
+        output_labels = [pauli.to_label() for group in groups for pauli in group.paulis]
+        self.assertListEqual(sorted(output_labels), sorted(input_labels))
+        # checking that every coeffs are grouped according to sparse_pauli_list group
+        paulis_coeff_dict = dict(
+            sum([list(zip(group.paulis.to_labels(), group.coeffs)) for group in groups], [])
+        )
+        self.assertDictEqual(dict(zip(input_labels, coefs)), paulis_coeff_dict)
+
+        # Within each group, every operator commutes with every other operator.
+        for group in groups:
+            self.assertTrue(
+                all(commutes(pauli1, pauli2) for pauli1, pauli2 in it.combinations(group.paulis, 2))
+            )
+        # For every pair of groups, at least one element from one group does not commute with
+        # at least one element of the other.
+        for group1, group2 in it.combinations(groups, 2):
+            self.assertFalse(
+                all(
+                    commutes(group1_pauli, group2_pauli)
+                    for group1_pauli, group2_pauli in it.product(group1.paulis, group2.paulis)
+                )
+            )
 
 
 if __name__ == "__main__":

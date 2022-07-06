@@ -35,7 +35,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate, RXGate, RYGate, RZGate, UGate
 from qiskit.circuit.measure import Measure
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeMelbourne, FakeRueschlikon, FakeAlmaden, FakeMumbaiV2
+from qiskit.providers.fake_provider import FakeMelbourne, FakeRueschlikon, FakeAlmaden, FakeMumbaiV2
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.target import Target
@@ -146,9 +146,9 @@ class TestTranspile(QiskitTestCase):
 
         qubit_indices = {bit: idx for idx, bit in enumerate(new_circuit.qubits)}
 
-        for gate, qargs, _ in new_circuit.data:
-            if isinstance(gate, CXGate):
-                self.assertIn([qubit_indices[x] for x in qargs], coupling_map)
+        for instruction in new_circuit.data:
+            if isinstance(instruction.operation, CXGate):
+                self.assertIn([qubit_indices[x] for x in instruction.qubits], coupling_map)
 
     def test_transpile_qft_grid(self):
         """Transpile pipeline can handle 8-qubit QFT on 14-qubit grid."""
@@ -165,9 +165,9 @@ class TestTranspile(QiskitTestCase):
 
         qubit_indices = {bit: idx for idx, bit in enumerate(new_circuit.qubits)}
 
-        for gate, qargs, _ in new_circuit.data:
-            if isinstance(gate, CXGate):
-                self.assertIn([qubit_indices[x] for x in qargs], coupling_map)
+        for instruction in new_circuit.data:
+            if isinstance(instruction.operation, CXGate):
+                self.assertIn([qubit_indices[x] for x in instruction.qubits], coupling_map)
 
     def test_already_mapped_1(self):
         """Circuit not remapped if matches topology.
@@ -198,7 +198,7 @@ class TestTranspile(QiskitTestCase):
             initial_layout=Layout.generate_trivial_layout(qr),
         )
         qubit_indices = {bit: idx for idx, bit in enumerate(new_qc.qubits)}
-        cx_qubits = [qargs for (gate, qargs, _) in new_qc.data if gate.name == "cx"]
+        cx_qubits = [instr.qubits for instr in new_qc.data if instr.operation.name == "cx"]
         cx_qubits_physical = [
             [qubit_indices[ctrl], qubit_indices[tgt]] for [ctrl, tgt] in cx_qubits
         ]
@@ -331,7 +331,7 @@ class TestTranspile(QiskitTestCase):
             qc, coupling_map=coupling_map, basis_gates=basis_gates, initial_layout=initial_layout
         )
         qubit_indices = {bit: idx for idx, bit in enumerate(new_qc.qubits)}
-        cx_qubits = [qargs for (gate, qargs, _) in new_qc.data if gate.name == "cx"]
+        cx_qubits = [instr.qubits for instr in new_qc.data if instr.operation.name == "cx"]
         cx_qubits_physical = [
             [qubit_indices[ctrl], qubit_indices[tgt]] for [ctrl, tgt] in cx_qubits
         ]
@@ -501,8 +501,8 @@ class TestTranspile(QiskitTestCase):
         qubit_indices = {bit: idx for idx, bit in enumerate(new_circ.qubits)}
         mapped_qubits = []
 
-        for _, qargs, _ in new_circ.data:
-            mapped_qubits.append(qubit_indices[qargs[0]])
+        for instruction in new_circ.data:
+            mapped_qubits.append(qubit_indices[instruction.qubits[0]])
 
         self.assertEqual(mapped_qubits, [4, 6, 10])
 
@@ -1236,11 +1236,11 @@ class TestTranspile(QiskitTestCase):
         backend = FakeRueschlikon()
         backend.configuration().dt = 0.5e-6
         out = transpile([qc, qc], backend)
-        self.assertEqual(out[0].data[0][0].unit, "dt")
-        self.assertEqual(out[1].data[0][0].unit, "dt")
+        self.assertEqual(out[0].data[0].operation.unit, "dt")
+        self.assertEqual(out[1].data[0].operation.unit, "dt")
 
         out = transpile(qc, dt=1e-9)
-        self.assertEqual(out.data[0][0].unit, "dt")
+        self.assertEqual(out.data[0].operation.unit, "dt")
 
     def test_scheduling_backend_v2(self):
         """Test that scheduling method works with Backendv2."""
@@ -1437,7 +1437,7 @@ class TestTranspile(QiskitTestCase):
         theta = Parameter("θ")
         phi = Parameter("ϕ")
         lam = Parameter("λ")
-        target = Target()
+        target = Target(2)
         target.add_instruction(UGate(theta, phi, lam))
         target.add_instruction(CXGate())
         target.add_instruction(Measure())
@@ -1446,13 +1446,23 @@ class TestTranspile(QiskitTestCase):
         qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
-        qc.measure(qubit_reg, clbit_reg)
+        if opt_level != 3:
+            qc.measure(qubit_reg, clbit_reg)
         result = transpile(qc, target=target, optimization_level=opt_level)
-        expected = QuantumCircuit(qubit_reg, clbit_reg)
-        expected.u(np.pi / 2, 0, np.pi, qubit_reg[0])
-        expected.cx(qubit_reg[0], qubit_reg[1])
-        expected.measure(qubit_reg, clbit_reg)
-        self.assertEqual(result, expected)
+        # The Unitary synthesis optimization pass results for optimization level 3
+        # results in a different output than the other optimization levels
+        # and can differ based on fp precision. To avoid relying on a hard match
+        # do a unitary equiv
+
+        if opt_level == 3:
+            result_op = Operator.from_circuit(result)
+            self.assertTrue(result_op.equiv(qc))
+        else:
+            expected = QuantumCircuit(qubit_reg, clbit_reg)
+            expected.u(np.pi / 2, 0, np.pi, qubit_reg[0])
+            expected.cx(qubit_reg[0], qubit_reg[1])
+            expected.measure(qubit_reg, clbit_reg)
+            self.assertEqual(result, expected)
 
 
 class StreamHandlerRaiseException(StreamHandler):

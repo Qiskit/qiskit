@@ -64,6 +64,14 @@ Here is an example of how sampler is used.
         result = sampler([0, 1, 2], [[]]*3)
         print([q.binary_probabilities() for q in result.quasi_dists])
 
+    # executes three Bell circuits with objects.
+    # Objects can be passed instead of indices.
+    # Note that passing objects has an overhead
+    # since the corresponding indices need to be searched.
+    with Sampler([bell]) as sampler:
+        result = sampler([bell, bell, bell])
+        print([q.binary_probabilities() for q in result.quasi_dists])
+
     # parameterized circuit
     pqc = RealAmplitudes(num_qubits=2, reps=2)
     pqc.measure_all()
@@ -91,12 +99,17 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
+from copy import copy
+
+import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
+from qiskit.utils.deprecation import deprecate_arguments
 
 from .sampler_result import SamplerResult
+from .utils import _finditer
 
 
 class BaseSampler(ABC):
@@ -107,7 +120,7 @@ class BaseSampler(ABC):
 
     def __init__(
         self,
-        circuits: Iterable[QuantumCircuit],
+        circuits: Iterable[QuantumCircuit] | QuantumCircuit,
         parameters: Iterable[Iterable[Parameter]] | None = None,
     ):
         """
@@ -119,16 +132,39 @@ class BaseSampler(ABC):
         Raises:
             QiskitError: For mismatch of circuits and parameters list.
         """
+        if isinstance(circuits, QuantumCircuit):
+            circuits = (circuits,)
         self._circuits = tuple(circuits)
+
+        # To guarantee that they exist as instance variable.
+        # With only dynamic set, the python will not know if the attribute exists or not.
+        self._circuit_ids = self._circuit_ids
+
         if parameters is None:
             self._parameters = tuple(circ.parameters for circ in self._circuits)
         else:
             self._parameters = tuple(ParameterView(par) for par in parameters)
             if len(self._parameters) != len(self._circuits):
                 raise QiskitError(
-                    f"Different number of parameters ({len(self._parameters)} "
-                    f"and circuits ({len(self._circuits)}"
+                    f"Different number of parameters ({len(self._parameters)}) "
+                    f"and circuits ({len(self._circuits)})"
                 )
+
+    def __new__(
+        cls,
+        circuits: Iterable[QuantumCircuit] | QuantumCircuit,
+        *args,  # pylint: disable=unused-argument
+        parameters: Iterable[Iterable[Parameter]] | None = None,  # pylint: disable=unused-argument
+        **kwargs,  # pylint: disable=unused-argument
+    ):
+
+        self = super().__new__(cls)
+        if isinstance(circuits, Iterable):
+            circuits = copy(circuits)
+            self._circuit_ids = [id(circuit) for circuit in circuits]
+        else:
+            self._circuit_ids = [id(circuits)]
+        return self
 
     def __enter__(self):
         return self
@@ -159,23 +195,88 @@ class BaseSampler(ABC):
         """
         return self._parameters
 
-    @abstractmethod
+    @deprecate_arguments({"circuit_indices": "circuits"})
     def __call__(
         self,
-        circuit_indices: Sequence[int],
-        parameter_values: Sequence[Sequence[float]],
+        circuits: Sequence[int | QuantumCircuit],
+        parameter_values: Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> SamplerResult:
         """Run the sampling of bitstrings.
 
         Args:
-            circuit_indices: Indices of the circuits to evaluate.
+            circuits: the list of circuit indices or circuit objects.
             parameter_values: Parameters to be bound to the circuit.
             run_options: Backend runtime options used for circuit execution.
 
         Returns:
             The result of the sampler. The i-th result corresponds to
-            ``self.circuits[circuit_indices[i]]`` evaluated with parameters bound as
+            ``self.circuits[circuits[i]]`` evaluated with parameters bound as
             ``parameter_values[i]``.
+
+        Raises:
+            QiskitError: For mismatch of object id.
+            QiskitError: For mismatch of length of Sequence.
         """
+        # Support ndarray
+        if isinstance(parameter_values, np.ndarray):
+            parameter_values = parameter_values.tolist()
+
+        # Allow objects
+        try:
+            circuits = [
+                next(_finditer(id(circuit), self._circuit_ids))
+                if not isinstance(circuit, (int, np.integer))
+                else circuit
+                for circuit in circuits
+            ]
+        except StopIteration as err:
+            raise QiskitError(
+                "The circuits passed when calling sampler is not one of the circuits used to "
+                "initialize the session."
+            ) from err
+
+        # Allow optional
+        if parameter_values is None:
+            for i in circuits:
+                if len(self._circuits[i].parameters) != 0:
+                    raise QiskitError(
+                        f"The {i}-th circuit ({len(circuits)}) is parameterised,"
+                        "but parameter values are not given."
+                    )
+            parameter_values = [[]] * len(circuits)
+
+        # Validation
+        if len(circuits) != len(parameter_values):
+            raise QiskitError(
+                f"The number of circuits ({len(circuits)}) does not match "
+                f"the number of parameter value sets ({len(parameter_values)})."
+            )
+
+        for i, value in zip(circuits, parameter_values):
+            if len(value) != len(self._parameters[i]):
+                raise QiskitError(
+                    f"The number of values ({len(value)}) does not match "
+                    f"the number of parameters ({len(self._parameters[i])}) for the {i}-th circuit."
+                )
+
+        if max(circuits) >= len(self.circuits):
+            raise QiskitError(
+                f"The number of circuits is {len(self.circuits)}, "
+                f"but the index {max(circuits)} is given."
+            )
+
+        return self._call(
+            circuits=circuits,
+            parameter_values=parameter_values,
+            **run_options,
+        )
+
+    @abstractmethod
+    def _call(
+        self,
+        circuits: Sequence[int],
+        parameter_values: Sequence[Sequence[float]],
+        **run_options,
+    ) -> SamplerResult:
         ...

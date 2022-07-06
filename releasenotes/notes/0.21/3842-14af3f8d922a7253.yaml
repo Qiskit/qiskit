@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Extra validation was added to :class:`.DiagonalGate` to check the argument has modulus one.
