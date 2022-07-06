@@ -453,8 +453,43 @@ class SparsePauliOp(LinearOp):
         by the number of non-identity terms in the Pauli, where the set of
         all Pauli's of a given weight are still ordered lexicographically.
 
+        **Example**
+
+        Here is an example of how to use SparcePauliOp argsort.
+
+        .. jupyter-execute::
+
+            import numpy as np
+            from qiskit.quantum_info import SparsePauliOp
+
+            # 2-qubit labels
+            labels = ["XX", "XX", "XX", "YI", "II", "XZ", "XY", "XI"]
+            # coeffs
+            coeffs = [2.+1.j, 2.+2.j, 3.+0.j, 3.+0.j, 4.+0.j, 5.+0.j, 6.+0.j, 7.+0.j]
+
+            # init
+            spo = SparsePauliOp(labels, coeffs)
+            print('Initial Ordering')
+            print(spo)
+
+            # Lexicographic Ordering
+            srt = spo.argsort()
+            print('Lexicographically sorted')
+            print(srt)
+
+            # Lexicographic Ordering
+            srt = spo.argsort(weight=False)
+            print('Lexicographically sorted')
+            print(srt)
+
+            # Weight Ordering
+            srt = spo.argsort(weight=True)
+            print('Weight sorted')
+            print(srt)
+
         Args:
             weight (bool): optionally sort by weight if True (Default: False).
+            This argument is the same as weight of argsort method of PauliList
 
         Returns:
             array: the indices for sorting the table.
@@ -498,6 +533,11 @@ class SparsePauliOp(LinearOp):
             print('Lexicographically sorted')
             print(srt)
 
+            # Lexicographic Ordering
+            srt = spo.sort(weight=False)
+            print('Lexicographically sorted')
+            print(srt)
+
             # Weight Ordering
             srt = spo.sort(weight=True)
             print('Weight sorted')
@@ -505,6 +545,7 @@ class SparsePauliOp(LinearOp):
 
         Args:
             weight (bool): optionally sort by weight if True (Default: False).
+            This argument is the same as weight of sort method of PauliList
 
         Returns:
             SparsePauliOp: a sorted copy of the original table.
