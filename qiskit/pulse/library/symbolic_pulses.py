@@ -375,11 +375,6 @@ class SymbolicPulse(Pulse):
     even within the environment not having original class definition loaded.
     This mechanism also allows us to easily share a pulse program including
     custom pulse instructions with collaborators.
-
-    .. note::
-
-        Currently QPY serialization of :class:`SymbolicPulse` is not available.
-        This feature will be implemented shortly.
     """
 
     __slots__ = (
