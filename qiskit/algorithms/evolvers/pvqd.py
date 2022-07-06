@@ -16,8 +16,10 @@ from typing import Optional, Union, List, Tuple, Callable
 
 import numpy as np
 
+from qiskit import transpile
+from qiskit.exceptions import QiskitError
 from qiskit.algorithms.optimizers import Optimizer
-from qiskit.circuit import QuantumCircuit, ParameterVector
+from qiskit.circuit import QuantumCircuit, ParameterVector, ParameterExpression, Parameter
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.providers import Backend
 from qiskit.opflow import (
@@ -26,8 +28,8 @@ from qiskit.opflow import (
     ExpectationBase,
     ListOp,
     StateFn,
-    GradientBase,
 )
+from qiskit.opflow.gradients.circuit_gradients import ParamShift
 from qiskit.synthesis import EvolutionSynthesis, LieTrotter
 from qiskit.utils import QuantumInstance
 
@@ -58,7 +60,6 @@ class PVQD(RealEvolver):
         quantum_instance: Union[Backend, QuantumInstance],
         expectation: ExpectationBase,
         initial_guess: Optional[np.ndarray] = None,
-        gradient: Optional[GradientBase] = None,
         evolution: Optional[EvolutionSynthesis] = None,
     ) -> None:
         """
@@ -73,7 +74,6 @@ class PVQD(RealEvolver):
             expectation: The expectation converter to evaluate expectation values.
             initial_guess: The initial guess for the first VQE optimization. Afterwards the
                 previous iteration result is used as initial guess.
-            gradient: A gradient converter to use for gradient-based optimizers.
             evolution: The evolution synthesis to use for the construction of the Trotter step.
                 Defaults to first-order Lie-Trotter decomposition.
         """
@@ -84,7 +84,6 @@ class PVQD(RealEvolver):
         self.initial_parameters = initial_parameters
         self.timestep = timestep
         self.optimizer = optimizer
-        self.gradient = gradient
         self.initial_guess = initial_guess
         self.expectation = expectation
         self.evolution = evolution
@@ -106,17 +105,18 @@ class PVQD(RealEvolver):
             A tuple consisting of the next parameters and the fidelity of the optimization.
         """
         # construct cost function
-        overlap, gradient = self.get_overlap(hamiltonian, dt, theta)
+        loss, gradient = self.get_loss(hamiltonian, dt, theta)
 
         # call optimizer
-        optimizer_result = self.optimizer.minimize(lambda x: -overlap(x), initial_guess, gradient)
+        optimizer_result = self.optimizer.minimize(loss, initial_guess, gradient)
+        fidelity = 1 - optimizer_result.fun
 
-        return theta + optimizer_result.x, -optimizer_result.fun
+        return theta + optimizer_result.x, fidelity
 
-    def get_overlap(
+    def get_loss(
         self, hamiltonian: OperatorBase, dt: float, current_parameters: np.ndarray
     ) -> Callable[[np.ndarray], float]:
-        """Get a function to evaluate the overlap between Trotter step and ansatz.
+        """Get a function to evaluate the infidelity between Trotter step and ansatz.
 
         Args:
             hamiltonian: The Hamiltonian under which to evolve.
@@ -124,7 +124,7 @@ class PVQD(RealEvolver):
             current_parameters: The current parameters.
 
         Returns:
-            A callable to evaluate the overlap.
+            A callable to evaluate the infidelity.
         """
         # use Trotterization to evolve the current state
         trotterized = self.ansatz.bind_parameters(current_parameters)
@@ -140,9 +140,9 @@ class PVQD(RealEvolver):
         # apply the expectation converter
         converted = self.expectation.convert(overlap)
 
-        ansatz_parameters = self.ansatz.parameters
-
-        def evaluate_overlap(displacement: np.ndarray) -> float:
+        def evaluate_loss(
+            displacement: Union[np.ndarray, List[np.ndarray]]
+        ) -> Union[float, List[float]]:
             """Evaluate the overlap of the ansatz with the Trotterized evolution.
 
             Args:
@@ -151,24 +151,72 @@ class PVQD(RealEvolver):
             Returns:
                 The fidelity of the ansatz with parameters ``theta`` and the Trotterized evolution.
             """
-            # evaluate with the circuit sampler
-            value_dict = dict(zip(x, displacement))
+            if isinstance(displacement, list):
+                displacement = np.asarray(displacement)
+                value_dict = {x_i: displacement[:, i].tolist() for i, x_i in enumerate(x)}
+            else:
+                value_dict = dict(zip(x, displacement))
+
             sampled = self._sampler.convert(converted, params=value_dict)
-            return np.abs(sampled.eval()) ** 2
+            return 1 - np.abs(sampled.eval()) ** 2
 
-        if self.gradient is not None:
-            gradient = self.gradient.convert(overlap)
+        def evaluate_gradient(displacement: np.ndarray) -> np.ndarray:
+            """Evaluate the gradient with the parameter-shift rule.
 
-            def evaluate_gradient(displacement: np.ndarray) -> np.ndarray:
-                """Evaluate the gradient."""
-                # evaluate with the circuit sampler
-                value_dict = dict(zip(ansatz_parameters, current_parameters + displacement))
-                sampled = self._sampler.convert(gradient, params=value_dict)
-                return 2 * sampled.eval()
+            This is hardcoded here since the gradient framework does not support computing
+            gradients for overlaps.
 
-            return evaluate_overlap, evaluate_gradient
+            Args:
+                displacement: The parameters for the ansatz.
 
-        return evaluate_overlap, None
+            Returns:
+                The gradient.
+            """
+            # construct lists where each element is shifted by plus (or minus) pi/2
+            dim = displacement.size
+            plus_shifts = (displacement + np.pi / 2 * np.identity(dim)).tolist()
+            minus_shifts = (displacement - np.pi / 2 * np.identity(dim)).tolist()
+
+            evaluated = evaluate_loss(plus_shifts + minus_shifts)
+
+            gradient = (evaluated[:dim] - evaluated[dim:]) / 2
+
+            return gradient
+
+        return evaluate_loss, evaluate_gradient
+
+    def _check_gradient_supported(self) -> QuantumCircuit:
+        """Check whether we can apply a simple parameter shift rule to obtain gradients."""
+
+        # check whether the circuit can be unrolled to supported gates
+        try:
+            unrolled = transpile(
+                self.ansatz, basis_gates=ParamShift.SUPPORTED_GATES, optimization_level=0
+            )
+        except Exception as exc:
+            raise QiskitError(
+                "Failed to compute the gradients as we could not apply the "
+                "parameter shift rule to the ansatz."
+            ) from exc
+
+        # check whether all parameters are unique and we do not need to apply the chain rule
+        # (since it's not implemented yet)
+        all_parameters = []
+        for circuit_instruction in unrolled.data:
+            for param in circuit_instruction.operation.params:
+                if isinstance(param, ParameterExpression):
+                    if isinstance(param, Parameter):
+                        all_parameters.append(param)
+                    else:
+                        raise QiskitError(
+                            "Circuit is only allowed to have plain parameters, as "
+                            "the chain rule is not yet implemented."
+                        )
+
+        if len(all_parameters) != self.ansatz.num_parameters:
+            raise QiskitError(
+                "Circuit parameters must be unique, the product rule is not yet " "implemented."
+            )
 
     def _get_observable_evaluator(self, observables):
         if isinstance(observables, list):
@@ -209,9 +257,6 @@ class PVQD(RealEvolver):
         time = evolution_problem.time
         observables = evolution_problem.aux_operators
         hamiltonian = evolution_problem.hamiltonian
-
-        if time <= 0:
-            raise ValueError(f"The evolution time must be larger than 0, but is {time}.")
 
         if not 0 < self.timestep <= time:
             raise ValueError(
