@@ -90,11 +90,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
     unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
     target = pass_manager_config.target
-    call_limit = pass_manager_config.call_limit
-
-    call_limit = max(
-        int(3e7),  # Set call limit to ~60 sec with retworkx 0.10.2
-        int(0.75*call_limit))
 
     # Layout on good qubits if calibration info available, otherwise on dense links
     _given_layout = SetLayout(initial_layout)
@@ -124,7 +119,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         else VF2Layout(
             coupling_map,
             seed=seed_transpiler,
-            call_limit=call_limit,
+            call_limit=int(3e7),  # set call limit to ~60 sec with retworkx 0.10.2
+            scale_factor=0.75,
             properties=backend_properties,
             target=target,
         )
