@@ -80,6 +80,8 @@ def transpile(
     unitary_synthesis_method: str = "default",
     unitary_synthesis_plugin_config: dict = None,
     target: Target = None,
+    init_method: str = None,
+    optimization_method: str = None,
 ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
@@ -150,17 +152,29 @@ def transpile(
 
                     [qr[0], None, None, qr[1], None, qr[2]]
 
-        layout_method: Name of layout selection pass ('trivial', 'dense', 'noise_adaptive', 'sabre')
+        layout_method: Name of layout selection pass ('trivial', 'dense', 'noise_adaptive', 'sabre').
+            This can also be the external plugin name to use for the ``layout`` stage.
+            You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
+            ``"layout"`` for the ``stage_name`` argument.
         routing_method: Name of routing pass
             ('basic', 'lookahead', 'stochastic', 'sabre', 'toqm', 'none'). Note
             that to use method 'toqm', package 'qiskit-toqm' must be installed.
+            This can also be the external plugin name to use for the ``routing`` stage.
+            You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
+            ``"routing"`` for the ``stage_name`` argument.
         translation_method: Name of translation pass ('unroller', 'translator', 'synthesis')
+            This can also be the external plugin name to use for the ``translation`` stage.
+            You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
+            ``"translation"`` for the ``stage_name`` argument.
         scheduling_method: Name of scheduling pass.
             * ``'as_soon_as_possible'``: Schedule instructions greedily, as early as possible
             on a qubit resource. (alias: ``'asap'``)
             * ``'as_late_as_possible'``: Schedule instructions late, i.e. keeping qubits
             in the ground state when possible. (alias: ``'alap'``)
-            If ``None``, no scheduling will be done.
+            If ``None``, no scheduling will be done. This can also be the external plugin name
+            to use for the ``scheduling`` stage. You can see a list of installed plugins by
+            using :func:`~.list_stage_plugins` with ``"scheduling"`` for the ``stage_name``
+            argument.
         instruction_durations: Durations of instructions.
             Applicable only if scheduling_method is specified.
             The gate lengths defined in ``backend.properties`` are used as default.
@@ -246,6 +260,16 @@ def transpile(
             the ``backend`` argument, but if you have manually constructed a
             :class:`~qiskit.transpiler.Target` object you can specify it manually here.
             This will override the target from ``backend``.
+        init_method: The plugin name to use for the ``init`` stage. By default an external
+            plugin is not used. You can see a list of installed plugins by
+            using :func:`~.list_stage_plugins` with ``"init"`` for the stage
+            name argument.
+        optimization_method: The plugin name to use for the
+            ``optimization`` stage. By default an external
+            plugin is not used. You can see a list of installed plugins by
+            using :func:`~.list_stage_plugins` with ``"optimization"`` for the
+            ``stage_name`` argument.
+
     Returns:
         The transpiled circuit(s).
 
@@ -310,6 +334,8 @@ def transpile(
         unitary_synthesis_method,
         unitary_synthesis_plugin_config,
         target,
+        init_method,
+        optimization_method,
     )
     # Get transpile_args to configure the circuit transpilation job(s)
     if coupling_map in unique_transpile_args:
@@ -560,6 +586,8 @@ def _parse_transpile_args(
     unitary_synthesis_method,
     unitary_synthesis_plugin_config,
     target,
+    init_method,
+    optimization_method,
 ) -> Tuple[List[Dict], Dict]:
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
@@ -627,6 +655,8 @@ def _parse_transpile_args(
     shared_dict = {
         "optimization_level": optimization_level,
         "basis_gates": basis_gates,
+        "init_method": init_method,
+        "optimization_method": optimization_method,
     }
 
     list_transpile_args = []

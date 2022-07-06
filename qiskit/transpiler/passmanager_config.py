@@ -39,6 +39,8 @@ class PassManagerConfig:
         unitary_synthesis_method="default",
         unitary_synthesis_plugin_config=None,
         target=None,
+        init_method=None,
+        optimization_method=None,
     ):
         """Initialize a PassManagerConfig object
 
@@ -50,12 +52,16 @@ class PassManagerConfig:
             coupling_map (CouplingMap): Directed graph represented a coupling
                 map.
             layout_method (str): the pass to use for choosing initial qubit
-                placement.
+                placement. This will be the plugin name if an external layout stage
+                plugin is being used
             routing_method (str): the pass to use for routing qubits on the
-                architecture.
+                architecture. This will be a plugin name if an external routing stage
+                plugin is being used
             translation_method (str): the pass to use for translating gates to
-                basis_gates.
-            scheduling_method (str): the pass to use for scheduling instructions.
+                basis_gates. This will be a plugin name if an external translation stage
+                plugin is being used.
+            scheduling_method (str): the pass to use for scheduling instructions. This will
+                be a plugin name if an external scheduling stage plugin is being used.
             instruction_durations (InstructionDurations): Dictionary of duration
                 (in dt) for each instruction.
             backend_properties (BackendProperties): Properties returned by a
@@ -70,6 +76,9 @@ class PassManagerConfig:
                 :class:`~qiskit.transpiler.passes.UnitarySynthesis` pass. Will
                 search installed plugins for a valid method.
             target (Target): The backend target
+            init_method (str): The plugin name for the init stage plugin to use
+            optimization_method (str): The plugin name for the optimization stage plugin
+                to use
         """
         self.initial_layout = initial_layout
         self.basis_gates = basis_gates
@@ -87,6 +96,8 @@ class PassManagerConfig:
         self.unitary_synthesis_method = unitary_synthesis_method
         self.unitary_synthesis_plugin_config = unitary_synthesis_plugin_config
         self.target = target
+        self.init_method = init_method
+        self.optimization_method = optimization_method
 
     @classmethod
     def from_backend(cls, backend, **pass_manager_options):
