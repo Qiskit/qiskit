@@ -57,7 +57,7 @@ class TestReference(QiskitTestCase):
             builder.append_schedule(sched_y1)
 
         sched_param = next(iter(sched_z1.scoped_parameters))
-        self.assertEqual(sched_param.name, "root:name")
+        self.assertEqual(sched_param.name, "root::name")
 
         # object equality
         self.assertEqual(
@@ -109,17 +109,17 @@ class TestReference(QiskitTestCase):
         sched_z1.assign_references({("y1", "d0"): sched_y1})
 
         sched_param = next(iter(sched_z1.scoped_parameters))
-        self.assertEqual(sched_param.name, "root:y1,d0:x1,d0:name")
+        self.assertEqual(sched_param.name, "root::y1,d0::x1,d0::name")
 
         # object equality
         self.assertEqual(
-            sched_z1.get_parameters("name", scope="root:y1,d0:x1,d0")[0],
+            sched_z1.get_parameters("name", scope="root::y1,d0::x1,d0")[0],
             param,
         )
 
         # regex
         self.assertEqual(
-            sched_z1.get_parameters("name", scope=r"\S.x1,d0")[0],
+            sched_z1.get_parameters("name", scope=r"\S::x1,d0")[0],
             param,
         )
 
@@ -161,17 +161,17 @@ class TestReference(QiskitTestCase):
             builder.call(sched_y1, name="y1")
 
         sched_param = next(iter(sched_z1.scoped_parameters))
-        self.assertEqual(sched_param.name, "root:y1:x1:name")
+        self.assertEqual(sched_param.name, "root::y1::x1::name")
 
         # object equality
         self.assertEqual(
-            sched_z1.get_parameters("name", scope="root:y1:x1")[0],
+            sched_z1.get_parameters("name", scope="root::y1::x1")[0],
             param,
         )
 
         # regex
         self.assertEqual(
-            sched_z1.get_parameters("name", scope=r"\S.x1")[0],
+            sched_z1.get_parameters("name", scope=r"\S::x1")[0],
             param,
         )
 
@@ -465,7 +465,7 @@ class TestSubroutineWithCXGate(QiskitTestCase):
 
         # Parameter names are scoepd
         scoped_params = set(p.name for p in sched.scoped_parameters)
-        self.assertSetEqual(scoped_params, {"root:cr"})
+        self.assertSetEqual(scoped_params, {"root::cr"})
 
         # Assign CR and XP schedule to the empty reference
         sched.assign_references({("cr", "q0", "q1"): self.cr_sched})
@@ -479,16 +479,16 @@ class TestSubroutineWithCXGate(QiskitTestCase):
         # Parameter added from subroutines
         scoped_params = set(p.name for p in sched.scoped_parameters)
         ref_params = {
-            "root:cr",
-            "root:cr,q0,q1:amp",
-            "root:cr,q0,q1:dur",
-            "root:cr,q0,q1:risefall",
-            "root:cr,q0,q1:sigma",
-            "root:xp,q0:ctrl",
-            "root:xp,q0:amp",
-            "root:xp,q0:beta",
-            "root:xp,q0:dur",
-            "root:xp,q0:sigma",
+            "root::cr",
+            "root::cr,q0,q1::amp",
+            "root::cr,q0,q1::dur",
+            "root::cr,q0,q1::risefall",
+            "root::cr,q0,q1::sigma",
+            "root::xp,q0::ctrl",
+            "root::xp,q0::amp",
+            "root::xp,q0::beta",
+            "root::xp,q0::dur",
+            "root::xp,q0::sigma",
         }
         self.assertSetEqual(scoped_params, ref_params)
 
@@ -497,7 +497,7 @@ class TestSubroutineWithCXGate(QiskitTestCase):
         self.assertEqual(len(params), 2)
 
         # Get parameter with scope, only xp amp
-        params = sched.get_parameters(parameter_name="amp", scope="root:xp,q0")
+        params = sched.get_parameters(parameter_name="amp", scope="root::xp,q0")
         self.assertEqual(len(params), 1)
 
     def test_cnot(self):
@@ -521,7 +521,7 @@ class TestSubroutineWithCXGate(QiskitTestCase):
         self.assertEqual(self.xp_amp, xp_amp)
 
         # get parameter with scope, of course full scope can be specified
-        xp_amp_full_scoped = cx_sched.get_parameters("amp", scope="root:ecr:xp")[0]
+        xp_amp_full_scoped = cx_sched.get_parameters("amp", scope="root::ecr::xp")[0]
         self.assertEqual(xp_amp_full_scoped, xp_amp)
 
         # assign parameters

@@ -1161,11 +1161,11 @@ class ScheduleBlock:
 
         .. note::
 
-            The sequence of element is retuend in order of addition. Because the first element is
+            The sequence of element is returned in order of addition. Because the first element is
             schedule first, e.g. FIFO, the returned sequence is roughly time-ordered,
             however, in the parallel alignment context, especially in
             the as-late-as-possible scheduling, or :class:`.AlignRight` context,
-            actual timing when the intruction is issued is unknown until self is scheduled
+            actual timing when the instruction is issued is unknown until self is scheduled
             and converted into :class:`.Schedule`.
         """
         blocks = []
@@ -1196,7 +1196,7 @@ class ScheduleBlock:
         for sub_namespace, subroutine in self.references.items():
             if subroutine is None:
                 continue
-            composite_key = ",".join(sub_namespace)
+            composite_key = Reference.key_delimiter.join(sub_namespace)
             full_path = f"{scope}{Reference.scope_delimiter}{composite_key}"
             sub_parameters = subroutine._collect_parameters(scope=full_path, add_scope=add_scope)
             parameters = parameters | sub_parameters
@@ -1216,9 +1216,9 @@ class ScheduleBlock:
 
             If a parameter is defined within a nested scope,
             it is prefixed with all parent-scope names with the delimiter string,
-            which is typically ":". If a reference key of the scope consists of
+            which is typically "::". If a reference key of the scope consists of
             multiple key strings, it will be represented by a single string joined with ",".
-            For example, "root:xgate,q0:amp" for the parameter "amp" defined in the
+            For example, "root::xgate,q0::amp" for the parameter "amp" defined in the
             reference specified by the key strings ("xgate", "q0").
         """
         return self._collect_parameters(scope="root", add_scope=True)
@@ -1291,7 +1291,7 @@ class ScheduleBlock:
                     # Reference manager of appended block is cleared because of data reduction.
                     self.references.update(block._reference_manager)
                     block._reference_manager.clear()
-            # Now switch the parent becasue block is appended to self.
+            # Now switch the parent because block is appended to self.
             block._parent = self
 
         self._blocks.append(block)
@@ -1327,7 +1327,7 @@ class ScheduleBlock:
             instruction_types: For example, ``[PulseInstruction, AcquireInstruction]``.
             time_ranges: For example, ``[(0, 5), (6, 10)]``.
             intervals: For example, ``[(0, 5), (6, 10)]``.
-            check_subroutine: Set `True` to individually filter instructions inside of a subroutine
+            check_subroutine: Set `True` to individually filter instructions inside a subroutine
                 defined by the :py:class:`~qiskit.pulse.instructions.Call` instruction.
 
         Returns:
@@ -1432,7 +1432,7 @@ class ScheduleBlock:
 
         # Regenerate reference table
         # Note that reference is attached to the outer schedule if nested.
-        # Thus this investigates all references within the scope.
+        # Thus, this investigates all references within the scope.
         self.references.clear()
         root = self
         while root._parent is not None:
@@ -1492,7 +1492,7 @@ class ScheduleBlock:
     ) -> "ScheduleBlock":
         """Assign schedules to references.
 
-        It is only capable of assigning a scheduel block to child subroutines
+        It is only capable of assigning a schedule block to child subroutines
         which are directly referred within the current scope, because
         nested subroutines are not exposed to the current scope.
         Let's see following example:
@@ -1510,13 +1510,13 @@ class ScheduleBlock:
             with pulse.build() as main_prog:
                 pulse.refer("B")
 
-        In above example, the ``main_prog`` is only aware of the subroutine "root:B" and the
-        reference of "B" to program "A", i.e., "B:A", is not exposed to the root namespace.
-        This prevents breaking the reference "root:B:A" by the assignment of "root:B".
-        For example, if a user could indirectly assign "root:B:A" from the root program,
-        one can later assign another program to "root:B" that doesn't contain "A" within it.
-        In this situation, a reference "root:B:A" still lives in the reference manager of the root,
-        however the subroutine "root:B:A" is never used in the actual pulse program.
+        In above example, the ``main_prog`` is only aware of the subroutine "root::B" and the
+        reference of "B" to program "A", i.e., "B::A", is not exposed to the root namespace.
+        This prevents breaking the reference "root::B::A" by the assignment of "root::B".
+        For example, if a user could indirectly assign "root::B::A" from the root program,
+        one can later assign another program to "root::B" that doesn't contain "A" within it.
+        In this situation, a reference "root::B::A" still lives in the reference manager of the root,
+        however the subroutine "root::B::A" is never used in the actual pulse program.
         To assign subroutine "A" to the ``sub_prog``, you must first assign "A" to the ``sub_prog``,
         then assign the ``sub_prog`` to the ``main_prog``.
 
@@ -1598,9 +1598,9 @@ class ScheduleBlock:
 
         .. code-block:: python
 
-            main_prog.get_parameters("amp", scope="root:sub")
+            main_prog.get_parameters("amp", scope="root::sub")
 
-        returns only ``amp1`` with scoped name "root:sub:amp". Parameter name doesn't matter here
+        returns only ``amp1`` with scoped name "root::sub::amp". Parameter name doesn't matter here
         because these are managed by the object uuid.
 
         Args:

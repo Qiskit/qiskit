@@ -36,7 +36,10 @@ class Reference(instruction.Instruction):
     """
 
     # Delimiter for representing nested scope.
-    scope_delimiter = ":"
+    scope_delimiter = "::"
+
+    # Delimiter for tuple keys.
+    key_delimiter = ","
 
     def __init__(self, *ref_keys: str, name: Optional[str] = None):
         """Create new reference.
@@ -64,9 +67,10 @@ class Reference(instruction.Instruction):
         for key in ref_keys:
             if not isinstance(key, str):
                 raise PulseError(f"Keys must be string. '{repr(key)}' is not a valid object.")
-            if self.scope_delimiter in key:
+            if self.scope_delimiter in key or self.key_delimiter in key:
                 raise PulseError(
-                    f"'{self.scope_delimiter}' is reserved. '{key}' is not a valid key string."
+                    f"'{self.scope_delimiter}' and '{self.key_delimiter}' are reserved. "
+                    f"'{key}' is not a valid key string."
                 )
 
         super().__init__(operands=tuple(ref_keys), name=name)
