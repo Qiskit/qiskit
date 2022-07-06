@@ -1,5 +1,8 @@
----
 features:
+  - |
+    This is an update as part of QAMP's activities.
+    PauliList has argsort() method and sort() method, 
+    so we need these features in SparsePauliOp.
   - |
     Added a new argsort method.
     Returns the composition of permutations in the order of sorting 
