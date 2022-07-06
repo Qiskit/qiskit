@@ -178,6 +178,51 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op2"][1], 0.0)
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["zero_operator"][1], 0.0)
 
+    def test_transition_amplitudes_list(self):
+        """Test transition amplitudes list-based aux_operators."""
+        transition_amplitude_pairs = {
+            "names": [1],
+            "indices": [(0, 1), (1, 0), (1, 2), (2, 0), (2, 1), (2, 3)],
+        }
+        aux_op1 = PauliSumOp.from_list([("II", 2.0)])
+        aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XY", -0.5)])
+        aux_ops = [aux_op1, aux_op2]
+        algo = NumPyEigensolver(k=4)
+        algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=aux_ops)
+        transition_amplitudes = algo.compute_transition_amplitudes(
+            aux_ops, transition_amplitude_pairs
+        )
+        self.assertEqual(len(transition_amplitudes), 6)
+        self.assertAlmostEqual(transition_amplitudes["1_0_1"][0], 0.0, places=6)
+        self.assertAlmostEqual(transition_amplitudes["1_1_0"][0], 0.0, places=6)
+        self.assertAlmostEqual(transition_amplitudes["1_1_2"][0], -1j / np.sqrt(2), places=6)
+        self.assertAlmostEqual(transition_amplitudes["1_2_0"][0], 0.0, places=6)
+        self.assertAlmostEqual(transition_amplitudes["1_2_1"][0], 1j / np.sqrt(2), places=6)
+        self.assertAlmostEqual(transition_amplitudes["1_2_3"][0], 0.0, places=6)
+
+    def test_transition_amplitudes_dict(self):
+        """Test transition amplitudes dict-based aux_operators."""
+        transition_amplitude_pairs = {
+            "names": ["aux_op2"],
+            "indices": [(0, 1), (1, 0), (1, 2), (2, 0), (2, 1), (2, 3)],
+        }
+        aux_op1 = PauliSumOp.from_list([("II", 2.0)])
+        aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XY", -0.5)])
+        aux_ops = {"aux_op1": aux_op1, "aux_op2": aux_op2}
+        algo = NumPyEigensolver(k=4)
+        algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=aux_ops)
+        transition_amplitudes = algo.compute_transition_amplitudes(
+            aux_ops, transition_amplitude_pairs
+        )
+        print(transition_amplitudes)
+        self.assertEqual(len(transition_amplitudes), 6)
+        self.assertAlmostEqual(transition_amplitudes["aux_op2_0_1"][0], 0.0, places=6)
+        self.assertAlmostEqual(transition_amplitudes["aux_op2_1_0"][0], 0.0, places=6)
+        self.assertAlmostEqual(transition_amplitudes["aux_op2_1_2"][0], -1j / np.sqrt(2), places=6)
+        self.assertAlmostEqual(transition_amplitudes["aux_op2_2_0"][0], 0.0, places=6)
+        self.assertAlmostEqual(transition_amplitudes["aux_op2_2_1"][0], 1j / np.sqrt(2), places=6)
+        self.assertAlmostEqual(transition_amplitudes["aux_op2_2_3"][0], 0.0, places=6)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -132,9 +132,13 @@ class NumPyEigensolver(Eigensolver):
                     eigval, eigvec = np.linalg.eig(operator.to_matrix())
             else:
                 if operator.is_hermitian():
-                    eigval, eigvec = scisparse.linalg.eigsh(sp_mat, k=self._k, which="SA")
+                    eigval, eigvec = scisparse.linalg.eigsh(
+                        operator.to_spmatrix(), k=self._k, which="SA"
+                    )
                 else:
-                    eigval, eigvec = scisparse.linalg.eigs(sp_mat, k=self._k, which="SR")
+                    eigval, eigvec = scisparse.linalg.eigs(
+                        operator.to_spmatrix(), k=self._k, which="SR"
+                    )
             indices = np.argsort(eigval)[: self._k]
             eigval = eigval[indices]
             eigvec = eigvec[:, indices]
@@ -193,8 +197,67 @@ class NumPyEigensolver(Eigensolver):
             values[key] = (value, 0.0)
         return values
 
+    @staticmethod
+    def _eval_transition_amplitudes(
+        aux_operators: ListOrDict[OperatorBase], wavefn, wavefm, threshold: float = 1e-12
+    ) -> ListOrDict[Tuple[complex, complex]]:
+        """Evaluate the transition amplitudes for the states n and m and the list of auxiliaries.
+
+        The formula we use here is a simpler version of Eq. 13 in
+        https://doi.org/10.1103%2Fphysrevresearch.3.023244. It is defined only for n!=m.
+        If n=m, then the _eval_aux_operators must be used instead.
+
+        """
+
+        values: ListOrDict[Tuple[complex, complex]]
+
+        # As a list, aux_operators can contain None operators for which None values are returned.
+        # As a dict, the None operators in aux_operators have been dropped in compute_eigenvalues.
+        if isinstance(aux_operators, list):
+            values = [None] * len(aux_operators)
+            key_op_iterator = enumerate(aux_operators)
+        else:
+            values = {}
+            key_op_iterator = aux_operators.items()
+        for key, operator in key_op_iterator:
+            if operator is None:
+                continue
+            value = 0.0
+            if operator.coeff != 0:
+                mat = operator.to_spmatrix()
+                # Terra doesn't support sparse yet, so do the matmul directly if so
+                # This is necessary for the particle_hole and other chemistry tests because the
+                # pauli conversions are 2^12th large and will OOM error if not sparse.
+                if isinstance(mat, scisparse.spmatrix) and not (
+                    isinstance(wavefn, StateFn) or isinstance(wavefm, StateFn)
+                ):
+                    value = mat.dot(wavefn).dot(np.conj(wavefm))
+                else:
+                    wavefnfm_plus = 1 / np.sqrt(2) * (wavefn + wavefm)
+                    wavefnfm_minus = 1 / np.sqrt(2) * (wavefn - wavefm)
+                    wavefnfm_i_plus = 1 / np.sqrt(2) * (wavefn + 1j * wavefm)
+                    wavefnfm_i_minus = 1 / np.sqrt(2) * (wavefn - 1j * wavefm)
+
+                    real_value = 0.5 * (
+                        StateFn(operator, is_measurement=True).eval(wavefnfm_plus)
+                        - StateFn(operator, is_measurement=True).eval(wavefnfm_minus)
+                    )
+                    imag_value = -0.5 * (
+                        StateFn(operator, is_measurement=True).eval(wavefnfm_i_plus)
+                        - StateFn(operator, is_measurement=True).eval(wavefnfm_i_minus)
+                    )
+
+                    value = real_value + 1j * imag_value
+                value = value if np.abs(value) > threshold else 0.0
+            # The value get's wrapped into a tuple: (mean, standard deviation).
+            # Since this is an exact computation, the standard deviation is known to be zero.
+            values[key] = (value, 0.0)
+        return values
+
     def compute_eigenvalues(
-        self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]] = None
+        self,
+        operator: OperatorBase,
+        aux_operators: Optional[ListOrDict[OperatorBase]] = None,
     ) -> EigensolverResult:
         super().compute_eigenvalues(operator, aux_operators)
 
@@ -263,3 +326,64 @@ class NumPyEigensolver(Eigensolver):
 
         logger.debug("EigensolverResult:\n%s", self._ret)
         return self._ret
+
+    def compute_transition_amplitudes(
+        self,
+        aux_operators: Optional[ListOrDict[OperatorBase]],
+        transition_amplitude_pairs: Optional[ListOrDict[Tuple[int, int]]],
+    ) -> Optional[ListOrDict[Tuple[complex, complex]]]:
+        """Computes the transition amplitudes for the desired auxiliary operators and eigenstates.
+        Args:
+            aux_operators: ListOrDict of auxiliary operators.
+            transition_amplitude_pairs: Dictionary specifying the names of the auxiliary operators
+            to consider, and the pairs of indices to take into account for the eigenstates.
+
+        Returns:
+            Dictionary of the resulting transition amplitudes. The keys of the result are
+            constructed with the following formula: aux_str + "_" + str(i) + "_" + str(j)
+
+        .. code-block::python
+
+            from qiskit.opflow import PauliSumOp
+            from qiskit.algorithms import NumPyEigensolver
+
+            qubit_op = PauliSumOp.from_list(
+                [
+                    ("II", -1.052373245772859),
+                    ("ZI", 0.39793742484318045),
+                    ("IZ", -0.39793742484318045),
+                    ("ZZ", -0.01128010425623538),
+                    ("XX", 0.18093119978423156),
+                ]
+            )
+            aux_op1 = PauliSumOp.from_list([("II", 2.0)])
+            aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XY", -0.5)])
+            aux_ops = {"aux_op1": aux_op1, "aux_op2": aux_op2}
+            pairs = {"names": ["aux_op2"], "indices": [(0, 1), (1, 0), (1, 2)]}
+            algo = NumPyEigensolver(k=4)
+            algo.compute_eigenvalues(operator=qubit_op, aux_operators=aux_ops)
+            transition_amplitudes = algo.compute_transition_amplitudes(aux_ops, pairs)
+            # {'aux_op2_0_1': (0.0, 0.0),
+            #  'aux_op2_1_0': (0.0, 0.0),
+            #  'aux_op2_1_2': ((6.661338147750939e-16-0.7071067811865472j), 0.0)}
+        """
+
+        transition_amplitude_vals = None
+
+        if aux_operators is not None and transition_amplitude_pairs is not None:
+
+            restricted_aux_ops = {}
+            for name in transition_amplitude_pairs["names"]:
+                restricted_aux_ops[name] = aux_operators[name]
+
+            transition_amplitude_vals = {}
+            for pair in transition_amplitude_pairs["indices"]:
+                i, j = pair
+                temp_results = self._eval_transition_amplitudes(
+                    restricted_aux_ops, self._ret.eigenstates[i], self._ret.eigenstates[j]
+                )
+                for aux_str, aux_res in temp_results.items():
+
+                    transition_amplitude_vals[str(aux_str) + "_" + str(i) + "_" + str(j)] = aux_res
+
+        return transition_amplitude_vals
