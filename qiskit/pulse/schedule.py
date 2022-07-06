@@ -917,7 +917,7 @@ class ScheduleBlock:
 
         with pulse.build() as sched2:
             with pulse.align_right():
-                pulse.refer("grand_child")
+                pulse.reference("grand_child")
                 pulse.play(pulse.Constant(200, amp2), pulse.DriveChannel(0))
 
         print(sched2.scoped_parameters)
@@ -930,7 +930,7 @@ class ScheduleBlock:
         sched2.assign_references({"grand_child": sched1})
         print(sched2.scoped_parameters)
 
-    Now you get two parameters "root.amp" and "root.grand_child.amp".
+    Now you get two parameters "root::amp" and "root::grand_child::amp".
     The second parameter indicates it is defined within the referred program "grand_child".
     The program calling the "grand_child" has a reference program description
     which is accessed through :attr:`ScheduleBlock.references`.
@@ -954,13 +954,13 @@ class ScheduleBlock:
         print(main.scoped_parameters)
 
     This implicitly creates a reference within the root program and assign ``sched2`` to it.
-    You get three parameters "root.amp", "root.child.amp", and "root.child.grand_child.amp".
+    You get three parameters "root::amp", "root::child::amp", and "root::child::grand_child::amp".
     As you can see, each parameter name reflects the layer of calls from the root program.
     If you know the scope of parameter, you can directly get the parameter object as follows.
 
     .. jupyter-execute::
 
-        main.get_parameters("amp", scope="root.child.grand_child")
+        main.get_parameters("amp", scope="root::child::grand_child")
 
     You can use regular expression to specify the scope.
     This returns the parameters defined within the scope of "ground_child"
@@ -969,7 +969,7 @@ class ScheduleBlock:
 
     .. jupyter-execute::
 
-        main.get_parameters("amp", scope="\\S.grand_child")
+        main.get_parameters("amp", scope="\\S::grand_child")
 
     Note that the root program is only aware of its direct references.
 
@@ -1138,7 +1138,7 @@ class ScheduleBlock:
 
     @property
     def channels(self) -> Tuple[Channel]:
-        """Returns channels that this schedule clock uses."""
+        """Returns channels that this schedule block uses."""
         chans = set()
         for elm in self.blocks:
             if isinstance(elm, Reference):
@@ -1606,7 +1606,7 @@ class ScheduleBlock:
         Args:
             parameter_name: Name of parameter.
             scope: Scope of the program to investigate. Defaults to the current block.
-                Scope can be specified with regular expression.
+                Scope is used as a regular expression to search all scoped parameters.
 
         Returns:
             Parameter objects that have corresponding name.

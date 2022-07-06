@@ -19,7 +19,7 @@ class ReferenceManager(dict):
     """Dictionary wrapper to manage pulse schedule references."""
 
     def unassigned(self) -> Tuple[Tuple[str, ...], ...]:
-        """Get unassigned reference keys.
+        """Get the keys of unassigned references.
 
         Returns:
             Tuple of reference keys.

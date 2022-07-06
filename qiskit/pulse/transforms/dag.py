@@ -89,7 +89,7 @@ def _parallel_allocation(block) -> rx.PyDAG:
     for elm in block.blocks:
         node_id = dag.add_node(elm)
         if isinstance(elm, Reference):
-            # Bloadcasting channels because reference channels is unknown.
+            # Broadcasting channels because the reference's channels are unknown.
             for chan, prev_id in slots.copy().items():
                 edges.append((prev_id, node_id))
                 slots[chan] = node_id

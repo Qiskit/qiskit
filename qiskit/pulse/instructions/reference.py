@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Call instruction that represents calling a schedule as a subroutine."""
+"""Reference instruction that is a placeholder for subroutine."""
 
 from typing import Optional, Union, Tuple, Set
 
@@ -27,7 +27,7 @@ class Reference(instruction.Instruction):
     using the :class:`~.Reference` class may significantly reduce the memory footprint of
     the program. This instruction only stores the set of strings to identify the subroutine.
 
-    The actual pulse program is stored in the :attr:`ScheduleBlock.references`
+    The actual pulse program can be stored in the :attr:`ScheduleBlock.references`
     that this reference instruction belongs to.
 
     You can later assign schedules with the :meth:`ScheduleBlock.assign_references` method.
@@ -42,13 +42,17 @@ class Reference(instruction.Instruction):
         """Create new reference.
 
         Args:
-            ref_keys: A set of string that represent this reference.
+            ref_keys: A single unique name or set of strings that represent this reference.
+                This depends on how user manages key mapping to a specific subroutine.
+                For example, "sx" schedule on qubit "q0" may be keyed with a single string
+                "sx_q0", or with a tuple of strings ("sx", "q0"). Users can use arbitrary
+                number of strings to uniquely determine the subroutine.
             name: Optional. A label of this reference.
 
         Raises:
-            PulseError: When no key is provided.
-            PulseError: When key is not a string.
-            PulseError: When key contains scope delimiter.
+            PulseError: When no key is provided, i.e. ``ref_keys`` has length 0.
+            PulseError: When a key is not a string.
+            PulseError: When a key in ``ref_keys`` contains the scope delimiter.
         """
         if len(ref_keys) == 0:
             raise PulseError("At least one key must be provided.")
@@ -62,7 +66,7 @@ class Reference(instruction.Instruction):
                 raise PulseError(f"Keys must be string. '{repr(key)}' is not a valid object.")
             if self.scope_delimiter in key:
                 raise PulseError(
-                    f"'{self.scope_delimiter}' is reserved. '{key}' is not valid key string."
+                    f"'{self.scope_delimiter}' is reserved. '{key}' is not a valid key string."
                 )
 
         super().__init__(operands=tuple(ref_keys), name=name)

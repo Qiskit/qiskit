@@ -1942,7 +1942,7 @@ def call(
         and outcome :class:`.Schedule` is added as a :class:`.Call` instruction.
         If the ``target`` program is :class:`.ScheduleBlock`, then :class:`.Reference`
         instruction is created and appended to the current context.
-        The ``target`` program is immediately assined to the current scope as a subrotuine.
+        The ``target`` program is immediately assigned to the current scope as a subroutine.
 
     Examples:
 
@@ -2059,7 +2059,7 @@ def refer(*ref_keys: str, name: Optional[str] = None):
     """Refer to undefined subroutine by string keys.
 
     A :class:`~qiskit.pulse.instructions.Reference` instruction is implicitly created
-    and schedule can be separately registered to the references at a later stage.
+    and a schedule can be separately registered to the references at a later stage.
 
     .. code-block:: python
 
