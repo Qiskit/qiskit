@@ -85,9 +85,9 @@ pub fn compose_u3_rust(
     } else {
         euler[0] = mat[3].atan2(mat[4]);
     }
-    for kk in 0..3 {
-        if euler[kk].abs() < 1e-15 {
-            euler[kk] = 0.0;
+    for k in &mut euler {
+        if k.abs() < 1e-15 {
+            *k = 0.0;
         }
     }
 
