@@ -144,7 +144,7 @@ class CPhaseGate(ControlledGate):
     .. math::
 
         CPhase =
-            |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes P =
+            I \otimes |0\rangle\langle 0| + P \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 \\
