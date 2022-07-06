@@ -19,11 +19,11 @@ use pyo3::Python;
 mod dense_layout;
 mod edge_collections;
 mod nlayout;
+mod optimize_1q_gates;
 mod pauli_exp_val;
 mod results;
 mod sparse_pauli_op;
 mod stochastic_swap;
-mod optimize_1q_gates;
 
 #[inline]
 pub fn getenv_use_multiple_threads() -> bool {
