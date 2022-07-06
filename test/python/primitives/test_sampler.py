@@ -84,7 +84,7 @@ class TestSampler(QiskitTestCase):
         """test for sampler"""
         circuits, target = self._generate_circuits_target(indices)
         with Sampler(circuits=circuits) as sampler:
-            result = sampler(parameter_values=[[] for _ in indices])
+            result = sampler(list(range(len(indices))), parameter_values=[[] for _ in indices])
             self._compare_probs(result.quasi_dists, target)
 
     @combine(indices=[[0], [1], [0, 1]])
@@ -101,7 +101,7 @@ class TestSampler(QiskitTestCase):
         circs = [self._pqc, self._pqc]
         params, target = self._generate_params_target(indices)
         with Sampler(circuits=circs) as sampler:
-            result = sampler(parameter_values=params)
+            result = sampler(indices, parameter_values=params)
             self._compare_probs(result.quasi_dists, target)
 
     def test_sampler_example(self):
@@ -125,6 +125,16 @@ class TestSampler(QiskitTestCase):
         # executes three Bell circuits
         with Sampler([bell] * 3, [[]] * 3) as sampler:
             result = sampler([0, 1, 2], [[]] * 3)
+            self.assertIsInstance(result, SamplerResult)
+            self.assertEqual(len(result.quasi_dists), 3)
+            self.assertEqual(len(result.metadata), 3)
+            for dist in result.quasi_dists:
+                keys, values = zip(*sorted(dist.items()))
+                self.assertTupleEqual(keys, tuple(range(4)))
+                np.testing.assert_allclose(values, [0.5, 0, 0, 0.5])
+
+        with Sampler([bell]) as sampler:
+            result = sampler([bell, bell, bell])
             self.assertIsInstance(result, SamplerResult)
             self.assertEqual(len(result.quasi_dists), 3)
             self.assertEqual(len(result.metadata), 3)
@@ -368,6 +378,48 @@ class TestSampler(QiskitTestCase):
                 self.assertEqual(len(result.metadata), k)
                 for i in range(k):
                     self.assertDictEqual(result.quasi_dists[i], target.quasi_dists[i])
+
+    def test_passing_objects(self):
+        """Test passing objects for Sampler."""
+
+        params, target = self._generate_params_target([0])
+
+        with self.subTest("Valid test"):
+            with Sampler(circuits=self._pqc) as sampler:
+                result = sampler(circuits=[self._pqc], parameter_values=params)
+                self._compare_probs(result.quasi_dists, target)
+
+        with self.subTest("Invalid circuit test"):
+            circuit = QuantumCircuit(2)
+            with Sampler(circuits=self._pqc) as sampler:
+                with self.assertRaises(QiskitError):
+                    result = sampler(circuits=[circuit], parameter_values=params)
+
+    @combine(indices=[[0], [1], [0, 1]])
+    def test_deprecated_circuit_indices(self, indices):
+        """Test for deprecated arguments"""
+        circuits, target = self._generate_circuits_target(indices)
+        with Sampler(circuits=circuits) as sampler:
+            with self.assertWarns(DeprecationWarning):
+                result = sampler(
+                    circuit_indices=list(range(len(indices))),
+                    parameter_values=[[] for _ in indices],
+                )
+            self._compare_probs(result.quasi_dists, target)
+
+    def test_with_shots_option(self):
+        """test with shots option."""
+        params, target = self._generate_params_target([1])
+        with Sampler(circuits=self._pqc) as sampler:
+            result = sampler(circuits=[0], parameter_values=params, shots=1024, seed=15)
+            self._compare_probs(result.quasi_dists, target)
+
+    def test_with_shots_option_none(self):
+        """test with shots=None option. Seed is ignored then."""
+        with Sampler([self._pqc]) as sampler:
+            result_42 = sampler([0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed=42)
+            result_15 = sampler([0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed=15)
+        self.assertDictAlmostEqual(result_42.quasi_dists, result_15.quasi_dists)
 
 
 if __name__ == "__main__":

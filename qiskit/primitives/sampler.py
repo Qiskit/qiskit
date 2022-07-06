@@ -16,7 +16,6 @@ Sampler class
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import cast
 
 import numpy as np
 
@@ -32,7 +31,19 @@ from .utils import final_measurement_mapping, init_circuit
 
 class Sampler(BaseSampler):
     """
-    Sampler class
+    Sampler class.
+
+    :class:`~Sampler` is a reference implementation of :class:`~BaseSampler`.
+
+    :Run Options:
+
+        - **shots** (None or int) --
+          The number of shots. If None, it calculates the probabilities.
+          Otherwise, it samples from multinomial distributions.
+
+        - **seed** (np.random.Generator or int) --
+          Set a fixed seed or generator for the multinomial distribution. If shots is None, this
+          option is ignored.
     """
 
     def __init__(
@@ -50,8 +61,8 @@ class Sampler(BaseSampler):
             QiskitError: if some classical bits are not used for measurements.
         """
         if isinstance(circuits, QuantumCircuit):
-            circuits = [circuits]
-        circuits = [init_circuit(circuit) for circuit in circuits]
+            circuits = (circuits,)
+        circuits = tuple(init_circuit(circuit) for circuit in circuits)
         q_c_mappings = [final_measurement_mapping(circuit) for circuit in circuits]
         self._qargs_list = []
         for circuit, q_c_mapping in zip(circuits, q_c_mappings):
@@ -63,36 +74,33 @@ class Sampler(BaseSampler):
                 )
             c_q_mapping = sorted((c, q) for q, c in q_c_mapping.items())
             self._qargs_list.append([q for _, q in c_q_mapping])
-        circuits = [circuit.remove_final_measurements(inplace=False) for circuit in circuits]
+        circuits = tuple(circuit.remove_final_measurements(inplace=False) for circuit in circuits)
         super().__init__(circuits, parameters)
         self._is_closed = False
 
-    def __call__(
+    def _call(
         self,
-        circuit_indices: Sequence[int] | None = None,
-        parameter_values: Sequence[Sequence[float]] | Sequence[float] | None = None,
+        circuits: Sequence[int],
+        parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> SamplerResult:
         if self._is_closed:
             raise QiskitError("The primitive has been closed.")
 
-        if isinstance(parameter_values, np.ndarray):
-            parameter_values = parameter_values.tolist()
-        if parameter_values and not isinstance(parameter_values[0], (np.ndarray, Sequence)):
-            parameter_values = cast("Sequence[float]", parameter_values)
-            parameter_values = [parameter_values]
-        if circuit_indices is None:
-            circuit_indices = list(range(len(self._circuits)))
-        if parameter_values is None:
-            parameter_values = [[]] * len(circuit_indices)
-        if len(circuit_indices) != len(parameter_values):
-            raise QiskitError(
-                f"The number of circuit indices ({len(circuit_indices)}) does not match "
-                f"the number of parameter value sets ({len(parameter_values)})."
-            )
+        shots = run_options.pop("shots", None)
+        seed = run_options.pop("seed", None)
+        if seed is None:
+            rng = np.random.default_rng()
+        elif isinstance(seed, np.random.Generator):
+            rng = seed
+        else:
+            rng = np.random.default_rng(seed)
+
+        # Initialize metadata
+        metadata = [{}] * len(circuits)
 
         bound_circuits_qargs = []
-        for i, value in zip(circuit_indices, parameter_values):
+        for i, value in zip(circuits, parameter_values):
             if len(value) != len(self._parameters[i]):
                 raise QiskitError(
                     f"The number of values ({len(value)}) does not match "
@@ -107,9 +115,15 @@ class Sampler(BaseSampler):
         probabilities = [
             Statevector(circ).probabilities(qargs=qargs) for circ, qargs in bound_circuits_qargs
         ]
+        if shots is not None:
+            probabilities = [
+                rng.multinomial(shots, probability) / shots for probability in probabilities
+            ]
+            for metadatum in metadata:
+                metadatum["shots"] = shots
         quasis = [QuasiDistribution(dict(enumerate(p))) for p in probabilities]
 
-        return SamplerResult(quasis, [{}] * len(circuit_indices))
+        return SamplerResult(quasis, metadata)
 
     def close(self):
         self._is_closed = True

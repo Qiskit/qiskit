@@ -12,25 +12,30 @@
 
 """Test the RZXCalibrationBuilderNoEcho."""
 
-from math import pi, erf, ceil
+from math import erf, pi
 
 import numpy as np
+from ddt import data, ddt
 
 from qiskit import circuit, schedule
-from qiskit.transpiler import PassManager
-from qiskit.test import QiskitTestCase
 from qiskit.pulse import (
-    Play,
-    Delay,
-    ShiftPhase,
     ControlChannel,
+    Delay,
     DriveChannel,
     GaussianSquare,
+    Waveform,
+    Play,
+    ShiftPhase,
+    InstructionScheduleMap,
+    Schedule,
 )
+from qiskit.test import QiskitTestCase
+from qiskit.providers.fake_provider import FakeAthens
+from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes.calibration.builders import (
+    RZXCalibrationBuilder,
     RZXCalibrationBuilderNoEcho,
 )
-from qiskit.test.mock import FakeAthens
 
 
 class TestCalibrationBuilder(QiskitTestCase):
@@ -40,6 +45,54 @@ class TestCalibrationBuilder(QiskitTestCase):
         super().setUp()
         self.backend = FakeAthens()
         self.inst_map = self.backend.defaults().instruction_schedule_map
+
+
+@ddt
+class TestRZXCalibrationBuilder(TestCalibrationBuilder):
+    """Test RZXCalibrationBuilder."""
+
+    @data(np.pi / 4, np.pi / 2, np.pi)
+    def test_rzx_calibration_builder_duration(self, theta: float):
+        """Test that pulse durations are computed correctly."""
+        width = 512.00000001
+        sigma = 64
+        n_sigmas = 4
+        duration = width + n_sigmas * sigma
+        sample_mult = 16
+        amp = 1.0
+        pulse = GaussianSquare(duration=duration, amp=amp, sigma=sigma, width=width)
+        instruction = Play(pulse, ControlChannel(1))
+        scaled = RZXCalibrationBuilder.rescale_cr_inst(instruction, theta, sample_mult=sample_mult)
+        gaussian_area = abs(amp) * sigma * np.sqrt(2 * np.pi) * erf(n_sigmas)
+        area = gaussian_area + abs(amp) * width
+        target_area = abs(theta) / (np.pi / 2.0) * area
+        width = (target_area - gaussian_area) / abs(amp)
+        expected_duration = round((width + n_sigmas * sigma) / sample_mult) * sample_mult
+        self.assertEqual(scaled.duration, expected_duration)
+
+    def test_pass_alive_with_dcx_ish(self):
+        """Test if the pass is not terminated by error with direct CX input."""
+        cx_sched = Schedule()
+        # Fake direct cr
+        cx_sched.insert(0, Play(GaussianSquare(800, 0.2, 64, 544), ControlChannel(1)), inplace=True)
+        # Fake direct compensation tone
+        # Compensation tone doesn't have dedicated pulse class.
+        # So it's reported as a waveform now.
+        compensation_tone = Waveform(0.1 * np.ones(800, dtype=complex))
+        cx_sched.insert(0, Play(compensation_tone, DriveChannel(0)), inplace=True)
+
+        inst_map = InstructionScheduleMap()
+        inst_map.add("cx", (1, 0), schedule=cx_sched)
+
+        theta = pi / 3
+        rzx_qc = circuit.QuantumCircuit(2)
+        rzx_qc.rzx(theta, 1, 0)
+
+        pass_ = RZXCalibrationBuilder(instruction_schedule_map=inst_map)
+        with self.assertWarns(UserWarning):
+            # User warning that says q0 q1 is invalid
+            cal_qc = PassManager(pass_).run(rzx_qc)
+        self.assertEqual(cal_qc, rzx_qc)
 
 
 class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
@@ -58,8 +111,7 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
 
         # apply the RZXCalibrationBuilderNoEcho.
         pass_ = RZXCalibrationBuilderNoEcho(
-            instruction_schedule_map=self.backend.defaults().instruction_schedule_map,
-            qubit_channel_mapping=self.backend.configuration().qubit_channel_mapping,
+            instruction_schedule_map=self.backend.defaults().instruction_schedule_map
         )
         cal_qc = PassManager(pass_).run(rzx_qc)
         rzx_qc_duration = schedule(cal_qc, self.backend).duration
@@ -98,8 +150,48 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
         area = gaussian_area + abs(amp) * width
         target_area = abs(theta) / (np.pi / 2.0) * area
         width = (target_area - gaussian_area) / abs(amp)
-        duration = ceil((width + n_sigmas * sigma) / sample_mult) * sample_mult
+        duration = round((width + n_sigmas * sigma) / sample_mult) * sample_mult
 
         # Check whether the durations of the RZX pulse and
         # the scaled CR pulse from the CX gate match.
         self.assertEqual(rzx_qc_duration, duration)
+
+    def test_pulse_amp_typecasted(self):
+        """Test if scaled pulse amplitude is complex type."""
+        fake_play = Play(
+            GaussianSquare(duration=800, amp=0.1, sigma=64, risefall_sigma_ratio=2),
+            ControlChannel(0),
+        )
+        fake_theta = circuit.Parameter("theta")
+        assigned_theta = fake_theta.assign(fake_theta, 0.01)
+
+        scaled = RZXCalibrationBuilderNoEcho.rescale_cr_inst(
+            instruction=fake_play, theta=assigned_theta
+        )
+        scaled_pulse = scaled.pulse
+
+        self.assertIsInstance(scaled_pulse.amp, complex)
+
+    def test_pass_alive_with_dcx_ish(self):
+        """Test if the pass is not terminated by error with direct CX input."""
+        cx_sched = Schedule()
+        # Fake direct cr
+        cx_sched.insert(0, Play(GaussianSquare(800, 0.2, 64, 544), ControlChannel(1)), inplace=True)
+        # Fake direct compensation tone
+        # Compensation tone doesn't have dedicated pulse class.
+        # So it's reported as a waveform now.
+        compensation_tone = Waveform(0.1 * np.ones(800, dtype=complex))
+        cx_sched.insert(0, Play(compensation_tone, DriveChannel(0)), inplace=True)
+
+        inst_map = InstructionScheduleMap()
+        inst_map.add("cx", (1, 0), schedule=cx_sched)
+
+        theta = pi / 3
+        rzx_qc = circuit.QuantumCircuit(2)
+        rzx_qc.rzx(theta, 1, 0)
+
+        pass_ = RZXCalibrationBuilderNoEcho(instruction_schedule_map=inst_map)
+        with self.assertWarns(UserWarning):
+            # User warning that says q0 q1 is invalid
+            cal_qc = PassManager(pass_).run(rzx_qc)
+        self.assertEqual(cal_qc, rzx_qc)

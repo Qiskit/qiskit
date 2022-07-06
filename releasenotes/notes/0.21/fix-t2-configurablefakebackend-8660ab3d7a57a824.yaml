@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed the :attr:`.ConfigurableFakeBackend.t2` attribute,
+    which was previously incorrectly set based on the provided ``t1`` value.

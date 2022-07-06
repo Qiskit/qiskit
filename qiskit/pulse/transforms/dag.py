@@ -58,6 +58,9 @@ def block_to_dag(block: ScheduleBlock) -> rx.PyDAG:
 
     Returns:
         Instructions in DAG representation.
+
+    Raises:
+        PulseError: When the context is invalid subclass.
     """
     if block.alignment_context.is_sequential:
         return _sequential_allocation(block)

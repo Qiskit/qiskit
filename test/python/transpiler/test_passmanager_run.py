@@ -16,7 +16,7 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.library import CXGate
 from qiskit.transpiler.preset_passmanagers import level_1_pass_manager
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeMelbourne
+from qiskit.providers.fake_provider import FakeMelbourne
 from qiskit.transpiler import Layout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 
@@ -64,9 +64,9 @@ class TestPassManagerRun(QiskitTestCase):
 
         bit_indices = {bit: idx for idx, bit in enumerate(new_circuit.qregs[0])}
 
-        for gate, qargs, _ in new_circuit.data:
-            if isinstance(gate, CXGate):
-                self.assertIn([bit_indices[x] for x in qargs], coupling_map)
+        for instruction in new_circuit.data:
+            if isinstance(instruction.operation, CXGate):
+                self.assertIn([bit_indices[x] for x in instruction.qubits], coupling_map)
 
     def test_default_pass_manager_two(self):
         """Test default_pass_manager.run(circuitS).
@@ -114,6 +114,6 @@ class TestPassManagerRun(QiskitTestCase):
         for new_circuit in new_circuits:
             bit_indices = {bit: idx for idx, bit in enumerate(new_circuit.qregs[0])}
 
-            for gate, qargs, _ in new_circuit.data:
-                if isinstance(gate, CXGate):
-                    self.assertIn([bit_indices[x] for x in qargs], coupling_map)
+            for instruction in new_circuit.data:
+                if isinstance(instruction.operation, CXGate):
+                    self.assertIn([bit_indices[x] for x in instruction.qubits], coupling_map)

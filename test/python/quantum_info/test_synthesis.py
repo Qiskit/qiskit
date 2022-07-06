@@ -17,10 +17,12 @@ import contextlib
 import logging
 from test import combine
 
-from ddt import ddt
 import numpy as np
+import scipy
+import scipy.stats
+from ddt import ddt, data
 
-from qiskit import execute, QiskitError
+from qiskit import execute, QiskitError, transpile
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.extensions import UnitaryGate
@@ -72,6 +74,7 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (
 )
 
 from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
+import qiskit.quantum_info.synthesis.qsd as qsd
 from qiskit.test import QiskitTestCase
 
 
@@ -349,14 +352,14 @@ class TestOneQubitEulerSpecial(CheckDecompositions):
         """Check OneQubitEulerDecomposer produces the expected gates"""
         decomposer = OneQubitEulerDecomposer(basis)
         circ = decomposer(target, simplify=True)
-        data = Operator(circ).data
-        maxdist = np.max(np.abs(target.data - data))
-        trace = np.trace(data.T.conj() @ target)
+        cdata = Operator(circ).data
+        maxdist = np.max(np.abs(target.data - cdata))
+        trace = np.trace(cdata.T.conj() @ target)
         self.assertLess(
             np.abs(maxdist),
             tolerance,
             f"Worst case distance: {maxdist}, trace: {trace}\n"
-            f"Target:\n{target}\nActual:\n{data}\n{circ}",
+            f"Target:\n{target}\nActual:\n{cdata}\n{circ}",
         )
         if expected_gates is not None:
             self.assertDictEqual(dict(circ.count_ops()), expected_gates, f"Circuit:\n{circ}")
@@ -1358,6 +1361,103 @@ class TestDecomposeProductRaises(QiskitTestCase):
         with self.assertRaises(QiskitError) as exc:
             decompose_two_qubit_product_gate(klkr)
         self.assertIn("decomposition failed", exc.exception.message)
+
+
+@ddt
+class TestQuantumShannonDecomposer(QiskitTestCase):
+    """
+    Test Quantum Shannon Decomposition.
+    """
+
+    def setUp(self):
+        super().setUp()
+        np.random.seed(657)  # this seed should work for calls to scipy.stats.<method>.rvs()
+        self.qsd = qsd.qs_decomposition
+
+    def _get_lower_cx_bound(self, n):
+        return 1 / 4 * (4**n - 3 * n - 1)
+
+    def _qsd_l2_cx_count(self, n):
+        """expected unoptimized cnot count for down to 2q"""
+        return 9 / 16 * 4**n - 3 / 2 * 2**n
+
+    def _qsd_l2_a1_mod(self, n):
+        return (4 ** (n - 2) - 1) // 3
+
+    def _qsd_l2_a2_mod(self, n):
+        return 4 ** (n - 1) - 1
+
+    @data(*list(range(1, 5)))
+    def test_random_decomposition_l2_no_opt(self, nqubits):
+        """test decomposition of random SU(n) down to 2 qubits without optimizations."""
+        dim = 2**nqubits
+        mat = scipy.stats.unitary_group.rvs(dim)
+        circ = self.qsd(mat, opt_a1=False)
+        ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
+        self.assertTrue(np.allclose(mat, Operator(ccirc).data))
+        if nqubits > 1:
+            self.assertLessEqual(ccirc.count_ops().get("cx"), self._qsd_l2_cx_count(nqubits))
+        else:
+            self.assertEqual(sum(ccirc.count_ops().values()), 1)
+
+    @data(*list(range(1, 5)))
+    def test_random_decomposition_l2_a1_opt(self, nqubits):
+        """test decomposition of random SU(n) down to 2 qubits with 'a1' optimization."""
+        dim = 2**nqubits
+        mat = scipy.stats.unitary_group.rvs(dim)
+        circ = self.qsd(mat, opt_a1=True)
+        ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
+        self.assertTrue(np.allclose(mat, Operator(ccirc).data))
+        if nqubits > 1:
+            expected_cx = self._qsd_l2_cx_count(nqubits) - self._qsd_l2_a1_mod(nqubits)
+            self.assertLessEqual(ccirc.count_ops().get("cx"), expected_cx)
+
+    def test_SO3_decomposition_l2_a1_opt(self):
+        """test decomposition of random So(3) down to 2 qubits with 'a1' optimization."""
+        nqubits = 3
+        dim = 2**nqubits
+        mat = scipy.stats.ortho_group.rvs(dim)
+        circ = self.qsd(mat, opt_a1=True)
+        ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
+        self.assertTrue(np.allclose(mat, Operator(ccirc).data))
+        expected_cx = self._qsd_l2_cx_count(nqubits) - self._qsd_l2_a1_mod(nqubits)
+        self.assertLessEqual(ccirc.count_ops().get("cx"), expected_cx)
+
+    def test_identity_decomposition(self):
+        """Test decomposition on identity matrix"""
+        nqubits = 3
+        dim = 2**nqubits
+        mat = np.identity(dim)
+        circ = self.qsd(mat, opt_a1=True)
+        self.assertTrue(np.allclose(mat, Operator(circ).data))
+        self.assertEqual(sum(circ.count_ops().values()), 0)
+
+    @data(*list(range(1, 4)))
+    def test_diagonal(self, nqubits):
+        """Test decomposition on diagonal -- qsd is not optimal"""
+        dim = 2**nqubits
+        mat = np.diag(np.exp(1j * np.random.normal(size=dim)))
+        circ = self.qsd(mat, opt_a1=True)
+        ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
+        self.assertTrue(np.allclose(mat, Operator(ccirc).data))
+        if nqubits > 1:
+            expected_cx = self._qsd_l2_cx_count(nqubits) - self._qsd_l2_a1_mod(nqubits)
+            self.assertLessEqual(ccirc.count_ops().get("cx"), expected_cx)
+
+    @data(*list(range(2, 4)))
+    def test_hermitian(self, nqubits):
+        """Test decomposition on hermitian -- qsd is not optimal"""
+        # better might be (arXiv:1405.6741)
+        dim = 2**nqubits
+        umat = scipy.stats.unitary_group.rvs(dim)
+        dmat = np.diag(np.exp(1j * np.random.normal(size=dim)))
+        mat = umat.T.conjugate() @ dmat @ umat
+        circ = self.qsd(mat, opt_a1=True)
+        ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
+        self.assertTrue(np.allclose(mat, Operator(ccirc).data))
+        if nqubits > 1:
+            expected_cx = self._qsd_l2_cx_count(nqubits) - self._qsd_l2_a1_mod(nqubits)
+            self.assertLessEqual(ccirc.count_ops().get("cx"), expected_cx)
 
 
 if __name__ == "__main__":
