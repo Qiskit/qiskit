@@ -48,7 +48,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions import Instruction, Reference
-from qiskit.pulse.utils import instruction_duration_validation, scope_parameter
+from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.pulse.reference_manager import ReferenceManager
 from qiskit.utils.multiprocessing import is_main_process
 
@@ -1190,7 +1190,7 @@ class ScheduleBlock:
             All parameters defined under the current scope.
         """
         parameters = set(
-            scope_parameter(param, scope, Reference.scope_delimiter) if add_scope else param
+            _scope_parameter(param, scope, Reference.scope_delimiter) if add_scope else param
             for param in self._parameter_manager.parameters
         )
         for sub_namespace, subroutine in self.references.items():
@@ -1552,8 +1552,6 @@ class ScheduleBlock:
             return new_schedule.assign_references(subroutine_dict, inplace=True)
 
         for key, subroutine in subroutine_dict.items():
-            if isinstance(key, str):
-                key = (key,)
             if key not in self.references:
                 unassigned_keys = ", ".join(map(repr, self.references.unassigned()))
                 raise PulseError(
@@ -1617,9 +1615,7 @@ class ScheduleBlock:
 
         matched = set()
         for param in self.scoped_parameters:
-            scope_and_name = param.name.split(Reference.scope_delimiter)
-            eval_scope = Reference.scope_delimiter.join(scope_and_name[:-1])
-            eval_name = scope_and_name[-1]
+            eval_scope, _, eval_name = param.name.rpartition(Reference.scope_delimiter)
             if re.search(scope, eval_scope) and parameter_name == eval_name:
                 matched.add(param)
 
@@ -1900,6 +1896,15 @@ def _get_references(block_elms: List["BlockComponent"]) -> Set[Reference]:
         elif isinstance(elm, Reference):
             references.append(elm)
     return set(references)
+
+
+def _scope_parameter(param: Parameter, scope: str, delimiter: str = ":") -> Parameter:
+    """Override parameter object with program scope information."""
+    new_name = f"{scope}{delimiter}{param.name}"
+    scoped_param = Parameter.__new__(Parameter, new_name, uuid=getattr(param, "_uuid"))
+    scoped_param.__init__(new_name)
+
+    return scoped_param
 
 
 # These type aliases are defined at the bottom of the file, because as of 2022-01-18 they are

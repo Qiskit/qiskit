@@ -115,12 +115,3 @@ def deprecated_functionality(func):
         return func(*args, **kwargs)
 
     return wrapper
-
-
-def scope_parameter(param: Parameter, scope: str, delimiter: str = ":") -> Parameter:
-    """Override parameter object with program scope information."""
-    new_name = f"{scope}{delimiter}{param.name}"
-    scoped_param = Parameter.__new__(Parameter, new_name, uuid=getattr(param, "_uuid"))
-    scoped_param.__init__(new_name)
-
-    return scoped_param
