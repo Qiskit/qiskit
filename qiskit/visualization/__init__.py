@@ -118,16 +118,10 @@ import warnings
 
 from .array import array_to_latex
 
-from .circuit import (
-    circuit_drawer,
-    _text_circuit_drawer,
-    _latex_circuit_drawer,
-    _matplotlib_circuit_drawer,
-)
-
-from .plots import plot_histogram
-from .plots import Bloch, Arrow3D
-from .plots import (
+from .circuit import circuit_drawer
+from .counts_visualization import plot_histogram
+from .bloch import Bloch, Arrow3D
+from .state_visualization import (
     plot_state_hinton,
     plot_bloch_vector,
     plot_bloch_multivector,
@@ -136,10 +130,10 @@ from .plots import (
     plot_state_qsphere,
     state_drawer,
 )
-from .plots import visualize_transition
-from .plots import dag_drawer
-from .plots import plot_gate_map, plot_circuit_layout, plot_error_map, plot_coupling_map
-from .plots import pass_manager_drawer
+from .transition_visualization import visualize_transition
+from .dag_visualization import dag_drawer
+from .gate_map import plot_gate_map, plot_circuit_layout, plot_error_map, plot_coupling_map
+from .pass_manager_visualization import pass_manager_drawer
 
 from .pulse.interpolation import step_wise, linear, cubic_spline
 from .pulse.qcstyle import PulseStyle, SchedStyle

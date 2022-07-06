@@ -14,10 +14,6 @@
 
 from qiskit.utils import optionals as _optionals
 
-# Temporary import from 0.22.0 to be deprecated in future
-# pylint: disable=unused-wildcard-import,cyclic-import,wildcard-import
-from .circuit.circuit_utils import *
-
 
 @_optionals.HAS_PIL.require_in_call("the latex circuit drawer")
 def _trim(image):

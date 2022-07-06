@@ -23,9 +23,7 @@ from qiskit.test import QiskitTestCase
 
 
 class TestVisualizationUtils(QiskitTestCase):
-    """Tests for visualizer utilities.
-    Since the utilities in qiskit/tools/visualization/circuit_utils.py are used by several visualizers
-    the need to be check if the interface or their result changes."""
+    """Tests for circuit drawer utilities."""
 
     def setUp(self):
         super().setUp()

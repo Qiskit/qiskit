@@ -12,9 +12,4 @@
 
 """ Init for circuit visualizations """
 
-from .circuit_visualization import (
-    circuit_drawer,
-    _text_circuit_drawer,
-    _latex_circuit_drawer,
-    _matplotlib_circuit_drawer,
-)
+from .circuit_visualization import circuit_drawer
