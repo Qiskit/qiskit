@@ -1,0 +1,8 @@
+features:
+  - |
+    Adds the public method :meth:`.NumpyEigensolver.compute_transition_amplitudes` to
+    the :class:`.NumpyEigensolver`. This allows the user to specify auxiliary operators
+    and pairs of eigenstates (k,l) to evaluate the associated transition amplitudes after 
+    :meth:`.NumpyEigensolver.compute_eigenvalues` was called. See the docstring for an example
+    of using the feature.
+
