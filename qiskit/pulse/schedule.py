@@ -1505,10 +1505,10 @@ class ScheduleBlock:
                 pulse.delay(10, pulse.DriveChannel(0))
 
             with pulse.build() as sub_prog:
-                pulse.refer("A")
+                pulse.reference("A")
 
             with pulse.build() as main_prog:
-                pulse.refer("B")
+                pulse.reference("B")
 
         In above example, the ``main_prog`` is only aware of the subroutine "root::B" and the
         reference of "B" to program "A", i.e., "B::A", is not exposed to the root namespace.

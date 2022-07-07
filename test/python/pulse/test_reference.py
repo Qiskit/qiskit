@@ -75,10 +75,10 @@ class TestReference(QiskitTestCase):
             pulse.play(pulse.Constant(100, 0.1, name="x1"), pulse.DriveChannel(0))
 
         with pulse.build() as sched_y1:
-            builder.refer("x1", "d0")
+            builder.reference("x1", "d0")
 
         with pulse.build() as sched_z1:
-            builder.refer("y1", "d0")
+            builder.reference("y1", "d0")
 
         sched_y1.assign_references({("x1", "d0"): sched_x1})
         sched_z1.assign_references({("y1", "d0"): sched_y1})
@@ -100,10 +100,10 @@ class TestReference(QiskitTestCase):
             pulse.play(pulse.Constant(100, param, name="x1"), pulse.DriveChannel(0))
 
         with pulse.build() as sched_y1:
-            builder.refer("x1", "d0")
+            builder.reference("x1", "d0")
 
         with pulse.build() as sched_z1:
-            builder.refer("y1", "d0")
+            builder.reference("y1", "d0")
 
         sched_y1.assign_references({("x1", "d0"): sched_x1})
         sched_z1.assign_references({("y1", "d0"): sched_y1})
@@ -365,7 +365,7 @@ class TestReference(QiskitTestCase):
             pulse.play(pulse.Constant(100, param, name="x1"), pulse.DriveChannel(0))
 
         with pulse.build() as sched_y1:
-            pulse.refer("sub", "q0")
+            pulse.reference("sub", "q0")
         sched_y1.assign_references({("sub", "q0"): sched_x1})
 
         ret_param = sched_y1.get_parameters("my.parameter_object", scope=r"\Ssub,q0")[0]
@@ -443,11 +443,11 @@ class TestSubroutineWithCXGate(QiskitTestCase):
 
         with pulse.build(name="lazy_ecr") as sched:
             with pulse.align_sequential():
-                pulse.refer("cr", "q0", "q1")
-                pulse.refer("xp", "q0")
+                pulse.reference("cr", "q0", "q1")
+                pulse.reference("xp", "q0")
                 with pulse.phase_offset(np.pi, pulse.ControlChannel(self.cr_ch)):
-                    pulse.refer("cr", "q0", "q1")
-                pulse.refer("xp", "q0")
+                    pulse.reference("cr", "q0", "q1")
+                pulse.reference("xp", "q0")
 
         # Schedule has references
         self.assertTrue(sched.is_referenced())

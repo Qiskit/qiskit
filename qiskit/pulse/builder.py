@@ -302,7 +302,7 @@ Pulse instructions are available within the builder interface. Here's an example
     call
     delay
     play
-    refer
+    reference
     set_frequency
     set_phase
     shift_frequency
@@ -2044,7 +2044,7 @@ def call(
     )
 
 
-def refer(name: str, *extra_keys: str):
+def reference(name: str, *extra_keys: str):
     """Refer to undefined subroutine by string keys.
 
     A :class:`~qiskit.pulse.instructions.Reference` instruction is implicitly created
@@ -2055,7 +2055,7 @@ def refer(name: str, *extra_keys: str):
         from qiskit import pulse
 
         with pulse.build() as main_prog:
-            pulse.refer("x_gate", "q0")
+            pulse.reference("x_gate", "q0")
 
         with pulse.build() as subroutine:
             pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
