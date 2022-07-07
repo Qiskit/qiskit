@@ -15,7 +15,7 @@
 import itertools
 import logging
 from copy import deepcopy
-from typing import List, Optional, Union, cast, Dict
+from typing import Dict, List, Optional, Union, cast
 
 import numpy as np
 
@@ -317,7 +317,7 @@ class Z2Symmetries:
                         and stacked_symmetries[row, col + symm_shape[1] // 2] == 1
                     ):
                         sq_paulis.append(
-                            Pauli(np.zeros(symm_shape[1] // 2), np.zeros(symm_shape[1] // 2))
+                            Pauli((np.zeros(symm_shape[1] // 2), np.zeros(symm_shape[1] // 2)))
                         )
                         sq_paulis[row].z[col] = True
                         sq_paulis[row].x[col] = False
@@ -347,7 +347,7 @@ class Z2Symmetries:
                         and stacked_symmetries[row, col + symm_shape[1] // 2] == 0
                     ):
                         sq_paulis.append(
-                            Pauli(np.zeros(symm_shape[1] // 2), np.zeros(symm_shape[1] // 2))
+                            Pauli((np.zeros(symm_shape[1] // 2), np.zeros(symm_shape[1] // 2)))
                         )
                         sq_paulis[row].z[col] = True
                         sq_paulis[row].x[col] = True

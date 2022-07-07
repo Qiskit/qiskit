@@ -569,15 +569,21 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         if natural_direction in {None, True} and (
             coupling_map or (target is not None and decomposer2q and not preferred_direction)
         ):
-            cmap = coupling_map
-            neighbors0 = cmap.neighbors(qubits[0])
-            zero_one = qubits[1] in neighbors0
-            neighbors1 = cmap.neighbors(qubits[1])
-            one_zero = qubits[0] in neighbors1
-            if zero_one and not one_zero:
-                preferred_direction = [0, 1]
-            if one_zero and not zero_one:
-                preferred_direction = [1, 0]
+            if coupling_map is not None:
+                cmap = coupling_map
+            else:
+                cmap = target.build_coupling_map()
+            # If we don't have a defined coupling map (either from the input)
+            # or from the target we can't check for a natural direction
+            if cmap is not None:
+                neighbors0 = cmap.neighbors(qubits[0])
+                zero_one = qubits[1] in neighbors0
+                neighbors1 = cmap.neighbors(qubits[1])
+                one_zero = qubits[0] in neighbors1
+                if zero_one and not one_zero:
+                    preferred_direction = [0, 1]
+                if one_zero and not zero_one:
+                    preferred_direction = [1, 0]
         if (
             natural_direction in {None, True}
             and preferred_direction is None

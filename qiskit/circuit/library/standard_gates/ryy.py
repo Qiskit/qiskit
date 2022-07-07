@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Two-qubit YY-rotation gate."""
-
+import math
 from typing import Optional
 import numpy as np
 from qiskit.circuit.gate import Gate
@@ -110,8 +110,8 @@ class RYYGate(Gate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the RYY gate."""
         theta = float(self.params[0])
-        cos = np.cos(theta / 2)
-        isin = 1j * np.sin(theta / 2)
+        cos = math.cos(theta / 2)
+        isin = 1j * math.sin(theta / 2)
         return np.array(
             [[cos, 0, 0, isin], [0, cos, -isin, 0], [0, -isin, cos, 0], [isin, 0, 0, cos]],
             dtype=dtype,

@@ -31,6 +31,15 @@ sys.modules["qiskit._accelerate.sparse_pauli_op"] = qiskit._accelerate.sparse_pa
 sys.modules["qiskit._accelerate.results"] = qiskit._accelerate.results
 
 
+# Extend namespace for backwards compat
+from qiskit import namespace
+
+# Add hook to redirect imports from qiskit.providers.aer* to qiskit_aer*
+# this is necessary for backwards compatibility for users when qiskit-aer
+# and qiskit-terra shared the qiskit namespace
+new_meta_path_finder = namespace.QiskitElementImport("qiskit.providers.aer", "qiskit_aer")
+sys.meta_path = [new_meta_path_finder] + sys.meta_path
+
 # qiskit errors operator
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
@@ -52,6 +61,9 @@ import qiskit.circuit.reset
 # Allow extending this namespace. Please note that currently this line needs
 # to be placed *before* the wrapper imports or any non-import code AND *before*
 # importing the package you want to allow extensions for (in this case `backends`).
+
+# TODO: Remove when we drop support for importing qiskit-aer < 0.11.0 and the
+# qiskit-ibmq-provider package is retired/archived.
 __path__ = pkgutil.extend_path(__path__, __name__)
 
 # Please note these are global instances, not modules.
@@ -61,11 +73,11 @@ _config = _user_config.get_config()
 
 # Moved to after IBMQ and Aer imports due to import issues
 # with other modules that check for IBMQ (tools)
-from qiskit.execute_function import execute  # noqa
-from qiskit.compiler import transpile, assemble, schedule, sequence  # noqa
+from qiskit.execute_function import execute
+from qiskit.compiler import transpile, assemble, schedule, sequence
 
-from .version import __version__  # noqa
-from .version import QiskitVersion  # noqa
+from .version import __version__
+from .version import QiskitVersion
 
 
 __qiskit_version__ = QiskitVersion()
@@ -83,6 +95,13 @@ class AerWrapper:
                 from qiskit.providers import aer
 
                 self.aer = aer.Aer
+                warnings.warn(
+                    "The qiskit.Aer entry point will be deprecated in a future release and "
+                    "subsequently removed. Instead you should use this "
+                    "directly from the root of the qiskit-aer package.",
+                    PendingDeprecationWarning,
+                    stacklevel=2,
+                )
             except ImportError:
                 return False
         return True
@@ -93,6 +112,13 @@ class AerWrapper:
                 from qiskit.providers import aer
 
                 self.aer = aer.Aer
+                warnings.warn(
+                    "The qiskit.Aer entry point will be deprecated in a future release and "
+                    "subsequently removed. Instead you should use this "
+                    "directly from the root of the qiskit-aer package.",
+                    PendingDeprecationWarning,
+                    stacklevel=2,
+                )
             except ImportError as ex:
                 raise MissingOptionalLibraryError(
                     "qiskit-aer", "Aer provider", "pip install qiskit-aer"

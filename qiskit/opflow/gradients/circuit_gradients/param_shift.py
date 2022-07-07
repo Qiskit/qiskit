@@ -208,7 +208,7 @@ class ParamShift(CircuitGradient):
             shifted_ops = []
             summed_shifted_op = None
 
-            iref_to_data_index = {id(inst): idx for idx, (inst, _, _) in enumerate(circ.data)}
+            iref_to_data_index = {id(inst.operation): idx for idx, inst in enumerate(circ.data)}
 
             for param_reference in circ._parameter_table[param]:
                 original_gate, param_index = param_reference
@@ -221,8 +221,8 @@ class ParamShift(CircuitGradient):
                 pshift_circ = self.get_unique_circuits(pshift_op)[0]
                 mshift_circ = self.get_unique_circuits(mshift_op)[0]
 
-                pshift_gate = pshift_circ.data[m][0]
-                mshift_gate = mshift_circ.data[m][0]
+                pshift_gate = pshift_circ.data[m].operation
+                mshift_gate = mshift_circ.data[m].operation
 
                 p_param = pshift_gate.params[param_index]
                 m_param = mshift_gate.params[param_index]

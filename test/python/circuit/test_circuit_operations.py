@@ -159,7 +159,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc += qc
 
         # finally, qc should contain two X gates
-        self.assertEqual(["x", "x"], [x[0].name for x in qc.data])
+        self.assertEqual(["x", "x"], [x.operation.name for x in qc.data])
 
     def test_combine_circuit_common(self):
         """Test combining two circuits with same registers (inplace=False)."""
@@ -886,13 +886,13 @@ class TestCircuitOperations(QiskitTestCase):
             self.assertEqual(qc.power(4), qc.repeat(4))
 
         with self.subTest("explicit matrix power"):
-            self.assertEqual(qc.power(4, matrix_power=True).data[0][0], gate.power(4))
+            self.assertEqual(qc.power(4, matrix_power=True).data[0].operation, gate.power(4))
 
         with self.subTest("float power"):
-            self.assertEqual(qc.power(1.23).data[0][0], gate.power(1.23))
+            self.assertEqual(qc.power(1.23).data[0].operation, gate.power(1.23))
 
         with self.subTest("negative power"):
-            self.assertEqual(qc.power(-2).data[0][0], gate.power(-2))
+            self.assertEqual(qc.power(-2).data[0].operation, gate.power(-2))
 
     def test_power_parameterized_circuit(self):
         """Test taking a parameterized circuit to a power."""
@@ -968,9 +968,9 @@ class TestCircuitOperations(QiskitTestCase):
         rep = qc.repeat(3)
 
         if subtype == "gate":
-            self.assertTrue(all(isinstance(op[0], Gate) for op in rep.data))
+            self.assertTrue(all(isinstance(op.operation, Gate) for op in rep.data))
         else:
-            self.assertTrue(all(isinstance(op[0], Instruction) for op in rep.data))
+            self.assertTrue(all(isinstance(op.operation, Instruction) for op in rep.data))
 
     def test_reverse_bits(self):
         """Test reversing order of bits."""
@@ -1262,6 +1262,6 @@ class TestCircuitPrivateOperations(QiskitTestCase):
         last_instructions = test.u(x, y, 0, 0)
         self.assertEqual({x, y}, set(test.parameters))
 
-        instruction, _, _ = test._pop_previous_instruction_in_scope()
+        instruction = test._pop_previous_instruction_in_scope()
         self.assertEqual(list(last_instructions), [instruction])
         self.assertEqual({y}, set(test.parameters))

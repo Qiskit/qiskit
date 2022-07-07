@@ -32,7 +32,7 @@ from qiskit.pulse import transforms, instructions
 from qiskit.pulse.channels import MemorySlot, DriveChannel, AcquireChannel
 from qiskit.pulse.instructions import directives
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q
+from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
 
 class TestAlignMeasures(QiskitTestCase):
