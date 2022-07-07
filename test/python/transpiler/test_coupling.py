@@ -12,10 +12,13 @@
 
 # pylint: disable=missing-docstring
 
+import unittest
+
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.exceptions import CouplingError
 from qiskit.providers.fake_provider import FakeRueschlikon
 from qiskit.test import QiskitTestCase
+from qiskit.utils import optionals
 
 
 class CouplingTest(QiskitTestCase):
@@ -436,3 +439,9 @@ class CouplingTest(QiskitTestCase):
         edge_list = subgraph.get_edges()
         expected = [(0, 1), (1, 2), (2, 3)]
         self.assertEqual(expected, edge_list, f"{edge_list} does not match {expected}")
+
+    @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    def test_coupling_draw(self):
+        """Test that the coupling map can be drawn."""
+        cmap = CouplingMap([[0, 1], [1, 2], [2, 3], [2, 4], [2, 5], [2, 6]])
+        cmap.draw()
