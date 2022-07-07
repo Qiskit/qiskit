@@ -72,19 +72,15 @@ pub fn compose_u3_rust(
     ];
 
     // Grab the euler angles
-    let mut euler: [f64; 3] = [0., 0., 0.];
-    if mat[8] < 1.0 {
+    let mut euler: [f64; 3] = if mat[8] < 1.0 {
         if mat[8] > -1.0 {
-            euler[0] = mat[5].atan2(mat[2]);
-            euler[1] = (mat[8]).acos();
-            euler[2] = mat[7].atan2(-mat[6]);
+            [mat[5].atan2(mat[2]), (mat[8]).acos(), mat[7].atan2(-mat[6])]
         } else {
-            euler[0] = -1. * (mat[3].atan2(mat[4]));
-            euler[1] = PI;
+            [-1. * (mat[3].atan2(mat[4])), PI, 0.]
         }
     } else {
-        euler[0] = mat[3].atan2(mat[4]);
-    }
+        [mat[3].atan2(mat[4]), 0., 0.]
+    };
     euler.iter_mut().filter(|k| k.abs() < 1e-15).for_each(|k| *k = 0.0);
 
     let out_angles: [f64; 3] = [euler[1], phi1 + euler[0], lambda2 + euler[2]];
